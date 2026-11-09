@@ -322,7 +322,7 @@ void BookEditor::setPaperScale(double scale)
     if (cursorShown) {
         updateTypewriterScroll(false);
     }
-    applyFirstShowShrink();  // the page's new width, until the first paint
+    applyPageWidthZoom();  // the page's new width
     update();
 }
 
@@ -373,22 +373,35 @@ void BookEditor::zoomToPageWidth()
 void BookEditor::shrinkToPageWidthOnFirstShow()
 {
     m_shrinkOnFirstShow = true;
-    applyFirstShowShrink();
+    applyPageWidthZoom();
 }
 
-void BookEditor::applyFirstShowShrink()
+void BookEditor::setKeepsPageWidth(bool keeps)
 {
-    if (!m_shrinkOnFirstShow || !m_renderPipeline) {
+    m_keepsPageWidth = keeps;
+    applyPageWidthZoom();
+}
+
+bool BookEditor::keepsPageWidth() const
+{
+    return m_keepsPageWidth;
+}
+
+void BookEditor::applyPageWidthZoom()
+{
+    if ((!m_shrinkOnFirstShow && !m_keepsPageWidth) || !m_renderPipeline) {
         return;
     }
     const double widthZoom = pageWidthZoom();
     if (widthZoom <= 0.0) {
         return;
     }
-    // At most the zoom of the settings: a page that fits the view keeps it
-    const double factor = qBound(MIN_ZOOM_FACTOR,
-                                 std::min(m_appearance.pageLayout.zoomLevel, widthZoom),
-                                 MAX_ZOOM_FACTOR);
+    // The page's width; on first show at most the zoom of the settings: a page that fits
+    // the view keeps it
+    const double factor = qBound(
+        MIN_ZOOM_FACTOR,
+        m_keepsPageWidth ? widthZoom : std::min(m_appearance.pageLayout.zoomLevel, widthZoom),
+        MAX_ZOOM_FACTOR);
     if (std::abs(factor - zoomFactor()) >= 0.001) {
         // The text at the top of the view stays there: the start of a new text
         applyZoom(factor, QPointF(width() / 2.0, 0.0));

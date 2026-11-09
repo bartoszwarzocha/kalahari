@@ -160,6 +160,9 @@ GrammarSetupDialog::GrammarSetupDialog(GrammarSetup* setup, QWidget* parent)
     m_stopButton = buttonBox()->addButton(tr("&Cancel"), QDialogButtonBox::ActionRole);
     m_stopButton->setAutoDefault(false);
     connect(m_stopButton, &QPushButton::clicked, this, [this]() { m_setup->cancel(); });
+    // No Apply: hidden after Cancel of the steps is added, as adding a button lays out the
+    // box again and shows every button in it
+    applyButton()->hide();
     m_copyButton = addSideButton(tr("&Copy"));
     connect(m_copyButton, &QPushButton::clicked, this, &GrammarSetupDialog::copyFailure);
 

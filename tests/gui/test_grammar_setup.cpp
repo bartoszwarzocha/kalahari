@@ -256,6 +256,8 @@ TEST_CASE("Grammar setup window: what is downloaded, then the steps, in the back
     CHECK(dialog.windowTitle() == QStringLiteral("Preparing Grammar Checking"));
     CHECK(dialog.acceptButton()->text() == QStringLiteral("&Download and Prepare"));
     CHECK(dialog.acceptButton()->isEnabled());
+    // No Apply, which adding Cancel of the steps would show again
+    CHECK_FALSE(dialog.applyButton()->isVisibleTo(&dialog));
     CHECK(shows(dialog, QStringLiteral("about %1").arg(GrammarComponents::sizeText(300'000'000))));
     CHECK(shows(dialog, QStringLiteral("LanguageTool 6.6")));
 

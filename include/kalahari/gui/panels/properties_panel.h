@@ -23,8 +23,11 @@ class QLineEdit;
 class QComboBox;
 class QTextEdit;
 class QFormLayout;
+class QVBoxLayout;
 class QGroupBox;
+class QPushButton;
 class QTimer;
+class QToolButton;
 
 namespace kalahari::editor {
 class BookEditor;
@@ -34,6 +37,8 @@ namespace kalahari {
 namespace gui {
 
 class EditorPanel;
+class LinkedMaterialsBox;
+class MaterialPage;
 class SectionNamesEdit;
 class SectionsComboBox;
 
@@ -42,7 +47,8 @@ class SectionsComboBox;
 /// Shows different content based on current context:
 /// - NoProject: Placeholder message when no project is open
 /// - Project: Project metadata (title, author, language, genre, sections, statistics)
-/// - Chapter: Chapter properties (title, word count, status, notes)
+/// - Chapter: Chapter properties (title, word count, status, notes, linked materials)
+/// - Material: The short card of a material (MaterialPage)
 /// - Editor: Text selection statistics (word/char count); the paragraph at the cursor is
 ///   the Paragraph and Styles panel's (ParagraphPanel)
 ///
@@ -59,7 +65,8 @@ public:
         Chapter = 2,    ///< Chapter properties view
         Section = 3,    ///< Section aggregate statistics view
         Part = 4,       ///< Part aggregate statistics view
-        Editor = 5      ///< Editor statistics view (selection/document stats)
+        Editor = 5,     ///< Editor statistics view (selection/document stats)
+        Material = 6    ///< The short card of a material of the Workshop
     };
 
     /// @brief Constructor
@@ -71,6 +78,14 @@ public:
 
     /// @brief The page the panel shows
     Page currentPage() const;
+
+    /// @brief The card of a material
+    MaterialPage* materialPage() const { return m_materialPage; }
+
+    /// @brief The materials of the element of the chapter page, of the section and of the part
+    LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
+    LinkedMaterialsBox* sectionMaterials() const { return m_sectionMaterials; }
+    LinkedMaterialsBox* partMaterials() const { return m_partMaterials; }
 
 public slots:
     /// @brief Show project properties view
@@ -87,8 +102,16 @@ public slots:
     /// @param elementId Element ID of the chapter to display
     ///
     /// Switches to chapter properties page and populates fields from
-    /// the specified chapter element.
+    /// the specified chapter element; a material shows its card (showMaterialProperties()).
     void showChapterProperties(const QString& elementId);
+
+    /// @brief Show the card of material @p elementId of the Workshop
+    void showMaterialProperties(const QString& elementId);
+
+    /// @brief Give the keys to the first field of the page shown, scrolled to it (Alt+Enter in
+    /// the Navigator): the title of the book, of an element or of a material; the materials of
+    /// a section or a part
+    void focusFirstField();
 
     /// @brief Show no project placeholder
     ///
@@ -105,7 +128,8 @@ public slots:
 
     /// @brief Show editor statistics view
     ///
-    /// Switches to editor page showing text statistics.
+    /// Switches to editor page showing text statistics, and for a text of the book the
+    /// group of its versions under them.
     /// Called when user starts editing in BookEditor.
     void showEditorProperties();
 
@@ -121,6 +145,10 @@ public slots:
     ///
     /// Re-reads data from ProjectManager and updates displayed values.
     void refresh();
+
+    /// @brief Show again what the current page shows of material @p elementId: its card, or
+    /// its title among the linked materials; the fields the writer edits stay as they are
+    void refreshMaterial(const QString& elementId);
 
     /// @brief Show the words ProjectManager counts now on the current page, also of the
     /// changes that are not saved; the fields the writer edits stay as they are
@@ -167,6 +195,9 @@ private slots:
     /// @brief Handle cursor position changed in BookEditor
     void onEditorCursorChanged();
 
+    /// @brief The group of the versions again, when the page with it is shown
+    void refreshVersions();
+
 protected:
     /// @brief Event filter for handling focus events
     /// @param obj Object that received the event
@@ -191,6 +222,41 @@ signals:
     /// @brief Emitted when the book's language is changed in the panel
     /// @param language Its code (pl, en...)
     void bookLanguageChanged(const QString& language);
+
+    /// @brief Open the preview of material @p elementId
+    void requestPreview(const QString& elementId);
+
+    /// @brief Open material @p elementId in the program the system gives its file
+    void requestOpenWithSystem(const QString& elementId);
+
+    /// @brief Open material @p elementId as the settings say
+    void requestOpenMaterial(const QString& elementId);
+
+    /// @brief Open what link @p link of a material names: an element, or the section in the
+    /// Navigator
+    void requestOpenLink(const QString& link);
+
+    /// @brief Open the web address of material @p elementId in the browser
+    void requestOpenInBrowser(const QString& elementId);
+
+    /// @brief Download the copy of the picture of material @p elementId
+    void requestSaveCopy(const QString& elementId);
+
+    /// @brief Material @p elementId changed on its card in the panel: its other cards show it
+    void materialChanged(const QString& elementId);
+
+    /// @brief Something to say on the status bar: "Address copied: ..."
+    void message(const QString& text);
+    /// @brief Save Version in the group of the versions: keep the text of element
+    /// @p elementId as a version
+    void requestSaveVersion(const QString& elementId);
+
+    /// @brief Version History... in the group of the versions: the versions of the text of
+    /// element @p elementId
+    void requestVersionHistory(const QString& elementId);
+
+    /// @brief The gear of the group of the versions: Settings > Editor > Versions
+    void requestVersionSettings();
 
 private:
     /// @brief Setup UI components
@@ -220,6 +286,20 @@ private:
     /// @return Created widget
     QWidget* createEditorPage();
 
+    /// @brief Setup the page of the card of a material
+    /// @return Created widget
+    QWidget* createMaterialPage();
+
+    /// @brief A box of the materials linked with an element or a section, which forwards their
+    /// opening
+    LinkedMaterialsBox* createMaterialsBox(QWidget* parent);
+
+    /// @brief Show the materials linked with the section of the section page
+    void showSectionMaterials();
+
+    /// @brief Show the materials linked with the part of the part page
+    void showPartMaterials();
+
     /// @brief Connect signals to ProjectManager
     void connectSignals();
 
@@ -228,6 +308,10 @@ private:
 
     /// @brief Update editor statistics from current BookEditor
     void updateEditorStatistics();
+
+    /// @brief Put the group of the versions on the page of @p layout (of the Chapter page or
+    ///        the Editor page): the one group follows the page shown
+    void placeVersionsGroup(QVBoxLayout* layout);
 
     /// @brief Populate project fields from current project
     void populateProjectFields();
@@ -260,6 +344,17 @@ private:
 
     /// @brief Select @p status in the chapter's status combo; "draft" when it is not there
     void selectChapterStatus(const QString& status);
+
+    /// @brief The group of the versions of the text of element @p elementId: how many, the
+    /// last one and its description; hidden for an element whose text has none. While
+    /// versions are turned off it says so, and how many can be read in the history.
+    void showVersions(const QString& elementId);
+
+    /// @brief Put the gear of the group of the versions at the end of the line of its title
+    void placeVersionSettingsButton();
+
+    /// @brief The icons of the buttons of the group of the versions, in the icon colors
+    void updateVersionIcons();
 
     /// @brief Show the type of the open book @p project: its icon and its name, greyed out
     /// when the program does not have it, as the Dashboard shows it
@@ -300,6 +395,16 @@ private:
     QComboBox* m_chapterStatusCombo;
     QGroupBox* m_chapterNotesGroup;
     QTextEdit* m_chapterNotesEdit;
+    LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
+    QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
+    QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept
+    QLabel* m_versionsLastLabel = nullptr;        ///< The description of the last one
+    QPushButton* m_saveVersionButton = nullptr;
+    QPushButton* m_versionHistoryButton = nullptr;
+    QToolButton* m_versionSettingsButton = nullptr;  ///< The gear at the end of the title
+    QString m_versionsElementId;  ///< The text whose versions the group shows
+    QVBoxLayout* m_chapterPageLayout = nullptr;  ///< The Chapter page, for the versions group
+    QVBoxLayout* m_editorPageLayout = nullptr;   ///< The Editor page, for the versions group
 
     // Section Page widgets
     QLabel* m_sectionTitleLabel;
@@ -310,6 +415,7 @@ private:
     QLabel* m_sectionDraftCountLabel;
     QLabel* m_sectionRevisionCountLabel;
     QLabel* m_sectionFinalCountLabel;
+    LinkedMaterialsBox* m_sectionMaterials = nullptr;  ///< The materials of the section
 
     // Part Page widgets
     QLabel* m_partTitleLabel;
@@ -319,6 +425,9 @@ private:
     QLabel* m_partDraftCountLabel;
     QLabel* m_partRevisionCountLabel;
     QLabel* m_partFinalCountLabel;
+    LinkedMaterialsBox* m_partMaterials = nullptr;  ///< The materials of the part
+    // The card of a material
+    MaterialPage* m_materialPage = nullptr;
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
     QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"
@@ -340,7 +449,8 @@ private:
     // OpenSpec #00043: Debounce timer for cursor change updates
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
-    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting
+    int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting,
+                                ///< versions turned on or off
 };
 
 } // namespace gui
