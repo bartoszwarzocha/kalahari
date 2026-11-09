@@ -6,13 +6,29 @@
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_tables.h>
+#include <QPainter>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextTable>
 #include <algorithm>
+#include <cmath>
 
 namespace kalahari::editor {
+
+namespace {
+
+/// How near an edge between columns the mouse takes it, in pixels of the widget
+constexpr qreal COLUMN_EDGE_GRIP = 3.0;
+
+/// The parts of a row on the pages: one, but for a row split between pages
+std::vector<std::pair<qreal, qreal>> rowParts(const KalahariTextDocumentLayout::TableRow& row)
+{
+    return row.parts.empty() ? std::vector<std::pair<qreal, qreal>>{{row.top, row.top + row.height}}
+                             : row.parts;
+}
+
+}  // namespace
 
 bool BookEditor::isInTable() const
 {
@@ -196,6 +212,93 @@ bool BookEditor::deleteAtTableEdge(bool backward)
             {neighbour.blockNumber(), backward ? neighbour.length() - 1 : 0});
     }
     return true;
+}
+
+std::optional<BookEditor::ColumnEdge> BookEditor::columnEdgeAt(const QPointF& widgetPos) const
+{
+    if (!m_textBuffer || m_readOnly || !m_renderPipeline) {
+        return std::nullopt;
+    }
+    const auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    if (!layout) {
+        return std::nullopt;
+    }
+    // The table under the point: in one of its rows
+    const QPointF point = m_renderPipeline->widgetToDocument(widgetPos);
+    const int position =
+        layout->hitTest(QPointF(std::max(0.0, point.x()), std::max(0.0, point.y())), Qt::FuzzyHit);
+    QTextTable* table = position >= 0 ? tableAt(*m_textBuffer, position) : nullptr;
+    if (!table || table->columns() < 2) {
+        return std::nullopt;
+    }
+    bool inRow = false;
+    for (const KalahariTextDocumentLayout::TableRow& row : layout->tableRows(*table)) {
+        for (const auto& [top, bottom] : rowParts(row)) {
+            inRow = inRow || (point.y() >= top && point.y() <= bottom);
+        }
+    }
+    if (!inRow) {
+        return std::nullopt;
+    }
+
+    // The inner edge nearest the point, near enough on the screen
+    const std::vector<qreal> edges = layout->tableColumnEdges(*table);
+    int nearest = -1;
+    qreal distance = COLUMN_EDGE_GRIP + 0.5;
+    for (int column = 1; column + 1 < static_cast<int>(edges.size()); ++column) {
+        const qreal x =
+            m_renderPipeline->documentToWidget(QPointF(edges[static_cast<size_t>(column)], point.y())).x();
+        if (std::abs(x - widgetPos.x()) < distance) {
+            distance = std::abs(x - widgetPos.x());
+            nearest = column;
+        }
+    }
+    if (nearest < 0) {
+        return std::nullopt;
+    }
+    return ColumnEdge{table, nearest};
+}
+
+void BookEditor::dragColumnEdge(const QPointF& widgetPos)
+{
+    const auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    if (!m_columnDrag || !m_columnDrag->table || !layout) {
+        return;
+    }
+    // Between the edges next to it, the columns at least as wide as the narrowest
+    const std::vector<qreal> edges = layout->tableColumnEdges(*m_columnDrag->table);
+    const auto column = static_cast<size_t>(m_columnDrag->column);
+    if (column + 1 >= edges.size()) {
+        return;
+    }
+    const qreal narrowest = std::max<qreal>(1.0, MIN_COLUMN_WIDTH * layout->pixelsPerPoint());
+    const qreal left = edges[column - 1] + narrowest;
+    const qreal right = std::max(left, edges[column + 1] - narrowest);
+    m_columnDragX = std::clamp(m_renderPipeline->widgetToDocument(widgetPos).x(), left, right);
+    update();
+}
+
+void BookEditor::paintColumnGuide(QPainter& painter) const
+{
+    const auto* layout = m_textBuffer
+                             ? qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout())
+                             : nullptr;
+    if (!m_columnDrag || !m_columnDrag->table || !layout) {
+        return;
+    }
+    // A dashed line in the color of the text, down the table's rows on each page
+    QPen pen(m_appearance.colors.textColor(m_appearance.colorMode), 1.0, Qt::DashLine);
+    painter.save();
+    painter.setPen(pen);
+    for (const KalahariTextDocumentLayout::TableRow& row : layout->tableRows(*m_columnDrag->table)) {
+        for (const auto& [top, bottom] : rowParts(row)) {
+            const QPointF from = m_renderPipeline->documentToWidget(QPointF(m_columnDragX, top));
+            const QPointF to = m_renderPipeline->documentToWidget(QPointF(m_columnDragX, bottom));
+            const qreal x = std::round(from.x()) + 0.5;
+            painter.drawLine(QPointF(x, from.y()), QPointF(x, to.y()));
+        }
+    }
+    painter.restore();
 }
 
 QTextCursor BookEditor::selectionToReplace()

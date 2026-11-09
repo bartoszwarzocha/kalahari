@@ -512,6 +512,7 @@ void BookEditor::paintEvent(QPaintEvent* event)
     const QScopedValueRollback<bool> paintingWholeView(m_paintingWholeView,
                                                        event->region().contains(rect()));
     m_renderPipeline->render(&painter, event->rect());
+    paintColumnGuide(painter);
 
     // Distraction-free mode overlay (not yet migrated to pipeline)
     paintDistractionFreeOverlay(painter);

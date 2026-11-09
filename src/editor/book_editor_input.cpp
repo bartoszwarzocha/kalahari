@@ -93,6 +93,14 @@ private:
 
 void BookEditor::keyPressEvent(QKeyEvent* event)
 {
+    // Esc lets go of the edge of columns being dragged: the columns stay as they were
+    if (m_columnDrag && event->key() == Qt::Key_Escape) {
+        m_columnDrag.reset();
+        update();
+        event->accept();
+        return;
+    }
+
     // Ctrl pressed over a link: the hand of Ctrl+click at once, as the mouse stays
     if (event->key() == Qt::Key_Control && underMouse()) {
         updatePointerShape(mapFromGlobal(QCursor::pos()), event->modifiers());
@@ -325,6 +333,16 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
 
     QPointF clickPos = event->position();
 
+    // The edge between two columns of a table: dragged, it sets their widths
+    if (!(event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier))) {
+        if (std::optional<ColumnEdge> edge = columnEdgeAt(clickPos)) {
+            m_columnDrag = edge;
+            dragColumnEdge(clickPos);
+            event->accept();
+            return;
+        }
+    }
+
     // Check for multi-click (double/triple)
     bool isMultiClick = false;
     if (m_clickTimer != nullptr && m_clickTimer->isActive()) {
@@ -423,6 +441,12 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
+    if (m_columnDrag) {
+        dragColumnEdge(pos);
+        event->accept();
+        return;
+    }
+
     if (m_textDragPending) {
         if ((pos - m_textDragStartPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_textDragPending = false;
@@ -454,6 +478,9 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
     if (!annotationMarkAt(pos).isEmpty() ||
         ((modifiers & Qt::ControlModifier) && linkAt(pos).has_value())) {
         shape = Qt::PointingHandCursor;
+    } else if (!(modifiers & (Qt::ShiftModifier | Qt::ControlModifier)) &&
+               columnEdgeAt(pos).has_value()) {
+        shape = Qt::SplitHCursor;  // the edge between two columns, which can be dragged
     } else if (isOverSelectedText(pos)) {
         shape = Qt::ArrowCursor;
     }
@@ -474,6 +501,18 @@ void BookEditor::mouseReleaseEvent(QMouseEvent* event)
 
     stopAutoScroll();
     m_isDragging = false;
+    if (m_columnDrag) {
+        // The edge where it was let go: the widths of the two columns, one step of Undo
+        const ColumnEdge edge = *m_columnDrag;
+        m_columnDrag.reset();
+        if (edge.table) {
+            setColumnEdge(*edge.table, edge.column, m_columnDragX);
+        }
+        updatePointerShape(event->position(), event->modifiers());
+        update();
+        event->accept();
+        return;
+    }
     if (m_textDragPending) {
         // A click on the selected text without dragging places the cursor there
         m_textDragPending = false;

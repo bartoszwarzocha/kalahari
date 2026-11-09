@@ -41,6 +41,8 @@
 #include <QTextDocument>
 #include <QElapsedTimer>
 #include <QList>
+#include <QPointer>
+#include <QTextTable>
 #include <functional>
 #include <map>
 #include <memory>
@@ -2014,6 +2016,22 @@ private:
     ///        annotation's mark and, with Ctrl, over a link; an arrow over the selected text
     void updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers modifiers);
 
+    /// @brief An edge between two columns of a table: the table and the column right of it
+    struct ColumnEdge {
+        QPointer<QTextTable> table;
+        int column = 0;
+    };
+
+    /// @brief The edge between two columns at a widget point, within a few pixels of it, in a
+    ///        text that can change (dragging it sets the widths of the two columns)
+    std::optional<ColumnEdge> columnEdgeAt(const QPointF& widgetPos) const;
+
+    /// @brief The edge being dragged follows the mouse, between the edges next to it
+    void dragColumnEdge(const QPointF& widgetPos);
+
+    /// @brief Draw the line where the edge being dragged goes
+    void paintColumnGuide(QPainter& painter) const;
+
     /// @brief Whether a position lies in the selection, its ends included
     bool isInSelection(const CursorPosition& position) const;
 
@@ -2353,6 +2371,8 @@ private:
 
     // Drag and drop of text (stage 3)
     bool m_textDragPending = false;     ///< Press on the selection: drags once the mouse moves far enough
+    std::optional<ColumnEdge> m_columnDrag;  ///< The edge of columns being dragged
+    qreal m_columnDragX = 0.0;               ///< Where it goes, in the document
     QPointF m_textDragStartPos;         ///< Where that press was
     QTimer* m_autoScrollTimer = nullptr;  ///< Scrolls while selecting or dragging near the edges
     QPointF m_autoScrollPos;            ///< Last mouse position for automatic scrolling
