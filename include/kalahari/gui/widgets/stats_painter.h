@@ -72,6 +72,9 @@ QString number(qint64 value);
 /// @brief A time of writing as hours and minutes: "2:35"
 QString hoursMinutes(qint64 ms);
 
+/// @brief The name of a temperature of work ("a lot, fast"); empty when it is unknown
+QString temperatureName(core::WritingTemperature temperature);
+
 /// @brief The fine grid: @p columns vertical and @p rows horizontal lines inside @p rect,
 /// without the lines on its edges
 void drawGrid(QPainter& painter, const QRectF& rect, int columns, int rows, const QColor& color);

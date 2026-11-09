@@ -129,6 +129,7 @@ set(TEST_SOURCES
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_status_bar_statistics.cpp           # Counts of the document in front in the status bar
     gui/test_writing_stats_bar.cpp               # The statistics bar and its model
+    gui/test_writing_stats_panel.cpp             # The Statistics panel
     gui/test_stats_pages.cpp                     # Settings > Statistics and Goals
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
@@ -286,6 +287,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/writing_stats_panel.cpp  # Statistics panel
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_marks_coordinator.cpp  # Paperclips of linked paragraphs
     ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_coordinator.cpp  # The statistics bar and goals
@@ -419,6 +421,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_stats_panel.h  # WritingStatsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_coordinator.h

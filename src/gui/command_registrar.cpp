@@ -647,6 +647,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // No key of its own: Next Spelling or Grammar Issue (F7) opens it at the issue it finds
     REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 70, false, 0);
 
+    // The views of the writing: today, the week, 30 days, the book, the times of writing
+    REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 80, false, 0);
+
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)
     REG_CMD_TOOL_ICON("view.mode.continuous", QT_TRANSLATE_NOOP("CommandRegistrar", "&Continuous"), "VIEW/View Mode/Continuous", 55, false, 0,

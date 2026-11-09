@@ -14,6 +14,7 @@
 #include <QPointer>
 
 #include <functional>
+#include <utility>
 
 class QTimer;
 
@@ -125,6 +126,16 @@ public:
     /// end of the day of the rules); a multiple of ACTIVITY_SLOT_MINUTES that divides a day
     static QList<DayPiece> dayPieces(const core::WritingStatistics& statistics, const QDate& day,
                                      int minutes);
+
+    /// @brief The minutes of a writing day that its graph shows, from the start of the day:
+    /// the hours @p fromHour to @p toHour of the clock (24 is midnight), wider when @p pieces
+    /// of @p pieceMinutes have writing outside them or @p nowMinute is outside; they start
+    /// and end on whole hours of the clock
+    /// @param dayStart The end of a writing day of the rules, in minutes after midnight
+    /// @return The first minute and the minute after the last one
+    static std::pair<int, int> shownMinutes(const QList<DayPiece>& pieces, int pieceMinutes,
+                                            int dayStart, int fromHour, int toHour,
+                                            int nowMinute);
 
     /// @brief The minutes from the start of writing day @p day to @p when; may be outside
     /// 0 to 1440

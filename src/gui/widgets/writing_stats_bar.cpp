@@ -206,22 +206,9 @@ void WritingStatsBar::readNumbers()
     m_nowMinute = std::clamp<qint64>(m_model->minutesIntoDay(today, now), 0, DAY_MINUTES);
 
     // The hours of the settings, wider when the writing or now is outside them
-    int from = ((m_fromHour * 60 - m_dayStart) % DAY_MINUTES + DAY_MINUTES) % DAY_MINUTES;
-    int to = m_toHour * 60 - m_dayStart;
-    while (to <= from) {
-        to += DAY_MINUTES;
-    }
-    to = std::min(to, DAY_MINUTES);
-    for (int i = 0; i < m_pieces.size(); ++i) {
-        if (m_pieces[i].written != 0 || m_pieces[i].deleted != 0) {
-            from = std::min(from, i * piece);
-            to = std::max(to, (i + 1) * piece);
-        }
-    }
-    from = std::min<int>(from, int(m_nowMinute));
-    to = std::max<int>(to, int(m_nowMinute) + 1);
-    from = std::max(0, hourBefore(from, m_dayStart));
-    to = std::min(DAY_MINUTES, hourAfter(to, m_dayStart));
+    const auto [from, to] = WritingStatsModel::shownMinutes(m_pieces, piece, m_dayStart,
+                                                            m_fromHour, m_toHour,
+                                                            int(m_nowMinute));
     m_firstPiece = from / piece;
     m_endPiece = std::max(m_firstPiece + 1, (to + piece - 1) / piece);
 
@@ -249,31 +236,8 @@ void WritingStatsBar::readNumbers()
     const QColor wordsColor = m_temperature == core::WritingTemperature::Unknown && !done
                                   ? m_colors.text
                                   : m_stateColor;
-    QString temperatureName;
-    core::WritingTemperature shown = m_temperature;
-    if (done) {
-        temperatureName = tr("goal reached");
-    } else {
-        switch (shown) {
-        case core::WritingTemperature::MuchFast:
-            temperatureName = tr("a lot, fast");
-            break;
-        case core::WritingTemperature::MuchSlow:
-            temperatureName = tr("a lot, slowly");
-            break;
-        case core::WritingTemperature::LittleFast:
-            temperatureName = tr("a little, fast");
-            break;
-        case core::WritingTemperature::LittleSlow:
-            temperatureName = tr("a little, slowly");
-            break;
-        case core::WritingTemperature::Idle:
-            temperatureName = tr("pause");
-            break;
-        case core::WritingTemperature::Unknown:
-            break;
-        }
-    }
+    const QString temperatureName =
+        done ? tr("goal reached") : stats_painter::temperatureName(m_temperature);
 
     // The words: the numbers in their colors, the rest of the sentence as the language has it
     Text words;

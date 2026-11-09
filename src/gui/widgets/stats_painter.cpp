@@ -6,6 +6,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
+#include <QCoreApplication>
 #include <QLocale>
 #include <QPainter>
 #include <QPainterPath>
@@ -183,6 +184,30 @@ QString hoursMinutes(qint64 ms)
 {
     const qint64 minutes = std::max<qint64>(0, ms) / 60000;
     return QStringLiteral("%1:%2").arg(minutes / 60).arg(minutes % 60, 2, 10, QLatin1Char('0'));
+}
+
+QString temperatureName(core::WritingTemperature temperature)
+{
+    switch (temperature) {
+    case core::WritingTemperature::MuchFast:
+        //: In Polish: dużo i szybko
+        return QCoreApplication::translate("StatsPainter", "a lot, fast");
+    case core::WritingTemperature::MuchSlow:
+        //: In Polish: dużo i powoli
+        return QCoreApplication::translate("StatsPainter", "a lot, slowly");
+    case core::WritingTemperature::LittleFast:
+        //: In Polish: mało i szybko
+        return QCoreApplication::translate("StatsPainter", "a little, fast");
+    case core::WritingTemperature::LittleSlow:
+        //: In Polish: mało i powoli
+        return QCoreApplication::translate("StatsPainter", "a little, slowly");
+    case core::WritingTemperature::Idle:
+        //: In Polish: przerwa
+        return QCoreApplication::translate("StatsPainter", "pause");
+    case core::WritingTemperature::Unknown:
+        break;
+    }
+    return QString();
 }
 
 void drawGrid(QPainter& painter, const QRectF& rect, int columns, int rows, const QColor& color)

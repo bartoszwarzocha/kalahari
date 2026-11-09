@@ -239,6 +239,36 @@ QList<DayPiece> WritingStatsModel::dayPieces(const core::WritingStatistics& stat
     return pieces;
 }
 
+std::pair<int, int> WritingStatsModel::shownMinutes(const QList<DayPiece>& pieces,
+                                                    int pieceMinutes, int dayStart,
+                                                    int fromHour, int toHour, int nowMinute)
+{
+    constexpr int DAY_MINUTES = 24 * 60;
+    // The minute of the day at or before a minute where an hour of the clock starts
+    const auto hourBefore = [dayStart](int minute) {
+        const int clock = ((minute + dayStart) % 60 + 60) % 60;
+        return minute - clock;
+    };
+    int from = ((fromHour * 60 - dayStart) % DAY_MINUTES + DAY_MINUTES) % DAY_MINUTES;
+    int to = toHour * 60 - dayStart;
+    while (to <= from) {
+        to += DAY_MINUTES;
+    }
+    to = std::min(to, DAY_MINUTES);
+    for (int i = 0; i < pieces.size(); ++i) {
+        if (pieces[i].written != 0 || pieces[i].deleted != 0) {
+            from = std::min(from, i * pieceMinutes);
+            to = std::max(to, (i + 1) * pieceMinutes);
+        }
+    }
+    from = std::min(from, nowMinute);
+    to = std::max(to, nowMinute + 1);
+    from = std::max(0, hourBefore(from));
+    const int before = hourBefore(to);
+    to = std::min(DAY_MINUTES, before == to ? to : before + 60);
+    return {from, to};
+}
+
 qint64 WritingStatsModel::minutesIntoDay(const QDate& day, const QDateTime& when) const
 {
     const QDateTime start(day, QTime(0, 0).addSecs(qint64(m_rules.dayStartMinutes) * 60));

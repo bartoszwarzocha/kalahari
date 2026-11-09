@@ -37,6 +37,7 @@ class AssistantPanel;
 class AnnotationsPanel;
 class SpellingPanel;
 class ParagraphPanel;
+class WritingStatsPanel;
 class FittingScrollArea;
 class InfoBar;
 class PanelTabs;
@@ -199,6 +200,9 @@ public:
     /// @brief Get the Spelling and Grammar panel
     [[nodiscard]] SpellingPanel* spellingPanel() const { return m_spellingPanel; }
 
+    /// @brief The Statistics panel (its statistics come from WritingStatsCoordinator)
+    [[nodiscard]] WritingStatsPanel* statisticsPanel() const { return m_statisticsPanel; }
+
     /// @brief The Paragraph and Styles panel of its own (paragraphDock())
     [[nodiscard]] ParagraphPanel* paragraphPanel() const { return m_paragraphPanel; }
 
@@ -244,6 +248,9 @@ public:
 
     /// @brief Get the dock of the Spelling and Grammar panel
     [[nodiscard]] QDockWidget* spellingDock() const { return m_spellingDock; }
+
+    /// @brief The dock of the Statistics panel
+    [[nodiscard]] QDockWidget* statisticsDock() const { return m_statisticsDock; }
 
     /// @brief The dock of the Paragraph and Styles panel of its own (hidden while the panel is
     /// in the Properties panel)
@@ -372,6 +379,9 @@ private:
     /// @brief Create the dock of the Spelling and Grammar panel (hidden until opened)
     void createSpellingDock();
 
+    /// @brief Create the dock of the Statistics panel, a tab after the Annotations panel
+    void createStatisticsDock();
+
     /// @brief Create the dock of the Paragraph and Styles panel of its own
     void createParagraphDock();
 
@@ -439,6 +449,7 @@ private:
     QDockWidget* m_annotationsDock{nullptr};
     QDockWidget* m_spellingDock{nullptr};
     QDockWidget* m_paragraphDock{nullptr};
+    QDockWidget* m_statisticsDock{nullptr};
 
     // Panels
     NavigatorPanel* m_navigatorPanel{nullptr};
@@ -449,6 +460,7 @@ private:
     AssistantPanel* m_assistantPanel{nullptr};
     AnnotationsPanel* m_annotationsPanel{nullptr};
     SpellingPanel* m_spellingPanel{nullptr};
+    WritingStatsPanel* m_statisticsPanel{nullptr};
     ParagraphPanel* m_paragraphPanel{nullptr};       ///< In its own dock
     ParagraphPanel* m_propertiesParagraph{nullptr};  ///< The lower part of Properties
     QSplitter* m_propertiesSplitter{nullptr};        ///< Properties | Paragraph and Styles
@@ -470,6 +482,7 @@ private:
     QAction* m_viewAnnotationsAction{nullptr};
     QAction* m_viewSpellingAction{nullptr};
     QAction* m_viewParagraphAction{nullptr};
+    QAction* m_viewStatisticsAction{nullptr};
 
     // Icon tracking for refresh
     QList<QLabel*> m_dockIconLabels;

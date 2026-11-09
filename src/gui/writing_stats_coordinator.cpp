@@ -11,11 +11,14 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dock_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
+#include "kalahari/gui/panels/writing_stats_panel.h"
+#include "kalahari/gui/utils/panel_toggle.h"
 #include "kalahari/gui/utils/setting_toggle.h"
 #include "kalahari/gui/widgets/writing_stats_bar.h"
 #include "kalahari/gui/writing_stats_model.h"
 
 #include <QAction>
+#include <QDockWidget>
 #include <QPointer>
 #include <QVBoxLayout>
 
@@ -55,6 +58,30 @@ WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
         }
     });
     applyBarVisibility();
+
+    // The Statistics panel: the views of the same statistics, with the titles of the book
+    if (WritingStatsPanel* panel = m_docks != nullptr ? m_docks->statisticsPanel() : nullptr) {
+        panel->setModel(m_model);
+        panel->setTitleSources(
+            [](const QString& elementId) {
+                const core::ProjectElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId);
+                return element != nullptr ? element->title : QString();
+            },
+            []() {
+                const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+                return book != nullptr ? book->title : QString();
+            });
+        connect(panel, &WritingStatsPanel::goalsRequested, this, []() {
+            CommandRegistry::getInstance().executeCommand("tools.writingGoals");
+        });
+    }
+    // The bar's button opens the panel, brings it on top or closes it, as View > Panels does
+    connect(m_bar, &WritingStatsBar::panelRequested, this, [this]() {
+        if (m_docks != nullptr && m_docks->statisticsDock() != nullptr) {
+            utils::togglePanel(m_docks->statisticsDock());
+        }
+    });
 
     // The setting may change on another thread: the bar is shown or hidden on this one
     m_settingsListener = core::SettingsManager::getInstance().subscribe(

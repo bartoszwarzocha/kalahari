@@ -187,6 +187,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");
     iconRegistry.registerIcon("view.spelling", "resources/icons/twotone/spellcheck.svg",
                               "Spelling and Grammar");
+    iconRegistry.registerIcon("view.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("view.perspectives.writer", "resources/icons/twotone/edit.svg", "Writer Perspective");
     iconRegistry.registerIcon("view.perspectives.editor", "resources/icons/twotone/rate_review.svg", "Editor Perspective");
     iconRegistry.registerIcon("view.perspectives.researcher", "resources/icons/twotone/science.svg", "Researcher Perspective");
