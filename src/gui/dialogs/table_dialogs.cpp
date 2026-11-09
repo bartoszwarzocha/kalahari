@@ -738,16 +738,17 @@ SortDialog::SortDialog(bool tableRows, const QStringList& columns, bool header,
 editor::SortOptions SortDialog::options() const
 {
     editor::SortOptions options;
-    const auto key = [](const QComboBox* column, const QComboBox* type, const QButtonGroup* order) {
+    const auto keyOf = [](const QComboBox* column, const QComboBox* type,
+                          const QButtonGroup* order) {
         editor::SortKey key;
         key.column = std::max(0, column->currentData().toInt());
         key.type = static_cast<editor::SortType>(std::max(0, type->currentIndex()));
         key.descending = order->checkedId() == 1;
         return key;
     };
-    options.keys.push_back(key(m_firstColumn, m_firstType, m_firstOrder));
+    options.keys.push_back(keyOf(m_firstColumn, m_firstType, m_firstOrder));
     if (m_tableRows && m_secondColumn->currentIndex() > 0) {
-        options.keys.push_back(key(m_secondColumn, m_secondType, m_secondOrder));
+        options.keys.push_back(keyOf(m_secondColumn, m_secondType, m_secondOrder));
     }
     options.caseSensitive = m_caseSensitive->isChecked();
     return options;
@@ -1447,8 +1448,8 @@ QWidget* TablePropertiesDialog::createBordersTab()
         m_data.table.borders.width = m_lineWidth->itemData(index).toDouble();
         updateBorders();
     });
-    connect(m_lineColorMenu, &ColorMenu::colorChosen, this, [this](const QColor& color) {
-        m_data.table.borders.color = color;
+    connect(m_lineColorMenu, &ColorMenu::colorChosen, this, [this](const QColor& chosen) {
+        m_data.table.borders.color = chosen;
         updateBorders();
     });
     return tab;

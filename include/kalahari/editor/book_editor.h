@@ -1193,7 +1193,7 @@ public:
 
     /// @brief Table > Table Properties...: give the table, its rows and columns the
     ///        properties, and the cells their own when they changed (cellChanged)
-    void setTablePropertiesData(const TablePropertiesData& data);
+    void setTablePropertiesData(const TablePropertiesData& properties);
 
     /// @brief Set the left edge of a column by dragging it: @p column (1 to the columns - 1)
     ///        and the one before it divide their width at @p x (layout coordinates), each

@@ -705,9 +705,9 @@ bool BookEditor::moveParagraphsOrRows(bool down)
 
         // The cursor and the selection go with the rows, at the same place of their cells
         const int shift = down ? 1 : -1;
-        const auto placeInCell = [&table](int position) {
-            const QTextTableCell cell = table.cellAt(position);
-            return std::tuple{cell.row(), cell.column(), position - cell.firstPosition()};
+        const auto placeInCell = [&table](int at) {
+            const QTextTableCell cell = table.cellAt(at);
+            return std::tuple{cell.row(), cell.column(), at - cell.firstPosition()};
         };
         const auto [cursorRow, cursorColumn, cursorOffset] = placeInCell(position);
         const auto [anchorRow, anchorColumn, anchorOffset] = placeInCell(anchorPosition);
@@ -851,24 +851,24 @@ std::optional<TablePropertiesData> BookEditor::tablePropertiesData() const
     }
     const QTextTable& table = *cells->table;
     const qreal pixels = layout->pixelsPerPoint();
-    TablePropertiesData data;
-    data.table = tablePropertiesOf(table.format());
-    data.textWidth = std::round(m_textBuffer->textWidth() / pixels * 100.0) / 100.0;
+    TablePropertiesData properties;
+    properties.table = tablePropertiesOf(table.format());
+    properties.textWidth = std::round(m_textBuffer->textWidth() / pixels * 100.0) / 100.0;
     const std::vector<qreal> edges = layout->tableColumnEdges(table);
     for (size_t column = 0; column + 1 < edges.size(); ++column) {
-        data.columnWidths.push_back((edges[column + 1] - edges[column]) / pixels);
+        properties.columnWidths.push_back((edges[column + 1] - edges[column]) / pixels);
     }
     for (int row = 0; row < table.rows(); ++row) {
-        data.rows.push_back(rowPropertiesOf(table, row));
+        properties.rows.push_back(rowPropertiesOf(table, row));
     }
-    data.headerRows = std::clamp(table.format().headerRowCount(), 0, table.rows());
-    data.row = cells->firstRow;
-    data.column = cells->firstColumn;
-    data.cell = cellPropertiesOf(table.cellAt(cells->firstRow, cells->firstColumn));
-    return data;
+    properties.headerRows = std::clamp(table.format().headerRowCount(), 0, table.rows());
+    properties.row = cells->firstRow;
+    properties.column = cells->firstColumn;
+    properties.cell = cellPropertiesOf(table.cellAt(cells->firstRow, cells->firstColumn));
+    return properties;
 }
 
-void BookEditor::setTablePropertiesData(const TablePropertiesData& data)
+void BookEditor::setTablePropertiesData(const TablePropertiesData& properties)
 {
     if (refusesChange()) {
         return;
@@ -883,25 +883,27 @@ void BookEditor::setTablePropertiesData(const TablePropertiesData& data)
         return;
     }
     // What changed: nothing, no undo step
-    const bool tableChanged = data.table != before->table || data.headerRows != before->headerRows;
-    const bool rowsChanged = data.rows.size() == before->rows.size() && data.rows != before->rows;
+    const bool tableChanged =
+        properties.table != before->table || properties.headerRows != before->headerRows;
+    const bool rowsChanged =
+        properties.rows.size() == before->rows.size() && properties.rows != before->rows;
     // The widths of the columns, in proportion: only when they changed (a table of equal
     // columns keeps none)
     bool columnsChanged = false;
-    if (data.columnWidths.size() == static_cast<size_t>(table.columns()) &&
-        data.columnWidths.size() == before->columnWidths.size()) {
+    if (properties.columnWidths.size() == static_cast<size_t>(table.columns()) &&
+        properties.columnWidths.size() == before->columnWidths.size()) {
         const double total =
-            std::accumulate(data.columnWidths.begin(), data.columnWidths.end(), 0.0);
+            std::accumulate(properties.columnWidths.begin(), properties.columnWidths.end(), 0.0);
         const double current =
             std::accumulate(before->columnWidths.begin(), before->columnWidths.end(), 0.0);
-        for (size_t column = 0; total > 0 && current > 0 && column < data.columnWidths.size();
-             ++column) {
+        for (size_t column = 0;
+             total > 0 && current > 0 && column < properties.columnWidths.size(); ++column) {
             columnsChanged = columnsChanged ||
-                             std::abs(data.columnWidths[column] * 100.0 / total -
+                             std::abs(properties.columnWidths[column] * 100.0 / total -
                                       before->columnWidths[column] * 100.0 / current) > 0.05;
         }
     }
-    if (!tableChanged && !rowsChanged && !columnsChanged && !data.cellChanged) {
+    if (!tableChanged && !rowsChanged && !columnsChanged && !properties.cellChanged) {
         return;
     }
 
@@ -911,21 +913,21 @@ void BookEditor::setTablePropertiesData(const TablePropertiesData& data)
     beginTableStep(cursor);
     if (tableChanged) {
         QTextTableFormat format = table.format();
-        setTableProperties(format, data.table);
-        format.setHeaderRowCount(std::clamp(data.headerRows, 0, table.rows()));
+        setTableProperties(format, properties.table);
+        format.setHeaderRowCount(std::clamp(properties.headerRows, 0, table.rows()));
         table.setFormat(format);
     }
     for (int row = 0; rowsChanged && row < table.rows(); ++row) {
-        if (data.rows[static_cast<size_t>(row)] != before->rows[static_cast<size_t>(row)]) {
-            setRowProperties(cursor, table, row, data.rows[static_cast<size_t>(row)]);
+        if (properties.rows[static_cast<size_t>(row)] != before->rows[static_cast<size_t>(row)]) {
+            setRowProperties(cursor, table, row, properties.rows[static_cast<size_t>(row)]);
         }
     }
     if (columnsChanged) {
-        setColumnWidths(table, data.columnWidths);
+        setColumnWidths(table, properties.columnWidths);
     }
-    if (data.cellChanged) {
+    if (properties.cellChanged) {
         for (const QTextTableCell& cell : startingCellsOf(*cells)) {
-            setCellProperties(cursor, cell, data.cell);
+            setCellProperties(cursor, cell, properties.cell);
         }
     }
     endTableStep(cursor, place.position(), anchor.position());

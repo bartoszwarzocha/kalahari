@@ -273,8 +273,10 @@ std::vector<TableGrid> QTextDocumentSource::tablesIn(size_t first, size_t last) 
         grid.firstParagraph = static_cast<size_t>(m_document->findBlock(table->firstPosition()).blockNumber());
         grid.headerEnd = grid.firstParagraph;
         if (grid.headerRows > 0) {
-            const QTextTableCell last = table->cellAt(grid.headerRows - 1, table->columns() - 1);
-            grid.headerEnd = static_cast<size_t>(m_document->findBlock(last.lastPosition()).blockNumber()) + 1;
+            const QTextTableCell lastHeaderCell =
+                table->cellAt(grid.headerRows - 1, table->columns() - 1);
+            const QTextBlock lastHeaderBlock = m_document->findBlock(lastHeaderCell.lastPosition());
+            grid.headerEnd = static_cast<size_t>(lastHeaderBlock.blockNumber()) + 1;
             for (const qreal top : layout->headerRepeats(*table)) {
                 grid.headerRepeats.push_back(top);
             }

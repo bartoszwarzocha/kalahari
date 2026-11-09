@@ -767,8 +767,9 @@ void EditorPanel::showTableToTextDialog() {
 }
 
 void EditorPanel::showTablePropertiesDialog() {
-    const std::optional<editor::TablePropertiesData> data = m_bookEditor->tablePropertiesData();
-    if (m_bookEditor->isReadOnly() || !data) {
+    const std::optional<editor::TablePropertiesData> properties =
+        m_bookEditor->tablePropertiesData();
+    if (m_bookEditor->isReadOnly() || !properties) {
         return;
     }
     // The lines without a color of their own have the editor's, on its paper
@@ -776,7 +777,7 @@ void EditorPanel::showTablePropertiesDialog() {
     const QColor lines = appearance.colorMode == editor::EditorColorMode::Light
                              ? appearance.colors.tables.linesLight
                              : appearance.colors.tables.linesDark;
-    dialogs::TablePropertiesDialog dialog(*data, lines, window());
+    dialogs::TablePropertiesDialog dialog(*properties, lines, window());
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->setTablePropertiesData(dialog.data());
     }
