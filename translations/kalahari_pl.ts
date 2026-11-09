@@ -7673,9 +7673,14 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>&amp;Długość liczona w:</translation>
     </message>
     <message>
-        <source>Target length:</source>
-        <extracomment>In Polish: Docelowa długość:</extracomment>
-        <translation>Docelowa długość:</translation>
+        <source>Target length in words:</source>
+        <extracomment>In Polish: Docelowa długość w słowach:</extracomment>
+        <translation>Docelowa długość w słowach:</translation>
+    </message>
+    <message>
+        <source>Target length in characters with spaces:</source>
+        <extracomment>In Polish: Docelowa długość w znakach ze spacjami:</extracomment>
+        <translation>Docelowa długość w znakach ze spacjami:</translation>
     </message>
     <message>
         <source>%1, %2</source>

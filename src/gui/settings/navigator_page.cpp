@@ -554,9 +554,11 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     };
     bindCustom(std::move(unit));
 
-    // The targets of the unit chosen; those of the other unit wait on their page
-    //: In Polish: Docelowa długość:
-    cover->addRow(new QLabel(tr("Target length:")));
+    // The targets of the unit chosen; those of the other unit wait on their page. The unit is
+    // said above them, so that the page fits a narrow window
+    auto* targetsLabel = new QLabel();
+    targetsLabel->setWordWrap(true);
+    cover->addRow(targetsLabel);
     auto* targets = new QStackedWidget();
     for (const bool words : {false, true}) {
         auto* unitPage = new QWidget();
@@ -581,12 +583,11 @@ NavigatorPage::NavigatorPage(QWidget* parent)
             label->setBuddy(spin);
             grid->addWidget(label, row, 0);
             grid->addWidget(spin, row, 1);
-            grid->addWidget(new QLabel(CoverNames::unitName(words)), row, 2);
             bind(spin, core::CoverMaterial::targetSettingOf(QString::fromLatin1(part), words));
             (words ? m_wordTargets : m_characterTargets) << spin;
             ++row;
         }
-        grid->setColumnStretch(3, 1);
+        grid->setColumnStretch(2, 1);
         targets->addWidget(unitPage);
     }
     cover->addRow(targets);
@@ -594,8 +595,14 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     //: podają zwykle znaki ze spacjami.
     addNote(cover, tr("Each material can have its own target length on its card. Publishers "
                       "usually count characters with spaces."));
-    const auto showUnit = [this, targets]() {
-        targets->setCurrentIndex(m_unitWords->isChecked() ? 1 : 0);
+    const auto showUnit = [this, targets, targetsLabel]() {
+        const bool words = m_unitWords->isChecked();
+        targets->setCurrentIndex(words ? 1 : 0);
+        targetsLabel->setText(words
+                                  //: In Polish: Docelowa długość w słowach:
+                                  ? tr("Target length in words:")
+                                  //: In Polish: Docelowa długość w znakach ze spacjami:
+                                  : tr("Target length in characters with spaces:"));
     };
     connect(m_unitWords, &QRadioButton::toggled, this, showUnit);
     whenLoaded(showUnit);
