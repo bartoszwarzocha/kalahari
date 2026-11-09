@@ -325,7 +325,8 @@ public:
     std::optional<ParagraphMark> paragraphMarkAt(const QPointF& point) const;
 
     /// @brief Where the mark beside a paragraph is drawn, in widget coordinates: in the left
-    ///        margin, beside its first line (empty for a paragraph not laid out)
+    ///        margin, beside its first line, left of the numbers on the margin when they are
+    ///        shown (empty for a paragraph not laid out)
     QRectF paragraphMarkRect(size_t paragraph) const;
 
     /// @brief Show where dragged text would be dropped (std::nullopt hides it)
@@ -606,6 +607,17 @@ private:
 
     /// @brief Number (from 1 in the chapter) of the first line of a page (page mode)
     int firstLineOfPage(int page) const;
+
+    /// @brief The font of the numbers on the margin, in points (the painter zooms it)
+    QFont marginNumberFont() const;
+
+    /// @brief The gap between the numbers on the margin and the text of a page, in document
+    ///        units: MARGIN_NUMBER_GAP_MM, at most half the page's left margin
+    double marginNumberGap(int page) const;
+
+    /// @brief Where the column of the numbers on the margin starts at document y, in widget
+    ///        x: as wide as the largest number of the text, right-aligned a gap before it
+    double marginNumbersLeft(double documentY) const;
 
     /// @brief The first paragraph to lay out for the view: @p first, or for the lines
     ///        numbered from 1 on every page the first one of its page

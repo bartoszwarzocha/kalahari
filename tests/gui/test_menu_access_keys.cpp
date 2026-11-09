@@ -53,6 +53,7 @@
 #include <QFile>
 #include <QHash>
 #include <QHostAddress>
+#include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
@@ -75,6 +76,7 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <algorithm>
 #include <memory>
 #include <optional>
 
@@ -570,6 +572,30 @@ void checkTextMenus(bool shown, QStringList& problems) {
                             problems);
             CHECK(itemCount(items) == 5);  // and Card Appearance and Colors
         }
+
+        // A comment in a paragraph with linked materials (Mark as Resolved and Linked
+        // Materials have the same key): each item has its own key, the commands of the window
+        // keep theirs
+        annotated.fromKml(QStringLiteral(
+            "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
+            "</annotations><p>One <anchor ref=\"c1\">two</anchor> three</p></kml>"));
+        annotated.setParagraphMarks({editor::ParagraphMark{0, {QStringLiteral("m1")},
+                                                           {QStringLiteral("Map")}}},
+                                    QIcon());
+        const QString comment =
+            editor::AnnotationCards::kindTitle(editor::AnnotationKind::Comment) +
+            QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check it"));
+        items = contextMenu(&annotated, &annotated, placeOf(annotated, 5));
+        // The title of a material is a name the menu shows as it is: as Windows and Linux
+        // show it, with a free key
+        const QStringList keyless = shown ? QStringList{comment}
+                                          : QStringList{comment, QStringLiteral("Map")};
+        collectProblems(items, where + QStringLiteral(", with linked materials"), keyless,
+                        problems);
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2);  // and Linked Materials > Map
+        const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
+        CHECK(std::any_of(items.cbegin(), items.cend(),
+                          [&paste](const test::MenuItem& item) { return item.text == paste; }));
     }
 
     // The words for a misspelled one, from the dictionary, on top of the usual menu; the
@@ -608,6 +634,48 @@ void checkTextMenus(bool shown, QStringList& problems) {
     collectProblems(items, QStringLiteral("Misspelled word without suggestions"), {none},
                     problems);
     CHECK(labelsOf(items).contains(none));
+
+    // Every part at once: a misspelled word with an annotation, in a link, in a list item with
+    // linked materials. Each item has a key of its own, the commands of the window keep theirs.
+    // The word is one the dictionary has nothing like: in so long a menu the words for it
+    // would get only the letters left, if any
+    {
+        editor::BookEditor all;
+        test::resizeWidget(all, QSize(600, 400));
+        all.fromKml(QStringLiteral(
+            "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
+            "</annotations><ol><li><a href=\"https://example.com\">The <anchor ref=\"c1\">"
+            "qxzvwk</anchor> one</a></li></ol></kml>"));
+        all.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
+                                       registry.getAction(QStringLiteral("edit.copy")),
+                                       registry.getAction(QStringLiteral("edit.paste")),
+                                       registry.getAction(QStringLiteral("edit.selectAll"))});
+        all.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
+                                   registry.getAction(QStringLiteral("insert.todo")),
+                                   registry.getAction(QStringLiteral("insert.note"))});
+        all.setParagraphMarks({editor::ParagraphMark{0, {QStringLiteral("m1")},
+                                                     {QStringLiteral("Map")}}},
+                              QIcon());
+        all.setSpellCheckService(&spelling);
+        all.show();
+        REQUIRE(checked(all));
+        const QString comment =
+            editor::AnnotationCards::kindTitle(editor::AnnotationKind::Comment) +
+            QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check it"));
+        QStringList keyless{comment, none};
+        if (!shown) {
+            keyless << QStringLiteral("Map");
+        }
+        items = contextMenu(&all, &all, placeOf(all, 6));
+        collectProblems(items, QStringLiteral("Every part"), keyless, problems);
+        // (No suggestions), Ignore All, Add to Dictionary; the link's four; the annotation's line
+        // and its three; the list's six; the usual menu; Linked Materials > Map
+        CHECK(labelsOf(items).contains(none));
+        CHECK(itemCount(items) == 3 + 4 + 4 + 6 + 6 + 2);
+        const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
+        CHECK(std::any_of(items.cbegin(), items.cend(),
+                          [&paste](const test::MenuItem& item) { return item.text == paste; }));
+    }
 
     // Spelling goes before grammar: the issue below is a misspelling too
     editor.setSpellCheckService(nullptr);

@@ -58,7 +58,8 @@ struct AddedCommand {
 ///   5: Save Version and Version History on Quick Actions (shown there when the buttons of the
 ///      versions are not on Versions and Backups)
 ///   6: Line Numbers and Paragraph Numbers on the Views toolbar
-constexpr std::array<AddedCommand, 11> ADDED_COMMANDS{{
+///   7: Repetitions in Text on the Views toolbar
+constexpr std::array<AddedCommand, 12> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -70,6 +71,7 @@ constexpr std::array<AddedCommand, 11> ADDED_COMMANDS{{
     {"quickActions", "file.versionHistory", 5},
     {"views", "view.marginNumbers.lines", 6},
     {"views", "view.marginNumbers.paragraphs", 6},
+    {"views", "view.repetitionMarks", 7},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -89,7 +91,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 6;
+constexpr int CHANGED_COMMANDS_VERSION = 7;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
