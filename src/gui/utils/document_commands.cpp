@@ -170,7 +170,8 @@ void updateSaveCommands(CommandRegistry& registry) {
 
 void explainGreyedKeys(CommandRegistry& registry, QWidget* window, QStatusBar* statusBar) {
     std::vector<std::string> ids = openBookCommands();
-    ids.insert(ids.end(), {"file.save", "file.saveAs", "file.saveAll", "book.newChapter",
+    ids.insert(ids.end(), {"file.save", "file.saveAs", "file.saveAll", "file.saveVersion",
+                           "file.versionHistory", "book.newChapter",
                            "book.properties", "insert.annotation", "insert.comment",
                            "insert.todo", "insert.note"});
     ids.insert(ids.end(), changingDocumentCommands().begin(), changingDocumentCommands().end());

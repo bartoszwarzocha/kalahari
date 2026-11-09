@@ -135,12 +135,13 @@ TEST_CASE("Navigator: the elements of a book in its three sections", "[gui][navi
     CHECK(findItem(tree, "Motto")->text(0) == QStringLiteral("Motto"));
     CHECK(typeOf(findItem(tree, "Contents")) == QStringLiteral("window_element"));
 
-    // Elements are dragged; sections and parts take them
+    // Elements are dragged; sections and parts take them. The sections are dragged only to
+    // the links of a material.
     CHECK(findItem(tree, "Prologue")->flags().testFlag(Qt::ItemIsDragEnabled));
     CHECK_FALSE(findItem(tree, "Prologue")->flags().testFlag(Qt::ItemIsDropEnabled));
     CHECK(findItem(tree, "Part One")->flags().testFlag(Qt::ItemIsDragEnabled));
     CHECK(findItem(tree, "Part One")->flags().testFlag(Qt::ItemIsDropEnabled));
-    CHECK_FALSE(body->flags().testFlag(Qt::ItemIsDragEnabled));
+    CHECK(body->flags().testFlag(Qt::ItemIsDragEnabled));
     CHECK(body->flags().testFlag(Qt::ItemIsDropEnabled));
     CHECK_FALSE(root->flags().testFlag(Qt::ItemIsDropEnabled));
     CHECK_FALSE(book->flags().testFlag(Qt::ItemIsDropEnabled));

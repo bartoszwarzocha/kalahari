@@ -8,6 +8,7 @@
 #include <QChildEvent>
 #include <QCoreApplication>
 #include <QEvent>
+#include <QIcon>
 #include <QKeyEvent>
 #include <QList>
 #include <QMenu>
@@ -26,6 +27,7 @@ struct MenuItem {
     bool separator = false;
     bool enabled = true;
     QString toolTip;        ///< What it says under the mouse (its text when it says nothing more)
+    QIcon icon;             ///< Its icon (null: none)
     QList<MenuItem> items;  ///< The items of its submenu
     /// Its action, only to compare: one the menu made for itself is gone with the menu
     const QAction* action = nullptr;
@@ -40,6 +42,7 @@ inline QList<MenuItem> menuItems(const QList<QAction*>& actions) {
         item.separator = action->isSeparator();
         item.enabled = action->isEnabled();
         item.toolTip = action->toolTip();
+        item.icon = action->icon();
         item.action = action;
         if (const QMenu* submenu = action->menu()) {
             item.items = menuItems(submenu->actions());
@@ -77,6 +80,11 @@ public:
     ///        nothing, and the menu closes)
     void chooseWith(QChar key) { m_key = key; }
 
+    /// @brief The next menu read: choose its item whose text begins with @p text, as with the
+    ///        mouse, instead of closing the menu (macOS has no access keys); a disabled item
+    ///        chooses nothing
+    void chooseItem(const QString& text) { m_item = text; }
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
         if (watched == m_owner && event->type() == QEvent::ChildPolished) {
@@ -98,11 +106,21 @@ private:
         m_items = menuItems(menu->actions());
         ++m_menusRead;
         // Closed once it is open, the menu ends its event loop; an item chosen closes it
-        QTimer::singleShot(0, menu, [menu, key = std::exchange(m_key, QChar())]() {
+        QTimer::singleShot(0, menu, [menu, key = std::exchange(m_key, QChar()),
+                                     text = std::exchange(m_item, QString())]() {
             if (!key.isNull()) {
                 QKeyEvent press(QEvent::KeyPress, key.toUpper().unicode(), Qt::NoModifier,
                                 QString(key));
                 QCoreApplication::sendEvent(menu, &press);
+            }
+            // As a click: the menu closes, then its item does what it does
+            const QList<QAction*> actions = text.isEmpty() ? QList<QAction*>() : menu->actions();
+            for (QAction* action : actions) {
+                if (action->isEnabled() && action->text().startsWith(text)) {
+                    menu->close();
+                    action->trigger();
+                    break;
+                }
             }
             if (menu->isVisible()) {
                 menu->close();
@@ -114,6 +132,7 @@ private:
     QList<MenuItem> m_items;
     int m_menusRead = 0;
     QChar m_key;  ///< The access key that chooses an item of the next menu (none: closes it)
+    QString m_item;  ///< The beginning of the text of the item to choose in the next menu
 };
 
 }  // namespace kalahari::test

@@ -196,8 +196,15 @@ void giveFreeAccessKeys(QMenu* menu) {
 }
 
 QMenu* menuWithAccessKeys(const QMenu& menu, QWidget* parent) {
+    // The items the menu shows: not those hidden (a toolbar not in use)
+    QList<QAction*> items;
+    for (QAction* item : menu.actions()) {
+        if (item->isVisible()) {
+            items.append(item);
+        }
+    }
     QStringList names;
-    for (const QAction* item : menu.actions()) {
+    for (const QAction* item : items) {
         if (!item->isSeparator()) {
             names.append(item->text());
         }
@@ -207,7 +214,7 @@ QMenu* menuWithAccessKeys(const QMenu& menu, QWidget* parent) {
 
     auto* copy = new QMenu(parent);
     qsizetype next = 0;
-    for (QAction* item : menu.actions()) {
+    for (QAction* item : items) {
         if (item->isSeparator()) {
             copy->addSeparator();
             continue;

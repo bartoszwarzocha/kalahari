@@ -362,7 +362,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         applyTypewriter();
     }
     updatePageInfo();
-    applyFirstShowShrink();  // the page's new size, until the first paint
+    applyPageWidthZoom();  // the page's new size
     update();
 }
 
@@ -418,6 +418,21 @@ bool BookEditor::event(QEvent* event)
     // as it is written
     if (event->type() == QEvent::ToolTip && m_renderPipeline) {
         const auto* help = static_cast<QHelpEvent*>(event);
+        // The mark beside a paragraph: the titles of the materials linked with it
+        if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
+            //: The tooltip of the paperclip beside a paragraph, over the titles of the
+            //: materials. In Polish: Powiązane materiały
+            QStringList lines{
+                QStringLiteral("<b>%1</b>").arg(tr("Linked materials").toHtmlEscaped())};
+            for (const QString& title : marked->titles) {
+                lines << title.toHtmlEscaped();
+            }
+            QToolTip::showText(help->globalPos(),
+                               QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
+                                   .arg(lines.join(QStringLiteral("<br>"))),
+                               this);
+            return true;
+        }
         const std::optional<AnnotationMark> mark =
             m_renderPipeline->annotationMarkDetailsAt(QPointF(help->pos()));
         QString text = mark && !mark->text.trimmed().isEmpty() ? mark->text : QString();
@@ -496,7 +511,7 @@ void BookEditor::resizeEvent(QResizeEvent* event)
     if (m_renderPipeline) {
         m_renderPipeline->setConfigViewportSize(QSizeF(size()));
     }
-    applyFirstShowShrink();  // the view's new width, until the first paint
+    applyPageWidthZoom();  // the view's new width
 
     updateScrollBarRange();
     applyFirstShowCursorLine();  // the view's new size, until the first paint
@@ -843,6 +858,10 @@ bool BookEditor::fromKml(const QString& kml)
     // so none is left dangling.
     m_cursorPosition = {0, 0};
     clearSelection();
+    stopScrollAnimation();  // it would take the new text to a place in the old one
+    if (m_renderPipeline) {
+        m_renderPipeline->setTextSource(nullptr);  // the cursor is drawn from it at once
+    }
     if (m_viewportManager) {
         m_viewportManager->setDocument(nullptr);
     }
@@ -866,7 +885,8 @@ bool BookEditor::fromKml(const QString& kml)
     }
     logElapsed("KML read");
 
-    // The new text starts at the top
+    // The new text starts at the top and at the left edge, in the view drawn too: nothing of
+    // the place shown in the old text stays (a zoom of the new text keeps the place in view)
     if (m_viewportManager) {
         m_viewportManager->setViewportSize(size());
         m_viewportManager->setScrollPosition(0.0);
@@ -874,6 +894,8 @@ bool BookEditor::fromKml(const QString& kml)
         m_viewportManager->setTopScrollPadding(topPadding);
         m_viewportManager->setBottomScrollPadding(bottomPadding);
     }
+    updatePipelineScroll();
+    setHorizontalScrollOffset(0.0);
 
     if (m_renderPipeline) {
         m_renderPipeline->setCursorBlinkState(true);
@@ -884,6 +906,8 @@ bool BookEditor::fromKml(const QString& kml)
     createDocument(content);
     startFromSaved(kml);  // what isModified() compares the content with
     updateScrollBarRange();
+    updatePipelineScroll();
+    syncPipelineCursor();  // the cursor drawn at the start of the new text
     logElapsed("Document created");
 
     update();
@@ -910,6 +934,8 @@ void BookEditor::replaceWithKml(const QString& kml)
     // The whole text in one undo step. Undoing or redoing it brings back the cursor and
     // selection it was made with: QTextDocument would put the cursor at the end of the
     // text it put back.
+    // The marks beside the paragraphs stay at the paragraphs of their numbers
+    const QList<ParagraphMark> marks = paragraphMarks();
     QTextCursor cursor(m_textBuffer.get());
     cursor.beginEditBlock();
     m_textBuffer->appendUndoItem(new CallbackUndoItem(
@@ -919,6 +945,8 @@ void BookEditor::replaceWithKml(const QString& kml)
     cursor.setBlockCharFormat(QTextCharFormat());  // nothing left of the old first paragraph
     appendParagraphs(cursor, content);
     cursor.endEditBlock();
+    anchorParagraphMarks(marks);
+    syncParagraphMarks();
 
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
@@ -997,6 +1025,12 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
             &BookEditor::adjustSpellingToEdit);
 
+    // The marks beside the paragraphs stay with them; a new text has none
+    m_paragraphMarks.clear();
+    syncParagraphMarks(true);
+    connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
+            [this]() { syncParagraphMarks(); });
+
     // The content goes in in a single edit block: Qt then reports one change and the
     // layout runs once, at endEditBlock().
     QTextCursor cursor(m_textBuffer.get());
@@ -1034,7 +1068,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     updateViewport();
 
     // The new text has the zoom of the settings (syncPipelineState())
-    applyFirstShowShrink();
+    applyPageWidthZoom();
 
     // Its spelling and grammar are checked from the paragraphs in view
     requestSpellCheck();
