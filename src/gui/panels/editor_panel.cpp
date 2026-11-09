@@ -3,11 +3,15 @@
 
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/dialogs/font_dialog.h"
+#include "kalahari/gui/dialogs/list_dialogs.h"
+#include "kalahari/gui/dialogs/paragraph_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/utils/caps_lock.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -22,10 +26,15 @@
 #include "kalahari/editor/statistics_collector.h"
 #include <QEvent>
 #include <QGuiApplication>
+#include <QMainWindow>
 #include <QScreen>
+#include <QStatusBar>
 #include <QVBoxLayout>
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <nlohmann/json.hpp>
+#include <string>
 
 namespace kalahari {
 namespace gui {
@@ -35,6 +44,39 @@ namespace {
 /// @brief The smallest and the largest size of the annotations' marks (1 = 100%)
 constexpr double MIN_MARK_SCALE = 0.5;
 constexpr double MAX_MARK_SCALE = 3.0;
+
+/// The size of the text of the cards under the paragraphs, in percent of the chapter's text
+constexpr int MIN_CARD_FONT = 60;
+constexpr int MAX_CARD_FONT = 130;
+
+/// How much of the kind's color the cards have, in percent of the usual
+constexpr int MIN_CARD_TINT = 50;
+constexpr int MAX_CARD_TINT = 200;
+
+/// @brief The languages with lists of abbreviations of their own in the settings
+/// (editor.autoCorrect.abbreviations.pl); another language has the English one
+constexpr std::array<const char*, 2> ABBREVIATION_LANGUAGES = {"pl", "en"};
+
+/// @brief The key of the abbreviations of a language
+std::string abbreviationsKey(const QString& language) {
+    return "editor.autoCorrect.abbreviations." + language.toStdString();
+}
+
+/// @brief The texts of a list of the settings
+QStringList textsOf(const nlohmann::json& list) {
+    QStringList texts;
+    if (list.is_array()) {
+        for (const nlohmann::json& item : list) {
+            if (item.is_string()) {
+                texts << QString::fromStdString(item.get<std::string>());
+            }
+        }
+    }
+    return texts;
+}
+
+/// @brief How long a message of autocorrect stays in the status bar (ms)
+constexpr int AUTO_CORRECT_MESSAGE_MS = 5000;
 
 }  // namespace
 
@@ -72,6 +114,27 @@ EditorPanel::EditorPanel(QWidget* parent)
     // typed: the book's language may change, and a chapter is told from a file outside the
     // book only after its tab is shown
     m_bookEditor->setTextLanguage([this]() { return textLanguage(); });
+
+    // A change of autocorrect undone right after it: as in Word, the exceptions keep the
+    // abbreviation or the word, unless the writer turned that off
+    connect(m_bookEditor, &editor::BookEditor::autoCorrectionUndone, this,
+            &EditorPanel::learnAutoCorrectException);
+
+    // A word typed with Caps Lock on by mistake: the key goes off, where the system lets the
+    // program do it, or the writer is told
+    connect(m_bookEditor, &editor::BookEditor::capsLockCorrected, this, [this]() {
+        showStatusMessage(turnCapsLockOff()
+                              ? tr("Caps Lock was on: the word typed with it is corrected, "
+                                   "and Caps Lock is off now.")
+                              : tr("Caps Lock is on: the word typed with it is corrected. "
+                                   "Turn Caps Lock off."));
+    });
+
+    // The windows of the lists, asked for by the context menu of a list item
+    connect(m_bookEditor, &editor::BookEditor::bulletsAndNumberingAsked, this,
+            &EditorPanel::showBulletsAndNumbering);
+    connect(m_bookEditor, &editor::BookEditor::numberingValueAsked, this,
+            &EditorPanel::showNumberingValue);
 
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
@@ -237,6 +300,60 @@ editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
     return editor::ParagraphStyleSet::fromPackage(styles, programLanguage());
 }
 
+void EditorPanel::learnAutoCorrectException(editor::LearnedException list,
+                                            const QString& exception) {
+    auto& settings = core::SettingsManager::getInstance();
+    if (exception.isEmpty() || !settings.get<bool>("editor.autoCorrect.learnExceptions")) {
+        return;
+    }
+    std::string key;
+    QString message;
+    switch (list) {
+        case editor::LearnedException::Abbreviation: {
+            // The list of the text's language, the one autocorrect looked at
+            const QString language = editor::abbreviationsLanguage(
+                textLanguage(), m_bookEditor->autoCorrect().languageAbbreviations);
+            if (language.isEmpty()) {
+                return;
+            }
+            key = abbreviationsKey(language);
+            //: %1 is an abbreviation with its period, as "godz."
+            message = tr("After “%1” auto-correct no longer starts a sentence with a capital: "
+                         "it is among the exceptions now.")
+                          .arg(exception);
+            break;
+        }
+        case editor::LearnedException::TwoCapitals:
+            key = "editor.autoCorrect.twoCapitalsExceptions";
+            //: %1 is a word with two capitals at its start, as "PCs"
+            message = tr("Auto-correct no longer changes “%1”: it is among the exceptions now.")
+                          .arg(exception);
+            break;
+        case editor::LearnedException::None:
+            return;
+    }
+    nlohmann::json words = settings.get<nlohmann::json>(key);
+    if (!words.is_array()) {
+        words = nlohmann::json::array();
+    }
+    const Qt::CaseSensitivity sensitivity = list == editor::LearnedException::Abbreviation
+                                                ? Qt::CaseInsensitive
+                                                : Qt::CaseSensitive;
+    if (textsOf(words).contains(exception, sensitivity)) {
+        return;
+    }
+    words.push_back(exception.toStdString());
+    settings.set<nlohmann::json>(key, words);
+    showStatusMessage(message);
+}
+
+void EditorPanel::showStatusMessage(const QString& message) {
+    // The status bar of the main window; a panel outside one (a test) shows nothing
+    if (auto* mainWindow = qobject_cast<QMainWindow*>(window())) {
+        mainWindow->statusBar()->showMessage(message, AUTO_CORRECT_MESSAGE_MS);
+    }
+}
+
 QString EditorPanel::textLanguage() const {
     // A chapter of the book, which NavigatorCoordinator tags with its element, or a file
     // outside the book
@@ -265,19 +382,46 @@ void EditorPanel::applySettings() {
     appearance.typography.paragraphSpacing = settings.get<double>("editor.paragraphSpacing");
     appearance.typography.firstLineIndent = settings.get<bool>("editor.firstLineIndent");
     appearance.typography.indentSize = settings.get<double>("editor.indentSize");
+    appearance.typography.tabStops =
+        settings.get<std::string>("editor.tabStops") == editor::TAB_STOPS_SPACES
+            ? editor::TabStops::Spaces
+            : editor::TabStops::Indent;
+    appearance.typography.tabSpaces = settings.get<int>("editor.tabSize");
 
-    // The paper (light or dark, independent from the application's theme) and its colors
+    // The paper (light or dark, independent from the application's theme) and the colors of
+    // both papers: the theme's (the editor's own where the theme has none)
     appearance.colorMode = settings.get<bool>("editor.darkMode")
         ? editor::EditorColorMode::Dark
         : editor::EditorColorMode::Light;
-    appearance.colors.continuous.backgroundLight = color("editor.colors.backgroundLight");
-    appearance.colors.continuous.textLight = color("editor.colors.textLight");
-    appearance.colors.focus.inactiveLight = color("editor.colors.inactiveLight");
-    appearance.colors.continuous.backgroundDark = color("editor.colors.backgroundDark");
-    appearance.colors.continuous.textDark = color("editor.colors.textDark");
-    appearance.colors.focus.inactiveDark = color("editor.colors.inactiveDark");
-    appearance.colors.formattingMarks.light = color("editor.colors.formattingMarksLight");
-    appearance.colors.formattingMarks.dark = color("editor.colors.formattingMarksDark");
+    const auto& themes = core::ThemeManager::getInstance();
+    const editor::EditorColors defaults;
+    const editor::PaperColorKeys& light = editor::LIGHT_PAPER_COLOR_KEYS;
+    const editor::PaperColorKeys& dark = editor::DARK_PAPER_COLOR_KEYS;
+    auto& papers = appearance.colors.continuous;
+    papers.backgroundLight = themes.editorColor(light.paper, defaults.continuous.backgroundLight);
+    papers.textLight = themes.editorColor(light.text, defaults.continuous.textLight);
+    papers.deskLight = themes.editorColor(light.desk, defaults.continuous.deskLight);
+    papers.backgroundDark = themes.editorColor(dark.paper, defaults.continuous.backgroundDark);
+    papers.textDark = themes.editorColor(dark.text, defaults.continuous.textDark);
+    papers.deskDark = themes.editorColor(dark.desk, defaults.continuous.deskDark);
+    appearance.colors.focus.inactiveLight =
+        themes.editorColor(light.focusDimmed, defaults.focus.inactiveLight);
+    appearance.colors.focus.inactiveDark =
+        themes.editorColor(dark.focusDimmed, defaults.focus.inactiveDark);
+    appearance.colors.formattingMarks.light =
+        themes.editorColor(light.formattingMarks, defaults.formattingMarks.light);
+    appearance.colors.formattingMarks.dark =
+        themes.editorColor(dark.formattingMarks, defaults.formattingMarks.dark);
+    // Under the text on both papers: translucent, so the text stays readable
+    appearance.colors.selection =
+        editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
+                               editor::SELECTION_OPACITY);
+    appearance.colors.searchMatch = editor::underTextColor(
+        themes.editorColor(editor::SEARCH_MATCH_COLOR_KEY, defaults.searchMatch),
+        editor::SEARCH_MATCH_OPACITY);
+    appearance.colors.currentSearchMatch = editor::underTextColor(
+        themes.editorColor(editor::CURRENT_SEARCH_MATCH_COLOR_KEY, defaults.currentSearchMatch),
+        editor::CURRENT_SEARCH_MATCH_OPACITY);
 
     // Cursor
     appearance.cursor.style = static_cast<editor::CursorStyle>(settings.get<int>("editor.cursor.style"));
@@ -292,6 +436,11 @@ void EditorPanel::applySettings() {
     appearance.pageMargins.bottom = settings.get<double>("editor.margins.pageBottom");
     appearance.pageMargins.left = settings.get<double>("editor.margins.pageLeft");
     appearance.pageMargins.right = settings.get<double>("editor.margins.pageRight");
+    // Mirror margins: the inner one at the binding (the chapter tells whether its first page
+    // is a left one: setFirstPageLeft())
+    appearance.pageMargins.mirrored = settings.get<bool>("editor.margins.mirrorEnabled");
+    appearance.pageMargins.inner = settings.get<double>("editor.margins.pageInner");
+    appearance.pageMargins.outer = settings.get<double>("editor.margins.pageOuter");
 
     // Page format (Page Layout view)
     appearance.pageLayout.pageSize = editor::PageLayout::pageSizeFromId(
@@ -311,6 +460,17 @@ void EditorPanel::applySettings() {
 
     // The formatting marks (View > Show Formatting Marks) and how the scene breaks look
     appearance.showFormattingMarks = settings.get<bool>("editor.showFormattingMarks");
+
+    // The numbers on the left margin (View > Margin Numbering)
+    editor::MarginNumbers& numbers = appearance.marginNumbers;
+    numbers.numbering = editor::marginNumberingFromName(
+        QString::fromStdString(settings.get<std::string>("editor.marginNumbers.mode")));
+    numbers.interval = settings.get<int>("editor.marginNumbers.interval");
+    numbers.restartEachPage = settings.get<bool>("editor.marginNumbers.restartEachPage");
+    numbers.fontFamily =
+        QString::fromStdString(settings.get<std::string>("editor.marginNumbers.font"));
+    numbers.pointSize = settings.get<double>("editor.marginNumbers.size");
+    numbers.color = color("editor.marginNumbers.color");
     appearance.sceneBreakLook = editor::sceneBreakLookFromName(
         QString::fromStdString(settings.get<std::string>("editor.sceneBreak.style")));
 
@@ -322,7 +482,6 @@ void EditorPanel::applySettings() {
     // The annotations' marks (at the size of the setting) and the waves under the misspelled
     // words and the grammar issues: the theme's colors, on each paper as "Optimize colors in
     // themes" shows them
-    const auto& themes = core::ThemeManager::getInstance();
     const bool optimize = themes.optimizesEditorColors();
     const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
         return shownColor(themes.editorColor(key, QColor()), paper, optimize);
@@ -350,6 +509,24 @@ void EditorPanel::applySettings() {
         std::clamp(settings.get<int>("editor.annotationMarkSize") / 100.0, MIN_MARK_SCALE,
                    MAX_MARK_SCALE);
 
+    // The cards of the annotations under their paragraphs
+    const auto text = [&settings](const std::string& key) { return settings.get<std::string>(key); };
+    editor::AnnotationCardSettings& cards = appearance.annotationCards;
+    cards.show = settings.get<bool>("editor.annotationCards.show");
+    cards.comments = settings.get<bool>("editor.annotationCards.comments");
+    cards.todos = settings.get<bool>("editor.annotationCards.todos");
+    cards.notes = settings.get<bool>("editor.annotationCards.notes");
+    cards.compact = text("editor.annotationCards.look") == "compact";
+    cards.collapsedLine = text("editor.annotationCards.collapsedLook") == "line";
+    cards.startCollapsed = text("editor.annotationCards.afterOpening") == "collapsed";
+    cards.longLines = std::max(0, settings.get<int>("editor.annotationCards.longLines"));
+    cards.fontPercent = std::clamp(settings.get<int>("editor.annotationCards.fontSize"),
+                                   MIN_CARD_FONT, MAX_CARD_FONT);
+    cards.tintPercent = std::clamp(settings.get<int>("editor.annotationCards.tint"),
+                                   MIN_CARD_TINT, MAX_CARD_TINT);
+    cards.highlightFragment = settings.get<bool>("editor.annotationCards.highlightFragment");
+    cards.inDistractionFree = text("editor.annotationCards.distractionFree") != "hide";
+
     m_bookEditor->setAppearance(appearance);
 
     // Autocorrect: what is changed in the text as it is typed; nothing while it is off as a
@@ -366,6 +543,46 @@ void EditorPanel::applySettings() {
                            ? editor::DialogueDash::En
                            : editor::DialogueDash::Em;
     autoCorrect.ellipsis = replaces("editor.autoCorrect.ellipsis");
+    autoCorrect.dashBetweenWords = replaces("editor.autoCorrect.dashBetweenWords");
+    autoCorrect.wordDash =
+        settings.get<std::string>("editor.autoCorrect.dashBetweenWordsType") == "emDash"
+            ? editor::DialogueDash::Em
+            : editor::DialogueDash::En;
+    autoCorrect.dialogueDashInDialogue = settings.get<bool>("editor.autoCorrect.dashInDialogue");
+    autoCorrect.doubleHyphen = replaces("editor.autoCorrect.doubleHyphen");
+    if (replaces("editor.autoCorrect.replacementTable")) {
+        // The pairs turned on; a pair without "enabled" is on
+        const auto pairs = settings.get<nlohmann::json>("editor.autoCorrect.replacements");
+        if (pairs.is_array()) {
+            for (const nlohmann::json& pair : pairs) {
+                if (!pair.is_object() || !pair.value("enabled", true) ||
+                    !pair.value("from", nlohmann::json()).is_string() ||
+                    !pair.value("to", nlohmann::json()).is_string()) {
+                    continue;
+                }
+                const QString from =
+                    QString::fromStdString(pair.at("from").get<std::string>()).trimmed();
+                if (!from.isEmpty()) {
+                    autoCorrect.replacements.push_back(
+                        {from, QString::fromStdString(pair.at("to").get<std::string>())});
+                }
+            }
+        }
+    }
+    autoCorrect.sentenceCapitals = replaces("editor.autoCorrect.sentenceCapitals");
+    for (const char* language : ABBREVIATION_LANGUAGES) {
+        const QString code = QString::fromLatin1(language);
+        autoCorrect.languageAbbreviations[code] =
+            textsOf(settings.get<nlohmann::json>(abbreviationsKey(code)));
+    }
+    autoCorrect.twoInitialCapitals = replaces("editor.autoCorrect.twoInitialCapitals");
+    autoCorrect.twoCapitalsExceptions =
+        textsOf(settings.get<nlohmann::json>("editor.autoCorrect.twoCapitalsExceptions"));
+    autoCorrect.capsLock = replaces("editor.autoCorrect.capsLock");
+    autoCorrect.sceneBreak = replaces("editor.autoCorrect.sceneBreak");
+    autoCorrect.horizontalRule = replaces("editor.autoCorrect.horizontalRule");
+    autoCorrect.bulletedLists = replaces("editor.autoCorrect.bulletedLists");
+    autoCorrect.numberedLists = replaces("editor.autoCorrect.numberedLists");
     m_bookEditor->setAutoCorrect(autoCorrect);
 
     // How text from other programs is pasted (Settings > Editor > General)
@@ -377,6 +594,73 @@ void EditorPanel::applySettings() {
     applyPaperScale();
 
     core::Logger::getInstance().debug("EditorPanel: editor settings applied");
+}
+
+void EditorPanel::showBulletsAndNumbering() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    const std::optional<editor::ListItem> item = m_bookEditor->currentListItem();
+    dialogs::BulletsNumberingDialog dialog(
+        item ? item->definition : editor::ListDefinition::numbered(), item ? item->level : 0,
+        window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->applyListDefinition(dialog.definition());
+    }
+}
+
+void EditorPanel::showFontDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    dialogs::FontDialog dialog(m_bookEditor->shownCharacterFormat(), m_bookEditor->selectedText(),
+                               window());
+    if (dialog.exec() == QDialog::Accepted) {
+        const editor::CharacterFormat changes = dialog.changes();
+        if (changes != editor::CharacterFormat{}) {
+            m_bookEditor->applyCharacterFormat(changes);
+        }
+    }
+}
+
+void EditorPanel::showParagraphDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    dialogs::ParagraphDialog dialog(m_bookEditor->shownParagraphFormat(),
+                                    m_bookEditor->currentAlignment(),
+                                    m_bookEditor->currentListItem().has_value(), window());
+    if (dialog.exec() == QDialog::Accepted) {
+        const editor::ParagraphFormat changes = dialog.changes();
+        const std::optional<Qt::Alignment> alignment = dialog.alignmentChange();
+        if (!changes.isEmpty() || alignment) {
+            m_bookEditor->applyParagraphFormat(changes, alignment);
+        }
+    }
+}
+
+void EditorPanel::showNumberingValue() {
+    const std::optional<editor::ListItem> item = m_bookEditor->currentListItem();
+    if (!item || m_bookEditor->isReadOnly()) {
+        return;
+    }
+    const int number = m_bookEditor->currentListNumber();
+    dialogs::NumberingValueDialog dialog(item->levelFormat(),
+                                         number >= 0 ? number : item->levelFormat().start,
+                                         window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->setNumberingValue(dialog.value());
+    }
+}
+
+void EditorPanel::setFirstPageLeft(bool left) {
+    // The editor's appearance keeps it: applySettings() starts from it
+    editor::EditorAppearance appearance = m_bookEditor->appearance();
+    if (appearance.pageMargins.firstPageLeft == left) {
+        return;
+    }
+    appearance.pageMargins.firstPageLeft = left;
+    m_bookEditor->setAppearance(appearance);
 }
 
 void EditorPanel::scheduleSettings() {

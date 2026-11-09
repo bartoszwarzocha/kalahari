@@ -79,6 +79,8 @@ ICONS=(
     "edit_note"         # insert.annotation
     "sticky_note_2"     # insert.annotation (alt)
     "emoji_symbols"     # insert.specialChar
+    "space_bar"         # insert.noBreakSpace
+    "wrap_text"         # insert.optionalHyphen
     "schedule"          # insert.dateTime
     "event"             # insert.dateTime (alt)
     "data_object"       # insert.field
@@ -166,6 +168,8 @@ ICONS=(
     "dashboard"         # view.perspectives.manage, view.resetLayout
     "view_module"       # view.perspectives.manage (alt)
     "view_headline"     # view.toolbars.standard
+    "grid_view"         # common.gridView (Insert > Special Character...)
+    "view_list"         # common.listView (Insert > Special Character...)
     "toolbar"           # view.toolbars.standard (doesn't exist, use view_headline)
     "format_shapes"     # view.toolbars.format (alt)
     "bolt"              # view.toolbars.quickAccess

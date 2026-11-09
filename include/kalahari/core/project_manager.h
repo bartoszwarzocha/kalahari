@@ -658,6 +658,12 @@ public:
     /// book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
 
+    /// @brief Set whether a text element starts on a left page (with mirror margins its inner
+    ///        margin is on the right then); without it, it starts on a right page
+    ///
+    /// Saves the .klh file. A file of the book outside its text has no pages of its own.
+    bool setFirstPageLeft(const QString& elementId, bool left);
+
     /// @brief Notes of a text element, from its chapter file; of an element without a chapter
     /// file (a card of the Workshop), its description (ProjectElement::description)
     QString notes(const QString& elementId) const;

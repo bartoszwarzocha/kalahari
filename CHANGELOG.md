@@ -26,6 +26,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   windows and opens Window Settings...; closing a window of its own takes its texts back to
   the book window or closes them, asking about their changes (Settings > General > Windows).
 
+- **Settings: the colors of the papers in each theme, and a gear in the find bar** -
+  2026-10-27. Settings > Editor > Colors has a group for the light paper and one for the dark
+  paper, each with the colors of the paper, of the text, of the text Focus dims, of the
+  formatting marks and of the desk around the paper (beside the endless page and around the
+  pages), and the group On Both Papers with the colors of the selection, of the search's hits
+  and of the current hit, drawn translucent under the text as before. Like the colors of the
+  annotations, they are the theme's until changed, each theme keeps its own, and each group has
+  Restore Default Colors; the check box Dark paper (as View > Dark Paper) still chooses the paper
+  whatever the theme. The themes' colors are those the editor had: nothing looks different
+  until a color is changed. The colors of the papers changed before, kept for all themes alike,
+  move at the first start into each theme. The find bar has a gear before its Close button
+  ("Colors of the Search Hits"), which opens Settings > Editor > Colors.
+
+- **Lists: Numbering and Bullets** - 2026-10-26. Format > Numbering (F12) and Bullets
+  (Shift+F12) make the selected paragraphs a list, change its kind or take them out of it; a
+  paragraph next to a list of the same kind joins it. Enter starts the next item, in an empty
+  item it goes a level up and then out of the list; Backspace at the start of an item takes
+  its number, then the item. Tab and Shift+Tab at the start of an item, and Format > Increase
+  Indent and Decrease Indent, change its level (nine levels); outside a list they move the
+  paragraph by 1.25 cm. The context menu of an item has Restart at 1, Continue Numbering, Set
+  Numbering Value... and Bullets and Numbering...: a window that gives each level its numbers
+  (1, a, A, i, I with "." or ")") or its bullet (any character of the Special Character
+  window), the place of the number and of the text, with a preview. The numbers go on over the
+  paragraphs between the parts of a list. Autocorrect makes "* ", "1. " and "1) " at the start
+  of a paragraph a list (Settings > Editor > Auto-correct can turn it off). Copied lists go to
+  Word, LibreOffice and browsers as their lists, and to plain text with each item's number or
+  bullet; their lists, and Word's, are pasted as lists. KML has `<ol>`, `<ul>` and `<li>`
+  (docs/kml_format.md).
+
+- **Format: the Font and Paragraph windows, the effects, the colors, Change Case** -
+  2026-10-26. Format > Font... (Ctrl+D) gives the selected text, or the text typed next, its
+  font, style and size, picked from their lists or typed, the colors of the letters and of the
+  highlight, the effects (underline, strikethrough, superscript, subscript, small caps, all
+  caps) and, on the Advanced tab, the letter spacing, with a preview; a part not the same in
+  all of the selection stays as it is unless it is changed. Format > Paragraph... gives the
+  selected paragraphs, over their style, the alignment, the left and right indents, a first
+  line or hanging indent, the space before and after, the line spacing (single, 1.5 lines,
+  double, at least, exactly, multiple) and, on the second tab, widow and orphan control, keep
+  with next, keep lines together and page break before, which the page view follows. The Format
+  menu has the submenus Text Effects (strikethrough, Superscript Ctrl+Shift+P, Subscript
+  Ctrl+Shift+B, Small Caps Ctrl+Shift+K, All Caps Ctrl+Shift+A), Change Case (Sentence case,
+  lowercase, UPPERCASE, Capitalize Each Word, tOGGLE cASE, the formatting of the letters kept)
+  and Align Text, and Font Color and Highlight Color: a submenu with the colors of the palette
+  chosen in the color window, the colors used recently, Automatic or No Color, and More
+  Colors...; put on a toolbar, their button gives the color used last and its arrow the
+  submenu. Copy Formatting and Paste
+  Formatting carry the formatting of the text and of its paragraph to other text, also in
+  another chapter. Clear Formatting also takes off the capitals, the letter spacing and the
+  paragraph's own formatting. On dark paper colored text is shown lighter and highlights
+  darker, so it stays readable; the book keeps the colors as they were chosen. KML has the
+  attributes of a paragraph's own formatting and `<span caps spacing>` (docs/kml_format.md).
+
+- **Editor: numbers on the margin, mirror margins, the tab width** - 2026-10-26. View >
+  Margin Numbering shows working numbers on the left margin of every editor, only on the
+  screen: No Numbering, Line Numbers or Paragraph Numbers, also as two buttons of the Views
+  toolbar (the numbering chosen again turns it off); a toolbar layout saved before gets the
+  two buttons too. The lines count every line, also of the headings, the empty paragraphs and
+  the breaks; the paragraphs only those with text, not the headings or the objects. View >
+  Margin Numbering > Numbering Settings... opens Settings > Editor > Pages and Margins at the
+  Margin Numbering group: a number every few lines or paragraphs (Interval), the lines counted
+  from 1 on every page of the page view (Restart on every page; the continuous view counts
+  through the whole chapter), the font, its size and one color for the light and the dark
+  paper, with a preview on both papers and Restore Defaults, which keeps the numbering chosen.
+  The same page has Mirror margins (for book binding): an inner margin at the binding and an
+  outer one at the edge of the page, with a preview of pages 2 and 3 side by side. The first
+  page of a chapter is a right page, unless the chapter starts on a left page (Properties >
+  Starts on a left page, kept in the book's file as `"firstPage": "left"`); the continuous view
+  has the margins of page 1. Tab types a tab character, also at the start of a paragraph.
+  Settings > Editor > General > Tab Size sets the tab stops as far apart as the first-line
+  indent of the paragraph's style (Paragraph Indent; a style without one, as a heading, takes
+  the indent of the Settings) or every few spaces of its font (Number of Spaces). The options
+  Show Line Numbers and Enable Word Wrap, which did nothing, are gone: the text always wraps.
+
+- **Annotations: cards under the paragraphs, a second way of showing them** - 2026-10-26.
+  View > Annotation Cards Under Paragraphs (also Settings > Annotations > Cards Under
+  Paragraphs) shows each comment, to-do and note not done as a card under the paragraph of
+  its mark, in the order of the marks and in the kind's color: the kind, the author and the
+  date above the text (or, in the compact look, the text alone with the author and the date
+  at its end). Without it the annotations work as before: a mark in the text, a click on it
+  opens the frame. The cards are in the continuous view and, as the Settings say, in
+  Distraction-Free; the page view keeps the marks only. A click on a card goes to its
+  fragment and selects it, a double click edits it, and the fragment is highlighted while
+  the mouse is on its card. A click on a mark collapses or expands its card: collapsed, the
+  annotation is its mark alone or, if chosen, a line with the start of its text; View >
+  Collapse All Annotations and Expand All Annotations do it for the chapter, and the Settings
+  say whether a chapter opens with them expanded or collapsed. The "..." button of a card
+  opens its menu (Edit, Collapse, Mark as Resolved or Mark as Done, Remove, Card Appearance
+  and Colors...), the box of a to-do marks it done, and a long text can be cut short to 3 or
+  6 lines with "Show all" under it. With the cards, an annotation is written in the frame
+  over its card, and a new one in the frame where its card will be. The menu of the text has
+  the annotation at the click on top: its kind and the start of its text, Edit, Mark as
+  Resolved or Done and Remove (also Collapse and Expand with the cards). The Settings also
+  give the kinds that have cards, the size of their text (90% of the chapter's by default)
+  and how strong their background is. The colors are those of the annotations (Settings >
+  Annotations > Colors).
+
 - **Lists of the kinds of materials on tabs** - 2026-10-25. A kind of the Materials clicked
   in the Navigator (or Enter on it, or Open List in its menu) shows its materials on a tab in
   the middle of the window; Materials itself shows All Materials, the working notes too. The
@@ -251,6 +347,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deletes the element; the menus show these keys, and Settings > Keyboard Shortcuts lists them
   (Fixed: the Navigator). In the New Book palette a working note can be created with the
   book, in the Workshop.
+
+- **Editor: autocorrect of words, the replacement table, scene breaks typed** - 2026-10-21.
+  A space, a punctuation mark, Shift+Enter or Enter after a word can change it, as in Word:
+  a pair of the replacement table takes the place of the whole word, also in quotation marks
+  or brackets, with its capital ((c) ©, (r) ®, (tm) ™, 1/2 ½, 1/4 ¼, 3/4 ¾, -> →, <- ←,
+  <-> ↔, => ⇒, +- ±); two hyphens alone or between two words (1939--1945) become an en dash;
+  a hyphen between two spaces after a word becomes a dash (an en dash, in a line of dialogue
+  the dash that starts it); the first letter of a sentence becomes a capital: at the start of
+  the paragraph, after the dialogue dash that starts it, after . ? or !, not after an
+  abbreviation of the text's language (Polish and English lists), a number (5. pułk), an
+  initial (J. Kowalski) or an ellipsis, and not in a word with a capital in it (iPhone); "TWo
+  INitial CApitals" lose the second one, except the exceptions (IDs, PCs); a word typed with
+  Caps Lock on by mistake ("wIELKI") becomes "Wielki", and Caps Lock goes off (on Windows and
+  X11; elsewhere the status bar asks to turn it off). "***" or "---" alone in a paragraph
+  becomes a scene break or a horizontal line with Enter. Each change is an undo step of its
+  own; undoing a capital after a word with a period, or the change of "TWo", right after it
+  adds the word to its exceptions, and the status bar says so. The paragraphs in Code are
+  not changed. Every change has its own setting, on at first, and the lists are in the
+  settings (editor.autoCorrect), on the Auto-correct page of the Settings.
+
+- **Settings > Editor > Auto-correct: three tabs** - 2026-10-21. While Typing has every
+  replacement of the characters with its check box: the quotation marks, the apostrophe, the
+  dialogue dash and the dash between words with the dash beside each (and in a line of
+  dialogue its dash), "--", the ellipsis, the replacement table as a whole, and the text
+  elements typed ("***" and "---" with Enter). Capitals has the first letter of a sentence,
+  "TWo INitial CApitals" and Caps Lock, and the exceptions: the abbreviations after which a
+  sentence does not end, for a text in Polish and for one in English and the other languages,
+  and the words with two capitals, each list with a field to add a word (Enter) and Delete to
+  remove it, and the choice to add an exception when a change is undone right after it.
+  Replacement Table lists all the pairs, the built-in ones and the writer's own, each with its
+  check box: a new pair is typed in two fields over the table (Add, or Enter; a word of the
+  table gets the new replacement, as the note over the table says first), Space turns the
+  pairs selected on and off, F2 changes a cell (a word that cannot be, as one with a space or
+  one of another pair, is put back, saying why), Delete removes the pairs, Insert goes to the
+  field of a new pair, and Restore Defaults brings back the built-in pairs as they were, the
+  writer's own staying. Ctrl+Page Down and Ctrl+Page Up go to the next and the previous tab.
+
+- **Editor: Insert > Formatting Character** - 2026-10-21. The characters of typesetting a
+  keyboard does not have, with the keys of Word: a non-breaking space (Ctrl+Shift+Space), a
+  non-breaking hyphen (Ctrl+_), an optional hyphen, an en dash (Alt+-) and an em dash
+  (Alt+_; on macOS without a key, since Option with the minus types them). Each goes in at
+  the cursor or in place of the selection as an undo step of its own, and autocorrect does
+  not change it; in a book open read-only the items are greyed out, saying why.
+
+- **Editor: Insert > Special Character...** - 2026-10-21. A window of the characters a
+  keyboard does not have, in two views switched by the buttons Grid and List beside the
+  search (Alt+G, Alt+L); it opens in the view shown last, the grid at first. The search finds
+  a character by its name, in the language of the program or in English and without the
+  accents, or by its code (U+2014, 2014; also a character of no group). The grid has the
+  groups at the left (Favorites, Recently Used and nine groups of characters), the characters
+  of the group, the one selected large with its name, code, keys and auto-correct, and under
+  them the 16 characters inserted last (a click inserts one). The list shows each character
+  with its name, code, keys and auto-correct, the groups as buttons over it, and a star that
+  makes a character a favorite. The characters are shown in the font of the text at the
+  cursor: one the font has not is greyed out, and its details say that another font shows it.
+  Enter, Insert or a double click puts the character in at the cursor as an undo step of its
+  own, and the status bar says which; the window stays open after it, as "Keep the window open
+  after inserting" says. The menu of a character (the right button, the Menu key or
+  Shift+F10) has Insert, Add to Favorites, Assign Shortcut... and Add Replacement....
+  Assign Shortcut... records keys that insert the character: keys the program keeps are
+  refused, saying why, and keys of another command take them from it, as the window says
+  before; the character is then in the group Characters of Settings > Keyboard Shortcuts.
+  Add Replacement... adds a word auto-correct replaces with the character to the replacement
+  table. With no chapter open or in a book open read-only Insert is greyed out, saying why.
+  The favorites, the characters inserted last, the view and the choice to keep the window
+  open are in the settings (specialCharacters).
+
+- **Editor: Insert > Quick Character (Ctrl+Shift+I)** - 2026-10-21. A small window under the
+  cursor of the text (over it at the bottom of the screen) with a row of the favorite
+  characters and a row of those inserted last. Typing finds the characters by a name or a
+  code, as the window Insert > Special Character... does, showing the first three rows of
+  them; a name finds first the characters whose names have words starting so ("arrow": the
+  arrows before the characters with "narrow" in their names). The arrows choose a character,
+  Enter or a click inserts it at the cursor as an undo step of its own and closes the window,
+  Esc closes it, and All Characters... (Ctrl+Enter) opens Insert > Special Character....
+  Under the rows the character chosen with its name, code, keys and auto-correct. The keys
+  can be changed in Settings > Keyboard Shortcuts; in a book open read-only the status bar
+  says why it does not open.
 
 - **Dashboard: an X on the card of a recent book** - 2026-10-19. A small X in the top right
   corner of each card takes the book off the recent books ("Remove from the recent books (the
@@ -946,6 +1120,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
 
 ### Fixed
+
+- **The words of headings and lists in a closed chapter** - 2026-10-26. The words of a chapter
+  not open in the editor (the book, its sections and parts in the Properties panel, the
+  preview of a file) count the text of its headings and list items too, as the editor counts
+  them; before, only the other paragraphs were counted.
 
 - **The words of the book and the dialogue dashes** - 2026-10-19. Count standalone dashes as
   words (Settings > Editor > General > Word Count) counts them in the words of the book, its

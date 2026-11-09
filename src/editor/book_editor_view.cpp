@@ -159,6 +159,9 @@ void BookEditor::setViewMode(ViewMode mode)
 
         emit viewModeChanged(mode);
 
+        // The page view has the marks of the annotations only, no cards under the paragraphs
+        updateAnnotationCards();
+
         // Every view has the page's width, margins and zoom, so the line breaks stay: the
         // pipeline places the lines on the pages or one under another and lays the text out
         // again. Scroll anchoring keeps the text at the top of the view in place; the
@@ -210,14 +213,17 @@ void BookEditor::applyZoom(double factor, const QPointF& fixedPoint) {
     // Every view zooms the page as a whole: only the painter scale changes, the line breaks
     // stay
     m_renderPipeline->setConfigZoom(factor);
+    fitAnnotationCardWriting();  // the frame over a card keeps its height in pixels
     updateScrollBarRange();
 
-    // The document point under fixedPoint stays there
+    // The document point under fixedPoint stays there (on its page: mirror margins shift
+    // the text of every other page)
     const RenderContext& ctx = m_renderPipeline->context();
     const double scale = ctx.computed.viewScale;
-    m_renderPipeline->setConfigScrollX(
-        (ctx.pageMode.pageSpacing + ctx.computed.marginLeft + docPoint.x()) * scale -
-        fixedPoint.x());
+    const double pageX =
+        ctx.computed.marginLeft + m_renderPipeline->shiftAtY(docPoint.y()) + docPoint.x();
+    m_renderPipeline->setConfigScrollX((ctx.pageMode.pageSpacing + pageX) * scale -
+                                       fixedPoint.x());
     setScrollOffset(docPoint.y() - (fixedPoint.y() - ctx.computed.originY) / scale);
     updateHorizontalScrollBar();
 
@@ -691,10 +697,17 @@ void BookEditor::applyPageLayout()
     const QSizeF sizeMm = m_appearance.pageLayout.pageSizeMm();
     const QSizeF sizePoints(sizeMm.width() * POINTS_PER_INCH / MM_PER_INCH,
                             sizeMm.height() * POINTS_PER_INCH / MM_PER_INCH);
+    // With mirror margins the margins of page 1: the binding is on the left of a right page
     const PageMarginsConfig& margins = m_appearance.pageMargins;
-    m_renderPipeline->setConfigPageLayout(
-        sizePoints, QMarginsF(margins.left, margins.top, margins.right, margins.bottom),
-        m_appearance.pageLayout.pageGap);
+    double left = margins.left;
+    double right = margins.right;
+    if (margins.mirrored) {
+        left = margins.firstPageLeft ? margins.outer : margins.inner;
+        right = margins.firstPageLeft ? margins.inner : margins.outer;
+    }
+    m_renderPipeline->setConfigPageLayout(sizePoints,
+                                          QMarginsF(left, margins.top, right, margins.bottom),
+                                          m_appearance.pageLayout.pageGap, margins.mirrored);
     m_renderPipeline->setConfigShowPageNumbers(m_appearance.pageLayout.showPageNumbers);
 }
 
@@ -910,6 +923,7 @@ void BookEditor::setDistractionFree(bool enabled)
         }
         m_uiOpacity = 0.0;
     }
+    updateAnnotationCards();  // shown in Distraction-Free as the settings say
     update();
     emit distractionFreeModeChanged(enabled);
 }

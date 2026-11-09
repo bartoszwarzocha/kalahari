@@ -171,7 +171,8 @@ TEST_CASE("Spelling: a hidden editor is checked when it is shown", "[editor][spe
 TEST_CASE("Spelling: the word being typed gets its wave when the cursor leaves it",
           "[editor][spelling]") {
     auto spelling = englishService();
-    auto editor = shownEditor({QStringLiteral("The end.")}, spelling.get());
+    // A comma before the word: autocorrect gives it no capital, as it would after a period
+    auto editor = shownEditor({QStringLiteral("The end,")}, spelling.get());
     REQUIRE(checked(*editor));
     editor->setCursorPosition({0, 8});
 

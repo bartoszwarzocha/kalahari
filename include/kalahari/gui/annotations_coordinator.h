@@ -42,7 +42,11 @@ class EditorPanel;
 ///
 /// An annotation's text is written in a frame at its place in the text: a new one's (on
 /// the selection, or on the cursor's place), and one's edited again (from its card, or with
-/// a click on its mark). Saving the frame is one step of the document's undo history - the
+/// a click on its mark). With the cards under the paragraphs (View > Annotation Cards Under
+/// Paragraphs) the frame lies over the annotation's card, a new one's among the cards of its
+/// paragraph; a click on a card selects the annotation's card in the panel, a double click
+/// edits it. Collapse All Annotations and Expand All Annotations work on the cards of the
+/// document in front. Saving the frame is one step of the document's undo history - the
 /// new annotation, or its new text; dropping it (Esc or its X) changes nothing. Going
 /// anywhere else in the program closes it, the text kept: a click outside it, the keys going
 /// to another place; it stays open while another application is in front. One frame is open at
@@ -156,6 +160,11 @@ public:
     /// @param editor Only the frame over this editor (nullptr: the frame over any)
     void finishWriting(const editor::BookEditor* editor = nullptr);
 
+signals:
+    /// @brief The Settings dialog should open at a page (Card Appearance and Colors... in the
+    ///        menu of a card: the Annotations page)
+    void settingsPageRequested(const QString& page);
+
 protected:
     /// @brief F9 (the shortcut of Annotations): togglePanelFocus(); the file of a document
     /// set or changed: followFileType()
@@ -230,6 +239,10 @@ private:
     void onDoneToggled(const AnnotationEntry& entry, bool done);
     void onDeleteRequested(const AnnotationEntry& entry);
     void onEditorFocusRequested();
+
+    // The cards under the paragraphs
+    void onCardClicked(const QString& annotationId);
+    void onCardSettingsRequested();
 
     // The frame
     void onMarkClicked(const QString& annotationId);

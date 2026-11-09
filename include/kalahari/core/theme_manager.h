@@ -75,6 +75,14 @@ public:
     /// changed color does.
     bool optimizesEditorColors() const;
 
+    /// @brief Move the colors of the papers the settings kept outside the themes
+    ///        (editor.colors.<name>) into the themes, and drop the former settings
+    ///
+    /// Those colors were the same in every theme: a color the user chose goes to each theme
+    /// that has neither a value of its own for it nor this color in its file. Runs at startup,
+    /// before the stored colors are applied; without the former settings it does nothing.
+    void moveFormerPaperColors();
+
     /// @brief Get list of available themes in resources/themes/
     /// @return List of theme names (without .json extension)
     QStringList getAvailableThemes() const;

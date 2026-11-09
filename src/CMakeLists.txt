@@ -11,6 +11,10 @@ set(KALAHARI_CORE_SOURCES
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     editor/annotation.cpp  # Comments, TODOs and notes anchored to the text
     editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
+    editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
+    editor/character_format.cpp  # The character formatting of Format > Font, Change Case
+    editor/text_lists.cpp        # Bulleted and numbered lists
+    editor/kml_document_model.cpp  # KML reader (the clipboard reads the lists of KML)
     editor/clipboard_handler.cpp       # Phase 4.13-4.16: Clipboard operations
     editor/editor_appearance.cpp       # Phase 5: Editor appearance configuration
     core/database_schema_manager.cpp
@@ -164,6 +168,13 @@ set(KALAHARI_SOURCES
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/read_only_book.cpp # What the program says of a book open read-only
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
+    gui/dialogs/special_character_dialog.cpp  # SpecialCharacterDialog - Insert > Special Character...
+    gui/dialogs/list_dialogs.cpp           # Bullets and Numbering, Set Numbering Value
+    gui/dialogs/font_dialog.cpp            # Format > Font...
+    gui/dialogs/paragraph_dialog.cpp       # Format > Paragraph...
+    gui/widgets/character_grid.cpp  # CharacterGrid - characters in cells, in the font of the text
+    gui/widgets/quick_character_palette.cpp  # QuickCharacterPalette - Insert > Quick Character
+    gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
     gui/dialogs/link_dialog.cpp  # LinkDialog - what a material is about, or the materials of an element
     gui/material_file.cpp  # MaterialFile - the file of a material: its name, format, size and picture
     gui/material_source.cpp  # MaterialSource - a file, a web page, a picture on the web or none
@@ -218,10 +229,16 @@ set(KALAHARI_SOURCES
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     gui/shortcut_rules.cpp  # Which keys a command can have
     gui/shortcut_settings.cpp  # The user's keys in the settings and in the files
+    gui/special_characters.cpp  # The characters of Insert > Special Character, by group, with names
+    gui/special_character_choices.cpp  # The favorite characters and those inserted last
+    gui/character_commands.cpp  # The commands of the characters given keys
+    gui/auto_correct_replacements.cpp  # The replacement table of auto-correct in the settings
+    gui/special_character_coordinator.cpp  # SpecialCharacterCoordinator - Insert > Special Character...
     gui/widget_keys.cpp  # Qt's widgets have the keys of Windows, also on Linux
     gui/widgets/color_config_widget.cpp
     gui/widgets/path_label.cpp  # A file path that wraps also inside a long name
     gui/widgets/length_spin_box.cpp
+    gui/widgets/color_menu.cpp             # The submenus Font Color and Highlight Color
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
@@ -268,6 +285,7 @@ set(KALAHARI_SOURCES
     gui/utils/setting_toggle.cpp  # Toggles that show an on/off setting
     gui/utils/program_folders.cpp  # The folders of the program and of the windows choosing files
     gui/utils/file_location.cpp  # A file or a folder shown in the file manager of the system
+    gui/utils/caps_lock.cpp  # Caps Lock turned off after autocorrect changed a word typed with it
     gui/utils/document_commands.cpp  # The commands that work on the document in front
     gui/utils/distraction_free_layout.cpp  # The main window's layout for Distraction-Free writing
     gui/utils/tab_focus.cpp  # The keys go to the page in front of the tabs
@@ -276,11 +294,14 @@ set(KALAHARI_SOURCES
     gui/utils/core_texts.cpp  # The core library's texts for the translations
     # OpenSpec #00042: BookEditor (Q_OBJECT requires executable, not DLL)
     editor/book_editor.cpp      # Phase 3.1: BookEditor widget
+    editor/annotation_cards.cpp  # The cards of the annotations under their paragraphs
     editor/book_editor_annotations.cpp
+    editor/book_editor_cards.cpp
     editor/book_editor_checking.cpp
     editor/book_editor_cursor.cpp
     editor/book_editor_editing.cpp
     editor/book_editor_formatting.cpp
+    editor/book_editor_lists.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
     editor/book_editor_view.cpp
@@ -302,7 +323,6 @@ set(KALAHARI_SOURCES
     editor/quick_insert_popup.cpp        # Tasks 7.11-7.12: Quick insert autocomplete popup
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
-    editor/kml_document_model.cpp        # KML reader
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
@@ -341,6 +361,12 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/special_character_dialog.h  # SpecialCharacterDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/list_dialogs.h  # the list windows with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/font_dialog.h  # Format > Font... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_dialog.h  # Format > Paragraph... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
@@ -356,6 +382,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
@@ -369,6 +396,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h

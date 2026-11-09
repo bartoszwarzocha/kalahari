@@ -89,6 +89,16 @@ std::map<std::string, json> buildDefaults() {
         // none); the other commands have the program's (Settings > Keyboard Shortcuts)
         {"keyboard.shortcuts", json::object()},
 
+        // Insert > Special Character...: the writer's favorite characters (at first those a
+        // writer of fiction uses most), the ones inserted last (the last first), whether
+        // the window stays open after Insert, and the view it opens in: the one shown last
+        // ("grid" or "list")
+        {"specialCharacters.favorites",
+         json::array({"—", "–", "…", "„", "”", "⁂", "❦", "→", "°", "§"})},
+        {"specialCharacters.recent", json::array()},
+        {"specialCharacters.keepOpen", true},
+        {"specialCharacters.view", "grid"},
+
         // Log panel
         {"log.bufferSize", 500},
 
@@ -154,9 +164,11 @@ std::map<std::string, json> buildDefaults() {
         // Editor: text
         {"editor.fontFamily", "Georgia"},
         {"editor.fontSize", 14},
+        // How far apart the tab stops are: "indent", every first-line indent of the paragraph's
+        // style (a style without one: editor.indentSize), or "spaces", every editor.tabSize
+        // spaces of its font
+        {"editor.tabStops", "indent"},
         {"editor.tabSize", 4},
-        {"editor.lineNumbers", true},
-        {"editor.wordWrap", false},
         // Where a chapter opens: "lastEdit", where its cursor was when it was closed last, or
         // "start"
         {"editor.chapterOpensAt", "lastEdit"},
@@ -199,22 +211,16 @@ std::map<std::string, json> buildDefaults() {
         {"spellingPanel.nextIssue", "panel"},
         {"spellingPanel.grammarScope", "whole"},
 
-        // Editor: colors. The user's values of the theme's editor colors (the underlines of
-        // the misspelled words and grammar issues, the annotations) are kept for each theme,
-        // themes.<theme>.editor.<name in the theme's "editor" section>, without a default here:
-        // the theme file gives it (ThemeManager::editorColorSetting()). "Optimize colors in
-        // themes" shows them darker on a light background and lighter on a dark one where they
+        // Editor: the paper, light or dark whatever the theme, and the colors. The user's values
+        // of the theme's editor colors (both papers and their text, the desk around them, the
+        // selection, the search's hits, the underlines of the misspelled words and grammar
+        // issues, the annotations) are kept for each theme, themes.<theme>.editor.<name in the
+        // theme's "editor" section>, without a default here: the theme file gives it
+        // (ThemeManager::editorColorSetting()). "Optimize colors in themes" shows the underlines
+        // and the annotations darker on a light background and lighter on a dark one where they
         // are hard to see there
         {"editor.darkMode", true},
         {"editor.colors.optimize", true},
-        {"editor.colors.backgroundLight", "#ffffff"},
-        {"editor.colors.textLight", "#1e1e1e"},
-        {"editor.colors.inactiveLight", "#aaaaaa"},
-        {"editor.colors.formattingMarksLight", "#5b7fc0"},
-        {"editor.colors.backgroundDark", "#232328"},
-        {"editor.colors.textDark", "#e0e0e0"},
-        {"editor.colors.inactiveDark", "#78787d"},
-        {"editor.colors.formattingMarksDark", "#7a96d0"},
 
         // Editor: cursor
         {"editor.cursor.style", 0},
@@ -224,7 +230,9 @@ std::map<std::string, json> buildDefaults() {
         {"editor.cursor.blinkInterval", 500},
         {"editor.cursor.lineWidth", 2},
 
-        // Editor: margins (view margins in pixels, page margins in millimetres)
+        // Editor: page margins in millimetres. Mirror margins: the inner one at the binding,
+        // the outer one at the edge; the first page of a chapter is a right page unless the
+        // chapter starts on a left one (the chapter's own setting, in the book)
         {"editor.margins.pageTop", 25.4},
         {"editor.margins.pageBottom", 25.4},
         {"editor.margins.pageLeft", 25.4},
@@ -249,8 +257,20 @@ std::map<std::string, json> buildDefaults() {
         {"editor.focus.enabled", false},
 
         // Editor: the formatting marks (View > Show Formatting Marks: ¶ · ° → ↵ ¬), in the
-        // colors editor.colors.formattingMarksLight/Dark
+        // theme's colors of the papers
         {"editor.showFormattingMarks", false},
+
+        // Editor: the working numbers on the left margin (View > Margin Numbering), only on the
+        // screen: "none", "lines" (every line) or "paragraphs" (every paragraph with text). A
+        // number every "interval" lines or paragraphs; with "restartEachPage" the lines are
+        // counted from 1 on every page of the page view. The font and its size in points at
+        // 100% zoom, and one color for the light and the dark paper
+        {"editor.marginNumbers.mode", "none"},
+        {"editor.marginNumbers.interval", 1},
+        {"editor.marginNumbers.restartEachPage", false},
+        {"editor.marginNumbers.font", "Courier New"},
+        {"editor.marginNumbers.size", 8},
+        {"editor.marginNumbers.color", "#808080"},
 
         // Editor: how the scene breaks look: "asterisks" (* * *), "asterism" (⁂), "fleuron"
         // (❦), "line" (a short line) or "blank" (an empty line); the files keep the breaks
@@ -265,6 +285,28 @@ std::map<std::string, json> buildDefaults() {
         // the text's font gives them
         {"editor.annotationMarkSize", 100},
 
+        // Editor: the cards of the annotations under their paragraphs, in the continuous view
+        // (View > Annotation Cards Under Paragraphs, Settings > Annotations): shown or not, and
+        // for which kinds; "full" (the kind, the author and the date over the text) or
+        // "compact" (the text alone, the author and the date at its end); a collapsed one
+        // "mark" (its mark alone) or "line" (a line with the start of its text); "expanded" or
+        // "collapsed" after a chapter opens; a long text cut short after so many lines (0:
+        // whole); the size of their text in percent of the chapter's; how much of the kind's
+        // color they have, in percent of the usual; the fragment of the card the mouse is on
+        // highlighted; "show" or "hide" them in Distraction-Free
+        {"editor.annotationCards.show", false},
+        {"editor.annotationCards.comments", true},
+        {"editor.annotationCards.todos", true},
+        {"editor.annotationCards.notes", true},
+        {"editor.annotationCards.look", "full"},
+        {"editor.annotationCards.collapsedLook", "mark"},
+        {"editor.annotationCards.afterOpening", "expanded"},
+        {"editor.annotationCards.longLines", 0},
+        {"editor.annotationCards.fontSize", 90},
+        {"editor.annotationCards.tint", 100},
+        {"editor.annotationCards.highlightFragment", true},
+        {"editor.annotationCards.distractionFree", "show"},
+
         // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
         {"editor.wordCount.dashesAsWords", false},
 
@@ -277,6 +319,61 @@ std::map<std::string, json> buildDefaults() {
         {"editor.autoCorrect.dialogueDash", true},
         {"editor.autoCorrect.dialogueDashType", "emDash"},
         {"editor.autoCorrect.ellipsis", true},
+
+        // Autocorrect of the words, as a space, a punctuation mark or Enter ends them: a
+        // hyphen between words to a dash ("enDash" or "emDash"; in a line of dialogue the
+        // dash it starts with), two hyphens to an en dash, the replacement table, capitals
+        // (the first letter of a sentence, "TWo", a word typed with Caps Lock on), "***" and
+        // "---" with Enter to a scene break and a line
+        {"editor.autoCorrect.dashBetweenWords", true},
+        {"editor.autoCorrect.dashBetweenWordsType", "enDash"},
+        {"editor.autoCorrect.dashInDialogue", true},
+        {"editor.autoCorrect.doubleHyphen", true},
+        {"editor.autoCorrect.replacementTable", true},
+        {"editor.autoCorrect.sentenceCapitals", true},
+        {"editor.autoCorrect.twoInitialCapitals", true},
+        {"editor.autoCorrect.capsLock", true},
+        {"editor.autoCorrect.sceneBreak", true},
+        {"editor.autoCorrect.horizontalRule", true},
+        // "* " and "1. " or "1) " starting a paragraph to an item of a bulleted and of a
+        // numbered list
+        {"editor.autoCorrect.bulletedLists", true},
+        {"editor.autoCorrect.numberedLists", true},
+
+        // The replacement table: pairs of a word and its replacement, each one on or off
+        // (the program's own pairs too; "Restore Defaults" brings back these)
+        {"editor.autoCorrect.replacements",
+         json::array({json{{"from", "(c)"}, {"to", "©"}, {"enabled", true}},
+                      json{{"from", "(r)"}, {"to", "®"}, {"enabled", true}},
+                      json{{"from", "(tm)"}, {"to", "™"}, {"enabled", true}},
+                      json{{"from", "1/2"}, {"to", "½"}, {"enabled", true}},
+                      json{{"from", "1/4"}, {"to", "¼"}, {"enabled", true}},
+                      json{{"from", "3/4"}, {"to", "¾"}, {"enabled", true}},
+                      json{{"from", "->"}, {"to", "→"}, {"enabled", true}},
+                      json{{"from", "<-"}, {"to", "←"}, {"enabled", true}},
+                      json{{"from", "<->"}, {"to", "↔"}, {"enabled", true}},
+                      json{{"from", "=>"}, {"to", "⇒"}, {"enabled", true}},
+                      json{{"from", "+-"}, {"to", "±"}, {"enabled", true}}})},
+
+        // The exceptions of the capitals: the abbreviations after which a period does not
+        // end a sentence, a list for each language (another language has the English one;
+        // abbreviations often at the end of a sentence, as "itd." and "etc.", are not in
+        // them), the words that keep two capitals at their start, and whether undoing a
+        // capital right after it adds the word to them, as in Word
+        {"editor.autoCorrect.abbreviations.pl",
+         json::array({"al.", "ang.", "art.", "bm.", "cz.", "dn.", "dot.", "dr", "gen.",
+                      "godz.", "im.", "inż.", "jw.", "kpt.", "ks.", "m.in.", "mgr", "mjr",
+                      "np.", "nr", "nt.", "ob.", "ok.", "pkt.", "pl.", "płd.", "płk", "płn.",
+                      "por.", "prof.", "przyp.", "rozdz.", "ryc.", "rys.", "św.", "tab.",
+                      "tel.", "tj.", "tys.", "tzn.", "tzw.", "ul.", "ust.", "wg", "wsch.",
+                      "wyd.", "zach.", "zob."})},
+        {"editor.autoCorrect.abbreviations.en",
+         json::array({"approx.", "Ave.", "Blvd.", "ca.", "Capt.", "cf.", "Col.", "Dr.",
+                      "e.g.", "fig.", "Fr.", "Gen.", "Gov.", "i.e.", "Jr.", "Lt.", "Mr.",
+                      "Mrs.", "Ms.", "Mt.", "pp.", "Prof.", "Rev.", "Sen.", "Sgt.", "Sr.",
+                      "St.", "vol.", "vs."})},
+        {"editor.autoCorrect.twoCapitalsExceptions", json::array({"IDs", "PCs"})},
+        {"editor.autoCorrect.learnExceptions", true},
 
         // Editor: versions of the texts (Settings > Editor > Versions, ChapterVersions). With
         // enabled off no new version is kept, neither the writer's nor the program's (except
