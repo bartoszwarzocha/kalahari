@@ -78,7 +78,25 @@ void insertParagraphsBefore(QTextCursor& cursor, const QTextBlock& block,
     }
 }
 
-/// The paragraphs of a paragraph divided at the separator: each part one, in its formats
+/// Remove the spaces at the start (or the end) of the runs, and the runs left empty
+void trimRuns(std::vector<CopiedRun>& runs, bool atStart) {
+    while (!runs.empty()) {
+        QString& text = atStart ? runs.front().text : runs.back().text;
+        qsizetype count = 0;
+        while (count < text.size() &&
+               text.at(atStart ? count : text.size() - 1 - count) == QLatin1Char(' ')) {
+            ++count;
+        }
+        text.remove(atStart ? 0 : text.size() - count, count);
+        if (!text.isEmpty()) {
+            return;
+        }
+        runs.erase(atStart ? runs.begin() : runs.end() - 1);
+    }
+}
+
+/// The paragraphs of a paragraph divided at the separator: each part one, in its formats;
+/// at a separator other than a tab the spaces next to it go ("Anna; Bartek")
 std::vector<CopiedParagraph> divided(const CopiedParagraph& paragraph, QChar separator) {
     std::vector<CopiedParagraph> parts(1);
     parts.back().blockFormat = paragraph.blockFormat;
@@ -93,6 +111,16 @@ std::vector<CopiedParagraph> divided(const CopiedParagraph& paragraph, QChar sep
             }
             if (!pieces[i].isEmpty()) {
                 parts.back().runs.push_back({pieces[i], run.format});
+            }
+        }
+    }
+    if (separator != QLatin1Char('\t')) {
+        for (size_t i = 0; i < parts.size(); ++i) {
+            if (i > 0) {
+                trimRuns(parts[i].runs, true);
+            }
+            if (i + 1 < parts.size()) {
+                trimRuns(parts[i].runs, false);
             }
         }
     }
@@ -946,7 +974,10 @@ int tableToText(QTextCursor& cursor, QTextTable& table, QChar separator)
                 line.charFormat = own.front().charFormat;
             }
             if (i > 0) {
-                line.runs.push_back({QString(separator), QTextCharFormat()});
+                // A space after a semicolon and a comma, as in a sentence
+                const bool spaced = separator == QLatin1Char(';') || separator == QLatin1Char(',');
+                line.runs.push_back({spaced ? QString(separator) + QLatin1Char(' ') : QString(separator),
+                                     QTextCharFormat()});
             }
             for (size_t j = 0; j < own.size(); ++j) {
                 if (j > 0) {

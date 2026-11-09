@@ -203,8 +203,9 @@ QStringList cellTexts(const QString& paragraph, QChar separator);
 QChar likeliestSeparator(const QStringList& paragraphs);
 
 /// @brief Turn the paragraphs of blocks @p first to @p last into a table: each a row, its
-///        text divided into cells at the separator; a null @p separator: each paragraph a
-///        cell, row by row in @p columns columns
+///        text divided into cells at the separator (the spaces next to a separator other
+///        than a tab going); a null @p separator: each paragraph a cell, row by row in
+///        @p columns columns
 ///
 /// The table is as wide as the text with equal columns; the cells keep the paragraphs'
 /// formats. An empty paragraph left next to it that it does not need goes, as for Insert >
@@ -214,8 +215,8 @@ QTextTable* textToTable(QTextCursor& cursor, int first, int last, QChar separato
                         bool headerRow, const QTextBlockFormat& paragraphFormat);
 
 /// @brief Turn a table into paragraphs: each row one, its cells separated by the separator
-///        and a cell's paragraphs joined by spaces; a null @p separator: each cell's
-///        paragraphs as they are, row by row
+///        (a semicolon and a comma with a space after them) and a cell's paragraphs joined
+///        by spaces; a null @p separator: each cell's paragraphs as they are, row by row
 /// @return The number of the block of the first paragraph
 int tableToText(QTextCursor& cursor, QTextTable& table, QChar separator);
 

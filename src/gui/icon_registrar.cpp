@@ -157,6 +157,31 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.paragraph", "resources/icons/twotone/notes.svg", "Paragraph");
 
     // -------------------------------------------------------------------------
+    // TABLE MENU ICONS
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("table.insert", "resources/icons/twotone/table_chart.svg", "Insert Table");
+    iconRegistry.registerIcon("table.insertRowsAbove", "resources/icons/twotone/arrow_upward.svg", "Insert Rows Above");
+    iconRegistry.registerIcon("table.insertRowsBelow", "resources/icons/twotone/arrow_downward.svg", "Insert Rows Below");
+    iconRegistry.registerIcon("table.insertColumnsLeft", "resources/icons/twotone/arrow_back.svg", "Insert Columns to the Left");
+    iconRegistry.registerIcon("table.insertColumnsRight", "resources/icons/twotone/arrow_forward.svg", "Insert Columns to the Right");
+    iconRegistry.registerIcon("table.deleteRows", "resources/icons/twotone/delete.svg", "Delete Rows");
+    iconRegistry.registerIcon("table.deleteColumns", "resources/icons/twotone/delete.svg", "Delete Columns");
+    iconRegistry.registerIcon("table.deleteTable", "resources/icons/twotone/delete.svg", "Delete Table");
+    iconRegistry.registerIcon("table.selectCell", "resources/icons/twotone/highlight_alt.svg", "Select Cell");
+    iconRegistry.registerIcon("table.selectRow", "resources/icons/twotone/view_list.svg", "Select Row");
+    iconRegistry.registerIcon("table.selectColumn", "resources/icons/twotone/view_module.svg", "Select Column");
+    iconRegistry.registerIcon("table.selectTable", "resources/icons/twotone/select_all.svg", "Select Table");
+    iconRegistry.registerIcon("table.mergeCells", "resources/icons/twotone/zoom_out_map.svg", "Merge Cells");
+    iconRegistry.registerIcon("table.splitCells", "resources/icons/twotone/horizontal_split.svg", "Split Cells");
+    iconRegistry.registerIcon("table.distributeRows", "resources/icons/twotone/swap_vert.svg", "Distribute Rows Evenly");
+    iconRegistry.registerIcon("table.distributeColumns", "resources/icons/twotone/swap_horiz.svg", "Distribute Columns Evenly");
+    iconRegistry.registerIcon("table.headerRows", "resources/icons/twotone/view_headline.svg", "Repeat Header Rows");
+    iconRegistry.registerIcon("table.sort", "resources/icons/twotone/sort.svg", "Sort");
+    iconRegistry.registerIcon("table.textToTable", "resources/icons/twotone/grid_on.svg", "Text to Table");
+    iconRegistry.registerIcon("table.tableToText", "resources/icons/twotone/subject.svg", "Table to Text");
+    iconRegistry.registerIcon("table.properties", "resources/icons/twotone/tune.svg", "Table Properties");
+
+    // -------------------------------------------------------------------------
     // TOOLS MENU ICONS
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("tools.stats.full", "resources/icons/twotone/analytics.svg", "Full Statistics");
@@ -243,6 +268,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.textEffects", "resources/icons/twotone/format_strikethrough.svg", "Text Effects");
     iconRegistry.registerIcon("menu.changeCase", "resources/icons/twotone/format_size.svg", "Change Case");
     iconRegistry.registerIcon("menu.alignText", "resources/icons/twotone/format_align_left.svg", "Align Text");
+    iconRegistry.registerIcon("menu.tableInsert", "resources/icons/twotone/add_box.svg", "Insert");
+    iconRegistry.registerIcon("menu.tableDelete", "resources/icons/twotone/delete.svg", "Delete");
+    iconRegistry.registerIcon("menu.tableSelect", "resources/icons/twotone/select_all.svg", "Select");
+    iconRegistry.registerIcon("menu.tableConvert", "resources/icons/twotone/swap_horiz.svg", "Convert");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");

@@ -535,6 +535,7 @@ std::optional<BookEditor::SortSubject> BookEditor::sortSubject() const
         subject.count = rows->rows();
         // The names of the columns: the texts of the last header row
         const int header = rows->table->format().headerRowCount();
+        subject.header = header > 0;
         for (int column = 0; column < rows->table->columns(); ++column) {
             subject.columns << (header > 0 ? cellText(rows->table->cellAt(header - 1, column),
                                                       QLatin1Char(' '))
@@ -766,9 +767,24 @@ QStringList BookEditor::paragraphsForTable() const
     return texts;
 }
 
+bool BookEditor::canConvertTextToTable() const
+{
+    if (!m_textBuffer || isInTable()) {
+        return false;
+    }
+    const auto [first, last] = selectedBlockRange();
+    for (int number = first; number <= last; ++number) {
+        const QTextBlock block = m_textBuffer->findBlockByNumber(number);
+        if (!block.isValid() || tableOf(block) || blockObject(block) != TextObject::None) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void BookEditor::convertTextToTable(QChar separator, int columns, bool headerRow)
 {
-    if (refusesChange() || paragraphsForTable().isEmpty()) {
+    if (refusesChange() || !canConvertTextToTable()) {
         return;
     }
     const auto [first, last] = selectedBlockRange();

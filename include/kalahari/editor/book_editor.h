@@ -1073,6 +1073,7 @@ public:
         QStringList columns;      ///< The names of the columns: the texts of the last
                                   ///< header row, empty for a table without a header
         int count = 0;            ///< The rows or paragraphs sorted
+        bool header = false;      ///< The table has header rows, which stay at the top
     };
 
     /// @brief What Table > Sort... sorts: in a table, the selected rows (of more than one),
@@ -1099,6 +1100,10 @@ public:
     ///        table: the selected ones, else the cursor's; empty in a table, or with an
     ///        object among them
     QStringList paragraphsForTable() const;
+
+    /// @brief Whether there are paragraphs for Text to Table... (paragraphsForTable()), without
+    ///        taking their texts
+    bool canConvertTextToTable() const;
 
     /// @brief Table > Convert > Text to Table...: the paragraphs of paragraphsForTable()
     ///        become a table (textToTable()); the cursor goes to its first cell

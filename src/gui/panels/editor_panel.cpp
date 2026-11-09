@@ -8,11 +8,13 @@
 #include "kalahari/gui/dialogs/link_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
 #include "kalahari/gui/dialogs/paragraph_dialog.h"
+#include "kalahari/gui/dialogs/table_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/utils/language_names.h"
 #include "kalahari/gui/utils/caps_lock.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
@@ -616,6 +618,71 @@ void EditorPanel::showInsertTableDialog() {
     dialogs::InsertTableDialog dialog(window());
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow());
+    }
+}
+
+void EditorPanel::showSplitCellsDialog() {
+    if (m_bookEditor->isReadOnly() || !m_bookEditor->canSplitTableCells()) {
+        return;
+    }
+    const bool cellsSelected = m_bookEditor->selectedCellRange().has_value();
+    dialogs::SplitCellsDialog dialog(
+        cellsSelected,
+        [this](bool mergeFirst) { return m_bookEditor->splitCellParagraphs(mergeFirst); },
+        window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->splitTableCells(dialog.columns(), dialog.rows(), dialog.mergeFirst(),
+                                      dialog.distribute());
+    }
+}
+
+void EditorPanel::showSortDialog() {
+    const std::optional<editor::BookEditor::SortSubject> subject = m_bookEditor->sortSubject();
+    if (m_bookEditor->isReadOnly() || !subject) {
+        return;
+    }
+    dialogs::SortDialog dialog(subject->tableRows, subject->columns, subject->header,
+                               utils::languageName(textLanguage()), window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->sortSelection(dialog.options());
+    }
+}
+
+void EditorPanel::showTextToTableDialog() {
+    const QStringList paragraphs = m_bookEditor->paragraphsForTable();
+    if (m_bookEditor->isReadOnly() || paragraphs.isEmpty()) {
+        return;
+    }
+    dialogs::TextToTableDialog dialog(paragraphs, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->convertTextToTable(dialog.separator(), dialog.columns(), dialog.headerRow());
+    }
+}
+
+void EditorPanel::showTableToTextDialog() {
+    const std::vector<QStringList> rows = m_bookEditor->tableTexts();
+    if (m_bookEditor->isReadOnly() || rows.empty()) {
+        return;
+    }
+    dialogs::TableToTextDialog dialog(rows, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->convertTableToText(dialog.separator());
+    }
+}
+
+void EditorPanel::showTablePropertiesDialog() {
+    const std::optional<editor::TablePropertiesData> data = m_bookEditor->tablePropertiesData();
+    if (m_bookEditor->isReadOnly() || !data) {
+        return;
+    }
+    // The lines without a color of their own have the editor's, on its paper
+    const editor::EditorAppearance& appearance = m_bookEditor->appearance();
+    const QColor lines = appearance.colorMode == editor::EditorColorMode::Light
+                             ? appearance.colors.tables.linesLight
+                             : appearance.colors.tables.linesDark;
+    dialogs::TablePropertiesDialog dialog(*data, lines, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->setTablePropertiesData(dialog.data());
     }
 }
 
