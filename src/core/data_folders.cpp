@@ -50,9 +50,16 @@ bool canWriteIn(const std::filesystem::path& folder) {
 }  // namespace
 
 const DataFolders& DataFolders::current() {
-    // The tests keep their own temporary folders: their executables are next to the program's
-    static const DataFolders folders =
-        SettingsManager::isTestMode() ? DataFolders() : read(programFolder());
+    // The tests keep their own temporary folders: their executables are next to the program's.
+    // In a lambda, not "isTestMode() ? DataFolders() : read(...)": MSVC 19.51 built that
+    // initialization with the kind of the copy, but with its paths empty, so a copy with a
+    // data folder of its own read and saved no settings.json
+    static const DataFolders folders = []() {
+        if (SettingsManager::isTestMode()) {
+            return DataFolders();
+        }
+        return read(programFolder());
+    }();
     return folders;
 }
 
