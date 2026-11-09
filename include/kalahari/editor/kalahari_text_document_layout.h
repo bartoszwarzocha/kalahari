@@ -398,7 +398,8 @@ protected:
                           int posInDocument, const QTextFormat& format) override;
 
 private:
-    /// @brief The first and the last block a change of the text touched (new coordinates)
+    /// @brief The first and the last block a change of the text touched (new coordinates),
+    ///        in a table with the rows laid out with the changed ones
     std::pair<QTextBlock, QTextBlock> changedBlocks(int from, int charsAdded) const;
 
     /// @brief Blocks [first, last] lose their lines (they wait for documentChanged())
@@ -562,17 +563,32 @@ private:
         FlowEntry flow;      ///< FLOW_TABLE, FLOW_ROW_START for a row's first block
     };
 
-    /// @brief Lay out the blocks of a table in their cells, or estimate their heights
+    /// @brief Lay out the blocks of rows of a table in their cells, or estimate their heights
     /// @param estimate Estimate the heights from the text lengths, without laying out
     /// @param keepGlyphs Keep the shaped glyphs with the lines (a table being edited)
-    /// @return For each block of the table, in order from its first one
+    /// @param firstRow, lastRow The rows, laid out together (tableBand() in the source);
+    ///        a negative @p lastRow: to the last row
+    /// @param headerHeight Receives the height of the header repeated on each page
+    /// @return For each block of the rows, in order from their first one
     std::vector<TableBlockLayout> layoutTable(const QTextTable& table, bool estimate,
-                                              bool keepGlyphs) const;
+                                              bool keepGlyphs, int firstRow = 0,
+                                              int lastRow = -1,
+                                              qreal* headerHeight = nullptr) const;
 
-    /// @brief Lay out a table and store the cache entries of its blocks
+    /// @brief The height of the header of a table repeated on each page, as the rows below
+    ///        its head have it (its cache entries laid out before)
+    qreal tableHeader(const QTextTable& table) const;
+
+    /// @brief The rows of a table from block @p first to @p last get the height of the
+    ///        header repeated on each page
+    void setTableHeader(int first, int last, qreal header);
+
+    /// @brief Lay out rows of a table, with the rows that go with them, and store the
+    ///        cache entries of their blocks
     /// @param heightChanged Set when a block's height changed
-    /// @return The numbers of its first and last block
-    std::pair<int, int> layOutTable(const QTextTable& table, bool* heightChanged);
+    /// @return The numbers of the first and last block laid out
+    std::pair<int, int> layOutTableRows(const QTextTable& table, int firstRow, int lastRow,
+                                        bool* heightChanged);
 
     /// @brief Height of the row of a table whose first block is @p first (the heights of
     ///        the row's blocks together)

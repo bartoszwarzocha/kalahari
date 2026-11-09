@@ -505,6 +505,44 @@ TEST_CASE("Tables: the grid of a table as the view draws it", "[editor][tables][
     CHECK_FALSE(image.isNull());
 }
 
+TEST_CASE("Tables: of a long table the view draws the cells of the rows it shows", "[editor][tables][view]") {
+    // A header row, 39 rows of two cells; the first cell of row 20 spans row 21. Blocks:
+    // 1-2 the header, 2r+1 and 2r+2 row r up to 20, 43 row 21, 2r and 2r+1 row r from 22.
+    QString rows = QStringLiteral("<tr><th><p>H1</p></th><th><p>H2</p></th></tr>");
+    for (int row = 1; row < 40; ++row) {
+        rows += row == 20   ? QStringLiteral("<tr><td rowspan=\"2\"><p>a20</p></td><td><p>b20</p></td></tr>")
+                : row == 21 ? QStringLiteral("<tr><td><p>b21</p></td></tr>")
+                            : QStringLiteral("<tr><td><p>a%1</p></td><td><p>b%1</p></td></tr>").arg(row);
+    }
+    auto editor = editorWith(QStringLiteral("<kml><p>Before</p><table>") + rows +
+                             QStringLiteral("</table><p>After</p></kml>"));
+    QTextDocumentSource source(editor->textDocument());
+    const auto cellsOf = [](const TableGrid& grid) {
+        std::vector<std::pair<int, int>> cells;
+        for (const TableGridCell& cell : grid.cells) {
+            cells.emplace_back(cell.row, cell.column);
+        }
+        return cells;
+    };
+
+    // Rows 22 and 23 in view: rows 21 to 24 with the cell spanning into 21, and the header
+    std::vector<TableGrid> grids = source.tablesIn(44, 46);
+    REQUIRE(grids.size() == 1);
+    CHECK(grids.front().rowTops.size() == 40);
+    CHECK(cellsOf(grids.front()) == std::vector<std::pair<int, int>>{
+                                        {0, 0}, {0, 1}, {20, 0}, {21, 1}, {22, 0}, {22, 1},
+                                        {23, 0}, {23, 1}, {24, 0}, {24, 1}});
+    // Near the top: the header once
+    grids = source.tablesIn(0, 4);
+    REQUIRE(grids.size() == 1);
+    CHECK(cellsOf(grids.front()) == std::vector<std::pair<int, int>>{
+                                        {0, 0}, {0, 1}, {1, 0}, {1, 1}, {2, 0}, {2, 1}});
+    // The whole table
+    grids = source.tablesIn(0, static_cast<size_t>(editor->textDocument()->blockCount() - 1));
+    REQUIRE(grids.size() == 1);
+    CHECK(grids.front().cells.size() == 79);
+}
+
 TEST_CASE("Tables: the end of a cell has its own formatting mark", "[editor][tables][view]") {
     auto editor = editorWith(TABLE_KML);
     const QTextDocument& document = *editor->textDocument();

@@ -147,6 +147,72 @@ qreal leadingAbove(qreal extra) {
     return std::floor(extra / 2.0);
 }
 
+/// The row of the cell of a table holding a block
+int rowOfBlock(const QTextTable& table, const QTextBlock& block) {
+    return table.cellAt(block.position()).row();
+}
+
+/// Rows [firstRow, lastRow] of a table with the rows their cells span: no cell spans into
+/// them from the other rows
+std::pair<int, int> spannedRows(const QTextTable& table, int firstRow, int lastRow) {
+    const int rows = table.rows();
+    for (bool grown = true; grown;) {
+        grown = false;
+        for (int column = 0; column < table.columns(); ++column) {
+            const QTextTableCell top = table.cellAt(firstRow, column);
+            if (top.isValid() && top.row() < firstRow) {
+                firstRow = top.row();
+                grown = true;
+            }
+            const QTextTableCell bottom = table.cellAt(lastRow, column);
+            const int end = bottom.isValid() ? std::min(bottom.row() + bottom.rowSpan(), rows) - 1 : lastRow;
+            if (end > lastRow) {
+                lastRow = end;
+                grown = true;
+            }
+        }
+    }
+    return {firstRow, lastRow};
+}
+
+/// The last row of the head of a table: its header rows with the first row below them,
+/// and the rows their cells span; -1 for a table without header rows
+int headEndOf(const QTextTable& table) {
+    const int rows = table.rows();
+    const int headerRows = std::clamp(table.format().headerRowCount(), 0, rows);
+    return headerRows > 0 ? spannedRows(table, 0, std::min(headerRows, rows - 1)).second : -1;
+}
+
+/// The rows of a table laid out together with rows [firstRow, lastRow]. A row is as high
+/// as its highest cell, so it goes with the rows its cells span. The heights of the head
+/// (headEndOf()) give the space the header rows keep below them and the height of the
+/// header repeated on each page: the head goes with every row touching it, and with the
+/// row below it, whose page flow entry gives the others that height (tableHeader()).
+std::pair<int, int> tableBand(const QTextTable& table, int firstRow, int lastRow) {
+    const int rows = table.rows();
+    if (rows <= 0) {
+        return {0, -1};
+    }
+    firstRow = std::clamp(firstRow, 0, rows - 1);
+    lastRow = std::clamp(lastRow, firstRow, rows - 1);
+    auto band = spannedRows(table, firstRow, lastRow);
+    if (const int headEnd = headEndOf(table); headEnd >= 0 && band.first <= headEnd + 1) {
+        band = {0, std::max(band.second, headEnd)};
+    }
+    return band;
+}
+
+/// The first and the last block of rows [firstRow, lastRow] of a table, no cell spanning
+/// into them from the other rows
+std::pair<QTextBlock, QTextBlock> bandBlocks(const QTextTable& table, int firstRow, int lastRow) {
+    const QTextDocument* doc = table.document();
+    const QTextBlock first = doc->findBlock(table.cellAt(firstRow, 0).firstPosition());
+    const QTextBlock last = lastRow + 1 < table.rows()
+                                ? doc->findBlock(table.cellAt(lastRow + 1, 0).firstPosition()).previous()
+                                : doc->findBlock(table.lastPosition());
+    return {first, last};
+}
+
 }  // anonymous namespace
 
 // =============================================================================
@@ -737,10 +803,15 @@ int KalahariTextDocumentLayout::layOutPending(int first, int last, qint64 budget
             continue;
         }
         if (const QTextTable* table = tableOf(block)) {
-            // The whole table, and on after it
-            const auto [tableFirst, tableLast] = layOutTable(*table, &heightChanged);
-            runs.emplace_back(tableFirst, tableLast - tableFirst + 1);
-            number = std::max(number, tableLast);
+            // The row, with the rows laid out with it (tableBand()), and on after them
+            const int row = rowOfBlock(*table, block);
+            const auto [bandFirst, bandLast] = layOutTableRows(*table, row, row, &heightChanged);
+            if (!runs.empty() && runs.back().first + runs.back().second == bandFirst) {
+                runs.back().second += bandLast - bandFirst + 1;
+            } else {
+                runs.emplace_back(bandFirst, bandLast - bandFirst + 1);
+            }
+            number = std::max(number, bandLast);
             block = document()->findBlockByNumber(number);
         } else {
             heightChanged |= layOutBlock(number, block);
@@ -992,12 +1063,22 @@ std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int 
         last = doc->lastBlock();
     }
 
-    // A table is laid out as a whole: the height of a row depends on all its cells
-    if (const QTextTable* table = tableOf(first)) {
-        first = doc->findBlock(table->firstPosition());
+    // The rows of a table are laid out with the rows that go with them (tableBand()); the
+    // other rows keep their lines, and only move
+    const QTextTable* firstTable = tableOf(first);
+    const QTextTable* lastTable = tableOf(last);
+    if (firstTable) {
+        const int lastRow = firstTable == lastTable ? rowOfBlock(*firstTable, last) : firstTable->rows() - 1;
+        const auto [firstRow, bandLast] = tableBand(*firstTable, rowOfBlock(*firstTable, first), lastRow);
+        const auto [bandFirstBlock, bandLastBlock] = bandBlocks(*firstTable, firstRow, bandLast);
+        first = bandFirstBlock;
+        if (firstTable == lastTable) {
+            last = bandLastBlock;
+        }
     }
-    if (const QTextTable* table = tableOf(last)) {
-        last = doc->findBlock(table->lastPosition());
+    if (lastTable && lastTable != firstTable) {
+        const auto [firstRow, lastRow] = tableBand(*lastTable, 0, rowOfBlock(*lastTable, last));
+        last = bandBlocks(*lastTable, firstRow, lastRow).second;
     }
     return {first, last};
 }
@@ -1028,18 +1109,45 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
     heights.reserve(static_cast<size_t>(rangeSize));
     extents.reserve(static_cast<size_t>(rangeSize));
     flowEntries.reserve(static_cast<size_t>(rangeSize));
+    // The tables whose head is in the range: the height of their header for the rows below
+    // the range (tableHeader())
+    struct HeaderOfRows {
+        int first = 0;  // the blocks of the rows
+        int last = 0;
+        qreal header = 0;
+    };
+    std::vector<HeaderOfRows> headers;
     QTextBlock block = doc->findBlockByNumber(first);
     for (int number = first; number <= last && block.isValid(); ++number) {
         if (const QTextTable* table = tableOf(block)) {
-            // The whole table (changedBlocks() gives a range of whole tables)
-            const std::vector<TableBlockLayout> entries = layoutTable(*table, !layOutNow, true);
-            const int tableFirst = doc->findBlock(table->firstPosition()).blockNumber();
-            for (size_t i = static_cast<size_t>(std::max(0, number - tableFirst)); i < entries.size(); ++i) {
+            // Rows of a table: changedBlocks() gives the rows laid out together (tableBand())
+            const int tableLast = doc->findBlock(table->lastPosition()).blockNumber();
+            const QTextBlock end = doc->findBlockByNumber(std::min(last, tableLast));
+            const auto [firstRow, lastRow] =
+                tableBand(*table, rowOfBlock(*table, block), rowOfBlock(*table, end));
+            qreal header = 0;
+            const std::vector<TableBlockLayout> entries =
+                layoutTable(*table, !layOutNow, true, firstRow, lastRow, &header);
+            if (entries.empty()) {
+                // No rows or columns: laid out as a paragraph
+                const BlockMetrics& metrics = blockMetrics(block);
+                qreal extent = block.length();
+                heights.push_back(estimatedHeight(extent, metrics));
+                extents.push_back(extent);
+                flowEntries.push_back(flowEntry(metrics, metrics.spaceBefore + metrics.estimatedLineHeight));
+                block = block.next();
+                continue;
+            }
+            const int bandFirst = bandBlocks(*table, firstRow, lastRow).first.blockNumber();
+            for (size_t i = static_cast<size_t>(std::max(0, number - bandFirst)); i < entries.size(); ++i) {
                 heights.push_back(entries[i].height);
                 extents.push_back(entries[i].extent);
                 flowEntries.push_back(entries[i].flow);
             }
-            number = tableFirst + static_cast<int>(entries.size()) - 1;
+            number = bandFirst + static_cast<int>(entries.size()) - 1;
+            if (firstRow == 0 && number < tableLast) {
+                headers.push_back({number + 1, tableLast, header});
+            }
             block = doc->findBlockByNumber(number).next();
             continue;
         }
@@ -1086,6 +1194,9 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         replace(m_blockFlowHeights, noFlowHeights);
         replace(m_blockFlowEntries, flowEntries);
     }
+    for (const HeaderOfRows& rows : headers) {
+        setTableHeader(rows.first, rows.last, rows.header);
+    }
     // With page flow, the range's new lines are placed on the pages with the positions;
     // whether that moves the blocks below is known only then
     geometryChanged |= m_pageFlow.enabled;
@@ -1111,7 +1222,8 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
 bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block) {
     if (const QTextTable* table = tableOf(block)) {
         bool changed = false;
-        layOutTable(*table, &changed);
+        const int row = rowOfBlock(*table, block);
+        layOutTableRows(*table, row, row, &changed);
         return changed;
     }
     const auto index = static_cast<size_t>(number);
@@ -1922,10 +2034,20 @@ qreal KalahariTextDocumentLayout::cellTextLeft(const QTextBlock& block) const {
 }
 
 std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLayout::layoutTable(
-    const QTextTable& table, bool estimate, bool keepGlyphs) const {
+    const QTextTable& table, bool estimate, bool keepGlyphs, int firstRow, int lastRow,
+    qreal* headerHeight) const {
     const QTextDocument* doc = document();
-    const int firstNumber = doc->findBlock(table.firstPosition()).blockNumber();
-    const int lastNumber = doc->findBlock(table.lastPosition()).blockNumber();
+    const int rows = table.rows();
+    if (lastRow < 0 || lastRow >= rows) {
+        lastRow = rows - 1;
+    }
+    firstRow = std::clamp(firstRow, 0, std::max(0, lastRow));
+    if (rows <= 0 || table.columns() <= 0) {
+        return {};
+    }
+    const auto [firstBlock, lastBlock] = bandBlocks(table, firstRow, lastRow);
+    const int firstNumber = firstBlock.blockNumber();
+    const int lastNumber = lastBlock.blockNumber();
     std::vector<TableBlockLayout> blocks(static_cast<size_t>(std::max(0, lastNumber - firstNumber + 1)));
     for (TableBlockLayout& entry : blocks) {
         entry.flow.flags = FLOW_TABLE;
@@ -1933,7 +2055,6 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
     const std::vector<qreal> edges = tableColumnEdges(table);
     const qreal padding = cellPadding();
     const qreal pixels = packagePixels();
-    const int rows = table.rows();
     const int columns = static_cast<int>(edges.size()) - 1;
 
     // Each cell's paragraphs one below another on the cell's width; a row as high as its
@@ -1953,7 +2074,7 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
         CellAlignment alignment = CellAlignment::Top;
     };
     std::vector<Cell> cells;
-    for (int row = 0; row < rows; ++row) {
+    for (int row = firstRow; row <= lastRow; ++row) {
         rowProperties[static_cast<size_t>(row)] = rowPropertiesOf(table, row);
         for (int column = 0; column < columns; ++column) {
             const QTextTableCell cell = table.cellAt(row, column);
@@ -2056,7 +2177,7 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
     // A row's height goes to its last block, and the rows after it without blocks of their
     // own (covered whole by cells spanning from above) with it
     int unit = -1;
-    for (int row = 0; row < rows; ++row) {
+    for (int row = firstRow; row <= lastRow; ++row) {
         if (firstOfRow[static_cast<size_t>(row)] >= 0) {
             unit = row;
             TableBlockLayout& first = blocks[static_cast<size_t>(firstOfRow[static_cast<size_t>(row)])];
@@ -2073,14 +2194,22 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
     }
 
     // The header rows go with the first row after them, and are repeated above a row
-    // starting a page the table goes on to
+    // starting a page the table goes on to. Rows below the head (tableBand()) have the
+    // height of the header from the rows laid out before.
     const int headerRows = std::clamp(table.format().headerRowCount(), 0, rows);
     qreal header = 0;
-    for (int row = 0; row < headerRows && headerRows < rows; ++row) {
-        header += rowHeights[static_cast<size_t>(row)];
+    if (firstRow == 0) {
+        for (int row = 0; row < headerRows && headerRows < rows; ++row) {
+            header += rowHeights[static_cast<size_t>(row)];
+        }
+    } else {
+        header = tableHeader(table);
+    }
+    if (headerHeight) {
+        *headerHeight = header;
     }
     const qreal firstBody = headerRows < rows ? rowHeights[static_cast<size_t>(headerRows)] : 0.0;
-    for (int row = 0; row < rows; ++row) {
+    for (int row = firstRow; row <= lastRow; ++row) {
         const int index = firstOfRow[static_cast<size_t>(row)];
         if (index < 0) {
             continue;
@@ -2101,12 +2230,41 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
     return blocks;
 }
 
-std::pair<int, int> KalahariTextDocumentLayout::layOutTable(const QTextTable& table,
-                                                          bool* heightChanged) {
-    const int first = document()->findBlock(table.firstPosition()).blockNumber();
-    const std::vector<TableBlockLayout> entries = layoutTable(table, false, false);
+qreal KalahariTextDocumentLayout::tableHeader(const QTextTable& table) const {
+    // The first row below the head starts no later than the rows laid out
+    const int headEnd = headEndOf(table);
+    if (headEnd < 0 || headEnd + 1 >= table.rows()) {
+        return 0.0;
+    }
+    const auto index = static_cast<size_t>(
+        document()->findBlock(table.cellAt(headEnd + 1, 0).firstPosition()).blockNumber());
+    return index < m_blockFlowEntries.size() && (m_blockFlowEntries[index].flags & FLOW_ROW_START) != 0
+               ? m_blockFlowEntries[index].header
+               : 0.0;
+}
+
+void KalahariTextDocumentLayout::setTableHeader(int first, int last, qreal header) {
+    last = std::min(last, static_cast<int>(m_blockFlowEntries.size()) - 1);
+    for (int i = std::max(first, 0); i <= last; ++i) {
+        FlowEntry& entry = m_blockFlowEntries[static_cast<size_t>(i)];
+        if ((entry.flags & FLOW_TABLE) == 0) {
+            break;
+        }
+        if ((entry.flags & FLOW_ROW_START) != 0) {
+            entry.header = header;
+        }
+    }
+}
+
+std::pair<int, int> KalahariTextDocumentLayout::layOutTableRows(const QTextTable& table, int firstRow,
+                                                              int lastRow, bool* heightChanged) {
+    const auto [bandFirst, bandLast] = tableBand(table, firstRow, lastRow);
+    qreal header = 0;
+    const std::vector<TableBlockLayout> entries =
+        layoutTable(table, false, false, bandFirst, bandLast, &header);
+    const int first = entries.empty() ? 0 : bandBlocks(table, bandFirst, bandLast).first.blockNumber();
     const int last = first + static_cast<int>(entries.size()) - 1;
-    if (first < 0 || static_cast<size_t>(last) >= m_blockHeights.size()) {
+    if (entries.empty() || first < 0 || static_cast<size_t>(last) >= m_blockHeights.size()) {
         return {first, first - 1};  // the cache is out of step with the document
     }
     for (size_t i = 0; i < entries.size(); ++i) {
@@ -2122,6 +2280,10 @@ std::pair<int, int> KalahariTextDocumentLayout::layOutTable(const QTextTable& ta
             m_blockPending[index] = 0;
             --m_pendingCount;
         }
+    }
+    if (bandFirst == 0) {
+        // The rows below have the height of the header too
+        setTableHeader(last + 1, document()->findBlock(table.lastPosition()).blockNumber(), header);
     }
     return {first, last};
 }

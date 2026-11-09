@@ -234,17 +234,40 @@ std::vector<TableGrid> QTextDocumentSource::tablesIn(size_t first, size_t last) 
             }
             grid.rowParts.push_back(std::move(parts));
         }
-        for (int row = 0; row < table->rows(); ++row) {
-            for (int column = 0; column < table->columns(); ++column) {
-                const QTextTableCell cell = table->cellAt(row, column);
-                if (cell.row() == row && cell.column() == column) {
-                    grid.cells.push_back({row, column, cell.rowSpan(), cell.columnSpan(),
-                                          cellPropertiesOf(cell).background});
+        // The cells of the rows in view (and of a row more on each side), with the cells
+        // spanning into them from above, and of the header rows (repeated at the top of the
+        // pages): a long table draws only what is seen
+        const QTextTableFormat format = table->format();
+        const int rows = table->rows();
+        const int tableFirst = m_document->findBlock(table->firstPosition()).blockNumber();
+        const int tableLast = m_document->findBlock(table->lastPosition()).blockNumber();
+        const int firstRow = static_cast<int>(first) > tableFirst
+                                 ? std::max(0, table->cellAt(blockAt(first).position()).row() - 1)
+                                 : 0;
+        const int lastRow = static_cast<int>(last) < tableLast
+                                ? std::min(rows - 1, table->cellAt(blockAt(last).position()).row() + 1)
+                                : rows - 1;
+        grid.headerRows = std::clamp(format.headerRowCount(), 0, rows);
+        int added = -1;  // the last row whose cells are in
+        const auto addRows = [&](int from, int to) {
+            for (int row = from; row <= to; ++row) {
+                for (int column = 0; column < table->columns(); ++column) {
+                    const QTextTableCell cell = table->cellAt(row, column);
+                    const bool starts = cell.row() == row || (row == from && cell.row() > added);
+                    if (cell.isValid() && starts && cell.column() == column) {
+                        grid.cells.push_back({cell.row(), column, cell.rowSpan(), cell.columnSpan(),
+                                              cellPropertiesOf(cell).background});
+                    }
                 }
             }
+            added = std::max(added, to);
+        };
+        if (firstRow <= grid.headerRows) {
+            addRows(0, std::max(lastRow, grid.headerRows - 1));
+        } else {
+            addRows(0, grid.headerRows - 1);
+            addRows(firstRow, lastRow);
         }
-        const QTextTableFormat format = table->format();
-        grid.headerRows = std::clamp(format.headerRowCount(), 0, table->rows());
         grid.borders = tablePropertiesOf(format).borders;
         grid.borderWidth = layout->tableBorderWidth(*table);
         grid.firstParagraph = static_cast<size_t>(m_document->findBlock(table->firstPosition()).blockNumber());

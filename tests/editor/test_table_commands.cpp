@@ -5,6 +5,7 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/table_editing.h>
@@ -887,4 +888,258 @@ TEST_CASE("Table commands: a row higher than a page is split, another goes to th
         }
         CHECK(parted);
     }
+}
+
+// =============================================================================
+// The rows laid out again after a change: as the whole text laid out anew
+// =============================================================================
+
+namespace {
+
+struct LaidOutLine {
+    qreal x = 0;
+    qreal y = 0;
+    qreal width = 0;
+    int start = 0;
+    int length = 0;
+};
+
+struct LaidOutBlock {
+    qreal y = 0;
+    qreal height = 0;
+    std::vector<LaidOutLine> lines;
+};
+
+/// The places of the blocks and their lines, and of the copies of the headers of tables
+struct LaidOut {
+    std::vector<LaidOutBlock> blocks;
+    std::vector<qreal> repeats;
+    qreal height = 0;
+};
+
+KalahariTextDocumentLayout* layoutOf(const BookEditor& editor) {
+    return qobject_cast<KalahariTextDocumentLayout*>(editor.textDocument()->documentLayout());
+}
+
+LaidOut laidOut(const BookEditor& editor) {
+    KalahariTextDocumentLayout* layout = layoutOf(editor);
+    layout->layoutPendingBlocks();
+    LaidOut result;
+    const QTextTable* lastTable = nullptr;
+    for (QTextBlock block = editor.textDocument()->begin(); block.isValid(); block = block.next()) {
+        LaidOutBlock entry;
+        entry.y = layout->blockY(block.blockNumber());
+        entry.height = layout->blockHeight(block.blockNumber());
+        if (const QTextLayout* lines = block.layout()) {
+            for (int i = 0; i < lines->lineCount(); ++i) {
+                const QTextLine line = lines->lineAt(i);
+                entry.lines.push_back({line.x(), line.y(), line.width(), line.textStart(), line.textLength()});
+            }
+        }
+        result.blocks.push_back(entry);
+        if (const QTextTable* table = tableOf(block); table && table != lastTable) {
+            lastTable = table;
+            for (const qreal top : layout->headerRepeats(*table)) {
+                result.repeats.push_back(top);
+            }
+        }
+    }
+    result.height = layout->documentSize().height();
+    return result;
+}
+
+/// The text laid out after the change is laid out as the same text laid out anew
+void checkLaidOutAsAnew(const BookEditor& editor, const std::string& change) {
+    INFO(change);
+    const LaidOut changed = laidOut(editor);
+    layoutOf(editor)->layoutAllBlocks();
+    const LaidOut anew = laidOut(editor);
+    REQUIRE(changed.blocks.size() == anew.blocks.size());
+    for (size_t i = 0; i < anew.blocks.size(); ++i) {
+        INFO("block " << i);
+        const LaidOutBlock& a = changed.blocks[i];
+        const LaidOutBlock& b = anew.blocks[i];
+        CHECK(a.y == Approx(b.y).margin(0.01));
+        CHECK(a.height == Approx(b.height).margin(0.01));
+        REQUIRE(a.lines.size() == b.lines.size());
+        for (size_t k = 0; k < b.lines.size(); ++k) {
+            INFO("line " << k);
+            CHECK(a.lines[k].x == Approx(b.lines[k].x).margin(0.01));
+            CHECK(a.lines[k].y == Approx(b.lines[k].y).margin(0.01));
+            CHECK(a.lines[k].width == Approx(b.lines[k].width).margin(0.01));
+            CHECK(a.lines[k].start == b.lines[k].start);
+            CHECK(a.lines[k].length == b.lines[k].length);
+        }
+    }
+    REQUIRE(changed.repeats.size() == anew.repeats.size());
+    for (size_t i = 0; i < anew.repeats.size(); ++i) {
+        CHECK(changed.repeats[i] == Approx(anew.repeats[i]).margin(0.01));
+    }
+    CHECK(changed.height == Approx(anew.height).margin(0.01));
+}
+
+void typeText(BookEditor& editor, const QString& text) {
+    for (const QChar c : text) {
+        QKeyEvent event(QEvent::KeyPress, 0, Qt::NoModifier, QString(c));
+        QCoreApplication::sendEvent(&editor, &event);
+    }
+}
+
+/// A table with a header row, cells spanning two rows, a cell of two paragraphs, a cell in
+/// the middle of its row and a row of its least height; blocks: 1-3 the header, 4-6 row 1
+/// (4 spanning rows 1 and 2), 7-8 row 2, 9-12 row 3 (10 and 11 one cell), 13-15 row 4,
+/// 16-18 row 5, 19-21 row 6 (21 spanning rows 6 and 7, higher than both, at their bottom),
+/// 22-23 row 7, 24-29 rows 8 and 9
+QString mixedTableKml() {
+    QString rows = QStringLiteral(
+        "<tr><th><p>Name</p></th><th><p>Text</p></th><th><p>Note</p></th></tr>"
+        "<tr><td rowspan=\"2\"><p>Tall</p></td><td><p>b1</p></td><td><p>c1</p></td></tr>"
+        "<tr><td><p>b2</p></td><td><p>c2</p></td></tr>"
+        "<tr><td><p>a3</p></td><td><p>First</p><p>Second</p></td><td valign=\"middle\"><p>c3</p></td></tr>"
+        "<tr height=\"60pt\"><td><p>a4</p></td><td><p>b4</p></td><td><p>c4</p></td></tr>");
+    for (int row = 5; row < 10; ++row) {
+        const QString last = row == 6   ? QStringLiteral("<td rowspan=\"2\" valign=\"bottom\"><p>c6 %1</p></td>")
+                                              .arg(words(90))
+                             : row == 7 ? QString()
+                                        : QStringLiteral("<td><p>c%1</p></td>").arg(row);
+        rows += QStringLiteral("<tr><td><p>a%1</p></td><td><p>%2</p></td>%3</tr>")
+                    .arg(row)
+                    .arg(words(row == 6 || row == 7 ? 4 : row * 6), last);
+    }
+    return kml(QStringLiteral("<p>Before</p><table>") + rows + QStringLiteral("</table><p>After</p>"));
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Table commands: the rows laid out again after a change are as the text laid out anew",
+          "[editor][tables][layout]") {
+    const bool pages = GENERATE(false, true);
+    INFO((pages ? "in pages" : "without pages"));
+    auto editor = editorWith(mixedTableKml());
+    if (pages) {
+        layoutOf(*editor)->setPageFlow(PageFlow{true, 260.0, 200.0});
+    }
+    layoutOf(*editor)->layoutPendingBlocks();
+    REQUIRE(firstTable(*editor)->format().headerRowCount() == 1);
+    REQUIRE(firstTable(*editor)->cellAt(1, 0).rowSpan() == 2);
+    REQUIRE(firstTable(*editor)->cellAt(7, 2).row() == 6);
+    REQUIRE(textOf(*editor).find("|7,0:a7|") != std::string::npos);
+
+    const auto change = [&](const std::string& name, const std::function<void()>& command) {
+        command();
+        checkLaidOutAsAnew(*editor, name);
+        editor->undo();
+        checkLaidOutAsAnew(*editor, name + ", undone");
+    };
+
+    change("typed in a cell of a row in the middle", [&] {
+        editor->setCursorPosition({13, 2});
+        typeText(*editor, QStringLiteral(" and more words that make the cell wrap to more lines"));
+    });
+    change("typed in the header", [&] {
+        editor->setCursorPosition({2, 4});
+        typeText(*editor, QStringLiteral(" of the column, so long that the header row gets higher"));
+    });
+    change("typed in the cell spanning two rows", [&] {
+        editor->setCursorPosition({4, 4});
+        typeText(*editor, QStringLiteral(" cell with words enough to be higher than both its rows"));
+    });
+    change("typed in a row a cell spans from the row above", [&] {
+        editor->setCursorPosition({22, 2});
+        typeText(*editor, QStringLiteral(" and the words that make the row higher than before"));
+    });
+    change("typed in a cell spanning two rows below the head", [&] {
+        editor->setCursorPosition({21, 2});
+        typeText(*editor, QStringLiteral(" spans two rows and gets higher than both of them now"));
+    });
+    change("typed in the first row below the header", [&] {
+        editor->setCursorPosition({5, 2});
+        typeText(*editor, QStringLiteral(" grows higher with these words in it, and more"));
+    });
+    change("typed in the last row", [&] {
+        const int last = static_cast<int>(editor->paragraphCount()) - 2;
+        editor->setCursorPosition({last, 0});
+        typeText(*editor, QStringLiteral("the last cell of the table, now on more lines "));
+    });
+    change("Enter in a cell", [&] {
+        editor->setCursorPosition({10, 2});
+        press(*editor, Qt::Key_Return);
+        typeText(*editor, QStringLiteral("new"));
+    });
+    change("Backspace joins the paragraphs of a cell", [&] {
+        editor->setCursorPosition({11, 0});
+        press(*editor, Qt::Key_Backspace);
+    });
+    change("rows inserted below the header", [&] {
+        editor->setCursorPosition({1, 0});
+        editor->insertTableRows(true);
+    });
+    change("rows inserted above a row in the middle", [&] {
+        editor->setCursorPosition({12, 0});
+        editor->insertTableRows(false);
+    });
+    change("a row deleted", [&] {
+        editor->setCursorPosition({12, 0});
+        editor->deleteTableRows();
+    });
+    change("the first row below the header deleted", [&] {
+        editor->setCursorPosition({5, 0});
+        editor->deleteTableRows();
+    });
+    change("a column inserted", [&] {
+        editor->setCursorPosition({12, 0});
+        editor->insertTableColumns(true);
+    });
+    change("a column deleted", [&] {
+        editor->setCursorPosition({13, 0});
+        editor->deleteTableColumns();
+    });
+    change("cells merged across rows", [&] {
+        select(*editor, {12, 0}, {16, 0});  // a4 to b5
+        editor->mergeTableCells();
+    });
+    change("the spanning cell split", [&] {
+        editor->setCursorPosition({4, 0});
+        editor->splitTableCells(1, 2, false, false);
+    });
+    change("rows moved down", [&] {
+        editor->setCursorPosition({12, 0});
+        editor->moveParagraphsOrRows(true);
+    });
+    change("a second header row", [&] {
+        editor->setCursorPosition({5, 0});
+        editor->setTableHeader(true);
+    });
+    change("selected cells cleared", [&] {
+        select(*editor, {12, 0}, {19, 0});
+        press(*editor, Qt::Key_Delete);
+    });
+    change("rows sorted", [&] {
+        select(*editor, {12, 0}, {24, 0});
+        SortOptions options;
+        options.keys = {{1, SortType::Text, true}};
+        editor->sortSelection(options);
+    });
+    change("the properties of a row and of a cell", [&] {
+        editor->setCursorPosition({13, 0});
+        std::optional<TablePropertiesData> data = editor->tablePropertiesData();
+        REQUIRE(data);
+        TableRowProperties& row = data->rows[static_cast<size_t>(data->row)];
+        row.minHeight = 90.0;
+        row.allowSplit = true;
+        data->cell.alignment = CellAlignment::Bottom;
+        data->cellChanged = true;
+        editor->setTablePropertiesData(*data);
+    });
+
+    // Changes one after another, laid out with what the ones before left
+    editor->setCursorPosition({13, 2});
+    typeText(*editor, QStringLiteral(" more"));
+    editor->setCursorPosition({2, 4});
+    typeText(*editor, QStringLiteral(" header words to wrap the header to another line"));
+    editor->setCursorPosition({1, 0});
+    editor->insertTableRows(true);
+    editor->setCursorPosition({30, 0});
+    typeText(*editor, QStringLiteral("text "));
+    checkLaidOutAsAnew(*editor, "one change after another");
 }
