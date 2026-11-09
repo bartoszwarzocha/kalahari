@@ -263,6 +263,60 @@ TEST_CASE("Mirror margins: the paperclip of a paragraph is in the margin of its 
     }
 }
 
+TEST_CASE("Margin numbers: the paperclip of a paragraph is left of them, also beside a heading",
+          "[editor][marginNumbers][marks]") {
+    auto editor = editorWith(ViewMode::Page, QStringLiteral("<h1>Title</h1>") + paragraphs(3));
+    QPixmap pixmap(32, 32);
+    pixmap.fill(Qt::black);
+    editor->setParagraphMarks(
+        {ParagraphMark{0, {QStringLiteral("m1")}, {QStringLiteral("Map")}},
+         ParagraphMark{1, {QStringLiteral("m2")}, {QStringLiteral("Notes")}}},
+        QIcon(pixmap));
+    number(*editor, MarginNumbering::Lines);
+
+    // The heading's first line is high, so is its paperclip: still left of the number
+    for (const int paragraph : {0, 1}) {
+        CAPTURE(paragraph);
+        editor->setCursorPosition({paragraph, 0});
+        const QImage image = paint(*editor);
+        const QRectF line = caret(*editor);
+
+        // The leftmost red pixel of the line's number
+        int inkLeft = -1;
+        for (int x = 0; x < static_cast<int>(line.left()) - 2 && inkLeft < 0; ++x) {
+            for (int y = static_cast<int>(line.top()); y < static_cast<int>(line.bottom()); ++y) {
+                const QColor pixel = image.pixelColor(x, y);
+                if (pixel.red() - std::max(pixel.green(), pixel.blue()) > 60) {
+                    inkLeft = x;
+                    break;
+                }
+            }
+        }
+        REQUIRE(inkLeft >= 0);
+
+        // The rightmost point where the mouse finds the paperclip
+        int markRight = -1;
+        for (int x = 0; x < static_cast<int>(line.left()); ++x) {
+            if (editor->paragraphMarkAt(QPointF(x, line.center().y())).has_value()) {
+                markRight = x;
+            }
+        }
+        REQUIRE(markRight >= 0);
+        CHECK(markRight < inkLeft);
+    }
+
+    // Without the numbers it is beside the text again
+    number(*editor, MarginNumbering::None);
+    editor->setCursorPosition({1, 0});
+    paint(*editor);
+    const QRectF line = caret(*editor);
+    bool beside = false;
+    for (double x = line.left() - 1.0; x > line.left() - 2.0 * line.height(); x -= 1.0) {
+        beside = beside || editor->paragraphMarkAt(QPointF(x, line.center().y())).has_value();
+    }
+    CHECK(beside);
+}
+
 TEST_CASE("Mirror margins: the continuous view has the margins of page 1",
           "[editor][margins]") {
     auto editor = editorWith(ViewMode::Continuous, paragraphs(3));
