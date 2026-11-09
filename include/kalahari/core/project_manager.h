@@ -121,6 +121,19 @@ struct NewProject {
     std::optional<PaletteChoice> palette;
 };
 
+/// @brief A new material of the Workshop, as ProjectManager::addMaterial() adds it: a copy of
+/// a file, a picture or a web address, or none of them (a paper book, a talk, a quotation)
+struct NewMaterial {
+    QString title;       ///< Title
+    QString filePath;    ///< A file whose copy goes to the Workshop's folder; empty: none
+    QByteArray data;     ///< Else the contents of the material's file, such as a picture from
+                         ///< the clipboard; empty: none
+    QString fileName;    ///< Name of the file with @c data: "picture.png"
+    QString url;         ///< Web address of a page or of a picture; empty: none
+    QStringList links;   ///< What it is about (ProjectElement::links); each link gets the
+                         ///< role of its kind (newLink())
+};
+
 /// @brief Singleton manager of the book project open in the program
 ///
 /// Signals:
@@ -441,7 +454,8 @@ public:
 
     /// @brief Whether the program can add elements of @p kind: text kinds, group kinds and the
     /// kinds of materials (ElementKind::isMaterial()); elements of the other kinds that open in
-    /// a window of their own wait until the program has their windows
+    /// a window of their own wait until the program has their windows. A retired kind
+    /// (ElementKind::retired) gets no new elements.
     static bool canAdd(const KindRef& kind);
 
     /// @brief Place that a new element of @p kind takes right after element @p elementId, as
@@ -470,6 +484,23 @@ public:
     ///         be added to the Workshop, @p sourcePath is not a file that can be read, or the
     ///         copy or the .klh file cannot be written; no copy stays then
     QString addMaterial(const QString& sourcePath, const KindRef& kind, const QString& title);
+
+    /// @brief Add @p material to the Workshop as a new material of @p kind
+    ///
+    /// A copy of its file, or a file with its data, goes to the Workshop's folder, named as the
+    /// file (newMaterialFile()); a material with neither has no file. Its links are those of
+    /// @p material that the project has. Otherwise as addMaterial() of a file.
+    /// @return The new material's id; empty when @p kind is not a kind of materials that can
+    ///         be added to the Workshop, its file cannot be read, or a file cannot be written
+    QString addMaterial(const NewMaterial& material, const KindRef& kind);
+
+    /// @brief Give material @p elementId, which has no file, a copy of its picture: a file
+    /// named @p fileName (newMaterialFile()) in the Workshop's folder with @p data; saves the
+    /// .klh file
+    /// @return false when the project has no such element, it has a file already, or a file
+    ///         cannot be written; no file stays then
+    bool setMaterialCopy(const QString& elementId, const QByteArray& data,
+                         const QString& fileName);
 
     /// @brief Whether @p elementId is a file of the book outside its text (ProjectBook::files)
     bool isBookFile(const QString& elementId) const;
@@ -627,11 +658,68 @@ public:
     /// book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
 
-    /// @brief Notes of a text element, from its chapter file
+    /// @brief Notes of a text element, from its chapter file; of an element without a chapter
+    /// file (a card of the Workshop), its description (ProjectElement::description)
     QString notes(const QString& elementId) const;
 
-    /// @brief Set the notes of a text element and write them to its chapter file
+    /// @brief Set the notes of a text element and write them to its chapter file; an element
+    /// without a chapter file takes them as its description (setDescription())
     bool setNotes(const QString& elementId, const QString& notes);
+
+    // =========================================================================
+    // Materials and Their Details
+    // =========================================================================
+
+    /// @brief Whether @p element is a material: a file the writer keeps in the Workshop, of a
+    /// kind of materials (ElementKind::isMaterial())
+    bool isMaterial(const ProjectElement& element) const;
+
+    /// @brief Give element @p elementId the description @p description and save the .klh file
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its description then
+    bool setDescription(const QString& elementId, const QString& description);
+
+    /// @brief Give element @p elementId the writer's own fields @p fields, in this order, and
+    /// save the .klh file
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its fields then
+    bool setFields(const QString& elementId, const QList<ElementField>& fields);
+
+    /// @brief Link element @p elementId with @p links, in this order, and save the .klh file
+    ///
+    /// A link names an element of the project or a section of its book
+    /// (BookProject::sectionLink()); a link that names nothing of the project, or the element
+    /// itself, is left out, and each one is kept once (the first).
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its links then
+    bool setLinks(const QString& elementId, const QList<ElementLink>& links);
+
+    /// @brief Link element @p elementId with the elements and sections @p targets, in this
+    /// order: a link it has keeps its role, paragraph and note, a new one is newLink()
+    bool setLinks(const QString& elementId, const QStringList& targets);
+
+    /// @brief A new link of element @p elementId with @p target: with the role that the kind
+    /// of a material suggests (LinkRoles::suggestedFor()), else without a role
+    ElementLink newLink(const QString& elementId, const QString& target) const;
+
+    /// @brief The paragraphs of the text of text element @p elementId, one per entry, as the
+    /// editor has them (ChapterDocument::kmlToPlainText()): the text kept with its changes
+    /// (setChapterContent()), else that of its chapter file; empty for another element
+    QStringList paragraphsOf(const QString& elementId) const;
+
+    /// @brief Turn the picture of element @p elementId in its preview to @p rotation degrees
+    /// clockwise (0, 90, 180 or 270) and save the .klh file
+    /// @return false for another angle, when the project has no such element or the file
+    ///         cannot be written
+    bool setRotation(const QString& elementId, int rotation);
+
+    /// @brief Materials linked with @p link, an element or a section of the book
+    /// (BookProject::sectionLink()), in the order of the Workshop
+    QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
+
+    /// @brief Names of the writer's own fields of the elements of the project, each once and
+    /// sorted, for the names of new fields
+    QStringList fieldNames() const;
 
     /// @brief Words of a text element under the rules of the settings (wordCountRules()):
     /// of its text in the editor while its changes are not saved (setEditorWords()), else of
@@ -863,6 +951,10 @@ signals:
     /// @param dirty true if project has unsaved changes
     void dirtyStateChanged(bool dirty);
 
+    /// @brief Emitted when the links of elements change (ProjectElement::links): set, added
+    /// with a material, taken out with an element, or following the paragraphs of a text that
+    /// was saved
+    void linksChanged();
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
     void versionsChanged(const QString& elementId);
@@ -889,11 +981,33 @@ private:
     /// @param mode New work mode
     void setWorkMode(WorkMode mode);
 
+    /// @brief Gives the materials of the one kind of earlier versions (MaterialKinds::
+    /// OLD_MATERIAL) the kinds of their sources, and saves the book
+    ///
+    /// A material with a file or an address gets the kind they give (MaterialKinds::ofSource());
+    /// one with neither becomes a working note, whose text is its description. The kinds that
+    /// a book of its own type takes get the kinds of materials and the working notes in place
+    /// of the old kind. A book that cannot be saved stays as it was.
+    void convertOldMaterials();
+
     /// @brief Read the word counts and notes of the text elements from their chapter files
     void loadElementStates();
 
     /// @brief State of text element @p elementId; nullptr when it is not one
     ElementState* stateOf(const QString& elementId);
+
+    /// @brief The links that name paragraphs of text element @p elementId follow them after
+    /// its text is saved: a paragraph that moved, found by its excerpt
+    /// (LinkRoles::paragraphOf()), gives the link its new number, and the excerpt is the
+    /// beginning of the paragraph as it is now
+    void followLinkedParagraphs(const QString& elementId);
+
+    /// @brief Change the details of element @p elementId with @p change (its description, fields,
+    /// links or turn) and save the .klh file; @p what names the change in the log
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element stays as it was then
+    bool changeDetails(const char* what, const QString& elementId,
+                       const std::function<void(ProjectElement&)>& change);
 
     /// @brief Words of text element @p elementId under @p rules, as wordCount() gives them
     int wordsUnder(const QString& elementId, const WordCountRules& rules) const;

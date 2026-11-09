@@ -569,6 +569,11 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
                                    writeFile(archive, "archive");
                                    return true;
                                });
+    // The screen as the window knows it before the event loop runs: Qt learns of a change of
+    // the screen only there, and on the macOS runner the screen known at the start is a few
+    // pixels lower (681 or 683 of 684) until the system tells of the change. The window grows
+    // later, for the screen known then, which is no lower than this one.
+    const int screenHeight = dialog.screen()->availableGeometry().height();
     dialog.show();
     settle();
     QTreeWidget* list = dialog.unreadyList();
@@ -586,16 +591,12 @@ TEST_CASE("Export Project Archive: the window grows for the result", "[gui][dial
     const auto* area = dialog.findChild<gui::FittingScrollArea*>();
     REQUIRE(area != nullptr);
     const int needed = area->contentHeightForWidth(area->viewport()->width());
-    const int screenHeight = dialog.screen()->availableGeometry().height();
     const int windowHeight = dialog.frameGeometry().height();
     INFO("The window is " << windowHeight << " high on a screen " << screenHeight
                           << " high; the content needs " << needed << " and has "
                           << area->viewport()->height());
     const bool fits = area->viewport()->height() >= needed;
-    // Within a pixel: on a macOS runner the window ended one pixel lower than the height Qt
-    // gives for the screen (683 of 684). A window that stopped short of a line of the content
-    // would be a line lower.
-    const bool asHighAsTheScreen = windowHeight >= screenHeight - 1;
+    const bool asHighAsTheScreen = windowHeight >= screenHeight;
     CHECK((fits || asHighAsTheScreen));
 }
 
