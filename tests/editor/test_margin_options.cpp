@@ -253,13 +253,13 @@ TEST_CASE("Mirror margins: the paperclip of a paragraph is in the margin of its 
         return editor->paragraphMarkAt(QPointF(x, line.center().y())).has_value();
     };
     bool found = false;
-    for (double x = line.left() - 1.0; x > line.left() - 3.0 * line.height(); x -= 1.0) {
-        found = found || markAt(x);
+    for (int step = 1; step < static_cast<int>(3.0 * line.height()); ++step) {
+        found = found || markAt(line.left() - step);
     }
     CHECK(found);
-    for (double x = line.left(); x < line.left() + 150.0; x += 1.0) {
-        INFO("x " << x);
-        REQUIRE_FALSE(markAt(x));
+    for (int step = 0; step < 150; ++step) {
+        INFO("x " << line.left() + step);
+        REQUIRE_FALSE(markAt(line.left() + step));
     }
 }
 
@@ -311,8 +311,9 @@ TEST_CASE("Margin numbers: the paperclip of a paragraph is left of them, also be
     paint(*editor);
     const QRectF line = caret(*editor);
     bool beside = false;
-    for (double x = line.left() - 1.0; x > line.left() - 2.0 * line.height(); x -= 1.0) {
-        beside = beside || editor->paragraphMarkAt(QPointF(x, line.center().y())).has_value();
+    for (int step = 1; step < static_cast<int>(2.0 * line.height()); ++step) {
+        const QPointF point(line.left() - step, line.center().y());
+        beside = beside || editor->paragraphMarkAt(point).has_value();
     }
     CHECK(beside);
 }
