@@ -123,7 +123,7 @@ void SettingsDialog::createNavigationTree() {
         return new EditorPagesPage(EditorPagesPage::Part::Pages);
     });
     //: Settings > Editor > Margin Numbering: the numbers of the lines or paragraphs in the
-    //: margin. In Polish: Numeracja na marginesie
+    //: margin. Short: the list of the pages is as wide as its longest name. In Polish: Numeracja
     m_pageItems[MARGIN_NUMBERING_PAGE] = addPage(editor, tr("Margin Numbering"), []() {
         return new EditorPagesPage(EditorPagesPage::Part::MarginNumbers);
     });
@@ -144,9 +144,10 @@ void SettingsDialog::createNavigationTree() {
     m_pageItems[ANNOTATIONS_PAGE] = addPage(annotations, tr("General"), []() {
         return new AnnotationsPage(AnnotationsPage::Part::General);
     });
-    //: Settings > Annotations > Cards Under Paragraphs: the annotations shown as cards in the
-    //: continuous view. In Polish: Karty pod akapitem
-    addPage(annotations, tr("Cards Under Paragraphs"),
+    //: Settings > Annotations > Cards: the annotations shown as cards under the paragraphs in
+    //: the continuous view. Short: the list of the pages is as wide as its longest name. In
+    //: Polish: Karty
+    addPage(annotations, tr("Cards"),
             []() { return new AnnotationsPage(AnnotationsPage::Part::Cards); });
 
     QTreeWidgetItem* navigator = category(tr("Navigator"));

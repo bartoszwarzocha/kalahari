@@ -9939,13 +9939,13 @@ Folder kopii zapasowych bazy i liczbÄ™ zachowywanych kopii ustawisz na stronie â
     </message>
     <message>
         <source>Margin Numbering</source>
-        <extracomment>Settings &gt; Editor &gt; Margin Numbering: the numbers of the lines or paragraphs in the margin. In Polish: Numeracja na marginesie</extracomment>
-        <translation>Numeracja na marginesie</translation>
+        <extracomment>Settings &gt; Editor &gt; Margin Numbering: the numbers of the lines or paragraphs in the margin. Short: the list of the pages is as wide as its longest name. In Polish: Numeracja</extracomment>
+        <translation>Numeracja</translation>
     </message>
     <message>
-        <source>Cards Under Paragraphs</source>
-        <extracomment>Settings &gt; Annotations &gt; Cards Under Paragraphs: the annotations shown as cards in the continuous view. In Polish: Karty pod akapitem</extracomment>
-        <translation>Karty pod akapitem</translation>
+        <source>Cards</source>
+        <extracomment>Settings &gt; Annotations &gt; Cards: the annotations shown as cards under the paragraphs in the continuous view. Short: the list of the pages is as wide as its longest name. In Polish: Karty</extracomment>
+        <translation>Karty</translation>
     </message>
     <message>
         <source>Adding</source>
