@@ -86,11 +86,16 @@ std::string account(const LanguageToolServer& server) {
         .toStdString();
 }
 
-/// Whether something answers on a port of this computer
+/// Whether something answers on a port of this computer: a request to it gets an answer.
+/// A connection alone tells nothing on macOS 15.8, where Qt counts a refused one as made.
 bool answers(int port) {
     QTcpSocket socket;
     socket.connectToHost(QHostAddress(QHostAddress::LocalHost), static_cast<quint16>(port));
-    return socket.waitForConnected(1000);
+    if (!socket.waitForConnected(1000)) {
+        return false;
+    }
+    socket.write("GET /v2/languages HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n");
+    return socket.waitForReadyRead(1000);
 }
 
 /// Keep the states a server goes through
