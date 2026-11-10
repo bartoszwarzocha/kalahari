@@ -2625,6 +2625,40 @@ TEST_CASE("ProjectManager saves and opens again the text of a chapter", "[projec
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager gives the saved and unsaved texts of the book without keeping them",
+          "[project_manager][styles]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK(pm.textElementIds().isEmpty());  // no project
+    REQUIRE(pm.createProject(dir.path(), "Texts", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QStringList before = pm.textElementIds();
+
+    const QString first = pm.addElement(pm.chapterKindFor(BookPlace::Main), "One", BookPlace::Main);
+    const QString second = pm.addElement(pm.chapterKindFor(BookPlace::Main), "Two", BookPlace::Main);
+    REQUIRE_FALSE(first.isEmpty());
+    REQUIRE_FALSE(second.isEmpty());
+    const QStringList ids = pm.textElementIds();
+    CHECK(ids.size() == before.size() + 2);
+    REQUIRE(ids.contains(first));
+    REQUIRE(ids.contains(second));
+    CHECK(ids.indexOf(first) < ids.indexOf(second));  // in reading order
+
+    pm.setChapterContent(first, kmlWith("Saved text"));
+    REQUIRE(pm.saveAllDirty());
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+
+    // The saved text is read from its file, and the program does not keep it
+    CHECK(pm.chapterText(first) == kmlWith("Saved text"));
+    CHECK(pm.getDirtyElements().empty());
+    // The unsaved text is the text of the element
+    pm.setChapterContent(first, kmlWith("Unsaved text"));
+    CHECK(pm.chapterText(first) == kmlWith("Unsaved text"));
+    CHECK(pm.chapterText(QStringLiteral("no-such-element")).isEmpty());
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps the status in the .klh file and in the chapter file",
           "[project_manager]") {
     QTemporaryDir dir;

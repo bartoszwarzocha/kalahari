@@ -2552,6 +2552,32 @@ void ProjectManager::setChapterContent(const QString& elementId, const QString& 
     }
 }
 
+QStringList ProjectManager::textElementIds() const {
+    QStringList ids;
+    if (!m_project) {
+        return ids;
+    }
+    for (const ProjectElement* element : allElements(*m_project)) {
+        if (!element->file.isEmpty() && formOf(*element) == ElementForm::Text) {
+            ids.append(element->id);
+        }
+    }
+    return ids;
+}
+
+QString ProjectManager::chapterText(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (!element || element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        return QString();
+    }
+    if (const auto state = m_elementStates.constFind(elementId);
+        state != m_elementStates.cend() && state->loaded) {
+        return state->content;
+    }
+    const std::optional<ChapterDocument> chapter = ChapterDocument::load(filePathOf(*element));
+    return chapter ? chapter->kml() : QString();
+}
+
 void ProjectManager::discardChapterContent(const QString& elementId) {
     if (ElementState* state = stateOf(elementId)) {
         state->content.clear();

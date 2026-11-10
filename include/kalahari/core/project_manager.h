@@ -765,6 +765,16 @@ public:
     /// @brief Keep @p kml as the unsaved text of a text element
     void setChapterContent(const QString& elementId, const QString& kml);
 
+    /// @brief The ids of the text elements of the project, each with its file: the texts of
+    ///        the books in reading order with their files outside the text, then the texts
+    ///        of the Workshop
+    QStringList textElementIds() const;
+
+    /// @brief The text (KML) of a text element as the program has it: the unsaved text kept
+    ///        with setChapterContent(), else the text of its chapter file; it keeps nothing
+    /// @return Empty when the element is not a text element or its file cannot be read
+    QString chapterText(const QString& elementId) const;
+
     /// @brief Forget the unsaved text of a text element; it is read from its file again
     void discardChapterContent(const QString& elementId);
 
