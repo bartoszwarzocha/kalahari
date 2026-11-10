@@ -2416,6 +2416,31 @@ bool ProjectManager::setRotation(const QString& elementId, int rotation) {
                          [rotation](ProjectElement& element) { element.rotation = rotation; });
 }
 
+QList<BookParagraphStyle> ProjectManager::paragraphStyles() const {
+    return m_project ? m_project->paragraphStyles : QList<BookParagraphStyle>();
+}
+
+bool ProjectManager::setParagraphStyles(const QList<BookParagraphStyle>& styles) {
+    if (!m_project) {
+        Logger::getInstance().warn("setParagraphStyles: No project is open");
+        return false;
+    }
+    if (refusesChange("setParagraphStyles")) {
+        return false;
+    }
+    if (m_project->paragraphStyles == styles) {
+        return true;
+    }
+    const QList<BookParagraphStyle> previous = m_project->paragraphStyles;
+    m_project->paragraphStyles = styles;
+    if (!saveManifest()) {
+        m_project->paragraphStyles = previous;
+        return false;
+    }
+    emit paragraphStylesChanged();
+    return true;
+}
+
 QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {
     QList<const ProjectElement*> linked;
     if (!m_project || link.isEmpty()) {

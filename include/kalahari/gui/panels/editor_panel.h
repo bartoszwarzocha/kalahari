@@ -89,8 +89,9 @@ public:
     QString textLanguage() const;
 
     /// @brief The paragraph styles of the text: of a chapter of the book those of the book's
-    ///        type (of the package "Base" in a book without a type), of a file outside the
-    ///        book those of "Base"; the names in the program's language
+    ///        type (of the package "Base" in a book without a type) with the book's own and
+    ///        changed styles (ProjectManager::paragraphStyles()), of a file outside the book
+    ///        those of "Base"; the names in the program's language
     editor::ParagraphStyleSet paragraphStyles() const;
 
     /// @brief Get the underlying BookEditor widget

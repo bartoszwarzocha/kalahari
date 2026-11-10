@@ -371,6 +371,7 @@ void BookEditor::setParagraphStyles(const ParagraphStyleSet& styles)
         return;
     }
     m_paragraphStyles = styles;
+    emit paragraphStylesChanged();
     if (!m_textBuffer) {
         return;
     }

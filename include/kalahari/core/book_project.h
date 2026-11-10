@@ -37,6 +37,11 @@
 ///       ]
 ///     }
 ///   ],
+///   "paragraphStyles": [
+///     { "id": "quote", "next": "", "properties": { "italic": true, "spaceBefore": 12 } },
+///     { "id": "wspomnienie", "name": "Wspomnienie", "base": "quote",
+///       "properties": { "leftMargin": 18 } }
+///   ],
 ///   "workshop": {
 ///     "grouped": false,
 ///     "elements": [
@@ -81,6 +86,9 @@
 /// - A file of a book outside its text, such as notes or a text pasted from elsewhere, has an
 ///   id unique in the project, a title and a chapter file, but no kind and no status; the
 ///   finished book does not have it. A book without such files has no "files".
+/// - "paragraphStyles": the paragraph styles of the books (BookParagraphStyle): the writer's
+///   own styles and the styles of the type that the project changes. A project without them
+///   has none.
 /// - Fields this version of Kalahari does not know are kept and saved back.
 
 #pragma once
@@ -92,6 +100,7 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
 #include <optional>
 
 namespace kalahari::core {
@@ -269,6 +278,25 @@ struct ProjectType {
     bool operator==(const ProjectType&) const = default;
 };
 
+/// @brief A paragraph style of the books of a project: the writer's own, or a style of the book
+///        type that the project changes
+///
+/// An entry with the id of a style of the type replaces that style's own properties and the
+/// style Enter starts after it; its name and base style stay the type's, and taking the entry
+/// out restores the type's style. Any other id is the writer's own style, with its own name and
+/// base style. The properties are named as in the packages (book_type_package.h), sizes in
+/// points.
+struct BookParagraphStyle {
+    QString id;              ///< The id paragraphs name (<p style="...">); unique in the project
+    QString name;            ///< Name of the writer's own style; empty for a style of the type
+    QString baseStyle;       ///< Style an own style inherits from; empty: none
+    QString nextStyle;       ///< Style Enter starts after a paragraph of it; empty: the same
+    QVariantMap properties;  ///< Its own properties: fontSize, alignment, leftMargin...
+    QJsonObject extra;       ///< Fields this version does not know, saved back
+
+    bool operator==(const BookParagraphStyle&) const = default;
+};
+
 /// @brief Book project as its .klh file saves it
 ///
 /// The kinds of the project come from the packages of a BookTypeRegistry. ProjectManager opens,
@@ -287,9 +315,13 @@ struct BookProject {
     QList<KindReference> kinds;       ///< Kinds taken from other types; in a user project, all
     QList<ProjectBook> books;         ///< Books; one for now, more in a series
     ProjectWorkshop workshop;         ///< Workshop shared by the books
+    QList<BookParagraphStyle> paragraphStyles;  ///< Own styles and changed styles of the type
     QJsonObject extra;                ///< Fields this version does not know, saved back
 
     bool operator==(const BookProject&) const = default;
+
+    /// @brief The project's entry for paragraph style @p id, or nullptr
+    const BookParagraphStyle* findParagraphStyle(const QString& id) const;
 
     /// @brief Whether the project has no type: the author chose its kinds from the palette
     bool isUserProject() const { return !type.has_value(); }

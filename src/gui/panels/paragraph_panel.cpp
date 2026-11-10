@@ -286,6 +286,11 @@ void ParagraphPanel::setEditor(editor::BookEditor* editor) {
                 &ParagraphPanel::scheduleRefresh);
         connect(editor, &editor::BookEditor::contentChanged, this,
                 &ParagraphPanel::scheduleRefresh);
+        // A style of the book added, changed or removed: the palette lists the styles anew
+        connect(editor, &editor::BookEditor::paragraphStylesChanged, this, [this]() {
+            m_styleList->clear();
+            scheduleRefresh();
+        });
         // A text closed while it is followed: the panel follows none
         connect(editor, &QObject::destroyed, this, [this]() {
             m_editor = nullptr;

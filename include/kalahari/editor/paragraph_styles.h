@@ -24,6 +24,7 @@ class QTextCursor;
 class QTextDocument;
 
 namespace kalahari::core {
+struct BookParagraphStyle;
 struct PackageParagraphStyle;
 }
 
@@ -191,13 +192,23 @@ void removeBlock(QTextCursor& cursor, const QTextBlock& block);
 // The styles of a book
 // =============================================================================
 
-/// @brief A paragraph style of a book, as its package defines it
+/// @brief Where a paragraph style of a book comes from
+enum class StyleOrigin {
+    Type,     ///< The book type's, as its package defines it
+    Changed,  ///< The book type's, changed in this book (core::BookParagraphStyle)
+    Own       ///< The writer's own style of this book
+};
+
+/// @brief A paragraph style of a book, as its package and the book define it
 struct ParagraphStyle {
     QString id;              ///< Unique among the book's styles
     QString name;            ///< Name in the program's language
+    QString baseStyle;       ///< Style it inherits from; empty: none
     QString nextStyle;       ///< Style Enter starts after a paragraph of it; empty: the same
     QVariantMap properties;  ///< Its own and inherited properties (sizes in points), as the
                              ///< package names them: fontSize, lineHeight, alignment...
+    QVariantMap ownProperties;  ///< Only its own: what it sets on top of its base style
+    StyleOrigin origin = StyleOrigin::Type;  ///< The type's, changed or the writer's own
 
     bool operator==(const ParagraphStyle&) const = default;
 };
@@ -217,6 +228,20 @@ public:
     /// @param language Language of the names, e.g. "pl"
     static ParagraphStyleSet fromPackage(const QList<core::PackageParagraphStyle>& styles,
                                          const QString& language);
+
+    /// @brief The styles of a book: those of its type's package with the book's entries
+    ///        (core::BookParagraphStyle) over them
+    ///
+    /// An entry with the id of a style of the type gives it its own properties and next style
+    /// (StyleOrigin::Changed); the other entries are the writer's own styles, after the type's
+    /// in the order of the book (StyleOrigin::Own). An own style whose base the book does not
+    /// have inherits from nothing.
+    /// @param styles Styles as BookTypeRegistry::paragraphStyles() gives them
+    /// @param bookStyles The book's entries (BookProject::paragraphStyles)
+    /// @param language Language of the names of the type's styles, e.g. "pl"
+    static ParagraphStyleSet forBook(const QList<core::PackageParagraphStyle>& styles,
+                                     const QList<core::BookParagraphStyle>& bookStyles,
+                                     const QString& language);
 
     /// @brief The styles in the order of their package
     const QList<ParagraphStyle>& styles() const { return m_styles; }

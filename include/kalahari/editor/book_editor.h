@@ -747,8 +747,9 @@ public:
     // breaks)
     // =========================================================================
 
-    /// @brief Set the styles of the book (of its type package): every paragraph is shown in
-    ///        its style, and Enter at the end of one starts the style that follows it
+    /// @brief Set the styles of the book (of its type package and its own): every paragraph is
+    ///        shown in its style, and Enter at the end of one starts the style that follows it;
+    ///        paragraphStylesChanged() tells of a change
     void setParagraphStyles(const ParagraphStyleSet& styles);
 
     /// @brief The styles of the book
@@ -1447,6 +1448,10 @@ signals:
     /// A content as long as the saved one is compared with it when the editing pauses; until
     /// then isModified() gives the answer.
     void modifiedChanged(bool modified);
+
+    /// @brief The book's paragraph styles changed (setParagraphStyles()): a style was added,
+    ///        changed or removed
+    void paragraphStylesChanged();
 
     /// @brief Emitted when the word and character counts change while the text stays the
     ///        same (they follow new rules of setWordCountRules())

@@ -719,6 +719,20 @@ public:
     ///         cannot be written
     bool setRotation(const QString& elementId, int rotation);
 
+    // =========================================================================
+    // Paragraph Styles of the Books
+    // =========================================================================
+
+    /// @brief The project's own paragraph styles and the styles of its type it changes
+    ///        (BookProject::paragraphStyles); none without a project
+    QList<BookParagraphStyle> paragraphStyles() const;
+
+    /// @brief Give the project these paragraph styles and save its .klh file; the editors show
+    ///        them at once (paragraphStylesChanged())
+    /// @return false without a project, in a book open read-only, or when the file cannot be
+    ///         saved (the styles stay as they were)
+    bool setParagraphStyles(const QList<BookParagraphStyle>& styles);
+
     /// @brief Materials linked with @p link, an element or a section of the book
     /// (BookProject::sectionLink()), in the order of the Workshop
     QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
@@ -961,6 +975,8 @@ signals:
     /// with a material, taken out with an element, or following the paragraphs of a text that
     /// was saved
     void linksChanged();
+    /// @brief The paragraph styles of the project changed (setParagraphStyles())
+    void paragraphStylesChanged();
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
     void versionsChanged(const QString& elementId);

@@ -2,6 +2,8 @@
 /// @brief The paragraph styles of a book and the objects of its text
 
 #include <kalahari/editor/paragraph_styles.h>
+
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/editor/annotation.h>
 #include <QHash>
@@ -11,6 +13,7 @@
 #include <QTextCharFormat>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <algorithm>
 #include <optional>
 #include <utility>
 
@@ -453,12 +456,49 @@ ParagraphStyleSet ParagraphStyleSet::fromPackage(
         if (resolvedStyle.name.isEmpty()) {
             resolvedStyle.name = style.id;
         }
+        resolvedStyle.baseStyle = byId.contains(style.baseStyle) ? style.baseStyle : QString();
         resolvedStyle.nextStyle = style.nextStyle;
         resolvedStyle.properties = resolved(style);
+        resolvedStyle.ownProperties = style.properties;
         set.m_styles.append(resolvedStyle);
     }
     if (!set.contains(QString::fromLatin1(NORMAL_STYLE_ID))) {
         set.m_styles.prepend(ParagraphStyleSet().normal());
+    }
+    return set;
+}
+
+ParagraphStyleSet ParagraphStyleSet::forBook(const QList<core::PackageParagraphStyle>& styles,
+                                            const QList<core::BookParagraphStyle>& bookStyles,
+                                            const QString& language) {
+    QList<core::PackageParagraphStyle> merged = styles;
+    QHash<QString, StyleOrigin> origins;
+    for (const core::BookParagraphStyle& entry : bookStyles) {
+        if (entry.id.isEmpty()) {
+            continue;
+        }
+        const auto typeStyle = std::find_if(
+            merged.begin(), merged.end(),
+            [&entry](const core::PackageParagraphStyle& style) { return style.id == entry.id; });
+        if (typeStyle != merged.end() && !origins.contains(entry.id)) {
+            typeStyle->nextStyle = entry.nextStyle;
+            typeStyle->properties = entry.properties;
+            origins.insert(entry.id, StyleOrigin::Changed);
+        } else if (typeStyle == merged.end()) {
+            core::PackageParagraphStyle own;
+            own.id = entry.id;
+            // The writer's name in every language: the text of English, which any falls back to
+            own.name.values.insert(QStringLiteral("en"), entry.name.isEmpty() ? entry.id : entry.name);
+            own.baseStyle = entry.baseStyle;
+            own.nextStyle = entry.nextStyle;
+            own.properties = entry.properties;
+            merged.append(own);
+            origins.insert(entry.id, StyleOrigin::Own);
+        }
+    }
+    ParagraphStyleSet set = fromPackage(merged, language);
+    for (ParagraphStyle& style : set.m_styles) {
+        style.origin = origins.value(style.id, StyleOrigin::Type);
     }
     return set;
 }

@@ -2690,6 +2690,42 @@ TEST_CASE("ProjectManager keeps in the .klh file that a chapter starts on a left
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager keeps the paragraph styles of the book in the .klh file",
+          "[project_manager][styles]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK(pm.paragraphStyles().isEmpty());
+    CHECK_FALSE(pm.setParagraphStyles({}));  // no project
+    REQUIRE(pm.createProject(dir.path(), "Styles", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    CHECK(pm.paragraphStyles().isEmpty());
+
+    BookParagraphStyle memory;
+    memory.id = QStringLiteral("wspomnienie");
+    memory.name = QStringLiteral("Wspomnienie");
+    memory.baseStyle = QStringLiteral("quote");
+    memory.properties = {{QStringLiteral("leftMargin"), 18}};
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::paragraphStylesChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.setParagraphStyles({memory}));
+    CHECK(changes == 1);
+    REQUIRE(pm.setParagraphStyles({memory}));  // the same styles: nothing to tell
+    CHECK(changes == 1);
+    REQUIRE(pm.closeProject(false));
+    QObject::disconnect(connection);
+
+    // The .klh file keeps them
+    REQUIRE(pm.openProject(manifest));
+    REQUIRE(pm.paragraphStyles().size() == 1);
+    CHECK(pm.paragraphStyles().constFirst() == memory);
+    REQUIRE(pm.setParagraphStyles({}));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.paragraphStyles().isEmpty());
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps the notes of a chapter in its chapter file", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();

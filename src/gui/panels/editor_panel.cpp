@@ -101,6 +101,10 @@ EditorPanel::EditorPanel(QWidget* parent)
     connect(m_bookEditor, &editor::BookEditor::modifiedChanged, this,
             &EditorPanel::modifiedChanged);
 
+    // A style of the book added, changed or removed: the text shows it at once
+    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::paragraphStylesChanged,
+            this, [this]() { m_bookEditor->setParagraphStyles(paragraphStyles()); });
+
     // The text's context menu cuts, copies, pastes and selects all with the commands of the
     // Edit menu: their icons and keys, enabled as there
     auto& registry = CommandRegistry::getInstance();
@@ -297,7 +301,10 @@ editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
     if (styles.isEmpty()) {
         styles = projects.bookTypes().paragraphStyles(base);
     }
-    return editor::ParagraphStyleSet::fromPackage(styles, programLanguage());
+    if (!chapter) {
+        return editor::ParagraphStyleSet::fromPackage(styles, programLanguage());
+    }
+    return editor::ParagraphStyleSet::forBook(styles, book->paragraphStyles, programLanguage());
 }
 
 void EditorPanel::learnAutoCorrectException(editor::LearnedException list,
