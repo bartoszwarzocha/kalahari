@@ -248,7 +248,10 @@ private:
     QWidget* m_window;
     std::optional<Step> m_undo;
     bool m_changing = false;  ///< The styles change here: not a change from elsewhere
-    QPointer<editor::BookEditor> m_followed;  ///< The editor whose cursor the commands follow
+    /// @brief The editor whose cursor the commands follow; null again when it is destroyed
+    ///        (not a QPointer: clang-analyzer reports a false use after free in its reference
+    ///        counting)
+    editor::BookEditor* m_followed = nullptr;
     QList<QMetaObject::Connection> m_undoWatch;  ///< Changes of texts that make a change final
 };
 

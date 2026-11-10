@@ -686,7 +686,7 @@ QList<core::BookParagraphStyle> withoutOwnStyle(const QList<core::BookParagraphS
     if (deleted == entries.cend()) {
         return entries;
     }
-    const core::BookParagraphStyle gone = *deleted;
+    const core::BookParagraphStyle& gone = *deleted;
     const QString successor = successorOf(styles, id);
     QList<core::BookParagraphStyle> result;
     for (const core::BookParagraphStyle& entry : entries) {

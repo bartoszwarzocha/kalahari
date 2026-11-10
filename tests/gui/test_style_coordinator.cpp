@@ -59,7 +59,7 @@ struct Styles {
         : coordinator(
               window.tabs,
               [this](gui::EditorPanel*, const QString& message, const QString&, const QString&,
-                     std::function<void()>) { notices.append(message); },
+                     const std::function<void()>&) { notices.append(message); },
               &window.statusBar, &window.window) {}
 };
 

@@ -1114,6 +1114,18 @@
         <source>Paste Fo&amp;rmatting</source>
         <translation>&amp;Wklej formatowanie</translation>
     </message>
+    <message>
+        <source>Ne&amp;w Style...</source>
+        <translation>No&amp;wy styl...</translation>
+    </message>
+    <message>
+        <source>Modi&amp;fy Style...</source>
+        <translation>Z&amp;mień styl...</translation>
+    </message>
+    <message>
+        <source>Dele&amp;te Style</source>
+        <translation>&amp;Usuń styl</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -8532,6 +8544,86 @@ Szczegóły są w dzienniku programu.</translation>
         <source>A click on a style gives it to the paragraph at the cursor or to the selected paragraphs</source>
         <translation>Kliknięcie stylu nadaje go akapitowi z kursorem albo zaznaczonym akapitom</translation>
     </message>
+    <message>
+        <source>New Style...</source>
+        <translation>Nowy styl...</translation>
+    </message>
+    <message>
+        <source>Modify Style...</source>
+        <translation>Zmień styl...</translation>
+    </message>
+    <message>
+        <source>Delete Style</source>
+        <translation>Usuń styl</translation>
+    </message>
+    <message>
+        <source>Manage Styles...</source>
+        <translation>Zarządzaj stylami...</translation>
+    </message>
+    <message>
+        <source>A click on a style gives it to the paragraph at the cursor. The right mouse button or Shift+F10 opens the menu of the style.</source>
+        <extracomment>Under the list of styles. In Polish: Kliknięcie stylu nadaje go akapitowi z kursorem. Prawy przycisk myszy albo Shift+F10 otwiera menu stylu.</extracomment>
+        <translation>Kliknięcie stylu nadaje go akapitowi z kursorem. Prawy przycisk myszy albo Shift+F10 otwiera menu stylu.</translation>
+    </message>
+    <message>
+        <source>No text with a cursor is in front</source>
+        <extracomment>Why the buttons of a style in the palette are greyed out. In Polish: Na wierzchu nie ma tekstu z kursorem</extracomment>
+        <translation>Na wierzchu nie ma tekstu z kursorem</translation>
+    </message>
+    <message>
+        <source>Create the style &quot;%1&quot; for its paragraphs...</source>
+        <extracomment>The tooltip of New Style in the palette for a style the book does not have. In Polish: Utwórz styl „%1” dla jego akapitów…</extracomment>
+        <translation>Utwórz styl „%1” dla jego akapitów...</translation>
+    </message>
+    <message>
+        <source>New style based on &quot;%1&quot;...</source>
+        <translation>Nowy styl na podstawie „%1”...</translation>
+    </message>
+    <message>
+        <source>Modify the style &quot;%1&quot;...</source>
+        <extracomment>In Polish: Zmień styl „%1”…</extracomment>
+        <translation>Zmień styl „%1”...</translation>
+    </message>
+    <message>
+        <source>Delete the style &quot;%1&quot;</source>
+        <extracomment>In Polish: Usuń styl „%1”</extracomment>
+        <translation>Usuń styl „%1”</translation>
+    </message>
+    <message>
+        <source>&amp;Apply the Style &quot;%1&quot;</source>
+        <extracomment>The first item of the menu of a style in the palette. In Polish: &amp;Nadaj styl „%1”</extracomment>
+        <translation>&amp;Nadaj styl „%1”</translation>
+    </message>
+    <message>
+        <source>&amp;Create the Style &quot;%1&quot;...</source>
+        <extracomment>In the menu of a style the book does not have. In Polish: &amp;Utwórz styl „%1”…</extracomment>
+        <translation>&amp;Utwórz styl „%1”...</translation>
+    </message>
+    <message>
+        <source>Manage &amp;Styles...</source>
+        <extracomment>In Polish: Zarządzaj &amp;stylami…</extracomment>
+        <translation>Zarządzaj &amp;stylami...</translation>
+    </message>
+    <message>
+        <source>&amp;New Style Based on &quot;%1&quot;...</source>
+        <extracomment>In Polish: N&amp;owy styl na podstawie „%1”…</extracomment>
+        <translation>N&amp;owy styl na podstawie „%1”...</translation>
+    </message>
+    <message>
+        <source>&amp;Modify the Style &quot;%1&quot;...</source>
+        <extracomment>In Polish: &amp;Zmień styl „%1”…</extracomment>
+        <translation>&amp;Zmień styl „%1”...</translation>
+    </message>
+    <message>
+        <source>&amp;Reset to the Type&apos;s Style</source>
+        <extracomment>In Polish: &amp;Przywróć styl typu</extracomment>
+        <translation>&amp;Przywróć styl typu</translation>
+    </message>
+    <message>
+        <source>&amp;Delete the Style &quot;%1&quot;</source>
+        <extracomment>In Polish: &amp;Usuń styl „%1”</extracomment>
+        <translation>&amp;Usuń styl „%1”</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PropertiesPanel</name>
@@ -13680,6 +13772,16 @@ Harmonogram projektu:
         <source>Automatic</source>
         <translation>Automatyczny</translation>
     </message>
+    <message>
+        <source>Font of the Style &quot;%1&quot;</source>
+        <extracomment>The window Format &gt; Font opened from the window of a paragraph style. In Polish: Czcionka stylu „%1”</extracomment>
+        <translation>Czcionka stylu „%1”</translation>
+    </message>
+    <message>
+        <source>The font, its style and size, and the underline of the paragraphs in the style.</source>
+        <extracomment>In Polish: Czcionka, jej styl i rozmiar oraz podkreślenie akapitów stylu.</extracomment>
+        <translation>Czcionka, jej styl i rozmiar oraz podkreślenie akapitów stylu.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::GrammarSetupDialog</name>
@@ -14830,6 +14932,21 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>Widow/Orphan control leaves no single line of the paragraph at the bottom or at the top of a page. The page view follows these settings; the headings keep with the next paragraph in their style.</source>
         <translation>Kontrola bękartów i wdów nie zostawia pojedynczego wiersza akapitu na dole ani na górze strony. Widok strony uwzględnia te ustawienia; nagłówki mają w stylu włączone „Razem z następnym”.</translation>
+    </message>
+    <message>
+        <source>Paragraph of the Style &quot;%1&quot;</source>
+        <extracomment>The window Format &gt; Paragraph opened from the window of a paragraph style. In Polish: Akapit stylu „%1”</extracomment>
+        <translation>Akapit stylu „%1”</translation>
+    </message>
+    <message>
+        <source>Indents, spacing, line spacing and page breaks of the paragraphs in the style.</source>
+        <extracomment>In Polish: Wcięcia, odstępy, interlinia i podziały stron akapitów stylu.</extracomment>
+        <translation>Wcięcia, odstępy, interlinia i podziały stron akapitów stylu.</translation>
+    </message>
+    <message>
+        <source>A style has its line spacing in lines: single, 1.5 lines, double or multiple.</source>
+        <extracomment>In Polish: Interlinię stylu podaje się w wierszach: pojedyncza, 1,5 wiersza, podwójna albo wielokrotna.</extracomment>
+        <translation>Interlinię stylu podaje się w wierszach: pojedyncza, 1,5 wiersza, podwójna albo wielokrotna.</translation>
     </message>
 </context>
 <context>
@@ -16904,6 +17021,966 @@ Notatka: %2</translation>
         <source>The program downloads only the address of the material: a page up to its title, or a picture, whose copy it saves in the book&apos;s &quot;workshop&quot; folder.</source>
         <extracomment>In Polish: Program pobiera tylko adres materiału: stronę do jej tytułu albo obraz, którego kopię zapisuje w folderze „workshop” książki.</extracomment>
         <translation>Program pobiera tylko adres materiału: stronę do jej tytułu albo obraz, którego kopię zapisuje w folderze „workshop” książki.</translation>
+    </message>
+</context>
+<context>
+    <name>StyleDraft</name>
+    <message>
+        <source>Style %1</source>
+        <extracomment>The name of a new style of the writer&apos;s own, until it is named. In Polish: Styl %1</extracomment>
+        <translation>Styl %1</translation>
+    </message>
+    <message>
+        <source>; </source>
+        <translation>; </translation>
+    </message>
+    <message>
+        <source>the next paragraph in the same style</source>
+        <translation>następny akapit w tym samym stylu</translation>
+    </message>
+    <message>
+        <source>the next paragraph in the style &quot;%1&quot;</source>
+        <translation>następny akapit w stylu „%1”</translation>
+    </message>
+    <message>
+        <source> Changed in this book: %1.</source>
+        <extracomment>After the summary of a style of the book&apos;s type. In Polish: &quot; W tej książce zmienione: %1.&quot;</extracomment>
+        <translation> W tej książce zmienione: %1.</translation>
+    </message>
+    <message>
+        <source>The base style: %1 %2 pt, %3, %4, %5.</source>
+        <extracomment>The style Normal: its font and size, alignment, first line and line spacing. In Polish: Styl podstawowy: %1 %2 pt, %3, %4, %5.</extracomment>
+        <translation>Styl podstawowy: %1 %2 pt, %3, %4, %5.</translation>
+    </message>
+    <message>
+        <source>Without a base style and without settings of its own.</source>
+        <extracomment>In Polish: Bez stylu bazowego i bez własnych ustawień.</extracomment>
+        <translation>Bez stylu bazowego i bez własnych ustawień.</translation>
+    </message>
+    <message>
+        <source>Without a base style: %1.</source>
+        <translation>Bez stylu bazowego: %1.</translation>
+    </message>
+    <message>
+        <source>Everything as in the style &quot;%1&quot; for now.</source>
+        <extracomment>A style without settings of its own. In Polish: Na razie wszystko jak w stylu „%1”.</extracomment>
+        <translation>Na razie wszystko jak w stylu „%1”.</translation>
+    </message>
+    <message>
+        <source>Like the style &quot;%1&quot;, and also: %2.</source>
+        <extracomment>In Polish: Jak styl „%1”, a do tego: %2.</extracomment>
+        <translation>Jak styl „%1”, a do tego: %2.</translation>
+    </message>
+    <message>
+        <source>Give the style a name.</source>
+        <extracomment>In Polish: Nadaj stylowi nazwę.</extracomment>
+        <translation>Nadaj stylowi nazwę.</translation>
+    </message>
+    <message>
+        <source>The book has a style &quot;%1&quot; already.</source>
+        <extracomment>In Polish: Książka ma już styl „%1”.</extracomment>
+        <translation>Książka ma już styl „%1”.</translation>
+    </message>
+    <message>
+        <source>font %1</source>
+        <extracomment>In Polish: czcionka %1</extracomment>
+        <translation>czcionka %1</translation>
+    </message>
+    <message>
+        <source>size %1 pt</source>
+        <extracomment>In Polish: rozmiar %1 pt</extracomment>
+        <translation>rozmiar %1 pt</translation>
+    </message>
+    <message>
+        <source>bold</source>
+        <extracomment>In Polish: pogrubienie / bez pogrubienia</extracomment>
+        <translation>pogrubienie</translation>
+    </message>
+    <message>
+        <source>not bold</source>
+        <translation>bez pogrubienia</translation>
+    </message>
+    <message>
+        <source>italic</source>
+        <extracomment>In Polish: kursywa / bez kursywy</extracomment>
+        <translation>kursywa</translation>
+    </message>
+    <message>
+        <source>not italic</source>
+        <translation>bez kursywy</translation>
+    </message>
+    <message>
+        <source>underlined</source>
+        <extracomment>In Polish: podkreślenie / bez podkreślenia</extracomment>
+        <translation>podkreślenie</translation>
+    </message>
+    <message>
+        <source>not underlined</source>
+        <translation>bez podkreślenia</translation>
+    </message>
+    <message>
+        <source>aligned left</source>
+        <extracomment>A paragraph aligned left. In Polish: do lewej</extracomment>
+        <translation>wyrównanie do lewej</translation>
+    </message>
+    <message>
+        <source>centered</source>
+        <extracomment>In Polish: wyśrodkowany</extracomment>
+        <translation>wyśrodkowanie</translation>
+    </message>
+    <message>
+        <source>aligned right</source>
+        <extracomment>In Polish: do prawej</extracomment>
+        <translation>wyrównanie do prawej</translation>
+    </message>
+    <message>
+        <source>justified</source>
+        <extracomment>In Polish: wyjustowany</extracomment>
+        <translation>wyjustowanie</translation>
+    </message>
+    <message>
+        <source>first line %1</source>
+        <extracomment>In Polish: pierwszy wiersz %1</extracomment>
+        <translation>wcięcie pierwszego wiersza %1</translation>
+    </message>
+    <message>
+        <source>hanging %1</source>
+        <extracomment>A hanging indent. In Polish: wysunięcie %1</extracomment>
+        <translation>wysunięcie %1</translation>
+    </message>
+    <message>
+        <source>no first line indent</source>
+        <extracomment>In Polish: bez wcięcia pierwszego wiersza</extracomment>
+        <translation>bez wcięcia pierwszego wiersza</translation>
+    </message>
+    <message>
+        <source>left indent %1</source>
+        <extracomment>In Polish: wcięcie lewe %1</extracomment>
+        <translation>wcięcie lewe %1</translation>
+    </message>
+    <message>
+        <source>right indent %1</source>
+        <extracomment>In Polish: wcięcie prawe %1</extracomment>
+        <translation>wcięcie prawe %1</translation>
+    </message>
+    <message>
+        <source>space before %1 pt</source>
+        <extracomment>In Polish: odstęp przed %1 pt</extracomment>
+        <translation>odstęp przed %1 pt</translation>
+    </message>
+    <message>
+        <source>space after %1 pt</source>
+        <extracomment>In Polish: odstęp po %1 pt</extracomment>
+        <translation>odstęp po %1 pt</translation>
+    </message>
+    <message>
+        <source>single line spacing</source>
+        <extracomment>In Polish: interlinia pojedyncza</extracomment>
+        <translation>interlinia pojedyncza</translation>
+    </message>
+    <message>
+        <source>line spacing 1.5 lines</source>
+        <extracomment>In Polish: interlinia 1,5 wiersza</extracomment>
+        <translation>interlinia 1,5 wiersza</translation>
+    </message>
+    <message>
+        <source>double line spacing</source>
+        <extracomment>In Polish: interlinia podwójna</extracomment>
+        <translation>interlinia podwójna</translation>
+    </message>
+    <message>
+        <source>line spacing multiple %1</source>
+        <extracomment>In Polish: interlinia wielokrotna %1</extracomment>
+        <translation>interlinia wielokrotna %1</translation>
+    </message>
+    <message>
+        <source>widow and orphan control</source>
+        <extracomment>In Polish: kontrola bękartów i wdów / bez kontroli bękartów i wdów</extracomment>
+        <translation>kontrola bękartów i wdów</translation>
+    </message>
+    <message>
+        <source>no widow and orphan control</source>
+        <translation>bez kontroli bękartów i wdów</translation>
+    </message>
+    <message>
+        <source>kept with the next</source>
+        <extracomment>In Polish: razem z następnym / nie razem z następnym</extracomment>
+        <translation>razem z następnym</translation>
+    </message>
+    <message>
+        <source>not kept with the next</source>
+        <translation>osobno od następnego</translation>
+    </message>
+    <message>
+        <source>lines kept together</source>
+        <extracomment>In Polish: wiersze razem / wiersze rozdzielane</extracomment>
+        <translation>wiersze razem</translation>
+    </message>
+    <message>
+        <source>lines not kept together</source>
+        <translation>wiersze rozdzielane</translation>
+    </message>
+    <message>
+        <source>on a new page</source>
+        <extracomment>In Polish: od nowej strony / bez podziału strony</extracomment>
+        <translation>od nowej strony</translation>
+    </message>
+    <message>
+        <source>no page break before</source>
+        <translation>bez podziału strony przed</translation>
+    </message>
+    <message>
+        <source>spelling checked</source>
+        <extracomment>In Polish: pisownia sprawdzana / bez sprawdzania pisowni</extracomment>
+        <translation>pisownia sprawdzana</translation>
+    </message>
+    <message>
+        <source>spelling not checked</source>
+        <translation>bez sprawdzania pisowni</translation>
+    </message>
+</context>
+<context>
+    <name>StyleTagDelegate</name>
+    <message>
+        <source>own</source>
+        <extracomment>The tag of a style of the writer&apos;s own in a list of styles. In Polish: własny</extracomment>
+        <translation>własny</translation>
+    </message>
+    <message>
+        <source>changed</source>
+        <extracomment>The tag of a style of the book&apos;s type changed in the book. In Polish: zmieniony</extracomment>
+        <translation>zmieniony</translation>
+    </message>
+    <message>
+        <source>not in this book</source>
+        <extracomment>The tag of a style of paragraphs pasted from another book, which this book does not have, in a list of styles. In Polish: brak w tej książce</extracomment>
+        <translation>brak w tej książce</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::StyleCoordinator</name>
+    <message>
+        <source>No text of the book is in front</source>
+        <extracomment>Why Modify Style and Delete Style are greyed out. In Polish: Na wierzchu nie ma tekstu książki</extracomment>
+        <translation>Na wierzchu nie ma tekstu książki</translation>
+    </message>
+    <message>
+        <source>No book is open</source>
+        <extracomment>Why the commands of the styles of the book are greyed out. In Polish: Nie jest otwarta żadna książka</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>The book has no style &quot;%1&quot;</source>
+        <extracomment>In Polish: Książka nie ma stylu „%1”</extracomment>
+        <translation>Książka nie ma stylu „%1”</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is a style of the type &quot;%2&quot;: it can be changed or reset, but not deleted</source>
+        <extracomment>In Polish: „%1” to styl typu „%2”: można go zmienić albo przywrócić, ale nie usunąć</extracomment>
+        <translation>„%1” to styl typu „%2”: można go zmienić albo przywrócić, ale nie usunąć</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is a style of this book&apos;s own: the type &quot;%2&quot; has no such style</source>
+        <extracomment>In Polish: „%1” to własny styl tej książki: typ „%2” nie ma takiego stylu</extracomment>
+        <translation>„%1” to własny styl tej książki: typ „%2” nie ma takiego stylu</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is as the type &quot;%2&quot; has it</source>
+        <extracomment>In Polish: „%1” jest taki jak w typie „%2”</extracomment>
+        <translation>„%1” jest taki jak w typie „%2”</translation>
+    </message>
+    <message numerus="yes">
+        <source>in %n text(s)</source>
+        <extracomment>Part of the question before a style is deleted: &quot;in 3 texts&quot;. In Polish: w %n tekście / w %n tekstach / w %n tekstach</extracomment>
+        <translation>
+            <numerusform>w %n tekście</numerusform>
+            <numerusform>w %n tekstach</numerusform>
+            <numerusform>w %n tekstach</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n paragraph(s) %1 use it.</source>
+        <extracomment>In Polish: Używa go %n akapit %1. / Używają go %n akapity %1. / Używa go %n akapitów %1.</extracomment>
+        <translation>
+            <numerusform>Używa go %n akapit %1.</numerusform>
+            <numerusform>Używają go %n akapity %1.</numerusform>
+            <numerusform>Używa go %n akapitów %1.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>It goes to the style &quot;%1&quot;, and the styles based on it keep their look.</source>
+        <extracomment>In Polish: Przejdzie do stylu „%1”, a style oparte na nim zachowają wygląd. / Przejdą do stylu „%1”, a style oparte na nim zachowają wygląd.</extracomment>
+        <translation>
+            <numerusform>Przejdzie do stylu „%1”, a style oparte na usuwanym stylu zachowają swój wygląd.</numerusform>
+            <numerusform>Przejdą do stylu „%1”, a style oparte na usuwanym stylu zachowają swój wygląd.</numerusform>
+            <numerusform>Przejdą do stylu „%1”, a style oparte na usuwanym stylu zachowają swój wygląd.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Undo under the text undoes it.</source>
+        <extracomment>In Polish: Usunięcie cofa przycisk „Cofnij” pod tekstem.</extracomment>
+        <translation>Usunięcie można cofnąć przyciskiem „Cofnij” pod tekstem.</translation>
+    </message>
+    <message>
+        <source>Ctrl+Z in Manage Styles undoes it.</source>
+        <translation>Usunięcie można cofnąć klawiszami Ctrl+Z w oknie „Zarządzaj stylami”.</translation>
+    </message>
+    <message>
+        <source>Delete the Style &quot;%1&quot;?</source>
+        <extracomment>In Polish: Usunąć styl „%1”?</extracomment>
+        <translation>Usunąć styl „%1”?</translation>
+    </message>
+    <message>
+        <source>&amp;Delete Style</source>
+        <translation>&amp;Usuń styl</translation>
+    </message>
+    <message>
+        <source>The style could not be deleted: the file of the book could not be saved.</source>
+        <extracomment>In Polish: Nie udało się usunąć stylu: nie udało się zapisać pliku książki.</extracomment>
+        <translation>Nie udało się usunąć stylu: nie udało się zapisać pliku książki.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The style &quot;%1&quot; is deleted: %n paragraph(s) now have the style &quot;%2&quot;.</source>
+        <translation>
+            <numerusform>Usunięto styl „%1”: %n akapit ma teraz styl „%2”.</numerusform>
+            <numerusform>Usunięto styl „%1”: %n akapity mają teraz styl „%2”.</numerusform>
+            <numerusform>Usunięto styl „%1”: %n akapitów ma teraz styl „%2”.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The style &quot;%1&quot; is deleted.</source>
+        <translation>Usunięto styl „%1”.</translation>
+    </message>
+    <message>
+        <source>resetting the style &quot;%1&quot;</source>
+        <extracomment>What Undo undoes. In Polish: przywrócenie stylu „%1”</extracomment>
+        <translation>przywrócenie stylu „%1”</translation>
+    </message>
+    <message>
+        <source>The file of the book could not be saved.</source>
+        <extracomment>In Polish: Nie udało się zapisać pliku książki.</extracomment>
+        <translation>Nie udało się zapisać pliku książki.</translation>
+    </message>
+    <message>
+        <source>The style &quot;%1&quot; is as the type &quot;%2&quot; has it again.</source>
+        <extracomment>In Polish: Styl „%1” znów jest taki jak w typie „%2”.</extracomment>
+        <translation>Styl „%1” znów jest taki jak w typie „%2”.</translation>
+    </message>
+    <message>
+        <source>adding the style &quot;%1&quot;</source>
+        <translation>dodanie stylu „%1”</translation>
+    </message>
+    <message>
+        <source>changing the style &quot;%1&quot;</source>
+        <extracomment>What Undo undoes. In Polish: zmianę stylu „%1”</extracomment>
+        <translation>zmianę stylu „%1”</translation>
+    </message>
+    <message>
+        <source>deleting the style &quot;%1&quot;</source>
+        <extracomment>What Undo undoes. In Polish: usunięcie stylu „%1”</extracomment>
+        <translation>usunięcie stylu „%1”</translation>
+    </message>
+    <message>
+        <source>This can no longer be undone: the texts changed since.</source>
+        <extracomment>In Polish: Tego nie da się już cofnąć: teksty zmieniły się od tamtej pory.</extracomment>
+        <translation>Tego nie da się już cofnąć: teksty zmieniły się od tamtej pory.</translation>
+    </message>
+    <message>
+        <source>Undone %1.</source>
+        <extracomment>In Polish: Cofnięto %1.</extracomment>
+        <translation>Cofnięto %1.</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>Undo %1</source>
+        <extracomment>The tooltip of Undo in the notice. In Polish: Cofnij %1</extracomment>
+        <translation>Cofnij %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ManageStylesDialog</name>
+    <message>
+        <source>Manage Styles</source>
+        <extracomment>The window Format &gt; Text Style &gt; Manage Styles. In Polish: Zarządzaj stylami</extracomment>
+        <translation>Zarządzaj stylami</translation>
+    </message>
+    <message>
+        <source>The paragraph styles of this book: the styles of the type &quot;%1&quot; and its own.</source>
+        <extracomment>In Polish: Style akapitów tej książki: style typu „%1” i jej własne.</extracomment>
+        <translation>Style akapitów tej książki: style typu „%1” i jej własne.</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <extracomment>In Polish: Zamknij</extracomment>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>Styles</source>
+        <extracomment>In Polish: Style</extracomment>
+        <translation>Style</translation>
+    </message>
+    <message>
+        <source>&amp;New...</source>
+        <extracomment>In Polish: &amp;Nowy...</extracomment>
+        <translation>&amp;Nowy...</translation>
+    </message>
+    <message>
+        <source>&amp;Modify...</source>
+        <extracomment>In Polish: &amp;Zmień...</extracomment>
+        <translation>&amp;Zmień...</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Reset to the Type&apos;s Style</source>
+        <extracomment>In Polish: P&amp;rzywróć styl typu</extracomment>
+        <translation>P&amp;rzywróć styl typu</translation>
+    </message>
+    <message>
+        <source>Styles of the Type &quot;%1&quot;</source>
+        <extracomment>The heading of the styles of the book&apos;s type in Manage Styles. In Polish: Style typu „%1”</extracomment>
+        <translation>Style typu „%1”</translation>
+    </message>
+    <message>
+        <source>Own Styles of This Book</source>
+        <extracomment>The heading of the writer&apos;s own styles in Manage Styles. In Polish: Własne style tej książki</extracomment>
+        <translation>Własne style tej książki</translation>
+    </message>
+    <message>
+        <source>a style of this book&apos;s own</source>
+        <extracomment>In Polish: własny styl tej książki</extracomment>
+        <translation>własny styl tej książki</translation>
+    </message>
+    <message>
+        <source>a style of the type &quot;%1&quot;, changed in this book</source>
+        <extracomment>In Polish: styl typu „%1”, zmieniony w tej książce</extracomment>
+        <translation>styl typu „%1”, zmieniony w tej książce</translation>
+    </message>
+    <message>
+        <source>a style of the type &quot;%1&quot;</source>
+        <extracomment>In Polish: styl typu „%1”</extracomment>
+        <translation>styl typu „%1”</translation>
+    </message>
+    <message>
+        <source>No paragraph uses it.</source>
+        <extracomment>In Polish: Nie używa go żaden akapit.</extracomment>
+        <translation>Nie używa go żaden akapit.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n paragraph(s) %1 use it.</source>
+        <translation>
+            <numerusform>Używa go %n akapit %1.</numerusform>
+            <numerusform>Używają go %n akapity %1.</numerusform>
+            <numerusform>Używa go %n akapitów %1.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>in %n text(s)</source>
+        <translation>
+            <numerusform>w %n tekście</numerusform>
+            <numerusform>w %n tekstach</numerusform>
+            <numerusform>w %n tekstach</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Delete the style &quot;%1&quot; (Delete)</source>
+        <translation>Usuń styl „%1” (Delete)</translation>
+    </message>
+    <message>
+        <source>The style &quot;%1&quot; as the type &quot;%2&quot; has it</source>
+        <translation>Styl „%1” znów taki jak w typie „%2”</translation>
+    </message>
+    <message>
+        <source>A new style based on &quot;%1&quot; (Insert)</source>
+        <extracomment>In Polish: Nowy styl na podstawie „%1” (Insert)</extracomment>
+        <translation>Nowy styl na podstawie „%1” (Insert)</translation>
+    </message>
+    <message>
+        <source>Modify the style &quot;%1&quot; (Enter, F2)</source>
+        <extracomment>In Polish: Zmień styl „%1” (Enter, F2)</extracomment>
+        <translation>Zmień styl „%1” (Enter, F2)</translation>
+    </message>
+    <message>
+        <source>Ctrl+Z undoes %1.</source>
+        <extracomment>In Polish: Ctrl+Z cofa %1.</extracomment>
+        <translation>Ctrl+Z cofa %1.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot;</source>
+        <extracomment>A name of a style in quotes. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+    <message>
+        <source>, </source>
+        <translation>, </translation>
+    </message>
+    <message>
+        <source>Based on</source>
+        <extracomment>In Polish: Na podstawie</extracomment>
+        <translation>Na podstawie</translation>
+    </message>
+    <message>
+        <source>Next paragraph</source>
+        <extracomment>In Polish: Następny akapit / ten sam styl</extracomment>
+        <translation>Następny akapit</translation>
+    </message>
+    <message>
+        <source>the same style</source>
+        <translation>ten sam styl</translation>
+    </message>
+    <message>
+        <source>Font</source>
+        <extracomment>In Polish: Czcionka</extracomment>
+        <translation>Czcionka</translation>
+    </message>
+    <message>
+        <source>Paragraph</source>
+        <extracomment>In Polish: Akapit</extracomment>
+        <translation>Akapit</translation>
+    </message>
+    <message>
+        <source>Spacing</source>
+        <extracomment>In Polish: Odstępy</extracomment>
+        <translation>Odstępy</translation>
+    </message>
+    <message>
+        <source>Breaks</source>
+        <extracomment>In Polish: Podziały</extracomment>
+        <translation>Podziały</translation>
+    </message>
+    <message>
+        <source>Spelling</source>
+        <extracomment>In Polish: Pisownia</extracomment>
+        <translation>Pisownia</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::StyleDialog</name>
+    <message>
+        <source>Align Left</source>
+        <translation>Wyrównaj do lewej</translation>
+    </message>
+    <message>
+        <source>Align Center</source>
+        <translation>Wyśrodkuj</translation>
+    </message>
+    <message>
+        <source>Align Right</source>
+        <translation>Wyrównaj do prawej</translation>
+    </message>
+    <message>
+        <source>Justify</source>
+        <translation>Wyjustuj</translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <extracomment>The unit of the spacing of paragraphs, points. In Polish: pt</extracomment>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>A paragraph style of this book. What it does not set itself, it takes from its base style.</source>
+        <extracomment>In Polish: Styl akapitów tej książki. Czego nie ustawia sam, bierze ze stylu bazowego.</extracomment>
+        <translation>Styl akapitów tej książki. Czego nie ustawia sam, bierze ze stylu bazowego.</translation>
+    </message>
+    <message>
+        <source>A style of the type &quot;%1&quot;. The changes are only for this book; Reset to the Type&apos;s Style undoes them.</source>
+        <extracomment>In Polish: Styl typu „%1”. Zmiany obowiązują tylko w tej książce; „Przywróć styl typu” je cofa.</extracomment>
+        <translation>Styl typu „%1”. Zmiany obowiązują tylko w tej książce; „Przywróć styl typu” je cofa.</translation>
+    </message>
+    <message>
+        <source>The base style of the book: the other styles take from it what they do not set themselves.</source>
+        <extracomment>In Polish: Podstawowy styl książki: pozostałe style biorą z niego to, czego nie ustawiają same.</extracomment>
+        <translation>Podstawowy styl książki: pozostałe style biorą z niego to, czego nie ustawiają same.</translation>
+    </message>
+    <message>
+        <source>New Style</source>
+        <extracomment>The window of a new paragraph style. In Polish: Nowy styl</extracomment>
+        <translation>Nowy styl</translation>
+    </message>
+    <message>
+        <source>Modify the Style &quot;%1&quot;</source>
+        <translation>Zmień styl „%1”</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Apply to the paragraph at the c&amp;ursor</source>
+        <extracomment>In Polish: Nadaj styl akapitowi z kursorem</extracomment>
+        <translation>Nadaj styl akapitowi z kursore&amp;m</translation>
+    </message>
+    <message>
+        <source>S&amp;horter Window</source>
+        <extracomment>Switches the window of a style to its short variant. In Polish: Krótsze okno</extracomment>
+        <translation>&amp;Krótsze okno</translation>
+    </message>
+    <message>
+        <source>The font, size, alignment and line spacing on top with a wide preview; the rest in the windows Font and Paragraph. The window remembers the choice.</source>
+        <extracomment>In Polish: Czcionka, rozmiar, wyrównanie i interlinia na wierzchu, szeroki podgląd; reszta w oknach Czcionka i Akapit. Okno zapamiętuje wybór.</extracomment>
+        <translation>Czcionka, rozmiar, wyrównanie i interlinia na wierzchu, z szerokim podglądem; reszta w oknach Czcionka i Akapit. Okno zapamiętuje wybór.</translation>
+    </message>
+    <message>
+        <source>Window with &amp;Tabs</source>
+        <extracomment>Switches the window of a style to its variant with tabs. In Polish: Okno z kartami</extracomment>
+        <translation>Okno z &amp;kartami</translation>
+    </message>
+    <message>
+        <source>All the settings of the style on four tabs. The window remembers the choice.</source>
+        <extracomment>In Polish: Wszystkie ustawienia stylu na czterech kartach. Okno zapamiętuje wybór.</extracomment>
+        <translation>Wszystkie ustawienia stylu na czterech kartach. Okno zapamiętuje wybór.</translation>
+    </message>
+    <message>
+        <source>&amp;Name</source>
+        <extracomment>In Polish: &amp;Nazwa</extracomment>
+        <translation>&amp;Nazwa</translation>
+    </message>
+    <message>
+        <source>Based &amp;on</source>
+        <extracomment>The style a style is based on. In Polish: Na po&amp;dstawie</extracomment>
+        <translation>Na &amp;podstawie</translation>
+    </message>
+    <message>
+        <source>Ne&amp;xt paragraph</source>
+        <extracomment>The style Enter starts after a paragraph of the style. In Polish: Następny &amp;akapit</extracomment>
+        <translation>Nas&amp;tępny akapit</translation>
+    </message>
+    <message>
+        <source>The style Enter starts at the end of a paragraph of this style</source>
+        <translation>Styl akapitu, który Enter zaczyna na końcu akapitu w tym stylu</translation>
+    </message>
+    <message>
+        <source>A style of the book&apos;s type keeps its name; a style of the writer&apos;s own can have any name.</source>
+        <extracomment>In Polish: Nazwa stylu typu książki się nie zmienia; własny styl można nazwać dowolnie.</extracomment>
+        <translation>Styl typu książki zachowuje swoją nazwę; własny styl może mieć dowolną nazwę.</translation>
+    </message>
+    <message>
+        <source>(none – the base style)</source>
+        <extracomment>The base of the style Normal. In Polish: (brak – styl podstawowy)</extracomment>
+        <translation>(brak – styl podstawowy)</translation>
+    </message>
+    <message>
+        <source>(none)</source>
+        <extracomment>A style without a base style. In Polish: (brak)
+----------
+The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiersz, Wysunięcie</extracomment>
+        <translation>(brak)</translation>
+    </message>
+    <message>
+        <source>(the same style)</source>
+        <extracomment>The next paragraph in the same style. In Polish: (ten sam styl)</extracomment>
+        <translation>(ten sam styl)</translation>
+    </message>
+    <message>
+        <source>&amp;Reset to the Type&apos;s Style</source>
+        <extracomment>In Polish: Przywróć &amp;styl typu</extracomment>
+        <translation>Przywróć &amp;styl typu</translation>
+    </message>
+    <message>
+        <source>The style as the type &quot;%1&quot; has it</source>
+        <extracomment>In Polish: Styl znów taki jak w typie „%1”</extracomment>
+        <translation>Styl znów taki jak w typie „%1”</translation>
+    </message>
+    <message>
+        <source>&amp;Clear Own Settings</source>
+        <extracomment>In Polish: &amp;Usuń własne ustawienia</extracomment>
+        <translation>&amp;Usuń własne ustawienia</translation>
+    </message>
+    <message>
+        <source>Everything as in the base style</source>
+        <extracomment>In Polish: Wszystko jak w stylu bazowym</extracomment>
+        <translation>Wszystko jak w stylu bazowym</translation>
+    </message>
+    <message>
+        <source>&amp;General</source>
+        <extracomment>A tab of the window of a style. In Polish: &amp;Ogólne</extracomment>
+        <translation>O&amp;gólne</translation>
+    </message>
+    <message>
+        <source>&amp;Font</source>
+        <extracomment>In Polish: &amp;Czcionka</extracomment>
+        <translation>C&amp;zcionka</translation>
+    </message>
+    <message>
+        <source>&amp;Indents and Spacing</source>
+        <extracomment>In Polish: &amp;Wcięcia i odstępy</extracomment>
+        <translation>&amp;Wcięcia i odstępy</translation>
+    </message>
+    <message>
+        <source>&amp;Breaks and Spelling</source>
+        <extracomment>In Polish: Po&amp;działy i pisownia</extracomment>
+        <translation>Po&amp;działy i pisownia</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <extracomment>In Polish: Podgląd</extracomment>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The Style Has</source>
+        <extracomment>In Polish: Styl zawiera</extracomment>
+        <translation>Ustawienia stylu</translation>
+    </message>
+    <message>
+        <source>Fo&amp;nt</source>
+        <extracomment>In Polish: Czcio&amp;nka</extracomment>
+        <translation>Czcio&amp;nka</translation>
+    </message>
+    <message>
+        <source>St&amp;yle</source>
+        <extracomment>The style of the letters: regular, italic, bold. In Polish: St&amp;yl</extracomment>
+        <translation>St&amp;yl</translation>
+    </message>
+    <message>
+        <source>&amp;Size</source>
+        <extracomment>In Polish: &amp;Rozmiar</extracomment>
+        <translation>&amp;Rozmiar</translation>
+    </message>
+    <message>
+        <source>Regular</source>
+        <extracomment>The styles of the letters, as in Format &gt; Font. In Polish: Normalny, Kursywa, Pogrubiony, Pogrubiona kursywa</extracomment>
+        <translation>Normalny</translation>
+    </message>
+    <message>
+        <source>Italic</source>
+        <translation>Kursywa</translation>
+    </message>
+    <message>
+        <source>Bold</source>
+        <translation>Pogrubiony</translation>
+    </message>
+    <message>
+        <source>Bold Italic</source>
+        <translation>Pogrubiona kursywa</translation>
+    </message>
+    <message>
+        <source>Un&amp;derline</source>
+        <extracomment>In Polish: Po&amp;dkreślenie</extracomment>
+        <translation>&amp;Podkreślenie</translation>
+    </message>
+    <message>
+        <source>On the screen the text in the style &quot;%1&quot; has the font and size set in Settings (Editor &gt; General); the other styles keep the same proportions to it.</source>
+        <extracomment>The note about Normal on the tab Font of its window. In Polish: Na ekranie tekst w stylu „%1” ma czcionkę i rozmiar ustawione w Ustawieniach (Edytor › Ogólne); pozostałe style zachowują wobec niego te same proporcje.</extracomment>
+        <translation>Na ekranie tekst w stylu „%1” ma czcionkę i rozmiar ustawione w Ustawieniach (Edytor › Ogólne); pozostałe style zachowują wobec niego te same proporcje.</translation>
+    </message>
+    <message>
+        <source>Align&amp;ment</source>
+        <extracomment>In Polish: Wyrówna&amp;nie</extracomment>
+        <translation>Wyrówna&amp;nie</translation>
+    </message>
+    <message>
+        <source>Indentation</source>
+        <extracomment>In Polish: Wcięcia</extracomment>
+        <translation>Wcięcia</translation>
+    </message>
+    <message>
+        <source>First line</source>
+        <translation>Pierwszy wiersz</translation>
+    </message>
+    <message>
+        <source>Hanging</source>
+        <translation>Wysunięcie</translation>
+    </message>
+    <message>
+        <source>&amp;Left</source>
+        <extracomment>In Polish: &amp;Lewe</extracomment>
+        <translation>&amp;Lewe</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <extracomment>In Polish: P&amp;rawe</extracomment>
+        <translation>P&amp;rawe</translation>
+    </message>
+    <message>
+        <source>S&amp;pecial</source>
+        <extracomment>In Polish: &amp;Specjalne</extracomment>
+        <translation>&amp;Specjalne</translation>
+    </message>
+    <message>
+        <source>B&amp;y</source>
+        <extracomment>A special indent &quot;by&quot; 1.27 cm. In Polish: &amp;o</extracomment>
+        <translation>&amp;o</translation>
+    </message>
+    <message>
+        <source>Spacing</source>
+        <extracomment>In Polish: Odstępy</extracomment>
+        <translation>Odstępy</translation>
+    </message>
+    <message>
+        <source>Single</source>
+        <extracomment>The line spacings of a style. In Polish: Pojedyncza, 1,5 wiersza, Podwójna, Wielokrotna</extracomment>
+        <translation>Pojedyncza</translation>
+    </message>
+    <message>
+        <source>1.5 lines</source>
+        <translation>1,5 wiersza</translation>
+    </message>
+    <message>
+        <source>Double</source>
+        <translation>Podwójna</translation>
+    </message>
+    <message>
+        <source>Multiple</source>
+        <translation>Wielokrotna</translation>
+    </message>
+    <message>
+        <source>Befor&amp;e</source>
+        <extracomment>In Polish: Prz&amp;ed</extracomment>
+        <translation>Prz&amp;ed</translation>
+    </message>
+    <message>
+        <source>&amp;After</source>
+        <extracomment>In Polish: P&amp;o</extracomment>
+        <translation>&amp;Po</translation>
+    </message>
+    <message>
+        <source>Li&amp;ne spacing</source>
+        <extracomment>In Polish: &amp;Interlinia</extracomment>
+        <translation>&amp;Interlinia</translation>
+    </message>
+    <message>
+        <source>A&amp;t</source>
+        <extracomment>Line spacing Multiple &quot;at&quot; 1.15. In Polish: &amp;co</extracomment>
+        <translation>&amp;co</translation>
+    </message>
+    <message>
+        <source>Pagination</source>
+        <extracomment>In Polish: Podział na strony</extracomment>
+        <translation>Podział na strony</translation>
+    </message>
+    <message>
+        <source>&amp;Widow/Orphan control</source>
+        <extracomment>In Polish: Kontrola &amp;bękartów i wdów</extracomment>
+        <translation>Kontrola &amp;bękartów i wdów</translation>
+    </message>
+    <message>
+        <source>Keep with ne&amp;xt</source>
+        <extracomment>In Polish: Ra&amp;zem z następnym</extracomment>
+        <translation>Razem z &amp;następnym</translation>
+    </message>
+    <message>
+        <source>&amp;Keep lines together</source>
+        <extracomment>In Polish: Zachowaj wiersze &amp;razem</extracomment>
+        <translation>Zachowaj wiersze &amp;razem</translation>
+    </message>
+    <message>
+        <source>Page break bef&amp;ore</source>
+        <extracomment>In Polish: Podział strony prz&amp;ed</extracomment>
+        <translation>Podział strony &amp;przed</translation>
+    </message>
+    <message>
+        <source>Spelling</source>
+        <extracomment>In Polish: Pisownia</extracomment>
+        <translation>Pisownia</translation>
+    </message>
+    <message>
+        <source>Check s&amp;pelling</source>
+        <extracomment>In Polish: S&amp;prawdzaj pisownię</extracomment>
+        <translation>Sprawdzaj pi&amp;sownię</translation>
+    </message>
+    <message>
+        <source>The paragraphs of code, for example, are not checked.</source>
+        <extracomment>In Polish: Bez sprawdzania są np. akapity kodu.</extracomment>
+        <translation>Nie sprawdza się na przykład akapitów kodu.</translation>
+    </message>
+    <message>
+        <source>Formatting</source>
+        <extracomment>In Polish: Formatowanie</extracomment>
+        <translation>Formatowanie</translation>
+    </message>
+    <message>
+        <source>Font</source>
+        <extracomment>In Polish: Czcionka</extracomment>
+        <translation>Czcionka</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <extracomment>In Polish: Rozmiar</extracomment>
+        <translation>Rozmiar</translation>
+    </message>
+    <message>
+        <source>On the screen the text in the style &quot;%1&quot; has the font and size set in Settings (Editor &gt; General).</source>
+        <extracomment>The note about Normal in the short window of a style. In Polish: Na ekranie tekst w stylu „%1” ma czcionkę i rozmiar z Ustawień (Edytor › Ogólne).</extracomment>
+        <translation>Na ekranie tekst w stylu „%1” ma czcionkę i rozmiar ustawione w Ustawieniach (Edytor › Ogólne).</translation>
+    </message>
+    <message>
+        <source>Bold (Ctrl+B)</source>
+        <extracomment>In Polish: Pogrubienie (Ctrl+B)</extracomment>
+        <translation>Pogrubienie (Ctrl+B)</translation>
+    </message>
+    <message>
+        <source>Italic (Ctrl+I)</source>
+        <extracomment>In Polish: Kursywa (Ctrl+I)</extracomment>
+        <translation>Kursywa (Ctrl+I)</translation>
+    </message>
+    <message>
+        <source>&amp;Font...</source>
+        <extracomment>Opens Format &gt; Font for the style. In Polish: &amp;Czcionka...</extracomment>
+        <translation>&amp;Czcionka...</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>An alignment with its key: Align Left (Ctrl+L). In Polish: %1 (%2)</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>Line spac&amp;ing</source>
+        <extracomment>In Polish: &amp;Interlinia</extracomment>
+        <translation>&amp;Interlinia</translation>
+    </message>
+    <message>
+        <source>Chec&amp;k spelling</source>
+        <extracomment>In Polish: Sprawdzaj pisownię</extracomment>
+        <translation>Spra&amp;wdzaj pisownię</translation>
+    </message>
+    <message>
+        <source>&amp;Paragraph...</source>
+        <extracomment>Opens Format &gt; Paragraph for the style. In Polish: &amp;Akapit...</extracomment>
+        <translation>&amp;Akapit...</translation>
+    </message>
+    <message>
+        <source>The base style sets everything itself: nothing on the tabs comes from another style.</source>
+        <extracomment>In Polish: Styl podstawowy ustawia wszystko sam: na kartach nic nie pochodzi z innego stylu.</extracomment>
+        <translation>Styl podstawowy ustawia wszystko sam: na kartach nic nie pochodzi z innego stylu.</translation>
+    </message>
+    <message>
+        <source>On the tabs a bold label marks a setting of the style&apos;s own; the other fields show the program&apos;s settings.</source>
+        <extracomment>In Polish: Na kartach pogrubiona etykieta oznacza własne ustawienie stylu; pozostałe pola pokazują ustawienia programu.</extracomment>
+        <translation>Na kartach pogrubiona etykieta oznacza własne ustawienie stylu; pozostałe pola pokazują ustawienia programu.</translation>
+    </message>
+    <message>
+        <source>On the tabs a bold label marks a setting of the style&apos;s own; the other fields show the values of the style &quot;%1&quot;. A value of the base style typed in a field is no longer the style&apos;s own.</source>
+        <extracomment>In Polish: Na kartach pogrubiona etykieta oznacza własne ustawienie stylu; pozostałe pola pokazują wartości stylu „%1”. Wpisanie wartości stylu bazowego usuwa własne ustawienie.</extracomment>
+        <translation>Na kartach pogrubiona etykieta oznacza własne ustawienie stylu; pozostałe pola pokazują wartości stylu „%1”. Wpisanie w pole wartości stylu bazowego usuwa własne ustawienie.</translation>
+    </message>
+    <message>
+        <source>Multiple %1</source>
+        <extracomment>Line spacing of so many lines. In Polish: Wielokrotna %1</extracomment>
+        <translation>Wielokrotna %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::StylePreview</name>
+    <message>
+        <source>In the evening the wind dropped and the camp went quiet.</source>
+        <extracomment>The paragraph before the one of the style in the preview of the window of a style. In Polish: Wieczorem wiatr ucichł i nad obozem zrobiło się cicho.</extracomment>
+        <translation>Wieczorem wiatr ustał i obóz ucichł.</translation>
+    </message>
+    <message>
+        <source>He remembered that morning by the river: the mist hung low, and the boats still lay by the bank.</source>
+        <extracomment>The paragraph of the style in its preview. In Polish: Pamiętał tamten ranek nad rzeką: mgła wisiała nisko, a łodzie stały jeszcze przy brzegu.</extracomment>
+        <translation>Pamiętał tamten ranek nad rzeką: mgła wisiała nisko, a łodzie wciąż leżały przy brzegu.</translation>
+    </message>
+    <message>
+        <source>In the morning they went on north, along the dry riverbed.</source>
+        <extracomment>The paragraph after the one of the style in its preview. In Polish: Rano ruszyli dalej na północ, wzdłuż wyschniętego koryta.</extracomment>
+        <translation>Rano ruszyli dalej na północ, wzdłuż wyschniętego koryta.</translation>
     </message>
 </context>
 </TS>

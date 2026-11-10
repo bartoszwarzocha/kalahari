@@ -1118,10 +1118,11 @@ QWidget* StyleDialog::createShortPage() {
     m_alignments->setExclusive(true);
     const std::array<const char*, 4> keys = {"Ctrl+L", "Ctrl+E", "Ctrl+R", "Ctrl+J"};
     for (size_t i = 0; i < ALIGNMENTS.size(); ++i) {
-        //: An alignment with its key: Align Left (Ctrl+L). In Polish: %1 (%2)
         const QString key =
             QKeySequence(QString::fromLatin1(keys.at(i))).toString(QKeySequence::NativeText);
         QToolButton* button = toolButton(QString::fromLatin1(ALIGNMENTS.at(i).iconId),
+                                         //: An alignment with its key: Align Left (Ctrl+L). In
+                                         //: Polish: %1 (%2)
                                          tr("%1 (%2)").arg(alignmentText(i), key));
         m_alignments->addButton(button, static_cast<int>(i));
         paragraphRow->addWidget(button);

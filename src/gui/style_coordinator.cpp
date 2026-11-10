@@ -175,7 +175,10 @@ QHash<QString, editor::BookEditor*> StyleCoordinator::openEditors() const {
     QHash<QString, editor::BookEditor*> editors;
     for (int i = 0; i < m_centralTabs->count(); ++i) {
         auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(i));
-        const QString id = panel != nullptr ? panel->property("elementId").toString() : QString();
+        if (panel == nullptr) {
+            continue;
+        }
+        const QString id = panel->property("elementId").toString();
         if (!id.isEmpty() && panel->getBookEditor() != nullptr) {
             editors.insert(id, panel->getBookEditor());
         }
@@ -264,7 +267,7 @@ QString StyleCoordinator::newStyle(const QString& baseId, bool applyToText, QWid
     if (dialog.exec() != QDialog::Accepted) {
         return QString();
     }
-    const QString id = saveDraft(dialog.draft());
+    QString id = saveDraft(dialog.draft());
     if (id.isEmpty()) {
         return QString();
     }
@@ -569,6 +572,9 @@ bool StyleCoordinator::undo() {
         say(tr("This can no longer be undone: the texts changed since."));
         return false;
     }
+    if (!m_undo) {
+        return false;
+    }
     const Step step = *m_undo;
     forgetUndo();
     auto& projects = core::ProjectManager::getInstance();
@@ -635,8 +641,8 @@ void StyleCoordinator::followEditor() {
     if (text == m_followed) {
         return;
     }
-    if (m_followed) {
-        disconnect(m_followed.data(), nullptr, this, nullptr);
+    if (m_followed != nullptr) {
+        disconnect(m_followed, nullptr, this, nullptr);
         // The watch of the undo stays
         if (m_undo) {
             for (const QPointer<editor::BookEditor>& editor : std::as_const(m_undo->editors)) {
@@ -649,6 +655,7 @@ void StyleCoordinator::followEditor() {
     }
     m_followed = text;
     if (text != nullptr) {
+        connect(text, &QObject::destroyed, this, [this]() { m_followed = nullptr; });
         connect(text, &editor::BookEditor::cursorPositionChanged, this,
                 &StyleCoordinator::updateCommandStates);
         connect(text, &editor::BookEditor::selectionChanged, this,
