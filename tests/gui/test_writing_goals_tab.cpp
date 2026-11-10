@@ -473,7 +473,8 @@ TEST_CASE("Writing goals: the page fills the whole width of the window",
     // In a window of its own, as in the middle of the program: a window as wide as this would
     // be made as narrow as the screen of the tests
     QWidget window;
-    auto* tab = new WritingGoalsTab(&goals.model, &window);
+    WritingGoalsTab page(&goals.model, &window);
+    WritingGoalsTab* tab = &page;
     tab->setBookSource(Goals::source());
     window.show();
     for (const int width : {700, 1900}) {
