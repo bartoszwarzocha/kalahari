@@ -78,6 +78,7 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include <string_view>
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -260,6 +261,9 @@ public:
                             noTool);
         fillDevToolsMenu(m_window.menuBar()->addMenu(devToolsMenuTitle()), &m_window, noTool);
     }
+
+    // The toolbar of the user is kept in the configuration: the next menus would have two
+    ~Menus() { m_toolbars->deleteUserToolbar(m_userToolbar); }
 
     [[nodiscard]] QMenuBar* menuBar() { return m_window.menuBar(); }
     [[nodiscard]] QMenu* menu(const std::string& path) const { return m_builder.getMenu(path); }
@@ -764,11 +768,16 @@ struct WindowPanels {
         docks->createDocks();
         toolbars = std::make_unique<ToolbarManager>(&window);
         toolbars->createToolbars(CommandRegistry::getInstance());
-        toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
+        userToolbar = toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
         window.resize(1200, 800);
         window.show();
         QCoreApplication::processEvents();
     }
+
+    // The toolbar of the user is kept in the configuration: the next window would have two
+    ~WindowPanels() { toolbars->deleteUserToolbar(userToolbar); }
+
+    QString userToolbar;
 };
 
 /// The menu of the menu bar and of the panels' titles: Qt's, as MainWindow gives it the keys
@@ -1149,10 +1158,17 @@ TEST_CASE("Menu access keys: a free key for a name the user gave", "[gui][menus]
     used = {QLatin1Char('2')};
     CHECK(withFreeAccessKey(QStringLiteral("Łódź 2"), used) == QStringLiteral("Łó&dź 2"));
 
-    // Every letter taken: no key rather than one another item has
+    // Every letter taken: a free one after it rather than one another item has
     used = {QLatin1Char('A'), QLatin1Char('B')};
-    CHECK(withFreeAccessKey(QStringLiteral("Ab & ba"), used) == QStringLiteral("Ab && ba"));
-    CHECK(used.size() == 2);
+    CHECK(withFreeAccessKey(QStringLiteral("Ab & ba"), used) == QStringLiteral("Ab && ba (&C)"));
+    CHECK(used.size() == 3);
+
+    // Every letter and digit taken: none
+    used.clear();
+    for (const char key : std::string_view("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")) {
+        used.insert(QLatin1Char(key));
+    }
+    CHECK(withFreeAccessKey(QStringLiteral("Ab"), used) == QStringLiteral("Ab"));
 }
 
 TEST_CASE("Menu access keys: free keys for names that share letters", "[gui][menus][keys]") {
@@ -1171,8 +1187,8 @@ TEST_CASE("Menu access keys: free keys for names that share letters", "[gui][men
                              used) ==
           QStringList{QStringLiteral("A&b"), QStringLiteral("B&c"), QStringLiteral("&A")});
 
-    // None left: no key rather than one another item has
+    // None of its own left: a free one after it rather than one another item has
     used = {QLatin1Char('X')};
     CHECK(withFreeAccessKeys({QStringLiteral("X"), QStringLiteral("Y")}, used) ==
-          QStringList{QStringLiteral("X"), QStringLiteral("&Y")});
+          QStringList{QStringLiteral("X (&A)"), QStringLiteral("&Y")});
 }

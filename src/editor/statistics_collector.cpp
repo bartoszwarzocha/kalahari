@@ -5,8 +5,14 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/core/project_database.h>
-#include <kalahari/core/database_types.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/writing_journal.h>
+#include <kalahari/core/writing_statistics.h>
+
+#include <QVariant>
+
+#include <algorithm>
+#include <cstdlib>
 
 namespace kalahari::editor {
 
@@ -55,36 +61,83 @@ void StatisticsCollector::setBookEditor(BookEditor* editor)
         return;
     }
 
-    // The last edits in the previous editor still count to the session
+    // The last edits in the previous editor still count to the session, in its text
     if (m_editor) {
         if (m_debounceTimer->isActive()) {
             m_debounceTimer->stop();
             debouncedRecalculate();
         }
         disconnect(m_editor, nullptr, this, nullptr);
+        // Its pastes keep their words while it keeps their undo: until it shows another text
+        // or is closed
+        if (m_pastedAtLevel.contains(m_editor)) {
+            connect(m_editor, &QObject::destroyed, this, &StatisticsCollector::onEditorDestroyed,
+                    Qt::UniqueConnection);
+        }
     }
 
     m_editor = editor;
+    m_elementId = elementIdOf(editor);
+    m_recorder.setPlace(m_bookId, m_elementId);
 
     if (m_editor) {
         connect(m_editor, &BookEditor::contentChanged,
                 this, &StatisticsCollector::onContentChanged);
-        // A newly loaded text, or new rules of counting, are not words written or deleted
-        connect(m_editor, &BookEditor::documentChanged, this, &StatisticsCollector::rebase);
+        // The words pasted are kept apart from the words written
+        connect(m_editor, &BookEditor::pastingStarted, this,
+                &StatisticsCollector::onPastingStarted);
+        connect(m_editor, &BookEditor::pastingFinished, this,
+                &StatisticsCollector::onPastingFinished);
+        // A newly loaded text, or new rules of counting, are not words written or deleted; a
+        // new text has no undo, and no pastes to undo
+        connect(m_editor, &BookEditor::documentChanged, this, [this]() {
+            m_pastedAtLevel.remove(m_editor);
+            rebase();
+        });
         connect(m_editor, &BookEditor::countsChanged, this, &StatisticsCollector::rebase);
         // An editor closed while it is followed is forgotten
-        connect(m_editor, &QObject::destroyed, this, &StatisticsCollector::onEditorDestroyed);
+        connect(m_editor, &QObject::destroyed, this, &StatisticsCollector::onEditorDestroyed,
+                Qt::UniqueConnection);
     }
     rebase();
 }
 
 void StatisticsCollector::setDatabase(core::ProjectDatabase* database)
 {
+    // What was written in the book goes to its database before another one is set
+    if (database != m_database) {
+        flush();
+    }
     m_database = database;
 
     if (m_database) {
         core::Logger::getInstance().debug("StatisticsCollector connected to database");
     }
+}
+
+void StatisticsCollector::setJournal(core::WritingJournal* journal)
+{
+    if (journal != m_journal) {
+        flush();
+    }
+    m_journal = journal;
+}
+
+void StatisticsCollector::setBookId(const QString& bookId)
+{
+    m_bookId = bookId;
+    m_recorder.setPlace(m_bookId, m_elementId);
+}
+
+void StatisticsCollector::setRules(const core::WritingRules& rules)
+{
+    m_recorder.setIdleSeconds(rules.idleMinutes * 60);
+    m_recorder.setLargeChangeWords(rules.largeChangeWords);
+}
+
+const QList<core::WritingActivity>& StatisticsCollector::pendingActivity() const
+{
+    return m_recorder.pending();
 }
 
 // =============================================================================
@@ -129,17 +182,10 @@ void StatisticsCollector::startSession()
 
     m_sessionActive = true;
     m_sessionStart = QDateTime::currentDateTime();
-    m_lastActivityTime = m_sessionStart;
 
-    // Reset session counters
-    m_wordsWritten = 0;
-    m_wordsDeleted = 0;
-
-    // Initialize hour tracking
-    m_currentHour = m_sessionStart.time().hour();
-    m_wordsWrittenThisHour = 0;
-    m_wordsDeletedThisHour = 0;
-    m_activeMinutesThisHour = 0;
+    // Reset session counters; the time of writing starts with the first change
+    m_recorder.resetTotals();
+    m_recorder.pause();
 
     // Capture current word count for delta calculation
     m_previousWordCount = m_wordCount;
@@ -163,9 +209,11 @@ void StatisticsCollector::endSession()
     flush();
 
     m_sessionActive = false;
+    m_recorder.pause();
 
     core::Logger::getInstance().info("Writing session ended - words written: {}, deleted: {}, active minutes: {}",
-                                     m_wordsWritten, m_wordsDeleted, activeMinutesThisSession());
+                                     m_recorder.written(), m_recorder.deleted(),
+                                     activeMinutesThisSession());
 }
 
 bool StatisticsCollector::isSessionActive() const
@@ -175,18 +223,27 @@ bool StatisticsCollector::isSessionActive() const
 
 void StatisticsCollector::flush()
 {
-    if (!m_sessionActive) {
+    if (m_recorder.pending().isEmpty()) {
         return;
     }
 
-    // Update active time before saving
-    updateActiveTime();
+    // The record goes to the book and to the journal of all the books; what one of them
+    // cannot take is lost to it only, and the other keeps it
+    const QList<core::WritingActivity> activity = m_recorder.takePending();
+    if (m_database && m_database->isOpen() && !m_database->addWritingActivity(activity)) {
+        core::Logger::getInstance().warn("StatisticsCollector: the record of writing was not "
+                                         "saved in the book: {}",
+                                         m_database->lastError().toStdString());
+    }
+    if (m_journal && m_journal->isOpen() && !m_journal->add(activity)) {
+        core::Logger::getInstance().warn("StatisticsCollector: the record of writing was not "
+                                         "saved in the journal: {}",
+                                         m_journal->lastError().toStdString());
+    }
+    emit activitySaved(activity);
 
-    // Save to database if available
-    saveHourlyStats();
-
-    core::Logger::getInstance().debug("StatisticsCollector flushed - hour {}: written={}, deleted={}, active={}min",
-                                      m_currentHour, m_wordsWrittenThisHour, m_wordsDeletedThisHour, m_activeMinutesThisHour);
+    core::Logger::getInstance().debug("StatisticsCollector flushed {} entries of the record of writing",
+                                      activity.size());
 }
 
 // =============================================================================
@@ -195,29 +252,27 @@ void StatisticsCollector::flush()
 
 int StatisticsCollector::wordsWrittenThisSession() const
 {
-    return m_wordsWritten;
+    return m_recorder.written();
 }
 
 int StatisticsCollector::wordsDeletedThisSession() const
 {
-    return m_wordsDeleted;
+    return m_recorder.deleted();
+}
+
+int StatisticsCollector::wordsPastedThisSession() const
+{
+    return m_recorder.pasted();
 }
 
 int StatisticsCollector::activeMinutesThisSession() const
 {
-    if (!m_sessionActive) {
-        return 0;
-    }
+    return static_cast<int>(activeMsThisSession() / 60000);
+}
 
-    // Calculate based on session duration minus idle time
-    // This is an approximation - the accurate count is tracked per hour
-    // For UI display purposes, we can use this rough estimate
-    // or sum up all the hourly active minutes
-
-    // For now, return based on total session time with idle detection
-    // In practice, the accurate count comes from periodic updateActiveTime() calls
-    qint64 sessionMs = m_sessionStart.msecsTo(QDateTime::currentDateTime());
-    return static_cast<int>(sessionMs / 60000);  // Simple approximation
+qint64 StatisticsCollector::activeMsThisSession() const
+{
+    return m_sessionActive ? m_recorder.activeMs() : 0;
 }
 
 int StatisticsCollector::sessionDurationMinutes() const
@@ -252,8 +307,11 @@ void StatisticsCollector::onContentChanged()
         m_debounceTimer->start(STATS_DEBOUNCE_MS);
     }
 
-    // Track activity time immediately (cheap operation)
-    updateActiveTime();
+    // The time of writing runs from change to change (cheap operation)
+    if (m_sessionActive) {
+        m_recorder.noteActivity(QDateTime::currentDateTime());
+        emit writingRecorded();
+    }
 }
 
 void StatisticsCollector::debouncedRecalculate()
@@ -266,25 +324,66 @@ void StatisticsCollector::debouncedRecalculate()
 
     // Calculate word delta for session tracking (only if session active)
     if (m_sessionActive) {
-        int wordsDelta = m_wordCount - previousWords;
+        const int wordsDelta = m_wordCount - previousWords;
         if (wordsDelta != 0) {
-            // Update session tracking
-            if (wordsDelta > 0) {
-                m_wordsWritten += wordsDelta;
-            } else {
-                m_wordsDeleted += (-wordsDelta);
-            }
             m_previousWordCount = m_wordCount;
-
-            // Update hourly stats
-            updateHourlyStats(wordsDelta);
-
-            // Emit session stats update
-            emit sessionStatsUpdated(m_wordsWritten, m_wordsDeleted, activeMinutesThisSession());
+            // Pasting or cutting a chapter, or restoring a version, is not writing
+            if (m_recorder.recordWords(wordsDelta, QDateTime::currentDateTime())) {
+                emit writingRecorded();
+                emit sessionStatsUpdated(m_recorder.written(), m_recorder.deleted(),
+                                         activeMinutesThisSession());
+            } else {
+                core::Logger::getInstance().info(
+                    "StatisticsCollector: a change of {} words at once is not counted as writing",
+                    wordsDelta);
+                emit largeChangeSkipped(std::abs(wordsDelta));
+            }
         }
     }
 
     // Emit statistics changed
+    emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
+}
+
+void StatisticsCollector::onPastingStarted()
+{
+    if (m_debounceTimer->isActive()) {
+        m_debounceTimer->stop();
+        debouncedRecalculate();
+    }
+}
+
+void StatisticsCollector::onPastingFinished(int level, bool undoOrRedo)
+{
+    m_debounceTimer->stop();
+    const int previousWords = m_wordCount;
+    recalculateStats();
+    const int wordsDelta = m_wordCount - previousWords;
+    if (!undoOrRedo) {
+        m_pastedAtLevel[m_editor].insert(level, std::max(0, wordsDelta));
+    }
+    if (m_sessionActive && wordsDelta != 0) {
+        m_previousWordCount = m_wordCount;
+        const QDateTime now = QDateTime::currentDateTime();
+        // Pasted: the words it brought. A paste that replaced more words than it brought
+        // deleted words written by hand. Undone and redone, a paste takes away and brings back
+        // its words, and the words typed right after it in its level of undo are deleted and
+        // written again.
+        int pasted = 0;
+        if (!undoOrRedo) {
+            pasted = std::max(0, wordsDelta);
+        } else {
+            const int words = m_pastedAtLevel.value(m_editor).value(level, std::abs(wordsDelta));
+            pasted = wordsDelta > 0 ? std::min(wordsDelta, words) : std::max(wordsDelta, -words);
+        }
+        m_recorder.recordPasted(pasted, now);
+        if (wordsDelta != pasted && !m_recorder.recordWords(wordsDelta - pasted, now)) {
+            emit largeChangeSkipped(std::abs(wordsDelta - pasted));
+        }
+        emit writingRecorded();
+        emit sessionStatsUpdated(m_recorder.written(), m_recorder.deleted(),
+                                 activeMinutesThisSession());
+    }
     emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
 }
 
@@ -299,6 +398,7 @@ void StatisticsCollector::rebase()
 
 void StatisticsCollector::onEditorDestroyed(QObject* object)
 {
+    m_pastedAtLevel.remove(object);
     if (object == m_editor) {
         m_editor = nullptr;
         rebase();
@@ -323,78 +423,16 @@ void StatisticsCollector::recalculateStats()
     m_paragraphCount = counts.paragraphs;
 }
 
-void StatisticsCollector::updateHourlyStats(int wordsDelta)
+QString StatisticsCollector::elementIdOf(const BookEditor* editor)
 {
-    // Check for hour rollover first
-    checkHourRollover();
-
-    // Update hourly stats only (session totals updated in debouncedRecalculate)
-    if (wordsDelta > 0) {
-        m_wordsWrittenThisHour += wordsDelta;
-    } else if (wordsDelta < 0) {
-        m_wordsDeletedThisHour += (-wordsDelta);
+    // The panel of a chapter knows its element; the editor is somewhere inside it
+    for (const QObject* object = editor; object != nullptr; object = object->parent()) {
+        const QVariant id = object->property("elementId");
+        if (id.isValid()) {
+            return id.toString();
+        }
     }
-}
-
-void StatisticsCollector::checkHourRollover()
-{
-    int currentHour = QDateTime::currentDateTime().time().hour();
-
-    if (m_currentHour != currentHour && m_currentHour >= 0) {
-        // Hour changed - save previous hour's stats
-        core::Logger::getInstance().debug("Hour rollover: {} -> {}", m_currentHour, currentHour);
-
-        saveHourlyStats();
-
-        // Reset hourly counters
-        m_currentHour = currentHour;
-        m_wordsWrittenThisHour = 0;
-        m_wordsDeletedThisHour = 0;
-        m_activeMinutesThisHour = 0;
-    }
-}
-
-void StatisticsCollector::saveHourlyStats()
-{
-    if (!m_database || !m_database->isOpen()) {
-        return;
-    }
-
-    // Only save if there's something to save
-    if (m_wordsWrittenThisHour == 0 && m_wordsDeletedThisHour == 0 && m_activeMinutesThisHour == 0) {
-        return;
-    }
-
-    core::SessionStats stats;
-    stats.timestamp = QDateTime::currentDateTime();
-    stats.documentId = QString();  // TODO: Get document ID if available
-    stats.wordsWritten = m_wordsWrittenThisHour;
-    stats.wordsDeleted = m_wordsDeletedThisHour;
-    stats.activeMinutes = m_activeMinutesThisHour;
-    stats.hour = m_currentHour;
-
-    m_database->recordSessionStats(stats);
-
-    core::Logger::getInstance().debug("Saved hourly stats to database: hour={}, written={}, deleted={}, active={}min",
-                                      m_currentHour, m_wordsWrittenThisHour, m_wordsDeletedThisHour, m_activeMinutesThisHour);
-}
-
-void StatisticsCollector::updateActiveTime()
-{
-    if (!m_sessionActive) {
-        return;
-    }
-
-    QDateTime now = QDateTime::currentDateTime();
-    qint64 msSinceLastActivity = m_lastActivityTime.msecsTo(now);
-
-    // If last activity was within idle threshold, count time as active
-    if (msSinceLastActivity <= IDLE_THRESHOLD_MS) {
-        // Calculate minutes since last check
-        // For simplicity, we increment by 1 minute per flush (5 minutes)
-        // More accurate tracking would require a more frequent timer
-        m_activeMinutesThisHour += 1;
-    }
+    return {};
 }
 
 }  // namespace kalahari::editor
