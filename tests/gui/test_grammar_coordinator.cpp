@@ -372,7 +372,7 @@ TEST_CASE("Grammar coordinator: the editors of the documents check on LanguageTo
     CHECK(statusBar.currentMessage() == QStringLiteral("Starting LanguageTool..."));
     REQUIRE(waitUntil([server]() { return server->state() == ServerState::Running; }, ANSWER_MS));
     CHECK(service->endpoint() ==
-          QStringLiteral("http://localhost:%1/v2/check").arg(languageTool.port()));
+          QStringLiteral("http://127.0.0.1:%1/v2/check").arg(languageTool.port()));
     CHECK(statusBar.currentMessage().isEmpty());
 
     tabs.resize(700, 500);
