@@ -15,6 +15,7 @@
 #include "kalahari/gui/widgets/color_config_widget.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
@@ -22,6 +23,8 @@
 #include <QImage>
 #include <QLabel>
 #include <QPushButton>
+#include <QRadioButton>
+#include <QScrollArea>
 #include <QSize>
 #include <QSpinBox>
 #include <QStringList>
@@ -59,16 +62,6 @@ QCheckBox* checkBoxOf(const gui::SettingsDialog& dialog, const QString& text) {
     for (QCheckBox* box : dialog.findChildren<QCheckBox*>()) {
         if (box->text() == text) {
             return box;
-        }
-    }
-    return nullptr;
-}
-
-/// The dialog's margin field with a tooltip
-QDoubleSpinBox* marginOf(const gui::SettingsDialog& dialog, const QString& toolTip) {
-    for (QDoubleSpinBox* field : dialog.findChildren<QDoubleSpinBox*>()) {
-        if (field->toolTip() == toolTip) {
-            return field;
         }
     }
     return nullptr;
@@ -274,6 +267,82 @@ TEST_CASE("Editor settings: View > Text Frame Border and the Settings dialog sho
     restore(before);
 }
 
+TEST_CASE("Editor settings: View > Margin Numbering and its toolbar buttons, one choice of three "
+          "in every editor",
+          "[gui][editor][settings][marginNumbers]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.marginNumbers.mode"});
+    settings.set<std::string>("editor.marginNumbers.mode", "none");
+
+    // The three commands as the main window makes them: one menu item and one button each,
+    // the command run before the item follows the setting
+    QActionGroup group(nullptr);
+    std::map<std::string, QAction*> actions;
+    for (const char* mode : {"none", "lines", "paragraphs"}) {
+        auto* action = new QAction(QString::fromLatin1(mode), &group);
+        group.addAction(action);
+        QObject::connect(action, &QAction::triggered, [mode]() {
+            gui::utils::chooseSetting("editor.marginNumbers.mode", mode, "none");
+        });
+        gui::utils::followChoice(action, "editor.marginNumbers.mode", mode);
+        actions[mode] = action;
+    }
+    const auto checked = [&actions]() {
+        std::string shown;
+        for (const auto& [mode, action] : actions) {
+            if (action->isChecked()) {
+                shown += mode;
+            }
+        }
+        return shown;
+    };
+    const auto choose = [&actions](const char* mode) {
+        actions.at(mode)->trigger();
+        QCoreApplication::processEvents();
+    };
+    gui::EditorPanel first;
+    gui::EditorPanel second;
+    const auto numbering = [&first, &second]() {
+        const editor::MarginNumbering shown =
+            first.getBookEditor()->appearance().marginNumbers.numbering;
+        CHECK(second.getBookEditor()->appearance().marginNumbers.numbering == shown);
+        return shown;
+    };
+    CHECK(checked() == "none");
+
+    choose("lines");
+    CHECK(checked() == "lines");
+    CHECK(settings.get<std::string>("editor.marginNumbers.mode") == "lines");
+    CHECK(numbering() == editor::MarginNumbering::Lines);
+
+    // The numbering on, chosen again (its button): off
+    choose("lines");
+    CHECK(checked() == "none");
+    CHECK(settings.get<std::string>("editor.marginNumbers.mode") == "none");
+    CHECK(numbering() == editor::MarginNumbering::None);
+
+    choose("paragraphs");
+    CHECK(checked() == "paragraphs");
+    CHECK(numbering() == editor::MarginNumbering::Paragraphs);
+    choose("lines");
+    CHECK(checked() == "lines");
+
+    // No Numbering: off, and it stays off
+    choose("none");
+    CHECK(checked() == "none");
+    choose("none");
+    CHECK(checked() == "none");
+    CHECK(numbering() == editor::MarginNumbering::None);
+
+    // Changed in the Settings dialog, the menu and the buttons show it
+    settings.set<std::string>("editor.marginNumbers.mode", "paragraphs");
+    QCoreApplication::processEvents();
+    CHECK(checked() == "paragraphs");
+    CHECK(numbering() == editor::MarginNumbering::Paragraphs);
+
+    restore(before);
+}
+
 TEST_CASE("Editor settings: a closed editor no longer follows the settings",
           "[gui][editor][settings]") {
     auto& settings = core::SettingsManager::getInstance();
@@ -295,48 +364,163 @@ TEST_CASE("Editor settings: a closed editor no longer follows the settings",
     restore(before);
 }
 
-TEST_CASE("Settings dialog: the editor options the editor does not use yet are greyed out",
-          "[gui][settings]") {
-    // Tab size, line numbers, word wrap and mirror margins change nothing in the editor yet
+TEST_CASE("Settings dialog: the mirror margins take the place of the left and the right margin, "
+          "in the open editors too",
+          "[gui][settings][margins]") {
+    auto& settings = core::SettingsManager::getInstance();
     const auto before = valuesOf({"editor.margins.mirrorEnabled"});
-    core::SettingsManager::getInstance().set<bool>("editor.margins.mirrorEnabled", true);
+    settings.set<bool>("editor.margins.mirrorEnabled", false);
+    gui::EditorPanel panel;
     gui::SettingsDialog dialog(nullptr);
-    auto* tree = dialog.findChild<QTreeWidget*>();
-    REQUIRE(tree != nullptr);
-    for (QTreeWidgetItemIterator it(tree); *it; ++it) {
-        tree->setCurrentItem(*it);  // Pages are built when first opened
-    }
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
 
-    for (const QString& text : {QStringLiteral("Show Line Numbers"),
-                                QStringLiteral("Enable Word Wrap"),
-                                QStringLiteral("Mirror margins (for book binding)")}) {
-        INFO(text.toStdString());
-        const QCheckBox* box = checkBoxOf(dialog, text);
-        REQUIRE(box != nullptr);
-        CHECK_FALSE(box->isEnabled());
-        CHECK(box->toolTip() == QStringLiteral("Coming in future version"));
-    }
-
-    const QSpinBox* tabSize = nullptr;
-    for (const QSpinBox* field : dialog.findChildren<QSpinBox*>()) {
-        if (field->suffix() == QStringLiteral(" spaces")) {
-            tabSize = field;
-        }
-    }
-    REQUIRE(tabSize != nullptr);
-    CHECK_FALSE(tabSize->isEnabled());
-    CHECK(tabSize->toolTip() == QStringLiteral("Coming in future version"));
-
-    // The pages keep their left and right margins, whatever the mirror margins setting says
-    const QDoubleSpinBox* left = marginOf(dialog, QStringLiteral("Left margin of the page (up to 100 mm)"));
-    const QDoubleSpinBox* inner = marginOf(dialog, QStringLiteral("Inner margin of the page (up to 100 mm)"));
-    const QDoubleSpinBox* outer = marginOf(dialog, QStringLiteral("Outer margin of the page (up to 100 mm)"));
+    auto* mirror = dialog.findChild<QCheckBox*>(QStringLiteral("mirrorMargins"));
+    auto* left = dialog.findChild<QDoubleSpinBox*>(QStringLiteral("pageLeft"));
+    auto* right = dialog.findChild<QDoubleSpinBox*>(QStringLiteral("pageRight"));
+    auto* inner = dialog.findChild<QDoubleSpinBox*>(QStringLiteral("pageInner"));
+    auto* outer = dialog.findChild<QDoubleSpinBox*>(QStringLiteral("pageOuter"));
+    auto* preview = dialog.findChild<QWidget*>(QStringLiteral("mirrorMarginsPreview"));
+    REQUIRE(mirror != nullptr);
     REQUIRE(left != nullptr);
+    REQUIRE(right != nullptr);
     REQUIRE(inner != nullptr);
     REQUIRE(outer != nullptr);
-    CHECK_FALSE(left->isHidden());
+    REQUIRE(preview != nullptr);
+
+    // Usable now: no longer greyed out as coming in a future version
+    CHECK(mirror->isEnabled());
+    CHECK(mirror->toolTip() != QStringLiteral("Coming in future version"));
+    CHECK_FALSE(mirror->isChecked());
+    CHECK(left->isEnabled());
+    CHECK(right->isEnabled());
     CHECK(inner->isHidden());
     CHECK(outer->isHidden());
+    CHECK(preview->parentWidget()->isHidden());
+
+    // Checked: the inner and the outer margin and the pages 2 and 3, the left and the right
+    // margin greyed out
+    mirror->setChecked(true);
+    CHECK_FALSE(left->isEnabled());
+    CHECK_FALSE(right->isEnabled());
+    CHECK_FALSE(inner->isHidden());
+    CHECK_FALSE(outer->isHidden());
+    CHECK_FALSE(preview->parentWidget()->isHidden());
+    CHECK(preview->sizeHint().width() > preview->sizeHint().height());
+
+    // Applied: every editor has them
+    CHECK_FALSE(panel.getBookEditor()->appearance().pageMargins.mirrored);
+    dialog.applyButton()->click();
+    QCoreApplication::processEvents();
+    CHECK(settings.get<bool>("editor.margins.mirrorEnabled"));
+    CHECK(panel.getBookEditor()->appearance().pageMargins.mirrored);
+
+    restore(before);
+}
+
+TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without it and its "
+          "defaults, in the open editors too",
+          "[gui][settings][marginNumbers]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.marginNumbers.mode", "editor.marginNumbers.interval",
+                                  "editor.marginNumbers.size"});
+    settings.set<std::string>("editor.marginNumbers.mode", "none");
+    gui::EditorPanel panel;
+    gui::SettingsDialog dialog(nullptr);
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
+
+    auto* none = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_none"));
+    auto* lines = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_lines"));
+    auto* paragraphs = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_paragraphs"));
+    auto* interval = dialog.findChild<QSpinBox*>(QStringLiteral("marginNumbersInterval"));
+    auto* restart = dialog.findChild<QCheckBox*>(QStringLiteral("marginNumbersRestart"));
+    auto* size = dialog.findChild<QSpinBox*>(QStringLiteral("marginNumbersSize"));
+    auto* color = dialog.findChild<gui::ColorConfigWidget*>(QStringLiteral("marginNumbersColor"));
+    auto* preview = dialog.findChild<QWidget*>(QStringLiteral("marginNumbersPreview"));
+    auto* defaults = dialog.findChild<QPushButton*>(QStringLiteral("marginNumbersDefaults"));
+    REQUIRE(none != nullptr);
+    REQUIRE(lines != nullptr);
+    REQUIRE(paragraphs != nullptr);
+    REQUIRE(interval != nullptr);
+    REQUIRE(restart != nullptr);
+    REQUIRE(size != nullptr);
+    REQUIRE(color != nullptr);
+    REQUIRE(preview != nullptr);
+    REQUIRE(defaults != nullptr);
+
+    // None: the fields greyed out
+    CHECK(none->isChecked());
+    for (const QWidget* field : std::initializer_list<const QWidget*>{
+             interval, restart, size, color, preview, defaults}) {
+        CHECK_FALSE(field->isEnabled());
+    }
+
+    // Lines: all of them; Paragraphs: all but Restart on every page, which counts lines
+    lines->setChecked(true);
+    for (const QWidget* field : std::initializer_list<const QWidget*>{
+             interval, restart, size, color, preview, defaults}) {
+        CHECK(field->isEnabled());
+    }
+    paragraphs->setChecked(true);
+    CHECK(interval->isEnabled());
+    CHECK_FALSE(restart->isEnabled());
+
+    // Restore Defaults: the look as at first, the numbering as chosen
+    interval->setValue(5);
+    size->setValue(12);
+    defaults->click();
+    CHECK(interval->value() == 1);
+    CHECK(size->value() == 8);
+    CHECK(paragraphs->isChecked());
+
+    // Applied: every editor numbers the paragraphs, every third one
+    interval->setValue(3);
+    dialog.applyButton()->click();
+    QCoreApplication::processEvents();
+    CHECK(settings.get<std::string>("editor.marginNumbers.mode") == "paragraphs");
+    CHECK(settings.get<int>("editor.marginNumbers.interval") == 3);
+    const editor::MarginNumbers& numbers = panel.getBookEditor()->appearance().marginNumbers;
+    CHECK(numbers.numbering == editor::MarginNumbering::Paragraphs);
+    CHECK(numbers.interval == 3);
+
+    // Set elsewhere (View > Margin Numbering), it shows in a dialog opened after that
+    settings.set<std::string>("editor.marginNumbers.mode", "lines");
+    gui::SettingsDialog next(nullptr);
+    REQUIRE(next.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
+    auto* nextLines = next.findChild<QRadioButton*>(QStringLiteral("marginNumbers_lines"));
+    REQUIRE(nextLines != nullptr);
+    CHECK(nextLines->isChecked());
+
+    restore(before);
+}
+
+TEST_CASE("Settings dialog: View > Margin Numbering > Numbering Settings... puts the cursor in "
+          "the choice of the numbering",
+          "[gui][settings][marginNumbers]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.marginNumbers.mode"});
+    settings.set<std::string>("editor.marginNumbers.mode", "paragraphs");
+
+    gui::SettingsDialog dialog(nullptr);
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
+    auto* paragraphs = dialog.findChild<QRadioButton*>(QStringLiteral("marginNumbers_paragraphs"));
+    REQUIRE(paragraphs != nullptr);
+    dialog.show();
+    dialog.activateWindow();
+    QCoreApplication::processEvents();
+    CHECK(dialog.focusWidget() == paragraphs);
+    // On the page the dialog shows
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Pages and Margins"));
+    QScrollArea* area = nullptr;
+    for (QWidget* parent = paragraphs->parentWidget(); parent != nullptr && area == nullptr;
+         parent = parent->parentWidget()) {
+        area = qobject_cast<QScrollArea*>(parent);
+    }
+    REQUIRE(area != nullptr);
+    CHECK(area->viewport()->rect().contains(paragraphs->mapTo(area->viewport(), QPoint(0, 0))));
+    dialog.close();
 
     restore(before);
 }

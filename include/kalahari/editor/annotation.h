@@ -77,6 +77,7 @@ struct AnnotationMark {
     QString id;                                     ///< The annotation's id
     QString text;                                   ///< The annotation's text
     QString author;                                 ///< Who made the annotation
+    QDateTime created;                              ///< When it was made (invalid: unknown)
 
     bool operator==(const AnnotationMark& other) const = default;
 };

@@ -137,6 +137,15 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.italic", "resources/icons/twotone/format_italic.svg", "Italic");
     iconRegistry.registerIcon("format.underline", "resources/icons/twotone/format_underlined.svg", "Underline");
     iconRegistry.registerIcon("format.strikethrough", "resources/icons/twotone/strikethrough_s.svg", "Strikethrough");
+    iconRegistry.registerIcon("format.superscript", "resources/icons/twotone/superscript.svg", "Superscript");
+    iconRegistry.registerIcon("format.subscript", "resources/icons/twotone/subscript.svg", "Subscript");
+    iconRegistry.registerIcon("format.smallCaps", "resources/icons/twotone/text_fields.svg", "Small Caps");
+    iconRegistry.registerIcon("format.allCaps", "resources/icons/twotone/abc.svg", "All Caps");
+    iconRegistry.registerIcon("format.case.sentence", "resources/icons/twotone/short_text.svg", "Sentence case");
+    iconRegistry.registerIcon("format.case.lower", "resources/icons/twotone/text_decrease.svg", "lowercase");
+    iconRegistry.registerIcon("format.case.upper", "resources/icons/twotone/text_increase.svg", "UPPERCASE");
+    iconRegistry.registerIcon("format.case.capitalize", "resources/icons/twotone/title.svg", "Capitalize Each Word");
+    iconRegistry.registerIcon("format.case.toggle", "resources/icons/twotone/swap_vert.svg", "tOGGLE cASE");
     iconRegistry.registerIcon("format.alignLeft", "resources/icons/twotone/format_align_left.svg", "Align Left");
     iconRegistry.registerIcon("format.alignCenter", "resources/icons/twotone/format_align_center.svg", "Align Center");
     iconRegistry.registerIcon("format.alignRight", "resources/icons/twotone/format_align_right.svg", "Align Right");
@@ -145,7 +154,14 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.decreaseIndent", "resources/icons/twotone/format_indent_decrease.svg", "Decrease Indent");
     iconRegistry.registerIcon("format.bullets", "resources/icons/twotone/format_list_bulleted.svg", "Bullets");
     iconRegistry.registerIcon("format.numbering", "resources/icons/twotone/format_list_numbered.svg", "Numbering");
-    iconRegistry.registerIcon("format.color", "resources/icons/twotone/format_color_text.svg", "Text Color");
+    iconRegistry.registerIcon("format.bulletsNumbering", "resources/icons/twotone/format_list_numbered.svg", "Bullets and Numbering");
+    iconRegistry.registerIcon("format.fontColor", "resources/icons/twotone/format_color_text.svg", "Font Color");
+    iconRegistry.registerIcon("format.highlightColor", "resources/icons/twotone/border_color.svg", "Highlight Color");
+    iconRegistry.registerIcon("format.copyFormatting", "resources/icons/twotone/format_paint.svg", "Copy Formatting");
+    iconRegistry.registerIcon("format.pasteFormatting", "resources/icons/twotone/brush.svg", "Paste Formatting");
+    // The items of the color submenus (gui/widgets/color_menu.h)
+    iconRegistry.registerIcon("format.noColor", "resources/icons/twotone/format_color_reset.svg", "No Color");
+    iconRegistry.registerIcon("format.moreColors", "resources/icons/twotone/palette.svg", "More Colors");
     iconRegistry.registerIcon("format.clearFormatting", "resources/icons/twotone/format_clear.svg", "Clear Formatting");
     iconRegistry.registerIcon("format.paragraph", "resources/icons/twotone/notes.svg", "Paragraph");
 
@@ -230,6 +246,13 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.rotateRight", "resources/icons/twotone/rotate_right.svg", "Rotate Right");
     iconRegistry.registerIcon("view.negative", "resources/icons/twotone/contrast.svg", "Negative");
     iconRegistry.registerIcon("view.textFrameBorder", "resources/icons/twotone/text_frame.svg", "Text Frame Border");
+    iconRegistry.registerIcon("view.marginNumbers.none", "resources/icons/twotone/margin_numbers_off.svg", "No Numbering");
+    iconRegistry.registerIcon("view.marginNumbers.lines", "resources/icons/twotone/margin_line_numbers.svg", "Line Numbers");
+    iconRegistry.registerIcon("view.marginNumbers.paragraphs", "resources/icons/twotone/margin_paragraph_numbers.svg", "Paragraph Numbers");
+    iconRegistry.registerIcon("view.marginNumbers.settings", "resources/icons/twotone/tune.svg", "Numbering Settings");
+    iconRegistry.registerIcon("view.annotationCards", "resources/icons/twotone/annotation_cards.svg", "Annotation Cards Under Paragraphs");
+    iconRegistry.registerIcon("view.collapseAllAnnotations", "resources/icons/twotone/unfold_less.svg", "Collapse All Annotations");
+    iconRegistry.registerIcon("view.expandAllAnnotations", "resources/icons/twotone/unfold_more.svg", "Expand All Annotations");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
 
@@ -241,11 +264,15 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.recentBooks", "resources/icons/twotone/history.svg", "Recent Books");
     iconRegistry.registerIcon("menu.formattingCharacter", "resources/icons/twotone/format_paragraph.svg", "Formatting Character");
     iconRegistry.registerIcon("menu.textStyle", "resources/icons/twotone/format_shapes.svg", "Text Style");
+    iconRegistry.registerIcon("menu.textEffects", "resources/icons/twotone/format_strikethrough.svg", "Text Effects");
+    iconRegistry.registerIcon("menu.changeCase", "resources/icons/twotone/format_size.svg", "Change Case");
+    iconRegistry.registerIcon("menu.alignText", "resources/icons/twotone/format_align_left.svg", "Align Text");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
     iconRegistry.registerIcon("menu.viewMode", "resources/icons/twotone/visibility.svg", "View Mode");
     iconRegistry.registerIcon("menu.zoom", "resources/icons/twotone/zoom_in.svg", "Zoom");
+    iconRegistry.registerIcon("menu.marginNumbers", "resources/icons/twotone/margin_line_numbers.svg", "Margin Numbering");
     iconRegistry.registerIcon("menu.panels", "resources/icons/twotone/view_sidebar.svg", "Panels");
     iconRegistry.registerIcon("menu.perspectives", "resources/icons/twotone/view_quilt.svg", "Perspectives");
     iconRegistry.registerIcon("menu.toolbars", "resources/icons/twotone/build.svg", "Toolbars");

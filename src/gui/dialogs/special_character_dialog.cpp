@@ -547,9 +547,9 @@ void SpecialCharacterDialog::setView(View view)
     m_listView->setVisible(view == View::List);
     m_gridButton->setChecked(view == View::Grid);
     m_listButton->setChecked(view == View::List);
-    for (QPushButton* button :
-         {m_listFavoriteButton, m_listShortcutButton, m_listReplacementButton}) {
-        button->setVisible(view == View::List);
+    m_listFavoriteButton->setVisible(view == View::List);
+    for (QPushButton* button : {m_listShortcutButton, m_listReplacementButton}) {
+        button->setVisible(view == View::List && !m_choosing);
     }
     // The window opens in it next time
     auto& settings = core::SettingsManager::getInstance();
@@ -876,6 +876,24 @@ QString SpecialCharacterDialog::toolTipOf(char32_t code) const
 // Insert, events
 // ============================================================================
 
+void SpecialCharacterDialog::setChoosing()
+{
+    m_choosing = true;
+    setHeading(tr("Special Character"),
+               tr("Enter chooses the character. Esc closes the window."));
+    setAcceptText(tr("&Choose"));
+    cancelButton()->setText(tr("Cancel"));
+    m_keepOpen->hide();
+    m_insertAction->setText(tr("&Choose"));
+    // The keys and the replacements insert a character in the text, which this window does not
+    for (QPushButton* button : {m_shortcutButton, m_replacementButton, m_listShortcutButton,
+                                m_listReplacementButton}) {
+        button->hide();
+    }
+    m_shortcutAction->setVisible(false);
+    m_replacementAction->setVisible(false);
+}
+
 void SpecialCharacterDialog::accept()
 {
     updateTarget();
@@ -883,7 +901,7 @@ void SpecialCharacterDialog::accept()
         return;
     }
     emit insertRequested(m_current);
-    if (!m_keepOpen->isChecked()) {
+    if (m_choosing || !m_keepOpen->isChecked()) {
         KalahariDialog::accept();
     }
 }

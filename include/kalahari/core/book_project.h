@@ -138,6 +138,8 @@ struct ProjectElement {
                                      ///< whose copy in the book is its file when it has one;
                                      ///< empty: none
     QString status;                  ///< "draft", "revision" or "final"; empty: none (groups)
+    bool firstPageLeft = false;      ///< Its text starts on a left page (mirror margins); in
+                                     ///< the file "firstPage": "left", without it a right page
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a
                                      ///< text of its own (a material); empty: none

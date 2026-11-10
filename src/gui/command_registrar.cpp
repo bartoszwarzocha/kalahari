@@ -8,7 +8,9 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/command.h"
 #include "kalahari/gui/utils/access_keys.h"
+#include "kalahari/editor/editor_appearance.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/editor/character_format.h"
 
 #include <QCoreApplication>
 
@@ -272,7 +274,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("file.export.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Export &Settings..."), "FILE/Export/Export Settings...", 190, true, 2);
 
     // Export Archive (priority 195 = end of Export submenu)
-    REG_CMD_TOOL_ICON("file.export.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Export/Project Archive...", 195, true, 0,
+    REG_CMD_TOOL_ICON("file.export.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Export/Project Archive...", 195, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onExportArchive);
@@ -494,8 +496,15 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // FORMAT MENU
     // =========================================================================
 
-    REG_CMD("format.font", QT_TRANSLATE_NOOP("CommandRegistrar", "&Font..."), "FORMAT/Font...", 10, false, 1);
-    REG_CMD("format.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph..."), "FORMAT/Paragraph...", 20, true, 1);
+    // The windows of the selected text and paragraphs (gui/dialogs/font_dialog.h,
+    // paragraph_dialog.h). Ctrl+D as in Word
+    REG_CMD_KEY_CB("format.font", QT_TRANSLATE_NOOP("CommandRegistrar", "&Font..."), "FORMAT/Font...", 10, false, 0,
+                   KeyboardShortcut(Qt::Key_D, Qt::ControlModifier), callbacks.onFont);
+    REG_CMD_CB("format.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph..."), "FORMAT/Paragraph...", 20, false, 0,
+               callbacks.onParagraph);
+    // The formats of the levels of the list in the selected paragraphs (gui/dialogs/list_dialogs.h)
+    REG_CMD_CB("format.bulletsNumbering", QT_TRANSLATE_NOOP("CommandRegistrar", "Bullets and Numberin&g..."), "FORMAT/Bullets and Numbering...", 25, true, 0,
+               callbacks.onBulletsNumbering);
 
     // Text Style submenu: the paragraph styles every book has (the package "Base"), by the ids
     // of editor/paragraph_styles.h; the menu adds the other styles of the book after Code.
@@ -522,7 +531,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                toStyle("dialogue"));
     REG_CMD_CB("format.style.code", QT_TRANSLATE_NOOP("CommandRegistrar", "&Code"), "FORMAT/Text Style/Code", 80, true, 0,
                toStyle("code"));
-    REG_CMD("format.style.manage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Manage Styles..."), "FORMAT/Text Style/Manage Styles...", 90, false, 1);
+    REG_CMD("format.style.manage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Manage Styles..."), "FORMAT/Text Style/Manage Styles...", 90, true, 1);
 
     // OpenSpec #00030: Added standard formatting shortcuts (Ctrl+B/I/U)
     // OpenSpec #00042 Phase 7.2: Connected to toolbar and editor
@@ -538,38 +547,111 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       KeyboardShortcut(Qt::Key_U, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onFormatUnderline);
-    REG_CMD_TOOL_ICON("format.strikethrough", QT_TRANSLATE_NOOP("CommandRegistrar", "Stri&kethrough"), "FORMAT/Strikethrough", 130, true, 0,
+
+    // Text Effects submenu: in the Format menu each item needs an access key of its own,
+    // and the menu has more items than its texts have letters. The keys of the indexes as in
+    // LibreOffice, those of the capitals as in Word
+    REG_CMD_TOOL_ICON("format.strikethrough", QT_TRANSLATE_NOOP("CommandRegistrar", "Stri&kethrough"), "FORMAT/Text Effects/Strikethrough", 122, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onFormatStrikethrough);
+    REG_CMD_TOOL_ICON("format.superscript", QT_TRANSLATE_NOOP("CommandRegistrar", "Su&perscript"), "FORMAT/Text Effects/Superscript", 124, false, 0,
+                      KeyboardShortcut(Qt::Key_P, Qt::ControlModifier | Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onSuperscript);
+    REG_CMD_TOOL_ICON("format.subscript", QT_TRANSLATE_NOOP("CommandRegistrar", "Su&bscript"), "FORMAT/Text Effects/Subscript", 126, false, 0,
+                      KeyboardShortcut(Qt::Key_B, Qt::ControlModifier | Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onSubscript);
+    REG_CMD_TOOL_ICON("format.smallCaps", QT_TRANSLATE_NOOP("CommandRegistrar", "S&mall Caps"), "FORMAT/Text Effects/Small Caps", 127, false, 0,
+                      KeyboardShortcut(Qt::Key_K, Qt::ControlModifier | Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onSmallCaps);
+    REG_CMD_TOOL_ICON("format.allCaps", QT_TRANSLATE_NOOP("CommandRegistrar", "&All Caps"), "FORMAT/Text Effects/All Caps", 128, false, 0,
+                      KeyboardShortcut(Qt::Key_A, Qt::ControlModifier | Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onAllCaps);
 
-    REG_CMD_TOOL_ICON("format.alignLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Align &Left"), "FORMAT/Align Left", 140, false, 0,
+    // Change Case submenu, as in Word: each text shows its case
+    const auto toCase = [&callbacks](editor::CaseChange change) -> std::function<void()> {
+        if (!callbacks.onChangeCase) {
+            return {};
+        }
+        return [onCase = callbacks.onChangeCase, change]() { onCase(change); };
+    };
+    REG_CMD_CB("format.case.sentence", QT_TRANSLATE_NOOP("CommandRegistrar", "&Sentence case"), "FORMAT/Change Case/Sentence case", 131, false, 0,
+               toCase(editor::CaseChange::Sentence));
+    REG_CMD_CB("format.case.lower", QT_TRANSLATE_NOOP("CommandRegistrar", "&lowercase"), "FORMAT/Change Case/lowercase", 132, false, 0,
+               toCase(editor::CaseChange::Lower));
+    REG_CMD_CB("format.case.upper", QT_TRANSLATE_NOOP("CommandRegistrar", "&UPPERCASE"), "FORMAT/Change Case/UPPERCASE", 133, false, 0,
+               toCase(editor::CaseChange::Upper));
+    REG_CMD_CB("format.case.capitalize", QT_TRANSLATE_NOOP("CommandRegistrar", "&Capitalize Each Word"), "FORMAT/Change Case/Capitalize Each Word", 134, false, 0,
+               toCase(editor::CaseChange::Capitalize));
+    REG_CMD_CB("format.case.toggle", QT_TRANSLATE_NOOP("CommandRegistrar", "&tOGGLE cASE"), "FORMAT/Change Case/tOGGLE cASE", 135, true, 0,
+               toCase(editor::CaseChange::Toggle));
+
+    // Align Text submenu, for the access keys as Text Effects
+    REG_CMD_TOOL_ICON("format.alignLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Align &Left"), "FORMAT/Align Text/Align Left", 140, false, 0,
                       KeyboardShortcut(Qt::Key_L, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignLeft);
-    REG_CMD_TOOL_ICON("format.alignCenter", QT_TRANSLATE_NOOP("CommandRegistrar", "Align &Center"), "FORMAT/Align Center", 150, false, 0,
+    REG_CMD_TOOL_ICON("format.alignCenter", QT_TRANSLATE_NOOP("CommandRegistrar", "Align &Center"), "FORMAT/Align Text/Align Center", 150, false, 0,
                       KeyboardShortcut(Qt::Key_E, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignCenter);
-    REG_CMD_TOOL_ICON("format.alignRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Align &Right"), "FORMAT/Align Right", 160, false, 0,
+    REG_CMD_TOOL_ICON("format.alignRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Align &Right"), "FORMAT/Align Text/Align Right", 160, false, 0,
                       KeyboardShortcut(Qt::Key_R, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignRight);
-    REG_CMD_TOOL_ICON("format.justify", QT_TRANSLATE_NOOP("CommandRegistrar", "&Justify"), "FORMAT/Justify", 170, true, 0,
+    REG_CMD_TOOL_ICON("format.justify", QT_TRANSLATE_NOOP("CommandRegistrar", "&Justify"), "FORMAT/Align Text/Justify", 170, false, 0,
                       KeyboardShortcut(Qt::Key_J, Qt::ControlModifier),
                       IconSet(),
                       callbacks.onAlignJustify);
 
-    REG_CMD("format.increaseIndent", QT_TRANSLATE_NOOP("CommandRegistrar", "Incre&ase Indent"), "FORMAT/Increase Indent", 180, false, 1);
-    REG_CMD("format.decreaseIndent", QT_TRANSLATE_NOOP("CommandRegistrar", "&Decrease Indent"), "FORMAT/Decrease Indent", 190, true, 1);
+    // A list item goes a level down or up (Tab and Shift+Tab at its start), another paragraph
+    // a step of the indent (editor/text_lists.h, editor/paragraph_format.h)
+    REG_CMD_TOOL_ICON("format.increaseIndent", QT_TRANSLATE_NOOP("CommandRegistrar", "Incre&ase Indent"), "FORMAT/Increase Indent", 180, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onIncreaseIndent);
+    REG_CMD_TOOL_ICON("format.decreaseIndent", QT_TRANSLATE_NOOP("CommandRegistrar", "&Decrease Indent"), "FORMAT/Decrease Indent", 190, true, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onDecreaseIndent);
 
-    REG_CMD("format.bullets", QT_TRANSLATE_NOOP("CommandRegistrar", "Bull&ets"), "FORMAT/Bullets", 200, false, 1);
-    REG_CMD("format.numbering", QT_TRANSLATE_NOOP("CommandRegistrar", "&Numbering"), "FORMAT/Numbering", 210, true, 1);
+    // As in LibreOffice: F12 and Shift+F12
+    REG_CMD_TOOL_ICON("format.bullets", QT_TRANSLATE_NOOP("CommandRegistrar", "Bull&ets"), "FORMAT/Bullets", 200, false, 0,
+                      KeyboardShortcut(Qt::Key_F12, Qt::ShiftModifier),
+                      IconSet(),
+                      callbacks.onBullets);
+    REG_CMD_TOOL_ICON("format.numbering", QT_TRANSLATE_NOOP("CommandRegistrar", "&Numbering"), "FORMAT/Numbering", 210, true, 0,
+                      KeyboardShortcut(Qt::Key_F12),
+                      IconSet(),
+                      callbacks.onNumbering);
 
-    REG_CMD("format.color", QT_TRANSLATE_NOOP("CommandRegistrar", "C&olor"), "FORMAT/Color", 220, true, 1);
+    // The window gives each its submenu of colors (gui/widgets/color_menu.h); the command
+    // itself, a toolbar button, gives the color chosen last
+    REG_CMD_TOOL_ICON("format.fontColor", QT_TRANSLATE_NOOP("CommandRegistrar", "F&ont Color"), "FORMAT/Font Color", 220, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onFontColor);
+    REG_CMD_TOOL_ICON("format.highlightColor", QT_TRANSLATE_NOOP("CommandRegistrar", "&Highlight Color"), "FORMAT/Highlight Color", 225, true, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onHighlightColor);
+
+    // Without keys: Ctrl+Shift+C and Ctrl+Shift+V are the clipboard's here (Paste Text Only)
+    REG_CMD_TOOL_ICON("format.copyFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Cop&y Formatting"), "FORMAT/Copy Formatting", 230, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onCopyFormatting);
+    REG_CMD_TOOL_ICON("format.pasteFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste Fo&rmatting"), "FORMAT/Paste Formatting", 235, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      callbacks.onPasteFormatting);
 
     // As in Word: Ctrl+Space, and Cmd+\ on macOS, where Cmd+Space opens Spotlight
-    REG_CMD_KEY_CB("format.clearFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Clear For&matting"), "FORMAT/Clear Formatting", 230, false, 0,
+    REG_CMD_KEY_CB("format.clearFormatting", QT_TRANSLATE_NOOP("CommandRegistrar", "Clear For&matting"), "FORMAT/Clear Formatting", 240, false, 0,
                    clearFormattingShortcut, callbacks.onClearFormatting);
 
     // =========================================================================
@@ -579,7 +661,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // Statistics submenu (analysis tools only, panels in VIEW)
     REG_CMD("tools.stats.full", QT_TRANSLATE_NOOP("CommandRegistrar", "&Full Statistics..."), "TOOLS/Statistics/Full Statistics...", 10, false, 2);
 
-    REG_CMD_TOOL_ICON("tools.stats.wordCount", QT_TRANSLATE_NOOP("CommandRegistrar", "&Word Count"), "TOOLS/Statistics/Word Count", 20, true, 0,
+    REG_CMD_TOOL_ICON("tools.stats.wordCount", QT_TRANSLATE_NOOP("CommandRegistrar", "&Word Count"), "TOOLS/Statistics/Word Count", 20, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       nullptr);
@@ -719,11 +801,38 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // border around the text of every editor, as in the Settings dialog
     REG_CMD_CB("view.darkPaper", QT_TRANSLATE_NOOP("CommandRegistrar", "Dar&k Paper"), "VIEW/Dark Paper", 62, false, 0,
                callbacks.onDarkPaperToggle);
-    REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 63, true, 0,
+    REG_CMD_CB("view.textFrameBorder", QT_TRANSLATE_NOOP("CommandRegistrar", "Te&xt Frame Border"), "VIEW/Text Frame Border", 63, false, 0,
                callbacks.onTextFrameBorderToggle);
 
+    // The working numbers on the margin of every editor, also as in the Settings dialog: one
+    // choice of three (the numbering on chosen again turns it off, as its toolbar button)
+    const auto toNumbering = [&callbacks](const char* mode) -> std::function<void()> {
+        if (!callbacks.onMarginNumbering) {
+            return {};
+        }
+        return [onNumbering = callbacks.onMarginNumbering, mode = QString::fromLatin1(mode)]() {
+            onNumbering(mode);
+        };
+    };
+    REG_CMD_CB("view.marginNumbers.none", QT_TRANSLATE_NOOP("CommandRegistrar", "&No Numbering"), "VIEW/Margin Numbering/No Numbering", 64, false, 0,
+               toNumbering(editor::MARGIN_NUMBERING_NONE));
+    REG_CMD_CB("view.marginNumbers.lines", QT_TRANSLATE_NOOP("CommandRegistrar", "&Line Numbers"), "VIEW/Margin Numbering/Line Numbers", 65, false, 0,
+               toNumbering(editor::MARGIN_NUMBERING_LINES));
+    REG_CMD_CB("view.marginNumbers.paragraphs", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph Numbers"), "VIEW/Margin Numbering/Paragraph Numbers", 66, true, 0,
+               toNumbering(editor::MARGIN_NUMBERING_PARAGRAPHS));
+    REG_CMD_CB("view.marginNumbers.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Numbering &Settings..."), "VIEW/Margin Numbering/Numbering Settings...", 67, true, 0,
+               callbacks.onMarginNumberingSettings);
+
+    // The cards of the annotations under their paragraphs, a setting of every editor as in
+    // the Settings dialog; collapsing and expanding all of them in the editor in front
+    // (AnnotationsCoordinator)
+    REG_CMD_CB("view.annotationCards", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation &Cards Under Paragraphs"), "VIEW/Annotation Cards Under Paragraphs", 68, false, 0,
+               callbacks.onAnnotationCardsToggle);
+    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "C&ollapse All Annotations"), "VIEW/Collapse All Annotations", 69, false, 0);
+    REG_CMD("view.expandAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "&Expand All Annotations"), "VIEW/Expand All Annotations", 70, true, 0);
+
     // Perspectives submenu
-    REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 70, false, 1);
+    REG_CMD("view.perspectives.writer", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writer"), "VIEW/Perspectives/Writer", 71, false, 1);
     REG_CMD("view.perspectives.editor", QT_TRANSLATE_NOOP("CommandRegistrar", "&Editor"), "VIEW/Perspectives/Editor", 80, false, 1);
     REG_CMD("view.perspectives.researcher", QT_TRANSLATE_NOOP("CommandRegistrar", "&Researcher"), "VIEW/Perspectives/Researcher", 90, false, 1);
     REG_CMD("view.perspectives.planner", QT_TRANSLATE_NOOP("CommandRegistrar", "&Planner"), "VIEW/Perspectives/Planner", 100, true, 1);
@@ -749,7 +858,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                    KeyboardShortcut(Qt::Key_0, Qt::ControlModifier), callbacks.onZoomReset);
     REG_CMD_CB("view.zoomPageWidth", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Width"), "VIEW/Zoom/Page Width", 223, false, 0,
                callbacks.onZoomPageWidth);
-    REG_CMD_CB("view.zoomWholePage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Whole Page"), "VIEW/Zoom/Whole Page", 224, true, 0,
+    REG_CMD_CB("view.zoomWholePage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Whole Page"), "VIEW/Zoom/Whole Page", 224, false, 0,
                callbacks.onZoomWholePage);
 
     // F11 (Control+Cmd+F on macOS, see SHORTCUTS)

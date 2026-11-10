@@ -2,6 +2,29 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="pl_PL">
 <context>
+    <name>AnnotationCards</name>
+    <message>
+        <source>Comment</source>
+        <translation>Komentarz</translation>
+    </message>
+    <message>
+        <source>To do</source>
+        <translation>Do zrobienia</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>(no text)</source>
+        <translation>(bez treści)</translation>
+    </message>
+    <message>
+        <source>Show all</source>
+        <translation>Pokaż całość</translation>
+    </message>
+</context>
+<context>
     <name>CloseButton</name>
     <message>
         <source>Close Tab</source>
@@ -676,10 +699,6 @@
         <translation>&amp;Numerowanie</translation>
     </message>
     <message>
-        <source>C&amp;olor</source>
-        <translation>K&amp;olor</translation>
-    </message>
-    <message>
         <source>Clear For&amp;matting</source>
         <translation>Wyczyść &amp;formatowanie</translation>
     </message>
@@ -1022,6 +1041,90 @@
     <message>
         <source>&amp;Quick Character</source>
         <translation>Szybki &amp;wybór znaku</translation>
+    </message>
+    <message>
+        <source>Annotation &amp;Cards Under Paragraphs</source>
+        <translation>Karty uwag p&amp;od akapitem</translation>
+    </message>
+    <message>
+        <source>C&amp;ollapse All Annotations</source>
+        <translation>Zw&amp;iń wszystkie uwagi</translation>
+    </message>
+    <message>
+        <source>&amp;Expand All Annotations</source>
+        <translation>Rozwiń wszystkie uwa&amp;gi</translation>
+    </message>
+    <message>
+        <source>&amp;No Numbering</source>
+        <translation>&amp;Bez numeracji</translation>
+    </message>
+    <message>
+        <source>&amp;Line Numbers</source>
+        <translation>Numery &amp;wierszy</translation>
+    </message>
+    <message>
+        <source>&amp;Paragraph Numbers</source>
+        <translation>Numery &amp;akapitów</translation>
+    </message>
+    <message>
+        <source>Numbering &amp;Settings...</source>
+        <translation>&amp;Ustawienia numeracji...</translation>
+    </message>
+    <message>
+        <source>Bullets and Numberin&amp;g...</source>
+        <translation>Punk&amp;tory i numeracja...</translation>
+    </message>
+    <message>
+        <source>Su&amp;perscript</source>
+        <translation>Indeks &amp;górny</translation>
+    </message>
+    <message>
+        <source>Su&amp;bscript</source>
+        <translation>Indeks &amp;dolny</translation>
+    </message>
+    <message>
+        <source>S&amp;mall Caps</source>
+        <translation>&amp;Kapitaliki</translation>
+    </message>
+    <message>
+        <source>&amp;All Caps</source>
+        <translation>&amp;Wersaliki</translation>
+    </message>
+    <message>
+        <source>&amp;Sentence case</source>
+        <translation>&amp;Jak w zdaniu</translation>
+    </message>
+    <message>
+        <source>&amp;lowercase</source>
+        <translation>&amp;małe litery</translation>
+    </message>
+    <message>
+        <source>&amp;UPPERCASE</source>
+        <translation>&amp;WIELKIE LITERY</translation>
+    </message>
+    <message>
+        <source>&amp;Capitalize Each Word</source>
+        <translation>&amp;Każdy Wyraz Wielką Literą</translation>
+    </message>
+    <message>
+        <source>&amp;tOGGLE cASE</source>
+        <translation>&amp;zMIEŃ wIELKOŚĆ lITER</translation>
+    </message>
+    <message>
+        <source>F&amp;ont Color</source>
+        <translation>K&amp;olor czcionki</translation>
+    </message>
+    <message>
+        <source>&amp;Highlight Color</source>
+        <translation>Kolo&amp;r wyróżnienia tekstu</translation>
+    </message>
+    <message>
+        <source>Cop&amp;y Formatting</source>
+        <translation>Ko&amp;piuj formatowanie</translation>
+    </message>
+    <message>
+        <source>Paste Fo&amp;rmatting</source>
+        <translation>&amp;Wklej formatowanie</translation>
     </message>
 </context>
 <context>
@@ -2235,6 +2338,22 @@ Uruchomić ponownie teraz?</translation>
         <source>Fo&amp;rmatting Character</source>
         <translation>Znak &amp;formatujący</translation>
     </message>
+    <message>
+        <source>Margin &amp;Numbering</source>
+        <translation>Numerac&amp;ja na marginesie</translation>
+    </message>
+    <message>
+        <source>&amp;Text Effects</source>
+        <translation>&amp;Efekty tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Change Case</source>
+        <translation>Zmień wielkość &amp;liter</translation>
+    </message>
+    <message>
+        <source>A&amp;lign Text</source>
+        <translation>W&amp;yrównanie</translation>
+    </message>
 </context>
 <context>
     <name>QPlatformTheme</name>
@@ -3293,6 +3412,71 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>The submenu of the materials linked with the paragraph. In Polish: Powiązane mate&amp;riały</extracomment>
         <translation>Powiązane mate&amp;riały</translation>
     </message>
+    <message>
+        <source>Annotation menu</source>
+        <translation>Menu uwagi</translation>
+    </message>
+    <message>
+        <source>Mark as done</source>
+        <translation>Oznacz jako zrobione</translation>
+    </message>
+    <message>
+        <source>Click to expand</source>
+        <translation>Kliknij, aby rozwinąć</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Annotation</source>
+        <translation>&amp;Edytuj uwagę</translation>
+    </message>
+    <message>
+        <source>E&amp;xpand Annotation</source>
+        <translation>&amp;Rozwiń uwagę</translation>
+    </message>
+    <message>
+        <source>Collap&amp;se Annotation</source>
+        <translation>Zw&amp;iń uwagę</translation>
+    </message>
+    <message>
+        <source>Mark as &amp;Resolved</source>
+        <translation>&amp;Oznacz jako rozwiązany</translation>
+    </message>
+    <message>
+        <source>Ma&amp;rk as Done</source>
+        <translation>&amp;Oznacz jako zrobione</translation>
+    </message>
+    <message>
+        <source>Remo&amp;ve Annotation</source>
+        <translation>&amp;Usuń uwagę</translation>
+    </message>
+    <message>
+        <source>Card &amp;Appearance and Colors...</source>
+        <translation>&amp;Wygląd i kolory kart...</translation>
+    </message>
+    <message>
+        <source>&amp;Restart at %1</source>
+        <extracomment>%1 is the first number of the level of the list item: 1, a, i</extracomment>
+        <translation>Zacznij numerowanie &amp;od %1</translation>
+    </message>
+    <message>
+        <source>Contin&amp;ue Numbering</source>
+        <translation>Kont&amp;ynuuj numerowanie</translation>
+    </message>
+    <message>
+        <source>Set Numbering &amp;Value...</source>
+        <translation>Ust&amp;aw wartość numerowania...</translation>
+    </message>
+    <message>
+        <source>Incr&amp;ease Indent</source>
+        <translation>Zwiększ wc&amp;ięcie</translation>
+    </message>
+    <message>
+        <source>Decrea&amp;se Indent</source>
+        <translation>Zmni&amp;ejsz wcięcie</translation>
+    </message>
+    <message>
+        <source>Bullets and Numberin&amp;g...</source>
+        <translation>Punktory i nume&amp;racja...</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -3659,6 +3843,10 @@ Przyciski na pasku panelu dziennika pozwalają:
         <source>No to-do before the cursor</source>
         <translation>Przed kursorem nie ma uwag do zrobienia</translation>
     </message>
+    <message>
+        <source>Only with the annotation cards under the paragraphs (View menu), in the continuous view</source>
+        <translation>Tylko z kartami uwag pod akapitem (menu Widok), w widoku ciągłym</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::AnnotationsPage</name>
@@ -3699,10 +3887,6 @@ Przyciski na pasku panelu dziennika pozwalają:
         <translation>Kolory</translation>
     </message>
     <message>
-        <source>The colors of the annotations&apos; marks in the text, of the frame an annotation is written in on the paper and of the cards in the Annotations panel. Each theme has its own colors: these are the colors of the current theme.</source>
-        <translation>Kolory znaczników uwag w tekście, ramki do pisania uwagi na papierze i kart w panelu „Uwagi”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
-    </message>
-    <message>
         <source>Comment</source>
         <translation>Komentarz</translation>
     </message>
@@ -3713,6 +3897,154 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Note</source>
         <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>The colors of the annotations&apos; marks in the text, of their cards under the paragraphs, of the frame an annotation is written in on the paper and of the cards in the Annotations panel. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolory znaczników uwag w tekście, ich kart pod akapitem, ramki do pisania uwagi na papierze i kart w panelu „Uwagi”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Cards Under Paragraphs (Continuous View)</source>
+        <translation>Karty pod akapitem (widok ciągły)</translation>
+    </message>
+    <message>
+        <source>Show annotation cards under paragraphs</source>
+        <translation>Pokazuj karty uwag pod akapitem</translation>
+    </message>
+    <message>
+        <source>Same as View &gt; Annotation Cards Under Paragraphs. In the page view annotations are always marks only.</source>
+        <translation>To samo co Widok &gt; Karty uwag pod akapitem. W widoku „Układ strony” uwagi są zawsze tylko znacznikami.</translation>
+    </message>
+    <message>
+        <source>comments</source>
+        <translation>komentarzy</translation>
+    </message>
+    <message>
+        <source>to-dos</source>
+        <translation>uwag do zrobienia</translation>
+    </message>
+    <message>
+        <source>notes</source>
+        <translation>notatek</translation>
+    </message>
+    <message>
+        <source>Cards for:</source>
+        <translation>Karty dla:</translation>
+    </message>
+    <message>
+        <source>Card look:</source>
+        <translation>Wygląd karty:</translation>
+    </message>
+    <message>
+        <source>Full</source>
+        <translation>Pełna</translation>
+    </message>
+    <message>
+        <source>The kind, the author and the date above the text.</source>
+        <translation>Rodzaj, autor i data nad treścią.</translation>
+    </message>
+    <message>
+        <source>Compact</source>
+        <translation>Zwarta</translation>
+    </message>
+    <message>
+        <source>The text alone, the author and the date at its end.</source>
+        <translation>Sama treść, autor i data na jej końcu.</translation>
+    </message>
+    <message>
+        <source>Collapsed annotation:</source>
+        <translation>Uwaga zwinięta:</translation>
+    </message>
+    <message>
+        <source>Mark only</source>
+        <translation>Sam znacznik</translation>
+    </message>
+    <message>
+        <source>Its mark in the text alone, as without the cards.</source>
+        <translation>Tylko znacznik w tekście, jak bez kart.</translation>
+    </message>
+    <message>
+        <source>One line</source>
+        <translation>Jeden wiersz</translation>
+    </message>
+    <message>
+        <source>A line with the start of its text under the paragraph.</source>
+        <translation>Wiersz z początkiem treści pod akapitem.</translation>
+    </message>
+    <message>
+        <source>expanded</source>
+        <translation>rozwinięte</translation>
+    </message>
+    <message>
+        <source>collapsed</source>
+        <translation>zwinięte</translation>
+    </message>
+    <message>
+        <source>After a chapter opens, annotations are:</source>
+        <translation>Po otwarciu rozdziału uwagi są:</translation>
+    </message>
+    <message>
+        <source>show whole</source>
+        <translation>pokazuj w całości</translation>
+    </message>
+    <message>
+        <source>cut short to 3 lines</source>
+        <translation>skracaj do 3 wierszy</translation>
+    </message>
+    <message>
+        <source>cut short to 6 lines</source>
+        <translation>skracaj do 6 wierszy</translation>
+    </message>
+    <message>
+        <source>Long annotations:</source>
+        <translation>Długie uwagi:</translation>
+    </message>
+    <message>
+        <source> % of the chapter&apos;s text</source>
+        <translation> % tekstu rozdziału</translation>
+    </message>
+    <message>
+        <source>Card text size:</source>
+        <translation>Wielkość tekstu kart:</translation>
+    </message>
+    <message>
+        <source>subtle</source>
+        <translation>delikatne</translation>
+    </message>
+    <message>
+        <source>strong</source>
+        <translation>wyraźne</translation>
+    </message>
+    <message>
+        <source>Card background:</source>
+        <translation>Tło kart:</translation>
+    </message>
+    <message>
+        <source>Card background</source>
+        <translation>Tło kart</translation>
+    </message>
+    <message>
+        <source>From subtle to strong</source>
+        <translation>Od delikatnego do wyraźnego</translation>
+    </message>
+    <message>
+        <source>Highlight the fragment</source>
+        <translation>Podświetlaj fragment</translation>
+    </message>
+    <message>
+        <source>While the mouse is on a card, its fragment in the text is highlighted.</source>
+        <translation>Gdy wskaźnik myszy jest na karcie, jej fragment w tekście jest podświetlony.</translation>
+    </message>
+    <message>
+        <source>show the cards</source>
+        <translation>pokazuj karty</translation>
+    </message>
+    <message>
+        <source>hide the cards</source>
+        <translation>ukrywaj karty</translation>
+    </message>
+    <message>
+        <source>In Distraction-Free:</source>
+        <translation>W trybie „Bez rozpraszania”:</translation>
     </message>
 </context>
 <context>
@@ -4029,6 +4361,49 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Click to select color</source>
         <translation>Kliknij, aby wybrać kolor</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ColorMenu</name>
+    <message>
+        <source>&amp;Automatic</source>
+        <translation>&amp;Automatyczny</translation>
+    </message>
+    <message>
+        <source>&amp;No Color</source>
+        <translation>&amp;Brak koloru</translation>
+    </message>
+    <message>
+        <source>Font colors</source>
+        <translation>Kolory czcionki</translation>
+    </message>
+    <message>
+        <source>Highlight colors</source>
+        <translation>Kolory wyróżnienia</translation>
+    </message>
+    <message>
+        <source>Recent colors</source>
+        <translation>Ostatnio użyte</translation>
+    </message>
+    <message>
+        <source>&amp;More Colors...</source>
+        <translation>&amp;Więcej kolorów...</translation>
+    </message>
+    <message>
+        <source>The color of the letters of the selected text.</source>
+        <translation>Kolor liter zaznaczonego tekstu.</translation>
+    </message>
+    <message>
+        <source>The color behind the selected text.</source>
+        <translation>Kolor tła zaznaczonego tekstu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ColorSwatches</name>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A swatch of a color submenu: the name of the color and its HEX, &quot;Red (#CC0000)&quot;</extracomment>
+        <translation>%1 (%2)</translation>
     </message>
 </context>
 <context>
@@ -5188,10 +5563,6 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <translation>„---” i Enter – linia pozioma</translation>
     </message>
     <message>
-        <source>Typed in an empty paragraph. “* ” and “1. ” at the start of a paragraph will come with the lists.</source>
-        <translation>Wpisane w pustym akapicie. „* ” i „1. ” na początku akapitu dojdą razem z listami.</translation>
-    </message>
-    <message>
         <source>Correct words typed with Caps Lock on</source>
         <translation>Poprawiaj wyrazy pisane z Caps Lock</translation>
     </message>
@@ -5211,6 +5582,18 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>Edit &gt; Undo right after a capital or a change of two capitals adds the abbreviation or the word to its list.</source>
         <translation>Edycja &gt; Cofnij zaraz po wielkiej literze albo poprawie dwóch wielkich liter dopisuje skrót albo wyraz do jego listy.</translation>
+    </message>
+    <message>
+        <source>“*” and a space: a bulleted list</source>
+        <translation>„*” i spacja – lista punktowana</translation>
+    </message>
+    <message>
+        <source>“1.” or “1)” and a space: a numbered list</source>
+        <translation>„1.” lub „1)” i spacja – lista numerowana</translation>
+    </message>
+    <message>
+        <source>“***” and “---” are typed in an empty paragraph, “*” and “1.” at the start of a paragraph; the list starts from the number typed.</source>
+        <translation>„***” i „---” wpisuje się w pustym akapicie, a „*” i „1.” na początku akapitu; lista zaczyna się od wpisanego numeru.</translation>
     </message>
 </context>
 <context>
@@ -5396,20 +5779,8 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Miejsce kursora jest zapamiętywane w książce dla każdego rozdziału, także po zamknięciu programu.</translation>
     </message>
     <message>
-        <source> spaces</source>
-        <translation> spacji</translation>
-    </message>
-    <message>
         <source>Tab Size:</source>
         <translation>Szerokość tabulatora:</translation>
-    </message>
-    <message>
-        <source>Show Line Numbers</source>
-        <translation>Pokazuj numery wierszy</translation>
-    </message>
-    <message>
-        <source>Enable Word Wrap</source>
-        <translation>Zawijaj wiersze</translation>
     </message>
     <message>
         <source>Typography</source>
@@ -5514,6 +5885,26 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>Keep Text Only</source>
         <translation>Tylko tekst</translation>
+    </message>
+    <message>
+        <source>Paragraph Indent</source>
+        <translation>Wcięcie akapitu</translation>
+    </message>
+    <message>
+        <source>Number of Spaces</source>
+        <translation>Liczba spacji</translation>
+    </message>
+    <message>
+        <source>Tab types a tab character, also at the start of a paragraph. With Paragraph Indent the tab stops are as far apart as the first-line indent of the paragraph&apos;s style; a style without one, as a heading, has them as far apart as the indent above.</source>
+        <translation>Klawisz Tab wstawia znak tabulacji, także na początku akapitu. Przy „Wcięciu akapitu” tabulatory są co tyle, ile wynosi wcięcie pierwszego wiersza w stylu akapitu; w stylu bez wcięcia, na przykład w nagłówku, co tyle, ile wcięcie ustawione powyżej.</translation>
+    </message>
+    <message numerus="yes">
+        <source> space(s)</source>
+        <translation>
+            <numerusform> spacja</numerusform>
+            <numerusform> spacje</numerusform>
+            <numerusform> spacji</numerusform>
+        </translation>
     </message>
 </context>
 <context>
@@ -5951,10 +6342,6 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
 <context>
     <name>kalahari::gui::EditorPagesPage</name>
     <message>
-        <source>Configure the page format, the page margins and the text frame border.</source>
-        <translation>Ustaw format strony, marginesy i ramkę tekstu.</translation>
-    </message>
-    <message>
         <source>Page</source>
         <translation>Strona</translation>
     </message>
@@ -6095,6 +6482,118 @@ Pomaga zobaczyć granice marginesów.</translation>
     <message>
         <source>Border width (1-5 pixels)</source>
         <translation>Grubość ramki (1–5 pikseli)</translation>
+    </message>
+    <message>
+        <source>Configure the page format, the page margins, the margin numbering and the text frame border.</source>
+        <translation>Ustaw format strony, marginesy, numerację na marginesie i ramkę tekstu.</translation>
+    </message>
+    <message>
+        <source>Preview of pages 2 and 3</source>
+        <translation>Podgląd stron 2 i 3</translation>
+    </message>
+    <message>
+        <source>Pages 2 and 3 of a chapter. Page 1 is a right page, so its inner margin is on the left. A chapter can start on a left page: &quot;Starts on a left page&quot; in the Properties panel.</source>
+        <translation>Strony 2 i 3 rozdziału. Strona 1 jest prawa, więc margines wewnętrzny ma po lewej. Rozdział może zaczynać się na lewej stronie: „Zaczyna się na lewej stronie” w panelu Właściwości.</translation>
+    </message>
+    <message>
+        <source>Preview:</source>
+        <translation>Podgląd:</translation>
+    </message>
+    <message>
+        <source>Margin Numbering</source>
+        <translation>Numeracja na marginesie</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Brak</translation>
+    </message>
+    <message>
+        <source>Lines</source>
+        <translation>Wiersze</translation>
+    </message>
+    <message>
+        <source>Paragraphs</source>
+        <translation>Akapity</translation>
+    </message>
+    <message>
+        <source>Number:</source>
+        <translation>Numeruj:</translation>
+    </message>
+    <message>
+        <source>Interval:</source>
+        <translation>Interwał:</translation>
+    </message>
+    <message>
+        <source>1: a number at every line, 5: at every fifth one.</source>
+        <translation>1: numer przy każdym wierszu, 5: przy co piątym.</translation>
+    </message>
+    <message>
+        <source>1: a number at every paragraph, 5: at every fifth one. Headings, scene breaks and empty paragraphs are not counted.</source>
+        <translation>1: numer przy każdym akapicie, 5: przy co piątym. Nagłówki, podziały scen i puste akapity nie są liczone.</translation>
+    </message>
+    <message>
+        <source>Restart on every page</source>
+        <translation>Licz od nowa na każdej stronie</translation>
+    </message>
+    <message>
+        <source>Line numbers in the Page Layout view only. In the Continuous view the numbers run through the whole chapter.</source>
+        <translation>Tylko numery wierszy w widoku „Układ strony”. W widoku „Ciągły” numery biegną przez cały rozdział.</translation>
+    </message>
+    <message>
+        <source>Font:</source>
+        <translation>Czcionka:</translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>Size:</source>
+        <translation>Wielkość:</translation>
+    </message>
+    <message>
+        <source>At 100% zoom; the numbers grow and shrink with the text.</source>
+        <translation>Przy powiększeniu 100%; numery rosną i maleją razem z tekstem.</translation>
+    </message>
+    <message>
+        <source>Number color</source>
+        <translation>Kolor numerów</translation>
+    </message>
+    <message>
+        <source>The same on the light and on the dark paper.</source>
+        <translation>Ten sam na jasnym i na ciemnym papierze.</translation>
+    </message>
+    <message>
+        <source>Fog settled on the river</source>
+        <translation>Mgła zeszła nad rzekę</translation>
+    </message>
+    <message>
+        <source>long before dawn</source>
+        <translation>jeszcze przed świtem</translation>
+    </message>
+    <message>
+        <source>Light paper</source>
+        <translation>Jasny papier</translation>
+    </message>
+    <message>
+        <source>Dark paper</source>
+        <translation>Ciemny papier</translation>
+    </message>
+    <message>
+        <source>Preview of the margin numbers</source>
+        <translation>Podgląd numerów na marginesie</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <translation>Przywróć domyślne</translation>
+    </message>
+    <message>
+        <source>The default interval, font, size and color; the numbering stays as chosen. Apply and OK store them.</source>
+        <translation>Domyślny interwał, czcionka, wielkość i kolor; wybrana numeracja zostaje. Zapisują je przyciski Zastosuj i OK.</translation>
+    </message>
+    <message>
+        <source>The numbering buttons on the Views toolbar and the commands of View &gt; Margin Numbering change the same settings as the fields above.</source>
+        <translation>Przyciski numeracji na pasku Widoki i polecenia menu Widok &gt; Numeracja na marginesie zmieniają te same ustawienia co pola powyżej.</translation>
     </message>
 </context>
 <context>
@@ -7001,6 +7500,34 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>The program does not have an editor for the {kind} yet.</source>
         <extracomment>The tooltip of a greyed command of the Book menu that adds an element of a kind of the Workshop, e.g. New Character.... In Polish: Program nie ma jeszcze edytora {kind:genitive}.</extracomment>
         <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
+    </message>
+    <message>
+        <source>Annotation cards under paragraphs: shown</source>
+        <translation>Karty uwag pod akapitem: widoczne</translation>
+    </message>
+    <message>
+        <source>Annotation cards under paragraphs: hidden</source>
+        <translation>Karty uwag pod akapitem: ukryte</translation>
+    </message>
+    <message>
+        <source>Margin numbering: off</source>
+        <translation>Numeracja na marginesie: wyłączona</translation>
+    </message>
+    <message>
+        <source>Margin numbering: lines</source>
+        <translation>Numeracja na marginesie: wiersze</translation>
+    </message>
+    <message>
+        <source>Margin numbering: paragraphs</source>
+        <translation>Numeracja na marginesie: akapity</translation>
+    </message>
+    <message>
+        <source>Formatting copied: select text and choose Format &gt; Paste Formatting</source>
+        <translation>Skopiowano formatowanie: zaznacz tekst i wybierz Format &gt; Wklej formatowanie</translation>
+    </message>
+    <message>
+        <source>No formatting copied yet: choose Format &gt; Copy Formatting first</source>
+        <translation>Nie skopiowano jeszcze formatowania: najpierw wybierz Format &gt; Kopiuj formatowanie</translation>
     </message>
 </context>
 <context>
@@ -8424,6 +8951,18 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>In Polish: Brak powiązanych materiałów.</extracomment>
         <translation>Brak powiązanych materiałów.</translation>
     </message>
+    <message>
+        <source>Starts on a left page</source>
+        <translation>Zaczyna się na lewej stronie</translation>
+    </message>
+    <message>
+        <source>Change Failed</source>
+        <translation>Nie udało się wprowadzić zmiany</translation>
+    </message>
+    <message>
+        <source>With mirror margins (Settings &gt; Editor &gt; Pages and Margins) the first page of {kind:s=this|p=these} {kind} is a left page: its inner margin is on the right. Unchecked: a right page.</source>
+        <translation>Przy marginesach lustrzanych (Ustawienia &gt; Edytor &gt; Strony i marginesy) pierwsza strona {kind:genitive} jest lewa: margines wewnętrzny ma po prawej. Bez zaznaczenia jest prawa.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::QuickCharacterPalette</name>
@@ -9198,10 +9737,6 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Wyjście</translation>
     </message>
     <message>
-        <source>%1 goes to the next field.</source>
-        <translation>%1 przechodzi do następnego pola.</translation>
-    </message>
-    <message>
         <source>%1 goes back to the previous field.</source>
         <translation>%1 wraca do poprzedniego pola.</translation>
     </message>
@@ -9512,6 +10047,18 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Delete the element</source>
         <translation>Usuń element</translation>
+    </message>
+    <message>
+        <source>Tab character</source>
+        <translation>Znak tabulacji</translation>
+    </message>
+    <message>
+        <source>%1 goes to the next field; in the text it types a tab character.</source>
+        <translation>%1 przechodzi do następnego pola; w tekście wstawia znak tabulacji.</translation>
+    </message>
+    <message>
+        <source>types a tab character</source>
+        <translation>wstawia znak tabulacji</translation>
     </message>
 </context>
 <context>
@@ -12060,6 +12607,157 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::BulletsNumberingDialog</name>
+    <message>
+        <source>Disc</source>
+        <translation>Kropka</translation>
+    </message>
+    <message>
+        <source>Circle</source>
+        <translation>Kółko</translation>
+    </message>
+    <message>
+        <source>Square</source>
+        <translation>Kwadrat</translation>
+    </message>
+    <message>
+        <source>En dash</source>
+        <translation>Półpauza</translation>
+    </message>
+    <message>
+        <source>Check mark</source>
+        <translation>Ptaszek</translation>
+    </message>
+    <message>
+        <source>Arrow</source>
+        <translation>Strzałka</translation>
+    </message>
+    <message>
+        <source>The 6:40 train.</source>
+        <translation>Pociąg o 6:40.</translation>
+    </message>
+    <message>
+        <source>Change at Łapy:</source>
+        <translation>Przesiadka w Łapach:</translation>
+    </message>
+    <message>
+        <source>ask for Mr Hilary,</source>
+        <translation>zapytać o pana Hilarego,</translation>
+    </message>
+    <message>
+        <source>do not give the name.</source>
+        <translation>nie podawać nazwiska.</translation>
+    </message>
+    <message>
+        <source>The address on Mostowa Street.</source>
+        <translation>Adres przy ulicy Mostowej.</translation>
+    </message>
+    <message>
+        <source>a coat and a torch,</source>
+        <translation>płaszcz i latarka,</translation>
+    </message>
+    <message>
+        <source>the key to the locker:</source>
+        <translation>klucz do schowka:</translation>
+    </message>
+    <message>
+        <source>a spare one at aunt Helena&apos;s,</source>
+        <translation>zapasowy u cioci Heleny,</translation>
+    </message>
+    <message>
+        <source>another one in the drawer.</source>
+        <translation>drugi w szufladzie.</translation>
+    </message>
+    <message>
+        <source>a return ticket.</source>
+        <translation>bilet powrotny.</translation>
+    </message>
+    <message>
+        <source>Bullets and Numbering</source>
+        <translation>Punktory i numeracja</translation>
+    </message>
+    <message>
+        <source>The look of the list in the selected paragraphs; each level has its own format.</source>
+        <translation>Wygląd listy w zaznaczonych akapitach; każdy poziom ma własny format.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>&amp;Numbering</source>
+        <translation>&amp;Numerowanie</translation>
+    </message>
+    <message>
+        <source>&amp;Bullets</source>
+        <translation>&amp;Punktory</translation>
+    </message>
+    <message>
+        <source>&amp;Restore Defaults</source>
+        <translation>Przywróć &amp;domyślne</translation>
+    </message>
+    <message>
+        <source>&amp;Level</source>
+        <translation>Pozi&amp;om</translation>
+    </message>
+    <message>
+        <source>&amp;Format</source>
+        <translation>&amp;Format</translation>
+    </message>
+    <message>
+        <source>B&amp;ullet</source>
+        <translation>Pun&amp;ktor</translation>
+    </message>
+    <message>
+        <source>&amp;Start at</source>
+        <translation>&amp;Rozpocznij od</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Do lewej</translation>
+    </message>
+    <message>
+        <source>Center</source>
+        <translation>Do środka</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Do prawej</translation>
+    </message>
+    <message>
+        <source>Number &amp;alignment</source>
+        <translation>&amp;Wyrównanie numeru</translation>
+    </message>
+    <message>
+        <source>&amp;Character...</source>
+        <translation>&amp;Znak...</translation>
+    </message>
+    <message>
+        <source>any character of the Special Character window</source>
+        <translation>dowolny znak z okna Znak specjalny</translation>
+    </message>
+    <message>
+        <source>Number &amp;indent</source>
+        <translation>Wcięcie n&amp;umeru</translation>
+    </message>
+    <message>
+        <source>Bullet &amp;indent</source>
+        <translation>Wcięcie p&amp;unktora</translation>
+    </message>
+    <message>
+        <source>&amp;Text indent</source>
+        <translation>Wcięcie &amp;tekstu</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>The bullet: %1</source>
+        <translation>Punktor: %1</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::CharacterShortcutDialog</name>
     <message>
         <source>Shortcut for a Character</source>
@@ -12863,6 +13561,141 @@ Harmonogram projektu:
         <source>Kalahari cannot open the book of this archive.</source>
         <extracomment>In Polish: Kalahari nie może otworzyć książki z tego archiwum.</extracomment>
         <translation>Kalahari nie może otworzyć książki z tego archiwum.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::FontDialog</name>
+    <message>
+        <source>Font</source>
+        <translation>Czcionka</translation>
+    </message>
+    <message>
+        <source>The look of the selected text; the paragraph style stays as it is.</source>
+        <translation>Wygląd zaznaczonego tekstu; styl akapitu się nie zmienia.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>The mist came down over the river</source>
+        <extracomment>The preview of Format &gt; Font when no text is selected. In Polish: Mgła zeszła nad rzekę</extracomment>
+        <translation>Mgła zeszła nad rzekę</translation>
+    </message>
+    <message>
+        <source>&amp;Font</source>
+        <translation>&amp;Czcionka</translation>
+    </message>
+    <message>
+        <source>Ad&amp;vanced</source>
+        <translation>&amp;Zaawansowane</translation>
+    </message>
+    <message>
+        <source>Fo&amp;nt</source>
+        <translation>Czcio&amp;nka</translation>
+    </message>
+    <message>
+        <source>St&amp;yle</source>
+        <translation>St&amp;yl</translation>
+    </message>
+    <message>
+        <source>&amp;Size</source>
+        <translation>&amp;Rozmiar</translation>
+    </message>
+    <message>
+        <source>Regular</source>
+        <translation>Normalny</translation>
+    </message>
+    <message>
+        <source>Italic</source>
+        <translation>Kursywa</translation>
+    </message>
+    <message>
+        <source>Bold</source>
+        <translation>Pogrubiony</translation>
+    </message>
+    <message>
+        <source>Bold Italic</source>
+        <translation>Pogrubiona kursywa</translation>
+    </message>
+    <message>
+        <source>Font &amp;color</source>
+        <translation>&amp;Kolor czcionki</translation>
+    </message>
+    <message>
+        <source>&amp;Highlight color</source>
+        <translation>Kolor &amp;wyróżnienia tekstu</translation>
+    </message>
+    <message>
+        <source>Effects</source>
+        <translation>Efekty</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>&amp;Underline</source>
+        <translation>&amp;Podkreślenie</translation>
+    </message>
+    <message>
+        <source>Stri&amp;kethrough</source>
+        <translation>Prz&amp;ekreślenie</translation>
+    </message>
+    <message>
+        <source>Su&amp;perscript</source>
+        <translation>Indeks &amp;górny</translation>
+    </message>
+    <message>
+        <source>Subscrip&amp;t</source>
+        <translation>Indeks &amp;dolny</translation>
+    </message>
+    <message>
+        <source>S&amp;mall caps</source>
+        <translation>Kap&amp;italiki</translation>
+    </message>
+    <message>
+        <source>&amp;All caps</source>
+        <translation>Wers&amp;aliki</translation>
+    </message>
+    <message>
+        <source>Character spacing</source>
+        <translation>Odstępy między znakami</translation>
+    </message>
+    <message>
+        <source>Normal</source>
+        <translation>Normalne</translation>
+    </message>
+    <message>
+        <source>Expanded</source>
+        <translation>Rozstrzelone</translation>
+    </message>
+    <message>
+        <source>Condensed</source>
+        <translation>Zagęszczone</translation>
+    </message>
+    <message>
+        <source>&amp;by</source>
+        <extracomment>Format &gt; Font, the letter spacing: Expanded &quot;by&quot; 1.5 pt. In Polish: o</extracomment>
+        <translation>&amp;o</translation>
+    </message>
+    <message>
+        <source> pt</source>
+        <extracomment>The unit of the letter spacing, points. In Polish: pt</extracomment>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>Expanded spacing moves the letters of the selected text apart, condensed spacing brings them closer together.</source>
+        <translation>Rozstrzelenie oddala od siebie litery zaznaczonego tekstu, zagęszczenie je zbliża.</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <extracomment>The color of a text: the editor&apos;s, which follows its paper</extracomment>
+        <translation>Brak</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatyczny</translation>
     </message>
 </context>
 <context>
@@ -13831,6 +14664,192 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::NumberingValueDialog</name>
+    <message>
+        <source>Set Numbering Value</source>
+        <translation>Ustaw wartość numerowania</translation>
+    </message>
+    <message>
+        <source>The number of the list item; the items after it go on from it.</source>
+        <translation>Numer pozycji listy; kolejne pozycje są numerowane dalej od niego.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Set &amp;value to</source>
+        <translation>Ustaw &amp;wartość na</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ParagraphDialog</name>
+    <message>
+        <source> pt</source>
+        <extracomment>The unit of the spacing of paragraphs, points. In Polish: pt</extracomment>
+        <translation> pt</translation>
+    </message>
+    <message>
+        <source>Paragraph</source>
+        <translation>Akapit</translation>
+    </message>
+    <message>
+        <source>Indents, spacing and breaks of the selected paragraphs; the paragraph style stays as it is.</source>
+        <translation>Wcięcia, odstępy i podziały zaznaczonych akapitów; styl akapitu się nie zmienia.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>&amp;Indents and Spacing</source>
+        <translation>&amp;Wcięcia i odstępy</translation>
+    </message>
+    <message>
+        <source>Line and Page &amp;Breaks</source>
+        <translation>Podziały wiersza i &amp;strony</translation>
+    </message>
+    <message>
+        <source>Ali&amp;gnment</source>
+        <translation>W&amp;yrównanie</translation>
+    </message>
+    <message>
+        <source>Align Left</source>
+        <translation>Wyrównaj do lewej</translation>
+    </message>
+    <message>
+        <source>Align Center</source>
+        <translation>Wyśrodkuj</translation>
+    </message>
+    <message>
+        <source>Align Right</source>
+        <translation>Wyrównaj do prawej</translation>
+    </message>
+    <message>
+        <source>Justify</source>
+        <translation>Wyjustuj</translation>
+    </message>
+    <message>
+        <source>Indentation</source>
+        <translation>Wcięcia</translation>
+    </message>
+    <message>
+        <source>(none)</source>
+        <extracomment>Format &gt; Paragraph, the special indent: none</extracomment>
+        <translation>(brak)</translation>
+    </message>
+    <message>
+        <source>First line</source>
+        <translation>Pierwszy wiersz</translation>
+    </message>
+    <message>
+        <source>Hanging</source>
+        <translation>Wysunięcie</translation>
+    </message>
+    <message>
+        <source>&amp;Left</source>
+        <translation>&amp;Lewe</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <translation>P&amp;rawe</translation>
+    </message>
+    <message>
+        <source>&amp;Special</source>
+        <translation>Specjal&amp;ne</translation>
+    </message>
+    <message>
+        <source>B&amp;y</source>
+        <extracomment>Format &gt; Paragraph: a special indent &quot;by&quot; 0.63 cm. In Polish: o</extracomment>
+        <translation>&amp;o</translation>
+    </message>
+    <message>
+        <source>A list item has the indents of its level: Format &gt; Bullets and Numbering...</source>
+        <translation>Punkt listy ma wcięcia swojego poziomu: Format &gt; Punktory i numeracja...</translation>
+    </message>
+    <message>
+        <source>Spacing</source>
+        <translation>Odstępy</translation>
+    </message>
+    <message>
+        <source>Single</source>
+        <translation>Pojedyncza</translation>
+    </message>
+    <message>
+        <source>1.5 lines</source>
+        <translation>1,5 wiersza</translation>
+    </message>
+    <message>
+        <source>Double</source>
+        <translation>Podwójna</translation>
+    </message>
+    <message>
+        <source>At least</source>
+        <translation>Co najmniej</translation>
+    </message>
+    <message>
+        <source>Exactly</source>
+        <translation>Dokładnie</translation>
+    </message>
+    <message>
+        <source>Multiple</source>
+        <translation>Wielokrotna</translation>
+    </message>
+    <message>
+        <source>Be&amp;fore</source>
+        <translation>Prz&amp;ed</translation>
+    </message>
+    <message>
+        <source>Aft&amp;er</source>
+        <translation>&amp;Po</translation>
+    </message>
+    <message>
+        <source>Li&amp;ne spacing</source>
+        <translation>&amp;Interlinia</translation>
+    </message>
+    <message>
+        <source>&amp;At</source>
+        <extracomment>Format &gt; Paragraph: line spacing At least &quot;at&quot; 12 pt. In Polish: co</extracomment>
+        <translation>&amp;co</translation>
+    </message>
+    <message>
+        <source>At least and Exactly are in points, Multiple in lines.</source>
+        <translation>Interlinia „Co najmniej” i „Dokładnie” jest w punktach, „Wielokrotna” – w wierszach.</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Pagination</source>
+        <translation>Podział na strony</translation>
+    </message>
+    <message>
+        <source>&amp;Widow/Orphan control</source>
+        <translation>&amp;Kontrola bękartów i wdów</translation>
+    </message>
+    <message>
+        <source>Keep with ne&amp;xt</source>
+        <translation>Ra&amp;zem z następnym</translation>
+    </message>
+    <message>
+        <source>&amp;Keep lines together</source>
+        <translation>Zachowaj wiersze r&amp;azem</translation>
+    </message>
+    <message>
+        <source>Page break bef&amp;ore</source>
+        <translation>Po&amp;dział strony przed</translation>
+    </message>
+    <message>
+        <source>Widow/Orphan control leaves no single line of the paragraph at the bottom or at the top of a page. The page view follows these settings; the headings keep with the next paragraph in their style.</source>
+        <translation>Kontrola bękartów i wdów nie zostawia pojedynczego wiersza akapitu na dole ani na górze strony. Widok strony uwzględnia te ustawienia; nagłówki mają w stylu włączone „Razem z następnym”.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::RenameElementDialog</name>
     <message>
         <source>Rename</source>
@@ -14063,6 +15082,18 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>Not in the font %1: in the text another font shows it.</source>
         <translation>Nie ma go w czcionce %1: w tekście pokaże go inna czcionka.</translation>
+    </message>
+    <message>
+        <source>Enter chooses the character. Esc closes the window.</source>
+        <translation>Enter wybiera znak. Esc zamyka okno.</translation>
+    </message>
+    <message>
+        <source>&amp;Choose</source>
+        <translation>&amp;Wybierz</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Anuluj</translation>
     </message>
 </context>
 <context>

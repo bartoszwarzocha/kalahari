@@ -57,8 +57,9 @@ struct AddedCommand {
 ///   4: Paragraph and Styles on the Panels toolbar
 ///   5: Save Version and Version History on Quick Actions (shown there when the buttons of the
 ///      versions are not on Versions and Backups)
-///   6: Statistics on the Panels toolbar
-constexpr std::array<AddedCommand, 10> ADDED_COMMANDS{{
+///   6: Line Numbers and Paragraph Numbers on the Views toolbar
+///   7: Statistics on the Panels toolbar
+constexpr std::array<AddedCommand, 12> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -68,7 +69,9 @@ constexpr std::array<AddedCommand, 10> ADDED_COMMANDS{{
     {"view", "view.paragraph", 4},
     {"quickActions", "file.saveVersion", 5},
     {"quickActions", "file.versionHistory", 5},
-    {"view", "view.statistics", 6},
+    {"views", "view.marginNumbers.lines", 6},
+    {"views", "view.marginNumbers.paragraphs", 6},
+    {"view", "view.statistics", 7},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -88,7 +91,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 6;
+constexpr int CHANGED_COMMANDS_VERSION = 7;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -265,8 +268,8 @@ void ToolbarManager::initializeConfigs() {
     };
 
     // Views Toolbar: the view modes, the switches on top of them (and the paper, the text
-    // frame border and the formatting marks, the pilcrow button of other editors) and the
-    // zoom, as in the View menu
+    // frame border, the formatting marks, the pilcrow button of other editors, and the
+    // numbers on the margin) and the zoom, as in the View menu
     m_configs["views"] = {
         "views",
         QT_TRANSLATE_NOOP("QObject", "&Views Toolbar"),
@@ -274,7 +277,8 @@ void ToolbarManager::initializeConfigs() {
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
          "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper",
-         "view.textFrameBorder", "view.showFormattingMarks", SEPARATOR_ID,
+         "view.textFrameBorder", "view.showFormattingMarks", "view.marginNumbers.lines",
+         "view.marginNumbers.paragraphs", SEPARATOR_ID,
          "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
     };
 

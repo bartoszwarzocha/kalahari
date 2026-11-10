@@ -22,12 +22,14 @@ class CommandRegistry;
 namespace utils {
 
 /// @brief The commands that work on the document of the tab in front, a chapter or a text
-/// file: Find with Find Next, Find Previous and Find and Replace, the character formats,
-/// the alignments, the paragraph styles, the view mode and the zoom
+/// file: Find with Find Next, Find Previous and Find and Replace, the windows Font and
+/// Paragraph, the character formats with their colors, the cases and Copy and Paste
+/// Formatting, the alignments, the indents and lists, the paragraph styles, the view mode and
+/// the zoom
 const std::vector<std::string>& documentCommands();
 
-/// @brief The commands of the document that change it: Find and Replace, the character
-/// formats, the alignments and the paragraph styles
+/// @brief The commands of the document that change it: all of them but Find with Find Next
+/// and Find Previous, Copy Formatting, the view mode and the zoom
 const std::vector<std::string>& changingDocumentCommands();
 
 /// @brief Grey out the commands of the document while no document is in front, and those that
