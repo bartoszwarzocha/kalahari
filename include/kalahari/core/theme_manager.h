@@ -10,7 +10,9 @@
 #include <atomic>
 #include <memory>
 #include <map>
+#include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 
 namespace kalahari {
@@ -154,6 +156,10 @@ private:
 
     int m_settingsListener = -1;                     ///< Subscription to the editor colors
     std::atomic<bool> m_editorColorsPending{false};  ///< A reload of the editor colors is queued
+    std::mutex m_changedSettingsMutex;               ///< Guards m_changedEditorSettings
+    /// The editor color settings changed since the last reload: a color the theme file does
+    /// not list (the parts that show it derive it from the theme's colors) changes only there
+    std::set<std::string> m_changedEditorSettings;
     bool m_optimizesEditorColors = true;             ///< optimizesEditorColors() at the last reload
 
     /// @brief Apply m_currentTheme's palette to the application and its tooltips

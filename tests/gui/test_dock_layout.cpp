@@ -299,6 +299,56 @@ TEST_CASE("Panels: a layout saved before the Paragraph and Styles panel shows it
     CHECK(panels.onTop(paragraph));
 }
 
+TEST_CASE("Panels: a layout saved before the Statistics panel shows it as the right panels are",
+          "[gui][panels][statistics]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string placed = "window.statisticsPanelPlaced";
+    bool rightOpen = true;
+    SECTION("the right panels open: a tab after Annotations, Annotations on top") {
+        rightOpen = true;
+    }
+    SECTION("the right panels closed: closed too") {
+        rightOpen = false;
+    }
+    QByteArray oldLayout;
+    {
+        Panels old;
+        old.window.removeDockWidget(old.docks->statisticsDock());
+        if (!rightOpen) {
+            for (QDockWidget* dock : old.rightDocks()) {
+                dock->close();
+            }
+        }
+        oldLayout = old.window.saveState();
+    }
+    Panels panels;
+    REQUIRE(panels.window.restoreState(oldLayout));
+    settings.removeKey(placed);
+    panels.docks->placeStatisticsPanel(true);
+    QApplication::processEvents();
+
+    QDockWidget* statistics = panels.docks->statisticsDock();
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    CHECK(settings.get<bool>(placed, false));
+    CHECK(panels.window.dockWidgetArea(statistics) == Qt::RightDockWidgetArea);
+    CHECK(statistics->toggleViewAction()->isChecked() == rightOpen);
+    if (rightOpen) {
+        CHECK(panels.onTop(annotations));
+    }
+    // A tab of the group of Annotations (Qt lists the tabs shown only)
+    annotations->show();
+    statistics->show();
+    QApplication::processEvents();
+    CHECK(panels.window.tabifiedDockWidgets(annotations).contains(statistics));
+
+    // Once: what the writer does with it later stays
+    statistics->close();
+    panels.docks->placeStatisticsPanel(true);
+    QApplication::processEvents();
+    CHECK_FALSE(statistics->toggleViewAction()->isChecked());
+    settings.removeKey(placed);
+}
+
 TEST_CASE("Panels: the button of a panel shows it, brings it on top, closes it",
           "[gui][panels][styles]") {
     Panels panels;
@@ -562,6 +612,9 @@ TEST_CASE("Panels: the first layout on a small screen says why once", "[gui][pan
 TEST_CASE("Panels: every panel and the text fit a small screen side by side", "[gui][panels]") {
     // Regression: the window took the width of the bar of a file outside the book, so it
     // reached beyond a small screen
+    // The toolbars with their icons, as in the program: a button without its icon shows its
+    // text, so the width depended on whether a test before had registered the icons
+    registerAllIcons();
     Panels panels;
     // The bars of the program's window: the menus, the toolbars and the status bar
     auto* menus = new QMenuBar(&panels.window);

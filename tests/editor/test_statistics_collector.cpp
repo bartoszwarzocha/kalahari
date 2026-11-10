@@ -10,7 +10,13 @@
 #include <kalahari/editor/book_editor.h>
 #include "editor_test_utils.h"
 
+#include <kalahari/core/project_database.h>
+#include <kalahari/core/writing_journal.h>
+#include <kalahari/core/writing_statistics.h>
+
 #include <QApplication>
+#include <QMimeData>
+#include <QTemporaryDir>
 #include <memory>
 
 using namespace kalahari::editor;
@@ -407,5 +413,220 @@ TEST_CASE("StatisticsCollector: an editor closed while followed is forgotten",
     other.fromKml(createKml("One"));
     collector.setBookEditor(&other);
     CHECK(collector.wordCount() == 1);
+    collector.setBookEditor(nullptr);
+}
+
+// =============================================================================
+// The Record of Writing
+// =============================================================================
+
+TEST_CASE("StatisticsCollector: the record of writing goes to the book and the journal",
+          "[editor][statistics]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    kalahari::core::ProjectDatabase database;
+    REQUIRE(database.open(dir.path()));
+    kalahari::core::WritingJournal journal;
+    REQUIRE(journal.open(dir.filePath("writing_journal.db")));
+
+    // The panel of a chapter knows its element, and the editor is inside it
+    QWidget panel;
+    panel.setProperty("elementId", QStringLiteral("chapter-7"));
+    auto* editor = new BookEditor(&panel);
+    editor->fromKml(createKml("Hello world"));
+
+    StatisticsCollector collector;
+    collector.setDatabase(&database);
+    collector.setJournal(&journal);
+    collector.setBookId(QStringLiteral("book-1"));
+    collector.setBookEditor(editor);
+    collector.startSession();
+
+    editor->setCursorPosition({0, 11});
+    editor->insertText(QStringLiteral(" and more"));
+    waitForCount();
+    REQUIRE(collector.pendingActivity().size() == 1);
+    const kalahari::core::WritingActivity entry = collector.pendingActivity().first();
+    CHECK(entry.bookId == "book-1");
+    CHECK(entry.elementId == "chapter-7");
+    CHECK(entry.written == 2);
+    CHECK(entry.date == QDate::currentDate());
+
+    int saved = 0;
+    QObject::connect(&collector, &StatisticsCollector::activitySaved, &collector,
+                     [&saved](const QList<kalahari::core::WritingActivity>& activity) {
+                         saved += int(activity.size());
+                     });
+    collector.flush();
+    CHECK(saved == 1);
+    CHECK(collector.pendingActivity().isEmpty());
+
+    const QDate today = QDate::currentDate();
+    const auto inBook = database.writingActivity(today.addDays(-1), today);
+    const auto inJournal = journal.activity(today.addDays(-1), today, QStringLiteral("book-1"));
+    REQUIRE(inBook.size() == 1);
+    REQUIRE(inJournal.size() == 1);
+    CHECK(inBook.first().written == 2);
+    CHECK(inJournal.first().elementId == "chapter-7");
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+    collector.setDatabase(nullptr);
+    collector.setJournal(nullptr);
+}
+
+TEST_CASE("StatisticsCollector: a large change at once is not writing", "[editor][statistics]") {
+    BookEditor editor;
+    editor.fromKml(createKml("Start"));
+    StatisticsCollector collector;
+    kalahari::core::WritingRules rules;
+    rules.largeChangeWords = 5;
+    collector.setRules(rules);
+    collector.setBookEditor(&editor);
+    collector.startSession();
+    QList<int> skipped;
+    QObject::connect(&collector, &StatisticsCollector::largeChangeSkipped, &collector,
+                     [&skipped](int words) { skipped.append(words); });
+
+    editor.setCursorPosition({0, 5});
+    editor.insertText(QStringLiteral(" one two three four five six seven"));
+    waitForCount();
+    CHECK(collector.wordCount() == 8);
+    CHECK(collector.wordsWrittenThisSession() == 0);
+    REQUIRE(skipped.size() == 1);
+    CHECK(skipped.first() == 7);
+
+    // What is written after it counts from the text with those words
+    editor.insertText(QStringLiteral(" eight"));
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 1);
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+}
+
+TEST_CASE("StatisticsCollector: the words pasted are kept apart from the words written",
+          "[editor][statistics]") {
+    BookEditor editor;
+    editor.fromKml(createKml("Start"));
+    StatisticsCollector collector;
+    kalahari::core::WritingRules rules;
+    rules.largeChangeWords = 2;  // a paste is not a large change, whatever its size
+    collector.setRules(rules);
+    collector.setBookEditor(&editor);
+    collector.startSession();
+    QList<int> skipped;
+    QObject::connect(&collector, &StatisticsCollector::largeChangeSkipped, &collector,
+                     [&skipped](int words) { skipped.append(words); });
+
+    // Typed, and pasted at once after it: the words typed are written, those pasted pasted
+    editor.setCursorPosition({0, 5});
+    editor.insertText(QStringLiteral(" typed "));
+    QMimeData data;
+    data.setText(QStringLiteral("one two three"));
+    editor.insertFromMimeData(&data);
+    CHECK(collector.wordCount() == 5);
+    CHECK(collector.wordsWrittenThisSession() == 1);
+    CHECK(collector.wordsPastedThisSession() == 3);
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 1);
+    CHECK(collector.wordsPastedThisSession() == 3);
+    CHECK(skipped.isEmpty());
+    int written = 0;
+    int pasted = 0;
+    for (const kalahari::core::WritingActivity& entry : collector.pendingActivity()) {
+        written += entry.written;
+        pasted += entry.pasted;
+    }
+    CHECK(written == 1);
+    CHECK(pasted == 3);
+
+    // Undone and redone, the paste takes its words away and brings them back: neither
+    // deleted nor written
+    editor.undo();
+    waitForCount();
+    CHECK(collector.wordCount() == 2);
+    CHECK(collector.wordsPastedThisSession() == 0);
+    CHECK(collector.wordsDeletedThisSession() == 0);
+    editor.redo();
+    waitForCount();
+    CHECK(collector.wordCount() == 5);
+    CHECK(collector.wordsPastedThisSession() == 3);
+    CHECK(collector.wordsWrittenThisSession() == 1);
+
+    // Typing after it is writing again
+    editor.setCursorPosition({0, int(editor.plainText().length())});
+    editor.insertText(QStringLiteral(" more"));
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 2);
+    CHECK(collector.wordsPastedThisSession() == 3);
+
+    // Typed right after the paste, it is undone with it: the words typed are deleted, the
+    // words pasted taken away
+    editor.undo();
+    waitForCount();
+    CHECK(editor.plainText() == QStringLiteral("Start typed "));
+    CHECK(collector.wordsDeletedThisSession() == 1);
+    CHECK(collector.wordsPastedThisSession() == 0);
+    editor.redo();
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 3);
+    CHECK(collector.wordsPastedThisSession() == 3);
+
+    // Undoing what was typed in a level of its own is not undoing a paste
+    editor.setCursorPosition({0, 0});
+    editor.insertText(QStringLiteral("New "));
+    waitForCount();
+    editor.undo();
+    waitForCount();
+    CHECK(collector.wordsDeletedThisSession() == 2);
+    CHECK(collector.wordsPastedThisSession() == 3);
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+}
+
+TEST_CASE("StatisticsCollector: a paste keeps its words while another text is followed",
+          "[editor][statistics]") {
+    BookEditor chapterA;
+    chapterA.fromKml(createKml("Start"));
+    BookEditor chapterB;
+    chapterB.fromKml(createKml("Other"));
+    StatisticsCollector collector;
+    collector.setBookEditor(&chapterA);
+    collector.startSession();
+
+    // Pasted, and typed right after it, in its level of undo
+    chapterA.setCursorPosition({0, 5});
+    QMimeData data;
+    data.setText(QStringLiteral(" one two three"));
+    chapterA.insertFromMimeData(&data);
+    chapterA.insertText(QStringLiteral(" more"));
+    waitForCount();
+    CHECK(collector.wordsPastedThisSession() == 3);
+    CHECK(collector.wordsWrittenThisSession() == 1);
+
+    // Regression: another text followed in between forgot the words of the paste, and its
+    // undo took away four pasted words, the word typed not deleted
+    collector.setBookEditor(&chapterB);
+    collector.setBookEditor(&chapterA);
+    chapterA.undo();
+    waitForCount();
+    CHECK(chapterA.plainText() == QStringLiteral("Start"));
+    CHECK(collector.wordsPastedThisSession() == 0);
+    CHECK(collector.wordsDeletedThisSession() == 1);
+
+    // An editor left and closed takes its pastes with it
+    {
+        BookEditor closed;
+        closed.fromKml(createKml("Closed"));
+        collector.setBookEditor(&closed);
+        closed.setCursorPosition({0, 6});
+        closed.insertFromMimeData(&data);
+        collector.setBookEditor(&chapterB);
+    }
+    CHECK(collector.wordsPastedThisSession() == 3);
+
+    collector.endSession();
     collector.setBookEditor(nullptr);
 }
