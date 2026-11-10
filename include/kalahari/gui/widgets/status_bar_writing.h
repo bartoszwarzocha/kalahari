@@ -4,7 +4,6 @@
 #pragma once
 
 #include <QObject>
-#include <QPointer>
 
 class QLabel;
 class QStatusBar;
@@ -34,11 +33,14 @@ public:
     /// @brief The label of the days in a row
     QLabel* streakLabel() const { return m_streak; }
 
+public slots:
     /// @brief Show what the statistics have now, as the setting says
     void update();
 
 private:
-    QPointer<WritingStatsModel> m_model;
+    // Plain, cleared when the statistics go: clang-tidy's analyzer reports a QPointer as a use
+    // of freed memory
+    WritingStatsModel* m_model{nullptr};
     QLabel* m_time = nullptr;
     QLabel* m_streak = nullptr;
     int m_settingsListener = -1;

@@ -419,7 +419,7 @@ void drawBadge(QPainter& painter, const QRectF& circle, core::BadgeKind kind, co
         pen.setDashPattern({2.0, 1.6});
     }
     QColor fill = color;
-    fill.setAlphaF(won ? 0.16 : 0.0);
+    fill.setAlphaF(won ? 0.16F : 0.0F);
     painter.setPen(pen);
     painter.setBrush(won ? QBrush(fill) : QBrush(Qt::NoBrush));
     painter.drawEllipse(inner);

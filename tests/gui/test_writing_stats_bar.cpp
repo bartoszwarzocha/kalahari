@@ -13,6 +13,7 @@
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/writing_stats_model.h"
 
+#include <QCoreApplication>
 #include <QTemporaryDir>
 #include <QToolButton>
 
@@ -116,11 +117,11 @@ TEST_CASE("Statistics bar: the model counts the journal by the writer's rules",
     CHECK_FALSE(model.hasBook());
     CHECK(model.bookWords() == 0);
 
-    // New rules count at once
+    // New rules count at once: the model takes them in its slot, queued by the settings
     auto& settings = core::SettingsManager::getInstance();
     settings.set<std::string>("stats.goalCounting", "written");
     settings.set<int>("stats.dailyGoal", 600);
-    model.reloadRules();
+    QCoreApplication::processEvents();
     CHECK(model.goalStatistics().day(model.today()).counted(model.rules().counting) == 500);
     CHECK(model.dailyGoalToday() == 600);
     // A day off has no daily goal
@@ -249,6 +250,13 @@ TEST_CASE("Statistics bar: View > Show Statistics Bar turns it on and off", "[gu
     CHECK(coordinator.bar()->isHidden());
     coordinator.toggleBar();
     CHECK(settings.get<bool>(gui::WritingStatsCoordinator::SHOW_BAR_SETTING));
+    CHECK_FALSE(coordinator.bar()->isHidden());
+    // The setting changed elsewhere reaches the bar through the coordinator's queued slot
+    settings.set<bool>(gui::WritingStatsCoordinator::SHOW_BAR_SETTING, false);
+    QCoreApplication::processEvents();
+    CHECK(coordinator.bar()->isHidden());
+    settings.set<bool>(gui::WritingStatsCoordinator::SHOW_BAR_SETTING, true);
+    QCoreApplication::processEvents();
     CHECK_FALSE(coordinator.bar()->isHidden());
     coordinator.bar()->hide();
 }

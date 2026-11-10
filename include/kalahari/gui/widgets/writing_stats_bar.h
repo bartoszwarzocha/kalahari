@@ -8,7 +8,6 @@
 #include <kalahari/gui/writing_stats_model.h>
 
 #include <QList>
-#include <QPointer>
 #include <QWidget>
 
 class QToolButton;
@@ -137,7 +136,9 @@ private:
     QList<const Text*> lineParts() const;
     void cycleMiniGraph();
 
-    QPointer<WritingStatsModel> m_model;
+    // Plain, cleared when the statistics go: clang-tidy's analyzer reports a QPointer as a use
+    // of freed memory
+    WritingStatsModel* m_model{nullptr};
     QToolButton* m_fold{nullptr};
     QToolButton* m_goals{nullptr};
     QToolButton* m_panel{nullptr};

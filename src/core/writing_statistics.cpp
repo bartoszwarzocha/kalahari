@@ -435,14 +435,15 @@ WritingTemperature WritingStatistics::temperature(const QDateTime& now, int wind
     }
 
     // Much: more words that count than usually in the same time of writing
-    const double usualMinutes = usual.activeMs / 60000.0;
+    const double usualMinutes = double(usual.activeMs) / 60000.0;
     const double usualWords = usual.counted(m_rules.counting) / usualMinutes * windowSlots *
                               ACTIVITY_SLOT_MINUTES;
     const bool much = recent.counted(m_rules.counting) > usualWords;
     // Fast: more words written and deleted in a minute of writing than usually
     const double usualSpeed = (usual.written + usual.deleted) / usualMinutes;
     const bool fast = recent.activeMs > 0 &&
-                      (recent.written + recent.deleted) / (recent.activeMs / 60000.0) > usualSpeed;
+                      (recent.written + recent.deleted) / (double(recent.activeMs) / 60000.0) >
+                          usualSpeed;
 
     if (much) {
         return fast ? WritingTemperature::MuchFast : WritingTemperature::MuchSlow;

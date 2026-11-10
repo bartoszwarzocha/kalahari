@@ -72,13 +72,13 @@ StatusBarWriting::StatusBarWriting(QStatusBar* statusBar, WritingStatsModel* mod
     if (m_model != nullptr) {
         connect(m_model, &WritingStatsModel::changed, this, &StatusBarWriting::update);
         connect(m_model, &WritingStatsModel::goalsChanged, this, &StatusBarWriting::update);
+        connect(m_model, &QObject::destroyed, this, [this]() { m_model = nullptr; });
     }
     // The setting may change on another thread: the labels change on this one
-    m_settingsListener = core::SettingsManager::getInstance().subscribe(
-        [labels = QPointer<StatusBarWriting>(this)](const std::string& key) {
-            if (key == SETTING && labels != nullptr) {
-                QMetaObject::invokeMethod(labels, &StatusBarWriting::update,
-                                          Qt::QueuedConnection);
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key == SETTING) {
+                QMetaObject::invokeMethod(this, "update", Qt::QueuedConnection);
             }
         });
     update();

@@ -1107,6 +1107,7 @@ void WritingStatsPanel::setModel(WritingStatsModel* model)
     if (m_model != nullptr) {
         connect(m_model, &WritingStatsModel::changed, this, &WritingStatsPanel::refresh);
         connect(m_model, &WritingStatsModel::goalsChanged, this, &WritingStatsPanel::refresh);
+        connect(m_model, &QObject::destroyed, this, [this]() { m_model = nullptr; });
     }
     m_dirty = true;
     refresh();
@@ -1120,6 +1121,7 @@ void WritingStatsPanel::setAwardsTracker(WritingAwardsTracker* tracker)
     m_tracker = tracker;
     if (m_tracker != nullptr) {
         connect(m_tracker, &WritingAwardsTracker::changed, this, &WritingStatsPanel::refresh);
+        connect(m_tracker, &QObject::destroyed, this, [this]() { m_tracker = nullptr; });
     }
     m_dirty = true;
     refresh();

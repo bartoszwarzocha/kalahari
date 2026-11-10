@@ -105,8 +105,8 @@ BookGoals BookGoals::fromJson(const QString& text)
     goals.deadline = QDate::fromString(object.value(QStringLiteral("deadline")).toString(), DAY_FORMAT);
     goals.dailyGoalFromDeadline = object.value(QStringLiteral("dailyGoalFromDeadline")).toBool();
     const QJsonArray list = object.value(QStringLiteral("deadlines")).toArray();
-    for (const QJsonValue& value : list) {
-        const QJsonObject entry = value.toObject();
+    for (qsizetype i = 0; i < list.size(); ++i) {
+        const QJsonObject entry = list.at(i).toObject();
         WritingDeadline item;
         item.name = entry.value(QStringLiteral("name")).toString();
         item.date = QDate::fromString(entry.value(QStringLiteral("date")).toString(), DAY_FORMAT);

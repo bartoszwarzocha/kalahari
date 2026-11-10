@@ -101,9 +101,9 @@ void drawChoice(QPainter& painter, const QStyleOptionViewItem& option, const QRe
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing, true);
     QColor fill = option.palette.color(QPalette::Highlight);
-    fill.setAlphaF(selected ? 0.16 : 0.0);
+    fill.setAlphaF(selected ? 0.16F : 0.0F);
     QColor edge = option.palette.color(QPalette::Highlight);
-    edge.setAlphaF(focused ? 1.0 : 0.5);
+    edge.setAlphaF(focused ? 1.0F : 0.5F);
     painter.setBrush(fill);
     painter.setPen(QPen(edge, 1.0));
     painter.drawRoundedRect(rect.adjusted(0.5, 0.5, -0.5, -0.5), 4.0, 4.0);

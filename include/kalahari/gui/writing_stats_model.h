@@ -11,7 +11,6 @@
 
 #include <QDateTime>
 #include <QObject>
-#include <QPointer>
 
 #include <functional>
 #include <utility>
@@ -103,9 +102,11 @@ public:
     /// @brief The writer's rules (Settings > Statistics and Goals)
     const core::WritingRules& rules() const { return m_rules; }
 
-    /// @brief Take the rules of the settings again (called when they change)
+public slots:
+    /// @brief Take the rules of the settings again (called by name when they change)
     void reloadRules();
 
+public:
     /// @brief The record the daily and weekly goals count, with what is not saved yet: of all
     /// the books or of the open one
     core::WritingStatistics goalStatistics() const;
@@ -169,7 +170,9 @@ private:
     core::BookGoals m_goals;
     core::ProjectDatabase* m_database{nullptr};
     QString m_bookId;
-    QPointer<editor::StatisticsCollector> m_collector;
+    // Plain, cleared when the collector goes: clang-tidy's analyzer reports a QPointer as a use
+    // of freed memory
+    editor::StatisticsCollector* m_collector{nullptr};
     std::function<int()> m_bookWords;
     std::function<QDateTime()> m_clock;
     QTimer* m_changeTimer{nullptr};  ///< schedule()

@@ -11,7 +11,6 @@
 
 #pragma once
 
-#include <QPointer>
 #include <QWidget>
 
 #include <functional>
@@ -144,8 +143,10 @@ private:
     /// @brief The box of the text pasted as the setting says
     void showCountPasted();
 
-    QPointer<WritingStatsModel> m_model;
-    QPointer<WritingAwardsTracker> m_tracker;
+    // Plain pointers, cleared when their objects go: clang-tidy's analyzer reports a QPointer
+    // as a use of freed memory
+    WritingStatsModel* m_model{nullptr};
+    WritingAwardsTracker* m_tracker{nullptr};
     std::function<QString(const QString&)> m_textTitle;
     std::function<QString()> m_bookTitle;
     View m_view{View::Today};

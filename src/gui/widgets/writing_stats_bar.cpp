@@ -128,6 +128,7 @@ WritingStatsBar::WritingStatsBar(WritingStatsModel* model, QWidget* parent)
     if (m_model != nullptr) {
         connect(m_model, &WritingStatsModel::changed, this, &WritingStatsBar::refresh);
         connect(m_model, &WritingStatsModel::goalsChanged, this, &WritingStatsBar::refresh);
+        connect(m_model, &QObject::destroyed, this, [this]() { m_model = nullptr; });
     }
     auto& themes = core::ThemeManager::getInstance();
     connect(&themes, &core::ThemeManager::themeChanged, this, &WritingStatsBar::refresh);
@@ -248,7 +249,7 @@ void WritingStatsBar::readNumbers()
                                            //: In Polish: %1 słowo / %1 słowa / %1 słów
                                            : tr("%1 words", nullptr, m_words);
     static const QRegularExpression PLACEHOLDER(QStringLiteral("%[12]"));
-    int at = 0;
+    qsizetype at = 0;
     for (auto match = PLACEHOLDER.globalMatch(pattern); match.hasNext();) {
         const QRegularExpressionMatch found = match.next();
         if (found.capturedStart() > at) {
@@ -447,7 +448,7 @@ void WritingStatsBar::layoutParts()
         const double cmax = std::max({m_goal * 1.15, m_words * 1.05, 10.0});
         textsTop = std::round(m_plot.bottom() - m_goal / cmax * m_plot.height()) + 2;
     }
-    const double textsHeight = m_texts.size() * rowHeight() + 3;
+    const double textsHeight = double(m_texts.size()) * rowHeight() + 3;
     textsTop = std::max(2.0, std::min(textsTop, h - textsHeight - 2));
     const double left = m_textsLeft ? 4 : w - BUTTONS_ROOM - 2 - box;
     m_textsRect = QRectF(left, textsTop, box, textsHeight);
@@ -616,7 +617,7 @@ void WritingStatsBar::paintGraph(QPainter& painter)
     const double nx = xOfMinute(double(m_nowMinute));
     if (nx >= plot.left() && nx <= plot.right()) {
         QColor nowColor = m_colors.text;
-        nowColor.setAlphaF(0.45);
+        nowColor.setAlphaF(0.45F);
         painter.setRenderHint(QPainter::Antialiasing, false);
         painter.setPen(QPen(nowColor, 1));
         painter.drawLine(QPointF(std::round(nx) + 0.5, 0), QPointF(std::round(nx) + 0.5, h));
@@ -634,7 +635,7 @@ void WritingStatsBar::paintGraph(QPainter& painter)
     hours.setPointSizeF(std::max(6.5, hours.pointSizeF() * 0.92));
     painter.setFont(hours);
     QColor hoursColor = m_colors.text;
-    hoursColor.setAlphaF(0.8);
+    hoursColor.setAlphaF(0.8F);
     painter.setPen(hoursColor);
     const QFontMetricsF hourMetrics(hours);
     const double labelWidth = hourMetrics.horizontalAdvance(QStringLiteral("00:00")) + 6;
@@ -662,7 +663,7 @@ void WritingStatsBar::paintGraph(QPainter& painter)
     // Layer 4: the texts, in one place, in small print
     if (!m_texts.isEmpty()) {
         QColor box = m_colors.background;
-        box.setAlphaF(0.72);
+        box.setAlphaF(0.72F);
         painter.setPen(Qt::NoPen);
         painter.setBrush(box);
         painter.drawRoundedRect(m_textsRect, 3, 3);
@@ -693,7 +694,7 @@ void WritingStatsBar::paintLine(QPainter& painter)
     if (m_goal > 0) {
         const double share = std::clamp(double(m_words) / m_goal, 0.0, 1.0);
         QColor fill = m_stateColor;
-        fill.setAlphaF(0.16);
+        fill.setAlphaF(0.16F);
         painter.fillRect(QRectF(0, 0, w * share, h), fill);
         painter.fillRect(QRectF(0, h - 2, w * share, 2), m_stateColor);
     }
@@ -707,7 +708,7 @@ void WritingStatsBar::paintLine(QPainter& painter)
     painter.save();
     painter.setClipRect(QRectF(x, 0, std::max(0.0, end - x), h));
     QColor separator = m_colors.text;
-    separator.setAlphaF(0.45);
+    separator.setAlphaF(0.45F);
     for (const Text* text : lineParts()) {
         painter.setFont(smallFont());
         painter.setPen(separator);
@@ -758,8 +759,8 @@ QString WritingStatsBar::pieceToolTip(int piece) const
         const int m = ((minute + m_dayStart) % DAY_MINUTES + DAY_MINUTES) % DAY_MINUTES;
         return QStringLiteral("%1:%2").arg(m / 60).arg(m % 60, 2, 10, QLatin1Char('0'));
     };
-    const QString time = tr("%1–%2").arg(clock(piece * m_pieceMinutes),
-                                         clock((piece + 1) * m_pieceMinutes));
+    QString time = tr("%1–%2").arg(clock(piece * m_pieceMinutes),
+                                   clock((piece + 1) * m_pieceMinutes));
     if (piece * m_pieceMinutes > m_nowMinute) {
         return time;
     }

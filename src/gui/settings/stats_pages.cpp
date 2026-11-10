@@ -10,7 +10,6 @@
 #include "kalahari/gui/widgets/stats_painter.h"
 #include "kalahari/gui/widgets/writing_stats_bar.h"
 
-#include <QButtonGroup>
 #include <QCoreApplication>
 #include <QCheckBox>
 #include <QComboBox>
@@ -113,7 +112,7 @@ protected:
         double total = 0;
         for (int i = 0; i < pieces.size(); ++i) {
             total += pieces[i];
-            sum.lineTo(graph.left() + graph.width() * (i + 1) / pieces.size(),
+            sum.lineTo(graph.left() + graph.width() * (i + 1) / double(pieces.size()),
                        graph.bottom() - total / 125.0 * graph.height());
         }
         painter.setPen(QPen(colors.done, 1.6));
@@ -131,7 +130,7 @@ protected:
         }
         for (int i = 0; i < 5; ++i) {
             QColor color = colors.hoursHigh;
-            color.setAlphaF(0.15 + 0.85 * i / 4.0);
+            color.setAlphaF(0.15F + 0.85F * float(i) / 4.0F);
             painter.setBrush(i == 0 ? colors.hoursLow : color);
             painter.drawRect(QRectF(area.width() * 0.66 + i * 9, area.top() + 6, 8, 8));
         }
@@ -170,11 +169,10 @@ std::vector<QRadioButton*> StatsSettingsPage::addChoices(QFormLayout* form, cons
     QBoxLayout* layout = inRow ? static_cast<QBoxLayout*>(new QHBoxLayout(holder))
                                : static_cast<QBoxLayout*>(new QVBoxLayout(holder));
     layout->setContentsMargins(0, 0, 0, 0);
-    auto* group = new QButtonGroup(holder);
+    // The buttons share the holder, so one of them is checked at a time (auto-exclusive)
     std::vector<QRadioButton*> buttons;
     for (const Choice& choice : choices) {
         auto* button = new QRadioButton(choice.text);
-        group->addButton(button);
         layout->addWidget(button);
         if (!choice.note.isEmpty()) {
             alignWithText(addNote(layout, choice.note), button);
@@ -457,7 +455,7 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
     };
     dayStart.shown = [dayEnd]() { return json(dayEnd->time().msecsSinceStartOfDay() / 60000); };
     dayStart.show = [dayEnd](const json& value) {
-        dayEnd->setTime(QTime(0, 0).addSecs(qint64(value.get<int>()) * 60));
+        dayEnd->setTime(QTime(0, 0).addSecs(value.get<int>() * 60));
     };
     dayStart.store = [](const json& value) {
         core::SettingsManager::getInstance().set<int>("stats.dayStart", value.get<int>());
@@ -636,7 +634,7 @@ void StatsColorsPage::addTheme(const QString& themeName)
     auto* fillLabel = new QLabel(tr("&Fill under the lines:"));
     fillLabel->setBuddy(fill);
     form->addRow(fillLabel, rowOf({fill}));
-    const std::string fillKey = StatsColors::fillOpacitySetting(name);
+    std::string fillKey = StatsColors::fillOpacitySetting(name);
     Binding fillBinding;
     fillBinding.key = [fillKey]() { return fillKey; };
     fillBinding.stored = [fillKey, defaultFill]() {

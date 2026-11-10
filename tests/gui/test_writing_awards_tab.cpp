@@ -42,6 +42,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 
+#include <cstdio>
 #include <functional>
 
 using namespace kalahari;
@@ -64,7 +65,17 @@ const QDate TODAY = NOW.date();
 /// The settings the tests count on, as they are by default; put back when the test ends
 struct DefaultSettings {
     DefaultSettings() { apply(); }
-    ~DefaultSettings() { apply(); }
+    ~DefaultSettings()
+    {
+        try {
+            apply();
+        } catch (...) {
+            // Left as the test made them; the next tests set what they need
+            std::fputs("The statistics settings could not be put back\n", stderr);
+        }
+    }
+    DefaultSettings(const DefaultSettings&) = delete;
+    DefaultSettings& operator=(const DefaultSettings&) = delete;
 
     static void apply()
     {
@@ -142,7 +153,7 @@ T* child(const QWidget& parent, const char* name)
 }
 
 /// Answer the window shown next by @p answer, once
-void whenShown(std::function<void(QDialog&)> answer)
+void whenShown(const std::function<void(QDialog&)>& answer)
 {
     auto* timer = new QTimer();
     timer->setInterval(10);
@@ -677,8 +688,9 @@ TEST_CASE("Writing awards: the time of writing and the days in a row in the stat
     CHECK(labels.streakLabel()->text() == QStringLiteral("9 days"));
     CHECK(labels.streakLabel()->toolTip() == QStringLiteral("Days in a row: 9"));
 
+    // The setting reaches the labels through their slot, queued by the settings
     core::SettingsManager::getInstance().set<bool>(gui::StatusBarWriting::SETTING, false);
-    labels.update();
+    QApplication::processEvents();
     CHECK_FALSE(labels.timeLabel()->isVisible());
     CHECK_FALSE(labels.streakLabel()->isVisible());
 }

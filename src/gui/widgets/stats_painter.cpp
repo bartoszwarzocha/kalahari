@@ -89,7 +89,7 @@ QColor StatsColors::color(const std::string& key) const
 QColor StatsColors::fill() const
 {
     QColor color = line;
-    color.setAlphaF(std::clamp(fillOpacity, 0, 100) / 100.0);
+    color.setAlphaF(float(std::clamp(fillOpacity, 0, 100)) / 100.0F);
     return color;
 }
 
@@ -160,6 +160,7 @@ const std::vector<std::string>& StatsColors::keys()
 {
     static const std::vector<std::string> KEYS = [] {
         std::vector<std::string> keys;
+        keys.reserve(DEFAULT_COLORS.size());
         for (const DefaultColor& entry : DEFAULT_COLORS) {
             keys.emplace_back(entry.key);
         }
@@ -273,7 +274,7 @@ void drawArea(QPainter& painter, const QRectF& rect, const QList<double>& values
     }
     const auto x = [&](int i) {
         return values.size() == 1 ? rect.center().x()
-                                  : rect.left() + rect.width() * i / (values.size() - 1);
+                                  : rect.left() + rect.width() * i / double(values.size() - 1);
     };
     const auto y = [&](double v) {
         return rect.bottom() - std::clamp(v / max, 0.0, 1.0) * rect.height();

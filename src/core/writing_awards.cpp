@@ -124,8 +124,8 @@ QJsonArray badgesToJson(const QList<EarnedBadge>& badges)
 QList<EarnedBadge> badgesFromJson(const QJsonArray& array)
 {
     QList<EarnedBadge> badges;
-    for (const QJsonValue& value : array) {
-        const QJsonObject object = value.toObject();
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QJsonObject object = array.at(i).toObject();
         const std::optional<BadgeKind> kind = badgeKindOf(object.value(QStringLiteral("badge")).toString());
         const int level = object.value(QStringLiteral("level")).toInt(-1);
         if (!kind || level < 0 || level >= BADGE_LEVELS) {
@@ -415,7 +415,9 @@ BookBadges BookBadges::fromJson(const QString& text)
     badges.since = QDate::fromString(object.value(QStringLiteral("since")).toString(), DAY_FORMAT);
     badges.earned = badgesFromJson(object.value(QStringLiteral("earned")).toArray());
     badges.history = badgesFromJson(object.value(QStringLiteral("history")).toArray());
-    for (const QJsonValue& value : object.value(QStringLiteral("kept")).toArray()) {
+    const QJsonArray kept = object.value(QStringLiteral("kept")).toArray();
+    for (qsizetype i = 0; i < kept.size(); ++i) {
+        const QJsonValue value = kept.at(i);
         if (value.isString()) {
             badges.keptDeadlines.append(value.toString());
         }

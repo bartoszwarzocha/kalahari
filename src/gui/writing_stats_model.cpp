@@ -39,11 +39,10 @@ WritingStatsModel::WritingStatsModel(QObject* parent)
     m_minuteTimer->start();
 
     // The settings may change on another thread: the rules change on this one
-    m_settingsListener = core::SettingsManager::getInstance().subscribe(
-        [model = QPointer<WritingStatsModel>(this)](const std::string& key) {
-            if (key.rfind("stats.", 0) == 0 && model != nullptr) {
-                QMetaObject::invokeMethod(model, &WritingStatsModel::reloadRules,
-                                          Qt::QueuedConnection);
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key.rfind("stats.", 0) == 0) {
+                QMetaObject::invokeMethod(this, "reloadRules", Qt::QueuedConnection);
             }
         });
 }
@@ -82,6 +81,7 @@ void WritingStatsModel::setCollector(editor::StatisticsCollector* collector)
         m_collector->setJournal(m_journal.isOpen() ? &m_journal : nullptr);
         m_collector->setRules(m_rules);
         m_collector->setBookId(m_bookId);
+        connect(m_collector, &QObject::destroyed, this, [this]() { m_collector = nullptr; });
         connect(m_collector, &editor::StatisticsCollector::writingRecorded, this,
                 &WritingStatsModel::schedule);
         // What it saved is in the book and in the journal now
@@ -273,7 +273,7 @@ std::pair<int, int> WritingStatsModel::shownMinutes(const QList<DayPiece>& piece
 
 qint64 WritingStatsModel::minutesIntoDay(const QDate& day, const QDateTime& when) const
 {
-    const QDateTime start(day, QTime(0, 0).addSecs(qint64(m_rules.dayStartMinutes) * 60));
+    const QDateTime start(day, QTime(0, 0).addSecs(m_rules.dayStartMinutes * 60));
     return start.secsTo(when) / 60;
 }
 

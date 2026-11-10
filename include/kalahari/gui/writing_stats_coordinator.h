@@ -7,7 +7,6 @@
 
 #include <QDateTime>
 #include <QObject>
-#include <QPointer>
 #include <QString>
 #include <QStringList>
 
@@ -111,14 +110,17 @@ public:
     /// @brief Turn the statistics bar on or off (the setting SHOW_BAR_SETTING)
     void toggleBar();
 
+private slots:
+    /// @brief Show or hide the bar as the setting says (called by name from the listener of
+    /// the settings)
+    void applyBarVisibility();
+
 private:
     /// @brief A book was opened: its record, its goals and the collector of its editors
     void onProjectOpened();
     /// @brief The book is closing: the summary of the session, then the record goes on in the
     /// journal only
     void onProjectClosing();
-    /// @brief Show or hide the bar as the setting says
-    void applyBarVisibility();
     /// @brief The messages of the tracker, as the settings say
     void connectMessages();
     /// @brief Show the messages of this moment in the bar
@@ -134,7 +136,9 @@ private:
     QTimer* m_messageTimer{nullptr};
     QStringList m_pendingMessages;
     StatusBarWriting* m_statusBarWriting{nullptr};
-    QPointer<QWidget> m_summaryWindow;
+    // Plain, cleared when the window goes: clang-tidy's analyzer reports a QPointer as a use
+    // of freed memory
+    QWidget* m_summaryWindow{nullptr};
     QDateTime m_sessionStart;     ///< The session started then: the book opened
     bool m_summaryShown{false};   ///< The summary of this session was shown
     int m_settingsListener{-1};

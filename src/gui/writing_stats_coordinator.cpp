@@ -33,7 +33,6 @@
 #include <QClipboard>
 #include <QDockWidget>
 #include <QLocale>
-#include <QPointer>
 #include <QTabWidget>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -203,12 +202,10 @@ WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
     });
 
     // The setting may change on another thread: the bar is shown or hidden on this one
-    m_settingsListener = core::SettingsManager::getInstance().subscribe(
-        [coordinator = QPointer<WritingStatsCoordinator>(this)](const std::string& key) {
-            if (key == SHOW_BAR_SETTING && coordinator != nullptr) {
-                QMetaObject::invokeMethod(coordinator,
-                                          &WritingStatsCoordinator::applyBarVisibility,
-                                          Qt::QueuedConnection);
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (key == SHOW_BAR_SETTING) {
+                QMetaObject::invokeMethod(this, "applyBarVisibility", Qt::QueuedConnection);
             }
         });
 
@@ -476,7 +473,14 @@ void WritingStatsCoordinator::attachStatusBar(QStatusBar* statusBar)
 
 void WritingStatsCoordinator::setSummaryWindow(QWidget* window)
 {
+    if (m_summaryWindow != nullptr) {
+        disconnect(m_summaryWindow, nullptr, this, nullptr);
+    }
     m_summaryWindow = window;
+    if (m_summaryWindow != nullptr) {
+        connect(m_summaryWindow, &QObject::destroyed, this,
+                [this]() { m_summaryWindow = nullptr; });
+    }
 }
 
 void WritingStatsCoordinator::showSessionSummary()

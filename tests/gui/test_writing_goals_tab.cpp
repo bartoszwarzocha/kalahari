@@ -112,7 +112,7 @@ QStringList rowTexts(const QTreeWidget& list, int row)
 }
 
 /// Answer the window shown next by @p answer, once
-void whenShown(std::function<void(QDialog&)> answer)
+void whenShown(const std::function<void(QDialog&)>& answer)
 {
     auto* timer = new QTimer();
     timer->setInterval(10);
