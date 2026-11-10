@@ -255,6 +255,18 @@ int QTextDocumentSource::pageCount() const {
     return layout ? layout->pageCount() : 1;
 }
 
+MarginCounts QTextDocumentSource::marginCountsBefore(size_t index) const {
+    if (const auto* layout = kalahariLayout()) {
+        return layout->marginCountsBefore(static_cast<int>(index));
+    }
+    return ITextSource::marginCountsBefore(index);
+}
+
+bool QTextDocumentSource::isNumberedParagraph(size_t index) const {
+    const QTextBlock block = blockAt(index);
+    return block.isValid() && KalahariTextDocumentLayout::isNumberedParagraph(block);
+}
+
 KalahariTextDocumentLayout* QTextDocumentSource::kalahariLayout() const {
     return m_document ? qobject_cast<KalahariTextDocumentLayout*>(m_document->documentLayout())
                       : nullptr;

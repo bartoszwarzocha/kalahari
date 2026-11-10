@@ -837,7 +837,7 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
             const QTextCursor& range = m_writing->range;
             editor::BookEditor* editor = m_writing->editor;
             placement.place = editor->placeRect(range.selectionEnd(), range.hasSelection());
-            placement.column = editor->textColumnRect();
+            placement.column = editor->textColumnRect(placement.place.center().y());
             if (editor->showsAnnotationCard(m_writing->kind)) {
                 placement.card = editor->annotationCardRect(m_writing->annotationId);
             }

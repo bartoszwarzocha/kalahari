@@ -187,7 +187,7 @@ TEST_CASE("Annotation cards: none by default; the setting shows them under the p
                                             false)
                               .top());
     // Indented from the text's left edge, as wide as the text's right edge allows
-    const QRectF column = editor->textColumnRect();
+    const QRectF column = editor->textColumnRect(comment.center().y());
     CHECK(comment.left() > column.left());
     CHECK(comment.right() == Approx(column.right()).margin(1.0));
 

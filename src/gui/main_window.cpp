@@ -42,6 +42,7 @@
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
+#include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
@@ -205,6 +206,9 @@ MainWindow::MainWindow(QWidget* parent)
     // A chapter title changed in the Properties panel shows on its tab too
     connect(m_dockCoordinator, &DockCoordinator::chapterStatusChanged,
             m_navigatorCoordinator, &NavigatorCoordinator::refreshTabTitle);
+    // ... and whether it starts on a left page, in the margins of its pages
+    connect(m_dockCoordinator, &DockCoordinator::chapterFirstPageChanged,
+            m_navigatorCoordinator, &NavigatorCoordinator::refreshFirstPage);
     // Add... on a node of the Navigator: the Add Element window with the kinds of the node
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestAdd,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestAdd);
@@ -825,6 +829,11 @@ void MainWindow::registerCommands() {
     callbacks.onAnnotationCardsToggle = [this]() { onAnnotationCardsToggle(); };
     callbacks.onDistractionFreeToggle = [this]() { onDistractionFreeToggle(); };
     callbacks.onFormattingMarksToggle = [this]() { onFormattingMarksToggle(); };
+    callbacks.onMarginNumbering = [this](const QString& mode) { onMarginNumbering(mode); };
+    callbacks.onMarginNumberingSettings = [this]() {
+        m_settingsCoordinator->openSettingsPage(
+            QString::fromLatin1(SettingsDialog::MARGIN_NUMBERING_PAGE));
+    };
 
     // Zoom commands act on the editor in front, or on the preview of a material, which fits
     // its picture to the window for the width of the page and the whole page
@@ -1029,6 +1038,19 @@ void MainWindow::registerCommands() {
     utils::followSetting(registry.getAction(std::string("view.focus")), "editor.focus.enabled");
     utils::followSetting(registry.getAction(std::string("view.showFormattingMarks")),
                          "editor.showFormattingMarks");
+
+    // So are the numbers on the margin: one choice of three, as in the Settings dialog
+    auto* numbering = new QActionGroup(this);
+    for (const auto& [id, mode] : {std::pair{"view.marginNumbers.none", editor::MARGIN_NUMBERING_NONE},
+                                   std::pair{"view.marginNumbers.lines", editor::MARGIN_NUMBERING_LINES},
+                                   std::pair{"view.marginNumbers.paragraphs",
+                                             editor::MARGIN_NUMBERING_PARAGRAPHS}}) {
+        QAction* action = registry.getAction(std::string(id));
+        utils::followChoice(action, "editor.marginNumbers.mode", mode);
+        if (action != nullptr) {
+            numbering->addAction(action);
+        }
+    }
 
     logger.debug("Commands registered successfully ({} commands)", count);
 }
@@ -1444,6 +1466,23 @@ void MainWindow::onFormattingMarksToggle() {
                                      show ? "on" : "off");
     statusBar()->showMessage(show ? tr("Formatting marks: shown") : tr("Formatting marks: hidden"),
                              2000);
+}
+
+void MainWindow::onMarginNumbering(const QString& mode) {
+    // A setting of all editors, kept between sessions, as in the Settings dialog: every
+    // editor follows it. The numbering on chosen again (its toolbar button) turns it off.
+    const std::string chosen = utils::chooseSetting("editor.marginNumbers.mode",
+                                                    mode.toStdString(),
+                                                    editor::MARGIN_NUMBERING_NONE);
+    core::Logger::getInstance().info("Action triggered: Margin Numbering {}", chosen);
+
+    QString message = tr("Margin numbering: off");
+    switch (editor::marginNumberingFromName(QString::fromStdString(chosen))) {
+        case editor::MarginNumbering::Lines: message = tr("Margin numbering: lines"); break;
+        case editor::MarginNumbering::Paragraphs: message = tr("Margin numbering: paragraphs"); break;
+        case editor::MarginNumbering::None: break;
+    }
+    statusBar()->showMessage(message, 2000);
 }
 
 bool MainWindow::isDistractionFree() const {
