@@ -3,6 +3,9 @@
 
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/dialogs/font_dialog.h"
+#include "kalahari/gui/dialogs/list_dialogs.h"
+#include "kalahari/gui/dialogs/paragraph_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
@@ -126,6 +129,12 @@ EditorPanel::EditorPanel(QWidget* parent)
                               : tr("Caps Lock is on: the word typed with it is corrected. "
                                    "Turn Caps Lock off."));
     });
+
+    // The windows of the lists, asked for by the context menu of a list item
+    connect(m_bookEditor, &editor::BookEditor::bulletsAndNumberingAsked, this,
+            &EditorPanel::showBulletsAndNumbering);
+    connect(m_bookEditor, &editor::BookEditor::numberingValueAsked, this,
+            &EditorPanel::showNumberingValue);
 
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
@@ -551,6 +560,8 @@ void EditorPanel::applySettings() {
     autoCorrect.capsLock = replaces("editor.autoCorrect.capsLock");
     autoCorrect.sceneBreak = replaces("editor.autoCorrect.sceneBreak");
     autoCorrect.horizontalRule = replaces("editor.autoCorrect.horizontalRule");
+    autoCorrect.bulletedLists = replaces("editor.autoCorrect.bulletedLists");
+    autoCorrect.numberedLists = replaces("editor.autoCorrect.numberedLists");
     m_bookEditor->setAutoCorrect(autoCorrect);
 
     // How text from other programs is pasted (Settings > Editor > General)
@@ -562,6 +573,63 @@ void EditorPanel::applySettings() {
     applyPaperScale();
 
     core::Logger::getInstance().debug("EditorPanel: editor settings applied");
+}
+
+void EditorPanel::showBulletsAndNumbering() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    const std::optional<editor::ListItem> item = m_bookEditor->currentListItem();
+    dialogs::BulletsNumberingDialog dialog(
+        item ? item->definition : editor::ListDefinition::numbered(), item ? item->level : 0,
+        window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->applyListDefinition(dialog.definition());
+    }
+}
+
+void EditorPanel::showFontDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    dialogs::FontDialog dialog(m_bookEditor->shownCharacterFormat(), m_bookEditor->selectedText(),
+                               window());
+    if (dialog.exec() == QDialog::Accepted) {
+        const editor::CharacterFormat changes = dialog.changes();
+        if (changes != editor::CharacterFormat{}) {
+            m_bookEditor->applyCharacterFormat(changes);
+        }
+    }
+}
+
+void EditorPanel::showParagraphDialog() {
+    if (m_bookEditor->isReadOnly()) {
+        return;
+    }
+    dialogs::ParagraphDialog dialog(m_bookEditor->shownParagraphFormat(),
+                                    m_bookEditor->currentAlignment(),
+                                    m_bookEditor->currentListItem().has_value(), window());
+    if (dialog.exec() == QDialog::Accepted) {
+        const editor::ParagraphFormat changes = dialog.changes();
+        const std::optional<Qt::Alignment> alignment = dialog.alignmentChange();
+        if (!changes.isEmpty() || alignment) {
+            m_bookEditor->applyParagraphFormat(changes, alignment);
+        }
+    }
+}
+
+void EditorPanel::showNumberingValue() {
+    const std::optional<editor::ListItem> item = m_bookEditor->currentListItem();
+    if (!item || m_bookEditor->isReadOnly()) {
+        return;
+    }
+    const int number = m_bookEditor->currentListNumber();
+    dialogs::NumberingValueDialog dialog(item->levelFormat(),
+                                         number >= 0 ? number : item->levelFormat().start,
+                                         window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->setNumberingValue(dialog.value());
+    }
 }
 
 void EditorPanel::setFirstPageLeft(bool left) {

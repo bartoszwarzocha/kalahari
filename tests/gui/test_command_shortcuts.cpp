@@ -129,13 +129,21 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"format.style.heading3", QStringLiteral("Alt+3")},
         {"format.style.body", QStringLiteral("Alt+0")},
 #endif
+        {"format.font", QStringLiteral("Ctrl+D")},  // as in Word
         {"format.bold", QStringLiteral("Ctrl+B")},
+        // The indexes as in LibreOffice, the capitals as in Word
+        {"format.superscript", QStringLiteral("Ctrl+Shift+P")},
+        {"format.subscript", QStringLiteral("Ctrl+Shift+B")},
+        {"format.smallCaps", QStringLiteral("Ctrl+Shift+K")},
+        {"format.allCaps", QStringLiteral("Ctrl+Shift+A")},
         {"format.italic", QStringLiteral("Ctrl+I")},
         {"format.underline", QStringLiteral("Ctrl+U")},
         {"format.alignLeft", QStringLiteral("Ctrl+L")},
         {"format.alignCenter", QStringLiteral("Ctrl+E")},
         {"format.alignRight", QStringLiteral("Ctrl+R")},
         {"format.justify", QStringLiteral("Ctrl+J")},
+        {"format.bullets", QStringLiteral("Shift+F12")},  // as in LibreOffice
+        {"format.numbering", QStringLiteral("F12")},
 #ifdef Q_OS_MACOS
         {"format.clearFormatting", QStringLiteral("Ctrl+\\")},  // Cmd+\: Cmd+Space is Spotlight
 #else

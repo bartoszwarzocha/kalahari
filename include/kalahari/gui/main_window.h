@@ -24,6 +24,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 
+class QColor;
 class QDockWidget;
 class QCloseEvent;
 class QShowEvent;
@@ -62,6 +63,7 @@ class VersionsCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
 }
@@ -268,6 +270,10 @@ private slots:
     void onFormatStrikethrough();
 
     /// @brief Slot for Format > Align Left action
+    /// @brief Format > Font Color or Highlight Color: give the selection in the editor in
+    ///        front, or the text typed next, a color (invalid: automatic, or no highlight)
+    void applyColor(const QColor& color, bool highlight);
+
     void onAlignLeft();
 
     /// @brief Slot for Format > Align Center action
@@ -411,6 +417,10 @@ private:
 
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};
+
+    /// @brief The submenus of Format > Font Color and Highlight Color
+    ColorMenu* m_fontColorMenu{nullptr};
+    ColorMenu* m_highlightColorMenu{nullptr};
 
     /// @brief Save Version and Version History of the texts of the book
     VersionsCoordinator* m_versionsCoordinator{nullptr};

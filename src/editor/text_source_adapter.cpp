@@ -4,6 +4,7 @@
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_data.h>
+#include <QPainter>
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QAbstractTextDocumentLayout>
@@ -74,6 +75,28 @@ std::vector<AnnotationMark> QTextDocumentSource::paragraphAnnotationMarks(size_t
 
 std::vector<FormattingMark> QTextDocumentSource::paragraphFormattingMarks(size_t index) const {
     return formattingMarksOf(blockAt(index));
+}
+
+std::vector<ColoredText> QTextDocumentSource::paragraphColors(size_t index) const {
+    std::vector<ColoredText> colored;
+    const QTextBlock block = blockAt(index);
+    if (!block.isValid()) return colored;
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        const QColor color = textColorOf(fragment.charFormat());
+        const QColor highlight = highlightColorOf(fragment.charFormat());
+        if (color.isValid() || highlight.isValid()) {
+            colored.push_back({fragment.position() - block.position(), fragment.length(), color,
+                               highlight});
+        }
+    }
+    return colored;
+}
+
+void QTextDocumentSource::drawListMarker(QPainter* painter, size_t index) const {
+    if (const KalahariTextDocumentLayout* layout = kalahariLayout(); layout != nullptr && painter) {
+        layout->drawListMarker(painter, blockAt(index), QPointF(0, 0), painter->pen().color());
+    }
 }
 
 QTextLayout* QTextDocumentSource::layout(size_t index) const {
