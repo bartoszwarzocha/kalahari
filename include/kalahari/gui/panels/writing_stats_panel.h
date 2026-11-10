@@ -126,13 +126,13 @@ private:
     /// @brief What every view counts from, once for each refresh
     Context context() const;
     /// @brief What a view shows
-    void viewOf(View view, const Context& context, ViewData& data) const;
-    void showToday(const Context& context, ViewData& data) const;
-    void showWeek(const Context& context, ViewData& data) const;
-    void showMonth(const Context& context, ViewData& data) const;
-    void showBook(const Context& context, ViewData& data) const;
-    void showHours(const Context& context, ViewData& data) const;
-    void showAwards(const Context& context, ViewData& data) const;
+    void viewOf(View view, const Context& context, ViewData& viewData) const;
+    void showToday(const Context& context, ViewData& viewData) const;
+    void showWeek(const Context& context, ViewData& viewData) const;
+    void showMonth(const Context& context, ViewData& viewData) const;
+    void showBook(const Context& context, ViewData& viewData) const;
+    void showHours(const Context& context, ViewData& viewData) const;
+    void showAwards(const Context& context, ViewData& viewData) const;
     /// @brief The texts of the view Achievements in the language of the program
     void retranslateAwards();
     /// @brief The list of views: those the settings show, with their small graphs and texts

@@ -244,8 +244,9 @@ private:
     bool m_sessionActive{false};
     QDateTime m_sessionStart;
     int m_previousWordCount{0};  ///< For delta calculation
-    /// The words each paste brought, by its level of undo (BookEditor::pastingFinished())
-    QHash<int, int> m_pastedAtLevel;
+    /// The words each paste brought, by its level of undo (BookEditor::pastingFinished()),
+    /// for each editor: an editor keeps its undo while another one is followed
+    QHash<const QObject*, QHash<int, int>> m_pastedAtLevel;
 
     // Auto-flush timer
     QTimer* m_flushTimer{nullptr};

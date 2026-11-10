@@ -562,6 +562,9 @@ TEST_CASE("Panels: the first layout on a small screen says why once", "[gui][pan
 TEST_CASE("Panels: every panel and the text fit a small screen side by side", "[gui][panels]") {
     // Regression: the window took the width of the bar of a file outside the book, so it
     // reached beyond a small screen
+    // The toolbars with their icons, as in the program: a button without its icon shows its
+    // text, so the width depended on whether a test before had registered the icons
+    registerAllIcons();
     Panels panels;
     // The bars of the program's window: the menus, the toolbars and the status bar
     auto* menus = new QMenuBar(&panels.window);

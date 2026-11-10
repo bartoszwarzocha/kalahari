@@ -133,7 +133,11 @@ void WritingAwardsTracker::keepBookFacts()
             core::Logger::getInstance().info("WritingAwardsTracker: The book reached its length");
         }
     }
-    // A deadline is kept when its part has its words by its day
+    // A deadline is kept when its part has its words by its day; not in a book open read-only,
+    // which keeps nothing
+    if (m_model->isBookReadOnly()) {
+        return;
+    }
     bool kept = false;
     for (const core::WritingDeadline& deadline : goals.deadlines) {
         if (deadline.targetWords <= 0 || !deadline.date.isValid() || today > deadline.date) {
@@ -180,8 +184,10 @@ void WritingAwardsTracker::evaluate()
         for (const core::BadgeProgress& progress : std::as_const(m_progress)) {
             const core::BadgeGroup group = core::badgeGroupOf(progress.kind);
             // The month's share of days with the goal is given when the month is over
+            // The badges of a book open read-only would go with the copy of its database
             if (progress.kind == core::BadgeKind::MonthGoalDays ||
-                (group == core::BadgeGroup::Book && !data.hasBook)) {
+                (group == core::BadgeGroup::Book &&
+                 (!data.hasBook || m_model->isBookReadOnly()))) {
                 continue;
             }
             const QString scope = group == core::BadgeGroup::Month  ? core::monthScope(today)
@@ -396,7 +402,7 @@ int WritingAwardsTracker::monthsWon(core::BadgeKind kind, int level) const
 
 void WritingAwardsTracker::startBookOver()
 {
-    if (m_model->database() == nullptr) {
+    if (m_model->database() == nullptr || m_model->isBookReadOnly()) {
         return;
     }
     m_bookBadges.history.append(m_bookBadges.earned);

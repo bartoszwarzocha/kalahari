@@ -317,6 +317,7 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     addFieldNote(bar, tr("A click on the mini graph switches it too: today, 7 or 30 days."));
 
     QFormLayout* panel = addGroup(tr("Statistics Panel"));
+    // In two columns: three are too wide for the settings on a small screen
     auto* views = new QWidget();
     auto* viewsLayout = new QGridLayout(views);
     viewsLayout->setContentsMargins(0, 0, 0, 0);
@@ -329,7 +330,7 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     for (std::size_t i = 0; i < panelViews.size(); ++i) {
         auto* box = new QCheckBox(panelViews[i].first);
         bind(box, panelViews[i].second);
-        viewsLayout->addWidget(box, int(i / 3), int(i % 3));
+        viewsLayout->addWidget(box, int(i / 2), int(i % 2));
         if (firstView == nullptr) {
             firstView = box;
         }
@@ -340,7 +341,8 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     addFieldNote(panel, tr("Hidden views take no room in the panel."));
 
     QFormLayout* status = addGroup(tr("Status Bar"));
-    addOption(status, tr("Show the time of writing and the d&ays in a row"), "stats.statusBar",
+    // Short: the widest row of the page sets how narrow the settings can be
+    addOption(status, tr("Time of writing and d&ays in a row"), "stats.statusBar",
               tr("Beside the words and the reading time, at the bottom of the window."));
 
     QFormLayout* advanced = addAdvanced(tr("Graph of the Bar"));
@@ -498,12 +500,17 @@ StatsNotificationsPage::StatsNotificationsPage(QWidget* parent)
     QFormLayout* messages = addGroup(tr("Messages"));
     addOption(messages, tr("&Daily goal reached"), "stats.notify.dailyGoal");
     addOption(messages, tr("&Weekly goal reached"), "stats.notify.weeklyGoal");
-    auto* deadline = new QCheckBox(tr("A deadline is &coming,"));
+    // The days under the box, in line with its text: in one row they are too wide in Polish for
+    // the settings on a small screen
+    auto* deadline = new QCheckBox(tr("A deadline is &coming"));
     bind(deadline, "stats.notify.deadline");
     QSpinBox* days = numberBox(1, 14);
     days->setAccessibleName(tr("Days before the deadline"));
     bind(days, "stats.notify.deadlineDays");
-    messages->addRow(rowOf({deadline, days, new QLabel(tr("days before"))}));
+    messages->addRow(deadline);
+    QWidget* daysRow = rowOf({days, new QLabel(tr("days before"))});
+    alignWithText(daysRow, deadline);
+    messages->addRow(daysRow);
     alignWithText(addNote(messages, tr("The deadline of the book and the deadlines on the tab "
                                        "Writing Goals and Deadlines.")),
                   deadline);

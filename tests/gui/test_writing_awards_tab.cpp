@@ -20,6 +20,7 @@
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/stats_painter.h"
 #include "kalahari/gui/widgets/status_bar_writing.h"
+#include "kalahari/gui/widgets/writing_stats_bar.h"
 #include "kalahari/gui/writing_awards_tracker.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/writing_stats_model.h"
@@ -674,6 +675,28 @@ TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom"
     CHECK(bar->message() == QStringLiteral("The deadline “For the editor” is tomorrow (13 November). "
                                            "There are %1 of %2 words.")
                                 .arg(number(3000), number(4000)));
+}
+
+TEST_CASE("Writing awards: the window goes with its middle before the coordinator",
+          "[gui][statistics][awards]")
+{
+    // Regression: the window deletes its middle, with the statistics bar and the bar of the
+    // messages, before the coordinator it made later; the coordinator then read the freed
+    // bars (seen under the sanitizers)
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    gui::registerAllCommands(gui::CommandCallbacks{});
+    auto* window = new QMainWindow();
+    auto* docks = new gui::DockCoordinator(window, window);
+    docks->createDocks();
+    auto* coordinator = new gui::WritingStatsCoordinator(
+        docks, nullptr, [](const QString&) {}, window, dir.filePath(QStringLiteral("journal.db")));
+    REQUIRE(coordinator->bar() != nullptr);
+    REQUIRE(coordinator->bar()->parent() != nullptr);
+    bool gone = false;
+    QObject::connect(coordinator, &QObject::destroyed, [&gone]() { gone = true; });
+    delete window;
+    CHECK(gone);
 }
 
 TEST_CASE("Writing awards: the time of writing and the days in a row in the status bar",

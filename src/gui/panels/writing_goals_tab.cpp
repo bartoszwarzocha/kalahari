@@ -125,6 +125,7 @@ WritingGoalsTab::WritingGoalsTab(WritingStatsModel* model, QWidget* parent)
     m_title->setFont(titleFont);
     layout->addWidget(m_title);
     m_intro = new QLabel(content);
+    m_intro->setObjectName(QStringLiteral("goalsIntro"));
     m_intro->setWordWrap(true);
     m_intro->setTextFormat(Qt::PlainText);
     m_notes.append(m_intro);
@@ -480,7 +481,16 @@ void WritingGoalsTab::refresh()
     // The goals of the book
     const bool book = m_model->hasBook();
     const QString title = book && m_source.title ? m_source.title() : QString();
-    if (book) {
+    const bool readOnly = m_model->isBookReadOnly();
+    if (readOnly) {
+        //: %1: the title of the book. In Polish: Cel dzienny i dni pisania są Twoje, wspólne dla
+        //: wszystkich książek. Książka „%1” jest otwarta tylko do odczytu, więc jej celu i
+        //: terminów nie można zmienić.
+        m_intro->setText(tr("The daily goal and the writing days are yours, the same for all the "
+                            "books. The book “%1” is open read-only, so its goal and deadlines "
+                            "cannot be changed.")
+                             .arg(title));
+    } else if (book) {
         //: %1: the title of the book. In Polish: Cel dzienny i dni pisania są Twoje, wspólne dla
         //: wszystkich książek. Cel książki i terminy zapisują się w książce „%1”. Zmiany działają
         //: od razu.
@@ -496,8 +506,8 @@ void WritingGoalsTab::refresh()
                             "at once."));
     }
     const core::BookGoals& goals = m_model->goals();
-    m_bookGroup->setEnabled(book);
-    m_deadlinesGroup->setEnabled(book);
+    m_bookGroup->setEnabled(book && !readOnly);
+    m_deadlinesGroup->setEnabled(book && !readOnly);
     showValue(m_length, goals.targetWords);
     {
         const QSignalBlocker blocker(m_hasDeadline);
@@ -513,8 +523,7 @@ void WritingGoalsTab::refresh()
 
     // The daily goal from the deadline: with a length and a deadline still ahead
     const QDate today = m_model->today();
-    const bool deadlineAhead = goals.targetWords > 0 && goals.deadline.isValid() &&
-                               goals.deadline >= today;
+    const bool deadlineAhead = goals.hasDeadlineAhead(today);
     {
         const QSignalBlocker blocker(m_fromDeadline);
         m_fromDeadline->setChecked(book && goals.dailyGoalFromDeadline);
@@ -526,9 +535,8 @@ void WritingGoalsTab::refresh()
         //: In Polish: (potrzebuje długości i terminu książki)
         m_fromDeadlineNote->setText(tr("(needs the length and the deadline of the book)"));
     } else {
-        const int wordsToday = m_model->bookStatistics().day(today).counted(rules.counting);
         const int needed = core::dailyGoalForDeadline(rules, goals,
-                                                      m_model->bookWords() - wordsToday, today);
+                                                      m_model->bookWordsAtStartOfToday(), today);
         m_fromDeadlineNote->setText(
             rules.isWritingDay(today)
                 //: In Polish: (dziś: %1)

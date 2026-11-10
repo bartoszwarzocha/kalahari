@@ -1338,13 +1338,13 @@ void WritingStatsPanel::fillList(const Context& context)
     int row = -1;
     for (int i = 0; i < m_listed.size(); ++i) {
         const View view = m_listed[i];
-        ViewData data;
-        viewOf(view, context, data);
+        ViewData viewData;
+        viewOf(view, context, viewData);
         QListWidgetItem* item = m_list->item(i);
-        const QString text = QStringLiteral("%1: %2").arg(data.title, data.listText);
-        item->setData(Qt::DisplayRole, data.title);
-        item->setData(SUBTITLE_ROLE, data.listText);
-        item->setData(Qt::DecorationRole, miniGraph(data.graph, context.colors, ratio));
+        const QString text = QStringLiteral("%1: %2").arg(viewData.title, viewData.listText);
+        item->setData(Qt::DisplayRole, viewData.title);
+        item->setData(SUBTITLE_ROLE, viewData.listText);
+        item->setData(Qt::DecorationRole, miniGraph(viewData.graph, context.colors, ratio));
         item->setData(Qt::AccessibleTextRole, text);
         m_listTexts.append(text);
         if (view == m_view) {
@@ -1365,88 +1365,89 @@ void WritingStatsPanel::fillList(const Context& context)
 
 void WritingStatsPanel::fillView(const Context& context)
 {
-    ViewData data;
-    viewOf(m_view, context, data);
-    m_title->setText(data.title);
-    m_subtitle->setText(data.subtitle);
-    m_subtitle->setVisible(!data.subtitle.isEmpty());
-    m_previous->setVisible(data.periods);
-    m_next->setVisible(data.periods);
-    m_next->setEnabled(data.later);
-    m_graph->setVisible(data.graph.kind != GraphData::Kind::None);
-    m_graph->setGraph(data.graph, context.colors);
-    m_note->setText(data.note);
-    m_note->setVisible(!data.note.isEmpty());
+    ViewData viewData;
+    viewOf(m_view, context, viewData);
+    m_title->setText(viewData.title);
+    m_subtitle->setText(viewData.subtitle);
+    m_subtitle->setVisible(!viewData.subtitle.isEmpty());
+    m_previous->setVisible(viewData.periods);
+    m_next->setVisible(viewData.periods);
+    m_next->setEnabled(viewData.later);
+    m_graph->setVisible(viewData.graph.kind != GraphData::Kind::None);
+    m_graph->setGraph(viewData.graph, context.colors);
+    m_note->setText(viewData.note);
+    m_note->setVisible(!viewData.note.isEmpty());
     QFont big = scaledFont(font(), 1.4);
     big.setWeight(QFont::Light);
-    m_numbers->setNumbers(data.numbers, big);
-    m_numbers->setVisible(!data.numbers.isEmpty());
-    m_progress->setVisible(data.progress >= 0.0);
-    m_progress->setShare(data.progress, context.colors);
-    m_details->setDetails(data.details);
-    m_details->setVisible(!data.details.isEmpty());
-    m_goals->setVisible(data.goals);
-    m_addChallenge->setVisible(data.awards);
-    m_awardsCaption->setVisible(data.awards && data.badgeWon);
-    m_bigBadge->setVisible(data.awards);
-    m_bigBadge->setBadge(data.badgeWon, data.badgeKind, data.badgeLevel, data.badgeLines);
+    m_numbers->setNumbers(viewData.numbers, big);
+    m_numbers->setVisible(!viewData.numbers.isEmpty());
+    m_progress->setVisible(viewData.progress >= 0.0);
+    m_progress->setShare(viewData.progress, context.colors);
+    m_details->setDetails(viewData.details);
+    m_details->setVisible(!viewData.details.isEmpty());
+    m_goals->setVisible(viewData.goals);
+    m_addChallenge->setVisible(viewData.awards);
+    m_awardsCaption->setVisible(viewData.awards && viewData.badgeWon);
+    m_bigBadge->setVisible(viewData.awards);
+    m_bigBadge->setBadge(viewData.badgeWon, viewData.badgeKind, viewData.badgeLevel,
+                         viewData.badgeLines);
 
     m_numberTexts.clear();
-    for (const StatsKpiGrid::Number& number : data.numbers) {
+    for (const StatsKpiGrid::Number& number : viewData.numbers) {
         m_numberTexts.append(
             QStringLiteral("%1: %2 %3").arg(number.caption, number.value, number.unit).trimmed());
     }
     m_detailTexts.clear();
-    for (const StatsDetails::Detail& detail : data.details) {
+    for (const StatsDetails::Detail& detail : viewData.details) {
         m_detailTexts.append(QStringLiteral("%1: %2").arg(detail.name, detail.value));
     }
 }
 
-void WritingStatsPanel::viewOf(View view, const Context& context, ViewData& data) const
+void WritingStatsPanel::viewOf(View view, const Context& context, ViewData& viewData) const
 {
     switch (view) {
     case View::Today:
-        data.title = tr("Today");
+        viewData.title = tr("Today");
         break;
     case View::Week:
-        data.title = tr("Week");
+        viewData.title = tr("Week");
         break;
     case View::Month:
-        data.title = tr("30 Days");
+        viewData.title = tr("30 Days");
         break;
     case View::Book:
-        data.title = tr("Book");
+        viewData.title = tr("Book");
         break;
     case View::Hours:
-        data.title = tr("Times of Writing");
+        viewData.title = tr("Times of Writing");
         break;
     case View::Awards:
         //: The view of the badges and the challenges. In Polish: Osiągnięcia
-        data.title = tr("Achievements");
+        viewData.title = tr("Achievements");
         break;
     }
     if (context.model == nullptr) {
-        data.note = tr("No statistics yet.");
+        viewData.note = tr("No statistics yet.");
         return;
     }
     switch (view) {
     case View::Today:
-        showToday(context, data);
+        showToday(context, viewData);
         break;
     case View::Week:
-        showWeek(context, data);
+        showWeek(context, viewData);
         break;
     case View::Month:
-        showMonth(context, data);
+        showMonth(context, viewData);
         break;
     case View::Book:
-        showBook(context, data);
+        showBook(context, viewData);
         break;
     case View::Hours:
-        showHours(context, data);
+        showHours(context, viewData);
         break;
     case View::Awards:
-        showAwards(context, data);
+        showAwards(context, viewData);
         break;
     }
 }
@@ -1455,7 +1456,7 @@ void WritingStatsPanel::viewOf(View view, const Context& context, ViewData& data
 // Today
 // -----------------------------------------------------------------------------
 
-void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
+void WritingStatsPanel::showToday(const Context& context, ViewData& viewData) const
 {
     using stats_painter::number;
     const core::WritingStatistics& statistics = context.statistics;
@@ -1466,8 +1467,8 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
     const int goal = context.model->dailyGoalToday();
     const int dayStart = statistics.rules().dayStartMinutes;
 
-    data.subtitle = context.locale.toString(today, QStringLiteral("dddd, d MMMM"));
-    data.listText = goal > 0 ? tr("%1 of %2 words · %3")
+    viewData.subtitle = context.locale.toString(today, QStringLiteral("dddd, d MMMM"));
+    viewData.listText = goal > 0 ? tr("%1 of %2 words · %3")
                                    .arg(number(words), number(goal),
                                         stats_painter::hoursMinutes(totals.activeMs))
                              : tr("%1 · %2")
@@ -1482,7 +1483,7 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
         context.model->minutesIntoDay(today, context.now), 0, DAY_MINUTES - 1));
     const auto [from, to] = WritingStatsModel::shownMinutes(
         pieces, piece, dayStart, context.fromHour, context.toHour, nowMinute);
-    GraphData& graph = data.graph;
+    GraphData& graph = viewData.graph;
     graph.kind = GraphData::Kind::Day;
     double most = 0.0;
     for (int i = from / piece; i < (to + piece - 1) / piece && i < pieces.size(); ++i) {
@@ -1528,29 +1529,29 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
     }
 
     const double pace = totals.wordsPerHour(counting);
-    data.numbers.append({tr("Words today"), number(words), QString()});
-    data.numbers.append({tr("Time of writing"), stats_painter::hoursMinutes(totals.activeMs), QString()});
-    data.numbers.append({tr("Days in a row"), number(statistics.streak(today)), QString()});
-    data.numbers.append({tr("Pace"), number(std::lround(pace)), tr("words/h")});
+    viewData.numbers.append({tr("Words today"), number(words), QString()});
+    viewData.numbers.append({tr("Time of writing"), stats_painter::hoursMinutes(totals.activeMs), QString()});
+    viewData.numbers.append({tr("Days in a row"), number(statistics.streak(today)), QString()});
+    viewData.numbers.append({tr("Pace"), number(std::lround(pace)), tr("words/h")});
     if (goal > 0) {
-        data.numbers.append({tr("Daily goal"),
+        viewData.numbers.append({tr("Daily goal"),
                              QStringLiteral("%1%").arg(std::lround(100.0 * words / goal)),
                              QString()});
     }
-    data.numbers.append({tr("Sessions"), number(sessions.size()), QString()});
+    viewData.numbers.append({tr("Sessions"), number(sessions.size()), QString()});
 
-    data.details.append({tr("Written"), number(totals.written), {}});
-    data.details.append({tr("Deleted"), number(totals.deleted), {}});
+    viewData.details.append({tr("Written"), number(totals.written), {}});
+    viewData.details.append({tr("Deleted"), number(totals.deleted), {}});
     if (totals.pasted != 0) {
         //: In Polish: Wklejone; "%1 – wliczone" albo "%1 – niewliczone"
-        data.details.append({tr("Pasted"),
+        viewData.details.append({tr("Pasted"),
                              statistics.rules().countPasted
                                  ? tr("%1, counted").arg(number(totals.pasted))
                                  : tr("%1, not counted").arg(number(totals.pasted)),
                              {}});
     }
     if (goal > 0) {
-        data.details.append({tr("To the daily goal"),
+        viewData.details.append({tr("To the daily goal"),
                              words >= goal ? tr("reached")
                                            : stats_painter::words(goal - words),
                              words >= goal ? context.colors.done : QColor()});
@@ -1558,12 +1559,12 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
     const core::WritingTemperature temperature = statistics.temperature(context.now);
     const QString temperatureName = stats_painter::temperatureName(temperature);
     if (!temperatureName.isEmpty()) {
-        data.details.append({tr("Temperature of work"), temperatureName,
+        viewData.details.append({tr("Temperature of work"), temperatureName,
                              context.colors.temperature(temperature)});
     }
     if (!times.isEmpty()) {
-        data.details.append({tr("Sessions"), times.join(QStringLiteral(", ")), {}});
-        data.details.append({tr("Longest session"),
+        viewData.details.append({tr("Sessions"), times.join(QStringLiteral(", ")), {}});
+        viewData.details.append({tr("Longest session"),
                              stats_painter::hoursMinutes(qint64(longest) * 60 * 1000), {}});
     }
     // The texts written most today
@@ -1583,10 +1584,10 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& data) const
             shown.append(tr("%1 (%2)").arg(written[i].second, number(written[i].first)));
         }
         if (!shown.isEmpty()) {
-            data.details.append({tr("Texts"), shown.join(QStringLiteral(", ")), {}});
+            viewData.details.append({tr("Texts"), shown.join(QStringLiteral(", ")), {}});
         }
     }
-    data.goals = true;
+    viewData.goals = true;
 }
 
 // -----------------------------------------------------------------------------
@@ -1631,24 +1632,25 @@ void fillDays(GraphData& graph, const core::WritingStatistics& statistics,
 
 }  // namespace
 
-void WritingStatsPanel::showWeek(const Context& context, ViewData& data) const
+void WritingStatsPanel::showWeek(const Context& context, ViewData& viewData) const
 {
     using stats_painter::number;
     const core::WritingRules& rules = context.rules;
     const QDate monday = context.today.addDays(1 - context.today.dayOfWeek() + 7 * m_offset);
     const QDate sunday = monday.addDays(6);
-    data.periods = true;
-    data.later = m_offset < 0;
-    data.subtitle = tr("%1 – %2").arg(context.locale.toString(monday, QStringLiteral("d MMMM")),
-                                      context.locale.toString(sunday, QStringLiteral("d MMMM")));
-    fillDays(data.graph, context.statistics, rules, monday, sunday, context.today,
+    viewData.periods = true;
+    viewData.later = m_offset < 0;
+    viewData.subtitle =
+        tr("%1 – %2").arg(context.locale.toString(monday, QStringLiteral("d MMMM")),
+                          context.locale.toString(sunday, QStringLiteral("d MMMM")));
+    fillDays(viewData.graph, context.statistics, rules, monday, sunday, context.today,
              context.locale);
     for (QDate day = monday; day <= sunday; day = day.addDays(1)) {
-        data.graph.labels.append(QStringLiteral("%1 %2").arg(
+        viewData.graph.labels.append(QStringLiteral("%1 %2").arg(
             context.locale.dayName(day.dayOfWeek(), QLocale::ShortFormat)).arg(day.day()));
     }
-    data.graph.bottomLeft = context.locale.toString(monday, QStringLiteral("d MMMM"));
-    data.graph.bottomRight = context.locale.toString(sunday, QStringLiteral("d MMMM"));
+    viewData.graph.bottomLeft = context.locale.toString(monday, QStringLiteral("d MMMM"));
+    viewData.graph.bottomRight = context.locale.toString(sunday, QStringLiteral("d MMMM"));
 
     int sum = 0;
     qint64 time = 0;
@@ -1680,15 +1682,15 @@ void WritingStatsPanel::showWeek(const Context& context, ViewData& data) const
         }
     }
     const int weekly = rules.weeklyGoalWords();
-    data.listText = weekly > 0 ? tr("%1 of %2 words").arg(number(sum), number(weekly))
+    viewData.listText = weekly > 0 ? tr("%1 of %2 words").arg(number(sum), number(weekly))
                                : stats_painter::words(sum);
-    data.numbers.append({m_offset == 0 ? tr("This week") : tr("In the week"), number(sum), QString()});
+    viewData.numbers.append({m_offset == 0 ? tr("This week") : tr("In the week"), number(sum), QString()});
     if (weekly > 0) {
-        data.numbers.append({tr("Weekly goal"),
+        viewData.numbers.append({tr("Weekly goal"),
                              QStringLiteral("%1%").arg(std::lround(100.0 * sum / weekly)), QString()});
-        data.progress = double(sum) / weekly;
+        viewData.progress = double(sum) / weekly;
     }
-    data.numbers.append({tr("Average"), number(writingDays > 0 ? std::lround(double(sum) / writingDays) : 0),
+    viewData.numbers.append({tr("Average"), number(writingDays > 0 ? std::lround(double(sum) / writingDays) : 0),
                          tr("words/day")});
 
     if (weekly > 0) {
@@ -1698,7 +1700,7 @@ void WritingStatsPanel::showWeek(const Context& context, ViewData& data) const
                 ++days;
             }
         }
-        data.details.append({tr("Weekly goal"),
+        viewData.details.append({tr("Weekly goal"),
                              rules.weeklyGoal > 0
                                  ? stats_painter::words(weekly)
                                  //: The weekly goal: %1 words, %2 writing days, %3 the daily
@@ -1714,40 +1716,41 @@ void WritingStatsPanel::showWeek(const Context& context, ViewData& data) const
                                             number(rules.dailyGoal)),
                              {}});
         if (m_offset == 0) {
-            data.details.append({tr("Left"),
+            viewData.details.append({tr("Left"),
                                  sum >= weekly ? tr("goal reached")
                                                : stats_painter::words(weekly - sum),
                                  sum >= weekly ? context.colors.done : QColor()});
         }
     }
     if (best.isValid()) {
-        data.details.append({tr("Best day"),
+        viewData.details.append({tr("Best day"),
                              tr("%1, %2").arg(context.locale.dayName(best.dayOfWeek()),
                                               stats_painter::words(bestWords)),
                              {}});
     }
     if (rules.dailyGoal > 0) {
-        data.details.append({tr("Days with the goal"),
+        viewData.details.append({tr("Days with the goal"),
                              tr("%1 of %2").arg(number(goalDays), number(writingDays)), {}});
     }
-    data.details.append({tr("Time of writing"), stats_painter::hoursMinutes(time), {}});
-    data.details.append({tr("Days off"), offDays.isEmpty() ? tr("none") : offDays.join(QStringLiteral(", ")), {}});
-    data.goals = true;
+    viewData.details.append({tr("Time of writing"), stats_painter::hoursMinutes(time), {}});
+    viewData.details.append({tr("Days off"), offDays.isEmpty() ? tr("none") : offDays.join(QStringLiteral(", ")), {}});
+    viewData.goals = true;
 }
 
-void WritingStatsPanel::showMonth(const Context& context, ViewData& data) const
+void WritingStatsPanel::showMonth(const Context& context, ViewData& viewData) const
 {
     using stats_painter::number;
     const core::WritingRules& rules = context.rules;
     const QDate last = context.today.addDays(30 * m_offset);
     const QDate first = last.addDays(-29);
-    data.periods = true;
-    data.later = m_offset < 0;
-    data.subtitle = tr("%1 – %2").arg(context.locale.toString(first, QStringLiteral("d MMMM")),
-                                      context.locale.toString(last, QStringLiteral("d MMMM")));
-    fillDays(data.graph, context.statistics, rules, first, last, context.today, context.locale);
-    data.graph.bottomLeft = context.locale.toString(first, QStringLiteral("d MMMM"));
-    data.graph.bottomRight = context.locale.toString(last, QStringLiteral("d MMMM"));
+    viewData.periods = true;
+    viewData.later = m_offset < 0;
+    viewData.subtitle =
+        tr("%1 – %2").arg(context.locale.toString(first, QStringLiteral("d MMMM")),
+                          context.locale.toString(last, QStringLiteral("d MMMM")));
+    fillDays(viewData.graph, context.statistics, rules, first, last, context.today, context.locale);
+    viewData.graph.bottomLeft = context.locale.toString(first, QStringLiteral("d MMMM"));
+    viewData.graph.bottomRight = context.locale.toString(last, QStringLiteral("d MMMM"));
 
     int sum = 0;
     int writingWords = 0;
@@ -1782,53 +1785,53 @@ void WritingStatsPanel::showMonth(const Context& context, ViewData& data) const
             best = day;
         }
     }
-    data.listText = stats_painter::words(sum);
-    data.numbers.append({tr("Total"), number(sum), QString()});
-    data.numbers.append({tr("Average"),
+    viewData.listText = stats_painter::words(sum);
+    viewData.numbers.append({tr("Total"), number(sum), QString()});
+    viewData.numbers.append({tr("Average"),
                          number(std::lround(context.statistics.averagePerWritingDay(first, last))),
                          tr("on a writing day")});
     if (rules.dailyGoal > 0) {
-        data.numbers.append({tr("Days with the goal"), number(goalDays), QString()});
+        viewData.numbers.append({tr("Days with the goal"), number(goalDays), QString()});
     }
     if (best.isValid()) {
-        data.details.append({tr("Best day"),
+        viewData.details.append({tr("Best day"),
                              tr("%1 – %2")
                                  .arg(context.locale.toString(best, QStringLiteral("dddd, d MMMM")),
                                       stats_painter::words(bestWords)),
                              {}});
     }
     if (sum > 0) {
-        data.details.append({tr("Writing days and days off"),
+        viewData.details.append({tr("Writing days and days off"),
                              tr("%1% and %2%")
                                  .arg(std::lround(100.0 * writingWords / sum))
                                  .arg(std::lround(100.0 * offWords / sum)),
                              {}});
     }
-    data.details.append({tr("Writing days missed"),
+    viewData.details.append({tr("Writing days missed"),
                          missed == 0 ? tr("none")
                                      : tr("%1 (the last: %2)")
                                            .arg(number(missed),
                                                 context.locale.toString(lastMissed, QStringLiteral("dddd, d MMMM"))),
                          {}});
-    data.details.append({tr("Time of writing"), stats_painter::hoursMinutes(time), {}});
+    viewData.details.append({tr("Time of writing"), stats_painter::hoursMinutes(time), {}});
 }
 
 // -----------------------------------------------------------------------------
 // The book
 // -----------------------------------------------------------------------------
 
-void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
+void WritingStatsPanel::showBook(const Context& context, ViewData& viewData) const
 {
     using stats_painter::number;
     const WritingStatsModel* model = context.model;
     if (!model->hasBook()) {
-        data.subtitle = tr("No book is open");
-        data.listText = tr("No book is open");
-        data.note = tr("Open a book to see its words, its goal and its deadline.");
+        viewData.subtitle = tr("No book is open");
+        viewData.listText = tr("No book is open");
+        viewData.note = tr("Open a book to see its words, its goal and its deadline.");
         return;
     }
     const QString bookTitle = m_bookTitle ? m_bookTitle() : QString();
-    data.subtitle = bookTitle.isEmpty() ? QString() : tr("“%1”").arg(bookTitle);
+    viewData.subtitle = bookTitle.isEmpty() ? QString() : tr("“%1”").arg(bookTitle);
     const core::WritingRules& rules = context.rules;
     const core::WritingStatistics statistics = model->bookStatistics();
     const core::BookGoals& goals = model->goals();
@@ -1861,7 +1864,7 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
     const QDate forecast =
         target > 0 ? core::forecastDate(rules, today, left, average) : QDate();
 
-    GraphData& graph = data.graph;
+    GraphData& graph = viewData.graph;
     graph.kind = GraphData::Kind::Book;
     graph.values = values;
     graph.days = int(first.daysTo(end)) + 1;
@@ -1875,16 +1878,16 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
     graph.bottomLeft = context.locale.toString(first, QStringLiteral("d MMMM"));
     graph.bottomRight = context.locale.toString(end, QStringLiteral("d MMMM"));
 
-    data.listText = target > 0 ? tr("%1 of %2 words").arg(number(words), number(target))
+    viewData.listText = target > 0 ? tr("%1 of %2 words").arg(number(words), number(target))
                                : stats_painter::words(words);
-    data.numbers.append({tr("Words"), number(words), QString()});
+    viewData.numbers.append({tr("Words"), number(words), QString()});
     if (target > 0) {
-        data.numbers.append({tr("Goal"), QStringLiteral("%1%").arg(std::lround(100.0 * words / target)), QString()});
-        data.progress = double(words) / target;
+        viewData.numbers.append({tr("Goal"), QStringLiteral("%1%").arg(std::lround(100.0 * words / target)), QString()});
+        viewData.progress = double(words) / target;
     }
     if (goals.deadline.isValid() && goals.deadline >= today) {
         const auto days = today.daysTo(goals.deadline);
-        data.numbers.append({tr("To the deadline"), number(days),
+        viewData.numbers.append({tr("To the deadline"), number(days),
                              days == 1
                                  //: The unit after 1. In Polish: dzień
                                  ? tr("day")
@@ -1893,27 +1896,27 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
     }
 
     if (target <= 0 && !goals.deadline.isValid()) {
-        data.note = tr("The book has no length or deadline yet. Set them on the tab Writing Goals "
-                       "and Deadlines.");
+        viewData.note = tr("The book has no length or deadline yet. Set them on the tab Writing "
+                           "Goals and Deadlines.");
     }
     if (target > 0) {
-        data.details.append({tr("Length of the book"), stats_painter::words(target), {}});
-        data.details.append({tr("Left"), left == 0 ? tr("goal reached") : stats_painter::words(left),
+        viewData.details.append({tr("Length of the book"), stats_painter::words(target), {}});
+        viewData.details.append({tr("Left"), left == 0 ? tr("goal reached") : stats_painter::words(left),
                              left == 0 ? context.colors.done : QColor()});
     }
     if (goals.deadline.isValid()) {
-        data.details.append({tr("Deadline"),
+        viewData.details.append({tr("Deadline"),
                              context.locale.toString(goals.deadline, QStringLiteral("d MMMM yyyy")), {}});
         if (target > 0 && goals.deadline >= today && left > 0) {
             const int writingDays = core::writingDaysBetween(rules, today, goals.deadline);
-            data.details.append({tr("Writing days to the deadline"), number(writingDays), {}});
-            data.details.append({tr("Needed on a writing day"),
+            viewData.details.append({tr("Writing days to the deadline"), number(writingDays), {}});
+            viewData.details.append({tr("Needed on a writing day"),
                                  stats_painter::words(core::wordsPerWritingDay(left, writingDays)),
                                  {}});
         }
     }
     if (target > 0 && left > 0) {
-        data.details.append({tr("Forecast at the present pace"),
+        viewData.details.append({tr("Forecast at the present pace"),
                              forecast.isValid()
                                  ? tr("about %1").arg(context.locale.toString(forecast, QStringLiteral("d MMMM yyyy")))
                                  : tr("not known yet"),
@@ -1924,25 +1927,25 @@ void WritingStatsPanel::showBook(const Context& context, ViewData& data) const
     const int next = goals.nextDeadline(today);
     if (next >= 0) {
         const core::WritingDeadline& deadline = goals.deadlines[next];
-        data.details.append({tr("Next deadline"),
+        viewData.details.append({tr("Next deadline"),
                              tr("%1, %2").arg(deadline.name,
                                               context.locale.toString(deadline.date, QStringLiteral("d MMMM"))),
                              {}});
     }
-    data.goals = true;
+    viewData.goals = true;
 }
 
 // -----------------------------------------------------------------------------
 // The times of writing
 // -----------------------------------------------------------------------------
 
-void WritingStatsPanel::showHours(const Context& context, ViewData& data) const
+void WritingStatsPanel::showHours(const Context& context, ViewData& viewData) const
 {
     const QDate today = context.today;
     const core::WritingHourMap map =
         context.statistics.hourMap(today.addDays(1 - HOURS_DAYS), today);
-    data.subtitle = tr("the last 4 weeks");
-    GraphData& graph = data.graph;
+    viewData.subtitle = tr("the last 4 weeks");
+    GraphData& graph = viewData.graph;
     graph.kind = GraphData::Kind::Hours;
     graph.heat = map.words;
     graph.topLeft = tr("Average words in an hour");
@@ -1968,20 +1971,20 @@ void WritingStatsPanel::showHours(const Context& context, ViewData& data) const
     const int hours = map.bestHours(2);
     const auto [bestDay, bestHour] = map.bestTime(2);
     if (hours < 0) {
-        data.listText = tr("too little writing yet");
-        data.note = tr("Too little writing in the last 4 weeks to tell.");
+        viewData.listText = tr("too little writing yet");
+        viewData.note = tr("Too little writing in the last 4 weeks to tell.");
         return;
     }
     const QString bestHours = tr("%1–%2").arg(hours).arg((hours + 2) % 24 == 0 ? 24 : (hours + 2) % 24);
-    data.listText = map.bestDayOfWeek() > 0
+    viewData.listText = map.bestDayOfWeek() > 0
                         ? tr("best at %1, on %2").arg(bestHours, context.locale.dayName(map.bestDayOfWeek()))
                         : tr("best at %1").arg(bestHours);
-    data.numbers.append({tr("Best time"), bestHours, QString()});
+    viewData.numbers.append({tr("Best time"), bestHours, QString()});
     if (map.bestDayOfWeek() > 0) {
-        data.numbers.append({tr("Best day"), context.locale.dayName(map.bestDayOfWeek()), QString()});
+        viewData.numbers.append({tr("Best day"), context.locale.dayName(map.bestDayOfWeek()), QString()});
     }
     if (bestDay > 0 && bestHour >= 0) {
-        data.details.append({tr("Your best time"),
+        viewData.details.append({tr("Your best time"),
                              tr("%1, %2:00–%3:00")
                                  .arg(context.locale.dayName(bestDay))
                                  .arg(bestHour)
@@ -1989,11 +1992,11 @@ void WritingStatsPanel::showHours(const Context& context, ViewData& data) const
                              {}});
     }
     const auto share = [](double value) { return QStringLiteral("%1%").arg(std::lround(value * 100)); };
-    data.details.append({tr("Morning (5–12)"), share(map.shareOfHours(5, 12)), {}});
-    data.details.append({tr("Afternoon (12–18)"), share(map.shareOfHours(12, 18)), {}});
-    data.details.append({tr("Evening (18–24)"), share(map.shareOfHours(18, 24)), {}});
-    data.details.append({tr("Night (0–5)"), share(map.shareOfHours(0, 5)), {}});
-    data.details.append({tr("Monday to Friday and weekend"),
+    viewData.details.append({tr("Morning (5–12)"), share(map.shareOfHours(5, 12)), {}});
+    viewData.details.append({tr("Afternoon (12–18)"), share(map.shareOfHours(12, 18)), {}});
+    viewData.details.append({tr("Evening (18–24)"), share(map.shareOfHours(18, 24)), {}});
+    viewData.details.append({tr("Night (0–5)"), share(map.shareOfHours(0, 5)), {}});
+    viewData.details.append({tr("Monday to Friday and weekend"),
                          tr("%1 and %2").arg(share(map.shareOfDays(1, 5)), share(map.shareOfDays(6, 7))),
                          {}});
 }
@@ -2002,17 +2005,17 @@ void WritingStatsPanel::showHours(const Context& context, ViewData& data) const
 // Achievements
 // -----------------------------------------------------------------------------
 
-void WritingStatsPanel::showAwards(const Context& context, ViewData& data) const
+void WritingStatsPanel::showAwards(const Context& context, ViewData& viewData) const
 {
     Q_UNUSED(context);
-    data.graph.kind = GraphData::Kind::Trophy;
+    viewData.graph.kind = GraphData::Kind::Trophy;
     if (m_tracker == nullptr) {
         //: In Polish: Nie ma jeszcze odznak.
-        data.note = tr("No badges yet.");
-        data.listText = data.note;
+        viewData.note = tr("No badges yet.");
+        viewData.listText = viewData.note;
         return;
     }
-    data.awards = true;
+    viewData.awards = true;
     // The graph is the badge won last, in its own button
     const int badges = int(m_tracker->shownBadges().size());
     int open = 0;
@@ -2033,17 +2036,17 @@ void WritingStatsPanel::showAwards(const Context& context, ViewData& data) const
                                                //: In Polish: %n wyzwania / %n wyzwań
                                                : tr("%n challenges", nullptr, open));
     }
-    data.listText = counts;
+    viewData.listText = counts;
 
     if (const std::optional<core::EarnedBadge> last = m_tracker->lastBadge()) {
         const core::BadgeProgress progress = m_tracker->progressOf(last->kind);
-        data.badgeWon = true;
-        data.badgeKind = last->kind;
-        data.badgeLevel = last->level;
-        data.badgeLines = {badge_painter::title(progress, last->level),
+        viewData.badgeWon = true;
+        viewData.badgeKind = last->kind;
+        viewData.badgeLevel = last->level;
+        viewData.badgeLines = {badge_painter::title(progress, last->level),
                            badge_painter::wonOn(last->date), counts};
     } else {
-        data.badgeLines = {
+        viewData.badgeLines = {
             //: In Polish: Nie ma jeszcze odznak
             tr("No badges yet"),
             //: In Polish: Odznaki przychodzą z pisaniem: za słowa, dni z rzędu i osiągnięte cele.

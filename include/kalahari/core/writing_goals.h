@@ -45,6 +45,10 @@ struct BookGoals {
     /// @brief The index of the first deadline not passed on @p today; -1 when none
     int nextDeadline(const QDate& today) const;
 
+    /// @brief The book has a length and a deadline not passed on @p today: the daily goal
+    /// can come from them
+    bool hasDeadlineAhead(const QDate& today) const;
+
     /// @brief As the setting keeps them
     QString toJson() const;
 

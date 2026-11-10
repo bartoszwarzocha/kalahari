@@ -7,6 +7,7 @@
 #include "../editor/editor_test_utils.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/writing_activity.h"
 #include "kalahari/core/writing_goals.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -33,6 +34,7 @@
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
+#include <QTime>
 #include <QTimer>
 #include <QToolButton>
 #include <QTreeWidget>
@@ -267,6 +269,85 @@ TEST_CASE("Writing goals: the length and the deadline of the book, and what they
     goals.model.setBook(nullptr, QString());
     CHECK_FALSE(length->isEnabled());
     CHECK(length->value() == 0);
+}
+
+TEST_CASE("Writing goals: the daily goal from the deadline counts from the book of the morning",
+          "[gui][statistics][goals]")
+{
+    // Regression: with "All the words written", the words written and deleted again today
+    // made the book of the morning shorter, and the daily goal bigger; a deadline passed or a
+    // length taken away kept the daily goal at 0, while the tab let the writer's goal be set
+    Goals goals;
+    REQUIRE(goals.database.open(goals.dir.path()));
+    core::WritingActivity morning;
+    morning.date = NOW.date();
+    morning.slot = core::activitySlotOf(QTime(10, 0));
+    morning.bookId = QStringLiteral("book");
+    morning.elementId = QStringLiteral("ch-1");
+    morning.written = 100;
+    morning.deleted = 100;
+    morning.pasted = 300;
+    REQUIRE(goals.database.addWritingActivity({morning}));
+    goals.model.setBook(&goals.database, QStringLiteral("book"));
+    // The book grew by the 300 words pasted today
+    CHECK(goals.model.bookWordsAtStartOfToday() == BOOK_WORDS - 300);
+
+    core::BookGoals book;
+    book.targetWords = 90000;
+    book.deadline = QDate(2027, 1, 31);
+    book.dailyGoalFromDeadline = true;
+    REQUIRE(goals.model.setGoals(book));
+    const int days = core::writingDaysBetween(goals.model.rules(), NOW.date(), book.deadline);
+    const int needed = core::wordsPerWritingDay(90000 - (BOOK_WORDS - 300), days);
+    auto& settings = core::SettingsManager::getInstance();
+    for (const char* counting : {"written", "net"}) {
+        INFO(counting);
+        settings.set<std::string>("stats.goalCounting", counting);
+        goals.model.reloadRules();
+        CHECK(goals.model.dailyGoalToday() == needed);
+    }
+
+    // Without a length, or with the deadline passed: the writer's own daily goal
+    const int own = goals.model.rules().dailyGoalOn(NOW.date());
+    REQUIRE(own > 0);
+    book.targetWords = 0;
+    REQUIRE(goals.model.setGoals(book));
+    CHECK(goals.model.dailyGoalToday() == own);
+    book.targetWords = 90000;
+    book.deadline = NOW.date().addDays(-1);
+    REQUIRE(goals.model.setGoals(book));
+    CHECK(goals.model.dailyGoalToday() == own);
+}
+
+TEST_CASE("Writing goals: a book open read-only keeps its goals", "[gui][statistics][goals]")
+{
+    // A book opens read-only on a copy of its database, which goes when it closes: its goals
+    // do not change, so that no change is lost; the writer's own goals do
+    Goals goals;
+    REQUIRE(goals.database.open(goals.dir.path()));
+    core::BookGoals kept;
+    kept.targetWords = 90000;
+    goals.database.setSetting(QString::fromLatin1(core::BookGoals::SETTING_KEY), kept.toJson());
+    goals.model.setBook(&goals.database, QStringLiteral("book"), true);
+    CHECK(goals.model.isBookReadOnly());
+    CHECK(goals.model.goals().targetWords == 90000);
+    core::BookGoals changed = kept;
+    changed.targetWords = 50000;
+    CHECK_FALSE(goals.model.setGoals(changed));
+    CHECK(goals.model.goals().targetWords == 90000);
+
+    WritingGoalsTab tab(&goals.model);
+    tab.setBookSource(Goals::source());
+    tab.show();
+    CHECK_FALSE(child<QSpinBox>(tab, "bookLength")->isEnabled());
+    CHECK(child<QSpinBox>(tab, "dailyGoal")->isEnabled());
+    CHECK(child<QLabel>(tab, "goalsIntro")->text().contains(QStringLiteral("read-only")));
+
+    // Open for writing again, it changes
+    goals.model.setBook(&goals.database, QStringLiteral("book"));
+    CHECK_FALSE(goals.model.isBookReadOnly());
+    CHECK(child<QSpinBox>(tab, "bookLength")->isEnabled());
+    CHECK(goals.model.setGoals(changed));
 }
 
 TEST_CASE("Writing goals: the deadlines of the book in their window", "[gui][statistics][goals]")

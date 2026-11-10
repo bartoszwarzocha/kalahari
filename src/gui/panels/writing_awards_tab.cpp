@@ -838,6 +838,7 @@ void WritingAwardsTab::refresh()
                               : tr("Book “%1”").arg(title));
     m_book->setVisible(hasBook);
     m_startOver->setVisible(hasBook);
+    m_startOver->setEnabled(hasBook && !m_model->isBookReadOnly());
     if (hasBook) {
         m_book->showBadges(*m_tracker, core::BadgeGroup::Book);
         const QDate since = m_tracker->bookBadges().since;

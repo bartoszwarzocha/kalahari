@@ -285,6 +285,15 @@ WritingTotals WritingStatistics::day(const QDate& writingDay) const
     return m_days.value(writingDay);
 }
 
+int WritingStatistics::textGrowth(const QDate& writingDay) const
+{
+    int growth = 0;
+    for (const WritingActivity& entry : m_byDay.value(writingDay)) {
+        growth += entry.written - entry.deleted + entry.pasted;
+    }
+    return growth;
+}
+
 WritingTotals WritingStatistics::period(const QDate& from, const QDate& to) const
 {
     WritingTotals totals;
@@ -463,7 +472,24 @@ void WritingStatistics::regroup()
 void WritingStatistics::addToDays(const WritingActivity& activity)
 {
     const QDate writingDay = writingDayOf(activity.date, activity.slot);
-    m_byDay[writingDay].append(activity);
+    QList<WritingActivity>& kept = m_byDay[writingDay];
+    // One entry for each slot of each text, as the record keeps it: a paste and its undo in
+    // one slot add up before they count (WritingRules::countPasted), however they were saved
+    for (WritingActivity& entry : kept) {
+        if (entry.samePlace(activity)) {
+            entry.written += activity.written;
+            entry.deleted += activity.deleted;
+            entry.pasted += activity.pasted;
+            entry.activeMs += activity.activeMs;
+            WritingTotals totals;
+            for (const WritingActivity& each : kept) {
+                totals.add(counted(each));
+            }
+            m_days[writingDay] = totals;
+            return;
+        }
+    }
+    kept.append(activity);
     m_days[writingDay].add(counted(activity));
 }
 

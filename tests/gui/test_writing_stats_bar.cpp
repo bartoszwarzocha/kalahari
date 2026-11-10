@@ -15,7 +15,10 @@
 
 #include <QCoreApplication>
 #include <QTemporaryDir>
+#include <QTimeZone>
 #include <QToolButton>
+
+#include <utility>
 
 using namespace kalahari;
 using gui::WritingStatsBar;
@@ -97,6 +100,53 @@ TEST_CASE("Statistics bar: the pieces of a writing day", "[gui][statistics]")
     // A piece that does not divide the day is made one that does
     CHECK(WritingStatsModel::dayPieces(statistics, QDate(2026, 11, 12), 7).size() == 288);
     CHECK(WritingStatsModel::dayPieces(statistics, QDate(2026, 11, 12), 50).size() == 32);
+}
+
+TEST_CASE("Statistics bar: the hours of the graph of a writing day", "[gui][statistics]")
+{
+    // A writing day from 4:00 to 4:00, in pieces of 10 minutes, nothing written yet; minute 0
+    // is 4:00, minute 1050 is 21:30
+    const QList<gui::DayPiece> none(144);
+    const auto shown = [&](int fromHour, int toHour, int now) {
+        return WritingStatsModel::shownMinutes(none, 10, 240, fromHour, toHour, now);
+    };
+    // 6:00 to midnight, as by default
+    CHECK(shown(6, 24, 1050) == std::pair<int, int>(120, 1200));
+    // Regression: hours across the start of the writing day showed only their last part
+    // (00:00 to 24:00 gave 21:00 to 4:00 at 21:30); now the whole day
+    CHECK(shown(0, 24, 1050) == std::pair<int, int>(0, 1440));
+    CHECK(shown(22, 6, 1050) == std::pair<int, int>(0, 1440));
+    // Up to the end of the writing day
+    CHECK(shown(22, 4, 1100) == std::pair<int, int>(1080, 1440));
+    // Wider for the time now
+    CHECK(shown(6, 12, 1050) == std::pair<int, int>(120, 1080));
+    // A day from midnight: the whole clock
+    CHECK(WritingStatsModel::shownMinutes(none, 10, 0, 0, 24, 600) ==
+          std::pair<int, int>(0, 1440));
+}
+
+TEST_CASE("Statistics bar: the minutes of a writing day by the clock", "[gui][statistics]")
+{
+    auto& settings = core::SettingsManager::getInstance();
+    const int before = settings.get<int>("stats.dayStart", 4 * 60);
+    settings.set<int>("stats.dayStart", 3 * 60 + 33);
+    {
+        WritingStatsModel model;
+        const QDate day(2026, 3, 28);
+        // Regression: a day from 3:33 put the time now 3 minutes off its graph, which starts
+        // on the slot of 3:30, as the record rounds it
+        CHECK(model.minutesIntoDay(day, QDateTime(day, QTime(3, 30))) == 0);
+        CHECK(model.minutesIntoDay(day, QDateTime(day, QTime(21, 30))) == 1080);
+        CHECK(model.minutesIntoDay(day, QDateTime(day.addDays(1), QTime(3, 0))) == 1410);
+        // Regression: on the night the clock goes forward (29 March 2026, from 2:00 to 3:00),
+        // the time now was an hour before its slot on the graph
+        const QTimeZone warsaw(QByteArray("Europe/Warsaw"));
+        if (warsaw.isValid()) {
+            CHECK(model.minutesIntoDay(day, QDateTime(day.addDays(1), QTime(3, 0), warsaw)) ==
+                  1410);
+        }
+    }
+    settings.set<int>("stats.dayStart", before);
 }
 
 TEST_CASE("Statistics bar: the model counts the journal by the writer's rules",

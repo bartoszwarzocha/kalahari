@@ -134,6 +134,8 @@ WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
     // The bar on top of the middle of the window, above the tabs of the texts
     QWidget* middle = m_docks != nullptr ? m_docks->centralWrapper() : nullptr;
     m_bar = new WritingStatsBar(m_model, middle);
+    // The window deletes its middle, with the bars, before this coordinator, made later
+    connect(m_bar, &QObject::destroyed, this, [this]() { m_bar = nullptr; });
     if (auto* layout = middle != nullptr ? qobject_cast<QVBoxLayout*>(middle->layout())
                                          : nullptr) {
         layout->insertWidget(0, m_bar);
@@ -151,6 +153,7 @@ WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
     // The bar of the messages at the bottom of the middle, under the tabs of the texts
     m_messageBar = new InfoBar(middle);
     m_messageBar->setObjectName(QStringLiteral("statsMessageBar"));
+    connect(m_messageBar, &QObject::destroyed, this, [this]() { m_messageBar = nullptr; });
     //: The button of a message at the bottom of the window. In Polish: Kopiuj
     m_messageBar->setActionText(tr("Copy"));
     //: In Polish: Kopiuj tę wiadomość
@@ -223,7 +226,8 @@ WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
 WritingStatsCoordinator::~WritingStatsCoordinator()
 {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
-    // The bars without the middle of a window are the coordinator's own
+    // The bars without the middle of a window are the coordinator's own; those in the middle
+    // went with it, if the window went first
     if (m_bar != nullptr && m_bar->parent() == nullptr) {
         delete m_bar;
     }
@@ -526,7 +530,8 @@ void WritingStatsCoordinator::onProjectOpened()
         return;
     }
     const core::BookProject* project = projects.project();
-    m_model->setBook(projects.getDatabase(), project != nullptr ? project->id : QString());
+    m_model->setBook(projects.getDatabase(), project != nullptr ? project->id : QString(),
+                     projects.isReadOnly());
     // A new session with the book
     m_sessionStart = m_model->now();
     m_summaryShown = false;

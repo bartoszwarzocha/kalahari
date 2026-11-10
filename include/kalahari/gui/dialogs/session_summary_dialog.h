@@ -54,9 +54,9 @@ public:
 
     /// @brief The summary of today in @p model; the session is the last one of the day
     /// @param since The session started then: something written since makes writtenSince
-    /// @param bookTitle The title of the open book
+    /// @param title The title of the open book
     static SessionSummary of(const WritingStatsModel& model, const QDateTime& since,
-                             const QString& bookTitle);
+                             const QString& title);
 
     /// @brief Its lines as text, for Copy
     QString text() const;

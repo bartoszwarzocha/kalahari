@@ -144,7 +144,7 @@ TEST_CASE("Statistics settings: Notifications", "[gui][settings][statistics]")
 {
     gui::StatsNotificationsPage page;
     page.load();
-    auto* deadline = withText<QCheckBox>(page, QStringLiteral("A deadline is coming,"));
+    auto* deadline = withText<QCheckBox>(page, QStringLiteral("A deadline is coming"));
     auto* challenges = withText<QCheckBox>(page, QStringLiteral("Challenges"));
     REQUIRE(deadline != nullptr);
     REQUIRE(challenges != nullptr);

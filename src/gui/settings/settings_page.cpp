@@ -308,7 +308,7 @@ QLabel* SettingsPage::addNote(QLayout* layout, const QString& text) {
     return note;
 }
 
-void SettingsPage::alignWithText(QLabel* note, const QAbstractButton* button) {
+void SettingsPage::alignWithText(QWidget* note, const QAbstractButton* button) {
     const QStyle* style = button->style();
     const bool radio = qobject_cast<const QRadioButton*>(button) != nullptr;
     const int indicator =

@@ -104,10 +104,12 @@ editor::StatisticsCollector* WritingStatsModel::collector() const
     return m_collector;
 }
 
-void WritingStatsModel::setBook(core::ProjectDatabase* database, const QString& bookId)
+void WritingStatsModel::setBook(core::ProjectDatabase* database, const QString& bookId,
+                                bool readOnly)
 {
     m_database = database;
     m_bookId = database != nullptr ? bookId : QString();
+    m_bookReadOnly = database != nullptr && readOnly;
     if (m_collector) {
         m_collector->setBookId(m_bookId);
     }
@@ -140,9 +142,14 @@ int WritingStatsModel::bookWords() const
     return m_database != nullptr && m_bookWords ? m_bookWords() : 0;
 }
 
+int WritingStatsModel::bookWordsAtStartOfToday() const
+{
+    return bookWords() - bookStatistics().textGrowth(today());
+}
+
 bool WritingStatsModel::setGoals(const core::BookGoals& goals)
 {
-    if (m_database == nullptr || !m_database->isOpen()) {
+    if (m_database == nullptr || !m_database->isOpen() || m_bookReadOnly) {
         return false;
     }
     core::BookGoals sorted = goals;
@@ -251,12 +258,20 @@ std::pair<int, int> WritingStatsModel::shownMinutes(const QList<DayPiece>& piece
         const int clock = ((minute + dayStart) % 60 + 60) % 60;
         return minute - clock;
     };
-    int from = ((fromHour * 60 - dayStart) % DAY_MINUTES + DAY_MINUTES) % DAY_MINUTES;
-    int to = toHour * 60 - dayStart;
-    while (to <= from) {
-        to += DAY_MINUTES;
+    const auto ofDay = [dayStart](int clockMinute) {
+        return ((clockMinute - dayStart) % DAY_MINUTES + DAY_MINUTES) % DAY_MINUTES;
+    };
+    int from = ofDay(fromHour * 60);
+    int to = ofDay(toHour * 60);
+    if (to == 0) {
+        to = DAY_MINUTES;
     }
-    to = std::min(to, DAY_MINUTES);
+    // Hours across the start of the writing day (0:00 to 24:00 with a day that starts at
+    // 4:00, or a night from 22:00 to 6:00) are two parts of it: the whole day shows them
+    if (to <= from) {
+        from = 0;
+        to = DAY_MINUTES;
+    }
     for (int i = 0; i < pieces.size(); ++i) {
         if (pieces[i].written != 0 || pieces[i].deleted != 0) {
             from = std::min(from, i * pieceMinutes);
@@ -273,20 +288,23 @@ std::pair<int, int> WritingStatsModel::shownMinutes(const QList<DayPiece>& piece
 
 qint64 WritingStatsModel::minutesIntoDay(const QDate& day, const QDateTime& when) const
 {
-    const QDateTime start(day, QTime(0, 0).addSecs(m_rules.dayStartMinutes * 60));
-    return start.secsTo(when) / 60;
+    // In minutes of the clock, as the slots of the record count them: a change of the clock
+    // adds or takes no hour, and the day starts on its slot, as the record rounds it
+    constexpr qint64 DAY_MINUTES = 24 * 60;
+    const int dayStart = m_journalRecord.rules().dayStartMinutes;
+    return day.daysTo(when.date()) * DAY_MINUTES + when.time().msecsSinceStartOfDay() / 60000 -
+           dayStart;
 }
 
 int WritingStatsModel::dailyGoalToday() const
 {
     const QDate day = today();
-    if (m_goals.dailyGoalFromDeadline && m_database != nullptr) {
-        const int wordsToday = bookStatistics().day(day).counted(m_rules.counting);
+    // Without a length or with the deadline passed, the writer's own daily goal again, as the
+    // tab of the goals shows it
+    if (m_goals.dailyGoalFromDeadline && m_database != nullptr && m_goals.hasDeadlineAhead(day)) {
         const int goal =
-            core::dailyGoalForDeadline(m_rules, m_goals, bookWords() - wordsToday, day);
-        if (goal > 0 || m_goals.deadline.isValid()) {
-            return m_rules.isWritingDay(day) ? goal : 0;
-        }
+            core::dailyGoalForDeadline(m_rules, m_goals, bookWordsAtStartOfToday(), day);
+        return m_rules.isWritingDay(day) ? goal : 0;
     }
     return m_rules.dailyGoalOn(day);
 }

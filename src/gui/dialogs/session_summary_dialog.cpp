@@ -105,13 +105,13 @@ private:
 // =============================================================================
 
 SessionSummary SessionSummary::of(const WritingStatsModel& model, const QDateTime& since,
-                                  const QString& bookTitle)
+                                  const QString& title)
 {
     SessionSummary summary;
     const core::WritingStatistics statistics = model.goalStatistics();
     const core::WritingRules& rules = model.rules();
     summary.day = model.today();
-    summary.bookTitle = bookTitle;
+    summary.bookTitle = title;
     const core::WritingTotals totals = statistics.day(summary.day);
     summary.words = totals.counted(rules.counting);
     // The words pasted are in them when they count
@@ -162,19 +162,19 @@ SessionSummary SessionSummary::of(const WritingStatsModel& model, const QDateTim
 
     // The graph of the day, in the hours of the bar
     auto& settings = core::SettingsManager::getInstance();
-    const int pieceMinutes = settings.get<int>("stats.bar.pieceMinutes", 10);
-    const QList<DayPiece> pieces = WritingStatsModel::dayPieces(statistics, summary.day,
-                                                                pieceMinutes);
-    const int piece = pieces.isEmpty() ? pieceMinutes : DAY_MINUTES / int(pieces.size());
+    const int pieceSetting = settings.get<int>("stats.bar.pieceMinutes", 10);
+    const QList<DayPiece> graph =
+        WritingStatsModel::dayPieces(statistics, summary.day, pieceSetting);
+    const int piece = graph.isEmpty() ? pieceSetting : DAY_MINUTES / int(graph.size());
     summary.pieceMinutes = piece;
     const int nowMinute =
         int(std::clamp<qint64>(model.minutesIntoDay(summary.day, model.now()), 0, DAY_MINUTES));
     const auto [from, to] = WritingStatsModel::shownMinutes(
-        pieces, piece, dayStart, std::clamp(settings.get<int>("stats.bar.fromHour", 6), 0, 23),
+        graph, piece, dayStart, std::clamp(settings.get<int>("stats.bar.fromHour", 6), 0, 23),
         std::clamp(settings.get<int>("stats.bar.toHour", 24), 1, 24), nowMinute);
-    for (int i = from / piece; i < std::min<int>(int(pieces.size()), (to + piece - 1) / piece);
+    for (int i = from / piece; i < std::min<int>(int(graph.size()), (to + piece - 1) / piece);
          ++i) {
-        summary.pieces.append(std::max(0, pieces[i].counted(rules.counting)));
+        summary.pieces.append(std::max(0, graph[i].counted(rules.counting)));
     }
     summary.graphFrom = clockAt(from, dayStart);
     summary.graphTo = clockAt(to, dayStart);

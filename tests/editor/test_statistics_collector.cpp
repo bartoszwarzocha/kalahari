@@ -585,3 +585,48 @@ TEST_CASE("StatisticsCollector: the words pasted are kept apart from the words w
     collector.endSession();
     collector.setBookEditor(nullptr);
 }
+
+TEST_CASE("StatisticsCollector: a paste keeps its words while another text is followed",
+          "[editor][statistics]") {
+    BookEditor chapterA;
+    chapterA.fromKml(createKml("Start"));
+    BookEditor chapterB;
+    chapterB.fromKml(createKml("Other"));
+    StatisticsCollector collector;
+    collector.setBookEditor(&chapterA);
+    collector.startSession();
+
+    // Pasted, and typed right after it, in its level of undo
+    chapterA.setCursorPosition({0, 5});
+    QMimeData data;
+    data.setText(QStringLiteral(" one two three"));
+    chapterA.insertFromMimeData(&data);
+    chapterA.insertText(QStringLiteral(" more"));
+    waitForCount();
+    CHECK(collector.wordsPastedThisSession() == 3);
+    CHECK(collector.wordsWrittenThisSession() == 1);
+
+    // Regression: another text followed in between forgot the words of the paste, and its
+    // undo took away four pasted words, the word typed not deleted
+    collector.setBookEditor(&chapterB);
+    collector.setBookEditor(&chapterA);
+    chapterA.undo();
+    waitForCount();
+    CHECK(chapterA.plainText() == QStringLiteral("Start"));
+    CHECK(collector.wordsPastedThisSession() == 0);
+    CHECK(collector.wordsDeletedThisSession() == 1);
+
+    // An editor left and closed takes its pastes with it
+    {
+        BookEditor closed;
+        closed.fromKml(createKml("Closed"));
+        collector.setBookEditor(&closed);
+        closed.setCursorPosition({0, 6});
+        closed.insertFromMimeData(&data);
+        collector.setBookEditor(&chapterB);
+    }
+    CHECK(collector.wordsPastedThisSession() == 3);
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+}

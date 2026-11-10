@@ -75,10 +75,15 @@ public:
 
     /// @brief The open book: its database and its id (nullptr: no book); its record is read
     /// and its goals with it
-    void setBook(core::ProjectDatabase* database, const QString& bookId);
+    /// @param readOnly The book is open read-only (ProjectManager::isReadOnly()): its database
+    /// is a copy that goes when it closes, so its goals and badges do not change
+    void setBook(core::ProjectDatabase* database, const QString& bookId, bool readOnly = false);
 
     /// @brief A book is open
     bool hasBook() const { return m_database != nullptr; }
+
+    /// @brief The open book is open read-only: its goals and badges do not change
+    bool isBookReadOnly() const { return m_database != nullptr && m_bookReadOnly; }
 
     /// @brief The database of the open book; nullptr without one
     core::ProjectDatabase* database() const { return m_database; }
@@ -91,6 +96,10 @@ public:
 
     /// @brief The words of the open book now; 0 without one
     int bookWords() const;
+
+    /// @brief The words the open book had when today's writing day started, as the record of
+    /// today says: what the deadline counts from
+    int bookWordsAtStartOfToday() const;
 
     /// @brief The goals of the open book; empty without one
     const core::BookGoals& goals() const { return m_goals; }
@@ -132,17 +141,17 @@ public:
                                      int minutes);
 
     /// @brief The minutes of a writing day that its graph shows, from the start of the day:
-    /// the hours @p fromHour to @p toHour of the clock (24 is midnight), wider when @p pieces
-    /// of @p pieceMinutes have writing outside them or @p nowMinute is outside; they start
-    /// and end on whole hours of the clock
+    /// the hours @p fromHour to @p toHour of the clock (24 is midnight; the whole day when
+    /// they cross its start), wider when @p pieces of @p pieceMinutes have writing outside
+    /// them or @p nowMinute is outside; they start and end on whole hours of the clock
     /// @param dayStart The end of a writing day of the rules, in minutes after midnight
     /// @return The first minute and the minute after the last one
     static std::pair<int, int> shownMinutes(const QList<DayPiece>& pieces, int pieceMinutes,
                                             int dayStart, int fromHour, int toHour,
                                             int nowMinute);
 
-    /// @brief The minutes from the start of writing day @p day to @p when; may be outside
-    /// 0 to 1440
+    /// @brief The minutes of the clock from the start of writing day @p day to @p when, as
+    /// the slots of the record count them; may be outside 0 to 1440
     qint64 minutesIntoDay(const QDate& day, const QDateTime& when) const;
 
     /// @brief The words of the daily goal today: the daily goal of the rules, or what the
@@ -170,6 +179,7 @@ private:
     core::BookGoals m_goals;
     core::ProjectDatabase* m_database{nullptr};
     QString m_bookId;
+    bool m_bookReadOnly{false};
     // Plain, cleared when the collector goes: clang-tidy's analyzer reports a QPointer as a use
     // of freed memory
     editor::StatisticsCollector* m_collector{nullptr};

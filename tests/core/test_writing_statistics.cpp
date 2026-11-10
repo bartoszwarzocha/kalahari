@@ -234,6 +234,44 @@ TEST_CASE("Writing statistics: the words pasted count only when the writer says 
     REQUIRE(stats.day(nov(12)).written == 120);
 }
 
+TEST_CASE("Writing statistics: a paste and its undo in one slot count as the record keeps them",
+          "[core][statistics]")
+{
+    // Regression: saved apart, a paste of 100 words and its undo in one slot counted as 100
+    // written and 100 deleted, but the record adds them up, so after a restart they were
+    // nothing: the words written changed with the moment they were saved
+    WritingRules rules;
+    rules.countPasted = true;
+    WritingActivity pasted = entry(nov(12), QTime(10, 0), 10, 0, MINUTE);
+    pasted.pasted = 100;
+    WritingActivity undone = entry(nov(12), QTime(10, 2), 0, 0, MINUTE);
+    undone.pasted = -100;
+    WritingActivity together = pasted;
+    together.pasted = 0;
+    together.activeMs = 2 * MINUTE;
+
+    WritingStatistics apart;
+    apart.setRules(rules);
+    apart.addActivity({pasted});
+    apart.addActivity({undone});
+    WritingStatistics once;
+    once.setRules(rules);
+    once.setActivity({together});
+    for (const WritingStatistics* stats : {&apart, &once}) {
+        const WritingTotals today = stats->day(nov(12));
+        CHECK(today.written == 10);
+        CHECK(today.deleted == 0);
+        CHECK(today.pasted == 0);
+        CHECK(today.activeMs == 2 * MINUTE);
+    }
+    // Other slots and other texts stay apart
+    apart.addActivity({entry(nov(12), QTime(10, 5), 7), entry(nov(12), QTime(10, 0), 3, 0, 0,
+                                                              QStringLiteral("chapter-2"))});
+    CHECK(apart.day(nov(12)).written == 20);
+    CHECK(apart.texts(nov(12), nov(12)).value(QStringLiteral("chapter-1")).written == 17);
+    CHECK(apart.texts(nov(12), nov(12)).value(QStringLiteral("chapter-2")).written == 3);
+}
+
 TEST_CASE("Writing statistics: the days in a row", "[core][statistics]")
 {
     WritingRules rules;  // Monday to Friday, at least 100 words

@@ -52,6 +52,11 @@ void BookGoals::sortDeadlines()
                      });
 }
 
+bool BookGoals::hasDeadlineAhead(const QDate& today) const
+{
+    return targetWords > 0 && deadline.isValid() && today.isValid() && deadline >= today;
+}
+
 int BookGoals::nextDeadline(const QDate& today) const
 {
     int next = -1;
@@ -184,8 +189,7 @@ QDate forecastDate(const WritingRules& rules, const QDate& today, int wordsLeft,
 int dailyGoalForDeadline(const WritingRules& rules, const BookGoals& goals,
                          int wordsAtStartOfToday, const QDate& today)
 {
-    if (goals.targetWords <= 0 || !goals.deadline.isValid() || !today.isValid() ||
-        goals.deadline < today) {
+    if (!goals.hasDeadlineAhead(today)) {
         return 0;
     }
     return wordsPerWritingDay(goals.targetWords - wordsAtStartOfToday,

@@ -68,6 +68,12 @@ void StatisticsCollector::setBookEditor(BookEditor* editor)
             debouncedRecalculate();
         }
         disconnect(m_editor, nullptr, this, nullptr);
+        // Its pastes keep their words while it keeps their undo: until it shows another text
+        // or is closed
+        if (m_pastedAtLevel.contains(m_editor)) {
+            connect(m_editor, &QObject::destroyed, this, &StatisticsCollector::onEditorDestroyed,
+                    Qt::UniqueConnection);
+        }
     }
 
     m_editor = editor;
@@ -82,11 +88,16 @@ void StatisticsCollector::setBookEditor(BookEditor* editor)
                 &StatisticsCollector::onPastingStarted);
         connect(m_editor, &BookEditor::pastingFinished, this,
                 &StatisticsCollector::onPastingFinished);
-        // A newly loaded text, or new rules of counting, are not words written or deleted
-        connect(m_editor, &BookEditor::documentChanged, this, &StatisticsCollector::rebase);
+        // A newly loaded text, or new rules of counting, are not words written or deleted; a
+        // new text has no undo, and no pastes to undo
+        connect(m_editor, &BookEditor::documentChanged, this, [this]() {
+            m_pastedAtLevel.remove(m_editor);
+            rebase();
+        });
         connect(m_editor, &BookEditor::countsChanged, this, &StatisticsCollector::rebase);
         // An editor closed while it is followed is forgotten
-        connect(m_editor, &QObject::destroyed, this, &StatisticsCollector::onEditorDestroyed);
+        connect(m_editor, &QObject::destroyed, this, &StatisticsCollector::onEditorDestroyed,
+                Qt::UniqueConnection);
     }
     rebase();
 }
@@ -349,7 +360,7 @@ void StatisticsCollector::onPastingFinished(int level, bool undoOrRedo)
     recalculateStats();
     const int wordsDelta = m_wordCount - previousWords;
     if (!undoOrRedo) {
-        m_pastedAtLevel.insert(level, std::max(0, wordsDelta));
+        m_pastedAtLevel[m_editor].insert(level, std::max(0, wordsDelta));
     }
     if (m_sessionActive && wordsDelta != 0) {
         m_previousWordCount = m_wordCount;
@@ -362,7 +373,7 @@ void StatisticsCollector::onPastingFinished(int level, bool undoOrRedo)
         if (!undoOrRedo) {
             pasted = std::max(0, wordsDelta);
         } else {
-            const int words = m_pastedAtLevel.value(level, std::abs(wordsDelta));
+            const int words = m_pastedAtLevel.value(m_editor).value(level, std::abs(wordsDelta));
             pasted = wordsDelta > 0 ? std::min(wordsDelta, words) : std::max(wordsDelta, -words);
         }
         m_recorder.recordPasted(pasted, now);
@@ -378,7 +389,6 @@ void StatisticsCollector::onPastingFinished(int level, bool undoOrRedo)
 
 void StatisticsCollector::rebase()
 {
-    m_pastedAtLevel.clear();  // the levels of undo of another text, or of none
     // The counts of now are where the next words written or deleted are counted from
     m_debounceTimer->stop();
     recalculateStats();
@@ -388,6 +398,7 @@ void StatisticsCollector::rebase()
 
 void StatisticsCollector::onEditorDestroyed(QObject* object)
 {
+    m_pastedAtLevel.remove(object);
     if (object == m_editor) {
         m_editor = nullptr;
         rebase();

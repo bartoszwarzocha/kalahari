@@ -169,6 +169,10 @@ public:
     /// @brief The totals of a writing day
     WritingTotals day(const QDate& writingDay) const;
 
+    /// @brief How much the texts grew on a writing day, whatever the rules count: the words
+    /// pasted too, and the words written and deleted again cancel out
+    int textGrowth(const QDate& writingDay) const;
+
     /// @brief The totals of the writing days from @p from to @p to, both included
     WritingTotals period(const QDate& from, const QDate& to) const;
 

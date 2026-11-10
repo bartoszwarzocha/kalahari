@@ -16593,7 +16593,7 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <translation>Pasek stanu</translation>
     </message>
     <message>
-        <source>Show the time of writing and the d&amp;ays in a row</source>
+        <source>Time of writing and d&amp;ays in a row</source>
         <translation>Pok&amp;azuj czas pisania i dni z rzędu</translation>
     </message>
     <message>
@@ -16920,7 +16920,7 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <translation>Cel &amp;tygodniowy osiągnięty</translation>
     </message>
     <message>
-        <source>A deadline is &amp;coming,</source>
+        <source>A deadline is &amp;coming</source>
         <translation>&amp;Przypomnienie o terminie</translation>
     </message>
     <message>
@@ -17331,6 +17331,11 @@ After the length of the book. In Polish: słów</extracomment>
         <source>The daily goal and the writing days are yours, the same for all the books. Open a book to set its goal and deadlines. The changes work at once.</source>
         <extracomment>In Polish: Cel dzienny i dni pisania są Twoje, wspólne dla wszystkich książek. Cel książki i terminy ustawisz po otwarciu książki. Zmiany działają od razu.</extracomment>
         <translation>Cel dzienny i dni pisania są Twoje, wspólne dla wszystkich książek. Cel książki i terminy ustawisz po otwarciu książki. Zmiany działają od razu.</translation>
+    </message>
+    <message>
+        <source>The daily goal and the writing days are yours, the same for all the books. The book “%1” is open read-only, so its goal and deadlines cannot be changed.</source>
+        <extracomment>%1: the title of the book. In Polish: Cel dzienny i dni pisania są Twoje, wspólne dla wszystkich książek. Książka „%1” jest otwarta tylko do odczytu, więc jej celu i terminów nie można zmienić.</extracomment>
+        <translation>Cel dzienny i dni pisania są Twoje, wspólne dla wszystkich książek. Książka „%1” jest otwarta tylko do odczytu, więc jej celu i terminów nie można zmienić.</translation>
     </message>
     <message>
         <source>(needs the length and the deadline of the book)</source>
