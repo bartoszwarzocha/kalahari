@@ -7,6 +7,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panels/editor_panel.h"
 
 #include <QPointer>
@@ -103,8 +104,9 @@ QList<editor::ParagraphMark> ParagraphMarksCoordinator::marksOf(const QString& e
 
 void ParagraphMarksCoordinator::refresh() {
     m_refreshTimer->stop();
-    for (int i = 0; i < m_centralTabs->count(); ++i) {
-        if (auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(i))) {
+    // The texts of the book window's tabs and of the windows of their own
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        if (auto* panel = qobject_cast<EditorPanel*>(page)) {
             refreshPanel(panel);
         }
     }

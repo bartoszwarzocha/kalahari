@@ -46,6 +46,7 @@ class SettingsDialog : public dialogs::KalahariDialog {
 
 public:
     /// @brief The pages the dialog can be opened at (openPage())
+    static constexpr const char* GENERAL_PAGE = "general";           ///< General
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
     /// Editor > Pages and Margins, scrolled to its group Margin Numbering, the cursor in it
