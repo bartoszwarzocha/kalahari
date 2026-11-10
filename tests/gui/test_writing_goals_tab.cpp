@@ -470,16 +470,20 @@ TEST_CASE("Writing goals: the page fills the whole width of the window",
 {
     Goals goals;
     goals.openBook();
-    WritingGoalsTab tab(&goals.model);
-    tab.setBookSource(Goals::source());
+    // In a window of its own, as in the middle of the program: a window as wide as this would
+    // be made as narrow as the screen of the tests
+    QWidget window;
+    auto* tab = new WritingGoalsTab(&goals.model, &window);
+    tab->setBookSource(Goals::source());
+    window.show();
     for (const int width : {700, 1900}) {
-        tab.resize(width, 800);
-        tab.show();
+        tab->resize(width, 800);
         QApplication::processEvents();
+        REQUIRE(tab->width() == width);
         // The intro over the whole page reaches near the right edge, on a wide window too
-        const auto* intro = tab.findChild<QWidget*>(QStringLiteral("goalsIntro"));
+        const auto* intro = tab->findChild<QWidget*>(QStringLiteral("goalsIntro"));
         REQUIRE(intro != nullptr);
         INFO("width " << width << ", intro " << intro->width());
-        CHECK(intro->mapTo(&tab, QPoint(intro->width(), 0)).x() >= width - 60);
+        CHECK(intro->mapTo(tab, QPoint(intro->width(), 0)).x() >= width - 60);
     }
 }

@@ -788,15 +788,19 @@ TEST_CASE("Writing awards: the page fills the whole width of the window",
 {
     Journal journal;
     WritingAwardsTracker tracker(&journal.model);
-    WritingAwardsTab tab(&tracker, &journal.model);
+    // In a window of its own, as in the middle of the program: a window as wide as this would
+    // be made as narrow as the screen of the tests
+    QWidget window;
+    auto* tab = new WritingAwardsTab(&tracker, &journal.model, &window);
+    window.show();
     for (const int width : {700, 1900}) {
-        tab.resize(width, 800);
-        tab.show();
+        tab->resize(width, 800);
         QApplication::processEvents();
+        REQUIRE(tab->width() == width);
         // The key of the colors over the whole page reaches near the right edge
-        const auto* key = tab.findChild<QWidget*>(QStringLiteral("badgeKey"));
+        const auto* key = tab->findChild<QWidget*>(QStringLiteral("badgeKey"));
         REQUIRE(key != nullptr);
         INFO("width " << width << ", key " << key->width());
-        CHECK(key->mapTo(&tab, QPoint(key->width(), 0)).x() >= width - 60);
+        CHECK(key->mapTo(tab, QPoint(key->width(), 0)).x() >= width - 60);
     }
 }
