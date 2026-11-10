@@ -464,3 +464,22 @@ TEST_CASE("Writing goals: Tools > Writing Goals and Deadlines opens one tab in t
     child<QPushButton>(*tab, "statsSettings")->click();
     CHECK(opened == QString::fromLatin1(gui::WritingStatsCoordinator::GOALS_SETTINGS_PAGE));
 }
+
+TEST_CASE("Writing goals: the page fills the whole width of the window",
+          "[gui][statistics][goals]")
+{
+    Goals goals;
+    goals.openBook();
+    WritingGoalsTab tab(&goals.model);
+    tab.setBookSource(Goals::source());
+    for (const int width : {700, 1900}) {
+        tab.resize(width, 800);
+        tab.show();
+        QApplication::processEvents();
+        // The intro over the whole page reaches near the right edge, on a wide window too
+        const auto* intro = tab.findChild<QWidget*>(QStringLiteral("goalsIntro"));
+        REQUIRE(intro != nullptr);
+        INFO("width " << width << ", intro " << intro->width());
+        CHECK(intro->mapTo(&tab, QPoint(intro->width(), 0)).x() >= width - 60);
+    }
+}

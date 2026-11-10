@@ -47,7 +47,7 @@ struct DayPiece {
 /// goals count the journal or the book, as the rules say (WritingRules::allBooks).
 ///
 /// The model tells when the numbers change (changed()), at most a few times a second, and once
-/// a minute while time passes (the graph of the day moves on, the temperature cools down).
+/// a minute while time passes (the graph of the day moves on, the pace of work cools down).
 class WritingStatsModel : public QObject {
     Q_OBJECT
 

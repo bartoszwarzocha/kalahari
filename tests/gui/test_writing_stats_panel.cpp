@@ -193,7 +193,7 @@ TEST_CASE("Statistics panel: 30 days, the book and the times of writing", "[gui]
     CHECK(panel.numbers().isEmpty());
 
     panel.setView(View::Hours);
-    CHECK(panel.titleText() == QStringLiteral("Times of Writing"));
+    CHECK(panel.titleText() == QStringLiteral("When You Write"));
     CHECK(contains(panel.numbers(), QStringLiteral("Best time: 20–22")));
     // The share of the words written: 950 of 1,150 in the evening
     CHECK(contains(panel.details(), QStringLiteral("Evening (18–24): 83%")));
@@ -214,7 +214,7 @@ TEST_CASE("Statistics panel: the settings choose the views of the list", "[gui][
 
     // A view chosen elsewhere is shown, though not in the list
     panel.setView(View::Hours);
-    CHECK(panel.titleText() == QStringLiteral("Times of Writing"));
+    CHECK(panel.titleText() == QStringLiteral("When You Write"));
     CHECK(panel.viewList()->currentRow() == -1);
     settings.set<bool>(WritingStatsPanel::settingOf(View::Hours), true);
     settings.set<bool>(WritingStatsPanel::settingOf(View::Month), true);

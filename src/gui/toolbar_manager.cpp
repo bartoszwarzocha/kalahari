@@ -101,6 +101,9 @@ constexpr std::array<const char*, 3> VERSIONS_TOOLBAR_COMMANDS{
 /// The prefix of the setting with whether a toolbar was shown when the window closed
 constexpr const char* VISIBLE_SETTING_PREFIX = "toolbars.visible.";
 
+/// The toolbar of the statistics of writing
+constexpr const char* STATS_TOOLBAR_ID = "stats";
+
 /// The setting with whether the saved layout has the Panels toolbar put by the right edge
 /// (ToolbarManager::placePanelsToolbar())
 constexpr const char* PANELS_PLACED_SETTING = "toolbars.panelsByRightEdge";
@@ -278,8 +281,8 @@ void ToolbarManager::initializeConfigs() {
     // Writing Statistics Toolbar: the statistics of writing in one place - the statistics bar, the
     // Statistics panel (also on the Panels toolbar, with the other panels), the tabs of the
     // goals and of the challenges and badges, a new challenge, and the settings of the statistics
-    m_configs["stats"] = {
-        "stats",
+    m_configs[STATS_TOOLBAR_ID] = {
+        STATS_TOOLBAR_ID,
         QT_TRANSLATE_NOOP("QObject", "&Writing Statistics Toolbar"),
         Qt::TopToolBarArea,
         true,  // visible by default (Row 2)
@@ -549,6 +552,11 @@ void ToolbarManager::restoreState() {
     if (hasSavedSettings &&
         !settings.hasKey(std::string(VISIBLE_SETTING_PREFIX) + VERSIONS_TOOLBAR_ID)) {
         placeVersionsToolbar();
+    }
+    // A layout saved before Writing Statistics existed leaves it at the end of the last row
+    if (hasSavedSettings &&
+        !settings.hasKey(std::string(VISIBLE_SETTING_PREFIX) + STATS_TOOLBAR_ID)) {
+        placeStatsToolbar();
     }
 
     // Restore visibility for each toolbar
@@ -1127,6 +1135,20 @@ void ToolbarManager::placeVersionsToolbar() {
     quickActions->setVisible(quickActionsShown);
     core::Logger::getInstance().info(
         "ToolbarManager: Versions and Backups placed after Quick Actions in a saved layout");
+}
+
+void ToolbarManager::placeStatsToolbar() {
+    QToolBar* stats = getToolbar(STATS_TOOLBAR_ID);
+    QToolBar* help = getToolbar("help");
+    if (stats == nullptr || help == nullptr || help->isFloating() ||
+        m_mainWindow->toolBarArea(help) != m_mainWindow->toolBarArea(stats)) {
+        return;
+    }
+    const bool shown = !stats->isHidden();
+    m_mainWindow->insertToolBar(help, stats);
+    stats->setVisible(shown);
+    core::Logger::getInstance().info(
+        "ToolbarManager: Writing Statistics placed before Help in a saved layout");
 }
 
 void ToolbarManager::placePanelsToolbar() {

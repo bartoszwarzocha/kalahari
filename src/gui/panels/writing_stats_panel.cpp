@@ -37,6 +37,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 namespace kalahari::gui {
 
@@ -136,7 +137,7 @@ void paintPlot(QPainter& painter, const QRectF& rect, const GraphData& graph,
         stats_painter::drawGrid(painter, rect, 4, rows, colors.grid);
         break;
     case GraphData::Kind::Trophy: {
-        stats_painter::drawGrid(painter, rect, 4, rows, colors.grid);
+        // The cup alone, as on the button of the tab: not a graph
         const double side = std::min(inner.height() - 6.0, 20.0);
         badge_painter::drawTrophy(painter,
                                   QRectF(inner.center().x() - side / 2.0,
@@ -684,9 +685,19 @@ private:
 class StatsDetails : public QWidget {
 public:
     struct Detail {
+        Detail(QString detailName, QString detailValue, const QColor& valueColor = {},
+               QString detailToolTip = {})
+            : name(std::move(detailName))
+            , value(std::move(detailValue))
+            , color(valueColor)
+            , toolTip(std::move(detailToolTip))
+        {
+        }
+
         QString name;
         QString value;
-        QColor color;  ///< Of the value; invalid: the color of the text
+        QColor color;     ///< Of the value; invalid: the color of the text
+        QString toolTip;  ///< What the name means, when it needs saying
     };
 
     explicit StatsDetails(QWidget* parent)
@@ -714,7 +725,10 @@ public:
                 value->setStyleSheet(QStringLiteral("color: %1;").arg(detail.color.name()));
             }
             name->setBuddy(value);
+            name->setToolTip(detail.toolTip);
+            value->setToolTip(detail.toolTip);
             value->setAccessibleName(detail.name);
+            value->setAccessibleDescription(detail.toolTip);
             name->show();
             value->show();
             m_names.append(name);
@@ -1016,6 +1030,7 @@ WritingStatsPanel::WritingStatsPanel(QWidget* parent)
     retranslateAwards();
 
     m_graph = new StatsGraph(view);
+    m_graph->setObjectName(QStringLiteral("statsViewGraph"));
     layout->addWidget(m_graph);
 
     m_note = new QLabel(view);
@@ -1373,7 +1388,9 @@ void WritingStatsPanel::fillView(const Context& context)
     m_previous->setVisible(viewData.periods);
     m_next->setVisible(viewData.periods);
     m_next->setEnabled(viewData.later);
-    m_graph->setVisible(viewData.graph.kind != GraphData::Kind::None);
+    // The trophy is the small graph of Achievements in the list; the view shows the badge
+    m_graph->setVisible(viewData.graph.kind != GraphData::Kind::None &&
+                        viewData.graph.kind != GraphData::Kind::Trophy);
     m_graph->setGraph(viewData.graph, context.colors);
     m_note->setText(viewData.note);
     m_note->setVisible(!viewData.note.isEmpty());
@@ -1419,7 +1436,8 @@ void WritingStatsPanel::viewOf(View view, const Context& context, ViewData& view
         viewData.title = tr("Book");
         break;
     case View::Hours:
-        viewData.title = tr("Times of Writing");
+        //: The view of the hours and days the writer writes in. In Polish: Kiedy piszesz
+        viewData.title = tr("When You Write");
         break;
     case View::Awards:
         //: The view of the badges and the challenges. In Polish: Osiągnięcia
@@ -1559,8 +1577,13 @@ void WritingStatsPanel::showToday(const Context& context, ViewData& viewData) co
     const core::WritingTemperature temperature = statistics.temperature(context.now);
     const QString temperatureName = stats_painter::temperatureName(temperature);
     if (!temperatureName.isEmpty()) {
-        viewData.details.append({tr("Temperature of work"), temperatureName,
-                             context.colors.temperature(temperature)});
+        //: In Polish: Tempo pracy
+        viewData.details.append({tr("Pace of work"), temperatureName,
+                                 context.colors.temperature(temperature),
+                                 //: In Polish: Ostatnie 30 minut w porównaniu ze zwykłym pisaniem
+                                 //: z ostatnich 4 tygodni
+                                 tr("The last 30 minutes compared with the usual writing of the "
+                                    "last 4 weeks")});
     }
     if (!times.isEmpty()) {
         viewData.details.append({tr("Sessions"), times.join(QStringLiteral(", ")), {}});
@@ -1944,7 +1967,10 @@ void WritingStatsPanel::showHours(const Context& context, ViewData& viewData) co
     const QDate today = context.today;
     const core::WritingHourMap map =
         context.statistics.hourMap(today.addDays(1 - HOURS_DAYS), today);
-    viewData.subtitle = tr("the last 4 weeks");
+    //: In Polish: Średnia liczba słów w każdej godzinie każdego dnia tygodnia, z ostatnich 4
+    //: tygodni. Im intensywniejszy kolor, tym więcej słów.
+    viewData.subtitle = tr("The average words in each hour of each day of the week, in the "
+                           "last 4 weeks. The deeper the color, the more words.");
     GraphData& graph = viewData.graph;
     graph.kind = GraphData::Kind::Hours;
     graph.heat = map.words;
@@ -2037,6 +2063,53 @@ void WritingStatsPanel::showAwards(const Context& context, ViewData& viewData) c
                                                : tr("%n challenges", nullptr, open));
     }
     viewData.listText = counts;
+
+    // The numbers: the badges won of all, and the challenges going on
+    const int allBadges = int(core::BADGE_KINDS.size()) * core::BADGE_LEVELS;
+    //: The badges won. In Polish: Odznaki
+    viewData.numbers.append({tr("Badges"), stats_painter::number(badges),
+                             //: Under the number of the badges won: of all. In Polish: z %1
+                             tr("of %1").arg(allBadges)});
+    //: The challenges not done and not over. In Polish: Trwające wyzwania
+    viewData.numbers.append({tr("Challenges going on"), stats_painter::number(open), QString()});
+
+    // The badge nearest to be won, with the bar of how far it is
+    std::optional<core::BadgeProgress> nearest;
+    double nearestShare = -1.0;
+    for (core::BadgeKind kind : core::BADGE_KINDS) {
+        const core::BadgeProgress progress = m_tracker->progressOf(kind);
+        const int level = progress.level();
+        if (!progress.available || level >= core::BADGE_LEVELS) {
+            continue;
+        }
+        const double share = progress.share(level);
+        if (share > nearestShare) {
+            nearestShare = share;
+            nearest = progress;
+        }
+    }
+    if (nearest) {
+        viewData.progress = nearestShare;
+        //: In Polish: Najbliższa odznaka
+        viewData.details.append({tr("Nearest badge"),
+                                 badge_painter::title(*nearest, nearest->level()), QColor(),
+                                 badge_painter::description(*nearest)});
+        //: How far the nearest badge is. In Polish: Postęp
+        viewData.details.append({tr("So far"), badge_painter::valueText(*nearest)});
+    }
+    // The challenges going on, each with how far it is and its last day
+    for (const core::WritingChallenge& challenge : m_tracker->challenges()) {
+        const core::ChallengeProgress progress = m_tracker->challengeProgress(challenge);
+        if (progress.done || progress.over) {
+            continue;
+        }
+        viewData.details.append({badge_painter::challengeTitle(challenge),
+                                 tr("%1, %2").arg(
+                                     badge_painter::challengeValue(challenge, progress.value),
+                                     badge_painter::challengePeriod(challenge))});
+    }
+    //: In Polish: Kliknij odznakę, aby zobaczyć wszystkie odznaki i wyzwania.
+    viewData.note = tr("Click the badge to see all the badges and challenges.");
 
     if (const std::optional<core::EarnedBadge> last = m_tracker->lastBadge()) {
         const core::BadgeProgress progress = m_tracker->progressOf(last->kind);

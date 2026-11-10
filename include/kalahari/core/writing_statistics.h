@@ -35,8 +35,8 @@ enum class StreakRule {
     DailyGoal,     ///< A day with the daily goal reached
 };
 
-/// @brief The temperature of work: how much and how fast the writer writes now, compared
-/// with the writer's own usual work
+/// @brief The temperature of work, shown to the writer as the pace of work: how much and how
+/// fast the writer writes now, compared with the writer's own usual work
 enum class WritingTemperature {
     Unknown,     ///< Too little record of the usual work to compare with
     Idle,        ///< Nothing written or deleted lately

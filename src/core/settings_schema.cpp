@@ -26,6 +26,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+        // The Statistics panel has its place in the saved layout: a layout saved before it
+        // gets it once, in the tab after the Annotations panel (DockCoordinator)
+        {"window.statisticsPanelPlaced", false},
         // The tabs in the middle of the window (Settings > Appearance > General): in one row
         // with arrows when they do not fit ("single") or in more rows ("wrap")
         {"window.tabRows", "single"},
@@ -103,7 +106,9 @@ std::map<std::string, json> buildDefaults() {
         // and Panel): a graph of the day ("graph", bar.height pixels high, at least 83) or one
         // line ("line"); its texts on the right or the left of the graph; the mini graph of the
         // line shows today ("day"), the last 7 or the last 30 days. The graph shows the hours
-        // from bar.fromHour to bar.toHour (24: midnight), in pieces of bar.pieceMinutes.
+        // from bar.fromHour to bar.toHour (24: midnight), in pieces of bar.pieceMinutes: the day
+        // from the left ("day"), or as many hours with now in the middle ("now"), as the button
+        // on the graph switches it.
         {"stats.bar.show", true},
         {"stats.bar.mode", "graph"},
         {"stats.bar.height", 83},
@@ -112,6 +117,7 @@ std::map<std::string, json> buildDefaults() {
         {"stats.bar.showTime", true},
         {"stats.bar.showStreak", true},
         {"stats.bar.miniGraph", "7"},
+        {"stats.bar.graphMode", "day"},
         {"stats.bar.fromHour", 6},
         {"stats.bar.toHour", 24},
         {"stats.bar.pieceMinutes", 10},
@@ -129,6 +135,8 @@ std::map<std::string, json> buildDefaults() {
         // Messages in the bar at the bottom of the window (Settings > Statistics and Goals >
         // Notifications), the summary of the session and the badges and challenges
         {"stats.notify.dailyGoal", true},
+        // The daily goal reached opens the Statistics panel on the view Today
+        {"stats.notify.showPanel", true},
         {"stats.notify.weeklyGoal", true},
         {"stats.notify.deadline", true},
         {"stats.notify.deadlineDays", 3},

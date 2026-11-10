@@ -73,7 +73,7 @@ QWidget* rowOf(const QList<QWidget*>& parts)
 }
 
 /// @brief The preview of the colors of a theme: a day of writing on the grid, with the line of
-/// the goal, the words adding up and the four temperatures of work
+/// the goal, the words adding up and the four paces of work
 class StatsPreview : public QWidget {
     Q_DECLARE_TR_FUNCTIONS(StatsPreview)
 
@@ -117,7 +117,7 @@ protected:
         }
         painter.setPen(QPen(colors.done, 1.6));
         painter.drawPath(sum);
-        // The temperatures of work and the times of writing
+        // The paces of work and the times of writing
         const QList<QColor> swatches{colors.muchFast, colors.muchSlow, colors.littleFast,
                                      colors.littleSlow};
         const double size = 10;
@@ -303,7 +303,7 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     auto* shown = new QWidget();
     auto* shownLayout = new QVBoxLayout(shown);
     shownLayout->setContentsMargins(0, 0, 0, 0);
-    QCheckBox* words = addOption(shownLayout, tr("&Words today and the temperature of work"),
+    QCheckBox* words = addOption(shownLayout, tr("&Words today and the pace of work"),
                                  "stats.bar.showWords");
     addOption(shownLayout, tr("&Time of writing"), "stats.bar.showTime");
     addOption(shownLayout, tr("&Days in a row"), "stats.bar.showStreak");
@@ -324,7 +324,8 @@ StatsBarPage::StatsBarPage(QWidget* parent)
     const std::vector<std::pair<QString, std::string>> panelViews{
         {tr("Today"), "stats.panel.today"},     {tr("Week"), "stats.panel.week"},
         {tr("30 days"), "stats.panel.month"},   {tr("Book"), "stats.panel.book"},
-        {tr("Times of writing"), "stats.panel.hours"},
+        //: The view of the Statistics panel. In Polish: Kiedy piszesz
+        {tr("When you write"), "stats.panel.hours"},
         {tr("Achievements"), "stats.panel.awards"}};
     QCheckBox* firstView = nullptr;
     for (std::size_t i = 0; i < panelViews.size(); ++i) {
@@ -499,6 +500,11 @@ StatsNotificationsPage::StatsNotificationsPage(QWidget* parent)
 
     QFormLayout* messages = addGroup(tr("Messages"));
     addOption(messages, tr("&Daily goal reached"), "stats.notify.dailyGoal");
+    //: In Polish: Pokazuj pa&nel „Statystyki”
+    addOption(messages, tr("Show the Statistics &panel"), "stats.notify.showPanel",
+              //: In Polish: Gdy cel dzienny zostanie osiągnięty, panel otwiera się na widoku
+              //: „Dzisiaj”.
+              tr("When the daily goal is reached, the panel opens on the view Today."));
     addOption(messages, tr("&Weekly goal reached"), "stats.notify.weeklyGoal");
     // The days under the box, in line with its text: in one row they are too wide in Polish for
     // the settings on a small screen
@@ -540,10 +546,10 @@ StatsNotificationsPage::StatsNotificationsPage(QWidget* parent)
 StatsColorsPage::StatsColorsPage(QWidget* parent)
     : StatsSettingsPage(parent)
 {
-    //: In Polish: Kolory wykresów, paska celu dziennego i temperatury pracy. Każdy motyw
-    //: programu ma własne kolory; program używa tych, które pasują do bieżącego motywu.
-    addIntro(tr("The colors of the graphs, of the bar of the daily goal and of the temperature "
-                "of work. Each theme of the program has its own; the program uses those of the "
+    //: In Polish: Kolory wykresów, paska celu dziennego i tempa pracy. Każdy motyw programu
+    //: ma własne kolory; program używa tych, które pasują do bieżącego motywu.
+    addIntro(tr("The colors of the graphs, of the bar of the daily goal and of the pace of "
+                "work. Each theme of the program has its own; the program uses those of the "
                 "theme in use."));
     QStringList themes = core::ThemeManager::getInstance().getAvailableThemes();
     // The light theme first, as the Theme page lists them
@@ -580,12 +586,18 @@ void StatsColorsPage::addTheme(const QString& themeName)
         tr("Line and fill of the graphs"),
         tr("Line of the goal"),
         tr("Goal reached"),
-        tr("Temperature: a lot, fast"),
-        tr("Temperature: a lot, slowly"),
-        tr("Temperature: a little, fast"),
-        tr("Temperature: a little, slowly"),
-        tr("Times of writing: the fewest words"),
-        tr("Times of writing: the most words"),
+        //: In Polish: Tempo: więcej i szybciej niż zwykle
+        tr("Pace: more and faster than usual"),
+        //: In Polish: Tempo: więcej, ale wolniej
+        tr("Pace: more, but slower"),
+        //: In Polish: Tempo: głównie poprawki
+        tr("Pace: mostly corrections"),
+        //: In Polish: Tempo: mniej i wolniej niż zwykle
+        tr("Pace: less and slower than usual"),
+        //: In Polish: Kiedy piszesz: najmniej słów
+        tr("When you write: the fewest words"),
+        //: In Polish: Kiedy piszesz: najwięcej słów
+        tr("When you write: the most words"),
         tr("Texts on the graphs"),
         //: In Polish: Odznaki: brązowa
         tr("Badges: bronze"),
@@ -597,6 +609,22 @@ void StatsColorsPage::addTheme(const QString& themeName)
         tr("Badges: platinum"),
     };
     const std::vector<std::string>& keys = StatsColors::keys();
+    // The colors that follow the theme's color lie over the background of the graphs: the
+    // writer's own colors of this theme, or the theme's
+    const auto ownOrTheme = [&](const std::string& key) {
+        const std::string own = core::SettingsManager::getInstance().get<std::string>(
+            core::ThemeManager::editorColorSetting(name, key), std::string());
+        const QColor ownColor(QString::fromStdString(own));
+        if (ownColor.isValid()) {
+            return ownColor;
+        }
+        const auto found = theme.editor.find(key);
+        return found != theme.editor.end() ? found->second : QColor();
+    };
+    const QColor themePrimary(
+        QString::fromStdString(core::SettingsManager::getInstance().getIconColorPrimaryForTheme(
+            name, theme.colors.primary.name().toStdString())));
+    const QColor background = ownOrTheme(keys.front());
     auto widgets = std::make_shared<std::vector<ColorConfigWidget*>>();
     auto* restoreRow = new QHBoxLayout();
     auto* restore = new QPushButton(tr("Restore Default Colors"));
@@ -604,7 +632,10 @@ void StatsColorsPage::addTheme(const QString& themeName)
     for (std::size_t i = 0; i < keys.size() && i < labels.size(); ++i) {
         const std::string key = keys[i];
         const auto found = theme.editor.find(key);
-        const QColor themeColor = found != theme.editor.end() ? found->second : QColor();
+        QColor themeColor = found != theme.editor.end() ? found->second : QColor();
+        if (StatsColors::followsTheme(key)) {
+            themeColor = StatsColors::themeDefault(key, themePrimary, background);
+        }
         auto* widget = new ColorConfigWidget(labels[i]);
         form->addRow(widget);
         widgets->push_back(widget);

@@ -19,32 +19,47 @@ namespace kalahari::gui {
 
 namespace {
 
-/// @brief The colors when a theme file has none (those of the Light theme)
+/// @brief The colors when a theme file has none (those of the Light and the Dark theme); the
+/// colors with a share of the theme's color follow that color instead
 struct DefaultColor {
     const char* key;
     const char* light;
     const char* dark;
+    /// How much of the theme's color (the first color of the icons) the color has over the
+    /// background of the graphs; 0: a color of its own
+    double themeShare = 0.0;
 };
 
 constexpr std::array<DefaultColor, 17> DEFAULT_COLORS{{
-    {"statsBackground", "#FFFFFF", "#161B1F"},
-    {"statsGrid", "#E2ECF2", "#25313A"},
-    {"statsFrame", "#8FB5D0", "#3C6B87"},
-    {"statsLine", "#1673B8", "#4CB0E8"},
+    {"statsBackground", "#FFFFFF", "#1A1A1A"},
+    {"statsGrid", "", "", 0.14},
+    {"statsFrame", "", "", 0.45},
+    {"statsLine", "", "", 1.0},
     {"statsGoal", "#A86F00", "#E3B341"},
     {"statsDone", "#2E7D32", "#5CC178"},
     {"statsMuchFast", "#D4521F", "#EF6B3B"},
     {"statsMuchSlow", "#B7790A", "#E7A93B"},
     {"statsLittleFast", "#1B88B3", "#4FB6DC"},
     {"statsLittleSlow", "#6B7088", "#8B90A6"},
-    {"statsHoursLow", "#EEF4F8", "#1C2730"},
-    {"statsHoursHigh", "#1673B8", "#4CB0E8"},
-    {"statsText", "#2E3D49", "#C3D0DA"},
+    {"statsHoursLow", "", "", 0.06},
+    {"statsHoursHigh", "", "", 1.0},
+    {"statsText", "#333333", "#D0D0D0"},
     {"statsBadgeBronze", "#A3532A", "#C98A55"},
     {"statsBadgeSilver", "#6F7D88", "#B9C3CC"},
     {"statsBadgeGold", "#B08400", "#E3B341"},
     {"statsBadgePlatinum", "#23879A", "#8FD8E8"},
 }};
+
+/// @brief The entry of @p key; nullptr for a key not known
+const DefaultColor* defaultOf(const std::string& key)
+{
+    for (const DefaultColor& entry : DEFAULT_COLORS) {
+        if (key == entry.key) {
+            return &entry;
+        }
+    }
+    return nullptr;
+}
 
 bool isDarkTheme()
 {
@@ -125,16 +140,50 @@ QColor StatsColors::badge(int level) const
     }
 }
 
+bool StatsColors::followsTheme(const std::string& key)
+{
+    const DefaultColor* entry = defaultOf(key);
+    return entry != nullptr && entry->themeShare > 0.0;
+}
+
+QColor StatsColors::themeDefault(const std::string& key, const QColor& themeColor,
+                                 const QColor& under)
+{
+    const DefaultColor* entry = defaultOf(key);
+    if (entry == nullptr || entry->themeShare <= 0.0) {
+        return {};
+    }
+    // In whole steps, as the colors are kept and shown
+    const double share = entry->themeShare;
+    const auto mix = [share](int from, int to) { return qRound(from + (to - from) * share); };
+    return {mix(under.red(), themeColor.red()), mix(under.green(), themeColor.green()),
+            mix(under.blue(), themeColor.blue())};
+}
+
 StatsColors StatsColors::current()
 {
     const auto& themes = core::ThemeManager::getInstance();
+    const auto& settings = core::SettingsManager::getInstance();
+    const core::Theme& theme = themes.getCurrentTheme();
     const bool dark = isDarkTheme();
     StatsColors colors;
+    // The background first: the colors that follow the theme's color lie over it
+    colors.background = themes.editorColor(
+        DEFAULT_COLORS[0].key, QColor(QString::fromLatin1(dark ? DEFAULT_COLORS[0].dark
+                                                               : DEFAULT_COLORS[0].light)));
     const auto take = [&](const DefaultColor& entry) {
+        if (entry.themeShare > 0.0) {
+            // The writer's own color of this theme, or the theme's color (with the writer's
+            // color of the icons) over the background
+            const QColor own(QString::fromStdString(settings.get<std::string>(
+                core::ThemeManager::editorColorSetting(theme.name, entry.key), std::string())));
+            return own.isValid() ? own
+                                 : themeDefault(entry.key, theme.colors.primary,
+                                                colors.background);
+        }
         return themes.editorColor(entry.key, QColor(QString::fromLatin1(dark ? entry.dark
                                                                                 : entry.light)));
     };
-    colors.background = take(DEFAULT_COLORS[0]);
     colors.grid = take(DEFAULT_COLORS[1]);
     colors.frame = take(DEFAULT_COLORS[2]);
     colors.line = take(DEFAULT_COLORS[3]);
@@ -228,21 +277,22 @@ QString hoursMinutes(qint64 ms)
 
 QString temperatureName(core::WritingTemperature temperature)
 {
+    // The last 30 minutes compared with the writer's usual work of the last 4 weeks
     switch (temperature) {
     case core::WritingTemperature::MuchFast:
-        //: In Polish: dużo i szybko
-        return QCoreApplication::translate("StatsPainter", "a lot, fast");
+        //: The pace of work. In Polish: więcej i szybciej niż zwykle
+        return QCoreApplication::translate("StatsPainter", "more and faster than usual");
     case core::WritingTemperature::MuchSlow:
-        //: In Polish: dużo i powoli
-        return QCoreApplication::translate("StatsPainter", "a lot, slowly");
+        //: The pace of work. In Polish: więcej niż zwykle, ale wolniej
+        return QCoreApplication::translate("StatsPainter", "more than usual, but slower");
     case core::WritingTemperature::LittleFast:
-        //: In Polish: mało i szybko
-        return QCoreApplication::translate("StatsPainter", "a little, fast");
+        //: The pace of work: fewer words, much typed and deleted. In Polish: głównie poprawki
+        return QCoreApplication::translate("StatsPainter", "mostly corrections");
     case core::WritingTemperature::LittleSlow:
-        //: In Polish: mało i powoli
-        return QCoreApplication::translate("StatsPainter", "a little, slowly");
+        //: The pace of work. In Polish: mniej i wolniej niż zwykle
+        return QCoreApplication::translate("StatsPainter", "less and slower than usual");
     case core::WritingTemperature::Idle:
-        //: In Polish: przerwa
+        //: The pace of work: nothing written lately. In Polish: przerwa
         return QCoreApplication::translate("StatsPainter", "pause");
     case core::WritingTemperature::Unknown:
         break;
@@ -328,11 +378,13 @@ void drawGlyph(QPainter& painter, Glyph glyph, const QRectF& rect, const QColor&
         painter.drawPath(path);
         break;
     }
-    case Glyph::Thermometer: {
-        const double r = s * 0.17;
-        const QPointF bulb(c.x(), c.y() + s * 0.28);
-        painter.drawEllipse(bulb, r, r);
-        painter.drawLine(QPointF(c.x(), bulb.y() - r), QPointF(c.x(), c.y() - s * 0.42));
+    case Glyph::Gauge: {
+        // A dial, open at the bottom, and its needle
+        const double r = s * 0.42;
+        const QRectF dial(c.x() - r, c.y() - r + s * 0.08, 2 * r, 2 * r);
+        painter.drawArc(dial, -30 * 16, 240 * 16);
+        const QPointF hub = dial.center();
+        painter.drawLine(hub, QPointF(hub.x() + r * 0.55, hub.y() - r * 0.55));
         break;
     }
     case Glyph::Check: {

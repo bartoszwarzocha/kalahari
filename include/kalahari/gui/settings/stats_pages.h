@@ -93,7 +93,7 @@ public:
 };
 
 /// @brief Settings > Statistics and Goals > Colors: the colors of the graphs, of the bar of the
-/// daily goal and of the temperature of work, of each theme of the program, with a preview
+/// daily goal and of the pace of work, of each theme of the program, with a preview
 class StatsColorsPage : public StatsSettingsPage {
     Q_OBJECT
 public:

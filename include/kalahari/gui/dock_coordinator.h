@@ -137,6 +137,13 @@ public:
     ///        of the Properties panel opens unfolded with the Properties panel on top
     void placeParagraphPanel(bool moved);
 
+    /// @brief The Statistics panel in a layout saved before it existed, once: Qt leaves it
+    /// where it was before the layout came back, shown even when the panels on the right were
+    /// closed. It goes in the tab after the Annotations panel, closed while that is closed.
+    /// @param savedLayout The window took a saved layout; without one (the first start) the
+    ///        panel stays where the default layout puts it
+    void placeStatisticsPanel(bool savedLayout);
+
     /// @brief Follow the text in front with the Paragraph and Styles panel, in both its places
     /// @param editor The text, nullptr without one (the Dashboard, no tab)
     void setParagraphEditor(editor::BookEditor* editor);

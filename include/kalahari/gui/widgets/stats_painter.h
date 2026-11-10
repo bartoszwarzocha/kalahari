@@ -20,7 +20,9 @@ class QPainter;
 namespace kalahari::gui {
 
 /// @brief The colors of the statistics in the theme in use (Settings > Statistics and Goals >
-/// Colors); each theme keeps its own, in the "editor" section of its file
+/// Colors); each theme keeps its own, in the "editor" section of its file. The grid, the frame,
+/// the lines and the times of writing follow the theme's color, unless the writer chose their
+/// own.
 struct StatsColors {
     QColor background;  ///< The background of the graphs
     QColor grid;        ///< The grid
@@ -28,11 +30,11 @@ struct StatsColors {
     QColor line;        ///< The lines of the graphs and their fill
     QColor goal;        ///< The line of the goal
     QColor done;        ///< The goal reached
-    QColor muchFast;    ///< The temperature of work: a lot, fast
-    QColor muchSlow;    ///< A lot, slowly
-    QColor littleFast;  ///< A little, fast
-    QColor littleSlow;  ///< A little, slowly
-    QColor hoursLow;    ///< The times of writing: the fewest words
+    QColor muchFast;    ///< The pace of work: more and faster than usual
+    QColor muchSlow;    ///< More than usual, but slower
+    QColor littleFast;  ///< Mostly corrections
+    QColor littleSlow;  ///< Less and slower than usual
+    QColor hoursLow;    ///< When you write: the fewest words
     QColor hoursHigh;   ///< The most words
     QColor text;        ///< The texts on the graphs
     QColor bronze;      ///< The badges won: the first threshold
@@ -47,7 +49,7 @@ struct StatsColors {
     /// @brief The fill under the lines: the line color with fillOpacity
     QColor fill() const;
 
-    /// @brief The color of a temperature of work; the line color when it is unknown or idle
+    /// @brief The color of a pace of work; the line color when it is unknown or idle
     QColor temperature(core::WritingTemperature temperature) const;
 
     /// @brief The color of the badges won of @p level: 0 bronze ... 3 platinum
@@ -56,7 +58,17 @@ struct StatsColors {
     /// @brief The colors of the theme in use, with the writer's own
     static StatsColors current();
 
-    /// @brief The keys of the colors in the theme files, in the order of the Colors page
+    /// @brief Whether the color of @p key follows the theme's color (the first color of the
+    /// icons, as the writer set it): the grid, the frame, the lines and the times of writing
+    static bool followsTheme(const std::string& key);
+
+    /// @brief The color of @p key that follows the theme: @p themeColor over @p under (the
+    /// background of the graphs) in its share; invalid for a color of its own
+    static QColor themeDefault(const std::string& key, const QColor& themeColor,
+                               const QColor& under);
+
+    /// @brief The keys of the colors (in the theme files, or the settings of those that follow
+    /// the theme's color), in the order of the Colors page
     static const std::vector<std::string>& keys();
 
     /// @brief The setting of the fill of a theme: "stats.fillOpacity.<theme>"
@@ -82,7 +94,8 @@ QString words(qint64 count);
 /// @brief A time of writing as hours and minutes: "2:35"
 QString hoursMinutes(qint64 ms);
 
-/// @brief The name of a temperature of work ("a lot, fast"); empty when it is unknown
+/// @brief The name of a pace of work (core::WritingTemperature), as the writer reads it:
+/// "more and faster than usual"; empty when it is unknown
 QString temperatureName(core::WritingTemperature temperature);
 
 /// @brief The fine grid: @p columns vertical and @p rows horizontal lines inside @p rect,
@@ -95,7 +108,7 @@ void drawArea(QPainter& painter, const QRectF& rect, const QList<double>& values
               const QColor& line, const QColor& fill);
 
 /// @brief The small marks before the texts on the graphs, @p size pixels high
-enum class Glyph { Clock, Flame, Thermometer, Check };
+enum class Glyph { Clock, Flame, Gauge, Check };
 void drawGlyph(QPainter& painter, Glyph glyph, const QRectF& rect, const QColor& color);
 
 }  // namespace stats_painter

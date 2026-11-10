@@ -31,6 +31,7 @@
 #include <QClipboard>
 #include <QComboBox>
 #include <QDateEdit>
+#include <QDockWidget>
 #include <QGroupBox>
 #include <QKeyEvent>
 #include <QLabel>
@@ -43,6 +44,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 
+#include <algorithm>
 #include <cstdio>
 #include <functional>
 
@@ -89,6 +91,7 @@ struct DefaultSettings {
         settings.set<bool>("stats.notify.dailyGoal", true);
         settings.set<bool>("stats.notify.weeklyGoal", true);
         settings.set<bool>("stats.notify.deadline", true);
+        settings.set<bool>("stats.notify.showPanel", true);
         settings.set<bool>("stats.statusBar", true);
         settings.set<bool>("stats.sessionSummary", true);
         settings.set<bool>("stats.countPasted", false);
@@ -585,6 +588,22 @@ TEST_CASE("Writing awards: the view Achievements shows the badge won last",
     CHECK(badge->accessibleName().endsWith(QStringLiteral("%1 badges").arg(won)));
     CHECK(panel.listTexts().last() == QStringLiteral("Achievements: %1 badges").arg(won));
 
+    // The view says what it shows: the badges won of all, the challenges, the nearest badge
+    // and how far it is; the trophy of the list is not drawn again under the badge
+    INFO(panel.numbers().join(QStringLiteral(" | ")).toStdString());
+    CHECK(panel.numbers().contains(QStringLiteral("Badges: %1 of 60").arg(won)));
+    CHECK(panel.numbers().contains(QStringLiteral("Challenges going on: 0")));
+    const QStringList details = panel.details();
+    CHECK(std::any_of(details.begin(), details.end(), [](const QString& text) {
+        return text.startsWith(QStringLiteral("Nearest badge: "));
+    }));
+    CHECK(std::any_of(details.begin(), details.end(), [](const QString& text) {
+        return text.startsWith(QStringLiteral("So far: "));
+    }));
+    const auto* graph = panel.findChild<QWidget*>(QStringLiteral("statsViewGraph"));
+    REQUIRE(graph != nullptr);
+    CHECK_FALSE(graph->isVisible());
+
     // A click on the badge opens the tab; Add Challenge is on top
     badge->click();
     CHECK(opened == 1);
@@ -646,6 +665,12 @@ TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom"
     gui::InfoBar* bar = coordinator.messageBar();
     REQUIRE(bar != nullptr);
     CHECK(bar->isHidden());
+    // The daily goal reached opens the Statistics panel on the day
+    QDockWidget* statistics = docks->statisticsDock();
+    REQUIRE(statistics != nullptr);
+    REQUIRE(docks->statisticsPanel() != nullptr);
+    statistics->hide();
+    docks->statisticsPanel()->setView(WritingStatsPanel::View::Week);
     // The signal alone: the journal has nothing this week, so the whole weekly goal is left
     emit coordinator.tracker()->dailyGoalReached(1000, 1000);
     emit coordinator.tracker()->challengeDone(coordinator.tracker()->challenges().first(), 20000);
@@ -661,6 +686,15 @@ TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom"
     CHECK(buttons.first()->text() == QStringLiteral("Copy"));
     buttons.first()->click();
     CHECK(QApplication::clipboard()->text() == expected);
+    CHECK(statistics->isVisible());
+    CHECK(docks->statisticsPanel()->view() == WritingStatsPanel::View::Today);
+
+    // Not with its setting off
+    core::SettingsManager::getInstance().set<bool>("stats.notify.showPanel", false);
+    statistics->hide();
+    emit coordinator.tracker()->dailyGoalReached(1000, 1000);
+    QCoreApplication::processEvents();
+    CHECK(statistics->isHidden());
 
     // A new badge, and the settings that silence the goals
     QList<EarnedBadge> badges{{BadgeKind::Streak, 0, TODAY, QString()}};
@@ -747,4 +781,22 @@ TEST_CASE("Writing awards: the summary of the session", "[gui][statistics][award
     CHECK(again->isChecked());
     again->setChecked(false);
     CHECK_FALSE(core::SettingsManager::getInstance().get<bool>("stats.sessionSummary", true));
+}
+
+TEST_CASE("Writing awards: the page fills the whole width of the window",
+          "[gui][statistics][awards]")
+{
+    Journal journal;
+    WritingAwardsTracker tracker(&journal.model);
+    WritingAwardsTab tab(&tracker, &journal.model);
+    for (const int width : {700, 1900}) {
+        tab.resize(width, 800);
+        tab.show();
+        QApplication::processEvents();
+        // The key of the colors over the whole page reaches near the right edge
+        const auto* key = tab.findChild<QWidget*>(QStringLiteral("badgeKey"));
+        REQUIRE(key != nullptr);
+        INFO("width " << width << ", key " << key->width());
+        CHECK(key->mapTo(&tab, QPoint(key->width(), 0)).x() >= width - 60);
+    }
 }

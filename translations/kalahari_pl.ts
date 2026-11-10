@@ -16429,29 +16429,29 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         </translation>
     </message>
     <message>
-        <source>a lot, fast</source>
-        <extracomment>In Polish: dużo i szybko</extracomment>
-        <translation>dużo i szybko</translation>
-    </message>
-    <message>
-        <source>a lot, slowly</source>
-        <extracomment>In Polish: dużo i powoli</extracomment>
-        <translation>dużo i powoli</translation>
-    </message>
-    <message>
-        <source>a little, fast</source>
-        <extracomment>In Polish: mało i szybko</extracomment>
-        <translation>mało i szybko</translation>
-    </message>
-    <message>
-        <source>a little, slowly</source>
-        <extracomment>In Polish: mało i powoli</extracomment>
-        <translation>mało i powoli</translation>
-    </message>
-    <message>
         <source>pause</source>
-        <extracomment>In Polish: przerwa</extracomment>
+        <extracomment>The pace of work: nothing written lately. In Polish: przerwa</extracomment>
         <translation>przerwa</translation>
+    </message>
+    <message>
+        <source>more and faster than usual</source>
+        <extracomment>The pace of work. In Polish: więcej i szybciej niż zwykle</extracomment>
+        <translation>więcej i szybciej niż zwykle</translation>
+    </message>
+    <message>
+        <source>more than usual, but slower</source>
+        <extracomment>The pace of work. In Polish: więcej niż zwykle, ale wolniej</extracomment>
+        <translation>więcej niż zwykle, ale wolniej</translation>
+    </message>
+    <message>
+        <source>mostly corrections</source>
+        <extracomment>The pace of work: fewer words, much typed and deleted. In Polish: głównie poprawki</extracomment>
+        <translation>głównie poprawki</translation>
+    </message>
+    <message>
+        <source>less and slower than usual</source>
+        <extracomment>The pace of work. In Polish: mniej i wolniej niż zwykle</extracomment>
+        <translation>mniej i wolniej niż zwykle</translation>
     </message>
 </context>
 <context>
@@ -16521,10 +16521,6 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <translation>Po &amp;lewej</translation>
     </message>
     <message>
-        <source>&amp;Words today and the temperature of work</source>
-        <translation>Słowa dziś i &amp;temperatura pracy</translation>
-    </message>
-    <message>
         <source>&amp;Time of writing</source>
         <translation>&amp;Czas pisania</translation>
     </message>
@@ -16571,10 +16567,6 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
     <message>
         <source>Book</source>
         <translation>Książka</translation>
-    </message>
-    <message>
-        <source>Times of writing</source>
-        <translation>Pory pisania</translation>
     </message>
     <message>
         <source>Achievements</source>
@@ -16664,14 +16656,18 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <source>Lines:</source>
         <translation>Linie:</translation>
     </message>
+    <message>
+        <source>&amp;Words today and the pace of work</source>
+        <translation>Słowa dziś i &amp;tempo pracy</translation>
+    </message>
+    <message>
+        <source>When you write</source>
+        <extracomment>The view of the Statistics panel. In Polish: Kiedy piszesz</extracomment>
+        <translation>Kiedy piszesz</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::StatsColorsPage</name>
-    <message>
-        <source>The colors of the graphs, of the bar of the daily goal and of the temperature of work. Each theme of the program has its own; the program uses those of the theme in use.</source>
-        <extracomment>In Polish: Kolory wykresów, paska celu dziennego i temperatury pracy. Każdy motyw programu ma własne kolory; program używa tych, które pasują do bieżącego motywu.</extracomment>
-        <translation>Kolory wykresów, paska celu dziennego i temperatury pracy. Każdy motyw programu ma własne kolory; program używa kolorów bieżącego motywu.</translation>
-    </message>
     <message>
         <source>Colors of the Light Theme</source>
         <translation>Kolory motywu jasnego</translation>
@@ -16707,30 +16703,6 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
     <message>
         <source>Goal reached</source>
         <translation>Cel osiągnięty</translation>
-    </message>
-    <message>
-        <source>Temperature: a lot, fast</source>
-        <translation>Temperatura: dużo i szybko</translation>
-    </message>
-    <message>
-        <source>Temperature: a lot, slowly</source>
-        <translation>Temperatura: dużo i powoli</translation>
-    </message>
-    <message>
-        <source>Temperature: a little, fast</source>
-        <translation>Temperatura: mało i szybko</translation>
-    </message>
-    <message>
-        <source>Temperature: a little, slowly</source>
-        <translation>Temperatura: mało i powoli</translation>
-    </message>
-    <message>
-        <source>Times of writing: the fewest words</source>
-        <translation>Pory pisania: najmniej słów</translation>
-    </message>
-    <message>
-        <source>Times of writing: the most words</source>
-        <translation>Pory pisania: najwięcej słów</translation>
     </message>
     <message>
         <source>Texts on the graphs</source>
@@ -16771,6 +16743,41 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
     <message>
         <source>Preview:</source>
         <translation>Podgląd:</translation>
+    </message>
+    <message>
+        <source>The colors of the graphs, of the bar of the daily goal and of the pace of work. Each theme of the program has its own; the program uses those of the theme in use.</source>
+        <extracomment>In Polish: Kolory wykresów, paska celu dziennego i tempa pracy. Każdy motyw programu ma własne kolory; program używa tych, które pasują do bieżącego motywu.</extracomment>
+        <translation>Kolory wykresów, paska celu dziennego i tempa pracy. Każdy motyw programu ma własne kolory; program używa tych, które pasują do bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Pace: more and faster than usual</source>
+        <extracomment>In Polish: Tempo: więcej i szybciej niż zwykle</extracomment>
+        <translation>Tempo: więcej i szybciej niż zwykle</translation>
+    </message>
+    <message>
+        <source>Pace: more, but slower</source>
+        <extracomment>In Polish: Tempo: więcej, ale wolniej</extracomment>
+        <translation>Tempo: więcej, ale wolniej</translation>
+    </message>
+    <message>
+        <source>Pace: mostly corrections</source>
+        <extracomment>In Polish: Tempo: głównie poprawki</extracomment>
+        <translation>Tempo: głównie poprawki</translation>
+    </message>
+    <message>
+        <source>Pace: less and slower than usual</source>
+        <extracomment>In Polish: Tempo: mniej i wolniej niż zwykle</extracomment>
+        <translation>Tempo: mniej i wolniej niż zwykle</translation>
+    </message>
+    <message>
+        <source>When you write: the fewest words</source>
+        <extracomment>In Polish: Kiedy piszesz: najmniej słów</extracomment>
+        <translation>Kiedy piszesz: najmniej słów</translation>
+    </message>
+    <message>
+        <source>When you write: the most words</source>
+        <extracomment>In Polish: Kiedy piszesz: najwięcej słów</extracomment>
+        <translation>Kiedy piszesz: najwięcej słów</translation>
     </message>
 </context>
 <context>
@@ -16968,6 +16975,16 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
     <message>
         <source>For those who like them, e.g. 50,000 words in a month.</source>
         <translation>Dla tych, którzy je lubią, np. 50 000 słów w miesiąc.</translation>
+    </message>
+    <message>
+        <source>Show the Statistics &amp;panel</source>
+        <extracomment>In Polish: Pokazuj pa&amp;nel „Statystyki”</extracomment>
+        <translation>Pokazuj pa&amp;nel „Statystyki”</translation>
+    </message>
+    <message>
+        <source>When the daily goal is reached, the panel opens on the view Today.</source>
+        <extracomment>In Polish: Gdy cel dzienny zostanie osiągnięty, panel otwiera się na widoku „Dzisiaj”.</extracomment>
+        <translation>Gdy cel dzienny zostanie osiągnięty, panel otwiera się na widoku „Dzisiaj”.</translation>
     </message>
 </context>
 <context>
@@ -17527,6 +17544,49 @@ After the length of the book. In Polish: słów</extracomment>
         <extracomment>%1: the hours, %2: the words. In Polish: %1: %2 (napisane %3, usunięte %4)</extracomment>
         <translation>%1: %2 (napisane %3, usunięte %4)</translation>
     </message>
+    <message>
+        <source>Now in the middle: the graph moves to the left</source>
+        <extracomment>The button on the graph of the statistics bar, checked or not. In Polish: Teraz pośrodku – wykres przesuwa się w lewo</extracomment>
+        <translation>Teraz pośrodku – wykres przesuwa się w lewo</translation>
+    </message>
+    <message>
+        <source>Words today: %1 of %2 (the daily goal)</source>
+        <translation>Słowa dziś: %1 z %2 (cel dzienny)</translation>
+    </message>
+    <message>
+        <source>Words today: %1</source>
+        <translation>Słowa dziś: %1</translation>
+    </message>
+    <message>
+        <source>The daily goal is reached.</source>
+        <extracomment>In Polish: Cel dzienny osiągnięty.</extracomment>
+        <translation>Cel dzienny osiągnięty.</translation>
+    </message>
+    <message>
+        <source>The pace of work shows after an hour of writing on the days before.</source>
+        <extracomment>In Polish: Tempo pracy pojawi się po godzinie pisania w poprzednich dniach.</extracomment>
+        <translation>Tempo pracy pojawi się po godzinie pisania w poprzednich dniach.</translation>
+    </message>
+    <message>
+        <source>Pace of work: %1</source>
+        <extracomment>In Polish: Tempo pracy: %1</extracomment>
+        <translation>Tempo pracy: %1</translation>
+    </message>
+    <message>
+        <source>(the last 30 minutes compared with the usual writing of the last 4 weeks)</source>
+        <extracomment>In Polish: (ostatnie 30 minut w porównaniu ze zwykłym pisaniem z ostatnich 4 tygodni)</extracomment>
+        <translation>(ostatnie 30 minut w porównaniu ze zwykłym pisaniem z ostatnich 4 tygodni)</translation>
+    </message>
+    <message>
+        <source>Time of writing today: %1</source>
+        <extracomment>In Polish: Czas pisania dziś: %1</extracomment>
+        <translation>Czas pisania dziś: %1</translation>
+    </message>
+    <message>
+        <source>Writing days in a row: %1</source>
+        <extracomment>In Polish: Dni pisania z rzędu: %1</extracomment>
+        <translation>Dni pisania z rzędu: %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::WritingStatsCoordinator</name>
@@ -17676,10 +17736,6 @@ After the length of the book. In Polish: słów</extracomment>
         <translation>Książka</translation>
     </message>
     <message>
-        <source>Times of Writing</source>
-        <translation>Pory pisania</translation>
-    </message>
-    <message>
         <source>Achievements</source>
         <extracomment>The view of the badges and the challenges. In Polish: Osiągnięcia</extracomment>
         <translation>Osiągnięcia</translation>
@@ -17761,10 +17817,6 @@ After the length of the book. In Polish: słów</extracomment>
     <message>
         <source>reached</source>
         <translation>osiągnięty</translation>
-    </message>
-    <message>
-        <source>Temperature of work</source>
-        <translation>Temperatura pracy</translation>
     </message>
     <message>
         <source>Longest session</source>
@@ -17973,10 +18025,6 @@ After the length of the book. In Polish: słów</extracomment>
         <translation>Najbliższy termin</translation>
     </message>
     <message>
-        <source>the last 4 weeks</source>
-        <translation>ostatnie 4 tygodnie</translation>
-    </message>
-    <message>
         <source>Average words in an hour</source>
         <translation>Średnia liczba słów w godzinie</translation>
     </message>
@@ -18085,6 +18133,56 @@ After the length of the book. In Polish: słów</extracomment>
         <source>The badges come with the writing: for the words, the days in a row and the goals reached.</source>
         <extracomment>In Polish: Odznaki przychodzą z pisaniem: za słowa, dni z rzędu i osiągnięte cele.</extracomment>
         <translation>Odznaki przychodzą z pisaniem: za słowa, dni z rzędu i osiągnięte cele.</translation>
+    </message>
+    <message>
+        <source>When You Write</source>
+        <extracomment>The view of the hours and days the writer writes in. In Polish: Kiedy piszesz</extracomment>
+        <translation>Kiedy piszesz</translation>
+    </message>
+    <message>
+        <source>Pace of work</source>
+        <extracomment>In Polish: Tempo pracy</extracomment>
+        <translation>Tempo pracy</translation>
+    </message>
+    <message>
+        <source>The last 30 minutes compared with the usual writing of the last 4 weeks</source>
+        <extracomment>In Polish: Ostatnie 30 minut w porównaniu ze zwykłym pisaniem z ostatnich 4 tygodni</extracomment>
+        <translation>Ostatnie 30 minut w porównaniu ze zwykłym pisaniem z ostatnich 4 tygodni</translation>
+    </message>
+    <message>
+        <source>The average words in each hour of each day of the week, in the last 4 weeks. The deeper the color, the more words.</source>
+        <extracomment>In Polish: Średnia liczba słów w każdej godzinie każdego dnia tygodnia, z ostatnich 4 tygodni. Im intensywniejszy kolor, tym więcej słów.</extracomment>
+        <translation>Średnia liczba słów w każdej godzinie każdego dnia tygodnia, z ostatnich 4 tygodni. Im intensywniejszy kolor, tym więcej słów.</translation>
+    </message>
+    <message>
+        <source>Badges</source>
+        <extracomment>The badges won. In Polish: Odznaki</extracomment>
+        <translation>Odznaki</translation>
+    </message>
+    <message>
+        <source>of %1</source>
+        <extracomment>Under the number of the badges won: of all. In Polish: z %1</extracomment>
+        <translation>z %1</translation>
+    </message>
+    <message>
+        <source>Challenges going on</source>
+        <extracomment>The challenges not done and not over. In Polish: Trwające wyzwania</extracomment>
+        <translation>Trwające wyzwania</translation>
+    </message>
+    <message>
+        <source>Nearest badge</source>
+        <extracomment>In Polish: Najbliższa odznaka</extracomment>
+        <translation>Najbliższa odznaka</translation>
+    </message>
+    <message>
+        <source>So far</source>
+        <extracomment>How far the nearest badge is. In Polish: Postęp</extracomment>
+        <translation>Postęp</translation>
+    </message>
+    <message>
+        <source>Click the badge to see all the badges and challenges.</source>
+        <extracomment>In Polish: Kliknij odznakę, aby zobaczyć wszystkie odznaki i wyzwania.</extracomment>
+        <translation>Kliknij odznakę, aby zobaczyć wszystkie odznaki i wyzwania.</translation>
     </message>
 </context>
 <context>

@@ -2,7 +2,7 @@
 /// @brief The Statistics panel: a list of small graphs of the writing, as in the Performance
 /// tab of the Task Manager of Windows 11, and the view chosen in it, large
 ///
-/// The views are today, the week, 30 days, the book, the times of writing and the achievements.
+/// The views are today, the week, 30 days, the book, when the writer writes and the achievements.
 /// Each one but the last has a large graph on a fine grid, big numbers and a few details in
 /// plain words; the achievements show the badge won last, large, and Add Challenge above it. Everything fits
 /// the narrowest panel: the graphs are as wide as the panel, the numbers go to as many columns

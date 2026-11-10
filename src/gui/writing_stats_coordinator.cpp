@@ -397,6 +397,21 @@ void WritingStatsCoordinator::connectMessages()
                 }
                 showMessage(text);
             });
+    // The day at once in the Statistics panel, when the settings say so; later the assistant
+    // is to congratulate the writer there too
+    connect(m_tracker, &WritingAwardsTracker::dailyGoalReached, this, [this, on]() {
+        if (!on("stats.notify.showPanel", true) || m_docks == nullptr) {
+            return;
+        }
+        QDockWidget* dock = m_docks->statisticsDock();
+        WritingStatsPanel* panel = m_docks->statisticsPanel();
+        if (dock == nullptr || panel == nullptr) {
+            return;
+        }
+        panel->setView(WritingStatsPanel::View::Today);
+        dock->show();
+        dock->raise();
+    });
     connect(m_tracker, &WritingAwardsTracker::weeklyGoalReached, this,
             [this, on](int words, int goal) {
                 if (on("stats.notify.weeklyGoal", true)) {

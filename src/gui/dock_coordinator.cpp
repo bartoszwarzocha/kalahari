@@ -54,6 +54,10 @@ namespace {
 /// pixels of 911 (1366×768 at 150%), within its minimum and its usual width
 constexpr int SMALL_SCREEN_NAVIGATOR_PERCENT = 22;
 
+/// The setting that the Statistics panel has its place in the saved layout
+/// (DockCoordinator::placeStatisticsPanel())
+constexpr const char* STATISTICS_PLACED_SETTING = "window.statisticsPanelPlaced";
+
 /// @brief The part of the screen of @p window that windows can take (the screen without the
 /// taskbar); empty without a screen
 QRect screenArea(const QWidget* window) {
@@ -555,6 +559,27 @@ void DockCoordinator::createStatisticsDock() {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_statisticsDock);
 
     core::Logger::getInstance().debug("DockCoordinator: Statistics dock created");
+}
+
+void DockCoordinator::placeStatisticsPanel(bool savedLayout) {
+    auto& settings = core::SettingsManager::getInstance();
+    if (settings.get<bool>(STATISTICS_PLACED_SETTING, false)) {
+        return;
+    }
+    settings.set<bool>(STATISTICS_PLACED_SETTING, true);
+    if (!savedLayout || m_statisticsDock == nullptr || m_annotationsDock == nullptr) {
+        return;
+    }
+    if (!m_annotationsDock->isFloating() &&
+        m_mainWindow->dockWidgetArea(m_annotationsDock) != Qt::NoDockWidgetArea &&
+        !m_mainWindow->tabifiedDockWidgets(m_annotationsDock).contains(m_statisticsDock)) {
+        m_mainWindow->tabifyDockWidget(m_annotationsDock, m_statisticsDock);
+        m_annotationsDock->raise();
+    }
+    m_statisticsDock->setVisible(!m_annotationsDock->isHidden());
+    core::Logger::getInstance().info(
+        "DockCoordinator: the Statistics panel placed after Annotations in a saved layout ({})",
+        m_statisticsDock->isHidden() ? "closed" : "open");
 }
 
 QToolButton* DockCoordinator::addTitleBarButton(QDockWidget* dock, const QString& iconId,

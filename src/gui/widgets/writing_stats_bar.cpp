@@ -109,6 +109,9 @@ WritingStatsBar::WritingStatsBar(WritingStatsModel* model, QWidget* parent)
     m_goals = makeButton(tr("Writing Goals and Deadlines"));
     m_panel = makeButton(tr("Statistics panel"));
     m_settings = makeButton(tr("Statistics settings"));
+    // Now in the middle of the graph, and back to the day from the left
+    m_graphModeButton = makeButton(QString());
+    m_graphModeButton->setCheckable(true);
     // The mini graph of the line, a button of the mouse and the keys
     m_mini = new MiniGraphButton(
         [this](QPainter& painter, const QRect& area) { paintMiniGraph(painter, area); }, this);
@@ -124,6 +127,11 @@ WritingStatsBar::WritingStatsBar(WritingStatsModel* model, QWidget* parent)
     connect(m_panel, &QToolButton::clicked, this, &WritingStatsBar::panelRequested);
     connect(m_settings, &QToolButton::clicked, this, &WritingStatsBar::settingsRequested);
     connect(m_mini, &QToolButton::clicked, this, &WritingStatsBar::cycleMiniGraph);
+    connect(m_graphModeButton, &QToolButton::clicked, this, [this](bool nowInMiddle) {
+        core::SettingsManager::getInstance().set<std::string>("stats.bar.graphMode",
+                                                              nowInMiddle ? "now" : "day");
+        refresh();
+    });
 
     if (m_model != nullptr) {
         connect(m_model, &WritingStatsModel::changed, this, &WritingStatsBar::refresh);
@@ -175,6 +183,9 @@ void WritingStatsBar::readSettings()
     m_miniGraph = mini == "day" ? MiniGraph::Today
                   : mini == "30" ? MiniGraph::Month
                                  : MiniGraph::Week;
+    m_graphMode = settings.get<std::string>("stats.bar.graphMode", "day") == "now"
+                      ? GraphMode::NowInMiddle
+                      : GraphMode::Day;
     m_pieceMinutes = settings.get<int>("stats.bar.pieceMinutes", 10);
     m_fromHour = std::clamp(settings.get<int>("stats.bar.fromHour", 6), 0, 23);
     m_toHour = std::clamp(settings.get<int>("stats.bar.toHour", 24), 1, 24);
@@ -210,15 +221,29 @@ void WritingStatsBar::readNumbers()
     const auto [from, to] = WritingStatsModel::shownMinutes(m_pieces, piece, m_dayStart,
                                                             m_fromHour, m_toHour,
                                                             int(m_nowMinute));
-    m_firstPiece = from / piece;
+    m_dayFirstPiece = from / piece;
+    m_firstPiece = m_dayFirstPiece;
     m_endPiece = std::max(m_firstPiece + 1, (to + piece - 1) / piece);
+    m_fromMinute = double(m_firstPiece) * piece;
+    m_toMinute = double(m_endPiece) * piece;
+    if (m_graphMode == GraphMode::NowInMiddle) {
+        // The same hours as wide as the day from the left, now in the middle: the hours before
+        // the start and after the end of the writing day have no pieces
+        const double half = (m_toMinute - m_fromMinute) / 2;
+        m_fromMinute = double(m_nowMinute) - half;
+        m_toMinute = double(m_nowMinute) + half;
+        m_firstPiece = std::clamp(int(std::floor(m_fromMinute / piece)), 0,
+                                  std::max(0, int(m_pieces.size()) - 1));
+        m_endPiece = std::clamp(int(std::ceil(m_toMinute / piece)), m_firstPiece + 1,
+                                std::max(m_firstPiece + 1, int(m_pieces.size())));
+    }
 
     // The mini graph of the line
     m_miniValues.clear();
     m_miniSum = 0;
     if (m_miniGraph == MiniGraph::Today) {
         const int nowPiece = int(m_nowMinute / piece);
-        for (int i = m_firstPiece; i <= std::min(nowPiece, int(m_pieces.size()) - 1); ++i) {
+        for (int i = m_dayFirstPiece; i <= std::min(nowPiece, int(m_pieces.size()) - 1); ++i) {
             m_miniValues.append(std::max(0, m_pieces[i].counted(m_counting)));
         }
         m_miniSum = m_words;
@@ -237,7 +262,7 @@ void WritingStatsBar::readNumbers()
     const QColor wordsColor = m_temperature == core::WritingTemperature::Unknown && !done
                                   ? m_colors.text
                                   : m_stateColor;
-    const QString temperatureName =
+    const QString paceName =
         done ? tr("goal reached") : stats_painter::temperatureName(m_temperature);
 
     // The words: the numbers in their colors, the rest of the sentence as the language has it
@@ -269,16 +294,15 @@ void WritingStatsBar::readNumbers()
     if (m_showWords) {
         m_texts.append(words);
         m_lineText = words;
-        if (!temperatureName.isEmpty()) {
-            Text temperature;
-            temperature.hasGlyph = true;
-            temperature.glyph = done ? stats_painter::Glyph::Check
-                                     : stats_painter::Glyph::Thermometer;
-            temperature.glyphColor = m_stateColor;
-            temperature.runs.append({temperatureName, m_stateColor});
-            m_texts.append(temperature);
+        if (!paceName.isEmpty()) {
+            Text pace;
+            pace.hasGlyph = true;
+            pace.glyph = done ? stats_painter::Glyph::Check : stats_painter::Glyph::Gauge;
+            pace.glyphColor = m_stateColor;
+            pace.runs.append({paceName, m_stateColor});
+            m_texts.append(pace);
             m_lineText.runs.append({tr(", "), m_colors.text});
-            m_lineText.runs.append({temperatureName, m_stateColor});
+            m_lineText.runs.append({paceName, m_stateColor});
         }
     }
     if (m_showTime) {
@@ -316,7 +340,7 @@ QStringList WritingStatsBar::texts() const
 
 QList<const WritingStatsBar::Text*> WritingStatsBar::lineParts() const
 {
-    // Folded, the words and the temperature are one text; the time and the days in a row
+    // Folded, the words and the pace of work are one text; the time and the days in a row
     // follow
     QList<const Text*> parts;
     if (m_folded && !m_lineText.runs.isEmpty()) {
@@ -355,9 +379,10 @@ int WritingStatsBar::rowHeight() const
 
 int WritingStatsBar::graphHeight() const
 {
-    // The buttons, and the texts under the line of the goal
+    // The buttons, and the texts under the line of the goal; on the right, under the button
+    // of the graph mode too
     const int buttons = 2 + 4 * BUTTON_SIZE + 1;
-    const int texts = int(m_texts.size()) * rowHeight() + 22;
+    const int texts = int(m_texts.size()) * rowHeight() + 22 + (m_textsLeft ? 0 : 6);
     return std::max({m_graphHeight, MIN_GRAPH_HEIGHT, buttons, texts});
 }
 
@@ -410,6 +435,10 @@ void WritingStatsBar::layoutParts()
         }
     }
 
+    // The button of the graph mode beside the fold button, on the graph only
+    m_graphModeButton->move(w - 1 - 2 * BUTTON_SIZE, top);
+    m_graphModeButton->setVisible(!m_folded);
+
     m_mini->setVisible(m_folded);
     if (m_folded) {
         const QFontMetrics metrics(smallFont());
@@ -431,11 +460,14 @@ void WritingStatsBar::layoutParts()
     }
     const double box = m_texts.isEmpty() ? 0 : textsWidth + 2 * TEXTS_PADDING;
     const double h = graphHeight();
+    // The button of the graph mode at the top, left of the column of the buttons: over the
+    // texts on the right, which begin under it, or beside the data
+    const double modeRoom = BUTTON_SIZE + 2;
     double x0 = 1;
-    double x1 = w - BUTTONS_ROOM - box - 2;
+    double x1 = w - BUTTONS_ROOM - std::max(box, modeRoom) - 2;
     if (m_textsLeft) {
         x0 = box + 4;
-        x1 = w - BUTTONS_ROOM - 2;
+        x1 = w - BUTTONS_ROOM - modeRoom - 2;
     }
     if (x1 - x0 < 60) {
         x1 = x0 + 60;
@@ -447,6 +479,9 @@ void WritingStatsBar::layoutParts()
     if (m_goal > 0 && m_showCumulative) {
         const double cmax = std::max({m_goal * 1.15, m_words * 1.05, 10.0});
         textsTop = std::round(m_plot.bottom() - m_goal / cmax * m_plot.height()) + 2;
+    }
+    if (!m_textsLeft) {
+        textsTop = std::max(textsTop, double(m_graphModeButton->geometry().bottom()) + 2);
     }
     const double textsHeight = double(m_texts.size()) * rowHeight() + 3;
     textsTop = std::max(2.0, std::min(textsTop, h - textsHeight - 2));
@@ -467,6 +502,14 @@ void WritingStatsBar::updateIcons()
     m_goals->setIcon(art.getIcon(QStringLiteral("tools.writingGoals"), core::IconContext::Menu));
     m_panel->setIcon(art.getIcon(QStringLiteral("menu.statistics"), core::IconContext::Menu));
     m_settings->setIcon(art.getIcon(QStringLiteral("edit.settings"), core::IconContext::Menu));
+    m_graphModeButton->setIcon(
+        art.getIcon(QStringLiteral("stats.nowInMiddle"), core::IconContext::Menu));
+    m_graphModeButton->setChecked(m_graphMode == GraphMode::NowInMiddle);
+    //: The button on the graph of the statistics bar, checked or not. In Polish: Teraz
+    //: pośrodku – wykres przesuwa się w lewo
+    const QString modeTip = tr("Now in the middle: the graph moves to the left");
+    m_graphModeButton->setToolTip(modeTip);
+    m_graphModeButton->setAccessibleName(modeTip);
 }
 
 void WritingStatsBar::resizeEvent(QResizeEvent* event)
@@ -500,9 +543,8 @@ void WritingStatsBar::paintEvent(QPaintEvent* /*event*/)
 
 double WritingStatsBar::xOfMinute(double minute) const
 {
-    const double first = double(m_firstPiece) * m_pieceMinutes;
-    const double last = double(m_endPiece) * m_pieceMinutes;
-    return m_plot.left() + (minute - first) / std::max(1.0, last - first) * m_plot.width();
+    return m_plot.left() +
+           (minute - m_fromMinute) / std::max(1.0, m_toMinute - m_fromMinute) * m_plot.width();
 }
 
 double WritingStatsBar::drawText(QPainter& painter, const Text& text, double x,
@@ -540,7 +582,7 @@ void WritingStatsBar::paintGraph(QPainter& painter)
     painter.setPen(QPen(m_colors.grid, 1));
     const double hourWidth = xOfMinute(60) - xOfMinute(0);
     if (hourWidth > 2) {
-        int minute = hourBefore(m_firstPiece * piece, m_dayStart);
+        int minute = hourBefore(int(std::floor(m_fromMinute)), m_dayStart);
         while (xOfMinute(minute) > 1) {
             minute -= 60;
         }
@@ -559,6 +601,9 @@ void WritingStatsBar::paintGraph(QPainter& painter)
     const int nowPiece = std::min<int>(int(m_nowMinute / piece), int(m_pieces.size()) - 1);
     const int lastPiece = std::min(nowPiece, m_endPiece - 1);
     painter.setRenderHint(QPainter::Antialiasing, true);
+    // The data within the hours of the graph: now in the middle, a piece may begin before them
+    painter.save();
+    painter.setClipRect(QRectF(plot.left(), 0, plot.width(), h));
 
     // Layer 2: the words of each piece, a thin line with a translucent fill
     if (m_showPieces && lastPiece >= m_firstPiece) {
@@ -612,6 +657,7 @@ void WritingStatsBar::paintGraph(QPainter& painter)
         painter.setPen(QPen(m_stateColor, 1.6));
         painter.drawPath(cumulative);
     }
+    painter.restore();
 
     // Now
     const double nx = xOfMinute(double(m_nowMinute));
@@ -643,15 +689,19 @@ void WritingStatsBar::paintGraph(QPainter& painter)
     while (step < DAY_MINUTES && (xOfMinute(step) - xOfMinute(0)) < labelWidth) {
         step += 120;
     }
-    for (int minute = hourAfter(m_firstPiece * piece, m_dayStart);
-         minute <= m_endPiece * piece; minute += 60) {
-        const int clock = ((minute + m_dayStart) / 60) % 24;
-        if (clock % (step / 60) != 0 && minute != hourAfter(m_firstPiece * piece, m_dayStart)) {
+    const int firstHour = hourAfter(int(std::ceil(m_fromMinute)), m_dayStart);
+    for (int minute = firstHour; minute <= m_toMinute; minute += 60) {
+        const int clock =
+            ((minute + m_dayStart) % DAY_MINUTES + DAY_MINUTES) % DAY_MINUTES / 60;
+        // From the left, the first hour has its label; with now in the middle the labels keep
+        // their step as they move
+        const bool first = minute == firstHour && m_graphMode == GraphMode::Day;
+        if (clock % (step / 60) != 0 && !first) {
             continue;
         }
         const QString label = QStringLiteral("%1:00").arg(clock);
         const double x = xOfMinute(minute);
-        const double labelX = minute == m_firstPiece * piece
+        const double labelX = std::abs(minute - m_fromMinute) < 0.5
                                   ? x + 3
                                   : x - hourMetrics.horizontalAdvance(label) / 2;
         if (labelX < plot.left() || labelX + hourMetrics.horizontalAdvance(label) > plot.right() + 2) {
@@ -690,7 +740,7 @@ void WritingStatsBar::paintLine(QPainter& painter)
     const double w = width();
     const double h = height();
 
-    // The line fills up with the color of the temperature as the words of the day grow
+    // The line fills up with the color of the pace of work as the words of the day grow
     if (m_goal > 0) {
         const double share = std::clamp(double(m_words) / m_goal, 0.0, 1.0);
         QColor fill = m_stateColor;
@@ -746,11 +796,13 @@ int WritingStatsBar::pieceAt(double x) const
     if (m_folded || !m_plot.isValid() || x < m_plot.left() || x >= m_plot.right()) {
         return -1;
     }
-    const double minute = m_firstPiece * double(m_pieceMinutes) +
-                          (x - m_plot.left()) / m_plot.width() *
-                              (m_endPiece - m_firstPiece) * double(m_pieceMinutes);
+    const double minute =
+        m_fromMinute + (x - m_plot.left()) / m_plot.width() * (m_toMinute - m_fromMinute);
+    if (minute < 0) {
+        return -1;
+    }
     const int piece = int(minute / m_pieceMinutes);
-    return piece >= 0 && piece < m_pieces.size() ? piece : -1;
+    return piece < m_pieces.size() ? piece : -1;
 }
 
 QString WritingStatsBar::pieceToolTip(int piece) const
@@ -774,12 +826,57 @@ QString WritingStatsBar::pieceToolTip(int piece) const
              stats_painter::number(entry.written), stats_painter::number(entry.deleted));
 }
 
+QString WritingStatsBar::textsToolTip() const
+{
+    QStringList lines;
+    if (m_showWords) {
+        lines.append(m_goal > 0
+                         //: In Polish: Słowa dziś: %1 z %2 (cel dzienny)
+                         ? tr("Words today: %1 of %2 (the daily goal)")
+                               .arg(stats_painter::number(m_words), stats_painter::number(m_goal))
+                         //: In Polish: Słowa dziś: %1
+                         : tr("Words today: %1").arg(stats_painter::number(m_words)));
+        if (m_goal > 0 && m_words >= m_goal) {
+            //: In Polish: Cel dzienny osiągnięty.
+            lines.append(tr("The daily goal is reached."));
+        } else if (m_temperature == core::WritingTemperature::Unknown) {
+            //: In Polish: Tempo pracy pojawi się po godzinie pisania w poprzednich dniach.
+            lines.append(tr("The pace of work shows after an hour of writing on the days "
+                            "before."));
+        } else {
+            //: In Polish: Tempo pracy: %1
+            lines.append(tr("Pace of work: %1")
+                             .arg(stats_painter::temperatureName(m_temperature)));
+            //: In Polish: (ostatnie 30 minut w porównaniu ze zwykłym pisaniem z ostatnich
+            //: 4 tygodni)
+            lines.append(tr("(the last 30 minutes compared with the usual writing of the last "
+                            "4 weeks)"));
+        }
+    }
+    if (m_showTime) {
+        //: In Polish: Czas pisania dziś: %1
+        lines.append(tr("Time of writing today: %1").arg(stats_painter::hoursMinutes(m_activeMs)));
+    }
+    if (m_showStreak) {
+        //: In Polish: Dni pisania z rzędu: %1
+        lines.append(tr("Writing days in a row: %1").arg(stats_painter::number(m_streak)));
+    }
+    return lines.join(QLatin1Char('\n'));
+}
+
 bool WritingStatsBar::event(QEvent* event)
 {
     if (event->type() == QEvent::ToolTip) {
         auto* help = static_cast<QHelpEvent*>(event);
         const int piece = pieceAt(help->pos().x());
-        if (piece >= 0 && !m_textsRect.contains(help->pos())) {
+        // The texts say what they mean; in one line, from the mini graph to the buttons
+        const bool overTexts =
+            m_folded ? help->pos().x() > m_miniRect.right() &&
+                           help->pos().x() < width() - 1 - 4 * BUTTON_SIZE
+                     : m_textsRect.contains(help->pos());
+        if (overTexts && !m_texts.isEmpty()) {
+            QToolTip::showText(help->globalPos(), textsToolTip(), this);
+        } else if (piece >= 0 && !m_textsRect.contains(help->pos())) {
             QToolTip::showText(help->globalPos(), pieceToolTip(piece), this);
         } else {
             QToolTip::hideText();

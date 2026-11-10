@@ -862,3 +862,38 @@ TEST_CASE("Statistics toolbar: the statistics of writing in one place, shown at 
     CHECK_FALSE(manager.getToolbarCommands(QStringLiteral("views"))
                     .contains(QStringLiteral("view.showStatsBar")));
 }
+
+TEST_CASE("Statistics toolbar: before Help in a layout saved before it",
+          "[gui][toolbar][statistics]") {
+    // The layout of an earlier version has no Writing Statistics: Qt would put it after Help
+    const QByteArray savedLayout = layoutWithoutViewsToolbar();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<bool>("toolbars.visible.quickActions", true);
+    settings.removeKey("toolbars.visible.stats");
+
+    registerAllCommands(CommandCallbacks{});
+    QMainWindow window;
+    window.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager manager(&window);
+    manager.createToolbars(CommandRegistry::getInstance());
+    REQUIRE(window.restoreState(savedLayout));
+    manager.restoreState();
+    window.resize(1600, 900);
+    window.show();
+    QApplication::processEvents();
+
+    QToolBar* stats = manager.getToolbar("stats");
+    QToolBar* tools = manager.getToolbar("tools");
+    QToolBar* help = manager.getToolbar("help");
+    REQUIRE(stats != nullptr);
+    REQUIRE(tools != nullptr);
+    REQUIRE(help != nullptr);
+    CHECK(stats->isVisible());
+    CHECK(stats->y() == help->y());
+    CHECK(stats->x() > tools->x());
+    CHECK(stats->x() < help->x());
+
+    // Once: the layout saved now knows it
+    manager.saveState();
+    CHECK(settings.hasKey("toolbars.visible.stats"));
+}

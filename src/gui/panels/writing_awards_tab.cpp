@@ -41,9 +41,6 @@ namespace {
 constexpr const char* BADGES_SETTING = "stats.badges";
 constexpr const char* CHALLENGES_SETTING = "stats.challenges";
 
-/// @brief The page is not wider than this: the lines stay short on a wide window
-constexpr int MAX_PAGE_WIDTH = 1100;
-
 /// @brief What an item of a list keeps
 enum Role {
     KindRole = Qt::UserRole + 1,  ///< The kind of a badge, or the number of a challenge
@@ -601,11 +598,10 @@ WritingAwardsTab::WritingAwardsTab(WritingAwardsTracker* tracker, WritingStatsMo
     page->setBackgroundRole(QPalette::Window);
     page->setAutoFillBackground(true);
     scroll->setWidget(page);
+    // The page fills the whole width of the window
     auto* pageRow = new QHBoxLayout(page);
     auto* content = new QWidget(page);
-    content->setMaximumWidth(MAX_PAGE_WIDTH);
     pageRow->addWidget(content, 1);
-    pageRow->addStretch(0);
     auto* layout = new QVBoxLayout(content);
     layout->setContentsMargins(4, 4, 4, 4);
 
@@ -702,10 +698,15 @@ WritingAwardsTab::WritingAwardsTab(WritingAwardsTracker* tracker, WritingStatsMo
     // What changes in another place shows here at once
     connect(m_tracker, &WritingAwardsTracker::changed, this, &WritingAwardsTab::refresh);
     connect(m_model, &WritingStatsModel::goalsChanged, this, &WritingAwardsTab::refresh);
-    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this, [this]() {
+    // The colors of the theme, and the writer's colors of the statistics
+    const auto showColors = [this]() {
         updateColors();
         update();
-    });
+    };
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
+            showColors);
+    connect(&core::ThemeManager::getInstance(), &core::ThemeManager::editorColorsChanged, this,
+            showColors);
 
     // The keys go to Add Challenge when the tab comes to the front
     setFocusProxy(m_addChallenge);

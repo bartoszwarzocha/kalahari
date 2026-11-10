@@ -52,9 +52,6 @@ constexpr int MAX_GOAL_WORDS = 1'000'000;
 /// @brief Words of a book at most
 constexpr int MAX_BOOK_WORDS = 10'000'000;
 
-/// @brief The page is not wider than this: the lines stay short on a wide window
-constexpr int MAX_PAGE_WIDTH = 1000;
-
 /// @brief The columns of the list of the deadlines
 enum Column { NameColumn, DateColumn, PartColumn, GoalColumn, StateColumn, ColumnCount };
 
@@ -109,11 +106,10 @@ WritingGoalsTab::WritingGoalsTab(WritingStatsModel* model, QWidget* parent)
     page->setBackgroundRole(QPalette::Window);
     page->setAutoFillBackground(true);
     scroll->setWidget(page);
+    // The page fills the whole width of the window
     auto* pageRow = new QHBoxLayout(page);
     auto* content = new QWidget(page);
-    content->setMaximumWidth(MAX_PAGE_WIDTH);
     pageRow->addWidget(content, 1);
-    pageRow->addStretch(0);
     auto* layout = new QVBoxLayout(content);
     layout->setContentsMargins(4, 4, 4, 4);
 

@@ -2246,7 +2246,8 @@ void MainWindow::showEvent(QShowEvent* event) {
         // Only restore window state if we haven't cleared it for toolbar reset
         // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value
         QByteArray windowState = settings.getBinary("window.state");
-        if (!windowState.isEmpty() && !toolbarResetNeeded) {
+        const bool savedLayout = !windowState.isEmpty() && !toolbarResetNeeded;
+        if (savedLayout) {
             // Normal case: restore saved window state (includes toolbar positions)
             restoreState(windowState);
         } else if (const QScreen* screen = this->screen()) {
@@ -2254,6 +2255,8 @@ void MainWindow::showEvent(QShowEvent* event) {
             // gets a layout that leaves the text room
             m_dockCoordinator->fitFirstLayout(screen->availableGeometry());
         }
+        // A layout saved before the Statistics panel
+        m_dockCoordinator->placeStatisticsPanel(savedLayout);
 
         // Task #00019: Restore toolbar state (visibility)
         // This runs AFTER QMainWindow::restoreState() to ensure our visibility settings

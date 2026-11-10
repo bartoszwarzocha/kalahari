@@ -13,11 +13,13 @@
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/writing_stats_model.h"
 
+#include <QApplication>
 #include <QCoreApplication>
 #include <QTemporaryDir>
 #include <QTimeZone>
 #include <QToolButton>
 
+#include <cmath>
 #include <utility>
 
 using namespace kalahari;
@@ -326,4 +328,87 @@ TEST_CASE("Statistics bar: the settings of the statistics from their command",
           gui::CommandExecutionResult::Success);
     CHECK(opened == QString::fromLatin1(gui::WritingStatsCoordinator::SETTINGS_PAGE));
     coordinator.bar()->hide();
+}
+
+TEST_CASE("Statistics bar: now in the middle, from the button on the graph, remembered",
+          "[gui][statistics]")
+{
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("writing_journal.db"));
+    fillJournal(path);
+    WritingStatsModel model;
+    openModel(model, path);
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<std::string>("stats.bar.mode", "graph");
+    settings.set<std::string>("stats.bar.graphMode", "day");
+    settings.set<std::string>("stats.bar.textSide", "right");
+    settings.set<bool>("stats.bar.showWords", true);
+
+    WritingStatsBar bar(&model);
+    bar.resize(900, bar.sizeHint().height());
+    bar.show();
+    QApplication::processEvents();
+    QToolButton* mode = bar.graphModeButton();
+    REQUIRE(mode != nullptr);
+    CHECK(mode->isVisible());
+    CHECK_FALSE(mode->isChecked());
+    CHECK(mode->accessibleName() ==
+          QStringLiteral("Now in the middle: the graph moves to the left"));
+    CHECK(bar.graphMode() == WritingStatsBar::GraphMode::Day);
+    const auto [dayFrom, dayTo] = bar.shownMinutes();
+    CHECK(bar.xOfMinute(dayFrom) == bar.plotRect().left());
+
+    // Now in the middle: the same hours wide, half before now and half after
+    mode->click();
+    CHECK(bar.graphMode() == WritingStatsBar::GraphMode::NowInMiddle);
+    CHECK(mode->isChecked());
+    CHECK(settings.get<std::string>("stats.bar.graphMode") == "now");
+    const auto [from, to] = bar.shownMinutes();
+    CHECK(to - from == dayTo - dayFrom);
+    CHECK(std::abs(bar.xOfMinute(double(bar.nowMinute())) - bar.plotRect().center().x()) < 1.0);
+
+    // The button covers neither the data nor the texts
+    const QRectF button(mode->geometry());
+    CHECK(bar.plotRect().right() <= button.left());
+    CHECK_FALSE(button.intersects(bar.textsRect()));
+    CHECK(button.right() <= bar.foldButton()->x());
+
+    // Remembered: a bar made again shows now in the middle
+    WritingStatsBar again(&model);
+    CHECK(again.graphMode() == WritingStatsBar::GraphMode::NowInMiddle);
+    CHECK(again.graphModeButton()->isChecked());
+
+    // Folded, the line has no graph and no button for it
+    bar.foldButton()->click();
+    CHECK_FALSE(mode->isVisible());
+    bar.foldButton()->click();
+    CHECK(mode->isVisible());
+
+    mode->click();
+    CHECK(bar.graphMode() == WritingStatsBar::GraphMode::Day);
+    CHECK(settings.get<std::string>("stats.bar.graphMode") == "day");
+    CHECK(bar.shownMinutes() == std::pair<double, double>(dayFrom, dayTo));
+}
+
+TEST_CASE("Statistics bar: the tooltip of the texts says what they mean", "[gui][statistics]")
+{
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("writing_journal.db"));
+    fillJournal(path);
+    WritingStatsModel model;
+    openModel(model, path);
+    core::SettingsManager::getInstance().set<bool>("stats.bar.showWords", true);
+
+    WritingStatsBar bar(&model);
+    const QString tip = bar.textsToolTip();
+    INFO(tip.toStdString());
+    CHECK(tip.contains(QStringLiteral("Words today: %1 of %2 (the daily goal)")
+                           .arg(stats_painter::number(480), stats_painter::number(1000))));
+    // Ten minutes of writing on the days before: too little to compare with
+    CHECK(tip.contains(
+        QStringLiteral("The pace of work shows after an hour of writing on the days before.")));
+    CHECK(tip.contains(QStringLiteral("Time of writing today: 0:10")));
+    CHECK(tip.contains(QStringLiteral("Writing days in a row: 3")));
 }

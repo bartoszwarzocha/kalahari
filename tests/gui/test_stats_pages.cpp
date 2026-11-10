@@ -9,8 +9,10 @@
 #include "kalahari/gui/settings/stats_pages.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
+#include "kalahari/gui/widgets/stats_painter.h"
 
 #include <QCheckBox>
+#include <QCoreApplication>
 #include <QGroupBox>
 #include <QRadioButton>
 #include <QSpinBox>
@@ -160,30 +162,107 @@ TEST_CASE("Statistics settings: Notifications", "[gui][settings][statistics]")
 TEST_CASE("Statistics settings: the colors of each theme, kept only when changed",
           "[gui][settings][statistics]")
 {
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string iconColor = "icons.themes.Dark.colorPrimary";
+    settings.removeKey(iconColor);
+    const auto darkColors = [](gui::StatsColorsPage& page) {
+        QGroupBox* dark = nullptr;
+        for (QGroupBox* group : page.findChildren<QGroupBox*>()) {
+            if (group->title() == QStringLiteral("Colors of the Dark Theme")) {
+                dark = group;
+            }
+        }
+        REQUIRE(dark != nullptr);
+        return dark;
+    };
     gui::StatsColorsPage page;
     page.load();
-    QGroupBox* dark = nullptr;
-    for (QGroupBox* group : page.findChildren<QGroupBox*>()) {
-        if (group->title() == QStringLiteral("Colors of the Dark Theme")) {
-            dark = group;
-        }
-    }
-    REQUIRE(dark != nullptr);
+    QGroupBox* dark = darkColors(page);
     const QList<gui::ColorConfigWidget*> colors = dark->findChildren<gui::ColorConfigWidget*>();
     REQUIRE(colors.size() == 17);
-    // The colors of the theme file
-    CHECK(colors[3]->color() == QColor(QStringLiteral("#4CB0E8")));
+    // The line and the times of writing take the theme's color (#FFAA00 of the Dark theme),
+    // the grid and the frame a share of it over the background; the others are the theme file's
+    const QColor orange(QStringLiteral("#FFAA00"));
+    const QColor background(QStringLiteral("#1A1A1A"));
+    CHECK(colors[0]->color() == background);
+    CHECK(colors[3]->color() == orange);
+    CHECK(colors[11]->color() == orange);
+    CHECK(colors[1]->color() == gui::StatsColors::themeDefault("statsGrid", orange, background));
+    CHECK(colors[1]->color() != orange);
+    CHECK(colors[1]->color() != background);
+    CHECK(colors[4]->color() == QColor(QStringLiteral("#E3B341")));
+    CHECK(gui::StatsColors::followsTheme("statsFrame"));
+    CHECK_FALSE(gui::StatsColors::followsTheme("statsGoal"));
+    CHECK_FALSE(gui::StatsColors::themeDefault("statsGoal", orange, background).isValid());
+
     colors[3]->setColor(QColor(QStringLiteral("#123456")));
     auto* fill = dark->findChild<QSpinBox*>();
     REQUIRE(fill != nullptr);
     CHECK(fill->value() == 22);
     CHECK(page.apply() == std::vector<std::string>{"themes.Dark.editor.statsLine"});
-    auto& settings = core::SettingsManager::getInstance();
     CHECK(settings.get<std::string>("themes.Dark.editor.statsLine", "") == "#123456");
 
     // Back to the theme's own color: nothing is kept
     page.load();
-    colors[3]->setColor(QColor(QStringLiteral("#4CB0E8")));
+    colors[3]->setColor(orange);
     page.apply();
     CHECK_FALSE(settings.hasKey("themes.Dark.editor.statsLine"));
+
+    // The writer's color of the icons is the theme's color of the graphs
+    settings.setIconColorPrimaryForTheme("Dark", "#00aaff");
+    gui::StatsColorsPage another;
+    another.load();
+    const QList<gui::ColorConfigWidget*> followed =
+        darkColors(another)->findChildren<gui::ColorConfigWidget*>();
+    REQUIRE(followed.size() == 17);
+    CHECK(followed[3]->color() == QColor(QStringLiteral("#00AAFF")));
+    CHECK(followed[2]->color() == gui::StatsColors::themeDefault(
+                                      "statsFrame", QColor(QStringLiteral("#00AAFF")), background));
+    CHECK(another.apply().empty());
+    settings.removeKey(iconColor);
+}
+
+TEST_CASE("Statistics colors: the grid, the frame and the lines follow the theme's color",
+          "[gui][settings][statistics]")
+{
+    auto& themes = core::ThemeManager::getInstance();
+    auto& settings = core::SettingsManager::getInstance();
+    const core::Theme& theme = themes.getCurrentTheme();
+    const std::string line = core::ThemeManager::editorColorSetting(theme.name, "statsLine");
+    settings.removeKey(line);
+    QCoreApplication::processEvents();
+
+    gui::StatsColors colors = gui::StatsColors::current();
+    CHECK(colors.line == theme.colors.primary);
+    CHECK(colors.hoursHigh == theme.colors.primary);
+    CHECK(colors.grid ==
+          gui::StatsColors::themeDefault("statsGrid", theme.colors.primary, colors.background));
+    CHECK(colors.frame ==
+          gui::StatsColors::themeDefault("statsFrame", theme.colors.primary, colors.background));
+
+    // The writer's own color of the line, shown at once where the statistics are
+    int colorChanges = 0;
+    QObject guard;
+    QObject::connect(&themes, &core::ThemeManager::editorColorsChanged, &guard,
+                     [&colorChanges]() { ++colorChanges; });
+    settings.set<std::string>(line, "#123456");
+    QCoreApplication::processEvents();
+    CHECK(colorChanges == 1);
+    colors = gui::StatsColors::current();
+    CHECK(colors.line == QColor(QStringLiteral("#123456")));
+    CHECK(colors.grid ==
+          gui::StatsColors::themeDefault("statsGrid", theme.colors.primary, colors.background));
+
+    // A color of another theme changes nothing here
+    const std::string other = theme.name == "Dark" ? "Light" : "Dark";
+    settings.set<std::string>(core::ThemeManager::editorColorSetting(other, "statsLine"),
+                              "#654321");
+    QCoreApplication::processEvents();
+    CHECK(colorChanges == 1);
+    settings.removeKey(core::ThemeManager::editorColorSetting(other, "statsLine"));
+
+    settings.removeKey(line);
+    QCoreApplication::processEvents();
+    CHECK(colorChanges == 2);
+    CHECK(gui::StatsColors::current().line == theme.colors.primary);
 }
