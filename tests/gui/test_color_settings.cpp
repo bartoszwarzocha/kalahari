@@ -1,14 +1,15 @@
 /// @file test_color_settings.cpp
 /// @brief The colors the writer can change in the Settings dialog: the waves under the
 ///        misspelled words and the grammar issues (and the frames of their cards in the Spelling
-///        and Grammar panel) and the colors of the annotations, kept for each theme, and
-///        "Optimize colors in themes"
+///        and Grammar panel), the colors of the annotations and of the papers, kept for each
+///        theme, and "Optimize colors in themes"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/annotation.h"
+#include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/text_issue.h"
 #include "kalahari/gui/issue_colors.h"
 #include "kalahari/gui/settings_dialog.h"
@@ -26,6 +27,7 @@
 #include <QTreeWidgetItemIterator>
 
 #include <string>
+#include <utility>
 
 using namespace kalahari::gui;
 using kalahari::core::SettingsManager;
@@ -288,6 +290,76 @@ TEST_CASE("Settings: the colors of the annotations, on the Annotations page",
     CHECK(colorNamed(page, QStringLiteral("To-do"))->color() == themeColor(todoKey));
     CHECK(dialog.applyChanges() == QStringList{QString::fromStdString(todo)});
     CHECK_FALSE(settings.hasKey(todo));
+}
+
+TEST_CASE("Settings: the colors of the papers, on the Editor > Colors page",
+          "[gui][settings][colors]") {
+    const ThemeColorsOnly themeColors;
+    auto& settings = SettingsManager::getInstance();
+    auto& themes = ThemeManager::getInstance();
+    using kalahari::editor::PaperColorKeys;
+
+    SettingsDialog dialog(nullptr);
+    QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Colors"));
+    auto* darkPaper = page->findChild<QCheckBox*>(QStringLiteral("editorDarkPaper"));
+    REQUIRE(darkPaper != nullptr);
+    CHECK(darkPaper->isChecked() == settings.get<bool>("editor.darkMode"));
+
+    // Each paper with its colors, in the order of the page, and the colors under the text
+    const std::pair<QString, const PaperColorKeys*> papers[] = {
+        {QStringLiteral("Light Paper"), &kalahari::editor::LIGHT_PAPER_COLOR_KEYS},
+        {QStringLiteral("Dark Paper"), &kalahari::editor::DARK_PAPER_COLOR_KEYS},
+    };
+    for (const auto& [title, keys] : papers) {
+        const QList<ColorConfigWidget*> colors = colorsOfGroup(page, title);
+        const std::string names[] = {keys->paper, keys->text, keys->focusDimmed,
+                                     keys->formattingMarks, keys->desk};
+        REQUIRE(colors.size() == 5);
+        for (int i = 0; i < 5; ++i) {
+            INFO(title.toStdString() << " " << names[i]);
+            REQUIRE(themeColor(names[i]).isValid());
+            CHECK(colors.at(i)->color() == themeColor(names[i]));
+        }
+    }
+    const QList<ColorConfigWidget*> under = colorsOfGroup(page, QStringLiteral("On Both Papers"));
+    REQUIRE(under.size() == 3);
+    CHECK(under.at(0)->color() == themeColor(kalahari::editor::SELECTION_COLOR_KEY));
+    CHECK(under.at(1)->color() == themeColor(kalahari::editor::SEARCH_MATCH_COLOR_KEY));
+    CHECK(under.at(2)->color() == themeColor(kalahari::editor::CURRENT_SEARCH_MATCH_COLOR_KEY));
+    CHECK_FALSE(dialog.hasChanges());
+
+    // A cream light paper, kept for the theme in use
+    const std::string paperKey = kalahari::editor::LIGHT_PAPER_COLOR_KEYS.paper;
+    const std::string paper = settingOf(paperKey);
+    pick(colorsOfGroup(page, QStringLiteral("Light Paper")).at(0), QColor(QStringLiteral("#f5ecd7")));
+    CHECK(dialog.applyChanges() == QStringList{QString::fromStdString(paper)});
+    CHECK(stored(paper) == "#f5ecd7");
+    QCoreApplication::processEvents();
+    CHECK(themes.editorColor(paperKey, QColor()) == QColor(QStringLiteral("#f5ecd7")));
+
+    // Each paper's button restores only its own colors
+    const std::string textKey = kalahari::editor::DARK_PAPER_COLOR_KEYS.text;
+    const std::string text = settingOf(textKey);
+    pick(colorsOfGroup(page, QStringLiteral("Dark Paper")).at(1), QColor(QStringLiteral("#c8c0b0")));
+    QPushButton* restoreLight = nullptr;
+    for (const QGroupBox* group : page->findChildren<QGroupBox*>()) {
+        if (group->title() == QStringLiteral("Light Paper")) {
+            restoreLight = group->findChild<QPushButton*>();
+        }
+    }
+    REQUIRE(restoreLight != nullptr);
+    CHECK(restoreLight->text() == QStringLiteral("Restore Default Colors"));
+    restoreLight->click();
+    CHECK(colorsOfGroup(page, QStringLiteral("Light Paper")).at(0)->color() ==
+          themeColor(paperKey));
+    CHECK(colorsOfGroup(page, QStringLiteral("Dark Paper")).at(1)->color() ==
+          QColor(QStringLiteral("#c8c0b0")));
+    const QStringList written = dialog.applyChanges();
+    CHECK(written.size() == 2);
+    CHECK(written.contains(QString::fromStdString(paper)));
+    CHECK(written.contains(QString::fromStdString(text)));
+    CHECK_FALSE(settings.hasKey(paper));
+    CHECK(stored(text) == "#c8c0b0");
 }
 
 TEST_CASE("Settings: each theme has its own colors", "[gui][settings][colors]") {

@@ -47,6 +47,7 @@ constexpr double MIN_PAGE_TEXT_SHARE = 0.2;
 struct RenderColors {
     QColor text{30, 30, 30};                   ///< Default text color
     QColor background{255, 255, 255};          ///< Background color
+    QColor desk;                               ///< Around the paper (not valid: a shade of it)
     QColor cursor{30, 30, 30};                 ///< Cursor color
     QColor selection{51, 153, 255, 127};       ///< Selection highlight color
     QColor selectionText{255, 255, 255};       ///< Selected text color
@@ -78,6 +79,7 @@ struct RenderColors {
     bool operator==(const RenderColors& other) const {
         return text == other.text &&
                background == other.background &&
+               desk == other.desk &&
                cursor == other.cursor &&
                selection == other.selection &&
                selectionText == other.selectionText &&

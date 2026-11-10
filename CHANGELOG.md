@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Settings: the colors of the papers in each theme, and a gear in the find bar** -
+  2026-10-27. Settings > Editor > Colors has a group for the light paper and one for the dark
+  paper, each with the colors of the paper, of the text, of the text Focus dims, of the
+  formatting marks and of the desk around the paper (beside the endless page and around the
+  pages), and the group On Both Papers with the colors of the selection, of the search's hits
+  and of the current hit, drawn translucent under the text as before. Like the colors of the
+  annotations, they are the theme's until changed, each theme keeps its own, and each group has
+  Restore Default Colors; the check box Dark paper (as View > Dark Paper) still chooses the paper
+  whatever the theme. The themes' colors are those the editor had: nothing looks different
+  until a color is changed. The colors of the papers changed before, kept for all themes alike,
+  move at the first start into each theme. The find bar has a gear before its Close button
+  ("Colors of the Search Hits"), which opens Settings > Editor > Colors.
+
 - **Lists: Numbering and Bullets** - 2026-10-26. Format > Numbering (F12) and Bullets
   (Shift+F12) make the selected paragraphs a list, change its kind or take them out of it; a
   paragraph next to a list of the same kind joins it. Enter starts the next item, in an empty
