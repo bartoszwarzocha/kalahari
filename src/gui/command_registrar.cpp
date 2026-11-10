@@ -531,6 +531,11 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                toStyle("dialogue"));
     REG_CMD_CB("format.style.code", QT_TRANSLATE_NOOP("CommandRegistrar", "&Code"), "FORMAT/Text Style/Code", 80, true, 0,
                toStyle("code"));
+    // The styles of the book: a new one from the paragraph at the cursor, the one at the cursor
+    // changed or deleted, all of them in one window (gui/style_coordinator.h)
+    REG_CMD("format.style.new", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&w Style..."), "FORMAT/Text Style/New Style...", 82, false, 1);
+    REG_CMD("format.style.modify", QT_TRANSLATE_NOOP("CommandRegistrar", "Modi&fy Style..."), "FORMAT/Text Style/Modify Style...", 84, false, 1);
+    REG_CMD("format.style.delete", QT_TRANSLATE_NOOP("CommandRegistrar", "Dele&te Style"), "FORMAT/Text Style/Delete Style", 86, false, 1);
     REG_CMD("format.style.manage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Manage Styles..."), "FORMAT/Text Style/Manage Styles...", 90, true, 1);
 
     // OpenSpec #00030: Added standard formatting shortcuts (Ctrl+B/I/U)

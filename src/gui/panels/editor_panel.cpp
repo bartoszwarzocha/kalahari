@@ -2,6 +2,7 @@
 /// @brief Editor panel implementation with BookEditor (OpenSpec #00042 Phase 7.1)
 
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/book_styles.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
@@ -288,23 +289,12 @@ void EditorPanel::setUnmodified() {
 }
 
 editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
-    const auto& projects = core::ProjectManager::getInstance();
-    const core::BookProject* book = projects.project();
-    // A chapter of the book, which NavigatorCoordinator tags with its element
-    const bool chapter = book != nullptr && !property("elementId").toString().isEmpty();
-    const QString base = QString::fromLatin1(core::ProjectManager::BASE_PACKAGE);
-    QList<core::PackageParagraphStyle> styles;
-    if (chapter && book->type.has_value()) {
-        styles = projects.bookTypes().paragraphStyles(book->type->id);
-    }
-    // A type the program does not have gives none: the styles every book has
-    if (styles.isEmpty()) {
-        styles = projects.bookTypes().paragraphStyles(base);
-    }
-    if (!chapter) {
-        return editor::ParagraphStyleSet::fromPackage(styles, programLanguage());
-    }
-    return editor::ParagraphStyleSet::forBook(styles, book->paragraphStyles, programLanguage());
+    // A chapter of the book, which NavigatorCoordinator tags with its element, has the styles
+    // of the book; any other text those every book has
+    const bool chapter = core::ProjectManager::getInstance().project() != nullptr &&
+                         !property("elementId").toString().isEmpty();
+    return chapter ? bookParagraphStyles()
+                   : editor::ParagraphStyleSet::fromPackage(baseStyles(), programLanguage());
 }
 
 void EditorPanel::learnAutoCorrectException(editor::LearnedException list,

@@ -471,6 +471,37 @@ ParagraphStyleSet ParagraphStyleSet::fromPackage(
     return set;
 }
 
+QString styleAlignmentName(Qt::Alignment alignment) {
+    switch (alignment & Qt::AlignHorizontal_Mask) {
+        case Qt::AlignLeft:
+            return QStringLiteral("left");
+        case Qt::AlignHCenter:
+            return QStringLiteral("center");
+        case Qt::AlignRight:
+            return QStringLiteral("right");
+        case Qt::AlignJustify:
+            return QStringLiteral("justify");
+        default:
+            return QString();
+    }
+}
+
+Qt::Alignment styleAlignmentOf(const QString& name) {
+    if (name == QLatin1String("left")) {
+        return Qt::AlignLeft;
+    }
+    if (name == QLatin1String("center")) {
+        return Qt::AlignHCenter;
+    }
+    if (name == QLatin1String("right")) {
+        return Qt::AlignRight;
+    }
+    if (name == QLatin1String("justify")) {
+        return Qt::AlignJustify;
+    }
+    return {};
+}
+
 QHash<QString, int> paragraphStyleCounts(const QString& kml) {
     QHash<QString, int> counts;
     KmlDocumentModel content;
@@ -630,6 +661,145 @@ QVariant ParagraphStyleSet::property(const QString& id, const QString& name) con
 bool ParagraphStyleSet::isChecked(const QString& id) const {
     const QVariant check = property(id, QStringLiteral("spellCheck"));
     return !check.isValid() || check.toBool();
+}
+
+// =============================================================================
+// Changes of the styles of a book
+// =============================================================================
+
+QString successorOf(const ParagraphStyleSet& styles, const QString& id) {
+    const ParagraphStyle* style = styles.find(id);
+    if (style != nullptr && !style->baseStyle.isEmpty() && style->baseStyle != id &&
+        styles.contains(style->baseStyle)) {
+        return style->baseStyle;
+    }
+    return QString::fromLatin1(NORMAL_STYLE_ID);
+}
+
+QList<core::BookParagraphStyle> withoutOwnStyle(const QList<core::BookParagraphStyle>& entries,
+                                                const ParagraphStyleSet& styles,
+                                                const QString& id) {
+    const auto deleted = std::find_if(entries.cbegin(), entries.cend(),
+                                      [&id](const core::BookParagraphStyle& entry) {
+                                          return entry.id == id;
+                                      });
+    if (deleted == entries.cend()) {
+        return entries;
+    }
+    const core::BookParagraphStyle gone = *deleted;
+    const QString successor = successorOf(styles, id);
+    QList<core::BookParagraphStyle> result;
+    for (const core::BookParagraphStyle& entry : entries) {
+        if (entry.id == id) {
+            continue;
+        }
+        core::BookParagraphStyle kept = entry;
+        if (kept.baseStyle == id) {
+            // Its look as it was: the deleted style's own properties under its own
+            kept.baseStyle = gone.baseStyle;
+            QVariantMap properties = gone.properties;
+            for (auto it = entry.properties.cbegin(); it != entry.properties.cend(); ++it) {
+                properties.insert(it.key(), it.value());
+            }
+            kept.properties = properties;
+        }
+        if (kept.nextStyle == id) {
+            kept.nextStyle = successor;
+        }
+        result.append(kept);
+    }
+    return result;
+}
+
+QList<core::BookParagraphStyle> withStyleEntry(const QList<core::BookParagraphStyle>& entries,
+                                               const core::BookParagraphStyle& entry) {
+    QList<core::BookParagraphStyle> result = entries;
+    const auto place = std::find_if(result.begin(), result.end(),
+                                    [&entry](const core::BookParagraphStyle& each) {
+                                        return each.id == entry.id;
+                                    });
+    if (place != result.end()) {
+        *place = entry;
+    } else {
+        result.append(entry);
+    }
+    return result;
+}
+
+QList<core::BookParagraphStyle> withoutStyleEntry(const QList<core::BookParagraphStyle>& entries,
+                                                  const QString& id) {
+    QList<core::BookParagraphStyle> result = entries;
+    result.removeIf([&id](const core::BookParagraphStyle& entry) { return entry.id == id; });
+    return result;
+}
+
+QString paragraphStyleIdFor(const QString& name, const QStringList& taken) {
+    // The letters without their marks: the decomposed letter without the marks after it; the
+    // letters that do not decompose (the Polish l with a stroke, the German sharp s) by hand
+    QString id;
+    bool gap = false;
+    for (const QChar character : name.normalized(QString::NormalizationForm_KD)) {
+        if (character.category() == QChar::Mark_NonSpacing) {
+            continue;
+        }
+        QString ascii;
+        const QChar lower = character.toLower();
+        if (lower == QChar(0x0142)) {
+            ascii = QStringLiteral("l");
+        } else if (lower == QChar(0x00DF)) {
+            ascii = QStringLiteral("ss");
+        } else if (lower == QChar(0x00F8)) {
+            ascii = QStringLiteral("o");
+        } else if (lower == QChar(0x00E6)) {
+            ascii = QStringLiteral("ae");
+        } else if (lower.unicode() < 0x80 && lower.isLetterOrNumber()) {
+            ascii = lower;
+        }
+        if (ascii.isEmpty()) {
+            gap = !id.isEmpty();
+            continue;
+        }
+        if (gap) {
+            id += QLatin1Char('_');
+            gap = false;
+        }
+        id += ascii;
+    }
+    if (id.isEmpty()) {
+        id = QStringLiteral("style");
+    }
+    if (!taken.contains(id)) {
+        return id;
+    }
+    for (int number = 2;; ++number) {
+        const QString numbered = id + QLatin1Char('_') + QString::number(number);
+        if (!taken.contains(numbered)) {
+            return numbered;
+        }
+    }
+}
+
+QStringList possibleBaseStyles(const ParagraphStyleSet& styles, const QString& id) {
+    // A style is based on @p id when its chain of base styles comes to it
+    const auto basedOn = [&styles, &id](const ParagraphStyle& style) {
+        QSet<QString> seen;
+        for (QString base = style.baseStyle; !base.isEmpty() && !seen.contains(base);) {
+            if (base == id) {
+                return true;
+            }
+            seen.insert(base);
+            const ParagraphStyle* next = styles.find(base);
+            base = next != nullptr ? next->baseStyle : QString();
+        }
+        return false;
+    };
+    QStringList ids;
+    for (const ParagraphStyle& style : styles.styles()) {
+        if (id.isEmpty() || (style.id != id && !basedOn(style))) {
+            ids.append(style.id);
+        }
+    }
+    return ids;
 }
 
 }  // namespace kalahari::editor

@@ -9,6 +9,7 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <QTextBoundaryFinder>
 #include <algorithm>
+#include <cmath>
 #include <array>
 #include <vector>
 
@@ -531,6 +532,249 @@ int BookEditor::replaceParagraphStyle(const QString& from, const QString& to)
     emit contentChanged();
     update();
     return static_cast<int>(changed.size());
+}
+
+QHash<QString, int> BookEditor::paragraphStyleCounts() const
+{
+    QHash<QString, int> counts;
+    if (!m_textBuffer) {
+        return counts;
+    }
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        if (blockObject(block) == TextObject::None) {
+            ++counts[paragraphStyleOf(block.blockFormat())];
+        }
+    }
+    return counts;
+}
+
+QVariantMap BookEditor::ownStyleProperties() const
+{
+    QVariantMap properties;
+    if (!m_textBuffer) {
+        return properties;
+    }
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    if (!block.isValid() || blockObject(block) != TextObject::None) {
+        return properties;
+    }
+
+    // The paragraph's own formatting (paragraph_format.h): lengths in the points of the styles
+    const QTextBlockFormat format = block.blockFormat();
+    const ParagraphFormat own = paragraphFormatOf(format);
+    const auto put = [&properties](const char* name, const auto& value) {
+        if (value) {
+            properties.insert(QLatin1String(name), *value);
+        }
+    };
+    put("leftMargin", own.leftIndent);
+    put("rightMargin", own.rightIndent);
+    put("firstLineIndent", own.firstLineIndent);
+    put("spaceBefore", own.spaceBefore);
+    put("spaceAfter", own.spaceAfter);
+    if (own.lineSpacing && own.lineSpacing->rule == LineSpacingRule::Multiple) {
+        properties.insert(QStringLiteral("lineHeight"), own.lineSpacing->value);
+    }
+    put("keepWithNext", own.keepWithNext);
+    put("keepTogether", own.keepTogether);
+    put("pageBreakBefore", own.pageBreakBefore);
+    put("widowControl", own.widowControl);
+    if (const QString alignment = styleAlignmentName(ownAlignment(format)); !alignment.isEmpty()) {
+        properties.insert(QStringLiteral("alignment"), alignment);
+    }
+
+    // The font all of its text has of its own; an empty paragraph has that of its end
+    QList<QTextCharFormat> formats;
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (fragment.isValid() && textObjectOf(fragment.charFormat()) == TextObject::None) {
+            formats.append(fragment.charFormat());
+        }
+    }
+    if (formats.isEmpty()) {
+        formats.append(block.charFormat());
+    }
+    const auto common = [&formats](const auto& valueOf) -> std::optional<QVariant> {
+        std::optional<QVariant> shared;
+        for (const QTextCharFormat& each : formats) {
+            const std::optional<QVariant> value = valueOf(each);
+            if (!value || (shared && *shared != *value)) {
+                return std::nullopt;
+            }
+            shared = value;
+        }
+        return shared;
+    };
+    const auto give = [&properties](const char* name, const std::optional<QVariant>& value) {
+        if (value) {
+            properties.insert(QLatin1String(name), *value);
+        }
+    };
+    give("fontFamily", common([](const QTextCharFormat& each) -> std::optional<QVariant> {
+             const QStringList families = each.fontFamilies().toStringList();
+             if (!families.isEmpty()) {
+                 return QVariant(families.constFirst());
+             }
+             if (each.hasProperty(QTextFormat::FontFamily)) {
+                 return QVariant(each.stringProperty(QTextFormat::FontFamily));
+             }
+             return std::nullopt;
+         }));
+    // The size in the text is the editor's (its font is Normal's); in the styles, in the
+    // proportion of Normal's size
+    const qreal editorPoints = m_appearance.typography.textFont.pointSizeF();
+    const qreal normalPoints =
+        m_paragraphStyles.normal().properties.value(QStringLiteral("fontSize")).toDouble();
+    const qreal scale = editorPoints > 0
+                            ? (normalPoints > 0 ? normalPoints : DEFAULT_NORMAL_POINT_SIZE) /
+                                  editorPoints
+                            : 1.0;
+    give("fontSize", common([scale](const QTextCharFormat& each) -> std::optional<QVariant> {
+             if (!each.hasProperty(QTextFormat::FontPointSize)) {
+                 return std::nullopt;
+             }
+             // To half a point, as the lists of sizes have them
+             return QVariant(std::round(each.fontPointSize() * scale * 2.0) / 2.0);
+         }));
+    give("bold", common([](const QTextCharFormat& each) -> std::optional<QVariant> {
+             if (!each.hasProperty(QTextFormat::FontWeight)) {
+                 return std::nullopt;
+             }
+             return QVariant(each.fontWeight() > QFont::Normal);
+         }));
+    give("italic", common([](const QTextCharFormat& each) -> std::optional<QVariant> {
+             if (!each.hasProperty(QTextFormat::FontItalic)) {
+                 return std::nullopt;
+             }
+             return QVariant(each.fontItalic());
+         }));
+    give("underline", common([](const QTextCharFormat& each) -> std::optional<QVariant> {
+             if (!each.hasProperty(QTextFormat::TextUnderlineStyle) &&
+                 !each.hasProperty(QTextFormat::FontUnderline)) {
+                 return std::nullopt;
+             }
+             return QVariant(each.fontUnderline());
+         }));
+    return properties;
+}
+
+void BookEditor::applyNewParagraphStyle(const QString& styleId, const QStringList& taken)
+{
+    if (refusesChange() || !m_textBuffer) {
+        return;
+    }
+    int startPara = m_cursorPosition.paragraph;
+    int endPara = m_cursorPosition.paragraph;
+    if (hasSelection()) {
+        const SelectionRange range = m_selection.normalized();
+        startPara = range.start.paragraph;
+        endPara = range.end.paragraph;
+    }
+    const QString id = styleId.isEmpty() ? QString::fromLatin1(NORMAL_STYLE_ID) : styleId;
+
+    // The properties of the block and character formats that hold what the style took
+    static const QHash<QString, QList<int>> blockProperties = {
+        {QStringLiteral("leftMargin"), {PARAGRAPH_LEFT_INDENT_PROPERTY}},
+        {QStringLiteral("rightMargin"), {PARAGRAPH_RIGHT_INDENT_PROPERTY}},
+        {QStringLiteral("firstLineIndent"), {PARAGRAPH_FIRST_LINE_INDENT_PROPERTY}},
+        {QStringLiteral("spaceBefore"), {PARAGRAPH_SPACE_BEFORE_PROPERTY}},
+        {QStringLiteral("spaceAfter"), {PARAGRAPH_SPACE_AFTER_PROPERTY}},
+        {QStringLiteral("lineHeight"),
+         {PARAGRAPH_LINE_SPACING_RULE_PROPERTY, PARAGRAPH_LINE_SPACING_PROPERTY}},
+        {QStringLiteral("keepWithNext"), {PARAGRAPH_KEEP_WITH_NEXT_PROPERTY}},
+        {QStringLiteral("keepTogether"), {PARAGRAPH_KEEP_TOGETHER_PROPERTY}},
+        {QStringLiteral("pageBreakBefore"), {PARAGRAPH_PAGE_BREAK_BEFORE_PROPERTY}},
+        {QStringLiteral("widowControl"), {PARAGRAPH_WIDOW_CONTROL_PROPERTY}},
+        {QStringLiteral("alignment"), {QTextFormat::BlockAlignment}},
+    };
+    static const QHash<QString, QList<int>> charProperties = {
+        {QStringLiteral("fontFamily"), {QTextFormat::FontFamilies, QTextFormat::FontFamily}},
+        {QStringLiteral("fontSize"), {QTextFormat::FontPointSize}},
+        {QStringLiteral("bold"), {QTextFormat::FontWeight}},
+        {QStringLiteral("italic"), {QTextFormat::FontItalic}},
+        {QStringLiteral("underline"), {QTextFormat::FontUnderline, QTextFormat::TextUnderlineStyle}},
+    };
+    QList<int> blockCleared;
+    QList<int> charCleared;
+    for (const QString& name : taken) {
+        blockCleared += blockProperties.value(name);
+        charCleared += charProperties.value(name);
+    }
+    const auto without = [](auto format, const QList<int>& cleared) {
+        for (const int property : cleared) {
+            format.clearProperty(property);
+        }
+        return format;
+    };
+
+    // What changes: the blocks, and the fragments of their text
+    std::vector<QTextBlock> changed;
+    std::vector<FormatPiece> pieces;
+    for (QTextBlock block = m_textBuffer->findBlockByNumber(startPara);
+         block.isValid() && block.blockNumber() <= endPara; block = block.next()) {
+        if (blockObject(block) != TextObject::None) {
+            continue;
+        }
+        QTextBlockFormat format = without(block.blockFormat(), blockCleared);
+        setParagraphStyle(format, id);
+        bool blockChanged = format != block.blockFormat();
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            const QTextCharFormat own = fragment.charFormat();
+            if (!fragment.isValid() || textObjectOf(own) != TextObject::None) {
+                continue;
+            }
+            if (const QTextCharFormat plain = without(own, charCleared); plain != own) {
+                pieces.push_back({fragment.position(), fragment.position() + fragment.length(),
+                                  plain});
+                blockChanged = true;
+            }
+        }
+        if (block.length() == 1) {
+            if (const QTextCharFormat plain = without(block.charFormat(), charCleared);
+                plain != block.charFormat()) {
+                pieces.push_back({block.position(), block.position(), plain, true});
+                blockChanged = true;
+            }
+        }
+        if (blockChanged) {
+            changed.push_back(block);
+        }
+    }
+    if (changed.empty()) {
+        return;
+    }
+
+    // One undo step that brings back the cursor, as applyParagraphStyle() makes
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    for (const FormatPiece& piece : pieces) {
+        cursor.setPosition(piece.from);
+        if (piece.emptyParagraph) {
+            cursor.setBlockCharFormat(piece.format);
+            continue;
+        }
+        cursor.setPosition(piece.to, QTextCursor::KeepAnchor);
+        cursor.setCharFormat(piece.format);
+    }
+    for (const QTextBlock& block : changed) {
+        QTextBlockFormat format = without(block.blockFormat(), blockCleared);
+        setParagraphStyle(format, id);
+        cursor.setPosition(block.position());
+        cursor.setBlockFormat(format);
+    }
+    cursor.endEditBlock();
+    checkParagraphsAgain(changed);
+
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+    ensureCursorVisible();
+    emit contentChanged();
+    emit paragraphModified(m_cursorPosition.paragraph);
+    update();
 }
 
 void BookEditor::insertTextObject(TextObject object)

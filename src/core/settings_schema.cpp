@@ -62,6 +62,9 @@ std::map<std::string, json> buildDefaults() {
         {"ui.colorPalette", "basic"},
         // The color window shows the HEX and RGB values
         {"ui.colorValuesShown", false},
+        // The window of a paragraph style (New Style, Modify Style): all its settings on tabs
+        // ("tabs") or the short one with a wide preview ("short")
+        {"ui.styleWindow", "tabs"},
         {"appearance.theme", "Light"},
         {"appearance.uiFontSize", 12},
         {"appearance.iconTheme", "twotone"},

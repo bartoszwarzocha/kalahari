@@ -362,6 +362,134 @@ TEST_CASE("Paragraph styles: the paragraphs of a style go to another, open or sa
     CHECK(editor->toKml() == source);
 }
 
+TEST_CASE("Paragraph styles: a style of the book deleted, restored or saved",
+          "[editor][styles]") {
+    using kalahari::core::BookParagraphStyle;
+    auto quote = packageStyle(QStringLiteral("quote"), {},
+                              {{QStringLiteral("italic"), true},
+                               {QStringLiteral("leftMargin"), 36}});
+    quote.baseStyle = QStringLiteral("normal");
+    const QList<kalahari::core::PackageParagraphStyle> type = {
+        packageStyle(QStringLiteral("normal"), {}, {{QStringLiteral("fontSize"), 12}}), quote};
+
+    // Memory on Quote; Dream and Echo on Memory, Echo after it; Quote changed to go on to it
+    BookParagraphStyle changedQuote;
+    changedQuote.id = QStringLiteral("quote");
+    changedQuote.nextStyle = QStringLiteral("memory");
+    changedQuote.properties = {{QStringLiteral("italic"), true}};
+    BookParagraphStyle memory;
+    memory.id = QStringLiteral("memory");
+    memory.name = QStringLiteral("Memory");
+    memory.baseStyle = QStringLiteral("quote");
+    memory.properties = {{QStringLiteral("leftMargin"), 18}, {QStringLiteral("spaceAfter"), 6}};
+    BookParagraphStyle dream;
+    dream.id = QStringLiteral("dream");
+    dream.name = QStringLiteral("Dream");
+    dream.baseStyle = QStringLiteral("memory");
+    dream.nextStyle = QStringLiteral("memory");
+    dream.properties = {{QStringLiteral("spaceAfter"), 12}};
+    BookParagraphStyle echo;
+    echo.id = QStringLiteral("echo");
+    echo.name = QStringLiteral("Echo");
+    echo.baseStyle = QStringLiteral("dream");
+    const QList<BookParagraphStyle> entries = {changedQuote, memory, dream, echo};
+    const ParagraphStyleSet before = ParagraphStyleSet::forBook(type, entries, QStringLiteral("en"));
+
+    // The paragraphs of a deleted style go to its base, Normal without one
+    CHECK(successorOf(before, QStringLiteral("memory")) == QStringLiteral("quote"));
+    CHECK(successorOf(before, QStringLiteral("quote")) == QStringLiteral("normal"));
+    CHECK(successorOf(before, QStringLiteral("none")) == QStringLiteral("normal"));
+
+    // Memory deleted: Dream is on Quote with Memory's properties under its own, and looks as
+    // it did; Echo, on Dream, too; what went on to Memory goes on to Quote
+    const QList<BookParagraphStyle> without = withoutOwnStyle(entries, before, QStringLiteral("memory"));
+    REQUIRE(without.size() == 3);
+    CHECK(without.at(0).nextStyle == QStringLiteral("quote"));
+    CHECK(without.at(1).id == QStringLiteral("dream"));
+    CHECK(without.at(1).baseStyle == QStringLiteral("quote"));
+    CHECK(without.at(1).nextStyle == QStringLiteral("quote"));
+    CHECK(without.at(1).properties.value(QStringLiteral("leftMargin")).toInt() == 18);
+    CHECK(without.at(1).properties.value(QStringLiteral("spaceAfter")).toInt() == 12);
+    CHECK(without.at(2) == echo);
+    const ParagraphStyleSet after = ParagraphStyleSet::forBook(type, without, QStringLiteral("en"));
+    CHECK_FALSE(after.contains(QStringLiteral("memory")));
+    CHECK(after.find(QStringLiteral("dream"))->properties ==
+          before.find(QStringLiteral("dream"))->properties);
+    CHECK(after.find(QStringLiteral("echo"))->properties ==
+          before.find(QStringLiteral("echo"))->properties);
+    CHECK(withoutOwnStyle(entries, before, QStringLiteral("none")) == entries);
+
+    // Quote restored: its entry goes, the rest stays
+    const QList<BookParagraphStyle> restored = withoutStyleEntry(entries, QStringLiteral("quote"));
+    CHECK(restored == QList<BookParagraphStyle>{memory, dream, echo});
+    CHECK(ParagraphStyleSet::forBook(type, restored, QStringLiteral("en"))
+              .find(QStringLiteral("quote"))
+              ->origin == StyleOrigin::Type);
+
+    // An entry saved takes the place of its id, or goes after the others
+    BookParagraphStyle bigger = dream;
+    bigger.properties = {{QStringLiteral("fontSize"), 14}};
+    const QList<BookParagraphStyle> saved = withStyleEntry(entries, bigger);
+    CHECK(saved == QList<BookParagraphStyle>{changedQuote, memory, bigger, echo});
+    BookParagraphStyle fresh;
+    fresh.id = QStringLiteral("fresh");
+    CHECK(withStyleEntry(entries, fresh).constLast() == fresh);
+
+    // A style is based on none of itself and the styles on it, at any depth
+    CHECK(possibleBaseStyles(before, QStringLiteral("memory")) ==
+          QStringList{QStringLiteral("normal"), QStringLiteral("quote")});
+    CHECK(possibleBaseStyles(before, QStringLiteral("echo")).size() == 4);
+    CHECK(possibleBaseStyles(before, QString()).size() == 5);
+}
+
+TEST_CASE("Paragraph styles: the id of a new style of the writer's", "[editor][styles]") {
+    CHECK(paragraphStyleIdFor(QStringLiteral("Wiadomość tekstowa"), {}) ==
+          QStringLiteral("wiadomosc_tekstowa"));
+    CHECK(paragraphStyleIdFor(QStringLiteral("  Łódź – Żółw!  "), {}) == QStringLiteral("lodz_zolw"));
+    CHECK(paragraphStyleIdFor(QStringLiteral("Straße 2"), {}) == QStringLiteral("strasse_2"));
+    CHECK(paragraphStyleIdFor(QStringLiteral("…"), {}) == QStringLiteral("style"));
+    CHECK(paragraphStyleIdFor(QStringLiteral("Quote"), {QStringLiteral("quote")}) ==
+          QStringLiteral("quote_2"));
+    CHECK(paragraphStyleIdFor(QStringLiteral("Quote"),
+                              {QStringLiteral("quote"), QStringLiteral("quote_2")}) ==
+          QStringLiteral("quote_3"));
+}
+
+TEST_CASE("Paragraph styles: a new style takes the formatting of the paragraph",
+          "[editor][styles]") {
+    auto editor = editorWith(kml(QStringLiteral(
+        "<p indent-left=\"18\" space-after=\"6\" line-height=\"1.2\" align=\"center\">"
+        "<i>All of it in italics, <b>part in bold</b></i></p><p>B</p>")));
+    const QVariantMap own = editor->ownStyleProperties();
+    CHECK(own.value(QStringLiteral("leftMargin")).toDouble() == 18.0);
+    CHECK(own.value(QStringLiteral("spaceAfter")).toDouble() == 6.0);
+    CHECK(own.value(QStringLiteral("lineHeight")).toDouble() == 1.2);
+    CHECK(own.value(QStringLiteral("alignment")).toString() == QStringLiteral("center"));
+    CHECK(own.value(QStringLiteral("italic")).toBool());
+    CHECK_FALSE(own.contains(QStringLiteral("bold")));  // only a part has it
+    CHECK_FALSE(own.contains(QStringLiteral("rightMargin")));
+    editor->setCursorPosition({1, 0});
+    CHECK(editor->ownStyleProperties().isEmpty());
+
+    // The paragraph in the new style loses what the style took: one undo step
+    editor->setCursorPosition({0, 0});
+    const QString before = editor->toKml();
+    editor->applyNewParagraphStyle(QStringLiteral("dialogue"),
+                                   {QStringLiteral("leftMargin"), QStringLiteral("italic"),
+                                    QStringLiteral("alignment")});
+    CHECK(editor->currentParagraphStyle() == QStringLiteral("dialogue"));
+    const QVariantMap left = editor->ownStyleProperties();
+    CHECK_FALSE(left.contains(QStringLiteral("leftMargin")));
+    CHECK_FALSE(left.contains(QStringLiteral("italic")));
+    CHECK_FALSE(left.contains(QStringLiteral("alignment")));
+    CHECK(left.value(QStringLiteral("spaceAfter")).toDouble() == 6.0);  // not taken
+    CHECK(editor->toKml().contains(QStringLiteral("<b>part in bold</b>")));
+    CHECK(editor->paragraphStyleCounts().value(QStringLiteral("dialogue")) == 1);
+    CHECK(editor->paragraphStyleCounts().value(QStringLiteral("normal")) == 1);
+    editor->undo();
+    CHECK(editor->toKml() == before);
+}
+
 // =============================================================================
 // Objects
 // =============================================================================

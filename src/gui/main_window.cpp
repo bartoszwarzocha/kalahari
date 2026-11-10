@@ -16,6 +16,7 @@
 #include "kalahari/gui/special_character_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/versions_coordinator.h"
+#include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
@@ -44,6 +45,7 @@
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/color_menu.h"
@@ -418,6 +420,24 @@ MainWindow::MainWindow(QWidget* parent)
         },
         statusBar(), this, this);
     m_versionsCoordinator->connectCommands();
+    // Format > Text Style: new styles of the book, the one at the cursor changed or deleted,
+    // Manage Styles...; the bar under the text says that a style was deleted, with Undo
+    m_styleCoordinator = new StyleCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        },
+        statusBar(), this, this);
+    m_styleCoordinator->connectCommands();
+    // The buttons and the menu of the palette, in both places of the Paragraph and Styles panel
+    for (ParagraphPanel* palette : {m_dockCoordinator->paragraphPanel(),
+                                    m_dockCoordinator->propertiesParagraphPanel()}) {
+        if (palette != nullptr) {
+            palette->setStyleCoordinator(m_styleCoordinator);
+        }
+    }
     // Version History... of a text in the Navigator, and the buttons of the group of the
     // versions in the Properties panel: the text opens, if it is not open
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestVersionHistory,

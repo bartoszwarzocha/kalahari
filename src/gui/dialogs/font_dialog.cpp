@@ -240,6 +240,32 @@ FontDialog::FontDialog(const CharacterFormat& shown, const QString& sample, QWid
     m_familyField->setFocus();
 }
 
+void FontDialog::showForStyle(const QString& styleName)
+{
+    //: The window Format > Font opened from the window of a paragraph style. In Polish:
+    //: Czcionka stylu „%1”
+    setHeading(tr("Font of the Style \"%1\"").arg(styleName),
+               //: In Polish: Czcionka, jej styl i rozmiar oraz podkreślenie akapitów stylu.
+               tr("The font, its style and size, and the underline of the paragraphs in the "
+                  "style."));
+    // A style sets no colors, other effects or letter spacing
+    for (QWidget* part : {static_cast<QWidget*>(m_colorButton),
+                          static_cast<QWidget*>(m_highlightButton),
+                          static_cast<QWidget*>(m_strikethrough),
+                          static_cast<QWidget*>(m_superscript), static_cast<QWidget*>(m_subscript),
+                          static_cast<QWidget*>(m_smallCaps), static_cast<QWidget*>(m_allCaps)}) {
+        part->hide();
+    }
+    const QList<QLabel*> labels = findChildren<QLabel*>();
+    for (QLabel* label : labels) {
+        if (label->buddy() == m_colorButton || label->buddy() == m_highlightButton) {
+            label->hide();
+        }
+    }
+    m_tabs->removeTab(m_tabs->indexOf(m_advancedPreview->parentWidget()));
+    m_tabs->setTabBarAutoHide(true);
+}
+
 QWidget* FontDialog::createFontTab()
 {
     auto* tab = new QWidget(m_tabs);

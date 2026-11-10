@@ -132,6 +132,9 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.style.quote", "resources/icons/twotone/format_quote.svg", "Block Quote");
     iconRegistry.registerIcon("format.style.dialogue", "resources/icons/twotone/forum.svg", "Dialogue");
     iconRegistry.registerIcon("format.style.code", "resources/icons/twotone/code.svg", "Code Block");
+    iconRegistry.registerIcon("format.style.new", "resources/icons/twotone/add_box.svg", "New Style");
+    iconRegistry.registerIcon("format.style.modify", "resources/icons/twotone/edit.svg", "Modify Style");
+    iconRegistry.registerIcon("format.style.delete", "resources/icons/twotone/delete.svg", "Delete Style");
     iconRegistry.registerIcon("format.style.manage", "resources/icons/twotone/style.svg", "Manage Styles");
     iconRegistry.registerIcon("format.bold", "resources/icons/twotone/format_bold.svg", "Bold");
     iconRegistry.registerIcon("format.italic", "resources/icons/twotone/format_italic.svg", "Italic");

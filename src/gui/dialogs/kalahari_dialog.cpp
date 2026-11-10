@@ -160,6 +160,12 @@ QPushButton* KalahariDialog::addSideButton(const QString& text)
     return button;
 }
 
+void KalahariDialog::addSideWidget(QWidget* widget)
+{
+    widget->setParent(this);
+    m_sideButtonLayout->addWidget(widget);
+}
+
 void KalahariDialog::setAcceptText(const QString& text)
 {
     m_acceptButton->setText(text);

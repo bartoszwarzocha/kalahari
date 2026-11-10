@@ -86,6 +86,12 @@ public:
     /// @brief The sizes offered in the list, in points
     static const QList<qreal>& offeredSizes();
 
+    /// @brief Make it the window of the font of a paragraph style (opened from the window of
+    ///        a style): only what a style sets, the font, its style and size and the underline;
+    ///        no colors, other effects or tab Advanced
+    /// @param styleName The name of the style, for the heading
+    void showForStyle(const QString& styleName);
+
     /// @brief The parts of the window (for tests)
     [[nodiscard]] QTabWidget* tabs() const { return m_tabs; }
     [[nodiscard]] QLineEdit* familyField() const { return m_familyField; }

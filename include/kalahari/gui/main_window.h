@@ -60,6 +60,7 @@ class MaterialListCoordinator;
 class EditCoordinator;
 class SpecialCharacterCoordinator;
 class VersionsCoordinator;
+class StyleCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
@@ -424,6 +425,9 @@ private:
 
     /// @brief Save Version and Version History of the texts of the book
     VersionsCoordinator* m_versionsCoordinator{nullptr};
+
+    /// @brief New, changed and deleted paragraph styles of the book
+    StyleCoordinator* m_styleCoordinator{nullptr};
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen
