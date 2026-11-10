@@ -17,7 +17,9 @@
 #include <QMenu>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QHash>
 #include <QScopedValueRollback>
+#include <QSet>
 #include <QTimer>
 #include <algorithm>
 #include <optional>
@@ -83,6 +85,189 @@ private:
     const QAction* m_command;
     bool m_pressed = false;
 };
+
+/// @brief The access key of a menu text in upper case: the character after a single '&'
+///        ("&&" is an ampersand); a null QChar for a text without one
+QChar accessKeyOf(const QString& text) {
+    for (qsizetype i = 0; i + 1 < text.size(); ++i) {
+        if (text.at(i) == QLatin1Char('&')) {
+            if (text.at(i + 1) != QLatin1Char('&')) {
+                return text.at(i + 1).toUpper();
+            }
+            ++i;
+        }
+    }
+    return {};
+}
+
+/// @brief A menu text that shows @p shown (its ampersands doubled), with the access key on
+///        its character at @p place
+QString withAccessKeyAt(const QString& shown, qsizetype place) {
+    QString text;
+    for (qsizetype i = 0; i < shown.size(); ++i) {
+        if (i == place) {
+            text += QLatin1Char('&');
+        }
+        text += shown.at(i);
+        if (shown.at(i) == QLatin1Char('&')) {
+            text += QLatin1Char('&');
+        }
+    }
+    return text;
+}
+
+/// @brief An item of a context menu that can get another access key
+struct MenuKeyItem {
+    QAction* action = nullptr;
+    QString shown;       ///< Its text as the menu shows it, without the keys after a tab
+    QString keys;        ///< The keys after a tab, with the tab
+    QList<QChar> keyed;  ///< The letters and digits of the text it can have as its key
+    QChar key;           ///< Its key, in upper case
+};
+
+/// @brief The keys of the items of a context menu: each its own when it can
+class MenuKeys {
+public:
+    /// @param fixed The keys that stay, of the commands of the window
+    /// @param items The items of the menu's own, with their keys
+    MenuKeys(QSet<QChar> fixed, QList<MenuKeyItem>& items)
+        : m_fixed(std::move(fixed)), m_items(items) {}
+
+    /// @brief Each item keeps its key unless a command or an item above has it; then it takes
+    ///        another letter of its text (the first of a word first), and when none is free, an
+    ///        item that has one takes another of its own. An item without any keeps its key
+    void assign() {
+        QList<int> moving;
+        for (int i = 0; i < m_items.size(); ++i) {
+            const QChar key = m_items.at(i).key;
+            if (m_fixed.contains(key) || m_holders.contains(key)) {
+                moving.append(i);
+            } else {
+                m_holders.insert(key, i);
+            }
+        }
+        for (const int i : std::as_const(moving)) {
+            QSet<QChar> tried;
+            place(i, tried);
+        }
+    }
+
+private:
+    /// @brief Give item @p index a key no other item has, moving the items that have the
+    ///        letters it can have to others of theirs; @p tried: the letters asked for so far
+    bool place(int index, QSet<QChar>& tried) {
+        const QList<QChar>& letters = m_items.at(index).keyed;
+        for (const QChar letter : letters) {
+            if (!m_fixed.contains(letter) && !m_holders.contains(letter)) {
+                take(index, letter);
+                return true;
+            }
+        }
+        for (const QChar letter : letters) {
+            if (m_fixed.contains(letter) || tried.contains(letter)) {
+                continue;
+            }
+            tried.insert(letter);
+            const int holder = m_holders.value(letter, -1);
+            if (holder != index && holder >= 0 && place(holder, tried)) {
+                take(index, letter);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// @brief Item @p index has @p letter as its key from now on
+    void take(int index, QChar letter) {
+        MenuKeyItem& item = m_items[index];
+        if (m_holders.value(item.key, -1) == index) {
+            m_holders.remove(item.key);
+        }
+        item.key = letter;
+        m_holders.insert(letter, index);
+    }
+
+    QSet<QChar> m_fixed;
+    QList<MenuKeyItem>& m_items;
+    QHash<QChar, int> m_holders;  ///< The item with each key
+};
+
+/// @brief Give each item of a context menu put together from its parts (those of a word, of
+///        a link, of an annotation, of a list item, the editing commands, the linked
+///        materials) an access key no other item has, in English and in any translation
+///
+/// The commands of the window keep their keys: they are shared with its menus. The items of
+/// the menu's own keep theirs where they can (MenuKeys::assign()). Each part has its own keys
+/// unique; only parts shown together can share one.
+void giveUniqueAccessKeys(QMenu& menu) {
+    QSet<QChar> fixed;
+    QList<MenuKeyItem> items;
+    for (QAction* action : menu.actions()) {
+        if (action->isSeparator()) {
+            continue;
+        }
+        const QString text = action->text();
+        const QChar key = accessKeyOf(text);
+        if (key.isNull()) {
+            continue;  // a line that only tells something, or a word the menu gives a key
+        }
+        const QMenu* submenu = action->menu();
+        const QObject* owner = submenu != nullptr ? submenu->parent() : action->parent();
+        if (owner != &menu) {
+            fixed.insert(key);
+            continue;
+        }
+        MenuKeyItem item;
+        item.action = action;
+        item.key = key;
+        const qsizetype tab = text.indexOf(QLatin1Char('\t'));
+        const QString label = tab < 0 ? text : text.left(tab);
+        item.keys = tab < 0 ? QString() : text.mid(tab);
+        for (qsizetype i = 0; i < label.size(); ++i) {
+            if (label.at(i) == QLatin1Char('&') && i + 1 < label.size()) {
+                ++i;  // "&x" is the mark of x, "&&" an ampersand
+            }
+            item.shown += label.at(i);
+        }
+        // The first letters of the words first, then the others
+        for (const bool wordStarts : {true, false}) {
+            for (qsizetype i = 0; i < item.shown.size(); ++i) {
+                const QChar ch = item.shown.at(i);
+                const bool wordStart = i == 0 || !item.shown.at(i - 1).isLetterOrNumber();
+                if (wordStart == wordStarts && ch.unicode() < 0x80 && ch.isLetterOrNumber() &&
+                    !item.keyed.contains(ch.toUpper())) {
+                    item.keyed.append(ch.toUpper());
+                }
+            }
+        }
+        items.append(item);
+    }
+
+    QList<QChar> before;
+    before.reserve(items.size());
+    for (const MenuKeyItem& item : std::as_const(items)) {
+        before.append(item.key);
+    }
+    MenuKeys(std::move(fixed), items).assign();
+
+    // The items with another key: on its letter, the first of a word first
+    for (qsizetype i = 0; i < items.size(); ++i) {
+        const MenuKeyItem& item = items.at(i);
+        if (item.key == before.at(i)) {
+            continue;
+        }
+        qsizetype place = -1;
+        for (const bool wordStarts : {true, false}) {
+            for (qsizetype at = 0; at < item.shown.size() && place < 0; ++at) {
+                const bool wordStart = at == 0 || !item.shown.at(at - 1).isLetterOrNumber();
+                if (wordStart == wordStarts && item.shown.at(at).toUpper() == item.key) {
+                    place = at;
+                }
+            }
+        }
+        item.action->setText(withAccessKeyAt(item.shown, place) + item.keys);
+    }
+}
 
 }  // namespace
 
@@ -282,17 +467,28 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         return;
     }
 
-    // A click on an annotation's mark opens the annotation, on the mark beside a paragraph
-    // chooses a material; the cursor stays
+    // A click on an annotation's card does what its part does; one on an annotation's mark
+    // collapses or expands its card, or opens the annotation without cards; one on the mark
+    // beside a paragraph chooses a material. The cursor stays.
     if (!(event->modifiers() & Qt::ShiftModifier)) {
+        if (pressAnnotationCard(event->position())) {
+            event->accept();
+            return;
+        }
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(event->position())) {
             openParagraphMark(*marked, event->globalPosition().toPoint());
             event->accept();
             return;
         }
-        const QString markId = annotationMarkAt(event->position());
-        if (!markId.isEmpty()) {
-            emit annotationMarkClicked(markId);
+        const std::optional<AnnotationMark> mark =
+            m_renderPipeline ? m_renderPipeline->annotationMarkDetailsAt(event->position())
+                             : std::nullopt;
+        if (mark) {
+            if (m_annotationCards.hasCard(mark->kind)) {
+                setAnnotationCollapsed(mark->id, !m_annotationCards.isCollapsed(mark->id));
+            } else {
+                emit annotationMarkClicked(mark->id);
+            }
             event->accept();
             return;
         }
@@ -396,10 +592,15 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
 
     const QPointF pos = event->position();
     if (!(event->buttons() & Qt::LeftButton)) {
-        // A hand over an annotation's mark, which opens it, and over the mark beside a
-        // paragraph; an arrow over the selected text, which can be dragged; an I-beam elsewhere
+        // A hand over an annotation's mark, which opens it, over the mark beside a paragraph
+        // and over the buttons of a card; an arrow over a card and over the selected text,
+        // which can be dragged; an I-beam elsewhere
         Qt::CursorShape shape = Qt::IBeamCursor;
-        if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos)) {
+        if (hoverAnnotationCard(pos)) {
+            shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
+                        ? Qt::ArrowCursor
+                        : Qt::PointingHandCursor;
+        } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos)) {
             shape = Qt::PointingHandCursor;
         } else if (isOverSelectedText(pos)) {
             shape = Qt::ArrowCursor;
@@ -463,6 +664,17 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
 
     if (event->button() != Qt::LeftButton) {
         QWidget::mouseDoubleClickEvent(event);
+        return;
+    }
+
+    // A double click on a card edits its annotation; on its buttons it does no more than
+    // the first click
+    if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->position())) {
+        if (card->part == AnnotationCardPart::Card && card->id == m_pressedCard) {
+            emit annotationEditRequested(card->id);
+        }
+        m_pressedCard.clear();
+        event->accept();
         return;
     }
 
@@ -719,6 +931,14 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         return;
     }
 
+    // On an annotation's card: the menu of its annotation
+    if (event->reason() == QContextMenuEvent::Mouse) {
+        if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->pos())) {
+            showAnnotationCardMenu(card->id, event->globalPos());
+            return;
+        }
+    }
+
     const CursorPosition pos = positionFromPoint(event->pos());
     if (pos.paragraph < 0) {
         QWidget::contextMenuEvent(event);
@@ -789,6 +1009,12 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addGrammarActions(menu, *grammarError, pos.paragraph);
     }
 
+    // The annotation whose fragment or place is there: what can be done with it
+    if (const QString annotation = annotationAt(pos); !annotation.isEmpty()) {
+        addAnnotationActions(menu, annotation, false);
+        menu.addSeparator();
+    }
+
     // The editing items: the Edit menu's commands with their icons and keys, where the
     // application gives them; else the editor's own, those that change the text greyed out in
     // a read-only text
@@ -845,6 +1071,10 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         ? tr("Switch to Dar&k Mode")
         : tr("Switch to &Light Mode");
     menu.addAction(colorModeText, this, &BookEditor::toggleEditorColorMode);
+
+    // The parts shown together (a word's, an annotation's, the linked materials) can have
+    // the same keys: the items below take others
+    giveUniqueAccessKeys(menu);
 
     // The keys going to the next issue (F7) close the menu and go on to it, without Esc
     // first: from the event loop, so the next issue's menu does not open inside this one

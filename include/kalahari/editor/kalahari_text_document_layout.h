@@ -220,14 +220,38 @@ public:
     static QTextLayout* blockLayout(const QTextBlock& block);
 
     // ==========================================================================
+    // Room under the blocks
+    // ==========================================================================
+
+    /// @brief Gives the room the view needs under a block's text (the cards of its
+    ///        annotations), in document units; 0: none
+    using SpaceBelowProvider = std::function<qreal(const QTextBlock& block)>;
+
+    /// @brief Set what gives the room under the blocks (none: no block has any); every
+    ///        block is asked again
+    ///
+    /// Without page flow only: the pages keep their lines as they are printed. The room is
+    /// part of the block's height (blockHeight(), blockBoundingRect()), under its spacing;
+    /// its lines stay where they are. Whole pixels.
+    void setSpaceBelowProvider(SpaceBelowProvider provider);
+
+    /// @brief Ask the blocks [first, last] for their room again: what it depends on changed
+    ///        while their text stayed (an edited text asks by itself)
+    /// @param last -1: to the end of the document
+    void updateSpaceBelow(int first, int last = -1);
+
+    /// @brief The room under a block's text (0 with page flow)
+    qreal spaceBelow(int blockNumber) const;
+
+    // ==========================================================================
     // Geometry
     // ==========================================================================
 
     /// @brief Top of a block in document coordinates (document height past the end)
     qreal blockY(int blockNumber) const;
 
-    /// @brief Height of a block, including its paragraph spacing (estimated while the
-    ///        block waits for layout)
+    /// @brief Height of a block, including its paragraph spacing and the room under it
+    ///        (estimated while the block waits for layout)
     qreal blockHeight(int blockNumber) const;
 
     /// @brief Number of the block covering @p y (clamped to the first/last block)
@@ -323,6 +347,9 @@ private:
 
     /// @brief Height a block of the given text extent probably gets at the current settings
     qreal estimatedHeight(qreal extent, const BlockMetrics& metrics) const;
+
+    /// @brief The room the provider gives a block (0 without a provider or with page flow)
+    qreal askSpaceBelow(const QTextBlock& block) const;
 
     /// @brief Height of a line's box: the line, or for the line of an empty paragraph
     ///        (@p empty) the line of its style's font, with its share of the line spacing
@@ -445,6 +472,11 @@ private:
     std::vector<qreal> m_blockExtents;
     std::vector<char> m_blockPending;
     int m_pendingCount = 0;
+
+    // The room under each block's text (setSpaceBelowProvider()), kept in step with the
+    // document; not part of m_blockHeights, so a new room places no line again
+    SpaceBelowProvider m_spaceBelowProvider;
+    std::vector<qreal> m_blockSpaceBelow;
 
     // Width and font the laid out blocks follow; a change makes every block wait
     qreal m_layoutWidth = -1;

@@ -214,6 +214,30 @@ struct DistractionFreeSettings {
     bool fadeOnMouseMove{true};                ///< Show UI on mouse move to edges
 };
 
+/// @brief The cards of the annotations under their paragraphs (View > Annotation Cards Under
+/// Paragraphs, Settings > Annotations)
+///
+/// The continuous views show them; the page view shows the marks alone, so the pages keep
+/// their lines as printed.
+struct AnnotationCardSettings {
+    bool show{false};               ///< Cards under the paragraphs; else the marks alone
+    bool comments{true};            ///< Cards of the comments...
+    bool todos{true};               ///< ...of the to-dos...
+    bool notes{true};               ///< ...and of the notes
+    bool compact{false};            ///< The text alone, its author and date at its end; else
+                                    ///< the kind, the author and the date over the text
+    bool collapsedLine{false};      ///< A collapsed one is a line with the start of its text;
+                                    ///< else its mark alone
+    bool startCollapsed{false};     ///< Collapsed when the chapter opens
+    int longLines{0};               ///< A longer text is cut to so many lines (0: whole)
+    int fontPercent{90};            ///< Size of the cards' text, in % of the text's
+    int tintPercent{100};           ///< How much of the kind's color they have, in % of the usual
+    bool highlightFragment{true};   ///< The fragment lights up while the mouse is on its card
+    bool inDistractionFree{true};   ///< Shown in Distraction-Free writing too
+
+    bool operator==(const AnnotationCardSettings& other) const = default;
+};
+
 /// @brief Text frame border settings
 ///
 /// A frame around the text area of the pages, to show where the margins are.
@@ -283,6 +307,7 @@ public:
     TextFrameBorder textFrameBorder;           ///< Text frame border settings
     PageMarginsConfig pageMargins;             ///< The page's margins, in every view
     double annotationMarkScale{1.0};           ///< Size of the annotations' marks (1 = 100%)
+    AnnotationCardSettings annotationCards;    ///< The annotations' cards under the paragraphs
     SceneBreakLook sceneBreakLook{SceneBreakLook::Asterisks};  ///< How the scene breaks look
     bool showFormattingMarks{false};           ///< View > Show Formatting Marks
 };

@@ -20,6 +20,7 @@
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/read_only_book.h"
+#include "kalahari/gui/settings_dialog.h"
 
 #include <QAction>
 #include <QApplication>
@@ -49,8 +50,10 @@ constexpr int REFRESH_DELAY_MS = 300;
 constexpr int MESSAGE_TIMEOUT_MS = 3000;
 
 /// @brief The commands of the annotations, whose state follows the document in front
-const char* const COMMANDS[] = {"insert.annotation", "insert.comment", "insert.todo",
-                                "insert.note",       "edit.nextTodo",  "edit.previousTodo"};
+const char* const COMMANDS[] = {"insert.annotation",           "insert.comment",
+                                "insert.todo",                 "insert.note",
+                                "edit.nextTodo",               "edit.previousTodo",
+                                "view.collapseAllAnnotations", "view.expandAllAnnotations"};
 
 /// @brief The annotations of an editor's document, in text order
 editor::AnnotationList annotationsOf(const editor::BookEditor& editor) {
@@ -192,6 +195,29 @@ void AnnotationsCoordinator::connectCommands() {
         whyNot);
     connectCommand("edit.nextTodo", [this]() { goToNextTodo(); }, hasDocument);
     connectCommand("edit.previousTodo", [this]() { goToPreviousTodo(); }, hasDocument);
+
+    // The cards under the paragraphs of the document in front, while it shows them
+    const auto showsCards = [this]() {
+        const editor::BookEditor* editor = currentEditor();
+        return editor != nullptr && editor->showsAnnotationCards();
+    };
+    const auto whyNoCards = [this]() {
+        return currentEditor() != nullptr
+                   ? tr("Only with the annotation cards under the paragraphs (View menu), in "
+                        "the continuous view")
+                   : QString();
+    };
+    const auto collapseAll = [this](bool collapsed) {
+        if (editor::BookEditor* editor = currentEditor()) {
+            editor->setAllAnnotationsCollapsed(collapsed);
+        }
+    };
+    connectCommand(
+        "view.collapseAllAnnotations", [collapseAll]() { collapseAll(true); }, showsCards,
+        whyNoCards);
+    connectCommand(
+        "view.expandAllAnnotations", [collapseAll]() { collapseAll(false); }, showsCards,
+        whyNoCards);
 
     // F9 goes to the panel and back; Annotations in the menu shows or hides the panel
     m_panelAction = registry.getAction(QStringLiteral("view.annotations"));
@@ -661,6 +687,16 @@ void AnnotationsCoordinator::onCurrentTabChanged() {
                 &AnnotationsCoordinator::onEditorContentChanged, Qt::UniqueConnection);
         connect(editor, &editor::BookEditor::annotationMarkClicked, this,
                 &AnnotationsCoordinator::onMarkClicked, Qt::UniqueConnection);
+        // Edit Annotation in the text's menu, and a double click on a card, as a click on a
+        // mark without the cards
+        connect(editor, &editor::BookEditor::annotationEditRequested, this,
+                &AnnotationsCoordinator::onMarkClicked, Qt::UniqueConnection);
+        connect(editor, &editor::BookEditor::annotationCardClicked, this,
+                &AnnotationsCoordinator::onCardClicked, Qt::UniqueConnection);
+        connect(editor, &editor::BookEditor::annotationCardSettingsRequested, this,
+                &AnnotationsCoordinator::onCardSettingsRequested, Qt::UniqueConnection);
+        connect(editor, &editor::BookEditor::annotationCardsShownChanged, this,
+                &AnnotationsCoordinator::updateCommandStates, Qt::UniqueConnection);
     }
     updateCommandStates();
     if (m_panel->isVisible()) {
@@ -734,6 +770,21 @@ void AnnotationsCoordinator::onEditorFocusRequested() {
 }
 
 // =============================================================================
+// The cards under the paragraphs
+// =============================================================================
+
+void AnnotationsCoordinator::onCardClicked(const QString& annotationId) {
+    // The editor went to the annotation: the panel shows its card too
+    if (sender() == currentEditor()) {
+        m_panel->selectAnnotation(annotationKey(elementIdOf(currentEditorPanel()), annotationId));
+    }
+}
+
+void AnnotationsCoordinator::onCardSettingsRequested() {
+    emit settingsPageRequested(QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE));
+}
+
+// =============================================================================
 // The frame
 // =============================================================================
 
@@ -768,13 +819,28 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
     connect(&themes, &core::ThemeManager::editorColorsChanged, frame, [this]() { colorFrame(); });
     colorFrame();
 
-    // At the end of its fragment, or on its place, as the text moves
+    // With the cards under the paragraphs, over the annotation's card: the card makes room
+    // for the frame (a new one's room comes among the cards of its paragraph)
+    if (writing.editor->showsAnnotationCard(writing.kind) && !writing.range.isNull()) {
+        writing.editor->setAnnotationCardWriting(writing.annotationId, writing.kind,
+                                                 writing.range.selectionStart(),
+                                                 writing.range.selectionEnd(),
+                                                 frame->sizeHint().height());
+    }
+    connect(frame, &AnnotationFrame::cardHeightNeeded, writing.editor,
+            &editor::BookEditor::setAnnotationCardWritingHeight);
+
+    // At the end of its fragment, or on its place, as the text moves; or over its card
     frame->setPlacement([this]() {
         AnnotationFrame::Placement placement;
         if (m_writing && !m_writing->range.isNull()) {
             const QTextCursor& range = m_writing->range;
-            placement.place = m_writing->editor->placeRect(range.selectionEnd(), range.hasSelection());
-            placement.column = m_writing->editor->textColumnRect();
+            editor::BookEditor* editor = m_writing->editor;
+            placement.place = editor->placeRect(range.selectionEnd(), range.hasSelection());
+            placement.column = editor->textColumnRect();
+            if (editor->showsAnnotationCard(m_writing->kind)) {
+                placement.card = editor->annotationCardRect(m_writing->annotationId);
+            }
         }
         return placement;
     });
@@ -812,6 +878,11 @@ void AnnotationsCoordinator::saveWriting() {
             // The writer goes on after the fragment: typing does not replace it
             if (selectionStays) {
                 placeCursor(*editor, range.selectionEnd());
+            }
+
+            // Its card shows what was written
+            if (!annotationId.isEmpty()) {
+                editor->setAnnotationCollapsed(annotationId, false);
             }
         }
     } else if (const std::optional<editor::AnnotationPlace> place = placeOf(*editor, annotationId)) {
@@ -855,6 +926,10 @@ void AnnotationsCoordinator::closeFrame() {
         return;
     }
     frame->disconnect(this);  // its going tells nothing any more
+    if (writing && writing->editor != nullptr) {
+        frame->disconnect(writing->editor);
+        writing->editor->clearAnnotationCardWriting();  // its card shows the annotation again
+    }
 
     // The keys go back where the writing came from, before the frame goes
     const QWidget* focus = QApplication::focusWidget();
