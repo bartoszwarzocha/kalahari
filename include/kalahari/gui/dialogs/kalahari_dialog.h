@@ -97,6 +97,10 @@ protected:
     ///        whole window on the screen (e.g. after details were shown)
     void fitToScreen(const QSize& wanted);
 
+    /// @brief Once the layout has taken in content shown just now (a message, a note), grow
+    ///        to the size it needs, within the screen. The window does not get smaller.
+    void growForContent();
+
     /// @brief fitToScreen() with the hints the layout has: for a dialog whose layout has just
     ///        taken in the content (on its LayoutRequest). It asks the layout for nothing, so
     ///        a window that cannot grow does not ask for its layout again and again.

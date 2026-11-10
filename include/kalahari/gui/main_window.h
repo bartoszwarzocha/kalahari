@@ -57,6 +57,7 @@ class AnnotationsCoordinator;
 class ParagraphMarksCoordinator;
 class MaterialListCoordinator;
 class EditCoordinator;
+class SpecialCharacterCoordinator;
 class VersionsCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
@@ -395,6 +396,8 @@ private:
     /// @brief The statistics bar and the goals of writing
     WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
+    /// Insert > Special Character... and Insert > Quick Character
+    SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
     GrammarCoordinator* m_grammarCoordinator{nullptr};
 
     /// @brief The Spelling and Grammar panel and when it shows
