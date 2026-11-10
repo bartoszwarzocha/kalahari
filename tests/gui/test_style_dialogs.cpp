@@ -387,9 +387,15 @@ TEST_CASE("Style window: Font... and Paragraph... for the style", "[gui][styles]
 }
 
 TEST_CASE("Style window: fits a small screen in both variants", "[gui][styles][dialogs]") {
-    // 1366 x 768 at 150%: 910 x 512 points, a taskbar and the title of the window under it
+    // 1366 x 768 at 150%: 910 x 512 points, a taskbar and the title of the window under it.
+    // A Mac has no screen as low, and the larger controls of macOS need a few pixels more,
+    // as in test_format_dialogs.cpp
     constexpr int MAX_WIDTH = 760;
+#ifdef Q_OS_MACOS
+    constexpr int MAX_HEIGHT = 500;
+#else
     constexpr int MAX_HEIGHT = 480;
+#endif
     KeptVariant kept;
     for (const char* way : {"tabs", "short"}) {
         INFO(way);
@@ -662,7 +668,9 @@ TEST_CASE("Paragraph and Styles: a style the book does not have is made for its 
                   CHECK_FALSE(style->applyBox()->isVisible());
                   style->acceptButton()->click();
               }) == 1);
-    const editor::ParagraphStyle* made = styles.styles().find(QStringLiteral("inner_voice"));
+    // styles() gives a copy: kept while its style is read
+    const editor::ParagraphStyleSet now = styles.styles();
+    const editor::ParagraphStyle* made = now.find(QStringLiteral("inner_voice"));
     REQUIRE(made != nullptr);
     CHECK(made->name == QStringLiteral("Inner voice"));
     CHECK(made->origin == editor::StyleOrigin::Own);

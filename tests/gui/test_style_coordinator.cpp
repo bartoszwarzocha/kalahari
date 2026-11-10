@@ -89,7 +89,9 @@ TEST_CASE("Style coordinator: a new style of the book, kept and undone", "[gui][
     const QString id = addMemory(styles.coordinator);
     CHECK(id == QStringLiteral("memory"));
     CHECK(changed == 1);
-    const editor::ParagraphStyle* memory = styles.coordinator.styles().find(id);
+    // styles() gives a copy: kept while its style is read
+    const editor::ParagraphStyleSet now = styles.coordinator.styles();
+    const editor::ParagraphStyle* memory = now.find(id);
     REQUIRE(memory != nullptr);
     CHECK(memory->name == QStringLiteral("Memory"));
     CHECK(memory->origin == editor::StyleOrigin::Own);
