@@ -147,17 +147,41 @@ QString withFreeAccessKey(const QString& name, QSet<QChar>& used) {
 
 QStringList withFreeAccessKeys(const QStringList& names, QSet<QChar>& used) {
     const KeyChoice choice(names, used);
+    for (qsizetype index = 0; index < names.size(); ++index) {
+        const qsizetype place = choice.chosen().at(index);
+        if (place >= 0) {
+            used.insert(names.at(index).at(place).toUpper());
+        }
+    }
+    // A free key that is not in a name: the letters, then the digits
+    const auto freeKey = [&used]() {
+        for (const char key : "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890") {
+            if (key != '\0' && !used.contains(QLatin1Char(key))) {
+                return QChar(QLatin1Char(key));
+            }
+        }
+        return QChar();
+    };
     QStringList texts;
     texts.reserve(names.size());
     for (qsizetype index = 0; index < names.size(); ++index) {
         const QString& name = names.at(index);
         const qsizetype place = choice.chosen().at(index);
-        if (place < 0) {
+        if (place >= 0) {
+            texts.append(literalMenuText(name.left(place)) + MARK +
+                         literalMenuText(name.mid(place)));
+            continue;
+        }
+        // Each of its letters taken: a free key after it, as Windows shows one in names
+        // without it ("Tom & Jerry (&Q)"), or none when the menu has every key
+        const QChar key = freeKey();
+        if (key.isNull()) {
             texts.append(literalMenuText(name));
             continue;
         }
-        used.insert(name.at(place).toUpper());
-        texts.append(literalMenuText(name.left(place)) + MARK + literalMenuText(name.mid(place)));
+        used.insert(key);
+        texts.append(literalMenuText(name) + QStringLiteral(" (") + MARK + key +
+                     QLatin1Char(')'));
     }
     return texts;
 }

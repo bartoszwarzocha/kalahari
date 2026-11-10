@@ -64,6 +64,7 @@ class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
 class DocumentWindows;
+class WritingStatsCoordinator;
 class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
@@ -408,6 +409,8 @@ private:
     ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
     /// @brief The lists of the kinds of materials on their tabs
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
+    /// @brief The statistics bar and the goals of writing
+    WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     /// Insert > Special Character... and Insert > Quick Character
     SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};

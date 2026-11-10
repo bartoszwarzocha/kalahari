@@ -27,7 +27,9 @@ ColorConfigWidget::ColorConfigWidget(const QString& label, QWidget* parent)
     // Label (40% width via stretch factor 2)
     m_label = new QLabel(label, this);
     m_label->setMinimumWidth(100);
-    m_label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    // A long name goes on to the next line instead of being cut off on a narrow page
+    m_label->setWordWrap(true);
+    m_label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     layout->addWidget(m_label, 2);  // stretch factor 2 = 40%
 
     // Controls container (60% width via stretch factor 3)
