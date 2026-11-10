@@ -102,7 +102,7 @@ std::optional<TextLink> linkAtPosition(const QTextDocument& document, int positi
 
 QString normalizedLinkAddress(const QString& written)
 {
-    const QString address = written.trimmed();
+    QString address = written.trimmed();  // Not const: returned as it is, it is moved
     if (address.isEmpty() || hasScheme(address) || address.startsWith(QLatin1Char('#')) ||
         address.startsWith(QLatin1Char('/'))) {
         return address;
