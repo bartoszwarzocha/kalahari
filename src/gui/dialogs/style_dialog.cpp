@@ -101,7 +101,7 @@ constexpr qreal MIN_LETTER_PIXELS = 6.0;
 constexpr qreal MAX_LETTER_PIXELS = 40.0;
 constexpr qreal MIN_LINE_WIDTH = 24.0;
 constexpr qreal MIN_LINE_HEIGHT = 0.5;
-constexpr qreal GREY_ALPHA = 0.45;
+constexpr float GREY_ALPHA = 0.45F;
 constexpr int POINTS_PER_INCH = 72;
 
 /// The alignments, in the order of their buttons and of their list

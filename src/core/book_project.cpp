@@ -979,9 +979,10 @@ const ProjectElement* BookProject::findElement(const QString& elementId) const {
     return list ? &list->at(index) : nullptr;
 }
 
-const BookParagraphStyle* BookProject::findParagraphStyle(const QString& id) const {
-    const auto it = std::find_if(paragraphStyles.cbegin(), paragraphStyles.cend(),
-                                 [&id](const BookParagraphStyle& style) { return style.id == id; });
+const BookParagraphStyle* BookProject::findParagraphStyle(const QString& styleId) const {
+    const auto it =
+        std::find_if(paragraphStyles.cbegin(), paragraphStyles.cend(),
+                     [&styleId](const BookParagraphStyle& style) { return style.id == styleId; });
     return it == paragraphStyles.cend() ? nullptr : &*it;
 }
 

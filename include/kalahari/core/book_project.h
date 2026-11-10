@@ -320,8 +320,8 @@ struct BookProject {
 
     bool operator==(const BookProject&) const = default;
 
-    /// @brief The project's entry for paragraph style @p id, or nullptr
-    const BookParagraphStyle* findParagraphStyle(const QString& id) const;
+    /// @brief The project's entry for paragraph style @p styleId, or nullptr
+    const BookParagraphStyle* findParagraphStyle(const QString& styleId) const;
 
     /// @brief Whether the project has no type: the author chose its kinds from the palette
     bool isUserProject() const { return !type.has_value(); }
