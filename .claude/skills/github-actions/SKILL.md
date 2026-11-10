@@ -12,7 +12,7 @@ description: Kalahari CI/CD on GitHub Actions (Windows/Linux/macOS workflows, vc
 ├── ci-windows.yml    # windows-latest: MSVC + vcpkg (submodule) + Ninja, Debug+Release, 120 min, vcpkg binary cache
 ├── ci-linux.yml      # ubuntu-24.04: GCC + system packages from apt (NO vcpkg)
 │                     #   job "build": Release, 30 min
-│                     #   job "analysis": sanitizers, coverage and clang-tidy, 60 min
+│                     #   job "analysis": sanitizers, coverage and clang-tidy, 90 min
 └── ci-macos.yml      # macos-15 + Xcode 16 (pinned): Clang + vcpkg (submodule) + Ninja, Debug+Release, 90 min
 ```
 
