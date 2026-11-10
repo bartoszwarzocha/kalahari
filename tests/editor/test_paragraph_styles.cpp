@@ -317,6 +317,51 @@ TEST_CASE("Paragraph styles: an editor shows a style of the book changed at once
     CHECK(changes == 1);
 }
 
+TEST_CASE("Paragraph styles: the paragraphs of a style go to another, open or saved",
+          "[editor][styles]") {
+    // Written by the serializer, as a saved chapter has it
+    const QString source = editorWith(kml(QStringLiteral(
+        "<p>A</p><p style=\"sen\">B &amp; b</p><p style=\"sen\" align=\"center\">C</p>"
+        "<h1>D</h1><p style=\"quote\">E</p><ul><li style=\"sen\">F</li><li>G</li></ul>"
+        "<p style=\"sen\"><b>H</b></p><hr/>")))->toKml();
+
+    const QHash<QString, int> counts = paragraphStyleCounts(source);
+    CHECK(counts.value(QStringLiteral("sen")) == 4);
+    CHECK(counts.value(QStringLiteral("normal")) == 2);  // A and G; the line is no paragraph
+    CHECK(counts.value(QStringLiteral("heading_1")) == 1);
+    CHECK(counts.value(QStringLiteral("quote")) == 1);
+
+    // A saved text changes as an open one does, character for character
+    const auto check = [&source](const QString& from, const QString& to, int expected) {
+        INFO(from.toStdString() << " > " << to.toStdString());
+        auto editor = editorWith(source);
+        CHECK(editor->replaceParagraphStyle(from, to) == expected);
+        int count = -1;
+        const QString saved = replaceParagraphStyleInKml(source, from, to, &count);
+        CHECK(count == expected);
+        CHECK(saved == editor->toKml());
+        CHECK(paragraphStyleCounts(saved).value(from) == 0);
+    };
+    check(QStringLiteral("sen"), QStringLiteral("quote"), 4);
+    check(QStringLiteral("sen"), QStringLiteral("normal"), 4);
+    check(QStringLiteral("sen"), QString(), 4);  // no style: Normal
+    check(QStringLiteral("sen"), QStringLiteral("heading_2"), 4);
+    check(QStringLiteral("heading_1"), QStringLiteral("quote"), 1);
+    check(QStringLiteral("heading_1"), QStringLiteral("heading_3"), 1);
+
+    // Nothing to change: the text as it was, and no undo step
+    CHECK(replaceParagraphStyleInKml(source, QStringLiteral("poem"), QStringLiteral("quote")) == source);
+    CHECK(replaceParagraphStyleInKml(source, QStringLiteral("sen"), QStringLiteral("sen")) == source);
+    auto editor = editorWith(source);
+    CHECK(editor->replaceParagraphStyle(QStringLiteral("poem"), QStringLiteral("quote")) == 0);
+    CHECK_FALSE(editor->canUndo());
+
+    // In an editor one undo step brings the paragraphs back
+    REQUIRE(editor->replaceParagraphStyle(QStringLiteral("sen"), QStringLiteral("quote")) == 4);
+    editor->undo();
+    CHECK(editor->toKml() == source);
+}
+
 // =============================================================================
 // Objects
 // =============================================================================

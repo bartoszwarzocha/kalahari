@@ -747,6 +747,12 @@ public:
     // breaks)
     // =========================================================================
 
+    /// @brief Give every paragraph of style @p from the style @p to, as one undo step that
+    ///        brings back the cursor (a style of the book deleted: its paragraphs go to its
+    ///        base style)
+    /// @return The number of paragraphs that changed; 0 changes nothing and makes no step
+    int replaceParagraphStyle(const QString& from, const QString& to);
+
     /// @brief Set the styles of the book (of its type package and its own): every paragraph is
     ///        shown in its style, and Enter at the end of one starts the style that follows it;
     ///        paragraphStylesChanged() tells of a change

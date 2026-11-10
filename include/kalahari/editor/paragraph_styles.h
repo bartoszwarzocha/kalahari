@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QTextFormat>
@@ -191,6 +192,19 @@ void removeBlock(QTextCursor& cursor, const QTextBlock& block);
 // =============================================================================
 // The styles of a book
 // =============================================================================
+
+/// @brief How many paragraphs of a KML text are in each style (Normal: NORMAL_STYLE_ID)
+QHash<QString, int> paragraphStyleCounts(const QString& kml);
+
+/// @brief A KML text with every paragraph of style @p from in style @p to: a heading level
+///        is an element of its own (<h1>), any other style an attribute (<p style="...">), as
+///        KmlSerializer writes them
+///
+/// For a text that is not open in an editor (BookEditor::replaceParagraphStyle() changes an
+/// open one); the rest of the text stays as it is, character for character.
+/// @param count Gets the number of paragraphs that changed; may be nullptr
+QString replaceParagraphStyleInKml(const QString& kml, const QString& from, const QString& to,
+                                   int* count = nullptr);
 
 /// @brief Where a paragraph style of a book comes from
 enum class StyleOrigin {

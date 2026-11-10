@@ -490,6 +490,49 @@ void BookEditor::applyParagraphStyle(const QString& styleId)
     update();
 }
 
+int BookEditor::replaceParagraphStyle(const QString& from, const QString& to)
+{
+    if (refusesChange() || !m_textBuffer) {
+        return 0;
+    }
+    const QString normal = QString::fromLatin1(NORMAL_STYLE_ID);
+    const QString source = from.isEmpty() ? normal : from;
+    const QString target = to.isEmpty() ? normal : to;
+    std::vector<QTextBlock> changed;
+    if (source != target) {
+        for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+            if (blockObject(block) == TextObject::None &&
+                paragraphStyleOf(block.blockFormat()) == source) {
+                changed.push_back(block);
+            }
+        }
+    }
+    if (changed.empty()) {
+        return 0;
+    }
+
+    // One undo step, as applyParagraphStyle() makes
+    QTextCursor cursor(m_textBuffer.get());
+    cursor.beginEditBlock();
+    m_textBuffer->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+    for (const QTextBlock& block : changed) {
+        QTextBlockFormat format = block.blockFormat();
+        setParagraphStyle(format, target);
+        cursor.setPosition(block.position());
+        cursor.setBlockFormat(format);
+    }
+    cursor.endEditBlock();
+    checkParagraphsAgain(changed);
+
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+    emit contentChanged();
+    update();
+    return static_cast<int>(changed.size());
+}
+
 void BookEditor::insertTextObject(TextObject object)
 {
     if (refusesChange()) {

@@ -6,7 +6,10 @@
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/kml_format_registry.h>
 #include <QHash>
+#include <QRegularExpression>
 #include <QSet>
 #include <QTextBlock>
 #include <QTextBlockFormat>
@@ -466,6 +469,95 @@ ParagraphStyleSet ParagraphStyleSet::fromPackage(
         set.m_styles.prepend(ParagraphStyleSet().normal());
     }
     return set;
+}
+
+QHash<QString, int> paragraphStyleCounts(const QString& kml) {
+    QHash<QString, int> counts;
+    KmlDocumentModel content;
+    content.loadKml(kml);  // an unreadable rest: the paragraphs read before it
+    for (size_t i = 0; i < content.paragraphCount(); ++i) {
+        if (content.paragraphObject(i) != TextObject::None) {
+            continue;
+        }
+        const QString style = content.paragraphStyle(i);
+        ++counts[style.isEmpty() ? QString::fromLatin1(NORMAL_STYLE_ID) : style];
+    }
+    return counts;
+}
+
+QString replaceParagraphStyleInKml(const QString& kml, const QString& from, const QString& to,
+                                   int* count) {
+    const QString normal = QString::fromLatin1(NORMAL_STYLE_ID);
+    const QString target = to.isEmpty() ? normal : to;
+    int changed = 0;
+    if (count != nullptr) {
+        *count = 0;
+    }
+    if (from.isEmpty() || from == normal || from == target) {
+        return kml;
+    }
+
+    // The paragraphs of the style: <hN> of its level, or <p> and <li> with its attribute (a
+    // list item has the attribute whatever its style)
+    const int fromLevel = headingLevelOf(from);
+    const QString fromAttribute = QRegularExpression::escape(
+        QStringLiteral(" style=\"") + KmlFormatRegistry::escapeXml(from) + QLatin1Char('"'));
+    const QRegularExpression opening(
+        fromLevel > 0 ? QStringLiteral("<(h%1)((?:\\s[^>]*)?)>|<(li)([^>]*?)%2([^>]*)>")
+                            .arg(fromLevel)
+                            .arg(fromAttribute)
+                      : QStringLiteral("<(p|li)([^>]*?)%1([^>]*)>").arg(fromAttribute));
+    const int toLevel = headingLevelOf(target);
+    const QString toAttribute =
+        target == normal ? QString()
+                         : QStringLiteral(" style=\"") + KmlFormatRegistry::escapeXml(target) +
+                               QLatin1Char('"');
+
+    QString result;
+    qsizetype done = 0;
+    QRegularExpressionMatchIterator matches = opening.globalMatch(kml);
+    while (matches.hasNext()) {
+        const QRegularExpressionMatch match = matches.next();
+        if (match.capturedStart() < done) {
+            continue;  // inside a paragraph already changed
+        }
+        result += kml.mid(done, match.capturedStart() - done);
+        done = match.capturedEnd();
+        // The element, and its attributes without the style's
+        QString element;
+        QString attributes;
+        if (fromLevel > 0 && !match.captured(1).isEmpty()) {
+            element = match.captured(1);
+            attributes = match.captured(2);
+        } else {
+            const int first = fromLevel > 0 ? 3 : 1;
+            element = match.captured(first);
+            attributes = match.captured(first + 1) + match.captured(first + 2);
+        }
+        ++changed;
+        if (element == QLatin1String("li")) {
+            // A list item keeps its element; its style is an attribute, Normal none
+            result += QStringLiteral("<li") + toAttribute + attributes + QLatin1Char('>');
+            continue;
+        }
+        // A paragraph or a heading becomes the element of the new style, closed as it
+        const QString newElement = toLevel > 0 ? QStringLiteral("h%1").arg(toLevel)
+                                               : QStringLiteral("p");
+        result += QLatin1Char('<') + newElement + (toLevel > 0 ? QString() : toAttribute) +
+                  attributes + QLatin1Char('>');
+        const QString closing = QStringLiteral("</") + element + QLatin1Char('>');
+        const qsizetype end = kml.indexOf(closing, done);
+        if (end < 0) {
+            continue;  // not closed: the rest stays as it is
+        }
+        result += kml.mid(done, end - done) + QStringLiteral("</") + newElement + QLatin1Char('>');
+        done = end + closing.size();
+    }
+    result += kml.mid(done);
+    if (count != nullptr) {
+        *count = changed;
+    }
+    return result;
 }
 
 ParagraphStyleSet ParagraphStyleSet::forBook(const QList<core::PackageParagraphStyle>& styles,
