@@ -64,6 +64,8 @@ class StyleCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class DocumentWindows;
+class WritingStatsCoordinator;
 class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
@@ -408,6 +410,8 @@ private:
     ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
     /// @brief The lists of the kinds of materials on their tabs
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
+    /// @brief The statistics bar and the goals of writing
+    WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     /// Insert > Special Character... and Insert > Quick Character
     SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
@@ -434,6 +438,9 @@ private:
 
     // Distraction-Free writing: full screen with the bars, panels and tabs hidden
     utils::DistractionFreeLayout* m_distractionFreeLayout{nullptr};
+
+    /// @brief The texts of the tabs, also in the windows of their own the tabs are moved to
+    DocumentWindows* m_documentWindows{nullptr};
 
     /// @brief Whether Distraction-Free writing is on
     [[nodiscard]] bool isDistractionFree() const;

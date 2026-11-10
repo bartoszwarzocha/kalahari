@@ -46,6 +46,7 @@ class SettingsDialog : public dialogs::KalahariDialog {
 
 public:
     /// @brief The pages the dialog can be opened at (openPage())
+    static constexpr const char* GENERAL_PAGE = "general";           ///< General
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
     /// Editor > Pages and Margins, scrolled to its group Margin Numbering, the cursor in it
@@ -54,6 +55,10 @@ public:
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
+    static constexpr const char* STATS_BAR_PAGE = "stats.bar";       ///< Statistics > Bar and Panel
+    static constexpr const char* STATS_COUNTING_PAGE = "stats.counting";  ///< Statistics > Counting
+    static constexpr const char* STATS_NOTIFICATIONS_PAGE = "stats.notifications";  ///< > Notifications
+    static constexpr const char* STATS_COLORS_PAGE = "stats.colors";  ///< Statistics > Colors
 
     /// @brief Constructor
     /// @param parent Parent widget (usually MainWindow)

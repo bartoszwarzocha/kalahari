@@ -183,7 +183,11 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.plugins.updates", "resources/icons/twotone/system_update.svg", "Plugin Updates");
     iconRegistry.registerIcon("tools.plugins.reload", "resources/icons/twotone/refresh.svg", "Reload Plugins");
     iconRegistry.registerIcon("tools.challenges", "resources/icons/twotone/emoji_events.svg", "Writing Challenges");
+    iconRegistry.registerIcon("tools.addChallenge", "resources/icons/twotone/add_challenge.svg", "Add Challenge");
     iconRegistry.registerIcon("tools.writingGoals", "resources/icons/twotone/track_changes.svg", "Writing Goals");
+    iconRegistry.registerIcon("tools.statsSettings", "resources/icons/twotone/tune.svg", "Statistics Settings");
+    // The button on the graph of the statistics bar that puts now in the middle
+    iconRegistry.registerIcon("stats.nowInMiddle", "resources/icons/twotone/align_horizontal_center.svg", "Now in the Middle");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
@@ -214,6 +218,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.annotations", "resources/icons/twotone/comment.svg", "Annotations");
     iconRegistry.registerIcon("view.spelling", "resources/icons/twotone/spellcheck.svg",
                               "Spelling and Grammar");
+    iconRegistry.registerIcon("view.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("view.perspectives.writer", "resources/icons/twotone/edit.svg", "Writer Perspective");
     iconRegistry.registerIcon("view.perspectives.editor", "resources/icons/twotone/rate_review.svg", "Editor Perspective");
     iconRegistry.registerIcon("view.perspectives.researcher", "resources/icons/twotone/science.svg", "Researcher Perspective");
@@ -253,6 +258,15 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.expandAllAnnotations", "resources/icons/twotone/unfold_more.svg", "Expand All Annotations");
     iconRegistry.registerIcon("view.resetLayout", "resources/icons/twotone/dashboard.svg", "Reset Layout");
     iconRegistry.registerIcon("view.fullScreen", "resources/icons/twotone/fullscreen.svg", "Full Screen");
+
+    // -------------------------------------------------------------------------
+    // WINDOW MENU ICONS (DocumentWindows)
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("window.moveTabToNewWindow", "resources/icons/twotone/move_to_end.svg", "Move Tab to New Window");
+    iconRegistry.registerIcon("window.returnTab", "resources/icons/twotone/move_to_start.svg", "Return Tab to Book Window");
+    iconRegistry.registerIcon("window.next", "resources/icons/twotone/navigate_next.svg", "Next Window");
+    iconRegistry.registerIcon("window.previous", "resources/icons/twotone/navigate_before.svg", "Previous Window");
+    iconRegistry.registerIcon("window.settings", "resources/icons/twotone/settings.svg", "Window Settings");
 
     // -------------------------------------------------------------------------
     // SUBMENU ICONS (MenuBuilder::submenuIconId)

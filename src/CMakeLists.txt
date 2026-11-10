@@ -34,6 +34,11 @@ set(KALAHARI_CORE_SOURCES
     core/chapter_versions.cpp   # Versions of the texts of the chapter files
     core/text_diff.cpp          # Differences between two texts, word by word
     core/text_statistics.cpp    # Word/character counting shared by the whole application
+    core/writing_activity.cpp   # The record of writing in 5-minute slots, and its recorder
+    core/writing_statistics.cpp # The statistics of writing: writing days, days in a row, hours
+    core/writing_goals.cpp      # The goals of a book, its deadlines and their reckoning
+    core/writing_awards.cpp     # The badges of writing and the writer's challenges
+    core/writing_journal.cpp    # The record of writing in a database; the writer's journal
     core/text_file.cpp          # Plain text files in their own encoding and line ends
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
     core/file_trash.cpp         # Files to the Trash of the system
@@ -184,6 +189,9 @@ set(KALAHARI_SOURCES
     gui/version_texts.cpp  # What the program says of a version of a text
     gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
     gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
+    gui/dialogs/deadline_dialog.cpp  # DeadlineDialog - a deadline of the book
+    gui/dialogs/challenge_dialog.cpp  # ChallengeDialog - Add Challenge
+    gui/dialogs/session_summary_dialog.cpp  # SessionSummaryDialog - the summary of the session
     gui/dialogs/version_history_dialog.cpp  # VersionHistoryDialog - the versions of a text
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
@@ -195,8 +203,12 @@ set(KALAHARI_SOURCES
     gui/settings_coordinator.cpp  # SettingsCoordinator - Settings management extracted from MainWindow (OpenSpec #00038 Phase 5)
     gui/navigator_coordinator.cpp  # NavigatorCoordinator - Navigator handlers extracted from MainWindow (OpenSpec #00038 Phase 6)
     gui/document_coordinator.cpp  # DocumentCoordinator - Document operations extracted from MainWindow (OpenSpec #00038 Phase 7)
+    gui/document_windows.cpp  # The texts of the book window in its tabs and in windows of their own
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/paragraph_marks_coordinator.cpp  # ParagraphMarksCoordinator - paperclips of linked paragraphs
+    gui/writing_stats_coordinator.cpp  # WritingStatsCoordinator - the statistics bar and goals
+    gui/writing_awards_tracker.cpp  # WritingAwardsTracker - the badges and challenges won
+    gui/writing_stats_model.cpp  # WritingStatsModel - the statistics of writing shown
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
     gui/paragraph_style_menu.cpp  # ParagraphStyleMenu - Format > Text Style shows the text's styles
@@ -232,6 +244,7 @@ set(KALAHARI_SOURCES
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
+    gui/settings/stats_pages.cpp  # Settings > Statistics and Goals
     gui/shortcut_rules.cpp  # Which keys a command can have
     gui/shortcut_settings.cpp  # The user's keys in the settings and in the files
     gui/special_characters.cpp  # The characters of Insert > Special Character, by group, with names
@@ -262,6 +275,10 @@ set(KALAHARI_SOURCES
     gui/widgets/folder_field.cpp  # FolderField - the path of a folder, Browse... and Restore Default
     gui/toolbar_manager.cpp
     gui/widgets/status_bar_statistics.cpp  # Counts of the document in front in the status bar
+    gui/widgets/stats_painter.cpp  # Colors and drawing of the statistics graphs
+    gui/widgets/badge_painter.cpp  # The look of the badges and their texts
+    gui/widgets/status_bar_writing.cpp  # The time of writing and the days in a row in the status bar
+    gui/widgets/writing_stats_bar.cpp  # The statistics bar above the tabs of the texts
     gui/panels/annotation_card.cpp
     gui/panels/annotation_colors.cpp
     gui/panels/annotation_entry.cpp
@@ -281,6 +298,9 @@ set(KALAHARI_SOURCES
     gui/panels/search_panel.cpp
     gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
     gui/panels/spelling_panel.cpp  # Spelling and Grammar panel: the counts, the state, the keys
+    gui/panels/writing_stats_panel.cpp  # Statistics panel: the views of the writing
+    gui/panels/writing_goals_tab.cpp  # The tab Writing Goals and Deadlines
+    gui/panels/writing_awards_tab.cpp  # The tab Challenges and Badges
     gui/panels/tags_panel.cpp       # TagsPanel - Tags panel (OpenSpec #00042 Task 7.10)
     gui/utils/access_keys.cpp  # The access keys of menu texts
     gui/utils/language_names.cpp  # Names of languages in the language of the user interface
@@ -345,6 +365,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/recent_books_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_windows.h  # DocumentWindows and DetachedWindow with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panel_tabs.h  # PanelTabs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/panel_tab_bar.h  # PanelTabBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/central_tabs.h  # CentralTabs with Q_OBJECT
@@ -373,6 +394,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/session_summary_dialog.h  # SessionSummaryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
@@ -386,6 +410,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator with Q_OBJECT (OpenSpec #00038 Phase 7)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_coordinator.h  # WritingStatsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_awards_tracker.h  # WritingAwardsTracker with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h  # WritingStatsModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
@@ -401,6 +428,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/grammar_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/stats_pages.h  # Statistics pages with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
@@ -417,6 +445,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h  # StatusBarStatistics with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_writing.h  # StatusBarWriting with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/writing_stats_bar.h  # WritingStatsBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h
@@ -435,6 +465,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_stats_panel.h  # WritingStatsPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_goals_tab.h  # WritingGoalsTab with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_awards_tab.h  # WritingAwardsTab with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/tags_panel.h     # TagsPanel with Q_OBJECT (OpenSpec #00042 Task 7.10)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/command_registry.h  # CommandRegistry with Q_OBJECT (OpenSpec #00040)
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h  # BookEditor with Q_OBJECT (OpenSpec #00042 Phase 3.1)

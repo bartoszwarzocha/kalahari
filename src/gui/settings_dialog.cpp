@@ -6,6 +6,7 @@
 #include "kalahari/gui/settings/grammar_page.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings/shortcuts_page.h"
+#include "kalahari/gui/settings/stats_pages.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -97,7 +98,7 @@ void SettingsDialog::createNavigationTree() {
         item->setExpanded(true);
         return item;
     };
-    addPage(nullptr, tr("General"), [this]() {
+    m_pageItems[GENERAL_PAGE] = addPage(nullptr, tr("General"), [this]() {
         auto* generalPage = new GeneralPage();
         connect(generalPage, &GeneralPage::lengthUnitChanged, this,
                 [this](const QString& unit) { setLengthUnit(lengthUnitFromName(unit)); });
@@ -134,6 +135,21 @@ void SettingsDialog::createNavigationTree() {
     m_pageItems[ANNOTATIONS_PAGE] =
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
+    //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
+    //: and the colors. In Polish: Statystyki i cele
+    QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));
+    //: In Polish: Pasek i panel
+    m_pageItems[STATS_BAR_PAGE] =
+        addPage(statistics, tr("Bar and Panel"), []() { return new StatsBarPage(); });
+    //: In Polish: Liczenie
+    m_pageItems[STATS_COUNTING_PAGE] =
+        addPage(statistics, tr("Counting"), []() { return new StatsCountingPage(); });
+    //: In Polish: Powiadomienia
+    m_pageItems[STATS_NOTIFICATIONS_PAGE] =
+        addPage(statistics, tr("Notifications"), []() { return new StatsNotificationsPage(); });
+    //: In Polish: Kolory
+    m_pageItems[STATS_COLORS_PAGE] =
+        addPage(statistics, tr("Colors"), []() { return new StatsColorsPage(); });
     m_pageItems[SHORTCUTS_PAGE] =
         addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 

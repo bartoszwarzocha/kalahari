@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Windows of their own for the tabs of the texts** - 2026-10-27. A text's tab goes to a
+  window of its own when it is dragged off the bar of the tabs (the window opens where it is
+  dropped), from the menu of its tab (Move to New Window) or with Window > Move Tab to New
+  Window; more tabs can go to the same window. It comes back when it is dropped on the tabs
+  of the book window, with Return to Book Window, or when its window closes. The window shows
+  the text and the book in its title, the menus and the toolbars of the book window (or,
+  with Settings > General > Windows, only the Format toolbar) and the page, the zoom and the
+  counts of its text; the gear at the end of its tabs opens those settings. The panels stay
+  in the book window and follow the text the keys went to last, in any window; Save All,
+  the Navigator, spelling, grammar, annotations and versions find a text in any window, and
+  closing the book closes its texts everywhere. The new Window menu (before Help) moves the
+  tab in front, goes to the next and the previous window (Ctrl+F6, Ctrl+Shift+F6), lists the
+  windows and opens Window Settings...; closing a window of its own takes its texts back to
+  the book window or closes them, asking about their changes (Settings > General > Windows).
+
 - **Settings: the colors of the papers in each theme, and a gear in the find bar** -
   2026-10-27. Settings > Editor > Colors has a group for the light paper and one for the dark
   paper, each with the colors of the paper, of the text, of the text Focus dims, of the

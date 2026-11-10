@@ -8,6 +8,7 @@
 #include "kalahari/gui/shortcut_settings.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/document_coordinator.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/material_list_coordinator.h"
@@ -22,6 +23,7 @@
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
+#include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -348,6 +350,17 @@ MainWindow::MainWindow(QWidget* parent)
 
     logger.debug("MainWindow: DocumentCoordinator created");
 
+    // The statistics bar above the tabs of the texts, and the record of writing of the book
+    // that opens (after the documents, which make the collector of its editors)
+    m_writingStatsCoordinator = new WritingStatsCoordinator(
+        m_dockCoordinator, m_documentCoordinator,
+        [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
+    m_writingStatsCoordinator->connectCommands();
+    // The time of writing and the days in a row after the reading time, and the summary of
+    // the session over this window
+    m_writingStatsCoordinator->attachStatusBar(statusBar());
+    m_writingStatsCoordinator->setSummaryWindow(this);
+
     // The annotation commands and the Annotations panel; a chapter is opened as from the
     // Navigator
     m_annotationsCoordinator = new AnnotationsCoordinator(
@@ -652,6 +665,11 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::~MainWindow() {
     auto& logger = core::Logger::getInstance();
     logger.debug("MainWindow destructor - disconnecting all signals");
+
+    // The windows of their own of the tabs go with the window, saying nothing meanwhile
+    if (m_documentWindows) {
+        m_documentWindows->blockSignals(true);
+    }
 
     // CRITICAL: Disconnect from SINGLETON objects first.
     // These are NOT children of MainWindow, so findChildren() won't find them.
@@ -983,8 +1001,11 @@ void MainWindow::registerCommands() {
         QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
         for (int i = 0; i < centralTabs->count(); ++i) {
             if (qobject_cast<DashboardPanel*>(centralTabs->widget(i))) {
-                // Dashboard exists - activate it
+                // Dashboard exists - activate it, its window in front
                 centralTabs->setCurrentIndex(i);
+                if (m_documentWindows) {
+                    m_documentWindows->showPage(centralTabs->widget(i));
+                }
                 core::Logger::getInstance().debug("Dashboard tab activated at index {}", i);
                 return;
             }
@@ -1017,6 +1038,10 @@ void MainWindow::registerCommands() {
     // Register all commands with the callbacks
     int count = registerAllCommands(callbacks);
 
+    // The Window menu: the texts in windows of their own (DocumentWindows, made with the tabs)
+    count += DocumentWindows::registerCommands(CommandRegistry::getInstance(),
+                                               [this]() { return m_documentWindows; });
+
     // The keys the user changed in Settings > Keyboard Shortcuts take the place of the
     // program's, in the menus and the toolbars built next
     CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
@@ -1033,7 +1058,10 @@ void MainWindow::registerCommands() {
     if (auto* dfCmd = registry.getCommand("view.mode.distraction-free")) {
         dfCmd->isChecked = [this]() { return isDistractionFree(); };
         dfCmd->isEnabled = [this]() {
-            return isDistractionFree() || (m_dockCoordinator != nullptr && getCurrentEditor() != nullptr);
+            // A text in a window of its own is written there, not in the book window
+            EditorPanel* front = m_dockCoordinator != nullptr ? getCurrentEditor() : nullptr;
+            const bool detached = m_documentWindows && m_documentWindows->isDetached(front);
+            return isDistractionFree() || (front != nullptr && !detached);
         };
     }
 
@@ -1643,9 +1671,8 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
 
     // Every editor darkens the sides of its view and shows the word count; an editor
     // opened meanwhile gets it when it comes to the front
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    for (int i = 0; centralTabs && i < centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_dockCoordinator->centralTabs()).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor && editor->getBookEditor()) {
             editor->getBookEditor()->setDistractionFree(enabled);
         }
@@ -1794,10 +1821,24 @@ void MainWindow::createDocks() {
     QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
     utils::focusPageOnTabClick(*centralTabs);
 
-    // Connect tab close signal (Task #00015)
-    connect(m_dockCoordinator, &DockCoordinator::tabCloseRequested, this, [this, centralTabs](int index) {
+    // The texts of the tabs, also in the windows of their own the tabs are moved to
+    m_documentWindows = &DocumentWindows::of(*centralTabs);
+    if (m_menuBuilder) {
+        m_documentWindows->listWindowsIn(m_menuBuilder->getMenu("WINDOW"));
+    }
+    connect(m_documentWindows, &DocumentWindows::settingsRequested, this, [this]() {
+        if (m_settingsCoordinator) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::GENERAL_PAGE));
+        }
+    });
+
+    // Close a tab, of the book window or of a window of its own (Task #00015)
+    const auto closeTab = [this](QWidget* widget) {
         auto& logger = core::Logger::getInstance();
-        QWidget* widget = centralTabs->widget(index);
+        if (widget == nullptr) {
+            return;
+        }
         EditorPanel* editor = qobject_cast<EditorPanel*>(widget);
 
         // An annotation being written in this tab is kept first
@@ -1832,20 +1873,23 @@ void MainWindow::createDocks() {
 
         // Remove tab and delete widget
         // (the keys go on to the page in front, not to the font box of the toolbar)
-        utils::removeTabKeepingFocus(*centralTabs, index);
+        DocumentWindows::removePage(widget);
         widget->deleteLater();
         // Save All saves the files of all tabs: the last file outside a book leaves it
         // nothing, also from a tab behind the one in front
         utils::updateSaveCommands(CommandRegistry::getInstance());
 
-        logger.debug("Tab closed at index {}", index);
-    });
+        logger.debug("Tab closed");
+    };
+    connect(m_dockCoordinator, &DockCoordinator::tabCloseRequested, this,
+            [centralTabs, closeTab](int index) { closeTab(centralTabs->widget(index)); });
+    connect(m_documentWindows, &DocumentWindows::closeRequested, this, closeTab);
 
     // Connect tab change to navigator highlight (OpenSpec #00034 Phase C)
     // Also update action states when switching tabs (OpenSpec #00042 Phase 7.3)
     // Also connect properties panel to active editor (OpenSpec #00042 Task 7.4)
     // Also sync font toolbar widgets (OpenSpec #00042 Phase 7.2)
-    connect(m_dockCoordinator, &DockCoordinator::currentTabChanged, this, [this, centralTabs](int index) {
+    connect(m_documentWindows, &DocumentWindows::frontChanged, this, [this](QWidget* page) {
         NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
         PropertiesPanel* propertiesPanel = m_dockCoordinator->propertiesPanel();
 
@@ -1862,12 +1906,13 @@ void MainWindow::createDocks() {
 
         // Distraction-Free needs a document in front: it goes off over the Dashboard or
         // without a tab, and its command waits for a document
-        if (isDistractionFree() && getCurrentEditor() == nullptr) {
+        if (isDistractionFree()
+            && (getCurrentEditor() == nullptr || m_documentWindows->isDetached(page))) {
             m_distractionFreeLayout->setActive(false);
         }
         CommandRegistry::getInstance().updateActionState("view.mode.distraction-free");
 
-        if (index < 0) {
+        if (page == nullptr) {
             navigatorPanel->clearHighlight();
             // OpenSpec #00042 Task 7.4: Disconnect from editor when no tab
             if (propertiesPanel) {
@@ -1883,8 +1928,7 @@ void MainWindow::createDocks() {
             return;
         }
 
-        QWidget* currentWidget = centralTabs->widget(index);
-        EditorPanel* editor = qobject_cast<EditorPanel*>(currentWidget);
+        EditorPanel* editor = qobject_cast<EditorPanel*>(page);
         if (editor) {
             QString elementId = editor->property("elementId").toString();
             if (!elementId.isEmpty()) {
@@ -2164,6 +2208,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         // Don't Save -> continue with close
     }
 
+    // The summary of the session of writing, when the settings say so
+    if (m_writingStatsCoordinator) {
+        m_writingStatsCoordinator->showSessionSummary();
+    }
+
     // Phase F: Save Navigator expansion state before closing
     if (pm.isProjectOpen()) {
         // The open chapters open next time where their cursors are now
@@ -2265,7 +2314,9 @@ EditorPanel* MainWindow::getCurrentEditor() {
         return nullptr;
     }
 
-    QWidget* currentWidget = centralTabs->currentWidget();
+    // The page the keys went to last, also in a window of its own
+    QWidget* currentWidget =
+        m_documentWindows ? m_documentWindows->frontPage() : centralTabs->currentWidget();
     return qobject_cast<EditorPanel*>(currentWidget);  // nullptr if not EditorPanel
 }
 
@@ -2293,13 +2344,13 @@ void MainWindow::onNavigatorElementSelected(const QString& elementId, const QStr
 }
 
 void MainWindow::openGivingKeys(const std::function<void()>& open) {
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    const int front = centralTabs->currentIndex();
-    const int count = centralTabs->count();
+    const DocumentWindows& texts = DocumentWindows::of(*m_dockCoordinator->centralTabs());
+    const QWidget* front = texts.frontPage();
+    const qsizetype count = texts.pages().size();
     open();
     // A tab more, or another one in front: a document was opened (also after the window that
-    // chose it, as the window for choosing a file)
-    if (centralTabs->currentIndex() != front || centralTabs->count() != count) {
+    // chose it, as the window for choosing a file), or brought to the front in its window
+    if (texts.frontPage() != front || texts.pages().size() != count) {
         focusCurrentText();
     }
 }
@@ -2318,9 +2369,8 @@ void MainWindow::placeOpenedChapterCursor(const QString& elementId) {
     if (opensAt == utils::CHAPTER_OPENS_AT_START || database == nullptr || !database->isOpen()) {
         return;  // at its start, as a new editor has it
     }
-    QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    for (int i = 0; i < centralTabs->count(); ++i) {
-        auto* editor = qobject_cast<EditorPanel*>(centralTabs->widget(i));
+    for (QWidget* page : DocumentWindows::of(*m_dockCoordinator->centralTabs()).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
         if (editor != nullptr && editor->getBookEditor() != nullptr
             && editor->property("elementId").toString() == elementId) {
             utils::restoreChapterCursor(*database, elementId, *editor->getBookEditor());
@@ -2350,8 +2400,8 @@ void MainWindow::rememberChapterCursors() {
     }
     // One write to the book's database for all of them
     database->executeInTransaction([this, centralTabs]() {
-        for (int i = 0; i < centralTabs->count(); ++i) {
-            rememberChapterCursor(qobject_cast<const EditorPanel*>(centralTabs->widget(i)));
+        for (QWidget* page : DocumentWindows::of(*centralTabs).pages()) {
+            rememberChapterCursor(qobject_cast<const EditorPanel*>(page));
         }
         return true;
     });
@@ -2440,7 +2490,8 @@ void MainWindow::showEvent(QShowEvent* event) {
         // Only restore window state if we haven't cleared it for toolbar reset
         // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value
         QByteArray windowState = settings.getBinary("window.state");
-        if (!windowState.isEmpty() && !toolbarResetNeeded) {
+        const bool savedLayout = !windowState.isEmpty() && !toolbarResetNeeded;
+        if (savedLayout) {
             // Normal case: restore saved window state (includes toolbar positions)
             restoreState(windowState);
         } else if (const QScreen* screen = this->screen()) {
@@ -2448,6 +2499,8 @@ void MainWindow::showEvent(QShowEvent* event) {
             // gets a layout that leaves the text room
             m_dockCoordinator->fitFirstLayout(screen->availableGeometry());
         }
+        // A layout saved before the Statistics panel
+        m_dockCoordinator->placeStatisticsPanel(savedLayout);
 
         // Task #00019: Restore toolbar state (visibility)
         // This runs AFTER QMainWindow::restoreState() to ensure our visibility settings

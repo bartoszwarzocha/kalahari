@@ -110,7 +110,14 @@ ThemeManager::ThemeManager() {
     // panels, wherever it was changed: once for all the colors written together (Apply in the
     // Settings dialog writes several)
     m_settingsListener = settings.subscribe([this](const std::string& key) {
-        if (!isEditorColorSetting(key) || m_editorColorsPending.exchange(true)) {
+        if (!isEditorColorSetting(key)) {
+            return;
+        }
+        {
+            const std::lock_guard<std::mutex> lock(m_changedSettingsMutex);
+            m_changedEditorSettings.insert(key);
+        }
+        if (m_editorColorsPending.exchange(true)) {
             return;
         }
         if (QCoreApplication::instance() == nullptr) {
@@ -371,6 +378,11 @@ void ThemeManager::applyStoredColors() {
 
 void ThemeManager::reloadEditorColors() {
     m_editorColorsPending = false;
+    std::set<std::string> changedSettings;
+    {
+        const std::lock_guard<std::mutex> lock(m_changedSettingsMutex);
+        changedSettings.swap(m_changedEditorSettings);
+    }
     auto& settings = SettingsManager::getInstance();
     bool changed = false;
     for (const auto& [key, themeColor] : m_baseTheme.editor) {
@@ -386,6 +398,15 @@ void ThemeManager::reloadEditorColors() {
         const QColor color = stored.isValid() ? stored : themeColor;
         if (current != color) {
             current = color;
+            changed = true;
+        }
+    }
+    // A color of the theme in use that the theme file does not list: the parts that show it
+    // derive it from the theme's colors, or take the setting
+    const std::string themePrefix = editorColorSetting(m_currentTheme.name, std::string());
+    for (const std::string& setting : changedSettings) {
+        if (setting.rfind(themePrefix, 0) == 0 &&
+            m_baseTheme.editor.count(setting.substr(themePrefix.size())) == 0) {
             changed = true;
         }
     }
