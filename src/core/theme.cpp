@@ -2,10 +2,81 @@
 /// @brief Implementation of Theme data structure
 
 #include "kalahari/core/theme.h"
+
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <stdexcept>
 
 namespace kalahari {
 namespace core {
+
+namespace {
+
+/// @brief Steps of the search for a readable color (each halves the distance)
+constexpr int READABLE_STEPS = 12;
+
+/// @brief The palette colors that are made from the theme's color when the theme file's
+/// palette does not list them (Theme::followThemeColor())
+constexpr std::array<const char*, 4> THEME_COLOR_PALETTE = {"highlight", "highlightedText",
+                                                            "link", "linkVisited"};
+
+/// @brief The contrast the links have with the base at least (WCAG, normal text)
+constexpr double MIN_LINK_CONTRAST = 4.5;
+
+/// @brief How far a visited link is from the link's color toward the text
+constexpr double VISITED_LINK_SHARE = 0.35;
+
+/// @brief The relative luminance of a color (WCAG), from 0 (black) to 1 (white)
+double luminance(const QColor& color) {
+    const auto linear = [](double channel) {
+        return channel <= 0.04045 ? channel / 12.92 : std::pow((channel + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * linear(color.redF()) + 0.7152 * linear(color.greenF()) +
+           0.0722 * linear(color.blueF());
+}
+
+}  // namespace
+
+// ============================================================================
+// Colors readable on others
+// ============================================================================
+
+double contrastRatio(const QColor& a, const QColor& b) {
+    const double la = luminance(a);
+    const double lb = luminance(b);
+    return (std::max(la, lb) + 0.05) / (std::min(la, lb) + 0.05);
+}
+
+QColor mixedColor(const QColor& under, const QColor& over, double amount) {
+    const auto channel = [amount](int a, int b) {
+        return static_cast<int>(std::lround(a + (b - a) * amount));
+    };
+    return QColor(channel(under.red(), over.red()), channel(under.green(), over.green()),
+                  channel(under.blue(), over.blue()));
+}
+
+QColor readableColor(const QColor& color, const QColor& background, double ratio) {
+    if (contrastRatio(color, background) >= ratio) {
+        return color;
+    }
+
+    // Toward the end of the scale far from the background, as little as will do
+    const bool towardBlack =
+        contrastRatio(Qt::black, background) >= contrastRatio(Qt::white, background);
+    const QColor target = towardBlack ? QColor(Qt::black) : QColor(Qt::white);
+    double low = 0.0;
+    double high = 1.0;
+    for (int i = 0; i < READABLE_STEPS; ++i) {
+        const double middle = (low + high) / 2.0;
+        if (contrastRatio(mixedColor(color, target, middle), background) >= ratio) {
+            high = middle;
+        } else {
+            low = middle;
+        }
+    }
+    return mixedColor(color, target, high);
+}
 
 // ============================================================================
 // Helper Functions
@@ -145,6 +216,14 @@ Theme Theme::fromJson(const nlohmann::json& json) {
         theme.palette.placeholderText = parseColor(pal.value("placeholderText",
             isDark ? "#808080" : "#a0a0a0"));
         theme.palette.brightText = parseColor(pal.value("brightText", "#ffffff"));
+
+        // The selection and the links the file does not list are in the theme's color
+        for (const char* key : THEME_COLOR_PALETTE) {
+            if (!pal.contains(key)) {
+                theme.themeColorPalette.insert(key);
+            }
+        }
+        theme.followThemeColor();
     } else {
         // Auto-generate palette from main colors (backward compatibility)
         bool isDark = isDarkBackground(theme.colors.background);
@@ -229,6 +308,36 @@ Theme Theme::fromJson(const nlohmann::json& json) {
 }
 
 // ============================================================================
+// Theme::followThemeColor
+// ============================================================================
+
+void Theme::followThemeColor(const std::set<std::string>& kept) {
+    const QColor& themeColor = colors.primary;
+    if (!themeColor.isValid()) {
+        return;
+    }
+    const auto follows = [this, &kept](const char* key) {
+        return themeColorPalette.count(key) != 0 && kept.count(key) == 0;
+    };
+    if (follows("highlight")) {
+        palette.highlight = themeColor;
+    }
+    if (follows("highlightedText")) {
+        const bool black = contrastRatio(Qt::black, palette.highlight) >=
+                           contrastRatio(Qt::white, palette.highlight);
+        palette.highlightedText = black ? QColor(Qt::black) : QColor(Qt::white);
+    }
+    if (follows("link")) {
+        palette.link = readableColor(themeColor, palette.base, MIN_LINK_CONTRAST);
+    }
+    if (follows("linkVisited")) {
+        palette.linkVisited = readableColor(
+            mixedColor(palette.link, palette.text, VISITED_LINK_SHARE), palette.base,
+            MIN_LINK_CONTRAST);
+    }
+}
+
+// ============================================================================
 // Theme::toJson
 // ============================================================================
 
@@ -277,6 +386,10 @@ nlohmann::json Theme::toJson() const {
         {"placeholderText", colorToHex(palette.placeholderText)},
         {"brightText", colorToHex(palette.brightText)}
     };
+    // What follows the theme's color stays so: it is made again when the theme is read
+    for (const std::string& key : themeColorPalette) {
+        json["palette"].erase(key);
+    }
 
     // Log colors
     json["log"] = {

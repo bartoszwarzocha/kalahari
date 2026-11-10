@@ -2,7 +2,8 @@
 /// @brief The colors the writer can change in the Settings dialog: the waves under the
 ///        misspelled words and the grammar issues (and the frames of their cards in the Spelling
 ///        and Grammar panel), the colors of the annotations and of the papers, kept for each
-///        theme, and "Optimize colors in themes"
+///        theme, "Optimize colors in themes", and the selection and the links that follow the
+///        Primary icon color
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -15,12 +16,14 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/color_config_widget.h"
 
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QGroupBox>
 #include <QLabel>
 #include <QObject>
+#include <QPalette>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QTreeWidget>
@@ -506,4 +509,81 @@ TEST_CASE("Settings: the options of the Spelling and Grammar panel, on the Spell
                             "spellingPanel.grammarScope"}) {
         settings.removeKey(key);
     }
+}
+
+TEST_CASE("Settings: the selection and the links follow the Primary icon color",
+          "[gui][settings][colors]") {
+    auto& settings = SettingsManager::getInstance();
+    auto& themes = ThemeManager::getInstance();
+    const QString theme = QString::fromStdString(themes.getCurrentTheme().name);
+    const std::string prefix = "themes." + theme.toStdString() + ".palette.";
+    const auto clear = [&settings, &themes]() {
+        for (const QString& name : themes.getAvailableThemes()) {
+            settings.clearCustomIconColorsForTheme(name.toStdString());
+            settings.clearCustomPaletteColorsForTheme(name.toStdString());
+        }
+    };
+    clear();
+    REQUIRE(themes.reloadTheme(theme));
+    // The colors the theme makes of a color of the icons
+    const auto followed = [&themes, &theme](const QColor& primary) {
+        kalahari::core::Theme made = themes.loadTheme(theme);
+        made.colors.primary = primary;
+        made.followThemeColor();
+        return made.palette;
+    };
+
+    {
+        SettingsDialog dialog(nullptr);
+        QWidget* page = openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
+        ColorConfigWidget* primary = colorNamed(page, QStringLiteral("Primary"));
+        ColorConfigWidget* highlight = colorNamed(page, QStringLiteral("Highlight"));
+        ColorConfigWidget* highlightedText = colorNamed(page, QStringLiteral("Highlighted Text"));
+        ColorConfigWidget* link = colorNamed(page, QStringLiteral("Link"));
+        CHECK(highlight->color() == primary->color());
+
+        // Shown at once as the Primary color changes; Apply keeps none of their own
+        const QColor green(QStringLiteral("#2e8b57"));
+        pick(primary, green);
+        CHECK(highlight->color() == green);
+        CHECK(highlightedText->color() == followed(green).highlightedText);
+        CHECK(link->color() == followed(green).link);
+        dialog.applyChanges();
+        for (const char* key : {"highlight", "highlightedText", "link", "linkVisited"}) {
+            INFO(key);
+            CHECK_FALSE(settings.hasKey(prefix + key));
+        }
+        CHECK(themes.getCurrentTheme().palette.highlight == green);
+        CHECK(QApplication::palette().color(QPalette::Highlight) == green);
+        CHECK_FALSE(dialog.hasChanges());
+
+        SECTION("a selection picked is the writer's own; its text follows it") {
+            const QColor navy(QStringLiteral("#1a237e"));
+            pick(highlight, navy);
+            CHECK(highlightedText->color() == QColor(Qt::white));
+            dialog.applyChanges();
+            CHECK(stored(prefix + "highlight") == "#1a237e");
+            CHECK_FALSE(settings.hasKey(prefix + "highlightedText"));
+            CHECK(themes.getCurrentTheme().palette.highlightedText == QColor(Qt::white));
+
+            // Another Primary color leaves it as it is; the links follow
+            const QColor orange(QStringLiteral("#ffaa00"));
+            pick(primary, orange);
+            CHECK(highlight->color() == navy);
+            CHECK(link->color() == followed(orange).link);
+            dialog.applyChanges();
+            CHECK(themes.getCurrentTheme().palette.highlight == navy);
+            CHECK(themes.getCurrentTheme().palette.link == followed(orange).link);
+
+            SECTION("Reset to Theme Defaults: it follows the theme's color again") {
+                namedChild<QPushButton>(page, QStringLiteral("Reset to Theme Defaults"))->click();
+                dialog.applyChanges();
+                CHECK_FALSE(settings.hasKey(prefix + "highlight"));
+                CHECK(themes.getCurrentTheme().palette.highlight ==
+                      themes.loadTheme(theme).colors.primary);
+            }
+        }
+    }
+    clear();
+    themes.reloadTheme(theme);
 }
