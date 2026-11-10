@@ -268,6 +268,11 @@ Theme Theme::fromJson(const nlohmann::json& json) {
             ? QColor("#808080")
             : QColor("#a0a0a0");
         theme.palette.brightText = QColor("#ffffff");
+
+        // A theme without a palette lists none of the selection and the links: they are in
+        // the theme's color too
+        theme.themeColorPalette.insert(THEME_COLOR_PALETTE.cbegin(), THEME_COLOR_PALETTE.cend());
+        theme.followThemeColor();
     }
 
     // Parse log colors (optional, use defaults if missing)

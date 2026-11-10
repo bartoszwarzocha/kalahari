@@ -450,6 +450,18 @@ TEST_CASE("The selection and the links are in the theme's color, unless the them
         CHECK(contrastRatio(theme.palette.linkVisited, theme.palette.base) >= 4.5);
     }
 
+    SECTION("a theme file without a palette: they are in the theme's color too") {
+        nlohmann::json json = themeFile(darkPalette());
+        json.erase("palette");
+        const Theme theme = Theme::fromJson(json);
+        CHECK(theme.themeColorPalette ==
+              std::set<std::string>{"highlight", "highlightedText", "link", "linkVisited"});
+        CHECK(theme.palette.highlight == QColor("#ffaa00"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(contrastRatio(theme.palette.link, theme.palette.base) >= 4.5);
+        CHECK(contrastRatio(theme.palette.linkVisited, theme.palette.base) >= 4.5);
+    }
+
     SECTION("a light color of the icons on a light base: the links are darker to be read") {
         nlohmann::json json = themeFile({{"window", "#f0f0f0"}, {"base", "#ffffff"},
                                          {"text", "#000000"}});

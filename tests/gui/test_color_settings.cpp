@@ -587,3 +587,47 @@ TEST_CASE("Settings: the selection and the links follow the Primary icon color",
     clear();
     themes.reloadTheme(theme);
 }
+
+TEST_CASE("Settings: Reset to Theme Defaults removes a stored selection the same as the theme's",
+          "[gui][settings][colors]") {
+    auto& settings = SettingsManager::getInstance();
+    auto& themes = ThemeManager::getInstance();
+    const QString theme = QString::fromStdString(themes.getCurrentTheme().name);
+    const std::string key = "themes." + theme.toStdString() + ".palette.highlight";
+    const auto clear = [&settings, &themes]() {
+        for (const QString& name : themes.getAvailableThemes()) {
+            settings.clearCustomIconColorsForTheme(name.toStdString());
+            settings.clearCustomPaletteColorsForTheme(name.toStdString());
+        }
+    };
+    clear();
+    // A selection of the writer's own in the color the theme gives it (picked and picked back)
+    const QColor primary = themes.loadTheme(theme).colors.primary;
+    settings.set<nlohmann::json>(key, primary.name().toStdString());
+    REQUIRE(themes.reloadTheme(theme));
+
+    {
+        SettingsDialog dialog(nullptr);
+        QWidget* page = openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
+        ColorConfigWidget* highlight = colorNamed(page, QStringLiteral("Highlight"));
+        CHECK(highlight->color() == primary);
+        CHECK_FALSE(dialog.hasChanges());
+
+        // The same color, but no longer the writer's own: Apply removes it
+        namedChild<QPushButton>(page, QStringLiteral("Reset to Theme Defaults"))->click();
+        CHECK(highlight->color() == primary);
+        CHECK(dialog.hasChanges());
+        dialog.applyChanges();
+        CHECK_FALSE(settings.hasKey(key));
+    }
+    {
+        // Opened again, it follows the Primary color
+        SettingsDialog dialog(nullptr);
+        QWidget* page = openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
+        const QColor green(QStringLiteral("#2e8b57"));
+        pick(colorNamed(page, QStringLiteral("Primary")), green);
+        CHECK(colorNamed(page, QStringLiteral("Highlight"))->color() == green);
+    }
+    clear();
+    themes.reloadTheme(theme);
+}

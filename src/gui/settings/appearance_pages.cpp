@@ -256,9 +256,13 @@ void ThemePage::followThemeColor() {
             continue;
         }
         color.widget->setColor(color.field(theme));
-        // Without a stored color of its own nothing changes: the program makes it the same
+        // Without a stored color of its own nothing changes: the program makes it the same.
+        // A stored one (Reset to Theme Defaults) is a change even when its color is the same:
+        // applying the page removes it, so the color follows the theme's color again
         if (!settings.hasKey(color.binding->key())) {
             color.binding->loaded = color.binding->shown();
+        } else {
+            color.binding->loaded = json();
         }
     }
 }
