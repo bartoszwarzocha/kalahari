@@ -324,7 +324,19 @@ TEST_CASE("Margin numbers: the paperclip of a paragraph is left of them, also be
         QIcon(pixmap));
     number(*editor, MarginNumbering::Lines);
 
+    // The rightmost point left of the cursor's line where the mouse finds the paperclip
+    const auto markRightOf = [&editor](const QRectF& line) {
+        int right = -1;
+        for (int x = 0; x < static_cast<int>(line.left()); ++x) {
+            if (editor->paragraphMarkAt(QPointF(x, line.center().y())).has_value()) {
+                right = x;
+            }
+        }
+        return right;
+    };
+
     // The heading's first line is high, so is its paperclip: still left of the number
+    int numberedRight = -1;
     for (const int paragraph : {0, 1}) {
         CAPTURE(paragraph);
         editor->setCursorPosition({paragraph, 0});
@@ -344,28 +356,17 @@ TEST_CASE("Margin numbers: the paperclip of a paragraph is left of them, also be
         }
         REQUIRE(inkLeft >= 0);
 
-        // The rightmost point where the mouse finds the paperclip
-        int markRight = -1;
-        for (int x = 0; x < static_cast<int>(line.left()); ++x) {
-            if (editor->paragraphMarkAt(QPointF(x, line.center().y())).has_value()) {
-                markRight = x;
-            }
-        }
+        const int markRight = markRightOf(line);
         REQUIRE(markRight >= 0);
         CHECK(markRight < inkLeft);
+        numberedRight = markRight;
     }
 
-    // Without the numbers it is beside the text again
+    // Without the numbers it is beside the text again: nearer to it, where they were
     number(*editor, MarginNumbering::None);
     editor->setCursorPosition({1, 0});
     paint(*editor);
-    const QRectF line = caret(*editor);
-    bool beside = false;
-    for (int step = 1; step < static_cast<int>(2.0 * line.height()); ++step) {
-        const QPointF point(line.left() - step, line.center().y());
-        beside = beside || editor->paragraphMarkAt(point).has_value();
-    }
-    CHECK(beside);
+    CHECK(markRightOf(caret(*editor)) > numberedRight);
 }
 
 TEST_CASE("Mirror margins: the continuous view has the margins of page 1",

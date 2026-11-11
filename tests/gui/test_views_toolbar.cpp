@@ -362,14 +362,14 @@ TEST_CASE("Views toolbar: one customized before gets the repetitions after the f
         "toolbars.configurations",
         R"({"builtIn":{"views":["view.mode.continuous","view.mode.page",)"
         R"("view.marginNumbers.paragraphs","view.zoomIn","view.showFormattingMarks"]}})");
-    settings.set<int>("toolbars.addedCommands", 6);
+    settings.set<int>("toolbars.addedCommands", 7);
     QMainWindow window;
     {
         ToolbarManager manager(&window);
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
               "view.mode.continuous | view.mode.page | view.marginNumbers.paragraphs | "
               "view.zoomIn | view.showFormattingMarks | view.repetitionMarks");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 7);
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 8);
 
         // Taken away by the writer after that, it stays away
         QStringList without = manager.getToolbarCommands(views);
@@ -921,6 +921,76 @@ TEST_CASE("Toolbar manager: Apply and OK save a changed toolbar, Reset to Defaul
     }
 
     manager.deleteUserToolbar(id);
+}
+
+TEST_CASE("Statistics toolbar: the statistics of writing in one place, shown at the start",
+          "[gui][toolbar][statistics]") {
+    registerAllCommands(CommandCallbacks{});
+    registerAllIcons();
+    CommandRegistry& registry = CommandRegistry::getInstance();
+
+    QMainWindow window;
+    ToolbarManager manager(&window);
+    manager.createToolbars(registry);
+
+    QToolBar* toolbar = manager.getToolbar("stats");
+    REQUIRE(toolbar != nullptr);
+    CHECK(window.toolBarArea(toolbar) == Qt::TopToolBarArea);
+    CHECK_FALSE(toolbar->isHidden());
+    CHECK(withoutAccessKey(toolbar->windowTitle()) == QStringLiteral("Writing Statistics Toolbar"));
+
+    // The very actions of the menus: the statistics bar and the panel are checked with them
+    const QList<QAction*> actions = toolbar->actions();
+    REQUIRE(actions.size() == 8);
+    CHECK(actions[0] == registry.getAction(std::string("view.showStatsBar")));
+    CHECK(actions[1] == registry.getAction(std::string("view.statistics")));
+    CHECK(actions[2]->isSeparator());
+    CHECK(actions[3] == registry.getAction(std::string("tools.writingGoals")));
+    CHECK(actions[4] == registry.getAction(std::string("tools.challenges")));
+    CHECK(actions[5] == registry.getAction(std::string("tools.addChallenge")));
+    CHECK(actions[6]->isSeparator());
+    CHECK(actions[7] == registry.getAction(std::string("tools.statsSettings")));
+
+    // The panel keeps its button on the Panels toolbar too; the Views toolbar has none of them
+    CHECK(manager.getToolbarCommands(QStringLiteral("view"))
+              .contains(QStringLiteral("view.statistics")));
+    CHECK_FALSE(manager.getToolbarCommands(QStringLiteral("views"))
+                    .contains(QStringLiteral("view.showStatsBar")));
+}
+
+TEST_CASE("Statistics toolbar: before Help in a layout saved before it",
+          "[gui][toolbar][statistics]") {
+    // The layout of an earlier version has no Writing Statistics: Qt would put it after Help
+    const QByteArray savedLayout = layoutWithoutViewsToolbar();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<bool>("toolbars.visible.quickActions", true);
+    settings.removeKey("toolbars.visible.stats");
+
+    registerAllCommands(CommandCallbacks{});
+    QMainWindow window;
+    window.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager manager(&window);
+    manager.createToolbars(CommandRegistry::getInstance());
+    REQUIRE(window.restoreState(savedLayout));
+    manager.restoreState();
+    window.resize(1600, 900);
+    window.show();
+    QApplication::processEvents();
+
+    QToolBar* stats = manager.getToolbar("stats");
+    QToolBar* tools = manager.getToolbar("tools");
+    QToolBar* help = manager.getToolbar("help");
+    REQUIRE(stats != nullptr);
+    REQUIRE(tools != nullptr);
+    REQUIRE(help != nullptr);
+    CHECK(stats->isVisible());
+    CHECK(stats->y() == help->y());
+    CHECK(stats->x() > tools->x());
+    CHECK(stats->x() < help->x());
+
+    // Once: the layout saved now knows it
+    manager.saveState();
+    CHECK(settings.hasKey("toolbars.visible.stats"));
 }
 
 TEST_CASE("View menu: Margin Numbering, a submenu after the text frame border, with the "

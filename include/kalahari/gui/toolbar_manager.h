@@ -355,6 +355,10 @@ private:
     /// before it existed, where Qt leaves it at the end of the last row
     void placeVersionsToolbar();
 
+    /// @brief Writing Statistics right before Help, in its row: in a layout saved before it
+    /// existed, where Qt leaves it at the end of the last row
+    void placeStatsToolbar();
+
     /// @brief Panels by the right edge of the window, shown: in a layout saved while it was
     /// hidden at the top by default, once (the writer's own place for it is kept after)
     void placePanelsToolbar();

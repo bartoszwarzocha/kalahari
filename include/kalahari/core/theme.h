@@ -4,6 +4,7 @@
 #pragma once
 
 #include <map>
+#include <set>
 #include <string>
 #include <QColor>
 #include <QPalette>
@@ -11,6 +12,19 @@
 
 namespace kalahari {
 namespace core {
+
+/// @brief The contrast ratio of two colors, from 1 (none) to 21 (black on white)
+double contrastRatio(const QColor& a, const QColor& b);
+
+/// @brief A color between two others
+/// @param amount How much of @p over there is (0 to 1)
+QColor mixedColor(const QColor& under, const QColor& over, double amount);
+
+/// @brief The color nearest to @p color with at least @p ratio contrast with @p background
+///
+/// @p color itself when it has it; else it is moved toward black on a light background and
+/// toward white on a dark one.
+QColor readableColor(const QColor& color, const QColor& background, double ratio);
 
 /// @brief Theme configuration data structure
 ///
@@ -86,6 +100,19 @@ struct Theme {
     /// The user's values are kept for each theme, themes.<name>.editor.<key>
     /// (ThemeManager::editorColorSetting()).
     std::map<std::string, QColor> editor;
+
+    /// @brief The palette colors made from the theme's color (colors.primary, the color of the
+    /// icons), as the theme file's palette does not list them: of "highlight",
+    /// "highlightedText", "link" and "linkVisited" (followThemeColor())
+    std::set<std::string> themeColorPalette;
+
+    /// @brief Make the palette colors of themeColorPalette from the theme's color
+    ///
+    /// The selection in the theme's color, its text black or white, whichever reads better on
+    /// it; the links in the theme's color and the visited ones a little toward the text, both
+    /// readable on the base (palette.base).
+    /// @param kept Colors of themeColorPalette left as they are: the user's own
+    void followThemeColor(const std::set<std::string>& kept = {});
 
     /// @brief Load Theme from JSON object
     /// @param json JSON object from theme file

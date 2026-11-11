@@ -44,6 +44,7 @@
 #include <QElapsedTimer>
 #include <QList>
 #include <QPointer>
+#include <QSet>
 #include <QTextTable>
 #include <functional>
 #include <map>
@@ -753,8 +754,32 @@ public:
     // breaks)
     // =========================================================================
 
-    /// @brief Set the styles of the book (of its type package): every paragraph is shown in
-    ///        its style, and Enter at the end of one starts the style that follows it
+    /// @brief Give every paragraph of style @p from the style @p to, as one undo step that
+    ///        brings back the cursor (a style of the book deleted: its paragraphs go to its
+    ///        base style)
+    /// @return The number of paragraphs that changed; 0 changes nothing and makes no step
+    int replaceParagraphStyle(const QString& from, const QString& to);
+
+    /// @brief How many paragraphs of the text are in each style (Normal: NORMAL_STYLE_ID), as
+    ///        paragraphStyleCounts() counts them in KML
+    QHash<QString, int> paragraphStyleCounts() const;
+
+    /// @brief The formatting the paragraph at the cursor has of its own, over its style, as
+    ///        the properties of a style (paragraph_styles.h): its own indents, spacing, line
+    ///        spacing (a multiple), breaks and alignment, and the font, size, bold, italic and
+    ///        underline all of its text has of its own; the size in the points of the styles
+    /// @return Nothing at an object or without a text
+    QVariantMap ownStyleProperties() const;
+
+    /// @brief Give the paragraphs of the cursor or the selection the style @p styleId without
+    ///        their own formatting of the properties @p taken, as one undo step: a new style
+    ///        took that formatting from the paragraph at the cursor (ownStyleProperties()), so
+    ///        the style gives it to them now
+    void applyNewParagraphStyle(const QString& styleId, const QStringList& taken);
+
+    /// @brief Set the styles of the book (of its type package and its own): every paragraph is
+    ///        shown in its style, and Enter at the end of one starts the style that follows it;
+    ///        paragraphStylesChanged() tells of a change
     void setParagraphStyles(const ParagraphStyleSet& styles);
 
     /// @brief The styles of the book
@@ -1686,12 +1711,27 @@ signals:
     /// Use this to track content changes (e.g., for statistics, auto-save).
     void contentChanged();
 
+    /// @brief Text is about to be pasted or dropped, or a paste is about to be undone or
+    /// redone: the change that follows is not typed by hand (pastingFinished() follows it)
+    void pastingStarted();
+
+    /// @brief The change pastingStarted() announced is made (contentChanged() came before
+    /// it)
+    /// @param level The undo level of the paste: the same when it is undone and redone
+    /// (text typed right after a paste may join its level, and goes and comes back with it)
+    /// @param undoOrRedo A paste was undone or redone
+    void pastingFinished(int level, bool undoOrRedo);
+
     /// @brief Emitted when the content starts or stops differing from the saved content
     ///        (see isModified())
     ///
     /// A content as long as the saved one is compared with it when the editing pauses; until
     /// then isModified() gives the answer.
     void modifiedChanged(bool modified);
+
+    /// @brief The book's paragraph styles changed (setParagraphStyles()): a style was added,
+    ///        changed or removed
+    void paragraphStylesChanged();
 
     /// @brief Emitted when the word and character counts change while the text stays the
     ///        same (they follow new rules of setWordCountRules())
@@ -2607,6 +2647,14 @@ private:
     std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
+
+    /// The levels of undo below the text as it is: one for each step undo() takes back
+    int m_undoLevel = 0;
+    /// The levels of undo that pasted or dropped text: undoing and redoing them is pasting too
+    QSet<int> m_pasteLevels;
+
+    /// @brief The last level of undo pasted or dropped text: pastingFinished()
+    void finishPasting();
 
     /// @brief Whether the letters typed last showed Caps Lock on: a small one typed with
     ///        Shift, or a capital without it (the program is not told the state of the key)

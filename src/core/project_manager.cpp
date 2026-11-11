@@ -2416,6 +2416,31 @@ bool ProjectManager::setRotation(const QString& elementId, int rotation) {
                          [rotation](ProjectElement& element) { element.rotation = rotation; });
 }
 
+QList<BookParagraphStyle> ProjectManager::paragraphStyles() const {
+    return m_project ? m_project->paragraphStyles : QList<BookParagraphStyle>();
+}
+
+bool ProjectManager::setParagraphStyles(const QList<BookParagraphStyle>& styles) {
+    if (!m_project) {
+        Logger::getInstance().warn("setParagraphStyles: No project is open");
+        return false;
+    }
+    if (refusesChange("setParagraphStyles")) {
+        return false;
+    }
+    if (m_project->paragraphStyles == styles) {
+        return true;
+    }
+    const QList<BookParagraphStyle> previous = m_project->paragraphStyles;
+    m_project->paragraphStyles = styles;
+    if (!saveManifest()) {
+        m_project->paragraphStyles = previous;
+        return false;
+    }
+    emit paragraphStylesChanged();
+    return true;
+}
+
 QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& link) const {
     QList<const ProjectElement*> linked;
     if (!m_project || link.isEmpty()) {
@@ -2525,6 +2550,32 @@ void ProjectManager::setChapterContent(const QString& elementId, const QString& 
         state->loaded = true;
         state->dirty = true;
     }
+}
+
+QStringList ProjectManager::textElementIds() const {
+    QStringList ids;
+    if (!m_project) {
+        return ids;
+    }
+    for (const ProjectElement* element : allElements(*m_project)) {
+        if (!element->file.isEmpty() && formOf(*element) == ElementForm::Text) {
+            ids.append(element->id);
+        }
+    }
+    return ids;
+}
+
+QString ProjectManager::chapterText(const QString& elementId) const {
+    const ProjectElement* element = findElement(elementId);
+    if (!element || element->file.isEmpty() || formOf(*element) != ElementForm::Text) {
+        return QString();
+    }
+    if (const auto state = m_elementStates.constFind(elementId);
+        state != m_elementStates.cend() && state->loaded) {
+        return state->content;
+    }
+    const std::optional<ChapterDocument> chapter = ChapterDocument::load(filePathOf(*element));
+    return chapter ? chapter->kml() : QString();
 }
 
 void ProjectManager::discardChapterContent(const QString& elementId) {

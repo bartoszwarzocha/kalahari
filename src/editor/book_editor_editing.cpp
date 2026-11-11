@@ -1132,8 +1132,14 @@ void BookEditor::undo()
 
     m_stepCursor.reset();
     m_pendingFormat = QTextCharFormat();
+    const int level = m_undoLevel;
+    const bool pasting = m_pasteLevels.contains(level);
+    if (pasting) {
+        emit pastingStarted();
+    }
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->undo(&cursor);
+    m_undoLevel = std::max(0, level - 1);
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
@@ -1143,6 +1149,9 @@ void BookEditor::undo()
     ensureCursorVisible();
     update();
     emit contentChanged();
+    if (pasting) {
+        emit pastingFinished(level, true);
+    }
     emit cursorPositionChanged(m_cursorPosition);
     if (learned) {
         emit autoCorrectionUndone(learned->list, learned->exception);
@@ -1160,8 +1169,14 @@ void BookEditor::redo()
 
     m_stepCursor.reset();
     m_pendingFormat = QTextCharFormat();  // as undo() does
+    const int level = m_undoLevel + 1;
+    const bool pasting = m_pasteLevels.contains(level);
+    if (pasting) {
+        emit pastingStarted();
+    }
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->redo(&cursor);
+    m_undoLevel = level;
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
@@ -1171,6 +1186,9 @@ void BookEditor::redo()
     ensureCursorVisible();
     update();
     emit contentChanged();
+    if (pasting) {
+        emit pastingFinished(level, true);
+    }
     emit cursorPositionChanged(m_cursorPosition);
 }
 
@@ -1184,6 +1202,7 @@ void BookEditor::undoWithoutRedo()
     }
     undo();
     m_textBuffer->clearUndoRedoStacks(QTextDocument::RedoStack);
+    m_pasteLevels.removeIf([this](int paste) { return paste > m_undoLevel; });
 }
 
 void BookEditor::clearUndoStack()
@@ -1194,6 +1213,8 @@ void BookEditor::clearUndoStack()
         // document already says so, hence the opposite first)
         const bool modified = isModified();
         m_textBuffer->clearUndoRedoStacks();
+        m_undoLevel = 0;
+        m_pasteLevels.clear();
         m_learnableChange.reset();  // no longer undone
         m_textBuffer->setModified(!modified);
         m_textBuffer->setModified(modified);
@@ -1322,6 +1343,7 @@ void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
     }
     ensureDocument();
 
+    emit pastingStarted();
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
@@ -1330,6 +1352,13 @@ void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
     }
     insertMimeData(cursor, *source, mode, pending);
     finishEdit(cursor);
+    finishPasting();
+}
+
+void BookEditor::finishPasting()
+{
+    m_pasteLevels.insert(m_undoLevel);
+    emit pastingFinished(m_undoLevel, false);
 }
 
 void BookEditor::setPasteMode(PasteMode mode)
@@ -1355,6 +1384,7 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     const std::optional<TableCellRange> movedCells =
         moveSelection ? selectedCellRange() : std::nullopt;
     clearSelection();
+    emit pastingStarted();
 
     // One undo step: moved text leaves its place, with its annotations, and lands at the
     // drop point. Both cursors stay at the same text while the other one edits the document.
@@ -1379,6 +1409,7 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
 
     // The dropped text is selected, with the cursor at its end
     finishEdit(cursor);
+    finishPasting();
     if (!oldPlace.isNull() && oldPlace.blockNumber() != m_cursorPosition.paragraph) {
         emit paragraphModified(oldPlace.blockNumber());
     }

@@ -66,11 +66,13 @@ class MaterialListCoordinator;
 class EditCoordinator;
 class SpecialCharacterCoordinator;
 class VersionsCoordinator;
+class StyleCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
 class RepetitionsCoordinator;
 class DocumentWindows;
+class WritingStatsCoordinator;
 class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
@@ -423,6 +425,8 @@ private:
     ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
     /// @brief The lists of the kinds of materials on their tabs
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
+    /// @brief The statistics bar and the goals of writing
+    WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     /// Insert > Special Character... and Insert > Quick Character
     SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
@@ -443,6 +447,9 @@ private:
 
     /// @brief Save Version and Version History of the texts of the book
     VersionsCoordinator* m_versionsCoordinator{nullptr};
+
+    /// @brief New, changed and deleted paragraph styles of the book
+    StyleCoordinator* m_styleCoordinator{nullptr};
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen

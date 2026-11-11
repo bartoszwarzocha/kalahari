@@ -133,6 +133,9 @@ void registerAllIcons() {
     iconRegistry.registerIcon("format.style.quote", "resources/icons/twotone/format_quote.svg", "Block Quote");
     iconRegistry.registerIcon("format.style.dialogue", "resources/icons/twotone/forum.svg", "Dialogue");
     iconRegistry.registerIcon("format.style.code", "resources/icons/twotone/code.svg", "Code Block");
+    iconRegistry.registerIcon("format.style.new", "resources/icons/twotone/add_box.svg", "New Style");
+    iconRegistry.registerIcon("format.style.modify", "resources/icons/twotone/edit.svg", "Modify Style");
+    iconRegistry.registerIcon("format.style.delete", "resources/icons/twotone/delete.svg", "Delete Style");
     iconRegistry.registerIcon("format.style.manage", "resources/icons/twotone/style.svg", "Manage Styles");
     iconRegistry.registerIcon("format.bold", "resources/icons/twotone/format_bold.svg", "Bold");
     iconRegistry.registerIcon("format.italic", "resources/icons/twotone/format_italic.svg", "Italic");
@@ -208,7 +211,11 @@ void registerAllIcons() {
     iconRegistry.registerIcon("tools.plugins.updates", "resources/icons/twotone/system_update.svg", "Plugin Updates");
     iconRegistry.registerIcon("tools.plugins.reload", "resources/icons/twotone/refresh.svg", "Reload Plugins");
     iconRegistry.registerIcon("tools.challenges", "resources/icons/twotone/emoji_events.svg", "Writing Challenges");
+    iconRegistry.registerIcon("tools.addChallenge", "resources/icons/twotone/add_challenge.svg", "Add Challenge");
     iconRegistry.registerIcon("tools.writingGoals", "resources/icons/twotone/track_changes.svg", "Writing Goals");
+    iconRegistry.registerIcon("tools.statsSettings", "resources/icons/twotone/tune.svg", "Statistics Settings");
+    // The button on the graph of the statistics bar that puts now in the middle
+    iconRegistry.registerIcon("stats.nowInMiddle", "resources/icons/twotone/align_horizontal_center.svg", "Now in the Middle");
     iconRegistry.registerIcon("tools.readability", "resources/icons/twotone/auto_stories.svg", "Readability Analysis");
     iconRegistry.registerIcon("tools.toolbarManager", "resources/icons/twotone/build.svg", "Toolbar Manager");
 
@@ -240,6 +247,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("view.spelling", "resources/icons/twotone/spellcheck.svg",
                               "Spelling and Grammar");
     iconRegistry.registerIcon("view.repetitionsPanel", "resources/icons/twotone/repeat.svg", "Repetitions");
+    iconRegistry.registerIcon("view.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("view.perspectives.writer", "resources/icons/twotone/edit.svg", "Writer Perspective");
     iconRegistry.registerIcon("view.perspectives.editor", "resources/icons/twotone/rate_review.svg", "Editor Perspective");
     iconRegistry.registerIcon("view.perspectives.researcher", "resources/icons/twotone/science.svg", "Researcher Perspective");
