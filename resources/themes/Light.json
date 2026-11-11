@@ -70,6 +70,7 @@
     "tableLinesLight": "#9A9A9A",
     "tableHeaderLight": "#F2F2F2",
     "tableGridlinesLight": "#B4C6E7",
+    "imageCropMarksLight": "#111111",
     "paperDark": "#232328",
     "textDark": "#E0E0E0",
     "focusDimmedDark": "#78787D",
@@ -79,6 +80,7 @@
     "tableLinesDark": "#78787B",
     "tableHeaderDark": "#2E2E33",
     "tableGridlinesDark": "#4A5878",
+    "imageCropMarksDark": "#F2F2F2",
     "selection": "#4285F4",
     "searchMatch": "#FFD600",
     "currentSearchMatch": "#FF8C00"

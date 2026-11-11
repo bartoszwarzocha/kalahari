@@ -11,8 +11,11 @@
 #include <kalahari/editor/text_images.h>
 #include "editor_test_utils.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QImage>
+#include <QKeyEvent>
+#include <QMouseEvent>
 #include <QTemporaryDir>
 #include <QTextBlock>
 #include <QTextCharFormat>
@@ -88,6 +91,42 @@ QSizeF boxOf(BookEditor& editor) {
     const std::optional<ImageProperties> image = imageAt(*editor.textDocument(), block.position());
     REQUIRE(image);
     return layoutOf(editor)->imageSize(block, *image);
+}
+
+/// The left button pressed, the mouse moved with it and the button let go
+void mouse(BookEditor& editor, QEvent::Type type, const QPointF& point) {
+    const Qt::MouseButtons buttons =
+        type == QEvent::MouseButtonRelease ? Qt::NoButton : Qt::MouseButtons(Qt::LeftButton);
+    QMouseEvent event(type, point, editor.mapToGlobal(point),
+                      type == QEvent::MouseMove ? Qt::NoButton : Qt::LeftButton, buttons,
+                      Qt::NoModifier);
+    QCoreApplication::sendEvent(&editor, &event);
+}
+
+void click(BookEditor& editor, const QPointF& point) {
+    mouse(editor, QEvent::MouseButtonPress, point);
+    mouse(editor, QEvent::MouseButtonRelease, point);
+}
+
+/// A mark dragged from one point to another
+void drag(BookEditor& editor, const QPointF& from, const QPointF& to) {
+    mouse(editor, QEvent::MouseButtonPress, from);
+    mouse(editor, QEvent::MouseMove, (from + to) / 2.0);
+    mouse(editor, QEvent::MouseMove, to);
+    mouse(editor, QEvent::MouseButtonRelease, to);
+}
+
+void key(BookEditor& editor, int key) {
+    QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+    QCoreApplication::sendEvent(&editor, &press);
+}
+
+/// The image of the first paragraph as it is in the text
+ImageProperties firstImageOf(BookEditor& editor) {
+    const std::optional<ImageProperties> image =
+        imageAt(*editor.textDocument(), editor.textDocument()->firstBlock().position());
+    REQUIRE(image);
+    return *image;
 }
 
 /// The look of an image with every property set
@@ -256,6 +295,32 @@ TEST_CASE("Image look: the pixels of a cropped and turned image", "[editor][imag
     CHECK(shownPixels(QSize(200, 100), image) == QSize(90, 100));
     image.rotation = 2;
     CHECK(shownPixels(QSize(200, 100), image) == QSize(100, 90));
+}
+
+TEST_CASE("Image look: the crop of the sides as the image is shown", "[editor][images][look]") {
+    ImageProperties image;
+    image.crop = ImageCrop{1.0, 2.0, 3.0, 4.0};  // left, top, right, bottom
+    CHECK(shownCrop(image) == image.crop);
+
+    // A quarter turn clockwise: the file's left side on top, its top on the right
+    image.rotation = 1;
+    CHECK(shownCrop(image) == ImageCrop{4.0, 1.0, 2.0, 3.0});
+    // Mirrored left to right first: its right side on top
+    image.flipHorizontal = true;
+    CHECK(shownCrop(image) == ImageCrop{4.0, 3.0, 2.0, 1.0});
+
+    // And back: each look, each side
+    for (const int rotation : {0, 1, 2, 3}) {
+        for (const bool horizontal : {false, true}) {
+            for (const bool vertical : {false, true}) {
+                image.rotation = rotation;
+                image.flipHorizontal = horizontal;
+                image.flipVertical = vertical;
+                INFO(rotation << horizontal << vertical);
+                CHECK(fileCrop(shownCrop(image), image) == image.crop);
+            }
+        }
+    }
 }
 
 TEST_CASE("Image look: the picture mirrored, turned and cropped", "[editor][images][look]") {
@@ -466,3 +531,224 @@ TEST_CASE("Image look: the editor draws the picture mirrored and its border",
     CHECK(image.pixelColor(box.right() - box.width() / 4, middle) == QColor(Qt::red));
     CHECK(image.pixelColor(box.left() + 1, middle) == QColor(0, 255, 0));
 }
+
+// =============================================================================
+// The commands of the Image menu
+// =============================================================================
+
+TEST_CASE("Image look: Rotate turns the image, an own shape with it", "[editor][images][look][commands]") {
+    BookFolder book;
+    book.add(QStringLiteral("wide.png"), filled(QSize(200, 100), Qt::green));
+    auto editor = editorWith(QStringLiteral("<kml><p><img src=\"images/wide.png\" width=\"4cm\" "
+                                            "height=\"1cm\"/></p></kml>"),
+                             book.path());
+    const int position = editor->textDocument()->firstBlock().position();
+    const QSizeF before = boxOf(*editor);
+    editor->selectImage(position);
+
+    REQUIRE(editor->rotateImage(position, 1));
+    // Still selected, for the next command of the menu
+    CHECK(editor->selectedImage() == position);
+    ImageProperties turned = firstImageOf(*editor);
+    CHECK(turned.rotation == 1);
+    // As wide as it was high and as high as it was wide
+    CHECK(turned.unit == ImageWidthUnit::Centimeters);
+    CHECK(turned.width == Approx(1.0).margin(0.02));
+    CHECK(turned.height == Approx(4.0).margin(0.02));
+    const QSizeF after = boxOf(*editor);
+    CHECK(after.width() == Approx(before.height()).margin(1.0));
+    CHECK(after.height() == Approx(before.width()).margin(1.0));
+
+    // Left from a quarter: as it was; a whole turn counts round
+    REQUIRE(editor->rotateImage(position, -1));
+    CHECK(firstImageOf(*editor).rotation == 0);
+    REQUIRE(editor->rotateImage(position, -1));
+    CHECK(firstImageOf(*editor).rotation == 3);
+    REQUIRE(editor->rotateImage(position, 2));
+    CHECK(firstImageOf(*editor).rotation == 1);
+
+    // Each one a step of Undo
+    editor->undo();
+    editor->undo();
+    editor->undo();
+    editor->undo();
+    CHECK(firstImageOf(*editor) ==
+          imageOfElement(QStringLiteral("<img src=\"images/wide.png\" width=\"4cm\" height=\"1cm\"/>")));
+
+    // Not an image: nothing
+    CHECK_FALSE(editor->rotateImage(position + 1, 1));
+}
+
+TEST_CASE("Image look: Flip mirrors the image as it is shown", "[editor][images][look][commands]") {
+    BookFolder book;
+    book.add(QStringLiteral("wide.png"), filled(QSize(200, 100), Qt::green));
+    auto editor = editorWith(QStringLiteral("<kml><p><img src=\"images/wide.png\"/></p></kml>"), book.path());
+    const int position = editor->textDocument()->firstBlock().position();
+
+    REQUIRE(editor->flipImage(position, Qt::Horizontal));
+    CHECK(firstImageOf(*editor).flipHorizontal);
+    CHECK_FALSE(firstImageOf(*editor).flipVertical);
+    REQUIRE(editor->flipImage(position, Qt::Horizontal));
+    CHECK_FALSE(firstImageOf(*editor).flipHorizontal);
+
+    // Turned a quarter: across the image shown is down its file
+    REQUIRE(editor->rotateImage(position, 1));
+    REQUIRE(editor->flipImage(position, Qt::Horizontal));
+    CHECK_FALSE(firstImageOf(*editor).flipHorizontal);
+    CHECK(firstImageOf(*editor).flipVertical);
+    REQUIRE(editor->flipImage(position, Qt::Vertical));
+    CHECK(firstImageOf(*editor).flipHorizontal);
+}
+
+TEST_CASE("Image look: Filter gives the image its colors", "[editor][images][look][commands]") {
+    BookFolder book;
+    book.add(QStringLiteral("wide.png"), filled(QSize(200, 100), Qt::green));
+    auto editor = editorWith(QStringLiteral("<kml><p><img src=\"images/wide.png\"/></p></kml>"), book.path());
+    const int position = editor->textDocument()->firstBlock().position();
+
+    REQUIRE(editor->setImageFilter(position, ImageFilter::Sepia));
+    CHECK(firstImageOf(*editor).filter == ImageFilter::Sepia);
+    // The same filter again: no change, no step of Undo
+    CHECK_FALSE(editor->setImageFilter(position, ImageFilter::Sepia));
+    editor->undo();
+    CHECK(firstImageOf(*editor).filter == ImageFilter::None);
+    CHECK_FALSE(editor->canUndo());
+}
+
+TEST_CASE("Image look: Ctrl+] and Ctrl+[ make the image larger and smaller", "[editor][images][look][commands]") {
+    BookFolder book;
+    book.add(QStringLiteral("wide.png"), filled(QSize(200, 100), Qt::green));
+    auto editor = editorWith(QStringLiteral("<kml><p><img src=\"images/wide.png\" width=\"4cm\"/></p></kml>"),
+                             book.path());
+    const int position = editor->textDocument()->firstBlock().position();
+
+    REQUIRE(editor->resizeImageByStep(position, true));
+    ImageProperties image = firstImageOf(*editor);
+    CHECK(image.unit == ImageWidthUnit::Centimeters);
+    CHECK(image.width == Approx(4.0 * (1.0 + IMAGE_KEY_RESIZE)).margin(0.02));
+    REQUIRE(editor->resizeImageByStep(position, false));
+    CHECK(firstImageOf(*editor).width == Approx(4.0 * (1.0 + IMAGE_KEY_RESIZE) * (1.0 - IMAGE_KEY_RESIZE)).margin(0.02));
+
+    // As wide as its line: no larger; smaller from the width it is shown, in its own unit
+    auto full = editorWith(QStringLiteral("<kml><p><img src=\"images/wide.png\" width=\"100%\"/></p></kml>"),
+                           book.path());
+    const qreal widest = boxOf(*full).width();
+    CHECK_FALSE(full->resizeImageByStep(position, true));
+    CHECK_FALSE(full->canUndo());
+    REQUIRE(full->resizeImageByStep(position, false));
+    CHECK(firstImageOf(*full).unit == ImageWidthUnit::Percent);
+    CHECK(boxOf(*full).width() == Approx(widest * (1.0 - IMAGE_KEY_RESIZE)).margin(widest / 100.0));
+}
+
+TEST_CASE("Image look: Esc on the selected image goes back to the text", "[editor][images][look][commands]") {
+    BookFolder book;
+    book.add(QStringLiteral("wide.png"), filled(QSize(200, 100), Qt::green));
+    auto editor = editorWith(QStringLiteral("<kml><p>Ab<img src=\"images/wide.png\"/>cd</p></kml>"), book.path());
+    const int position = editor->textDocument()->firstBlock().position() + 2;
+    editor->selectImage(position);
+    REQUIRE(editor->selectedImage() == position);
+
+    // Esc is the editor's, before the shortcuts of the window
+    QKeyEvent override(QEvent::ShortcutOverride, Qt::Key_Escape, Qt::NoModifier);
+    QCoreApplication::sendEvent(editor.get(), &override);
+    CHECK(override.isAccepted());
+
+    key(*editor, Qt::Key_Escape);
+    CHECK_FALSE(editor->selectedImage());
+    CHECK_FALSE(editor->hasSelection());
+    CHECK(editor->cursorPosition() == CursorPosition{0, 3});
+
+    // Without a selected image Esc is not the editor's
+    QKeyEvent again(QEvent::ShortcutOverride, Qt::Key_Escape, Qt::NoModifier);
+    again.ignore();
+    QCoreApplication::sendEvent(editor.get(), &again);
+    CHECK_FALSE(again.isAccepted());
+}
+
+TEST_CASE("Image look: Crop in the text", "[editor][images][look][commands][crop]") {
+    BookFolder book;
+    book.add(QStringLiteral("wide.png"), filled(QSize(200, 100), Qt::green));
+    const QString kml = QStringLiteral("<kml><p><img src=\"images/wide.png\"/></p><p>Text after it</p></kml>");
+    auto editor = editorWith(kml, book.path());
+    const int position = editor->textDocument()->firstBlock().position();
+    const std::optional<QRectF> rect = editor->imageRect(position);
+    REQUIRE(rect);
+    const QSizeF before = boxOf(*editor);
+    // The mark of the left side, just outside it, and of the bottom right corner
+    const QPointF left(rect->left() - 1.0, rect->center().y());
+    const QPointF corner(rect->right() + 1.0, rect->bottom() + 1.0);
+
+    REQUIRE(editor->startImageCrop(position));
+    REQUIRE(editor->imageCropInProgress());
+    CHECK(*editor->imageCropInProgress() == ImageCrop{});
+    CHECK(editor->selectedImage() == position);
+
+    SECTION("Enter crops the image to where the marks are") {
+        drag(*editor, left, left + QPointF(rect->width() / 4.0, 0.0));
+        CHECK(editor->imageCropInProgress()->left == Approx(25.0).margin(1.0));
+        // A press on the picture, its cut part too: still cropping
+        click(*editor, QPointF(rect->left() + 5.0, rect->center().y()));
+        REQUIRE(editor->imageCropInProgress());
+        CHECK_FALSE(editor->canUndo());
+
+        key(*editor, Qt::Key_Return);
+        CHECK_FALSE(editor->imageCropInProgress());
+        const ImageProperties image = firstImageOf(*editor);
+        CHECK(image.crop.left == Approx(25.0).margin(1.0));
+        CHECK(image.crop.right == 0.0);
+        // The rest of the picture as large as it was
+        CHECK(boxOf(*editor).width() == Approx(before.width() * 0.75).margin(2.0));
+        CHECK(boxOf(*editor).height() == Approx(before.height()).margin(1.0));
+        // One step of Undo
+        editor->undo();
+        CHECK(firstImageOf(*editor).crop == ImageCrop{});
+        CHECK_FALSE(editor->canUndo());
+    }
+
+    SECTION("A corner takes two sides; a click elsewhere crops the image") {
+        drag(*editor, corner, corner - QPointF(rect->width() / 10.0, rect->height() / 5.0));
+        CHECK(editor->imageCropInProgress()->right == Approx(10.0).margin(1.0));
+        CHECK(editor->imageCropInProgress()->bottom == Approx(20.0).margin(1.0));
+        CHECK(editor->imageCropInProgress()->left == 0.0);
+        // In the text below it
+        click(*editor, QPointF(rect->left() + 5.0, rect->bottom() + 40.0));
+        CHECK_FALSE(editor->imageCropInProgress());
+        CHECK(firstImageOf(*editor).crop.right == Approx(10.0).margin(1.0));
+        CHECK(firstImageOf(*editor).crop.bottom == Approx(20.0).margin(1.0));
+    }
+
+    SECTION("Esc leaves the image as it was") {
+        drag(*editor, left, left + QPointF(rect->width() / 2.0, 0.0));
+        QKeyEvent override(QEvent::ShortcutOverride, Qt::Key_Escape, Qt::NoModifier);
+        QCoreApplication::sendEvent(editor.get(), &override);
+        CHECK(override.isAccepted());
+        key(*editor, Qt::Key_Escape);
+        CHECK_FALSE(editor->imageCropInProgress());
+        CHECK(firstImageOf(*editor).crop == ImageCrop{});
+        CHECK_FALSE(editor->canUndo());
+        // The image stays selected: a second Esc goes back to the text
+        CHECK(editor->selectedImage() == position);
+    }
+
+    SECTION("Some of the picture always stays") {
+        drag(*editor, left, QPointF(rect->right() + 50.0, rect->center().y()));
+        CHECK(editor->imageCropInProgress()->left == Approx(MAX_IMAGE_CROP));
+    }
+
+    SECTION("The keys of the text wait, the image changed ends the cropping") {
+        key(*editor, Qt::Key_A);
+        CHECK(editor->toKml() == editorWith(kml, book.path())->toKml());
+        REQUIRE(editor->imageCropInProgress());
+        REQUIRE(editor->rotateImage(position, 1));
+        CHECK_FALSE(editor->imageCropInProgress());
+    }
+
+    SECTION("Not in a read-only text, nor without its picture") {
+        editor->finishImageCrop(false);
+        editor->setReadOnly(true);
+        CHECK_FALSE(editor->startImageCrop(position));
+        auto missing = editorWith(QStringLiteral("<kml><p><img src=\"images/none.png\"/></p></kml>"), book.path());
+        CHECK_FALSE(missing->startImageCrop(position));
+    }
+}
+

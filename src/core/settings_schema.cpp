@@ -248,6 +248,7 @@ std::map<std::string, json> buildDefaults() {
         // goes to, keeping headings, quotes, emphasis and lines), "source" (also its fonts,
         // sizes and colors) or "text" (only the text)
         {"editor.paste.mode", "merge"},
+        {"editor.images.keepSizeOnChange", true},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},

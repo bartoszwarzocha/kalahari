@@ -180,6 +180,10 @@ public:
     ImageProperties imageOfWidth(const QTextBlock& block, const ImageProperties& image,
                                  qreal width) const;
 
+    /// @brief The width of a block's lines an image's percent is of (the area less the
+    ///        paragraph's indents)
+    qreal imageLineWidth(const QTextBlock& block) const;
+
     /// @brief The room an image's frame takes around its picture (the layout's pixels): its
     ///        border and the room inside it on each side, its shadow to the right and down
     QMarginsF imageFrameMargins(const ImageProperties& image) const;
@@ -574,9 +578,6 @@ private:
     ///        the cell's text
     qreal areaWidth(const QTextBlock& block) const;
 
-    /// @brief The width of a block's lines an image's percent is of (the area less the
-    ///        paragraph's indents)
-    qreal imageLineWidth(const QTextBlock& block) const;
 
     /// @brief Draw an image in its box: its frame, and inside it its picture or the frame of
     ///        a missing file

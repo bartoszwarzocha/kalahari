@@ -685,7 +685,7 @@ TEST_CASE("Images: a double click on an image asks for its properties", "[editor
     REQUIRE(rect);
     std::vector<int> asked;
     QObject::connect(editor.get(), &BookEditor::imagePropertiesAsked,
-                     [&asked](int at) { asked.push_back(at); });
+                     [&asked](int at, int) { asked.push_back(at); });
     click(*editor, rect->center());
     mouse(*editor, QEvent::MouseButtonDblClick, rect->center());
     mouse(*editor, QEvent::MouseButtonRelease, rect->center());

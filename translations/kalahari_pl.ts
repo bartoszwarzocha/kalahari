@@ -1238,6 +1238,78 @@
         <source>Repetiti&amp;ons in Text</source>
         <translation>Powtórzeni&amp;a w tekście</translation>
     </message>
+    <message>
+        <source>Image Prop&amp;erties...</source>
+        <translation>Właściwości &amp;obrazu...</translation>
+    </message>
+    <message>
+        <source>Add Capt&amp;ion</source>
+        <translation>&amp;Dodaj podpis</translation>
+    </message>
+    <message>
+        <source>A&amp;lternative Text...</source>
+        <translation>Tekst &amp;alternatywny...</translation>
+    </message>
+    <message>
+        <source>Rotate &amp;Right 90°</source>
+        <translation>Obróć w &amp;prawo o 90°</translation>
+    </message>
+    <message>
+        <source>Rotate &amp;Left 90°</source>
+        <translation>Obróć w &amp;lewo o 90°</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Horizontally</source>
+        <translation>Odbij w p&amp;oziomie</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertically</source>
+        <translation>Odbij w pio&amp;nie</translation>
+    </message>
+    <message>
+        <source>&amp;More Rotation Options...</source>
+        <translation>Więcej opcji o&amp;brotu...</translation>
+    </message>
+    <message>
+        <source>&amp;Original</source>
+        <translation>&amp;Oryginał</translation>
+    </message>
+    <message>
+        <source>&amp;Grayscale</source>
+        <translation>Odcienie &amp;szarości</translation>
+    </message>
+    <message>
+        <source>&amp;Sepia</source>
+        <translation>S&amp;epia</translation>
+    </message>
+    <message>
+        <source>&amp;Black and White</source>
+        <translation>&amp;Czarno-biały</translation>
+    </message>
+    <message>
+        <source>&amp;Washout</source>
+        <translation>Znak &amp;wodny</translation>
+    </message>
+    <message>
+        <source>&amp;Colors and Brightness...</source>
+        <translation>Kolory i &amp;jasność...</translation>
+    </message>
+    <message>
+        <source>C&amp;rop</source>
+        <translation>&amp;Przytnij</translation>
+    </message>
+    <message>
+        <source>Original Si&amp;ze</source>
+        <translation>Rozmiar ory&amp;ginalny</translation>
+    </message>
+    <message>
+        <source>C&amp;hange Image...</source>
+        <translation>Zmień o&amp;braz...</translation>
+    </message>
+    <message>
+        <source>Sa&amp;ve as Image...</source>
+        <translation>Zapisz &amp;jako obraz...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -2491,6 +2563,21 @@ Uruchomić ponownie teraz?</translation>
         <source>&amp;Convert</source>
         <translation>&amp;Konwertuj</translation>
     </message>
+    <message>
+        <source>I&amp;mage</source>
+        <extracomment>The menu of the selected image, between Table and Tools. In Polish: O&amp;braz</extracomment>
+        <translation>O&amp;braz</translation>
+    </message>
+    <message>
+        <source>R&amp;otate</source>
+        <extracomment>In Polish: Ob&amp;róć</extracomment>
+        <translation>Ob&amp;róć</translation>
+    </message>
+    <message>
+        <source>&amp;Filter</source>
+        <extracomment>In Polish: &amp;Filtr</extracomment>
+        <translation>&amp;Filtr</translation>
+    </message>
 </context>
 <context>
     <name>QPlatformTheme</name>
@@ -3700,6 +3787,21 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Sa&amp;ve as Image...</source>
         <extracomment>In Polish: Zapisz &amp;jako obraz...</extracomment>
         <translation>Zapisz &amp;jako obraz...</translation>
+    </message>
+    <message>
+        <source>R&amp;otate</source>
+        <extracomment>The context menu of an image, as the Image menu&apos;s submenus. In Polish: Ob&amp;róć</extracomment>
+        <translation>Ob&amp;róć</translation>
+    </message>
+    <message>
+        <source>&amp;Filter</source>
+        <extracomment>In Polish: &amp;Filtr</extracomment>
+        <translation>&amp;Filtr</translation>
+    </message>
+    <message>
+        <source>Crop: drag the marks · Enter – done · Esc – cancel</source>
+        <extracomment>What the keys and the mouse do while an image is cropped in the text. In Polish: Przytnij: przeciągnij znaczniki · Enter – gotowe · Esc – anuluj</extracomment>
+        <translation>Przytnij: przeciągnij znaczniki · Enter – gotowe · Esc – anuluj</translation>
     </message>
 </context>
 <context>
@@ -5986,6 +6088,11 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <source>Current search hit</source>
         <translation>Bieżące wystąpienie</translation>
     </message>
+    <message>
+        <source>Crop marks of an image</source>
+        <extracomment>The marks at the sides of an image being cropped in the text. In Polish: Znaczniki przycinania obrazu</extracomment>
+        <translation>Znaczniki przycinania obrazu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -7026,7 +7133,7 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     </message>
     <message>
         <source>Change Image</source>
-        <extracomment>The system window of Change Image... of an image&apos;s context menu. In Polish: Zmień obraz</extracomment>
+        <extracomment>The system window of Change Image... In Polish: Zmień obraz</extracomment>
         <translation>Zmień obraz</translation>
     </message>
     <message>
@@ -8017,6 +8124,21 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>Save the file first: its images are kept in a folder next to it</source>
         <extracomment>Why Insert &gt; Image... is greyed out in a new file. In Polish: Najpierw zapisz plik: jego obrazy są przechowywane w folderze obok niego</extracomment>
         <translation>Najpierw zapisz plik: jego obrazy są przechowywane w folderze obok niego</translation>
+    </message>
+    <message>
+        <source>Select an image in the text</source>
+        <extracomment>Why the commands of the Image menu are greyed out. In Polish: Zaznacz obraz w tekście</extracomment>
+        <translation>Zaznacz obraz w tekście</translation>
+    </message>
+    <message>
+        <source>The image&apos;s file is not in the book&apos;s folder</source>
+        <extracomment>Why Image &gt; Crop and Save as Image... are greyed out for an image whose file is not in the book&apos;s folder of images. In Polish: Brak pliku obrazu w folderze książki</extracomment>
+        <translation>Brak pliku obrazu w folderze książki</translation>
+    </message>
+    <message>
+        <source>The image already has the size of its file</source>
+        <extracomment>Why Image &gt; Original Size is greyed out. In Polish: Obraz ma już rozmiar swojego pliku</extracomment>
+        <translation>Obraz ma już rozmiar swojego pliku</translation>
     </message>
 </context>
 <context>
@@ -10696,6 +10818,31 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Switch the pages Close Together and Most Frequent</source>
         <extracomment>In Polish: Przełącz karty „Blisko siebie” i „Najczęstsze”</extracomment>
         <translation>Przełącz karty „Blisko siebie” i „Najczęstsze”</translation>
+    </message>
+    <message>
+        <source>Fixed: an image in the text</source>
+        <extracomment>In Polish: Stałe: obraz w tekście</extracomment>
+        <translation>Stałe: obraz w tekście</translation>
+    </message>
+    <message>
+        <source>Larger / smaller (the selected image)</source>
+        <extracomment>In Polish: Większy / mniejszy (zaznaczony obraz)</extracomment>
+        <translation>Większy / mniejszy (zaznaczony obraz)</translation>
+    </message>
+    <message>
+        <source>Back to the text (the selected image)</source>
+        <extracomment>In Polish: Powrót do tekstu (zaznaczony obraz)</extracomment>
+        <translation>Powrót do tekstu (zaznaczony obraz)</translation>
+    </message>
+    <message>
+        <source>Crop (cropping in the text)</source>
+        <extracomment>In Polish: Przytnij (przycinanie w tekście)</extracomment>
+        <translation>Przytnij (przycinanie w tekście)</translation>
+    </message>
+    <message>
+        <source>Leave as it was (cropping in the text)</source>
+        <extracomment>In Polish: Zostaw bez zmian (przycinanie w tekście)</extracomment>
+        <translation>Zostaw bez zmian (przycinanie w tekście)</translation>
     </message>
 </context>
 <context>
@@ -13999,6 +14146,440 @@ Harmonogram projektu:
     <message>
         <source>&amp;Remove Link</source>
         <translation>&amp;Usuń łącze</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ImagePreview</name>
+    <message>
+        <source>Image file missing</source>
+        <translation>Brak pliku obrazu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ImagePropertiesDialog</name>
+    <message>
+        <source>%1 pt</source>
+        <extracomment>The width of the line of an image&apos;s border, in points: &quot;0.5 pt&quot;. In Polish: %1 pt</extracomment>
+        <translation>%1 pt</translation>
+    </message>
+    <message>
+        <source>Image Properties</source>
+        <extracomment>In Polish: Właściwości obrazu</extracomment>
+        <translation>Właściwości obrazu</translation>
+    </message>
+    <message>
+        <source>The look of the selected image: its file, size, crop, border, colors and description.</source>
+        <extracomment>In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory i opis.</extracomment>
+        <translation>Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory i opis.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Pages</source>
+        <extracomment>The list of the pages of Image Properties. In Polish: Części okna</extracomment>
+        <translation>Części okna</translation>
+    </message>
+    <message>
+        <source>&amp;Image</source>
+        <extracomment>The pages of Image Properties. In Polish: &amp;Obraz</extracomment>
+        <translation>&amp;Obraz</translation>
+    </message>
+    <message>
+        <source>&amp;Size and Rotation</source>
+        <extracomment>In Polish: &amp;Rozmiar i obrót</extracomment>
+        <translation>&amp;Rozmiar i obrót</translation>
+    </message>
+    <message>
+        <source>&amp;Crop</source>
+        <extracomment>In Polish: &amp;Przycięcie</extracomment>
+        <translation>&amp;Przycięcie</translation>
+    </message>
+    <message>
+        <source>&amp;Border</source>
+        <extracomment>In Polish: Obramo&amp;wanie</extracomment>
+        <translation>Obramo&amp;wanie</translation>
+    </message>
+    <message>
+        <source>C&amp;olors</source>
+        <extracomment>In Polish: &amp;Kolory</extracomment>
+        <translation>&amp;Kolory</translation>
+    </message>
+    <message>
+        <source>&amp;Description</source>
+        <extracomment>In Polish: Op&amp;is</extracomment>
+        <translation>Op&amp;is</translation>
+    </message>
+    <message>
+        <source>Preview of the image</source>
+        <extracomment>In Polish: Podgląd obrazu</extracomment>
+        <translation>Podgląd obrazu</translation>
+    </message>
+    <message>
+        <source>C&amp;hange Image...</source>
+        <extracomment>In Polish: Z&amp;mień obraz...</extracomment>
+        <translation>Z&amp;mień obraz...</translation>
+    </message>
+    <message>
+        <source>Sa&amp;ve as Image...</source>
+        <extracomment>In Polish: Zapisz j&amp;ako obraz...</extracomment>
+        <translation>Zapisz j&amp;ako obraz...</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the size and crop when the image is changed</source>
+        <extracomment>In Polish: Przy zmianie obrazu zac&amp;howaj rozmiar i przycięcie</extracomment>
+        <translation>Przy zmianie obrazu zac&amp;howaj rozmiar i przycięcie</translation>
+    </message>
+    <message>
+        <source>The file is in the book&apos;s folder of images (images/). An image inserted from elsewhere goes there as a copy; the original stays as it was.</source>
+        <extracomment>In Polish: Plik jest w folderze obrazów książki (images/). Obraz wstawiony z innego miejsca trafia tam jako kopia, a oryginał zostaje nietknięty.</extracomment>
+        <translation>Plik jest w folderze obrazów książki (images/). Obraz wstawiony z innego miejsca trafia tam jako kopia, a oryginał zostaje nietknięty.</translation>
+    </message>
+    <message>
+        <source>Image Not Changed</source>
+        <extracomment>In Polish: Nie można zmienić obrazu</extracomment>
+        <translation>Nie można zmienić obrazu</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; is not a picture Kalahari can show (PNG, JPEG, GIF, BMP, SVG).</source>
+        <extracomment>In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać (PNG, JPEG, GIF, BMP, SVG).</extracomment>
+        <translation>Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać (PNG, JPEG, GIF, BMP, SVG).</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <extracomment>In Polish: Rozmiar</extracomment>
+        <translation>Rozmiar</translation>
+    </message>
+    <message>
+        <source>% of the text width</source>
+        <extracomment>The units of an image&apos;s width. In Polish: % szerokości tekstu</extracomment>
+        <translation>% szerokości tekstu</translation>
+    </message>
+    <message>
+        <source>% of the original</source>
+        <extracomment>In Polish: % oryginału</extracomment>
+        <translation>% oryginału</translation>
+    </message>
+    <message>
+        <source>Length</source>
+        <extracomment>The width of an image as a length (cm, mm, in...). In Polish: Długość</extracomment>
+        <translation>Długość</translation>
+    </message>
+    <message>
+        <source>Unit of the width</source>
+        <extracomment>In Polish: Jednostka szerokości</extracomment>
+        <translation>Jednostka szerokości</translation>
+    </message>
+    <message>
+        <source>Unit of the height</source>
+        <extracomment>In Polish: Jednostka wysokości</extracomment>
+        <translation>Jednostka wysokości</translation>
+    </message>
+    <message>
+        <source>&amp;Width</source>
+        <extracomment>In Polish: &amp;Szerokość</extracomment>
+        <translation>&amp;Szerokość</translation>
+    </message>
+    <message>
+        <source>&amp;Width</source>
+        <comment>line</comment>
+        <extracomment>The width of the border&apos;s line. In Polish: Gr&amp;ubość</extracomment>
+        <translation>Gr&amp;ubość</translation>
+    </message>
+    <message>
+        <source>&amp;Height</source>
+        <extracomment>In Polish: W&amp;ysokość</extracomment>
+        <translation>W&amp;ysokość</translation>
+    </message>
+    <message>
+        <source>&amp;Keep proportions</source>
+        <extracomment>In Polish: Zac&amp;howaj proporcje</extracomment>
+        <translation>Zac&amp;howaj proporcje</translation>
+    </message>
+    <message>
+        <source>Original Si&amp;ze</source>
+        <extracomment>In Polish: Rozmiar ory&amp;ginalny</extracomment>
+        <translation>Rozmiar ory&amp;ginalny</translation>
+    </message>
+    <message>
+        <source>Rotation and Flip</source>
+        <extracomment>In Polish: Obrót i odbicie</extracomment>
+        <translation>Obrót i odbicie</translation>
+    </message>
+    <message>
+        <source>%1°</source>
+        <extracomment>An angle of an image&apos;s rotation: &quot;90°&quot;. In Polish: %1°</extracomment>
+        <translation>%1°</translation>
+    </message>
+    <message>
+        <source>&amp;Angle</source>
+        <extracomment>In Polish: Ką&amp;t</extracomment>
+        <translation>Ką&amp;t</translation>
+    </message>
+    <message>
+        <source>Rotate &amp;Left 90°</source>
+        <extracomment>In Polish: Obróć w &amp;lewo o 90°</extracomment>
+        <translation>Obróć w &amp;lewo o 90°</translation>
+    </message>
+    <message>
+        <source>Rotate &amp;Right 90°</source>
+        <extracomment>In Polish: Obróć w pr&amp;awo o 90°</extracomment>
+        <translation>Obróć w pr&amp;awo o 90°</translation>
+    </message>
+    <message>
+        <source>Flip Horizo&amp;ntally</source>
+        <extracomment>In Polish: Odbij w poziomi&amp;e</extracomment>
+        <translation>Odbij w poziomi&amp;e</translation>
+    </message>
+    <message>
+        <source>Flip &amp;Vertically</source>
+        <extracomment>In Polish: Odbij w pio&amp;nie</extracomment>
+        <translation>Odbij w pio&amp;nie</translation>
+    </message>
+    <message>
+        <source>Preview of the crop</source>
+        <extracomment>In Polish: Podgląd przycięcia</extracomment>
+        <translation>Podgląd przycięcia</translation>
+    </message>
+    <message>
+        <source>&amp;Left</source>
+        <extracomment>The sides of an image&apos;s crop. In Polish: Z &amp;lewej</extracomment>
+        <translation>Z &amp;lewej</translation>
+    </message>
+    <message>
+        <source>&amp;Right</source>
+        <extracomment>In Polish: Z pr&amp;awej</extracomment>
+        <translation>Z pr&amp;awej</translation>
+    </message>
+    <message>
+        <source>&amp;Top</source>
+        <extracomment>In Polish: Z &amp;góry</extracomment>
+        <translation>Z &amp;góry</translation>
+    </message>
+    <message>
+        <source>Botto&amp;m</source>
+        <extracomment>In Polish: Z doł&amp;u</extracomment>
+        <translation>Z doł&amp;u</translation>
+    </message>
+    <message>
+        <source>Free</source>
+        <extracomment>The proportions of a crop. In Polish: Dowolne</extracomment>
+        <translation>Dowolne</translation>
+    </message>
+    <message>
+        <source>As the original</source>
+        <extracomment>In Polish: Jak oryginał</extracomment>
+        <translation>Jak oryginał</translation>
+    </message>
+    <message>
+        <source>&amp;Aspect ratio</source>
+        <extracomment>In Polish: Propor&amp;cje</extracomment>
+        <translation>Propor&amp;cje</translation>
+    </message>
+    <message>
+        <source>Keep the image&apos;s si&amp;ze in the text</source>
+        <extracomment>In Polish: Zac&amp;howaj rozmiar obrazu w tekście</extracomment>
+        <translation>Zac&amp;howaj rozmiar obrazu w tekście</translation>
+    </message>
+    <message>
+        <source>Keep the scal&amp;e (the image gets smaller)</source>
+        <extracomment>In Polish: Zachowaj &amp;skalę (obraz się zmniejsza)</extracomment>
+        <translation>Zachowaj &amp;skalę (obraz się zmniejsza)</translation>
+    </message>
+    <message>
+        <source>Crop in the Te&amp;xt</source>
+        <extracomment>Closes the window and shows the marks of the crop on the image in the text. In Polish: Przytnij w &amp;tekście</extracomment>
+        <translation>Przytnij w &amp;tekście</translation>
+    </message>
+    <message>
+        <source>Remo&amp;ve Crop</source>
+        <extracomment>In Polish: &amp;Bez przycięcia</extracomment>
+        <translation>&amp;Bez przycięcia</translation>
+    </message>
+    <message>
+        <source>The crop takes nothing out of the file; it can be changed or removed at any time.</source>
+        <extracomment>In Polish: Przycięcie niczego nie usuwa z pliku; można je zmienić albo zdjąć w każdej chwili.</extracomment>
+        <translation>Przycięcie niczego nie usuwa z pliku; można je zmienić albo zdjąć w każdej chwili.</translation>
+    </message>
+    <message>
+        <source>Preview of the border</source>
+        <extracomment>In Polish: Podgląd obramowania</extracomment>
+        <translation>Podgląd obramowania</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <extracomment>The lines of an image&apos;s border. In Polish: Brak, Ciągła, Kreskowana, Kropkowana, Podwójna</extracomment>
+        <translation>Brak</translation>
+    </message>
+    <message>
+        <source>Solid</source>
+        <translation>Ciągła</translation>
+    </message>
+    <message>
+        <source>Dashed</source>
+        <translation>Kreskowana</translation>
+    </message>
+    <message>
+        <source>Dotted</source>
+        <translation>Kropkowana</translation>
+    </message>
+    <message>
+        <source>Double</source>
+        <translation>Podwójna</translation>
+    </message>
+    <message>
+        <source>&amp;Line</source>
+        <extracomment>In Polish: Li&amp;nia</extracomment>
+        <translation>Li&amp;nia</translation>
+    </message>
+    <message>
+        <source>Colo&amp;r</source>
+        <extracomment>In Polish: &amp;Barwa</extracomment>
+        <translation>&amp;Barwa</translation>
+    </message>
+    <message>
+        <source>S&amp;pace inside</source>
+        <extracomment>The room between an image&apos;s border and its picture. In Polish: Ods&amp;tęp od obrazu</extracomment>
+        <translation>Ods&amp;tęp od obrazu</translation>
+    </message>
+    <message>
+        <source>S&amp;hadow</source>
+        <extracomment>In Polish: &amp;Cień</extracomment>
+        <translation>&amp;Cień</translation>
+    </message>
+    <message>
+        <source>The color Automatic is the color of the text. The colors to choose from are set in Settings.</source>
+        <extracomment>In Polish: Barwa „Automatyczna” to kolor tekstu. Listę barw do wyboru można zmienić w Ustawieniach.</extracomment>
+        <translation>Barwa „Automatyczna” to kolor tekstu. Listę barw do wyboru można zmienić w Ustawieniach.</translation>
+    </message>
+    <message>
+        <source>Origin&amp;al</source>
+        <extracomment>The filters of an image. In Polish: Or&amp;yginał</extracomment>
+        <translation>Or&amp;yginał</translation>
+    </message>
+    <message>
+        <source>&amp;Grayscale</source>
+        <extracomment>In Polish: Odcienie s&amp;zarości</extracomment>
+        <translation>Odcienie s&amp;zarości</translation>
+    </message>
+    <message>
+        <source>S&amp;epia</source>
+        <extracomment>In Polish: S&amp;epia</extracomment>
+        <translation>S&amp;epia</translation>
+    </message>
+    <message>
+        <source>Black and &amp;White</source>
+        <extracomment>In Polish: &amp;Czarno-biały</extracomment>
+        <translation>&amp;Czarno-biały</translation>
+    </message>
+    <message>
+        <source>Was&amp;h</source>
+        <extracomment>A pale picture, to stand behind the text. In Polish: Z&amp;nak wodny</extracomment>
+        <translation>Z&amp;nak wodny</translation>
+    </message>
+    <message>
+        <source>Preview of the image with its filter</source>
+        <extracomment>In Polish: Podgląd obrazu z filtrem</extracomment>
+        <translation>Podgląd obrazu z filtrem</translation>
+    </message>
+    <message>
+        <source>B&amp;rightness</source>
+        <extracomment>In Polish: &amp;Jasność</extracomment>
+        <translation>&amp;Jasność</translation>
+    </message>
+    <message>
+        <source>Co&amp;ntrast</source>
+        <extracomment>In Polish: Kon&amp;trast</extracomment>
+        <translation>Kon&amp;trast</translation>
+    </message>
+    <message>
+        <source>&amp;Threshold</source>
+        <extracomment>The gray that becomes black in Black and White. In Polish: Pró&amp;g czerni</extracomment>
+        <translation>Pró&amp;g czerni</translation>
+    </message>
+    <message>
+        <source>Trans&amp;parency</source>
+        <extracomment>In Polish: Przezroczy&amp;stość</extracomment>
+        <translation>Przezroczy&amp;stość</translation>
+    </message>
+    <message>
+        <source>Reset to Origina&amp;l</source>
+        <extracomment>In Polish: Przywróć orygin&amp;ał</extracomment>
+        <translation>Przywróć orygin&amp;ał</translation>
+    </message>
+    <message>
+        <source>The filter does not change the file: it is kept in the book and goes to the export.</source>
+        <extracomment>In Polish: Filtr nie zmienia pliku: jest zapisany w książce i trafia do eksportu.</extracomment>
+        <translation>Filtr nie zmienia pliku: jest zapisany w książce i trafia do eksportu.</translation>
+    </message>
+    <message>
+        <source>&amp;Name</source>
+        <extracomment>In Polish: &amp;Nazwa</extracomment>
+        <translation>&amp;Nazwa</translation>
+    </message>
+    <message>
+        <source>In the Navigator, the window of a cross-reference and the results of a search.</source>
+        <extracomment>In Polish: W Nawigatorze, w oknie wstawiania odsyłacza i w wynikach wyszukiwania.</extracomment>
+        <translation>W Nawigatorze, w oknie wstawiania odsyłacza i w wynikach wyszukiwania.</translation>
+    </message>
+    <message>
+        <source>&amp;Alternative text</source>
+        <extracomment>In Polish: Tekst &amp;alternatywny</extracomment>
+        <translation>Tekst &amp;alternatywny</translation>
+    </message>
+    <message>
+        <source>A screen reader reads it instead of the image; it goes to EPUB, DOCX and PDF too.</source>
+        <extracomment>In Polish: Czytnik ekranu odczytuje go zamiast obrazu; trafia też do EPUB, DOCX i PDF.</extracomment>
+        <translation>Czytnik ekranu odczytuje go zamiast obrazu; trafia też do EPUB, DOCX i PDF.</translation>
+    </message>
+    <message>
+        <source>&amp;Long description</source>
+        <extracomment>In Polish: Opis &amp;szczegółowy</extracomment>
+        <translation>Opis &amp;szczegółowy</translation>
+    </message>
+    <message>
+        <source>Only decorati&amp;ve – screen readers skip it</source>
+        <extracomment>In Polish: Obraz &amp;tylko ozdobny – czytnik ekranu go pomija</extracomment>
+        <translation>Obraz &amp;tylko ozdobny – czytnik ekranu go pomija</translation>
+    </message>
+    <message>
+        <source>Image file missing</source>
+        <extracomment>In Polish: Brak pliku obrazu</extracomment>
+        <translation>Brak pliku obrazu</translation>
+    </message>
+    <message>
+        <source>%1 · %2 × %3 pixels · %4</source>
+        <extracomment>The file of an image: its format, its pixels and its size (&quot;PNG · 1600 × 864 pixels · 412 KB&quot;). In Polish: %1 · %2 × %3 pikseli · %4</extracomment>
+        <translation>%1 · %2 × %3 pikseli · %4</translation>
+    </message>
+    <message>
+        <source>File: %1</source>
+        <extracomment>The file of an image, in the book&apos;s folder. In Polish: Plik: %1</extracomment>
+        <translation>Plik: %1</translation>
+    </message>
+    <message>
+        <source>New file: %1 (copied into the folder of images with OK)</source>
+        <translation>Nowy plik: %1 (trafi do folderu obrazów po kliknięciu OK)</translation>
+    </message>
+    <message>
+        <source>Scale: %1% of the original</source>
+        <extracomment>The size of an image against its file&apos;s own. In Polish: Skala: %1% oryginału</extracomment>
+        <translation>Skala: %1% oryginału</translation>
+    </message>
+    <message>
+        <source>Scale: %1% × %2% of the original</source>
+        <translation>Skala: %1% × %2% oryginału</translation>
+    </message>
+    <message>
+        <source>%1 × %2 pixels = %3 × %4 at 96 dpi; in the text at most its width</source>
+        <extracomment>The file&apos;s own size of an image: its pixels and their length at 96 an inch; an image is never wider than its line. In Polish: %1 × %2 pikseli = %3 × %4 przy 96 dpi; w tekście nie szerzej niż wiersz</extracomment>
+        <translation>%1 × %2 pikseli = %3 × %4 przy 96 dpi; w tekście nie szerzej niż wiersz</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <extracomment>The color of an image&apos;s border: the color of the text. In Polish: Automatyczna</extracomment>
+        <translation>Automatyczna</translation>
     </message>
 </context>
 <context>

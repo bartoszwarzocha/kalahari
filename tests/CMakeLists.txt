@@ -179,6 +179,7 @@ set(TEST_SOURCES
     gui/test_hyperlink_dialog.cpp                # Insert > Link...
     gui/test_insert_table_dialog.cpp             # Insert > Table...
     gui/test_table_dialogs.cpp                   # The windows of the Table menu
+    gui/test_image_properties_dialog.cpp         # Image > Image Properties...
     gui/test_format_dialogs.cpp                  # Format > Font..., Paragraph..., the color submenus
     gui/test_quick_character_palette.cpp         # Insert > Quick Character: the palette at the cursor
     gui/test_formatting_characters.cpp           # Insert > Formatting Character
@@ -261,6 +262,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_lists.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_links.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_images.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_image_look.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_tables.cpp
@@ -427,6 +429,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/hyperlink_dialog.cpp  # Insert > Link...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/insert_table_dialog.cpp  # Insert > Table...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/table_dialogs.cpp  # The windows of the Table menu
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/image_properties_dialog.cpp  # Image > Image Properties...
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/character_grid.cpp           # Characters in cells, in the font of the text
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/quick_character_palette.cpp  # Insert > Quick Character
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/character_dialogs.cpp        # The keys of a character, a replacement
@@ -570,6 +573,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/hyperlink_dialog.h  # Insert > Link... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/table_dialogs.h  # The windows of the Table menu, with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/image_properties_dialog.h  # Image Properties, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT

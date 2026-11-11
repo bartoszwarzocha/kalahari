@@ -410,6 +410,26 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
         {tr("Close the list"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
     groups.push_back(std::move(quickInsert));
 
+    // The selected image of the text (editor/book_editor.h) takes its keys only while it is
+    // selected, and while it is cropped in the text: a command may have them too
+    FixedKeyGroup image;
+    //: In Polish: Stałe: obraz w tekście
+    image.title = tr("Fixed: an image in the text");
+    image.local = true;
+    //: In Polish: Większy / mniejszy (zaznaczony obraz)
+    image.rows.push_back({tr("Larger / smaller (the selected image)"),
+                          {keyWith(CTRL, Qt::Key_BracketRight), keyWith(CTRL, Qt::Key_BracketLeft)},
+                          NONE, {}, {}, {}});
+    //: In Polish: Powrót do tekstu (zaznaczony obraz)
+    image.rows.push_back({tr("Back to the text (the selected image)"),
+                          {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
+    //: In Polish: Przytnij (przycinanie w tekście)
+    image.rows.push_back({tr("Crop (cropping in the text)"), enterKeys(NONE), NONE, {}, {}, {}});
+    //: In Polish: Zostaw bez zmian (przycinanie w tekście)
+    image.rows.push_back({tr("Leave as it was (cropping in the text)"),
+                          {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
+    groups.push_back(std::move(image));
+
     // The lists of the Repetitions panel (panels/repetitions_panel.h) take their keys only
     // while they have the keys
     FixedKeyGroup repetitions;

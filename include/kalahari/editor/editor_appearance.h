@@ -52,17 +52,19 @@ struct PaperColorKeys {
     const char* tableLines;       ///< The borders of tables of the color "Automatic"
     const char* tableHeader;      ///< The background of the header rows of tables
     const char* tableGridlines;   ///< The faint lines where a table has no border
+    const char* imageCropMarks;   ///< The marks of an image being cropped in the text
 };
 
 /// @brief The names of the light paper's colors
 inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
     "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
-    "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight"};
+    "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight",
+    "imageCropMarksLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
     "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark",
-    "tableLinesDark", "tableHeaderDark", "tableGridlinesDark"};
+    "tableLinesDark", "tableHeaderDark", "tableGridlinesDark", "imageCropMarksDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -173,6 +175,17 @@ struct EditorColors {
         QColor gridlinesLight{180, 198, 231};
         QColor gridlinesDark{74, 88, 120};
     } tables;
+
+    /// @brief The images: the marks at the sides of one being cropped in the text
+    struct ImageColors {
+        QColor cropMarksLight{17, 17, 17};
+        QColor cropMarksDark{242, 242, 242};
+    } images;
+
+    /// @brief The color of the marks of an image being cropped, on the paper of a mode
+    QColor imageCropMarksColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? images.cropMarksLight : images.cropMarksDark;
+    }
 
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)

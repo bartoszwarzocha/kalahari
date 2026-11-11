@@ -17,6 +17,7 @@
 #include <QXmlStreamAttributes>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iterator>
 
@@ -395,6 +396,86 @@ QRect croppedRect(const QSize& filePixels, const ImageCrop& crop)
     const int bottom = static_cast<int>(std::lround(filePixels.height() * clamped.bottom / 100.0));
     return QRect(left, top, std::max(1, filePixels.width() - left - right),
                  std::max(1, filePixels.height() - top - bottom));
+}
+
+namespace {
+
+/// The sides of a crop clockwise from the top: top, right, bottom, left
+std::array<double, 4> sidesOf(const ImageCrop& crop)
+{
+    return {crop.top, crop.right, crop.bottom, crop.left};
+}
+
+ImageCrop cropOf(const std::array<double, 4>& sides)
+{
+    return ImageCrop{sides[3], sides[0], sides[1], sides[2]};
+}
+
+}  // namespace
+
+ImageCrop shownCrop(const ImageProperties& image)
+{
+    std::array<double, 4> sides = sidesOf(image.crop);
+    // Mirrored first, then turned clockwise: each side goes a quarter on
+    if (image.flipHorizontal) {
+        std::swap(sides[1], sides[3]);
+    }
+    if (image.flipVertical) {
+        std::swap(sides[0], sides[2]);
+    }
+    std::array<double, 4> shown{};
+    for (size_t side = 0; side < sides.size(); ++side) {
+        shown[(side + static_cast<size_t>(image.rotation)) % 4] = sides[side];
+    }
+    return cropOf(shown);
+}
+
+ImageCrop fileCrop(const ImageCrop& shown, const ImageProperties& image)
+{
+    const std::array<double, 4> sides = sidesOf(shown);
+    std::array<double, 4> file{};
+    for (size_t side = 0; side < sides.size(); ++side) {
+        file[side] = sides[(side + static_cast<size_t>(image.rotation)) % 4];
+    }
+    if (image.flipHorizontal) {
+        std::swap(file[1], file[3]);
+    }
+    if (image.flipVertical) {
+        std::swap(file[0], file[2]);
+    }
+    return cropOf(file);
+}
+
+ImageProperties withShownCrop(const ImageProperties& image, const ImageCrop& crop, bool keepScale,
+                              double widthCentimeters)
+{
+    ImageProperties cropped = normalizedImage(image);
+    const ImageCrop before = shownCrop(cropped);
+    cropped.crop = normalizedCrop(fileCrop(crop, cropped));
+    const ImageCrop after = shownCrop(cropped);
+    // The part of the whole picture shown, across and down, after against before
+    const double byWidth =
+        (100.0 - after.left - after.right) / (100.0 - before.left - before.right);
+    const double byHeight =
+        (100.0 - after.top - after.bottom) / (100.0 - before.top - before.bottom);
+    if (keepScale) {
+        // A width of the file's own follows its cropped pixels by itself
+        if (cropped.unit != ImageWidthUnit::Natural) {
+            cropped.width *= byWidth;
+        }
+        if (cropped.height > 0.0) {
+            cropped.height *= byHeight;
+        }
+    } else {
+        if (cropped.unit == ImageWidthUnit::Natural && widthCentimeters > 0.0) {
+            cropped.unit = ImageWidthUnit::Centimeters;
+            cropped.width = widthCentimeters;
+        }
+        if (cropped.height > 0.0) {
+            cropped.height *= byHeight / byWidth;
+        }
+    }
+    return normalizedImage(cropped);
 }
 
 QSize shownPixels(const QSize& filePixels, const ImageProperties& image)

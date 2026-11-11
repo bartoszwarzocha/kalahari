@@ -131,6 +131,9 @@ inline constexpr double DEFAULT_IMAGE_BORDER_WIDTH = 0.5;
 /// @brief The most room between an image's border and its picture (points)
 inline constexpr double MAX_IMAGE_BORDER_PADDING = 72.0;
 
+/// @brief How much Ctrl+] and Ctrl+[ make an image larger or smaller: a part of its width
+inline constexpr double IMAGE_KEY_RESIZE = 0.05;
+
 /// @brief How the width of an image is given
 enum class ImageWidthUnit {
     Natural,      ///< The file's own width (its pixels at IMAGE_PIXELS_PER_INCH)
@@ -207,6 +210,19 @@ struct ImageProperties {
     bool operator==(const ImageProperties&) const = default;
 };
 
+/// @brief What the window Image Properties shows of an image and gives back
+struct ImagePropertiesData {
+    int position = -1;      ///< The image's character in the document
+    ImageProperties image;  ///< Its properties
+    QString filePath;       ///< Its file on the disk; empty: none
+    QSize filePixels;       ///< The pixels of its file; empty: missing, or not an image
+    qint64 fileBytes = 0;   ///< The size of its file
+    double lineWidth = 0.0;   ///< Points: the width of its lines, of which a percent is
+    double shownWidth = 0.0;  ///< Points: the width of its picture as it is shown now
+    QString newFile;          ///< A file chosen in the window for the image to show; empty: none
+    bool keepSizeAndCrop = true;  ///< With a new file: its width, height and crop stay
+};
+
 /// @brief Whether the format is of an image's character
 bool isImageFormat(const QTextFormat& format);
 
@@ -239,6 +255,23 @@ ImageProperties normalizedImage(const ImageProperties& image);
 
 /// @brief The pixels of the file's picture an image shows: the crop taken off
 QRect croppedRect(const QSize& filePixels, const ImageCrop& crop);
+
+/// @brief The crop of an image as it is shown: its sides turned and mirrored with the
+///        picture (a quarter turn makes the file's left side the top one)
+ImageCrop shownCrop(const ImageProperties& image);
+
+/// @brief The crop of the file's sides that shows an image cropped as @p shown says
+///        (the opposite of shownCrop())
+ImageCrop fileCrop(const ImageCrop& shown, const ImageProperties& image);
+
+/// @brief The image with another crop of its sides as they are shown (shownCrop())
+/// @param keepScale true: the rest of the picture keeps its size, the image gets smaller;
+///        false: the image keeps its width (an own height its stretch), the rest of the
+///        picture gets larger
+/// @param widthCentimeters The image's width now, what a width of the file's own becomes
+///        when the image keeps its width; 0: it stays the file's own
+ImageProperties withShownCrop(const ImageProperties& image, const ImageCrop& crop, bool keepScale,
+                              double widthCentimeters = 0.0);
 
 /// @brief The pixels an image has as the file's picture, cropped and turned: its own size
 QSize shownPixels(const QSize& filePixels, const ImageProperties& image);
