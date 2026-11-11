@@ -83,6 +83,7 @@ set(TEST_SOURCES
     editor/test_list_editing.cpp                 # Lists: editing, indents, numbering, auto-correct
     editor/test_text_links.cpp                   # Links: KML, editing, the clipboard, auto-correct
     editor/test_text_images.cpp                  # Images: KML, the store of files, layout, drawing, commands
+    editor/test_image_look.cpp                   # Images: their look (turn, crop, filters, frame)
     editor/test_tables.cpp                       # Tables: the model, KML, the layout, the keys
     editor/test_table_commands.cpp              # The Table menu in the text
     editor/test_paragraph_layout.cpp             # A paragraph's own formatting and lists in the layout

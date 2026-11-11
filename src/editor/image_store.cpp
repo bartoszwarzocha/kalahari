@@ -22,6 +22,9 @@ namespace {
 /// The most files of one name with numbers the folder of images is searched for
 constexpr int MAX_NUMBERED_NAMES = 10000;
 
+/// The most pixels of a side of a drawing (SVG) drawn whole for a cropped part of it
+constexpr int MAX_SHOWN_SVG_PIXELS = 4096;
+
 /// Whether the file is an SVG drawing (drawn by QSvgRenderer, whatever plugins Qt has)
 bool isSvgFile(const QString& path)
 {
@@ -150,6 +153,53 @@ QImage ImageStore::picture(const QString& source, const QSize& pixels) const
     const auto kilobytes = static_cast<int>(std::max<qsizetype>(1, image.sizeInBytes() / 1024));
     m_pictures.insert(key, new QImage(image), kilobytes);
     return image;
+}
+
+QImage ImageStore::shownImage(const ImageProperties& image, const QSize& pixels) const
+{
+    const std::optional<QSize> file = pixelSize(image.source);
+    if (!file || pixels.isEmpty()) {
+        return QImage();
+    }
+    if (image.hasPlainPicture()) {
+        return picture(image.source, pixels);
+    }
+    const QString key = filePath(image.source) + QLatin1Char('@') +
+                        QString::number(pixels.width()) + QLatin1Char('x') +
+                        QString::number(pixels.height()) + QLatin1Char('#') +
+                        pictureLookKey(image);
+    if (const QImage* cached = m_pictures.object(key)) {
+        return *cached;
+    }
+    // The whole picture in the pixels that give its shown part these pixels: as sharp as the
+    // part is shown, however much of it is cut off
+    const QSize turned = image.rotation % 2 == 1 ? pixels.transposed() : pixels;
+    const QRect part = croppedRect(*file, image.crop);
+    QSize whole(std::max(1, static_cast<int>(std::lround(double(turned.width()) *
+                                                         file->width() / part.width()))),
+                std::max(1, static_cast<int>(std::lround(double(turned.height()) *
+                                                         file->height() / part.height()))));
+    // A photo has no more pixels than its file's; a drawing (SVG) is drawn sharp, up to a
+    // limit, so a small part of it shown large does not take the memory of a huge picture
+    const QSize most = isSvgFile(filePath(image.source))
+                           ? QSize(MAX_SHOWN_SVG_PIXELS, MAX_SHOWN_SVG_PIXELS)
+                           : *file;
+    if (whole.width() > most.width() || whole.height() > most.height()) {
+        whole = whole.scaled(most, Qt::KeepAspectRatio).expandedTo(QSize(1, 1));
+    }
+    const QImage shown = shownPicture(picture(image.source, whole), image, pixels);
+    if (shown.isNull()) {
+        return QImage();
+    }
+    const auto kilobytes = static_cast<int>(std::max<qsizetype>(1, shown.sizeInBytes() / 1024));
+    m_pictures.insert(key, new QImage(shown), kilobytes);
+    return shown;
+}
+
+std::optional<QSize> ImageStore::shownPixelSize(const ImageProperties& image) const
+{
+    const std::optional<QSize> file = pixelSize(image.source);
+    return file ? std::optional<QSize>(shownPixels(*file, image)) : std::nullopt;
 }
 
 QString ImageStore::addFile(const QString& path)

@@ -319,6 +319,22 @@ it: its first item gets the number it has in the chapter as `value`.
 | `src` | A path relative to the book's main folder (`images/map.png`) | The image's file |
 | `alt` | Text | What a screen reader reads instead of the image |
 | `width` | A percentage (`80%`) or a length (`4.5cm`, `45mm`, `2in`, `120pt`, `300px`, `10pc`) | The image's width; without it, the file's own (its pixels at 96 per inch) |
+| `height` | A length | The image's own height; without it, in proportion to the width |
+| `name` | Text | The image's name, for the Navigator, the cross-references and search |
+| `description` | Text | A long description for screen readers, for an image that says more than its `alt` |
+| `decorative` | `true` | Only an ornament: screen readers skip it |
+| `rotate` | `90`, `180`, `270` | A turn clockwise, in degrees |
+| `flip` | `horizontal`, `vertical` or both (`horizontal vertical`) | Mirrored left to right, top to bottom |
+| `crop` | One to four percentages, as CSS gives the sides of a box: top, right, bottom, left (`10% 0% 5% 0%`) | The parts of the file's picture not shown, in percent of its height (top, bottom) or width (left, right) |
+| `filter` | `grayscale`, `sepia`, `black-white`, `wash` | Shades of gray, the brown tones of an old photograph, black and white only, pale (to stand behind the text) |
+| `brightness`, `contrast` | A percentage from `-50%` to `50%` | Lighter or darker, more or less contrast |
+| `threshold` | A percentage from `20%` to `80%`; `50%` without it | With `black-white`: the gray darker than it becomes black |
+| `transparency` | A percentage from `0%` to `90%` | How much of the paper shows through the picture |
+| `border` | `solid`, `dashed`, `dotted`, `double` | A line around the picture |
+| `border-width` | A length from `0.25pt` to `12pt`; `0.5pt` without it | The width of the line (a double line: two lines and the gap between them, each this wide) |
+| `border-color` | `#rrggbb` | The color of the line and the shadow; without it, the color of the text |
+| `border-padding` | A length up to `72pt` | The room between the line (or the shadow) and the picture |
+| `shadow` | `true` | A shadow to the right and down of the picture |
 
 - **An image is a part of its line**, as a large character: it stands on the baseline, the
   paragraph's alignment places it, and the text, the undo, the clipboard and drag and drop take
@@ -332,6 +348,16 @@ it: its first item gets the number it has in the chapter as `value`.
   follows in proportion. An image wider than its line is shown as wide as the line, and one
   higher than a page's text as high as the text. The line spacing does not take the image's
   height, and an exact spacing never cuts it.
+- **The look.** The file stays as it is: the crop, the turn and the mirror (mirrored first,
+  then turned), the corrections, the filter (after the corrections, so a dark scan made lighter
+  has less black) and the transparency are drawn from it. The file's own size is that of its
+  cropped part, turned. The border, its room and the shadow go around the picture and take
+  room in the line; an image never wider than its line makes its picture smaller, in its
+  shape. Each attribute is written only when it is not its default, in the order of the table;
+  `threshold` only with `black-white`, `border-width` and `border-color` only with a `border`,
+  `border-padding` only with a border or a shadow. Values beyond what an attribute takes are
+  taken as the nearest one; a turn as the nearest quarter (`100` as `90`); a crop that would
+  leave less than 5% of the picture in a direction is made smaller on both of its sides.
 - **The file.** `src` names a file in the book's main folder, without `..`, a drive or a
   scheme; any other `src` (`/home/...`, `C:\...`, `https://...`) is never read and is shown as
   a missing file. A text outside a book names its images relative to its own folder. The

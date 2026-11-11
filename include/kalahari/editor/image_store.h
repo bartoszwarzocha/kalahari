@@ -18,6 +18,8 @@
 
 #include <optional>
 
+#include "kalahari/editor/text_images.h"
+
 namespace kalahari::editor {
 
 /// @brief The image files of a book: their place, sizes and pictures
@@ -53,6 +55,15 @@ public:
     /// @brief The picture of a source in these pixels; null: the file is missing or is not
     ///        an image
     QImage picture(const QString& source, const QSize& pixels) const;
+
+    /// @brief The picture of an image as it is shown, in these pixels: its file's picture
+    ///        cropped, turned, mirrored and recolored (shownPicture()); null: the file is
+    ///        missing or is not an image
+    QImage shownImage(const ImageProperties& image, const QSize& pixels) const;
+
+    /// @brief The pixels an image has of its own: those of its file cropped and turned;
+    ///        std::nullopt: the file is missing or is not an image
+    std::optional<QSize> shownPixelSize(const ImageProperties& image) const;
 
     /// @brief Copy a file into the book's folder of images
     /// @return The source of the copy ("images/map.png"): the file itself when it is there

@@ -668,7 +668,8 @@ TEST_CASE("Images: a width in centimeters stays in centimeters when resized",
     CHECK(resized->width == Approx(3.0).margin(0.02));
 
     // Its file's own width becomes a percent of the line (centered: as wide as the widest)
-    const ImageProperties natural{QStringLiteral("images/a.png"), QString(), ImageWidthUnit::Natural, 0.0};
+    ImageProperties natural;
+    natural.source = QStringLiteral("images/a.png");
     const ImageProperties half = layout->imageOfWidth(block, natural, layout->widestImage(block) / 2.0);
     CHECK(half.unit == ImageWidthUnit::Percent);
     CHECK(half.width == Approx(50.0));
