@@ -1045,7 +1045,7 @@ public:
     /// @return false when the new file is not a picture or could not be copied, or in a
     ///         read-only text; true also when the image had these properties already (no
     ///         step of Undo then)
-    bool setImagePropertiesData(const ImagePropertiesData& data);
+    bool setImagePropertiesData(const ImagePropertiesData& propertiesData);
 
     // =========================================================================
     // Annotations: comments, TODOs and notes

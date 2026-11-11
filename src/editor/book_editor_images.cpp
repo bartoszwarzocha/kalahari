@@ -425,45 +425,45 @@ std::optional<ImagePropertiesData> BookEditor::imagePropertiesData(int position)
     if (!image) {
         return std::nullopt;
     }
-    ImagePropertiesData data;
-    data.position = position;
-    data.image = *image;
-    data.filePath = m_imageStore->filePath(image->source);
+    ImagePropertiesData propertiesData;
+    propertiesData.position = position;
+    propertiesData.image = *image;
+    propertiesData.filePath = m_imageStore->filePath(image->source);
     if (const std::optional<QSize> pixels = m_imageStore->pixelSize(image->source)) {
-        data.filePixels = *pixels;
-        data.fileBytes = QFileInfo(data.filePath).size();
+        propertiesData.filePixels = *pixels;
+        propertiesData.fileBytes = QFileInfo(propertiesData.filePath).size();
     }
     // The widths in points, as the layout measures them
     const auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
     if (layout != nullptr && layout->pixelsPerPoint() > 0.0) {
         const QTextBlock block = m_textBuffer->findBlock(position);
         const QMarginsF frame = layout->imageFrameMargins(*image);
-        data.lineWidth = layout->imageLineWidth(block) / layout->pixelsPerPoint();
+        propertiesData.lineWidth = layout->imageLineWidth(block) / layout->pixelsPerPoint();
         const qreal box = layout->imageSize(block, *image).width();
-        data.shownWidth = (box - frame.left() - frame.right()) / layout->pixelsPerPoint();
+        propertiesData.shownWidth = (box - frame.left() - frame.right()) / layout->pixelsPerPoint();
     }
-    return data;
+    return propertiesData;
 }
 
-bool BookEditor::setImagePropertiesData(const ImagePropertiesData& data)
+bool BookEditor::setImagePropertiesData(const ImagePropertiesData& propertiesData)
 {
     const std::optional<ImageProperties> old =
-        m_textBuffer ? editor::imageAt(*m_textBuffer, data.position) : std::nullopt;
+        m_textBuffer ? editor::imageAt(*m_textBuffer, propertiesData.position) : std::nullopt;
     if (!old || refusesChange()) {
         return false;
     }
-    ImageProperties image = data.image;
-    if (!data.newFile.isEmpty()) {
+    ImageProperties image = propertiesData.image;
+    if (!propertiesData.newFile.isEmpty()) {
         // Another picture: its file copied in first, its own size unless the size stays
-        if (!m_imageStore->hasFolder() || !ImageStore::fileSize(data.newFile)) {
+        if (!m_imageStore->hasFolder() || !ImageStore::fileSize(propertiesData.newFile)) {
             return false;
         }
-        const QString source = m_imageStore->addFile(data.newFile);
+        const QString source = m_imageStore->addFile(propertiesData.newFile);
         if (source.isEmpty()) {
             return false;
         }
         image.source = source;
-        if (!data.keepSizeAndCrop) {
+        if (!propertiesData.keepSizeAndCrop) {
             image.unit = ImageWidthUnit::Natural;
             image.width = 0.0;
             image.height = 0.0;
@@ -471,7 +471,7 @@ bool BookEditor::setImagePropertiesData(const ImagePropertiesData& data)
         }
     }
     // Nothing changed: no step of Undo, and nothing went wrong
-    return normalizedImage(image) == *old || setImageProperties(data.position, image);
+    return normalizedImage(image) == *old || setImageProperties(propertiesData.position, image);
 }
 
 bool BookEditor::setImageLayoutWidth(int position, qreal width)

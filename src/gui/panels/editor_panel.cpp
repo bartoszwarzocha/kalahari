@@ -876,9 +876,9 @@ void EditorPanel::showImagePropertiesDialog(int position, int page) {
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
-    const editor::ImagePropertiesData data = dialog.data();
-    if (!m_bookEditor->setImagePropertiesData(data) && !data.newFile.isEmpty()) {
-        warnImageNotInserted(window(), data.newFile);
+    const editor::ImagePropertiesData chosen = dialog.data();
+    if (!m_bookEditor->setImagePropertiesData(chosen) && !chosen.newFile.isEmpty()) {
+        warnImageNotInserted(window(), chosen.newFile);
         return;
     }
     // Crop in the Text: the marks on the image, with the changes made
