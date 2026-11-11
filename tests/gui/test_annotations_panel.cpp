@@ -929,6 +929,25 @@ TEST_CASE("Annotations frame: under its place within the text column, above it w
     REQUIRE(test::waitUntil([&frame]() { return frame->geometry().top() == 324; }));
 }
 
+TEST_CASE("Annotations frame: two thirds of the text column, however wide it is",
+          "[gui][annotations]") {
+    QWidget editor;
+    editor.resize(1900, 600);
+    AnnotationFrame frame(&editor);
+    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 1500, 600),
+                                         QRectF()};
+    frame.setPlacement([&placement]() { return placement; });
+    CHECK(frame.width() == 1000);
+
+    // A narrow column: not narrower than the narrowest frame, within the editor
+    placement.column = QRectF(100, 0, 240, 600);
+    frame.place();
+    CHECK(frame.width() == 300);
+    editor.resize(250, 600);
+    frame.place();
+    CHECK(frame.width() == 234);
+}
+
 TEST_CASE("Annotations frame: who the annotation is by, on the right of its header",
           "[gui][annotations]") {
     QWidget editor;
@@ -1173,8 +1192,11 @@ TEST_CASE("Annotations: a click anywhere else keeps what was written; the X of t
 
     SECTION("its X: an annotation edited again keeps its old text; the keys go back to the "
             "text") {
+        // The keys go back to the text only in an active window; a system may not make it active
         desk.tabs.activateWindow();
-        REQUIRE(test::waitUntil([&desk] { return QApplication::activeWindow() == &desk.tabs; }));
+        if (!test::waitUntil([&desk] { return QApplication::activeWindow() == &desk.tabs; })) {
+            SKIP("the system did not make the test's window active");
+        }
         REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
         desk.frameText()->setPlainText(QStringLiteral("Newer"));
         desk.frameText()->setFocus(Qt::OtherFocusReason);

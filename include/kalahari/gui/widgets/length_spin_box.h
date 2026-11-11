@@ -30,6 +30,12 @@ enum class LengthUnit { Pixels, Millimeters, Centimeters, Inches, Points };
 /// @brief The unit chosen in the settings (ui.lengthUnit)
 [[nodiscard]] LengthUnit currentLengthUnit();
 
+/// @brief A length as a field of it shows it: in the unit chosen in the settings, with the
+///        unit's decimals and name ("6.4 mm"; "6,4 mm" in Polish)
+/// @param value The length
+/// @param storedUnit The unit of @p value
+[[nodiscard]] QString lengthText(double value, LengthUnit storedUnit);
+
 /// @brief A spin box for a length stored in one unit and shown in another
 ///
 /// The stored value changes only when the user edits the field, so switching the shown

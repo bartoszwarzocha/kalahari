@@ -1688,3 +1688,86 @@ TEST_CASE("Book project: the example project is in the format of this version",
     }
     CHECK(texts == 4);
 }
+
+TEST_CASE("Book project: the paragraph styles of the books", "[core][bookproject][styles]") {
+    BookProject project = fullProject();
+    REQUIRE(project.paragraphStyles.isEmpty());
+
+    // A project without styles of its own has no field: its file stays as it was
+    CHECK_FALSE(project.toJson().contains(QStringLiteral("paragraphStyles")));
+
+    // A style of the type changed in the book, and the writer's own style
+    BookParagraphStyle quote;
+    quote.id = QStringLiteral("quote");
+    quote.properties = {{QStringLiteral("italic"), true}, {QStringLiteral("spaceBefore"), 12}};
+    BookParagraphStyle memory;
+    memory.id = QStringLiteral("wspomnienie");
+    memory.name = QStringLiteral("Wspomnienie");
+    memory.baseStyle = QStringLiteral("quote");
+    memory.nextStyle = QStringLiteral("normal");
+    memory.properties = {{QStringLiteral("leftMargin"), 18}};
+    project.paragraphStyles = {quote, memory};
+
+    const QJsonObject json = project.toJson();
+    const QJsonArray list = json.value(QStringLiteral("paragraphStyles")).toArray();
+    REQUIRE(list.size() == 2);
+    CHECK(list.at(0).toObject() ==
+          QJsonObject{{QStringLiteral("id"), QStringLiteral("quote")},
+                      {QStringLiteral("next"), QString()},
+                      {QStringLiteral("properties"),
+                       QJsonObject{{QStringLiteral("italic"), true},
+                                   {QStringLiteral("spaceBefore"), 12}}}});
+    CHECK(list.at(1).toObject().value(QStringLiteral("name")).toString() == QStringLiteral("Wspomnienie"));
+    CHECK(list.at(1).toObject().value(QStringLiteral("base")).toString() == QStringLiteral("quote"));
+    CHECK(list.at(1).toObject().value(QStringLiteral("next")).toString() == QStringLiteral("normal"));
+
+    // Read back unchanged, with the fields of a later version kept
+    QJsonObject withExtra = json;
+    QJsonArray styles = list;
+    QJsonObject first = styles.at(0).toObject();
+    first.insert(QStringLiteral("shortcut"), QStringLiteral("Ctrl+Alt+Q"));
+    styles[0] = first;
+    withExtra.insert(QStringLiteral("paragraphStyles"), styles);
+    QStringList problems;
+    const std::optional<BookProject> read = BookProject::fromJson(withExtra, problems);
+    INFO(joined(problems));
+    REQUIRE(read.has_value());
+    CHECK(read->paragraphStyles.size() == 2);
+    CHECK(read->paragraphStyles.at(1) == memory);
+    CHECK(read->paragraphStyles.at(0).extra.value(QStringLiteral("shortcut")).toString() ==
+          QStringLiteral("Ctrl+Alt+Q"));
+    CHECK(read->toJson() == withExtra);
+
+    // Found by its id
+    REQUIRE(project.findParagraphStyle(QStringLiteral("wspomnienie")) != nullptr);
+    CHECK(project.findParagraphStyle(QStringLiteral("wspomnienie"))->name == QStringLiteral("Wspomnienie"));
+    CHECK(project.findParagraphStyle(QStringLiteral("dialogue")) == nullptr);
+
+    // A changed style makes another project
+    BookProject changed = project;
+    changed.paragraphStyles[1].properties.insert(QStringLiteral("leftMargin"), 24);
+    CHECK_FALSE(changed == project);
+
+    // Problems
+    const auto styleProblems = [&json](const QJsonValue& value) {
+        QJsonObject broken = json;
+        broken.insert(QStringLiteral("paragraphStyles"), value);
+        QStringList found;
+        CHECK_FALSE(BookProject::fromJson(broken, found).has_value());
+        return found.join(QLatin1Char('\n'));
+    };
+    CHECK(styleProblems(QStringLiteral("quote")) == QStringLiteral("paragraphStyles: must be a list"));
+    CHECK(styleProblems(QJsonArray{QStringLiteral("quote")}) ==
+          QStringLiteral("paragraphStyles[0]: must be an object"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("name"), QStringLiteral("Sen")}}}) ==
+          QStringLiteral("paragraphStyles[0].id: must be a text that is not empty"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")}},
+                                QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")}}}) ==
+          QStringLiteral("paragraphStyles[1].id: 'sen' is already the id of paragraphStyles[0]"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")},
+                                            {QStringLiteral("base"), QStringLiteral("sen")}}}) ==
+          QStringLiteral("paragraphStyles[0].base: a style cannot inherit from itself"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")},
+                                            {QStringLiteral("properties"), 12}}}) ==
+          QStringLiteral("paragraphStyles[0].properties: must be an object"));
+}

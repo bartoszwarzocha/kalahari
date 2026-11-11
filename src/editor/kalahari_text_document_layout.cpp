@@ -79,9 +79,6 @@ constexpr int KEEP_LINES_ROUNDS = 4;
 
 constexpr qreal POINTS_PER_INCH = 72.0;
 
-/// Font size of Normal when the package gives none (the size StyleResolver assumes)
-constexpr qreal DEFAULT_NORMAL_POINT_SIZE = 12.0;
-
 /// Space above and below a scene break, in lines of Normal
 constexpr qreal SCENE_BREAK_PADDING = 0.5;
 
@@ -109,23 +106,6 @@ qreal numberOf(const QVariantMap& properties, const char* name, qreal fallback) 
 bool flagOf(const QVariantMap& properties, const char* name, bool fallback) {
     const QVariant value = properties.value(QLatin1String(name));
     return value.isValid() ? value.toBool() : fallback;
-}
-
-/// The alignment a style's property names; none for another name
-Qt::Alignment alignmentNamed(const QString& name) {
-    if (name == QLatin1String("left")) {
-        return Qt::AlignLeft;
-    }
-    if (name == QLatin1String("center")) {
-        return Qt::AlignHCenter;
-    }
-    if (name == QLatin1String("right")) {
-        return Qt::AlignRight;
-    }
-    if (name == QLatin1String("justify")) {
-        return Qt::AlignJustify;
-    }
-    return {};
 }
 
 /// Prose whose width per character is the average character width of the estimates
@@ -497,7 +477,7 @@ KalahariTextDocumentLayout::BlockMetrics KalahariTextDocumentLayout::styleMetric
     }
     metrics.leftMargin = length("leftMargin");
     metrics.rightMargin = length("rightMargin");
-    if (const Qt::Alignment alignment = alignmentNamed(own.value(QStringLiteral("alignment")).toString());
+    if (const Qt::Alignment alignment = styleAlignmentOf(own.value(QStringLiteral("alignment")).toString());
         alignment) {
         metrics.alignment = alignment;
     }

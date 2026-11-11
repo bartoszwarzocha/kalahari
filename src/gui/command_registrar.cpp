@@ -541,6 +541,11 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                toStyle("dialogue"));
     REG_CMD_CB("format.style.code", QT_TRANSLATE_NOOP("CommandRegistrar", "&Code"), "FORMAT/Text Style/Code", 80, true, 0,
                toStyle("code"));
+    // The styles of the book: a new one from the paragraph at the cursor, the one at the cursor
+    // changed or deleted, all of them in one window (gui/style_coordinator.h)
+    REG_CMD("format.style.new", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&w Style..."), "FORMAT/Text Style/New Style...", 82, false, 1);
+    REG_CMD("format.style.modify", QT_TRANSLATE_NOOP("CommandRegistrar", "Modi&fy Style..."), "FORMAT/Text Style/Modify Style...", 84, false, 1);
+    REG_CMD("format.style.delete", QT_TRANSLATE_NOOP("CommandRegistrar", "Dele&te Style"), "FORMAT/Text Style/Delete Style", 86, false, 1);
     REG_CMD("format.style.manage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Manage Styles..."), "FORMAT/Text Style/Manage Styles...", 90, true, 1);
 
     // OpenSpec #00030: Added standard formatting shortcuts (Ctrl+B/I/U)
@@ -704,7 +709,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // The panel Repetitions with the keyboard in it, and the next repetition of a word in the
     // text (RepetitionsCoordinator gives them their callbacks); Ctrl+Shift+F7 beside F7, the next
     // spelling or grammar issue
-    REG_CMD("tools.repetitions", QT_TRANSLATE_NOOP("CommandRegistrar", "Word R&epetitions"), "TOOLS/Word Repetitions", 57, false, 0);
+    REG_CMD("tools.repetitions", QT_TRANSLATE_NOOP("CommandRegistrar", "W&ord Repetitions"), "TOOLS/Word Repetitions", 57, false, 0);
     REG_CMD_KEY("tools.nextRepetition", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt Repetition"), "TOOLS/Next Repetition", 58, false, 0,
                 KeyboardShortcut(Qt::Key_F7, Qt::ControlModifier | Qt::ShiftModifier));
 
@@ -719,7 +724,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("tools.plugins.reload", QT_TRANSLATE_NOOP("CommandRegistrar", "&Reload Plugins"), "TOOLS/Plugins/Reload Plugins", 160, false, 2);
 
     REG_CMD("tools.challenges", QT_TRANSLATE_NOOP("CommandRegistrar", "&Challenges && Badges..."), "TOOLS/Challenges & Badges...", 170, false, 2);
-    REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 180, true, 2);
+    REG_CMD("tools.addChallenge", QT_TRANSLATE_NOOP("CommandRegistrar", "A&dd Challenge..."), "TOOLS/Add Challenge...", 175, false, 1);
+    REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 180, false, 2);
+    // Settings > Statistics and Goals (WritingStatsCoordinator); on the Statistics toolbar
+    REG_CMD("tools.statsSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Statistics S&ettings..."), "TOOLS/Statistics Settings...", 185, true, 1);
 
     // OpenSpec #00037: Toolbar Manager command (used in Quick Actions toolbar)
     REG_CMD_TOOL_ICON("tools.toolbarManager", QT_TRANSLATE_NOOP("CommandRegistrar", "Customize &Toolbars..."), "TOOLS/Customize Toolbars...", 210, false, 0,
@@ -781,6 +789,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 70, false, 0);
     // No key of its own: Tools > Word Repetitions opens it with the keyboard in it
     REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 75, false, 0);
+
+    // The views of the writing: today, the week, 30 days, the book, the times of writing
+    REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 80, false, 0);
 
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)

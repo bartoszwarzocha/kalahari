@@ -87,6 +87,12 @@ public:
     /// @brief The alignment, if the writer changed it
     [[nodiscard]] std::optional<Qt::Alignment> alignmentChange() const;
 
+    /// @brief Make it the window of the paragraphs of a paragraph style (opened from the
+    ///        window of a style): a style has its line spacing in lines, so At least and
+    ///        Exactly cannot be chosen
+    /// @param styleName The name of the style, for the heading
+    void showForStyle(const QString& styleName);
+
     /// @brief The formatting as the window shows it now
     [[nodiscard]] editor::ParagraphFormat shownFormat() const;
 
@@ -140,6 +146,7 @@ private:
     QDoubleSpinBox* m_after = nullptr;
     QComboBox* m_lineSpacingBox = nullptr;
     QDoubleSpinBox* m_lineSpacing = nullptr;
+    QLabel* m_lineSpacingNote = nullptr;
     QCheckBox* m_widowControl = nullptr;
     QCheckBox* m_keepWithNext = nullptr;
     QCheckBox* m_keepTogether = nullptr;

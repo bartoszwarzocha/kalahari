@@ -4,12 +4,15 @@
 
 #pragma once
 
+#include <QPointer>
 #include <QWidget>
 
+class QAction;
 class QButtonGroup;
 class QLabel;
 class QListWidget;
 class QListWidgetItem;
+class QMenu;
 class QTimer;
 class QToolBar;
 class QToolButton;
@@ -21,6 +24,8 @@ class BookEditor;
 namespace kalahari {
 namespace gui {
 
+class StyleCoordinator;
+
 /// @brief The paragraph at the cursor of the text in front, and the styles of its book
 ///
 /// A band names the paragraph at the cursor ("paragraph 3 of 12") or the selected ones ("4 of
@@ -28,7 +33,12 @@ namespace gui {
 /// alignments are the commands of the Format menu, checked and greyed out as they are there.
 /// The palette lists the styles of the book by their names or in their look, with the style of
 /// the paragraphs selected; a click on a style gives it to the paragraphs and the keys back to
-/// the text.
+/// the text. The writer's own styles are tagged "own", the styles of the type changed in the
+/// book "changed". With the styles of the book (setStyleCoordinator()) the buttons over the
+/// list make a new style, change or delete one and open Manage Styles, for the style chosen in
+/// the list; the right mouse button, the menu key and Shift+F10 open the menu of that style.
+/// Paragraphs from another book keep their style; one this book does not have comes last,
+/// tagged "not in this book", and New Style... makes it for them.
 ///
 /// The panel is a panel of its own (DockCoordinator::paragraphDock()) or the lower part of the
 /// Properties panel, which folds to its band (setFoldable()).
@@ -64,6 +74,25 @@ public:
 
     /// @brief Show the paragraph at the cursor and the styles of its text now
     void refresh();
+
+    /// @brief The styles of the book that the buttons and the menu of the palette change (New
+    ///        Style..., Modify Style..., Delete Style, Manage Styles...); without them the
+    ///        buttons do not show and the menu only gives a style
+    void setStyleCoordinator(StyleCoordinator* styles);
+
+    /// @brief The style the buttons and the menu of the palette act on: the one chosen in the
+    ///        list, else the style of the paragraph at the cursor; empty without a text
+    QString paletteStyle() const;
+
+    /// @brief Fill @p menu with the commands of the style chosen (the menu of the palette)
+    void fillStyleMenu(QMenu& menu);
+
+    /// @brief The buttons of the palette: New Style..., Modify Style..., Delete Style and
+    ///        Manage Styles... for the style chosen
+    QAction* newStyleAction() const { return m_newStyleAction; }
+    QAction* modifyStyleAction() const { return m_modifyStyleAction; }
+    QAction* deleteStyleAction() const { return m_deleteStyleAction; }
+    QAction* manageStylesAction() const { return m_manageStylesAction; }
 
 signals:
     /// @brief The writer folded the panel to its band, or unfolded it (setFolded())
@@ -105,8 +134,26 @@ private:
     ///        keys back to the text
     void applyStyle(QListWidgetItem* item);
 
+    /// @brief Give the paragraphs of the cursor or the selection style @p id, and the keys
+    ///        back to the text
+    void giveStyle(const QString& id);
+
     /// @brief Give the items of the list their look, or the list's font (by names)
     void showStyleLook();
+
+    /// @brief The buttons of the palette for the style chosen: greyed out, with the reason in
+    ///        the tooltip, where the style cannot change
+    void updateStyleActions();
+
+    /// @brief The menu of the style at @p pos of the list (the item there is chosen first)
+    void showStyleMenu(const QPoint& pos);
+
+    /// @brief The name of style @p id in the text followed
+    QString styleName(const QString& id) const;
+
+    /// @brief Whether paragraphs of the text followed have style @p id, which the book does
+    ///        not have (pasted from another book)
+    bool isMissing(const QString& id) const;
 
     /// @brief The icons of the buttons in the size of the toolbars
     void applyIconSize();
@@ -130,6 +177,13 @@ private:
     QWidget* m_palette = nullptr;         ///< The styles
     QButtonGroup* m_modeGroup = nullptr;  ///< Names (0), Preview (1)
     QListWidget* m_styleList = nullptr;   ///< The styles of the text (id in Qt::UserRole)
+    QToolBar* m_styleBar = nullptr;       ///< New, Modify, Delete | Manage Styles
+    QAction* m_newStyleAction = nullptr;
+    QAction* m_modifyStyleAction = nullptr;
+    QAction* m_deleteStyleAction = nullptr;
+    QAction* m_manageStylesAction = nullptr;
+    QLabel* m_styleHint = nullptr;        ///< What a click and the menu of a style do
+    QPointer<StyleCoordinator> m_styles;  ///< The styles of the book (setStyleCoordinator())
 };
 
 } // namespace gui

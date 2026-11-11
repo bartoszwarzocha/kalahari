@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QTextFormat>
@@ -24,6 +25,7 @@ class QTextCursor;
 class QTextDocument;
 
 namespace kalahari::core {
+struct BookParagraphStyle;
 struct PackageParagraphStyle;
 }
 
@@ -40,6 +42,10 @@ inline constexpr int PARAGRAPH_STYLE_PROPERTY = QTextFormat::UserProperty + 110;
 
 /// @brief Id of the style Normal: the text of the book
 inline constexpr char NORMAL_STYLE_ID[] = "normal";
+
+/// @brief Font size of Normal when the package gives none, in points (the size StyleResolver
+///        assumes)
+inline constexpr qreal DEFAULT_NORMAL_POINT_SIZE = 12.0;
 
 /// @brief Number of heading levels with elements of their own in KML (<h1>-<h3>)
 inline constexpr int HEADING_LEVELS = 3;
@@ -194,13 +200,43 @@ void removeBlock(QTextCursor& cursor, const QTextBlock& block);
 // The styles of a book
 // =============================================================================
 
-/// @brief A paragraph style of a book, as its package defines it
+/// @brief The name of an alignment in the properties of a style: "left", "center", "right"
+///        or "justify"; empty for none of them
+QString styleAlignmentName(Qt::Alignment alignment);
+
+/// @brief The alignment a name of the properties of a style stands for; none for another name
+Qt::Alignment styleAlignmentOf(const QString& name);
+
+/// @brief How many paragraphs of a KML text are in each style (Normal: NORMAL_STYLE_ID)
+QHash<QString, int> paragraphStyleCounts(const QString& kml);
+
+/// @brief A KML text with every paragraph of style @p from in style @p to: a heading level
+///        is an element of its own (<h1>), any other style an attribute (<p style="...">), as
+///        KmlSerializer writes them
+///
+/// For a text that is not open in an editor (BookEditor::replaceParagraphStyle() changes an
+/// open one); the rest of the text stays as it is, character for character.
+/// @param count Gets the number of paragraphs that changed; may be nullptr
+QString replaceParagraphStyleInKml(const QString& kml, const QString& from, const QString& to,
+                                   int* count = nullptr);
+
+/// @brief Where a paragraph style of a book comes from
+enum class StyleOrigin {
+    Type,     ///< The book type's, as its package defines it
+    Changed,  ///< The book type's, changed in this book (core::BookParagraphStyle)
+    Own       ///< The writer's own style of this book
+};
+
+/// @brief A paragraph style of a book, as its package and the book define it
 struct ParagraphStyle {
     QString id;              ///< Unique among the book's styles
     QString name;            ///< Name in the program's language
+    QString baseStyle;       ///< Style it inherits from; empty: none
     QString nextStyle;       ///< Style Enter starts after a paragraph of it; empty: the same
     QVariantMap properties;  ///< Its own and inherited properties (sizes in points), as the
                              ///< package names them: fontSize, lineHeight, alignment...
+    QVariantMap ownProperties;  ///< Only its own: what it sets on top of its base style
+    StyleOrigin origin = StyleOrigin::Type;  ///< The type's, changed or the writer's own
 
     bool operator==(const ParagraphStyle&) const = default;
 };
@@ -220,6 +256,20 @@ public:
     /// @param language Language of the names, e.g. "pl"
     static ParagraphStyleSet fromPackage(const QList<core::PackageParagraphStyle>& styles,
                                          const QString& language);
+
+    /// @brief The styles of a book: those of its type's package with the book's entries
+    ///        (core::BookParagraphStyle) over them
+    ///
+    /// An entry with the id of a style of the type gives it its own properties and next style
+    /// (StyleOrigin::Changed); the other entries are the writer's own styles, after the type's
+    /// in the order of the book (StyleOrigin::Own). An own style whose base the book does not
+    /// have inherits from nothing.
+    /// @param styles Styles as BookTypeRegistry::paragraphStyles() gives them
+    /// @param bookStyles The book's entries (BookProject::paragraphStyles)
+    /// @param language Language of the names of the type's styles, e.g. "pl"
+    static ParagraphStyleSet forBook(const QList<core::PackageParagraphStyle>& styles,
+                                     const QList<core::BookParagraphStyle>& bookStyles,
+                                     const QString& language);
 
     /// @brief The styles in the order of their package
     const QList<ParagraphStyle>& styles() const { return m_styles; }
@@ -252,5 +302,42 @@ public:
 private:
     QList<ParagraphStyle> m_styles;
 };
+
+// =============================================================================
+// Changes of the styles of a book
+// =============================================================================
+
+/// @brief The style the paragraphs of a deleted style go to: its base style, Normal when it
+///        has none the book has
+QString successorOf(const ParagraphStyleSet& styles, const QString& id);
+
+/// @brief The book's entries without the writer's own style @p id
+///
+/// The styles based on it take its base style, and its own properties under theirs, so they
+/// look as they did; a next style that was it becomes successorOf(). The other entries stay
+/// as they are, in their order.
+/// @param styles The styles of the book with the entries (ParagraphStyleSet::forBook())
+QList<core::BookParagraphStyle> withoutOwnStyle(const QList<core::BookParagraphStyle>& entries,
+                                                const ParagraphStyleSet& styles,
+                                                const QString& id);
+
+/// @brief The book's entries with @p entry in place of the entry of its id, or after the
+///        others when there is none
+QList<core::BookParagraphStyle> withStyleEntry(const QList<core::BookParagraphStyle>& entries,
+                                               const core::BookParagraphStyle& entry);
+
+/// @brief The book's entries without the entry of @p id: a style of the type back as the
+///        type has it
+QList<core::BookParagraphStyle> withoutStyleEntry(const QList<core::BookParagraphStyle>& entries,
+                                                  const QString& id);
+
+/// @brief The id of a new style of the writer's named @p name: its letters and digits without
+///        their marks, in lower case, the words joined with '_' ("Wiadomość tekstowa":
+///        "wiadomosc_tekstowa"), with a number after it when @p taken has it
+QString paragraphStyleIdFor(const QString& name, const QStringList& taken);
+
+/// @brief The styles @p id may be based on: those of @p styles but itself and the styles
+///        based on it, at any depth (a circle would have no end)
+QStringList possibleBaseStyles(const ParagraphStyleSet& styles, const QString& id);
 
 }  // namespace kalahari::editor

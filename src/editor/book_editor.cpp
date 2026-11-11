@@ -1123,6 +1123,15 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     cursor.endEditBlock();
     m_textBuffer->setUndoRedoEnabled(true);
 
+    // A new level of undo takes the place of the levels undone before it: the pastes among
+    // them cannot be redone any more
+    m_undoLevel = 0;
+    m_pasteLevels.clear();
+    connect(m_textBuffer.get(), &QTextDocument::undoCommandAdded, this, [this]() {
+        const int level = ++m_undoLevel;
+        m_pasteLevels.removeIf([level](int paste) { return paste >= level; });
+    });
+
     // The grammar of the paragraphs edited is checked when the writer stops typing (the
     // content put in above is not an edit: it is checked at once)
     connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,

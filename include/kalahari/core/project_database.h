@@ -9,6 +9,7 @@
 #pragma once
 
 #include "kalahari/core/database_types.h"
+#include "kalahari/core/writing_activity.h"
 
 #include <QString>
 #include <QSqlDatabase>
@@ -112,6 +113,17 @@ public:
     void recordSessionStats(const SessionStats& stats);
     QList<SessionStats> getStatsBetween(const QDateTime& from, const QDateTime& to) const;
     AggregatedStats getAggregatedStats() const;
+
+    // =========================================================================
+    // Record of writing (the statistics and goals of writing)
+    // =========================================================================
+
+    /// @brief Adds what was written in this book to its record of writing
+    bool addWritingActivity(const QList<WritingActivity>& activity);
+
+    /// @brief The record of writing of this book on the days of the calendar from @p from to
+    /// @p to (both included)
+    QList<WritingActivity> writingActivity(const QDate& from, const QDate& to) const;
 
     // =========================================================================
     // Styles

@@ -108,7 +108,7 @@ public:
     /// @brief Whether the program started the server (else it was started outside)
     bool startedByProgram() const { return !m_external; }
 
-    /// @brief The address of the server (http://localhost:port)
+    /// @brief The address of the server (http://127.0.0.1:port)
     QString address() const;
 
     /// @brief The languages the server checks (pl-PL, en-US...), once it answers
