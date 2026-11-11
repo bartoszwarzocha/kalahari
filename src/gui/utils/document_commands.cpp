@@ -72,7 +72,7 @@ private:
 const std::vector<std::string>& documentCommands() {
     static const std::vector<std::string> ids = {
         "edit.find",          "edit.findNext",      "edit.findPrevious",    "edit.findReplace",
-        "format.font",        "format.paragraph",   "insert.link",
+        "format.font",        "format.paragraph",   "insert.link",          "insert.table",
         "format.bold",        "format.italic",      "format.underline",     "format.strikethrough",
         "format.superscript", "format.subscript",   "format.smallCaps",     "format.allCaps",
         "format.case.sentence", "format.case.lower", "format.case.upper",
@@ -92,6 +92,7 @@ const std::vector<std::string>& documentCommands() {
 const std::vector<std::string>& changingDocumentCommands() {
     static const std::vector<std::string> ids = {
         "edit.findReplace", "format.font",        "format.paragraph",   "insert.link",
+        "insert.table",
         "format.bold",      "format.italic",      "format.underline",
         "format.strikethrough", "format.superscript", "format.subscript",
         "format.smallCaps", "format.allCaps",     "format.case.sentence", "format.case.lower",

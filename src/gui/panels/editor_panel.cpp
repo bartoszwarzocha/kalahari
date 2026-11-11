@@ -6,6 +6,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
 #include "kalahari/gui/dialogs/hyperlink_dialog.h"
+#include "kalahari/gui/dialogs/insert_table_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
 #include "kalahari/gui/dialogs/paragraph_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -676,6 +677,16 @@ void EditorPanel::showHyperlinkDialog() {
         m_bookEditor->removeLink(target);
     } else {
         m_bookEditor->setLink(target, dialog.text(), dialog.address());
+    }
+}
+
+void EditorPanel::showInsertTableDialog() {
+    if (m_bookEditor->isReadOnly() || m_bookEditor->isInTable()) {
+        return;
+    }
+    dialogs::InsertTableDialog dialog(window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow());
     }
 }
 

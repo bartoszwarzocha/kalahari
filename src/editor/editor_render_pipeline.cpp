@@ -58,6 +58,18 @@ constexpr double FRAGMENT_LINE_WIDTH = 2.0;
 /// The area around a mark a click or the mouse finds it in, in pixels of the screen
 constexpr double MARK_HIT_SIZE = 14.0;
 
+/// The edges of the cells of a table, and the background of its header rows: the text's
+/// color over the paper's in these shares
+constexpr double TABLE_LINE_SHARE = 0.45;
+constexpr double TABLE_HEADER_SHARE = 0.06;
+
+/// A color between two: @p share of @p over on @p under
+QColor blended(const QColor& over, const QColor& under, double share) {
+    return QColor::fromRgbF(static_cast<float>(under.redF() + (over.redF() - under.redF()) * share),
+                            static_cast<float>(under.greenF() + (over.greenF() - under.greenF()) * share),
+                            static_cast<float>(under.blueF() + (over.blueF() - under.blueF()) * share));
+}
+
 /// How opaque the background of a repeated word is, and of one chosen in the Repetitions
 /// panel: the text stays readable on a light and a dark paper
 constexpr float REPETITION_ALPHA = 0.3F;
@@ -1196,6 +1208,70 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
     }
 }
 
+void EditorRenderPipeline::renderTables(QPainter* painter) {
+    if (!m_textSource) return;
+    const std::vector<TableGrid> tables = m_textSource->tablesIn(
+        m_context.computed.firstVisibleParagraph, m_context.computed.lastVisibleParagraph);
+    if (tables.empty()) return;
+
+    // Opaque shades, so the edge two cells share looks as the others
+    const QColor paper = m_context.colors.background;
+    const QColor lineColor = blended(m_context.colors.text, paper, TABLE_LINE_SHARE);
+    const QColor headerColor = blended(m_context.colors.text, paper, TABLE_HEADER_SHARE);
+    // On the page of the row (mirror margins: its margins), in whole pixels
+    const auto widgetX = [this](double x, double y) {
+        return std::round(documentToWidget(QPointF(x, y)).x());
+    };
+    const auto widgetY = [this](double y) { return std::round(documentToWidget(QPointF(0.0, y)).y()); };
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, false);
+    for (const TableGrid& grid : tables) {
+        const auto columns = static_cast<int>(grid.columnEdges.size()) - 1;
+        const auto rows = static_cast<int>(grid.rowTops.size());
+        if (columns < 1 || rows < 1) {
+            continue;
+        }
+        // Each cell row by row: in the page view the rows it spans may be on two pages
+        for (const bool lines : {false, true}) {
+            painter->setPen(lines ? QPen(lineColor, 0) : Qt::NoPen);
+            for (const TableGridCell& cell : grid.cells) {
+                const int lastColumn = std::min(cell.column + cell.columns, columns);
+                const int lastRow = std::min(cell.row + cell.rows, rows) - 1;
+                for (int row = cell.row; row <= lastRow; ++row) {
+                    const double rowTop = grid.rowTops[static_cast<size_t>(row)];
+                    const double left =
+                        widgetX(grid.columnEdges[static_cast<size_t>(cell.column)], rowTop);
+                    const double right =
+                        widgetX(grid.columnEdges[static_cast<size_t>(lastColumn)], rowTop);
+                    const double top = widgetY(rowTop);
+                    const double bottom =
+                        widgetY(rowTop + grid.rowHeights[static_cast<size_t>(row)]);
+                    if (bottom <= top) {
+                        continue;
+                    }
+                    if (!lines) {
+                        if (cell.row < grid.headerRows) {
+                            painter->fillRect(QRectF(left, top, right - left, bottom - top),
+                                              headerColor);
+                        }
+                        continue;
+                    }
+                    painter->drawLine(QPointF(left, top), QPointF(left, bottom));
+                    painter->drawLine(QPointF(right, top), QPointF(right, bottom));
+                    if (row == cell.row) {
+                        painter->drawLine(QPointF(left, top), QPointF(right, top));
+                    }
+                    if (row == lastRow) {
+                        painter->drawLine(QPointF(left, bottom), QPointF(right, bottom));
+                    }
+                }
+            }
+        }
+    }
+    painter->restore();
+}
+
 void EditorRenderPipeline::renderParagraphDecoration(QPainter* painter, size_t index,
                                                      double widgetY) {
     if (!m_paragraphDecorator) return;
@@ -1667,6 +1743,9 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     // Only the visible paragraphs (firstVisibleParagraph..lastVisibleParagraph): O(visible)
     // instead of O(n) -- ~30 draw calls vs ~3000.
 
+    // The grids of the tables, under the selection and the text
+    renderTables(painter);
+
     // Selection highlights (only visible paragraphs)
     if (hasSelection() && m_textSource) {
         SelectionRange sel = m_selection.normalized();
@@ -1776,6 +1855,8 @@ void EditorRenderPipeline::renderMarginNumbers(QPainter* painter, const QRect& c
         const double paragraphY = m_textSource->paragraphY(paragraph);
         const MarginCounts before = m_textSource->marginCountsBefore(paragraph);
         if (lines) {
+            // A paragraph whose lines are not counted (in a cell of a table) has no numbers
+            if (m_textSource->marginCountsBefore(paragraph + 1).lines == before.lines) continue;
             for (int i = 0; i < layout->lineCount(); ++i) {
                 const QTextLine line = layout->lineAt(i);
                 int number = before.lines + i + 1;
@@ -1836,9 +1917,13 @@ int EditorRenderPipeline::firstLineOfPage(int page) const {
          paragraph < count; ++paragraph) {
         QTextLayout* layout = m_textSource->layout(paragraph);
         const double paragraphY = m_textSource->paragraphY(paragraph);
+        const int before = m_textSource->marginCountsBefore(paragraph).lines;
+        if (m_textSource->marginCountsBefore(paragraph + 1).lines == before) {
+            continue;  // its lines are not counted (in a cell of a table)
+        }
         for (int i = 0; layout && i < layout->lineCount(); ++i) {
             if (paragraphY + layout->lineAt(i).y() >= top - 0.5) {
-                return m_textSource->marginCountsBefore(paragraph).lines + i + 1;
+                return before + i + 1;
             }
         }
     }
@@ -1971,7 +2056,7 @@ void EditorRenderPipeline::updateVisibleRange() {
     const double viewTop = widgetToDocument(QPointF(0.0, 0.0)).y();
     const double viewBottom = widgetToDocument(QPointF(0.0, m_context.viewportSize.height())).y();
 
-    m_context.computed.firstVisibleParagraph = m_textSource->paragraphAtY(viewTop);
+    m_context.computed.firstVisibleParagraph = m_textSource->firstParagraphAtY(viewTop);
     m_context.computed.lastVisibleParagraph = m_textSource->paragraphAtY(viewBottom);
 
     // Clamp to valid range
@@ -2060,9 +2145,9 @@ CursorPosition EditorRenderPipeline::positionFromPoint(const QPointF& point) con
     }
 
     // The document position under the point; the layout has the lines where they are
-    // shown, on their pages too
+    // shown, on their pages too, and in a row of a table the cell under the point
     const QPointF docPoint = widgetToDocument(point);
-    size_t paraIndex = m_textSource->paragraphAtY(docPoint.y());
+    size_t paraIndex = m_textSource->paragraphAt(docPoint);
     if (paraIndex >= m_textSource->paragraphCount()) {
         paraIndex = m_textSource->paragraphCount() - 1;
     }

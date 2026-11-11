@@ -3,6 +3,7 @@
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/text_tables.h>
 #include <QAbstractTextDocumentLayout>
 #include <QAction>
 #include <QApplication>
@@ -501,7 +502,9 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
             m_renderPipeline ? m_renderPipeline->annotationMarkDetailsAt(event->position())
                              : std::nullopt;
         if (mark) {
-            if (m_annotationCards.hasCard(mark->kind)) {
+            // In a cell of a table an annotation has no card (AnnotationCards)
+            if (m_annotationCards.hasCard(mark->kind) &&
+                tableOf(annotationCardBlock(mark->id)) == nullptr) {
                 setAnnotationCollapsed(mark->id, !m_annotationCards.isCollapsed(mark->id));
             } else {
                 emit annotationMarkClicked(mark->id);
@@ -820,9 +823,11 @@ void BookEditor::startTextDrag()
         return;
     }
 
-    // Stays at the dragged text if the drop target edits the document before it
+    // Stay at the dragged text if the drop target edits the document before it (two places:
+    // a selection of the document's cursor would take a table it goes into whole)
     const SelectionRange sel = m_selection.normalized();
-    QTextCursor dragged = createCursor(m_textBuffer.get(), sel.start, sel.end);
+    QTextCursor dragged = createCursor(m_textBuffer.get(), sel.start);
+    const QTextCursor draggedEnd = createCursor(m_textBuffer.get(), sel.end);
 
     auto* drag = new QDrag(this);  // Qt deletes it once the drag is over
     drag->setMimeData(mimeData.release());
@@ -839,9 +844,9 @@ void BookEditor::startTextDrag()
     const auto* target = qobject_cast<QWidget*>(drag->target());
     const bool movedAway = !m_readOnly && action == Qt::MoveAction && target != this &&
                            (target == nullptr || !isAncestorOf(target));
-    if (movedAway && dragged.hasSelection()) {
+    if (movedAway && dragged.position() < draggedEnd.position()) {
         clearSelection();
-        dragged.removeSelectedText();
+        removeKeepingTables(dragged, dragged.position(), draggedEnd.position(), false);
         finishEdit(dragged);
     }
 }

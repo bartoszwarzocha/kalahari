@@ -3,6 +3,7 @@
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/text_tables.h>
 
 #include <QAction>
 #include <QCursor>
@@ -500,7 +501,9 @@ void BookEditor::addAnnotationActions(QMenu& menu, const QString& id, bool forCa
     disableWhileReadOnly(edit);
     connect(edit, &QAction::triggered, this, [this, id]() { emit annotationEditRequested(id); });
 
-    if (m_annotationCards.hasCard(annotation.kind)) {
+    // (in a cell of a table an annotation has no card: AnnotationCards)
+    if (m_annotationCards.hasCard(annotation.kind) &&
+        tableOf(annotationCardBlock(id)) == nullptr) {
         const bool collapsed = m_annotationCards.isCollapsed(id);
         QAction* toggle =
             menu.addAction(collapsed ? tr("E&xpand Annotation") : tr("Collap&se Annotation"));

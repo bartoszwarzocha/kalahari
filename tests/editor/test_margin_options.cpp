@@ -6,6 +6,7 @@
 #include <catch2/catch_approx.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/view_modes.h>
 #include "editor_test_utils.h"
 
@@ -22,6 +23,8 @@
 #include <algorithm>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <vector>
 
 using namespace kalahari::editor;
 using namespace kalahari::test;
@@ -92,8 +95,9 @@ qreal caretX(BookEditor& editor, const CursorPosition& position) {
 }
 
 /// The red pixels of the numbers on the cursor's line, left of its text (also on the margin of
-/// a centred heading). Not of the text: with subpixel antialiasing its edges are red too
-int numberInk(BookEditor& editor) {
+/// a centred heading), or left of @p textLeft. Not of the text: with subpixel antialiasing its
+/// edges are red too
+int numberInk(BookEditor& editor, std::optional<qreal> textLeft = std::nullopt) {
     // The text starts where the cursor before the line's first character stands
     const CursorPosition position = editor.cursorPosition();
     paint(editor);
@@ -105,7 +109,7 @@ int numberInk(BookEditor& editor) {
     const QImage image = paint(editor);
     const QRectF at = caret(editor);
     editor.setCursorPosition(position);
-    const int right = static_cast<int>(at.left()) - 2;
+    const int right = static_cast<int>(textLeft.value_or(at.left())) - 2;
     const int left = 0;
     int ink = 0;
     for (int y = std::max(0, static_cast<int>(at.top())); y < std::min(image.height(), static_cast<int>(at.bottom())); ++y) {
@@ -263,6 +267,52 @@ TEST_CASE("Mirror margins: the paperclip of a paragraph is in the margin of its 
     }
 }
 
+TEST_CASE("Mirror margins: the grid of a table is on the page of its row",
+          "[editor][margins][pagemode][tables]") {
+    QString kml;
+    for (int i = 0; i < 8; ++i) {
+        kml += paragraphs(6) +
+               QStringLiteral("<table><tr><td><p>Cell</p></td><td><p>Next</p></td></tr></table>");
+    }
+    auto editor = editorWith(ViewMode::Page, kml);
+    change(*editor, [](EditorAppearance& appearance) {
+        appearance.pageMargins.inner = 40.0;
+        appearance.pageMargins.outer = 10.0;
+        appearance.pageMargins.mirrored = true;
+        appearance.pageMargins.firstPageLeft = false;
+    });
+    paint(*editor);
+    REQUIRE(editor->totalPages() >= 2);
+
+    // A first cell on a left page: there the text is 30 mm further left than on page 1
+    std::optional<CursorPosition> cell;
+    for (QTextBlock block = editor->textDocument()->begin(); block.isValid() && !cell;
+         block = block.next()) {
+        if (block.text() != QStringLiteral("Cell")) {
+            continue;
+        }
+        editor->setCursorPosition({block.blockNumber(), 0});
+        paint(*editor);
+        if (editor->currentPage() % 2 == 0) {
+            cell = CursorPosition{block.blockNumber(), 0};
+        }
+    }
+    REQUIRE(cell.has_value());
+
+    // The left edge of the cell just before its text, not where page 1 has the text
+    editor->setCursorPosition(*cell);
+    const QImage image = paint(*editor);
+    const QRectF at = caret(*editor);
+    // (the paper of the page's 10 mm margin, beside its text)
+    const QColor paper =
+        image.pixelColor(static_cast<int>(at.left()) - 30, static_cast<int>(at.center().y()));
+    int edge = 0;
+    for (int x = static_cast<int>(at.left()) - 20; x < static_cast<int>(at.left()) - 1; ++x) {
+        edge += image.pixelColor(x, static_cast<int>(at.center().y())) != paper ? 1 : 0;
+    }
+    CHECK(edge > 0);
+}
+
 TEST_CASE("Margin numbers: the paperclip of a paragraph is left of them, also beside a heading",
           "[editor][marginNumbers][marks]") {
     auto editor = editorWith(ViewMode::Page, QStringLiteral("<h1>Title</h1>") + paragraphs(3));
@@ -373,6 +423,57 @@ TEST_CASE("Margin numbers: the lines counted with every line, the paragraphs onl
     layout->layoutPendingBlocks();
     CHECK(layout->marginCountsBefore(3) == MarginCounts{3, 2});
     CHECK(layout->marginCountsBefore(7) == MarginCounts{6 + long_, 4});
+}
+
+TEST_CASE("Margin numbers: the cells of a table are not counted and have no numbers, as in Word",
+          "[editor][marginNumbers][tables]") {
+    auto editor = editorWith(ViewMode::Continuous,
+                             QStringLiteral("<p>One</p><table><tr><td><p>a</p></td><td><p>b</p>"
+                                            "</td></tr></table><p>Two</p>"));
+    auto* layout =
+        qobject_cast<KalahariTextDocumentLayout*>(editor->textDocument()->documentLayout());
+    REQUIRE(layout != nullptr);
+    layout->layoutPendingBlocks();
+
+    // The blocks outside the table only
+    MarginCounts counts;
+    int index = 0;
+    std::vector<int> cells;
+    int two = -1;
+    for (QTextBlock block = editor->textDocument()->begin(); block.isValid();
+         block = block.next(), ++index) {
+        CAPTURE(index);
+        CHECK(layout->marginCountsBefore(index) == counts);
+        if (tableOf(block) != nullptr) {
+            cells.push_back(index);
+            CHECK_FALSE(KalahariTextDocumentLayout::isNumberedParagraph(block));
+            continue;
+        }
+        if (block.text() == QStringLiteral("Two")) {
+            two = index;
+        }
+        counts.lines += block.layout()->lineCount();
+        counts.paragraphs += KalahariTextDocumentLayout::isNumberedParagraph(block) ? 1 : 0;
+    }
+    REQUIRE(cells.size() == 2);
+    CHECK(counts.paragraphs == 2);
+    CHECK(layout->marginCountsBefore(index) == counts);
+    REQUIRE(two > 0);
+
+    // Side by side, the numbers of the cells would be drawn over each other: none, left of the
+    // table (left of a cell, the cells before it are text)
+    for (const MarginNumbering numbering : {MarginNumbering::Lines, MarginNumbering::Paragraphs}) {
+        CAPTURE(static_cast<int>(numbering));
+        number(*editor, numbering);
+        const qreal tableText = caretX(*editor, {cells.front(), 0});
+        for (const int cell : cells) {
+            CAPTURE(cell);
+            editor->setCursorPosition({cell, 0});
+            CHECK(numberInk(*editor, tableText) == 0);
+        }
+        editor->setCursorPosition({two, 0});
+        CHECK(numberInk(*editor) > 0);
+    }
 }
 
 TEST_CASE("Margin numbers: after every edit the counts are those of the whole text counted anew",

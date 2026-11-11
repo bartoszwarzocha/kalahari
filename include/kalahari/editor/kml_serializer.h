@@ -33,6 +33,7 @@
 
 class QTextDocument;
 class QTextBlock;
+class QTextTable;
 
 namespace kalahari {
 namespace editor {
@@ -75,8 +76,10 @@ public:
     ///
     /// Every paragraph the range touches becomes a <p> with its block attributes and its
     /// content cut to the range. A range ending at the start of a paragraph ends with an
-    /// empty <p> - the paragraph break before it is part of the range. The annotations
-    /// anchored in the range come first, in the <annotations> section.
+    /// empty <p> - the paragraph break before it is part of the range. A table becomes a
+    /// <table> of the rows the range touches, its cells cut to the range, except in a range
+    /// inside one cell: that is text of the cell's paragraphs. The annotations anchored in
+    /// the range come first, in the <annotations> section.
     /// @param document The document to serialize
     /// @param from First document position of the range
     /// @param to Document position after the range
@@ -111,6 +114,21 @@ private:
     /// @param block The text block
     /// @return Attribute string (e.g., " align=\"center\"")
     QString serializeBlockAttributes(const QTextBlock& block) const;
+
+    /// @brief Serialize the paragraphs from the one holding @p from to the one holding
+    ///        @p to, each cut to the range [from, to)
+    /// @param tables Write a table among them as a table (tableToKml()); false: its
+    ///        paragraphs as paragraphs (a range inside one cell, the content of a cell)
+    /// @param indented Each top-level element on a line of its own, indented
+    /// @param annotations Collects the annotations anchored in the content (may be null)
+    QString paragraphsToKml(const QTextDocument& document, int from, int to, bool tables,
+                            bool indented, AnnotationList* annotations) const;
+
+    /// @brief Serialize the rows of a table the range [from, to) touches: <table> with
+    ///        the widths of its columns, and the cells of each row with their paragraphs
+    ///        cut to the range (an empty cell, or one outside the range, has an empty <p>)
+    QString tableToKml(const QTextTable& table, int from, int to,
+                       AnnotationList* annotations) const;
 
     /// @brief Serialize the part of a text block's inline content inside [from, to)
     /// @param block The text block to serialize

@@ -301,7 +301,7 @@ TEST_CASE("Paste: a browser's HTML in the three modes", "[editor][paste]") {
                        "<p>Spans: <b>bold</b> <i>italic</i> <u><s>both</s></u> <sup>up</sup></p>"
                        "<p>A div</p>"
                        "<p>Another<br/>with a break</p>"
-                       "<p>a\tb</p>"
+                       "<table><tr><td><p>a</p></td><td><p>b</p></td></tr></table>"
                        "<p>After the picture</p>")));
     }
 
@@ -443,10 +443,39 @@ TEST_CASE("Paste: what a browser shows of HTML", "[editor][paste]") {
                        "<p>\u2022 Bullet</p><p>\u25E6 Circle</p><p>iii. Third</p>")));
     }
 
-    SECTION("Tables: a row is a paragraph, its cells separated by tabs") {
-        CHECK(utf8(merged("<table><tr><td>a</td><td><p>b</p><p>c</p></td></tr>"
-                          "<tr><td colspan=\"2\">d</td></tr></table>")) ==
-              utf8(kml("<p>a\tb<br/>c</p><p>d</p>")));
+    SECTION("Tables: tables of the editor, with their widths, header row and merged cells") {
+        const char* table = "<table><tr><td>a</td><td><p>b</p><p>c</p></td></tr>"
+                            "<tr><td colspan=\"2\">d</td></tr></table>";
+        CHECK(utf8(merged(table)) ==
+              utf8(kml("<table><tr><td><p>a</p></td><td><p>b</p><p>c</p></td></tr>"
+                       "<tr><td colspan=\"2\"><p>d</p></td></tr></table>")));
+        // The header row: in a thead, or of th cells; their bold and centering are its look
+        CHECK(utf8(merged("<table><thead><tr><th>A</th><th><b>B</b></th></tr></thead>"
+                          "<tr><td width=\"30%\">c</td><td width=\"70%\" rowspan=\"2\"></td></tr>"
+                          "<tr><td align=\"center\">e</td></tr></table>")) ==
+              utf8(kml("<table><col width=\"30%\"/><col width=\"70%\"/>"
+                       "<tr><th><p>A</p></th><th><p>B</p></th></tr>"
+                       "<tr><td><p>c</p></td><td rowspan=\"2\"><p></p></td></tr>"
+                       "<tr><td><p align=\"center\">e</p></td></tr></table>")));
+        // Widths in pixels in proportion to one another
+        CHECK(utf8(merged("<table><tr><th>A</th><th>B</th></tr>"
+                          "<tr><td width=\"100\">c</td><td width=\"300\">d</td></tr></table>")) ==
+              utf8(kml("<table><col width=\"25%\"/><col width=\"75%\"/>"
+                       "<tr><th><p>A</p></th><th><p>B</p></th></tr>"
+                       "<tr><td><p>c</p></td><td><p>d</p></td></tr></table>")));
+        // Keep Source Formatting keeps every alignment: a th's centering, a td's left
+        CHECK(pasted("<table><thead><tr><th>A</th></tr></thead><tr><td>b</td></tr></table>",
+                     PasteMode::Source) ==
+              utf8(kml("<table><tr><th><p align=\"center\">A</p></th></tr>"
+                       "<tr><td><p align=\"left\">b</p></td></tr></table>")));
+        // Only the text: a row is a paragraph, its cells separated by tabs
+        CHECK(pasted(table, PasteMode::Text) == utf8(kml("<p>a\tb<br/>c</p><p>d</p>")));
+    }
+
+    SECTION("Tables: a cell holds only text, a table in it is its rows") {
+        CHECK(utf8(merged("<table><tr><td>c<table><tr><td>x</td><td>y</td></tr></table>z"
+                          "<hr/><p style=\"page-break-before:always\">w</p></td></tr></table>")) ==
+              utf8(kml("<table><tr><td><p>c</p><p>x\ty</p><p>z</p><p>w</p></td></tr></table>")));
     }
 
     SECTION("Characters XML cannot hold go") {

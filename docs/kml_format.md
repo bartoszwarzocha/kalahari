@@ -1,7 +1,7 @@
 # KML – Kalahari Markup Language
 
 KML is the XML format of chapter text: paragraphs and headings with their styles and own
-formatting, lists, horizontal lines and breaks, inline formatting, links and annotations. This document describes the format as the
+formatting, lists, tables, horizontal lines and breaks, inline formatting, links and annotations. This document describes the format as the
 application reads and writes it. The product specification of the format, including the
 elements planned for later versions, is section 4 of
 `project_docs/19_text_editor_functional_spec_pl.md`; the elements it lists that the editor does
@@ -15,12 +15,13 @@ The code that defines the format:
 | Paragraph styles, headings and the objects of the text | `include/kalahari/editor/paragraph_styles.h` |
 | A paragraph's own formatting and its attributes | `include/kalahari/editor/paragraph_format.h` |
 | Lists, the formats of their levels and the numbers of the items | `include/kalahari/editor/text_lists.h` |
+| Tables in the editor's document | `include/kalahari/editor/text_tables.h` |
 | Reading | `KmlDocumentModel::loadKml()`, called by `BookEditor::fromKml()` |
 | Writing | `KmlSerializer::toKml()`, called by `BookEditor::toKml()` |
 | Annotations in the editor's document | `include/kalahari/editor/annotation.h` |
 | Links in the editor's document | `include/kalahari/editor/text_link.h` |
 | The clipboard's KML, HTML and plain text | `ClipboardHandler` (`include/kalahari/editor/clipboard_handler.h`) |
-| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp`, `test_text_links.cpp` |
+| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp`, `test_text_links.cpp`, `test_tables.cpp` |
 
 ## Where KML is stored
 
@@ -56,8 +57,9 @@ reading.
   without attributes.
 - **Paragraphs** are the children of the root element: `<p>`, or `<paragraph>` on reading,
   the headings `<h1>`, `<h2>` and `<h3>` (see [Paragraph](#paragraph)), the lists `<ol>` and
-  `<ul>`, whose items are paragraphs too (see [Lists](#lists)), and the objects `<hr/>`,
-  `<scene-break/>` and `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)).
+  `<ul>`, whose items are paragraphs too (see [Lists](#lists)), the tables `<table>`, whose
+  cells hold paragraphs (see [Tables](#tables)), and the objects `<hr/>`, `<scene-break/>` and
+  `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)).
 - **Annotations** – the writer's comments, TODOs and notes – are in an `<annotations>` element,
   a child of the root element before the paragraphs (see [Annotations](#annotations)).
 - Any other element at this level is skipped together with everything inside it, and text
@@ -199,6 +201,60 @@ The editor writes an attribute only when it is not the default, and the elements
 in the order of its items: a list of a deeper level inside the item before it. A part of a
 list after another list cannot go on with `continue`, which refers to the list just before
 it: its first item gets the number it has in the chapter as `value`.
+
+## Tables
+
+```xml
+<table>
+  <col width="40%"/><col width="60%"/>
+  <tr><th><p>Who</p></th><th><p>Role</p></th></tr>
+  <tr><td><p>Anna</p></td><td><p>Narrator</p><p>A second paragraph</p></td></tr>
+  <tr><td colspan="2"><p>Both</p></td></tr>
+</table>
+```
+
+- **A table** is a block between paragraphs, as wide as the text. Insert > Table... puts one
+  at the cursor: its columns and rows (up to 20 and 100), equal columns, and whether its first
+  row is a header row.
+- **Rows and cells.** Each `<tr>` is a row, each `<td>` or `<th>` in it a cell, from left to
+  right. A cell holds paragraphs: `<p>`, the headings and the lists, with their formatting,
+  links and the anchors of annotations; an empty cell has one empty paragraph. Text in a cell
+  outside a paragraph is a paragraph of its own. A cell holds only text: a horizontal line or a
+  break in it is left out, and the cells of a table inside it give their paragraphs to the
+  cell.
+- **Merged cells.** `colspan` and `rowspan` (1 to 100) are the columns and rows a cell spans. A
+  cell goes in the first column the cells above it do not span into; a row with fewer cells
+  than the table has columns gets empty ones, and a cell spanning more rows than the table has
+  spans those it has.
+- **The header row.** A first row of `<th>` cells only is the header row, which the editor
+  shows in bold on a shaded background. A `<th>` in another row is read as a `<td>`, and the
+  editor writes it as one.
+- **The widths of the columns.** The `<col width="..."/>` elements before the rows, one for
+  each column, give the widths in percent of the table's width; the editor writes them in
+  percent, rounded to two decimals, for a table that has them (Insert > Table... makes equal
+  columns, without widths). Widths in another unit
+  (`120px`) are taken in proportion to one another, and a column without a `<col>` gets the
+  average width of the others; without `<col>` elements, or when one has no width, the columns
+  are equal.
+- `<thead>`, `<tbody>`, `<tfoot>` and `<colgroup>` around the rows or the `<col>` elements are
+  read as if they were not there. Any other element in a table is skipped with everything
+  inside it, and a table without cells is left out.
+- **At the start and the end.** The editor's document has a paragraph before a table and after
+  it: a table at the start or the end of a chapter gets an empty paragraph there, which the
+  editor writes (`<p></p>`).
+- **In the editor.** Tab goes to the next cell, in the last one it adds a row; Shift+Tab goes
+  to the cell before, Up and Down to the cell above and below. Enter starts a paragraph in the
+  cell; Backspace and Delete do not join cells, and next to a table they remove an empty
+  paragraph the table does not need. A selection going into or out of a table removes the text
+  of the cells it covers, not the cells; a table it covers whole goes with it. In a cell
+  Insert > Horizontal Line, Scene Break, Page Break and Table are greyed out.
+- **A part of a table** (copied text): the rows from the cell where the part starts to the cell
+  where it ends, with its text; the other cells of those rows are empty. A part inside one cell
+  is its paragraphs, without the table.
+- **Pasted** text with a table puts it at the cursor, splitting the paragraph; an empty
+  paragraph next to the table that it does not need goes. Pasted in a cell, the text keeps only
+  its text: each row of a table is a paragraph with its cells separated by tabs, and a
+  horizontal line or a break an empty paragraph.
 
 ## Text
 
@@ -367,6 +423,7 @@ tests in `tests/editor/test_clipboard_paste.cpp`).
 | `<ol>`, `<ul>`, `<li>` | `<ol>`, `<ul>` and `<li>`, a list of a deeper level inside an item; the type of the numbers, the number of the first item and of an item that does not go on from the one before it | Each item on a line, with its number or bullet as the editor shows it |
 | `caps`, `spacing` | CSS `font-variant:small-caps` or `text-transform:uppercase`, `letter-spacing` in points | – |
 | `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
+| `<table>` | `<table>` as wide as the text with a thin grid (`border="1"`, `border-collapse:collapse`), the header row in a `<thead>` of `<th>` cells, `colspan` and `rowspan`, the widths of the columns on the cells of the first row | A line for each row, its cells separated by tabs (one also for a cell that a cell above spans into), the paragraphs of a cell by spaces |
 
 The HTML of another program (Word, LibreOffice, a browser) is pasted, and dropped, in the mode
 of the setting `editor.paste.mode` (Settings > Editor > General, "Paste from Other
@@ -383,9 +440,12 @@ Text copied in Kalahari is pasted as KML in every mode. The lists of browsers, L
 and Word come as lists in the modes Merge Formatting and Keep Source Formatting, a list in an
 item as the next level of its list; Word's numbers and bullets (also those of the fonts Symbol
 and Wingdings) give the levels their formats and first numbers. Keep Text Only keeps the
-numbers and bullets as text. Until the editor has them, a table row comes as a paragraph with
-its cells separated by tabs; images are left out. A heading's bold is the
-look of the heading and is not kept. A scene break of another program comes as the paragraph
+numbers and bullets as text. Tables come as tables in Merge Formatting and Keep Source
+Formatting, with their merged cells, the widths of their columns (in percent, or pixels in
+proportion) and their header row: a `<thead>`, or a first row of `<th>` cells, whose bold, and
+in Merge Formatting their centering, is the look of the header; in Keep Text Only, and in a
+cell, a row is a paragraph with its cells separated by tabs. Images are left out. A heading's
+bold is the look of the heading and is not kept. A scene break of another program comes as the paragraph
 of its symbol.
 
 ## References
@@ -416,7 +476,6 @@ rest of the chapter is not loaded – and logs an error.
 Elements of the product specification that the editor does not read yet:
 
 - images `<img>`,
-- tables `<table>`, `<tr>`, `<td>`, `<th>`,
 - the annotations `<endnote>` and the references `<itemref>`, `<cite>`,
 - the root attributes `version` and `lang`, the paragraph attribute `speaker` and the scene
   break attribute `type` (the look of the scene breaks is a setting of the editor).

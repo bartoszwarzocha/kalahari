@@ -7,6 +7,7 @@
 #include <kalahari/editor/annotation_cards.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/text_tables.h>
 #include "editor_test_utils.h"
 
 #include <QContextMenuEvent>
@@ -14,6 +15,7 @@
 #include <QLocale>
 #include <QMouseEvent>
 #include <QTextBlock>
+#include <QTextDocument>
 
 #include <functional>
 #include <memory>
@@ -313,6 +315,44 @@ TEST_CASE("Annotation cards: a click on a mark collapses or expands its card",
         CHECK(editor->isAnnotationCollapsed(QStringLiteral("c1")));
         CHECK(roomUnder(*editor, 0) == 0.0);
     }
+}
+
+TEST_CASE("Annotation cards: none in a cell of a table, where a click on the mark opens the "
+          "annotation",
+          "[editor][annotations][cards][tables]") {
+    auto editor = std::make_unique<BookEditor>();
+    resizeWidget(*editor, QSize(700, 600));
+    editor->fromKml(QStringLiteral(
+        "<kml><annotations><annotation id=\"c1\" kind=\"comment\">In a cell</annotation>"
+        "</annotations><p>One</p><table><tr><td><p>a <anchor ref=\"c1\">b</anchor></p></td>"
+        "<td><p>c</p></td></tr></table><p>Two</p></kml>"));
+    setCards(*editor, [](AnnotationCardSettings& cards) { cards.show = true; });
+    REQUIRE(editor->showsAnnotationCards());
+
+    // A card as wide as the text would cover the cell beside it: the mark alone
+    CHECK(editor->annotationCardRect(QStringLiteral("c1")).isEmpty());
+    for (int paragraph = 0; paragraph < editor->textDocument()->blockCount(); ++paragraph) {
+        CAPTURE(paragraph);
+        CHECK(roomUnder(*editor, paragraph) == 0.0);
+    }
+
+    // A click on it opens the annotation, as without the cards
+    QTextBlock cell = editor->textDocument()->begin();
+    while (cell.isValid() && !cell.text().startsWith(QStringLiteral("a "))) {
+        cell = cell.next();
+    }
+    REQUIRE(cell.isValid());
+    REQUIRE(tableOf(cell) != nullptr);
+    (void)editor->grab();  // painted, as before a click: the view knows its paragraphs on screen
+    const std::optional<QPointF> mark =
+        markPoint(*editor, cell.position() + 3, QStringLiteral("c1"));
+    REQUIRE(mark.has_value());
+    QStringList clicked;
+    QObject::connect(editor.get(), &BookEditor::annotationMarkClicked,
+                     [&clicked](const QString& id) { clicked << id; });
+    click(*editor, *mark);
+    CHECK(clicked == QStringList{QStringLiteral("c1")});
+    CHECK_FALSE(editor->isAnnotationCollapsed(QStringLiteral("c1")));
 }
 
 TEST_CASE("Annotation cards: a click on a card goes to its annotation, a double click edits it",

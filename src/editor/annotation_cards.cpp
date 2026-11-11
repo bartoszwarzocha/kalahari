@@ -2,6 +2,7 @@
 /// @brief The cards of the annotations under their paragraphs (the continuous views)
 
 #include "kalahari/editor/annotation_cards.h"
+#include "kalahari/editor/text_tables.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 
 #include <QDate>
@@ -361,7 +362,9 @@ void AnnotationCards::setHovered(const QString& id, std::optional<AnnotationCard
 
 std::vector<AnnotationMark> AnnotationCards::cardMarks(const QTextBlock& block) const {
     std::vector<AnnotationMark> marks;
-    if (!m_shown || !block.isValid()) {
+    // A paragraph in a cell of a table has none: a card as wide as the text would cover the
+    // cells beside it, so its annotations keep their marks, as in the page view
+    if (!m_shown || !block.isValid() || tableOf(block) != nullptr) {
         return marks;
     }
     for (const AnnotationMark& mark : annotationMarksIn(block)) {
