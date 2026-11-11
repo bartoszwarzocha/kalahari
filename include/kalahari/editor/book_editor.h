@@ -23,11 +23,13 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/annotation_cards.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/image_store.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_sorting.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/view_modes.h>
@@ -907,6 +909,81 @@ public:
     std::optional<TextLink> linkAt(const QPointF& widgetPos) const;
 
     // =========================================================================
+    // Images (text_images.h, image_store.h)
+    //
+    // An image's file is named relative to the book's main folder; a new image is copied
+    // into the book's folder of images. Each change is one undo step, which brings back the
+    // cursor and selection it was made with.
+    // =========================================================================
+
+    /// @brief Set the book's main folder: the files of the images are found in it, and new
+    ///        images go into its folder of images; empty: none (every image is shown as a
+    ///        missing file, and none can be inserted). Set it before the content.
+    void setImagesFolder(const QString& folder);
+
+    /// @brief The book's main folder of the images; empty: none
+    QString imagesFolder() const;
+
+    /// @brief The files of the images: their sizes and pictures
+    const std::shared_ptr<ImageStore>& imageStore() const { return m_imageStore; }
+
+    /// @brief Whether an image can be inserted: the text can be changed and has a folder
+    ///        for its images
+    bool canInsertImage() const;
+
+    /// @brief Insert > Image...: copy a file into the folder of images and insert its image
+    ///        at the cursor, replacing the selection, as one undo step
+    ///
+    /// The image gets its file's own width (never wider than the line). Inserted into an
+    /// empty paragraph, the paragraph is centered. The image is selected.
+    /// @return false when the file could not be copied or is not an image, without a folder
+    ///         of images, or in a read-only text (changeRefused())
+    bool insertImageFile(const QString& path);
+
+    /// @brief Insert a picture (pasted, a screenshot) saved as a PNG file in the folder of
+    ///        images, as insertImageFile() inserts a file
+    bool insertPicture(const QImage& picture);
+
+    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does
+    bool insertImage(const ImageProperties& image);
+
+    /// @brief The image the selection is (exactly one image): its position in the document
+    std::optional<int> selectedImage() const;
+
+    /// @brief The image under a point of the widget: its position in the document
+    std::optional<int> imagePositionAt(const QPointF& widgetPos) const;
+
+    /// @brief Select the image at a position of the document (its character)
+    void selectImage(int position);
+
+    /// @brief The rectangle of the image at a position, in the widget (laid out, in view or
+    ///        not); std::nullopt: no image there
+    std::optional<QRectF> imageRect(int position) const;
+
+    /// @brief Give the image at a position other properties, as one undo step
+    /// @return false when there is no image there, nothing changes, or in a read-only text
+    bool setImageProperties(int position, const ImageProperties& image);
+
+    /// @brief Original Size: the image at a position gets its file's own width
+    bool setImageOriginalSize(int position);
+
+    /// @brief Change Image...: the image at a position shows another file, copied into the
+    ///        folder of images; its width and alternative text stay
+    bool changeImageFile(int position, const QString& path);
+
+    /// @brief Add Caption: the cursor goes into the caption of the image at a position, the
+    ///        paragraph after the image's in the style Caption; without one, a new empty one
+    ///        (one undo step)
+    bool addImageCaption(int position);
+
+    /// @brief The caption of the image at a position: the text of the paragraph after the
+    ///        image's in the style Caption; std::nullopt without one
+    std::optional<QString> imageCaption(int position) const;
+
+    /// @brief The file of the image at a position, a path on the disk; empty: none
+    QString imageFilePath(int position) const;
+
+    // =========================================================================
     // Annotations: comments, TODOs and notes
     // =========================================================================
 
@@ -1694,6 +1771,18 @@ signals:
     /// @brief Edit Link... of the context menu of a link: the window of Insert > Link
     ///        (linkTarget(), setLink())
     void linkDialogAsked();
+
+    /// @brief The writer asked for the properties of the selected image (a double click on
+    ///        it, its context menu): the application opens Image Properties
+    void imagePropertiesAsked(int position);
+
+    /// @brief The writer asked to change the file of the image at a position (its context
+    ///        menu): the application asks for one and calls changeImageFile()
+    void imageFileAsked(int position);
+
+    /// @brief The writer asked to save the image at a position as a file of its own (its
+    ///        context menu): the application asks where
+    void imageSaveAsked(int position);
 
     /// @brief A link was Ctrl+clicked, or Open Link chosen in its context menu
     /// @param address The link's address; the program opens only some (isOpenableLinkAddress())
@@ -2697,6 +2786,7 @@ private:
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
     ParagraphStyleSet m_paragraphStyles;                    ///< The styles of the book
+    std::shared_ptr<ImageStore> m_imageStore{std::make_shared<ImageStore>()};  ///< Of the images
     core::WordCountRules m_wordCountRules;                  ///< What the counts take for a word
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h

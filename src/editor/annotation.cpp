@@ -4,6 +4,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 
 #include <QTextBlock>
@@ -461,7 +462,8 @@ bool removeAnnotation(QTextDocument& document, const QString& id) {
 
 QTextCharFormat insertionFormat(const QTextCursor& cursor) {
     QTextCharFormat format = cursor.charFormat();
-    format.clearProperty(QTextFormat::ObjectType);  // text is never an object
+    format.clearProperty(QTextFormat::ObjectType);  // text is never an object, nor an image
+    clearImage(format);
 
     // Inside a fragment: between two of its characters, in one paragraph
     AnnotationList inside;

@@ -82,6 +82,7 @@ set(TEST_SOURCES
     editor/test_text_lists.cpp                   # Lists: numbers, formats of the levels, KML
     editor/test_list_editing.cpp                 # Lists: editing, indents, numbering, auto-correct
     editor/test_text_links.cpp                   # Links: KML, editing, the clipboard, auto-correct
+    editor/test_text_images.cpp                  # Images: KML, the store of files, layout, drawing, commands
     editor/test_tables.cpp                       # Tables: the model, KML, the layout, the keys
     editor/test_table_commands.cpp              # The Table menu in the text
     editor/test_paragraph_layout.cpp             # A paragraph's own formatting and lists in the layout
@@ -241,6 +242,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/character_format.cpp  # The character formatting of Format > Font, Change Case
     ${CMAKE_SOURCE_DIR}/src/editor/text_lists.cpp        # Bulleted and numbered lists
     ${CMAKE_SOURCE_DIR}/src/editor/text_tables.cpp       # Tables of the text
+    ${CMAKE_SOURCE_DIR}/src/editor/text_images.cpp       # Images of the text
+    ${CMAKE_SOURCE_DIR}/src/editor/image_store.cpp       # The image files of a book
     ${CMAKE_SOURCE_DIR}/src/editor/table_editing.cpp     # Changes of tables (the Table menu)
     ${CMAKE_SOURCE_DIR}/src/editor/text_sorting.cpp      # Sorting rows and paragraphs
     ${CMAKE_SOURCE_DIR}/src/editor/formatting_marks.cpp  # The formatting marks of a paragraph
@@ -256,6 +259,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_formatting.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_lists.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_links.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_images.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_tables.cpp

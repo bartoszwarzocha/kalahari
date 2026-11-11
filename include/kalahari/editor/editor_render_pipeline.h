@@ -463,6 +463,10 @@ public:
     /// shift of its page: see shiftAtY())
     QPointF documentToWidget(const QPointF& point) const;
 
+    /// @brief A rectangle of a paragraph, in its coordinates (as its lines are placed), in
+    ///        the widget
+    QRectF paragraphRectToWidget(size_t paragraph, const QRectF& rect) const;
+
     /// @brief Document position shown at a widget position
     QPointF widgetToDocument(const QPointF& point) const;
 

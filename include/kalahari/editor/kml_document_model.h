@@ -14,6 +14,7 @@
 #include <kalahari/editor/format_run.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
 
@@ -259,6 +260,11 @@ private:
     /// @brief Append text read in a format to a paragraph: a format run when the format
     ///        has any property
     static void appendText(Paragraph& para, const QString& text, const QTextCharFormat& format);
+
+    /// @brief Append an image read in a format to a paragraph: its character, with a format
+    ///        run of the format and the image's properties
+    static void appendImage(Paragraph& para, const ImageProperties& image,
+                            const QTextCharFormat& format);
 
     std::vector<Paragraph> m_paragraphs;    ///< All paragraphs
     std::vector<TableShape> m_tables;       ///< The tables, in the order of the KML

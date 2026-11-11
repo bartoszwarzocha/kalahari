@@ -1080,6 +1080,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     auto* layout = new KalahariTextDocumentLayout(m_textBuffer.get());
     m_textBuffer->setDocumentLayout(layout);
     layout->setParagraphStyles(m_paragraphStyles);  // the book's styles (setParagraphStyles())
+    layout->setImageStore(m_imageStore);            // the files of the images (setImagesFolder())
     layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
 
     // The numbers on the margin go on from the lines above the view, estimated until the

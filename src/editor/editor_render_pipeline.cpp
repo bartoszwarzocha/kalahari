@@ -2210,6 +2210,16 @@ QPointF EditorRenderPipeline::documentToWidget(const QPointF& point) const {
                    computed.originY + (point.y() - m_context.scrollY) * scale);
 }
 
+QRectF EditorRenderPipeline::paragraphRectToWidget(size_t paragraph, const QRectF& rect) const {
+    if (!m_textSource || paragraph >= m_textSource->paragraphCount()) {
+        return QRectF();
+    }
+    const double scale = m_context.computed.viewScale;
+    const QPointF topLeft =
+        documentToWidget(QPointF(rect.x(), m_textSource->paragraphY(paragraph) + rect.y()));
+    return QRectF(topLeft, rect.size() * scale);
+}
+
 QPointF EditorRenderPipeline::widgetToDocument(const QPointF& point) const {
     const auto& computed = m_context.computed;
     const double scale = computed.viewScale;
