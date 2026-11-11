@@ -706,7 +706,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // The panel Repetitions with the keyboard in it, and the next repetition of a word in the
     // text (RepetitionsCoordinator gives them their callbacks); Ctrl+Shift+F7 beside F7, the next
     // spelling or grammar issue
-    REG_CMD("tools.repetitions", QT_TRANSLATE_NOOP("CommandRegistrar", "Word R&epetitions"), "TOOLS/Word Repetitions", 57, false, 0);
+    REG_CMD("tools.repetitions", QT_TRANSLATE_NOOP("CommandRegistrar", "W&ord Repetitions"), "TOOLS/Word Repetitions", 57, false, 0);
     REG_CMD_KEY("tools.nextRepetition", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt Repetition"), "TOOLS/Next Repetition", 58, false, 0,
                 KeyboardShortcut(Qt::Key_F7, Qt::ControlModifier | Qt::ShiftModifier));
 

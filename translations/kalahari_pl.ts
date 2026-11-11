@@ -756,7 +756,7 @@
     </message>
     <message>
         <source>Statistics S&amp;ettings...</source>
-        <translation>Ustawienia s&amp;tatystyk...</translation>
+        <translation>Ustaw&amp;ienia statystyk...</translation>
     </message>
     <message>
         <source>Customize &amp;Toolbars...</source>
@@ -1143,7 +1143,7 @@
         <translation>Szybkie wst&amp;awianie...</translation>
     </message>
     <message>
-        <source>Word R&amp;epetitions</source>
+        <source>W&amp;ord Repetitions</source>
         <translation>Powtó&amp;rzenia słów</translation>
     </message>
     <message>
