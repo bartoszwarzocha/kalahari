@@ -17,12 +17,14 @@
 #include "kalahari/gui/special_character_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/versions_coordinator.h"
+#include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
+#include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -48,6 +50,7 @@
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/widgets/color_menu.h"
@@ -356,6 +359,17 @@ MainWindow::MainWindow(QWidget* parent)
 
     logger.debug("MainWindow: DocumentCoordinator created");
 
+    // The statistics bar above the tabs of the texts, and the record of writing of the book
+    // that opens (after the documents, which make the collector of its editors)
+    m_writingStatsCoordinator = new WritingStatsCoordinator(
+        m_dockCoordinator, m_documentCoordinator,
+        [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
+    m_writingStatsCoordinator->connectCommands();
+    // The time of writing and the days in a row after the reading time, and the summary of
+    // the session over this window
+    m_writingStatsCoordinator->attachStatusBar(statusBar());
+    m_writingStatsCoordinator->setSummaryWindow(this);
+
     // The annotation commands and the Annotations panel; a chapter is opened as from the
     // Navigator
     m_annotationsCoordinator = new AnnotationsCoordinator(
@@ -428,6 +442,24 @@ MainWindow::MainWindow(QWidget* parent)
         },
         statusBar(), this, this);
     m_versionsCoordinator->connectCommands();
+    // Format > Text Style: new styles of the book, the one at the cursor changed or deleted,
+    // Manage Styles...; the bar under the text says that a style was deleted, with Undo
+    m_styleCoordinator = new StyleCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        },
+        statusBar(), this, this);
+    m_styleCoordinator->connectCommands();
+    // The buttons and the menu of the palette, in both places of the Paragraph and Styles panel
+    for (ParagraphPanel* palette : {m_dockCoordinator->paragraphPanel(),
+                                    m_dockCoordinator->propertiesParagraphPanel()}) {
+        if (palette != nullptr) {
+            palette->setStyleCoordinator(m_styleCoordinator);
+        }
+    }
     // Version History... of a text in the Navigator, and the buttons of the group of the
     // versions in the Properties panel: the text opens, if it is not open
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestVersionHistory,
@@ -2218,6 +2250,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         // Don't Save -> continue with close
     }
 
+    // The summary of the session of writing, when the settings say so
+    if (m_writingStatsCoordinator) {
+        m_writingStatsCoordinator->showSessionSummary();
+    }
+
     // Phase F: Save Navigator expansion state before closing
     if (pm.isProjectOpen()) {
         // The open chapters open next time where their cursors are now
@@ -2495,7 +2532,8 @@ void MainWindow::showEvent(QShowEvent* event) {
         // Only restore window state if we haven't cleared it for toolbar reset
         // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value
         QByteArray windowState = settings.getBinary("window.state");
-        if (!windowState.isEmpty() && !toolbarResetNeeded) {
+        const bool savedLayout = !windowState.isEmpty() && !toolbarResetNeeded;
+        if (savedLayout) {
             // Normal case: restore saved window state (includes toolbar positions)
             restoreState(windowState);
         } else if (const QScreen* screen = this->screen()) {
@@ -2503,6 +2541,8 @@ void MainWindow::showEvent(QShowEvent* event) {
             // gets a layout that leaves the text room
             m_dockCoordinator->fitFirstLayout(screen->availableGeometry());
         }
+        // A layout saved before the Statistics panel
+        m_dockCoordinator->placeStatisticsPanel(savedLayout);
 
         // Task #00019: Restore toolbar state (visibility)
         // This runs AFTER QMainWindow::restoreState() to ensure our visibility settings

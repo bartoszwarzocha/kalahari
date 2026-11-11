@@ -36,7 +36,6 @@ namespace {
 constexpr int BAR_WIDTH = 4;          ///< The bar in the kind's color on the left, as on the cards
 constexpr qreal CORNER_RADIUS = 8.0;  ///< The rounded corners, as on the cards
 constexpr int MIN_WIDTH = 300;        ///< The narrowest frame (when the editor has room)
-constexpr int MAX_WIDTH = 560;        ///< The widest frame
 constexpr qreal GAP = 4.0;            ///< Between the place and the frame
 constexpr qreal EDGE = 8.0;           ///< The least room between the frame and the editor's edges
 constexpr qreal LEAD = 16.0;          ///< The frame starts this far left of its place
@@ -271,10 +270,10 @@ void AnnotationFrame::place() {
         column = area;
     }
 
-    // Two thirds of the column, within limits and within the editor; the text wraps anew
+    // Two thirds of the column, however wide it is, at least MIN_WIDTH and within the editor;
+    // the text wraps anew
     const int frameWidth =
-        std::min(std::clamp(static_cast<int>(std::lround(column.width() * 2.0 / 3.0)), MIN_WIDTH,
-                            MAX_WIDTH),
+        std::min(std::max(static_cast<int>(std::lround(column.width() * 2.0 / 3.0)), MIN_WIDTH),
                  static_cast<int>(area.width()));
     if (frameWidth != width()) {
         resize(frameWidth, height());

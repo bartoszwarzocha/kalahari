@@ -140,6 +140,11 @@ protected:
     /// @return The button; it does not close the dialog
     QPushButton* addSideButton(const QString& text);
 
+    /// @brief Add a widget at the left end of the row of the buttons, after the side buttons
+    ///        (e.g. a checkbox of how the dialog does its job)
+    /// @param widget The widget; the dialog becomes its parent
+    void addSideWidget(QWidget* widget);
+
 signals:
     /// @brief Apply was pressed: do the dialog's job and keep it open
     void applyClicked();

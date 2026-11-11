@@ -2,6 +2,7 @@
 /// @brief Editor panel implementation with BookEditor (OpenSpec #00042 Phase 7.1)
 
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/book_styles.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
 #include "kalahari/gui/dialogs/hyperlink_dialog.h"
@@ -107,6 +108,10 @@ EditorPanel::EditorPanel(QWidget* parent)
             this, &EditorPanel::contentChanged);
     connect(m_bookEditor, &editor::BookEditor::modifiedChanged, this,
             &EditorPanel::modifiedChanged);
+
+    // A style of the book added, changed or removed: the text shows it at once
+    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::paragraphStylesChanged,
+            this, [this]() { m_bookEditor->setParagraphStyles(paragraphStyles()); });
 
     // The text's context menu cuts, copies, pastes and selects all with the commands of the
     // Edit menu: their icons and keys, enabled as there
@@ -303,20 +308,12 @@ void EditorPanel::setUnmodified() {
 }
 
 editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
-    const auto& projects = core::ProjectManager::getInstance();
-    const core::BookProject* book = projects.project();
-    // A chapter of the book, which NavigatorCoordinator tags with its element
-    const bool chapter = book != nullptr && !property("elementId").toString().isEmpty();
-    const QString base = QString::fromLatin1(core::ProjectManager::BASE_PACKAGE);
-    QList<core::PackageParagraphStyle> styles;
-    if (chapter && book->type.has_value()) {
-        styles = projects.bookTypes().paragraphStyles(book->type->id);
-    }
-    // A type the program does not have gives none: the styles every book has
-    if (styles.isEmpty()) {
-        styles = projects.bookTypes().paragraphStyles(base);
-    }
-    return editor::ParagraphStyleSet::fromPackage(styles, programLanguage());
+    // A chapter of the book, which NavigatorCoordinator tags with its element, has the styles
+    // of the book; any other text those every book has
+    const bool chapter = core::ProjectManager::getInstance().project() != nullptr &&
+                         !property("elementId").toString().isEmpty();
+    return chapter ? bookParagraphStyles()
+                   : editor::ParagraphStyleSet::fromPackage(baseStyles(), programLanguage());
 }
 
 void EditorPanel::learnAutoCorrectException(editor::LearnedException list,

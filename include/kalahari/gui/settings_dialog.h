@@ -56,6 +56,10 @@ public:
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
+    static constexpr const char* STATS_BAR_PAGE = "stats.bar";       ///< Statistics > Bar and Panel
+    static constexpr const char* STATS_COUNTING_PAGE = "stats.counting";  ///< Statistics > Counting
+    static constexpr const char* STATS_NOTIFICATIONS_PAGE = "stats.notifications";  ///< > Notifications
+    static constexpr const char* STATS_COLORS_PAGE = "stats.colors";  ///< Statistics > Colors
 
     /// @brief Constructor
     /// @param parent Parent widget (usually MainWindow)

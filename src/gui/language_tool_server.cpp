@@ -291,7 +291,11 @@ QString LanguageToolServer::details() const
 
 QString LanguageToolServer::address() const
 {
-    return QStringLiteral("http://localhost:%1").arg(m_port);
+    // 127.0.0.1, not localhost: the port is found free on 127.0.0.1 (freePort()), so the
+    // server is looked for there. On macOS 15.8 "localhost" is ::1 first, and Qt counts a
+    // connection to ::1 where nothing listens as made: every request then waits until its
+    // time is up and never tries 127.0.0.1.
+    return QStringLiteral("http://127.0.0.1:%1").arg(m_port);
 }
 
 void LanguageToolServer::start()
@@ -489,9 +493,7 @@ void LanguageToolServer::probe()
     }
     QNetworkRequest request(QUrl(address() + QStringLiteral("/v2/languages")));
     request.setTransferTimeout(PROBE_TIMEOUT_MS);
-    // Every probe on a new connection: one that went wrong is not used again. On macOS the
-    // first one can reach itself over IPv6 (a port next to the last one the system gave is
-    // the one it gives next); kept, it would try only IPv6, where nothing listens.
+    // Every probe on a new connection: one that went wrong is not used again
     request.setAttribute(QNetworkRequest::ConnectionCacheExpiryTimeoutSecondsAttribute, 0);
     QNetworkReply* reply = m_network->get(request);
     m_probeReply = reply;

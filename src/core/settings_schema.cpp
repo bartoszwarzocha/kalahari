@@ -26,6 +26,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+        // The Statistics panel has its place in the saved layout: a layout saved before it
+        // gets it once, in the tab after the Annotations panel (DockCoordinator)
+        {"window.statisticsPanelPlaced", false},
         // The tabs in the middle of the window (Settings > Appearance > General): in one row
         // with arrows when they do not fit ("single") or in more rows ("wrap")
         {"window.tabRows", "single"},
@@ -62,6 +65,9 @@ std::map<std::string, json> buildDefaults() {
         {"ui.colorPalette", "basic"},
         // The color window shows the HEX and RGB values
         {"ui.colorValuesShown", false},
+        // The window of a paragraph style (New Style, Modify Style): all its settings on tabs
+        // ("tabs") or the short one with a wide preview ("short")
+        {"ui.styleWindow", "tabs"},
         {"appearance.theme", "Light"},
         {"appearance.uiFontSize", 12},
         {"appearance.iconTheme", "twotone"},
@@ -76,6 +82,70 @@ std::map<std::string, json> buildDefaults() {
         {"icons.sizes.statusBar", 16},
         {"icons.sizes.button", 20},
         {"icons.sizes.comboBox", 16},
+
+        // Statistics and goals of writing (Settings > Statistics and Goals, core::WritingRules).
+        // A writing day ends at dayStart (minutes after midnight) of the next morning; the time
+        // of writing stops after a pause of idleMinutes. The words pasted or dropped are kept
+        // apart and count as written only with countPasted; any other change of more than
+        // largeChangeWords at once (cutting a chapter, restoring a version) is not writing when
+        // skipLargeChanges is on. The goals count the growth of the text ("net") or all the
+        // words written ("written"), of all the books or of the open one. writingDays: bit 0 is
+        // Monday, ... bit 6 Sunday. weeklyGoal 0: the daily goals of the writing days. A day
+        // keeps the days in a row going with streakMinimumWords ("minimumWords") or with the
+        // daily goal reached ("dailyGoal").
+        {"stats.dayStart", 240},
+        {"stats.idleMinutes", 5},
+        {"stats.skipLargeChanges", true},
+        {"stats.largeChangeWords", 500},
+        {"stats.countPasted", false},
+        {"stats.goalCounting", "net"},
+        {"stats.dailyGoalAllBooks", true},
+        {"stats.writingDays", 31},
+        {"stats.dailyGoal", 1000},
+        {"stats.weeklyGoal", 0},
+        {"stats.streakRule", "minimumWords"},
+        {"stats.streakMinimumWords", 100},
+        // The statistics bar above the tabs of the texts (Settings > Statistics and Goals > Bar
+        // and Panel): a graph of the day ("graph", bar.height pixels high, at least 83) or one
+        // line ("line"); its texts on the right or the left of the graph; the mini graph of the
+        // line shows today ("day"), the last 7 or the last 30 days. The graph shows the hours
+        // from bar.fromHour to bar.toHour (24: midnight), in pieces of bar.pieceMinutes: the day
+        // from the left ("day"), or as many hours with now in the middle ("now"), as the button
+        // on the graph switches it.
+        {"stats.bar.show", true},
+        {"stats.bar.mode", "graph"},
+        {"stats.bar.height", 83},
+        {"stats.bar.textSide", "right"},
+        {"stats.bar.showWords", true},
+        {"stats.bar.showTime", true},
+        {"stats.bar.showStreak", true},
+        {"stats.bar.miniGraph", "7"},
+        {"stats.bar.graphMode", "day"},
+        {"stats.bar.fromHour", 6},
+        {"stats.bar.toHour", 24},
+        {"stats.bar.pieceMinutes", 10},
+        {"stats.bar.showPieces", true},
+        {"stats.bar.showCumulative", true},
+        // The views of the Statistics panel, and the time of writing and the days in a row in
+        // the status bar
+        {"stats.panel.today", true},
+        {"stats.panel.week", true},
+        {"stats.panel.month", true},
+        {"stats.panel.book", true},
+        {"stats.panel.hours", true},
+        {"stats.panel.awards", true},
+        {"stats.statusBar", true},
+        // Messages in the bar at the bottom of the window (Settings > Statistics and Goals >
+        // Notifications), the summary of the session and the badges and challenges
+        {"stats.notify.dailyGoal", true},
+        // The daily goal reached opens the Statistics panel on the view Today
+        {"stats.notify.showPanel", true},
+        {"stats.notify.weeklyGoal", true},
+        {"stats.notify.deadline", true},
+        {"stats.notify.deadlineDays", 3},
+        {"stats.sessionSummary", true},
+        {"stats.badges", true},
+        {"stats.challenges", false},
 
         // Toolbars
         {"toolbars.locked", false},

@@ -153,7 +153,7 @@ jobs:
   analysis:
     name: Sanitizers, Coverage & clang-tidy
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90  # Build ~30 min and tests ~12 min leave clang-tidy of a large PR too little in 60
 
     steps:
     - name: Checkout code

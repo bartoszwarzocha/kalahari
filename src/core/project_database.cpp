@@ -6,6 +6,7 @@
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/database_schema_manager.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/writing_journal.h"
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -58,6 +59,11 @@ bool ProjectDatabase::open(const QString& projectPath)
     }
 
     configurePragmas();
+    // Books made before the record of writing get its table now
+    if (!writing_activity_store::createTable(m_db)) {
+        Logger::getInstance().warn("ProjectDatabase: No table of the record of writing: {}",
+                                   m_db.lastError().text().toStdString());
+    }
 
     Logger::getInstance().info("ProjectDatabase: Opened {}", dbPath.toStdString());
     return true;
@@ -609,6 +615,26 @@ void ProjectDatabase::deleteCharacterStyle(const QString& id)
     query.prepare("DELETE FROM character_styles WHERE id = ?");
     query.addBindValue(id);
     query.exec();
+}
+
+// =============================================================================
+// Record of writing
+// =============================================================================
+
+bool ProjectDatabase::addWritingActivity(const QList<WritingActivity>& activity)
+{
+    if (!isOpen()) {
+        return false;
+    }
+    return writing_activity_store::add(m_db, activity);
+}
+
+QList<WritingActivity> ProjectDatabase::writingActivity(const QDate& from, const QDate& to) const
+{
+    if (!isOpen()) {
+        return {};
+    }
+    return writing_activity_store::read(m_db, from, to);
 }
 
 // =============================================================================

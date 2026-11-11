@@ -4,6 +4,8 @@
 #include "kalahari/gui/widgets/length_spin_box.h"
 #include "kalahari/core/settings_manager.h"
 
+#include <QLocale>
+
 #include <string>
 
 namespace kalahari {
@@ -87,6 +89,12 @@ double convertLength(double value, LengthUnit from, LengthUnit to) {
 LengthUnit currentLengthUnit() {
     return lengthUnitFromName(QString::fromStdString(
         core::SettingsManager::getInstance().get<std::string>("ui.lengthUnit", "mm")));
+}
+
+QString lengthText(double value, LengthUnit storedUnit) {
+    const LengthUnit unit = currentLengthUnit();
+    return QLocale().toString(convertLength(value, storedUnit, unit), 'f', decimalsOf(unit)) +
+           suffixOf(unit);
 }
 
 LengthSpinBox::LengthSpinBox(LengthUnit storedUnit, double minimum, double maximum, QWidget* parent)

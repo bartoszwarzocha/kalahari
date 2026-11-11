@@ -11,6 +11,8 @@
 #include <QColor>
 
 #include <functional>
+#include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -99,6 +101,15 @@ private:
     /// @brief The selected theme's name
     [[nodiscard]] std::string themeName() const;
 
+    /// @brief Which palette colors follow the theme's color: those the theme file does not
+    ///        list (core::Theme::themeColorPalette), without a color of the user's own
+    /// @param reset Also those with a color of the user's own (Reset to Theme Defaults)
+    void startFollowing(bool reset);
+
+    /// @brief Show the palette colors that follow the theme's color as it is made from the
+    ///        colors shown (the Primary icon color, the selection, the base, the text)
+    void followThemeColor();
+
     QComboBox* m_themeCombo;
     ColorConfigWidget* m_primaryColor = nullptr;
     ColorConfigWidget* m_secondaryColor = nullptr;
@@ -109,6 +120,15 @@ private:
         Binding* binding;
     };
     std::vector<ColorField> m_colors;
+
+    /// @brief A palette color of the page
+    struct PaletteColor {
+        ColorConfigWidget* widget = nullptr;
+        std::function<QColor&(core::Theme&)> field;  ///< Its place in a theme
+        Binding* binding = nullptr;
+        bool follows = false;  ///< Made from the theme's color: none of the user's own is kept
+    };
+    std::map<std::string, PaletteColor> m_paletteColors;  ///< By the palette's key ("link")
 };
 
 /// @brief Appearance > Icons: icon style and sizes

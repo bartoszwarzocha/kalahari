@@ -4,7 +4,9 @@
 #include "kalahari/gui/panels/paragraph_panel.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/read_only_book.h"
+#include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/widgets/flow_layout.h"
+#include "kalahari/gui/widgets/style_tag_delegate.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/core/art_provider.h"
@@ -19,6 +21,7 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QLocale>
+#include <QMenu>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
@@ -41,6 +44,17 @@ constexpr double PREVIEW_MAX_SCALE = 1.6;
 
 /// @brief The time the panel waits for the cursor to stop before it shows the paragraph
 constexpr int REFRESH_DELAY_MS = 100;
+
+/// @brief The commands of the styles of the book, whose icons the palette's buttons have
+constexpr const char* NEW_STYLE_ID = "format.style.new";
+constexpr const char* MODIFY_STYLE_ID = "format.style.modify";
+constexpr const char* DELETE_STYLE_ID = "format.style.delete";
+constexpr const char* MANAGE_STYLES_ID = "format.style.manage";
+
+/// @brief A name in the text of a menu item: an "&" of the name is not the item's key
+QString menuName(QString name) {
+    return name.replace(QLatin1Char('&'), QStringLiteral("&&"));
+}
 
 /// @brief A number as the system writes numbers (12 345 in Polish)
 QString numberText(qsizetype number) {
@@ -221,16 +235,93 @@ QWidget* ParagraphPanel::createPalette() {
             [this](int id) { setShowsPreview(id == 1); });
     layout->addLayout(header);
 
+    // New, Modify and Delete for the style chosen in the list, then Manage Styles...; they show
+    // with the styles of the book (setStyleCoordinator())
+    m_styleBar = new QToolBar(m_palette);
+    m_styleBar->setObjectName(QStringLiteral("paragraphStyleBar"));
+    m_styleBar->setMovable(false);
+    m_styleBar->setFloatable(false);
+    m_styleBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    auto& art = core::ArtProvider::getInstance();
+    m_newStyleAction = art.createAction(QString::fromLatin1(NEW_STYLE_ID), tr("New Style..."),
+                                        this, core::IconContext::Button);
+    m_modifyStyleAction = art.createAction(QString::fromLatin1(MODIFY_STYLE_ID),
+                                           tr("Modify Style..."), this, core::IconContext::Button);
+    m_deleteStyleAction = art.createAction(QString::fromLatin1(DELETE_STYLE_ID),
+                                           tr("Delete Style"), this, core::IconContext::Button);
+    m_manageStylesAction = art.createAction(QString::fromLatin1(MANAGE_STYLES_ID),
+                                            tr("Manage Styles..."), this,
+                                            core::IconContext::Button);
+    m_newStyleAction->setObjectName(QStringLiteral("paletteNewStyle"));
+    m_modifyStyleAction->setObjectName(QStringLiteral("paletteModifyStyle"));
+    m_deleteStyleAction->setObjectName(QStringLiteral("paletteDeleteStyle"));
+    m_manageStylesAction->setObjectName(QStringLiteral("paletteManageStyles"));
+    m_styleBar->addAction(m_newStyleAction);
+    m_styleBar->addAction(m_modifyStyleAction);
+    m_styleBar->addAction(m_deleteStyleAction);
+    m_styleBar->addSeparator();
+    m_styleBar->addAction(m_manageStylesAction);
+    connect(m_newStyleAction, &QAction::triggered, this, [this]() {
+        if (!m_styles) {
+            return;
+        }
+        // A style the book does not have is made for its paragraphs
+        const QString id = paletteStyle();
+        if (isMissing(id)) {
+            m_styles->createMissingStyle(id, window());
+        } else {
+            m_styles->newStyle(id, true, window());
+        }
+    });
+    connect(m_modifyStyleAction, &QAction::triggered, this, [this]() {
+        if (m_styles) {
+            m_styles->modifyStyle(paletteStyle(), window());
+        }
+    });
+    connect(m_deleteStyleAction, &QAction::triggered, this, [this]() {
+        if (m_styles) {
+            m_styles->deleteStyle(paletteStyle(), window());
+        }
+    });
+    connect(m_manageStylesAction, &QAction::triggered, this, [this]() {
+        if (m_styles) {
+            m_styles->manageStyles(paletteStyle());
+        }
+    });
+    m_styleBar->hide();
+    layout->addWidget(m_styleBar);
+
     m_styleList = new QListWidget(m_palette);
     m_styleList->setObjectName(QStringLiteral("paragraphStyleList"));
     m_styleList->setSelectionMode(QAbstractItemView::SingleSelection);
     m_styleList->setUniformItemSizes(false);
+    // "own" after the writer's own styles, "changed" after the styles of the type the book
+    // changed
+    m_styleList->setItemDelegate(new StyleTagDelegate(m_styleList));
     // A click gives the style; Enter does it for the style chosen with the arrows (a double
     // click, or a single one where the system activates items so, gives the style once: the
     // paragraphs have it already)
     connect(m_styleList, &QListWidget::itemClicked, this, &ParagraphPanel::applyStyle);
     connect(m_styleList, &QListWidget::itemActivated, this, &ParagraphPanel::applyStyle);
+    // The buttons act on the style chosen; the right mouse button, the menu key and Shift+F10
+    // open its menu
+    connect(m_styleList, &QListWidget::currentItemChanged, this,
+            &ParagraphPanel::updateStyleActions);
+    m_styleList->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_styleList, &QWidget::customContextMenuRequested, this,
+            &ParagraphPanel::showStyleMenu);
     layout->addWidget(m_styleList, 1);
+
+    //: Under the list of styles. In Polish: Kliknięcie stylu nadaje go akapitowi z kursorem.
+    //: Prawy przycisk myszy albo Shift+F10 otwiera menu stylu.
+    m_styleHint = new QLabel(tr("A click on a style gives it to the paragraph at the cursor. "
+                                "The right mouse button or Shift+F10 opens the menu of the "
+                                "style."),
+                             m_palette);
+    m_styleHint->setObjectName(QStringLiteral("paragraphStyleHint"));
+    m_styleHint->setWordWrap(true);
+    m_styleHint->setForegroundRole(QPalette::PlaceholderText);
+    layout->addWidget(m_styleHint);
     return m_palette;
 }
 
@@ -261,7 +352,7 @@ QToolBar* ParagraphPanel::commandBar(const QList<const char*>& commandIds) {
 void ParagraphPanel::applyIconSize() {
     // The size of the buttons in panels (Settings > Appearance > Icons > Buttons)
     const int size = core::ArtProvider::getInstance().getIconSize(core::IconContext::Button);
-    for (QToolBar* bar : {m_formatBar, m_alignBar}) {
+    for (QToolBar* bar : {m_formatBar, m_alignBar, m_styleBar}) {
         bar->setIconSize(QSize(size, size));
         // All the buttons in sight: a narrow panel puts them under their label, not in a menu
         // of the toolbar's arrow
@@ -286,6 +377,11 @@ void ParagraphPanel::setEditor(editor::BookEditor* editor) {
                 &ParagraphPanel::scheduleRefresh);
         connect(editor, &editor::BookEditor::contentChanged, this,
                 &ParagraphPanel::scheduleRefresh);
+        // A style of the book added, changed or removed: the palette lists the styles anew
+        connect(editor, &editor::BookEditor::paragraphStylesChanged, this, [this]() {
+            m_styleList->clear();
+            scheduleRefresh();
+        });
         // A text closed while it is followed: the panel follows none
         connect(editor, &QObject::destroyed, this, [this]() {
             m_editor = nullptr;
@@ -410,24 +506,53 @@ void ParagraphPanel::showStyles() {
     const editor::BookEditor* text = m_editor;
     m_updating = true;
 
-    // The styles of the text, as Format > Text Style lists them; built again when they change
-    QList<std::pair<QString, QString>> styles;  // id, name
+    // The styles of the text, as Format > Text Style lists them, tagged as the book has them;
+    // built again when they change
+    struct Listed {
+        QString id;
+        QString name;
+        editor::StyleOrigin origin = editor::StyleOrigin::Type;
+        bool missing = false;
+    };
+    QList<Listed> styles;
     if (text != nullptr) {
-        for (const editor::ParagraphStyle& style : text->paragraphStyles().styles()) {
-            styles.append({style.id, style.name.isEmpty() ? style.id : style.name});
+        const editor::ParagraphStyleSet& set = text->paragraphStyles();
+        for (const editor::ParagraphStyle& style : set.styles()) {
+            styles.append({style.id, style.name.isEmpty() ? style.id : style.name, style.origin});
+        }
+        // Then the styles of paragraphs from another book that this book does not have, by
+        // their ids: they look as Normal until the book has them
+        QStringList missing;
+        const QHash<QString, int> counts = text->paragraphStyleCounts();
+        for (auto it = counts.cbegin(); it != counts.cend(); ++it) {
+            if (!it.key().isEmpty() && !set.contains(it.key())) {
+                missing.append(it.key());
+            }
+        }
+        missing.sort();
+        for (const QString& id : missing) {
+            styles.append({id, id, editor::StyleOrigin::Type, true});
         }
     }
     bool same = m_styleList->count() == styles.size();
     for (int i = 0; same && i < styles.size(); ++i) {
         const QListWidgetItem* item = m_styleList->item(i);
-        same = item->data(Qt::UserRole).toString() == styles.at(i).first &&
-               item->text() == styles.at(i).second;
+        same = item->data(Qt::UserRole).toString() == styles.at(i).id &&
+               item->text() == styles.at(i).name &&
+               item->data(StyleTagDelegate::ORIGIN_ROLE).toInt() ==
+                   static_cast<int>(styles.at(i).origin) &&
+               item->data(StyleTagDelegate::MISSING_ROLE).toBool() == styles.at(i).missing;
     }
     if (!same) {
         m_styleList->clear();
-        for (const auto& [id, name] : styles) {
-            auto* item = new QListWidgetItem(name, m_styleList);
-            item->setData(Qt::UserRole, id);
+        for (const Listed& style : styles) {
+            auto* item = new QListWidgetItem(style.name, m_styleList);
+            item->setData(Qt::UserRole, style.id);
+            if (style.missing) {
+                StyleTagDelegate::tagMissing(item);
+            } else {
+                StyleTagDelegate::tagItem(item, style.origin);
+            }
         }
         showStyleLook();
     }
@@ -465,6 +590,156 @@ void ParagraphPanel::showStyles() {
                "paragraphs"));
     }
     m_updating = false;
+    updateStyleActions();
+}
+
+void ParagraphPanel::setStyleCoordinator(StyleCoordinator* styles) {
+    if (m_styles != nullptr) {
+        disconnect(m_styles, nullptr, this, nullptr);
+    }
+    m_styles = styles;
+    m_styleBar->setVisible(styles != nullptr);
+    if (styles != nullptr) {
+        // The book's styles changed, or a change was undone: the buttons of the style anew
+        connect(styles, &StyleCoordinator::stylesChanged, this,
+                &ParagraphPanel::updateStyleActions);
+    }
+    updateStyleActions();
+}
+
+QString ParagraphPanel::paletteStyle() const {
+    if (const QListWidgetItem* item = m_styleList->currentItem()) {
+        return item->data(Qt::UserRole).toString();
+    }
+    if (m_editor == nullptr) {
+        return QString();
+    }
+    // Paragraphs of different styles selected: the style of the one with the cursor
+    const QString selected = m_editor->selectedParagraphStyle();
+    return selected.isEmpty() ? m_editor->currentParagraphStyle() : selected;
+}
+
+bool ParagraphPanel::isMissing(const QString& id) const {
+    return m_editor != nullptr && !id.isEmpty() && !m_editor->paragraphStyles().contains(id);
+}
+
+QString ParagraphPanel::styleName(const QString& id) const {
+    const editor::ParagraphStyle* style =
+        m_editor != nullptr ? m_editor->paragraphStyles().find(id) : nullptr;
+    return style != nullptr && !style->name.isEmpty() ? style->name : id;
+}
+
+void ParagraphPanel::updateStyleActions() {
+    if (m_styles == nullptr) {
+        for (QAction* action : {m_newStyleAction, m_modifyStyleAction, m_deleteStyleAction,
+                                m_manageStylesAction}) {
+            action->setEnabled(false);
+        }
+        return;
+    }
+    // Manage Styles... needs a book that can change; the others a text with a style too
+    const QString whyNotChange = m_styles->whyNotChange();
+    const QString id = paletteStyle();
+    QString reason = whyNotChange;
+    if (reason.isEmpty() && id.isEmpty()) {
+        //: Why the buttons of a style in the palette are greyed out. In Polish: Na wierzchu nie
+        //: ma tekstu z kursorem
+        reason = tr("No text with a cursor is in front");
+    }
+    const QString name = styleName(id);
+    const auto offer = [](QAction* action, const QString& why, const QString& toolTip) {
+        action->setEnabled(why.isEmpty());
+        action->setToolTip(why.isEmpty() ? toolTip : why);
+    };
+    // A style the book does not have: New makes it, for its paragraphs
+    const bool missing = reason.isEmpty() && isMissing(id);
+    offer(m_newStyleAction, reason,
+          missing
+              //: The tooltip of New Style in the palette for a style the book does not have.
+              //: In Polish: Utwórz styl „%1” dla jego akapitów…
+              ? tr("Create the style \"%1\" for its paragraphs...").arg(name)
+              //: The tooltip of New Style in the palette. In Polish: Nowy styl na podstawie
+              //: „%1”…
+              : tr("New style based on \"%1\"...").arg(name));
+    //: In Polish: Zmień styl „%1”…
+    offer(m_modifyStyleAction,
+          missing ? m_styles->whyNotDelete(id) : reason,
+          tr("Modify the style \"%1\"...").arg(name));
+    //: In Polish: Usuń styl „%1”
+    offer(m_deleteStyleAction, reason.isEmpty() ? m_styles->whyNotDelete(id) : reason,
+          tr("Delete the style \"%1\"").arg(name));
+    offer(m_manageStylesAction, whyNotChange, tr("Manage Styles..."));
+}
+
+void ParagraphPanel::showStyleMenu(const QPoint& pos) {
+    // The style under the mouse; from the keys, the style chosen
+    if (QListWidgetItem* item = m_styleList->itemAt(pos)) {
+        m_styleList->setCurrentItem(item);
+    }
+    QMenu menu(this);
+    fillStyleMenu(menu);
+    if (!menu.isEmpty()) {
+        menu.exec(m_styleList->viewport()->mapToGlobal(pos));
+    }
+}
+
+void ParagraphPanel::fillStyleMenu(QMenu& menu) {
+    const QString id = paletteStyle();
+    if (id.isEmpty()) {
+        return;
+    }
+    const QString name = menuName(styleName(id));
+
+    // What a click does, in bold
+    //: The first item of the menu of a style in the palette. In Polish: &Nadaj styl „%1”
+    QAction* apply = menu.addAction(tr("&Apply the Style \"%1\"").arg(name));
+    QFont bold = apply->font();
+    bold.setBold(true);
+    apply->setFont(bold);
+    apply->setEnabled(m_styleList->isEnabled());
+    connect(apply, &QAction::triggered, this, [this, id]() { giveStyle(id); });
+    if (m_styles == nullptr) {
+        return;
+    }
+
+    menu.addSeparator();
+    const auto add = [&menu](QAction* button, const QString& text) {
+        QAction* item = menu.addAction(button->icon(), text);
+        item->setEnabled(button->isEnabled());
+        connect(item, &QAction::triggered, button, &QAction::trigger);
+        return item;
+    };
+    // A style the book does not have can only be made
+    if (isMissing(id)) {
+        //: In the menu of a style the book does not have. In Polish: &Utwórz styl „%1”…
+        add(m_newStyleAction, tr("&Create the Style \"%1\"...").arg(name));
+        menu.addSeparator();
+        add(m_manageStylesAction, tr("Manage &Styles..."));
+        return;
+    }
+    //: In Polish: N&owy styl na podstawie „%1”…
+    add(m_newStyleAction, tr("&New Style Based on \"%1\"...").arg(name));
+    //: In Polish: &Zmień styl „%1”…
+    add(m_modifyStyleAction, tr("&Modify the Style \"%1\"...").arg(name));
+    // A style of the type comes back as the type has it; the writer's own has no such
+    const editor::ParagraphStyle* style =
+        m_editor != nullptr ? m_editor->paragraphStyles().find(id) : nullptr;
+    if (style != nullptr && style->origin != editor::StyleOrigin::Own) {
+        //: In Polish: &Przywróć styl typu
+        QAction* reset = menu.addAction(tr("&Reset to the Type's Style"));
+        reset->setEnabled(m_styles->whyNotChange().isEmpty() &&
+                          m_styles->whyNotReset(id).isEmpty());
+        connect(reset, &QAction::triggered, this, [this, id]() {
+            if (m_styles) {
+                m_styles->resetStyle(id);
+            }
+        });
+    }
+    //: In Polish: &Usuń styl „%1”
+    add(m_deleteStyleAction, tr("&Delete the Style \"%1\"").arg(name));
+    menu.addSeparator();
+    //: In Polish: Zarządzaj &stylami…
+    add(m_manageStylesAction, tr("Manage &Styles..."));
 }
 
 void ParagraphPanel::showStyleLook() {
@@ -480,12 +755,19 @@ void ParagraphPanel::showStyleLook() {
 }
 
 void ParagraphPanel::applyStyle(QListWidgetItem* item) {
-    if (m_updating || item == nullptr || !m_editor) {
+    if (m_updating || item == nullptr) {
+        return;
+    }
+    giveStyle(item->data(Qt::UserRole).toString());
+}
+
+void ParagraphPanel::giveStyle(const QString& id) {
+    if (!m_editor) {
         return;
     }
     // As Format > Text Style: the paragraphs of the cursor or the selection (a chapter of a
     // book open read-only refuses it, and says why); the writer goes on writing
-    m_editor->applyParagraphStyle(item->data(Qt::UserRole).toString());
+    m_editor->applyParagraphStyle(id);
     m_editor->setFocus(Qt::OtherFocusReason);
     refresh();
 }

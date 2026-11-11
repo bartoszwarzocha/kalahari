@@ -1357,3 +1357,28 @@ TEST_CASE("Links opened: a section in the Navigator, an element in its tab, a ma
     CHECK(pm.findElement(map)->rotation == 90);
     CHECK(window.properties->materialPage()->thumbnail()->iconSize() == QSize(20, 40));
 }
+
+TEST_CASE("Material card: on its tab the card fills the whole width", "[gui][materials]") {
+    gui::registerAllIcons();
+    test::OpenNovel novel(QStringLiteral("Rain"));
+    auto& pm = novel.pm;
+    QTemporaryDir files;
+    REQUIRE(files.isValid());
+    const QString map =
+        addMaterial(pm, writePicture(files.path(), QStringLiteral("map.png"), QSize(400, 200)),
+                    QStringLiteral("Map"));
+
+    // In a window of its own, as in the middle of the program: a window as wide as this would
+    // be made as narrow as the screen of the tests
+    QWidget window;
+    gui::MaterialCardPanel card(map, &window);
+    window.show();
+    for (const int width : {700, 1900}) {
+        card.resize(width, 800);
+        QApplication::processEvents();
+        REQUIRE(card.width() == width);
+        // The margin around it, however wide the tab
+        INFO("width " << width << ", card " << card.page()->width());
+        CHECK(card.page()->width() == card.viewport()->width() - 32);
+    }
+}
