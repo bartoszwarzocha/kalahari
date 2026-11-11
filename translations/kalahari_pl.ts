@@ -16104,10 +16104,6 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <translation>Dla zaznaczonych komórek, a bez zaznaczenia – dla komórki z kursorem.</translation>
     </message>
     <message>
-        <source>Setting</source>
-        <translation>Ustawienie</translation>
-    </message>
-    <message>
         <source>&amp;None</source>
         <translation>&amp;Brak</translation>
     </message>

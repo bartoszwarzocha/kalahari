@@ -9,6 +9,7 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/table_editing.h>
+#include <kalahari/editor/text_keys.h>
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_tables.h>
 #include "editor_test_utils.h"
@@ -585,16 +586,18 @@ TEST_CASE("Table commands: Sort... in a table and of paragraphs", "[editor][tabl
 
 TEST_CASE("Table commands: Alt+Shift+Up and Down move rows and paragraphs",
           "[editor][tables][move]") {
+    // Control+Shift+the arrows on macOS (Qt::MetaModifier there), as in Word for macOS
+    const Qt::KeyboardModifiers MOVE = (isMacOS() ? Qt::MetaModifier : Qt::AltModifier) | Qt::ShiftModifier;
     SECTION("a row of a table, with the cursor") {
         auto editor = editorWith(GRID_KML);
         editor->setCursorPosition({5, 1});  // b2
-        press(*editor, Qt::Key_Up, Qt::AltModifier | Qt::ShiftModifier);
+        press(*editor, Qt::Key_Up, MOVE);
         CHECK(textOf(*editor) == "Before|0,0:a2|0,1:b2|0,2:c2|1,0:a1|1,1:b1|1,2:c1|"
                                  "2,0:a3|2,1:b3|2,2:c3|After");
         CHECK(editor->cursorPosition() == CursorPosition{2, 1});
         CHECK_FALSE(editor->moveParagraphsOrRows(false));  // the first row
-        press(*editor, Qt::Key_Down, Qt::AltModifier | Qt::ShiftModifier);
-        press(*editor, Qt::Key_Down, Qt::AltModifier | Qt::ShiftModifier);
+        press(*editor, Qt::Key_Down, MOVE);
+        press(*editor, Qt::Key_Down, MOVE);
         CHECK(textOf(*editor) == "Before|0,0:a1|0,1:b1|0,2:c1|1,0:a3|1,1:b3|1,2:c3|"
                                  "2,0:a2|2,1:b2|2,2:c2|After");
         editor->undo();
@@ -613,7 +616,7 @@ TEST_CASE("Table commands: Alt+Shift+Up and Down move rows and paragraphs",
     SECTION("paragraphs, and past a table") {
         auto editor = editorWith(kml(QStringLiteral("<p>One</p><p>Two</p><p>Three</p>")));
         editor->setCursorPosition({1, 1});
-        press(*editor, Qt::Key_Down, Qt::AltModifier | Qt::ShiftModifier);
+        press(*editor, Qt::Key_Down, MOVE);
         CHECK(textOf(*editor) == "One|Three|Two");
         CHECK(editor->cursorPosition() == CursorPosition{2, 1});
         CHECK_FALSE(editor->moveParagraphsOrRows(true));  // the last

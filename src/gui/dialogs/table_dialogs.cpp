@@ -1335,9 +1335,11 @@ QWidget* TablePropertiesDialog::createBordersTab()
     auto* layout = new QVBoxLayout(tab);
     editor::TableBorders& borders = m_data.table.borders;
 
-    // The setting: tiles of the usual lines, and Custom
-    auto* settingGroup = new QGroupBox(tr("Setting"), tab);
-    auto* settingLayout = new QHBoxLayout(settingGroup);
+    // The lines: tiles of the usual ones and Custom, above the lines one by one (in one group, so
+    // that the window fits a small screen with a Mac's larger controls too)
+    auto* linesGroup = new QGroupBox(tr("Lines"), tab);
+    auto* linesGroupLayout = new QVBoxLayout(linesGroup);
+    auto* settingLayout = new QHBoxLayout();
     m_setting = new QButtonGroup(this);
     const QColor color = palette().color(QPalette::Text);
     const QColor faint = palette().color(QPalette::Mid);
@@ -1347,7 +1349,7 @@ QWidget* TablePropertiesDialog::createBordersTab()
         {tr("&Grid"), editor::BORDER_GRID},
         {tr("C&ustom"), editor::BORDER_TOP | editor::BORDER_BOTTOM | editor::BORDER_ROWS}};
     for (int setting = SettingNone; setting <= SettingCustom; ++setting) {
-        auto* tile = new QToolButton(settingGroup);
+        auto* tile = new QToolButton(linesGroup);
         tile->setText(tiles[setting].first);
         tile->setIcon(settingIcon(tiles[setting].second, color, faint));
         tile->setIconSize(QSize(TILE_ICON_WIDTH, TILE_ICON_HEIGHT));
@@ -1358,11 +1360,9 @@ QWidget* TablePropertiesDialog::createBordersTab()
         settingLayout->addWidget(tile);
     }
     settingLayout->addStretch(1);
-    layout->addWidget(settingGroup);
+    linesGroupLayout->addLayout(settingLayout);
 
-    // The lines, one by one
-    auto* linesGroup = new QGroupBox(tr("Lines"), tab);
-    auto* linesLayout = new QGridLayout(linesGroup);
+    auto* linesLayout = new QGridLayout();
     //: Table Properties: the lines of the borders; in Polish: &Górna, &Dolna, L&ewa, &Prawa
     const QString lineNames[] = {tr("&Top", "border line"),  tr("B&ottom", "border line"),
                                  tr("&Left", "border line"), tr("&Right", "border line"),
@@ -1380,6 +1380,7 @@ QWidget* TablePropertiesDialog::createBordersTab()
         });
     }
     linesLayout->setColumnStretch(3, 1);
+    linesGroupLayout->addLayout(linesLayout);
     layout->addWidget(linesGroup);
 
     // The style, the width and the color of the lines
