@@ -772,7 +772,7 @@ void BookEditor::mouseReleaseEvent(QMouseEvent* event)
 
     stopAutoScroll();
     m_isDragging = false;
-    if (imageCropping() != nullptr) {
+    if (imageCropping() != nullptr && m_imageCropping) {
         // The mark let go: the image is cropped only when it is done (Enter, a click outside)
         m_imageCropping->sides = 0;
         updatePointerShape(event->position(), event->modifiers());

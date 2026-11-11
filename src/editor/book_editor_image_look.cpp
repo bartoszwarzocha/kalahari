@@ -315,7 +315,7 @@ std::optional<Qt::CursorShape> BookEditor::imageCropPointerAt(const QPointF& wid
 
 bool BookEditor::pressImageCrop(const QPointF& widgetPos)
 {
-    if (imageCropping() == nullptr) {
+    if (imageCropping() == nullptr || !m_imageCropping) {
         return false;
     }
     if (const int sides = imageCropSidesAt(widgetPos); sides != 0) {
@@ -337,7 +337,7 @@ bool BookEditor::pressImageCrop(const QPointF& widgetPos)
 void BookEditor::dragImageCrop(const QPointF& widgetPos)
 {
     const std::optional<std::pair<QRectF, QRectF>> rects = imageCropRects();
-    if (!rects || m_imageCropping->sides == 0 || rects->first.isEmpty()) {
+    if (!rects || !m_imageCropping || m_imageCropping->sides == 0 || rects->first.isEmpty()) {
         return;
     }
     ImageCropping& cropping = *m_imageCropping;
@@ -368,7 +368,7 @@ void BookEditor::dragImageCrop(const QPointF& widgetPos)
 void BookEditor::paintImageCropping(QPainter& painter) const
 {
     const std::optional<std::pair<QRectF, QRectF>> rects = imageCropRects();
-    if (!rects) {
+    if (!rects || !m_imageCropping) {
         return;
     }
     const ImageCropping& cropping = *m_imageCropping;

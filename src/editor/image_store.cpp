@@ -187,7 +187,7 @@ QImage ImageStore::shownImage(const ImageProperties& image, const QSize& pixels)
     if (whole.width() > most.width() || whole.height() > most.height()) {
         whole = whole.scaled(most, Qt::KeepAspectRatio).expandedTo(QSize(1, 1));
     }
-    const QImage shown = shownPicture(picture(image.source, whole), image, pixels);
+    QImage shown = shownPicture(picture(image.source, whole), image, pixels);
     if (shown.isNull()) {
         return QImage();
     }

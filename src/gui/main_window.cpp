@@ -2097,7 +2097,7 @@ void MainWindow::addImageCommands() {
     };
     //: Why Image > Crop and Save as Image... are greyed out for an image whose file is not
     //: in the book's folder of images. In Polish: Brak pliku obrazu w folderze książki
-    const QString missing = tr("The image's file is not in the book's folder");
+    QString missing = tr("The image's file is not in the book's folder");
     for (const char* id : IMAGE_COMMANDS) {
         explain(id, readOnly);
     }
