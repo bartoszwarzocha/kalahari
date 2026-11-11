@@ -44,6 +44,13 @@ public:
     /// @throws std::runtime_error if theme file not found or malformed
     Theme loadTheme(const QString& themeName);
 
+    /// @brief A theme as the program shows it: its file with the user's stored colors, and the
+    ///        selection and the links made from the user's color of the icons
+    ///        (Theme::followThemeColor())
+    /// @param themeName Theme name (without .json extension)
+    /// @throws std::runtime_error if theme file not found or malformed
+    Theme storedTheme(const QString& themeName);
+
     /// @brief Get currently active theme
     /// @return Current theme (or default Light theme if none loaded)
     const Theme& getCurrentTheme() const;
@@ -153,6 +160,14 @@ private:
 
     /// @brief Apply the user's stored per-theme colors to m_currentTheme
     void applyStoredColors();
+
+    /// @brief Apply the user's stored per-theme colors to @p theme
+    /// @param overrides Gets each stored color that differs from the theme's own (or nullptr)
+    static void applyStoredColors(Theme& theme, std::map<std::string, QColor>* overrides);
+
+    /// @brief Make the palette colors of m_currentTheme that follow its color again, except
+    ///        the user's own: stored for the theme or set by setColorOverride()
+    void followThemeColor();
 
     int m_settingsListener = -1;                     ///< Subscription to the editor colors
     std::atomic<bool> m_editorColorsPending{false};  ///< A reload of the editor colors is queued

@@ -15,6 +15,7 @@
 #include <utility>
 #include <vector>
 #include <nlohmann/json.hpp>
+#include <set>
 
 using namespace kalahari::core;
 
@@ -43,6 +44,19 @@ constexpr std::pair<const char*, const char*> FORMER_PAPER_COLORS[] = {
 bool isEditorColorSetting(const std::string& key) {
     return key == ThemeManager::OPTIMIZE_COLORS_SETTING ||
            (key.rfind(THEMES_PREFIX, 0) == 0 && key.find(EDITOR_PART) != std::string::npos);
+}
+
+/// @brief The palette colors of @p theme that follow its color and that the user stored a
+///        color of their own for
+std::set<std::string> storedThemeColorPalette(const Theme& theme) {
+    const auto& settings = SettingsManager::getInstance();
+    std::set<std::string> stored;
+    for (const std::string& key : theme.themeColorPalette) {
+        if (settings.hasKey(THEMES_PREFIX + theme.name + ".palette." + key)) {
+            stored.insert(key);
+        }
+    }
+    return stored;
 }
 
 }  // namespace
@@ -293,22 +307,24 @@ bool ThemeManager::switchTheme(const QString& themeName) {
     return true;
 }
 
-void ThemeManager::applyStoredColors() {
+void ThemeManager::applyStoredColors(Theme& theme, std::map<std::string, QColor>* overrides) {
     // A stored color replaces the theme's own value; colors that are not stored keep
     // the theme file values (the user may have changed only some of them)
     auto& settings = SettingsManager::getInstance();
-    const std::string themeName = m_currentTheme.name;
+    const std::string themeName = theme.name;
 
-    auto apply = [this](const std::string& overrideKey, QColor& target, const std::string& saved) {
+    auto apply = [overrides](const std::string& overrideKey, QColor& target,
+                             const std::string& saved) {
         QColor color(QString::fromStdString(saved));
         if (color.isValid() && color != target) {
             target = color;
-            m_overrides[overrideKey] = color;
+            if (overrides != nullptr) {
+                (*overrides)[overrideKey] = color;
+            }
         }
     };
     auto current = [](const QColor& color) { return color.name().toStdString(); };
 
-    Theme& theme = m_currentTheme;
     apply("primary", theme.colors.primary,
           settings.getIconColorPrimaryForTheme(themeName, current(theme.colors.primary)));
     apply("secondary", theme.colors.secondary,
@@ -341,6 +357,10 @@ void ThemeManager::applyStoredColors() {
               settings.getPaletteColorForTheme(themeName, key, current(target)));
     }
 
+    // The selection and the links the theme file does not list: in the user's color of the
+    // icons, unless the user chose colors of their own for them
+    theme.followThemeColor(storedThemeColorPalette(theme));
+
     // Tooltip, placeholder and bright text are stored by the Settings dialog under "ui"
     const std::pair<const char*, QColor Theme::Palette::*> uiColors[] = {
         {"toolTipBase", &Theme::Palette::toolTipBase}, {"toolTipText", &Theme::Palette::toolTipText},
@@ -369,11 +389,30 @@ void ThemeManager::applyStoredColors() {
         apply("editor." + key, target,
               settings.get<std::string>(editorColorSetting(themeName, key), current(target)));
     }
+}
 
+void ThemeManager::applyStoredColors() {
+    applyStoredColors(m_currentTheme, &m_overrides);
     if (!m_overrides.empty()) {
         Logger::getInstance().info("ThemeManager: Applied {} stored colors for theme '{}'",
-                                   m_overrides.size(), themeName);
+                                   m_overrides.size(), m_currentTheme.name);
     }
+}
+
+Theme ThemeManager::storedTheme(const QString& themeName) {
+    Theme theme = loadTheme(themeName);
+    applyStoredColors(theme, nullptr);
+    return theme;
+}
+
+void ThemeManager::followThemeColor() {
+    std::set<std::string> own = storedThemeColorPalette(m_currentTheme);
+    for (const std::string& key : m_currentTheme.themeColorPalette) {
+        if (m_overrides.count("palette." + key) != 0) {
+            own.insert(key);
+        }
+    }
+    m_currentTheme.followThemeColor(own);
 }
 
 void ThemeManager::reloadEditorColors() {
@@ -483,6 +522,7 @@ void ThemeManager::applyColorOverrides(const std::map<std::string, QColor>& over
             m_currentTheme.log.background = color;
         }
     }
+    followThemeColor();
 
     // Re-apply palette with overrides
     applyPalette();
@@ -591,6 +631,9 @@ void ThemeManager::setColorOverride(const QString& key, const QColor& color) {
     } else {
         Logger::getInstance().warn("ThemeManager: Unknown color key '{}'", key.toStdString());
     }
+    // The selection and the links follow a changed color of the icons (and the selection's
+    // text a changed selection)
+    followThemeColor();
 }
 
 void ThemeManager::applyPalette() {
