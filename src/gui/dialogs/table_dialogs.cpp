@@ -1537,6 +1537,7 @@ void TablePropertiesDialog::setColumnWidth(double width)
     const auto column = static_cast<size_t>(m_column);
     const size_t neighbour = column + 1 < columns ? column + 1 : column - 1;
     std::vector<double> widths;
+    widths.reserve(m_columnShares.size());
     for (const double share : m_columnShares) {
         widths.push_back(share / total * table);
     }

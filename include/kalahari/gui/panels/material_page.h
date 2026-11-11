@@ -14,12 +14,17 @@
 #include <QString>
 #include <QWidget>
 
+#include <functional>
+
+class QComboBox;
 class QFormLayout;
 class QLabel;
 class QLineEdit;
 class QListWidget;
 class QPlainTextEdit;
+class QProgressBar;
 class QPushButton;
+class QSpinBox;
 class QTableWidget;
 class QToolButton;
 class QTreeWidget;
@@ -56,8 +61,19 @@ namespace gui {
 /// Every change is saved at once in the .klh file, and changed() tells the other cards of the
 /// material. A book open read-only shows it all and changes nothing.
 ///
-/// The full card has the same parts: its picture larger, the description beside the own
-/// fields, higher, and the links under them.
+/// A material of the cover (CoverNames::isCoverMaterial()) has more: a text (a description,
+/// a tagline, an opinion, a note) is written in the field of the description, named Text, with
+/// its characters and words under it and, but for a note, a bar of its target length
+/// (core::CoverMaterial::targetOf()), which takes the warning color of the theme past the
+/// target. The group of the data of the cover chooses its part (among the texts or among the
+/// pictures), its place on the cover and its state, and has the fields of its part: of an
+/// opinion its author, who the author is, its source, date and the consent to print it; of a
+/// design its author and date; of a reference picture its author or source, license and what
+/// it is about. On the full card the text has its own target, and an opinion shows how the
+/// cover prints it.
+///
+/// The full card has the same parts: its picture larger, the description beside the data of
+/// the cover and the own fields, higher, and the links under them.
 class MaterialPage : public QWidget {
     Q_OBJECT
 
@@ -115,6 +131,31 @@ public:
     QTreeWidget* linksList() const { return m_linksList; }
     QToolButton* addLinkButton() const { return m_addLinkButton; }
     QToolButton* removeLinkButton() const { return m_removeLinkButton; }
+
+    /// @brief The group of the description, named Text for a text of the cover
+    QGroupBox* descriptionGroup() const { return m_descriptionGroup; }
+    /// @brief The characters and words of a text of the cover
+    QLabel* countsLabel() const { return m_countsLabel; }
+    /// @brief The target of a text of the cover, or how much it is past it
+    QLabel* targetLabel() const { return m_targetLabel; }
+    /// @brief The length of a text of the cover against its target
+    QProgressBar* targetBar() const { return m_targetBar; }
+    /// @brief The own target of a text of the cover; nullptr on the short card
+    QSpinBox* targetSpin() const { return m_targetSpin; }
+    /// @brief How the cover prints an opinion; nullptr on the short card
+    QLabel* printedLabel() const { return m_printedLabel; }
+    /// @brief The data of a material of the cover; hidden for other materials
+    QGroupBox* coverGroup() const { return m_coverGroup; }
+    QComboBox* coverPartBox() const { return m_coverPartBox; }
+    QComboBox* coverPlaceBox() const { return m_coverPlaceBox; }
+    QComboBox* coverStateBox() const { return m_coverStateBox; }
+    QComboBox* coverConsentBox() const { return m_coverConsentBox; }
+    QLineEdit* coverAuthorEdit() const { return m_coverAuthorEdit; }
+    QLineEdit* coverRoleEdit() const { return m_coverRoleEdit; }
+    QLineEdit* coverSourceEdit() const { return m_coverSourceEdit; }
+    QLineEdit* coverDateEdit() const { return m_coverDateEdit; }
+    QLineEdit* coverLicenseEdit() const { return m_coverLicenseEdit; }
+    QLineEdit* coverAboutEdit() const { return m_coverAboutEdit; }
 
 public slots:
     /// @brief Add a field at the end, with the keys in its name
@@ -200,6 +241,29 @@ private:
     /// @brief Copy the address of the material to the clipboard
     void copyAddress();
 
+    /// @brief The group of the data of a material of the cover, with its fields
+    QGroupBox* createCoverGroup();
+
+    /// @brief The text, the data of the cover and their rows of @p element, a material of the
+    /// cover or not
+    void showCover(const core::ProjectElement& element);
+
+    /// @brief The characters, words and target of the text being typed
+    void updateCounter();
+
+    /// @brief Save the data of the cover changed by @p change
+    void saveCover(const std::function<void(core::CoverData&)>& change);
+
+    /// @brief Save the part chosen in its box: a text that leaves the cover has no place and
+    /// state, one that comes on it the place of its part
+    void savePart();
+
+    /// @brief Save the state chosen in its box (core::ProjectManager::setCoverState())
+    void saveState();
+
+    /// @brief Save the own target of the text from its box; 0: the target of its part
+    void saveTarget();
+
     bool m_full = false;         ///< The full card
     QString m_elementId;
     MaterialSource m_source = MaterialSource::None;  ///< Where it comes from
@@ -237,6 +301,31 @@ private:
     QToolButton* m_addLinkButton = nullptr;
     QToolButton* m_removeLinkButton = nullptr;
     int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
+
+    // A material of the cover
+    bool m_cover = false;        ///< It is a material of the cover
+    core::CoverData m_coverData; ///< Its data, as saved
+    QGroupBox* m_descriptionGroup = nullptr;
+    QWidget* m_counter = nullptr;  ///< The counts, the target and the bar
+    QLabel* m_countsLabel = nullptr;
+    QLabel* m_targetLabel = nullptr;
+    QProgressBar* m_targetBar = nullptr;
+    QWidget* m_targetRow = nullptr;  ///< The own target, with its note; full card only
+    QSpinBox* m_targetSpin = nullptr;
+    QLabel* m_targetUnit = nullptr;
+    QLabel* m_printedLabel = nullptr;
+    QGroupBox* m_coverGroup = nullptr;
+    QFormLayout* m_coverForm = nullptr;
+    QComboBox* m_coverPartBox = nullptr;
+    QComboBox* m_coverPlaceBox = nullptr;
+    QComboBox* m_coverStateBox = nullptr;
+    QLineEdit* m_coverAuthorEdit = nullptr;
+    QLineEdit* m_coverRoleEdit = nullptr;
+    QLineEdit* m_coverSourceEdit = nullptr;
+    QLineEdit* m_coverDateEdit = nullptr;
+    QComboBox* m_coverConsentBox = nullptr;
+    QLineEdit* m_coverLicenseEdit = nullptr;
+    QLineEdit* m_coverAboutEdit = nullptr;
 };
 
 /// @brief The full card of a material on a tab beside the chapters (MaterialPage): the place to

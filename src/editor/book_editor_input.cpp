@@ -732,10 +732,11 @@ void BookEditor::mouseReleaseEvent(QMouseEvent* event)
     m_isDragging = false;
     if (m_columnDrag) {
         // The edge where it was let go: the widths of the two columns, one step of Undo
-        const ColumnEdge edge = *m_columnDrag;
+        const int column = m_columnDrag->column;
+        QTextTable* table = columnDragTable();
         m_columnDrag.reset();
-        if (edge.table) {
-            setColumnEdge(*edge.table, edge.column, m_columnDragX);
+        if (table) {
+            setColumnEdge(*table, column, m_columnDragX);
         }
         updatePointerShape(event->position(), event->modifiers());
         update();

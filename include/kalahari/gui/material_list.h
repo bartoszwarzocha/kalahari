@@ -35,6 +35,14 @@ struct MaterialRow {
     QString copy;                    ///< What Copy puts on the clipboard (copyTextOf())
     QString search;                  ///< All its texts in small letters, for the search
     bool text = false;               ///< A working note: a text that opens in the editor
+    QString group;                   ///< Of a material of the cover: its part
+                                     ///< (core::CoverMaterial::BLURB...); the group of its row
+    QString state;                   ///< Of a material of the cover: its state (CHOSEN...)
+    QString place;                   ///< Of a material of the cover: its place on the cover
+    QString body;                    ///< Of a material of the cover: its text; empty: none
+    QString heading;                 ///< A row that names a group of the list of the cover,
+                                     ///< not a material: its name and number; empty: a
+                                     ///< material
 };
 
 /// @brief The lists of the materials of the open book: the kinds of the Materials of its
@@ -71,19 +79,61 @@ public:
     static constexpr const char* TYPE = "type";                ///< All Materials: the kind
     static constexpr const char* DETAILS = "details";          ///< All Materials: a summary
     static constexpr const char* FIELD_PREFIX = "field:";      ///< A field of the writer's
+    static constexpr const char* COVER_TEXT = "coverText";     ///< The cover: text or title
+    static constexpr const char* COVER_PART = "coverPart";     ///< The cover: what it is
+    static constexpr const char* COVER_AUTHOR = "coverAuthor"; ///< The cover: who made it
+    static constexpr const char* COVER_PLACE = "coverPlace";   ///< The cover: where it goes
+    static constexpr const char* COVER_STATE = "coverState";   ///< The cover: chosen...
+    static constexpr const char* COVER_LENGTH = "coverLength"; ///< The cover: of the text
+    static constexpr const char* COVER_SOURCE = "coverSource"; ///< The cover: of an opinion
+    static constexpr const char* COVER_DATE = "coverDate";     ///< The cover: of an opinion
+    static constexpr const char* COVER_LICENSE = "coverLicense";  ///< The cover: of a picture
     /// @}
 
     /// @brief The setting of the columns and the view of each list, an object: list ->
-    /// {"columns": [ids shown, in their order], "tiles": true for the tiles}
+    /// {"columns": [ids shown, in their order], "tiles": true for the tiles, "plan": true
+    /// for the plan of the cover, "groups": false for the list of the cover without its
+    /// groups}
     static constexpr const char* LISTS_SETTING = "materials.lists";
+
+    /// @brief The setting of the kinds of materials that the Navigator does not show, in every
+    /// book: a list of kinds with their packages ("kalahari.base:cover"). Their materials stay
+    /// in the books and in All Materials.
+    static constexpr const char* HIDDEN_SETTING = "materials.hiddenKinds";
 
     /// @brief The setting of what a kind clicked in the Navigator does: "own", the list of
     /// the kind on a tab of its own (the usual), or "one", the one tab of the lists shows it
     static constexpr const char* TABS_SETTING = "materials.typeTabs";
 
     /// @brief The lists of the open book besides ALL, as the Navigator has them in its
-    /// Materials: the working notes and the kinds of materials, in the order of the book's type
+    /// Materials: the working notes and the kinds of materials, in the order of the book's
+    /// type, without the kinds hidden (HIDDEN_SETTING)
     static QStringList kinds();
+
+    /// @brief The kinds of materials of the open book as the Navigator would have them with
+    /// none hidden, in its order
+    static QStringList allKinds();
+
+    /// @brief The kinds Settings > Navigator shows or hides: those of the open book (allKinds()),
+    /// else the materials of the base package, then the kinds hidden that are neither
+    static QStringList settingsKinds();
+
+    /// @brief How many materials of @p list the Workshop of the open book has; -1 without a
+    /// book
+    static int countOf(const QString& list);
+
+    /// @brief The kinds hidden in the Navigator (HIDDEN_SETTING)
+    static QStringList hiddenKinds();
+
+    /// @brief Whether the Navigator does not show @p list, a kind of materials
+    static bool isHidden(const QString& list);
+
+    /// @brief Hide @p list, a kind of materials, in the Navigator of every book, or show it
+    /// again (HIDDEN_SETTING)
+    static void setHidden(const QString& list, bool hidden);
+
+    /// @brief Whether @p list is the list of the materials of the cover
+    static bool isCover(const QString& list);
 
     /// @brief Name of @p list: the plural of its kind, "Quotes"; "All Materials" for ALL
     static QString nameOf(const QString& list);
@@ -118,6 +168,19 @@ public:
 
     /// @brief Show the tiles of @p list, or its table (LISTS_SETTING)
     static void setTilesShown(const QString& list, bool tiles);
+
+    /// @brief Whether the list of the cover shows the plan of the cover (LISTS_SETTING)
+    static bool planShown(const QString& list);
+
+    /// @brief Show the plan of the cover in @p list, or its table or tiles (LISTS_SETTING)
+    static void setPlanShown(const QString& list, bool plan);
+
+    /// @brief Whether the table of the list of the cover has its materials in groups by
+    /// their parts, as it has at first (LISTS_SETTING)
+    static bool groupsShown(const QString& list);
+
+    /// @brief Show the materials of the list of the cover in groups, or in one table
+    static void setGroupsShown(const QString& list, bool groups);
 
     /// @brief Whether a kind clicked in the Navigator has a tab of its own (TABS_SETTING)
     static bool ownTabs();

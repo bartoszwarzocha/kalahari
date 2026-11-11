@@ -9,6 +9,7 @@
 #include "kalahari/gui/settings/settings_page.h"
 
 #include <QColor>
+#include <QList>
 
 #include <functional>
 #include <map>
@@ -16,12 +17,14 @@
 #include <utility>
 #include <vector>
 
+class QCheckBox;
 class QComboBox;
 class QHBoxLayout;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
 class QRadioButton;
+class QSpinBox;
 class QTableWidget;
 class QTableWidgetItem;
 class QTreeWidget;
@@ -369,7 +372,9 @@ private:
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
 /// what the top of the Add Element window chooses from, what the Materials show and where a
-/// list of materials opens, how a material opens, and whether its links name paragraphs
+/// list of materials opens, how a material opens, and whether its links name paragraphs; the
+/// kinds of materials the Navigator shows (MaterialList::HIDDEN_SETTING) and how the texts of
+/// the cover are counted, with the targets of their kinds (core::CoverMaterial)
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -392,6 +397,11 @@ private:
     QRadioButton* m_quickLink = nullptr;    ///< Dropped or pasted: at once, linked with the node
     QRadioButton* m_quickAdd = nullptr;     ///< At once, without links
     QRadioButton* m_quickWindow = nullptr;  ///< In the Add Element window
+    QList<QCheckBox*> m_kindBoxes;  ///< The kinds of materials shown, with their "kind"
+    QRadioButton* m_unitCharacters = nullptr;  ///< The texts of the cover counted in characters
+    QRadioButton* m_unitWords = nullptr;       ///< In words
+    QList<QSpinBox*> m_characterTargets;  ///< The targets of the texts of the cover in characters
+    QList<QSpinBox*> m_wordTargets;       ///< In words
 };
 
 /// @brief Network > Materials: whether the program downloads the title of the page or the copy

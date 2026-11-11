@@ -26,6 +26,8 @@ struct MaterialKinds {
     static constexpr const char* PUBLICATION = "publication";  ///< A book or an article
     static constexpr const char* RECORDING = "recording";      ///< A sound or a film
     static constexpr const char* OTHER_FILE = "other_file";    ///< Any other file
+    /// Everything for the cover: texts, opinions, designs (core::CoverMaterial); not in all()
+    static constexpr const char* COVER = "cover";
     /// The one kind of materials of earlier versions, retired (ElementKind::retired)
     static constexpr const char* OLD_MATERIAL = "material";
 

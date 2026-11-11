@@ -443,6 +443,20 @@ MainWindow::MainWindow(QWidget* parent)
         this);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialList,
             m_materialListCoordinator, &MaterialListCoordinator::openList);
+    // Hide Kind in the menu of a kind of the Navigator; Kind Settings... there and the gear of
+    // a list: the materials in Settings > Navigator
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestHideKind,
+            m_materialListCoordinator, &MaterialListCoordinator::hideKind);
+    const auto openMaterialSettings = [this]() {
+        if (m_settingsCoordinator) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::NAVIGATOR_PAGE));
+        }
+    };
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestMaterialSettings, this,
+            openMaterialSettings);
+    connect(m_materialListCoordinator, &MaterialListCoordinator::settingsRequested, this,
+            openMaterialSettings);
     // Save Version and Version History of the text in front; a text is opened as from the
     // Navigator, and the bar under it says that a version was restored
     m_versionsCoordinator = new VersionsCoordinator(
