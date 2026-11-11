@@ -2053,12 +2053,12 @@ void MainWindow::addImageCommands() {
     CommandRegistry& registry = CommandRegistry::getInstance();
     for (const auto& [id, filter] : IMAGE_FILTER_COMMANDS) {
         if (Command* command = registry.getCommand(id)) {
-            command->isChecked = [this, filter = filter]() {
+            command->isChecked = [this, wanted = filter]() {
                 const editor::BookEditor* text =
                     m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr;
                 const std::optional<editor::ImageProperties> image =
                     text != nullptr ? selectedImageOf(*text) : std::nullopt;
-                return image && image->filter == filter;
+                return image && image->filter == wanted;
             };
         }
     }

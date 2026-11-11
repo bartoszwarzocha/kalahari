@@ -63,7 +63,7 @@ constexpr double POINTS_PER_PIXEL = 72.0 / editor::IMAGE_PIXELS_PER_INCH;
 
 /// How far a shadow falls and how opaque it is, as the editor draws it
 constexpr double SHADOW_POINTS = 3.0;
-constexpr double SHADOW_OPACITY = 0.35;
+constexpr float SHADOW_OPACITY = 0.35F;
 
 /// The longest side of the picture the window keeps for its previews
 constexpr int PREVIEW_PICTURE_PIXELS = 480;
@@ -720,10 +720,10 @@ QWidget* ImagePropertiesDialog::createSizePage()
     m_originalInfo = new QLabel(sizeGroup);
     m_originalInfo->setForegroundRole(QPalette::PlaceholderText);
     m_originalInfo->setWordWrap(true);
-    auto* original = new QHBoxLayout();
-    original->addWidget(m_originalButton);
-    original->addWidget(m_originalInfo, 1);
-    grid->addLayout(original, 3, 0, 1, 2);
+    auto* originalRow = new QHBoxLayout();
+    originalRow->addWidget(m_originalButton);
+    originalRow->addWidget(m_originalInfo, 1);
+    grid->addLayout(originalRow, 3, 0, 1, 2);
     grid->setColumnStretch(1, 1);
     layout->addWidget(sizeGroup);
 
