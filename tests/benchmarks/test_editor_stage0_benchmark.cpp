@@ -639,9 +639,10 @@ TEST_CASE("Tables benchmark: the Table menu on a 150k-word chapter with tables",
         rows.push_back({QStringLiteral("Wpisanie 100 znaków w akapicie poza tabelą – Continuous (z "
                                        "paintEvent po każdym)"),
                         ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
-        QTextTable* small = tableWithRows(editor, 12);
-        REQUIRE(small != nullptr);
-        editor.setCursorPosition(cellPlace(*small, 5, 1));
+        // ("small" is a macro of the Windows headers)
+        QTextTable* shortTable = tableWithRows(editor, 12);
+        REQUIRE(shortTable != nullptr);
+        editor.setCursorPosition(cellPlace(*shortTable, 5, 1));
         paint(editor);
         const double cellMs = typeHundred();
         rows.push_back({QStringLiteral("Wpisanie 100 znaków w komórce tabeli z 12 wierszami – "

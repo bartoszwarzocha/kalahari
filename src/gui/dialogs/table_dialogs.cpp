@@ -245,10 +245,11 @@ protected:
         }
         mark(QRect(0, top, left, SPLIT_ROW_HEIGHT), other);
         mark(QRect(right, top, width - right, SPLIT_ROW_HEIGHT), other);
-        const auto columnEdge = [this, left, right](int column) {
+        // (constants: captured by the default capture, which no compiler finds unneeded)
+        const auto columnEdge = [&](int column) {
             return left + (right - left) * column / m_columns;
         };
-        const auto rowEdge = [this, top, splitHeight](int row) {
+        const auto rowEdge = [&](int row) {
             return top + splitHeight * row / m_rows;
         };
         for (int index = 0; index < std::min(m_texts, m_columns * m_rows); ++index) {
