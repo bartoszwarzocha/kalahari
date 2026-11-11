@@ -171,6 +171,16 @@ public:
     ///        width with room for its name
     QSizeF imageSize(const QTextBlock& block, const ImageProperties& image) const;
 
+    /// @brief The image of a block made @p width wide (the layout's pixels, as a handle
+    ///        dragged gives it), in its own unit: centimeters stay centimeters, otherwise a
+    ///        whole percent of the width of the block's lines
+    ImageProperties imageOfWidth(const QTextBlock& block, const ImageProperties& image,
+                                 qreal width) const;
+
+    /// @brief The widest an image of a block is shown (the layout's pixels): its lines'
+    ///        width, less the first line's indent
+    qreal widestImage(const QTextBlock& block) const;
+
     /// @brief Whether the image's file is missing (or is not an image the editor reads)
     bool isImageMissing(const ImageProperties& image) const;
 
@@ -556,6 +566,10 @@ private:
     /// @brief The width a block's lines lie in, with its margins: the text's, in a table
     ///        the cell's text
     qreal areaWidth(const QTextBlock& block) const;
+
+    /// @brief The width of a block's lines an image's percent is of (the area less the
+    ///        paragraph's indents)
+    qreal imageLineWidth(const QTextBlock& block) const;
 
     /// @brief Draw an image in its rectangle: its picture, or the frame of a missing file
     void drawImage(QPainter* painter, const QRectF& rect, const ImageProperties& image) const;

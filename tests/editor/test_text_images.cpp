@@ -4,6 +4,7 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
@@ -15,11 +16,14 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QMimeData>
+#include <QMouseEvent>
 #include <QTemporaryDir>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextLayout>
+#include <QUrl>
 #include <QXmlStreamReader>
 #include <memory>
 
@@ -99,6 +103,21 @@ int pixelsOf(const QImage& image, const QColor& color) {
     return count;
 }
 
+/// The left button pressed, the mouse moved with it and the button let go
+void mouse(BookEditor& editor, QEvent::Type type, const QPointF& point) {
+    const Qt::MouseButtons buttons =
+        type == QEvent::MouseButtonRelease ? Qt::NoButton : Qt::MouseButtons(Qt::LeftButton);
+    QMouseEvent event(type, point, editor.mapToGlobal(point),
+                      type == QEvent::MouseMove ? Qt::NoButton : Qt::LeftButton, buttons,
+                      Qt::NoModifier);
+    QCoreApplication::sendEvent(&editor, &event);
+}
+
+void click(BookEditor& editor, const QPointF& point) {
+    mouse(editor, QEvent::MouseButtonPress, point);
+    mouse(editor, QEvent::MouseButtonRelease, point);
+}
+
 QImage renderOf(BookEditor& editor) {
     QImage image(editor.size(), QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
@@ -155,6 +174,22 @@ TEST_CASE("Images: an image keeps the link and formatting of its place in KML",
     CHECK(editor->toKml() == kml);
     const QTextDocument& document = *editor->textDocument();
     CHECK(imagePositions(document, 0, document.characterCount()).size() == 3);
+}
+
+TEST_CASE("Images: an image of a heading or a cell, and the plain text without it",
+          "[editor][images][kml]") {
+    const QString kml = QStringLiteral(
+        "<kml><h1>A <img src=\"images/a.png\" alt=\"Sun\"/> title</h1><table><tr><td><p>"
+        "<img src=\"images/b.png\" width=\"50%\"/></p></td></tr></table><p></p></kml>");
+    auto editor = editorWith(kml);
+    CHECK(editor->toKml() == kml);
+    const QTextDocument& document = *editor->textDocument();
+    CHECK(imagePositions(document, 0, document.characterCount()).size() == 2);
+
+    // For other programs' plain text an image is nothing
+    CHECK(ClipboardHandler::kmlToText(QStringLiteral(
+              "<kml><p>a<img src=\"images/a.png\" alt=\"Sun\"/>b</p></kml>")) ==
+          QStringLiteral("ab"));
 }
 
 TEST_CASE("Images: widths of KML in other units, and those KML does not know",
@@ -536,4 +571,265 @@ TEST_CASE("Images: a click selects an image", "[editor][images][editing]") {
     CHECK(editor->selectedImage() == position);
     editor->clearSelection();
     CHECK_FALSE(editor->selectedImage());
+}
+
+// =============================================================================
+// The mouse: selecting, resizing by the handles, the properties
+// =============================================================================
+
+TEST_CASE("Images: a click on an image selects it, a click elsewhere places the cursor",
+          "[editor][images][mouse]") {
+    BookFolder book;
+    book.addPicture(QStringLiteral("a.png"), QSize(120, 80), Qt::red);
+    auto editor = editorWith(QStringLiteral("<kml><p align=\"center\">x<img src=\"images/a.png\"/>y</p>"
+                                            "<p>After the image</p></kml>"),
+                             book.path());
+    const int position = firstImage(*editor->textDocument());
+    const std::optional<QRectF> rect = editor->imageRect(position);
+    REQUIRE(rect);
+
+    click(*editor, rect->center());
+    CHECK(editor->selectedImage() == position);
+
+    // Elsewhere, below the image: the cursor, the image no longer selected
+    const std::optional<QRectF> after = editor->imageRect(position);
+    REQUIRE(after);
+    click(*editor, QPointF(after->center().x(), after->bottom() + 30.0));
+    CHECK_FALSE(editor->selectedImage());
+}
+
+TEST_CASE("Images: a corner's handle resizes the image in proportion, one undo step",
+          "[editor][images][mouse]") {
+    BookFolder book;
+    book.addPicture(QStringLiteral("a.png"), QSize(400, 200), Qt::red);
+    auto editor = editorWith(
+        QStringLiteral("<kml><p align=\"center\"><img src=\"images/a.png\" width=\"40%\"/></p></kml>"),
+        book.path());
+    const int position = firstImage(*editor->textDocument());
+    editor->selectImage(position);
+    const std::optional<QRectF> rect = editor->imageRect(position);
+    REQUIRE(rect);
+
+    // The bottom right handle dragged right by a fifth of the image's width
+    const QPointF handle = rect->bottomRight();
+    mouse(*editor, QEvent::MouseButtonPress, handle);
+    mouse(*editor, QEvent::MouseMove, handle + QPointF(rect->width() / 4.0, 0.0));
+    CHECK(renderOf(*editor).width() > 0);  // the preview and its label are drawn
+    mouse(*editor, QEvent::MouseButtonRelease, handle + QPointF(rect->width() / 4.0, 0.0));
+
+    const std::optional<ImageProperties> resized = imageAt(*editor->textDocument(), position);
+    REQUIRE(resized);
+    CHECK(resized->unit == ImageWidthUnit::Percent);
+    CHECK(resized->width == Approx(50.0));
+    const std::optional<QRectF> bigger = editor->imageRect(position);
+    REQUIRE(bigger);
+    CHECK(bigger->height() / bigger->width() == Approx(0.5).margin(0.02));
+    CHECK(editor->selectedImage() == position);
+
+    editor->undo();
+    CHECK(imageAt(*editor->textDocument(), position)->width == Approx(40.0));
+
+    // Never wider than the line
+    editor->selectImage(position);
+    const std::optional<QRectF> again = editor->imageRect(position);
+    REQUIRE(again);
+    mouse(*editor, QEvent::MouseButtonPress, again->bottomRight());
+    mouse(*editor, QEvent::MouseMove, again->bottomRight() + QPointF(2000.0, 0.0));
+    mouse(*editor, QEvent::MouseButtonRelease, again->bottomRight() + QPointF(2000.0, 0.0));
+    CHECK(imageAt(*editor->textDocument(), position)->width == Approx(100.0));
+
+    // In a read-only text there are no handles
+    editor->undo();
+    editor->setReadOnly(true);
+    editor->selectImage(position);
+    const std::optional<QRectF> locked = editor->imageRect(position);
+    REQUIRE(locked);
+    mouse(*editor, QEvent::MouseButtonPress, locked->bottomRight());
+    mouse(*editor, QEvent::MouseMove, locked->bottomRight() + QPointF(50.0, 0.0));
+    mouse(*editor, QEvent::MouseButtonRelease, locked->bottomRight() + QPointF(50.0, 0.0));
+    CHECK(imageAt(*editor->textDocument(), position)->width == Approx(40.0));
+}
+
+TEST_CASE("Images: a width in centimeters stays in centimeters when resized",
+          "[editor][images][mouse]") {
+    BookFolder book;
+    book.addPicture(QStringLiteral("a.png"), QSize(100, 100), Qt::red);
+    auto editor = editorWith(
+        QStringLiteral("<kml><p align=\"center\"><img src=\"images/a.png\" width=\"2cm\"/></p></kml>"),
+        book.path());
+    const int position = firstImage(*editor->textDocument());
+    KalahariTextDocumentLayout* layout = layoutOf(*editor);
+    const QTextBlock block = editor->textDocument()->findBlock(position);
+    const qreal twoCentimeters = layout->imageSize(block, *imageAt(*editor->textDocument(), position)).width();
+    REQUIRE(editor->setImageLayoutWidth(position, twoCentimeters * 1.5));
+    const std::optional<ImageProperties> resized = imageAt(*editor->textDocument(), position);
+    REQUIRE(resized);
+    CHECK(resized->unit == ImageWidthUnit::Centimeters);
+    CHECK(resized->width == Approx(3.0).margin(0.02));
+
+    // Its file's own width becomes a percent of the line (centered: as wide as the widest)
+    const ImageProperties natural{QStringLiteral("images/a.png"), QString(), ImageWidthUnit::Natural, 0.0};
+    const ImageProperties half = layout->imageOfWidth(block, natural, layout->widestImage(block) / 2.0);
+    CHECK(half.unit == ImageWidthUnit::Percent);
+    CHECK(half.width == Approx(50.0));
+}
+
+TEST_CASE("Images: a double click on an image asks for its properties", "[editor][images][mouse]") {
+    BookFolder book;
+    book.addPicture(QStringLiteral("a.png"), QSize(120, 80), Qt::red);
+    auto editor = editorWith(QStringLiteral("<kml><p>Text <img src=\"images/a.png\"/> text</p></kml>"),
+                             book.path());
+    const int position = firstImage(*editor->textDocument());
+    const std::optional<QRectF> rect = editor->imageRect(position);
+    REQUIRE(rect);
+    std::vector<int> asked;
+    QObject::connect(editor.get(), &BookEditor::imagePropertiesAsked,
+                     [&asked](int at) { asked.push_back(at); });
+    click(*editor, rect->center());
+    mouse(*editor, QEvent::MouseButtonDblClick, rect->center());
+    mouse(*editor, QEvent::MouseButtonRelease, rect->center());
+    REQUIRE(asked.size() == 1);
+    CHECK(asked.front() == position);
+    CHECK(editor->selectedImage() == position);
+}
+
+// =============================================================================
+// The clipboard, dropped files and the folder of images
+// =============================================================================
+
+TEST_CASE("Images: an image copied into another book takes its file along, one undo step",
+          "[editor][images][clipboard]") {
+    BookFolder from;
+    BookFolder to;
+    from.addPicture(QStringLiteral("map.png"), QSize(30, 20), Qt::red);
+    auto first = editorWith(
+        QStringLiteral("<kml><p>a<img src=\"images/map.png\" alt=\"Map\"/>b</p></kml>"), from.path());
+    first->selectImage(firstImage(*first->textDocument()));
+    const std::unique_ptr<QMimeData> copied = first->createMimeDataFromSelection();
+    REQUIRE(copied);
+
+    // The book it comes from, the address of the file for other programs, the picture alone
+    CHECK(QString::fromUtf8(copied->data(QString::fromLatin1(MIME_IMAGES_FOLDER))) == from.path());
+    CHECK(copied->html().contains(
+        QUrl::fromLocalFile(from.path() + QStringLiteral("/images/map.png")).toString()));
+    CHECK(copied->html().contains(QStringLiteral("alt=\"Map\"")));
+    REQUIRE(copied->hasImage());
+    CHECK(qvariant_cast<QImage>(copied->imageData()).size() == QSize(30, 20));
+
+    // Pasted into another book: the file copied into its folder of images
+    auto second = editorWith(QStringLiteral("<kml><p>xy</p></kml>"), to.path());
+    second->setCursorPosition({0, 1});
+    second->insertFromMimeData(copied.get());
+    CHECK(QFile::exists(to.path() + QStringLiteral("/images/map.png")));
+    CHECK(second->toKml() ==
+          QStringLiteral("<kml><p>x<img src=\"images/map.png\" alt=\"Map\"/>y</p></kml>"));
+    second->undo();
+    CHECK(second->toKml() == QStringLiteral("<kml><p>xy</p></kml>"));
+
+    // Another file of the name there: the copy gets a number, the pasted image names it
+    BookFolder third;
+    third.addPicture(QStringLiteral("map.png"), QSize(5, 5), Qt::blue);
+    auto other = editorWith(QStringLiteral("<kml><p></p></kml>"), third.path());
+    other->insertFromMimeData(copied.get());
+    CHECK(other->toKml() ==
+          QStringLiteral("<kml><p><img src=\"images/map-2.png\" alt=\"Map\"/></p></kml>"));
+    other->undo();
+    CHECK(other->toKml() == QStringLiteral("<kml><p></p></kml>"));
+
+    // Pasted into its own book: the same file
+    first->clearSelection();
+    first->setCursorPosition({0, 0});
+    first->insertFromMimeData(copied.get());
+    CHECK(first->toKml() == QStringLiteral("<kml><p><img src=\"images/map.png\" alt=\"Map\"/>a<img "
+                                           "src=\"images/map.png\" alt=\"Map\"/>b</p></kml>"));
+    CHECK_FALSE(QFile::exists(from.path() + QStringLiteral("/images/map-2.png")));
+}
+
+TEST_CASE("Images: a picture from the clipboard becomes an image of the book",
+          "[editor][images][clipboard]") {
+    BookFolder book;
+    QImage picture(QSize(16, 8), QImage::Format_RGB32);
+    picture.fill(Qt::green);
+
+    // A screenshot: a picture without text
+    auto editor = editorWith(QStringLiteral("<kml><p>ab</p></kml>"), book.path());
+    editor->setCursorPosition({0, 1});
+    QMimeData screenshot;
+    screenshot.setImageData(picture);
+    editor->insertFromMimeData(&screenshot);
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>a<img src=\"images/image.png\"/>b</p></kml>"));
+    CHECK(QImage(book.path() + QStringLiteral("/images/image.png")).size() == QSize(16, 8));
+    editor->undo();
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>ab</p></kml>"));
+
+    // A picture with text: the text
+    QMimeData withText;
+    withText.setImageData(picture);
+    withText.setText(QStringLiteral("cd"));
+    editor->setCursorPosition({0, 1});
+    editor->insertFromMimeData(&withText);
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>acdb</p></kml>"));
+
+    // Without a folder of images a picture is not pasted
+    auto loose = editorWith(QStringLiteral("<kml><p>ab</p></kml>"));
+    loose->insertFromMimeData(&screenshot);
+    CHECK(loose->toKml() == QStringLiteral("<kml><p>ab</p></kml>"));
+}
+
+TEST_CASE("Images: files of pictures pasted or dropped become images, one after another",
+          "[editor][images][clipboard]") {
+    BookFolder book;
+    QTemporaryDir outside;
+    const QString red = pictureFile(outside, QStringLiteral("red.png"), QSize(8, 8), Qt::red);
+    const QString blue = pictureFile(outside, QStringLiteral("blue.png"), QSize(8, 8), Qt::blue);
+    QFile notes(outside.path() + QStringLiteral("/notes.txt"));
+    REQUIRE(notes.open(QIODevice::WriteOnly));
+    notes.write("text");
+    notes.close();
+    QMimeData files;
+    files.setUrls({QUrl::fromLocalFile(red), QUrl::fromLocalFile(notes.fileName()),
+                   QUrl::fromLocalFile(blue)});
+
+    // Pasted: both pictures in their order, the other file left out
+    auto editor = editorWith(QStringLiteral("<kml><p>ab</p></kml>"), book.path());
+    editor->setCursorPosition({0, 1});
+    editor->insertFromMimeData(&files);
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>a<img src=\"images/red.png\"/><img "
+                                            "src=\"images/blue.png\"/>b</p></kml>"));
+
+    // Dropped: at the drop point
+    auto dropped = editorWith(QStringLiteral("<kml><p>ab</p><p>cd</p></kml>"), book.path());
+    REQUIRE(dropped->dropMimeData(&files, {1, 1}, false));
+    CHECK(dropped->toKml() == QStringLiteral("<kml><p>ab</p><p>c<img src=\"images/red.png\"/><img "
+                                             "src=\"images/blue.png\"/>d</p></kml>"));
+
+    // Without a folder of images nothing is dropped
+    auto loose = editorWith(QStringLiteral("<kml><p>ab</p></kml>"));
+    CHECK_FALSE(loose->dropMimeData(&files, {0, 1}, false));
+    CHECK(loose->toKml() == QStringLiteral("<kml><p>ab</p></kml>"));
+}
+
+TEST_CASE("Images: a file saved in another folder takes its images along",
+          "[editor][images][files]") {
+    BookFolder before;
+    BookFolder after;
+    before.addPicture(QStringLiteral("x.png"), QSize(4, 4), Qt::red);
+    before.addPicture(QStringLiteral("y.png"), QSize(4, 4), Qt::green);
+    after.addPicture(QStringLiteral("x.png"), QSize(4, 4), Qt::blue);  // another one of the name
+    auto editor = editorWith(QStringLiteral("<kml><p><img src=\"images/x.png\"/>a<img "
+                                            "src=\"images/y.png\"/>b<img src=\"images/x.png\"/></p></kml>"),
+                             before.path());
+    int changes = 0;
+    QObject::connect(editor.get(), &BookEditor::contentChanged, [&changes]() { ++changes; });
+    editor->moveImagesFolder(after.path());
+    CHECK(editor->imagesFolder() == after.path());
+    CHECK(QFile::exists(after.path() + QStringLiteral("/images/y.png")));
+    CHECK(QImage(after.path() + QStringLiteral("/images/x-2.png")).pixelColor(0, 0) == QColor(Qt::red));
+    CHECK(editor->toKml() == QStringLiteral("<kml><p><img src=\"images/x-2.png\"/>a<img "
+                                            "src=\"images/y.png\"/>b<img src=\"images/x-2.png\"/></p></kml>"));
+    CHECK(changes == 1);
+
+    // The same folder again: nothing
+    editor->moveImagesFolder(after.path());
+    CHECK(changes == 1);
 }

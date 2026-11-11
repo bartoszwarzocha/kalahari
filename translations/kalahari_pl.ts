@@ -3666,6 +3666,41 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Only paragraphs of text can be sorted: the selection holds a table or an object</source>
         <translation>Sortować można tylko akapity tekstu: w zaznaczeniu jest tabela lub obiekt</translation>
     </message>
+    <message>
+        <source>%1 cm</source>
+        <extracomment>The width of an image being resized by a handle. In Polish: %1 cm</extracomment>
+        <translation>%1 cm</translation>
+    </message>
+    <message>
+        <source>%1% of the text width</source>
+        <extracomment>The width of an image being resized by a handle, a whole percent of the lines of its paragraph. In Polish: %1% szerokości tekstu</extracomment>
+        <translation>%1% szerokości tekstu</translation>
+    </message>
+    <message>
+        <source>Image Pr&amp;operties...</source>
+        <extracomment>The context menu of an image. In Polish: Właściwości &amp;obrazu...</extracomment>
+        <translation>Właściwości &amp;obrazu...</translation>
+    </message>
+    <message>
+        <source>A&amp;dd Caption</source>
+        <extracomment>In Polish: &amp;Dodaj podpis</extracomment>
+        <translation>&amp;Dodaj podpis</translation>
+    </message>
+    <message>
+        <source>C&amp;hange Image...</source>
+        <extracomment>In Polish: Z&amp;mień obraz...</extracomment>
+        <translation>Z&amp;mień obraz...</translation>
+    </message>
+    <message>
+        <source>Original Si&amp;ze</source>
+        <extracomment>In Polish: Ro&amp;zmiar oryginalny</extracomment>
+        <translation>Ro&amp;zmiar oryginalny</translation>
+    </message>
+    <message>
+        <source>Sa&amp;ve as Image...</source>
+        <extracomment>In Polish: Zapisz &amp;jako obraz...</extracomment>
+        <translation>Zapisz &amp;jako obraz...</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -3771,6 +3806,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     <message>
         <source>Page Break</source>
         <translation>Podział strony</translation>
+    </message>
+    <message>
+        <source>Image file missing</source>
+        <extracomment>The frame of an image whose file is not there, under the file&apos;s name. In Polish: Brak pliku obrazu</extracomment>
+        <translation>Brak pliku obrazu</translation>
     </message>
 </context>
 <context>
@@ -6960,6 +7000,55 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>The address could not be opened: %1</source>
         <translation>Nie udało się otworzyć adresu: %1</translation>
     </message>
+    <message>
+        <source>Images</source>
+        <extracomment>The pictures of the window choosing an image; In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Image Not Inserted</source>
+        <extracomment>In Polish: Nie można wstawić obrazu</extracomment>
+        <translation>Nie można wstawić obrazu</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; is not a picture Kalahari can show (PNG, JPEG, GIF, BMP, SVG), or it could not be copied into the book&apos;s folder of images.</source>
+        <extracomment>In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać (PNG, JPEG, GIF, BMP, SVG), albo nie udało się go skopiować do folderu obrazów książki.</extracomment>
+        <translation>Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać (PNG, JPEG, GIF, BMP, SVG), albo nie udało się go skopiować do folderu obrazów książki.</translation>
+    </message>
+    <message>
+        <source>Insert Image</source>
+        <extracomment>The system window of Insert &gt; Image... In Polish: Wstaw obraz</extracomment>
+        <translation>Wstaw obraz</translation>
+    </message>
+    <message>
+        <source>Change Image</source>
+        <extracomment>The system window of Change Image... of an image&apos;s context menu. In Polish: Zmień obraz</extracomment>
+        <translation>Zmień obraz</translation>
+    </message>
+    <message>
+        <source>%1 Image (*.%2)</source>
+        <extracomment>The files of the window saving an image, %1 its extension (PNG, JPG...). In Polish: Obraz %1</extracomment>
+        <translation>Obraz %1 (*.%2)</translation>
+    </message>
+    <message>
+        <source>Save as Image</source>
+        <extracomment>The system window of Save as Image... In Polish: Zapisz jako obraz</extracomment>
+        <translation>Zapisz jako obraz</translation>
+    </message>
+    <message>
+        <source>Image Not Saved</source>
+        <extracomment>In Polish: Nie zapisano obrazu</extracomment>
+        <translation>Nie zapisano obrazu</translation>
+    </message>
+    <message>
+        <source>The image could not be saved as &quot;%1&quot;.</source>
+        <extracomment>In Polish: Nie udało się zapisać obrazu w pliku „%1”.</extracomment>
+        <translation>Nie udało się zapisać obrazu w pliku „%1”.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorSpellingPage</name>
@@ -7923,6 +8012,11 @@ Czy zapisać go przed zamknięciem?</translation>
     <message>
         <source>Only paragraphs of text become a table: the selection holds a table or an object</source>
         <translation>Tabelą mogą stać się tylko akapity tekstu: w zaznaczeniu jest tabela lub obiekt</translation>
+    </message>
+    <message>
+        <source>Save the file first: its images are kept in a folder next to it</source>
+        <extracomment>Why Insert &gt; Image... is greyed out in a new file. In Polish: Najpierw zapisz plik: jego obrazy są przechowywane w folderze obok niego</extracomment>
+        <translation>Najpierw zapisz plik: jego obrazy są przechowywane w folderze obok niego</translation>
     </message>
 </context>
 <context>

@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Images in the text** - 2026-11-11. Insert > Image... puts a picture (PNG, JPEG, GIF, BMP
+  or SVG) at the cursor as a part of its line: the paragraph's alignment places it, and Undo,
+  the clipboard and drag and drop take it with the text. The file is copied into the folder
+  `images` of the book's main folder (next to a file outside a book), and the original stays as
+  it was; a taken name gets a number, and the same picture added again uses its file. A file
+  that was never saved has no folder, so the command is greyed out there, saying why; saved in
+  another folder, a file takes its images along. An image is as wide as its file, a share of
+  the text or a width in centimeters, never wider than its line and never higher than a page;
+  a missing file is a frame with its name. A click selects an image and its corners resize it
+  in proportion, one step of Undo. The context menu of an image has Add Caption (a paragraph
+  in the style Caption under it), Change Image..., Original Size and Save as Image.... A
+  picture pasted without text (a screenshot) and the files of pictures pasted or dropped from
+  a folder become images of the book; an image copied into another book takes its file along.
+  Other programs get the image's file in the HTML of the clipboard and, for an image copied
+  alone, the picture itself. KML keeps an image as `<img src alt width>` (docs/kml_format.md).
 - **Tables: the Table menu and Table Properties** - 2026-11-09. A new Table menu, and the same
   commands in the context menu of a cell: Insert Table..., Insert (rows above and below,
   columns to the left and right), Delete (rows, columns, the table), Select (the cell, row,

@@ -17,6 +17,7 @@
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/utils/language_names.h"
+#include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/utils/caps_lock.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
@@ -31,10 +32,16 @@
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/statistics_collector.h"
+#include "kalahari/editor/text_images.h"
 #include "kalahari/editor/text_link.h"
 #include "kalahari/editor/word_repetitions.h"
 #include <QDesktopServices>
+#include <QDir>
 #include <QEvent>
+#include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QSaveFile>
 #include <QGuiApplication>
 #include <QMainWindow>
 #include <QScreen>
@@ -177,6 +184,12 @@ EditorPanel::EditorPanel(QWidget* parent)
     connect(m_bookEditor, &editor::BookEditor::linkDialogAsked, this,
             &EditorPanel::showHyperlinkDialog);
     connect(m_bookEditor, &editor::BookEditor::linkOpenAsked, this, &EditorPanel::openLink);
+
+    // The files of an image, asked for by its context menu: another picture, a copy saved
+    connect(m_bookEditor, &editor::BookEditor::imageFileAsked, this,
+            &EditorPanel::showChangeImageDialog);
+    connect(m_bookEditor, &editor::BookEditor::imageSaveAsked, this,
+            &EditorPanel::showSaveImageDialog);
 
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
@@ -711,6 +724,114 @@ void EditorPanel::showInsertTableDialog() {
     dialogs::InsertTableDialog dialog(window());
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow());
+    }
+}
+
+namespace {
+
+/// The picture chosen in the system window of Insert > Image... or Change Image...; empty:
+/// none. The window starts in the folder of the picture chosen last.
+QString chooseImageFile(QWidget* parent, const QString& title) {
+    using Operation = ProgramFolders::Operation;
+    const QString path = QFileDialog::getOpenFileName(
+        parent, title, ProgramFolders::windowFolder(Operation::InsertImage),
+        //: The pictures of the window choosing an image; In Polish: Obrazy
+        editor::imageFileFilter(EditorPanel::tr("Images")) + QStringLiteral(";;") +
+            EditorPanel::tr("All Files (*)"));
+    if (!path.isEmpty()) {
+        ProgramFolders::remember(Operation::InsertImage, QFileInfo(path).absolutePath());
+    }
+    return path;
+}
+
+/// Tell the writer that a chosen file could not be the picture of an image
+void warnImageNotInserted(QWidget* parent, const QString& path) {
+    dialogs::MessageDialog::warning(
+        parent,
+        //: In Polish: Nie można wstawić obrazu
+        EditorPanel::tr("Image Not Inserted"),
+        //: In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać (PNG, JPEG,
+        //: GIF, BMP, SVG), albo nie udało się go skopiować do folderu obrazów książki.
+        EditorPanel::tr("The file \"%1\" is not a picture Kalahari can show (PNG, JPEG, GIF, "
+                        "BMP, SVG), or it could not be copied into the book's folder of images.")
+            .arg(QFileInfo(path).fileName()));
+}
+
+}  // namespace
+
+void EditorPanel::setImagesFolder(const QString& folder) {
+    m_bookEditor->setImagesFolder(folder);
+}
+
+void EditorPanel::moveImagesFolder(const QString& folder) {
+    m_bookEditor->moveImagesFolder(folder);
+}
+
+void EditorPanel::showInsertImageDialog() {
+    if (!m_bookEditor->canInsertImage()) {
+        return;
+    }
+    //: The system window of Insert > Image... In Polish: Wstaw obraz
+    const QString path = chooseImageFile(window(), tr("Insert Image"));
+    if (!path.isEmpty() && !m_bookEditor->insertImageFile(path)) {
+        warnImageNotInserted(window(), path);
+    }
+}
+
+void EditorPanel::showChangeImageDialog(int position) {
+    if (!m_bookEditor->canInsertImage() || m_bookEditor->imageFilePath(position).isEmpty()) {
+        return;
+    }
+    //: The system window of Change Image... of an image's context menu. In Polish: Zmień obraz
+    const QString path = chooseImageFile(window(), tr("Change Image"));
+    if (!path.isEmpty() && !m_bookEditor->changeImageFile(position, path)) {
+        warnImageNotInserted(window(), path);
+    }
+}
+
+void EditorPanel::showSaveImageDialog(int position) {
+    using Operation = ProgramFolders::Operation;
+    const QString source = m_bookEditor->imageFilePath(position);
+    const QFileInfo file(source);
+    if (!file.isFile()) {
+        return;
+    }
+    //: The files of the window saving an image, %1 its extension (PNG, JPG...). In Polish:
+    //: Obraz %1
+    const QString filter = tr("%1 Image (*.%2)").arg(file.suffix().toUpper(), file.suffix());
+    QString target = QFileDialog::getSaveFileName(
+        window(),
+        //: The system window of Save as Image... In Polish: Zapisz jako obraz
+        tr("Save as Image"),
+        QDir(ProgramFolders::windowFolder(Operation::SaveImage)).filePath(file.fileName()),
+        filter);
+    if (target.isEmpty()) {
+        return;
+    }
+    if (QFileInfo(target).suffix().isEmpty() && !file.suffix().isEmpty()) {
+        target += QLatin1Char('.') + file.suffix();
+    }
+    ProgramFolders::remember(Operation::SaveImage, QFileInfo(target).absolutePath());
+    if (QFileInfo(target).absoluteFilePath() == file.absoluteFilePath()) {
+        return;  // the file itself
+    }
+    // The system window asked before replacing a file; the file it replaces stays as it was
+    // until the copy is whole
+    QFile from(source);
+    QSaveFile to(target);
+    bool saved = from.open(QIODevice::ReadOnly) && to.open(QIODevice::WriteOnly);
+    while (saved && !from.atEnd()) {
+        const QByteArray part = from.read(1 << 20);
+        saved = !part.isEmpty() && to.write(part) == part.size();
+    }
+    saved = saved && to.commit();
+    if (!saved) {
+        dialogs::MessageDialog::warning(
+            window(),
+            //: In Polish: Nie zapisano obrazu
+            tr("Image Not Saved"),
+            //: In Polish: Nie udało się zapisać obrazu w pliku „%1”.
+            tr("The image could not be saved as \"%1\".").arg(QDir::toNativeSeparators(target)));
     }
 }
 

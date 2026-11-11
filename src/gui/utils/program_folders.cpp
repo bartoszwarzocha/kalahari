@@ -36,6 +36,10 @@ const char* lastFolderSetting(Operation operation) {
         return "project.lastFolders.importDestination";
     case Operation::AddMaterial:
         return "project.lastFolders.addMaterial";
+    case Operation::InsertImage:
+        return "project.lastFolders.insertImage";
+    case Operation::SaveImage:
+        return "project.lastFolders.saveImage";
     }
     return "";
 }
@@ -59,6 +63,8 @@ QString settingsFolderOf(Operation operation) {
         return ProgramFolders::archivesFolder();
     case Operation::OpenFile:
     case Operation::AddMaterial:
+    case Operation::InsertImage:
+    case Operation::SaveImage:
         break;
     }
     return ProgramFolders::documentsFolder();  // no setting: files can be anywhere

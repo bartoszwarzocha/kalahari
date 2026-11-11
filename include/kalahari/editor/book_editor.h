@@ -924,6 +924,11 @@ public:
     /// @brief The book's main folder of the images; empty: none
     QString imagesFolder() const;
 
+    /// @brief The text is saved in another folder (Save As of a file): the files of its images
+    ///        are copied into that folder's folder of images, which the images name from now
+    ///        on (where a name there is taken by another picture, the image names the copy's)
+    void moveImagesFolder(const QString& folder);
+
     /// @brief The files of the images: their sizes and pictures
     const std::shared_ptr<ImageStore>& imageStore() const { return m_imageStore; }
 
@@ -966,6 +971,11 @@ public:
 
     /// @brief Original Size: the image at a position gets its file's own width
     bool setImageOriginalSize(int position);
+
+    /// @brief Resize the image at a position as a dragged handle does: @p width wide in the
+    ///        layout's pixels (its height in proportion), kept in its own unit
+    ///        (KalahariTextDocumentLayout::imageOfWidth()), as one undo step
+    bool setImageLayoutWidth(int position, qreal width);
 
     /// @brief Change Image...: the image at a position shows another file, copied into the
     ///        folder of images; its width and alternative text stay
@@ -2348,11 +2358,66 @@ private:
     /// @brief Draw the line where the edge being dragged goes
     void paintColumnGuide(QPainter& painter) const;
 
+    // Images: selected, resized by the handles in their corners (book_editor_images.cpp)
+
+    /// @brief A corner of an image, with a handle when the image is selected
+    enum class ImageCorner { TopLeft, TopRight, BottomLeft, BottomRight };
+
+    /// @brief An image being resized by a handle
+    struct ImageResize {
+        int position = 0;                               ///< The image's character
+        ImageCorner corner = ImageCorner::BottomRight;  ///< The handle dragged
+        QRectF start;                                   ///< The image in the widget, pressed
+        QPointF pressed;                                ///< Where the handle was pressed
+        QRectF preview;                                 ///< Where the image goes
+    };
+
+    /// @brief The handle of the selected image at a widget point, in a text that can change
+    std::optional<ImageCorner> imageHandleAt(const QPointF& widgetPos) const;
+
+    /// @brief The handle of a corner of an image's rectangle, in the widget
+    static QRectF imageHandleRect(const QRectF& image, ImageCorner corner);
+
+    /// @brief A press of the left button on an image or the handle of the selected one: a
+    ///        handle starts resizing, an image is selected (dragged, it moves as selected
+    ///        text does)
+    /// @return Whether the press was on one
+    bool pressImage(const QPointF& widgetPos);
+
+    /// @brief The image being resized follows the handle, in proportion, within its line
+    void dragImageHandle(const QPointF& widgetPos);
+
+    /// @brief The handle let go: the image gets the size of the preview (one undo step)
+    void finishImageResize();
+
+    /// @brief What the label beside a resized image says: its new width in its unit
+    QString imageWidthLabel(int position, qreal widgetWidth) const;
+
+    /// @brief Draw the selected image's frame and handles, the preview of a resize and its
+    ///        label, and the selection's color over the images among selected text
+    void paintImageSelection(QPainter& painter) const;
+
+    /// @brief Add the items of the selected image to a context menu: Image Properties...,
+    ///        Add Caption, Change Image..., Original Size, Save as Image...
+    void addImageActions(QMenu& menu, int position);
+
     /// @brief Whether a position lies in the selection, its ends included
     bool isInSelection(const CursorPosition& position) const;
 
-    /// @brief Whether insertFromMimeData() can insert the content
-    static bool canInsertFromMimeData(const QMimeData* source);
+    /// @brief Whether insertFromMimeData() can insert the content: Kalahari's text, text, and
+    ///        with a folder of images a picture or files of pictures
+    bool canInsertFromMimeData(const QMimeData* source) const;
+
+    /// @brief Insert the pictures of MIME data at the cursor: the files of pictures (dropped
+    ///        from a folder), or a picture alone (a screenshot) saved as a PNG file
+    /// @return Whether the data was pictures (inserted, or not where the text has no folder of
+    ///         images); false for Kalahari's text and for text
+    bool insertPicturesOf(const QMimeData& source);
+
+    /// @brief The images of text pasted from another book's folder (MIME_IMAGES_FOLDER),
+    ///        between @p from and the cursor's position: their files copied into this one's
+    ///        folder of images, the images naming the copies, in the paste's undo step
+    void adoptPastedImages(const QMimeData& source, int from, const QTextCursor& cursor);
 
     /// @brief Drag the selected text (copy or move)
     ///
@@ -2689,6 +2754,8 @@ private:
     // Drag and drop of text (stage 3)
     bool m_textDragPending = false;     ///< Press on the selection: drags once the mouse moves far enough
     std::optional<ColumnEdge> m_columnDrag;  ///< The edge of columns being dragged
+    std::optional<ImageResize> m_imageResize;  ///< The image whose handle is dragged
+    bool m_imagePressed = false;  ///< The press selected an image: let go, it stays selected
     qreal m_columnDragX = 0.0;               ///< Where it goes, in the document
     QPointF m_textDragStartPos;         ///< Where that press was
     QTimer* m_autoScrollTimer = nullptr;  ///< Scrolls while selecting or dragging near the edges

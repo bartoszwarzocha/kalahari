@@ -1291,7 +1291,8 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     newEditor->setProperty("tabIconId", iconId);
     m_centralTabs->setCurrentIndex(tabIndex);
 
-    // Set content
+    // Set content; its images name their files in the file's folder
+    newEditor->setImagesFolder(fileInfo.absolutePath());
     const bool complete = newEditor->setContent(content);
 
     // Add to standalone files list
@@ -1501,6 +1502,8 @@ bool DocumentCoordinator::writeStandaloneFile(EditorPanel* editor, const QString
             editor->setProperty("newFileKey", QVariant());
         }
         editor->setProperty("standaloneFilePath", path);
+        // Its images go with it: their files copied into the new folder's folder of images
+        editor->moveImagesFolder(QFileInfo(path).absolutePath());
         const QString iconId = standaloneIconId(path);
         editor->setProperty("tabIconId", iconId);
         if (inTabs) {

@@ -558,6 +558,7 @@ void BookEditor::paintEvent(QPaintEvent* event)
                                                        event->region().contains(rect()));
     m_renderPipeline->render(&painter, event->rect());
     paintColumnGuide(painter);
+    paintImageSelection(painter);  // over the image, which covers the selection under the text
 
     // Distraction-free mode overlay (not yet migrated to pipeline)
     paintDistractionFreeOverlay(painter);
@@ -684,13 +685,15 @@ void BookEditor::syncPipelineCursor()
         return;
     }
 
-    // Update cursor position and selection
+    // Update cursor position and selection. An image selected alone has its frame and handles
+    // instead (paintImageSelection()), as in Word
+    const bool imageSelected = selectedImage().has_value();
     m_renderPipeline->setCursorPosition(m_cursorPosition);
     // Shown while focused; m_cursorVisible is the blink phase (always on without blinking)
-    m_renderPipeline->setCursorVisible(hasFocus());
+    m_renderPipeline->setCursorVisible(hasFocus() && !imageSelected);
     m_renderPipeline->setCursorBlinkState(m_cursorVisible);
 
-    if (hasSelection()) {
+    if (hasSelection() && !imageSelected) {
         m_renderPipeline->setSelection(m_selection);
     } else {
         m_renderPipeline->clearSelection();

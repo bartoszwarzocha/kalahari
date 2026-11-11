@@ -537,11 +537,17 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
 
     QPointF clickPos = event->position();
 
-    // The edge between two columns of a table: dragged, it sets their widths
+    // The edge between two columns of a table: dragged, it sets their widths. A handle of
+    // the selected image: dragged, it resizes the image; a click on an image selects it
     if (!(event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier))) {
         if (std::optional<ColumnEdge> edge = columnEdgeAt(clickPos)) {
             m_columnDrag = edge;
             dragColumnEdge(clickPos);
+            event->accept();
+            return;
+        }
+        if (pressImage(clickPos)) {
+            m_clickCount = 0;
             event->accept();
             return;
         }
@@ -650,10 +656,16 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
         event->accept();
         return;
     }
+    if (m_imageResize) {
+        dragImageHandle(pos);
+        event->accept();
+        return;
+    }
 
     if (m_textDragPending) {
         if ((pos - m_textDragStartPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_textDragPending = false;
+            m_imagePressed = false;
             startTextDrag();
         }
         event->accept();
@@ -689,6 +701,15 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
     } else if (!(modifiers & (Qt::ShiftModifier | Qt::ControlModifier)) &&
                columnEdgeAt(pos).has_value()) {
         shape = Qt::SplitHCursor;  // the edge between two columns, which can be dragged
+    } else if (const std::optional<ImageCorner> corner =
+                   !(modifiers & (Qt::ShiftModifier | Qt::ControlModifier)) ? imageHandleAt(pos)
+                                                                            : std::nullopt) {
+        // A handle of the selected image, which resizes it from the corner across
+        shape = *corner == ImageCorner::TopLeft || *corner == ImageCorner::BottomRight
+                    ? Qt::SizeFDiagCursor
+                    : Qt::SizeBDiagCursor;
+    } else if (imagePositionAt(pos).has_value()) {
+        shape = Qt::ArrowCursor;  // an image, which a click selects
     } else if (isOverSelectedText(pos)) {
         shape = Qt::ArrowCursor;
     }
@@ -721,6 +742,19 @@ void BookEditor::mouseReleaseEvent(QMouseEvent* event)
         event->accept();
         return;
     }
+    if (m_imageResize) {
+        finishImageResize();
+        updatePointerShape(event->position(), event->modifiers());
+        event->accept();
+        return;
+    }
+    if (m_imagePressed) {
+        // A click on an image without dragging it: it stays selected
+        m_imagePressed = false;
+        m_textDragPending = false;
+        event->accept();
+        return;
+    }
     if (m_textDragPending) {
         // A click on the selected text without dragging places the cursor there
         m_textDragPending = false;
@@ -749,6 +783,16 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
             emit annotationEditRequested(card->id);
         }
         m_pressedCard.clear();
+        event->accept();
+        return;
+    }
+
+    // A double click on an image: its properties, as in Word; it stays selected
+    if (const std::optional<int> image = imagePositionAt(event->position())) {
+        selectImage(*image);
+        if (!m_readOnly) {
+            emit imagePropertiesAsked(*image);
+        }
         event->accept();
         return;
     }
@@ -1034,6 +1078,16 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         }
     }
 
+    // On an image: it is selected first, the menu is its own
+    if (event->reason() == QContextMenuEvent::Mouse) {
+        if (const std::optional<int> image = imagePositionAt(QPointF(event->pos()))) {
+            const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+            selectImage(*image);
+            showContextMenu(m_cursorPosition, event->globalPos(), false);
+            return;
+        }
+    }
+
     const CursorPosition pos = positionFromPoint(event->pos());
     if (pos.paragraph < 0) {
         QWidget::contextMenuEvent(event);
@@ -1102,6 +1156,15 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
     } else if (grammarError.has_value()) {
         addGrammarActions(menu, *grammarError, pos.paragraph);
+    }
+
+    // The selected image: its properties, caption, file and size, as in Word
+    if (const std::optional<int> image = selectedImage()) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        addImageActions(menu, *image);
+        menu.addSeparator();
     }
 
     // A link: edit it (the window of Insert > Link, with its keys), open it, copy its address

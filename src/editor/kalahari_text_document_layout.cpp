@@ -2919,14 +2919,16 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
 // Images
 // =============================================================================
 
-QSizeF KalahariTextDocumentLayout::imageSize(const QTextBlock& block,
-                                             const ImageProperties& image) const {
+qreal KalahariTextDocumentLayout::imageLineWidth(const QTextBlock& block) const {
     const BlockMetrics& metrics = blockMetrics(block);
-    const qreal lineWidth =
-        std::max<qreal>(1.0, areaWidth(block) - metrics.leftMargin - metrics.rightMargin);
+    return std::max<qreal>(1.0, areaWidth(block) - metrics.leftMargin - metrics.rightMargin);
+}
 
+qreal KalahariTextDocumentLayout::widestImage(const QTextBlock& block) const {
     // Never wider than the line, the first one of the paragraph too (its indent, or the
     // number of a list item, as layoutBlock() places them)
+    const BlockMetrics& metrics = blockMetrics(block);
+    const qreal lineWidth = imageLineWidth(block);
     const Qt::Alignment own = ownAlignment(block.blockFormat());
     const Qt::Alignment alignment = own ? own : metrics.alignment;
     const bool leadingAligned = !(alignment & (Qt::AlignRight | Qt::AlignHCenter));
@@ -2935,7 +2937,29 @@ QSizeF KalahariTextDocumentLayout::imageSize(const QTextBlock& block,
                                                         : metrics.firstLineIndent;
     const qreal firstIndent =
         leadingAligned ? std::clamp(ownIndent, -metrics.leftMargin, lineWidth / 2.0) : 0.0;
-    const qreal widest = std::max<qreal>(1.0, lineWidth - std::max<qreal>(0.0, firstIndent));
+    return std::max<qreal>(1.0, lineWidth - std::max<qreal>(0.0, firstIndent));
+}
+
+ImageProperties KalahariTextDocumentLayout::imageOfWidth(const QTextBlock& block,
+                                                         const ImageProperties& image,
+                                                         qreal width) const {
+    ImageProperties resized = image;
+    if (image.unit == ImageWidthUnit::Centimeters) {
+        resized.width =
+            std::round(width / (POINTS_PER_CENTIMETER * packagePixels()) * 100.0) / 100.0;
+    } else {
+        resized.unit = ImageWidthUnit::Percent;
+        resized.width = std::max(MIN_IMAGE_PERCENT,
+                                 std::round(width / imageLineWidth(block) * 100.0));
+    }
+    return normalizedImage(resized);
+}
+
+QSizeF KalahariTextDocumentLayout::imageSize(const QTextBlock& block,
+                                             const ImageProperties& image) const {
+    const BlockMetrics& metrics = blockMetrics(block);
+    const qreal lineWidth = imageLineWidth(block);
+    const qreal widest = widestImage(block);
 
     // The file's pixels at 96 an inch, centimeters shown as the style's points are
     const qreal pixels = packagePixels();
@@ -3058,6 +3082,8 @@ void KalahariTextDocumentLayout::drawImage(QPainter* painter, const QRectF& rect
     const qreal textWidth = std::max<qreal>(0.0, rect.width() - glyph - 4.0 * gap);
     const QString name = nameMetrics.elidedText(QFileInfo(image.source).fileName(),
                                                 Qt::ElideMiddle, textWidth);
+    //: The frame of an image whose file is not there, under the file's name. In Polish: Brak
+    //: pliku obrazu
     const QString label = labelMetrics.elidedText(tr("Image file missing"), Qt::ElideRight, textWidth);
     const qreal labelWidth =
         std::max(nameMetrics.horizontalAdvance(name), labelMetrics.horizontalAdvance(label));

@@ -311,6 +311,11 @@ public:
     /// @return Absolute path to manifest file, empty if no project open
     QString getManifestPath() const;
 
+    /// @brief The book's main folder (absolute): the images of the texts of the book and of
+    ///        the Workshop name their files relative to it, and new ones go into its folder of
+    ///        images (editor::IMAGES_FOLDER); empty when no project is open
+    QString imagesBaseFolder() const;
+
     /// @brief Absolute path of the file of @p element; empty when it has none
     QString filePathOf(const ProjectElement& element) const;
 

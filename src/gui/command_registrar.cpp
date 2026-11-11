@@ -432,7 +432,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // INSERT MENU
     // =========================================================================
 
-    REG_CMD("insert.image", QT_TRANSLATE_NOOP("CommandRegistrar", "&Image..."), "INSERT/Image...", 10, false, 1);
+    // An image: the system window choosing a picture, copied into the book's folder of
+    // images (no keys, as in Word)
+    REG_CMD_CB("insert.image", QT_TRANSLATE_NOOP("CommandRegistrar", "&Image..."), "INSERT/Image...", 10, false, 1,
+               callbacks.onInsertImage);
     // A table: the window of its columns and rows (no keys: Ctrl+F12 of LibreOffice switches
     // the workspaces of Xfce)
     REG_CMD_CB("insert.table", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble..."), "INSERT/Table...", 20, false, 1,

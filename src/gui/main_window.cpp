@@ -953,6 +953,12 @@ void MainWindow::registerCommands() {
             editor->showHyperlinkDialog();
         }
     };
+    // Insert > Image...: the system window choosing a picture, of the editor in front
+    callbacks.onInsertImage = [this]() {
+        if (EditorPanel* editor = getCurrentEditor()) {
+            editor->showInsertImageDialog();
+        }
+    };
     // Insert > Table...: the window of the new table, of the editor in front
     callbacks.onInsertTable = [this]() {
         if (EditorPanel* editor = getCurrentEditor()) {
@@ -1247,6 +1253,27 @@ void MainWindow::registerCommands() {
         table->disabledReason = [inTable, reason = table->disabledReason]() {
             const QString readOnly = reason ? reason() : QString();
             return readOnly.isEmpty() && inTable() ? inTableReason() : readOnly;
+        };
+    }
+
+    // Insert > Image... also needs a folder for the images: a new file is saved first
+    if (Command* image = registry.getCommand("insert.image")) {
+        const auto withoutFolder = [this]() {
+            const EditorPanel* editor = m_dockCoordinator != nullptr ? getCurrentEditor() : nullptr;
+            return editor != nullptr && editor->getBookEditor() != nullptr &&
+                   editor->getBookEditor()->imagesFolder().isEmpty();
+        };
+        image->isEnabled = [withoutFolder, enabled = image->isEnabled]() {
+            return (!enabled || enabled()) && !withoutFolder();
+        };
+        image->disabledReason = [withoutFolder, reason = image->disabledReason]() {
+            const QString readOnly = reason ? reason() : QString();
+            //: Why Insert > Image... is greyed out in a new file. In Polish: Najpierw zapisz
+            //: plik: jego obrazy są przechowywane w folderze obok niego
+            return readOnly.isEmpty() && withoutFolder()
+                       ? MainWindow::tr("Save the file first: its images are kept in a folder "
+                                        "next to it")
+                       : readOnly;
         };
     }
 

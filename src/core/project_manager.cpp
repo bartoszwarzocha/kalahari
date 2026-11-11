@@ -1135,6 +1135,11 @@ QString ProjectManager::getManifestPath() const {
     return toQString(m_manifestPath);
 }
 
+QString ProjectManager::imagesBaseFolder() const {
+    const QString root = getProjectPath();
+    return root.isEmpty() ? QString() : QDir(root).filePath(folderOf(BookPlace::Main, book()));
+}
+
 QString ProjectManager::filePathOf(const ProjectElement& element) const {
     if (element.file.isEmpty() || m_projectPath.empty()) {
         return QString();

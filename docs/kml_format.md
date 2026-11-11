@@ -1,7 +1,7 @@
 # KML – Kalahari Markup Language
 
 KML is the XML format of chapter text: paragraphs and headings with their styles and own
-formatting, lists, tables, horizontal lines and breaks, inline formatting, links and annotations. This document describes the format as the
+formatting, lists, tables, images, horizontal lines and breaks, inline formatting, links and annotations. This document describes the format as the
 application reads and writes it. The product specification of the format, including the
 elements planned for later versions, is section 4 of
 `project_docs/19_text_editor_functional_spec_pl.md`; the elements it lists that the editor does
@@ -16,12 +16,13 @@ The code that defines the format:
 | A paragraph's own formatting and its attributes | `include/kalahari/editor/paragraph_format.h` |
 | Lists, the formats of their levels and the numbers of the items | `include/kalahari/editor/text_lists.h` |
 | Tables in the editor's document | `include/kalahari/editor/text_tables.h` |
+| Images in the editor's document and their files | `include/kalahari/editor/text_images.h`, `include/kalahari/editor/image_store.h` |
 | Reading | `KmlDocumentModel::loadKml()`, called by `BookEditor::fromKml()` |
 | Writing | `KmlSerializer::toKml()`, called by `BookEditor::toKml()` |
 | Annotations in the editor's document | `include/kalahari/editor/annotation.h` |
 | Links in the editor's document | `include/kalahari/editor/text_link.h` |
 | The clipboard's KML, HTML and plain text | `ClipboardHandler` (`include/kalahari/editor/clipboard_handler.h`) |
-| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp`, `test_text_links.cpp`, `test_tables.cpp` |
+| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp`, `test_text_links.cpp`, `test_tables.cpp`, `test_text_images.cpp` |
 
 ## Where KML is stored
 
@@ -306,6 +307,46 @@ it: its first item gets the number it has in the chapter as `value`.
   its text: each row of a table is a paragraph with its cells separated by tabs, and a
   horizontal line or a break an empty paragraph.
 
+## Images
+
+```xml
+<p align="center"><img src="images/bridge-1931.jpg" alt="The bridge over the river in 1931" width="80%"/></p>
+<p>A map <img src="images/map.png" alt="Map" width="4.5cm"/> in the text.</p>
+```
+
+| Attribute | Value | Meaning |
+|-----------|-------|---------|
+| `src` | A path relative to the book's main folder (`images/map.png`) | The image's file |
+| `alt` | Text | What a screen reader reads instead of the image |
+| `width` | A percentage (`80%`) or a length (`4.5cm`, `45mm`, `2in`, `120pt`, `300px`, `10pc`) | The image's width; without it, the file's own (its pixels at 96 per inch) |
+
+- **An image is a part of its line**, as a large character: it stands on the baseline, the
+  paragraph's alignment places it, and the text, the undo, the clipboard and drag and drop take
+  it with the text around it. It is not a word for the counts. `<img>` goes in a paragraph,
+  also in a heading or a table cell, inside the formatting elements and the link of its place:
+  `<a href="..."><img .../></a>`.
+- **The width.** A percentage is of the width of the text (of the cell, in a table), from 1 to
+  100; a length is kept in centimeters, from 0.1 to 100, and written as `cm` with two decimals
+  at most. A width beyond these is taken as the nearest one (`150%` as `100%`); a width of 0
+  or less, or one that is not a number with a known unit, is the file's own. The height
+  follows in proportion. An image wider than its line is shown as wide as the line, and one
+  higher than a page's text as high as the text. The line spacing does not take the image's
+  height, and an exact spacing never cuts it.
+- **The file.** `src` names a file in the book's main folder, without `..`, a drive or a
+  scheme; any other `src` (`/home/...`, `C:\...`, `https://...`) is never read and is shown as
+  a missing file. A text outside a book names its images relative to its own folder. The
+  editor shows PNG, JPEG, GIF, BMP and SVG files. A missing file is a frame with the file's
+  name and "Image file missing"; the KML keeps its `<img>`. `<img>` without a `src` is left out.
+  Line breaks and tabs of `alt` are spaces.
+- **New images** (Insert > Image..., a file dropped or pasted from a folder, a pasted picture)
+  are copied into the folder `images/` of the book's main folder, next to a text outside a
+  book; the original file stays as it was. A file of that folder is used as it is. A taken
+  name gets a number (`map-2.png`), and a file of the same content is used again. A pasted
+  picture is saved as PNG. A text outside a book that was never saved has no folder: it takes
+  no images until it is saved, and saved in another folder, its images are copied along.
+- **Copied** to another book, an image takes its file along: it is copied into that book's
+  folder of images, in the same undo step as the paste.
+
 ## Text
 
 - Spaces and tabs are kept exactly as written, also at the start and end of a paragraph.
@@ -474,6 +515,7 @@ tests in `tests/editor/test_clipboard_paste.cpp`).
 | `caps`, `spacing` | CSS `font-variant:small-caps` or `text-transform:uppercase`, `letter-spacing` in points | – |
 | `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
 | `<table>` | `<table>` as wide as the text with a thin grid (`border="1"`, `border-collapse:collapse`), the header row in a `<thead>` of `<th>` cells, `colspan` and `rowspan`, the widths of the columns on the cells of the first row | A line for each row, its cells separated by tabs (one also for a cell that a cell above spans into), the paragraphs of a cell by spaces |
+| `<img>` | `<img>` with the address of its file (`file:`), its `alt` and its width as CSS `width` (`80%`, `4.5cm`); left out when the text has no folder or its `src` is not one of the book's files. An image copied alone is also on the clipboard as a picture | Left out |
 
 The HTML of another program (Word, LibreOffice, a browser) is pasted, and dropped, in the mode
 of the setting `editor.paste.mode` (Settings > Editor > General, "Paste from Other
@@ -494,7 +536,9 @@ numbers and bullets as text. Tables come as tables in Merge Formatting and Keep 
 Formatting, with their merged cells, the widths of their columns (in percent, or pixels in
 proportion) and their header row: a `<thead>`, or a first row of `<th>` cells, whose bold, and
 in Merge Formatting their centering, is the look of the header; in Keep Text Only, and in a
-cell, a row is a paragraph with its cells separated by tabs. Images are left out. A heading's
+cell, a row is a paragraph with its cells separated by tabs. The images of the HTML are left
+out; a picture without text (a screenshot, a picture copied in a browser) and the files of
+pictures dragged from a folder come as images of the book. A heading's
 bold is the look of the heading and is not kept. A scene break of another program comes as the paragraph
 of its symbol.
 
@@ -525,7 +569,6 @@ rest of the chapter is not loaded – and logs an error.
 
 Elements of the product specification that the editor does not read yet:
 
-- images `<img>`,
 - the annotations `<endnote>` and the references `<itemref>`, `<cite>`,
 - the root attributes `version` and `lang`, the paragraph attribute `speaker` and the scene
   break attribute `type` (the look of the scene breaks is a setting of the editor).
