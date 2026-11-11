@@ -1340,12 +1340,12 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
     // An image alone also as a picture, for the programs that paste pictures
     if (const std::optional<int> image = selectedImage()) {
         const std::optional<ImageProperties> properties = editor::imageAt(*m_textBuffer, *image);
-        const std::optional<QSize> pixels =
-            properties ? m_imageStore->pixelSize(properties->source) : std::nullopt;
-        if (pixels) {
-            const QImage picture = m_imageStore->picture(properties->source, *pixels);
-            if (!picture.isNull()) {
-                mime->setImageData(picture);
+        if (properties) {
+            if (const std::optional<QSize> pixels = m_imageStore->pixelSize(properties->source)) {
+                const QImage picture = m_imageStore->picture(properties->source, *pixels);
+                if (!picture.isNull()) {
+                    mime->setImageData(picture);
+                }
             }
         }
     }

@@ -326,11 +326,9 @@ void KalahariTextDocumentLayout::setPageFlow(const PageFlow& flow) {
     // An image is never higher than a page's text: the images get their sizes again
     const bool imagesChanged = m_hasImages && normalized.textHeight != m_pageFlow.textHeight;
     m_pageFlow = normalized;
-    if (imagesChanged) {
-        invalidateAll();
-    } else if (placementChanged) {
-        // The line breaks stay (design metrics in every view), but the lines of each block
-        // are placed anew: on the pages, or one under another
+    if (imagesChanged || placementChanged) {
+        // New sizes of the images; or the line breaks stay (design metrics in every view),
+        // but the lines of each block are placed anew: on the pages, or one under another
         invalidateAll();
     } else {
         // Only the height the endless text area takes at least: the lines stay

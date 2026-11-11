@@ -524,11 +524,11 @@ std::optional<BookEditor::ImageCorner> BookEditor::imageHandleAt(const QPointF& 
 
 bool BookEditor::pressImage(const QPointF& widgetPos)
 {
-    if (const std::optional<ImageCorner> corner = imageHandleAt(widgetPos)) {
-        const int position = *selectedImage();
-        const std::optional<QRectF> rect = imageRect(position);
+    const std::optional<ImageCorner> corner = imageHandleAt(widgetPos);
+    if (const std::optional<int> selected = selectedImage(); corner && selected) {
+        const std::optional<QRectF> rect = imageRect(*selected);
         if (rect && !rect->isEmpty()) {
-            m_imageResize = ImageResize{position, *corner, *rect, widgetPos, *rect};
+            m_imageResize = ImageResize{*selected, *corner, *rect, widgetPos, *rect};
             update();
             return true;
         }
