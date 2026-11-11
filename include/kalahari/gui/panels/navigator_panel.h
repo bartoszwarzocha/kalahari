@@ -388,6 +388,14 @@ signals:
     /// @param keys The list gets the keys (Enter), else the Navigator keeps them (a click)
     void requestOpenMaterialList(const QString& list, bool keys);
 
+    /// @brief Request to hide kind @p list of the materials (MaterialList::HIDDEN_SETTING) in
+    /// the Navigator of every book: Hide Kind in the menu of the kind
+    void requestHideKind(const QString& list);
+
+    /// @brief Request to open the settings of the kinds of materials (Settings > Navigator):
+    /// Kind Settings... in the menu of Materials and of its kinds
+    void requestMaterialSettings();
+
     /// @brief Request to add the materials @p incoming, dropped on the Navigator from outside
     /// the program or pasted in it; @p link: the node they are linked with (empty: none), as
     /// QUICK_MATERIALS_SETTING says

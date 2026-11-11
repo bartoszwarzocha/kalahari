@@ -229,6 +229,7 @@ std::vector<TableGrid> QTextDocumentSource::tablesIn(size_t first, size_t last) 
             grid.rowTops.push_back(row.top);
             grid.rowHeights.push_back(row.height);
             std::vector<std::pair<double, double>> parts;
+            parts.reserve(row.parts.size());
             for (const auto& [top, bottom] : row.parts) {
                 parts.emplace_back(top, bottom);
             }

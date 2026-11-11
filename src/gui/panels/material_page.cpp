@@ -4,6 +4,7 @@
 
 #include "kalahari/gui/panels/material_page.h"
 
+#include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/link_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -16,9 +17,11 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/theme_manager.h"
 
 #include <QAbstractItemDelegate>
 #include <QClipboard>
+#include <QComboBox>
 #include <QGridLayout>
 #include <QGuiApplication>
 #include <QTextCursor>
@@ -36,9 +39,13 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QLocale>
 #include <QPlainTextEdit>
 #include <QPointer>
+#include <QProgressBar>
 #include <QPushButton>
+#include <QSignalBlocker>
+#include <QSpinBox>
 #include <QStyle>
 #include <QStyledItemDelegate>
 #include <QTableWidget>
@@ -327,7 +334,8 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
 
     // The description, saved when the field loses the keys
     //: The description of a material in the Properties panel. In Polish: Opis
-    auto* descriptionGroup = new QGroupBox(tr("Description"), this);
+    m_descriptionGroup = new QGroupBox(tr("Description"), this);
+    QGroupBox* descriptionGroup = m_descriptionGroup;
     auto* descriptionLayout = new QVBoxLayout(descriptionGroup);
     descriptionLayout->setContentsMargins(11, 11, 11, 11);
     m_descriptionEdit = new QPlainTextEdit(descriptionGroup);
@@ -343,7 +351,65 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
         m_descriptionEdit->setMaximumHeight(200);
     }
     m_descriptionEdit->installEventFilter(this);
-    descriptionLayout->addWidget(m_descriptionEdit);
+    descriptionLayout->addWidget(m_descriptionEdit, 1);
+
+    // A text of the cover: its characters and words, its target and the bar of its length
+    m_counter = new QWidget(descriptionGroup);
+    auto* counterLayout = new QVBoxLayout(m_counter);
+    counterLayout->setContentsMargins(0, 0, 0, 0);
+    counterLayout->setSpacing(3);
+    auto* countsRow = new QHBoxLayout();
+    m_countsLabel = new QLabel(m_counter);
+    m_countsLabel->setObjectName(QStringLiteral("coverCountsLabel"));
+    m_targetLabel = new QLabel(m_counter);
+    m_targetLabel->setObjectName(QStringLiteral("coverTargetLabel"));
+    m_targetLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    countsRow->addWidget(m_countsLabel, 1);
+    countsRow->addWidget(m_targetLabel);
+    counterLayout->addLayout(countsRow);
+    m_targetBar = new QProgressBar(m_counter);
+    m_targetBar->setObjectName(QStringLiteral("coverTargetBar"));
+    m_targetBar->setTextVisible(false);
+    m_targetBar->setMaximumHeight(std::max(6, fontMetrics().height() / 2));
+    //: In Polish: Długość względem celu
+    m_targetBar->setAccessibleName(tr("Length against the target"));
+    counterLayout->addWidget(m_targetBar);
+    if (full) {
+        // The own target of the material, and how the cover prints an opinion
+        m_targetRow = new QWidget(m_counter);
+        auto* targetLayout = new QHBoxLayout(m_targetRow);
+        targetLayout->setContentsMargins(0, 3, 0, 0);
+        //: The own target length of one text of the cover. In Polish: Docelowa dłu&gość:
+        auto* targetCaption = new QLabel(tr("Target le&ngth:"), m_targetRow);
+        m_targetSpin = new QSpinBox(m_targetRow);
+        m_targetSpin->setObjectName(QStringLiteral("coverTargetSpin"));
+        m_targetSpin->setRange(0, 100000);
+        m_targetSpin->setKeyboardTracking(false);
+        targetCaption->setBuddy(m_targetSpin);
+        m_targetUnit = new QLabel(m_targetRow);
+        auto* targetNote = hintLabel(
+            m_targetRow,
+            //: In Polish: Dotyczy tylko tego materiału; domyślną długość rodzaju ustawisz w
+            //: Ustawieniach > Nawigator.
+            tr("Of this material only; the default of its kind is in Settings > Navigator."),
+            "coverTargetNote");
+        targetLayout->addWidget(targetCaption);
+        targetLayout->addWidget(m_targetSpin);
+        targetLayout->addWidget(m_targetUnit);
+        targetLayout->addSpacing(8);
+        targetLayout->addWidget(targetNote, 1);
+        counterLayout->addWidget(m_targetRow);
+        m_printedLabel = hintLabel(m_counter, QString(), "coverPrintedLabel");
+        m_printedLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        counterLayout->addWidget(m_printedLabel);
+        connect(m_targetSpin, &QSpinBox::valueChanged, this, &MaterialPage::saveTarget);
+    }
+    descriptionLayout->addWidget(m_counter);
+    m_counter->hide();
+    connect(m_descriptionEdit, &QPlainTextEdit::textChanged, this, &MaterialPage::updateCounter);
+
+    // The data of a material of the cover, between its text and its own fields
+    createCoverGroup();
 
     // The writer's own fields
     //: The writer's own fields of a material: a name and a value each. In Polish: Własne pola
@@ -465,18 +531,21 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
         grid->setContentsMargins(0, 0, 0, 0);
         grid->setSpacing(11);
         grid->addWidget(m_infoGroup, 0, 0, 1, 2);
-        grid->addWidget(descriptionGroup, 1, 0);
-        grid->addWidget(fieldsGroup, 1, 1);
-        grid->addWidget(linksGroup, 2, 0, 1, 2);
+        grid->addWidget(descriptionGroup, 1, 0, 2, 1);
+        grid->addWidget(m_coverGroup, 1, 1);
+        grid->addWidget(fieldsGroup, 2, 1);
+        grid->addWidget(linksGroup, 3, 0, 1, 2);
         grid->setColumnStretch(0, 3);
         grid->setColumnStretch(1, 2);
-        grid->setRowStretch(3, 1);
+        grid->setRowStretch(2, 1);
+        grid->setRowStretch(4, 1);
     } else {
         auto* layout = new QVBoxLayout(this);
         layout->setContentsMargins(0, 0, 0, 0);
         layout->setSpacing(11);
         layout->addWidget(m_infoGroup);
         layout->addWidget(descriptionGroup);
+        layout->addWidget(m_coverGroup);
         layout->addWidget(fieldsGroup);
         layout->addWidget(linksGroup);
         layout->addStretch(1);
@@ -497,7 +566,27 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
     // may change on another thread, the list changes on this one
     m_settingsListener = core::SettingsManager::getInstance().subscribe(
         [page = QPointer<MaterialPage>(this)](const std::string& key) {
-            if (key != core::LinkRoles::PARAGRAPHS_SETTING || page == nullptr) {
+            if (page == nullptr) {
+                return;
+            }
+            // The unit and the targets of the texts of the cover
+            if (key.rfind("materials.cover.", 0) == 0) {
+                QMetaObject::invokeMethod(
+                    page,
+                    [page]() {
+                        if (page == nullptr) {
+                            return;
+                        }
+                        if (const core::ProjectElement* element =
+                                core::ProjectManager::getInstance().findElement(
+                                    page->m_elementId)) {
+                            page->showCover(*element);
+                        }
+                    },
+                    Qt::QueuedConnection);
+                return;
+            }
+            if (key != core::LinkRoles::PARAGRAPHS_SETTING) {
                 return;
             }
             QMetaObject::invokeMethod(
@@ -536,6 +625,7 @@ void MaterialPage::refresh() {
     //: In Polish: Informacje o {kind:locative}
     m_infoGroup->setTitle(core::fillWords(tr("{Kind} Information"), nouns));
 
+    m_cover = CoverNames::isCoverMaterial(*element);
     showSource(*element);
 
     if (!m_titleEdit->hasFocus()) {
@@ -546,6 +636,7 @@ void MaterialPage::refresh() {
     }
     fillFields(*element);
     fillLinks(*element);
+    showCover(*element);
 
     const bool readOnly = pm.isReadOnly();
     m_titleEdit->setReadOnly(readOnly);
@@ -601,6 +692,15 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
         problem = tr("No file and no address. Its description and own fields tell where it "
                      "comes from.");
         break;
+    }
+    // A material of the cover says what it is; its text is written under it
+    if (m_cover) {
+        if (m_source == MaterialSource::None) {
+            problem.clear();
+        }
+        if (line.isEmpty()) {
+            line = CoverNames::partName(element.cover.part);
+        }
     }
     m_thumbnailProblem->setText(problem);
     m_thumbnailProblem->setVisible(!problem.isEmpty());
@@ -991,6 +1091,359 @@ void MaterialPage::saveLinks(const QList<core::ElementLink>& links) {
     }
     refresh();
     emit changed(m_elementId);
+}
+
+QGroupBox* MaterialPage::createCoverGroup() {
+    //: The data of a material of the cover: its kind, place and state, and of an opinion its
+    //: author and source. In Polish: Dane okładki
+    m_coverGroup = new QGroupBox(tr("Cover Data"), this);
+    m_coverGroup->setObjectName(QStringLiteral("coverDataGroup"));
+    m_coverForm = new QFormLayout(m_coverGroup);
+    m_coverForm->setContentsMargins(11, 11, 11, 11);
+    m_coverForm->setSpacing(6);
+    const auto box = [this](const char* name) {
+        auto* combo = new QComboBox(m_coverGroup);
+        combo->setObjectName(QString::fromLatin1(name));
+        return combo;
+    };
+    // A field saved when it loses the keys or with Enter
+    const auto edit = [this](const char* name, QString core::CoverData::*field) {
+        auto* line = new QLineEdit(m_coverGroup);
+        line->setObjectName(QString::fromLatin1(name));
+        connect(line, &QLineEdit::editingFinished, this, [this, line, field]() {
+            const QString text = line->text().trimmed();
+            saveCover([&text, field](core::CoverData& cover) { cover.*field = text; });
+        });
+        return line;
+    };
+    m_coverPartBox = box("coverPartBox");
+    //: The kind of a material of the cover: a description, a tagline... In Polish: &Rodzaj:
+    m_coverForm->addRow(tr("&Kind:"), m_coverPartBox);
+    m_coverPlaceBox = box("coverPlaceBox");
+    //: Where a material goes on the cover. In Polish: &Miejsce na okładce:
+    m_coverForm->addRow(tr("&Place on the cover:"), m_coverPlaceBox);
+    m_coverStateBox = box("coverStateBox");
+    //: Draft, chosen for the cover or rejected. In Polish: &Stan:
+    m_coverForm->addRow(tr("S&tate:"), m_coverStateBox);
+    m_coverAuthorEdit = edit("coverAuthorEdit", &core::CoverData::author);
+    //: The author of an opinion or of a design. In Polish: &Autor:
+    m_coverForm->addRow(tr("&Author:"), m_coverAuthorEdit);
+    m_coverRoleEdit = edit("coverRoleEdit", &core::CoverData::role);
+    //: Who the author of an opinion is: a critic, a writer. In Polish: &Kim jest:
+    m_coverForm->addRow(tr("&Who they are:"), m_coverRoleEdit);
+    m_coverSourceEdit = edit("coverSourceEdit", &core::CoverData::source);
+    //: Where an opinion was printed or said. In Polish: Źródł&o:
+    m_coverForm->addRow(tr("S&ource:"), m_coverSourceEdit);
+    m_coverDateEdit = edit("coverDateEdit", &core::CoverData::date);
+    //: In Polish: &Data:
+    m_coverForm->addRow(tr("&Date:"), m_coverDateEdit);
+    m_coverConsentBox = box("coverConsentBox");
+    //: Whether the author of an opinion lets it be printed on the cover. In Polish: &Zgoda na
+    //: druk:
+    m_coverForm->addRow(tr("&Consent to print:"), m_coverConsentBox);
+    m_coverLicenseEdit = edit("coverLicenseEdit", &core::CoverData::license);
+    //: The license of a reference picture. In Polish: &Licencja:
+    m_coverForm->addRow(tr("&License:"), m_coverLicenseEdit);
+    m_coverAboutEdit = edit("coverAboutEdit", &core::CoverData::about);
+    //: What a reference picture shows for the cover: colors, a typeface. In Polish: Dot&yczy:
+    m_coverForm->addRow(tr("A&bout:"), m_coverAboutEdit);
+
+    connect(m_coverPartBox, &QComboBox::activated, this, &MaterialPage::savePart);
+    connect(m_coverStateBox, &QComboBox::activated, this, &MaterialPage::saveState);
+    connect(m_coverPlaceBox, &QComboBox::activated, this, [this]() {
+        const QString place = m_coverPlaceBox->currentData().toString();
+        saveCover([&place](core::CoverData& cover) { cover.place = place; });
+    });
+    connect(m_coverConsentBox, &QComboBox::activated, this, [this]() {
+        const QString consent = m_coverConsentBox->currentData().toString();
+        saveCover([&consent](core::CoverData& cover) { cover.consent = consent; });
+    });
+    m_coverGroup->hide();
+    return m_coverGroup;
+}
+
+void MaterialPage::showCover(const core::ProjectElement& element) {
+    using core::CoverMaterial;
+    m_cover = CoverNames::isCoverMaterial(element);
+    m_coverData = m_cover ? element.cover : core::CoverData{};
+    const QString& part = m_coverData.part;
+    const bool text = m_cover && CoverMaterial::isText(part);
+
+    // The description of a text of the cover is its text
+    if (text) {
+        //: The text of a material of the cover, written in the program. In Polish: Treść
+        m_descriptionGroup->setTitle(tr("Text"));
+        //: In Polish: Treść materiału okładki
+        m_descriptionEdit->setAccessibleName(tr("Text of the cover material"));
+        //: In Polish: Wpisz treść...
+        m_descriptionEdit->setPlaceholderText(tr("Enter the text..."));
+    } else {
+        m_descriptionGroup->setTitle(tr("Description"));
+        m_descriptionEdit->setAccessibleName(tr("Description of the material"));
+        m_descriptionEdit->setPlaceholderText(tr("Enter a description..."));
+    }
+    m_coverGroup->setVisible(m_cover);
+    if (!m_cover) {
+        updateCounter();
+        return;
+    }
+
+    // The parts among the texts or among the pictures; an unknown part may take any
+    const QSignalBlocker partBlocker(m_coverPartBox);
+    m_coverPartBox->clear();
+    const bool known = CoverMaterial::parts().contains(part);
+    for (const QString& each : CoverMaterial::parts()) {
+        if (!known || CoverMaterial::canChange(part, each)) {
+            m_coverPartBox->addItem(
+                core::ArtProvider::getInstance().getIcon(CoverNames::partIconId(each),
+                                                         core::IconContext::Menu),
+                CoverNames::partName(each), each);
+        }
+    }
+    if (!known) {
+        m_coverPartBox->insertItem(0, CoverNames::groupName(part), part);
+    }
+    m_coverPartBox->setCurrentIndex(m_coverPartBox->findData(part));
+
+    const QSignalBlocker placeBlocker(m_coverPlaceBox);
+    m_coverPlaceBox->clear();
+    for (const QString& place : CoverMaterial::places()) {
+        m_coverPlaceBox->addItem(CoverNames::placeName(place), place);
+    }
+    m_coverPlaceBox->addItem(CoverNames::placeName(QString()), QString());
+    if (m_coverPlaceBox->findData(m_coverData.place) < 0) {
+        // A place this version does not know stays as it is
+        m_coverPlaceBox->addItem(m_coverData.place, m_coverData.place);
+    }
+    m_coverPlaceBox->setCurrentIndex(m_coverPlaceBox->findData(m_coverData.place));
+
+    const QSignalBlocker stateBlocker(m_coverStateBox);
+    m_coverStateBox->clear();
+    for (const char* state : {"", CoverMaterial::CHOSEN, CoverMaterial::REJECTED}) {
+        m_coverStateBox->addItem(CoverNames::stateName(QString::fromLatin1(state)),
+                                 QString::fromLatin1(state));
+    }
+    if (m_coverStateBox->findData(m_coverData.state) < 0) {
+        m_coverStateBox->addItem(m_coverData.state, m_coverData.state);
+    }
+    m_coverStateBox->setCurrentIndex(m_coverStateBox->findData(m_coverData.state));
+
+    const QSignalBlocker consentBlocker(m_coverConsentBox);
+    m_coverConsentBox->clear();
+    for (const char* consent :
+         {"", CoverMaterial::GRANTED, CoverMaterial::ASKED, CoverMaterial::REFUSED}) {
+        m_coverConsentBox->addItem(CoverNames::consentName(QString::fromLatin1(consent)),
+                                   QString::fromLatin1(consent));
+    }
+    if (m_coverConsentBox->findData(m_coverData.consent) < 0) {
+        m_coverConsentBox->addItem(m_coverData.consent, m_coverData.consent);
+    }
+    m_coverConsentBox->setCurrentIndex(m_coverConsentBox->findData(m_coverData.consent));
+
+    // The fields keep what is typed in the one with the keys
+    const auto show = [](QLineEdit* line, const QString& value) {
+        if (!line->hasFocus()) {
+            line->setText(value);
+        }
+    };
+    show(m_coverAuthorEdit, m_coverData.author);
+    show(m_coverRoleEdit, m_coverData.role);
+    show(m_coverSourceEdit, m_coverData.source);
+    show(m_coverDateEdit, m_coverData.date);
+    show(m_coverLicenseEdit, m_coverData.license);
+    show(m_coverAboutEdit, m_coverData.about);
+
+    // The rows of its part
+    const bool opinion = part == QLatin1String(CoverMaterial::OPINION);
+    const bool design = part == QLatin1String(CoverMaterial::DESIGN);
+    const bool reference = part == QLatin1String(CoverMaterial::REFERENCE);
+    const bool onCover = CoverMaterial::goesOnCover(part);
+    m_coverForm->setRowVisible(m_coverPlaceBox, onCover);
+    m_coverForm->setRowVisible(m_coverStateBox, onCover);
+    m_coverForm->setRowVisible(m_coverAuthorEdit, opinion || design || reference);
+    m_coverForm->setRowVisible(m_coverRoleEdit, opinion);
+    m_coverForm->setRowVisible(m_coverSourceEdit, opinion);
+    m_coverForm->setRowVisible(m_coverDateEdit, opinion || design);
+    m_coverForm->setRowVisible(m_coverConsentBox, opinion);
+    m_coverForm->setRowVisible(m_coverLicenseEdit, reference);
+    m_coverForm->setRowVisible(m_coverAboutEdit, reference);
+    if (auto* caption = qobject_cast<QLabel*>(m_coverForm->labelForField(m_coverAuthorEdit))) {
+        //: Who made a reference picture, or where it comes from. In Polish: &Autor albo
+        //: źródło:
+        caption->setText(reference ? tr("&Author or source:") : tr("&Author:"));
+    }
+
+    const bool readOnly = core::ProjectManager::getInstance().isReadOnly();
+    for (QComboBox* combo :
+         {m_coverPartBox, m_coverPlaceBox, m_coverStateBox, m_coverConsentBox}) {
+        combo->setEnabled(!readOnly);
+    }
+    for (QLineEdit* line : {m_coverAuthorEdit, m_coverRoleEdit, m_coverSourceEdit,
+                            m_coverDateEdit, m_coverLicenseEdit, m_coverAboutEdit}) {
+        line->setReadOnly(readOnly);
+    }
+
+    // The own target, in the unit of the settings; 0: the target of its part
+    if (m_targetSpin != nullptr) {
+        const bool words = CoverMaterial::countsWords();
+        const QSignalBlocker targetBlocker(m_targetSpin);
+        m_targetSpin->setValue(words ? m_coverData.targetWords : m_coverData.targetCharacters);
+        //: The own target length of a text of the cover when it has none: the default of its
+        //: kind; %1 its length. In Polish: jak w Ustawieniach (%1)
+        m_targetSpin->setSpecialValueText(
+            tr("as in the settings (%1)")
+                .arg(QLocale().toString(CoverMaterial::defaultTargetOf(part, words))));
+        m_targetSpin->setReadOnly(readOnly);
+        m_targetUnit->setText(CoverNames::unitName(words));
+    }
+    updateCounter();
+}
+
+void MaterialPage::updateCounter() {
+    using core::CoverMaterial;
+    const bool text = m_cover && CoverMaterial::isText(m_coverData.part);
+    m_counter->setVisible(text);
+    if (!text) {
+        return;
+    }
+    const QString body = m_descriptionEdit->toPlainText();
+    const int characters = CoverMaterial::lengthOf(body, false);
+    const int words = CoverMaterial::lengthOf(body, true);
+    m_countsLabel->setText(CoverNames::countsText(characters, words));
+
+    const bool inWords = CoverMaterial::countsWords();
+    const int target = CoverMaterial::targetOf(m_coverData, inWords);
+    m_targetLabel->setVisible(target > 0);
+    m_targetBar->setVisible(target > 0);
+    if (m_targetRow != nullptr) {
+        m_targetRow->setVisible(CoverMaterial::hasTarget(m_coverData.part));
+    }
+    if (target > 0) {
+        const int length = inWords ? words : characters;
+        const bool over = length > target;
+        m_targetBar->setRange(0, target);
+        m_targetBar->setValue(std::min(length, target));
+        // Past the target the bar and its words take the warning color of the theme
+        QPalette warning;
+        if (over) {
+            const QColor color = core::ThemeManager::getInstance().getCurrentTheme().log.warning;
+            warning.setColor(QPalette::Highlight, color);
+            warning.setColor(QPalette::WindowText, color);
+        }
+        m_targetBar->setPalette(warning);
+        m_targetLabel->setPalette(warning);
+        QFont font = m_targetLabel->font();
+        font.setBold(over);
+        m_targetLabel->setFont(font);
+        m_targetLabel->setText(over ? CoverNames::overText(length - target, inWords)
+                                    : CoverNames::targetText(target, inWords));
+        m_targetBar->setAccessibleDescription(m_targetLabel->text());
+    }
+    if (m_printedLabel != nullptr) {
+        const bool opinion = m_coverData.part == QLatin1String(CoverMaterial::OPINION) &&
+                             !body.trimmed().isEmpty();
+        m_printedLabel->setVisible(opinion);
+        if (opinion) {
+            //: How the cover prints an opinion, under its text; %1 the opinion in quotes with
+            //: its author. In Polish: Na okładce: %1
+            m_printedLabel->setText(tr("On the cover: %1")
+                                        .arg(CoverNames::printedOpinion(body, m_coverData)));
+        }
+    }
+}
+
+void MaterialPage::saveCover(const std::function<void(core::CoverData&)>& change) {
+    if (m_updating || m_elementId.isEmpty() || !m_cover) {
+        return;
+    }
+    auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(m_elementId);
+    if (element == nullptr || pm.isReadOnly()) {
+        return;
+    }
+    core::CoverData cover = element->cover;
+    change(cover);
+    if (cover == element->cover) {
+        return;
+    }
+    if (!pm.setCover(m_elementId, cover)) {
+        //: In Polish: Nie zapisano danych okładki
+        dialogs::MessageDialog::warning(this, tr("Cover Data Not Saved"),
+                                        tr("Failed to save changes."));
+        // The project was put back as it was: the element is found again
+        if (const core::ProjectElement* kept = pm.findElement(m_elementId)) {
+            showCover(*kept);
+        }
+        return;
+    }
+    if (const core::ProjectElement* saved = pm.findElement(m_elementId)) {
+        showCover(*saved);
+    }
+    emit changed(m_elementId);
+}
+
+void MaterialPage::savePart() {
+    const QString part = m_coverPartBox->currentData().toString();
+    saveCover([&part](core::CoverData& cover) {
+        using core::CoverMaterial;
+        if (cover.part == part) {
+            return;
+        }
+        // A note has no place and state; a text that comes on the cover goes to the place of
+        // its part
+        if (!CoverMaterial::goesOnCover(part)) {
+            cover.place.clear();
+            cover.state.clear();
+        } else if (!CoverMaterial::goesOnCover(cover.part)) {
+            cover.place = CoverMaterial::defaultPlaceOf(part);
+        }
+        cover.part = part;
+    });
+}
+
+void MaterialPage::saveState() {
+    if (m_updating || m_elementId.isEmpty() || !m_cover) {
+        return;
+    }
+    auto& pm = core::ProjectManager::getInstance();
+    const core::ProjectElement* element = pm.findElement(m_elementId);
+    const QString state = m_coverStateBox->currentData().toString();
+    if (element == nullptr || pm.isReadOnly() || element->cover.state == state) {
+        return;
+    }
+    const QString title = element->title;
+    QStringList drafts;
+    if (!pm.setCoverState(m_elementId, state, &drafts)) {
+        //: In Polish: Nie zapisano stanu
+        dialogs::MessageDialog::warning(this, tr("State Not Saved"),
+                                        tr("Failed to save changes."));
+        if (const core::ProjectElement* kept = pm.findElement(m_elementId)) {
+            showCover(*kept);
+        }
+        return;
+    }
+    QStringList titles;
+    for (const QString& id : drafts) {
+        if (const core::ProjectElement* other = pm.findElement(id)) {
+            titles << other->title;
+        }
+    }
+    emit message(CoverNames::stateMessage(title, state, titles));
+    emit changed(m_elementId);
+    for (const QString& id : drafts) {
+        emit changed(id);
+    }
+}
+
+void MaterialPage::saveTarget() {
+    if (m_targetSpin == nullptr) {
+        return;
+    }
+    const int value = m_targetSpin->value();
+    const bool words = core::CoverMaterial::countsWords();
+    saveCover([value, words](core::CoverData& cover) {
+        (words ? cover.targetWords : cover.targetCharacters) = value;
+    });
 }
 
 bool MaterialPage::eventFilter(QObject* watched, QEvent* event) {

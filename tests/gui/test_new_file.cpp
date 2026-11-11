@@ -1227,8 +1227,8 @@ struct KeptMaterialSettings {
 };
 
 /// @brief The kinds of the Workshop of a novel that Add Element can add, in their order
-constexpr const char* WORKSHOP_KINDS = "Working note | Quote | Web page | Picture | Document | "
-                                       "Publication | Recording | Other file";
+constexpr const char* WORKSHOP_KINDS = "Working note | Cover | Quote | Web page | Picture | "
+                                       "Document | Publication | Recording | Other file";
 
 /// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
 gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),
@@ -1378,8 +1378,8 @@ TEST_CASE("Add Element: in the Workshop a working note and materials of their ki
         CHECK(test::textsOf(dialog).contains(
             QStringLiteral("Choose the kind of the new element of the Workshop and its title.")));
         CHECK(joined(enabledRowsOf(dialog)) ==
-              "# Workshop | Working note | Quote | Web page | Picture | Document | Publication | "
-              "Recording | Other file");
+              "# Workshop | Working note | Cover | Quote | Web page | Picture | Document | "
+              "Publication | Recording | Other file");
         CHECK(rowsOf(*dialog.kindList()).contains(
             QStringLiteral("Mind map (greyed): The program does not have an editor for the mind "
                            "map yet.")));
@@ -1862,4 +1862,71 @@ TEST_CASE("Add Element: in Polish the sections are chosen with Alt+P, G, K and W
     // Tytuł, Stan, Plik and Wybierz keep their letters
     CHECK(choices == QStringList{"Sekcja &początkowa", "Sekcja &główna", "Sekcja &końcowa",
                                  "&Warsztat"});
+}
+
+TEST_CASE("Add Element: a material of the cover with its kind, source, title and place",
+          "[gui][newfile][addelement][cover]") {
+    test::OpenNovel book(QStringLiteral("Rain"));
+    const core::BookTypeRegistry& types = book.pm.bookTypes();
+    KeptMaterialSettings kept;
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string part =
+        settings.get<std::string>(NewFileDialog::COVER_PART_SETTING, "blurb");
+    settings.set<std::string>(NewFileDialog::COVER_PART_SETTING, "blurb");
+
+    // Other materials have no kinds of the cover
+    NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
+    CHECK_FALSE(dialog.coverGroup()->isVisibleTo(&dialog));
+    CHECK(dialog.coverPart().isEmpty());
+
+    // A description, written on its card: no file and no address, named after its kind
+    choose(dialog, QStringLiteral("Cover"));
+    REQUIRE(dialog.kind());
+    CHECK(dialog.kind().kind->id == QStringLiteral("cover"));
+    CHECK(dialog.coverGroup()->isVisibleTo(&dialog));
+    CHECK(dialog.coverButtons()->buttons().size() == 6);
+    CHECK(dialog.coverPart() == QStringLiteral("blurb"));
+    CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::None);
+    CHECK(dialog.titleEdit()->text() == QStringLiteral("Description 1"));
+    CHECK(dialog.placeNote()->text().endsWith(
+        QStringLiteral("On the cover: back – you change it on the card.")));
+
+    // A design comes from a file and goes on the whole cover; a note goes nowhere on it
+    dialog.setCoverPart(QStringLiteral("design"));
+    CHECK(dialog.coverPart() == QStringLiteral("design"));
+    CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::File);
+    CHECK(dialog.titleEdit()->text() == QStringLiteral("Design 1"));
+    CHECK(dialog.placeNote()->text().endsWith(
+        QStringLiteral("On the cover: whole cover – you change it on the card.")));
+    dialog.setCoverPart(QStringLiteral("note"));
+    CHECK(dialog.materialOrigin() == NewFileDialog::MaterialOrigin::None);
+    CHECK_FALSE(dialog.placeNote()->text().contains(QStringLiteral("On the cover")));
+
+    // A click on a kind chooses it, as a radio button
+    QAbstractButton* opinion = dialog.coverButtons()->button(2);
+    REQUIRE(opinion != nullptr);
+    CHECK(dialog.coverButtons()->exclusive());
+    opinion->click();
+    CHECK(dialog.coverPart() == QStringLiteral("opinion"));
+    CHECK(dialog.titleEdit()->text() == QStringLiteral("Opinion 1"));
+
+    // A title typed stays; Add remembers the kind, not the source
+    dialog.titleEdit()->setText(QStringLiteral("Anna"));
+    emit dialog.titleEdit()->textEdited(QStringLiteral("Anna"));
+    dialog.setCoverPart(QStringLiteral("blurb"));
+    CHECK(dialog.titleEdit()->text() == QStringLiteral("Anna"));
+    dialog.accept();
+    CHECK(settings.get<std::string>(NewFileDialog::COVER_PART_SETTING, "") == "blurb");
+    CHECK(settings.get<std::string>(NewFileDialog::SOURCE_SETTING, "") == "file");
+
+    // The window opened for a kind starts with it, else with the one chosen last
+    gui::AddTarget target = addingOn(gui::AddTarget::Scope::Workshop);
+    target.kind = types.findKind(QStringLiteral("kalahari.base"), QStringLiteral("cover"));
+    target.coverPart = QStringLiteral("opinion");
+    NewFileDialog asked(withoutChoice(target), types);
+    CHECK(asked.coverPart() == QStringLiteral("opinion"));
+    target.coverPart.clear();
+    NewFileDialog last(withoutChoice(target), types);
+    CHECK(last.coverPart() == QStringLiteral("blurb"));
+    settings.set<std::string>(NewFileDialog::COVER_PART_SETTING, part);
 }

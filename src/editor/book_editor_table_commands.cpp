@@ -947,7 +947,7 @@ void BookEditor::setColumnEdge(QTextTable& table, int column, qreal x)
     std::vector<qreal> edges = layout->tableColumnEdges(table);
     const qreal narrowest = std::max<qreal>(1.0, MIN_COLUMN_WIDTH * layout->pixelsPerPoint());
     const qreal left = edges[static_cast<size_t>(column - 1)] + narrowest;
-    const qreal right = edges[static_cast<size_t>(column + 1)] - narrowest;
+    const qreal right = edges[static_cast<size_t>(column) + 1] - narrowest;
     if (left > right) {
         return;
     }

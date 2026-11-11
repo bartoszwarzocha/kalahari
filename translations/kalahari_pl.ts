@@ -4750,6 +4750,336 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::CoverNames</name>
+    <message>
+        <source>Cover description</source>
+        <extracomment>What a material of the cover is: the text on the back or on a flap. In Polish: Opis na okładkę</extracomment>
+        <translation>Opis na okładkę</translation>
+    </message>
+    <message>
+        <source>Tagline</source>
+        <extracomment>A short sentence on the front of the cover. In Polish: Hasło</extracomment>
+        <translation>Hasło</translation>
+    </message>
+    <message>
+        <source>Opinion or recommendation</source>
+        <extracomment>Words of a critic, a writer or a magazine about the book. In Polish: Opinia lub rekomendacja</extracomment>
+        <translation>Opinia lub rekomendacja</translation>
+    </message>
+    <message>
+        <source>Cover design or sketch</source>
+        <extracomment>A design of the cover by a designer, or the writer&apos;s own sketch. In Polish: Projekt lub szkic okładki</extracomment>
+        <translation>Projekt lub szkic okładki</translation>
+    </message>
+    <message>
+        <source>Reference picture</source>
+        <extracomment>A picture that shows a mood, colors or a typeface for the cover. In Polish: Ilustracja referencyjna</extracomment>
+        <translation>Ilustracja referencyjna</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>Ideas and remarks about the cover. In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Cover descriptions</source>
+        <extracomment>A group of the list of the cover. In Polish: Opisy na okładkę</extracomment>
+        <translation>Opisy na okładkę</translation>
+    </message>
+    <message>
+        <source>Taglines</source>
+        <extracomment>A group of the list of the cover. In Polish: Hasła</extracomment>
+        <translation>Hasła</translation>
+    </message>
+    <message>
+        <source>Opinions and recommendations</source>
+        <extracomment>A group of the list of the cover. In Polish: Opinie i rekomendacje</extracomment>
+        <translation>Opinie i rekomendacje</translation>
+    </message>
+    <message>
+        <source>Designs and sketches</source>
+        <extracomment>A group of the list of the cover. In Polish: Projekty i szkice</extracomment>
+        <translation>Projekty i szkice</translation>
+    </message>
+    <message>
+        <source>Reference pictures</source>
+        <extracomment>A group of the list of the cover. In Polish: Ilustracje referencyjne</extracomment>
+        <translation>Ilustracje referencyjne</translation>
+    </message>
+    <message>
+        <source>Notes</source>
+        <extracomment>A group of the list of the cover. In Polish: Notatki</extracomment>
+        <translation>Notatki</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <extracomment>A group of the list of the cover: materials without a kind the program knows. In Polish: Inne</extracomment>
+        <translation>Inne</translation>
+    </message>
+    <message>
+        <source>Description %1</source>
+        <extracomment>The title of a new description for the cover; %1 its number. In Polish: Opis %1</extracomment>
+        <translation>Opis %1</translation>
+    </message>
+    <message>
+        <source>Tagline %1</source>
+        <extracomment>The title of a new tagline; %1 its number. In Polish: Hasło %1</extracomment>
+        <translation>Hasło %1</translation>
+    </message>
+    <message>
+        <source>Opinion %1</source>
+        <extracomment>The title of a new opinion; %1 its number. In Polish: Opinia %1</extracomment>
+        <translation>Opinia %1</translation>
+    </message>
+    <message>
+        <source>Design %1</source>
+        <extracomment>The title of a new design of the cover; %1 its number. In Polish: Projekt %1</extracomment>
+        <translation>Projekt %1</translation>
+    </message>
+    <message>
+        <source>Illustration %1</source>
+        <extracomment>The title of a new reference picture; %1 its number. In Polish: Ilustracja %1</extracomment>
+        <translation>Ilustracja %1</translation>
+    </message>
+    <message>
+        <source>Note %1</source>
+        <extracomment>The title of a new note about the cover; %1 its number. In Polish: Notatka %1</extracomment>
+        <translation>Notatka %1</translation>
+    </message>
+    <message>
+        <source>Front</source>
+        <extracomment>A place on the cover. In Polish: Przód</extracomment>
+        <translation>Przód</translation>
+    </message>
+    <message>
+        <source>Spine</source>
+        <extracomment>A place on the cover. In Polish: Grzbiet</extracomment>
+        <translation>Grzbiet</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <extracomment>A place on the cover. In Polish: Tył</extracomment>
+        <translation>Tył</translation>
+    </message>
+    <message>
+        <source>Front flap</source>
+        <extracomment>A place on the cover. In Polish: Skrzydełko przednie</extracomment>
+        <translation>Skrzydełko przednie</translation>
+    </message>
+    <message>
+        <source>Back flap</source>
+        <extracomment>A place on the cover. In Polish: Skrzydełko tylne</extracomment>
+        <translation>Skrzydełko tylne</translation>
+    </message>
+    <message>
+        <source>Whole cover</source>
+        <extracomment>The place of a design: the whole cover. In Polish: Cała okładka</extracomment>
+        <translation>Cała okładka</translation>
+    </message>
+    <message>
+        <source>Not set</source>
+        <extracomment>A material without a place on the cover yet. In Polish: Nie ustalono</extracomment>
+        <translation>Nie ustalono</translation>
+    </message>
+    <message>
+        <source>chosen for the cover</source>
+        <extracomment>The state of a material of the cover. In Polish: wybrany na okładkę</extracomment>
+        <translation>wybrany na okładkę</translation>
+    </message>
+    <message>
+        <source>rejected</source>
+        <extracomment>The state of a material of the cover. In Polish: odrzucony</extracomment>
+        <translation>odrzucony</translation>
+    </message>
+    <message>
+        <source>draft</source>
+        <extracomment>The state of a material of the cover, at first. In Polish: roboczy</extracomment>
+        <translation>roboczy</translation>
+    </message>
+    <message>
+        <source>★ chosen</source>
+        <extracomment>The state of a material of the cover in a list. In Polish: ★ wybrany</extracomment>
+        <translation>★ wybrany</translation>
+    </message>
+    <message>
+        <source>granted</source>
+        <extracomment>The consent to print an opinion on the cover. In Polish: jest zgoda</extracomment>
+        <translation>jest zgoda</translation>
+    </message>
+    <message>
+        <source>asked for</source>
+        <extracomment>The consent to print an opinion: asked for, no answer yet. In Polish: poproszono o zgodę</extracomment>
+        <translation>poproszono o zgodę</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <extracomment>No consent to print an opinion. In Polish: brak zgody</extracomment>
+        <translation>brak zgody</translation>
+    </message>
+    <message>
+        <source>not said</source>
+        <extracomment>The consent to print an opinion, not said. In Polish: nie ustalono</extracomment>
+        <translation>nie ustalono</translation>
+    </message>
+    <message>
+        <source>given</source>
+        <extracomment>The consent to print an opinion in the list of the cover. In Polish: jest</extracomment>
+        <translation>jest</translation>
+    </message>
+    <message>
+        <source>waiting</source>
+        <extracomment>The consent to print an opinion in the list of the cover: asked for, no answer yet. In Polish: czeka</extracomment>
+        <translation>czeka</translation>
+    </message>
+    <message>
+        <source>missing</source>
+        <extracomment>No consent to print an opinion, in the list of the cover. In Polish: brak</extracomment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>%1 w.</source>
+        <extracomment>The length of a text of the cover in a list: %1 its words. In Polish: %1 sł.</extracomment>
+        <translation>%1 sł.</translation>
+    </message>
+    <message>
+        <source>%1 ch.</source>
+        <extracomment>The length of a text of the cover in a list: %1 its characters with spaces. In Polish: %1 zn.</extracomment>
+        <translation>%1 zn.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n characters with spaces</source>
+        <extracomment>The counts of a text of the cover: %1 the characters with spaces, %2 the words. In Polish: %1 znaków ze spacjami · %2 słów (with the plural forms of the numbers)</extracomment>
+        <translation>
+            <numerusform>%n znak ze spacjami</numerusform>
+            <numerusform>%n znaki ze spacjami</numerusform>
+            <numerusform>%n znaków ze spacjami</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n words</source>
+        <translation>
+            <numerusform>%n słowo</numerusform>
+            <numerusform>%n słowa</numerusform>
+            <numerusform>%n słów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>target: up to %n words</source>
+        <extracomment>The target length of a text of the cover. In Polish: cel: do %n słów</extracomment>
+        <translation>
+            <numerusform>cel: do %n słowa</numerusform>
+            <numerusform>cel: do %n słów</numerusform>
+            <numerusform>cel: do %n słów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>target: up to %n characters</source>
+        <extracomment>The target length of a text of the cover. In Polish: cel: do %n znaków</extracomment>
+        <translation>
+            <numerusform>cel: do %n znaku</numerusform>
+            <numerusform>cel: do %n znaków</numerusform>
+            <numerusform>cel: do %n znaków</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n words too many</source>
+        <extracomment>A text of the cover past its target. In Polish: o %n słów za dużo</extracomment>
+        <translation>
+            <numerusform>o %n słowo za dużo</numerusform>
+            <numerusform>o %n słowa za dużo</numerusform>
+            <numerusform>o %n słów za dużo</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n characters too many</source>
+        <extracomment>A text of the cover past its target. In Polish: o %n znaków za dużo</extracomment>
+        <translation>
+            <numerusform>o %n znak za dużo</numerusform>
+            <numerusform>o %n znaki za dużo</numerusform>
+            <numerusform>o %n znaków za dużo</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Chosen for the cover: “%1”</source>
+        <extracomment>The status bar: a material is chosen for the cover; %1 its title. In Polish: Wybrano na okładkę: „%1”</extracomment>
+        <translation>Wybrano na okładkę: „%1”</translation>
+    </message>
+    <message>
+        <source>Rejected: “%1”</source>
+        <extracomment>The status bar: a material of the cover is rejected; %1 its title. In Polish: Odrzucono: „%1”</extracomment>
+        <translation>Odrzucono: „%1”</translation>
+    </message>
+    <message>
+        <source>“%1” is a draft again</source>
+        <extracomment>The status bar: a material of the cover is a draft again; %1 its title. In Polish: „%1” jest znów roboczy
+----------
+The status bar, after a material is chosen for the cover: the one chosen before for its place is a draft again; %1 its title. In Polish: „%1” wraca do roboczych</extracomment>
+        <translation>„%1” jest znów roboczy</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>The unit of a target length, after its number. In Polish: słów / znaków</extracomment>
+        <translation>słów</translation>
+    </message>
+    <message>
+        <source>characters</source>
+        <translation>znaków</translation>
+    </message>
+    <message>
+        <source>“%1”</source>
+        <extracomment>An opinion as the cover prints it: %1 its words. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <extracomment>An opinion with its author: %1 the opinion in quotes, %2 the author and who the author is. In Polish: %1 – %2</extracomment>
+        <translation>%1 – %2</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CoverPlan</name>
+    <message>
+        <source>empty</source>
+        <extracomment>An empty place on the plan of the cover. In Polish: pusto</extracomment>
+        <translation>pusto</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <extracomment>What a card on the plan of the cover is, with its author: %1 the kind, %2 the author. In Polish: %1 – %2</extracomment>
+        <translation>%1 – %2</translation>
+    </message>
+    <message>
+        <source>Flaps</source>
+        <extracomment>Shows the flaps of the cover on its plan. In Polish: Skrzydełka</extracomment>
+        <translation>Skrzydełka</translation>
+    </message>
+    <message>
+        <source>Show rejected</source>
+        <extracomment>Shows the materials rejected on the plan of the cover. In Polish: Pokaż odrzucone</extracomment>
+        <translation>Pokaż odrzucone</translation>
+    </message>
+    <message>
+        <source>Designs:</source>
+        <extracomment>The designs of the cover above its plan, one of them behind it. In Polish: Projekty:</extracomment>
+        <translation>Projekty:</translation>
+    </message>
+    <message>
+        <source>The field &quot;Place on the cover&quot; in the Properties or on the card of a material changes the place. Reference pictures and notes do not go on the cover, so the plan does not show them.</source>
+        <extracomment>Under the plan of the cover. In Polish: Miejsce zmienia pole „Miejsce na okładce” we Właściwościach albo na karcie materiału. Ilustracje referencyjne i notatki nie trafiają na okładkę, więc nie ma ich na planie.</extracomment>
+        <translation>Miejsce zmienia pole „Miejsce na okładce” we Właściwościach albo na karcie materiału. Ilustracje referencyjne i notatki nie trafiają na okładkę, więc nie ma ich na planie.</translation>
+    </message>
+    <message>
+        <source>Show this design behind the plan of the cover (Enter opens its card)</source>
+        <extracomment>The button of a design above the plan of the cover. In Polish: Pokaż ten projekt za planem okładki (Enter otwiera jego kartę)</extracomment>
+        <translation>Pokaż ten projekt za planem okładki (Enter otwiera jego kartę)</translation>
+    </message>
+    <message>
+        <source>Without a place on the cover · %1</source>
+        <extracomment>The materials of the cover without a place, under its plan: %1 their number. In Polish: Bez miejsca na okładce · %1</extracomment>
+        <translation>Bez miejsca na okładce · %1</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::DashboardPage</name>
     <message>
         <source>Dashboard Content</source>
@@ -8745,6 +9075,65 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>In Polish: Typ kliknięty w Nawigatorze:</extracomment>
         <translation>Typ kliknięty w Nawigatorze:</translation>
     </message>
+    <message>
+        <source>Material Kinds in the Navigator</source>
+        <extracomment>The group of Settings &gt; Navigator that hides kinds of materials. In Polish: Typy materiałów w Nawigatorze</extracomment>
+        <translation>Typy materiałów w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>A kind unchecked leaves the Navigator in every book. Its materials stay in the book and in All Materials; checked again, the kind comes back. &quot;Hide Kind&quot; in the menu of a kind in the Navigator does the same. The numbers are those of the open book.</source>
+        <extracomment>In Polish: Odznaczony typ znika z Nawigatora we wszystkich książkach. Jego materiały zostają w książce i są we „Wszystkich materiałach”; po zaznaczeniu typ wraca. To samo robi polecenie „Ukryj typ” w menu typu w Nawigatorze. Liczby dotyczą otwartej książki.</extracomment>
+        <translation>Odznaczony typ znika z Nawigatora we wszystkich książkach. Jego materiały zostają w książce i są we „Wszystkich materiałach”; po zaznaczeniu typ wraca. To samo robi polecenie „Ukryj typ” w menu typu w Nawigatorze. Liczby dotyczą otwartej książki.</translation>
+    </message>
+    <message>
+        <source>&amp;Show:</source>
+        <extracomment>In Polish: &amp;Pokazuj:</extracomment>
+        <translation>&amp;Pokazuj:</translation>
+    </message>
+    <message>
+        <source>Cover</source>
+        <extracomment>The group of Settings &gt; Navigator of the materials of the cover. In Polish: Okładka</extracomment>
+        <translation>Okładka</translation>
+    </message>
+    <message>
+        <source>characters with spaces</source>
+        <extracomment>The unit of the lengths of the texts of the cover. In Polish: znakach ze spacjami</extracomment>
+        <translation>znakach ze spacjami</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>In Polish: słowach</extracomment>
+        <translation>słowach</translation>
+    </message>
+    <message>
+        <source>&amp;Length counted in:</source>
+        <extracomment>In Polish: &amp;Długość liczona w:</extracomment>
+        <translation>&amp;Długość liczona w:</translation>
+    </message>
+    <message>
+        <source>Target length in words:</source>
+        <extracomment>In Polish: Docelowa długość w słowach:</extracomment>
+        <translation>Docelowa długość w słowach:</translation>
+    </message>
+    <message>
+        <source>Target length in characters with spaces:</source>
+        <extracomment>In Polish: Docelowa długość w znakach ze spacjami:</extracomment>
+        <translation>Docelowa długość w znakach ze spacjami:</translation>
+    </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>The accessible name of a target: %1 the kind of text, %2 the unit. In Polish: %1, %2</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>Each material can have its own target length on its card. Publishers usually count characters with spaces.</source>
+        <extracomment>In Polish: Każdy materiał może mieć własną docelową długość na swojej karcie. Wydawnictwa podają zwykle znaki ze spacjami.</extracomment>
+        <translation>Każdy materiał może mieć własną docelową długość na swojej karcie. Wydawnictwa podają zwykle znaki ze spacjami.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -9034,6 +9423,16 @@ Szczegóły są w dzienniku programu.</translation>
         <source>&amp;Open List</source>
         <extracomment>Shows the list of the materials of a kind on a tab in the middle of the window. In Polish: &amp;Otwórz listę</extracomment>
         <translation>&amp;Otwórz listę</translation>
+    </message>
+    <message>
+        <source>&amp;Hide Kind &quot;%1&quot;</source>
+        <extracomment>Hides a kind of materials in the Navigator of every book; its materials stay. %1: the name of the kind. In Polish: &amp;Ukryj typ „%1”</extracomment>
+        <translation>&amp;Ukryj typ „%1”</translation>
+    </message>
+    <message>
+        <source>Kind &amp;Settings...</source>
+        <extracomment>Opens Settings &gt; Navigator at the kinds of materials. In Polish: Ustawienia &amp;typów...</extracomment>
+        <translation>Ustawienia &amp;typów...</translation>
     </message>
 </context>
 <context>
@@ -15801,6 +16200,16 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <extracomment>In Polish: Po „Dodaj” program pobierze stronę z tego adresu tylko po to, żeby odczytać jej tytuł. Nic więcej nie wysyła ani nie zapisuje.</extracomment>
         <translation>Po „Dodaj” program pobierze stronę z tego adresu tylko po to, żeby odczytać jej tytuł. Nic więcej nie wysyła ani nie zapisuje.</translation>
     </message>
+    <message>
+        <source>Kind of Cover Material</source>
+        <extracomment>The parts of a new material of the cover, buttons that the arrows go through. In Polish: Rodzaj materiału okładki</extracomment>
+        <translation>Rodzaj materiału okładki</translation>
+    </message>
+    <message>
+        <source>On the cover: %1 – you change it on the card.</source>
+        <extracomment>Where a new material of the cover goes on the cover, after where it goes in the Workshop; %1 the place: back, front... In Polish: Na okładce: %1 – zmienisz to na karcie.</extracomment>
+        <translation>Na okładce: %1 – zmienisz to na karcie.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NewItemDialog</name>
@@ -18277,6 +18686,116 @@ Note: %2</source>
         <translation>%1
 Notatka: %2</translation>
     </message>
+    <message>
+        <source>Length against the target</source>
+        <extracomment>In Polish: Długość względem celu</extracomment>
+        <translation>Długość względem celu</translation>
+    </message>
+    <message>
+        <source>Target le&amp;ngth:</source>
+        <extracomment>The own target length of one text of the cover. In Polish: Docelowa dłu&amp;gość:</extracomment>
+        <translation>Docelowa dłu&amp;gość:</translation>
+    </message>
+    <message>
+        <source>Of this material only; the default of its kind is in Settings &gt; Navigator.</source>
+        <extracomment>In Polish: Dotyczy tylko tego materiału; domyślną długość rodzaju ustawisz w Ustawieniach &gt; Nawigator.</extracomment>
+        <translation>Dotyczy tylko tego materiału; domyślną długość rodzaju ustawisz w Ustawieniach &gt; Nawigator.</translation>
+    </message>
+    <message>
+        <source>Cover Data</source>
+        <extracomment>The data of a material of the cover: its kind, place and state, and of an opinion its author and source. In Polish: Dane okładki</extracomment>
+        <translation>Dane okładki</translation>
+    </message>
+    <message>
+        <source>&amp;Kind:</source>
+        <extracomment>The kind of a material of the cover: a description, a tagline... In Polish: &amp;Rodzaj:</extracomment>
+        <translation>&amp;Rodzaj:</translation>
+    </message>
+    <message>
+        <source>&amp;Place on the cover:</source>
+        <extracomment>Where a material goes on the cover. In Polish: &amp;Miejsce na okładce:</extracomment>
+        <translation>&amp;Miejsce na okładce:</translation>
+    </message>
+    <message>
+        <source>S&amp;tate:</source>
+        <extracomment>Draft, chosen for the cover or rejected. In Polish: &amp;Stan:</extracomment>
+        <translation>&amp;Stan:</translation>
+    </message>
+    <message>
+        <source>&amp;Author:</source>
+        <extracomment>The author of an opinion or of a design. In Polish: &amp;Autor:</extracomment>
+        <translation>&amp;Autor:</translation>
+    </message>
+    <message>
+        <source>&amp;Who they are:</source>
+        <extracomment>Who the author of an opinion is: a critic, a writer. In Polish: &amp;Kim jest:</extracomment>
+        <translation>&amp;Kim jest:</translation>
+    </message>
+    <message>
+        <source>S&amp;ource:</source>
+        <extracomment>Where an opinion was printed or said. In Polish: Źródł&amp;o:</extracomment>
+        <translation>Źródł&amp;o:</translation>
+    </message>
+    <message>
+        <source>&amp;Date:</source>
+        <extracomment>In Polish: &amp;Data:</extracomment>
+        <translation>&amp;Data:</translation>
+    </message>
+    <message>
+        <source>&amp;Consent to print:</source>
+        <extracomment>Whether the author of an opinion lets it be printed on the cover. In Polish: &amp;Zgoda na druk:</extracomment>
+        <translation>&amp;Zgoda na druk:</translation>
+    </message>
+    <message>
+        <source>&amp;License:</source>
+        <extracomment>The license of a reference picture. In Polish: &amp;Licencja:</extracomment>
+        <translation>&amp;Licencja:</translation>
+    </message>
+    <message>
+        <source>A&amp;bout:</source>
+        <extracomment>What a reference picture shows for the cover: colors, a typeface. In Polish: Dot&amp;yczy:</extracomment>
+        <translation>Dot&amp;yczy:</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>The text of a material of the cover, written in the program. In Polish: Treść</extracomment>
+        <translation>Treść</translation>
+    </message>
+    <message>
+        <source>Text of the cover material</source>
+        <extracomment>In Polish: Treść materiału okładki</extracomment>
+        <translation>Treść materiału okładki</translation>
+    </message>
+    <message>
+        <source>Enter the text...</source>
+        <extracomment>In Polish: Wpisz treść...</extracomment>
+        <translation>Wpisz treść...</translation>
+    </message>
+    <message>
+        <source>&amp;Author or source:</source>
+        <extracomment>Who made a reference picture, or where it comes from. In Polish: &amp;Autor albo źródło:</extracomment>
+        <translation>&amp;Autor albo źródło:</translation>
+    </message>
+    <message>
+        <source>as in the settings (%1)</source>
+        <extracomment>The own target length of a text of the cover when it has none: the default of its kind; %1 its length. In Polish: jak w Ustawieniach (%1)</extracomment>
+        <translation>jak w Ustawieniach (%1)</translation>
+    </message>
+    <message>
+        <source>On the cover: %1</source>
+        <extracomment>How the cover prints an opinion, under its text; %1 the opinion in quotes with its author. In Polish: Na okładce: %1</extracomment>
+        <translation>Na okładce: %1</translation>
+    </message>
+    <message>
+        <source>Cover Data Not Saved</source>
+        <extracomment>In Polish: Nie zapisano danych okładki</extracomment>
+        <translation>Nie zapisano danych okładki</translation>
+    </message>
+    <message>
+        <source>State Not Saved</source>
+        <extracomment>In Polish: Nie zapisano stanu</extracomment>
+        <translation>Nie zapisano stanu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::MaterialList</name>
@@ -18630,6 +19149,126 @@ Notatka: %2</translation>
         <extracomment>%1: the path of the file. In Polish: Menedżer plików nie mógł pokazać tego miejsca: %1</extracomment>
         <translation>Menedżer plików nie mógł pokazać tego miejsca:
 %1</translation>
+    </message>
+    <message>
+        <source>%1 · consent: %2</source>
+        <extracomment>The state of an opinion with its consent to print in the list of the cover: %1 the state, %2 the consent. In Polish: %1 · zgoda: %2</extracomment>
+        <translation>%1 · zgoda: %2</translation>
+    </message>
+    <message>
+        <source>Text or title</source>
+        <extracomment>A column of the list of the cover: the text of a material, else its title. In Polish: Treść albo tytuł</extracomment>
+        <translation>Treść albo tytuł</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <extracomment>Who wrote an opinion, made a design or a picture. In Polish: Autor</extracomment>
+        <translation>Autor</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>Where a material goes on the cover. In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>State</source>
+        <extracomment>Chosen for the cover, a draft, rejected. In Polish: Stan</extracomment>
+        <translation>Stan</translation>
+    </message>
+    <message>
+        <source>Length</source>
+        <extracomment>The length of a text, the size of a picture. In Polish: Długość</extracomment>
+        <translation>Długość</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <extracomment>Where an opinion comes from. In Polish: Źródło</extracomment>
+        <translation>Źródło</translation>
+    </message>
+    <message>
+        <source>Date</source>
+        <extracomment>The date of an opinion or a design. In Polish: Data</extracomment>
+        <translation>Data</translation>
+    </message>
+    <message>
+        <source>License</source>
+        <extracomment>The license of a reference picture. In Polish: Licencja</extracomment>
+        <translation>Licencja</translation>
+    </message>
+    <message>
+        <source>The kind &quot;%1&quot; is hidden. Its materials stay in the book; you show it again in Settings &gt; Navigator.</source>
+        <extracomment>The status bar after a kind of material is hidden in the Navigator; %1 its name. In Polish: Ukryto typ „%1”. Jego materiały zostały w książce; przywrócisz go w Ustawieniach &gt; Nawigator</extracomment>
+        <translation>Ukryto typ „%1”. Jego materiały zostały w książce; przywrócisz go w Ustawieniach &gt; Nawigator.</translation>
+    </message>
+    <message>
+        <source>The kind &quot;%1&quot; is in the Navigator again.</source>
+        <extracomment>The status bar after a hidden kind of material is shown again; %1 its name. In Polish: Typ „%1” jest znów w Nawigatorze</extracomment>
+        <translation>Typ „%1” jest znów w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>State Not Saved</source>
+        <extracomment>In Polish: Nie zapisano stanu</extracomment>
+        <translation>Nie zapisano stanu</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The row that names a group of the list of the cover: %1 its name, %2 its number of materials. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>&amp;Kind:</source>
+        <extracomment>The filter of the list of the cover by what its materials are. In Polish: Rodzaj:</extracomment>
+        <translation>&amp;Rodzaj:</translation>
+    </message>
+    <message>
+        <source>Cover Plan</source>
+        <extracomment>Shows the plan of the cover with its materials in their places. In Polish: Plan okładki</extracomment>
+        <translation>Plan okładki</translation>
+    </message>
+    <message>
+        <source>Group by Kind</source>
+        <extracomment>Shows the materials of the cover in groups by what they are. In Polish: Grupuj według rodzaju</extracomment>
+        <translation>Grupuj według rodzaju</translation>
+    </message>
+    <message>
+        <source>Material Settings</source>
+        <extracomment>The gear of a list of materials: Settings &gt; Navigator. In Polish: Ustawienia materiałów</extracomment>
+        <translation>Ustawienia materiałów</translation>
+    </message>
+    <message>
+        <source>C&amp;hoose for the Cover</source>
+        <extracomment>Chooses a material for the cover; a description, a tagline or a design of the same place is no longer chosen. In Polish: &amp;Wybierz na okładkę</extracomment>
+        <translation>&amp;Wybierz na okładkę</translation>
+    </message>
+    <message>
+        <source>Re&amp;ject</source>
+        <extracomment>Rejects a material of the cover; it stays in the list. In Polish: O&amp;drzuć</extracomment>
+        <translation>O&amp;drzuć</translation>
+    </message>
+    <message>
+        <source>&amp;Back to Draft</source>
+        <extracomment>Makes a material of the cover chosen or rejected a draft again. In Polish: Przywróć jako &amp;roboczy</extracomment>
+        <translation>Przywróć jako &amp;roboczy</translation>
+    </message>
+    <message>
+        <source>%1 · in groups of kinds</source>
+        <extracomment>How the list of the cover is sorted in its groups; %1: the sorting. In Polish: %1 · w grupach rodzajów</extracomment>
+        <translation>%1 · w grupach rodzajów</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;The kind &quot;%1&quot; is hidden.&lt;/b&gt; Its materials (%2) stay in the book and in All Materials. The kind comes back when it is checked in the Settings or with the button below.</source>
+        <extracomment>The page of a kind of materials hidden in the Navigator: %1 its name, %2 the number of its materials. In Polish: &lt;b&gt;Typ „%1” jest ukryty.&lt;/b&gt; Jego materiały (%2) zostają w książce i są we „Wszystkich materiałach”. Typ wraca po zaznaczeniu go w Ustawieniach albo przyciskiem poniżej.</extracomment>
+        <translation>&lt;b&gt;Typ „%1” jest ukryty.&lt;/b&gt; Jego materiały (%2) zostają w książce i są we „Wszystkich materiałach”. Typ wraca po zaznaczeniu go w Ustawieniach albo przyciskiem poniżej.</translation>
+    </message>
+    <message>
+        <source>Show Kind &quot;%1&quot;</source>
+        <extracomment>Shows a kind of materials hidden in the Navigator again: %1 its name. In Polish: Pokaż typ „%1”</extracomment>
+        <translation>Pokaż typ „%1”</translation>
+    </message>
+    <message>
+        <source>all</source>
+        <extracomment>The filter Kind of the list of the cover that shows all of them. In Polish: wszystkie</extracomment>
+        <translation>wszystkie</translation>
     </message>
 </context>
 <context>

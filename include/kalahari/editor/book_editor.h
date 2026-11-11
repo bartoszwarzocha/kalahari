@@ -2413,11 +2413,16 @@ private:
     ///        annotation's mark and, with Ctrl, over a link; an arrow over the selected text
     void updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers modifiers);
 
-    /// @brief An edge between two columns of a table: the table and the column right of it
+    /// @brief An edge between two columns of a table: the table, by the position where it
+    ///        starts, and the column right of it
     struct ColumnEdge {
-        QPointer<QTextTable> table;
+        int tableStart = -1;
         int column = 0;
     };
+
+    /// @brief The table of the edge being dragged, found again by where it starts: nullptr
+    ///        without a drag, or once the text has no table starting there
+    QTextTable* columnDragTable() const;
 
     /// @brief The edge between two columns at a widget point, within a few pixels of it, in a
     ///        text that can change (dragging it sets the widths of the two columns)

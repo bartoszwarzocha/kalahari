@@ -543,7 +543,7 @@ TableProperties tablePropertiesOfKml(const QXmlStreamAttributes& attributes)
     const QString width = attributeValue(attributes, "width");
     if (!width.endsWith(QLatin1Char('%'))) {
         if (const std::optional<double> points = pointsOfKmlLength(width); points && *points > 0) {
-            properties.width = *points;
+            properties.width = points;
         }
     }
     const QString align = attributeValue(attributes, "align");
