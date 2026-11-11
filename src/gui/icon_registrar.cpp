@@ -360,6 +360,23 @@ void registerAllIcons() {
                               "Publication");
     iconRegistry.registerIcon("material.recording", "resources/icons/twotone/play_circle.svg",
                               "Recording");
+    // The materials of the cover: the kind, and what each material is
+    iconRegistry.registerIcon("material.cover", "resources/icons/twotone/book_cover.svg",
+                              "Cover");
+    iconRegistry.registerIcon("material.coverBlurb", "resources/icons/twotone/subject.svg",
+                              "Cover Description");
+    iconRegistry.registerIcon("material.coverTagline", "resources/icons/twotone/short_text.svg",
+                              "Tagline");
+    iconRegistry.registerIcon("material.coverOpinion", "resources/icons/twotone/rate_review.svg",
+                              "Opinion or Recommendation");
+    iconRegistry.registerIcon("material.coverDesign", "resources/icons/twotone/brush.svg",
+                              "Cover Design or Sketch");
+    iconRegistry.registerIcon("material.coverNote", "resources/icons/twotone/edit_note.svg",
+                              "Cover Note");
+    // Chosen for the cover, rejected
+    iconRegistry.registerIcon("cover.choose", "resources/icons/twotone/star.svg",
+                              "Choose for the Cover");
+    iconRegistry.registerIcon("cover.reject", "resources/icons/twotone/cancel.svg", "Reject");
     // A file opened in the program the system gives it
     iconRegistry.registerIcon("common.openExternal", "resources/icons/twotone/open_in_new.svg",
                               "Open in System Program");
@@ -438,6 +455,14 @@ void registerAllIcons() {
     iconRegistry.registerIcon("materials.tiles", "resources/icons/twotone/view_module.svg", "Tiles");
     iconRegistry.registerIcon("materials.columns", "resources/icons/twotone/view_quilt.svg",
                               "Columns");
+    // The list of the cover: its materials in groups by what they are, and the plan of the
+    // cover; a kind of materials shown again in the Navigator
+    iconRegistry.registerIcon("materials.groups", "resources/icons/twotone/view_agenda.svg",
+                              "Group by Kind");
+    iconRegistry.registerIcon("materials.coverPlan", "resources/icons/twotone/import_contacts.svg",
+                              "Cover Plan");
+    iconRegistry.registerIcon("materials.showKind", "resources/icons/twotone/visibility.svg",
+                              "Show the Kind");
 
     logger.debug("Registered {} icons with IconRegistry", 189);
 }

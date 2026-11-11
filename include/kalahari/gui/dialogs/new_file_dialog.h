@@ -18,6 +18,7 @@
 #include <QUrl>
 
 #include <functional>
+#include <optional>
 
 class QButtonGroup;
 class QCheckBox;
@@ -135,6 +136,9 @@ public:
         AddChooser chooser = AddChooser::None;
         /// With a choice, the part of the book (or the Workshop) the window starts at
         core::BookPlace start = core::BookPlace::Main;
+        /// A material of the cover: the part chosen at the start (core::CoverMaterial::BLURB...);
+        /// empty: the one chosen last (COVER_PART_SETTING)
+        QString coverPart;
     };
 
     /// @brief The kinds and the parts of the book open in core::ProjectManager; at the start
@@ -205,6 +209,17 @@ public:
     /// a file
     static constexpr const char* SOURCE_SETTING = "navigator.addMaterialSource";
 
+    /// @brief The setting of the part of a material of the cover chosen last
+    /// (core::CoverMaterial::BLURB...); a description at first
+    static constexpr const char* COVER_PART_SETTING = "navigator.addCoverPart";
+
+    /// @brief The part of a new material of the cover (core::CoverMaterial::BLURB...); empty
+    /// for other elements
+    QString coverPart() const;
+
+    /// @brief Choose part @p part of a new material of the cover
+    void setCoverPart(const QString& part);
+
     /// @brief The source of a new material; File for other elements
     MaterialOrigin materialOrigin() const;
 
@@ -254,6 +269,14 @@ public:
 
     /// @brief The buttons of the source of a new material, with the ids of MaterialOrigin
     QButtonGroup* sourceButtons() const { return m_sourceButtons; }
+
+    /// @brief The parts of a new material of the cover, with their buttons; hidden for other
+    /// tiles
+    QGroupBox* coverGroup() const { return m_coverGroup; }
+
+    /// @brief The buttons of the parts of a new material of the cover, with the ids of their
+    /// indexes in core::CoverMaterial::parts()
+    QButtonGroup* coverButtons() const { return m_coverButtons; }
 
     /// @brief The path of the file of a new material
     QLineEdit* fileEdit() const { return m_fileEdit; }
@@ -356,6 +379,20 @@ private:
 
     /// @brief The source of a new material: its buttons, and the path, the address or a note
     QGroupBox* createSourceGroup(QWidget* parent);
+    /// @brief The parts of a new material of the cover: a button for each, which the arrows
+    /// go through
+    QGroupBox* createCoverGroup(QWidget* parent);
+    /// @brief Whether a new element of @p entry is a material of the cover
+    static bool isCover(const NewFileKind* entry);
+    /// @brief The source a new material of the chosen tile starts with: of its kind, of the part
+    /// of a material of the cover; none for a kind without a source of its own
+    std::optional<MaterialOrigin> originOfChosen() const;
+    /// @brief A new part of a material of the cover: its source unless the program gave it or
+    /// the writer chose it, its title unless the writer changed it, and where it goes
+    void onCoverPartChanged();
+    /// @brief Where a new element of @p entry goes, in place of the list of places: of a
+    /// material of the cover also its place on the cover
+    QString placeNoteOf(const NewFileKind& entry) const;
 
     /// @brief The place of the new element
     QWidget* createPlaceGroup(QWidget* parent);
@@ -480,6 +517,10 @@ private:
     QComboBox* m_statusBox = nullptr;
 
     // The source of a new material
+    // The part of a new material of the cover
+    QGroupBox* m_coverGroup = nullptr;
+    QButtonGroup* m_coverButtons = nullptr;
+    QString m_coverPart;  ///< The part chosen
     QGroupBox* m_sourceGroup = nullptr;
     QButtonGroup* m_sourceButtons = nullptr;
     QStackedWidget* m_sourcePages = nullptr;  ///< The path, the address or the note of none

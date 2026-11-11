@@ -9,6 +9,7 @@
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_file.h"
@@ -17,6 +18,7 @@
 #include "kalahari/gui/section_words.h"
 #include "kalahari/gui/utils/layout_utils.h"
 #include "kalahari/gui/utils/program_folders.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 
 #include <QAbstractItemView>
 #include <QButtonGroup>
@@ -671,6 +673,7 @@ NewFileDialog::Book NewFileDialog::forAdding(const AddTarget& target, AddChooser
     Book book;
     book.adding = true;
     book.chooser = chooser;
+    book.coverPart = target.coverPart;
     const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
@@ -802,6 +805,7 @@ NewFileDialog::Book NewFileDialog::forPlace(const AddTarget& target)
 {
     Book book;
     book.adding = true;
+    book.coverPart = target.coverPart;
     const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
@@ -965,6 +969,7 @@ NewFileDialog::NewFileDialog(const Book& book, const core::BookTypeRegistry& reg
     // The tiles and the place share the room the window has above their minimum, 3 to 2; the
     // source of a new material is chosen before its title, which follows it
     choices->addWidget(createKindsGroup(content), 3);
+    choices->addWidget(createCoverGroup(content));
     choices->addWidget(createSourceGroup(content));
     choices->addLayout(createTitleRow(content));
     choices->addWidget(createPlaceGroup(content), 2);
@@ -1240,9 +1245,14 @@ void NewFileDialog::done(int result)
     // material starts with next time, unless the program gave it (a file dropped on the
     // Navigator)
     if (result == QDialog::Accepted && isMaterial(chosen()) && !m_sourceGiven &&
-        !originOfKind(chosen()->kind)) {
+        !originOfChosen()) {
         core::SettingsManager::getInstance().set<std::string>(
             SOURCE_SETTING, SOURCE_NAMES.at(static_cast<std::size_t>(materialOrigin())));
+    }
+    // The part of a material of the cover is the one the window starts with next time
+    if (result == QDialog::Accepted && isCover(chosen())) {
+        core::SettingsManager::getInstance().set<std::string>(COVER_PART_SETTING,
+                                                              m_coverPart.toStdString());
     }
     KalahariDialog::done(result);
 }
@@ -1438,6 +1448,119 @@ QWidget* NewFileDialog::createDescriptionPanel(QWidget* parent)
     layout->addLayout(grid);
     layout->addStretch(1);
     return panel;
+}
+
+QGroupBox* NewFileDialog::createCoverGroup(QWidget* parent)
+{
+    //: The parts of a new material of the cover, buttons that the arrows go through. In
+    //: Polish: Rodzaj materiału okładki
+    m_coverGroup = new QGroupBox(tr("Kind of Cover Material"), parent);
+    // The group takes the layout when its buttons are in it
+    auto* layout = new FlowLayout(nullptr, 6, 6);
+    m_coverButtons = new QButtonGroup(m_coverGroup);
+    const QStringList& parts = core::CoverMaterial::parts();
+    for (qsizetype index = 0; index < parts.size(); ++index) {
+        auto* button = new QToolButton(m_coverGroup);
+        button->setCheckable(true);
+        button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+        button->setText(CoverNames::partName(parts.at(index)));
+        button->setProperty("iconId", CoverNames::partIconId(parts.at(index)));
+        button->setIcon(core::ArtProvider::getInstance().getIcon(
+            CoverNames::partIconId(parts.at(index)), core::IconContext::Menu));
+        m_coverButtons->addButton(button, static_cast<int>(index));
+        layout->addWidget(button);
+    }
+    m_coverGroup->setLayout(layout);
+
+    // The part asked for, else the one chosen last, else a description
+    QString start = m_book.coverPart;
+    if (!parts.contains(start)) {
+        start = QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
+            COVER_PART_SETTING, core::CoverMaterial::BLURB));
+    }
+    if (!parts.contains(start)) {
+        start = QString::fromLatin1(core::CoverMaterial::BLURB);
+    }
+    m_coverPart = start;
+    m_coverButtons->button(static_cast<int>(parts.indexOf(start)))->setChecked(true);
+    connect(m_coverButtons, &QButtonGroup::idToggled, this, [this](int index, bool checked) {
+        if (checked) {
+            m_coverPart = core::CoverMaterial::parts().value(index);
+            onCoverPartChanged();
+        }
+    });
+    // New icon colors or sizes redraw the icons
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
+            m_coverGroup, [this]() {
+                for (QAbstractButton* button : m_coverButtons->buttons()) {
+                    button->setIcon(core::ArtProvider::getInstance().getIcon(
+                        button->property("iconId").toString(), core::IconContext::Menu));
+                }
+            });
+    m_coverGroup->hide();
+    return m_coverGroup;
+}
+
+bool NewFileDialog::isCover(const NewFileKind* entry)
+{
+    return entry != nullptr && CoverNames::isCoverKind(entry->kind);
+}
+
+std::optional<NewFileDialog::MaterialOrigin> NewFileDialog::originOfChosen() const
+{
+    const NewFileKind* entry = chosen();
+    if (isCover(entry)) {
+        // A picture comes from a file; a text is written on the card
+        return core::CoverMaterial::isPicture(m_coverPart) ? MaterialOrigin::File
+                                                           : MaterialOrigin::None;
+    }
+    return originOfKind(entry != nullptr ? entry->kind : core::KindRef{});
+}
+
+QString NewFileDialog::coverPart() const
+{
+    return isCover(chosen()) ? m_coverPart : QString();
+}
+
+void NewFileDialog::setCoverPart(const QString& part)
+{
+    const qsizetype index = core::CoverMaterial::parts().indexOf(part);
+    if (index >= 0) {
+        m_coverButtons->button(static_cast<int>(index))->setChecked(true);
+    }
+}
+
+void NewFileDialog::onCoverPartChanged()
+{
+    const NewFileKind* entry = chosen();
+    if (!isCover(entry)) {
+        return;
+    }
+    if (!m_sourceGiven && !m_sourceChosen) {
+        if (const std::optional<MaterialOrigin> origin = originOfChosen()) {
+            m_sourceButtons->button(static_cast<int>(*origin))->setChecked(true);
+        }
+    }
+    if (!m_titleChanged) {
+        m_titleEdit->setText(sourceTitle());
+    }
+    showSource();
+    m_placeNote->setText(placeNoteOf(*entry));
+}
+
+QString NewFileDialog::placeNoteOf(const NewFileKind& entry) const
+{
+    QString note = entry.placeNote;
+    if (isCover(&entry) && core::CoverMaterial::goesOnCover(m_coverPart)) {
+        //: Where a new material of the cover goes on the cover, after where it goes in the
+        //: Workshop; %1 the place: back, front... In Polish: Na okładce: %1 – zmienisz to na
+        //: karcie.
+        note += QLatin1Char(' ') +
+                tr("On the cover: %1 – you change it on the card.")
+                    .arg(CoverNames::placeName(core::CoverMaterial::defaultPlaceOf(m_coverPart))
+                             .toLower());
+    }
+    return note;
 }
 
 QWidget* NewFileDialog::createKindsGroup(QWidget* parent)
@@ -1854,6 +1977,7 @@ void NewFileDialog::onKindChanged()
     m_statusLabel->setVisible(status);
     m_statusBox->setVisible(status);
     m_sourceGroup->setVisible(isMaterial(entry));
+    m_coverGroup->setVisible(isCover(entry));
     const bool group = entry && entry->kind.kind->form == core::ElementForm::Group;
     if (!group) {
         m_takeBox->hide();
@@ -1886,7 +2010,7 @@ void NewFileDialog::onKindChanged()
     // neither a file nor an address, a picture or a document with its file; unless the program
     // gave the source or the writer chose one
     if (isMaterial(entry) && !m_sourceGiven && !m_sourceChosen) {
-        const std::optional<MaterialOrigin> origin = originOfKind(entry->kind);
+        const std::optional<MaterialOrigin> origin = originOfChosen();
         m_sourceButtons->button(static_cast<int>(origin ? *origin : rememberedOrigin()))
             ->setChecked(true);
     }
@@ -1899,7 +2023,7 @@ void NewFileDialog::onKindChanged()
         showSource();
     }
     if (noted) {
-        m_placeNote->setText(entry->placeNote);
+        m_placeNote->setText(placeNoteOf(*entry));
     } else if (group) {
         showGroup(*entry);
     } else {
@@ -2248,16 +2372,17 @@ QString NewFileDialog::sourceTitle() const
         if (const QString file = typedFile(); !file.isEmpty()) {
             return QFileInfo(file).completeBaseName();
         }
-        return {};
+        break;
     case MaterialOrigin::Address:
         if (const QUrl url = webAddress(m_addressEdit->text()); !url.isEmpty()) {
             return titleOfAddress(url);
         }
-        return {};
+        break;
     case MaterialOrigin::None:
         break;
     }
-    return {};
+    // A material of the cover without them is named after its part: "Opinion 4"
+    return isCover(chosen()) ? CoverNames::newTitle(m_coverPart) : QString();
 }
 
 QString NewFileDialog::typedFile() const

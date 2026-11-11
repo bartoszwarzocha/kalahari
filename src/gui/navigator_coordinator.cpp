@@ -1126,6 +1126,11 @@ bool NavigatorCoordinator::addWithWindow(
         }
         newMaterial.url = dialog.materialAddress().toString();
         newMaterial.links = dialog.materialLinks();
+        // A material of the cover: its part, at the place of its part on the cover
+        if (const QString part = dialog.coverPart(); !part.isEmpty()) {
+            newMaterial.cover.part = part;
+            newMaterial.cover.place = core::CoverMaterial::defaultPlaceOf(part);
+        }
         elementId = pm.addMaterial(newMaterial, kind);
     } else {
         elementId = pm.addElement(kind, title, at.place, at.groupId, at.index,

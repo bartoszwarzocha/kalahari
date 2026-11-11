@@ -22,21 +22,35 @@
 ///
 /// Whether a link of a material may name a paragraph of a chapter, marked with a paperclip in
 /// the editor (core::LinkRoles::PARAGRAPHS_SETTING). The paperclips follow the setting at once.
+///
+/// The kinds of materials the Navigator shows in every book (MaterialList::HIDDEN_SETTING),
+/// with the numbers of materials of the open book; the materials of a kind hidden stay in the
+/// book. How the texts of the cover are counted, in characters with spaces or in words, and
+/// the target lengths of a description, a tagline and an opinion in each unit
+/// (core::CoverMaterial). The Navigator, the lists and the cards follow them at once.
 
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/core/art_provider.h"
+#include "kalahari/core/cover_material.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/settings_manager.h"
 
 #include <QCheckBox>
 #include <QFormLayout>
+#include <QGridLayout>
 #include <QLabel>
 #include <QRadioButton>
 #include <QSpacerItem>
+#include <QSpinBox>
+#include <QStackedWidget>
 #include <QVBoxLayout>
 
 #include <nlohmann/json.hpp>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace gui {
@@ -70,6 +84,13 @@ constexpr const char* SYSTEM = "system";
 
 /// The values of NavigatorPanel::OPEN_PAGES_SETTING ("card" as above)
 constexpr const char* BROWSER = "browser";
+
+/// The values of core::CoverMaterial::UNIT_SETTING
+constexpr const char* CHARACTERS = "characters";
+constexpr const char* WORDS = "words";
+
+/// The longest target of a text of the cover, in characters or in words
+constexpr int MAXIMUM_TARGET = 100000;
 
 /// The values of NavigatorPanel::QUICK_MATERIALS_SETTING
 constexpr const char* LINK = "link";
@@ -428,6 +449,163 @@ NavigatorPage::NavigatorPage(QWidget* parent)
                           "is about, and the editor marks that paragraph with a paperclip in "
                           "the margin. Turned off, the paragraphs and the paperclips are hidden; "
                           "the paragraphs named are kept."));
+
+    // The kinds of materials the Navigator shows, in every book
+    //: The group of Settings > Navigator that hides kinds of materials. In Polish: Typy
+    //: materiałów w Nawigatorze
+    QFormLayout* kinds = addGroup(tr("Material Kinds in the Navigator"));
+    auto* kindChoices = new QWidget();
+    auto* kindsLayout = new QVBoxLayout(kindChoices);
+    kindsLayout->setContentsMargins(0, 0, 0, 0);
+    kindsLayout->setSpacing(4);
+    for (const QString& list : MaterialList::settingsKinds()) {
+        const int count = MaterialList::countOf(list);
+        auto* box = new QCheckBox(count < 0 ? MaterialList::nameOf(list)
+                                            //: A kind of materials with the number of its
+                                            //: materials in the open book. In Polish: %1 (%2)
+                                            : tr("%1 (%2)").arg(MaterialList::nameOf(list))
+                                                  .arg(count));
+        box->setObjectName(QStringLiteral("navigatorKind_") + list);
+        box->setProperty("kind", list);
+        box->setIcon(core::ArtProvider::getInstance().getIcon(MaterialList::iconIdOf(list),
+                                                              core::IconContext::Menu));
+        kindsLayout->addWidget(box);
+        m_kindBoxes << box;
+    }
+    //: In Polish: Odznaczony typ znika z Nawigatora we wszystkich książkach. Jego materiały
+    //: zostają w książce i są we „Wszystkich materiałach”; po zaznaczeniu typ wraca. To samo
+    //: robi polecenie „Ukryj typ” w menu typu w Nawigatorze. Liczby dotyczą otwartej książki.
+    addNote(kindsLayout, tr("A kind unchecked leaves the Navigator in every book. Its materials "
+                            "stay in the book and in All Materials; checked again, the kind "
+                            "comes back. \"Hide Kind\" in the menu of a kind in the Navigator "
+                            "does the same. The numbers are those of the open book."));
+    //: In Polish: &Pokazuj:
+    auto* kindsLabel = new QLabel(tr("&Show:"));
+    if (!m_kindBoxes.isEmpty()) {
+        kindsLabel->setBuddy(m_kindBoxes.constFirst());
+    }
+    kinds->addRow(kindsLabel, kindChoices);
+
+    Binding hidden;
+    hidden.key = []() { return std::string(MaterialList::HIDDEN_SETTING); };
+    // In the order of the boxes, so that the same kinds are the same value
+    hidden.stored = [this]() {
+        const QStringList kinds = MaterialList::hiddenKinds();
+        json value = json::array();
+        for (const QCheckBox* box : m_kindBoxes) {
+            if (kinds.contains(box->property("kind").toString())) {
+                value.push_back(box->property("kind").toString().toStdString());
+            }
+        }
+        return value;
+    };
+    hidden.shown = [this]() {
+        json value = json::array();
+        for (const QCheckBox* box : m_kindBoxes) {
+            if (!box->isChecked()) {
+                value.push_back(box->property("kind").toString().toStdString());
+            }
+        }
+        return value;
+    };
+    hidden.show = [this](const json& value) {
+        for (QCheckBox* box : m_kindBoxes) {
+            const std::string kind = box->property("kind").toString().toStdString();
+            box->setChecked(!value.is_array() ||
+                            std::find(value.begin(), value.end(), json(kind)) == value.end());
+        }
+    };
+    hidden.store = [&settings](const json& value) {
+        settings.set<json>(MaterialList::HIDDEN_SETTING, value);
+    };
+    bindCustom(std::move(hidden));
+
+    // The texts of the cover: the unit of their lengths and the targets of their kinds
+    //: The group of Settings > Navigator of the materials of the cover. In Polish: Okładka
+    QFormLayout* cover = addGroup(tr("Cover"));
+    //: The unit of the lengths of the texts of the cover. In Polish: znakach ze spacjami
+    m_unitCharacters = new QRadioButton(tr("characters with spaces"));
+    m_unitCharacters->setObjectName(QStringLiteral("navigatorCoverCharacters"));
+    //: In Polish: słowach
+    m_unitWords = new QRadioButton(tr("words"));
+    m_unitWords->setObjectName(QStringLiteral("navigatorCoverWords"));
+    auto* unitChoices = new QWidget();
+    auto* unitLayout = new QVBoxLayout(unitChoices);
+    unitLayout->setContentsMargins(0, 0, 0, 0);
+    unitLayout->addWidget(m_unitCharacters);
+    unitLayout->addWidget(m_unitWords);
+    //: In Polish: &Długość liczona w:
+    auto* unitLabel = new QLabel(tr("&Length counted in:"));
+    unitLabel->setBuddy(m_unitCharacters);
+    cover->addRow(unitLabel, unitChoices);
+
+    Binding unit;
+    unit.key = []() { return std::string(core::CoverMaterial::UNIT_SETTING); };
+    unit.stored = []() {
+        return json(core::CoverMaterial::countsWords() ? WORDS : CHARACTERS);
+    };
+    unit.shown = [this]() { return json(m_unitWords->isChecked() ? WORDS : CHARACTERS); };
+    unit.show = [this](const json& value) {
+        const bool words = value.is_string() && value.get<std::string>() == WORDS;
+        (words ? m_unitWords : m_unitCharacters)->setChecked(true);
+    };
+    unit.store = [&settings](const json& value) {
+        settings.set<std::string>(core::CoverMaterial::UNIT_SETTING, value.get<std::string>());
+    };
+    bindCustom(std::move(unit));
+
+    // The targets of the unit chosen; those of the other unit wait on their page. The unit is
+    // said above them, so that the page fits a narrow window
+    auto* targetsLabel = new QLabel();
+    targetsLabel->setWordWrap(true);
+    cover->addRow(targetsLabel);
+    auto* targets = new QStackedWidget();
+    for (const bool words : {false, true}) {
+        auto* unitPage = new QWidget();
+        auto* grid = new QGridLayout(unitPage);
+        grid->setContentsMargins(0, 0, 0, 0);
+        grid->setHorizontalSpacing(8);
+        grid->setVerticalSpacing(4);
+        int row = 0;
+        for (const char* part : {core::CoverMaterial::BLURB, core::CoverMaterial::TAGLINE,
+                                 core::CoverMaterial::OPINION}) {
+            const QString partName = CoverNames::partName(QString::fromLatin1(part));
+            auto* label = new QLabel(partName);
+            auto* spin = new QSpinBox();
+            spin->setRange(1, MAXIMUM_TARGET);
+            spin->setObjectName(QStringLiteral("navigatorCoverTarget_%1_%2")
+                                    .arg(QString::fromLatin1(part),
+                                         words ? QStringLiteral("words")
+                                               : QStringLiteral("characters")));
+            //: The accessible name of a target: %1 the kind of text, %2 the unit. In Polish:
+            //: %1, %2
+            spin->setAccessibleName(tr("%1, %2").arg(partName, CoverNames::unitName(words)));
+            label->setBuddy(spin);
+            grid->addWidget(label, row, 0);
+            grid->addWidget(spin, row, 1);
+            bind(spin, core::CoverMaterial::targetSettingOf(QString::fromLatin1(part), words));
+            (words ? m_wordTargets : m_characterTargets) << spin;
+            ++row;
+        }
+        grid->setColumnStretch(2, 1);
+        targets->addWidget(unitPage);
+    }
+    cover->addRow(targets);
+    //: In Polish: Każdy materiał może mieć własną docelową długość na swojej karcie. Wydawnictwa
+    //: podają zwykle znaki ze spacjami.
+    addNote(cover, tr("Each material can have its own target length on its card. Publishers "
+                      "usually count characters with spaces."));
+    const auto showUnit = [this, targets, targetsLabel]() {
+        const bool words = m_unitWords->isChecked();
+        targets->setCurrentIndex(words ? 1 : 0);
+        targetsLabel->setText(words
+                                  //: In Polish: Docelowa długość w słowach:
+                                  ? tr("Target length in words:")
+                                  //: In Polish: Docelowa długość w znakach ze spacjami:
+                                  : tr("Target length in characters with spaces:"));
+    };
+    connect(m_unitWords, &QRadioButton::toggled, this, showUnit);
+    whenLoaded(showUnit);
 
     pageLayout()->addStretch();
 }
