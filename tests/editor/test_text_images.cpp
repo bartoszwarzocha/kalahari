@@ -13,6 +13,7 @@
 #include <kalahari/editor/text_images.h>
 #include "editor_test_utils.h"
 
+#include <QApplication>
 #include <QDir>
 #include <QFile>
 #include <QImage>
@@ -638,15 +639,17 @@ TEST_CASE("Images: a corner's handle resizes the image in proportion, one undo s
     mouse(*editor, QEvent::MouseButtonRelease, again->bottomRight() + QPointF(2000.0, 0.0));
     CHECK(imageAt(*editor->textDocument(), position)->width == Approx(100.0));
 
-    // In a read-only text there are no handles
+    // In a read-only text there are no handles. The mouse moves less than a drag: a press
+    // there is on the selected image, and a drag of it waits for the real mouse on Windows.
     editor->undo();
     editor->setReadOnly(true);
     editor->selectImage(position);
     const std::optional<QRectF> locked = editor->imageRect(position);
     REQUIRE(locked);
+    const QPointF nudge(QApplication::startDragDistance() - 1, 0.0);
     mouse(*editor, QEvent::MouseButtonPress, locked->bottomRight());
-    mouse(*editor, QEvent::MouseMove, locked->bottomRight() + QPointF(50.0, 0.0));
-    mouse(*editor, QEvent::MouseButtonRelease, locked->bottomRight() + QPointF(50.0, 0.0));
+    mouse(*editor, QEvent::MouseMove, locked->bottomRight() + nudge);
+    mouse(*editor, QEvent::MouseButtonRelease, locked->bottomRight() + nudge);
     CHECK(imageAt(*editor->textDocument(), position)->width == Approx(40.0));
 }
 
