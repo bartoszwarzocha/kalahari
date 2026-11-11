@@ -483,6 +483,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                    enDashShortcut, insertCharacters(QString(QChar(0x2013))));
     REG_CMD_KEY_CB("insert.emDash", QT_TRANSLATE_NOOP("CommandRegistrar", "E&m Dash"), "INSERT/Formatting Character/Em Dash", 86, false, 0,
                    emDashShortcut, insertCharacters(QString(QChar(0x2014))));
+    // The list of quick insert at the cursor with all its items, as @ and # typed at the start of
+    // a word open it. Ctrl+Shift+W: the program has no other command on it
+    REG_CMD_KEY_CB("insert.quickInsert", QT_TRANSLATE_NOOP("CommandRegistrar", "Q&uick Insert..."), "INSERT/Quick Insert...", 87, false, 0,
+                   KeyboardShortcut(Qt::Key_W, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onQuickInsert);
     REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time"), "INSERT/Date & Time", 90, false, 1);
     REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 1);
 
@@ -699,6 +703,13 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       nullptr);
 
+    // The panel Repetitions with the keyboard in it, and the next repetition of a word in the
+    // text (RepetitionsCoordinator gives them their callbacks); Ctrl+Shift+F7 beside F7, the next
+    // spelling or grammar issue
+    REG_CMD("tools.repetitions", QT_TRANSLATE_NOOP("CommandRegistrar", "W&ord Repetitions"), "TOOLS/Word Repetitions", 57, false, 0);
+    REG_CMD_KEY("tools.nextRepetition", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt Repetition"), "TOOLS/Next Repetition", 58, false, 0,
+                KeyboardShortcut(Qt::Key_F7, Qt::ControlModifier | Qt::ShiftModifier));
+
     REG_CMD("tools.readability", QT_TRANSLATE_NOOP("CommandRegistrar", "&Readability Score"), "TOOLS/Readability Score", 60, true, 2);
 
     REG_CMD("tools.backupNow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Backup Now"), "TOOLS/Backup Now", 100, false, 2);
@@ -773,6 +784,8 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // No key of its own: Next Spelling or Grammar Issue (F7) opens it at the issue it finds
     REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 70, false, 0);
+    // No key of its own: Tools > Word Repetitions opens it with the keyboard in it
+    REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 75, false, 0);
 
     // The views of the writing: today, the week, 30 days, the book, the times of writing
     REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 80, false, 0);
@@ -836,7 +849,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // (AnnotationsCoordinator)
     REG_CMD_CB("view.annotationCards", QT_TRANSLATE_NOOP("CommandRegistrar", "Annotation &Cards Under Paragraphs"), "VIEW/Annotation Cards Under Paragraphs", 68, false, 0,
                callbacks.onAnnotationCardsToggle);
-    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "C&ollapse All Annotations"), "VIEW/Collapse All Annotations", 69, false, 0);
+    REG_CMD("view.collapseAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "Collapse &All Annotations"), "VIEW/Collapse All Annotations", 69, false, 0);
     REG_CMD("view.expandAllAnnotations", QT_TRANSLATE_NOOP("CommandRegistrar", "&Expand All Annotations"), "VIEW/Expand All Annotations", 70, true, 0);
 
     // Perspectives submenu
@@ -853,6 +866,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     REG_CMD("view.showStatusBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show &Status Bar"), "VIEW/Show Status Bar", 180, false, 0);
     REG_CMD("view.showStatsBar", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Statistics &Bar"), "VIEW/Show Statistics Bar", 190, false, 1);
+    // The repetitions of words marked in the text while the panel Repetitions is open: the
+    // setting editor.repetitions.highlight (RepetitionsCoordinator gives it its callback)
+    REG_CMD_TOOL_ICON("view.repetitionMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Repetiti&ons in Text"), "VIEW/Repetitions in Text", 205, false, 0,
+                      KeyboardShortcut(),
+                      IconSet(),
+                      nullptr);
     // Ctrl+Shift+8 (Shift+Cmd+8 on macOS), as in Word: written with the key, not with the "*"
     // it types on some keyboards, on every system; Qt matches the key on every keyboard
     REG_CMD_KEY_CB("view.showFormattingMarks", QT_TRANSLATE_NOOP("CommandRegistrar", "Show Formattin&g Marks"), "VIEW/Show Formatting Marks", 210, true, 0,

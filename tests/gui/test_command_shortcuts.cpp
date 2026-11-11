@@ -109,6 +109,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"insert.pageBreak", QStringLiteral("Ctrl+Return")},  // and Ctrl with the keypad's Enter
         {"insert.quickCharacter", QStringLiteral("Ctrl+Shift+I")},
+        {"insert.quickInsert", QStringLiteral("Ctrl+Shift+W")},
         {"insert.link", QStringLiteral("Ctrl+K")},  // as in Word and LibreOffice
         // The formatting characters, as in Word; Ctrl+_ is Ctrl+Shift+-
         {"insert.noBreakSpace", QStringLiteral("Ctrl+Shift+Space")},
@@ -152,6 +153,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
 #endif
         {"tools.spellcheck", QStringLiteral("Shift+F7")},
         {"tools.nextMisspelling", QStringLiteral("F7")},
+        {"tools.nextRepetition", QStringLiteral("Ctrl+Shift+F7")},
         {"view.navigator", QStringLiteral("F2")},
         {"view.log", QStringLiteral("F4")},
         {"view.search", QStringLiteral("F5")},

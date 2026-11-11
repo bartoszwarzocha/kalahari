@@ -64,6 +64,7 @@ class StyleCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class RepetitionsCoordinator;
 class DocumentWindows;
 class WritingStatsCoordinator;
 class ColorMenu;
@@ -419,6 +420,9 @@ private:
 
     /// @brief The Spelling and Grammar panel and when it shows
     SpellingPanelCoordinator* m_spellingPanelCoordinator{nullptr};
+
+    /// @brief The Repetitions panel, the marks of the repeated words and Next Repetition
+    RepetitionsCoordinator* m_repetitionsCoordinator{nullptr};
 
     /// @brief Undo, Redo, Cut, Copy, Paste and Select All on the element with the keys
     EditCoordinator* m_editCoordinator{nullptr};

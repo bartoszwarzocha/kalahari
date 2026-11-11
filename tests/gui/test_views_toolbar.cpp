@@ -98,8 +98,8 @@ QByteArray layoutWithoutViewsToolbar() {
 
 }  // namespace
 
-TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, formatting marks "
-          "and zoom of the View menu",
+TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, formatting marks, "
+          "repetitions and zoom of the View menu",
           "[gui][toolbar]") {
     registerAllCommands(CommandCallbacks{});
     registerAllIcons();
@@ -116,7 +116,7 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
 
     // The very actions of the View menu, so a button is checked with its menu item
     const QList<QAction*> actions = toolbar->actions();
-    REQUIRE(actions.size() == 17);
+    REQUIRE(actions.size() == 18);
     CHECK(actions[0] == registry.getAction(std::string("view.mode.continuous")));
     CHECK(actions[1] == registry.getAction(std::string("view.mode.page")));
     CHECK(actions[2]->isSeparator());
@@ -126,14 +126,15 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
     CHECK(actions[6] == registry.getAction(std::string("view.darkPaper")));
     CHECK(actions[7] == registry.getAction(std::string("view.textFrameBorder")));
     CHECK(actions[8] == registry.getAction(std::string("view.showFormattingMarks")));
-    CHECK(actions[9] == registry.getAction(std::string("view.marginNumbers.lines")));
-    CHECK(actions[10] == registry.getAction(std::string("view.marginNumbers.paragraphs")));
-    CHECK(actions[11]->isSeparator());
-    CHECK(actions[12] == registry.getAction(std::string("view.zoomOut")));
-    CHECK(actions[13] == registry.getAction(std::string("view.zoomIn")));
-    CHECK(actions[14] == registry.getAction(std::string("view.resetZoom")));
-    CHECK(actions[15] == registry.getAction(std::string("view.zoomPageWidth")));
-    CHECK(actions[16] == registry.getAction(std::string("view.zoomWholePage")));
+    CHECK(actions[9] == registry.getAction(std::string("view.repetitionMarks")));
+    CHECK(actions[10] == registry.getAction(std::string("view.marginNumbers.lines")));
+    CHECK(actions[11] == registry.getAction(std::string("view.marginNumbers.paragraphs")));
+    CHECK(actions[12]->isSeparator());
+    CHECK(actions[13] == registry.getAction(std::string("view.zoomOut")));
+    CHECK(actions[14] == registry.getAction(std::string("view.zoomIn")));
+    CHECK(actions[15] == registry.getAction(std::string("view.resetZoom")));
+    CHECK(actions[16] == registry.getAction(std::string("view.zoomPageWidth")));
+    CHECK(actions[17] == registry.getAction(std::string("view.zoomWholePage")));
 
     // In the View menu the text frame border follows the paper and the margin numbering
     // follows it, in a submenu, before the separator
@@ -158,9 +159,9 @@ TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, fo
     for (const char* id : {"view.mode.continuous", "view.mode.page", "view.mode.distraction-free",
                            "view.focus", "view.typewriter", "view.darkPaper",
                            "view.textFrameBorder", "view.showFormattingMarks",
-                           "view.marginNumbers.none", "view.marginNumbers.lines",
-                           "view.marginNumbers.paragraphs", "view.marginNumbers.settings",
-                           "view.zoomOut", "view.zoomIn",
+                           "view.repetitionMarks", "view.marginNumbers.none",
+                           "view.marginNumbers.lines", "view.marginNumbers.paragraphs",
+                           "view.marginNumbers.settings", "view.zoomOut", "view.zoomIn",
                            "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}) {
         INFO(id);
         CHECK(icons.hasIcon(QString::fromLatin1(id)));
@@ -288,10 +289,10 @@ TEST_CASE("Views toolbar: one customized before gets the formatting marks after 
     QMainWindow window;
     {
         ToolbarManager manager(&window);
-        // (and the numbering buttons after them, which came later)
+        // (and the repetitions and the numbering buttons after them, which came later)
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
               "view.mode.continuous | view.mode.page | view.textFrameBorder | "
-              "view.showFormattingMarks | view.marginNumbers.lines | "
+              "view.showFormattingMarks | view.repetitionMarks | view.marginNumbers.lines | "
               "view.marginNumbers.paragraphs | view.zoomIn | view.darkPaper");
 
         // Taken away by the writer after that, it stays away
@@ -325,8 +326,9 @@ TEST_CASE("Views toolbar: one customized before gets the numbering buttons after
     QMainWindow window;
     {
         ToolbarManager manager(&window);
+        // (and the repetitions between them, which came later)
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
-              "view.showFormattingMarks | view.marginNumbers.lines | "
+              "view.showFormattingMarks | view.repetitionMarks | view.marginNumbers.lines | "
               "view.marginNumbers.paragraphs | view.mode.continuous | view.mode.page | "
               "view.zoomIn");
 
@@ -338,7 +340,46 @@ TEST_CASE("Views toolbar: one customized before gets the numbering buttons after
     }
     ToolbarManager next(&window);
     CHECK(next.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
-          "view.showFormattingMarks | view.mode.continuous | view.mode.page | view.zoomIn");
+          "view.showFormattingMarks | view.repetitionMarks | view.mode.continuous | "
+          "view.mode.page | view.zoomIn");
+
+    settings.set<std::string>("toolbars.configurations", savedToolbars);
+    settings.set<int>("toolbars.addedCommands", savedVersion);
+}
+
+TEST_CASE("Views toolbar: one customized before gets the repetitions after the formatting "
+          "marks, once",
+          "[gui][toolbar]") {
+    registerAllCommands(CommandCallbacks{});
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
+    const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
+    const QString views = QStringLiteral("views");
+
+    // Customized with the numbering buttons, before the repetitions came: the line numbers
+    // taken away, the formatting marks moved to the end
+    settings.set<std::string>(
+        "toolbars.configurations",
+        R"({"builtIn":{"views":["view.mode.continuous","view.mode.page",)"
+        R"("view.marginNumbers.paragraphs","view.zoomIn","view.showFormattingMarks"]}})");
+    settings.set<int>("toolbars.addedCommands", 7);
+    QMainWindow window;
+    {
+        ToolbarManager manager(&window);
+        CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
+              "view.mode.continuous | view.mode.page | view.marginNumbers.paragraphs | "
+              "view.zoomIn | view.showFormattingMarks | view.repetitionMarks");
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 8);
+
+        // Taken away by the writer after that, it stays away
+        QStringList without = manager.getToolbarCommands(views);
+        without.removeAll(QStringLiteral("view.repetitionMarks"));
+        manager.setToolbarCommands(views, without);
+    }
+    ToolbarManager next(&window);
+    CHECK(next.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
+          "view.mode.continuous | view.mode.page | view.marginNumbers.paragraphs | "
+          "view.zoomIn | view.showFormattingMarks");
 
     settings.set<std::string>("toolbars.configurations", savedToolbars);
     settings.set<int>("toolbars.addedCommands", savedVersion);

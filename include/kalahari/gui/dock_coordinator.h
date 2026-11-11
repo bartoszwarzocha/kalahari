@@ -36,6 +36,7 @@ class SearchPanel;
 class AssistantPanel;
 class AnnotationsPanel;
 class SpellingPanel;
+class RepetitionsPanel;
 class ParagraphPanel;
 class WritingStatsPanel;
 class FittingScrollArea;
@@ -207,6 +208,9 @@ public:
     /// @brief Get the Spelling and Grammar panel
     [[nodiscard]] SpellingPanel* spellingPanel() const { return m_spellingPanel; }
 
+    /// @brief Get the Repetitions panel
+    [[nodiscard]] RepetitionsPanel* repetitionsPanel() const { return m_repetitionsPanel; }
+
     /// @brief The Statistics panel (its statistics come from WritingStatsCoordinator)
     [[nodiscard]] WritingStatsPanel* statisticsPanel() const { return m_statisticsPanel; }
 
@@ -256,6 +260,9 @@ public:
     /// @brief Get the dock of the Spelling and Grammar panel
     [[nodiscard]] QDockWidget* spellingDock() const { return m_spellingDock; }
 
+    /// @brief Get the dock of the Repetitions panel
+    [[nodiscard]] QDockWidget* repetitionsDock() const { return m_repetitionsDock; }
+
     /// @brief The dock of the Statistics panel
     [[nodiscard]] QDockWidget* statisticsDock() const { return m_statisticsDock; }
 
@@ -297,6 +304,9 @@ public:
 
     /// @brief Get the Spelling and Grammar toggle action
     [[nodiscard]] QAction* viewSpellingAction() const { return m_viewSpellingAction; }
+
+    /// @brief Get the Repetitions toggle action
+    [[nodiscard]] QAction* viewRepetitionsAction() const { return m_viewRepetitionsAction; }
 
     /// @brief The Paragraph and Styles toggle action
     [[nodiscard]] QAction* viewParagraphAction() const { return m_viewParagraphAction; }
@@ -390,6 +400,9 @@ private:
     /// @brief Create the dock of the Spelling and Grammar panel (hidden until opened)
     void createSpellingDock();
 
+    /// @brief Create the dock of the Repetitions panel (hidden until opened)
+    void createRepetitionsDock();
+
     /// @brief Create the dock of the Statistics panel, a tab after the Annotations panel
     void createStatisticsDock();
 
@@ -459,6 +472,7 @@ private:
     QDockWidget* m_assistantDock{nullptr};
     QDockWidget* m_annotationsDock{nullptr};
     QDockWidget* m_spellingDock{nullptr};
+    QDockWidget* m_repetitionsDock{nullptr};
     QDockWidget* m_paragraphDock{nullptr};
     QDockWidget* m_statisticsDock{nullptr};
 
@@ -471,6 +485,7 @@ private:
     AssistantPanel* m_assistantPanel{nullptr};
     AnnotationsPanel* m_annotationsPanel{nullptr};
     SpellingPanel* m_spellingPanel{nullptr};
+    RepetitionsPanel* m_repetitionsPanel{nullptr};
     WritingStatsPanel* m_statisticsPanel{nullptr};
     ParagraphPanel* m_paragraphPanel{nullptr};       ///< In its own dock
     ParagraphPanel* m_propertiesParagraph{nullptr};  ///< The lower part of Properties
@@ -492,6 +507,7 @@ private:
     QAction* m_viewAssistantAction{nullptr};
     QAction* m_viewAnnotationsAction{nullptr};
     QAction* m_viewSpellingAction{nullptr};
+    QAction* m_viewRepetitionsAction{nullptr};
     QAction* m_viewParagraphAction{nullptr};
     QAction* m_viewStatisticsAction{nullptr};
 

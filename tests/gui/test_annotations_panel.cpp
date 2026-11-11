@@ -11,6 +11,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/text_issue.h"
 #include "kalahari/editor/version_comparison.h"
+#include "kalahari/editor/word_repetitions.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -365,8 +366,8 @@ TEST_CASE("Colors: a kind's color as Optimize colors in themes shows it", "[gui]
     CHECK(shownColor(deep, white, true) == deep);
     CHECK_FALSE(shownColor(QColor(), white, true).isValid());
 
-    // The marks' colors of both themes (the kinds of annotations, spelling, grammar and the
-    // changes of a version), on both papers and on the panels of both themes
+    // The marks' colors of both themes (the kinds of annotations, spelling, grammar, the
+    // changes of a version and the repetitions), on both papers and on the panels of both themes
     const QColor lightBase = themeNamed(QStringLiteral("Light")).palette.base;
     const QColor darkBase = themeNamed(QStringLiteral("Dark")).palette.base;
     const std::string marks[] = {
@@ -377,6 +378,7 @@ TEST_CASE("Colors: a kind's color as Optimize colors in themes shows it", "[gui]
         editor::issueColorKey(editor::TextIssueKind::Grammar),
         editor::DELETED_COLOR_KEY,
         editor::ADDED_COLOR_KEY,
+        editor::REPETITION_COLOR_KEY,
     };
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
         const core::Theme theme = themeNamed(name);

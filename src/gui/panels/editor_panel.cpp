@@ -11,6 +11,7 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/quick_insert_items.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
 #include "kalahari/gui/utils/caps_lock.h"
@@ -25,8 +26,10 @@
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/paragraph_styles.h"
+#include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/statistics_collector.h"
 #include "kalahari/editor/text_link.h"
+#include "kalahari/editor/word_repetitions.h"
 #include <QDesktopServices>
 #include <QEvent>
 #include <QGuiApplication>
@@ -124,6 +127,11 @@ EditorPanel::EditorPanel(QWidget* parent)
     // typed: the book's language may change, and a chapter is told from a file outside the
     // book only after its tab is shown
     m_bookEditor->setTextLanguage([this]() { return textLanguage(); });
+
+    // Quick insert: the cards of the book, the fragments and the characters at the cursor;
+    // the editor owns it, Insert > Quick Insert... finds it there
+    m_quickInsert = new editor::QuickInsertController(
+        m_bookEditor, [](QChar trigger) { return quickInsertItems(trigger); }, m_bookEditor);
 
     // A change of autocorrect undone right after it: as in Word, the exceptions keep the
     // abbreviation or the word, unless the writer turned that off
@@ -489,9 +497,9 @@ void EditorPanel::applySettings() {
     appearance.textFrameBorder.color = color("editor.textFrameBorder.color");
     appearance.textFrameBorder.width = settings.get<int>("editor.textFrameBorder.width");
 
-    // The annotations' marks (at the size of the setting) and the waves under the misspelled
-    // words and the grammar issues: the theme's colors, on each paper as "Optimize colors in
-    // themes" shows them
+    // The annotations' marks (at the size of the setting), the waves under the misspelled
+    // words and the grammar issues, and the marks of the repeated words: the theme's colors,
+    // on each paper as "Optimize colors in themes" shows them
     const bool optimize = themes.optimizesEditorColors();
     const auto onPaper = [&themes, optimize](const std::string& key, const QColor& paper) {
         return shownColor(themes.editorColor(key, QColor()), paper, optimize);
@@ -507,6 +515,7 @@ void EditorPanel::applySettings() {
         editor::EditorColors::IssueColors colors;
         colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
         colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
+        colors.repetition = onPaper(editor::REPETITION_COLOR_KEY, paper);
         return colors;
     };
     const QColor lightPaper = appearance.colors.continuous.backgroundLight;
@@ -595,6 +604,9 @@ void EditorPanel::applySettings() {
     autoCorrect.numberedLists = replaces("editor.autoCorrect.numberedLists");
     autoCorrect.links = replaces("editor.autoCorrect.links");
     m_bookEditor->setAutoCorrect(autoCorrect);
+
+    // The characters that open quick insert (Settings > Editor > Quick Insert)
+    m_quickInsert->setTriggers(quickInsertTriggers());
 
     // How text from other programs is pasted (Settings > Editor > General)
     m_bookEditor->setPasteMode(editor::ClipboardHandler::pasteModeFromId(

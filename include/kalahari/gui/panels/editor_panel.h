@@ -18,6 +18,7 @@ struct KindWords;
 namespace kalahari::editor {
 class BookEditor;
 class ParagraphStyleSet;
+class QuickInsertController;
 class StatisticsCollector;
 enum class LearnedException;
 }
@@ -103,6 +104,10 @@ public:
     /// @brief Get the underlying BookEditor widget (const)
     /// @return Const pointer to BookEditor widget
     const editor::BookEditor* getBookEditor() const { return m_bookEditor; }
+
+    /// @brief Quick insert in the text: the list that @ and # typed at the start of a word open,
+    ///        and Insert > Quick Insert...
+    editor::QuickInsertController* quickInsert() const { return m_quickInsert; }
 
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
@@ -202,6 +207,7 @@ private:
     void scheduleSettings();
 
     editor::BookEditor* m_bookEditor;                     ///< The BookEditor widget
+    editor::QuickInsertController* m_quickInsert{nullptr};  ///< Quick insert in the text
     int m_settingsListener{0};                            ///< SettingsManager::subscribe() id
     std::atomic<bool> m_settingsPending{false};           ///< scheduleSettings() waits for the
                                                           ///< event loop

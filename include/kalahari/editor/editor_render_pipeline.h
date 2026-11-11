@@ -361,6 +361,12 @@ public:
     /// @param length Length of the word; 0 clears the highlight
     void setSpokenWord(int paragraph, int offset, int length);
 
+    /// @brief Mark the repeated words the Repetitions panel finds
+    /// @param marks The words, in any order; none clears the marks
+    /// @param style A background under each word or a wave under it; the chosen ones are
+    ///        framed as well
+    void setRepetitionMarks(const std::vector<RepetitionMark>& marks, RepetitionMarkStyle style);
+
     // =========================================================================
     // What the view adds to the text
     // =========================================================================
@@ -544,16 +550,21 @@ private:
     using ParagraphHighlight = std::pair<size_t, TextHighlight>;
 
     /// @brief Highlights of the visible paragraphs: the text source's check results (of the
-    ///        paragraphs in the clip rect), search matches, spoken word
+    ///        paragraphs in the clip rect), search matches, spoken word, repeated words
     std::vector<ParagraphHighlight> visibleHighlights(const QRect& clipRect) const;
 
     /// @brief Fill the highlight backgrounds (under the text)
     void renderHighlightBackgrounds(QPainter* painter,
                                     const std::vector<ParagraphHighlight>& highlights);
 
-    /// @brief Draw the highlight marks (over the text): spelling and grammar waves
+    /// @brief Draw the highlight marks (over the text): spelling and grammar waves, the waves
+    ///        and the frames of the repeated words
     void renderHighlightMarks(QPainter* painter,
                               const std::vector<ParagraphHighlight>& highlights);
+
+    /// @brief Draw a wave under a text range of one paragraph, line by line
+    void drawWave(QPainter* painter, size_t paragraph, const TextHighlight& range,
+                  const QColor& color);
 
     /// @brief An annotation's mark on the screen
     struct AnnotationMarkShape {
@@ -648,6 +659,8 @@ private:
     SelectionRange m_selection;                  ///< Current selection
     std::optional<CursorPosition> m_dropCaret;   ///< Drop point of dragged text
     std::optional<ParagraphHighlight> m_spokenWord;  ///< Word being read aloud
+    std::vector<ParagraphHighlight> m_repetitions;   ///< Repeated words, by paragraph
+    RepetitionMarkStyle m_repetitionStyle = RepetitionMarkStyle::Background;
     std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
     std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs

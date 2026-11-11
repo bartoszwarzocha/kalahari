@@ -59,7 +59,8 @@ struct AddedCommand {
 ///      versions are not on Versions and Backups)
 ///   6: Line Numbers and Paragraph Numbers on the Views toolbar
 ///   7: Statistics on the Panels toolbar
-constexpr std::array<AddedCommand, 12> ADDED_COMMANDS{{
+///   8: Repetitions in Text on the Views toolbar
+constexpr std::array<AddedCommand, 13> ADDED_COMMANDS{{
     {"file", "file.open.file", 1},
     {"file", "file.saveAll", 1},
     {"quickActions", "file.open.file", 1},
@@ -72,6 +73,7 @@ constexpr std::array<AddedCommand, 12> ADDED_COMMANDS{{
     {"views", "view.marginNumbers.lines", 6},
     {"views", "view.marginNumbers.paragraphs", 6},
     {"view", "view.statistics", 7},
+    {"views", "view.repetitionMarks", 8},
 }};
 
 /// Commands of a built-in toolbar in a new order
@@ -91,7 +93,7 @@ constexpr std::array<MovedCommands, 2> MOVED_COMMANDS{{
 }};
 
 /// The version of the changes of ADDED_COMMANDS and MOVED_COMMANDS: of the last one
-constexpr int CHANGED_COMMANDS_VERSION = 7;
+constexpr int CHANGED_COMMANDS_VERSION = 8;
 
 /// The setting with the version of the changes that the saved toolbars have
 constexpr const char* CHANGED_COMMANDS_SETTING = "toolbars.addedCommands";
@@ -277,8 +279,8 @@ void ToolbarManager::initializeConfigs() {
         true,  // visible by default (Row 2)
         {"view.mode.continuous", "view.mode.page", SEPARATOR_ID,
          "view.mode.distraction-free", "view.focus", "view.typewriter", "view.darkPaper",
-         "view.textFrameBorder", "view.showFormattingMarks", "view.marginNumbers.lines",
-         "view.marginNumbers.paragraphs", SEPARATOR_ID,
+         "view.textFrameBorder", "view.showFormattingMarks", "view.repetitionMarks",
+         "view.marginNumbers.lines", "view.marginNumbers.paragraphs", SEPARATOR_ID,
          "view.zoomOut", "view.zoomIn", "view.resetZoom", "view.zoomPageWidth", "view.zoomWholePage"}
     };
 

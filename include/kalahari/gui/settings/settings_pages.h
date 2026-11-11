@@ -24,6 +24,8 @@ class QPushButton;
 class QRadioButton;
 class QTableWidget;
 class QTableWidgetItem;
+class QTreeWidget;
+class QTreeWidgetItem;
 
 namespace kalahari {
 namespace core {
@@ -31,6 +33,7 @@ struct Theme;
 }
 namespace editor {
 class SpellCheckService;
+struct QuickInsertItem;
 }
 namespace gui {
 
@@ -290,6 +293,58 @@ private:
     QPushButton* m_removePairs = nullptr;
     QLabel* m_pairNote = nullptr;           ///< What Add does, or why an edit was put back
     bool m_fillingPairs = false;            ///< The table is filled, not edited
+};
+
+/// @brief Editor > Quick Insert: what @ and # typed at the start of a word open (the names of
+/// the cards, the text fragments, the typographic characters), and the writer's fragments and
+/// characters
+class EditorQuickInsertPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorQuickInsertPage(QWidget* parent = nullptr);
+
+private:
+    void createSources();
+    void createItems();
+
+    /// @brief The fragments and characters as the list has them
+    [[nodiscard]] QList<editor::QuickInsertItem> listedItems() const;
+    void showItems(const QList<editor::QuickInsertItem>& items);
+    void setRow(QTreeWidgetItem* row, const editor::QuickInsertItem& item);
+
+    // The buttons of the list
+    void addItem();
+    void editItem();
+    void removeItems();
+    void restoreCharacters();
+    void updateItemButtons();
+
+    QTreeWidget* m_items = nullptr;
+    QPushButton* m_edit = nullptr;
+    QPushButton* m_remove = nullptr;
+    QPushButton* m_restore = nullptr;
+};
+
+/// @brief Editor > Repetitions: what counts as a word that comes back too close, the words the
+/// writer skips, and how the words are marked in the text (with the color of each theme)
+class EditorRepetitionsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorRepetitionsPage(QWidget* parent = nullptr);
+
+protected:
+    /// @brief Enter in the field of a new word adds it, and does not close the dialog
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    void addWord();
+    void removeWords();
+    void updateButtons();
+
+    QListWidget* m_words = nullptr;   ///< The words skipped
+    QLineEdit* m_newWord = nullptr;   ///< A word to skip
+    QPushButton* m_add = nullptr;
+    QPushButton* m_remove = nullptr;
 };
 
 /// @brief Editor > Versions: whether Save Version asks for a description, the versions the
