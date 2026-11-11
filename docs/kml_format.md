@@ -1,7 +1,7 @@
 # KML – Kalahari Markup Language
 
-KML is the XML format of chapter text: paragraphs and headings with their styles, horizontal
-lines and breaks, inline formatting and annotations. This document describes the format as the
+KML is the XML format of chapter text: paragraphs and headings with their styles and own
+formatting, lists, tables, horizontal lines and breaks, inline formatting, links and annotations. This document describes the format as the
 application reads and writes it. The product specification of the format, including the
 elements planned for later versions, is section 4 of
 `project_docs/19_text_editor_functional_spec_pl.md`; the elements it lists that the editor does
@@ -13,11 +13,15 @@ The code that defines the format:
 |------|-------|
 | Tags, synonyms, metadata elements and their attributes | `KmlFormatRegistry` (`include/kalahari/editor/kml_format_registry.h`) |
 | Paragraph styles, headings and the objects of the text | `include/kalahari/editor/paragraph_styles.h` |
+| A paragraph's own formatting and its attributes | `include/kalahari/editor/paragraph_format.h` |
+| Lists, the formats of their levels and the numbers of the items | `include/kalahari/editor/text_lists.h` |
+| Tables in the editor's document | `include/kalahari/editor/text_tables.h` |
 | Reading | `KmlDocumentModel::loadKml()`, called by `BookEditor::fromKml()` |
 | Writing | `KmlSerializer::toKml()`, called by `BookEditor::toKml()` |
 | Annotations in the editor's document | `include/kalahari/editor/annotation.h` |
+| Links in the editor's document | `include/kalahari/editor/text_link.h` |
 | The clipboard's KML, HTML and plain text | `ClipboardHandler` (`include/kalahari/editor/clipboard_handler.h`) |
-| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp` |
+| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp`, `test_text_links.cpp`, `test_tables.cpp` |
 
 ## Where KML is stored
 
@@ -52,8 +56,10 @@ reading.
   wrapped in `<kml>`. Attributes of the root element are ignored. The editor writes `<kml>`
   without attributes.
 - **Paragraphs** are the children of the root element: `<p>`, or `<paragraph>` on reading,
-  the headings `<h1>`, `<h2>` and `<h3>` (see [Paragraph](#paragraph)), and the objects
-  `<hr/>`, `<scene-break/>` and `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)).
+  the headings `<h1>`, `<h2>` and `<h3>` (see [Paragraph](#paragraph)), the lists `<ol>` and
+  `<ul>`, whose items are paragraphs too (see [Lists](#lists)), the tables `<table>`, whose
+  cells hold paragraphs (see [Tables](#tables)), and the objects `<hr/>`, `<scene-break/>` and
+  `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)).
 - **Annotations** – the writer's comments, TODOs and notes – are in an `<annotations>` element,
   a child of the root element before the paragraphs (see [Annotations](#annotations)).
 - Any other element at this level is skipped together with everything inside it, and text
@@ -65,11 +71,37 @@ reading.
 |-----------|--------|---------|
 | `align` | `left`, `center`, `right`, `justify` (any letter case on reading) | The paragraph's own alignment |
 | `style` | The id of a paragraph style, for example `quote` | The paragraph's style (Format > Text Style) |
+| `indent-left`, `indent-right` | Points, -1000 to 1000 | The indent of every line from the left and the right edge of the text |
+| `indent-first` | Points, -1000 to 1000 | The indent of the first line from `indent-left`; a negative one is a hanging indent: the first line starts left of the others |
+| `space-before`, `space-after` | Points, 0 to 1000 | The space above and below the paragraph |
+| `line-height` | A multiple of a single line, 0.5 to 4 | Line spacing: `1` single, `1.5`, `2` double |
+| `line-height-min` | Points, 1 to 1000 | Line spacing At least: a larger letter makes its line higher |
+| `line-height-exact` | Points, 1 to 1000 | Line spacing Exactly: every line so high |
+| `keep-with-next` | Flag | On the page of the paragraph after it |
+| `keep-together` | Flag | All its lines on one page |
+| `page-break-before` | Flag | Starts on a new page |
+| `widow-control` | Flag | No single line of it alone at the top or bottom of a page; on without the attribute |
 
 A paragraph without `align` has no alignment of its own and is shown with the alignment of its
 style; a style without one has the editor's default: justified, with the last line aligned to
 the left. The editor writes `align` only for paragraphs that have their own alignment. Other
 attributes are ignored and not written.
+
+The attributes from `indent-left` on are the paragraph's own formatting (Format > Paragraph):
+a part without its attribute is as the paragraph's style gives it, and the editor writes only
+the parts the paragraph has of its own, in the order of the table. The layout scales the
+lengths as it scales the style's own: in the proportion of the editor's font size to the size
+of Normal in the style pack.
+
+- A number is written with at most two decimals and a point (`indent-first="-18"`,
+  `line-height="1.15"`). A value outside its range is brought into it; one that is not a
+  number is ignored.
+- A flag is set by `true` or `1` (any letter case), and is off with any other value, so
+  `widow-control="false"` turns the widow and orphan control off. The editor writes `true` or
+  `false`.
+- Of the three line spacings the first in the order of the table counts.
+- Format > Clear Formatting takes the paragraph's own formatting off, as it takes off the
+  formatting of its text.
 
 ### Headings and paragraph styles
 
@@ -111,6 +143,118 @@ the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, 
   marks are shown.
 - An object has no text: it adds nothing to the word and character counts. Other programs
   get it from the clipboard as the section "The clipboard of other programs" says.
+
+## Lists
+
+A bulleted list is an `<ul>`, a numbered one an `<ol>`, and each of their `<li>` elements is a
+paragraph: an item of the list.
+
+```xml
+<ol suffix=")">
+  <li>Pack the tent</li>
+  <li>Buy food<ul type="dash"><li>bread</li><li>tea</li></ul></li>
+  <li value="7">Leave on Monday</li>
+</ol>
+<p>A paragraph between the parts of the list.</p>
+<ol continue="true"><li>Come back</li></ol>
+```
+
+- **Levels.** A list has nine levels. A list inside an item is the next level of the same list,
+  and its element gives the format of that level: a level may have numbers and the next one
+  bullets. The levels a list does not write have the formats of a list of its kind (numbered:
+  1., a), i. and again from the fourth level on; bulleted: •, ◦, ▪ and again).
+- **The numbers** of a list are counted over the whole chapter: a paragraph outside the list
+  between two of its parts leaves the numbering going on (Format > Continue Numbering), which
+  KML writes with `continue="true"` on the list after it. A list without it starts its numbers
+  anew. An item of a level starts the numbers of its level anew after an item of a lower level
+  (1., a), b), 2., a)).
+- **An item** has the attributes of a paragraph (`style`, `align` and the paragraph's own
+  formatting), but its left and first-line indents are those of its level (`text-indent` and
+  `marker-indent`): the layout does not use its `indent-left` and `indent-first`, and
+  Format > Paragraph does not give them to an item.
+- A paragraph `<p>` inside an item is the item's own text when the item has none before it;
+  otherwise it, and the text after a list inside the item, is a paragraph in the indent of the
+  item's level without a number or bullet. Other elements inside a list are skipped with
+  everything inside them, and text between the items (the indentation of the KML) is ignored.
+
+**Attributes of `<ol>` and `<ul>`:**
+
+| Attribute | Element | Values | Meaning |
+|-----------|---------|--------|---------|
+| `type` | `<ol>` | `1`, `a`, `A`, `i`, `I` (`1` without it) | The numbers: 1, 2, 3; a, b, c ... z, aa; A, B, C; i, ii, iii; I, II, III |
+| `type` | `<ul>` | `disc`, `circle`, `square`, `dash`, `check`, `arrow` or the bullet itself (`disc` without it) | The bullet: •, ◦, ▪, –, ✓, ➢ or any other character |
+| `suffix` | `<ol>` | Text (`.` without it) | After the number: `.` or `)` |
+| `start` | `<ol>` | Number | The number of the first item (1 without it) |
+| `marker-indent` | Both | Points | From the start of the text to the number or bullet; without it 18 points for each level (the first 18, the second 36) |
+| `text-indent` | Both | Points | From the start of the text to the text of the item; without it 18 points more than `marker-indent` |
+| `marker-align` | Both | `left`, `center`, `right` | Where the number stands at its indent (left without it) |
+| `continue` | The `<ol>` or `<ul>` of the first level | Flag | The list goes on from the list before it, with the formats of its levels |
+
+**Attributes of `<li>`:**
+
+| Attribute | Values | Meaning |
+|-----------|--------|---------|
+| `value` | Number, 0 to 32767 | The item's own number (Set Numbering Value): the next items of its level go on from it |
+| `numbered` | `false` or `0` | The item has no number or bullet: a paragraph in the indent of its level (Backspace at the start of an item) |
+
+The editor writes an attribute only when it is not the default, and the elements of a list
+in the order of its items: a list of a deeper level inside the item before it. A part of a
+list after another list cannot go on with `continue`, which refers to the list just before
+it: its first item gets the number it has in the chapter as `value`.
+
+## Tables
+
+```xml
+<table>
+  <col width="40%"/><col width="60%"/>
+  <tr><th><p>Who</p></th><th><p>Role</p></th></tr>
+  <tr><td><p>Anna</p></td><td><p>Narrator</p><p>A second paragraph</p></td></tr>
+  <tr><td colspan="2"><p>Both</p></td></tr>
+</table>
+```
+
+- **A table** is a block between paragraphs, as wide as the text. Insert > Table... puts one
+  at the cursor: its columns and rows (up to 20 and 100), equal columns, and whether its first
+  row is a header row.
+- **Rows and cells.** Each `<tr>` is a row, each `<td>` or `<th>` in it a cell, from left to
+  right. A cell holds paragraphs: `<p>`, the headings and the lists, with their formatting,
+  links and the anchors of annotations; an empty cell has one empty paragraph. Text in a cell
+  outside a paragraph is a paragraph of its own. A cell holds only text: a horizontal line or a
+  break in it is left out, and the cells of a table inside it give their paragraphs to the
+  cell.
+- **Merged cells.** `colspan` and `rowspan` (1 to 100) are the columns and rows a cell spans. A
+  cell goes in the first column the cells above it do not span into; a row with fewer cells
+  than the table has columns gets empty ones, and a cell spanning more rows than the table has
+  spans those it has.
+- **The header row.** A first row of `<th>` cells only is the header row, which the editor
+  shows in bold on a shaded background. A `<th>` in another row is read as a `<td>`, and the
+  editor writes it as one.
+- **The widths of the columns.** The `<col width="..."/>` elements before the rows, one for
+  each column, give the widths in percent of the table's width; the editor writes them in
+  percent, rounded to two decimals, for a table that has them (Insert > Table... makes equal
+  columns, without widths). Widths in another unit
+  (`120px`) are taken in proportion to one another, and a column without a `<col>` gets the
+  average width of the others; without `<col>` elements, or when one has no width, the columns
+  are equal.
+- `<thead>`, `<tbody>`, `<tfoot>` and `<colgroup>` around the rows or the `<col>` elements are
+  read as if they were not there. Any other element in a table is skipped with everything
+  inside it, and a table without cells is left out.
+- **At the start and the end.** The editor's document has a paragraph before a table and after
+  it: a table at the start or the end of a chapter gets an empty paragraph there, which the
+  editor writes (`<p></p>`).
+- **In the editor.** Tab goes to the next cell, in the last one it adds a row; Shift+Tab goes
+  to the cell before, Up and Down to the cell above and below. Enter starts a paragraph in the
+  cell; Backspace and Delete do not join cells, and next to a table they remove an empty
+  paragraph the table does not need. A selection going into or out of a table removes the text
+  of the cells it covers, not the cells; a table it covers whole goes with it. In a cell
+  Insert > Horizontal Line, Scene Break, Page Break and Table are greyed out.
+- **A part of a table** (copied text): the rows from the cell where the part starts to the cell
+  where it ends, with its text; the other cells of those rows are empty. A part inside one cell
+  is its paragraphs, without the table.
+- **Pasted** text with a table puts it at the cursor, splitting the paragraph; an empty
+  paragraph next to the table that it does not need goes. Pasted in a cell, the text keeps only
+  its text: each row of a table is a paragraph with its cells separated by tabs, and a
+  horizontal line or a break an empty paragraph.
 
 ## Text
 
@@ -179,9 +323,36 @@ with the same formatting gets its own elements, always in the order `<b><i><u><s
 | `size` | Size in points (greater than 0) | The text has its own size |
 | `color` | Text color (`#rrggbb`; on reading any color name Qt accepts) | The color is set and is not black |
 | `bg` | Background color (as `color`) | The background is set and not transparent |
+| `caps` | `small` (small capitals) or `all` (all capitals) | The text is shown so; the letters stay as typed |
+| `spacing` | Letter spacing in points, -20 to 100 (more than 0 expanded, less condensed) | The text has its own letter spacing |
 
 On writing, the style attributes go on the first formatting element of the run, for example
 `<b font="Georgia"><i>text</i></b>`; a run without formatting elements gets a `<span>`.
+
+## Links
+
+```xml
+<p>See <a href="https://example.com">the page</a>.</p>
+```
+
+| Attribute | Value | Meaning |
+|-----------|-------|---------|
+| `href` | An address (escaped as XML, `&amp;` for `&`) | The address the link opens |
+
+- The text of `<a>` is the text of the link, with its own formatting inside it. A link goes on
+  in more `<a>` elements with the same `href`, one for each run of formatting:
+  `<a href="https://example.com">the </a><a href="https://example.com"><b>page</b></a>` is one
+  link. Text next to it with another address, or none, is not a part of it.
+- On writing, `<a>` goes inside the anchors of annotations and outside the references and the
+  formatting elements: `<anchor ref="a1"><a href="..."><charref ...><b>text</b></charref></a></anchor>`.
+- Spaces around the address are dropped on reading; `<a>` without an `href`, or with an empty
+  one, is plain text.
+- The editor keeps any address, but it opens only a web page (`http`, `https`), a file server
+  (`ftp`) and a new e-mail (`mailto`); a link to another address (`file:`, `javascript:`) is
+  only text. Insert > Link (Ctrl+K) gives an address without a scheme `https://`, and an e-mail
+  address `mailto:`.
+- The look of a link – its color, underlined – is not in the KML: the editor draws every link
+  in the link color of its paper (Settings > Editor > Colors).
 
 ## Annotations
 
@@ -249,6 +420,10 @@ tests in `tests/editor/test_clipboard_paste.cpp`).
 | `<hr/>` | `<hr/>` | A line of ten `─` (U+2500) |
 | `<scene-break/>` | As the setting `editor.sceneBreak.style` shows it: a centered paragraph with `* * *`, `⁂` or `❦`, a short line (`<hr width="30%"/>`) for `line`, an empty paragraph for `blank` | Its symbol (`───` for `line`) on a line, an empty line for `blank` |
 | `<page-break/>` | CSS `page-break-before:always` of what follows it; an empty paragraph when nothing does | A form feed (U+000C) on a line of its own |
+| `<ol>`, `<ul>`, `<li>` | `<ol>`, `<ul>` and `<li>`, a list of a deeper level inside an item; the type of the numbers, the number of the first item and of an item that does not go on from the one before it | Each item on a line, with its number or bullet as the editor shows it |
+| `caps`, `spacing` | CSS `font-variant:small-caps` or `text-transform:uppercase`, `letter-spacing` in points | – |
+| `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
+| `<table>` | `<table>` as wide as the text with a thin grid (`border="1"`, `border-collapse:collapse`), the header row in a `<thead>` of `<th>` cells, `colspan` and `rowspan`, the widths of the columns on the cells of the first row | A line for each row, its cells separated by tabs (one also for a cell that a cell above spans into), the paragraphs of a cell by spaces |
 
 The HTML of another program (Word, LibreOffice, a browser) is pasted, and dropped, in the mode
 of the setting `editor.paste.mode` (Settings > Editor > General, "Paste from Other
@@ -257,14 +432,20 @@ without the files it refers to.
 
 | Mode | Value | What the KML keeps |
 |------|-------|--------------------|
-| Merge Formatting (the default) | `merge` | The headings (`<h4>` to `<h6>` as `<h3>`); the quotes (`<blockquote>`, Word's quote styles) as `<p style="quote">`; `<hr/>`; the page breaks (CSS `page-break-before` and `page-break-after: always`, Word's page break) as `<page-break/>`; the line breaks; bold, italic, underline, strikethrough, subscript and superscript; centered and right-aligned paragraphs. The text takes the format of the place it is pasted to, with its emphasis on top. |
+| Merge Formatting (the default) | `merge` | The headings (`<h4>` to `<h6>` as `<h3>`); the quotes (`<blockquote>`, Word's quote styles) as `<p style="quote">`; `<hr/>`; the page breaks (CSS `page-break-before` and `page-break-after: always`, Word's page break) as `<page-break/>`; the line breaks; bold, italic, underline, strikethrough, subscript and superscript; the links to web pages, file servers and e-mail addresses (a link to a place in the page or to a script comes as its text); centered and right-aligned paragraphs. The text takes the format of the place it is pasted to, with its emphasis on top. |
 | Keep Source Formatting | `source` | Also every alignment, the font (the first of a CSS list that is not a generic family), the size (in points) and the colors, and the styles of the head of Word's HTML |
-| Keep Text Only | `text` | The paragraphs and line breaks of the plain text |
+| Keep Text Only | `text` | The paragraphs and line breaks of the plain text, without links |
 
-Text copied in Kalahari is pasted as KML in every mode. Until the editor has them, a list item
-comes as a paragraph starting with its bullet or number, a table row as a paragraph with its
-cells separated by tabs, and a link as its text; images are left out. A heading's bold is the
-look of the heading and is not kept. A scene break of another program comes as the paragraph
+Text copied in Kalahari is pasted as KML in every mode. The lists of browsers, LibreOffice
+and Word come as lists in the modes Merge Formatting and Keep Source Formatting, a list in an
+item as the next level of its list; Word's numbers and bullets (also those of the fonts Symbol
+and Wingdings) give the levels their formats and first numbers. Keep Text Only keeps the
+numbers and bullets as text. Tables come as tables in Merge Formatting and Keep Source
+Formatting, with their merged cells, the widths of their columns (in percent, or pixels in
+proportion) and their header row: a `<thead>`, or a first row of `<th>` cells, whose bold, and
+in Merge Formatting their centering, is the look of the header; in Keep Text Only, and in a
+cell, a row is a paragraph with its cells separated by tabs. Images are left out. A heading's
+bold is the look of the heading and is not kept. A scene break of another program comes as the paragraph
 of its symbol.
 
 ## References
@@ -294,9 +475,7 @@ rest of the chapter is not loaded – and logs an error.
 
 Elements of the product specification that the editor does not read yet:
 
-- lists `<ul>`, `<ol>`, `<li>`,
 - images `<img>`,
-- tables `<table>`, `<tr>`, `<td>`, `<th>`,
 - the annotations `<endnote>` and the references `<itemref>`, `<cite>`,
 - the root attributes `version` and `lang`, the paragraph attribute `speaker` and the scene
   break attribute `type` (the look of the scene breaks is a setting of the editor).

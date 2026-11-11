@@ -55,11 +55,15 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     RenderColors colors;
     colors.text = appearance.colors.textColor(mode);
     colors.background = appearance.colors.background(mode);
+    colors.desk = appearance.colors.desk(mode);
     colors.cursor = appearance.cursor.useCustomColor ? appearance.cursor.customColor
                                                      : appearance.colors.textColor(mode);
     colors.selection = appearance.colors.selection;
+    colors.searchHighlight = appearance.colors.searchMatch;
+    colors.currentMatch = appearance.colors.currentSearchMatch;
     colors.inactiveText = appearance.colors.focusInactiveColor(mode);
     colors.formattingMarks = appearance.colors.formattingMarksColor(mode);
+    colors.link = appearance.colors.linkColor(mode);
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
     colors.annotationComment = annotations.comment;
     colors.annotationTodo = annotations.todo;
@@ -71,6 +75,9 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     if (issues.grammar.isValid()) {
         colors.grammarWarning = issues.grammar;
     }
+    if (issues.repetition.isValid()) {
+        colors.repetition = issues.repetition;
+    }
     return colors;
 }
 
@@ -80,6 +87,11 @@ LayoutTypography layoutTypography(const EditorTypography& typography) {
     result.lineSpacing = typography.lineHeight;
     result.paragraphSpacing = typography.paragraphSpacing;
     result.firstLineIndent = typography.firstLineIndent ? typography.indentSize : 0.0;
+    // A style without an indent has its tab stops as far apart as the indent of the
+    // settings, also when the first lines are not indented
+    result.tabStops = typography.tabStops;
+    result.tabIndent = typography.indentSize;
+    result.tabSpaces = typography.tabSpaces;
     return result;
 }
 
@@ -229,12 +241,7 @@ BookEditor::BookEditor(QWidget* parent)
     // Configure initial pipeline context
     RenderContext ctx;
     ctx.font = m_appearance.typography.textFont;
-    ctx.colors.text = m_appearance.colors.textColor(m_appearance.colorMode);
-    ctx.colors.background = m_appearance.colors.background(m_appearance.colorMode);
-    ctx.colors.cursor = m_appearance.cursor.useCustomColor
-        ? m_appearance.cursor.customColor
-        : m_appearance.colors.textColor(m_appearance.colorMode);
-    ctx.colors.selection = m_appearance.colors.selection;
+    ctx.colors = renderColorsFor(m_appearance, m_appearance.colorMode);
     ctx.viewMode = m_viewMode;
     // Set initial DPI (will be updated in showEvent when screen is available)
     ctx.screenDpi = DEFAULT_DPI;
@@ -245,6 +252,9 @@ BookEditor::BookEditor(QWidget* parent)
             this, [this](const QRegion& region) {
         update(region.boundingRect());
     });
+
+    // The cards of the annotations under the paragraphs are drawn with them
+    setUpAnnotationCards();
 
     // Connect ViewportManager signals
     connect(m_viewportManager.get(), &ViewportManager::viewportChanged,
@@ -312,6 +322,8 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         std::abs(appearance.typewriter.focusPosition - m_appearance.typewriter.focusPosition) >=
             TYPEWRITER_HEIGHT_EPSILON;
     m_appearance = appearance;
+    // The cards are sized after the text's font: before the text is laid out with it
+    m_annotationCards.setTextFont(m_appearance.typography.textFont);
 
     // The render pipeline owns the document font: it applies the font of the settings as
     // the document's default font (one relayout, only when it changes; the zoom scales the
@@ -339,6 +351,7 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, m_appearance.colorMode));
         m_renderPipeline->setConfigFocus(m_appearance.focusMode.enabled);
         m_renderPipeline->setConfigFormattingMarks(m_appearance.showFormattingMarks);
+        m_renderPipeline->setConfigMarginNumbers(m_appearance.marginNumbers);
         m_renderPipeline->setConfigAnnotationMarkScale(m_appearance.annotationMarkScale);
         m_renderPipeline->setConfigTextFrameBorder(m_appearance.textFrameBorder.show,
                                                    m_appearance.textFrameBorder.color,
@@ -354,6 +367,9 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
                                     : nullptr) {
         layout->setSceneBreakLook(m_appearance.sceneBreakLook);
     }
+
+    // The cards of the annotations under the paragraphs: shown or not, their looks and colors
+    updateAnnotationCards();
 
     // The page's margins set the scroll range (the pipeline gives the viewport the scroll
     // padding)
@@ -394,6 +410,7 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
         if (m_renderPipeline) {
             m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, mode));
         }
+        updateAnnotationCards();  // in the colors of the paper
 
         update();
     }
@@ -405,6 +422,26 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
 
 bool BookEditor::event(QEvent* event)
 {
+    // Tab and Shift+Tab in a table go to the next or the previous cell; at the start of a
+    // list item, or with a selection of items, they take them a level down or up; elsewhere
+    // they go from field to field, as in every program
+    if (event->type() == QEvent::KeyPress) {
+        const auto* key = static_cast<QKeyEvent*>(event);
+        const bool tab = key->key() == Qt::Key_Tab || key->key() == Qt::Key_Backtab;
+        const Qt::KeyboardModifiers others =
+            key->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier);
+        const bool back =
+            key->key() == Qt::Key_Backtab || key->modifiers().testFlag(Qt::ShiftModifier);
+        if (tab && others == Qt::NoModifier && moveToCell(back)) {
+            event->accept();
+            return true;
+        }
+        if (tab && others == Qt::NoModifier && tabChangesListLevel()) {
+            changeIndent(back ? -1 : 1, false);
+            event->accept();
+            return true;
+        }
+    }
     // The keys of the text are the text's, before the shortcuts of the window: Edit > Delete
     // shows Delete, as word processors do, and the key deletes here as in any text
     if (event->type() == QEvent::ShortcutOverride) {
@@ -414,10 +451,24 @@ bool BookEditor::event(QEvent* event)
             return true;
         }
     }
+    // Tab types a tab character, as in word processors: QWidget::event() would go to the next
+    // field. Shift+Tab still goes to the field before, and so does Tab in a read-only text, as
+    // in any field. A Tab a field of the editor's own bars left over is not the text's
+    if (event->type() == QEvent::KeyPress && hasFocus() && !m_readOnly) {
+        auto* key = static_cast<QKeyEvent*>(event);
+        if (textKeyFor(key->key(), key->modifiers(), isMacOS()).action == TextKeyAction::Tab) {
+            keyPressEvent(key);
+            return true;
+        }
+    }
     // The tooltip of an annotation's mark: who made the annotation, in bold, and its text,
-    // as it is written
+    // as it is written; on a card, what its button does
     if (event->type() == QEvent::ToolTip && m_renderPipeline) {
         const auto* help = static_cast<QHelpEvent*>(event);
+        if (const QString tip = annotationCardToolTip(QPointF(help->pos())); !tip.isEmpty()) {
+            QToolTip::showText(help->globalPos(), tip, this);
+            return true;
+        }
         // The mark beside a paragraph: the titles of the materials linked with it
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
             //: The tooltip of the paperclip beside a paragraph, over the titles of the
@@ -438,6 +489,20 @@ bool BookEditor::event(QEvent* event)
         QString text = mark && !mark->text.trimmed().isEmpty() ? mark->text : QString();
         const QString author = mark ? mark->author.trimmed() : QString();
         if (text.isEmpty() && author.isEmpty()) {
+            // A link: its address, and how to open it
+            if (const std::optional<TextLink> link = linkAt(QPointF(help->pos()))) {
+                QString address = link->address;
+                if (address.size() > MARK_TOOLTIP_LENGTH) {
+                    address = address.left(MARK_TOOLTIP_LENGTH) + QStringLiteral("...");
+                }
+                //: %1 is the key held for the click: "Ctrl+" (on macOS "⌘")
+                const QString open = tr("%1click to open the link").arg(linkClickKeys());
+                QToolTip::showText(help->globalPos(),
+                                   QStringLiteral("<p style='white-space:pre-wrap'>%1<br><b>%2</b></p>")
+                                       .arg(address.toHtmlEscaped(), open.toHtmlEscaped()),
+                                   this);
+                return true;
+            }
             QToolTip::hideText();
             event->ignore();
             return true;
@@ -874,6 +939,7 @@ bool BookEditor::fromKml(const QString& kml)
     m_pageMoves.clear();  // Page Up/Down start anew in the new text
     m_pageMoveCursor = {-1, -1};
     m_pendingFormat = QTextCharFormat();  // it was given for the old text
+    m_learnableChange.reset();            // a change of the old text
 
     // Unreadable KML gives the paragraphs read before the error
     KmlDocumentModel content;
@@ -1010,6 +1076,25 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     layout->setParagraphStyles(m_paragraphStyles);  // the book's styles (setParagraphStyles())
     layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
 
+    // The numbers on the margin go on from the lines above the view, estimated until the
+    // background pass lays them out: the view shows the exact numbers then. Laying out the
+    // blocks above leaves the view's text where it is, so nothing else repaints it.
+    connect(layout, &KalahariTextDocumentLayout::blocksLaidOut, this, [this]() {
+        if (m_renderPipeline && m_renderPipeline->marginNumbersOutdated()) {
+            update();
+        }
+    });
+
+    // The cards of its annotations: collapsed or expanded as the settings say, with room
+    // under their paragraphs
+    m_annotationCards.startText();
+    m_pressedCard.clear();
+    m_selectedCard = QTextCursor();
+    if (m_renderPipeline) {
+        m_renderPipeline->setFragmentHighlight(std::nullopt);
+    }
+    setUpAnnotationCards();
+
     // The render pipeline applies the font and the wrap width while the document is
     // still empty, so the content below is laid out exactly once.
     syncPipelineState();
@@ -1037,6 +1122,15 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     appendParagraphs(cursor, content);
     cursor.endEditBlock();
     m_textBuffer->setUndoRedoEnabled(true);
+
+    // A new level of undo takes the place of the levels undone before it: the pastes among
+    // them cannot be redone any more
+    m_undoLevel = 0;
+    m_pasteLevels.clear();
+    connect(m_textBuffer.get(), &QTextDocument::undoCommandAdded, this, [this]() {
+        const int level = ++m_undoLevel;
+        m_pasteLevels.removeIf([level](int paste) { return paste >= level; });
+    });
 
     // The grammar of the paragraphs edited is checked when the writer stops typing (the
     // content put in above is not an edit: it is checked at once)

@@ -35,8 +35,9 @@ namespace gui {
 [[nodiscard]] QSet<QChar> accessKeysIn(const QMenu* menu, const QAction* except = nullptr);
 
 /// @brief A name the user gave with an access key no other item of its menu has: the first
-///        letter of one of its words, or else another letter or digit of it; none when the
-///        menu has each of them already
+///        letter of one of its words, or else another letter or digit of it; when the menu
+///        has each of them already, a free one after it, as Windows shows one in a name
+///        without it ("Ab && ba (&C)"); none when the menu has every letter and digit
 /// @param used The access keys of the other items of the menu (upper case); gets the new
 ///        one
 [[nodiscard]] QString withFreeAccessKey(const QString& name, QSet<QChar>& used);
@@ -46,7 +47,8 @@ namespace gui {
 ///
 /// Where the letters and digits of a name are all taken, a name before it takes another of
 /// its own and leaves it one (the panels and the toolbars of a window share a menu, and
-/// their names share letters): as many names as can have a key get one.
+/// their names share letters): as many names as can have a key of their own get one, and the
+/// others a free key after them.
 /// @param used The access keys of the other items of the menu (upper case); gets the new
 ///        ones
 [[nodiscard]] QStringList withFreeAccessKeys(const QStringList& names, QSet<QChar>& used);

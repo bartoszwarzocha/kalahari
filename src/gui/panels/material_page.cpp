@@ -1492,15 +1492,12 @@ MaterialCardPanel::MaterialCardPanel(const QString& elementId, QWidget* parent)
     setObjectName(QStringLiteral("materialCardPanel"));
     setWidgetResizable(true);
     setFrameShape(QFrame::NoFrame);
-    // The card in the middle of a wide tab, at most MAXIMUM_WIDTH wide
+    // The card fills the tab, however wide it is, with a margin around it
     auto* content = new QWidget(this);
     auto* row = new QHBoxLayout(content);
     row->setContentsMargins(16, 16, 16, 16);
     m_page = new MaterialPage(content, true);
-    m_page->setMaximumWidth(MAXIMUM_WIDTH);
-    row->addStretch(1);
-    row->addWidget(m_page, 100);
-    row->addStretch(1);
+    row->addWidget(m_page);
     setWidget(content);
     setFocusProxy(m_page->titleEdit());
     m_page->showMaterial(elementId);

@@ -36,7 +36,9 @@ class SearchPanel;
 class AssistantPanel;
 class AnnotationsPanel;
 class SpellingPanel;
+class RepetitionsPanel;
 class ParagraphPanel;
+class WritingStatsPanel;
 class FittingScrollArea;
 class InfoBar;
 class PanelTabs;
@@ -136,6 +138,13 @@ public:
     ///        of the Properties panel opens unfolded with the Properties panel on top
     void placeParagraphPanel(bool moved);
 
+    /// @brief The Statistics panel in a layout saved before it existed, once: Qt leaves it
+    /// where it was before the layout came back, shown even when the panels on the right were
+    /// closed. It goes in the tab after the Annotations panel, closed while that is closed.
+    /// @param savedLayout The window took a saved layout; without one (the first start) the
+    ///        panel stays where the default layout puts it
+    void placeStatisticsPanel(bool savedLayout);
+
     /// @brief Follow the text in front with the Paragraph and Styles panel, in both its places
     /// @param editor The text, nullptr without one (the Dashboard, no tab)
     void setParagraphEditor(editor::BookEditor* editor);
@@ -199,6 +208,12 @@ public:
     /// @brief Get the Spelling and Grammar panel
     [[nodiscard]] SpellingPanel* spellingPanel() const { return m_spellingPanel; }
 
+    /// @brief Get the Repetitions panel
+    [[nodiscard]] RepetitionsPanel* repetitionsPanel() const { return m_repetitionsPanel; }
+
+    /// @brief The Statistics panel (its statistics come from WritingStatsCoordinator)
+    [[nodiscard]] WritingStatsPanel* statisticsPanel() const { return m_statisticsPanel; }
+
     /// @brief The Paragraph and Styles panel of its own (paragraphDock())
     [[nodiscard]] ParagraphPanel* paragraphPanel() const { return m_paragraphPanel; }
 
@@ -245,6 +260,12 @@ public:
     /// @brief Get the dock of the Spelling and Grammar panel
     [[nodiscard]] QDockWidget* spellingDock() const { return m_spellingDock; }
 
+    /// @brief Get the dock of the Repetitions panel
+    [[nodiscard]] QDockWidget* repetitionsDock() const { return m_repetitionsDock; }
+
+    /// @brief The dock of the Statistics panel
+    [[nodiscard]] QDockWidget* statisticsDock() const { return m_statisticsDock; }
+
     /// @brief The dock of the Paragraph and Styles panel of its own (hidden while the panel is
     /// in the Properties panel)
     [[nodiscard]] QDockWidget* paragraphDock() const { return m_paragraphDock; }
@@ -283,6 +304,9 @@ public:
 
     /// @brief Get the Spelling and Grammar toggle action
     [[nodiscard]] QAction* viewSpellingAction() const { return m_viewSpellingAction; }
+
+    /// @brief Get the Repetitions toggle action
+    [[nodiscard]] QAction* viewRepetitionsAction() const { return m_viewRepetitionsAction; }
 
     /// @brief The Paragraph and Styles toggle action
     [[nodiscard]] QAction* viewParagraphAction() const { return m_viewParagraphAction; }
@@ -342,6 +366,10 @@ signals:
     /// @param elementId Chapter element ID
     void chapterStatusChanged(const QString& elementId);
 
+    /// @brief Emitted when whether a text element starts on a left page changes in the
+    ///        properties panel
+    void chapterFirstPageChanged(const QString& elementId);
+
     /// @brief Emitted when Log panel requests settings dialog
     void openSettingsRequested();
 
@@ -371,6 +399,12 @@ private:
 
     /// @brief Create the dock of the Spelling and Grammar panel (hidden until opened)
     void createSpellingDock();
+
+    /// @brief Create the dock of the Repetitions panel (hidden until opened)
+    void createRepetitionsDock();
+
+    /// @brief Create the dock of the Statistics panel, a tab after the Annotations panel
+    void createStatisticsDock();
 
     /// @brief Create the dock of the Paragraph and Styles panel of its own
     void createParagraphDock();
@@ -438,7 +472,9 @@ private:
     QDockWidget* m_assistantDock{nullptr};
     QDockWidget* m_annotationsDock{nullptr};
     QDockWidget* m_spellingDock{nullptr};
+    QDockWidget* m_repetitionsDock{nullptr};
     QDockWidget* m_paragraphDock{nullptr};
+    QDockWidget* m_statisticsDock{nullptr};
 
     // Panels
     NavigatorPanel* m_navigatorPanel{nullptr};
@@ -449,6 +485,8 @@ private:
     AssistantPanel* m_assistantPanel{nullptr};
     AnnotationsPanel* m_annotationsPanel{nullptr};
     SpellingPanel* m_spellingPanel{nullptr};
+    RepetitionsPanel* m_repetitionsPanel{nullptr};
+    WritingStatsPanel* m_statisticsPanel{nullptr};
     ParagraphPanel* m_paragraphPanel{nullptr};       ///< In its own dock
     ParagraphPanel* m_propertiesParagraph{nullptr};  ///< The lower part of Properties
     QSplitter* m_propertiesSplitter{nullptr};        ///< Properties | Paragraph and Styles
@@ -469,7 +507,9 @@ private:
     QAction* m_viewAssistantAction{nullptr};
     QAction* m_viewAnnotationsAction{nullptr};
     QAction* m_viewSpellingAction{nullptr};
+    QAction* m_viewRepetitionsAction{nullptr};
     QAction* m_viewParagraphAction{nullptr};
+    QAction* m_viewStatisticsAction{nullptr};
 
     // Icon tracking for refresh
     QList<QLabel*> m_dockIconLabels;

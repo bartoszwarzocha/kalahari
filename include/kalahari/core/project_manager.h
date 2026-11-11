@@ -659,6 +659,12 @@ public:
     /// book outside its text has no status.
     bool setStatus(const QString& elementId, const QString& status);
 
+    /// @brief Set whether a text element starts on a left page (with mirror margins its inner
+    ///        margin is on the right then); without it, it starts on a right page
+    ///
+    /// Saves the .klh file. A file of the book outside its text has no pages of its own.
+    bool setFirstPageLeft(const QString& elementId, bool left);
+
     /// @brief Notes of a text element, from its chapter file; of an element without a chapter
     /// file (a card of the Workshop), its description (ProjectElement::description)
     QString notes(const QString& elementId) const;
@@ -731,6 +737,20 @@ public:
     bool setCoverState(const QString& elementId, const QString& state,
                        QStringList* drafts = nullptr);
 
+    // =========================================================================
+    // Paragraph Styles of the Books
+    // =========================================================================
+
+    /// @brief The project's own paragraph styles and the styles of its type it changes
+    ///        (BookProject::paragraphStyles); none without a project
+    QList<BookParagraphStyle> paragraphStyles() const;
+
+    /// @brief Give the project these paragraph styles and save its .klh file; the editors show
+    ///        them at once (paragraphStylesChanged())
+    /// @return false without a project, in a book open read-only, or when the file cannot be
+    ///         saved (the styles stay as they were)
+    bool setParagraphStyles(const QList<BookParagraphStyle>& styles);
+
     /// @brief Materials linked with @p link, an element or a section of the book
     /// (BookProject::sectionLink()), in the order of the Workshop
     QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
@@ -762,6 +782,16 @@ public:
 
     /// @brief Keep @p kml as the unsaved text of a text element
     void setChapterContent(const QString& elementId, const QString& kml);
+
+    /// @brief The ids of the text elements of the project, each with its file: the texts of
+    ///        the books in reading order with their files outside the text, then the texts
+    ///        of the Workshop
+    QStringList textElementIds() const;
+
+    /// @brief The text (KML) of a text element as the program has it: the unsaved text kept
+    ///        with setChapterContent(), else the text of its chapter file; it keeps nothing
+    /// @return Empty when the element is not a text element or its file cannot be read
+    QString chapterText(const QString& elementId) const;
 
     /// @brief Forget the unsaved text of a text element; it is read from its file again
     void discardChapterContent(const QString& elementId);
@@ -973,6 +1003,8 @@ signals:
     /// with a material, taken out with an element, or following the paragraphs of a text that
     /// was saved
     void linksChanged();
+    /// @brief The paragraph styles of the project changed (setParagraphStyles())
+    void paragraphStylesChanged();
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
     void versionsChanged(const QString& elementId);

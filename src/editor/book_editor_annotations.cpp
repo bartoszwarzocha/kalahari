@@ -78,13 +78,16 @@ QRectF BookEditor::placeRect(int position, bool afterText) const
                                        afterText);
 }
 
-QRectF BookEditor::textColumnRect() const
+QRectF BookEditor::textColumnRect(double y) const
 {
     if (!m_renderPipeline) {
         return QRectF(rect());
     }
+    // Of the page there: mirror margins shift the text of every other page
     const auto& computed = m_renderPipeline->context().computed;
-    return QRectF(computed.originX, 0.0, computed.textWidth * computed.viewScale, height());
+    const double left = m_renderPipeline->documentToWidget(
+        QPointF(0.0, m_renderPipeline->widgetToDocument(QPointF(0.0, y)).y())).x();
+    return QRectF(left, 0.0, computed.textWidth * computed.viewScale, height());
 }
 
 QString BookEditor::annotationMarkAt(const QPointF& point) const
@@ -264,6 +267,17 @@ bool BookEditor::goToAnnotation(const QString& id)
         setSelection({start, end});
     }
     ensureCursorVisible();
+
+    // Its card under the paragraph is outlined, and comes into view, while the cursor is in
+    // its fragment
+    if (m_annotationCards.isShown()) {
+        m_annotationCards.setSelected(id);
+        m_selectedCard = QTextCursor(m_textBuffer.get());
+        m_selectedCard.setPosition(place->start);
+        m_selectedCard.setPosition(place->end, QTextCursor::KeepAnchor);
+        scrollToAnnotationCard(id);
+        update();
+    }
     return true;
 }
 

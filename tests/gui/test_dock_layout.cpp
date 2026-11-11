@@ -248,6 +248,49 @@ TEST_CASE("Panels: the Spelling and Grammar panel opens as the tab after the Ann
     CHECK(tabIndex(panels.window, spelling) == tabIndex(panels.window, annotations) + 1);
 }
 
+TEST_CASE("Panels: the Repetitions panel opens as a tab after the Annotations tab",
+          "[gui][panels][repetitions]") {
+    // The layout of a window saved before the panel existed, which does not know the panel
+    QByteArray oldLayout;
+    {
+        Panels old;
+        old.window.removeDockWidget(old.docks->repetitionsDock());
+        oldLayout = old.window.saveState();
+    }
+    Panels panels;
+    QDockWidget* repetitions = panels.docks->repetitionsDock();
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    REQUIRE(repetitions != nullptr);
+
+    SECTION("in the default layout") {
+    }
+    SECTION("in a layout saved before the panel existed") {
+        REQUIRE(panels.window.restoreState(oldLayout));
+        QApplication::processEvents();
+    }
+    SECTION("after Reset Layout") {
+        CommandRegistry::getInstance().executeCommand("view.repetitionsPanel");
+        QApplication::processEvents();
+        panels.docks->resetLayout(false, false);
+        panels.docks->showRightPanels();  // hidden by Reset Layout on a small screen
+        QApplication::processEvents();
+    }
+
+    // Closed until opened
+    CHECK(repetitions->isHidden());
+    CHECK_FALSE(panels.docks->viewRepetitionsAction()->isChecked());
+    CHECK(panels.onTop(annotations));
+
+    // View > Panels > Repetitions
+    CommandRegistry::getInstance().executeCommand("view.repetitionsPanel");
+    QApplication::processEvents();
+    CHECK(repetitions->isVisible());
+    CHECK(panels.docks->viewRepetitionsAction()->isChecked());
+    CHECK(panels.onTop(repetitions));
+    REQUIRE(tabIndex(panels.window, annotations) >= 0);
+    CHECK(tabIndex(panels.window, repetitions) > tabIndex(panels.window, annotations));
+}
+
 TEST_CASE("Panels: the Paragraph and Styles panel is the tab after Properties",
           "[gui][panels][styles]") {
     Panels panels;
@@ -297,6 +340,56 @@ TEST_CASE("Panels: a layout saved before the Paragraph and Styles panel shows it
     CommandRegistry::getInstance().executeCommand("view.paragraph");
     QApplication::processEvents();
     CHECK(panels.onTop(paragraph));
+}
+
+TEST_CASE("Panels: a layout saved before the Statistics panel shows it as the right panels are",
+          "[gui][panels][statistics]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string placed = "window.statisticsPanelPlaced";
+    bool rightOpen = true;
+    SECTION("the right panels open: a tab after Annotations, Annotations on top") {
+        rightOpen = true;
+    }
+    SECTION("the right panels closed: closed too") {
+        rightOpen = false;
+    }
+    QByteArray oldLayout;
+    {
+        Panels old;
+        old.window.removeDockWidget(old.docks->statisticsDock());
+        if (!rightOpen) {
+            for (QDockWidget* dock : old.rightDocks()) {
+                dock->close();
+            }
+        }
+        oldLayout = old.window.saveState();
+    }
+    Panels panels;
+    REQUIRE(panels.window.restoreState(oldLayout));
+    settings.removeKey(placed);
+    panels.docks->placeStatisticsPanel(true);
+    QApplication::processEvents();
+
+    QDockWidget* statistics = panels.docks->statisticsDock();
+    QDockWidget* annotations = panels.docks->annotationsDock();
+    CHECK(settings.get<bool>(placed, false));
+    CHECK(panels.window.dockWidgetArea(statistics) == Qt::RightDockWidgetArea);
+    CHECK(statistics->toggleViewAction()->isChecked() == rightOpen);
+    if (rightOpen) {
+        CHECK(panels.onTop(annotations));
+    }
+    // A tab of the group of Annotations (Qt lists the tabs shown only)
+    annotations->show();
+    statistics->show();
+    QApplication::processEvents();
+    CHECK(panels.window.tabifiedDockWidgets(annotations).contains(statistics));
+
+    // Once: what the writer does with it later stays
+    statistics->close();
+    panels.docks->placeStatisticsPanel(true);
+    QApplication::processEvents();
+    CHECK_FALSE(statistics->toggleViewAction()->isChecked());
+    settings.removeKey(placed);
 }
 
 TEST_CASE("Panels: the button of a panel shows it, brings it on top, closes it",
@@ -461,6 +554,17 @@ TEST_CASE("Panels: the gear on the title bar of a panel asks for the panel's set
         gear->click();
         CHECK(asked == QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE));
     }
+
+    SECTION("The Repetitions panel: the gear, then Float and Close") {
+        QDockWidget* repetitions = panels.docks->repetitionsDock();
+        CHECK(titleBarButtons(repetitions) ==
+              std::vector<std::string>{"dock.settings", "dock.float", "dock.close"});
+        QToolButton* gear = titleBarButton(repetitions, QStringLiteral("dock.settings"));
+        REQUIRE(gear != nullptr);
+        CHECK(gear->toolTip() == QStringLiteral("Repetition Settings"));
+        gear->click();
+        CHECK(asked == QString::fromLatin1(SettingsDialog::REPETITIONS_PAGE));
+    }
 }
 
 TEST_CASE("Panels: a small screen leaves the text room", "[gui][panels]") {
@@ -562,6 +666,9 @@ TEST_CASE("Panels: the first layout on a small screen says why once", "[gui][pan
 TEST_CASE("Panels: every panel and the text fit a small screen side by side", "[gui][panels]") {
     // Regression: the window took the width of the bar of a file outside the book, so it
     // reached beyond a small screen
+    // The toolbars with their icons, as in the program: a button without its icon shows its
+    // text, so the width depended on whether a test before had registered the icons
+    registerAllIcons();
     Panels panels;
     // The bars of the program's window: the menus, the toolbars and the status bar
     auto* menus = new QMenuBar(&panels.window);

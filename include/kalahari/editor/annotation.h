@@ -77,6 +77,7 @@ struct AnnotationMark {
     QString id;                                     ///< The annotation's id
     QString text;                                   ///< The annotation's text
     QString author;                                 ///< Who made the annotation
+    QDateTime created;                              ///< When it was made (invalid: unknown)
 
     bool operator==(const AnnotationMark& other) const = default;
 };
@@ -160,7 +161,8 @@ bool removeAnnotation(QTextDocument& document, const QString& id);
 ///
 /// The format the document gives the position, carrying only the annotations of the
 /// fragments the position is inside of. Text typed after a fragment does not join it,
-/// and an annotation on a place never spreads to new text.
+/// and an annotation on a place never spreads to new text. A link (text_link.h) goes on
+/// only between two of its characters, so text typed after a link is not a part of it.
 QTextCharFormat insertionFormat(const QTextCursor& cursor);
 
 /// @brief The fragments every character of the text from @p from to @p to belongs to

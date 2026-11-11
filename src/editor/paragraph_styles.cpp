@@ -2,15 +2,22 @@
 /// @brief The paragraph styles of a book and the objects of its text
 
 #include <kalahari/editor/paragraph_styles.h>
+
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/kml_format_registry.h>
+#include <kalahari/editor/text_tables.h>
 #include <QHash>
+#include <QRegularExpression>
 #include <QSet>
 #include <QTextBlock>
 #include <QTextBlockFormat>
 #include <QTextCharFormat>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <algorithm>
 #include <optional>
 #include <utility>
 
@@ -25,12 +32,15 @@ QString headingStyleId(int level) {
 }
 
 int headingLevelOf(const QString& styleId) {
-    for (int level = 1; level <= HEADING_LEVELS; ++level) {
-        if (styleId == headingStyleId(level)) {
-            return level;
-        }
+    // headingStyleId(): the prefix and the level, one digit. Read without building the ids,
+    // as the numbers on the margin ask it of every paragraph
+    static_assert(HEADING_LEVELS <= 9, "a heading level is one digit");
+    const QLatin1String prefix("heading_");
+    if (styleId.size() != prefix.size() + 1 || !styleId.startsWith(prefix)) {
+        return 0;
     }
-    return 0;
+    const int level = styleId.back().unicode() - u'0';
+    return level >= 1 && level <= HEADING_LEVELS ? level : 0;
 }
 
 int headingLevelOfElement(QStringView element) {
@@ -379,8 +389,12 @@ void removeBlock(QTextCursor& cursor, const QTextBlock& block) {
     const int end = block.position() + block.length() - 1;
     const AnnotationList staying = annotationsOfBlock(document, block);
 
+    // A break at a table stays: the table keeps its cells and the paragraphs next to it
+    const bool breakAfter = next.isValid() && !isTableBreakAt(document, end);
+    const bool breakBefore = previous.isValid() && !isTableBreakAt(document, block.position() - 1);
+
     cursor.beginEditBlock();
-    if (next.isValid()) {
+    if (breakAfter) {
         // Removed with the break after it, the block would give its formats to the next one
         const QTextBlockFormat format = next.blockFormat();
         const QTextCharFormat charFormat = next.charFormat();
@@ -389,16 +403,19 @@ void removeBlock(QTextCursor& cursor, const QTextBlock& block) {
         cursor.removeSelectedText();
         cursor.setBlockFormat(format);
         cursor.setBlockCharFormat(charFormat);
-    } else if (previous.isValid()) {
+    } else if (breakBefore) {
         cursor.setPosition(previous.position() + previous.length() - 1);
         cursor.setPosition(end, QTextCursor::KeepAnchor);
         cursor.removeSelectedText();
     } else {
+        // The only paragraph of the text, or of a cell (whose format keeps its span)
         cursor.setPosition(block.position());
         cursor.setPosition(end, QTextCursor::KeepAnchor);
         cursor.removeSelectedText();
         cursor.setBlockFormat(paragraphBlockFormat());
-        cursor.setBlockCharFormat(QTextCharFormat());
+        if (!tableOf(block)) {
+            cursor.setBlockCharFormat(QTextCharFormat());
+        }
     }
     anchorToPlace(document, cursor.position(), staying);
     cursor.endEditBlock();
@@ -450,12 +467,169 @@ ParagraphStyleSet ParagraphStyleSet::fromPackage(
         if (resolvedStyle.name.isEmpty()) {
             resolvedStyle.name = style.id;
         }
+        resolvedStyle.baseStyle = byId.contains(style.baseStyle) ? style.baseStyle : QString();
         resolvedStyle.nextStyle = style.nextStyle;
         resolvedStyle.properties = resolved(style);
+        resolvedStyle.ownProperties = style.properties;
         set.m_styles.append(resolvedStyle);
     }
     if (!set.contains(QString::fromLatin1(NORMAL_STYLE_ID))) {
         set.m_styles.prepend(ParagraphStyleSet().normal());
+    }
+    return set;
+}
+
+QString styleAlignmentName(Qt::Alignment alignment) {
+    switch (alignment & Qt::AlignHorizontal_Mask) {
+        case Qt::AlignLeft:
+            return QStringLiteral("left");
+        case Qt::AlignHCenter:
+            return QStringLiteral("center");
+        case Qt::AlignRight:
+            return QStringLiteral("right");
+        case Qt::AlignJustify:
+            return QStringLiteral("justify");
+        default:
+            return QString();
+    }
+}
+
+Qt::Alignment styleAlignmentOf(const QString& name) {
+    if (name == QLatin1String("left")) {
+        return Qt::AlignLeft;
+    }
+    if (name == QLatin1String("center")) {
+        return Qt::AlignHCenter;
+    }
+    if (name == QLatin1String("right")) {
+        return Qt::AlignRight;
+    }
+    if (name == QLatin1String("justify")) {
+        return Qt::AlignJustify;
+    }
+    return {};
+}
+
+QHash<QString, int> paragraphStyleCounts(const QString& kml) {
+    QHash<QString, int> counts;
+    KmlDocumentModel content;
+    content.loadKml(kml);  // an unreadable rest: the paragraphs read before it
+    for (size_t i = 0; i < content.paragraphCount(); ++i) {
+        if (content.paragraphObject(i) != TextObject::None) {
+            continue;
+        }
+        const QString style = content.paragraphStyle(i);
+        ++counts[style.isEmpty() ? QString::fromLatin1(NORMAL_STYLE_ID) : style];
+    }
+    return counts;
+}
+
+QString replaceParagraphStyleInKml(const QString& kml, const QString& from, const QString& to,
+                                   int* count) {
+    const QString normal = QString::fromLatin1(NORMAL_STYLE_ID);
+    const QString target = to.isEmpty() ? normal : to;
+    int changed = 0;
+    if (count != nullptr) {
+        *count = 0;
+    }
+    if (from.isEmpty() || from == normal || from == target) {
+        return kml;
+    }
+
+    // The paragraphs of the style: <hN> of its level, or <p> and <li> with its attribute (a
+    // list item has the attribute whatever its style)
+    const int fromLevel = headingLevelOf(from);
+    const QString fromAttribute = QRegularExpression::escape(
+        QStringLiteral(" style=\"") + KmlFormatRegistry::escapeXml(from) + QLatin1Char('"'));
+    const QRegularExpression opening(
+        fromLevel > 0 ? QStringLiteral("<(h%1)((?:\\s[^>]*)?)>|<(li)([^>]*?)%2([^>]*)>")
+                            .arg(fromLevel)
+                            .arg(fromAttribute)
+                      : QStringLiteral("<(p|li)([^>]*?)%1([^>]*)>").arg(fromAttribute));
+    const int toLevel = headingLevelOf(target);
+    const QString toAttribute =
+        target == normal ? QString()
+                         : QStringLiteral(" style=\"") + KmlFormatRegistry::escapeXml(target) +
+                               QLatin1Char('"');
+
+    QString result;
+    qsizetype done = 0;
+    QRegularExpressionMatchIterator matches = opening.globalMatch(kml);
+    while (matches.hasNext()) {
+        const QRegularExpressionMatch match = matches.next();
+        if (match.capturedStart() < done) {
+            continue;  // inside a paragraph already changed
+        }
+        result += kml.mid(done, match.capturedStart() - done);
+        done = match.capturedEnd();
+        // The element, and its attributes without the style's
+        QString element;
+        QString attributes;
+        if (fromLevel > 0 && !match.captured(1).isEmpty()) {
+            element = match.captured(1);
+            attributes = match.captured(2);
+        } else {
+            const int first = fromLevel > 0 ? 3 : 1;
+            element = match.captured(first);
+            attributes = match.captured(first + 1) + match.captured(first + 2);
+        }
+        ++changed;
+        if (element == QLatin1String("li")) {
+            // A list item keeps its element; its style is an attribute, Normal none
+            result += QStringLiteral("<li") + toAttribute + attributes + QLatin1Char('>');
+            continue;
+        }
+        // A paragraph or a heading becomes the element of the new style, closed as it
+        const QString newElement = toLevel > 0 ? QStringLiteral("h%1").arg(toLevel)
+                                               : QStringLiteral("p");
+        result += QLatin1Char('<') + newElement + (toLevel > 0 ? QString() : toAttribute) +
+                  attributes + QLatin1Char('>');
+        const QString closing = QStringLiteral("</") + element + QLatin1Char('>');
+        const qsizetype end = kml.indexOf(closing, done);
+        if (end < 0) {
+            continue;  // not closed: the rest stays as it is
+        }
+        result += kml.mid(done, end - done) + QStringLiteral("</") + newElement + QLatin1Char('>');
+        done = end + closing.size();
+    }
+    result += kml.mid(done);
+    if (count != nullptr) {
+        *count = changed;
+    }
+    return result;
+}
+
+ParagraphStyleSet ParagraphStyleSet::forBook(const QList<core::PackageParagraphStyle>& styles,
+                                            const QList<core::BookParagraphStyle>& bookStyles,
+                                            const QString& language) {
+    QList<core::PackageParagraphStyle> merged = styles;
+    QHash<QString, StyleOrigin> origins;
+    for (const core::BookParagraphStyle& entry : bookStyles) {
+        if (entry.id.isEmpty()) {
+            continue;
+        }
+        const auto typeStyle = std::find_if(
+            merged.begin(), merged.end(),
+            [&entry](const core::PackageParagraphStyle& style) { return style.id == entry.id; });
+        if (typeStyle != merged.end() && !origins.contains(entry.id)) {
+            typeStyle->nextStyle = entry.nextStyle;
+            typeStyle->properties = entry.properties;
+            origins.insert(entry.id, StyleOrigin::Changed);
+        } else if (typeStyle == merged.end()) {
+            core::PackageParagraphStyle own;
+            own.id = entry.id;
+            // The writer's name in every language: the text of English, which any falls back to
+            own.name.values.insert(QStringLiteral("en"), entry.name.isEmpty() ? entry.id : entry.name);
+            own.baseStyle = entry.baseStyle;
+            own.nextStyle = entry.nextStyle;
+            own.properties = entry.properties;
+            merged.append(own);
+            origins.insert(entry.id, StyleOrigin::Own);
+        }
+    }
+    ParagraphStyleSet set = fromPackage(merged, language);
+    for (ParagraphStyle& style : set.m_styles) {
+        style.origin = origins.value(style.id, StyleOrigin::Type);
     }
     return set;
 }
@@ -495,6 +669,145 @@ QVariant ParagraphStyleSet::property(const QString& id, const QString& name) con
 bool ParagraphStyleSet::isChecked(const QString& id) const {
     const QVariant check = property(id, QStringLiteral("spellCheck"));
     return !check.isValid() || check.toBool();
+}
+
+// =============================================================================
+// Changes of the styles of a book
+// =============================================================================
+
+QString successorOf(const ParagraphStyleSet& styles, const QString& id) {
+    const ParagraphStyle* style = styles.find(id);
+    if (style != nullptr && !style->baseStyle.isEmpty() && style->baseStyle != id &&
+        styles.contains(style->baseStyle)) {
+        return style->baseStyle;
+    }
+    return QString::fromLatin1(NORMAL_STYLE_ID);
+}
+
+QList<core::BookParagraphStyle> withoutOwnStyle(const QList<core::BookParagraphStyle>& entries,
+                                                const ParagraphStyleSet& styles,
+                                                const QString& id) {
+    const auto deleted = std::find_if(entries.cbegin(), entries.cend(),
+                                      [&id](const core::BookParagraphStyle& entry) {
+                                          return entry.id == id;
+                                      });
+    if (deleted == entries.cend()) {
+        return entries;
+    }
+    const core::BookParagraphStyle& gone = *deleted;
+    const QString successor = successorOf(styles, id);
+    QList<core::BookParagraphStyle> result;
+    for (const core::BookParagraphStyle& entry : entries) {
+        if (entry.id == id) {
+            continue;
+        }
+        core::BookParagraphStyle kept = entry;
+        if (kept.baseStyle == id) {
+            // Its look as it was: the deleted style's own properties under its own
+            kept.baseStyle = gone.baseStyle;
+            QVariantMap properties = gone.properties;
+            for (auto it = entry.properties.cbegin(); it != entry.properties.cend(); ++it) {
+                properties.insert(it.key(), it.value());
+            }
+            kept.properties = properties;
+        }
+        if (kept.nextStyle == id) {
+            kept.nextStyle = successor;
+        }
+        result.append(kept);
+    }
+    return result;
+}
+
+QList<core::BookParagraphStyle> withStyleEntry(const QList<core::BookParagraphStyle>& entries,
+                                               const core::BookParagraphStyle& entry) {
+    QList<core::BookParagraphStyle> result = entries;
+    const auto place = std::find_if(result.begin(), result.end(),
+                                    [&entry](const core::BookParagraphStyle& each) {
+                                        return each.id == entry.id;
+                                    });
+    if (place != result.end()) {
+        *place = entry;
+    } else {
+        result.append(entry);
+    }
+    return result;
+}
+
+QList<core::BookParagraphStyle> withoutStyleEntry(const QList<core::BookParagraphStyle>& entries,
+                                                  const QString& id) {
+    QList<core::BookParagraphStyle> result = entries;
+    result.removeIf([&id](const core::BookParagraphStyle& entry) { return entry.id == id; });
+    return result;
+}
+
+QString paragraphStyleIdFor(const QString& name, const QStringList& taken) {
+    // The letters without their marks: the decomposed letter without the marks after it; the
+    // letters that do not decompose (the Polish l with a stroke, the German sharp s) by hand
+    QString id;
+    bool gap = false;
+    for (const QChar character : name.normalized(QString::NormalizationForm_KD)) {
+        if (character.category() == QChar::Mark_NonSpacing) {
+            continue;
+        }
+        QString ascii;
+        const QChar lower = character.toLower();
+        if (lower == QChar(0x0142)) {
+            ascii = QStringLiteral("l");
+        } else if (lower == QChar(0x00DF)) {
+            ascii = QStringLiteral("ss");
+        } else if (lower == QChar(0x00F8)) {
+            ascii = QStringLiteral("o");
+        } else if (lower == QChar(0x00E6)) {
+            ascii = QStringLiteral("ae");
+        } else if (lower.unicode() < 0x80 && lower.isLetterOrNumber()) {
+            ascii = lower;
+        }
+        if (ascii.isEmpty()) {
+            gap = !id.isEmpty();
+            continue;
+        }
+        if (gap) {
+            id += QLatin1Char('_');
+            gap = false;
+        }
+        id += ascii;
+    }
+    if (id.isEmpty()) {
+        id = QStringLiteral("style");
+    }
+    if (!taken.contains(id)) {
+        return id;
+    }
+    for (int number = 2;; ++number) {
+        const QString numbered = id + QLatin1Char('_') + QString::number(number);
+        if (!taken.contains(numbered)) {
+            return numbered;
+        }
+    }
+}
+
+QStringList possibleBaseStyles(const ParagraphStyleSet& styles, const QString& id) {
+    // A style is based on @p id when its chain of base styles comes to it
+    const auto basedOn = [&styles, &id](const ParagraphStyle& style) {
+        QSet<QString> seen;
+        for (QString base = style.baseStyle; !base.isEmpty() && !seen.contains(base);) {
+            if (base == id) {
+                return true;
+            }
+            seen.insert(base);
+            const ParagraphStyle* next = styles.find(base);
+            base = next != nullptr ? next->baseStyle : QString();
+        }
+        return false;
+    };
+    QStringList ids;
+    for (const ParagraphStyle& style : styles.styles()) {
+        if (id.isEmpty() || (style.id != id && !basedOn(style))) {
+            ids.append(style.id);
+        }
+    }
+    return ids;
 }
 
 }  // namespace kalahari::editor

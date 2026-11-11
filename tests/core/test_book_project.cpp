@@ -85,7 +85,8 @@ const char* const NOVEL = R"({
         { "id": "e2", "kind": "kalahari.base:part", "title": "Part One",
           "elements": [
             { "id": "e3", "kind": "kalahari.base:chapter", "title": "Chapter 1",
-              "file": "book/chapter_001.kchapter", "status": "revision" }
+              "file": "book/chapter_001.kchapter", "status": "revision",
+              "firstPage": "left" }
           ] }
       ],
       "back": [
@@ -124,6 +125,7 @@ BookProject fullProject() {
     ProjectElement chapter = element("e3", "kalahari.base", "chapter", "Chapter 1");
     chapter.file = QStringLiteral("book/chapter_001.kchapter");
     chapter.status = QStringLiteral("revision");
+    chapter.firstPageLeft = true;
     chapter.extra.insert(QStringLiteral("pov"), QStringLiteral("Anna"));
     ProjectElement part = element("e4", "kalahari.base", "part", "Part One");
     part.elements = {motto, chapter};
@@ -261,6 +263,7 @@ TEST_CASE("Book project: a .klh file with every field", "[core][bookproject]") {
     CHECK(titlePage.title == QStringLiteral("Title page"));
     CHECK(titlePage.file == QStringLiteral("book/title_page_001.kchapter"));
     CHECK(titlePage.status == QStringLiteral("draft"));
+    CHECK_FALSE(titlePage.firstPageLeft);  // A right page: no field
     CHECK(titlePage.elements.isEmpty());
     CHECK(titlePage.extra.isEmpty());
 
@@ -272,6 +275,7 @@ TEST_CASE("Book project: a .klh file with every field", "[core][bookproject]") {
     REQUIRE(part.elements.size() == 1);
     CHECK(part.elements.at(0).id == QStringLiteral("e3"));
     CHECK(part.elements.at(0).status == QStringLiteral("revision"));
+    CHECK(part.elements.at(0).firstPageLeft);
 
     REQUIRE(book.backElements.size() == 1);
     CHECK(book.backElements.at(0).kind.toString() ==
@@ -309,6 +313,9 @@ TEST_CASE("Book project: a project is saved and read back unchanged", "[core][bo
     // A field that changes makes another project
     BookProject changed = project;
     changed.books[0].mainElements[0].elements[1].status = QStringLiteral("final");
+    CHECK_FALSE(changed == project);
+    changed = project;
+    changed.books[0].mainElements[0].elements[1].firstPageLeft = false;
     CHECK_FALSE(changed == project);
     changed = project;
     changed.books[0].sectionNames[1] = QStringLiteral("Historia");
@@ -1447,6 +1454,9 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
         {"a status that is not a text",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "status": 1 })"),
          "books[0].main[0].status: must be a text"},
+        {"a first page neither left nor right",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter", "firstPage": "top" })"),
+         "books[0].main[0].firstPage: must be \"left\" or \"right\""},
         {"elements inside that are not a list",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:part", "elements": {} })"),
          "books[0].main[0].elements: must be a list"},
@@ -1677,4 +1687,87 @@ TEST_CASE("Book project: the example project is in the format of this version",
         }
     }
     CHECK(texts == 4);
+}
+
+TEST_CASE("Book project: the paragraph styles of the books", "[core][bookproject][styles]") {
+    BookProject project = fullProject();
+    REQUIRE(project.paragraphStyles.isEmpty());
+
+    // A project without styles of its own has no field: its file stays as it was
+    CHECK_FALSE(project.toJson().contains(QStringLiteral("paragraphStyles")));
+
+    // A style of the type changed in the book, and the writer's own style
+    BookParagraphStyle quote;
+    quote.id = QStringLiteral("quote");
+    quote.properties = {{QStringLiteral("italic"), true}, {QStringLiteral("spaceBefore"), 12}};
+    BookParagraphStyle memory;
+    memory.id = QStringLiteral("wspomnienie");
+    memory.name = QStringLiteral("Wspomnienie");
+    memory.baseStyle = QStringLiteral("quote");
+    memory.nextStyle = QStringLiteral("normal");
+    memory.properties = {{QStringLiteral("leftMargin"), 18}};
+    project.paragraphStyles = {quote, memory};
+
+    const QJsonObject json = project.toJson();
+    const QJsonArray list = json.value(QStringLiteral("paragraphStyles")).toArray();
+    REQUIRE(list.size() == 2);
+    CHECK(list.at(0).toObject() ==
+          QJsonObject{{QStringLiteral("id"), QStringLiteral("quote")},
+                      {QStringLiteral("next"), QString()},
+                      {QStringLiteral("properties"),
+                       QJsonObject{{QStringLiteral("italic"), true},
+                                   {QStringLiteral("spaceBefore"), 12}}}});
+    CHECK(list.at(1).toObject().value(QStringLiteral("name")).toString() == QStringLiteral("Wspomnienie"));
+    CHECK(list.at(1).toObject().value(QStringLiteral("base")).toString() == QStringLiteral("quote"));
+    CHECK(list.at(1).toObject().value(QStringLiteral("next")).toString() == QStringLiteral("normal"));
+
+    // Read back unchanged, with the fields of a later version kept
+    QJsonObject withExtra = json;
+    QJsonArray styles = list;
+    QJsonObject first = styles.at(0).toObject();
+    first.insert(QStringLiteral("shortcut"), QStringLiteral("Ctrl+Alt+Q"));
+    styles[0] = first;
+    withExtra.insert(QStringLiteral("paragraphStyles"), styles);
+    QStringList problems;
+    const std::optional<BookProject> read = BookProject::fromJson(withExtra, problems);
+    INFO(joined(problems));
+    REQUIRE(read.has_value());
+    CHECK(read->paragraphStyles.size() == 2);
+    CHECK(read->paragraphStyles.at(1) == memory);
+    CHECK(read->paragraphStyles.at(0).extra.value(QStringLiteral("shortcut")).toString() ==
+          QStringLiteral("Ctrl+Alt+Q"));
+    CHECK(read->toJson() == withExtra);
+
+    // Found by its id
+    REQUIRE(project.findParagraphStyle(QStringLiteral("wspomnienie")) != nullptr);
+    CHECK(project.findParagraphStyle(QStringLiteral("wspomnienie"))->name == QStringLiteral("Wspomnienie"));
+    CHECK(project.findParagraphStyle(QStringLiteral("dialogue")) == nullptr);
+
+    // A changed style makes another project
+    BookProject changed = project;
+    changed.paragraphStyles[1].properties.insert(QStringLiteral("leftMargin"), 24);
+    CHECK_FALSE(changed == project);
+
+    // Problems
+    const auto styleProblems = [&json](const QJsonValue& value) {
+        QJsonObject broken = json;
+        broken.insert(QStringLiteral("paragraphStyles"), value);
+        QStringList found;
+        CHECK_FALSE(BookProject::fromJson(broken, found).has_value());
+        return found.join(QLatin1Char('\n'));
+    };
+    CHECK(styleProblems(QStringLiteral("quote")) == QStringLiteral("paragraphStyles: must be a list"));
+    CHECK(styleProblems(QJsonArray{QStringLiteral("quote")}) ==
+          QStringLiteral("paragraphStyles[0]: must be an object"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("name"), QStringLiteral("Sen")}}}) ==
+          QStringLiteral("paragraphStyles[0].id: must be a text that is not empty"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")}},
+                                QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")}}}) ==
+          QStringLiteral("paragraphStyles[1].id: 'sen' is already the id of paragraphStyles[0]"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")},
+                                            {QStringLiteral("base"), QStringLiteral("sen")}}}) ==
+          QStringLiteral("paragraphStyles[0].base: a style cannot inherit from itself"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")},
+                                            {QStringLiteral("properties"), 12}}}) ==
+          QStringLiteral("paragraphStyles[0].properties: must be an object"));
 }

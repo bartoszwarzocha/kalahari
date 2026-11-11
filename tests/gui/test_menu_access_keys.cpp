@@ -19,6 +19,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/editor/annotation.h"
+#include "kalahari/editor/annotation_cards.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
@@ -27,6 +28,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/diagnostic_menus.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/menu_builder.h"
 #include "kalahari/gui/navigator_coordinator.h"
@@ -39,6 +41,7 @@
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/widget_keys.h"
+#include "kalahari/gui/widgets/color_menu.h"
 
 #include <QAction>
 #include <QApplication>
@@ -50,8 +53,10 @@
 #include <QFile>
 #include <QHash>
 #include <QHostAddress>
+#include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLocale>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
@@ -71,8 +76,10 @@
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
+#include <algorithm>
 #include <memory>
 #include <optional>
+#include <string_view>
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -154,7 +161,7 @@ void collectProblems(const QList<test::MenuItem>& items, const QString& where,
     }
     QHash<QChar, QString> owners;
     for (const test::MenuItem& item : items) {
-        if (item.separator) {
+        if (item.separator || item.widget) {
             continue;
         }
         const QString name = where + QStringLiteral(" › ") + withoutAccessKey(item.text);
@@ -231,10 +238,21 @@ public:
 
         registerAllCommands(CommandCallbacks{});
         CommandRegistry& registry = CommandRegistry::getInstance();
+        // Window, as MainWindow registers it
+        DocumentWindows::registerCommands(registry, []() -> DocumentWindows* { return nullptr; });
         m_builder.buildMenuBar(registry, &m_window);
         QMenu* fileMenu = m_builder.getMenu("FILE");
         auto* recentBooks = new RecentBooksMenu(fileMenu);
         recentBooks->insertInto(fileMenu);
+
+        // Format > Font Color and Highlight Color, with their submenus as the window gives
+        // them
+        for (const auto& [id, kind] :
+             {std::pair{"format.fontColor", ColorMenu::Kind::Text},
+              std::pair{"format.highlightColor", ColorMenu::Kind::Highlight}}) {
+            registry.getAction(QString::fromLatin1(id))
+                ->setMenu(new ColorMenu(kind, {}, &m_window));
+        }
 
         m_toolbars = std::make_unique<ToolbarManager>(&m_window);
         m_toolbars->createToolbars(registry);
@@ -246,6 +264,9 @@ public:
                             noTool);
         fillDevToolsMenu(m_window.menuBar()->addMenu(devToolsMenuTitle()), &m_window, noTool);
     }
+
+    // The toolbar of the user is kept in the configuration: the next menus would have two
+    ~Menus() { m_toolbars->deleteUserToolbar(m_userToolbar); }
 
     [[nodiscard]] QMenuBar* menuBar() { return m_window.menuBar(); }
     [[nodiscard]] QMenu* menu(const std::string& path) const { return m_builder.getMenu(path); }
@@ -502,6 +523,85 @@ void checkTextMenus(bool shown, QStringList& problems) {
     }
     editor.clearSelection();
 
+    // A list item: its numbering, its level and Bullets and Numbering on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><ol><li>") + sentence() + QStringLiteral("</li></ol></kml>"));
+    QList<test::MenuItem> listMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
+    collectProblems(listMenu, QStringLiteral("List item"), {}, problems);
+    CHECK(itemCount(listMenu) == 6 + 6);
+
+    // A link: Edit, Open, Copy and Remove Hyperlink on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><p><a href=\"https://example.com\">") + sentence() +
+                   QStringLiteral("</a></p></kml>"));
+    QList<test::MenuItem> linkMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
+    collectProblems(linkMenu, QStringLiteral("Link"), {}, problems);
+    CHECK(itemCount(linkMenu) == 6 + 4);
+    editor.fromKml(test::kmlOf({sentence()}));
+
+    // The annotation at the click on top of the usual menu: a line with its kind and the start
+    // of its text, without a key, then its commands; with the cards under the paragraphs also
+    // Collapse, and the menu of its card
+    for (const bool cards : {false, true}) {
+        editor::BookEditor annotated;
+        test::resizeWidget(annotated, QSize(600, 400));
+        annotated.fromKml(QStringLiteral(
+            "<kml><annotations><annotation id=\"a1\" kind=\"todo\">Check the date</annotation>"
+            "</annotations><p>One <anchor ref=\"a1\">two</anchor> three</p></kml>"));
+        annotated.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
+                                             registry.getAction(QStringLiteral("edit.copy")),
+                                             registry.getAction(QStringLiteral("edit.paste")),
+                                             registry.getAction(QStringLiteral("edit.selectAll"))});
+        annotated.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
+                                         registry.getAction(QStringLiteral("insert.todo")),
+                                         registry.getAction(QStringLiteral("insert.note"))});
+        editor::EditorAppearance appearance = annotated.appearance();
+        appearance.annotationCards.show = cards;
+        annotated.setAppearance(appearance);
+        const QString label =
+            editor::AnnotationCards::kindTitle(editor::AnnotationKind::Todo) +
+            QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check the date"));
+        const QString where = cards ? QStringLiteral("Annotation in the text, with cards")
+                                    : QStringLiteral("Annotation in the text");
+        QList<test::MenuItem> items = contextMenu(&annotated, &annotated, placeOf(annotated, 5));
+        collectProblems(items, where, {label}, problems);
+        CHECK(labelsOf(items).contains(label));
+        // Edit, (Collapse,) Mark as Done, Remove, then the usual menu
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6);
+
+        if (cards) {
+            const QRectF card = annotated.annotationCardRect(QStringLiteral("a1"));
+            REQUIRE_FALSE(card.isEmpty());
+            items = contextMenu(&annotated, &annotated,
+                                QPointF(card.center().x(), card.bottom() - 4.0).toPoint());
+            collectProblems(items, QStringLiteral("Annotation card under a paragraph"), {},
+                            problems);
+            CHECK(itemCount(items) == 5);  // and Card Appearance and Colors
+        }
+
+        // A comment in a paragraph with linked materials (Mark as Resolved and Linked
+        // Materials have the same key): each item has its own key, the commands of the window
+        // keep theirs
+        annotated.fromKml(QStringLiteral(
+            "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
+            "</annotations><p>One <anchor ref=\"c1\">two</anchor> three</p></kml>"));
+        annotated.setParagraphMarks({editor::ParagraphMark{0, {QStringLiteral("m1")},
+                                                           {QStringLiteral("Map")}}},
+                                    QIcon());
+        const QString comment =
+            editor::AnnotationCards::kindTitle(editor::AnnotationKind::Comment) +
+            QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check it"));
+        items = contextMenu(&annotated, &annotated, placeOf(annotated, 5));
+        // The title of a material is a name the menu shows as it is: as Windows and Linux
+        // show it, with a free key
+        const QStringList keyless = shown ? QStringList{comment}
+                                          : QStringList{comment, QStringLiteral("Map")};
+        collectProblems(items, where + QStringLiteral(", with linked materials"), keyless,
+                        problems);
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2);  // and Linked Materials > Map
+        const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
+        CHECK(std::any_of(items.cbegin(), items.cend(),
+                          [&paste](const test::MenuItem& item) { return item.text == paste; }));
+    }
+
     // The words for a misspelled one, from the dictionary, on top of the usual menu; the
     // editor checks its text as it shows
     editor::SpellCheckService spelling;
@@ -538,6 +638,48 @@ void checkTextMenus(bool shown, QStringList& problems) {
     collectProblems(items, QStringLiteral("Misspelled word without suggestions"), {none},
                     problems);
     CHECK(labelsOf(items).contains(none));
+
+    // Every part at once: a misspelled word with an annotation, in a link, in a list item with
+    // linked materials. Each item has a key of its own, the commands of the window keep theirs.
+    // The word is one the dictionary has nothing like: in so long a menu the words for it
+    // would get only the letters left, if any
+    {
+        editor::BookEditor all;
+        test::resizeWidget(all, QSize(600, 400));
+        all.fromKml(QStringLiteral(
+            "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
+            "</annotations><ol><li><a href=\"https://example.com\">The <anchor ref=\"c1\">"
+            "qxzvwk</anchor> one</a></li></ol></kml>"));
+        all.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
+                                       registry.getAction(QStringLiteral("edit.copy")),
+                                       registry.getAction(QStringLiteral("edit.paste")),
+                                       registry.getAction(QStringLiteral("edit.selectAll"))});
+        all.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
+                                   registry.getAction(QStringLiteral("insert.todo")),
+                                   registry.getAction(QStringLiteral("insert.note"))});
+        all.setParagraphMarks({editor::ParagraphMark{0, {QStringLiteral("m1")},
+                                                     {QStringLiteral("Map")}}},
+                              QIcon());
+        all.setSpellCheckService(&spelling);
+        all.show();
+        REQUIRE(checked(all));
+        const QString comment =
+            editor::AnnotationCards::kindTitle(editor::AnnotationKind::Comment) +
+            QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check it"));
+        QStringList keyless{comment, none};
+        if (!shown) {
+            keyless << QStringLiteral("Map");
+        }
+        items = contextMenu(&all, &all, placeOf(all, 6));
+        collectProblems(items, QStringLiteral("Every part"), keyless, problems);
+        // (No suggestions), Ignore All, Add to Dictionary; the link's four; the annotation's line
+        // and its three; the list's six; the usual menu; Linked Materials > Map
+        CHECK(labelsOf(items).contains(none));
+        CHECK(itemCount(items) == 3 + 4 + 4 + 6 + 6 + 2);
+        const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
+        CHECK(std::any_of(items.cbegin(), items.cend(),
+                          [&paste](const test::MenuItem& item) { return item.text == paste; }));
+    }
 
     // Spelling goes before grammar: the issue below is a misspelling too
     editor.setSpellCheckService(nullptr);
@@ -666,11 +808,13 @@ void checkNavigatorMenus(QStringList& problems) {
 }
 
 /// A main window with the program's panels and toolbars, and a toolbar the user made (the
-/// commands registered)
+/// commands registered); the user's toolbar goes with the window, so the next window does not
+/// read it from the settings and have it twice
 struct WindowPanels {
     QMainWindow window;
     DockCoordinator* docks = nullptr;  // owned by the window, as in MainWindow
     std::unique_ptr<ToolbarManager> toolbars;
+    QString userToolbar;
 
     WindowPanels() {
         window.setAttribute(Qt::WA_DontShowOnScreen);
@@ -678,11 +822,16 @@ struct WindowPanels {
         docks->createDocks();
         toolbars = std::make_unique<ToolbarManager>(&window);
         toolbars->createToolbars(CommandRegistry::getInstance());
-        toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
+        userToolbar = toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
         window.resize(1200, 800);
         window.show();
         QCoreApplication::processEvents();
     }
+
+    // The toolbar of the user is kept in the configuration: the next window would have two
+    ~WindowPanels() { toolbars->deleteUserToolbar(userToolbar); }
+    WindowPanels(const WindowPanels&) = delete;
+    WindowPanels& operator=(const WindowPanels&) = delete;
 };
 
 /// The menu of the menu bar and of the panels' titles: Qt's, as MainWindow gives it the keys
@@ -1063,10 +1212,17 @@ TEST_CASE("Menu access keys: a free key for a name the user gave", "[gui][menus]
     used = {QLatin1Char('2')};
     CHECK(withFreeAccessKey(QStringLiteral("Łódź 2"), used) == QStringLiteral("Łó&dź 2"));
 
-    // Every letter taken: no key rather than one another item has
+    // Every letter taken: a free one after it rather than one another item has
     used = {QLatin1Char('A'), QLatin1Char('B')};
-    CHECK(withFreeAccessKey(QStringLiteral("Ab & ba"), used) == QStringLiteral("Ab && ba"));
-    CHECK(used.size() == 2);
+    CHECK(withFreeAccessKey(QStringLiteral("Ab & ba"), used) == QStringLiteral("Ab && ba (&C)"));
+    CHECK(used.size() == 3);
+
+    // Every letter and digit taken: none
+    used.clear();
+    for (const char key : std::string_view("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")) {
+        used.insert(QLatin1Char(key));
+    }
+    CHECK(withFreeAccessKey(QStringLiteral("Ab"), used) == QStringLiteral("Ab"));
 }
 
 TEST_CASE("Menu access keys: free keys for names that share letters", "[gui][menus][keys]") {
@@ -1085,8 +1241,8 @@ TEST_CASE("Menu access keys: free keys for names that share letters", "[gui][men
                              used) ==
           QStringList{QStringLiteral("A&b"), QStringLiteral("B&c"), QStringLiteral("&A")});
 
-    // None left: no key rather than one another item has
+    // None of its own left: a free one after it rather than one another item has
     used = {QLatin1Char('X')};
     CHECK(withFreeAccessKeys({QStringLiteral("X"), QStringLiteral("Y")}, used) ==
-          QStringList{QStringLiteral("X"), QStringLiteral("&Y")});
+          QStringList{QStringLiteral("X (&A)"), QStringLiteral("&Y")});
 }

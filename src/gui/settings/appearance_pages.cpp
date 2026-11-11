@@ -19,6 +19,8 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
+#include <set>
+
 namespace kalahari {
 namespace gui {
 
@@ -83,8 +85,28 @@ ThemePage::ThemePage(QWidget* parent)
     QVBoxLayout* palette = group(tr("Palette Colors"));
     const auto paletteColor = [&](const QString& label, const QString& toolTip, const char* key,
                                   QColor Theme::Palette::*field) {
-        addColor(palette, label, toolTip, "themes.", std::string(".palette.") + key,
-                 [field](const Theme& t) { return t.palette.*field; });
+        ColorConfigWidget* widget =
+            addColor(palette, label, toolTip, "themes.", std::string(".palette.") + key,
+                     [field](const Theme& t) { return t.palette.*field; });
+        PaletteColor& color = m_paletteColors[key];
+        color.widget = widget;
+        color.field = [field](Theme& theme) -> QColor& { return theme.palette.*field; };
+        color.binding = m_colors.back().binding;
+        // A color the user picks is their own; the others made from it follow it
+        connect(widget, &ColorConfigWidget::colorChanged, this, [this, name = std::string(key)]() {
+            m_paletteColors[name].follows = false;
+            followThemeColor();
+        });
+        // One that follows the theme's color keeps none of its own
+        Binding* binding = color.binding;
+        binding->store = [this, binding, name = std::string(key)](const json& value) {
+            auto& settings = core::SettingsManager::getInstance();
+            if (m_paletteColors[name].follows) {
+                settings.removeKey(binding->key());
+            } else {
+                settings.set<json>(binding->key(), value);
+            }
+        };
     };
     heading(palette, tr("Basic Colors"));
     paletteColor(tr("Window"), tr("General background color for windows and panels"),
@@ -143,6 +165,9 @@ ThemePage::ThemePage(QWidget* parent)
     pageLayout()->addStretch();
 
     connect(m_themeCombo, &QComboBox::currentIndexChanged, this, &ThemePage::onThemeChanged);
+    // The selection and the links follow the Primary icon color as it changes
+    connect(m_primaryColor, &ColorConfigWidget::colorChanged, this, &ThemePage::followThemeColor);
+    whenLoaded([this]() { startFollowing(false); });
 }
 
 ColorConfigWidget* ThemePage::addColor(QLayout* section, const QString& label, const QString& toolTip,
@@ -163,8 +188,9 @@ ColorConfigWidget* ThemePage::addColor(QLayout* section, const QString& label, c
             return settings.get<json>(key);
         }
         try {
+            // As the program shows it: the selection and the links in the user's icon color
             const core::Theme theme =
-                core::ThemeManager::getInstance().loadTheme(QString::fromStdString(themeName()));
+                core::ThemeManager::getInstance().storedTheme(QString::fromStdString(themeName()));
             return json(themeColor(theme).name().toStdString());
         } catch (const std::exception& e) {
             core::Logger::getInstance().warn("ThemePage: Cannot load theme '{}': {}", themeName(), e.what());
@@ -186,7 +212,59 @@ void ThemePage::onThemeChanged() {
     for (ColorField& color : m_colors) {
         reload(*color.binding);
     }
+    startFollowing(false);
     emit iconColorsChanged();
+}
+
+void ThemePage::startFollowing(bool reset) {
+    core::Theme theme;
+    try {
+        theme = core::ThemeManager::getInstance().loadTheme(QString::fromStdString(themeName()));
+    } catch (const std::exception& e) {
+        core::Logger::getInstance().warn("ThemePage: Cannot load theme '{}': {}", themeName(),
+                                         e.what());
+    }
+    const auto& settings = core::SettingsManager::getInstance();
+    for (auto& [key, color] : m_paletteColors) {
+        color.follows = theme.themeColorPalette.count(key) != 0 &&
+                        (reset || !settings.hasKey(color.binding->key()));
+    }
+}
+
+void ThemePage::followThemeColor() {
+    core::Theme theme;
+    try {
+        theme = core::ThemeManager::getInstance().loadTheme(QString::fromStdString(themeName()));
+    } catch (const std::exception& e) {
+        core::Logger::getInstance().warn("ThemePage: Cannot load theme '{}': {}", themeName(),
+                                         e.what());
+        return;
+    }
+    // The colors as the page shows them; the user's own ones stay
+    theme.colors.primary = m_primaryColor->color();
+    std::set<std::string> own;
+    for (auto& [key, color] : m_paletteColors) {
+        color.field(theme) = color.widget->color();
+        if (!color.follows) {
+            own.insert(key);
+        }
+    }
+    theme.followThemeColor(own);
+    const auto& settings = core::SettingsManager::getInstance();
+    for (auto& [key, color] : m_paletteColors) {
+        if (!color.follows) {
+            continue;
+        }
+        color.widget->setColor(color.field(theme));
+        // Without a stored color of its own nothing changes: the program makes it the same.
+        // A stored one (Reset to Theme Defaults) is a change even when its color is the same:
+        // applying the page removes it, so the color follows the theme's color again
+        if (!settings.hasKey(color.binding->key())) {
+            color.binding->loaded = color.binding->shown();
+        } else {
+            color.binding->loaded = json();
+        }
+    }
 }
 
 void ThemePage::resetToThemeDefaults() {
@@ -200,6 +278,9 @@ void ThemePage::resetToThemeDefaults() {
     for (const ColorField& color : m_colors) {
         color.widget->setColor(color.themeColor(defaults));
     }
+    // The selection and the links follow the theme's color again
+    startFollowing(true);
+    followThemeColor();
     emit iconColorsChanged();
 }
 

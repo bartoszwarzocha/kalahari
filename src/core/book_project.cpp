@@ -390,6 +390,12 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.file = readFile(fields, field, seen, false);
     element.url = readUrl(fields);
     element.status = fields.string("status");
+    const QString firstPage = fields.string("firstPage");
+    if (firstPage == QLatin1String("left")) {
+        element.firstPageLeft = true;
+    } else if (!firstPage.isEmpty() && firstPage != QLatin1String("right")) {
+        fields.problem("firstPage", QStringLiteral("must be \"left\" or \"right\""));
+    }
     element.elements = readElements(fields.array("elements"), fields.path("elements"), seen,
                                     problems);
     element.description = fields.string("description");
@@ -551,6 +557,8 @@ QJsonObject elementToJson(const ProjectElement& element) {
     setOrRemove(json, "file", element.file);
     setOrRemove(json, "url", element.url);
     setOrRemove(json, "status", element.status);
+    // A right page needs no field: the first page of a text is one unless it says otherwise
+    setOrRemove(json, "firstPage", element.firstPageLeft ? QStringLiteral("left") : QString());
     if (element.elements.isEmpty()) {
         json.remove(QLatin1String("elements"));
     } else {
@@ -678,6 +686,55 @@ QJsonObject bookToJson(const ProjectBook& book) {
     } else {
         json.insert(QLatin1String("files"), files);
     }
+    return json;
+}
+
+/// The paragraph styles of the project (BookParagraphStyle), each id once
+QList<BookParagraphStyle> readParagraphStyles(const QJsonArray& array, QStringList& problems) {
+    QList<BookParagraphStyle> styles;
+    QHash<QString, QString> ids;
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString field = QStringLiteral("paragraphStyles[%1]").arg(i);
+        if (!array.at(i).isObject()) {
+            addProblem(problems, field, QStringLiteral("must be an object"));
+            continue;
+        }
+        Fields fields(array.at(i).toObject(), field, problems);
+        BookParagraphStyle style;
+        style.id = fields.string("id", true);
+        if (!style.id.isEmpty()) {
+            if (const QString first = ids.value(style.id); !first.isEmpty()) {
+                fields.problem("id", QStringLiteral("'%1' is already the id of %2")
+                                         .arg(style.id, first));
+            } else {
+                ids.insert(style.id, field);
+            }
+        }
+        style.name = fields.string("name");
+        style.baseStyle = fields.string("base");
+        style.nextStyle = fields.string("next");
+        if (style.baseStyle == style.id && !style.id.isEmpty()) {
+            fields.problem("base", QStringLiteral("a style cannot inherit from itself"));
+        }
+        const QJsonValue properties = fields.take("properties");
+        if (properties.isObject()) {
+            style.properties = properties.toObject().toVariantMap();
+        } else if (!properties.isUndefined()) {
+            fields.problem("properties", QStringLiteral("must be an object"));
+        }
+        style.extra = fields.rest();
+        styles.append(std::move(style));
+    }
+    return styles;
+}
+
+QJsonObject paragraphStyleToJson(const BookParagraphStyle& style) {
+    QJsonObject json = style.extra;
+    json.insert(QLatin1String("id"), style.id);
+    setOrRemove(json, "name", style.name);
+    setOrRemove(json, "base", style.baseStyle);
+    json.insert(QLatin1String("next"), style.nextStyle);
+    json.insert(QLatin1String("properties"), QJsonObject::fromVariantMap(style.properties));
     return json;
 }
 
@@ -942,9 +999,10 @@ const ElementLink* ProjectElement::linkTo(const QString& target) const {
 bool ProjectElement::operator==(const ProjectElement& other) const {
     return id == other.id && kind == other.kind && title == other.title &&
            file == other.file && url == other.url && status == other.status &&
-           elements == other.elements && description == other.description &&
-           fields == other.fields && links == other.links && rotation == other.rotation &&
-           cover == other.cover && viewExtra == other.viewExtra && extra == other.extra;
+           firstPageLeft == other.firstPageLeft && elements == other.elements &&
+           description == other.description && fields == other.fields && links == other.links &&
+           rotation == other.rotation && cover == other.cover && viewExtra == other.viewExtra &&
+           extra == other.extra;
 }
 
 // =============================================================================
@@ -985,6 +1043,13 @@ const ProjectElement* BookProject::findElement(const QString& elementId) const {
     qsizetype index = -1;
     const QList<ProjectElement>* list = findList(*this, elementId, index);
     return list ? &list->at(index) : nullptr;
+}
+
+const BookParagraphStyle* BookProject::findParagraphStyle(const QString& styleId) const {
+    const auto it =
+        std::find_if(paragraphStyles.cbegin(), paragraphStyles.cend(),
+                     [&styleId](const BookParagraphStyle& style) { return style.id == styleId; });
+    return it == paragraphStyles.cend() ? nullptr : &*it;
 }
 
 bool BookProject::isBookFile(const QString& elementId) const {
@@ -1368,6 +1433,17 @@ QJsonObject BookProject::toJson() const {
     }
     json.insert(QLatin1String("books"), bookList);
     json.insert(QLatin1String("workshop"), workshopToJson(workshop));
+
+    // Only a project with styles of its own has the field: other files stay as they were
+    if (paragraphStyles.isEmpty()) {
+        json.remove(QLatin1String("paragraphStyles"));
+    } else {
+        QJsonArray styleList;
+        for (const BookParagraphStyle& style : paragraphStyles) {
+            styleList.append(paragraphStyleToJson(style));
+        }
+        json.insert(QLatin1String("paragraphStyles"), styleList);
+    }
     return json;
 }
 
@@ -1472,6 +1548,7 @@ std::optional<BookProject> BookProject::fromJson(const QJsonObject& json,
     }
 
     project.workshop = readWorkshop(fields.take("workshop"), seen, problems);
+    project.paragraphStyles = readParagraphStyles(fields.array("paragraphStyles"), problems);
     project.extra = fields.rest();
 
     if (problems.size() > problemsBefore) {

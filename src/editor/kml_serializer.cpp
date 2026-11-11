@@ -7,17 +7,24 @@
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId enum and registry functions
+#include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_tables.h>
 #include <kalahari/core/logger.h>
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QTextFragment>
+#include <QTextTable>
 #include <QTextBlockFormat>
 #include <QFont>
 #include <QBrush>
 #include <QColor>
 #include <QVariantMap>
 #include <algorithm>
+#include <cmath>
+#include <set>
 
 namespace kalahari {
 namespace editor {
@@ -137,39 +144,13 @@ QString KmlSerializer::toKml(const QTextDocument* document, int from, int to) co
     const QString newline = m_indented ? QStringLiteral("\n") : QString();
     const QString indent = m_indented ? QStringLiteral("  ") : QString();
 
-    // Every block (paragraph) from the one holding the range start to the one holding its end
-    QString paragraphs;
+    // A range inside one cell of a table is text: the paragraphs of the cell
+    const QTextTable* fromTable = tableAt(*document, from);
+    const bool oneCell = fromTable && fromTable == tableAt(*document, to) &&
+                         fromTable->cellAt(from) == fromTable->cellAt(to);
     AnnotationList annotations;
-    const QTextBlock last = document->findBlock(to);
-    for (QTextBlock block = document->findBlock(from); block.isValid(); block = block.next()) {
-        const TextObject object = blockObject(block);
-        if (object != TextObject::None && block.position() >= from && block.position() < to) {
-            // A horizontal line or a break: an element of its own
-            paragraphs += indent + QLatin1Char('<') + kmlElementOf(object) +
-                          QStringLiteral("/>") + newline;
-        } else if (object != TextObject::None) {
-            // Only the paragraph break after it: an empty paragraph
-            paragraphs += indent + QStringLiteral("<p></p>") + newline;
-        } else {
-            // A heading is an element of its level, any other style an attribute
-            const QString style = paragraphStyleOf(block.blockFormat());
-            const int level = headingLevelOf(style);
-            const QString element = level > 0 ? QStringLiteral("h%1").arg(level) : QStringLiteral("p");
-            paragraphs += indent + QLatin1Char('<') + element;
-            if (level == 0 && style != QLatin1String(NORMAL_STYLE_ID)) {
-                paragraphs += QStringLiteral(" style=\"") + KmlFormatRegistry::escapeXml(style) +
-                              QLatin1Char('"');
-            }
-            paragraphs += serializeBlockAttributes(block);
-            paragraphs += QStringLiteral(">");
-            paragraphs += serializeBlockContent(block, from, to, &annotations);
-            paragraphs += QStringLiteral("</") + element + QLatin1Char('>') + newline;
-        }
-
-        if (block == last) {
-            break;
-        }
-    }
+    const QString paragraphs =
+        paragraphsToKml(*document, from, to, !oneCell, m_indented, &annotations);
 
     // The annotations anchored in the paragraphs come first, so a reader knows them
     // when it meets their anchors
@@ -185,6 +166,222 @@ QString KmlSerializer::toKml(const QTextDocument* document, int from, int to) co
     result += QStringLiteral("</kml>");
 
     return result;
+}
+
+QString KmlSerializer::paragraphsToKml(const QTextDocument& document, int from, int to,
+                                       bool tables, bool indented,
+                                       AnnotationList* annotations) const
+{
+    const QString newline = indented ? QStringLiteral("\n") : QString();
+    const QString indent = indented ? QStringLiteral("  ") : QString();
+
+    // The list elements open, from the top level: each with its level and format, and
+    // whether an item of it is open (a list of a deeper level goes inside the item)
+    struct OpenList {
+        int level = 0;
+        ListLevel format;
+        bool itemOpen = false;
+    };
+    std::vector<OpenList> openLists;
+    int openListId = 0;           // the list of the open elements
+    int lastListId = 0;           // the list of the top-level element closed last
+    std::set<int> writtenListIds;  // the lists written so far
+    std::vector<int> numbers;     // the numbers of the items, counted when needed
+    QString paragraphs;
+    const auto closeList = [&]() {
+        if (openLists.back().itemOpen) {
+            paragraphs += QStringLiteral("</li>");
+        }
+        paragraphs += QStringLiteral("</") + kmlListElementOf(openLists.back().format) +
+                      QLatin1Char('>');
+        openLists.pop_back();
+        if (openLists.empty()) {
+            paragraphs += newline;
+            lastListId = openListId;
+            openListId = 0;
+        }
+    };
+    const auto closeLists = [&]() {
+        while (!openLists.empty()) {
+            closeList();
+        }
+    };
+
+    // Every block (paragraph) from the one holding the range start to the one holding its end
+    const QTextBlock last = document.findBlock(to);
+    for (QTextBlock block = document.findBlock(from); block.isValid(); block = block.next()) {
+        if (const QTextTable* table = tables ? tableOf(block) : nullptr) {
+            // A table as a whole; the paragraphs go on after it, unless the range ends in it
+            closeLists();
+            paragraphs += tableToKml(*table, from, to, annotations);
+            if (last.position() <= table->lastPosition()) {
+                break;
+            }
+            block = document.findBlock(table->lastPosition());  // its last paragraph
+            continue;
+        }
+
+        const TextObject object = blockObject(block);
+        const std::optional<ListItem> item =
+            object == TextObject::None ? listItemOf(block.blockFormat()) : std::nullopt;
+        if (!item) {
+            closeLists();
+        }
+        if (object != TextObject::None && block.position() >= from && block.position() < to) {
+            // A horizontal line or a break: an element of its own
+            paragraphs += indent + QLatin1Char('<') + kmlElementOf(object) +
+                          QStringLiteral("/>") + newline;
+        } else if (object != TextObject::None) {
+            // Only the paragraph break after it: an empty paragraph
+            paragraphs += indent + QStringLiteral("<p></p>") + newline;
+        } else if (item) {
+            // An item of a list: the elements of its list down to its level are open
+            const ListLevel& format = item->levelFormat();
+            if (!openLists.empty() && openListId != item->id) {
+                closeLists();
+            }
+            while (!openLists.empty() && openLists.back().level > item->level) {
+                closeList();
+            }
+            if (!openLists.empty() && openLists.back().level == item->level) {
+                if (openLists.back().format != format) {
+                    closeList();  // a list element of another format
+                } else if (openLists.back().itemOpen) {
+                    paragraphs += QStringLiteral("</li>");
+                    openLists.back().itemOpen = false;
+                }
+            }
+            // A list written before, but not just before, starts its numbers anew on
+            // reading: its item keeps its number
+            bool keepNumber = false;
+            if (openLists.empty()) {
+                keepNumber = writtenListIds.count(item->id) > 0 && item->id != lastListId;
+            }
+            for (int level = openLists.empty() ? 0 : openLists.back().level + 1;
+                 level <= item->level; ++level) {
+                const ListLevel& levelFormat =
+                    level == item->level ? format : item->definition.levels[static_cast<size_t>(level)];
+                QString element = QLatin1Char('<') + kmlListElementOf(levelFormat) +
+                                  listLevelToKml(levelFormat, level);
+                if (level == 0) {
+                    if (item->id == lastListId) {
+                        element += QStringLiteral(" continue=\"true\"");
+                    }
+                    paragraphs += indent;
+                }
+                paragraphs += element + QLatin1Char('>');
+                openLists.push_back({level, levelFormat, false});
+            }
+            openListId = item->id;
+            writtenListIds.insert(item->id);
+
+            paragraphs += QStringLiteral("<li");
+            const QString style = paragraphStyleOf(block.blockFormat());
+            if (style != QLatin1String(NORMAL_STYLE_ID)) {
+                paragraphs += QStringLiteral(" style=\"") + KmlFormatRegistry::escapeXml(style) +
+                              QLatin1Char('"');
+            }
+            paragraphs += serializeBlockAttributes(block);
+            std::optional<int> value = item->value;
+            if (!value && keepNumber && item->numbered) {
+                if (numbers.empty()) {
+                    numbers = listNumbers(document);
+                }
+                const auto index = static_cast<size_t>(block.blockNumber());
+                if (index < numbers.size() && numbers[index] >= 0) {
+                    value = numbers[index];
+                }
+            }
+            if (value) {
+                paragraphs += QStringLiteral(" value=\"") + QString::number(*value) + QLatin1Char('"');
+            }
+            if (!item->numbered) {
+                paragraphs += QStringLiteral(" numbered=\"false\"");
+            }
+            paragraphs += QLatin1Char('>') + serializeBlockContent(block, from, to, annotations);
+            openLists.back().itemOpen = true;
+        } else {
+            // A heading is an element of its level, any other style an attribute
+            const QString style = paragraphStyleOf(block.blockFormat());
+            const int level = headingLevelOf(style);
+            const QString element = level > 0 ? QStringLiteral("h%1").arg(level) : QStringLiteral("p");
+            paragraphs += indent + QLatin1Char('<') + element;
+            if (level == 0 && style != QLatin1String(NORMAL_STYLE_ID)) {
+                paragraphs += QStringLiteral(" style=\"") + KmlFormatRegistry::escapeXml(style) +
+                              QLatin1Char('"');
+            }
+            paragraphs += serializeBlockAttributes(block);
+            paragraphs += QStringLiteral(">");
+            paragraphs += serializeBlockContent(block, from, to, annotations);
+            paragraphs += QStringLiteral("</") + element + QLatin1Char('>') + newline;
+        }
+
+        if (block == last) {
+            break;
+        }
+    }
+    closeLists();
+    return paragraphs;
+}
+
+QString KmlSerializer::tableToKml(const QTextTable& table, int from, int to,
+                                  AnnotationList* annotations) const
+{
+    const QString newline = m_indented ? QStringLiteral("\n") : QString();
+    const QString indent = m_indented ? QStringLiteral("  ") : QString();
+    const TableShape shape = tableShapeOf(table);
+
+    // The rows from the one holding the range start to the one holding its end
+    int firstRow = 0;
+    if (from > table.firstPosition()) {
+        firstRow = table.cellAt(from).row();
+    }
+    int lastRow = shape.rows - 1;
+    if (to < table.lastPosition()) {
+        const QTextTableCell cell = table.cellAt(to);
+        lastRow = cell.row() + cell.rowSpan() - 1;
+    }
+
+    QString kml = indent + QStringLiteral("<table>") + newline;
+    if (!shape.columnWidths.empty()) {
+        kml += indent + indent;
+        for (const double width : shape.columnWidths) {
+            kml += QStringLiteral("<col width=\"%1%\"/>")
+                       .arg(QString::number(std::round(width * 100.0) / 100.0, 'g', 6));
+        }
+        kml += newline;
+    }
+    for (int row = firstRow; row <= lastRow; ++row) {
+        kml += indent + indent + QStringLiteral("<tr>");
+        for (int column = 0; column < shape.columns; ++column) {
+            // A cell spanning more rows starts in its first row, or in the first row written
+            const QTextTableCell cell = table.cellAt(row, column);
+            if (cell.column() != column || (cell.row() != row && row != firstRow)) {
+                continue;
+            }
+            const int rows = std::min(cell.row() + cell.rowSpan(), lastRow + 1) - row;
+            const QString element = row < shape.headerRows ? QStringLiteral("th") : QStringLiteral("td");
+            kml += QLatin1Char('<') + element;
+            if (cell.columnSpan() > 1) {
+                kml += QStringLiteral(" colspan=\"%1\"").arg(cell.columnSpan());
+            }
+            if (rows > 1) {
+                kml += QStringLiteral(" rowspan=\"%1\"").arg(rows);
+            }
+            kml += QLatin1Char('>');
+            const int cellFrom = std::max(from, cell.firstPosition());
+            const int cellTo = std::min(to, cell.lastPosition());
+            const QString content =
+                cellFrom <= cellTo
+                    ? paragraphsToKml(*table.document(), cellFrom, cellTo, false, false, annotations)
+                    : QString();
+            kml += content.isEmpty() ? QStringLiteral("<p></p>") : content;
+            kml += QStringLiteral("</") + element + QLatin1Char('>');
+        }
+        kml += QStringLiteral("</tr>") + newline;
+    }
+    kml += indent + QStringLiteral("</table>") + newline;
+    return kml;
 }
 
 QString KmlSerializer::blockToKml(const QTextBlock& block) const
@@ -232,6 +429,9 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
     }
     // No attribute: a paragraph without its own alignment, shown with the default
 
+    for (const auto& [name, value] : paragraphFormatToKml(paragraphFormatOf(block.blockFormat()))) {
+        attrs += QLatin1Char(' ') + name + QStringLiteral("=\"") + value + QLatin1Char('"');
+    }
     return attrs;
 }
 
@@ -342,6 +542,19 @@ QString KmlSerializer::buildInlineStyleAttributes(const QTextCharFormat& format)
         }
     }
 
+    // Small or all capitals
+    if (format.fontCapitalization() == QFont::SmallCaps) {
+        attrs += QStringLiteral(" caps=\"small\"");
+    } else if (format.fontCapitalization() == QFont::AllUppercase) {
+        attrs += QStringLiteral(" caps=\"all\"");
+    }
+
+    // Letter spacing in points
+    const qreal spacing = format.doubleProperty(KmlPropLetterSpacing);
+    if (spacing != 0.0) {
+        attrs += QStringLiteral(" spacing=\"") + kmlNumber(spacing) + QStringLiteral("\"");
+    }
+
     return attrs;
 }
 
@@ -379,7 +592,7 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     }
     escapedText += textKml(text.mid(written));
 
-    // Build inline style attributes (font, size, color, bg)
+    // Build inline style attributes (font, size, color, bg, caps, spacing)
     QString inlineAttrs = buildInlineStyleAttributes(format);
 
     // Build the result with formatting tags
@@ -387,6 +600,13 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
 
     for (const Annotation& annotation : fragments) {
         result += anchorTag(annotation.id, false);
+    }
+
+    // A link, inside the anchors of the annotations, around the rest of the formatting
+    const QString link = linkAddressOf(format);
+    if (!link.isEmpty()) {
+        result += QStringLiteral("<a href=\"") + KmlFormatRegistry::escapeXml(link) +
+                  QStringLiteral("\">");
     }
 
     // Check for metadata first (wraps around formatting)
@@ -423,6 +643,9 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     // Close metadata tag if present
     if (hasMeta) {
         result += metadataToCloseTag(format);
+    }
+    if (!link.isEmpty()) {
+        result += QStringLiteral("</a>");
     }
 
     for (qsizetype i = 0; i < fragments.size(); ++i) {

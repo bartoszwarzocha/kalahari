@@ -6,6 +6,7 @@
 #include "kalahari/gui/settings/grammar_page.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings/shortcuts_page.h"
+#include "kalahari/gui/settings/stats_pages.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
@@ -16,6 +17,7 @@
 #include <QElapsedTimer>
 #include <QFont>
 #include <QLabel>
+#include <QRadioButton>
 #include <QScreen>
 #include <QScrollArea>
 #include <QSplitter>
@@ -96,7 +98,7 @@ void SettingsDialog::createNavigationTree() {
         item->setExpanded(true);
         return item;
     };
-    addPage(nullptr, tr("General"), [this]() {
+    m_pageItems[GENERAL_PAGE] = addPage(nullptr, tr("General"), [this]() {
         auto* generalPage = new GeneralPage();
         connect(generalPage, &GeneralPage::lengthUnitChanged, this,
                 [this](const QString& unit) { setLengthUnit(lengthUnitFromName(unit)); });
@@ -111,26 +113,44 @@ void SettingsDialog::createNavigationTree() {
 
     QTreeWidgetItem* editor = category(tr("Editor"));
     addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
-    addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
+    m_pageItems[EDITOR_COLORS_PAGE] =
+        addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
-    addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
+    m_pageItems[PAGES_PAGE] =
+        addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
+    m_pageItems[MARGIN_NUMBERING_PAGE] = m_pageItems[PAGES_PAGE];
     m_pageItems[SPELLING_PAGE] =
         addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });
     addPage(editor, tr("Auto-correct"), []() { return new EditorAutoCorrectPage(); });
+    //: Settings > Editor > Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie
+    addPage(editor, tr("Quick Insert"), []() { return new EditorQuickInsertPage(); });
+    //: Settings > Editor > Repetitions: the words that come back too close. In Polish: Powtórzenia
+    m_pageItems[REPETITIONS_PAGE] =
+        addPage(editor, tr("Repetitions"), []() { return new EditorRepetitionsPage(); });
     //: Settings > Editor > Versions: the versions of the texts. In Polish: Wersje
     m_pageItems[VERSIONS_PAGE] =
         addPage(editor, tr("Versions"), []() { return new EditorVersionsPage(); });
-    addPlannedPage(editor, tr("Completion"),
-                   tr("Planned features:\n"
-                      "- Word completion suggestions\n"
-                      "- Character name completion\n"
-                      "- Location name completion"));
 
     m_pageItems[ANNOTATIONS_PAGE] =
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     m_pageItems[NAVIGATOR_PAGE] =
         addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
+    //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
+    //: and the colors. In Polish: Statystyki i cele
+    QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));
+    //: In Polish: Pasek i panel
+    m_pageItems[STATS_BAR_PAGE] =
+        addPage(statistics, tr("Bar and Panel"), []() { return new StatsBarPage(); });
+    //: In Polish: Liczenie
+    m_pageItems[STATS_COUNTING_PAGE] =
+        addPage(statistics, tr("Counting"), []() { return new StatsCountingPage(); });
+    //: In Polish: Powiadomienia
+    m_pageItems[STATS_NOTIFICATIONS_PAGE] =
+        addPage(statistics, tr("Notifications"), []() { return new StatsNotificationsPage(); });
+    //: In Polish: Kolory
+    m_pageItems[STATS_COLORS_PAGE] =
+        addPage(statistics, tr("Colors"), []() { return new StatsColorsPage(); });
     m_pageItems[SHORTCUTS_PAGE] =
         addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
 
@@ -291,6 +311,28 @@ bool SettingsDialog::openPage(const QString& page) {
     if (page == QLatin1String(SHORTCUTS_PAGE)) {
         if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
             shortcuts->setFocus(Qt::OtherFocusReason);
+        }
+    } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE)) {
+        // The group far down the page in view, the cursor in its choice of the numbering
+        const auto built = m_builtPages.find(item->second);
+        auto* scrollArea =
+            built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
+        auto* group = scrollArea != nullptr
+            ? scrollArea->findChild<QWidget*>(QStringLiteral("marginNumbersGroup"))
+            : nullptr;
+        if (group != nullptr) {
+            const QList<QRadioButton*> choices = group->findChildren<QRadioButton*>();
+            const auto checked = std::find_if(choices.begin(), choices.end(),
+                                              [](const QRadioButton* choice) {
+                                                  return choice->isChecked();
+                                              });
+            if (checked != choices.end()) {
+                (*checked)->setFocus(Qt::OtherFocusReason);
+            }
+            // Once the dialog shows: the page has its size then
+            QTimer::singleShot(0, scrollArea, [scrollArea, group]() {
+                scrollArea->ensureWidgetVisible(group);
+            });
         }
     }
     return true;

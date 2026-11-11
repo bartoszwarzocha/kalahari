@@ -1,13 +1,15 @@
 /// @file test_theme_manager_apply.cpp
 /// @brief ThemeManager::reloadTheme applies a theme with the user's stored colors
 /// and extra overrides in one pass (one themeChanged, colors visible in the palette);
-/// the editor colors of a theme (the writer's own ones are kept for each theme), and the colors
-/// its palette gives disabled widgets.
+/// the editor colors of a theme (the writer's own ones are kept for each theme, also the colors of
+/// the papers, which moved into the themes), the colors its palette gives disabled widgets, and
+/// the selection and the links in the theme's color.
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/theme_manager.h>
+#include <kalahari/editor/editor_appearance.h>
 
 #include <QApplication>
 #include <QColor>
@@ -17,10 +19,13 @@
 #include <QToolTip>
 
 #include <map>
+#include <set>
 #include <string>
+#include <utility>
 
 using kalahari::core::Theme;
 using kalahari::core::ThemeManager;
+using namespace kalahari::editor;
 
 TEST_CASE("ThemeManager applies a theme with overrides in one pass",
           "[core][theme]") {
@@ -204,11 +209,104 @@ TEST_CASE("The writer's editor colors are kept for each theme and reach the them
 
     // A setting that changes no color of the theme changes nothing
     before = colorsChangedCount;
-    settings.set<std::string>("editor.colors.backgroundLight", "#fafafa");
+    const std::string frame = "editor.textFrameBorder.color";
+    const std::string frameColor = settings.get<std::string>(frame);
+    settings.set<std::string>(frame, "#fafafa");
     QCoreApplication::processEvents();
     CHECK(colorsChangedCount == before);
-    settings.removeKey("editor.colors.backgroundLight");
+    settings.set<std::string>(frame, frameColor);
     QCoreApplication::processEvents();
+}
+
+TEST_CASE("Both themes give the colors of both papers as the editor had them",
+          "[core][theme][colors]") {
+    // The theme in use is not changed: the files are read as they are
+    const EditorColors own;
+    const std::pair<std::string, QColor> colors[] = {
+        {LIGHT_PAPER_COLOR_KEYS.paper, own.continuous.backgroundLight},
+        {LIGHT_PAPER_COLOR_KEYS.text, own.continuous.textLight},
+        {LIGHT_PAPER_COLOR_KEYS.focusDimmed, own.focus.inactiveLight},
+        {LIGHT_PAPER_COLOR_KEYS.formattingMarks, own.formattingMarks.light},
+        {LIGHT_PAPER_COLOR_KEYS.link, own.links.light},
+        {LIGHT_PAPER_COLOR_KEYS.desk, own.continuous.deskLight},
+        {DARK_PAPER_COLOR_KEYS.paper, own.continuous.backgroundDark},
+        {DARK_PAPER_COLOR_KEYS.text, own.continuous.textDark},
+        {DARK_PAPER_COLOR_KEYS.focusDimmed, own.focus.inactiveDark},
+        {DARK_PAPER_COLOR_KEYS.formattingMarks, own.formattingMarks.dark},
+        {DARK_PAPER_COLOR_KEYS.link, own.links.dark},
+        {DARK_PAPER_COLOR_KEYS.desk, own.continuous.deskDark},
+        {SELECTION_COLOR_KEY, underTextColor(own.selection, 255)},
+        {SEARCH_MATCH_COLOR_KEY, underTextColor(own.searchMatch, 255)},
+        {CURRENT_SEARCH_MATCH_COLOR_KEY, underTextColor(own.currentSearchMatch, 255)},
+    };
+    for (const char* name : {"Light", "Dark"}) {
+        const Theme theme = ThemeManager::getInstance().loadTheme(QString::fromLatin1(name));
+        for (const auto& [key, color] : colors) {
+            INFO(name << " " << key);
+            REQUIRE(theme.editor.count(key) == 1);
+            CHECK(theme.editor.at(key) == color);
+        }
+    }
+
+    // The desk is the shade the editor gave each paper before it had a color of its own
+    CHECK(own.continuous.deskLight.rgb() == own.continuous.backgroundLight.darker(118).rgb());
+    CHECK(own.continuous.deskDark.rgb() == own.continuous.backgroundDark.lighter(160).rgb());
+    // Drawn under the text as before: translucent
+    CHECK(own.selection == QColor(66, 133, 244, 80));
+    CHECK(own.searchMatch == QColor(255, 214, 0, 96));
+    CHECK(own.currentSearchMatch == QColor(255, 140, 0, 140));
+}
+
+TEST_CASE("The colors of the papers kept outside the themes move into each theme",
+          "[core][theme][colors]") {
+    auto& themeManager = ThemeManager::getInstance();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const auto setting = [](const char* theme, const char* key) {
+        return ThemeManager::editorColorSetting(theme, key);
+    };
+    const std::string keptInDark = setting("Dark", LIGHT_PAPER_COLOR_KEYS.paper);
+    const std::string added[] = {
+        setting("Light", LIGHT_PAPER_COLOR_KEYS.paper),
+        setting("Light", DARK_PAPER_COLOR_KEYS.text),
+        setting("Dark", DARK_PAPER_COLOR_KEYS.text),
+        setting("Light", LIGHT_PAPER_COLOR_KEYS.formattingMarks),
+        setting("Dark", LIGHT_PAPER_COLOR_KEYS.formattingMarks),
+    };
+    const auto clear = [&]() {
+        settings.removeKey(keptInDark);
+        for (const std::string& key : added) {
+            settings.removeKey(key);
+        }
+    };
+    clear();
+
+    // A cream paper of the writer's, the dark paper's text as the themes have it, a broken
+    // color; the dark theme has its own light paper already
+    settings.set<std::string>("editor.colors.backgroundLight", "#f5ecd7");
+    settings.set<std::string>("editor.colors.textDark", "#e0e0e0");
+    settings.set<std::string>("editor.colors.formattingMarksLight", "not a color");
+    settings.set<std::string>(keptInDark, "#101010");
+
+    themeManager.moveFormerPaperColors();
+    for (const char* former : {"editor.colors.backgroundLight", "editor.colors.textDark",
+                               "editor.colors.formattingMarksLight"}) {
+        INFO(former);
+        CHECK_FALSE(settings.hasKey(former));
+    }
+    CHECK(settings.get<std::string>(added[0], std::string()) == "#f5ecd7");
+    CHECK(settings.get<std::string>(keptInDark, std::string()) == "#101010");
+    for (const std::string& key : {added[1], added[2], added[3], added[4]}) {
+        INFO(key);
+        CHECK_FALSE(settings.hasKey(key));
+    }
+
+    // Once moved, nothing more to move
+    settings.removeKey(added[0]);
+    themeManager.moveFormerPaperColors();
+    CHECK_FALSE(settings.hasKey(added[0]));
+
+    clear();
+    QCoreApplication::processEvents();  // the theme follows the settings
 }
 
 TEST_CASE("Optimize colors in themes is on by default and its change reaches the editors",
@@ -289,4 +387,166 @@ TEST_CASE("A theme gives disabled widgets opaque backgrounds", "[core][theme]") 
     QColor disabledText("#000000");
     disabledText.setAlpha(128);
     CHECK(qtPalette.color(QPalette::Disabled, QPalette::Text) == disabledText);
+}
+
+namespace {
+
+/// A theme's file: the colors of the Dark theme, with the palette given
+nlohmann::json themeFile(const nlohmann::json& palette) {
+    nlohmann::json json;
+    json["name"] = "Test";
+    json["colors"] = {{"primary", "#ffaa00"}, {"secondary", "#333333"}, {"background", "#1e1e1e"},
+                      {"text", "#ffffff"}};
+    json["palette"] = palette;
+    return json;
+}
+
+/// The palette of the Dark theme without the selection and the links
+nlohmann::json darkPalette() {
+    return {{"window", "#2b2b2b"}, {"windowText", "#e0e0e0"}, {"base", "#3c3c3c"},
+            {"text", "#e0e0e0"}};
+}
+
+/// No icon or palette color of the writer's in any theme while it lives; the theme in use stays
+class OwnColorsCleared {
+public:
+    OwnColorsCleared()
+        : m_theme(QString::fromStdString(ThemeManager::getInstance().getCurrentTheme().name)) {
+        clear();
+    }
+    ~OwnColorsCleared() {
+        clear();
+        ThemeManager::getInstance().reloadTheme(m_theme);
+    }
+    OwnColorsCleared(const OwnColorsCleared&) = delete;
+    OwnColorsCleared& operator=(const OwnColorsCleared&) = delete;
+
+private:
+    static void clear() {
+        auto& settings = kalahari::core::SettingsManager::getInstance();
+        for (const QString& theme : ThemeManager::getInstance().getAvailableThemes()) {
+            settings.clearCustomIconColorsForTheme(theme.toStdString());
+            settings.clearCustomPaletteColorsForTheme(theme.toStdString());
+        }
+    }
+
+    QString m_theme;
+};
+
+}  // namespace
+
+TEST_CASE("The selection and the links are in the theme's color, unless the theme file lists "
+          "them", "[core][theme]") {
+    using kalahari::core::contrastRatio;
+
+    SECTION("a theme file without them") {
+        const Theme theme = Theme::fromJson(themeFile(darkPalette()));
+        CHECK(theme.themeColorPalette ==
+              std::set<std::string>{"highlight", "highlightedText", "link", "linkVisited"});
+        CHECK(theme.palette.highlight == QColor("#ffaa00"));
+        // Black reads better on the orange than white
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(theme.palette.link == QColor("#ffaa00"));
+        // The visited links: a little toward the text, readable on the base
+        CHECK(theme.palette.linkVisited != theme.palette.link);
+        CHECK(contrastRatio(theme.palette.linkVisited, theme.palette.base) >= 4.5);
+    }
+
+    SECTION("a theme file without a palette: they are in the theme's color too") {
+        nlohmann::json json = themeFile(darkPalette());
+        json.erase("palette");
+        const Theme theme = Theme::fromJson(json);
+        CHECK(theme.themeColorPalette ==
+              std::set<std::string>{"highlight", "highlightedText", "link", "linkVisited"});
+        CHECK(theme.palette.highlight == QColor("#ffaa00"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(contrastRatio(theme.palette.link, theme.palette.base) >= 4.5);
+        CHECK(contrastRatio(theme.palette.linkVisited, theme.palette.base) >= 4.5);
+    }
+
+    SECTION("a light color of the icons on a light base: the links are darker to be read") {
+        nlohmann::json json = themeFile({{"window", "#f0f0f0"}, {"base", "#ffffff"},
+                                         {"text", "#000000"}});
+        json["colors"]["primary"] = "#ffd54f";
+        const Theme theme = Theme::fromJson(json);
+        CHECK(theme.palette.highlight == QColor("#ffd54f"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(theme.palette.link != QColor("#ffd54f"));
+        CHECK(contrastRatio(theme.palette.link, theme.palette.base) >= 4.5);
+        CHECK(contrastRatio(theme.palette.linkVisited, theme.palette.base) >= 4.5);
+    }
+
+    SECTION("a theme file that lists the selection keeps it; its text follows it") {
+        nlohmann::json palette = darkPalette();
+        palette["highlight"] = "#1a237e";
+        palette["link"] = "#4fc3f7";
+        const Theme theme = Theme::fromJson(themeFile(palette));
+        CHECK(theme.themeColorPalette == std::set<std::string>{"highlightedText", "linkVisited"});
+        CHECK(theme.palette.highlight == QColor("#1a237e"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::white));
+        CHECK(theme.palette.link == QColor("#4fc3f7"));
+    }
+
+    SECTION("written out, they are left out: they follow the theme's color when read again") {
+        nlohmann::json palette = darkPalette();
+        palette["highlight"] = "#1a237e";
+        const Theme theme = Theme::fromJson(themeFile(palette));
+        const nlohmann::json written = theme.toJson();
+        CHECK(written["palette"]["highlight"] == "#1a237e");
+        for (const char* key : {"highlightedText", "link", "linkVisited"}) {
+            INFO(key);
+            CHECK_FALSE(written["palette"].contains(key));
+        }
+        const Theme read = Theme::fromJson(written);
+        CHECK(read.themeColorPalette == theme.themeColorPalette);
+        CHECK(read.palette.link == theme.palette.link);
+        CHECK(read.palette.highlightedText == theme.palette.highlightedText);
+    }
+
+    SECTION("the program's themes leave them to their color") {
+        auto& themes = ThemeManager::getInstance();
+        for (const QString& name : themes.getAvailableThemes()) {
+            INFO(name.toStdString());
+            const Theme theme = themes.loadTheme(name);
+            CHECK(theme.themeColorPalette.size() == 4);
+            CHECK(theme.palette.highlight == theme.colors.primary);
+        }
+    }
+}
+
+TEST_CASE("The selection and the links follow the writer's color of the icons, unless the writer "
+          "chose their own", "[core][theme]") {
+    const OwnColorsCleared cleared;
+    auto& themes = ThemeManager::getInstance();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string name = themes.getCurrentTheme().name;
+    const QColor green("#2e8b57");
+    settings.setIconColorPrimaryForTheme(name, green.name().toStdString());
+
+    SECTION("the color of the icons") {
+        REQUIRE(themes.reloadTheme(QString::fromStdString(name)));
+        const Theme& theme = themes.getCurrentTheme();
+        CHECK(theme.palette.highlight == green);
+        CHECK(QApplication::palette().color(QPalette::Highlight) == green);
+        CHECK(QApplication::palette().color(QPalette::HighlightedText) ==
+              theme.palette.highlightedText);
+        CHECK(kalahari::core::contrastRatio(theme.palette.link, theme.palette.base) >= 4.5);
+        // As the Settings dialog shows another theme, without switching to it
+        CHECK(themes.storedTheme(QString::fromStdString(name)).palette.highlight == green);
+    }
+
+    SECTION("a selection of the writer's own stays; its text follows it") {
+        settings.setPaletteColorForTheme(name, "highlight", "#fff59d");
+        REQUIRE(themes.reloadTheme(QString::fromStdString(name)));
+        const Theme& theme = themes.getCurrentTheme();
+        CHECK(theme.palette.highlight == QColor("#fff59d"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(theme.palette.link != QColor("#fff59d"));
+    }
+
+    SECTION("a changed color of the icons reaches them at once") {
+        REQUIRE(themes.reloadTheme(QString::fromStdString(name), {{"primary", QColor("#8e24aa")}}));
+        CHECK(themes.getCurrentTheme().palette.highlight == QColor("#8e24aa"));
+        CHECK(themes.getCurrentTheme().palette.highlightedText == QColor(Qt::white));
+    }
 }

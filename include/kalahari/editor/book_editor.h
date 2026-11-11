@@ -16,13 +16,18 @@
 
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/auto_correct.h>
+#include <kalahari/editor/character_format.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/annotation_cards.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_issue.h>
+#include <kalahari/editor/text_link.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
 // KML → QTextDocument (with QTextCharFormat) → Render visible fragment
@@ -36,6 +41,8 @@
 #include <QTextDocument>
 #include <QElapsedTimer>
 #include <QList>
+#include <QSet>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -53,6 +60,7 @@ class QVariantAnimation;
 class QScreen;
 class QShowEvent;
 class QTextBlock;
+class QTextTable;
 class QScrollBar;
 class QTimer;
 class QMenu;
@@ -451,7 +459,9 @@ public:
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.
-    /// The cursor moves to the start of the new paragraph.
+    /// The cursor moves to the start of the new paragraph. Without a selection autocorrect
+    /// then changes the last word of the paragraph Enter ended, or the paragraph into a
+    /// scene break or a line ("***", "---"), as an undo step of its own (see typeText()).
     void insertNewline();
 
     /// @brief Start a new line in the paragraph (Shift+Enter), as Word's line break
@@ -459,16 +469,26 @@ public:
     /// The break is a QChar::LineSeparator in the paragraph's text (<br/> in KML), so the
     /// lines keep the paragraph's format and spacing. It replaces the selection, and the
     /// cursor goes to the start of the new line. The break and the text typed after it are
-    /// one undo step, apart from the text typed before it.
+    /// one undo step, apart from the text typed before it. Autocorrect sees the break as a
+    /// space that ends a word.
     void insertLineBreak();
+
+    /// @brief Insert characters chosen by a command or a window (Insert > Special Character...,
+    ///        Insert > Formatting Character), in place of the selection
+    ///
+    /// They are an undo step of their own, apart from the text typed before them, and
+    /// autocorrect does not change them: "--" inserted stays two hyphens. Next to an object
+    /// they get a paragraph of their own, as typed text does.
+    void insertCharacters(const QString& characters);
 
     /// @brief Type text at the cursor, as the keyboard and the input methods do: the text goes
     ///        in as insertText() puts it, and autocorrect changes what was typed
     ///
-    /// Each quotation mark, apostrophe, space and period goes in as typed alone, so
-    /// autocorrect sees it with the text before it (an input method can commit several
-    /// characters at once). A change of autocorrect is an undo step of its own: undoing it
-    /// right after brings back the typed characters, with the cursor after them.
+    /// Each quotation mark, apostrophe, space and punctuation mark that ends a word goes in
+    /// as typed alone, so autocorrect sees it with the text before it (an input method can
+    /// commit several characters at once). A change of autocorrect is an undo step of its
+    /// own: undoing it right after brings back the typed characters, with the cursor after
+    /// them. In a paragraph whose spelling is not checked (the style Code) nothing changes.
     void typeText(const QString& text);
 
     /// @brief What autocorrect changes in the text as it is typed (typeText()); everything,
@@ -658,6 +678,54 @@ public:
     int currentFontSize() const;
 
     // =========================================================================
+    // More of the character formatting (character_format.h): on the selection, the word
+    // with the cursor or the text typed next, each change as one undo step
+    // =========================================================================
+
+    /// @brief Format > Superscript (Ctrl+Shift+P) and Subscript (Ctrl+Shift+B), toggled as
+    ///        bold is; one takes the other off
+    void toggleSuperscript();
+    void toggleSubscript();
+
+    /// @brief Format > Small Caps (Ctrl+Shift+K) and All Caps (Ctrl+Shift+A), toggled as bold
+    ///        is: how the letters are shown, the text stays as typed; one takes the other off
+    void toggleSmallCaps();
+    void toggleAllCaps();
+
+    /// @brief Whether all of the selection has the format, or the text typed at the cursor
+    ///        would have it
+    bool isSuperscript() const;
+    bool isSubscript() const;
+    bool isSmallCaps() const;
+    bool isAllCaps() const;
+
+    /// @brief The character formatting of the selection, else of the text typed at the
+    ///        cursor (Format > Font): a part not the same in all of the selection has no
+    ///        value; the font and size are the editor's where the text has none of its own
+    CharacterFormat shownCharacterFormat() const;
+
+    /// @brief Format > Font and the color submenus: give the parts of @p changes that have a
+    ///        value to the selection, the word with the cursor or the text typed next
+    void applyCharacterFormat(const CharacterFormat& changes);
+
+    /// @brief Format > Change Case: the letters of the selection, else of the word with the
+    ///        cursor, in another case; their formats and annotations stay
+    void changeCase(CaseChange change);
+
+    /// @brief Format > Copy Formatting: remember the character formatting of the start of
+    ///        the selection, else of the text typed at the cursor, and the style, own
+    ///        formatting and alignment of its paragraph, for all the editors
+    void copyFormatting();
+
+    /// @brief Whether Copy Formatting has remembered formatting
+    static bool hasCopiedFormatting();
+
+    /// @brief Format > Paste Formatting: the selection, the word with the cursor or the text
+    ///        typed next gets the remembered character formatting in place of its own; the
+    ///        paragraphs the selection holds whole get the remembered paragraph formatting
+    void pasteFormatting();
+
+    // =========================================================================
     // Paragraph Alignment
     // =========================================================================
 
@@ -682,8 +750,32 @@ public:
     // breaks)
     // =========================================================================
 
-    /// @brief Set the styles of the book (of its type package): every paragraph is shown in
-    ///        its style, and Enter at the end of one starts the style that follows it
+    /// @brief Give every paragraph of style @p from the style @p to, as one undo step that
+    ///        brings back the cursor (a style of the book deleted: its paragraphs go to its
+    ///        base style)
+    /// @return The number of paragraphs that changed; 0 changes nothing and makes no step
+    int replaceParagraphStyle(const QString& from, const QString& to);
+
+    /// @brief How many paragraphs of the text are in each style (Normal: NORMAL_STYLE_ID), as
+    ///        paragraphStyleCounts() counts them in KML
+    QHash<QString, int> paragraphStyleCounts() const;
+
+    /// @brief The formatting the paragraph at the cursor has of its own, over its style, as
+    ///        the properties of a style (paragraph_styles.h): its own indents, spacing, line
+    ///        spacing (a multiple), breaks and alignment, and the font, size, bold, italic and
+    ///        underline all of its text has of its own; the size in the points of the styles
+    /// @return Nothing at an object or without a text
+    QVariantMap ownStyleProperties() const;
+
+    /// @brief Give the paragraphs of the cursor or the selection the style @p styleId without
+    ///        their own formatting of the properties @p taken, as one undo step: a new style
+    ///        took that formatting from the paragraph at the cursor (ownStyleProperties()), so
+    ///        the style gives it to them now
+    void applyNewParagraphStyle(const QString& styleId, const QStringList& taken);
+
+    /// @brief Set the styles of the book (of its type package and its own): every paragraph is
+    ///        shown in its style, and Enter at the end of one starts the style that follows it;
+    ///        paragraphStylesChanged() tells of a change
     void setParagraphStyles(const ParagraphStyleSet& styles);
 
     /// @brief The styles of the book
@@ -711,6 +803,104 @@ public:
     ///
     /// It gets a paragraph of its own; the cursor goes after it (see insertObject()).
     void insertTextObject(TextObject object);
+
+    // =========================================================================
+    // Lists and the indents of paragraphs (text_lists.h, paragraph_format.h)
+    //
+    // Each change is one undo step that brings back the cursor and selection it was made
+    // with; the objects among the paragraphs stay as they are.
+    // =========================================================================
+
+    /// @brief Format > Numbering (F12) and Bullets (Shift+F12): make the paragraph at the
+    ///        cursor, or the selected ones, items of a list of the kind, or take them out of
+    ///        their lists
+    ///
+    /// When all of them are items of the kind with numbers or bullets, they leave their
+    /// lists. Otherwise they all become items: of the list of the kind one of them is in,
+    /// else of the list of the kind right before or after them, else of a new one. An item
+    /// keeps its level.
+    void toggleList(ListKind kind);
+
+    /// @brief The kind of the list item at the cursor; nothing outside a list and for an
+    ///        item without a number or bullet
+    std::optional<ListKind> currentListKind() const;
+
+    /// @brief The list item at the cursor (also one without a number); nothing outside a list
+    std::optional<ListItem> currentListItem() const;
+
+    /// @brief The number of the list item at the cursor; -1 outside a list and for an item
+    ///        without a number
+    int currentListNumber() const;
+
+    /// @brief Format > Increase Indent: the list items go one level down (Tab), the other
+    ///        paragraphs a step of the indent (1.25 cm) to the right
+    void increaseIndent();
+
+    /// @brief Format > Decrease Indent: the list items go one level up (Shift+Tab), the other
+    ///        paragraphs a step of the indent to the left (not past the edge of the text)
+    void decreaseIndent();
+
+    /// @brief Restart at 1: the item at the cursor gets the first number of its level, the
+    ///        next ones go on from it
+    void restartNumbering();
+
+    /// @brief Continue Numbering: the item at the cursor loses its own number; the first item
+    ///        of a list joins its list with the list of the kind before it
+    void continueNumbering();
+
+    /// @brief Whether Continue Numbering changes the item at the cursor
+    bool canContinueNumbering() const;
+
+    /// @brief Set Numbering Value: the item at the cursor gets the number, the next ones go
+    ///        on from it
+    void setNumberingValue(int value);
+
+    /// @brief Format > Bullets and Numbering: the lists of the selected paragraphs get the
+    ///        formats of the levels; a paragraph outside a list becomes an item of the first
+    ///        of them, or of a new list
+    void applyListDefinition(const ListDefinition& definition);
+
+    /// @brief The formatting the paragraph at the cursor is shown with, in points: its own
+    ///        over its style's (Format > Paragraph)
+    ParagraphFormat shownParagraphFormat() const;
+
+    /// @brief Format > Paragraph: give the parts of @p changes that have a value to the
+    ///        paragraph at the cursor, or the selected ones, and the alignment, if given
+    ///
+    /// A part equal to the one the paragraph's style gives it is not kept as its own.
+    void applyParagraphFormat(const ParagraphFormat& changes,
+                              std::optional<Qt::Alignment> alignment = std::nullopt);
+
+    // =========================================================================
+    // Links (text_link.h)
+    // =========================================================================
+
+    /// @brief What Insert > Link (Ctrl+K) changes at the cursor
+    ///
+    /// The link the cursor is on (linkAtPosition()) or the one the selection lies in: the
+    /// dialog edits it. Else the selection, which becomes a link; its text can be changed
+    /// only within one paragraph and without objects. Without either, a new link goes in at
+    /// the cursor.
+    LinkTarget linkTarget() const;
+
+    /// @brief Make the text of a target a link to an address, as one undo step
+    ///
+    /// Text the target cannot change, or that stays as it is, keeps its place and formatting.
+    /// Else the new text takes the place of the target's, in the format of its first
+    /// character (at the cursor, of the text typed there); an empty one is the address as
+    /// written. The cursor goes after the link.
+    /// @param target What linkTarget() gave
+    /// @param text The text the link shows
+    /// @param address The address as written (normalizedLinkAddress() makes it the link's)
+    /// @return false for an empty address, or in a read-only text (changeRefused())
+    bool setLink(const LinkTarget& target, const QString& text, const QString& address);
+
+    /// @brief Take the links off the text of a target, as one undo step; the text stays
+    /// @return false when it has none, or in a read-only text (changeRefused())
+    bool removeLink(const LinkTarget& target);
+
+    /// @brief The link of the character under a point of the widget
+    std::optional<TextLink> linkAt(const QPointF& widgetPos) const;
 
     // =========================================================================
     // Annotations: comments, TODOs and notes
@@ -753,7 +943,9 @@ public:
 
     /// @brief The text column in the editor: from the text's left edge to its right edge,
     /// as tall as the editor
-    QRectF textColumnRect() const;
+    /// @param y A widget y: the column of the page there (mirror margins shift the text of
+    ///        every other page)
+    QRectF textColumnRect(double y) const;
 
     /// @brief The annotation whose mark is at a point of the editor
     /// @return Its id; empty when no mark is there
@@ -804,6 +996,52 @@ public:
     /// It holds for content loaded later too. The annotations the text already has stay.
     void setAnnotationsAllowed(bool allowed);
 
+    // =========================================================================
+    // Annotations: the cards under the paragraphs
+    // =========================================================================
+
+    /// @brief Whether the annotations have cards under their paragraphs now
+    ///
+    /// As the settings say (EditorAppearance::annotationCards), in the continuous view, and in
+    /// Distraction-Free when the settings show them there. The page view shows the marks
+    /// only. Without cards a click on a mark opens the annotation's frame at its place; with
+    /// them it collapses or expands the card, and the frame lies over the card.
+    bool showsAnnotationCards() const;
+
+    /// @brief Whether an annotation of a kind has a card now (the kinds of the settings)
+    bool showsAnnotationCard(AnnotationKind kind) const;
+
+    /// @brief Whether an annotation's card is collapsed: its mark alone, or a line
+    bool isAnnotationCollapsed(const QString& id) const;
+
+    /// @brief Collapse or expand an annotation's card
+    void setAnnotationCollapsed(const QString& id, bool collapsed);
+
+    /// @brief Collapse or expand the cards of all the annotations, also those made later
+    void setAllAnnotationsCollapsed(bool collapsed);
+
+    /// @brief Where an annotation's card is in the editor
+    /// @param id The annotation; empty: the room of a new one written in the frame
+    /// @return Empty when it has no card shown (collapsed to its mark, or no cards)
+    QRectF annotationCardRect(const QString& id) const;
+
+    /// @brief An annotation is written in the frame over its card: the card makes room for
+    ///        the frame; a new one's room comes among the cards of the paragraph of its mark,
+    ///        in the order of its place. The room comes into view.
+    /// @param id The annotation; empty: a new one
+    /// @param kind Its kind
+    /// @param start Where its fragment starts (a position in the document)
+    /// @param end Where it ends: its mark
+    /// @param height The frame's height, in pixels of the editor
+    void setAnnotationCardWriting(const QString& id, AnnotationKind kind, int start, int end,
+                                  qreal height);
+
+    /// @brief The frame over the card is of another height (pixels of the editor)
+    void setAnnotationCardWritingHeight(qreal height);
+
+    /// @brief No annotation is written in the frame over its card any more
+    void clearAnnotationCardWriting();
+
     /// @brief Whether the text can only be read: a chapter of a book open read-only
     ///
     /// It is read, selected, copied and searched, but nothing changes it: typing, deleting,
@@ -813,6 +1051,27 @@ public:
     /// not moved. A change the writer asks for says that it was refused (changeRefused()).
     /// Content loaded with fromKml() shows as it is.
     bool isReadOnly() const { return m_readOnly; }
+
+    /// @brief Whether what is inserted goes into a cell of a table: the cursor, or the start
+    ///        of the selection, is in one. A cell holds only text: the objects of the Insert
+    ///        menu and tables are not inserted there.
+    bool isInTable() const;
+
+    /// @brief The most columns and rows of a table Insert > Table makes
+    static constexpr int MAX_INSERTED_TABLE_COLUMNS = 20;
+    static constexpr int MAX_INSERTED_TABLE_ROWS = 100;
+
+    /// @brief Insert > Table: a table as wide as the text, with equal columns and empty cells,
+    ///        in place of the selection or at the cursor, as one undo step
+    ///
+    /// In the middle of a paragraph the table splits it in two; an empty paragraph it would
+    /// leave next to it goes (where the table does not need it, at the start or the end of
+    /// the text), so in an empty paragraph the table takes its place. The cursor goes to the
+    /// first cell. Nothing happens in a read-only text or in a table (isInTable()).
+    /// @param columns 1 to MAX_INSERTED_TABLE_COLUMNS
+    /// @param rows 1 to MAX_INSERTED_TABLE_ROWS
+    /// @param headerRow The first row is a header row
+    void insertTable(int columns, int rows, bool headerRow);
 
     /// @brief Let the text be changed or not (see isReadOnly())
     void setReadOnly(bool readOnly);
@@ -836,12 +1095,14 @@ public:
     /// Null entries are left out.
     void setContextMenuActions(const QList<QAction*>& actions);
 
-    /// @brief The application's Cut, Copy, Paste and Select All (setContextMenuEditActions())
+    /// @brief The application's Cut, Copy, Paste and Select All, and its Insert > Link
+    ///        (setContextMenuEditActions())
     struct ContextMenuEditActions {
         QAction* cut = nullptr;
         QAction* copy = nullptr;
         QAction* paste = nullptr;
         QAction* selectAll = nullptr;
+        QAction* link = nullptr;  ///< Insert > Link, whose keys Edit Hyperlink of a link shows
     };
 
     /// @brief The commands of the Edit menu the text's context menu shows as its editing
@@ -1156,6 +1417,22 @@ public:
     void setSpokenWord(int paragraph, int offset, int length);
 
     // =========================================================================
+    // Repeated Words
+    // =========================================================================
+
+    /// @brief Mark the repeated words in the text, as the Repetitions panel finds them
+    /// @param marks The words; none clears the marks
+    /// @param style A background under each word or a wave under it; the words of the
+    ///        repetition chosen in the panel are framed as well
+    void setRepetitionMarks(const std::vector<RepetitionMark>& marks,
+                            RepetitionMarkStyle style = RepetitionMarkStyle::Background);
+
+    /// @brief The repeated words marked in the text (setRepetitionMarks())
+    [[nodiscard]] const std::vector<RepetitionMark>& repetitionMarks() const {
+        return m_repetitionMarks;
+    }
+
+    // =========================================================================
     // Find/Replace (Phase 9.4-9.6)
     // =========================================================================
 
@@ -1227,6 +1504,36 @@ signals:
     /// it, pasted, cut, undid, redid, formatted or aligned it; nothing changed
     void changeRefused();
 
+    /// @brief The gear of the find bar asks for the colors of the hits (Settings > Editor >
+    /// Colors)
+    void searchColorsRequested();
+
+    /// @brief The writer undid a change of autocorrect right after it, one an exception list
+    ///        can keep from (AutoCorrection::learns): as in Word, the list may get it
+    /// @param list The list: the abbreviations, or the words with two capitals
+    /// @param exception What the list gets: "godz.", "PCs"
+    void autoCorrectionUndone(kalahari::editor::LearnedException list, const QString& exception);
+
+    /// @brief Autocorrect changed a word typed with Caps Lock on by mistake ("wIELKI" to
+    ///        "Wielki"); Caps Lock is still on
+    void capsLockCorrected();
+
+    /// @brief Set Numbering Value... of the context menu of a list item: the window that asks
+    ///        for the number (setNumberingValue())
+    void numberingValueAsked();
+
+    /// @brief Bullets and Numbering... of the context menu of a list item: the window of the
+    ///        formats of the list (applyListDefinition())
+    void bulletsAndNumberingAsked();
+
+    /// @brief Edit Link... of the context menu of a link: the window of Insert > Link
+    ///        (linkTarget(), setLink())
+    void linkDialogAsked();
+
+    /// @brief A link was Ctrl+clicked, or Open Link chosen in its context menu
+    /// @param address The link's address; the program opens only some (isOpenableLinkAddress())
+    void linkOpenAsked(const QString& address);
+
     /// @brief Replace All of the Find/Replace bar is about to replace @p count matches of
     /// @p found with @p replacement; the text is still as it was (toKml())
     ///
@@ -1239,12 +1546,27 @@ signals:
     /// Use this to track content changes (e.g., for statistics, auto-save).
     void contentChanged();
 
+    /// @brief Text is about to be pasted or dropped, or a paste is about to be undone or
+    /// redone: the change that follows is not typed by hand (pastingFinished() follows it)
+    void pastingStarted();
+
+    /// @brief The change pastingStarted() announced is made (contentChanged() came before
+    /// it)
+    /// @param level The undo level of the paste: the same when it is undone and redone
+    /// (text typed right after a paste may join its level, and goes and comes back with it)
+    /// @param undoOrRedo A paste was undone or redone
+    void pastingFinished(int level, bool undoOrRedo);
+
     /// @brief Emitted when the content starts or stops differing from the saved content
     ///        (see isModified())
     ///
     /// A content as long as the saved one is compared with it when the editing pauses; until
     /// then isModified() gives the answer.
     void modifiedChanged(bool modified);
+
+    /// @brief The book's paragraph styles changed (setParagraphStyles()): a style was added,
+    ///        changed or removed
+    void paragraphStylesChanged();
 
     /// @brief Emitted when the word and character counts change while the text stays the
     ///        same (they follow new rules of setWordCountRules())
@@ -1310,6 +1632,23 @@ signals:
     /// @brief Emitted when the mark of an annotation is clicked (the cursor stays)
     /// @param id The annotation's id
     void annotationMarkClicked(const QString& id);
+
+    /// @brief Emitted when the card of an annotation is clicked: its fragment is selected,
+    ///        or the cursor goes to its place
+    /// @param id The annotation's id
+    void annotationCardClicked(const QString& id);
+
+    /// @brief Emitted when the writer asks to edit the text of an annotation: a double click
+    ///        on its card, Edit Annotation in a menu
+    /// @param id The annotation's id
+    void annotationEditRequested(const QString& id);
+
+    /// @brief Emitted for Card Appearance and Colors... in the menu of a card
+    void annotationCardSettingsRequested();
+
+    /// @brief Emitted when the cards under the paragraphs come or go (showsAnnotationCards())
+    /// @param shown Whether they are shown now
+    void annotationCardsShownChanged(bool shown);
 
     /// @brief Emitted when a material is chosen at the mark beside a paragraph: a click on
     /// the mark (a menu first when it names several), or its item in the context menu
@@ -1379,6 +1718,9 @@ protected:
     /// them first.
     void keyPressEvent(QKeyEvent* event) override;
 
+    /// @brief Ctrl let go: the pointer over a link is the I-beam again
+    void keyReleaseEvent(QKeyEvent* event) override;
+
     /// @brief Mouse press event handler (Phase 3.9/3.11)
     /// @param event The mouse event
     ///
@@ -1405,6 +1747,9 @@ protected:
     ///
     /// Handles double-click to select word.
     void mouseDoubleClickEvent(QMouseEvent* event) override;
+
+    /// @brief The mouse left the editor: no card is under it
+    void leaveEvent(QEvent* event) override;
 
     /// @brief Accepts dragged content the editor can insert (Kalahari text or plain text)
     void dragEnterEvent(QDragEnterEvent* event) override;
@@ -1482,11 +1827,98 @@ private:
     /// @brief Align the paragraph at the cursor, or the selected ones, as one undo step
     void setParagraphAlignment(Qt::Alignment alignment);
 
+    /// @brief The paragraphs of text (not the objects) of the selection, or the one at the
+    ///        cursor
+    std::vector<QTextBlock> selectedTextBlocks() const;
+
+    /// @brief Give blocks new formats as one undo step that brings back the cursor and
+    ///        selection it was made with; nothing to change, no step
+    void setBlockFormats(const std::vector<std::pair<QTextBlock, QTextBlockFormat>>& formats);
+
+    /// @brief List items among the selected paragraphs go @p direction levels down (Tab) or
+    ///        up; with @p otherParagraphs the other paragraphs a step of the indent
+    void changeIndent(int direction, bool otherParagraphs);
+
+    /// @brief Whether Tab and Shift+Tab change the levels of list items here: at the start of
+    ///        an item, or with a selection of paragraphs that are all list items
+    bool tabChangesListLevel() const;
+
+    /// @brief Enter in an empty list item: the item goes one level up, or out of its list
+    /// @return false where Enter starts a new paragraph
+    bool endListAtEmptyItem();
+
+    /// @brief Backspace at the start of a list item: its number or bullet goes, then the item
+    ///        leaves its list
+    /// @return false where Backspace deletes
+    bool removeListMarkAtCursor();
+
+    /// @brief Autocorrect: "* " starting a paragraph makes it a bulleted item, "1. " or "1) "
+    ///        a numbered one
+    /// @return Whether the paragraph became an item
+    bool autoCorrectList(const QTextBlock& block);
+
     /// @brief Put back the cursor and selection the undo step just undone or redone
     /// recorded: the ones a step that changes no text (a paragraph format step, a step of
     /// annotations) was made with; for a replacement those before it when it is undone,
     /// the end of the replaced text when it is redone
     void restoreStepCursor();
+
+    // The cards of the annotations under the paragraphs (book_editor_cards.cpp)
+
+    /// @brief Install the room under the paragraphs and the drawing of the cards in the
+    ///        layout of a new document and in the render pipeline
+    void setUpAnnotationCards();
+
+    /// @brief The cards as the settings, the colors, the view and Distraction-Free say now;
+    ///        the room under the paragraphs follows
+    void updateAnnotationCards();
+
+    /// @brief The layout asks again for the room under paragraphs (all: @p first 0, @p last
+    ///        -1), and the view is painted again
+    void updateAnnotationCardRoom(int first = 0, int last = -1);
+
+    /// @brief Where the cards of a paragraph start, in its coordinates: under its text and
+    ///        its spacing (-1: it has no cards)
+    qreal annotationCardsTop(const QTextBlock& block) const;
+
+    /// @brief The room of the frame over a card follows its height in pixels at the zoom now
+    void fitAnnotationCardWriting();
+
+    /// @brief The paragraph whose cards an annotation's card is among (empty id: a new one
+    ///        written in the frame; invalid: none)
+    QTextBlock annotationCardBlock(const QString& id) const;
+
+    /// @brief The card at a point of the editor, and its part
+    std::optional<AnnotationCardHit> annotationCardAt(const QPointF& point) const;
+
+    /// @brief The mouse moved: the card under it shows its menu button, and its fragment is
+    ///        highlighted (as the settings say)
+    /// @return Whether it is over a card
+    bool hoverAnnotationCard(const QPointF& point);
+
+    /// @brief A press of the left button on a card: what its part does
+    /// @return Whether it was on a card
+    bool pressAnnotationCard(const QPointF& point);
+
+    /// @brief The tooltip of the part of a card at a point (empty: none)
+    QString annotationCardToolTip(const QPointF& point) const;
+
+    /// @brief Scroll a card into view (as much of it as the view shows; its top first)
+    void scrollToAnnotationCard(const QString& id);
+
+    /// @brief The annotation not done whose fragment or place is at a place of the text: the
+    ///        shortest one around it (empty: none)
+    QString annotationAt(const CursorPosition& position) const;
+
+    /// @brief The items of an annotation, in the text's menu or a card's
+    /// @param forCard The menu of its card: also Card Appearance and Colors...
+    void addAnnotationActions(QMenu& menu, const QString& id, bool forCard);
+
+    /// @brief Show the menu of an annotation's card
+    void showAnnotationCardMenu(const QString& id, const QPoint& globalPos);
+
+    /// @brief An annotation done or resolved, one undo step (Mark as Done, Mark as Resolved)
+    void markAnnotationDone(const QString& id);
 
     /// @brief Start an undo step of annotations, or join the last undo step
     ///
@@ -1642,6 +2074,10 @@ private:
     /// @brief Whether a widget point is over the selected text (a press there may drag it)
     bool isOverSelectedText(const QPointF& widgetPos) const;
 
+    /// @brief The pointer's shape at a widget point, the mouse buttons up: a hand over an
+    ///        annotation's mark and, with Ctrl, over a link; an arrow over the selected text
+    void updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers modifiers);
+
     /// @brief Whether a position lies in the selection, its ends included
     bool isInSelection(const CursorPosition& position) const;
 
@@ -1686,6 +2122,36 @@ private:
     ///        goes over the paragraph break between an object and text
     /// @return false when the cursor is not next to an object: the key deletes as in text
     bool deleteAtObject(bool backward);
+
+    // --- Tables (book_editor_tables.cpp) ---
+
+    /// @brief Tab and Shift+Tab in a table: the cursor goes to the start of the next or the
+    ///        previous cell; Tab in the last cell adds a row first (not in a read-only text)
+    /// @return false outside a table
+    bool moveToCell(bool back);
+
+    /// @brief Add a row to the end of a table, as one undo step
+    void appendTableRow(QTextTable& table);
+
+    /// @brief The paragraph Up or Down goes to from the first or the last line of @p block
+    ///        where a table is next to it: the cell above or below in the column under
+    ///        @p x (layout coordinates), or the paragraph before or after the table
+    /// @return std::nullopt where it goes to the paragraph before or after @p block
+    std::optional<int> verticalNeighbourInTable(const QTextBlock& block, bool up,
+                                                qreal x) const;
+
+    /// @brief Backspace or Delete at a break at a table: cells do not join, nor a cell and
+    ///        the paragraph next to the table; an empty paragraph next to a table goes
+    ///        (where the table does not need it), and the cursor goes into the table
+    /// @return false where the break next to the cursor is not at a table
+    bool deleteAtTableEdge(bool backward);
+
+    /// @brief The selection as a cursor for an edit that removes or replaces it
+    ///
+    /// A selection going into, out of or across a table loses its text first, the cells
+    /// staying (removeKeepingTables(), an undo step of its own): the cursor is at its
+    /// start then, without a selection.
+    QTextCursor selectionToReplace();
 
     /// @brief Select word at cursor position (Phase 3.11)
     void selectWordAtCursor();
@@ -1772,8 +2238,17 @@ private:
     // Formatting Helpers (Phase 7.2)
     // =========================================================================
 
-    /// @brief Inline formatting the bold, italic, underline and strikethrough commands toggle
-    enum class InlineFormat { Bold, Italic, Underline, Strikethrough };
+    /// @brief Inline formatting the commands of the Format menu toggle
+    enum class InlineFormat {
+        Bold,
+        Italic,
+        Underline,
+        Strikethrough,
+        Superscript,
+        Subscript,
+        SmallCaps,
+        AllCaps
+    };
 
     /// @brief Toggle an inline format on the selection, the word with the cursor or the text
     ///        typed next
@@ -1821,6 +2296,39 @@ private:
 
     /// @brief The font size text with a format shows: its own, or the editor's
     int fontSizeOf(const QTextCharFormat& format) const;
+
+    /// @brief The font size text with a format shows, in points with their fraction
+    qreal fontPointSizeOf(const QTextCharFormat& format) const;
+
+    /// @brief The character formatting text with a format shows (shownCharacterFormat())
+    CharacterFormat characterFormatOf(const QTextCharFormat& format) const;
+
+    /// @brief A piece of text with the format it gets; of an empty paragraph, the format
+    ///        typed text gets there (its block's character format)
+    struct FormatPiece {
+        int from;
+        int to;
+        QTextCharFormat format;
+        bool emptyParagraph = false;
+    };
+
+    /// @brief The pieces of a range whose formats @p change changes, objects aside, with
+    ///        their changed formats; the empty paragraphs in it are pieces too
+    std::vector<FormatPiece> changedFormatPieces(
+        const SelectionRange& range, const std::function<void(QTextCharFormat&)>& change) const;
+
+    /// @brief Give pieces of text and blocks their formats as one undo step that brings back
+    ///        the cursor and selection it was made with; nothing to change, no step
+    void setFormats(const std::vector<FormatPiece>& pieces,
+                    const std::vector<std::pair<QTextBlock, QTextBlockFormat>>& blocks = {});
+
+    /// @brief Change the format of the selection or the word with the cursor (one undo
+    ///        step), else of the text typed next
+    void changeCharFormat(const std::function<void(QTextCharFormat&)>& change);
+
+    /// @brief The pending format with which the text typed at the cursor has @p wanted: the
+    ///        parts in which it differs from the place's
+    QTextCharFormat pendingFor(const QTextCharFormat& wanted) const;
 
     QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
@@ -1901,6 +2409,11 @@ private:
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
+    AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
+    qreal m_cardWritingHeight = 0.0;    ///< The frame over a card: its height (editor pixels)
+    QString m_pressedCard;              ///< The card the last press went to (a double click edits it)
+    QTextCursor m_selectedCard;         ///< The fragment of the card gone to: its outline goes
+                                        ///< when the cursor leaves it
     bool m_readOnly = false;            ///< The text can only be read (isReadOnly())
     QString m_readOnlyReason;           ///< Why (setReadOnlyReason())
 
@@ -1924,9 +2437,50 @@ private:
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
 
+    /// The levels of undo below the text as it is: one for each step undo() takes back
+    int m_undoLevel = 0;
+    /// The levels of undo that pasted or dropped text: undoing and redoing them is pasting too
+    QSet<int> m_pasteLevels;
+
+    /// @brief The last level of undo pasted or dropped text: pastingFinished()
+    void finishPasting();
+
+    /// @brief Whether the letters typed last showed Caps Lock on: a small one typed with
+    ///        Shift, or a capital without it (the program is not told the state of the key)
+    bool m_capsLockOn = false;
+
+    /// @brief A change of autocorrect an exception list can keep from, when it is undone
+    ///        right after it (autoCorrectionUndone())
+    struct LearnableChange {
+        LearnedException list = LearnedException::None;
+        QString exception;
+        int undoSteps = 0;  ///< The undo steps right after the change
+    };
+    std::optional<LearnableChange> m_learnableChange;
+
+    /// @brief What autocorrect changes, with the abbreviations of the text's language
+    AutoCorrectOptions autoCorrectForText() const;
+
     /// @brief Make the change autocorrect has for the character typed right before the
     ///        cursor, as an undo step of its own (see typeText())
     void autoCorrectTyped();
+
+    /// @brief Make the change autocorrect has for the end of a paragraph, as an undo step of
+    ///        its own, after Enter split it: in its last word, or the whole paragraph a scene
+    ///        break or a line ("***", "---")
+    /// @param paragraph The paragraph Enter ended, its text the text before the cursor
+    /// @param atEnd Whether Enter was pressed at the end of the paragraph
+    void autoCorrectEndedParagraph(int paragraph, bool atEnd);
+
+    /// @brief Make a change of autocorrect in a block, as an undo step of its own: undone, it
+    ///        brings back the typed text with the cursor at @p typed
+    void applyAutoCorrection(const QTextBlock& block, const AutoCorrection& change,
+                             const CursorPosition& typed);
+
+    /// @brief Make the Internet address that ends at @p end of a block a link, as an undo
+    ///        step of its own (autoLink()); text that is a link already stays as it is
+    /// @return Whether it made one
+    bool autoLinkTyped(const QTextBlock& block, int end);
 
     // View Mode and Appearance (Phase 5.1)
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
@@ -2195,6 +2749,9 @@ private:
 
     /// @brief Render pipeline: draws the view in every view mode
     std::unique_ptr<EditorRenderPipeline> m_renderPipeline;
+
+    /// @brief The repeated words marked in the text (setRepetitionMarks())
+    std::vector<RepetitionMark> m_repetitionMarks;
 
     /// @brief Calculate absolute character position from cursor position
     /// @param pos Cursor position (paragraph + offset)

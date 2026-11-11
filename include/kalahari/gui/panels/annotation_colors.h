@@ -3,9 +3,15 @@
 
 #pragma once
 
+#include "kalahari/core/theme.h"
+
 #include <QColor>
 
 namespace kalahari::gui {
+
+using core::contrastRatio;
+using core::mixedColor;
+using core::readableColor;
 
 /// @brief The contrast every text of a card has with the card at least (WCAG, normal text)
 constexpr double MIN_TEXT_CONTRAST = 4.5;
@@ -28,19 +34,6 @@ struct AnnotationCardColors {
     bool operator==(const AnnotationCardColors& other) const = default;
 };
 
-/// @brief The contrast ratio of two colors, from 1 (none) to 21 (black on white)
-double contrastRatio(const QColor& a, const QColor& b);
-
-/// @brief A color between two others
-/// @param amount How much of @p over there is (0 to 1)
-QColor mixedColor(const QColor& under, const QColor& over, double amount);
-
-/// @brief The color nearest to @p color with at least @p ratio contrast with @p background
-///
-/// @p color itself when it has it; else it is moved toward black on a light background and
-/// toward white on a dark one.
-QColor readableColor(const QColor& color, const QColor& background, double ratio);
-
 /// @brief A theme's color of a kind (a mark, a wave, a frame) as it is shown on a background
 ///
 /// With "Optimize colors in themes" on (@p optimize), a color too light for a light background
@@ -53,7 +46,9 @@ QColor shownColor(const QColor& color, const QColor& background, bool optimize);
 /// @param kindColor The kind's color (from the theme)
 /// @param surface What the cards lie on: the panel's base, or the paper
 /// @param text The color of the text on that surface
+/// @param tint How much of the kind's color the card has, as a share of the usual (the cards
+///        under the paragraphs, Settings > Annotations); at most 0.6 of the color in all
 AnnotationCardColors annotationCardColors(const QColor& kindColor, const QColor& surface,
-                                          const QColor& text);
+                                          const QColor& text, double tint = 1.0);
 
 }  // namespace kalahari::gui

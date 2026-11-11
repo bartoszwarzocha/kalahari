@@ -4,8 +4,12 @@
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_data.h>
+#include <kalahari/editor/text_link.h>
+#include <kalahari/editor/text_tables.h>
+#include <QPainter>
 #include <QTextDocument>
 #include <QTextBlock>
+#include <QTextTable>
 #include <QAbstractTextDocumentLayout>
 #include <algorithm>
 
@@ -74,6 +78,29 @@ std::vector<AnnotationMark> QTextDocumentSource::paragraphAnnotationMarks(size_t
 
 std::vector<FormattingMark> QTextDocumentSource::paragraphFormattingMarks(size_t index) const {
     return formattingMarksOf(blockAt(index));
+}
+
+std::vector<ColoredText> QTextDocumentSource::paragraphColors(size_t index) const {
+    std::vector<ColoredText> colored;
+    const QTextBlock block = blockAt(index);
+    if (!block.isValid()) return colored;
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        const QColor color = textColorOf(fragment.charFormat());
+        const QColor highlight = highlightColorOf(fragment.charFormat());
+        const bool link = !linkAddressOf(fragment.charFormat()).isEmpty();
+        if (color.isValid() || highlight.isValid() || link) {
+            colored.push_back({fragment.position() - block.position(), fragment.length(), color,
+                               highlight, link});
+        }
+    }
+    return colored;
+}
+
+void QTextDocumentSource::drawListMarker(QPainter* painter, size_t index) const {
+    if (const KalahariTextDocumentLayout* layout = kalahariLayout(); layout != nullptr && painter) {
+        layout->drawListMarker(painter, blockAt(index), QPointF(0, 0), painter->pen().color());
+    }
 }
 
 QTextLayout* QTextDocumentSource::layout(size_t index) const {
@@ -165,6 +192,61 @@ double QTextDocumentSource::totalHeight() const {
     return total;
 }
 
+size_t QTextDocumentSource::firstParagraphAtY(double y) const {
+    const size_t paragraph = paragraphAtY(y);
+    if (const auto* layout = kalahariLayout()) {
+        return static_cast<size_t>(std::max(0, layout->firstBlockOfRow(static_cast<int>(paragraph))));
+    }
+    return paragraph;
+}
+
+size_t QTextDocumentSource::paragraphAt(const QPointF& point) const {
+    if (const auto* layout = kalahariLayout(); layout && m_document && point.y() >= 0) {
+        return static_cast<size_t>(std::max(0, layout->blockNumberAt(point)));
+    }
+    return paragraphAtY(point.y());
+}
+
+std::vector<TableGrid> QTextDocumentSource::tablesIn(size_t first, size_t last) const {
+    std::vector<TableGrid> grids;
+    const auto* layout = kalahariLayout();
+    if (!layout || !m_document) {
+        return grids;
+    }
+    QTextBlock block = blockAt(first);
+    for (size_t index = first; index <= last && block.isValid();) {
+        const QTextTable* table = tableOf(block);
+        if (!table) {
+            ++index;
+            block = block.next();
+            continue;
+        }
+        TableGrid grid;
+        for (const qreal edge : layout->tableColumnEdges(*table)) {
+            grid.columnEdges.push_back(edge);
+        }
+        for (const KalahariTextDocumentLayout::TableRow& row : layout->tableRows(*table)) {
+            grid.rowTops.push_back(row.top);
+            grid.rowHeights.push_back(row.height);
+        }
+        for (int row = 0; row < table->rows(); ++row) {
+            for (int column = 0; column < table->columns(); ++column) {
+                const QTextTableCell cell = table->cellAt(row, column);
+                if (cell.row() == row && cell.column() == column) {
+                    grid.cells.push_back({row, column, cell.rowSpan(), cell.columnSpan()});
+                }
+            }
+        }
+        grid.headerRows = table->format().headerRowCount();
+        grids.push_back(std::move(grid));
+
+        // On after the table
+        block = m_document->findBlock(table->lastPosition()).next();
+        index = block.isValid() ? static_cast<size_t>(block.blockNumber()) : last + 1;
+    }
+    return grids;
+}
+
 size_t QTextDocumentSource::paragraphAtY(double y) const {
     if (!m_document || y < 0) return 0;
 
@@ -253,6 +335,18 @@ void QTextDocumentSource::setPageFlow(const PageFlow& flow) {
 int QTextDocumentSource::pageCount() const {
     const auto* layout = kalahariLayout();
     return layout ? layout->pageCount() : 1;
+}
+
+MarginCounts QTextDocumentSource::marginCountsBefore(size_t index) const {
+    if (const auto* layout = kalahariLayout()) {
+        return layout->marginCountsBefore(static_cast<int>(index));
+    }
+    return ITextSource::marginCountsBefore(index);
+}
+
+bool QTextDocumentSource::isNumberedParagraph(size_t index) const {
+    const QTextBlock block = blockAt(index);
+    return block.isValid() && KalahariTextDocumentLayout::isNumberedParagraph(block);
 }
 
 KalahariTextDocumentLayout* QTextDocumentSource::kalahariLayout() const {

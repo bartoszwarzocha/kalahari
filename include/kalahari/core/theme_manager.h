@@ -10,7 +10,9 @@
 #include <atomic>
 #include <memory>
 #include <map>
+#include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 
 namespace kalahari {
@@ -41,6 +43,13 @@ public:
     /// @return Loaded Theme object
     /// @throws std::runtime_error if theme file not found or malformed
     Theme loadTheme(const QString& themeName);
+
+    /// @brief A theme as the program shows it: its file with the user's stored colors, and the
+    ///        selection and the links made from the user's color of the icons
+    ///        (Theme::followThemeColor())
+    /// @param themeName Theme name (without .json extension)
+    /// @throws std::runtime_error if theme file not found or malformed
+    Theme storedTheme(const QString& themeName);
 
     /// @brief Get currently active theme
     /// @return Current theme (or default Light theme if none loaded)
@@ -74,6 +83,14 @@ public:
     /// The setting OPTIMIZE_COLORS_SETTING; a change of it emits editorColorsChanged(), as a
     /// changed color does.
     bool optimizesEditorColors() const;
+
+    /// @brief Move the colors of the papers the settings kept outside the themes
+    ///        (editor.colors.<name>) into the themes, and drop the former settings
+    ///
+    /// Those colors were the same in every theme: a color the user chose goes to each theme
+    /// that has neither a value of its own for it nor this color in its file. Runs at startup,
+    /// before the stored colors are applied; without the former settings it does nothing.
+    void moveFormerPaperColors();
 
     /// @brief Get list of available themes in resources/themes/
     /// @return List of theme names (without .json extension)
@@ -144,8 +161,20 @@ private:
     /// @brief Apply the user's stored per-theme colors to m_currentTheme
     void applyStoredColors();
 
+    /// @brief Apply the user's stored per-theme colors to @p theme
+    /// @param overrides Gets each stored color that differs from the theme's own (or nullptr)
+    static void applyStoredColors(Theme& theme, std::map<std::string, QColor>* overrides);
+
+    /// @brief Make the palette colors of m_currentTheme that follow its color again, except
+    ///        the user's own: stored for the theme or set by setColorOverride()
+    void followThemeColor();
+
     int m_settingsListener = -1;                     ///< Subscription to the editor colors
     std::atomic<bool> m_editorColorsPending{false};  ///< A reload of the editor colors is queued
+    std::mutex m_changedSettingsMutex;               ///< Guards m_changedEditorSettings
+    /// The editor color settings changed since the last reload: a color the theme file does
+    /// not list (the parts that show it derive it from the theme's colors) changes only there
+    std::set<std::string> m_changedEditorSettings;
     bool m_optimizesEditorColors = true;             ///< optimizesEditorColors() at the last reload
 
     /// @brief Apply m_currentTheme's palette to the application and its tooltips

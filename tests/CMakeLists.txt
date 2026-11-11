@@ -14,6 +14,10 @@ set(TEST_SOURCES
     core/test_chapter_versions.cpp    # Versions of the texts of the chapter files
     core/test_text_diff.cpp           # Differences between two texts, word by word
     core/test_text_statistics.cpp
+    core/test_writing_activity.cpp    # The record of writing in 5-minute slots, and its recorder
+    core/test_writing_statistics.cpp  # Writing days, the graph of a day, days in a row, hours, temperature
+    core/test_writing_goals.cpp       # Book goals, deadlines, the journal and project.db record
+    core/test_writing_awards.cpp      # Badges and challenges: what they count, the journal
     core/test_text_file.cpp         # Plain text files in their own encoding and line ends
     core/test_standalone_file.cpp   # Chapters and text files opened outside a book project
     core/test_file_trash.cpp        # Files to the Trash of the system
@@ -47,7 +51,8 @@ set(TEST_SOURCES
     editor/test_clipboard_paste.cpp         # Text of other programs pasted, and given to them
     editor/test_view_modes.cpp              # EditorAppearance and BookEditor view modes
     editor/test_statistics_collector.cpp    # Phase 6/Task 7.17: StatisticsCollector tests
-    editor/test_word_frequency_analyzer.cpp # Phase 6/Task 7.17: WordFrequencyAnalyzer tests
+    editor/test_word_repetitions.cpp        # The repetitions of words
+    editor/test_quick_insert.cpp            # Quick insert: the items, the list at the cursor
     editor/test_spell_check_service.cpp     # Phase 6.4-6.9: SpellCheckService tests
     editor/test_grammar_check_service.cpp   # Grammar: texts checked on a LanguageTool server
     editor/test_grammar.cpp                 # Grammar as you type in the editor
@@ -58,6 +63,7 @@ set(TEST_SOURCES
     editor/test_search_engine.cpp          # OpenSpec #00044 Task 9.4: SearchEngine tests
     editor/test_kml_document_model.cpp     # KML reader tests
     editor/test_annotations.cpp            # Comments, TODOs and notes: model, file, editing
+    editor/test_annotation_cards.cpp       # Annotation cards under the paragraphs
     editor/test_style_resolver.cpp         # Sub-Project C WS4.4: StyleResolver unit tests
     editor/test_editor_stage0_kml_roundtrip.cpp  # Editor Stage 0: KML load/save through BookEditor
     editor/test_editor_stage0_layout.cpp         # Editor Stage 0: layout/viewport geometry
@@ -65,15 +71,23 @@ set(TEST_SOURCES
     editor/test_editor_stage2.cpp                # Editor Stage 2: typography, paste/undo, on-demand layout
     editor/test_editor_stage3.cpp                # Editor Stage 3: drag and drop, find and replace, cursor
     editor/test_editor_stage4.cpp                # Editor Stage 4: page mode, zoom, typewriter scrolling
+    editor/test_margin_options.cpp               # Editor: mirror margins, numbers of the lines and paragraphs on the margin
     editor/test_editor_stage5.cpp                # Editor Stage 5: highlight layer
     editor/test_paragraph_marks.cpp              # The paperclips beside the paragraphs
     editor/test_text_keys.cpp                    # The keys of the text on each system
     editor/test_format_without_selection.cpp     # Formats given without a selection
     editor/test_clear_formatting.cpp             # Format > Clear Formatting
+    editor/test_character_formatting.cpp         # Superscript, capitals, Format > Font, colors, Change Case, Copy Formatting
     editor/test_line_breaks.cpp                  # Line breaks in a paragraph (Shift+Enter)
     editor/test_paragraph_styles.cpp             # Paragraph styles and the objects of the text
+    editor/test_text_lists.cpp                   # Lists: numbers, formats of the levels, KML
+    editor/test_list_editing.cpp                 # Lists: editing, indents, numbering, auto-correct
+    editor/test_text_links.cpp                   # Links: KML, editing, the clipboard, auto-correct
+    editor/test_tables.cpp                       # Tables: the model, KML, the layout, the keys
+    editor/test_paragraph_layout.cpp             # A paragraph's own formatting and lists in the layout
     editor/test_styles_view.cpp                  # How the editor shows styles, objects and formatting marks
     editor/test_auto_correct.cpp                 # Autocorrect: the changes of the text as it is typed
+    editor/test_insert_characters.cpp            # Characters inserted by a command or a window
     editor/test_read_only_text.cpp               # A read-only text: read, copied, searched, not changed
     editor/test_version_comparison.cpp           # A version of a text compared with the text now
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
@@ -88,6 +102,9 @@ set(TEST_SOURCES
     gui/test_widget_keys.cpp                     # Qt's widgets have the keys of Windows
     gui/test_edit_coordinator.cpp                # Clipboard and undo on the element with the keys
     gui/test_paragraph_style_menu.cpp            # Format > Text Style: the styles of the text in front
+    gui/test_style_draft.cpp                     # A style as the window of a style changes it
+    gui/test_style_coordinator.cpp               # New, changed, deleted styles of the book; undo
+    gui/test_style_dialogs.cpp                   # New Style, Modify Style and Manage Styles
     gui/test_toolbar_keys.cpp                    # A toolbar gives the keys back after a command
     gui/test_settings_dialog.cpp                 # Editor Stage 4: settings pages are not squeezed
     gui/test_color_settings.cpp                  # The colors of the issues and the annotations in Settings
@@ -96,11 +113,13 @@ set(TEST_SOURCES
     gui/test_program_instance.cpp                # A later start hands its request to the program that runs
     gui/test_recent_book_cards.cpp               # Dashboard: the data of the recent books
     gui/test_save_all.cpp                        # Save All: the book and the files outside it
+    gui/test_document_windows.cpp                # The tabs of the texts in windows of their own
     gui/test_new_book.cpp                        # New Book: the kinds of a user project, without opening
     gui/test_new_file.cpp                        # New File: an element of the book, or a file outside one
     gui/test_book_tabs.cpp                       # The tabs of a book: one file in one tab, Close Book, words
     gui/test_read_only_book.cpp                  # A book open read-only: its bar, chapters, Navigator, properties
     gui/test_kind_names.cpp                      # Names of kinds in menu commands
+    gui/test_quick_insert_items.cpp              # Quick insert: cards, fragments, the settings page
     gui/test_navigator_panel.cpp                 # Navigator tree of a book project
     gui/test_navigator_coordinator.cpp           # Navigator commands on the open project
     gui/test_menu_access_keys.cpp                # The access keys of the menus, in both languages
@@ -111,6 +130,7 @@ set(TEST_SOURCES
     gui/test_program_folders.cpp                 # Folders of the program and the Folders page
     gui/test_spelling_coordinator.cpp            # Spelling as you type: dictionary, command, settings page
     gui/test_spelling_panel.cpp                  # Spelling and Grammar panel: cards, counts, keys, the text in front, F7
+    gui/test_repetitions_panel.cpp               # Repetitions panel: cards, words, keys, marks, Next Repetition, settings page
     gui/test_grammar_coordinator.cpp             # Grammar as you type: where it is checked, command, settings page
     gui/test_grammar_components.cpp              # Java and LanguageTool: versions, downloads, folders
     gui/test_language_tool_server.cpp            # LanguageTool server: started with Java or outside, restarts
@@ -126,6 +146,11 @@ set(TEST_SOURCES
     gui/test_chapter_cursor.cpp                  # A chapter opens where its cursor was
     gui/test_editor_panel.cpp                    # Editor panel between the settings and its editor
     gui/test_status_bar_statistics.cpp           # Counts of the document in front in the status bar
+    gui/test_writing_stats_bar.cpp               # The statistics bar and its model
+    gui/test_writing_stats_panel.cpp             # The Statistics panel
+    gui/test_writing_goals_tab.cpp               # The tab Writing Goals and Deadlines
+    gui/test_writing_awards_tab.cpp              # The tab Challenges and Badges, messages, status bar, summary
+    gui/test_stats_pages.cpp                     # Settings > Statistics and Goals
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
@@ -147,6 +172,14 @@ set(TEST_SOURCES
     gui/test_wrapping_labels.cpp                 # Labels that wrap on a narrow panel
     gui/test_panel_widths.cpp                    # Side panels fit a narrow dock, muted texts read
     gui/test_auto_correct_settings.cpp           # Settings > Editor > Auto-correct and the editors
+    gui/test_special_characters.cpp              # Special characters: groups, names, search
+    gui/test_special_character_dialog.cpp        # Insert > Special Character...: the window, keys, replacements
+    gui/test_list_dialogs.cpp                    # Format > Bullets and Numbering..., Set Numbering Value...
+    gui/test_hyperlink_dialog.cpp                # Insert > Link...
+    gui/test_insert_table_dialog.cpp             # Insert > Table...
+    gui/test_format_dialogs.cpp                  # Format > Font..., Paragraph..., the color submenus
+    gui/test_quick_character_palette.cpp         # Insert > Quick Character: the palette at the cursor
+    gui/test_formatting_characters.cpp           # Insert > Formatting Character
 )
 
 # Windows: Add compatibility shims for Catch2 missing CRT symbols (Task #00035 blocker)
@@ -172,6 +205,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/chapter_versions.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_diff.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/writing_activity.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/writing_statistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/writing_goals.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/writing_awards.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/writing_journal.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/file_trash.cpp
@@ -198,18 +236,28 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/kml_serializer.cpp  # OpenSpec #00043 Phase 11.2: KmlSerializer
     ${CMAKE_SOURCE_DIR}/src/editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     ${CMAKE_SOURCE_DIR}/src/editor/annotation.cpp  # Comments, TODOs and notes
+    ${CMAKE_SOURCE_DIR}/src/editor/text_link.cpp   # Links in the text
     ${CMAKE_SOURCE_DIR}/src/editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
+    ${CMAKE_SOURCE_DIR}/src/editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
+    ${CMAKE_SOURCE_DIR}/src/editor/character_format.cpp  # The character formatting of Format > Font, Change Case
+    ${CMAKE_SOURCE_DIR}/src/editor/text_lists.cpp        # Bulleted and numbered lists
+    ${CMAKE_SOURCE_DIR}/src/editor/text_tables.cpp       # Tables of the text
     ${CMAKE_SOURCE_DIR}/src/editor/formatting_marks.cpp  # The formatting marks of a paragraph
     ${CMAKE_SOURCE_DIR}/src/editor/style_resolver.cpp    # Sub-Project C WS4.4: StyleResolver (Q_OBJECT)
     ${CMAKE_SOURCE_DIR}/src/editor/viewport_manager.cpp      # OpenSpec #00043: ViewportManager
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor.cpp            # Phase 3.1: BookEditor widget
+    ${CMAKE_SOURCE_DIR}/src/editor/annotation_cards.cpp  # The cards of the annotations under their paragraphs
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_annotations.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_cards.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_checking.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_cursor.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_editing.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_formatting.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_lists.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_links.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_tables.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_view.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/find_replace_bar.cpp       # Find/Replace bar of the editor
     ${CMAKE_SOURCE_DIR}/src/editor/version_comparison.cpp     # A version compared with the text now
@@ -242,12 +290,15 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/stats_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_rules.cpp          # Which keys a command can have
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_settings.cpp       # The user's keys in the settings and files
     ${CMAKE_SOURCE_DIR}/src/gui/widget_keys.cpp             # Qt's widgets have the keys of Windows
@@ -255,6 +306,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/access_keys.cpp       # The access keys of menu texts
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_config_widget.cpp  # ColorConfigWidget for SettingsDialog
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/length_spin_box.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/color_menu.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/shortcut_recorder.cpp  # A field that records key presses
     ${CMAKE_SOURCE_DIR}/src/gui/utils/language_names.cpp    # Names of languages in the program's language
     ${CMAKE_SOURCE_DIR}/src/gui/utils/layout_utils.cpp      # clearLayout for SettingsDialog
@@ -266,9 +318,16 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/tab_focus.cpp         # The keys go to the page in front of the tabs
     ${CMAKE_SOURCE_DIR}/src/gui/utils/chapter_cursor.cpp    # A chapter opens where its cursor was
     ${CMAKE_SOURCE_DIR}/src/gui/panels/editor_panel.cpp     # Editor panel: settings to and from its editor
+    ${CMAKE_SOURCE_DIR}/src/gui/utils/caps_lock.cpp         # Caps Lock turned off after autocorrect
+    ${CMAKE_SOURCE_DIR}/src/gui/special_characters.cpp      # Special characters: groups, names, search
+    ${CMAKE_SOURCE_DIR}/src/gui/special_character_choices.cpp  # The favorite characters and those inserted last
+    ${CMAKE_SOURCE_DIR}/src/gui/character_commands.cpp      # The commands of the characters given keys
+    ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_replacements.cpp  # The replacement table of auto-correct
+    ${CMAKE_SOURCE_DIR}/src/gui/special_character_coordinator.cpp  # Insert > Special Character...
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_coordinator.cpp    # Spelling as you type: the editors' dictionary
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_coordinator.cpp     # Grammar as you type: the editors' LanguageTool server
     ${CMAKE_SOURCE_DIR}/src/gui/spelling_panel_coordinator.cpp  # The Spelling and Grammar panel and the text in front
+    ${CMAKE_SOURCE_DIR}/src/gui/repetitions_coordinator.cpp  # The Repetitions panel and the texts
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_components.cpp      # Grammar: Java and LanguageTool on this computer
     ${CMAKE_SOURCE_DIR}/src/gui/language_tool_server.cpp    # Grammar: the LanguageTool server the program starts
     ${CMAKE_SOURCE_DIR}/src/gui/grammar_setup.cpp           # Grammar: Java and LanguageTool downloaded and prepared
@@ -279,11 +338,24 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/annotations_panel.cpp # Annotations panel
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/spelling_panel.cpp  # Spelling and Grammar panel
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/repetitions_panel.cpp  # Repetitions panel
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/writing_stats_panel.cpp  # Statistics panel
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/writing_goals_tab.cpp  # The tab Writing Goals and Deadlines
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/writing_awards_tab.cpp  # The tab Challenges and Badges
     ${CMAKE_SOURCE_DIR}/src/gui/annotations_coordinator.cpp  # Annotation commands and the panel
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_marks_coordinator.cpp  # Paperclips of linked paragraphs
+    ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_coordinator.cpp  # The statistics bar and goals
+    ${CMAKE_SOURCE_DIR}/src/gui/writing_awards_tracker.cpp  # The badges and challenges won
+    ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_model.cpp  # The statistics of writing shown
     ${CMAKE_SOURCE_DIR}/src/gui/material_list_coordinator.cpp  # The lists of the materials on tabs
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
+    ${CMAKE_SOURCE_DIR}/src/gui/book_styles.cpp             # The paragraph styles of the open book
+    ${CMAKE_SOURCE_DIR}/src/gui/style_draft.cpp             # A style as the window of a style changes it
+    ${CMAKE_SOURCE_DIR}/src/gui/style_coordinator.cpp       # New, changed and deleted styles of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/style_dialog.cpp    # New Style and Modify Style
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/manage_styles_dialog.cpp  # Manage Styles
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/style_tag_delegate.cpp  # Names of styles with their tags
     ${CMAKE_SOURCE_DIR}/src/gui/auto_correct_coordinator.cpp  # Auto-correct turned on and off as a whole
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_keys.cpp            # A toolbar gives the keys back after a command
     ${CMAKE_SOURCE_DIR}/src/gui/dock_coordinator.cpp        # The panels of the main window and their layout
@@ -292,6 +364,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/central_tabs.cpp    # The tabs in the middle of the window
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # The Navigator's requests
     ${CMAKE_SOURCE_DIR}/src/gui/document_coordinator.cpp    # Save All and the document commands
+    ${CMAKE_SOURCE_DIR}/src/gui/document_windows.cpp        # The texts in the tabs and in windows of their own
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Panels of DockCoordinator
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow panel
@@ -310,6 +383,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/fitting_scroll_area.cpp
     ${CMAKE_SOURCE_DIR}/src/core/log_panel_sink.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/status_bar_statistics.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/stats_painter.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/badge_painter.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/status_bar_writing.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/writing_stats_bar.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/utils/reading_time.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/toolbar_manager.cpp         # Toolbars of the main window
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/toolbar_manager_dialog.cpp  # Toolbar Manager dialog for ToolbarManager
@@ -325,6 +402,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
+    ${CMAKE_SOURCE_DIR}/src/gui/quick_insert_items.cpp               # What quick insert offers
     ${CMAKE_SOURCE_DIR}/src/gui/read_only_book.cpp                   # A book open read-only
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/add_to_book_dialog.cpp       # A file as a new element of the book
@@ -337,6 +415,15 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/rename_element_dialog.cpp    # New name of an element in the Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/special_character_dialog.cpp  # Insert > Special Character...
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/list_dialogs.cpp  # Bullets and Numbering, Set Numbering Value
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/font_dialog.cpp  # Format > Font...
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/paragraph_dialog.cpp  # Format > Paragraph...
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/hyperlink_dialog.cpp  # Insert > Link...
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/insert_table_dialog.cpp  # Insert > Table...
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/character_grid.cpp           # Characters in cells, in the font of the text
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/quick_character_palette.cpp  # Insert > Quick Character
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/character_dialogs.cpp        # The keys of a character, a replacement
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/link_dialog.cpp              # What a material is about
     ${CMAKE_SOURCE_DIR}/src/gui/material_file.cpp                    # The file of a material and its picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_source.cpp                  # Where a material comes from
@@ -349,6 +436,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/version_texts.cpp                    # What the program says of a version
     ${CMAKE_SOURCE_DIR}/src/gui/versions_coordinator.cpp             # Save Version and Version History
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_name_dialog.cpp      # The description of a version
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/quick_insert_item_dialog.cpp  # A fragment or a character of quick insert
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/deadline_dialog.cpp          # A deadline of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/challenge_dialog.cpp         # Add Challenge
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/session_summary_dialog.cpp   # The summary of the session
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_history_dialog.cpp   # The versions of a text
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_item_dialog.cpp          # New Book dialog: the folder of the book
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/sections_field.cpp           # Fields of the sections of a book
@@ -366,14 +457,16 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/clipboard_handler.cpp     # Phase 4.13-4.16: Clipboard
     ${CMAKE_SOURCE_DIR}/src/editor/editor_appearance.cpp    # Phase 5: Editor appearance
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
-    ${CMAKE_SOURCE_DIR}/src/editor/word_frequency_analyzer.cpp # Phase 6/Task 7.17: Word frequency
+    ${CMAKE_SOURCE_DIR}/src/editor/word_repetitions.cpp        # The repetitions of words
+    ${CMAKE_SOURCE_DIR}/src/editor/quick_insert.cpp            # Quick insert: the items
+    ${CMAKE_SOURCE_DIR}/src/editor/quick_insert_controller.cpp # Quick insert: the list at the cursor
     ${CMAKE_SOURCE_DIR}/src/editor/spell_check_service.cpp     # Phase 6.4-6.9: Spell check service
     ${CMAKE_SOURCE_DIR}/src/editor/grammar_check_service.cpp  # Phase 6.14-6.17: Grammar check service
     ${CMAKE_SOURCE_DIR}/src/editor/tag_detector.cpp           # Task 7.10: TODO and other tags
     # MOC headers for Q_OBJECT classes
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/book_editor.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/statistics_collector.h
-    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/word_frequency_analyzer.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/quick_insert_controller.h  # QuickInsertList, QuickInsertController with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/spell_check_service.h  # SpellCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/grammar_check_service.h  # GrammarCheckService with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/tag_detector.h  # TagDetector with Q_OBJECT
@@ -388,8 +481,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/settings_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/grammar_page.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/shortcuts_page.h  # ShortcutsPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings/stats_pages.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_config_widget.h  # ColorConfigWidget with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h  # ShortcutRecorder with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h  # NavigatorPanel with Q_OBJECT
@@ -402,6 +497,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/repetitions_coordinator.h  # RepetitionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h  # AnnotationCard with Q_OBJECT
@@ -409,17 +505,26 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h  # AnnotationsPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_panel.h  # SpellingPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/repetitions_panel.h  # RepetitionsPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_stats_panel.h  # WritingStatsPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_goals_tab.h  # WritingGoalsTab with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_awards_tab.h  # WritingAwardsTab with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/annotations_coordinator.h  # AnnotationsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/paragraph_marks_coordinator.h  # ParagraphMarksCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_coordinator.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_awards_tracker.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/toolbar_keys.h  # ToolbarKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panel_tabs.h  # PanelTabs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/panel_tab_bar.h  # PanelTabBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/central_tabs.h  # CentralTabs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator, Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_windows.h  # DocumentWindows, DetachedWindow, Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # Panels of DockCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
@@ -433,6 +538,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/fitting_scroll_area.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/log_panel_sink.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_writing.h  # StatusBarWriting with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/writing_stats_bar.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/toolbar_manager_dialog.h  # ToolbarManagerDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/kalahari_dialog.h  # KalahariDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/about_dialog.h  # AboutDialog with Q_OBJECT
@@ -451,14 +558,29 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/special_character_dialog.h  # SpecialCharacterDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/list_dialogs.h  # the list windows with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/font_dialog.h  # Format > Font... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_dialog.h  # Format > Paragraph... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/hyperlink_dialog.h  # Insert > Link... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/session_summary_dialog.h  # SessionSummaryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT

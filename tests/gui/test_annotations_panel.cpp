@@ -9,6 +9,9 @@
 #include "kalahari/core/theme.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/text_issue.h"
+#include "kalahari/editor/version_comparison.h"
+#include "kalahari/editor/word_repetitions.h"
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
@@ -363,16 +366,28 @@ TEST_CASE("Colors: a kind's color as Optimize colors in themes shows it", "[gui]
     CHECK(shownColor(deep, white, true) == deep);
     CHECK_FALSE(shownColor(QColor(), white, true).isValid());
 
-    // The marks' colors of both themes (the kinds of annotations, spelling, grammar and the
-    // changes of a version), on both papers and on the panels of both themes
+    // The marks' colors of both themes (the kinds of annotations, spelling, grammar, the
+    // changes of a version and the repetitions), on both papers and on the panels of both themes
     const QColor lightBase = themeNamed(QStringLiteral("Light")).palette.base;
     const QColor darkBase = themeNamed(QStringLiteral("Dark")).palette.base;
+    const std::string marks[] = {
+        editor::annotationColorKey(editor::AnnotationKind::Comment),
+        editor::annotationColorKey(editor::AnnotationKind::Todo),
+        editor::annotationColorKey(editor::AnnotationKind::Note),
+        editor::issueColorKey(editor::TextIssueKind::Spelling),
+        editor::issueColorKey(editor::TextIssueKind::Grammar),
+        editor::DELETED_COLOR_KEY,
+        editor::ADDED_COLOR_KEY,
+        editor::REPETITION_COLOR_KEY,
+    };
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
         const core::Theme theme = themeNamed(name);
-        CHECK(theme.editor.size() == 7);
-        for (const auto& [key, color] : theme.editor) {
+        for (const std::string& key : marks) {
+            INFO(name.toStdString() << " " << key);
+            REQUIRE(theme.editor.count(key) == 1);
+            const QColor color = theme.editor.at(key);
             for (const QColor& background : {white, darkPaper, lightBase, darkBase}) {
-                INFO(name.toStdString() << " " << key << " on " << background.name().toStdString());
+                INFO("on " << background.name().toStdString());
                 CHECK(contrastRatio(shownColor(color, background, true), background) >=
                       MIN_MARK_CONTRAST);
             }
@@ -887,7 +902,8 @@ TEST_CASE("Annotations frame: under its place within the text column, above it w
     QWidget editor;
     editor.resize(800, 600);
     auto* frame = new AnnotationFrame(&editor);
-    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600)};
+    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
+                                         QRectF()};
     frame->setPlacement([&placement]() { return placement; });
 
     // Two thirds of the column wide, a little left of the place
@@ -913,6 +929,25 @@ TEST_CASE("Annotations frame: under its place within the text column, above it w
     REQUIRE(test::waitUntil([&frame]() { return frame->geometry().top() == 324; }));
 }
 
+TEST_CASE("Annotations frame: two thirds of the text column, however wide it is",
+          "[gui][annotations]") {
+    QWidget editor;
+    editor.resize(1900, 600);
+    AnnotationFrame frame(&editor);
+    AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 1500, 600),
+                                         QRectF()};
+    frame.setPlacement([&placement]() { return placement; });
+    CHECK(frame.width() == 1000);
+
+    // A narrow column: not narrower than the narrowest frame, within the editor
+    placement.column = QRectF(100, 0, 240, 600);
+    frame.place();
+    CHECK(frame.width() == 300);
+    editor.resize(250, 600);
+    frame.place();
+    CHECK(frame.width() == 234);
+}
+
 TEST_CASE("Annotations frame: who the annotation is by, on the right of its header",
           "[gui][annotations]") {
     QWidget editor;
@@ -928,7 +963,8 @@ TEST_CASE("Annotations frame: who the annotation is by, on the right of its head
 
     frame->setAuthor(QStringLiteral(" Anna Nowak "));
     frame->setPlacement([]() {
-        return AnnotationFrame::Placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600)};
+        return AnnotationFrame::Placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
+                                         QRectF()};
     });
     frame->show();
     QApplication::processEvents();
@@ -1156,8 +1192,11 @@ TEST_CASE("Annotations: a click anywhere else keeps what was written; the X of t
 
     SECTION("its X: an annotation edited again keeps its old text; the keys go back to the "
             "text") {
+        // The keys go back to the text only in an active window; a system may not make it active
         desk.tabs.activateWindow();
-        REQUIRE(test::waitUntil([&desk] { return QApplication::activeWindow() == &desk.tabs; }));
+        if (!test::waitUntil([&desk] { return QApplication::activeWindow() == &desk.tabs; })) {
+            SKIP("the system did not make the test's window active");
+        }
         REQUIRE(desk.coordinator->editAnnotation(QString(), QStringLiteral("c1"), false));
         desk.frameText()->setPlainText(QStringLiteral("Newer"));
         desk.frameText()->setFocus(Qt::OtherFocusReason);

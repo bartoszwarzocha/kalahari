@@ -52,6 +52,18 @@ inline constexpr const char* SHORTCUTS_SETTING = "keyboard.shortcuts";
 /// @brief The user's keys from the settings, without those a command cannot have
 [[nodiscard]] CommandRegistry::ShortcutMap loadCustomShortcuts();
 
+/// @brief The command that has keys now, the user's or the program's; empty: none
+[[nodiscard]] std::string ownerOfKeys(const KeyboardShortcut& keys);
+
+/// @brief The user's keys with @p keys given to a command (none: the command left without
+///        keys); another command that has them now is left without keys
+[[nodiscard]] CommandRegistry::ShortcutMap withKeys(const std::string& commandId,
+                                                    const KeyboardShortcut& keys);
+
+/// @brief Keep the user's keys in the settings and give them to the commands, as Apply in
+///        Settings > Keyboard Shortcuts does
+void saveCustomShortcuts(const CommandRegistry::ShortcutMap& custom);
+
 /// @brief The contents of the file Export writes
 [[nodiscard]] nlohmann::json shortcutsFile(const CommandRegistry::ShortcutMap& custom);
 

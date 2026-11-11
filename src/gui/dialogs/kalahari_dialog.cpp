@@ -5,6 +5,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
 
+#include <QCoreApplication>
 #include <QDialogButtonBox>
 #include <QFont>
 #include <QFrame>
@@ -14,6 +15,8 @@
 #include <QScreen>
 #include <QShowEvent>
 #include <QStyle>
+#include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWindow>
 
@@ -34,7 +37,19 @@ constexpr int MINIMUM_WIDTH = 460;        ///< Room for a title in a field
 constexpr qreal TITLE_SCALE = 1.3;        ///< Size of the heading's title against the dialog's font
 constexpr qreal COMPACT_TITLE_SCALE = 1.1;
 
+/// @brief How the gears open the Settings dialog (KalahariDialog::setSettingsOpener())
+std::function<void(QWidget*, const QString&)>& settingsOpener()
+{
+    static std::function<void(QWidget*, const QString&)> opener;
+    return opener;
+}
+
 } // anonymous namespace
+
+void KalahariDialog::setSettingsOpener(std::function<void(QWidget*, const QString&)> opener)
+{
+    settingsOpener() = std::move(opener);
+}
 
 KalahariDialog::KalahariDialog(QWidget* parent)
     : QDialog(parent)
@@ -150,12 +165,38 @@ void KalahariDialog::addField(const QString& label, QWidget* field)
     m_contentLayout->addLayout(fieldLayout);
 }
 
+QToolButton* KalahariDialog::addSettingsButton(const QString& page, const QString& toolTip)
+{
+    if (!settingsOpener()) {
+        return nullptr;
+    }
+    m_settingsButton = new QToolButton(m_heading);
+    m_settingsButton->setAutoRaise(true);
+    m_settingsButton->setToolTip(toolTip);
+    m_settingsButton->setAccessibleName(toolTip);
+    m_settingsButton->setFocusPolicy(Qt::StrongFocus);  // also from the keyboard
+    m_headingLayout->addWidget(m_settingsButton, 0, Qt::AlignTop);
+    connect(m_settingsButton, &QToolButton::clicked, this, [this, page]() {
+        if (settingsOpener()) {
+            settingsOpener()(this, page);
+        }
+    });
+    updateHeadingIcon();
+    return m_settingsButton;
+}
+
 QPushButton* KalahariDialog::addSideButton(const QString& text)
 {
     auto* button = new QPushButton(text, this);
     button->setAutoDefault(false);
     m_sideButtonLayout->addWidget(button);
     return button;
+}
+
+void KalahariDialog::addSideWidget(QWidget* widget)
+{
+    widget->setParent(this);
+    m_sideButtonLayout->addWidget(widget);
 }
 
 void KalahariDialog::setAcceptText(const QString& text)
@@ -202,6 +243,16 @@ void KalahariDialog::fitToScreen(const QSize& wanted)
     m_contentArea->updateGeometry();
     layout()->activate();
     resizeOnScreen(wanted);
+}
+
+void KalahariDialog::growForContent()
+{
+    QTimer::singleShot(0, this, [this]() {
+        if (isVisible()) {
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+            fitToScreen(sizeHint().expandedTo(size()));
+        }
+    });
 }
 
 void KalahariDialog::resizeOnScreen(const QSize& wanted)
@@ -268,6 +319,12 @@ void KalahariDialog::updateHeadingStyle()
 
 void KalahariDialog::updateHeadingIcon()
 {
+    // The gear, in the colors and the size of the panels' gears
+    if (m_settingsButton != nullptr) {
+        m_settingsButton->setIcon(core::ArtProvider::getInstance().getIcon(
+            QStringLiteral("dock.settings"), core::IconContext::Panel));
+    }
+
     if (m_iconId.isEmpty()) {
         m_iconLabel->clear();
         m_iconLabel->hide();

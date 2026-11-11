@@ -136,8 +136,9 @@ protected:
     /// window in every theme, also after the theme changes.
     QLabel* addNote(QLayout* layout, const QString& text);
 
-    /// @brief Put @p note under check box or radio button @p button in line with its text
-    static void alignWithText(QLabel* note, const QAbstractButton* button);
+    /// @brief Put @p note (a text, or a row of fields) under check box or radio button
+    /// @p button in line with its text
+    static void alignWithText(QWidget* note, const QAbstractButton* button);
 
     /// @brief Grey out an option the program does not use yet
     void markNotUsedYet(QWidget* field, QLabel* label = nullptr);

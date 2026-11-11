@@ -465,6 +465,19 @@ QStringList ColorDialog::myColors()
     return keptColors(MY_COLORS_KEY, MAX_MY_COLORS);
 }
 
+ColorPalette ColorDialog::lastPalette()
+{
+    const QList<ColorPalette> palettes = colorPalettes();
+    const QString paletteId = QString::fromStdString(
+        core::SettingsManager::getInstance().get<std::string>(PALETTE_KEY, "basic"));
+    for (const ColorPalette& palette : palettes) {
+        if (palette.id == paletteId) {
+            return palette;
+        }
+    }
+    return palettes.first();
+}
+
 std::optional<QColor> ColorDialog::getColor(const QColor& initial, QWidget* parent,
                                             const QString& description)
 {

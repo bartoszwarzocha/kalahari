@@ -331,15 +331,12 @@ private:
 /// @brief The full card of a material on a tab beside the chapters (MaterialPage): the place to
 /// work on a material, such as a quotation copied out or the notes of a talk
 ///
-/// The tab has the material's id in its "elementId" property and the id of its icon in
-/// "tabIconId", as the other tabs of the book's elements.
+/// The card fills the whole width of the tab. The tab has the material's id in its "elementId"
+/// property and the id of its icon in "tabIconId", as the other tabs of the book's elements.
 class MaterialCardPanel : public QScrollArea {
     Q_OBJECT
 
 public:
-    /// @brief Width of the card at most; a wider tab has room around it
-    static constexpr int MAXIMUM_WIDTH = 860;
-
     /// @brief The card of material @p elementId of the open book
     explicit MaterialCardPanel(const QString& elementId, QWidget* parent = nullptr);
 

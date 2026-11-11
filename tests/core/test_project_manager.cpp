@@ -2625,6 +2625,40 @@ TEST_CASE("ProjectManager saves and opens again the text of a chapter", "[projec
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager gives the saved and unsaved texts of the book without keeping them",
+          "[project_manager][styles]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK(pm.textElementIds().isEmpty());  // no project
+    REQUIRE(pm.createProject(dir.path(), "Texts", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QStringList before = pm.textElementIds();
+
+    const QString first = pm.addElement(pm.chapterKindFor(BookPlace::Main), "One", BookPlace::Main);
+    const QString second = pm.addElement(pm.chapterKindFor(BookPlace::Main), "Two", BookPlace::Main);
+    REQUIRE_FALSE(first.isEmpty());
+    REQUIRE_FALSE(second.isEmpty());
+    const QStringList ids = pm.textElementIds();
+    CHECK(ids.size() == before.size() + 2);
+    REQUIRE(ids.contains(first));
+    REQUIRE(ids.contains(second));
+    CHECK(ids.indexOf(first) < ids.indexOf(second));  // in reading order
+
+    pm.setChapterContent(first, kmlWith("Saved text"));
+    REQUIRE(pm.saveAllDirty());
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+
+    // The saved text is read from its file, and the program does not keep it
+    CHECK(pm.chapterText(first) == kmlWith("Saved text"));
+    CHECK(pm.getDirtyElements().empty());
+    // The unsaved text is the text of the element
+    pm.setChapterContent(first, kmlWith("Unsaved text"));
+    CHECK(pm.chapterText(first) == kmlWith("Unsaved text"));
+    CHECK(pm.chapterText(QStringLiteral("no-such-element")).isEmpty());
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps the status in the .klh file and in the chapter file",
           "[project_manager]") {
     QTemporaryDir dir;
@@ -2658,6 +2692,71 @@ TEST_CASE("ProjectManager keeps the status in the .klh file and in the chapter f
     // The .klh file decides
     REQUIRE(pm.openProject(manifest));
     CHECK(pm.findElement(id)->status == "revision");
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager keeps in the .klh file that a chapter starts on a left page",
+          "[project_manager]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Pages", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString id = pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter", BookPlace::Main);
+    const QString part = pm.addElement(pm.partKind(), "Part", BookPlace::Main);
+    REQUIRE_FALSE(id.isEmpty());
+    REQUIRE_FALSE(part.isEmpty());
+
+    // A right page unless the chapter says otherwise
+    CHECK_FALSE(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.setFirstPageLeft(id, true));
+    CHECK(pm.findElement(id)->firstPageLeft);
+    CHECK_FALSE(pm.setFirstPageLeft(part, true));  // a group has no pages of its own
+    CHECK_FALSE(pm.findElement(part)->firstPageLeft);
+    REQUIRE(pm.closeProject(false));
+
+    // The .klh file keeps it
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.setFirstPageLeft(id, false));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK_FALSE(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager keeps the paragraph styles of the book in the .klh file",
+          "[project_manager][styles]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK(pm.paragraphStyles().isEmpty());
+    CHECK_FALSE(pm.setParagraphStyles({}));  // no project
+    REQUIRE(pm.createProject(dir.path(), "Styles", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    CHECK(pm.paragraphStyles().isEmpty());
+
+    BookParagraphStyle memory;
+    memory.id = QStringLiteral("wspomnienie");
+    memory.name = QStringLiteral("Wspomnienie");
+    memory.baseStyle = QStringLiteral("quote");
+    memory.properties = {{QStringLiteral("leftMargin"), 18}};
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::paragraphStylesChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.setParagraphStyles({memory}));
+    CHECK(changes == 1);
+    REQUIRE(pm.setParagraphStyles({memory}));  // the same styles: nothing to tell
+    CHECK(changes == 1);
+    REQUIRE(pm.closeProject(false));
+    QObject::disconnect(connection);
+
+    // The .klh file keeps them
+    REQUIRE(pm.openProject(manifest));
+    REQUIRE(pm.paragraphStyles().size() == 1);
+    CHECK(pm.paragraphStyles().constFirst() == memory);
+    REQUIRE(pm.setParagraphStyles({}));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.paragraphStyles().isEmpty());
     REQUIRE(pm.closeProject(false));
 }
 

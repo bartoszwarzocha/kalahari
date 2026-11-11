@@ -6,6 +6,8 @@
 #include <QDialog>
 #include <QString>
 
+#include <functional>
+
 class QDialogButtonBox;
 class QFrame;
 class QHBoxLayout;
@@ -14,6 +16,7 @@ class QPushButton;
 class QMargins;
 class QShowEvent;
 class QSize;
+class QToolButton;
 class QVBoxLayout;
 
 namespace kalahari {
@@ -88,6 +91,11 @@ public:
     ///        at that width
     QSize sizeHint() const override;
 
+    /// @brief How the gear of a dialog (addSettingsButton()) opens the Settings dialog
+    /// @param opener Opens the Settings dialog over the dialog given at the page given
+    ///        (SettingsDialog::openPage()); the program sets it once, with its window
+    static void setSettingsOpener(std::function<void(QWidget*, const QString&)> opener);
+
 protected:
     /// @brief Keep the whole dialog on a small screen: the content scrolls, the heading
     ///        and the buttons stay in view
@@ -96,6 +104,10 @@ protected:
     /// @brief Resize to @p wanted, or less where the screen is smaller, and keep the
     ///        whole window on the screen (e.g. after details were shown)
     void fitToScreen(const QSize& wanted);
+
+    /// @brief Once the layout has taken in content shown just now (a message, a note), grow
+    ///        to the size it needs, within the screen. The window does not get smaller.
+    void growForContent();
 
     /// @brief fitToScreen() with the hints the layout has: for a dialog whose layout has just
     ///        taken in the content (on its LayoutRequest). It asks the layout for nothing, so
@@ -113,11 +125,25 @@ protected:
     /// @brief The buttons that close the dialog, for a dialog that adds one of its own
     QDialogButtonBox* buttonBox() const { return m_buttonBox; }
 
+    /// @brief Add the gear at the right end of the heading: it opens the Settings dialog at
+    ///        the page of the dialog's settings, as the gear of a panel does
+    ///
+    /// Without the program's opener (setSettingsOpener(), as in the tests) there is none.
+    /// @param page The page (SettingsDialog::openPage())
+    /// @param toolTip What the settings are ("Link Color Settings"), also its accessible name
+    /// @return The button; nullptr without an opener
+    QToolButton* addSettingsButton(const QString& page, const QString& toolTip);
+
     /// @brief Add a button at the left end of the row, apart from the ones that close the
     ///        dialog, on every system (e.g. Copy of a message)
     /// @param text Button text, with a mnemonic
     /// @return The button; it does not close the dialog
     QPushButton* addSideButton(const QString& text);
+
+    /// @brief Add a widget at the left end of the row of the buttons, after the side buttons
+    ///        (e.g. a checkbox of how the dialog does its job)
+    /// @param widget The widget; the dialog becomes its parent
+    void addSideWidget(QWidget* widget);
 
 signals:
     /// @brief Apply was pressed: do the dialog's job and keep it open
@@ -142,6 +168,7 @@ private:
     QPushButton* m_acceptButton = nullptr;
     QPushButton* m_cancelButton = nullptr;
     QPushButton* m_applyButton = nullptr;
+    QToolButton* m_settingsButton = nullptr;
     QString m_iconId;
     bool m_compactHeading = false;
 };

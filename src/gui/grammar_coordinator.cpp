@@ -12,6 +12,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/grammar_setup_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/grammar_components.h"
 #include "kalahari/gui/grammar_setup.h"
 #include "kalahari/gui/language_tool_server.h"
@@ -140,7 +141,7 @@ GrammarCoordinator::GrammarCoordinator(QTabWidget* centralTabs, QStatusBar* stat
 
     // The editor of a document is checked from the time its tab is shown
     if (m_centralTabs != nullptr) {
-        connect(m_centralTabs, &QTabWidget::currentChanged, this,
+        connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
                 &GrammarCoordinator::attachEditors);
     }
 
@@ -331,8 +332,8 @@ void GrammarCoordinator::attachEditors() {
     if (m_centralTabs == nullptr) {
         return;
     }
-    for (int index = 0; index < m_centralTabs->count(); ++index) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(index));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
         if (panel != nullptr && panel->getBookEditor() != nullptr) {
             panel->getBookEditor()->setGrammarCheckService(m_service);
         }
@@ -344,8 +345,8 @@ bool GrammarCoordinator::hasEditors() const {
     if (m_centralTabs == nullptr) {
         return false;
     }
-    for (int index = 0; index < m_centralTabs->count(); ++index) {
-        auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->widget(index));
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
         if (panel != nullptr && panel->getBookEditor() != nullptr) {
             return true;
         }
