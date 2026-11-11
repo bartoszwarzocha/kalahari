@@ -102,8 +102,14 @@ TEST_CASE("Text Style menu: the styles every book has, with their keys",
     CHECK(keysOf("format.style.body") == QKeySequence(QKeyCombination(styleKeys, Qt::Key_0)));
     CHECK(keysOf("format.style.quote").isEmpty());
 
-    // Manage Styles... comes later: greyed out
-    CHECK_FALSE(registry.getAction(QStringLiteral("format.style.manage"))->isEnabled());
+    // The commands of the styles of the book are greyed out until the coordinator of the
+    // styles gives them their callbacks (StyleCoordinator::connectCommands())
+    for (const char* id :
+         {"format.style.new", "format.style.modify", "format.style.delete",
+          "format.style.manage"}) {
+        INFO(id);
+        CHECK_FALSE(registry.getAction(QString::fromLatin1(id))->isEnabled());
+    }
 }
 
 TEST_CASE("Text Style menu: the keys of the new commands", "[gui][shortcuts]") {
@@ -155,7 +161,8 @@ TEST_CASE("Text Style menu: the other styles of the text come after Code", "[gui
                                QStringLiteral("Heading 3"), QStringLiteral("Normal"),
                                QStringLiteral("Quote"),     QStringLiteral("Dialogue"),
                                QStringLiteral("Code"),      QStringLiteral("-"),
-                               QStringLiteral("Manage Styles...")};
+                               QStringLiteral("New Style..."), QStringLiteral("Modify Style..."),
+                               QStringLiteral("Delete Style"), QStringLiteral("Manage Styles...")};
     CHECK(itemsOf(*menu) == fixed);
 
     editor::BookEditor book;

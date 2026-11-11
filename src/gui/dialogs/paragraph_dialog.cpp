@@ -13,6 +13,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
+#include <QStandardItemModel>
 #include <QTabWidget>
 #include <QVBoxLayout>
 
@@ -358,10 +359,11 @@ QWidget* ParagraphDialog::createIndentsTab()
     m_lineSpacing->setValue(lineSpacing.value);
     m_updating = false;
 
-    auto* note = new QLabel(tr("At least and Exactly are in points, Multiple in lines."), tab);
-    note->setWordWrap(true);
-    note->setForegroundRole(QPalette::PlaceholderText);
-    fields->addWidget(note);
+    m_lineSpacingNote =
+        new QLabel(tr("At least and Exactly are in points, Multiple in lines."), tab);
+    m_lineSpacingNote->setWordWrap(true);
+    m_lineSpacingNote->setForegroundRole(QPalette::PlaceholderText);
+    fields->addWidget(m_lineSpacingNote);
     fields->addStretch(1);
     columns->addLayout(fields, 1);
 
@@ -438,6 +440,28 @@ QWidget* ParagraphDialog::createBreaksTab()
     previewColumn->addWidget(m_breaksPreview, 1);
     columns->addLayout(previewColumn);
     return tab;
+}
+
+void ParagraphDialog::showForStyle(const QString& styleName)
+{
+    //: The window Format > Paragraph opened from the window of a paragraph style. In Polish:
+    //: Akapit stylu „%1”
+    setHeading(tr("Paragraph of the Style \"%1\"").arg(styleName),
+               //: In Polish: Wcięcia, odstępy, interlinia i podziały stron akapitów stylu.
+               tr("Indents, spacing, line spacing and page breaks of the paragraphs in the "
+                  "style."));
+    // The line spacing of a style is a multiple of a line
+    if (auto* rows = qobject_cast<QStandardItemModel*>(m_lineSpacingBox->model())) {
+        for (const int row : {AtLeast, Exactly}) {
+            if (QStandardItem* item = rows->item(row)) {
+                item->setEnabled(false);
+            }
+        }
+    }
+    //: In Polish: Interlinię stylu podaje się w wierszach: pojedyncza, 1,5 wiersza, podwójna
+    //: albo wielokrotna.
+    m_lineSpacingNote->setText(tr("A style has its line spacing in lines: single, 1.5 lines, "
+                                  "double or multiple."));
 }
 
 void ParagraphDialog::showLineSpacingRow(int row, bool keepValue)
