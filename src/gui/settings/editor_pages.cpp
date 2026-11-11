@@ -604,6 +604,7 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
         addThemeColor(form, tr("Text"), keys.text);
         addThemeColor(form, tr("Dimmed text (Focus)"), keys.focusDimmed);
         addThemeColor(form, tr("Formatting marks"), keys.formattingMarks);
+        addThemeColor(form, tr("Links"), keys.link);
         addThemeColor(form, tr("Around the paper"), keys.desk);
         addRestoreColorsButton(form);
     };

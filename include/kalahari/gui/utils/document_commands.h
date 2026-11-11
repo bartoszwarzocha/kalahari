@@ -22,8 +22,8 @@ class CommandRegistry;
 namespace utils {
 
 /// @brief The commands that work on the document of the tab in front, a chapter or a text
-/// file: Find with Find Next, Find Previous and Find and Replace, the windows Font and
-/// Paragraph, the character formats with their colors, the cases and Copy and Paste
+/// file: Find with Find Next, Find Previous and Find and Replace, the windows Font,
+/// Paragraph and Link, the character formats with their colors, the cases and Copy and Paste
 /// Formatting, the alignments, the indents and lists, the paragraph styles, the view mode and
 /// the zoom
 const std::vector<std::string>& documentCommands();

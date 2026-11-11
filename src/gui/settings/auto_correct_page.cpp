@@ -331,11 +331,15 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
     m_useTable = addCheckBox(replace, tr("Replacements from the table"),
                              "editor.autoCorrect.replacementTable");
     m_replacements.push_back(m_useTable);
+    m_replacements.push_back(addCheckBox(replace, tr("Internet addresses with links"),
+                                         "editor.autoCorrect.links"));
     addNote(replace, tr("The quotation marks follow the language of the book: „…” and ‚…’ in "
                         "Polish, “…” and ‘…’ in English. Outside the book, as in a file opened "
                         "from the disk, they follow the language of the program. A language "
                         "chosen on the Spelling page goes before both. The hyphen becomes a dash "
                         "when a space is typed after it."));
+    addNote(replace, tr("An address that starts with www., http:// or https://, and an e-mail "
+                        "address, becomes a link when a space or Enter is typed after it."));
 
     // What is typed in a paragraph of its own and Enter makes an element of the text, and what
     // is typed at the start of a paragraph and a space a list

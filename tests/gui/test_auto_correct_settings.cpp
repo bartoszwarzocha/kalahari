@@ -361,7 +361,7 @@ TEST_CASE("Settings > Auto-correct: the replacements of the words, the capitals 
     auto& settings = core::SettingsManager::getInstance();
     SettingsDialog dialog(nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
-    const std::array<std::pair<const char*, const char*>, 10> boxes = {{
+    const std::array<std::pair<const char*, const char*>, 11> boxes = {{
         {"“ - ” between words with:", "editor.autoCorrect.dashBetweenWords"},
         {"In dialogue: the dash it starts with", "editor.autoCorrect.dashInDialogue"},
         {"“--” with an en dash “–”", "editor.autoCorrect.doubleHyphen"},
@@ -372,6 +372,7 @@ TEST_CASE("Settings > Auto-correct: the replacements of the words, the capitals 
         {"Correct words typed with Caps Lock on", "editor.autoCorrect.capsLock"},
         {"“*” and a space: a bulleted list", "editor.autoCorrect.bulletedLists"},
         {"“1.” or “1)” and a space: a numbered list", "editor.autoCorrect.numberedLists"},
+        {"Internet addresses with links", "editor.autoCorrect.links"},
     }};
     for (const auto& [text, key] : boxes) {
         INFO(text);
@@ -774,6 +775,7 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
         nothing.horizontalRule = false;
         nothing.bulletedLists = false;
         nothing.numberedLists = false;
+        nothing.links = false;
         nothing.languageAbbreviations = panel.getBookEditor()->autoCorrect().languageAbbreviations;
         nothing.twoCapitalsExceptions = panel.getBookEditor()->autoCorrect().twoCapitalsExceptions;
         REQUIRE(test::waitUntil([bookEditor, &nothing]() {

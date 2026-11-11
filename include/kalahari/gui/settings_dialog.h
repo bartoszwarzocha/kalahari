@@ -87,10 +87,10 @@ public:
     /// search
     void showShortcutsPage();
 
-    /// @brief Open a page: EDITOR_COLORS_PAGE (the gear of the find bar), PAGES_PAGE,
-    /// MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...), SPELLING_PAGE
-    /// (the gear of the Spelling and Grammar panel), ANNOTATIONS_PAGE (the gear of the
-    /// Annotations panel) or SHORTCUTS_PAGE (as showShortcutsPage())
+    /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
+    /// PAGES_PAGE, MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
+    /// SPELLING_PAGE (the gear of the Spelling and Grammar panel), ANNOTATIONS_PAGE (the gear of
+    /// the Annotations panel) or SHORTCUTS_PAGE (as showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
 

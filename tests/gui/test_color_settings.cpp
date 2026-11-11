@@ -313,9 +313,9 @@ TEST_CASE("Settings: the colors of the papers, on the Editor > Colors page",
     for (const auto& [title, keys] : papers) {
         const QList<ColorConfigWidget*> colors = colorsOfGroup(page, title);
         const std::string names[] = {keys->paper, keys->text, keys->focusDimmed,
-                                     keys->formattingMarks, keys->desk};
-        REQUIRE(colors.size() == 5);
-        for (int i = 0; i < 5; ++i) {
+                                     keys->formattingMarks, keys->link, keys->desk};
+        REQUIRE(colors.size() == 6);
+        for (int i = 0; i < 6; ++i) {
             INFO(title.toStdString() << " " << names[i]);
             REQUIRE(themeColor(names[i]).isValid());
             CHECK(colors.at(i)->color() == themeColor(names[i]));

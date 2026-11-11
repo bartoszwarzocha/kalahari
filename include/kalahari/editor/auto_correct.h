@@ -92,6 +92,8 @@ struct AutoCorrectOptions {
     QStringList twoCapitalsExceptions;  ///< Words with two capitals that stay ("PCs")
     bool capsLock = true;  ///< A word typed with Caps Lock on by mistake ("wIELKI") to the
                            ///< word ("Wielki")
+    bool links = true;     ///< An Internet address typed in the text to a link, when a space
+                           ///< or Enter ends it (autoLink())
 
     bool sceneBreak = true;      ///< "***" and Enter in a paragraph of its own to a scene
                                  ///< break
@@ -127,6 +129,15 @@ struct AutoCorrection {
     bool operator==(const AutoCorrection&) const = default;
 };
 
+/// @brief The link autocorrect makes of an Internet address typed in the text
+struct AutoLink {
+    int start = 0;    ///< The address's characters [start, end) in the paragraph
+    int end = 0;
+    QString address;  ///< The address the link opens, with its scheme
+
+    bool operator==(const AutoLink&) const = default;
+};
+
 /// @brief Whether autocorrect looks at the text after the character is typed: a quotation
 ///        mark, an apostrophe, a space (also a line break) or a punctuation mark that ends
 ///        a word (. , ; : ! ?)
@@ -142,7 +153,8 @@ bool startsAutoCorrection(QChar typed);
 /// - a space after a hyphen that starts the paragraph makes the hyphen a dialogue dash
 /// - a third period makes the periods an ellipsis, unless a fourth one is before them
 /// - a space or a punctuation mark ends a word: see autoCorrectionAtParagraphEnd() for what
-///   changes in it
+///   changes in it; a period or a colon that goes on an Internet address ("www.",
+///   "https:", "jan@example.") gives its word no capital
 ///
 /// @param before The text of the paragraph from its start to the cursor, which is right after
 ///        the character just typed
@@ -182,6 +194,21 @@ std::optional<AutoCorrection> autoCorrection(const QString& before,
 std::optional<AutoCorrection> autoCorrectionAtParagraphEnd(const QString& paragraph,
                                                            const AutoCorrectOptions& options,
                                                            bool capsLockOn = false);
+
+/// @brief The link of the Internet address the word at the end of @p text is, when a space
+///        or Enter ends it
+///
+/// The word is all the characters after the last space, without the quotation marks and
+/// brackets around it and the punctuation marks after it ("www.example.com." gives
+/// "www.example.com"; a closing bracket stays when the address opens one). It is an address
+/// with a scheme (http://, https:// or ftp:// with a host, mailto: with an e-mail address),
+/// one that starts with "www." and a name with a dot after it ("www.example.com") or an
+/// e-mail address ("jan@example.com"). The link opens it with "https://" in front of
+/// "www.", with "mailto:" in front of an e-mail address.
+/// @param text The text of the paragraph from its start to the end of the word, without the
+///        space or Enter that ends it
+/// @return None when the word is not an address, or options.links is off
+std::optional<AutoLink> autoLink(const QString& text, const AutoCorrectOptions& options);
 
 /// @brief The list of abbreviations a text in a language uses: the key of @p lists of the
 ///        language ("pl" for "pl_PL"), or else English ("en"); empty without either

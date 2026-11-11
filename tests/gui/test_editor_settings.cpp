@@ -722,6 +722,42 @@ TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the sce
     restore(before);
 }
 
+TEST_CASE("Editor settings: the color of links on each paper, and links made by autocorrect",
+          "[gui][editor][settings][links]") {
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string theme = core::ThemeManager::getInstance().getCurrentTheme().name;
+    const std::string light =
+        core::ThemeManager::editorColorSetting(theme, editor::LIGHT_PAPER_COLOR_KEYS.link);
+    const std::string dark =
+        core::ThemeManager::editorColorSetting(theme, editor::DARK_PAPER_COLOR_KEYS.link);
+    settings.removeKey(light);
+    settings.removeKey(dark);
+    QCoreApplication::processEvents();
+    const auto before = valuesOf({"editor.autoCorrect.links"});
+
+    // Without the writer's colors: the theme's, as the editor has them by itself
+    gui::EditorPanel panel;
+    const editor::BookEditor* bookEditor = panel.getBookEditor();
+    CHECK(bookEditor->appearance().colors.links.light == QColor(QStringLiteral("#0563c1")));
+    CHECK(bookEditor->appearance().colors.links.dark == QColor(QStringLiteral("#8ab4f8")));
+    CHECK(bookEditor->autoCorrect().links);
+
+    // The writer's colors of the theme reach the open editors
+    settings.set<std::string>(light, "#123456");
+    settings.set<std::string>(dark, "#abcdef");
+    settings.set<bool>("editor.autoCorrect.links", false);
+    QCoreApplication::processEvents();  // the theme follows the settings
+    QCoreApplication::processEvents();  // and the editors the theme
+    CHECK(bookEditor->appearance().colors.links.light == QColor(QStringLiteral("#123456")));
+    CHECK(bookEditor->appearance().colors.links.dark == QColor(QStringLiteral("#abcdef")));
+    CHECK_FALSE(bookEditor->autoCorrect().links);
+
+    restore(before);
+    settings.removeKey(light);
+    settings.removeKey(dark);
+    QCoreApplication::processEvents();
+}
+
 TEST_CASE("Settings dialog: the look of the scene breaks, with its preview, and the color of the "
           "formatting marks",
           "[gui][settings][marks]") {

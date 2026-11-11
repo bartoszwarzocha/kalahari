@@ -360,6 +360,9 @@ void BookEditor::autoCorrectTyped()
         m_capsLockOn);
     if (change) {
         applyAutoCorrection(block, *change, m_cursorPosition);
+    } else if (m_cursorPosition.offset > 0 &&
+               block.text().at(m_cursorPosition.offset - 1).isSpace()) {
+        autoLinkTyped(block, m_cursorPosition.offset - 1);  // the address before the space
     }
 }
 
@@ -382,6 +385,8 @@ void BookEditor::autoCorrectEndedParagraph(int paragraph, bool atEnd)
         if (const std::optional<AutoCorrection> change =
                 autoCorrectionAtParagraphEnd(text, autoCorrectForText(), m_capsLockOn)) {
             applyAutoCorrection(block, *change, m_cursorPosition);
+        } else {
+            autoLinkTyped(block, static_cast<int>(text.size()));
         }
         return;
     }

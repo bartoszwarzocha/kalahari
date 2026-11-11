@@ -4,6 +4,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_link.h>
 
 #include <QTextBlock>
 #include <QTextBoundaryFinder>
@@ -467,7 +468,9 @@ QTextCharFormat insertionFormat(const QTextCursor& cursor) {
     const QTextDocument& document = *cursor.document();
     const int position = cursor.position();
     const QTextBlock block = cursor.block();
-    if (position > block.position() && position < block.position() + block.length() - 1) {
+    const bool betweenCharacters =
+        position > block.position() && position < block.position() + block.length() - 1;
+    if (betweenCharacters) {
         const AnnotationList after = annotationsOf(characterFormat(document, position));
         for (const Annotation& annotation : annotationsOf(characterFormat(document, position - 1))) {
             if (!annotation.point && hasFragment(after, annotation.id)) {
@@ -476,6 +479,14 @@ QTextCharFormat insertionFormat(const QTextCursor& cursor) {
         }
     }
     setAnnotations(format, inside);
+
+    // A link, too, only between two of its characters: text typed after it is not a part of it
+    const QString link = linkAddressOf(format);
+    if (!link.isEmpty() &&
+        (!betweenCharacters || linkAddressOf(characterFormat(document, position)) != link ||
+         linkAddressOf(characterFormat(document, position - 1)) != link)) {
+        setLinkAddress(format, QString());
+    }
     return format;
 }
 

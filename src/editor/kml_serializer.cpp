@@ -10,6 +10,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_link.h>
 #include <kalahari/core/logger.h>
 #include <QTextDocument>
 #include <QTextBlock>
@@ -511,6 +512,13 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
         result += anchorTag(annotation.id, false);
     }
 
+    // A link, inside the anchors of the annotations, around the rest of the formatting
+    const QString link = linkAddressOf(format);
+    if (!link.isEmpty()) {
+        result += QStringLiteral("<a href=\"") + KmlFormatRegistry::escapeXml(link) +
+                  QStringLiteral("\">");
+    }
+
     // Check for metadata first (wraps around formatting)
     bool hasMeta = hasMetadata(format);
     if (hasMeta) {
@@ -545,6 +553,9 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     // Close metadata tag if present
     if (hasMeta) {
         result += metadataToCloseTag(format);
+    }
+    if (!link.isEmpty()) {
+        result += QStringLiteral("</a>");
     }
 
     for (qsizetype i = 0; i < fragments.size(); ++i) {

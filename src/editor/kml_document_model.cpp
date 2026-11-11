@@ -5,6 +5,7 @@
 
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/editor/kml_format_registry.h"
+#include "kalahari/editor/text_link.h"
 #include "kalahari/core/logger.h"
 
 #include <QDateTime>
@@ -701,6 +702,13 @@ bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                     anchorAfterText(para, annotation);
                 }
                 m_anchoredIds.insert(ref);
+            } else if (tag == QStringLiteral("a")) {
+                // A link: its text with its address; without an address the text is plain
+                QTextCharFormat newFormat = currentFormat;
+                setLinkAddress(newFormat,
+                               reader.attributes().value(QStringLiteral("href")).toString().trimmed());
+                reader.readNext();
+                parseInlineContent(reader, para, newFormat, tag);
             } else if (tag == QStringLiteral("t") || tag == QStringLiteral("text")) {
                 // Text run - just parse content
                 reader.readNext();

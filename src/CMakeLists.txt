@@ -10,6 +10,7 @@ set(KALAHARI_CORE_SOURCES
     editor/kml_serializer.cpp  # Phase 11.2: QTextDocument to KML serializer
     editor/kml_format_registry.cpp  # OpenSpec #00043: Shared KML format registry
     editor/annotation.cpp  # Comments, TODOs and notes anchored to the text
+    editor/text_link.cpp   # Links in the text: the address on its characters
     editor/paragraph_styles.cpp  # Paragraph styles of a book, the objects of its text
     editor/paragraph_format.cpp  # A paragraph's own formatting: indents, spacing, breaks
     editor/character_format.cpp  # The character formatting of Format > Font, Change Case
@@ -177,6 +178,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/list_dialogs.cpp           # Bullets and Numbering, Set Numbering Value
     gui/dialogs/font_dialog.cpp            # Format > Font...
     gui/dialogs/paragraph_dialog.cpp       # Format > Paragraph...
+    gui/dialogs/hyperlink_dialog.cpp       # Insert > Link...
     gui/widgets/character_grid.cpp  # CharacterGrid - characters in cells, in the font of the text
     gui/widgets/quick_character_palette.cpp  # QuickCharacterPalette - Insert > Quick Character
     gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
@@ -321,6 +323,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_editing.cpp
     editor/book_editor_formatting.cpp
     editor/book_editor_lists.cpp
+    editor/book_editor_links.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
     editor/book_editor_view.cpp
@@ -384,6 +387,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/list_dialogs.h  # the list windows with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/font_dialog.h  # Format > Font... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_dialog.h  # Format > Paragraph... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/hyperlink_dialog.h  # Insert > Link... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT

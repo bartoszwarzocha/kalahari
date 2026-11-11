@@ -6,12 +6,15 @@
 #include <QAbstractTextDocumentLayout>
 #include <QAction>
 #include <QApplication>
+#include <QClipboard>
 #include <QContextMenuEvent>
+#include <QCursor>
 #include <QDrag>
 #include <QDragEnterEvent>
 #include <QDragLeaveEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
+#include <QGuiApplication>
 #include <QInputMethodEvent>
 #include <QKeyEvent>
 #include <QMenu>
@@ -273,6 +276,11 @@ void giveUniqueAccessKeys(QMenu& menu) {
 
 void BookEditor::keyPressEvent(QKeyEvent* event)
 {
+    // Ctrl pressed over a link: the hand of Ctrl+click at once, as the mouse stays
+    if (event->key() == Qt::Key_Control && underMouse()) {
+        updatePointerShape(mapFromGlobal(QCursor::pos()), event->modifiers());
+    }
+
     // The word being typed gets no spelling wave until the cursor leaves it
     const QScopedValueRollback<bool> typing(m_spellTypingEdit, isTypingKey(event));
 
@@ -310,6 +318,15 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
     } else {
         QWidget::keyPressEvent(event);
     }
+}
+
+void BookEditor::keyReleaseEvent(QKeyEvent* event)
+{
+    // Ctrl let go over a link: the I-beam again
+    if (event->key() == Qt::Key_Control && underMouse()) {
+        updatePointerShape(mapFromGlobal(QCursor::pos()), event->modifiers());
+    }
+    QWidget::keyReleaseEvent(event);
 }
 
 void BookEditor::inputMethodEvent(QInputMethodEvent* event)
@@ -494,6 +511,15 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         }
     }
 
+    // Ctrl+click on a link (Cmd+click on macOS) opens it, as in Word; the cursor stays
+    if ((event->modifiers() & Qt::ControlModifier) && !(event->modifiers() & Qt::ShiftModifier)) {
+        if (const std::optional<TextLink> link = linkAt(event->position())) {
+            emit linkOpenAsked(link->address);
+            event->accept();
+            return;
+        }
+    }
+
     // Set focus on click
     setFocus();
 
@@ -592,22 +618,7 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
 
     const QPointF pos = event->position();
     if (!(event->buttons() & Qt::LeftButton)) {
-        // A hand over an annotation's mark, which opens it, over the mark beside a paragraph
-        // and over the buttons of a card; an arrow over a card and over the selected text,
-        // which can be dragged; an I-beam elsewhere
-        Qt::CursorShape shape = Qt::IBeamCursor;
-        if (hoverAnnotationCard(pos)) {
-            shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
-                        ? Qt::ArrowCursor
-                        : Qt::PointingHandCursor;
-        } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos)) {
-            shape = Qt::PointingHandCursor;
-        } else if (isOverSelectedText(pos)) {
-            shape = Qt::ArrowCursor;
-        }
-        if (cursor().shape() != shape) {
-            setCursor(shape);
-        }
+        updatePointerShape(pos, event->modifiers());
         QWidget::mouseMoveEvent(event);
         return;
     }
@@ -632,6 +643,27 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
     updateAutoScroll(pos, false);
 
     event->accept();
+}
+
+void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers modifiers)
+{
+    // A hand over an annotation's mark, which opens it, over the mark beside a paragraph, over
+    // the buttons of a card and with Ctrl over a link, which Ctrl+click opens; an arrow over a
+    // card and over the selected text, which can be dragged; an I-beam elsewhere
+    Qt::CursorShape shape = Qt::IBeamCursor;
+    if (hoverAnnotationCard(pos)) {
+        shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
+                    ? Qt::ArrowCursor
+                    : Qt::PointingHandCursor;
+    } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos) ||
+               ((modifiers & Qt::ControlModifier) && linkAt(pos).has_value())) {
+        shape = Qt::PointingHandCursor;
+    } else if (isOverSelectedText(pos)) {
+        shape = Qt::ArrowCursor;
+    }
+    if (cursor().shape() != shape) {
+        setCursor(shape);
+    }
 }
 
 void BookEditor::mouseReleaseEvent(QMouseEvent* event)
@@ -1007,6 +1039,34 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
     } else if (grammarError.has_value()) {
         addGrammarActions(menu, *grammarError, pos.paragraph);
+    }
+
+    // A link: edit it (the window of Insert > Link, with its keys), open it, copy its address
+    // or take it off the text, as in Word
+    if (const LinkTarget link = linkTarget(); link.existing) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        const QString keys =
+            m_contextMenuEditActions.link != nullptr
+                ? m_contextMenuEditActions.link->shortcut().toString(QKeySequence::NativeText)
+                : QString();
+        // The keys only shown (after a tab), so they stay those of the command
+        QString editText = tr("Edit &Hyperlink...");
+        if (!keys.isEmpty()) {
+            editText += QLatin1Char('\t') + keys;
+        }
+        disableWhileReadOnly(menu.addAction(editText, this, &BookEditor::linkDialogAsked));
+        menu.addAction(tr("&Open Hyperlink"), this,
+                       [this, address = link.address]() { emit linkOpenAsked(address); });
+        menu.addAction(tr("Cop&y Hyperlink"), this, [address = link.address]() {
+            if (QClipboard* clipboard = QGuiApplication::clipboard()) {
+                clipboard->setText(address);
+            }
+        });
+        disableWhileReadOnly(menu.addAction(tr("Remove Hyperl&ink"), this,
+                                            [this, link]() { removeLink(link); }));
+        menu.addSeparator();
     }
 
     // The annotation whose fragment or place is there: what can be done with it

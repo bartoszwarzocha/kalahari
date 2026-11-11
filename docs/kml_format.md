@@ -1,7 +1,7 @@
 # KML – Kalahari Markup Language
 
 KML is the XML format of chapter text: paragraphs and headings with their styles and own
-formatting, lists, horizontal lines and breaks, inline formatting and annotations. This document describes the format as the
+formatting, lists, horizontal lines and breaks, inline formatting, links and annotations. This document describes the format as the
 application reads and writes it. The product specification of the format, including the
 elements planned for later versions, is section 4 of
 `project_docs/19_text_editor_functional_spec_pl.md`; the elements it lists that the editor does
@@ -18,8 +18,9 @@ The code that defines the format:
 | Reading | `KmlDocumentModel::loadKml()`, called by `BookEditor::fromKml()` |
 | Writing | `KmlSerializer::toKml()`, called by `BookEditor::toKml()` |
 | Annotations in the editor's document | `include/kalahari/editor/annotation.h` |
+| Links in the editor's document | `include/kalahari/editor/text_link.h` |
 | The clipboard's KML, HTML and plain text | `ClipboardHandler` (`include/kalahari/editor/clipboard_handler.h`) |
-| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp` |
+| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp`, `test_text_links.cpp` |
 
 ## Where KML is stored
 
@@ -272,6 +273,31 @@ with the same formatting gets its own elements, always in the order `<b><i><u><s
 On writing, the style attributes go on the first formatting element of the run, for example
 `<b font="Georgia"><i>text</i></b>`; a run without formatting elements gets a `<span>`.
 
+## Links
+
+```xml
+<p>See <a href="https://example.com">the page</a>.</p>
+```
+
+| Attribute | Value | Meaning |
+|-----------|-------|---------|
+| `href` | An address (escaped as XML, `&amp;` for `&`) | The address the link opens |
+
+- The text of `<a>` is the text of the link, with its own formatting inside it. A link goes on
+  in more `<a>` elements with the same `href`, one for each run of formatting:
+  `<a href="https://example.com">the </a><a href="https://example.com"><b>page</b></a>` is one
+  link. Text next to it with another address, or none, is not a part of it.
+- On writing, `<a>` goes inside the anchors of annotations and outside the references and the
+  formatting elements: `<anchor ref="a1"><a href="..."><charref ...><b>text</b></charref></a></anchor>`.
+- Spaces around the address are dropped on reading; `<a>` without an `href`, or with an empty
+  one, is plain text.
+- The editor keeps any address, but it opens only a web page (`http`, `https`), a file server
+  (`ftp`) and a new e-mail (`mailto`); a link to another address (`file:`, `javascript:`) is
+  only text. Insert > Link (Ctrl+K) gives an address without a scheme `https://`, and an e-mail
+  address `mailto:`.
+- The look of a link – its color, underlined – is not in the KML: the editor draws every link
+  in the link color of its paper (Settings > Editor > Colors).
+
 ## Annotations
 
 Comments, TODOs and notes are kept in the `<annotations>` section; the text says where each of
@@ -340,6 +366,7 @@ tests in `tests/editor/test_clipboard_paste.cpp`).
 | `<page-break/>` | CSS `page-break-before:always` of what follows it; an empty paragraph when nothing does | A form feed (U+000C) on a line of its own |
 | `<ol>`, `<ul>`, `<li>` | `<ol>`, `<ul>` and `<li>`, a list of a deeper level inside an item; the type of the numbers, the number of the first item and of an item that does not go on from the one before it | Each item on a line, with its number or bullet as the editor shows it |
 | `caps`, `spacing` | CSS `font-variant:small-caps` or `text-transform:uppercase`, `letter-spacing` in points | – |
+| `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
 
 The HTML of another program (Word, LibreOffice, a browser) is pasted, and dropped, in the mode
 of the setting `editor.paste.mode` (Settings > Editor > General, "Paste from Other
@@ -348,16 +375,16 @@ without the files it refers to.
 
 | Mode | Value | What the KML keeps |
 |------|-------|--------------------|
-| Merge Formatting (the default) | `merge` | The headings (`<h4>` to `<h6>` as `<h3>`); the quotes (`<blockquote>`, Word's quote styles) as `<p style="quote">`; `<hr/>`; the page breaks (CSS `page-break-before` and `page-break-after: always`, Word's page break) as `<page-break/>`; the line breaks; bold, italic, underline, strikethrough, subscript and superscript; centered and right-aligned paragraphs. The text takes the format of the place it is pasted to, with its emphasis on top. |
+| Merge Formatting (the default) | `merge` | The headings (`<h4>` to `<h6>` as `<h3>`); the quotes (`<blockquote>`, Word's quote styles) as `<p style="quote">`; `<hr/>`; the page breaks (CSS `page-break-before` and `page-break-after: always`, Word's page break) as `<page-break/>`; the line breaks; bold, italic, underline, strikethrough, subscript and superscript; the links to web pages, file servers and e-mail addresses (a link to a place in the page or to a script comes as its text); centered and right-aligned paragraphs. The text takes the format of the place it is pasted to, with its emphasis on top. |
 | Keep Source Formatting | `source` | Also every alignment, the font (the first of a CSS list that is not a generic family), the size (in points) and the colors, and the styles of the head of Word's HTML |
-| Keep Text Only | `text` | The paragraphs and line breaks of the plain text |
+| Keep Text Only | `text` | The paragraphs and line breaks of the plain text, without links |
 
 Text copied in Kalahari is pasted as KML in every mode. The lists of browsers, LibreOffice
 and Word come as lists in the modes Merge Formatting and Keep Source Formatting, a list in an
 item as the next level of its list; Word's numbers and bullets (also those of the fonts Symbol
 and Wingdings) give the levels their formats and first numbers. Keep Text Only keeps the
 numbers and bullets as text. Until the editor has them, a table row comes as a paragraph with
-its cells separated by tabs, and a link as its text; images are left out. A heading's bold is the
+its cells separated by tabs; images are left out. A heading's bold is the
 look of the heading and is not kept. A scene break of another program comes as the paragraph
 of its symbol.
 

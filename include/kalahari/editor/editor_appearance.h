@@ -47,16 +47,18 @@ struct PaperColorKeys {
     const char* text;             ///< The text on it
     const char* focusDimmed;      ///< The paragraphs Focus dims
     const char* formattingMarks;  ///< The formatting marks
+    const char* link;             ///< The text of links, unless it has a color of its own
     const char* desk;             ///< Around the paper: beside and between the sheets
 };
 
 /// @brief The names of the light paper's colors
 inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
-    "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "deskLight"};
+    "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
+    "deskLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
-    "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "deskDark"};
+    "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -144,6 +146,17 @@ struct EditorColors {
     /// @brief The formatting marks' color on the paper of a mode
     QColor formattingMarksColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? formattingMarks.light : formattingMarks.dark;
+    }
+
+    /// @brief The text of links, unless it has a color of its own
+    struct LinkColors {
+        QColor light{5, 99, 193};                ///< On the light paper (as in Word)
+        QColor dark{138, 180, 248};              ///< On the dark paper
+    } links;
+
+    /// @brief The links' color on the paper of a mode
+    QColor linkColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? links.light : links.dark;
     }
 
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on

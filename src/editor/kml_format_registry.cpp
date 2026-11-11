@@ -398,7 +398,8 @@ QString withRootElement(const QString& kml)
 bool isInlineTextTag(const QString& tag)
 {
     return isFormattingTag(tag) || isMetadataTag(tag) || tag == QStringLiteral("anchor") ||
-           tag == QStringLiteral("t") || tag == QStringLiteral("text");
+           tag == QStringLiteral("a") || tag == QStringLiteral("t") ||
+           tag == QStringLiteral("text");
 }
 
 // =============================================================================

@@ -406,6 +406,9 @@ std::map<std::string, json> buildDefaults() {
         // numbered list
         {"editor.autoCorrect.bulletedLists", true},
         {"editor.autoCorrect.numberedLists", true},
+        // An Internet address typed in the text ("www.example.com", "https://...", an e-mail
+        // address) to a link, as a space or Enter ends it
+        {"editor.autoCorrect.links", true},
 
         // The replacement table: pairs of a word and its replacement, each one on or off
         // (the program's own pairs too; "Restore Defaults" brings back these)

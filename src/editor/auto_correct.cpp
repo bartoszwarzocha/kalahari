@@ -127,6 +127,28 @@ bool isClosing(QChar ch) {
            ch == u')' || ch == u']' || ch == u'}';
 }
 
+/// @brief Whether a word with the mark typed after it goes on as an Internet address, which
+///        keeps its letters as they are typed: "www" before a period, a scheme ("http",
+///        "https", "ftp", "mailto") before a colon, an e-mail address ("jan@example") before
+///        a period
+bool goesOnAsAddress(const QString& before, QChar typed) {
+    qsizetype start = before.size();
+    while (start > 0 && !before.at(start - 1).isSpace()) {
+        --start;
+    }
+    qsizetype lead = start;
+    while (lead < before.size() && isOpening(before.at(lead))) {
+        ++lead;
+    }
+    const QString word = before.mid(lead).toLower();
+    if (typed == PERIOD) {
+        return word == QStringLiteral("www") || word.contains(u'@');
+    }
+    return typed == u':' &&
+           (word == QStringLiteral("http") || word == QStringLiteral("https") ||
+            word == QStringLiteral("ftp") || word == QStringLiteral("mailto"));
+}
+
 /// @brief Whether a character is a dash of dialogue or of a sentence: a hyphen alone
 ///        (not changed by autocorrect), an en dash or an em dash
 bool isDash(QChar ch) {
@@ -552,6 +574,10 @@ std::optional<AutoCorrection> autoCorrection(const QString& before,
         return AutoCorrection{end - 3, end, QString(ELLIPSIS)};
     }
 
+    if (endsWord(typed) && goesOnAsAddress(before.left(last), typed)) {
+        return std::nullopt;
+    }
+
     if (typed.isSpace() || endsWord(typed)) {
         return wordCorrection(before.left(last),
                               typed.isSpace() ? WordEnd::Space : WordEnd::Punctuation, options,
@@ -565,6 +591,56 @@ std::optional<AutoCorrection> autoCorrectionAtParagraphEnd(const QString& paragr
                                                            const AutoCorrectOptions& options,
                                                            bool capsLockOn) {
     return wordCorrection(paragraph, WordEnd::Paragraph, options, capsLockOn);
+}
+
+std::optional<AutoLink> autoLink(const QString& text, const AutoCorrectOptions& options) {
+    if (!options.links) {
+        return std::nullopt;
+    }
+    qsizetype start = text.size();
+    while (start > 0 && !text.at(start - 1).isSpace()) {
+        --start;
+    }
+    while (start < text.size() && isOpening(text.at(start))) {
+        ++start;
+    }
+    // The punctuation marks and the closing marks after it; a closing bracket the address
+    // opened stays ("…/wiki/Kalahari_(desert)")
+    qsizetype end = text.size();
+    while (end > start) {
+        const QChar last = text.at(end - 1);
+        const QStringView address = QStringView(text).mid(start, end - start);
+        const bool ownBracket = last == u')' && address.count(u'(') >= address.count(u')');
+        if ((!endsWord(last) && !isClosing(last)) || ownBracket) {
+            break;
+        }
+        --end;
+    }
+    const QString address = text.mid(start, end - start);
+    if (address.isEmpty() || address.contains(QChar::ObjectReplacementCharacter)) {
+        return std::nullopt;
+    }
+
+    const auto matches = [&address](const QString& pattern) {
+        const QRegularExpression expression(
+            pattern, QRegularExpression::CaseInsensitiveOption |
+                         QRegularExpression::UseUnicodePropertiesOption);
+        return expression.match(address).hasMatch();
+    };
+    const QString email = QStringLiteral("[\\w.%+-]+@[\\w-]+(\\.[\\w-]+)+");
+    const int from = static_cast<int>(start);
+    const int to = static_cast<int>(end);
+    if (matches(QStringLiteral("^(https?|ftp)://[\\w-]")) ||
+        matches(QStringLiteral("^mailto:") + email + QLatin1Char('$'))) {
+        return AutoLink{from, to, address};
+    }
+    if (matches(QStringLiteral("^www\\.[\\w-]+(\\.[\\w-]+)+([/?#:]\\S*)?$"))) {
+        return AutoLink{from, to, QStringLiteral("https://") + address};
+    }
+    if (matches(QLatin1Char('^') + email + QLatin1Char('$'))) {
+        return AutoLink{from, to, QStringLiteral("mailto:") + address};
+    }
+    return std::nullopt;
 }
 
 QString abbreviationsLanguage(const QString& language,
