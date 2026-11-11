@@ -595,11 +595,11 @@ void splitTableCell(QTextCursor& cursor, QTextTable& table, int row, int column,
     //    cells of the other rows span both parts
     std::vector<double> edges = edgesOf(widths);
     const double cellLeft = edges[static_cast<size_t>(left)];
-    const double cellRight = edges[static_cast<size_t>(left + spannedColumns)];
+    const double cellRight = edges[static_cast<size_t>(left) + static_cast<size_t>(spannedColumns)];
     std::vector<double> targetEdges;  // a merged cell split back: its columns' edges
     for (int part = 0; part <= columns; ++part) {
         targetEdges.push_back(columns == spannedColumns
-                                  ? edges[static_cast<size_t>(left + part)]
+                                  ? edges[static_cast<size_t>(left) + static_cast<size_t>(part)]
                                   : cellLeft + (cellRight - cellLeft) * part / columns);
     }
     for (int part = 1; part < columns; ++part) {
@@ -808,6 +808,7 @@ void reorderParagraphs(QTextCursor& cursor, int first, const std::vector<int>& o
 {
     QTextDocument& document = *cursor.document();
     std::vector<CopiedParagraph> paragraphs;
+    paragraphs.reserve(order.size());
     for (size_t i = 0; i < order.size(); ++i) {
         const QTextBlock block = document.findBlockByNumber(first + static_cast<int>(i));
         std::vector<CopiedParagraph> copy =
@@ -815,6 +816,7 @@ void reorderParagraphs(QTextCursor& cursor, int first, const std::vector<int>& o
         paragraphs.push_back(copy.empty() ? CopiedParagraph{} : std::move(copy.front()));
     }
     std::vector<CopiedParagraph> ordered;
+    ordered.reserve(order.size());
     for (const int source : order) {
         ordered.push_back(paragraphs[static_cast<size_t>(source)]);
     }

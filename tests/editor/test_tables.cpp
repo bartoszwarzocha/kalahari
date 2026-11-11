@@ -520,6 +520,7 @@ TEST_CASE("Tables: of a long table the view draws the cells of the rows it shows
     QTextDocumentSource source(editor->textDocument());
     const auto cellsOf = [](const TableGrid& grid) {
         std::vector<std::pair<int, int>> cells;
+        cells.reserve(grid.cells.size());
         for (const TableGridCell& cell : grid.cells) {
             cells.emplace_back(cell.row, cell.column);
         }

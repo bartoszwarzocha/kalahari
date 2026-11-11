@@ -2133,9 +2133,10 @@ std::pair<qreal, qreal> KalahariTextDocumentLayout::placeRow(size_t i, size_t la
 
     // The pages a split row goes on to start with the header too
     if (header > 0 && split && tableFirst >= 0) {
-        for (qreal page = nextPageTop(top); page < top + height - FLOW_EPSILON;
-             page = nextPageTop(page)) {
+        qreal page = nextPageTop(top);
+        while (page < top + height - FLOW_EPSILON) {
             m_headerRepeats.push_back({page, header, tableFirst});
+            page = nextPageTop(page);
         }
     }
     return {top, height};

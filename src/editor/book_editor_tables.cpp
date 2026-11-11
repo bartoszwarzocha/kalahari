@@ -256,17 +256,27 @@ std::optional<BookEditor::ColumnEdge> BookEditor::columnEdgeAt(const QPointF& wi
     if (nearest < 0) {
         return std::nullopt;
     }
-    return ColumnEdge{table, nearest};
+    return ColumnEdge{table->firstPosition(), nearest};
+}
+
+QTextTable* BookEditor::columnDragTable() const
+{
+    if (!m_columnDrag || !m_textBuffer) {
+        return nullptr;
+    }
+    QTextTable* table = tableAt(*m_textBuffer, m_columnDrag->tableStart);
+    return table != nullptr && table->firstPosition() == m_columnDrag->tableStart ? table : nullptr;
 }
 
 void BookEditor::dragColumnEdge(const QPointF& widgetPos)
 {
     const auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
-    if (!m_columnDrag || !m_columnDrag->table || !layout) {
+    QTextTable* table = columnDragTable();
+    if (!m_columnDrag || !table || !layout) {
         return;
     }
     // Between the edges next to it, the columns at least as wide as the narrowest
-    const std::vector<qreal> edges = layout->tableColumnEdges(*m_columnDrag->table);
+    const std::vector<qreal> edges = layout->tableColumnEdges(*table);
     const auto column = static_cast<size_t>(m_columnDrag->column);
     if (column + 1 >= edges.size()) {
         return;
@@ -283,14 +293,15 @@ void BookEditor::paintColumnGuide(QPainter& painter) const
     const auto* layout = m_textBuffer
                              ? qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout())
                              : nullptr;
-    if (!m_columnDrag || !m_columnDrag->table || !layout) {
+    QTextTable* table = columnDragTable();
+    if (!table || !layout) {
         return;
     }
     // A dashed line in the color of the text, down the table's rows on each page
     QPen pen(m_appearance.colors.textColor(m_appearance.colorMode), 1.0, Qt::DashLine);
     painter.save();
     painter.setPen(pen);
-    for (const KalahariTextDocumentLayout::TableRow& row : layout->tableRows(*m_columnDrag->table)) {
+    for (const KalahariTextDocumentLayout::TableRow& row : layout->tableRows(*table)) {
         for (const auto& [top, bottom] : rowParts(row)) {
             const QPointF from = m_renderPipeline->documentToWidget(QPointF(m_columnDragX, top));
             const QPointF to = m_renderPipeline->documentToWidget(QPointF(m_columnDragX, bottom));
