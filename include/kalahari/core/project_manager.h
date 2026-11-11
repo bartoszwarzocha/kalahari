@@ -132,6 +132,7 @@ struct NewMaterial {
     QString url;         ///< Web address of a page or of a picture; empty: none
     QStringList links;   ///< What it is about (ProjectElement::links); each link gets the
                          ///< role of its kind (newLink())
+    CoverData cover;     ///< Of a material of the cover: what it is and where it goes
 };
 
 /// @brief Singleton manager of the book project open in the program
@@ -718,6 +719,23 @@ public:
     /// @return false for another angle, when the project has no such element or the file
     ///         cannot be written
     bool setRotation(const QString& elementId, int rotation);
+
+    /// @brief Give material @p elementId of the cover the data @p cover (what it is and where
+    /// it goes) and save the .klh file
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its data then
+    bool setCover(const QString& elementId, const CoverData& cover);
+
+    /// @brief Give material @p elementId of the cover the state @p state
+    /// (CoverMaterial::CHOSEN, REJECTED; empty: a draft) and save the .klh file once
+    ///
+    /// A description, a tagline or a design chosen (CoverMaterial::choosesOne()) takes the
+    /// place of the one chosen before for the same part and place: that one is a draft again.
+    /// @param drafts Gets the materials that are drafts again; may be nullptr
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         materials keep their states then
+    bool setCoverState(const QString& elementId, const QString& state,
+                       QStringList* drafts = nullptr);
 
     // =========================================================================
     // Paragraph Styles of the Books

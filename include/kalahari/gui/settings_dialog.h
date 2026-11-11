@@ -56,6 +56,7 @@ public:
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
+    static constexpr const char* NAVIGATOR_PAGE = "navigator";       ///< Navigator
     static constexpr const char* STATS_BAR_PAGE = "stats.bar";       ///< Statistics > Bar and Panel
     static constexpr const char* STATS_COUNTING_PAGE = "stats.counting";  ///< Statistics > Counting
     static constexpr const char* STATS_NOTIFICATIONS_PAGE = "stats.notifications";  ///< > Notifications
@@ -90,8 +91,9 @@ public:
 
     /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
     /// PAGES_PAGE, MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
-    /// SPELLING_PAGE (the gear of the Spelling and Grammar panel), REPETITIONS_PAGE (the gear of
-    /// the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel) or
+    /// SPELLING_PAGE (the gear of the Spelling and Grammar panel), VERSIONS_PAGE (the gear of
+    /// the versions), REPETITIONS_PAGE (the gear of the Repetitions panel), ANNOTATIONS_PAGE
+    /// (the gear of the Annotations panel), NAVIGATOR_PAGE (the gear of a list of materials) or
     /// SHORTCUTS_PAGE (as showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);

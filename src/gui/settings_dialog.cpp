@@ -134,7 +134,8 @@ void SettingsDialog::createNavigationTree() {
 
     m_pageItems[ANNOTATIONS_PAGE] =
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
-    addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
+    m_pageItems[NAVIGATOR_PAGE] =
+        addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
     //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
     //: and the colors. In Polish: Statystyki i cele
     QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));

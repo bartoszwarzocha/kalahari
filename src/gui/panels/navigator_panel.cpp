@@ -8,6 +8,7 @@
 /// OpenSpec #00034 Phase F: Added expansion state persistence between sessions.
 
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_list.h"
@@ -1174,6 +1175,12 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
         return BOOK_FILE_ICON;
     }
     const core::KindRef kind = core::BookProject::kindOf(registry, element);
+    // A material of the cover shows what it is; a reference picture where it comes from
+    if (CoverNames::isCoverKind(kind) &&
+        element.cover.part != QLatin1String(core::CoverMaterial::REFERENCE)) {
+        const QString part = CoverNames::partIconId(element.cover.part);
+        return part.isEmpty() ? kind.kind->icon : part;
+    }
     // A material shows where it comes from: a picture or another file, a web page, a picture
     // on the web, neither
     if (kind && kind.kind->isMaterial()) {
@@ -1355,9 +1362,17 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
     };
 
     // A kind the program makes elements of has its group also empty, so that one can be added
-    // to it; the other kinds when they have elements
+    // to it; the other kinds when they have elements. A kind of materials hidden in the
+    // settings is not there, but its materials are in the number of Materials.
+    const QStringList hidden = MaterialList::hiddenKinds();
+    qsizetype hiddenCount = 0;
     for (KindGroup& group : groups) {
         if (group.elements.isEmpty() && !core::ProjectManager::canAdd(group.kind)) {
+            continue;
+        }
+        if (group.shelf == core::WorkshopGroup::Resources && hidden.contains(group.key)) {
+            parentOf(group.shelf);
+            hiddenCount += group.elements.size();
             continue;
         }
         std::sort(group.elements.begin(), group.elements.end(),
@@ -1389,7 +1404,7 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
 
     // Materials has the number of all of them
     if (materials) {
-        int all = 0;
+        qsizetype all = hiddenCount;
         for (int i = 0; i < materials->childCount(); ++i) {
             all += materials->child(i)->data(0, COUNT_ROLE).toInt();
         }
@@ -2380,6 +2395,27 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
         // A group of the Workshop is named after its kind, and is there as long as the kind
         addAddActions();
+        // A kind of materials can be hidden in every book; the gear opens the settings of
+        // the kinds (Settings > Navigator)
+        if (const std::optional<QString> list = materialListOf(item)) {
+            menu.addSeparator();
+            if (!list->isEmpty()) {
+                //: Hides a kind of materials in the Navigator of every book; its materials
+                //: stay. %1: the name of the kind. In Polish: &Ukryj typ „%1”
+                QAction* hideAction =
+                    menu.addAction(tr("&Hide Kind \"%1\"").arg(item->text(0)));
+                const QString& kind = *list;
+                connect(hideAction, &QAction::triggered, this,
+                        [this, kind]() { emit requestHideKind(kind); });
+            }
+            //: Opens Settings > Navigator at the kinds of materials. In Polish: Ustawienia
+            //: &typów...
+            QAction* settingsAction = menu.addAction(
+                artProvider.getIcon("dock.settings", core::IconContext::Menu),
+                tr("Kind &Settings..."));
+            connect(settingsAction, &QAction::triggered, this,
+                    [this]() { emit requestMaterialSettings(); });
+        }
         menu.addSeparator();
         addExpandCollapseActions();
 

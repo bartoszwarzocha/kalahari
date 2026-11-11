@@ -329,6 +329,45 @@ void readView(Fields& fields, ProjectElement& element, QStringList& problems) {
     element.viewExtra = viewFields.rest();
 }
 
+/// What a material of the cover is and where it goes, with the fields of "cover" this
+/// version does not know
+void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue cover = fields.take("cover");
+    if (cover.isUndefined()) {
+        return;
+    }
+    if (!cover.isObject()) {
+        fields.problem("cover", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields coverFields(cover.toObject(), fields.path("cover"), problems);
+    CoverData& data = element.cover;
+    data.part = coverFields.string("part");
+    data.place = coverFields.string("place");
+    data.state = coverFields.string("state");
+    data.author = coverFields.string("author");
+    data.role = coverFields.string("role");
+    data.source = coverFields.string("source");
+    data.date = coverFields.string("date");
+    data.consent = coverFields.string("consent");
+    data.license = coverFields.string("license");
+    data.about = coverFields.string("about");
+    for (const auto& [key, target] : {std::pair{"targetCharacters", &data.targetCharacters},
+                                      std::pair{"targetWords", &data.targetWords}}) {
+        const QJsonValue value = coverFields.take(key);
+        if (value.isUndefined()) {
+            continue;
+        }
+        const int length = isWholeNumber(value) ? value.toInt(-1) : -1;
+        if (length < 0) {
+            coverFields.problem(key, QStringLiteral("must be a whole number, 0 or more"));
+        } else {
+            *target = length;
+        }
+    }
+    data.extra = coverFields.rest();
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -363,6 +402,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.fields = readElementFields(fields.array("fields"), fields.path("fields"), problems);
     element.links = readLinks(fields, problems);
     readView(fields, element, problems);
+    readCover(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -573,6 +613,31 @@ QJsonObject elementToJson(const ProjectElement& element) {
         json.remove(QLatin1String("view"));
     } else {
         json.insert(QLatin1String("view"), view);
+    }
+    const CoverData& cover = element.cover;
+    if (cover.isEmpty()) {
+        json.remove(QLatin1String("cover"));
+    } else {
+        QJsonObject data = cover.extra;
+        setOrRemove(data, "part", cover.part);
+        setOrRemove(data, "place", cover.place);
+        setOrRemove(data, "state", cover.state);
+        setOrRemove(data, "author", cover.author);
+        setOrRemove(data, "role", cover.role);
+        setOrRemove(data, "source", cover.source);
+        setOrRemove(data, "date", cover.date);
+        setOrRemove(data, "consent", cover.consent);
+        setOrRemove(data, "license", cover.license);
+        setOrRemove(data, "about", cover.about);
+        for (const auto& [key, target] : {std::pair{"targetCharacters", cover.targetCharacters},
+                                          std::pair{"targetWords", cover.targetWords}}) {
+            if (target > 0) {
+                data.insert(QLatin1String(key), target);
+            } else {
+                data.remove(QLatin1String(key));
+            }
+        }
+        json.insert(QLatin1String("cover"), data);
     }
     return json;
 }
@@ -936,7 +1001,8 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            file == other.file && url == other.url && status == other.status &&
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
-           rotation == other.rotation && viewExtra == other.viewExtra && extra == other.extra;
+           rotation == other.rotation && cover == other.cover && viewExtra == other.viewExtra &&
+           extra == other.extra;
 }
 
 // =============================================================================
