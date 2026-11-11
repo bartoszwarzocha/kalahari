@@ -708,10 +708,8 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
         shape = *corner == ImageCorner::TopLeft || *corner == ImageCorner::BottomRight
                     ? Qt::SizeFDiagCursor
                     : Qt::SizeBDiagCursor;
-    } else if (imagePositionAt(pos).has_value()) {
-        shape = Qt::ArrowCursor;  // an image, which a click selects
-    } else if (isOverSelectedText(pos)) {
-        shape = Qt::ArrowCursor;
+    } else if (imagePositionAt(pos).has_value() || isOverSelectedText(pos)) {
+        shape = Qt::ArrowCursor;  // an image, which a click selects, or the selected text
     }
     if (cursor().shape() != shape) {
         setCursor(shape);

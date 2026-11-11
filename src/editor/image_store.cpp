@@ -238,7 +238,7 @@ QString ImageStore::storeData(const QByteArray& data, const QString& name)
             number == 1 ? base + suffix
                         : base + QLatin1Char('-') + QString::number(number) + suffix;
         const QString target = imagesFolder + QLatin1Char('/') + fileName;
-        const QString source = QLatin1String(IMAGES_FOLDER) + QLatin1Char('/') + fileName;
+        QString source = QLatin1String(IMAGES_FOLDER) + QLatin1Char('/') + fileName;
         const QFileInfo existing(target);
         if (existing.exists()) {
             if (existing.isFile() && existing.size() == data.size() && fileData(target) == data) {

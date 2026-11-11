@@ -1335,21 +1335,21 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
             }
         }
     }
-    std::unique_ptr<QMimeData> data = ClipboardHandler::mimeDataOf(kml, &marks, m_imageStore->folder());
+    std::unique_ptr<QMimeData> mime = ClipboardHandler::mimeDataOf(kml, &marks, m_imageStore->folder());
 
     // An image alone also as a picture, for the programs that paste pictures
     if (const std::optional<int> image = selectedImage()) {
         const std::optional<ImageProperties> properties = editor::imageAt(*m_textBuffer, *image);
-        const std::optional<QSize> pixels =
-            properties ? m_imageStore->pixelSize(properties->source) : std::nullopt;
-        if (pixels) {
-            const QImage picture = m_imageStore->picture(properties->source, *pixels);
-            if (!picture.isNull()) {
-                data->setImageData(picture);
+        if (properties) {
+            if (const std::optional<QSize> pixels = m_imageStore->pixelSize(properties->source)) {
+                const QImage picture = m_imageStore->picture(properties->source, *pixels);
+                if (!picture.isNull()) {
+                    mime->setImageData(picture);
+                }
             }
         }
     }
-    return data;
+    return mime;
 }
 
 bool BookEditor::canInsertFromMimeData(const QMimeData* source) const
