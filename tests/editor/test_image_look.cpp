@@ -752,3 +752,93 @@ TEST_CASE("Image look: Crop in the text", "[editor][images][look][commands][crop
     }
 }
 
+
+// =============================================================================
+// One filter for every image
+// =============================================================================
+
+TEST_CASE("Image look: one filter for every image, in KML and in the document",
+          "[editor][images][look][filter]") {
+    // An image in the filter takes only the filter, and with Black and White its threshold
+    ImageProperties image;
+    image.source = QStringLiteral("images/a.png");
+    image.brightness = 20;
+    image.threshold = 30;
+    const ImageProperties sepia = withImageFilter(image, ImageFilter::Sepia, 70);
+    CHECK(sepia.filter == ImageFilter::Sepia);
+    CHECK(sepia.threshold == 30);
+    CHECK(sepia.brightness == 20);
+    const ImageProperties blackWhite = withImageFilter(image, ImageFilter::BlackWhite, 70);
+    CHECK(blackWhite.threshold == 70);
+    CHECK(blackWhite.brightness == 20);
+
+    // KML: the images in another filter change, the others keep their elements as they are
+    const QString kml = QStringLiteral(
+        "<kml><p>One <img src=\"images/a.png\" brightness=\"20%\"/> and "
+        "<img alt=\"The &quot;tower&quot;\" src=\"images/b.png\" filter=\"sepia\"/></p>"
+        "<table><tr><td><p><img src=\"images/c.png\" filter=\"black-white\"/></p></td></tr></table>"
+        "<p><img/>Two</p><p>Three <img src=\"images/d.png\"></img> four</p></kml>");
+    int count = -1;
+    const QString filtered = withImageFilterKml(kml, ImageFilter::Sepia, DEFAULT_IMAGE_THRESHOLD, &count);
+    CHECK(count == 3);
+    CHECK(filtered.toStdString() == QStringLiteral(
+                          "<kml><p>One <img src=\"images/a.png\" filter=\"sepia\" brightness=\"20%\"/> and "
+                          "<img alt=\"The &quot;tower&quot;\" src=\"images/b.png\" filter=\"sepia\"/></p>"
+                          "<table><tr><td><p><img src=\"images/c.png\" filter=\"sepia\"/></p></td></tr></table>"
+                          "<p><img/>Two</p><p>Three <img src=\"images/d.png\" filter=\"sepia\"/> "
+                          "four</p></kml>").toStdString());
+    // Nothing to change, or a text that is not KML: the text as it is
+    CHECK(withImageFilterKml(filtered, ImageFilter::Sepia, DEFAULT_IMAGE_THRESHOLD, &count) == filtered);
+    CHECK(count == 0);
+    const QString broken = QStringLiteral("<kml><p><img src=\"images/a.png\"/></kml>");
+    CHECK(withImageFilterKml(broken, ImageFilter::Sepia, DEFAULT_IMAGE_THRESHOLD, &count) == broken);
+    CHECK(count == 0);
+    CHECK(withImageFilterKml(QString(), ImageFilter::Sepia, DEFAULT_IMAGE_THRESHOLD, nullptr).isEmpty());
+
+    // Black and White: its threshold is a change too
+    CHECK(withImageFilterKml(QStringLiteral("<kml><p><img src=\"images/c.png\" filter=\"black-white\"/></p></kml>"),
+                             ImageFilter::BlackWhite, 60, &count) ==
+          QStringLiteral("<kml><p><img src=\"images/c.png\" filter=\"black-white\" threshold=\"60%\"/></p></kml>"));
+    CHECK(count == 1);
+}
+
+TEST_CASE("Image look: one filter for every image of the text, one step of Undo",
+          "[editor][images][look][filter]") {
+    BookFolder book;
+    book.add(QStringLiteral("a.png"), filled(QSize(40, 20), Qt::green));
+    book.add(QStringLiteral("b.png"), filled(QSize(40, 20), Qt::blue));
+    const QString kml = QStringLiteral(
+        "<kml><p><img src=\"images/a.png\" contrast=\"10%\"/></p>"
+        "<p>Text</p><p><img src=\"images/b.png\" filter=\"grayscale\"/></p>"
+        "<p><img src=\"images/a.png\" filter=\"wash\"/></p></kml>");
+    auto editor = editorWith(kml, book.path());
+    const QTextDocument& document = *editor->textDocument();
+    CHECK(imagesWithOtherFilter(document, ImageFilter::Grayscale, DEFAULT_IMAGE_THRESHOLD).size() == 2);
+    CHECK(imagesWithOtherFilter(document, ImageFilter::None, DEFAULT_IMAGE_THRESHOLD).size() == 2);
+
+    editor->setCursorPosition({1, 2});
+    int changed = 0;
+    QObject::connect(editor.get(), &BookEditor::contentChanged, [&changed]() { ++changed; });
+    CHECK(editor->setAllImagesFilter(ImageFilter::Grayscale, DEFAULT_IMAGE_THRESHOLD) == 2);
+    CHECK(changed == 1);
+    CHECK(imagesWithOtherFilter(document, ImageFilter::Grayscale, DEFAULT_IMAGE_THRESHOLD).empty());
+    CHECK(editor->toKml() == QStringLiteral(
+                                 "<kml><p><img src=\"images/a.png\" filter=\"grayscale\" contrast=\"10%\"/></p>"
+                                 "<p>Text</p><p><img src=\"images/b.png\" filter=\"grayscale\"/></p>"
+                                 "<p><img src=\"images/a.png\" filter=\"grayscale\"/></p></kml>"));
+    // The cursor stays where it was
+    CHECK(editor->cursorPosition().paragraph == 1);
+    CHECK(editor->cursorPosition().offset == 2);
+    // Every image already has it: nothing changes
+    CHECK(editor->setAllImagesFilter(ImageFilter::Grayscale, DEFAULT_IMAGE_THRESHOLD) == 0);
+
+    // One step of Undo gives every image its own filter back
+    editor->undo();
+    CHECK(editor->toKml() == kml);
+    CHECK_FALSE(editor->canUndo());
+
+    // A text that cannot change keeps its images
+    editor->setReadOnly(true);
+    CHECK(editor->setAllImagesFilter(ImageFilter::Sepia, DEFAULT_IMAGE_THRESHOLD) == 0);
+    CHECK(editor->toKml() == kml);
+}

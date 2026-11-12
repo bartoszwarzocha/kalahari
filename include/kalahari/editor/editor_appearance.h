@@ -53,18 +53,23 @@ struct PaperColorKeys {
     const char* tableHeader;      ///< The background of the header rows of tables
     const char* tableGridlines;   ///< The faint lines where a table has no border
     const char* imageCropMarks;   ///< The marks of an image being cropped in the text
+    const char* imageMissing;     ///< The frame of an image whose file is missing
+    const char* field;            ///< The background of a caption's number, a cross-reference
+    const char* brokenField;      ///< The background of a cross-reference to a caption the
+                                  ///< book does not have
 };
 
 /// @brief The names of the light paper's colors
 inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
     "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
     "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight",
-    "imageCropMarksLight"};
+    "imageCropMarksLight", "imageMissingLight", "fieldLight", "brokenFieldLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
     "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark",
-    "tableLinesDark", "tableHeaderDark", "tableGridlinesDark", "imageCropMarksDark"};
+    "tableLinesDark", "tableHeaderDark", "tableGridlinesDark", "imageCropMarksDark",
+    "imageMissingDark", "fieldDark", "brokenFieldDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -176,16 +181,33 @@ struct EditorColors {
         QColor gridlinesDark{74, 88, 120};
     } tables;
 
-    /// @brief The images: the marks at the sides of one being cropped in the text
+    /// @brief The images: the marks at the sides of one being cropped in the text, the frame
+    /// of one whose file is missing
     struct ImageColors {
         QColor cropMarksLight{17, 17, 17};
         QColor cropMarksDark{242, 242, 242};
+        QColor missingLight{122, 122, 122};
+        QColor missingDark{154, 154, 160};
     } images;
 
     /// @brief The color of the marks of an image being cropped, on the paper of a mode
     QColor imageCropMarksColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? images.cropMarksLight : images.cropMarksDark;
     }
+
+    /// @brief The color of the frame of an image whose file is missing, on the paper of a mode
+    QColor imageMissingColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? images.missingLight : images.missingDark;
+    }
+
+    /// @brief The backgrounds of the fields (a caption's number, a cross-reference) and of a
+    /// cross-reference to a caption the book does not have
+    struct FieldColors {
+        QColor light{217, 217, 217};
+        QColor dark{62, 62, 69};
+        QColor brokenLight{255, 199, 199};
+        QColor brokenDark{110, 44, 44};
+    } fields;
 
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)

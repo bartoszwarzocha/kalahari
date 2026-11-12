@@ -1661,12 +1661,29 @@ void EditorRenderPipeline::renderHighlightBackgrounds(
                                     ? CURRENT_REPETITION_ALPHA
                                     : REPETITION_ALPHA);
                 break;
-            // Drawn as marks only
+            // Drawn as marks only; the fields' under the selection (renderFieldBackgrounds())
             case HighlightKind::Spelling:
-            case HighlightKind::Grammar: continue;
+            case HighlightKind::Grammar:
+            case HighlightKind::Field:
+            case HighlightKind::BrokenField: continue;
         }
         fillTextRange(painter, paragraph, highlight.start, highlight.start + highlight.length,
                       paragraphWidgetY(paragraph), color, false);
+    }
+}
+
+void EditorRenderPipeline::renderFieldBackgrounds(
+    QPainter* painter, const std::vector<ParagraphHighlight>& highlights) {
+    const RenderColors& colors = m_context.colors;
+    for (const auto& [paragraph, highlight] : highlights) {
+        if (highlight.kind != HighlightKind::Field && highlight.kind != HighlightKind::BrokenField) {
+            continue;
+        }
+        // The text's height of its line, as the paper of a form's field
+        fillTextRange(painter, paragraph, highlight.start, highlight.start + highlight.length,
+                      paragraphWidgetY(paragraph),
+                      highlight.kind == HighlightKind::Field ? colors.field : colors.brokenField,
+                      false);
     }
 }
 
@@ -1749,7 +1766,9 @@ void EditorRenderPipeline::renderHighlightMarks(
             // Backgrounds only
             case HighlightKind::SearchMatch:
             case HighlightKind::CurrentSearchMatch:
-            case HighlightKind::SpokenWord: break;
+            case HighlightKind::SpokenWord:
+            case HighlightKind::Field:
+            case HighlightKind::BrokenField: break;
         }
     }
     painter->restore();
@@ -1865,6 +1884,11 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
         hasSelection() && m_textSource ? m_textSource->cellSelection(m_selection) : std::nullopt;
     renderTables(painter, tables, selectedCells);
 
+    // Highlights: the backgrounds of the fields under the selection, the others under the
+    // text like the selection, the marks over it
+    const std::vector<ParagraphHighlight> highlights = visibleHighlights(clipRect);
+    renderFieldBackgrounds(painter, highlights);
+
     // Selection highlights (only visible paragraphs)
     if (hasSelection() && m_textSource && !selectedCells) {
         SelectionRange sel = m_selection.normalized();
@@ -1892,8 +1916,6 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
         }
     }
 
-    // Highlights: the backgrounds under the text like the selection, the marks over it
-    const std::vector<ParagraphHighlight> highlights = visibleHighlights(clipRect);
     renderHighlightBackgrounds(painter, highlights);
 
     // The fragment of the annotation whose card the mouse is on, under the text too

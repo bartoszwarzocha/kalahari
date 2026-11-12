@@ -1834,6 +1834,33 @@ bool ProjectManager::setSections(const BookSections& sections) {
     return true;
 }
 
+std::optional<BookCaptions> ProjectManager::bookCaptions() const {
+    const ProjectBook* current = book();
+    return current != nullptr ? current->captions : std::nullopt;
+}
+
+bool ProjectManager::setBookCaptions(const BookCaptions& captions) {
+    ProjectBook* current = book();
+    if (!current) {
+        Logger::getInstance().warn("setBookCaptions: No project is open");
+        return false;
+    }
+    if (refusesChange("setBookCaptions")) {
+        return false;
+    }
+    if (current->captions == captions) {
+        return true;
+    }
+    const std::optional<BookCaptions> previous = current->captions;
+    current->captions = captions;
+    if (!saveManifest()) {
+        current->captions = previous;
+        return false;
+    }
+    emit bookCaptionsChanged();
+    return true;
+}
+
 bool ProjectManager::setBookName(const QString& name) {
     ProjectBook* current = book();
     if (!current) {

@@ -75,13 +75,15 @@ enum class TextObject {
     None,            ///< A paragraph of text
     HorizontalRule,  ///< A thin line as wide as the text (<hr/>)
     SceneBreak,      ///< A break between two scenes, shown as the Settings say (<scene-break/>)
-    PageBreak        ///< The text after it starts on a new page (<page-break/>)
+    PageBreak,       ///< The text after it starts on a new page (<page-break/>)
+    FigureList       ///< The captions of the book with their numbers (<list-of-figures/>)
 };
 
 /// @brief QTextFormat::objectType() of each object
 inline constexpr int HORIZONTAL_RULE_OBJECT = QTextFormat::UserObject + 1;
 inline constexpr int SCENE_BREAK_OBJECT = QTextFormat::UserObject + 2;
 inline constexpr int PAGE_BREAK_OBJECT = QTextFormat::UserObject + 3;
+inline constexpr int FIGURE_LIST_OBJECT = QTextFormat::UserObject + 7;
 
 /// @brief The object a format's object type names; None for any other format
 TextObject textObjectOf(const QTextFormat& format);
@@ -117,7 +119,8 @@ QString sceneBreakText(SceneBreakLook look);
 ///        line
 inline constexpr qreal SCENE_BREAK_LINE_SHARE = 1.0 / 6.0;
 
-/// @brief KML element of an object: "hr", "scene-break", "page-break"; empty for None
+/// @brief KML element of an object: "hr", "scene-break", "page-break", "list-of-figures";
+///        empty for None
 QString kmlElementOf(TextObject object);
 
 /// @brief Object of a KML element; None for any other element

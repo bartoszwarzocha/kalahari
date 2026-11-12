@@ -68,6 +68,8 @@ class EditCoordinator;
 class SpecialCharacterCoordinator;
 class VersionsCoordinator;
 class StyleCoordinator;
+class CaptionCoordinator;
+class ImageFilterCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
@@ -459,6 +461,12 @@ private:
 
     /// @brief New, changed and deleted paragraph styles of the book
     StyleCoordinator* m_styleCoordinator{nullptr};
+
+    /// @brief The numbered captions of the book, cross-references and lists of figures
+    CaptionCoordinator* m_captionCoordinator{nullptr};
+
+    /// @brief Image > Filter > Same Filter for All Images...
+    ImageFilterCoordinator* m_imageFilterCoordinator{nullptr};
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen

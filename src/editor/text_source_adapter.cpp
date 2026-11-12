@@ -67,6 +67,28 @@ std::vector<TextHighlight> QTextDocumentSource::paragraphHighlights(size_t index
         }
     }
 
+    // The fields: a cross-reference to a caption the book does not have on a background of
+    // its own
+    if (hasFields(block)) {
+        const auto* layout =
+            qobject_cast<const KalahariTextDocumentLayout*>(m_document->documentLayout());
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.isValid() || !isFieldFormat(fragment.charFormat())) {
+                continue;
+            }
+            const QString text = fragment.text();
+            for (int i = 0; i < text.size(); ++i) {
+                const int position = fragment.position() + i;
+                const bool broken =
+                    layout != nullptr &&
+                    layout->captionNumbers().fieldText(position, fragment.charFormat()).broken;
+                highlights.push_back({position - block.position(), 1,
+                                      broken ? HighlightKind::BrokenField : HighlightKind::Field});
+            }
+        }
+    }
+
     std::stable_sort(highlights.begin(), highlights.end(),
                      [](const TextHighlight& a, const TextHighlight& b) { return a.start < b.start; });
     return highlights;

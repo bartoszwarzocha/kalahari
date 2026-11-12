@@ -137,8 +137,50 @@ constexpr const char* BROKEN_IMAGE_SVG =
     "6.42l3 3.01V19c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-6.58l3 2.99 4-4 4 4 4-3.99z\"/></svg>";
 
 /// The object types the layout sizes and draws
-constexpr int LAYOUT_OBJECTS[] = {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT,
-                                  IMAGE_OBJECT};
+constexpr int LAYOUT_OBJECTS[] = {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT,  PAGE_BREAK_OBJECT,
+                                  IMAGE_OBJECT,           FIGURE_LIST_OBJECT,  CAPTION_NUMBER_OBJECT,
+                                  CROSS_REFERENCE_OBJECT};
+
+/// What the signatures of the fields put between two fields of a block, and after the text
+/// of a cross-reference to a caption the book does not have
+constexpr QChar FIELD_SEPARATOR(0x1f);
+constexpr QChar BROKEN_FIELD_MARK(0x01);
+
+/// A line of text in a font, unwrapped, with the font's design metrics (as the text's)
+void layOutUnwrapped(QTextLayout& text) {
+    QTextOption option;
+    option.setWrapMode(QTextOption::NoWrap);
+    option.setUseDesignMetrics(true);
+    text.setTextOption(option);
+    text.beginLayout();
+    QTextLine line = text.createLine();
+    if (line.isValid()) {
+        line.setLineWidth(UNWRAPPED_LINE_WIDTH);
+    }
+    text.endLayout();
+}
+
+/// Whether a block holds a field or a list of figures
+bool hasFieldsOrList(const QTextBlock& block) {
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (fragment.isValid() && (isFieldFormat(fragment.charFormat()) ||
+                                   textObjectOf(fragment.charFormat()) == TextObject::FigureList)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// What the rows of a list of figures show and where they go, in one text
+QString figureListSignature(const std::vector<FigureListRow>& rows) {
+    QString signature;
+    for (const FigureListRow& row : rows) {
+        signature += row.id + FIELD_SEPARATOR + row.elementId + FIELD_SEPARATOR + row.text +
+                     QLatin1Char('\n');
+    }
+    return signature;
+}
 
 /// A number of a style's properties, or @p fallback without it
 qreal numberOf(const QVariantMap& properties, const char* name, qreal fallback) {
@@ -239,6 +281,29 @@ std::pair<QTextBlock, QTextBlock> bandBlocks(const QTextTable& table, int firstR
 }
 
 }  // anonymous namespace
+
+/// The rows of a list of figures as its object places them
+struct KalahariTextDocumentLayout::FigureListPlacement {
+    // What they were placed for: the rows, the width, the font, the line and the spacing
+    // between the rows, the pages
+    QString signature;
+    qreal width = -1.0;
+    QFont font;
+    qreal lineHeight = 0.0;
+    qreal spacing = 0.0;
+
+    // Each row laid out on the width, at its top in the object without pages; without
+    // captions, one row that says so (noCaptions); the height of all of them without pages
+    struct Row {
+        FigureListRow row;
+        std::unique_ptr<QTextLayout> text;
+        qreal top = 0.0;
+        qreal height = 0.0;
+    };
+    std::vector<Row> rows;
+    bool noCaptions = false;
+    qreal height = 0.0;
+};
 
 // =============================================================================
 // Constructor
@@ -349,6 +414,16 @@ void KalahariTextDocumentLayout::setImageStore(std::shared_ptr<ImageStore> store
 void KalahariTextDocumentLayout::refreshImages() {
     if (m_hasImages) {
         invalidateAll();
+    }
+}
+
+void KalahariTextDocumentLayout::setMissingImageColor(const QColor& color) {
+    if (color == m_missingImageColor) {
+        return;
+    }
+    m_missingImageColor = color;
+    if (m_hasImages) {
+        emit update(QRectF(0, 0, UNBOUNDED_EXTENT, UNBOUNDED_EXTENT));
     }
 }
 
@@ -1146,7 +1221,6 @@ int KalahariTextDocumentLayout::laidOutBlockAtY(qreal y) const {
 // =============================================================================
 
 void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int charsAdded) {
-    Q_UNUSED(charsRemoved);
     const QTextDocument* doc = document();
 
     // A new wrap width or default font (QTextDocument reports either as a change of the
@@ -1208,8 +1282,23 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
         oldMarkers = std::move(m_listMarkers);
     }
     m_listMarkersDirty = true;
+
+    // A change touching a field (its paragraph, a field removed or brought) may change what
+    // the fields outside it show: they are counted again (the changed ones are laid out with
+    // the new numbers); any other change moves them
+    const bool fieldsTouched = touchesFields(from, charsRemoved, first, last);
+    std::vector<std::pair<int, QString>> oldSignatures;
+    if (fieldsTouched) {
+        oldSignatures = std::move(m_fieldSignatures);
+        m_captionNumbersDirty = true;
+    } else {
+        shiftFields(from, charsRemoved, charsAdded, first.blockNumber(), oldLast, delta);
+    }
     replaceRange(first.blockNumber(), lastNumber, oldLast);
     renumberLists(first.blockNumber(), lastNumber, delta, oldMarkers, numbersKnown, hadLists);
+    if (fieldsTouched) {
+        refreshFields(first.blockNumber(), lastNumber, delta, oldSignatures);
+    }
 }
 
 std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int from,
@@ -1568,6 +1657,14 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
         *extent = textLength / m_averageCharWidth;
     }
     if (lead) {
+        // A heading is kept with the first row of a list of figures, as with the first line
+        // of a paragraph: the list goes on to the next pages
+        if (blockObject(block) == TextObject::FigureList) {
+            const FigureListPlacement& placement = figureListPlacement();
+            if (!placement.rows.empty()) {
+                firstBox = placement.rows.front().height;
+            }
+        }
         *lead = metrics.spaceBefore + firstBox;
     }
     return y + metrics.spaceAfter;
@@ -1754,6 +1851,20 @@ qreal KalahariTextDocumentLayout::paginateBlock(const QTextBlock& block, qreal t
         const qreal shift = flowLineTop(top + natural, height) - (top + natural);
         return metrics.pageBreak ? nextPageTop(top) - top
                                  : natural + height + shift + metrics.spaceAfter;
+    }
+
+    // A list of figures goes on to the next pages as the lines of a paragraph do, row by row:
+    // its line at the top of its first row, the block as high as its rows on the pages
+    if (count == 1 && blockObject(block) == TextObject::FigureList) {
+        QTextLine line = layout->lineAt(0);
+        const FigureListPlacement& placement = figureListPlacement();
+        const qreal boxTop = top + metrics.spaceBefore;
+        const std::vector<qreal> tops = figureListTops(boxTop);
+        if (!tops.empty() && tops.size() == placement.rows.size()) {
+            line.setPosition(QPointF(line.x(), metrics.spaceBefore + tops.front()));
+            return metrics.spaceBefore + tops.back() + placement.rows.back().height +
+                   metrics.spaceAfter;
+        }
     }
 
     // A line marked here starts the next text area, though it would fit in its own: to keep
@@ -2799,6 +2910,363 @@ void KalahariTextDocumentLayout::drawListMarker(QPainter* painter, const QTextBl
 }
 
 // =============================================================================
+// Captions, cross-references and the list of figures
+// =============================================================================
+
+void KalahariTextDocumentLayout::setCaptionContext(const CaptionContext& context) {
+    if (context == m_captionContext) {
+        return;
+    }
+    m_captionContext = context;
+    m_captionNumbersDirty = true;
+    if (m_fieldChars.empty()) {
+        return;  // nothing in the text shows the numbers: they are counted when asked for
+    }
+    const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
+    refreshFields(0, -1, 0, old);
+}
+
+const CaptionNumbers& KalahariTextDocumentLayout::captionNumbers() const {
+    if (m_captionNumbersDirty) {
+        countFields();
+    }
+    return m_captionNumbers;
+}
+
+bool KalahariTextDocumentLayout::hasFields() const {
+    captionNumbers();
+    return m_hasFields;
+}
+
+void KalahariTextDocumentLayout::countFields() const {
+    m_captionNumbersDirty = false;
+    m_fieldChars.clear();
+    const QTextDocument& doc = *document();
+    int number = 0;
+    for (QTextBlock block = doc.begin(); block.isValid(); block = block.next(), ++number) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) {
+                continue;
+            }
+            const QTextCharFormat format = fragment.charFormat();
+            if (!isFieldFormat(format) && textObjectOf(format) != TextObject::FigureList) {
+                continue;
+            }
+            // Objects of one format next to each other are one fragment
+            const QString text = fragment.text();
+            for (int i = 0; i < text.size(); ++i) {
+                if (text.at(i) == QChar::ObjectReplacementCharacter) {
+                    m_fieldChars.push_back({fragment.position() + i, number, format});
+                }
+            }
+        }
+    }
+    m_hasFields = !m_fieldChars.empty();
+    m_captionNumbers = CaptionNumbers(doc, m_captionContext);
+}
+
+std::vector<std::pair<int, QString>> KalahariTextDocumentLayout::fieldSignatures() const {
+    const CaptionNumbers& numbers = captionNumbers();
+    std::vector<std::pair<int, QString>> signatures;
+    QString list;
+    bool listKnown = false;
+    for (const FieldChar& field : m_fieldChars) {
+        QString shown;
+        if (textObjectOf(field.format) == TextObject::FigureList) {
+            if (!listKnown) {
+                list = figureListSignature(numbers.figureList());
+                listKnown = true;
+            }
+            shown = list;
+        } else {
+            const FieldText text = numbers.fieldText(field.position, field.format);
+            shown = text.text;
+            if (text.broken) {
+                shown += BROKEN_FIELD_MARK;  // drawn on another background
+            }
+        }
+        if (signatures.empty() || signatures.back().first != field.block) {
+            signatures.emplace_back(field.block, shown);
+        } else {
+            signatures.back().second += FIELD_SEPARATOR + shown;
+        }
+    }
+    return signatures;
+}
+
+bool KalahariTextDocumentLayout::touchesFields(int from, int charsRemoved, const QTextBlock& first,
+                                               const QTextBlock& last) const {
+    const auto removed = std::lower_bound(
+        m_fieldChars.begin(), m_fieldChars.end(), from,
+        [](const FieldChar& field, int position) { return field.position < position; });
+    if (removed != m_fieldChars.end() && removed->position < from + charsRemoved) {
+        return true;
+    }
+    const QTextBlock afterLast = last.next();
+    for (QTextBlock block = first; block.isValid() && block != afterLast; block = block.next()) {
+        if (hasFieldsOrList(block)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void KalahariTextDocumentLayout::shiftFields(int from, int charsRemoved, int charsAdded,
+                                             int firstBlock, int oldLastBlock, int blockDelta) {
+    // The changed blocks hold no field (the change touched none): every field after the
+    // change is in a block after them
+    const int end = from + charsRemoved;
+    const int delta = charsAdded - charsRemoved;
+    for (FieldChar& field : m_fieldChars) {
+        if (field.position >= end) {
+            field.position += delta;
+            field.block += blockDelta;
+        }
+    }
+    if (!m_captionNumbersDirty) {
+        m_captionNumbers.shift(end, delta);
+    }
+    std::vector<std::pair<int, QString>> shifted;
+    shifted.reserve(m_fieldSignatures.size());
+    for (auto& [number, shown] : m_fieldSignatures) {
+        if (number < firstBlock) {
+            shifted.emplace_back(number, std::move(shown));
+        } else if (number > oldLastBlock) {
+            shifted.emplace_back(number + blockDelta, std::move(shown));
+        }
+    }
+    m_fieldSignatures = std::move(shifted);
+}
+
+void KalahariTextDocumentLayout::refreshFields(int first, int last, int delta,
+                                               const std::vector<std::pair<int, QString>>& old) {
+    // What the blocks outside the change showed, by their new numbers
+    QHash<int, QString> before;
+    for (const auto& [number, shown] : old) {
+        if (number >= first && number <= last - delta) {
+            continue;  // a changed block: laid out anew
+        }
+        before.insert(number < first ? number : number + delta, shown);
+    }
+    m_fieldSignatures = fieldSignatures();
+
+    // The laid out ones that show something else: their fields are as wide as their new
+    // text, a list of figures as high as its new rows
+    int firstMoved = -1;
+    for (const auto& [number, shown] : m_fieldSignatures) {
+        if (number >= first && number <= last) {
+            continue;
+        }
+        const auto was = before.constFind(number);
+        const auto index = static_cast<size_t>(number);
+        if ((was != before.cend() && *was == shown) || index >= m_blockPending.size() ||
+            m_blockPending[index] != 0) {
+            continue;
+        }
+        const QTextBlock block = document()->findBlockByNumber(number);
+        if (!block.isValid()) {
+            continue;
+        }
+        if (layOutBlock(number, block)) {
+            m_positionsDirty = true;
+            if (firstMoved < 0) {
+                firstMoved = number;
+            }
+        }
+        emit blocksLaidOut(number, 1);
+        emit update(QRectF(0, blockY(number), UNBOUNDED_EXTENT, blockHeight(number)));
+    }
+    if (firstMoved >= 0) {
+        emit blockGeometryChanged(firstMoved);
+        notifyGeometryChanged(firstMoved, UNBOUNDED_EXTENT);
+    }
+}
+
+QFont KalahariTextDocumentLayout::fieldFont(int position, const QTextFormat& format) const {
+    QTextCharFormat merged;
+    merged.setFont(document()->defaultFont());
+    if (const QTextBlock block = document()->findBlock(position); block.isValid()) {
+        merged.merge(blockMetrics(block).charFormat);
+    }
+    merged.merge(format.toCharFormat());
+    return merged.font();
+}
+
+const KalahariTextDocumentLayout::FigureListPlacement&
+KalahariTextDocumentLayout::figureListPlacement() const {
+    std::vector<FigureListRow> rows = captionNumbers().figureList();
+    const QString signature = figureListSignature(rows);
+    const qreal documentWidth = document()->textWidth();
+    const qreal width = documentWidth > 0 ? documentWidth : UNWRAPPED_LINE_WIDTH;
+    const QFont font = document()->defaultFont();
+    const qreal lineHeight = m_estimatedLineHeight;
+    const qreal spacing = paragraphSpacing();
+    if (m_figureList && m_figureList->signature == signature && m_figureList->width == width &&
+        m_figureList->font == font && m_figureList->lineHeight == lineHeight &&
+        m_figureList->spacing == spacing) {
+        return *m_figureList;
+    }
+
+    auto placement = std::make_unique<FigureListPlacement>();
+    placement->signature = signature;
+    placement->width = width;
+    placement->font = font;
+    placement->lineHeight = lineHeight;
+    placement->spacing = spacing;
+    if (rows.empty()) {
+        //: The list of figures of a book without captions (Insert > List of Figures). In
+        //: Polish: Książka nie ma jeszcze podpisów z numerami
+        rows.push_back({QString(), tr("The book has no numbered captions yet"), 0, 0, QString()});
+        placement->noCaptions = true;
+    }
+
+    // Each row wrapped on the width in the document font, its lines as far apart as the lines
+    // of Normal; the rows as far apart as its paragraphs
+    qreal y = 0.0;
+    for (FigureListRow& row : rows) {
+        FigureListPlacement::Row placed;
+        placed.text = std::make_unique<QTextLayout>(row.text, font);
+        QTextOption option;
+        option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+        option.setUseDesignMetrics(true);
+        placed.text->setTextOption(option);
+        placed.text->setCacheEnabled(true);
+        placed.text->beginLayout();
+        qreal lines = 0.0;
+        for (QTextLine line = placed.text->createLine(); line.isValid();
+             line = placed.text->createLine()) {
+            line.setLineWidth(width);
+            line.setPosition(QPointF(
+                0.0, lines + leadingAbove(std::max<qreal>(0.0, lineHeight - line.height()))));
+            lines += lineHeight;
+        }
+        placed.text->endLayout();
+        placed.height = std::max(lineHeight, lines);
+        placed.row = std::move(row);
+        if (!placement->rows.empty()) {
+            y += spacing;
+        }
+        placed.top = y;
+        y += placed.height;
+        placement->rows.push_back(std::move(placed));
+    }
+    placement->height = std::max(lineHeight, y);
+    m_figureList = std::move(placement);
+    return *m_figureList;
+}
+
+std::vector<qreal> KalahariTextDocumentLayout::figureListTops(qreal start) const {
+    const FigureListPlacement& placement = figureListPlacement();
+    std::vector<qreal> tops;
+    tops.reserve(placement.rows.size());
+    if (!m_pageFlow.enabled || start < 0) {
+        for (const FigureListPlacement::Row& row : placement.rows) {
+            tops.push_back(row.top);
+        }
+        return tops;
+    }
+    // On the pages its rows go on as the lines of a paragraph: one that would cross the end
+    // of a page's text starts the next page, without the spacing above it
+    qreal y = start;
+    for (size_t i = 0; i < placement.rows.size(); ++i) {
+        const qreal height = placement.rows[i].height;
+        const qreal top = flowLineTop(i == 0 ? y : y + placement.spacing, height);
+        tops.push_back(top - start);
+        y = top + height;
+    }
+    return tops;
+}
+
+qreal KalahariTextDocumentLayout::figureListStart(int position) const {
+    // The top of the list's line in the document, as the pages placed it last
+    const QTextBlock block = document()->findBlock(position);
+    const QTextLayout* layout = block.layout();
+    const auto number = static_cast<size_t>(block.blockNumber());
+    if (!m_pageFlow.enabled || m_positionsDirty || layout == nullptr || layout->lineCount() == 0 ||
+        number >= m_blockYPositions.size()) {
+        return -1.0;
+    }
+    return m_blockYPositions[number] + layout->lineAt(0).y();
+}
+
+void KalahariTextDocumentLayout::drawFigureList(QPainter* painter, const QRectF& rect,
+                                                int position) const {
+    const FigureListPlacement& placement = figureListPlacement();
+    const std::vector<qreal> tops = figureListTops(figureListStart(position));
+    // In the color of the text (the painter's pen); the note of a book without captions
+    // fainter, as the labels of the objects
+    QColor color = painter->pen().color();
+    if (placement.noCaptions) {
+        color.setAlphaF(static_cast<float>(color.alphaF() * OBJECT_LINE_OPACITY));
+    }
+    const QRectF clip = painter->hasClipping() ? painter->clipBoundingRect() : QRectF();
+    painter->save();
+    painter->setPen(color);
+    for (size_t i = 0; i < placement.rows.size() && i < tops.size(); ++i) {
+        const FigureListPlacement::Row& row = placement.rows[i];
+        const QRectF rowRect(rect.left(), rect.top() + tops[i], rect.width(), row.height);
+        if (!clip.isNull() && !clip.intersects(rowRect)) {
+            continue;
+        }
+        row.text->draw(painter, rowRect.topLeft());
+    }
+    painter->restore();
+}
+
+std::optional<QRectF> KalahariTextDocumentLayout::figureListRect(int position) const {
+    const QTextBlock block = document()->findBlock(position);
+    const QTextLayout* layout = block.layout();
+    if (!block.isValid() || layout == nullptr || layout->lineCount() == 0) {
+        return std::nullopt;
+    }
+    const int offset = position - block.position();
+    bool isList = false;
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (fragment.isValid() && fragment.position() <= position &&
+            position < fragment.position() + fragment.length()) {
+            isList = textObjectOf(fragment.charFormat()) == TextObject::FigureList &&
+                     block.text().at(offset) == QChar::ObjectReplacementCharacter;
+            break;
+        }
+    }
+    if (!isList) {
+        return std::nullopt;
+    }
+    const QTextLine line = layout->lineForTextPosition(offset);
+    if (!line.isValid()) {
+        return std::nullopt;
+    }
+    // Qt draws an object from its line's baseline up (QTextLine::draw())
+    const qreal left = line.cursorToX(offset);
+    const qreal right = line.cursorToX(offset + 1);
+    const qreal height = figureListPlacement().height;
+    const qreal baseline = line.y() + line.ascent();
+    return QRectF(std::min(left, right), baseline - height, std::abs(right - left), height);
+}
+
+std::optional<FigureListRow> KalahariTextDocumentLayout::figureListRowAt(int position,
+                                                                       const QPointF& point) const {
+    const std::optional<QRectF> rect = figureListRect(position);
+    if (!rect || point.x() < rect->left() || point.x() >= rect->right() || point.y() < rect->top()) {
+        return std::nullopt;  // on the pages the rows go on below its line
+    }
+    const FigureListPlacement& placement = figureListPlacement();
+    if (placement.noCaptions) {
+        return std::nullopt;
+    }
+    const qreal y = point.y() - rect->top();
+    const std::vector<qreal> tops = figureListTops(figureListStart(position));
+    for (size_t i = 0; i < placement.rows.size() && i < tops.size(); ++i) {
+        if (y >= tops[i] && y < tops[i] + placement.rows[i].height) {
+            return placement.rows[i].row;
+        }
+    }
+    return std::nullopt;
+}
+
+// =============================================================================
 // Objects of the text
 // =============================================================================
 
@@ -2813,8 +3281,27 @@ void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int 
         item.setDescent(0.0);
         return;
     }
+    if (isFieldFormat(format)) {
+        // As wide and as high as the text it shows, in the font of the text around it
+        const QFont font = fieldFont(posInDocument, format);
+        QTextLayout text(captionNumbers().fieldText(posInDocument, format).text, font);
+        layOutUnwrapped(text);
+        const QFontMetricsF metrics(font);
+        item.setWidth(text.lineCount() > 0 ? text.lineAt(0).naturalTextWidth() : 0.0);
+        item.setAscent(metrics.ascent());
+        item.setDescent(metrics.descent());
+        return;
+    }
     const TextObject object = textObjectOf(format);
     if (object == TextObject::None) {
+        return;
+    }
+    if (object == TextObject::FigureList) {
+        // As wide as the line, as high as its rows; all of it above the baseline
+        const qreal width = document()->textWidth();
+        item.setWidth(width > 0 ? width : UNWRAPPED_LINE_WIDTH);
+        item.setAscent(figureListPlacement().height);
+        item.setDescent(0.0);
         return;
     }
     // As wide as the line (objects have no margins), as high as a line box of Normal; the
@@ -2834,12 +3321,21 @@ QSizeF KalahariTextDocumentLayout::intrinsicSize(QTextDocument* /*doc*/, int pos
     if (const std::optional<ImageProperties> image = imageOf(format)) {
         return imageSize(document()->findBlock(posInDocument), *image);
     }
+    if (isFieldFormat(format)) {
+        const QFont font = fieldFont(posInDocument, format);
+        QTextLayout text(captionNumbers().fieldText(posInDocument, format).text, font);
+        layOutUnwrapped(text);
+        return QSizeF(text.lineCount() > 0 ? text.lineAt(0).naturalTextWidth() : 0.0,
+                      QFontMetricsF(font).height());
+    }
     const TextObject object = textObjectOf(format);
     if (object == TextObject::None) {
         return QSizeF();
     }
     const qreal width = document()->textWidth();
-    return QSizeF(width > 0 ? width : UNWRAPPED_LINE_WIDTH, objectHeight(object));
+    return QSizeF(width > 0 ? width : UNWRAPPED_LINE_WIDTH,
+                  object == TextObject::FigureList ? figureListPlacement().height
+                                                   : objectHeight(object));
 }
 
 void KalahariTextDocumentLayout::drawObject(QPainter* painter, const QRectF& rect,
@@ -2849,8 +3345,8 @@ void KalahariTextDocumentLayout::drawObject(QPainter* painter, const QRectF& rec
 }
 
 void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRectF& rect,
-                                                  QTextInlineObject /*object*/,
-                                                  int /*posInDocument*/, const QTextFormat& format) {
+                                                  QTextInlineObject item, int posInDocument,
+                                                  const QTextFormat& format) {
     if (painter == nullptr) {
         return;
     }
@@ -2858,8 +3354,24 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
         drawImage(painter, rect, *image);
         return;
     }
+    if (isFieldFormat(format)) {
+        // The text it shows on the baseline of its line, in the color of the text (the
+        // painter's pen); its background is the view's (the render pipeline's)
+        const QFont font = fieldFont(posInDocument, format);
+        QTextLayout text(captionNumbers().fieldText(posInDocument, format).text, font);
+        layOutUnwrapped(text);
+        if (text.lineCount() > 0) {
+            const qreal ascent = item.isValid() ? item.ascent() : QFontMetricsF(font).ascent();
+            text.draw(painter, QPointF(rect.left(), rect.top() + ascent - text.lineAt(0).ascent()));
+        }
+        return;
+    }
     const TextObject object = textObjectOf(format);
     if (object == TextObject::None) {
+        return;
+    }
+    if (object == TextObject::FigureList) {
+        drawFigureList(painter, rect, posInDocument);
         return;
     }
     // In the color of the text (the painter's pen); lines as thin as the text's strokes
@@ -2917,6 +3429,7 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
             painter->drawText(rect, Qt::AlignCenter, label);
             break;
         }
+        case TextObject::FigureList:  // drawn above
         case TextObject::None:
             break;
     }
@@ -3138,13 +3651,17 @@ void KalahariTextDocumentLayout::drawImage(QPainter* painter, const QRectF& box,
         }
     }
 
-    // A missing file: a dashed frame with the picture of a broken image, the file's name
-    // and what is wrong, in the color of the text
+    // A missing file: a dashed frame with the picture of a broken image, in the frame's color
+    // (of the settings; else a shade of the text's), the file's name and what is wrong, in
+    // the color of the text
     const QColor textColor = painter->pen().color();
     QColor lineColor = textColor;
     lineColor.setAlphaF(lineColor.alphaF() * OBJECT_LINE_OPACITY);
-    QColor fillColor = textColor;
-    fillColor.setAlphaF(fillColor.alphaF() * MISSING_IMAGE_FILL_OPACITY);
+    if (m_missingImageColor.isValid()) {
+        lineColor = m_missingImageColor;
+    }
+    QColor fillColor = lineColor;
+    fillColor.setAlphaF(static_cast<float>(MISSING_IMAGE_FILL_OPACITY));
     const qreal thickness = std::max<qreal>(1.0, std::round(objectHeight(TextObject::HorizontalRule) /
                                                             OBJECT_LINE_THINNESS));
     painter->save();

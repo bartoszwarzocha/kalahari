@@ -88,6 +88,11 @@ struct RenderColors {
     QColor tableHeader{242, 242, 242};
     QColor tableGridlines{180, 198, 231};
 
+    /// @brief The background of the fields (a caption's number, a cross-reference) and of a
+    ///        cross-reference to a caption the book does not have
+    QColor field{217, 217, 217};
+    QColor brokenField{255, 199, 199};
+
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
         return text == other.text &&
@@ -111,7 +116,9 @@ struct RenderColors {
                link == other.link &&
                tableLines == other.tableLines &&
                tableHeader == other.tableHeader &&
-               tableGridlines == other.tableGridlines;
+               tableGridlines == other.tableGridlines &&
+               field == other.field &&
+               brokenField == other.brokenField;
     }
 
     bool operator!=(const RenderColors& other) const {

@@ -1563,6 +1563,7 @@ Rules for a new shortcut:
 | Book > Add... | Ctrl+Shift+Enter |
 | Insert > Add Annotation... | Ctrl+Shift+M |
 | Insert > Quick Insert... | Ctrl+Shift+W |
+| Insert > Caption... | Ctrl+Shift+G (also with the cursor just after the image) |
 | Format > Bold | Ctrl+B |
 | Format > Italic | Ctrl+I |
 | Format > Underline | Ctrl+U |

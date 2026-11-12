@@ -979,11 +979,11 @@
         <translation>&amp;Pisownia i gramatyka</translation>
     </message>
     <message>
-        <source>&amp;Horizontal Line</source>
+        <source>Hori&amp;zontal Line</source>
         <translation>&amp;Linia pozioma</translation>
     </message>
     <message>
-        <source>S&amp;cene Break</source>
+        <source>Scene Brea&amp;k</source>
         <translation>Podział sc&amp;eny</translation>
     </message>
     <message>
@@ -1243,10 +1243,6 @@
         <translation>Właściwości &amp;obrazu...</translation>
     </message>
     <message>
-        <source>Add Capt&amp;ion</source>
-        <translation>&amp;Dodaj podpis</translation>
-    </message>
-    <message>
         <source>A&amp;lternative Text...</source>
         <translation>Tekst &amp;alternatywny...</translation>
     </message>
@@ -1309,6 +1305,26 @@
     <message>
         <source>Sa&amp;ve as Image...</source>
         <translation>Zapisz &amp;jako obraz...</translation>
+    </message>
+    <message>
+        <source>&amp;Caption...</source>
+        <translation>Podp&amp;is...</translation>
+    </message>
+    <message>
+        <source>Cross-&amp;Reference...</source>
+        <translation>Ods&amp;yłacz...</translation>
+    </message>
+    <message>
+        <source>List of Fi&amp;gures</source>
+        <translation>Spis ilustrac&amp;ji</translation>
+    </message>
+    <message>
+        <source>Insert Capt&amp;ion...</source>
+        <translation>Wstaw po&amp;dpis...</translation>
+    </message>
+    <message>
+        <source>Same Filter for &amp;All Images...</source>
+        <translation>Ten sam filtr dla wszystkic&amp;h obrazów...</translation>
     </message>
 </context>
 <context>
@@ -2339,10 +2355,6 @@ Czy mimo to go usunąć?</translation>
         <translation>Przywrócić domyślną konfigurację wszystkich pasków narzędzi?</translation>
     </message>
     <message>
-        <source>Toolbar Manager</source>
-        <translation>Menedżer pasków narzędzi</translation>
-    </message>
-    <message>
         <source>Language Changed</source>
         <translation>Zmiana języka</translation>
     </message>
@@ -2524,7 +2536,7 @@ Uruchomić ponownie teraz?</translation>
         <translation>Wers&amp;je i kopie</translation>
     </message>
     <message>
-        <source>Fo&amp;rmatting Character</source>
+        <source>Formatting C&amp;haracter</source>
         <translation>Znak &amp;formatujący</translation>
     </message>
     <message>
@@ -3803,6 +3815,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>What the keys and the mouse do while an image is cropped in the text. In Polish: Przytnij: przeciągnij znaczniki · Enter – gotowe · Esc – anuluj</extracomment>
         <translation>Przytnij: przeciągnij znaczniki · Enter – gotowe · Esc – anuluj</translation>
     </message>
+    <message>
+        <source>Insert Capt&amp;ion...</source>
+        <extracomment>In Polish: Wstaw po&amp;dpis...</extracomment>
+        <translation>Wstaw po&amp;dpis...</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -3914,12 +3931,10 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>The frame of an image whose file is not there, under the file&apos;s name. In Polish: Brak pliku obrazu</extracomment>
         <translation>Brak pliku obrazu</translation>
     </message>
-</context>
-<context>
-    <name>kalahari::editor::QuickInsertPopup</name>
     <message>
-        <source>No matches</source>
-        <translation>Brak dopasowań</translation>
+        <source>The book has no numbered captions yet</source>
+        <extracomment>The list of figures of a book without captions (Insert &gt; List of Figures). In Polish: Książka nie ma jeszcze podpisów z numerami</extracomment>
+        <translation>Książka nie ma jeszcze podpisów z numerami</translation>
     </message>
 </context>
 <context>
@@ -4682,6 +4697,55 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>The replacements are chosen in Edit &gt; Settings..., group Editor &gt; Auto-correct.</source>
         <translation>Wybór zamian: Edycja &gt; Ustawienia..., grupa Edytor &gt; Autokorekta.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CaptionCoordinator</name>
+    <message>
+        <source>Delete Caption</source>
+        <extracomment>The question before an image with its numbered caption goes. In Polish: Usuwanie podpisu / %n odsyłacz do tego podpisu pokaże / %n odsyłacze… pokażą / %n odsyłaczy… pokaże „?” zamiast numeru. Usunąć podpis?</extracomment>
+        <translation>Usuwanie podpisu</translation>
+    </message>
+    <message numerus="yes">
+        <source>The cross-references to this caption (%n) will show &quot;?&quot; in place of its number. Delete the caption?</source>
+        <translation>
+            <numerusform>%n odsyłacz do tego podpisu pokaże „?” zamiast numeru. Usunąć podpis?</numerusform>
+            <numerusform>%n odsyłacze do tego podpisu pokażą „?” zamiast numeru. Usunąć podpis?</numerusform>
+            <numerusform>%n odsyłaczy do tego podpisu pokaże „?” zamiast numeru. Usunąć podpis?</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>No text is in front</source>
+        <extracomment>Why Insert &gt; Caption..., Cross-Reference... and List of Figures are greyed out. In Polish: Na wierzchu nie ma tekstu</extracomment>
+        <translation>Na wierzchu nie ma tekstu</translation>
+    </message>
+    <message>
+        <source>Insert Caption</source>
+        <extracomment>Insert &gt; Caption... without an image at the cursor. In Polish: Wstaw podpis / Zaznacz obraz albo ustaw kursor tuż za nim – podpis dodaje się do obrazu.</extracomment>
+        <translation>Wstaw podpis</translation>
+    </message>
+    <message>
+        <source>Select an image, or put the cursor just after it: a caption goes with an image.</source>
+        <translation>Zaznacz obraz albo ustaw kursor tuż za nim – podpis dodaje się do obrazu.</translation>
+    </message>
+    <message>
+        <source>Insert Cross-Reference</source>
+        <extracomment>Insert &gt; Cross-Reference... in a book without numbered captions. In Polish: Wstaw odsyłacz / Książka nie ma jeszcze podpisów z numerami. Dodaj podpis do obrazu (Wstaw &gt; Podpis...), a potem odsyłacz do niego.</extracomment>
+        <translation>Wstaw odsyłacz</translation>
+    </message>
+    <message>
+        <source>The book has no numbered captions yet. Add a caption to an image (Insert &gt; Caption...), then a cross-reference to it.</source>
+        <translation>Książka nie ma jeszcze podpisów z numerami. Dodaj podpis do obrazu (Wstaw &gt; Podpis...), a potem odsyłacz do niego.</translation>
+    </message>
+    <message>
+        <source>List of Figures</source>
+        <extracomment>The heading of a new list of figures in the text. In Polish: Spis ilustracji</extracomment>
+        <translation>Spis ilustracji</translation>
     </message>
 </context>
 <context>
@@ -6423,6 +6487,21 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>The marks at the sides of an image being cropped in the text. In Polish: Znaczniki przycinania obrazu</extracomment>
         <translation>Znaczniki przycinania obrazu</translation>
     </message>
+    <message>
+        <source>Frame of an image without its file</source>
+        <extracomment>The dashed frame shown in the text for an image whose file is missing. In Polish: Ramka obrazu bez pliku</extracomment>
+        <translation>Ramka obrazu bez pliku</translation>
+    </message>
+    <message>
+        <source>Fields (caption numbers, cross-references)</source>
+        <extracomment>The gray background of a caption&apos;s number and of a cross-reference in the text. In Polish: Pola (numery podpisów, odsyłacze)</extracomment>
+        <translation>Pola (numery podpisów, odsyłacze)</translation>
+    </message>
+    <message>
+        <source>Cross-references to deleted captions</source>
+        <extracomment>The background of a cross-reference whose caption was deleted. In Polish: Odsyłacze do usuniętych podpisów</extracomment>
+        <translation>Odsyłacze do usuniętych podpisów</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorCursorPage</name>
@@ -7124,6 +7203,219 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>The color of the wavy line under a grammar issue and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
         <translation>Kolor falistej linii pod błędem gramatyki i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::EditorImagesPage</name>
+    <message>
+        <source>New Image</source>
+        <extracomment>Settings &gt; Editor &gt; Images. In Polish: Nowy obraz</extracomment>
+        <translation>Nowy obraz</translation>
+    </message>
+    <message>
+        <source>In the text, in a paragraph of its own</source>
+        <extracomment>In Polish: W tekście, we własnym akapicie</extracomment>
+        <translation>W tekście, we własnym akapicie</translation>
+    </message>
+    <message>
+        <source>Square</source>
+        <extracomment>In Polish: Wokół ramki</extracomment>
+        <translation>Wokół ramki</translation>
+    </message>
+    <message>
+        <source>Top and bottom</source>
+        <extracomment>In Polish: Nad i pod</extracomment>
+        <translation>Nad i pod</translation>
+    </message>
+    <message>
+        <source>&amp;Layout:</source>
+        <extracomment>In Polish: Ukła&amp;d:</extracomment>
+        <translation>Ukła&amp;d:</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <extracomment>In Polish: Do lewej</extracomment>
+        <translation>Do lewej</translation>
+    </message>
+    <message>
+        <source>Center</source>
+        <extracomment>In Polish: Do środka</extracomment>
+        <translation>Do środka</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <extracomment>In Polish: Do prawej</extracomment>
+        <translation>Do prawej</translation>
+    </message>
+    <message>
+        <source>&amp;Alignment:</source>
+        <extracomment>In Polish: &amp;Wyrównanie:</extracomment>
+        <translation>&amp;Wyrównanie:</translation>
+    </message>
+    <message>
+        <source>As the original, at most the width of the text</source>
+        <extracomment>In Polish: Jak oryginał, najwyżej szerokość tekstu</extracomment>
+        <translation>Jak oryginał, najwyżej szerokość tekstu</translation>
+    </message>
+    <message>
+        <source>%1% of the width of the text</source>
+        <extracomment>%1: a share of the width of the text in percent. In Polish: %1% szerokości tekstu</extracomment>
+        <translation>%1% szerokości tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Width:</source>
+        <extracomment>In Polish: &amp;Szerokość:</extracomment>
+        <translation>&amp;Szerokość:</translation>
+    </message>
+    <message>
+        <source>Add a &amp;caption with the label</source>
+        <extracomment>In Polish: Dodawaj &amp;podpis z etykietą</extracomment>
+        <translation>Dodawaj &amp;podpis z etykietą</translation>
+    </message>
+    <message>
+        <source>Label of the caption of a new image</source>
+        <extracomment>The label of the caption of a new image (for screen readers). In Polish: Etykieta podpisu nowego obrazu</extracomment>
+        <translation>Etykieta podpisu nowego obrazu</translation>
+    </message>
+    <message>
+        <source>Captions in New Books</source>
+        <extracomment>In Polish: Podpisy w nowych książkach</extracomment>
+        <translation>Podpisy w nowych książkach</translation>
+    </message>
+    <message>
+        <source>A&amp;dd...</source>
+        <extracomment>In Polish: Dod&amp;aj...</extracomment>
+        <translation>Dod&amp;aj...</translation>
+    </message>
+    <message>
+        <source>Re&amp;name...</source>
+        <extracomment>In Polish: Zmień &amp;nazwę...</extracomment>
+        <translation>Zmień &amp;nazwę...</translation>
+    </message>
+    <message>
+        <source>Remo&amp;ve</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>La&amp;bels:</source>
+        <extracomment>In Polish: &amp;Etykiety:</extracomment>
+        <translation>&amp;Etykiety:</translation>
+    </message>
+    <message>
+        <source>With the c&amp;hapter number</source>
+        <extracomment>Numbered anew in each chapter, after the chapter&apos;s number (&quot;2.3&quot;). In Polish: Z numerem &amp;rozdziału</extracomment>
+        <translation>Z numerem &amp;rozdziału</translation>
+    </message>
+    <message>
+        <source>Number &amp;format:</source>
+        <extracomment>In Polish: &amp;Format numeru:</extracomment>
+        <translation>&amp;Format numeru:</translation>
+    </message>
+    <message>
+        <source>The number alone – &quot;2&quot;</source>
+        <extracomment>What a cross-reference shows: the number alone. In Polish: Sam numer – „2”</extracomment>
+        <translation>Sam numer – „2”</translation>
+    </message>
+    <message>
+        <source>The label and number – &quot;%1 2&quot;</source>
+        <extracomment>%1: a label (&quot;Figure&quot;). In Polish: Etykietę i numer – „%1 2”</extracomment>
+        <translation>Etykietę i numer – „%1 2”</translation>
+    </message>
+    <message>
+        <source>The whole caption</source>
+        <extracomment>In Polish: Cały podpis</extracomment>
+        <translation>Cały podpis</translation>
+    </message>
+    <message>
+        <source>&quot;above&quot; or &quot;below&quot;</source>
+        <extracomment>In Polish: „powyżej” albo „poniżej”</extracomment>
+        <translation>„powyżej” albo „poniżej”</translation>
+    </message>
+    <message>
+        <source>A cross-reference &amp;inserts:</source>
+        <extracomment>In Polish: &amp;Odsyłacz wstawia:</extracomment>
+        <translation>&amp;Odsyłacz wstawia:</translation>
+    </message>
+    <message>
+        <source>A book that already exists has its own numbering: the window &quot;Caption Numbering&quot; (the button in the window &quot;Insert Caption&quot;).</source>
+        <translation>Istniejąca książka ma własną numerację: okno „Numeracja podpisów” (przycisk w oknie „Wstaw podpis”).</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <extracomment>In Polish: Pliki</extracomment>
+        <translation>Pliki</translation>
+    </message>
+    <message>
+        <source>An image inserted into the book goes as a copy to its folder images/; the original stays as it was.</source>
+        <translation>Obraz wstawiony do książki trafia jako kopia do jej folderu images/; oryginał pozostaje bez zmian.</translation>
+    </message>
+    <message>
+        <source>Make copies of large images &amp;smaller</source>
+        <extracomment>In Polish: &amp;Zmniejszaj kopie dużych obrazów</extracomment>
+        <translation>&amp;Zmniejszaj kopie dużych obrazów</translation>
+    </message>
+    <message>
+        <source>above</source>
+        <extracomment>Before the resolution. In Polish: powyżej</extracomment>
+        <translation>powyżej</translation>
+    </message>
+    <message>
+        <source>Resolution in dots per inch</source>
+        <extracomment>Dots per inch, for screen readers. In Polish: Rozdzielczość w punktach na cal</extracomment>
+        <translation>Rozdzielczość w punktach na cal</translation>
+    </message>
+    <message>
+        <source>dpi at their size in the text</source>
+        <extracomment>In Polish: dpi w rozmiarze z tekstu</extracomment>
+        <translation>dpi w rozmiarze z tekstu</translation>
+    </message>
+    <message>
+        <source>Manuscript for a Publisher</source>
+        <extracomment>In Polish: Maszynopis dla wydawnictwa</extracomment>
+        <translation>Maszynopis dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>Images in the text, as in the editor</source>
+        <extracomment>In Polish: Obrazy w tekście, jak w edytorze</extracomment>
+        <translation>Obrazy w tekście, jak w edytorze</translation>
+    </message>
+    <message>
+        <source>Markers in the places of images</source>
+        <extracomment>In Polish: Znaczniki w miejscach obrazów</extracomment>
+        <translation>Znaczniki w miejscach obrazów</translation>
+    </message>
+    <message>
+        <source>&quot;[Figure 3 here]&quot; in the text, the images in a folder of their own.</source>
+        <extracomment>In Polish: W tekście „[Tu rysunek 3]”, obrazy w osobnym folderze.</extracomment>
+        <translation>W tekście „[Tu rysunek 3]”, obrazy w osobnym folderze.</translation>
+    </message>
+    <message>
+        <source>Many publishers want the illustrations apart, in full resolution, and in the manuscript only the places for them.</source>
+        <translation>Wiele wydawnictw chce dostać ilustracje osobno, w pełnej rozdzielczości, a w maszynopisie tylko miejsca na nie.</translation>
+    </message>
+    <message>
+        <source>The colors of the selection, the fields and the frames of images are on the page Editor &gt; Colors.</source>
+        <translation>Kolory zaznaczenia, pól i ramek obrazów można ustawić na stronie Edytor &gt; Kolory.</translation>
+    </message>
+    <message>
+        <source>Sh&amp;ow</source>
+        <extracomment>Shows the page Editor &gt; Colors. In Polish: Po&amp;każ</extracomment>
+        <translation>Po&amp;każ</translation>
+    </message>
+    <message>
+        <source>New Label</source>
+        <extracomment>The window of a new label of captions. In Polish: Nowa etykieta / Etykieta</extracomment>
+        <translation>Nowa etykieta</translation>
+    </message>
+    <message>
+        <source>Label</source>
+        <translation>Etykieta</translation>
+    </message>
+    <message>
+        <source>Rename Label</source>
+        <extracomment>In Polish: Zmiana nazwy etykiety / Etykieta</extracomment>
+        <translation>Zmiana nazwy etykiety</translation>
     </message>
 </context>
 <context>
@@ -8152,6 +8444,84 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>Combo Boxes:</source>
         <translation>Listy rozwijane:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ImageFilterCoordinator</name>
+    <message>
+        <source>Grayscale</source>
+        <extracomment>The names of the filters in the messages of Same Filter for All Images. In Polish: Odcienie szarości</extracomment>
+        <translation>Odcienie szarości</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <extracomment>In Polish: Sepia</extracomment>
+        <translation>Sepia</translation>
+    </message>
+    <message>
+        <source>Black and White</source>
+        <extracomment>In Polish: Czarno-biały</extracomment>
+        <translation>Czarno-biały</translation>
+    </message>
+    <message>
+        <source>Washout</source>
+        <extracomment>In Polish: Znak wodny</extracomment>
+        <translation>Znak wodny</translation>
+    </message>
+    <message>
+        <source>Original</source>
+        <extracomment>The filter of an image as its file has it. In Polish: Oryginał</extracomment>
+        <translation>Oryginał</translation>
+    </message>
+    <message>
+        <source>Same Filter for All Images</source>
+        <extracomment>In Polish: Ten sam filtr dla wszystkich obrazów / Filtr „%1” dostanie %n obraz / dostaną %n obrazy / dostanie %n obrazów książki. Jasność, kontrast i przezroczystość każdego obrazu pozostaną bez zmian. / &amp;Zmień</extracomment>
+        <translation>Ten sam filtr dla wszystkich obrazów</translation>
+    </message>
+    <message numerus="yes">
+        <source>The filter &quot;%1&quot; goes to %n images of the book. The brightness, the contrast and the transparency of each image stay its own.</source>
+        <translation>
+            <numerusform>Filtr „%1” dostanie %n obraz książki. Jasność, kontrast i przezroczystość każdego obrazu pozostaną bez zmian.</numerusform>
+            <numerusform>Filtr „%1” dostaną %n obrazy książki. Jasność, kontrast i przezroczystość każdego obrazu pozostaną bez zmian.</numerusform>
+            <numerusform>Filtr „%1” dostanie %n obrazów książki. Jasność, kontrast i przezroczystość każdego obrazu pozostaną bez zmian.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Change</source>
+        <translation>&amp;Zmień</translation>
+    </message>
+    <message>
+        <source>Every image already has the filter &quot;%1&quot;.</source>
+        <extracomment>In Polish: Wszystkie obrazy mają już filtr „%1”.</extracomment>
+        <translation>Wszystkie obrazy mają już filtr „%1”.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n images have the filter &quot;%1&quot; now.</source>
+        <extracomment>In Polish: Filtr „%1” ma teraz %n obraz / mają teraz %n obrazy / ma teraz %n obrazów.</extracomment>
+        <translation>
+            <numerusform>Filtr „%1” ma teraz %n obraz.</numerusform>
+            <numerusform>Filtr „%1” mają teraz %n obrazy.</numerusform>
+            <numerusform>Filtr „%1” ma teraz %n obrazów.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>In Polish: &amp;Cofnij / Cofnij filtr obrazów</extracomment>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>Undo the filter of the images</source>
+        <translation>Cofnij filtr obrazów</translation>
+    </message>
+    <message>
+        <source>This can no longer be undone: the texts changed since.</source>
+        <extracomment>In Polish: Tego nie da się już cofnąć: teksty zmieniły się od tamtej pory.</extracomment>
+        <translation>Tego nie da się już cofnąć: teksty zmieniły się od tamtej pory.</translation>
+    </message>
+    <message>
+        <source>The images have their filters back.</source>
+        <extracomment>In Polish: Przywrócono poprzednie filtry obrazów.</extracomment>
+        <translation>Przywrócono poprzednie filtry obrazów.</translation>
     </message>
 </context>
 <context>
@@ -9619,6 +9989,10 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>In Polish: &amp;Usuń styl „%1”</extracomment>
         <translation>&amp;Usuń styl „%1”</translation>
     </message>
+    <message>
+        <source>List of Figures</source>
+        <translation>Spis ilustracji</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PropertiesPanel</name>
@@ -10239,10 +10613,6 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Autokorekta</translation>
     </message>
     <message>
-        <source>Completion</source>
-        <translation>Uzupełnianie</translation>
-    </message>
-    <message>
         <source>Annotations</source>
         <translation>Uwagi</translation>
     </message>
@@ -10285,16 +10655,6 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Coming in future version</source>
         <translation>Dostępne w przyszłej wersji</translation>
-    </message>
-    <message>
-        <source>Planned features:
-- Word completion suggestions
-- Character name completion
-- Location name completion</source>
-        <translation>Planowane funkcje:
-- podpowiedzi uzupełniania słów
-- uzupełnianie imion postaci
-- uzupełnianie nazw miejsc</translation>
     </message>
     <message>
         <source>Planned features:
@@ -10409,6 +10769,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Repetitions</source>
         <extracomment>Settings &gt; Editor &gt; Repetitions: the words that come back too close. In Polish: Powtórzenia</extracomment>
         <translation>Powtórzenia</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>Settings &gt; Editor &gt; Images: new images, the captions of new books. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
     </message>
 </context>
 <context>
@@ -13941,6 +14306,82 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::CaptionNumberingDialog</name>
+    <message>
+        <source>Caption Numbering</source>
+        <extracomment>In Polish: Numeracja podpisów / Jak ta książka numeruje obrazy z etykietą „%1”.</extracomment>
+        <translation>Numeracja podpisów</translation>
+    </message>
+    <message>
+        <source>How this book numbers the images with the label &quot;%1&quot;.</source>
+        <translation>Jak ta książka numeruje obrazy z etykietą „%1”.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>&amp;Format</source>
+        <extracomment>In Polish: &amp;Format</extracomment>
+        <translation>&amp;Format</translation>
+    </message>
+    <message>
+        <source>&amp;Continuous through the whole book</source>
+        <extracomment>In Polish: &amp;Ciągła w całej książce</extracomment>
+        <translation>&amp;Ciągła w całej książce</translation>
+    </message>
+    <message>
+        <source>Anew in each c&amp;hapter</source>
+        <extracomment>In Polish: Od &amp;nowa w każdym rozdziale</extracomment>
+        <translation>Od &amp;nowa w każdym rozdziale</translation>
+    </message>
+    <message>
+        <source>With the chapter&apos;s &amp;number</source>
+        <extracomment>In Polish: Z numerem &amp;rozdziału</extracomment>
+        <translation>Z numerem &amp;rozdziału</translation>
+    </message>
+    <message>
+        <source>. (period)</source>
+        <extracomment>The separators between the chapter&apos;s number and the caption&apos;s. In Polish: . (kropka)</extracomment>
+        <translation>. (kropka)</translation>
+    </message>
+    <message>
+        <source>– (en dash)</source>
+        <extracomment>In Polish: – (półpauza)</extracomment>
+        <translation>– (półpauza)</translation>
+    </message>
+    <message>
+        <source>: (colon)</source>
+        <extracomment>In Polish: : (dwukropek)</extracomment>
+        <translation>: (dwukropek)</translation>
+    </message>
+    <message>
+        <source>&amp;Separator</source>
+        <extracomment>In Polish: &amp;Separator</extracomment>
+        <translation>&amp;Separator</translation>
+    </message>
+    <message>
+        <source>Number format: %1 · through the whole book</source>
+        <extracomment>How Insert Caption says the numbering of a label. In Polish: Format numeru: %1 · ciągła w całej książce</extracomment>
+        <translation>Format numeru: %1 · ciągła w całej książce</translation>
+    </message>
+    <message>
+        <source>Number format: %1 · anew in each chapter</source>
+        <extracomment>In Polish: Format numeru: %1 · od nowa w każdym rozdziale</extracomment>
+        <translation>Format numeru: %1 · od nowa w każdym rozdziale</translation>
+    </message>
+    <message>
+        <source>Number format: %1 · anew in each chapter, with the chapter&apos;s number (%2)</source>
+        <extracomment>%2 is an example: &quot;2.3&quot;. In Polish: Format numeru: %1 · od nowa w każdym rozdziale, z numerem rozdziału (%2)</extracomment>
+        <translation>Format numeru: %1 · od nowa w każdym rozdziale, z numerem rozdziału (%2)</translation>
+    </message>
+    <message>
+        <source>Example: %1 %2, %1 %3</source>
+        <extracomment>%1 is the label, %2 and %3 its numbers: &quot;Figure 2.3, Figure 2.4&quot;. In Polish: Przykład: %1 %2, %1 %3</extracomment>
+        <translation>Przykład: %1 %2, %1 %3</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::CharacterShortcutDialog</name>
     <message>
         <source>Shortcut for a Character</source>
@@ -14567,11 +15008,6 @@ Harmonogram projektu:
         <translation>Właściwości obrazu</translation>
     </message>
     <message>
-        <source>The look of the selected image: its file, size, crop, border, colors and description.</source>
-        <extracomment>In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory i opis.</extracomment>
-        <translation>Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory i opis.</translation>
-    </message>
-    <message>
         <source>OK</source>
         <translation>OK</translation>
     </message>
@@ -14838,11 +15274,6 @@ Harmonogram projektu:
         <translation>&amp;Barwa</translation>
     </message>
     <message>
-        <source>S&amp;pace inside</source>
-        <extracomment>The room between an image&apos;s border and its picture. In Polish: Ods&amp;tęp od obrazu</extracomment>
-        <translation>Ods&amp;tęp od obrazu</translation>
-    </message>
-    <message>
         <source>S&amp;hadow</source>
         <extracomment>In Polish: &amp;Cień</extracomment>
         <translation>&amp;Cień</translation>
@@ -14896,11 +15327,6 @@ Harmonogram projektu:
         <source>&amp;Threshold</source>
         <extracomment>The gray that becomes black in Black and White. In Polish: Pró&amp;g czerni</extracomment>
         <translation>Pró&amp;g czerni</translation>
-    </message>
-    <message>
-        <source>Trans&amp;parency</source>
-        <extracomment>In Polish: Przezroczy&amp;stość</extracomment>
-        <translation>Przezroczy&amp;stość</translation>
     </message>
     <message>
         <source>Reset to Origina&amp;l</source>
@@ -14979,6 +15405,95 @@ Harmonogram projektu:
         <source>Automatic</source>
         <extracomment>The color of an image&apos;s border: the color of the text. In Polish: Automatyczna</extracomment>
         <translation>Automatyczna</translation>
+    </message>
+    <message>
+        <source>The look of the selected image: its file, size, crop, border, colors, description and caption.</source>
+        <extracomment>In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory, opis i podpis.</extracomment>
+        <translation>Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie, kolory, opis i podpis.</translation>
+    </message>
+    <message>
+        <source>Image Settings</source>
+        <extracomment>The tooltip of the gear of the windows of images. In Polish: Ustawienia obrazów</extracomment>
+        <translation>Ustawienia obrazów</translation>
+    </message>
+    <message>
+        <source>Ca&amp;ption</source>
+        <extracomment>In Polish: Po&amp;dpis</extracomment>
+        <translation>Po&amp;dpis</translation>
+    </message>
+    <message>
+        <source>Space i&amp;nside</source>
+        <extracomment>The room between an image&apos;s border and its picture. In Polish: Ods&amp;tęp od obrazu</extracomment>
+        <translation>Ods&amp;tęp od obrazu</translation>
+    </message>
+    <message>
+        <source>Transparenc&amp;y</source>
+        <extracomment>In Polish: Przezroczy&amp;stość</extracomment>
+        <translation>Przezroczy&amp;stość</translation>
+    </message>
+    <message>
+        <source>S&amp;how a caption</source>
+        <extracomment>In Polish: Pokaż podpi&amp;s</extracomment>
+        <translation>Pokaż podpi&amp;s</translation>
+    </message>
+    <message>
+        <source>&amp;New Label...</source>
+        <extracomment>In Polish: &amp;Nowa etykieta…</extracomment>
+        <translation>&amp;Nowa etykieta...</translation>
+    </message>
+    <message>
+        <source>&amp;Label</source>
+        <extracomment>In Polish: &amp;Etykieta</extracomment>
+        <translation>&amp;Etykieta</translation>
+    </message>
+    <message>
+        <source>&amp;Text</source>
+        <extracomment>In Polish: &amp;Tekst</extracomment>
+        <translation>&amp;Tekst</translation>
+    </message>
+    <message>
+        <source>B&amp;elow the image</source>
+        <extracomment>In Polish: Pod obr&amp;azem</extracomment>
+        <translation>Pod obr&amp;azem</translation>
+    </message>
+    <message>
+        <source>&amp;Above the image</source>
+        <extracomment>In Polish: Nad obra&amp;zem</extracomment>
+        <translation>Nad obra&amp;zem</translation>
+    </message>
+    <message>
+        <source>Position</source>
+        <extracomment>Where the caption is. In Polish: Położenie</extracomment>
+        <translation>Położenie</translation>
+    </message>
+    <message>
+        <source>&amp;Without a label and number – the text alone</source>
+        <extracomment>In Polish: &amp;Bez etykiety i numeru – sam tekst</extracomment>
+        <translation>&amp;Bez etykiety i numeru – sam tekst</translation>
+    </message>
+    <message>
+        <source>Preview of the image with its caption</source>
+        <extracomment>In Polish: Podgląd obrazu z podpisem</extracomment>
+        <translation>Podgląd obrazu z podpisem</translation>
+    </message>
+    <message>
+        <source>The program gives the number on gray: it cannot be typed over. How this book counts: Insert &gt; Caption... &gt; Numbering...; the labels and numbering of new books: the gear.</source>
+        <extracomment>In Polish: Numer na szarym tle nadaje program – nie da się go nadpisać. Jak liczy ta książka: Wstaw &gt; Podpis… &gt; Numeracja…; etykiety i numeracja nowych książek: koło zębate.</extracomment>
+        <translation>Numer na szarym tle nadaje program – nie da się go nadpisać. Jak liczy ta książka: Wstaw &gt; Podpis... &gt; Numeracja...; etykiety i numeracja nowych książek: koło zębate.</translation>
+    </message>
+    <message>
+        <source>New Label</source>
+        <extracomment>The window of a new label of captions. In Polish: Nowa etykieta / Etykieta</extracomment>
+        <translation>Nowa etykieta</translation>
+    </message>
+    <message>
+        <source>Label</source>
+        <translation>Etykieta</translation>
+    </message>
+    <message>
+        <source>the program gives the number: %1</source>
+        <extracomment>Beside the label of a caption. In Polish: numer nadaje program: %1</extracomment>
+        <translation>numer nadaje program: %1</translation>
     </message>
 </context>
 <context>
@@ -15214,6 +15729,162 @@ Harmonogram projektu:
         <source>Kalahari cannot open the book of this archive.</source>
         <extracomment>In Polish: Kalahari nie może otworzyć książki z tego archiwum.</extracomment>
         <translation>Kalahari nie może otworzyć książki z tego archiwum.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::InsertCaptionDialog</name>
+    <message>
+        <source>Insert Caption</source>
+        <extracomment>In Polish: Wstaw podpis / Podpis obrazu z numerem nadawanym przez program.</extracomment>
+        <translation>Wstaw podpis</translation>
+    </message>
+    <message>
+        <source>The caption of the image, with a number the program gives.</source>
+        <translation>Podpis obrazu z numerem nadawanym przez program.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Image Settings</source>
+        <extracomment>The tooltip of the gear of the windows of images. In Polish: Ustawienia obrazów</extracomment>
+        <translation>Ustawienia obrazów</translation>
+    </message>
+    <message>
+        <source>&amp;Caption</source>
+        <extracomment>In Polish: Po&amp;dpis</extracomment>
+        <translation>Po&amp;dpis</translation>
+    </message>
+    <message>
+        <source>&amp;New Label...</source>
+        <extracomment>In Polish: &amp;Nowa etykieta…</extracomment>
+        <translation>&amp;Nowa etykieta...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <extracomment>Takes a label off the list of the book. In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Label</source>
+        <extracomment>In Polish: &amp;Etykieta</extracomment>
+        <translation>&amp;Etykieta</translation>
+    </message>
+    <message>
+        <source>Below the image</source>
+        <extracomment>In Polish: Pod obrazem</extracomment>
+        <translation>Pod obrazem</translation>
+    </message>
+    <message>
+        <source>Above the image</source>
+        <extracomment>In Polish: Nad obrazem</extracomment>
+        <translation>Nad obrazem</translation>
+    </message>
+    <message>
+        <source>&amp;Position</source>
+        <extracomment>In Polish: &amp;Położenie</extracomment>
+        <translation>&amp;Położenie</translation>
+    </message>
+    <message>
+        <source>&amp;Without a label and number – the text alone</source>
+        <extracomment>In Polish: &amp;Bez etykiety i numeru – sam tekst</extracomment>
+        <translation>&amp;Bez etykiety i numeru – sam tekst</translation>
+    </message>
+    <message>
+        <source>Nu&amp;mbering...</source>
+        <extracomment>In Polish: Nu&amp;meracja…</extracomment>
+        <translation>Nu&amp;meracja...</translation>
+    </message>
+    <message>
+        <source>A label is a kind of image, and each has its own numbering (&quot;Map 1&quot;, &quot;Map 2&quot; next to &quot;Figure 1&quot;, &quot;Figure 2&quot;). The caption is a paragraph in the style Caption.</source>
+        <extracomment>In Polish: Etykieta to rodzaj obrazu; każda ma własną numerację („Mapa 1”, „Mapa 2” obok „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.</extracomment>
+        <translation>Etykieta to rodzaj obrazu; każda ma własną numerację („Mapa 1”, „Mapa 2” obok „Rysunek 1”, „Rysunek 2”). Podpis jest akapitem stylu „Podpis”.</translation>
+    </message>
+    <message>
+        <source>Remove Capt&amp;ion</source>
+        <extracomment>In Polish: Usuń p&amp;odpis</extracomment>
+        <translation>Usuń p&amp;odpis</translation>
+    </message>
+    <message>
+        <source>New Label</source>
+        <extracomment>The window of a new label of captions. In Polish: Nowa etykieta / Etykieta</extracomment>
+        <translation>Nowa etykieta</translation>
+    </message>
+    <message>
+        <source>Label</source>
+        <translation>Etykieta</translation>
+    </message>
+    <message>
+        <source>Captions of the book have this label</source>
+        <extracomment>Why Remove is greyed out. In Polish: Tej etykiety używają podpisy w książce</extracomment>
+        <translation>Tej etykiety używają podpisy w książce</translation>
+    </message>
+    <message>
+        <source>A file outside a book is numbered as the Settings say (the gear).</source>
+        <translation>Plik spoza książki jest numerowany według Ustawień (koło zębate).</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::InsertCrossReferenceDialog</name>
+    <message>
+        <source>Insert Cross-Reference</source>
+        <extracomment>In Polish: Wstaw odsyłacz / Numer obrazu, który zmienia się razem z nim.</extracomment>
+        <translation>Wstaw odsyłacz</translation>
+    </message>
+    <message>
+        <source>The number of an image, which changes together with it.</source>
+        <translation>Numer obrazu, który zmienia się razem z nim.</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <extracomment>In Polish: Wstaw</extracomment>
+        <translation>Wstaw</translation>
+    </message>
+    <message>
+        <source>&amp;Kind</source>
+        <extracomment>The label of the captions the list shows. In Polish: &amp;Rodzaj</extracomment>
+        <translation>&amp;Rodzaj</translation>
+    </message>
+    <message>
+        <source>&amp;Insert</source>
+        <extracomment>What the field shows. In Polish: &amp;Wstaw</extracomment>
+        <translation>&amp;Wstaw</translation>
+    </message>
+    <message>
+        <source>&amp;Which caption</source>
+        <extracomment>In Polish: &amp;Do którego podpisu</extracomment>
+        <translation>&amp;Do którego podpisu</translation>
+    </message>
+    <message>
+        <source>As a &amp;link – %1click goes to the image</source>
+        <extracomment>%1 is the key held for the click: &quot;Ctrl+&quot; (on macOS &quot;⌘&quot;). In Polish: &amp;Jako łącze – %1kliknięcie przenosi do obrazu</extracomment>
+        <translation>&amp;Jako łącze – %1kliknięcie przenosi do obrazu</translation>
+    </message>
+    <message>
+        <source>In the text: %1</source>
+        <extracomment>Where a caption of another text is. In Polish: W tekście: %1</extracomment>
+        <translation>W tekście: %1</translation>
+    </message>
+    <message>
+        <source>The number alone – &quot;%1&quot;</source>
+        <extracomment>In Polish: Sam numer – „%1”</extracomment>
+        <translation>Sam numer – „%1”</translation>
+    </message>
+    <message>
+        <source>The label and the number – &quot;%1 %2&quot;</source>
+        <extracomment>In Polish: Etykieta i numer – „%1 %2”</extracomment>
+        <translation>Etykieta i numer – „%1 %2”</translation>
+    </message>
+    <message>
+        <source>The whole caption</source>
+        <extracomment>In Polish: Cały podpis</extracomment>
+        <translation>Cały podpis</translation>
+    </message>
+    <message>
+        <source>&quot;above&quot; or &quot;below&quot;</source>
+        <extracomment>In Polish: „powyżej” albo „poniżej”</extracomment>
+        <translation>„powyżej” albo „poniżej”</translation>
     </message>
 </context>
 <context>

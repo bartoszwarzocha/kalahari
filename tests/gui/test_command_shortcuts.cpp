@@ -111,6 +111,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"insert.quickCharacter", QStringLiteral("Ctrl+Shift+I")},
         {"insert.quickInsert", QStringLiteral("Ctrl+Shift+W")},
         {"insert.link", QStringLiteral("Ctrl+K")},  // as in Word and LibreOffice
+        {"insert.caption", QStringLiteral("Ctrl+Shift+G")},  // also with the cursor after the image
         // The formatting characters, as in Word; Ctrl+_ is Ctrl+Shift+-
         {"insert.noBreakSpace", QStringLiteral("Ctrl+Shift+Space")},
         {"insert.nonBreakingHyphen", QStringLiteral("Ctrl+_")},

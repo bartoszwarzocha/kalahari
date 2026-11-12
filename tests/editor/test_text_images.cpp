@@ -17,6 +17,7 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QImageReader>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QTemporaryDir>
@@ -26,6 +27,7 @@
 #include <QTextLayout>
 #include <QUrl>
 #include <QXmlStreamReader>
+#include <cmath>
 #include <memory>
 
 using namespace kalahari::editor;
@@ -291,6 +293,103 @@ TEST_CASE("Images: the store copies files into the folder of images", "[editor][
     CHECK_FALSE(none.pixelSize(first));
 }
 
+TEST_CASE("Images: the copy of a large picture made smaller, in its format", "[editor][images][files]") {
+    BookFolder book;
+    QTemporaryDir outside;
+    ImageStore store;
+    store.setFolder(book.path());
+
+    // Wider than allowed: as wide as allowed, in proportion, with the file's name and format
+    const QString photo = pictureFile(outside, QStringLiteral("photo.jpg"), QSize(400, 200), Qt::red);
+    const QString smaller = store.addFile(photo, 100);
+    CHECK(smaller == QStringLiteral("images/photo.jpg"));
+    REQUIRE(store.pixelSize(smaller));
+    CHECK(*store.pixelSize(smaller) == QSize(100, 50));
+    QImageReader reader(book.path() + QLatin1Char('/') + smaller);
+    CHECK(reader.format() == QByteArrayLiteral("jpeg"));
+    // The same again: the same copy
+    CHECK(store.addFile(photo, 100) == smaller);
+
+    // A PNG, and a picture not wider: as it is
+    const QString png = pictureFile(outside, QStringLiteral("plan.png"), QSize(300, 300), Qt::blue);
+    const QString png100 = store.addFile(png, 100);
+    REQUIRE(store.pixelSize(png100));
+    CHECK(*store.pixelSize(png100) == QSize(100, 100));
+    QTemporaryDir other;
+    const QString small = pictureFile(other, QStringLiteral("small.png"), QSize(80, 40), Qt::green);
+    const QString kept = store.addFile(small, 100);
+    QFile original(small);
+    QFile copy(book.path() + QLatin1Char('/') + kept);
+    REQUIRE(original.open(QIODevice::ReadOnly));
+    REQUIRE(copy.open(QIODevice::ReadOnly));
+    CHECK(copy.readAll() == original.readAll());
+
+    // A drawing has no pixels to lose
+    QFile svg(outside.path() + QStringLiteral("/drawing.svg"));
+    REQUIRE(svg.open(QIODevice::WriteOnly));
+    svg.write("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"800\" height=\"400\">"
+              "<rect width=\"800\" height=\"400\" fill=\"red\"/></svg>");
+    svg.close();
+    const QString drawing = store.addFile(svg.fileName(), 100);
+    REQUIRE(store.pixelSize(drawing));
+    CHECK(*store.pixelSize(drawing) == QSize(800, 400));
+}
+
+TEST_CASE("Images: Insert > Image makes the copy smaller above the dots per inch of the settings",
+          "[editor][images][editing]") {
+    BookFolder book;
+    QTemporaryDir outside;
+    const QString file = pictureFile(outside, QStringLiteral("wide.png"), QSize(3000, 1000), Qt::red);
+    auto editor = editorWith(QStringLiteral("<kml><p></p></kml>"), book.path());
+    const auto copyWidth = [&book](const QString& source) {
+        const std::optional<QSize> pixels = ImageStore::fileSize(book.path() + QLatin1Char('/') + source);
+        REQUIRE(pixels);
+        return pixels->width();
+    };
+    const auto sourceOf = [&editor]() {
+        const std::optional<ImageProperties> image = imageAt(*editor->textDocument(), 0);
+        REQUIRE(image);
+        return image->source;
+    };
+    const auto lineWidth = [&editor]() {
+        const std::optional<ImagePropertiesData> data = editor->imagePropertiesData(0);
+        REQUIRE(data);
+        REQUIRE(data->lineWidth > 72.0);
+        return data->lineWidth;
+    };
+
+    // Without a limit: the file as it is
+    REQUIRE(editor->newImageOptions().maxDpi == 0);
+    CHECK(editor->newImageCopyWidth(file) == 0);
+    REQUIRE(editor->insertImageFile(file));
+    CHECK(copyWidth(sourceOf()) == 3000);
+    const double line = lineWidth();
+    editor->undo();
+
+    // 150 dpi at the width of the lines (the file is wider than them)
+    BookEditor::NewImageOptions options = editor->newImageOptions();
+    options.maxDpi = 150;
+    editor->setNewImageOptions(options);
+    const int wanted = static_cast<int>(std::ceil(line * 150.0 / 72.0));
+    CHECK(editor->newImageCopyWidth(file) == wanted);
+    QDir(book.path() + QStringLiteral("/images")).removeRecursively();
+    REQUIRE(editor->insertImageFile(file));
+    CHECK(copyWidth(sourceOf()) == wanted);
+    editor->undo();
+
+    // Half the width of the lines: half the pixels
+    options.widthPercent = 50;
+    editor->setNewImageOptions(options);
+    CHECK(editor->newImageCopyWidth(file) == static_cast<int>(std::ceil(line * 0.5 * 150.0 / 72.0)));
+
+    // A picture with fewer dots at its own size stays as it is
+    const QString small = pictureFile(outside, QStringLiteral("small.png"), QSize(200, 100), Qt::blue);
+    options.widthPercent = 0;
+    editor->setNewImageOptions(options);
+    CHECK(editor->newImageCopyWidth(small) == 0);
+    CHECK(editor->newImageCopyWidth(outside.path() + QStringLiteral("/missing.png")) == 0);
+}
+
 TEST_CASE("Images: an image of another book is copied with its file", "[editor][images][files]") {
     BookFolder from;
     BookFolder to;
@@ -491,11 +590,19 @@ TEST_CASE("Images: Insert > Image copies the file and inserts it, as one undo st
     CHECK(editor->toKml() == QStringLiteral("<kml><p>First</p><p></p></kml>"));
     CHECK(editor->cursorPosition() == CursorPosition{1, 0});
 
-    // Into a paragraph of text: its alignment stays
-    editor->setCursorPosition({0, 5});
+    // Into a paragraph of text: in a paragraph of its own after it, or before it from its
+    // start; the text is not broken
+    editor->setCursorPosition({0, 3});
     REQUIRE(editor->insertImageFile(file));
-    CHECK(editor->toKml() ==
-          QStringLiteral("<kml><p>First<img src=\"images/photo.png\"/></p><p></p></kml>"));
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>First</p><p align=\"center\"><img "
+                                            "src=\"images/photo.png\"/></p><p></p></kml>"));
+    editor->undo();
+    editor->setCursorPosition({0, 0});
+    REQUIRE(editor->insertImageFile(file));
+    CHECK(editor->toKml() == QStringLiteral("<kml><p align=\"center\"><img src=\"images/photo.png\"/></p>"
+                                            "<p>First</p><p></p></kml>"));
+    CHECK(*editor->selectedImage() == 0);
+    editor->undo();
 
     // Not an image, or a read-only text: nothing
     QFile text(outside.path() + QStringLiteral("/notes.png"));
@@ -761,7 +868,8 @@ TEST_CASE("Images: a picture from the clipboard becomes an image of the book",
     QMimeData screenshot;
     screenshot.setImageData(picture);
     editor->insertFromMimeData(&screenshot);
-    CHECK(editor->toKml() == QStringLiteral("<kml><p>a<img src=\"images/image.png\"/>b</p></kml>"));
+    CHECK(editor->toKml() ==
+          QStringLiteral("<kml><p>ab</p><p align=\"center\"><img src=\"images/image.png\"/></p></kml>"));
     CHECK(QImage(book.path() + QStringLiteral("/images/image.png")).size() == QSize(16, 8));
     editor->undo();
     CHECK(editor->toKml() == QStringLiteral("<kml><p>ab</p></kml>"));
@@ -798,14 +906,15 @@ TEST_CASE("Images: files of pictures pasted or dropped become images, one after 
     auto editor = editorWith(QStringLiteral("<kml><p>ab</p></kml>"), book.path());
     editor->setCursorPosition({0, 1});
     editor->insertFromMimeData(&files);
-    CHECK(editor->toKml() == QStringLiteral("<kml><p>a<img src=\"images/red.png\"/><img "
-                                            "src=\"images/blue.png\"/>b</p></kml>"));
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>ab</p><p align=\"center\"><img src=\"images/red.png\"/>"
+                                            "</p><p align=\"center\"><img src=\"images/blue.png\"/></p></kml>"));
 
     // Dropped: at the drop point
     auto dropped = editorWith(QStringLiteral("<kml><p>ab</p><p>cd</p></kml>"), book.path());
     REQUIRE(dropped->dropMimeData(&files, {1, 1}, false));
-    CHECK(dropped->toKml() == QStringLiteral("<kml><p>ab</p><p>c<img src=\"images/red.png\"/><img "
-                                             "src=\"images/blue.png\"/>d</p></kml>"));
+    CHECK(dropped->toKml() == QStringLiteral("<kml><p>ab</p><p>cd</p><p align=\"center\"><img "
+                                             "src=\"images/red.png\"/></p><p align=\"center\"><img "
+                                             "src=\"images/blue.png\"/></p></kml>"));
 
     // Without a folder of images nothing is dropped
     auto loose = editorWith(QStringLiteral("<kml><p>ab</p></kml>"));

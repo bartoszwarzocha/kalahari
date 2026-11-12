@@ -18,6 +18,8 @@
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/style_coordinator.h"
+#include "kalahari/gui/caption_coordinator.h"
+#include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
 #include "kalahari/gui/spelling_coordinator.h"
@@ -148,7 +150,7 @@ constexpr const char* IMAGE_COMMANDS[] = {
     "image.rotateRight",     "image.rotateLeft",     "image.flipHorizontal",
     "image.flipVertical",    "image.rotateOptions",  "image.filterNone",
     "image.filterGrayscale", "image.filterSepia",    "image.filterBlackWhite",
-    "image.filterWash",      "image.colorOptions"};
+    "image.filterWash",      "image.filterAll",      "image.colorOptions"};
 
 /// The commands of Image > Filter and their filters
 constexpr std::pair<const char*, editor::ImageFilter> IMAGE_FILTER_COMMANDS[] = {
@@ -522,6 +524,34 @@ MainWindow::MainWindow(QWidget* parent)
         },
         statusBar(), this, this);
     m_styleCoordinator->connectCommands();
+    // Insert > Caption..., Cross-Reference... and List of Figures, and the numbers of the
+    // captions of every open text in the book around it; Ctrl+click on a caption of another
+    // text opens it, as from the Navigator
+    m_captionCoordinator = new CaptionCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        this, this);
+    m_captionCoordinator->connectCommands();
+    // A text opened, or the book's order of texts changed: other numbers
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::elementOpened, m_captionCoordinator,
+            [this]() { m_captionCoordinator->refreshSoon(); });
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::refreshNavigatorRequested,
+            m_captionCoordinator, [this]() { m_captionCoordinator->refreshSoon(); });
+    // Image > Filter > Same Filter for All Images...; the bar under the text says how many
+    // images changed, with Undo
+    m_imageFilterCoordinator = new ImageFilterCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        },
+        statusBar(), this, this);
     // The buttons and the menu of the palette, in both places of the Paragraph and Styles panel
     for (ParagraphPanel* palette : {m_dockCoordinator->paragraphPanel(),
                                     m_dockCoordinator->propertiesParagraphPanel()}) {
@@ -2142,7 +2172,7 @@ void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) 
         showPage(Page::ImagePage);
         break;
     case ImageCommand::AddCaption:
-        text.addImageCaption(*image);
+        m_captionCoordinator->editCaption(text, *image);
         break;
     case ImageCommand::AltText:
         showPage(Page::DescriptionPage);
@@ -2176,6 +2206,9 @@ void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) 
         break;
     case ImageCommand::FilterWash:
         filter(editor::ImageFilter::Wash);
+        break;
+    case ImageCommand::FilterAll:
+        m_imageFilterCoordinator->applyToBook(text, *image);
         break;
     case ImageCommand::ColorOptions:
         showPage(Page::ColorsPage);

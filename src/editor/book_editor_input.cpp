@@ -567,6 +567,12 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
             event->accept();
             return;
         }
+        // A cross-reference, a row of a list of figures: to the caption's image
+        if (const std::optional<CaptionLink> target = captionLinkAt(event->position())) {
+            followCaptionLink(*target);
+            event->accept();
+            return;
+        }
     }
 
     // Set focus on click
@@ -740,7 +746,8 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
                     ? Qt::ArrowCursor
                     : Qt::PointingHandCursor;
     } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos) ||
-               ((modifiers & Qt::ControlModifier) && linkAt(pos).has_value())) {
+               ((modifiers & Qt::ControlModifier) &&
+                (linkAt(pos).has_value() || captionLinkAt(pos).has_value()))) {
         shape = Qt::PointingHandCursor;
     } else if (!(modifiers & (Qt::ShiftModifier | Qt::ControlModifier)) &&
                columnEdgeAt(pos).has_value()) {

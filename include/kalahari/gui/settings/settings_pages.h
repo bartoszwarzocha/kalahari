@@ -220,6 +220,47 @@ private:
     void addMarginNumbersGroup();
 };
 
+/// @brief Editor > Images: how new images go into the text, the captions of new books, the
+///        copies of the files and the manuscript for a publisher
+///
+/// The labels of the captions are a list of the page: Add..., Rename... and Remove change it,
+/// and the label of the caption of a new image is one of them. A book has its own labels and
+/// numbering from its first caption on (Insert Caption > Numbering...): the page sets those
+/// of new books.
+class EditorImagesPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorImagesPage(QWidget* parent = nullptr);
+
+signals:
+    /// @brief Show: the page Editor > Colors, with the colors of the fields and the frames
+    void colorsPageAsked();
+
+private:
+    /// @brief The labels as the list has them
+    [[nodiscard]] QStringList listedLabels() const;
+
+    /// @brief Fill the list and the label of new images' captions with @p labels
+    void showLabels(const QStringList& labels);
+
+    /// @brief Add..., Rename...: a label typed in a window; Remove: the label selected
+    void addLabel();
+    void renameLabel();
+    void removeLabel();
+
+    /// @brief The label of the caption of new images offers the labels of the list
+    void fillCaptionLabels();
+
+    /// @brief Rename and Remove for the label selected (one label always stays)
+    void updateLabelButtons();
+
+    QListWidget* m_labels = nullptr;        ///< The labels of the captions of new books
+    QComboBox* m_captionLabel = nullptr;    ///< The label of the caption of a new image
+    QPushButton* m_addLabel = nullptr;
+    QPushButton* m_renameLabel = nullptr;
+    QPushButton* m_removeLabel = nullptr;
+};
+
 /// @brief Editor > Auto-correct: what is changed in the text as it is typed, on three tabs
 ///
 /// While Typing has the replacements of the characters and the text elements typed,

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_tables.h>
 #include <functional>
 #include <utility>
@@ -78,6 +79,7 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
         }
         setParagraphStyle(blockFormat, model.paragraphStyle(i));
         mergeParagraphFormat(blockFormat, model.paragraphOwnFormat(i));
+        setCaptionAbove(blockFormat, model.paragraphCaptionAbove(i));
         if (std::optional<ListItem> item = model.paragraphList(i)) {
             item->id += listIdOffset;
             setListItem(blockFormat, *item);

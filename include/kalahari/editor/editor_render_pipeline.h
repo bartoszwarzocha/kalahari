@@ -579,6 +579,10 @@ private:
     void renderHighlightBackgrounds(QPainter* painter,
                                     const std::vector<ParagraphHighlight>& highlights);
 
+    /// @brief Fill the backgrounds of the fields (under the selection)
+    void renderFieldBackgrounds(QPainter* painter,
+                                const std::vector<ParagraphHighlight>& highlights);
+
     /// @brief Draw the highlight marks (over the text): spelling and grammar waves, the waves
     ///        and the frames of the repeated words
     void renderHighlightMarks(QPainter* painter,

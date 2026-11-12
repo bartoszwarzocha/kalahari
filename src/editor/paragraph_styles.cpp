@@ -73,6 +73,7 @@ TextObject textObjectOf(const QTextFormat& format) {
         case HORIZONTAL_RULE_OBJECT: return TextObject::HorizontalRule;
         case SCENE_BREAK_OBJECT: return TextObject::SceneBreak;
         case PAGE_BREAK_OBJECT: return TextObject::PageBreak;
+        case FIGURE_LIST_OBJECT: return TextObject::FigureList;
         default: return TextObject::None;
     }
 }
@@ -83,6 +84,7 @@ QTextCharFormat objectCharFormat(TextObject object) {
         case TextObject::HorizontalRule: format.setObjectType(HORIZONTAL_RULE_OBJECT); break;
         case TextObject::SceneBreak: format.setObjectType(SCENE_BREAK_OBJECT); break;
         case TextObject::PageBreak: format.setObjectType(PAGE_BREAK_OBJECT); break;
+        case TextObject::FigureList: format.setObjectType(FIGURE_LIST_OBJECT); break;
         case TextObject::None: break;
     }
     return format;
@@ -143,6 +145,7 @@ QString kmlElementOf(TextObject object) {
         case TextObject::HorizontalRule: return QStringLiteral("hr");
         case TextObject::SceneBreak: return QStringLiteral("scene-break");
         case TextObject::PageBreak: return QStringLiteral("page-break");
+        case TextObject::FigureList: return QStringLiteral("list-of-figures");
         case TextObject::None: break;
     }
     return {};
@@ -157,6 +160,9 @@ TextObject textObjectOfElement(const QString& element) {
     }
     if (element == QLatin1String("page-break")) {
         return TextObject::PageBreak;
+    }
+    if (element == QLatin1String("list-of-figures")) {
+        return TextObject::FigureList;
     }
     return TextObject::None;
 }

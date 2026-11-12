@@ -8,6 +8,7 @@
 #include "kalahari/editor/image_store.h"
 #include "kalahari/gui/dialogs/color_palettes.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/widgets/color_menu.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
@@ -72,6 +73,7 @@ constexpr int PREVIEW_PICTURE_PIXELS = 480;
 /// of Colors and the tiles of the filters
 const QSize LARGE_PREVIEW(220, 150);
 const QSize COLORS_PREVIEW(170, 110);
+const QSize CAPTION_PREVIEW(150, 80);
 const QSize FILTER_TILE(72, 44);
 
 /// The width of the list of the pages
@@ -332,16 +334,22 @@ ImagePropertiesDialog::ImagePropertiesDialog(const editor::ImagePropertiesData& 
     , m_image(data.image)
     , m_picture(previewPicture(data.filePath))
     , m_automaticColor(automaticColor.isValid() ? automaticColor : palette().color(QPalette::Text))
+    , m_caption(data.caption)
 {
     //: In Polish: Właściwości obrazu
     setHeading(tr("Image Properties"),
                //: In Polish: Wygląd zaznaczonego obrazu: plik, rozmiar, przycięcie, obramowanie,
-               //: kolory i opis.
-               tr("The look of the selected image: its file, size, crop, border, colors and "
-                  "description."));
+               //: kolory, opis i podpis.
+               tr("The look of the selected image: its file, size, crop, border, colors, "
+                  "description and caption."));
     setHeadingIcon(QStringLiteral("image.properties"));
     setCompactHeading(true);
     setAcceptText(tr("OK"));
+    //: The tooltip of the gear of the windows of images. In Polish: Ustawienia obrazów
+    addSettingsButton(QString::fromLatin1(SettingsDialog::IMAGES_PAGE), tr("Image Settings"));
+    if (!m_caption.label.isEmpty()) {
+        m_captionLabels << m_caption.label;
+    }
 
     auto* body = new QHBoxLayout();
     body->setSpacing(12);
@@ -358,6 +366,7 @@ ImagePropertiesDialog::ImagePropertiesDialog(const editor::ImagePropertiesData& 
     m_pages->addWidget(createBorderPage());
     m_pages->addWidget(createColorsPage());
     m_pages->addWidget(createDescriptionPage());
+    m_pages->addWidget(createCaptionPage());
     const QString names[] = {
         //: The pages of Image Properties. In Polish: &Obraz
         tr("&Image"),
@@ -370,7 +379,9 @@ ImagePropertiesDialog::ImagePropertiesDialog(const editor::ImagePropertiesData& 
         //: In Polish: &Kolory
         tr("C&olors"),
         //: In Polish: Op&is
-        tr("&Description")};
+        tr("&Description"),
+        //: In Polish: Po&dpis
+        tr("Ca&ption")};
     for (const QString& name : names) {
         auto* item = new QListWidgetItem(withoutAccessKey(name), m_pageList);
         item->setData(Qt::UserRole, name);
@@ -415,6 +426,11 @@ editor::ImagePropertiesData ImagePropertiesDialog::data() const
 {
     editor::ImagePropertiesData data = m_data;
     data.image = editor::normalizedImage(m_image);
+    data.caption = m_caption;
+    data.caption.text = m_caption.text.trimmed();
+    // A caption of its text alone needs one
+    data.caption.shown = m_caption.shown && (m_caption.numbered ? !m_caption.label.isEmpty()
+                                                                : !data.caption.text.isEmpty());
     // The size and the crop of a new file were set when it was chosen
     data.keepSizeAndCrop = true;
     return data;
@@ -1040,7 +1056,7 @@ QWidget* ImagePropertiesDialog::createBorderPage()
         //: In Polish: &Barwa
         {tr("Colo&r"), m_colorButton},
         //: The room between an image's border and its picture. In Polish: Ods&tęp od obrazu
-        {tr("S&pace inside"), m_padding}};
+        {tr("Space i&nside"), m_padding}};
     int row = 0;
     for (const auto& [text, field] : fields) {
         auto* label = new QLabel(text, page);
@@ -1146,7 +1162,7 @@ QWidget* ImagePropertiesDialog::createColorsPage()
         //: The gray that becomes black in Black and White. In Polish: Pró&g czerni
         {&m_threshold, tr("&Threshold"), editor::MIN_IMAGE_THRESHOLD, editor::MAX_IMAGE_THRESHOLD},
         //: In Polish: Przezroczy&stość
-        {&m_transparency, tr("Trans&parency"), 0, editor::MAX_IMAGE_TRANSPARENCY}};
+        {&m_transparency, tr("Transparenc&y"), 0, editor::MAX_IMAGE_TRANSPARENCY}};
     int row = 0;
     for (const Slider& each : sliders) {
         auto* slider = new QSlider(Qt::Horizontal, page);
@@ -1255,6 +1271,163 @@ QWidget* ImagePropertiesDialog::createDescriptionPage()
     return page;
 }
 
+QWidget* ImagePropertiesDialog::createCaptionPage()
+{
+    auto* page = new QWidget(this);
+    auto* layout = new QVBoxLayout(page);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    //: In Polish: Pokaż podpi&s
+    m_captionShown = new QCheckBox(tr("S&how a caption"), page);
+    layout->addWidget(m_captionShown);
+
+    auto* grid = new QGridLayout();
+    grid->setColumnStretch(1, 1);
+    m_captionLabel = new QComboBox(page);
+    m_captionLabel->setMinimumContentsLength(14);
+    m_captionLabel->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    //: In Polish: &Nowa etykieta…
+    m_newCaptionLabel = new QPushButton(tr("&New Label..."), page);
+    m_captionNumber = hintLabel(QString(), page);
+    m_captionNumber->setWordWrap(false);
+    auto* labelRow = new QHBoxLayout();
+    labelRow->addWidget(m_captionLabel);
+    labelRow->addWidget(m_newCaptionLabel);
+    labelRow->addWidget(m_captionNumber, 1);
+    //: In Polish: &Etykieta
+    auto* labelLabel = new QLabel(tr("&Label"), page);
+    labelLabel->setBuddy(m_captionLabel);
+    grid->addWidget(labelLabel, 0, 0);
+    grid->addLayout(labelRow, 0, 1);
+
+    m_captionText = new QLineEdit(m_caption.text, page);
+    //: In Polish: &Tekst
+    auto* textLabel = new QLabel(tr("&Text"), page);
+    textLabel->setBuddy(m_captionText);
+    grid->addWidget(textLabel, 1, 0);
+    grid->addWidget(m_captionText, 1, 1);
+
+    //: In Polish: Pod obr&azem
+    m_captionBelow = new QRadioButton(tr("B&elow the image"), page);
+    //: In Polish: Nad obra&zem
+    m_captionAbove = new QRadioButton(tr("&Above the image"), page);
+    auto* sides = new QButtonGroup(page);
+    sides->addButton(m_captionBelow);
+    sides->addButton(m_captionAbove);
+    auto* positionRow = new QHBoxLayout();
+    positionRow->addWidget(m_captionBelow);
+    positionRow->addWidget(m_captionAbove);
+    positionRow->addStretch(1);
+    //: Where the caption is. In Polish: Położenie
+    grid->addWidget(new QLabel(tr("Position"), page), 2, 0);
+    grid->addLayout(positionRow, 2, 1);
+    layout->addLayout(grid);
+
+    //: In Polish: &Bez etykiety i numeru – sam tekst
+    m_captionUnnumbered = new QCheckBox(tr("&Without a label and number – the text alone"), page);
+    layout->addWidget(m_captionUnnumbered);
+
+    // The image with its caption above or below it
+    auto* preview = new QVBoxLayout();
+    preview->setSpacing(4);
+    m_captionPreviewAbove = new QLabel(page);
+    m_captionPreviewBelow = new QLabel(page);
+    m_previews[4] = new ImagePreview(CAPTION_PREVIEW, page);
+    //: In Polish: Podgląd obrazu z podpisem
+    m_previews[4]->setAccessibleName(tr("Preview of the image with its caption"));
+    for (QLabel* caption : {m_captionPreviewAbove, m_captionPreviewBelow}) {
+        caption->setTextFormat(Qt::RichText);
+        caption->setWordWrap(true);
+        caption->setFixedWidth(CAPTION_PREVIEW.width() + 2 * fontMetrics().averageCharWidth() * 10);
+        caption->setAlignment(Qt::AlignHCenter);
+    }
+    preview->addWidget(m_captionPreviewAbove, 0, Qt::AlignHCenter);
+    preview->addWidget(m_previews[4], 0, Qt::AlignHCenter);
+    preview->addWidget(m_captionPreviewBelow, 0, Qt::AlignHCenter);
+    layout->addLayout(preview);
+
+    //: In Polish: Numer na szarym tle nadaje program – nie da się go nadpisać. Jak liczy ta
+    //: książka: Wstaw > Podpis… > Numeracja…; etykiety i numeracja nowych książek: koło zębate.
+    layout->addWidget(hintLabel(
+        tr("The program gives the number on gray: it cannot be typed over. How this book "
+           "counts: Insert > Caption... > Numbering...; the labels and numbering of new books: "
+           "the gear."),
+        page));
+    layout->addStretch(1);
+
+    connect(m_captionShown, &QCheckBox::toggled, this, [this](bool shown) {
+        if (!m_updating) {
+            m_caption.shown = shown;
+            refreshCaptionPage();
+        }
+    });
+    connect(m_captionLabel, &QComboBox::currentIndexChanged, this, [this]() {
+        if (!m_updating) {
+            m_caption.label = m_captionLabel->currentText();
+            refreshCaptionPage();
+        }
+    });
+    connect(m_captionText, &QLineEdit::textEdited, this, [this](const QString& text) {
+        m_caption.text = text;
+        refreshCaptionPage();
+    });
+    connect(m_captionAbove, &QRadioButton::toggled, this, [this](bool above) {
+        if (!m_updating) {
+            m_caption.above = above;
+            refreshCaptionPage();
+        }
+    });
+    connect(m_captionUnnumbered, &QCheckBox::toggled, this, [this](bool unnumbered) {
+        if (!m_updating) {
+            m_caption.numbered = !unnumbered;
+            refreshCaptionPage();
+        }
+    });
+    connect(m_newCaptionLabel, &QPushButton::clicked, this, &ImagePropertiesDialog::addCaptionLabel);
+    return page;
+}
+
+void ImagePropertiesDialog::setCaptionLabels(const QStringList& labels,
+                                             std::function<QString(const QString& label)> numberOf)
+{
+    m_captionLabels = labels;
+    if (!m_caption.label.isEmpty() && !m_captionLabels.contains(m_caption.label)) {
+        m_captionLabels << m_caption.label;  // of an older caption
+    }
+    if (m_caption.label.isEmpty()) {
+        m_caption.label = m_captionLabels.value(0);
+    }
+    m_captionNumberOf = std::move(numberOf);
+    refresh();
+}
+
+void ImagePropertiesDialog::addCaptionLabel()
+{
+    //: The window of a new label of captions. In Polish: Nowa etykieta / Etykieta
+    const std::optional<QString> typed = TextInputDialog::getText(this, tr("New Label"), tr("Label"));
+    if (!typed) {
+        return;
+    }
+    const QString label = editor::normalizedLabel(*typed);
+    if (label.isEmpty()) {
+        return;
+    }
+    // A label of the list, in other letters: that one
+    const auto found = std::find_if(m_captionLabels.cbegin(), m_captionLabels.cend(),
+                                    [&label](const QString& each) {
+                                        return each.compare(label, Qt::CaseInsensitive) == 0;
+                                    });
+    // Chosen before the list grows: an append leaves the iterator behind
+    const QString chosen = found == m_captionLabels.cend() ? label : *found;
+    if (!m_captionLabels.contains(chosen)) {
+        m_captionLabels << chosen;
+    }
+    m_caption.label = chosen;
+    m_caption.numbered = true;
+    m_caption.shown = true;
+    refresh();
+}
+
 // -----------------------------------------------------------------------------
 // The fields follow the image
 // -----------------------------------------------------------------------------
@@ -1271,6 +1444,7 @@ void ImagePropertiesDialog::refresh()
     refreshCropPage();
     refreshBorderPage();
     refreshColorsPage();
+    refreshCaptionPage();
     m_updating = false;
 }
 
@@ -1430,6 +1604,62 @@ void ImagePropertiesDialog::refreshColorsPage()
     m_sliderValues[1]->setText(signedPercent(m_image.contrast));
     m_sliderValues[2]->setText(QLocale().toString(m_image.threshold) + QStringLiteral("%"));
     m_sliderValues[3]->setText(QLocale().toString(m_image.transparency) + QStringLiteral("%"));
+}
+
+void ImagePropertiesDialog::refreshCaptionPage()
+{
+    const bool updating = m_updating;
+    m_updating = true;
+    const bool shown = m_caption.shown;
+    const bool numbered = m_caption.numbered;
+    m_captionShown->setChecked(shown);
+    QStringList listed;
+    for (int i = 0; i < m_captionLabel->count(); ++i) {
+        listed << m_captionLabel->itemText(i);
+    }
+    if (listed != m_captionLabels) {
+        m_captionLabel->clear();
+        m_captionLabel->addItems(m_captionLabels);
+    }
+    m_captionLabel->setCurrentIndex(
+        std::max(0, static_cast<int>(m_captionLabels.indexOf(m_caption.label))));
+    if (m_captionText->text() != m_caption.text) {
+        m_captionText->setText(m_caption.text);
+    }
+    (m_caption.above ? m_captionAbove : m_captionBelow)->setChecked(true);
+    m_captionUnnumbered->setChecked(!numbered);
+
+    m_captionLabel->setEnabled(shown && numbered);
+    m_newCaptionLabel->setEnabled(shown && numbered);
+    m_captionText->setEnabled(shown);
+    m_captionBelow->setEnabled(shown);
+    m_captionAbove->setEnabled(shown);
+    m_captionUnnumbered->setEnabled(shown);
+
+    // The number the program gives: of the label chosen
+    const QString label = m_caption.label;
+    QString number = m_captionNumberOf && !label.isEmpty() ? m_captionNumberOf(label) : QString();
+    if (number.isEmpty() && label == m_data.caption.label) {
+        number = m_data.captionNumber;
+    }
+    //: Beside the label of a caption. In Polish: numer nadaje program: %1
+    m_captionNumber->setText(shown && numbered && !number.isEmpty()
+                                 ? tr("the program gives the number: %1").arg(number)
+                                 : QString());
+
+    // The caption as the text shows it, its number on gray
+    QString caption = m_caption.text.trimmed().toHtmlEscaped();
+    if (numbered && !label.isEmpty()) {
+        const QString field = QStringLiteral("<span style=\"background-color:%1\">&nbsp;%2&nbsp;</span>")
+                                  .arg(palette().color(QPalette::Midlight).name(),
+                                       (number.isEmpty() ? QStringLiteral("?") : number).toHtmlEscaped());
+        caption = label.toHtmlEscaped() + QStringLiteral(" ") + field +
+                  (caption.isEmpty() ? QStringLiteral(".") : QStringLiteral(". ") + caption);
+    }
+    const bool visible = shown && !caption.isEmpty();
+    m_captionPreviewAbove->setText(visible && m_caption.above ? caption : QString());
+    m_captionPreviewBelow->setText(visible && !m_caption.above ? caption : QString());
+    m_updating = updating;
 }
 
 } // namespace dialogs

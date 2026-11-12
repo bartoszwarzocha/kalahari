@@ -318,9 +318,10 @@ TEST_CASE("Settings: the colors of the papers, on the Editor > Colors page",
         const std::string names[] = {keys->paper,      keys->text,        keys->focusDimmed,
                                      keys->formattingMarks, keys->link,  keys->tableLines,
                                      keys->tableHeader, keys->tableGridlines,
-                                     keys->imageCropMarks, keys->desk};
-        REQUIRE(colors.size() == 10);
-        for (int i = 0; i < 10; ++i) {
+                                     keys->imageCropMarks, keys->imageMissing, keys->field,
+                                     keys->brokenField, keys->desk};
+        REQUIRE(colors.size() == 13);
+        for (int i = 0; i < 13; ++i) {
             INFO(title.toStdString() << " " << names[i]);
             REQUIRE(themeColor(names[i]).isValid());
             CHECK(colors.at(i)->color() == themeColor(names[i]));

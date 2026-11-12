@@ -15,6 +15,7 @@
 #include <QTextDocument>
 #include <QTextFragment>
 #include <QXmlStreamAttributes>
+#include <QXmlStreamReader>
 
 #include <algorithm>
 #include <array>
@@ -775,6 +776,77 @@ ImageProperties imagePropertiesOfKml(const QXmlStreamAttributes& attributes)
     image.borderPadding = pointsOfKmlLength(padding).value_or(0.0);
     image.shadow = kmlFlag(attributes, "shadow");
     return normalizedImage(image);
+}
+
+// =============================================================================
+// One filter for every image
+// =============================================================================
+
+ImageProperties withImageFilter(const ImageProperties& image, ImageFilter filter, int threshold)
+{
+    ImageProperties changed = image;
+    changed.filter = filter;
+    if (filter == ImageFilter::BlackWhite) {
+        changed.threshold = threshold;
+    }
+    return normalizedImage(changed);
+}
+
+std::vector<int> imagesWithOtherFilter(const QTextDocument& document, ImageFilter filter,
+                                       int threshold)
+{
+    std::vector<int> changed;
+    for (const int position : imagePositions(document, 0, document.characterCount())) {
+        const std::optional<ImageProperties> image = imageAt(document, position);
+        if (image && withImageFilter(*image, filter, threshold) != normalizedImage(*image)) {
+            changed.push_back(position);
+        }
+    }
+    return changed;
+}
+
+QString withImageFilterKml(const QString& kml, ImageFilter filter, int threshold, int* count)
+{
+    int changed = 0;
+    QString result;
+    qsizetype done = 0;
+    QXmlStreamReader reader(kml);
+    while (!reader.atEnd()) {
+        reader.readNext();
+        if (!reader.isStartElement() || reader.name() != u"img") {
+            continue;
+        }
+        // The reader is past the start tag, and a text before it took its "<" along: the tag
+        // begins at the last "<" (an attribute holds none)
+        const qsizetype start = kml.lastIndexOf(QLatin1Char('<'), reader.characterOffset() - 1);
+        const ImageProperties image = imagePropertiesOfKml(reader.attributes());
+        reader.skipCurrentElement();
+        const qsizetype end = reader.characterOffset();
+        // The element where the reader says it is (an image without a file stays)
+        if (image.source.isEmpty() || start < 0 || start < done || end <= start ||
+            !QStringView(kml).mid(start).startsWith(u"<img")) {
+            continue;
+        }
+        const ImageProperties filtered = withImageFilter(image, filter, threshold);
+        if (filtered == image) {
+            continue;
+        }
+        result += QStringView(kml).mid(done, start - done);
+        result += imageKml(filtered);
+        done = end;
+        ++changed;
+    }
+    if (count != nullptr) {
+        *count = changed;
+    }
+    if (changed == 0 || reader.hasError()) {
+        if (count != nullptr && reader.hasError()) {
+            *count = 0;
+        }
+        return kml;  // nothing to change, or a text that is not KML
+    }
+    result += QStringView(kml).mid(done);
+    return result;
 }
 
 }  // namespace kalahari::editor

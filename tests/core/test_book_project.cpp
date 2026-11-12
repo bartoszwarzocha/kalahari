@@ -1771,3 +1771,98 @@ TEST_CASE("Book project: the paragraph styles of the books", "[core][bookproject
                                             {QStringLiteral("properties"), 12}}}) ==
           QStringLiteral("paragraphStyles[0].properties: must be an object"));
 }
+
+TEST_CASE("Book project: the labels and numbering of a book's captions",
+          "[core][bookproject][captions]") {
+    BookProject project = fullProject();
+    REQUIRE_FALSE(project.books.first().captions.has_value());
+
+    // A book without captions of its own has no field: its file stays as it was
+    CHECK_FALSE(project.toJson().value(QStringLiteral("books")).toArray().at(0).toObject().contains(
+        QStringLiteral("captions")));
+
+    // Its labels, the numbering of one, what a cross-reference shows
+    BookCaptions captions;
+    captions.labels = {QStringLiteral("Rysunek"), QStringLiteral("Mapa")};
+    CaptionLabelNumbering maps;
+    maps.label = QStringLiteral("Mapa");
+    maps.format = QStringLiteral("I");
+    maps.perChapter = true;
+    maps.withChapter = true;
+    maps.separator = QStringLiteral("–");
+    captions.numbering = {maps};
+    captions.reference = QStringLiteral("label");
+    project.books.first().captions = captions;
+
+    const QJsonObject json = project.toJson();
+    const QJsonObject saved =
+        json.value(QStringLiteral("books")).toArray().at(0).toObject().value(QStringLiteral("captions")).toObject();
+    CHECK(saved.value(QStringLiteral("labels")).toArray() ==
+          QJsonArray{QStringLiteral("Rysunek"), QStringLiteral("Mapa")});
+    CHECK(saved.value(QStringLiteral("numbering")).toArray().at(0).toObject() ==
+          QJsonObject{{QStringLiteral("label"), QStringLiteral("Mapa")},
+                      {QStringLiteral("format"), QStringLiteral("I")},
+                      {QStringLiteral("perChapter"), true},
+                      {QStringLiteral("withChapter"), true},
+                      {QStringLiteral("separator"), QStringLiteral("–")}});
+    CHECK(saved.value(QStringLiteral("reference")).toString() == QStringLiteral("label"));
+
+    // Read back unchanged, with the fields of a later version kept
+    QJsonObject withExtra = json;
+    QJsonArray books = json.value(QStringLiteral("books")).toArray();
+    QJsonObject book = books.at(0).toObject();
+    QJsonObject ownCaptions = saved;
+    ownCaptions.insert(QStringLiteral("style"), QStringLiteral("caption"));
+    book.insert(QStringLiteral("captions"), ownCaptions);
+    books[0] = book;
+    withExtra.insert(QStringLiteral("books"), books);
+    QStringList problems;
+    const std::optional<BookProject> read = BookProject::fromJson(withExtra, problems);
+    INFO(joined(problems));
+    REQUIRE(read.has_value());
+    REQUIRE(read->books.first().captions.has_value());
+    CHECK(read->books.first().captions->labels == captions.labels);
+    CHECK(read->books.first().captions->numbering == captions.numbering);
+    CHECK(read->books.first().captions->extra.value(QStringLiteral("style")).toString() ==
+          QStringLiteral("caption"));
+    CHECK(read->toJson() == withExtra);
+
+    // The numbering of a label, the default one without its own
+    CHECK(captions.numberingOf(QStringLiteral("Mapa")) == maps);
+    const CaptionLabelNumbering figures = captions.numberingOf(QStringLiteral("Rysunek"));
+    CHECK(figures.label == QStringLiteral("Rysunek"));
+    CHECK(figures.format == QStringLiteral("1"));
+    CHECK_FALSE(figures.perChapter);
+
+    // Problems
+    const auto captionProblems = [&json](const QJsonValue& value) {
+        QJsonObject broken = json;
+        QJsonArray list = broken.value(QStringLiteral("books")).toArray();
+        QJsonObject first = list.at(0).toObject();
+        first.insert(QStringLiteral("captions"), value);
+        list[0] = first;
+        broken.insert(QStringLiteral("books"), list);
+        QStringList found;
+        CHECK_FALSE(BookProject::fromJson(broken, found).has_value());
+        return found.join(QLatin1Char('\n'));
+    };
+    CHECK(captionProblems(12) == QStringLiteral("books[0].captions: must be an object"));
+    CHECK(captionProblems(QJsonObject{{QStringLiteral("labels"),
+                                       QJsonArray{QStringLiteral("Mapa"), QStringLiteral(" Mapa "), 4}}}) ==
+          QStringLiteral("books[0].captions.labels[1]: 'Mapa' is already in the list\n"
+                         "books[0].captions.labels[2]: must be a text that is not empty"));
+    CHECK(captionProblems(QJsonObject{
+              {QStringLiteral("numbering"),
+               QJsonArray{QJsonObject{{QStringLiteral("label"), QStringLiteral("Mapa")},
+                                      {QStringLiteral("format"), QStringLiteral("x")},
+                                      {QStringLiteral("separator"), QStringLiteral("/")}},
+                          QJsonObject{{QStringLiteral("label"), QStringLiteral("Mapa")}},
+                          QJsonObject{}}}}) ==
+          QStringLiteral("books[0].captions.numbering[0].format: must be \"1\", \"a\", \"A\", \"i\" or \"I\"\n"
+                         "books[0].captions.numbering[0].separator: must be \".\", \"–\" or \":\"\n"
+                         "books[0].captions.numbering[1].label: 'Mapa' already has its numbering\n"
+                         "books[0].captions.numbering[2].label: must be a text that is not empty"));
+    CHECK(captionProblems(QJsonObject{{QStringLiteral("reference"), QStringLiteral("page")}}) ==
+          QStringLiteral("books[0].captions.reference: must be \"number\", \"label\", \"caption\" or "
+                         "\"position\""));
+}

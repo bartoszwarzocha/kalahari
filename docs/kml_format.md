@@ -1,7 +1,8 @@
 # KML – Kalahari Markup Language
 
 KML is the XML format of chapter text: paragraphs and headings with their styles and own
-formatting, lists, tables, images, horizontal lines and breaks, inline formatting, links and annotations. This document describes the format as the
+formatting, lists, tables, images with their captions and cross-references, horizontal lines
+and breaks, inline formatting, links and annotations. This document describes the format as the
 application reads and writes it. The product specification of the format, including the
 elements planned for later versions, is section 4 of
 `project_docs/19_text_editor_functional_spec_pl.md`; the elements it lists that the editor does
@@ -59,8 +60,10 @@ reading.
 - **Paragraphs** are the children of the root element: `<p>`, or `<paragraph>` on reading,
   the headings `<h1>`, `<h2>` and `<h3>` (see [Paragraph](#paragraph)), the lists `<ol>` and
   `<ul>`, whose items are paragraphs too (see [Lists](#lists)), the tables `<table>`, whose
-  cells hold paragraphs (see [Tables](#tables)), and the objects `<hr/>`, `<scene-break/>` and
-  `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)).
+  cells hold paragraphs (see [Tables](#tables)), the objects `<hr/>`, `<scene-break/>` and
+  `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)), and the list
+  of figures `<list-of-figures/>` (see
+  [Captions, cross-references and the list of figures](#captions-cross-references-and-the-list-of-figures)).
 - **Annotations** – the writer's comments, TODOs and notes – are in an `<annotations>` element,
   a child of the root element before the paragraphs (see [Annotations](#annotations)).
 - Any other element at this level is skipped together with everything inside it, and text
@@ -82,17 +85,18 @@ reading.
 | `keep-together` | Flag | All its lines on one page |
 | `page-break-before` | Flag | Starts on a new page |
 | `widow-control` | Flag | No single line of it alone at the top or bottom of a page; on without the attribute |
+| `caption` | `above` | A caption above its image (see [Captions](#captions-cross-references-and-the-list-of-figures)); without it a caption is below its image |
 
 A paragraph without `align` has no alignment of its own and is shown with the alignment of its
 style; a style without one has the editor's default: justified, with the last line aligned to
 the left. The editor writes `align` only for paragraphs that have their own alignment. Other
 attributes are ignored and not written.
 
-The attributes from `indent-left` on are the paragraph's own formatting (Format > Paragraph):
-a part without its attribute is as the paragraph's style gives it, and the editor writes only
-the parts the paragraph has of its own, in the order of the table. The layout scales the
-lengths as it scales the style's own: in the proportion of the editor's font size to the size
-of Normal in the style pack.
+The attributes from `indent-left` to `widow-control` are the paragraph's own formatting
+(Format > Paragraph): a part without its attribute is as the paragraph's style gives it, and
+the editor writes only the parts the paragraph has of its own, in the order of the table. The
+layout scales the lengths as it scales the style's own: in the proportion of the editor's font
+size to the size of Normal in the style pack. The editor writes `caption` after them.
 
 - A number is written with at most two decimals and a point (`indent-first="-18"`,
   `line-height="1.15"`). A value outside its range is brought into it; one that is not a
@@ -370,8 +374,73 @@ it: its first item gets the number it has in the chapter as `value`.
   name gets a number (`map-2.png`), and a file of the same content is used again. A pasted
   picture is saved as PNG. A text outside a book that was never saved has no folder: it takes
   no images until it is saved, and saved in another folder, its images are copied along.
+- **Smaller copies.** With the setting `editor.images.downscale` on (Settings > Editor > Images,
+  "Make copies of large images smaller"), the copy of an inserted, dropped or pasted file with
+  more dots per inch than `editor.images.maxDpi` (300 without it), at the width the image gets
+  in the text, is made smaller to these, in the file's format and with its name. An SVG, an
+  animation and a file of a format Kalahari cannot write are copied as they are, and so is
+  every file with the setting off, a pasted picture, and the file of Change Image.... A width
+  of the image changed later does not change its copy.
 - **Copied** to another book, an image takes its file along: it is copied into that book's
   folder of images, in the same undo step as the paste.
+
+## Captions, cross-references and the list of figures
+
+```xml
+<p align="center"><img src="images/bridge-1931.jpg" alt="The bridge over the river in 1931" width="80%"/></p>
+<p style="caption">Figure <caption-number label="Figure" id="c4f1a2"/>. The bridge in 1931</p>
+<p>The bridge (figure <cross-reference to="c4f1a2"/>) is shown <cross-reference to="c4f1a2" show="position"/>.</p>
+<h2>List of Figures</h2>
+<list-of-figures/>
+```
+
+A **caption** is a paragraph in the style Caption (`caption`) right after its image's paragraph,
+or right before it with `caption="above"`, in the same table cell when the image is in a
+table: Insert > Caption... (also Image > Insert Caption...) gives an image one, Image
+Properties > Caption changes it. Its label ("Figure") is plain text the writer can change;
+its number is a field:
+
+| Element | Attribute | Value | Meaning |
+|---------|-----------|-------|---------|
+| `<caption-number>` | `label` | Text, at most 40 characters | The label it counts: each label has a numbering of its own |
+| | `id` | Text, unique in the book (the editor writes `c` and six hexadecimal digits) | The id cross-references name it by |
+| `<cross-reference>` | `to` | The `id` of a `<caption-number>` | The caption it names |
+| | `show` | `number`, `label`, `caption`, `position`; `number` without it | What it shows: the number ("3"), the label and number ("Figure 3"), the whole caption ("Figure 3. The bridge in 1931"), or where the caption is ("above" or "below", in the language of the program) |
+| | `link` | `false` | Ctrl+click does not go to the caption's image; without it, it does |
+| `<list-of-figures/>` | | | A block of its own between paragraphs: the numbered captions of the book with their numbers, in the order of the book |
+
+- **A field** – a number or a cross-reference – is one character of its paragraph: the cursor
+  passes it with one key press, and Backspace or Delete removes it whole. The program gives its
+  text, on a gray background (Settings > Editor > Colors, "Fields (caption numbers,
+  cross-references)"); a cross-reference to a caption the book does not have shows "?" on a
+  background of its own. A field has no text of its own in the file: it adds nothing to the
+  word and character counts. It goes in any paragraph, inside the formatting elements of its
+  place, which give its text their look.
+- **The numbers.** The numbers of a label count its `<caption-number>` elements in the order of
+  the book – the front part, the main part, the back part, each in the order of the Navigator –
+  through the whole book, or anew in each chapter. A chapter is a text of the book type's main
+  kind in the main part (a chapter of a novel); the texts after it, up to the next one, are in
+  it, and the front part is before the first chapter. Numbered anew in each chapter, the back
+  part starts anew too, without a chapter's number. The number is `1`, `a`, `A`, `i` or `I`;
+  numbered anew in each chapter, it may have the chapter's number first, with `.`, `–` or `:`
+  between them (`2.3`). The numbering of each label is the book's,
+  in the project file (`captions` of the book, Insert Caption > Numbering...); a new book takes
+  it, and its labels, from the settings `editor.captions.*` (Settings > Editor > Images). A
+  text outside a book is numbered by those settings.
+- **The ids.** A `<caption-number>` without a `label` is left out, and one without an `id` gets
+  a new one. A `<cross-reference>` without a `to` is left out. A copied caption gets a new id
+  when the book has its id already (cut and pasted, it keeps it, and so its cross-references
+  stay); a copied cross-reference keeps its `to`.
+- **The list of figures** (Insert > List of Figures, with the heading "List of Figures" before
+  it) has the captions of every label, each line the whole caption; it follows the captions as
+  they change, has no page numbers, and Ctrl+click on a line goes to its image. Without
+  numbered captions it says so. Its attributes and content are ignored, and the editor writes
+  the empty element.
+- An image removed together with its caption removes it in the same undo step; when
+  cross-references name the caption, the editor asks first.
+- **The clipboard.** Copied text carries its fields and lists of figures as KML; the HTML and
+  the plain text for other programs have the text each shows, a list of figures a paragraph
+  (a line) for each of its lines.
 
 ## Text
 
@@ -541,6 +610,8 @@ tests in `tests/editor/test_clipboard_paste.cpp`).
 | `caps`, `spacing` | CSS `font-variant:small-caps` or `text-transform:uppercase`, `letter-spacing` in points | – |
 | `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
 | `<table>` | `<table>` as wide as the text with a thin grid (`border="1"`, `border-collapse:collapse`), the header row in a `<thead>` of `<th>` cells, `colspan` and `rowspan`, the widths of the columns on the cells of the first row | A line for each row, its cells separated by tabs (one also for a cell that a cell above spans into), the paragraphs of a cell by spaces |
+| `<caption-number>`, `<cross-reference>` | The text it shows | The text it shows |
+| `<list-of-figures/>` | A paragraph for each of its lines | Each of its lines on a line |
 | `<img>` | `<img>` with the address of its file (`file:`), its `alt` and its width as CSS `width` (`80%`, `4.5cm`); left out when the text has no folder or its `src` is not one of the book's files. An image copied alone is also on the clipboard as a picture | Left out |
 
 The HTML of another program (Word, LibreOffice, a browser) is pasted, and dropped, in the mode

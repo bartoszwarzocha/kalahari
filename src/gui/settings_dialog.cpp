@@ -119,6 +119,13 @@ void SettingsDialog::createNavigationTree() {
     m_pageItems[PAGES_PAGE] =
         addPage(editor, tr("Pages and Margins"), []() { return new EditorPagesPage(); });
     m_pageItems[MARGIN_NUMBERING_PAGE] = m_pageItems[PAGES_PAGE];
+    //: Settings > Editor > Images: new images, the captions of new books. In Polish: Obrazy
+    m_pageItems[IMAGES_PAGE] = addPage(editor, tr("Images"), [this]() {
+        auto* imagesPage = new EditorImagesPage();
+        connect(imagesPage, &EditorImagesPage::colorsPageAsked, this,
+                [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
+        return imagesPage;
+    });
     m_pageItems[SPELLING_PAGE] =
         addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });

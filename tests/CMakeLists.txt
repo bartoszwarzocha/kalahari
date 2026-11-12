@@ -84,6 +84,7 @@ set(TEST_SOURCES
     editor/test_list_editing.cpp                 # Lists: editing, indents, numbering, auto-correct
     editor/test_text_links.cpp                   # Links: KML, editing, the clipboard, auto-correct
     editor/test_text_images.cpp                  # Images: KML, the store of files, layout, drawing, commands
+    editor/test_text_captions.cpp                # Captions: numbers, cross-references, list of figures
     editor/test_image_look.cpp                   # Images: their look (turn, crop, filters, frame)
     editor/test_tables.cpp                       # Tables: the model, KML, the layout, the keys
     editor/test_table_commands.cpp              # The Table menu in the text
@@ -182,6 +183,8 @@ set(TEST_SOURCES
     gui/test_insert_table_dialog.cpp             # Insert > Table...
     gui/test_table_dialogs.cpp                   # The windows of the Table menu
     gui/test_image_properties_dialog.cpp         # Image > Image Properties...
+    gui/test_caption_dialogs.cpp                 # Insert Caption, Caption Numbering, Insert Cross-Reference
+    gui/test_caption_coordinator.cpp             # Captions of the book, one filter for all images
     gui/test_format_dialogs.cpp                  # Format > Font..., Paragraph..., the color submenus
     gui/test_quick_character_palette.cpp         # Insert > Quick Character: the palette at the cursor
     gui/test_formatting_characters.cpp           # Insert > Formatting Character
@@ -248,6 +251,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_lists.cpp        # Bulleted and numbered lists
     ${CMAKE_SOURCE_DIR}/src/editor/text_tables.cpp       # Tables of the text
     ${CMAKE_SOURCE_DIR}/src/editor/text_images.cpp       # Images of the text
+    ${CMAKE_SOURCE_DIR}/src/editor/text_captions.cpp     # Numbered captions, cross-references, the list of figures
     ${CMAKE_SOURCE_DIR}/src/editor/image_store.cpp       # The image files of a book
     ${CMAKE_SOURCE_DIR}/src/editor/table_editing.cpp     # Changes of tables (the Table menu)
     ${CMAKE_SOURCE_DIR}/src/editor/text_sorting.cpp      # Sorting rows and paragraphs
@@ -265,6 +269,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_lists.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_links.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_images.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_captions.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_image_look.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
@@ -301,6 +306,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/grammar_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/appearance_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/editor_pages.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/images_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/auto_correct_page.cpp  # Settings > Editor > Auto-correct
     ${CMAKE_SOURCE_DIR}/src/gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
     ${CMAKE_SOURCE_DIR}/src/gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
@@ -364,6 +370,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
     ${CMAKE_SOURCE_DIR}/src/gui/book_styles.cpp             # The paragraph styles of the open book
     ${CMAKE_SOURCE_DIR}/src/gui/style_draft.cpp             # A style as the window of a style changes it
+    ${CMAKE_SOURCE_DIR}/src/gui/caption_settings.cpp        # The settings of new images and captions
+    ${CMAKE_SOURCE_DIR}/src/gui/caption_coordinator.cpp     # The numbered captions of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/image_filter_coordinator.cpp  # One filter for every image of the book
     ${CMAKE_SOURCE_DIR}/src/gui/style_coordinator.cpp       # New, changed and deleted styles of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/style_dialog.cpp    # New Style and Modify Style
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/manage_styles_dialog.cpp  # Manage Styles
@@ -433,6 +442,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/paragraph_dialog.cpp  # Format > Paragraph...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/hyperlink_dialog.cpp  # Insert > Link...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/insert_table_dialog.cpp  # Insert > Table...
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/caption_dialogs.cpp  # The windows of captions
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/table_dialogs.cpp  # The windows of the Table menu
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/image_properties_dialog.cpp  # Image > Image Properties...
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/character_grid.cpp           # Characters in cells, in the font of the text
@@ -578,6 +588,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_dialog.h  # Format > Paragraph... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/hyperlink_dialog.h  # Insert > Link... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/caption_dialogs.h  # The windows of captions, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/table_dialogs.h  # The windows of the Table menu, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/image_properties_dialog.h  # Image Properties, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
@@ -595,6 +606,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
