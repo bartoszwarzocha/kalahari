@@ -381,6 +381,15 @@ public:
     /// @brief Set what draws the room under the paragraphs (an empty one: nothing)
     void setParagraphDecorator(ParagraphDecorator decorator);
 
+    /// @brief Draws what a page has besides its lines (its footnotes, the endnotes on it)
+    ///
+    /// Called after the text, in the page view only, with the painter at the top left of the
+    /// page's text area, zoomed as its text.
+    using PageDecorator = std::function<void(QPainter* painter, int page)>;
+
+    /// @brief Set what draws on the pages besides their lines (an empty one: nothing)
+    void setPageDecorator(PageDecorator decorator);
+
     /// @brief A fragment of the text shown in a color: a fill under it, a line along its
     ///        bottom (the fragment of the annotation whose card the mouse is on)
     struct FragmentHighlight {
@@ -614,6 +623,9 @@ private:
     /// @brief Draw what a paragraph has in the room under its text (the decorator)
     void renderParagraphDecoration(QPainter* painter, size_t index, double widgetY);
 
+    /// @brief Draw what the pages in the clip rect have besides their lines (the decorator)
+    void renderPageDecorations(QPainter* painter, const QRect& clipRect);
+
     /// @brief Draw the marks beside the paragraphs (in the left margin)
     void renderParagraphMarks(QPainter* painter, const QRect& clipRect);
 
@@ -689,6 +701,7 @@ private:
     RepetitionMarkStyle m_repetitionStyle = RepetitionMarkStyle::Background;
     std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
+    PageDecorator m_pageDecorator;               ///< Draws on the pages besides their lines
     std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs
     QIcon m_paragraphMarkIcon;                       ///< What they show
 

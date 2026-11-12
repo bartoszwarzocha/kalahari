@@ -55,8 +55,8 @@ constexpr const char* PASTE_MODE_TEXT = "text";
 // =============================================================================
 
 /// @brief The marks and numbers of the list items of KML, in the order of their <li>
-///        elements, and the texts of its fields: what ClipboardHandler::kmlToText() and
-///        kmlToHtml() write for them
+///        elements, the texts of its fields and the numbers of its notes: what
+///        ClipboardHandler::kmlToText() and kmlToHtml() write for them
 struct ListMarks {
     std::vector<QString> marks;  ///< The number with its suffix, or the bullet; empty for an
                                  ///< item without one
@@ -64,6 +64,8 @@ struct ListMarks {
     std::vector<QString> fields;  ///< The text of each <caption-number> and <cross-reference>,
                                   ///< and of each <list-of-figures> (its rows, one a line),
                                   ///< in the order of the elements
+    std::vector<QString> notes;   ///< The number of each note (<footnote>, <endnote>), in the
+                                  ///< order of the elements
 };
 
 // =============================================================================
@@ -129,13 +131,16 @@ public:
     /// the first item (start) and of an item that does not go on from the one before it
     /// (value); an item without a number has none shown. A table is a table as wide as the
     /// text with a thin grid, its header row in a thead of th cells, its merged cells (colspan,
-    /// rowspan) and the widths of its columns on the cells of its first row.
+    /// rowspan) and the widths of its columns on the cells of its first row. A footnote or an
+    /// endnote is its number, raised, a link to its text after the text, as LibreOffice
+    /// writes it (sdfootnoteanc, sdendnoteanc; the footnotes first): Word and LibreOffice
+    /// paste it as a note.
     /// @param kml KML markup string
     /// @param sceneBreakStyle The look of the scene breaks, as sceneBreakStyle() gives it;
     ///        empty: the setting
-    /// @param marks The numbers of the list items, as the editor shows them (a part of a list
-    ///        copied goes on from the number of its first item); nullptr: as the KML counts
-    ///        them (listMarksOf())
+    /// @param marks The numbers of the list items and of the notes, as the editor shows them
+    ///        (a part of a list copied goes on from the number of its first item); nullptr: as
+    ///        the KML counts them (listMarksOf())
     /// @param imagesFolder The main folder the images name their files in: an image is an img
     ///        of its file's address, its text and width; empty: the images are left out
     /// @return HTML string with equivalent formatting
@@ -180,7 +185,10 @@ public:
     /// page or a script, and any link in Text, is its text. Merge and Source make the tables
     /// tables of the editor, with their merged cells, the widths of their columns and their
     /// header row (a thead, or a first row of th cells); in Text, and in a cell of a table, a
-    /// row is a paragraph with its cells separated by tabs. An image is left out.
+    /// row is a paragraph with its cells separated by tabs. An image is left out. The footnotes
+    /// and endnotes of LibreOffice and Word are notes, with their paragraphs, emphasis and
+    /// links; in Text their numbers stay text and their texts come after the text, a
+    /// paragraph each after its number.
     /// @param html HTML markup string
     /// @param mode What the KML keeps
     /// @return KML (<kml> with the paragraphs), empty without text, lines and page breaks
@@ -217,17 +225,20 @@ public:
     /// for "blank") and a page break a form feed on a line of its own.
     /// A list item starts with its number or bullet and a space, after a tab for each level
     /// below the first. Each row of a table is a line, with a tab before each of its cells but
-    /// those of the first column, and the paragraphs of a cell separated by spaces.
+    /// those of the first column, and the paragraphs of a cell separated by spaces. A note is
+    /// its number in the text; after the text and an empty line each note is a line after its
+    /// number, the footnotes first.
     /// @param kml KML markup string
     /// @param sceneBreakStyle The look of the scene breaks, as sceneBreakStyle() gives it;
     ///        empty: the setting
-    /// @param marks The marks of the list items, as the editor shows them; nullptr: as the
-    ///        KML counts them (listMarksOf())
+    /// @param marks The marks of the list items and the numbers of the notes, as the editor
+    ///        shows them; nullptr: as the KML counts them (listMarksOf())
     /// @return Plain text without any formatting
     static QString kmlToText(const QString& kml, const QString& sceneBreakStyle = QString(),
                              const ListMarks* marks = nullptr);
 
-    /// @brief The marks and numbers of the list items of KML as it counts them alone
+    /// @brief The marks and numbers of the list items of KML, its fields and its notes as it
+    ///        counts them alone
     static ListMarks listMarksOf(const QString& kml);
 };
 

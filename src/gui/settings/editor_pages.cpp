@@ -620,6 +620,11 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
         //: The background of a cross-reference whose caption was deleted. In Polish:
         //: Odsyłacze do usuniętych podpisów
         addThemeColor(form, tr("Cross-references to deleted captions"), keys.brokenField);
+        //: The short line above the footnotes at the bottom of a page and under a paragraph.
+        //: In Polish: Linia nad przypisami
+        addThemeColor(form, tr("Line above the notes"), keys.noteLine);
+        //: The frame a footnote's or an endnote's text is written in. In Polish: Ramka przypisu
+        addThemeColor(form, tr("Frame of a note"), keys.noteFrame);
         addThemeColor(form, tr("Around the paper"), keys.desk);
         addRestoreColorsButton(form);
     };

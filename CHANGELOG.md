@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Footnotes and endnotes** - 2026-11-12. Insert > Footnote (Alt+Shift+F) and Endnote
+  (Alt+Shift+E; Ctrl+Alt+Shift on macOS) put a note's number at the cursor, raised, and open a
+  frame at the place of the note's text, in the colors of the paper. The text can have bold,
+  italic and underline (Ctrl+B, I, U), links (Ctrl+K) – with the keys those commands have – and
+  paragraphs (Enter; Shift+Enter a line break); pasted text keeps only these. Ctrl+Enter keeps the text, in one step of Undo with
+  the number; Esc or the frame's X takes a new note away again, or drops the changes of one
+  edited again; going anywhere else keeps the text. The footnotes are at the bottom of the
+  page of their number in the page view, under a short line: a line whose note does not start
+  on its page goes to the next page, and a long note goes on at the bottom of the next one
+  under a line across the text. In the continuous views a footnote is under its paragraph,
+  before the annotation cards, and the endnotes are after the last paragraph. They are
+  numbered 1, 2, 3 and i, ii, iii in each text. A click on a note's text, a double click on
+  its number or Edit Footnote in the number's context menu open its frame; the menu also
+  converts a footnote to an endnote and back and deletes the note, and the number's tooltip
+  shows its text. Copied, a note goes with its number: other programs get the number and the
+  note after the text, as LibreOffice writes it in HTML, and the notes after the text in plain
+  text. The notes of Word and LibreOffice are pasted as notes; a number without its note's
+  text and a note's text without its number stay text. The colors of the line above
+  the notes and of the note's frame are set per paper in Settings > Editor > Colors. A plain
+  text file keeps no notes. KML keeps them as `<footnote id>` and `<endnote id>` with their
+  text inside (docs/kml_format.md); the old `<footnote>` with a `number` is read as its text.
 - **Images: numbered captions, cross-references and the list of figures** - 2026-11-12.
   Insert > Caption... (Ctrl+Shift+G, also with the cursor just after the image), Image >
   Insert Caption... and the context menu of an image give the image a caption: a paragraph in

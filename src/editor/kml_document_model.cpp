@@ -984,23 +984,25 @@ bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 textObjectOfElement(tag) == TextObject::None) {
                 return false;  // a paragraph or a list inside a list item
             }
-            if (tag == QStringLiteral("footnote") && isOldFootnote(reader.attributes())) {
-                // The old footnote on a range of the text (with its number): the text stays,
-                // without a mark
-                reader.readNext();
-                parseInlineContent(reader, para, currentFormat, tag);
-            } else if (tag == QStringLiteral("footnote") || tag == QStringLiteral("endnote")) {
-                // A note: its number in the format of its place, its text inside it. One
-                // without an id, or with the id of a note read before, gets one of its own.
-                Footnote note = readNoteElement(reader);
-                if (note.id.isEmpty() || m_noteIds.contains(note.id)) {
-                    note.id = newFootnoteId(m_noteIds);
+            if (tag == QStringLiteral("footnote") || tag == QStringLiteral("endnote")) {
+                if (tag == QStringLiteral("footnote") && isOldFootnote(reader.attributes())) {
+                    // The old footnote on a range of the text (with its number): the text
+                    // stays, without a mark
+                    reader.readNext();
+                    parseInlineContent(reader, para, currentFormat, tag);
+                } else {
+                    // A note: its number in the format of its place, its text inside it. One
+                    // without an id, or with the id of a note read before, gets one of its own.
+                    Footnote note = readNoteElement(reader);
+                    if (note.id.isEmpty() || m_noteIds.contains(note.id)) {
+                        note.id = newFootnoteId(m_noteIds);
+                    }
+                    m_noteIds.insert(note.id);
+                    QTextCharFormat format = currentFormat;
+                    setFootnote(format, note);
+                    appendObject(para, format);
+                    reader.readNext();
                 }
-                m_noteIds.insert(note.id);
-                QTextCharFormat format = currentFormat;
-                setFootnote(format, note);
-                appendObject(para, format);
-                reader.readNext();
             } else if (KmlFormatRegistry::isFormattingTag(tag)) {
                 // Apply formatting tag
                 QTextCharFormat newFormat = KmlFormatRegistry::applyTagFormat(tag, currentFormat);

@@ -49,6 +49,9 @@ inline constexpr int FOOTNOTE_ENDNOTE_PROPERTY = QTextFormat::UserProperty + 211
 /// @brief The note's text: KML of the inside of a paragraph, or of its <p> elements (QString)
 inline constexpr int FOOTNOTE_CONTENT_PROPERTY = QTextFormat::UserProperty + 212;
 
+/// @brief The paragraph style the text of the notes is shown in
+inline constexpr const char* FOOTNOTE_STYLE_ID = "footnote";
+
 /// @brief What a note is
 enum class NoteKind {
     Footnote,  ///< At the bottom of its page
@@ -147,6 +150,9 @@ public:
     /// @brief The number the note at a position shows (empty: no note there)
     QString numberAt(int position) const;
 
+    /// @brief The number of the note @p index of notes()
+    const QString& number(size_t index) const { return m_numbers.at(index); }
+
     /// @brief The number of the note with an id (empty: none)
     QString numberOf(const QString& id) const;
 
@@ -177,6 +183,9 @@ struct NoteParagraph {
 
 /// @brief The paragraphs of a note's text (at least one)
 std::vector<NoteParagraph> noteParagraphs(const QString& content);
+
+/// @brief A note's text as KML paragraphs: its <p> elements, or its inline text in one
+QString noteParagraphsKml(const QString& content);
 
 /// @brief A note's text as plain text: its paragraphs one a line, a line break a space
 QString notePlainText(const QString& content);

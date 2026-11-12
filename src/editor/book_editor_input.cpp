@@ -544,6 +544,14 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
             event->accept();
             return;
         }
+        // A click on a note's text writes it in its frame
+        if (const QString note = noteTextAt(event->position()); !note.isEmpty()) {
+            if (!m_readOnly) {
+                emit noteEditRequested(note);
+            }
+            event->accept();
+            return;
+        }
         const std::optional<AnnotationMark> mark =
             m_renderPipeline ? m_renderPipeline->annotationMarkDetailsAt(event->position())
                              : std::nullopt;
@@ -860,6 +868,16 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
         return;
     }
 
+    // A double click on a note's number writes its text in its frame (or on its text, which
+    // the first click opened)
+    if (const std::optional<NotePlace> note = noteAt(event->position())) {
+        if (!m_readOnly) {
+            emit noteEditRequested(note->note.id);
+        }
+        event->accept();
+        return;
+    }
+
     // Position cursor at double-click location
     CursorPosition clickPosition = positionFromPoint(event->position());
     m_cursorPosition = clickPosition;
@@ -1156,6 +1174,19 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         }
     }
 
+    // On a note's number or its text: the cursor goes after the number, the menu is the note's
+    if (event->reason() == QContextMenuEvent::Mouse) {
+        if (const std::optional<NotePlace> note = noteAt(QPointF(event->pos()))) {
+            const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+            const CursorPosition after = calculateCursorPosition(note->position + 1);
+            clearSelection();
+            m_selectionAnchor = after;
+            setCursorPosition(after);
+            showContextMenu(m_cursorPosition, event->globalPos(), false);
+            return;
+        }
+    }
+
     const CursorPosition pos = positionFromPoint(event->pos());
     if (pos.paragraph < 0) {
         QWidget::contextMenuEvent(event);
@@ -1224,6 +1255,16 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
     } else if (grammarError.has_value()) {
         addGrammarActions(menu, *grammarError, pos.paragraph);
+    }
+
+    // The note whose number is at the cursor: edit its text, make it the other kind, delete it
+    // (as in the mockup approved on 12.10.2026)
+    if (const std::optional<NotePlace> note = noteAtCursor()) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        addNoteActions(menu, *note);
+        menu.addSeparator();
     }
 
     // The selected image: its properties, caption, file and size, as in Word

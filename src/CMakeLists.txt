@@ -234,6 +234,7 @@ set(KALAHARI_SOURCES
     gui/style_coordinator.cpp  # StyleCoordinator - new, changed, deleted styles of the book
     gui/caption_settings.cpp  # The settings of new images and of the captions of new books
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
+    gui/footnote_coordinator.cpp  # FootnoteCoordinator - Insert > Footnote, Endnote and the frame of a note
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
     gui/dialogs/style_dialog.cpp  # StyleDialog - New Style and Modify Style, in two variants
     gui/dialogs/manage_styles_dialog.cpp  # ManageStylesDialog - Format > Text Style > Manage Styles
@@ -308,6 +309,8 @@ set(KALAHARI_SOURCES
     gui/panels/annotation_colors.cpp
     gui/panels/annotation_entry.cpp
     gui/panels/annotation_frame.cpp
+    gui/panels/note_frame.cpp  # The frame a note's text is written in
+    gui/panels/writing_frame.cpp  # A frame over the editor a text is written in
     gui/panels/annotations_panel.cpp
     gui/panels/assistant_panel.cpp
     gui/panels/dashboard_panel.cpp
@@ -354,6 +357,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_formatting.cpp
     editor/book_editor_lists.cpp
     editor/book_editor_links.cpp
+    editor/book_editor_notes.cpp  # BookEditor: footnotes and endnotes
     editor/book_editor_images.cpp
     editor/book_editor_captions.cpp
     editor/book_editor_image_look.cpp
@@ -381,6 +385,7 @@ set(KALAHARI_SOURCES
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
+    editor/kalahari_text_document_layout_notes.cpp  # The layout of the notes: numbers, under paragraphs, at the bottom of pages
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
@@ -439,6 +444,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
@@ -492,6 +498,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/find_replace_bar.h  # FindReplaceBar with Q_OBJECT (OpenSpec #00044 Task 9.6)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_card.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotation_frame.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/note_frame.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/writing_frame.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/annotations_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/assistant_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h

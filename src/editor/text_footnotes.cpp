@@ -63,15 +63,16 @@ void collectNotes(const QTextBlock& block, std::vector<NotePlace>& notes) {
         if (!fragment.isValid()) {
             continue;
         }
-        const std::optional<Footnote> note = footnoteOf(fragment.charFormat());
-        if (!note) {
+        const std::optional<Footnote> found = footnoteOf(fragment.charFormat());
+        if (!found) {
             continue;
         }
+        const Footnote& note = *found;
         // Numbers of one format next to each other are one fragment (a note pasted twice)
         const QString text = fragment.text();
         for (int i = 0; i < text.size(); ++i) {
             if (text.at(i) == QChar::ObjectReplacementCharacter) {
-                notes.push_back({fragment.position() + i, *note});
+                notes.push_back({fragment.position() + i, note});
             }
         }
     }
@@ -258,11 +259,14 @@ bool NoteParagraph::operator==(const NoteParagraph& other) const {
     return true;
 }
 
+QString noteParagraphsKml(const QString& content) {
+    return hasParagraphElements(content) ? content
+                                         : QStringLiteral("<p>") + content + QStringLiteral("</p>");
+}
+
 std::vector<NoteParagraph> noteParagraphs(const QString& content) {
     KmlDocumentModel model;
-    model.loadKml(hasParagraphElements(content) ? content
-                                                : QStringLiteral("<p>") + content +
-                                                      QStringLiteral("</p>"));
+    model.loadKml(noteParagraphsKml(content));
     std::vector<NoteParagraph> paragraphs;
     for (size_t i = 0; i < model.paragraphCount(); ++i) {
         if (model.paragraphObject(i) != TextObject::None) {

@@ -457,8 +457,13 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY_CB("insert.link", QT_TRANSLATE_NOOP("CommandRegistrar", "&Link..."), "INSERT/Link...", 30, true, 1,
                    KeyboardShortcut(Qt::Key_K, Qt::ControlModifier), callbacks.onInsertLink);
 
-    REG_CMD("insert.footnote", QT_TRANSLATE_NOOP("CommandRegistrar", "F&ootnote"), "INSERT/Footnote", 40, false, 1);
-    REG_CMD("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Endnote"), "INSERT/Endnote", 50, false, 1);
+    // A note: its number at the cursor and the frame of its text (Alt+Shift+F and Alt+Shift+E,
+    // on macOS Shift+Option+Cmd; Word's Ctrl+Alt+F and Ctrl+Alt+D are AltGr on Polish
+    // keyboards). FootnoteCoordinator gives them their callbacks.
+    REG_CMD_KEY("insert.footnote", QT_TRANSLATE_NOOP("CommandRegistrar", "F&ootnote"), "INSERT/Footnote", 40, false, 1,
+                KeyboardShortcut(Qt::Key_F, pasteModifiers));
+    REG_CMD_KEY("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Endnote"), "INSERT/Endnote", 50, false, 1,
+                KeyboardShortcut(Qt::Key_E, pasteModifiers));
 
     // Annotations on the text; AnnotationsCoordinator gives them their callbacks. Add
     // Annotation opens a small menu of the kinds at the cursor. Not Ctrl+M (it minimizes

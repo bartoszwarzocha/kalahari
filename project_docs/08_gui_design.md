@@ -1564,6 +1564,8 @@ Rules for a new shortcut:
 | Insert > Add Annotation... | Ctrl+Shift+M |
 | Insert > Quick Insert... | Ctrl+Shift+W |
 | Insert > Caption... | Ctrl+Shift+G (also with the cursor just after the image) |
+| Insert > Footnote | Alt+Shift+F (macOS: Cmd+Option+Shift+F) |
+| Insert > Endnote | Alt+Shift+E (macOS: Cmd+Option+Shift+E) |
 | Format > Bold | Ctrl+B |
 | Format > Italic | Ctrl+I |
 | Format > Underline | Ctrl+U |
@@ -1612,7 +1614,9 @@ may have them too.
 - **Find bar:** Enter – next match, Shift+Enter – previous match, Enter in the replace
   field – replace, Esc – close, Alt+C – match case, Alt+W – whole words, Alt+R – regular
   expression (in the bar and in the text under it, before the menus with these letters).
-- **Annotation frame:** Ctrl+Enter – keep the text, Esc – drop it.
+- **Annotation and note frames:** Ctrl+Enter – keep the text, Esc – drop it (for a new note:
+  take the note back); in the note frame Ctrl+B, Ctrl+I, Ctrl+U and Ctrl+K – bold, italic,
+  underline and a link, with the keys those commands have.
 - **An image in the text** (only while one is selected, so a command may have them too):
   Ctrl+] and Ctrl+[ – larger and smaller by 5% of its width, Esc – back to the text, the
   cursor after it; while it is cropped in the text (Image > Crop) Enter – crop it, Esc –
@@ -1848,8 +1852,8 @@ Studio Code and Visual Studio. `src/gui/settings/shortcuts_page.cpp`.
 
 - **The list:** the commands in the groups and the order of the menus (a submenu as
   "Open › Open File..."), then the fixed keys of each place (Fixed: in the text, tabs, the
-  find bar, the annotation frame, the Annotations panel, Distraction-Free, the menus on
-  Windows and Linux) and the keys of the system (Fixed: the Windows system, the Linux
+  find bar, the annotation and note frames, the Annotations panel, Distraction-Free, the
+  menus on Windows and Linux) and the keys of the system (Fixed: the Windows system, the Linux
   desktop or the macOS system), muted, with a lock after the name. A changed shortcut is
   bold with a mark (●), and its tooltip names the default. A command the program does not
   run yet says so after its name ("not available yet" for Kalahari Help, "in preparation"

@@ -28,6 +28,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_images.h>
@@ -908,6 +909,70 @@ public:
 
     /// @brief The link of the character under a point of the widget
     std::optional<TextLink> linkAt(const QPointF& widgetPos) const;
+
+    // =========================================================================
+    // Notes: footnotes and endnotes (text_footnotes.h, book_editor_notes.cpp)
+    // =========================================================================
+
+    /// @brief Insert > Footnote (Alt+Shift+F), Endnote (Alt+Shift+E): a new note's number at
+    ///        the cursor (after the selection), its text empty, as one undo step
+    ///
+    /// The cursor goes after the number. The text written in the note's frame joins the step
+    /// (setNoteContent() with joinInsertion), and Esc on the new note undoes it
+    /// (cancelNewNote()).
+    /// @return The new note's id; empty when none was inserted (a read-only text)
+    QString insertNote(NoteKind kind);
+
+    /// @brief The note with an id at its place (std::nullopt: none)
+    std::optional<NotePlace> noteOf(const QString& id) const;
+
+    /// @brief The number a note shows ("3", "ii"); empty: no note with the id
+    QString noteNumber(const QString& id) const;
+
+    /// @brief The note whose number is at the cursor: just before it, or selected alone
+    ///        (std::nullopt: none)
+    std::optional<NotePlace> noteAtCursor() const;
+
+    /// @brief The note whose number or text is at a point of the widget (std::nullopt: none)
+    std::optional<NotePlace> noteAt(const QPointF& widgetPos) const;
+
+    /// @brief Give a note the text written in its frame (KML of its paragraphs), as one undo
+    ///        step
+    /// @param joinInsertion true: the text joins the step of the note's insertion, when
+    ///        nothing was done since (insertNote()); the note is no longer new after it
+    /// @return false without the note, or in a read-only text; true also when the text stays
+    bool setNoteContent(const QString& id, const QString& content, bool joinInsertion = false);
+
+    /// @brief Esc on a new note: its insertion undone, and not redone; the note goes anyway
+    ///        when something was done since
+    void cancelNewNote(const QString& id);
+
+    /// @brief Make a footnote an endnote, or an endnote a footnote, as one undo step
+    bool setNoteKind(const QString& id, NoteKind kind);
+
+    /// @brief Delete a note, its number with its text, as one undo step
+    bool removeNote(const QString& id);
+
+    /// @brief Where a note's text is in the editor: under its paragraph (or table) or after
+    ///        the last paragraph in the continuous views, at the bottom of its page or after
+    ///        the last line in the page view (its first part); empty when it is not laid out
+    QRectF noteRect(const QString& id) const;
+
+    /// @brief The frame over a note in the continuous views makes room for itself: the note
+    ///        takes @p height pixels of the editor under its paragraph; 0: its own height
+    void setNoteFrameRoom(const QString& id, qreal height);
+
+    /// @brief Scroll a note's text into view (its frame), the cursor's line kept in view when
+    ///        both fit
+    void scrollToNote(const QString& id);
+
+    /// @brief The font a note's text is written in, in its frame: the text's, as tall as the
+    ///        editor shows it now
+    QFont noteFrameFont() const;
+
+    /// @brief The name of a note with its number, in its frame, its tooltip and its menu
+    ///        ("Footnote 3", "Endnote ii")
+    static QString noteTitle(NoteKind kind, const QString& number);
 
     // =========================================================================
     // Images (text_images.h, image_store.h)
@@ -2092,6 +2157,10 @@ signals:
     /// @param id The annotation's id
     void annotationEditRequested(const QString& id);
 
+    /// @brief The writer asks to write a note's text in its frame: a click on its text, a
+    /// double click on its number, Edit Footnote in the menu
+    void noteEditRequested(const QString& id);
+
     /// @brief Emitted for Card Appearance and Colors... in the menu of a card
     void annotationCardSettingsRequested();
 
@@ -2645,6 +2714,13 @@ private:
     ///        Add Caption, Change Image..., Original Size, Save as Image...
     void addImageActions(QMenu& menu, int position);
 
+    /// @brief Add the items of a note to a context menu: Edit Footnote, Convert to Endnote (or
+    ///        Footnote), Delete Footnote
+    void addNoteActions(QMenu& menu, const NotePlace& note);
+
+    /// @brief The note whose text is at a point of the widget: its id; empty: none
+    QString noteTextAt(const QPointF& widgetPos) const;
+
     /// @brief Whether a position lies in the selection, its ends included
     bool isInSelection(const CursorPosition& position) const;
 
@@ -2769,6 +2845,10 @@ private:
 
     /// @brief Pasted numbers whose ids the book has already get ids of their own
     void renewPastedCaptionIds(int from, int to);
+
+    /// @brief The pasted notes in [from, to) whose ids the text has elsewhere get ids of their
+    ///        own, in the paste's undo step (a note cut and pasted keeps its id: it is gone)
+    void renewPastedNoteIds(int from, int to);
 
     // --- The Table menu (book_editor_table_commands.cpp) ---
 
@@ -3062,6 +3142,14 @@ private:
     ContextMenuImageActions m_contextMenuImageActions;  ///< The Image menu's, on an image
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
+
+    /// @brief The note inserted last, while nothing else was done since: its text and Esc
+    ///        join or undo its step (insertNote())
+    struct InsertedNote {
+        QString id;
+        int undoSteps = 0;  ///< The document's undo steps right after the insertion
+    };
+    std::optional<InsertedNote> m_insertedNote;
     AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
     qreal m_cardWritingHeight = 0.0;    ///< The frame over a card: its height (editor pixels)
     QString m_pressedCard;              ///< The card the last press went to (a double click edits it)

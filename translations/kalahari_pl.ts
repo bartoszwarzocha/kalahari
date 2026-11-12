@@ -3820,6 +3820,51 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>In Polish: Wstaw po&amp;dpis...</extracomment>
         <translation>Wstaw po&amp;dpis...</translation>
     </message>
+    <message>
+        <source>Endnote %1</source>
+        <extracomment>The note in its frame, its tooltip and its menu; %1 is its number. In Polish: Przypis końcowy %1</extracomment>
+        <translation>Przypis końcowy %1</translation>
+    </message>
+    <message>
+        <source>Footnote %1</source>
+        <extracomment>In Polish: Przypis dolny %1</extracomment>
+        <translation>Przypis dolny %1</translation>
+    </message>
+    <message>
+        <source>(no text)</source>
+        <extracomment>The tooltip of a note&apos;s number without its text. In Polish: (bez treści)</extracomment>
+        <translation>(bez treści)</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Endnote</source>
+        <extracomment>The context menu of a note&apos;s number. In Polish: &amp;Edytuj przypis</extracomment>
+        <translation>&amp;Edytuj przypis</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Footnote</source>
+        <extracomment>In Polish: &amp;Edytuj przypis</extracomment>
+        <translation>&amp;Edytuj przypis</translation>
+    </message>
+    <message>
+        <source>Con&amp;vert to Footnote</source>
+        <extracomment>In Polish: &amp;Zamień na przypis dolny</extracomment>
+        <translation>&amp;Zamień na przypis dolny</translation>
+    </message>
+    <message>
+        <source>Con&amp;vert to Endnote</source>
+        <extracomment>In Polish: &amp;Zamień na przypis końcowy</extracomment>
+        <translation>&amp;Zamień na przypis końcowy</translation>
+    </message>
+    <message>
+        <source>Delete Endn&amp;ote</source>
+        <extracomment>In Polish: &amp;Usuń przypis</extracomment>
+        <translation>&amp;Usuń przypis</translation>
+    </message>
+    <message>
+        <source>Delete F&amp;ootnote</source>
+        <extracomment>In Polish: &amp;Usuń przypis</extracomment>
+        <translation>&amp;Usuń przypis</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -4162,14 +4207,6 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>Save (%1)</source>
         <translation>Zapisz (%1)</translation>
-    </message>
-    <message>
-        <source>Cancel (Esc)</source>
-        <translation>Anuluj (Esc)</translation>
-    </message>
-    <message>
-        <source>Cancel</source>
-        <translation>Anuluj</translation>
     </message>
 </context>
 <context>
@@ -6449,6 +6486,16 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
     <message>
         <source>Table gridlines (no border)</source>
         <translation>Linie siatki tabel (bez obramowania)</translation>
+    </message>
+    <message>
+        <source>Line above the notes</source>
+        <extracomment>The short line above the footnotes at the bottom of a page and under a paragraph. In Polish: Linia nad przypisami</extracomment>
+        <translation>Linia nad przypisami</translation>
+    </message>
+    <message>
+        <source>Frame of a note</source>
+        <extracomment>The frame a footnote&apos;s or an endnote&apos;s text is written in. In Polish: Ramka przypisu</extracomment>
+        <translation>Ramka przypisu</translation>
     </message>
     <message>
         <source>Around the paper</source>
@@ -8840,6 +8887,11 @@ Czy zapisać go przed zamknięciem?</translation>
         <extracomment>Why Image &gt; Original Size is greyed out. In Polish: Obraz ma już rozmiar swojego pliku</extracomment>
         <translation>Obraz ma już rozmiar swojego pliku</translation>
     </message>
+    <message>
+        <source>A plain text file keeps no notes</source>
+        <extracomment>Why Insert &gt; Footnote and Endnote are greyed out in a .txt file. In Polish: Plik zwykłego tekstu nie przechowuje przypisów</extracomment>
+        <translation>Plik zwykłego tekstu nie przechowuje przypisów</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorCoordinator</name>
@@ -9814,6 +9866,19 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Tabs in More Rows</source>
         <translation>Karty w kilku wierszach</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::NoteFrame</name>
+    <message>
+        <source>Type the text of the note...</source>
+        <extracomment>The frame a footnote&apos;s or an endnote&apos;s text is written in. In Polish: Wpisz treść przypisu...</extracomment>
+        <translation>Wpisz treść przypisu...</translation>
+    </message>
+    <message>
+        <source>%1 – keep · Esc – cancel</source>
+        <extracomment>%1 is the keys that keep the text: &quot;Ctrl+Enter&quot; (on macOS their symbols). In Polish: %1 – zachowaj · Esc – anuluj</extracomment>
+        <translation>%1 – zachowaj · Esc – anuluj</translation>
     </message>
 </context>
 <context>
@@ -11150,8 +11215,8 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>%1 wraca do poprzedniej karty.</translation>
     </message>
     <message>
-        <source>%1 closes the windows, the find bar and the annotation frame.</source>
-        <translation>%1 zamyka okna, pasek wyszukiwania i ramkę uwagi.</translation>
+        <source>%1 closes the windows, the find bar and the frames of the annotations and notes.</source>
+        <translation>%1 zamyka okna, pasek wyszukiwania oraz ramki uwag i przypisów.</translation>
     </message>
     <message>
         <source>Fixed: the find bar</source>
@@ -11174,12 +11239,13 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Na pasku wyszukiwania %1 włącza „%2”.</translation>
     </message>
     <message>
-        <source>Fixed: the annotation frame</source>
-        <translation>Stałe: ramka uwagi</translation>
+        <source>Fixed: the annotation and note frames</source>
+        <extracomment>In Polish: Stałe: ramki uwag i przypisów</extracomment>
+        <translation>Stałe: ramki uwag i przypisów</translation>
     </message>
     <message>
-        <source>In the annotation frame %1 keeps the text.</source>
-        <translation>W ramce uwagi %1 zachowuje tekst.</translation>
+        <source>In the annotation and note frames %1 keeps the text.</source>
+        <translation>W ramkach uwag i przypisów %1 zachowuje tekst.</translation>
     </message>
     <message>
         <source>Discard</source>
@@ -13639,6 +13705,19 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Reset all colors to the default values for the selected theme</source>
         <translation>Przywraca wszystkie kolory do domyślnych wartości wybranego motywu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::WritingFrame</name>
+    <message>
+        <source>Cancel (Esc)</source>
+        <extracomment>The X of the frame an annotation&apos;s or a note&apos;s text is written in. In Polish: Anuluj (Esc)</extracomment>
+        <translation>Anuluj (Esc)</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <extracomment>In Polish: Anuluj</extracomment>
+        <translation>Anuluj</translation>
     </message>
 </context>
 <context>

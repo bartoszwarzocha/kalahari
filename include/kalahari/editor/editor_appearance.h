@@ -57,19 +57,22 @@ struct PaperColorKeys {
     const char* field;            ///< The background of a caption's number, a cross-reference
     const char* brokenField;      ///< The background of a cross-reference to a caption the
                                   ///< book does not have
+    const char* noteLine;         ///< The line above the notes
+    const char* noteFrame;        ///< The frame a note's text is written in
 };
 
 /// @brief The names of the light paper's colors
 inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
     "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
     "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight",
-    "imageCropMarksLight", "imageMissingLight", "fieldLight", "brokenFieldLight"};
+    "imageCropMarksLight", "imageMissingLight", "fieldLight", "brokenFieldLight",
+    "noteLineLight", "noteFrameLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
     "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark",
     "tableLinesDark", "tableHeaderDark", "tableGridlinesDark", "imageCropMarksDark",
-    "imageMissingDark", "fieldDark", "brokenFieldDark"};
+    "imageMissingDark", "fieldDark", "brokenFieldDark", "noteLineDark", "noteFrameDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -208,6 +211,24 @@ struct EditorColors {
         QColor brokenLight{255, 199, 199};
         QColor brokenDark{110, 44, 44};
     } fields;
+
+    /// @brief The notes: the line above them, the frame a note's text is written in
+    struct FootnoteColors {
+        QColor lineLight{85, 85, 85};
+        QColor lineDark{106, 106, 114};
+        QColor frameLight{47, 127, 208};
+        QColor frameDark{90, 155, 224};
+    } footnotes;
+
+    /// @brief The color of the line above the notes, on the paper of a mode
+    QColor noteLineColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? footnotes.lineLight : footnotes.lineDark;
+    }
+
+    /// @brief The color of the frame a note's text is written in, on the paper of a mode
+    QColor noteFrameColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? footnotes.frameLight : footnotes.frameDark;
+    }
 
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)

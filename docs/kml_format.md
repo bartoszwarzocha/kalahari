@@ -591,11 +591,37 @@ Copied text carries the annotations anchored in it: the KML on the clipboard has
 fragment of that annotation, which it then simply joins. The HTML and the plain text on the
 clipboard, for other programs, have no annotations.
 
+## Footnotes and endnotes
+
+A note is its number in the text: one character of its paragraph, with the note's text inside
+the element, written at the place of the number.
+
+| Written as | Meaning |
+|------------|---------|
+| `<footnote id="f3a9c1">Its text</footnote>` | A footnote: at the bottom of the page of its number in the page view, under its paragraph in the continuous views |
+| `<endnote id="f3a9c1">Its text</endnote>` | An endnote: after the last paragraph of the text |
+| `<footnote id="f1"><p>One</p><p>Two</p></footnote>` | A note of several paragraphs |
+
+- The text of a note is the inside of a paragraph: `<b>`, `<i>`, `<u>`, `<s>`, `<sup>`,
+  `<sub>`, `<a href>` and `<br/>`; a note of more paragraphs has them as `<p>` elements without
+  attributes. It has no images, annotations or notes of its own.
+- The `id` is unique in the text (`f` and six hexadecimal digits when the editor gives it). A
+  note without one, or with the `id` of a note read before, gets a new one. The number is not
+  written: the notes of each kind are counted in the order of the text (1, 2, 3 for the
+  footnotes, i, ii, iii for the endnotes).
+- The number takes the formatting of its place: a note in bold text is written inside the
+  `<b>`.
+- The old `<footnote>` on a range of the text, with a `number` attribute, is read as the text it
+  held, without a mark; the next save writes that text alone.
+- Copied, pasted or moved, a note goes with its number; deleting the number deletes the note.
+  A note pasted into a text that already has its `id` gets a new one.
+
 ## The clipboard of other programs
 
 The clipboard gives other programs HTML and plain text of the copied KML, and HTML of other
 programs is read into KML (`ClipboardHandler::kmlToHtml()`, `kmlToText()` and `htmlToKml()`;
-tests in `tests/editor/test_clipboard_paste.cpp`).
+tests in `tests/editor/test_clipboard_paste.cpp`, the notes in
+`tests/editor/test_text_footnotes.cpp`).
 
 | KML | HTML for other programs | Plain text |
 |-----|-------------------------|------------|
@@ -611,6 +637,7 @@ tests in `tests/editor/test_clipboard_paste.cpp`).
 | `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
 | `<table>` | `<table>` as wide as the text with a thin grid (`border="1"`, `border-collapse:collapse`), the header row in a `<thead>` of `<th>` cells, `colspan` and `rowspan`, the widths of the columns on the cells of the first row | A line for each row, its cells separated by tabs (one also for a cell that a cell above spans into), the paragraphs of a cell by spaces |
 | `<caption-number>`, `<cross-reference>` | The text it shows | The text it shows |
+| `<footnote>`, `<endnote>` | The number as the editor shows it, raised, a link to the note's text after the text, as LibreOffice writes it: `<a class="sdfootnoteanc" name="sdfootnote1anc" href="#sdfootnote1sym"><sup>1</sup></a>` and `<div id="sdfootnote1"><p><a class="sdfootnotesym" name="sdfootnote1sym" href="#sdfootnote1anc">1</a>Its text</p></div>` (`sdendnote` for an endnote), the footnotes first | The number in the text; after the text and an empty line each note on a line after its number, the footnotes first |
 | `<list-of-figures/>` | A paragraph for each of its lines | Each of its lines on a line |
 | `<img>` | `<img>` with the address of its file (`file:`), its `alt` and its width as CSS `width` (`80%`, `4.5cm`); left out when the text has no folder or its `src` is not one of the book's files. An image copied alone is also on the clipboard as a picture | Left out |
 
@@ -635,9 +662,15 @@ proportion) and their header row: a `<thead>`, or a first row of `<th>` cells, w
 in Merge Formatting their centering, is the look of the header; in Keep Text Only, and in a
 cell, a row is a paragraph with its cells separated by tabs. The images of the HTML are left
 out; a picture without text (a screenshot, a picture copied in a browser) and the files of
-pictures dragged from a folder come as images of the book. A heading's
-bold is the look of the heading and is not kept. A scene break of another program comes as the paragraph
-of its symbol.
+pictures dragged from a folder come as images of the book. The footnotes and endnotes of
+LibreOffice (`sdfootnoteanc`, `sdendnoteanc`) and Word (`mso-footnote-id`, `mso-endnote-id`,
+`mso-element:footnote`) come as notes with their paragraphs, their emphasis and their links in
+Merge Formatting and Keep Source Formatting; Word's lists of the notes are left out. In Keep
+Text Only the numbers stay text and the notes' texts come after the text, each a paragraph
+after its number. No text is lost: a number without its note's text (or without the end of its
+link) and a note's text without its number stay text. A heading's bold is the look of the
+heading and is not kept. A scene break of another program comes as the paragraph of its
+symbol.
 
 ## References
 
@@ -646,7 +679,6 @@ editor does not know, and written back.
 
 | Element | Known attributes | Meaning |
 |---------|------------------|---------|
-| `<footnote>` | `id`, `number` (integer) | Footnote reference |
 | `<charref>` | `id`, `target` | Reference to a character |
 | `<locref>` | `id`, `target` | Reference to a location |
 
@@ -655,7 +687,9 @@ editor does not know, and written back.
 - On writing, the known attributes come first, in the order of the table, then the others
   sorted by name.
 - References enclose the formatting elements of their range. Several references on the same
-  range are nested in the order of the table: `<footnote><charref><b>text</b></charref></footnote>`.
+  range are nested in the order of the table: `<charref><locref><b>text</b></locref></charref>`.
+- The old `<footnote>` with a `number` is no longer a reference: its text is read without a
+  mark (see "Footnotes and endnotes").
 
 ## Unreadable KML
 
@@ -666,7 +700,7 @@ rest of the chapter is not loaded – and logs an error.
 
 Elements of the product specification that the editor does not read yet:
 
-- the annotations `<endnote>` and the references `<itemref>`, `<cite>`,
+- the references `<itemref>` and `<cite>`,
 - the root attributes `version` and `lang`, the paragraph attribute `speaker` and the scene
   break attribute `type` (the look of the scene breaks is a setting of the editor).
 

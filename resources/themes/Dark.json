@@ -74,6 +74,8 @@
     "imageMissingLight": "#7A7A7A",
     "fieldLight": "#D9D9D9",
     "brokenFieldLight": "#FFC7C7",
+    "noteLineLight": "#555555",
+    "noteFrameLight": "#2F7FD0",
     "paperDark": "#232328",
     "textDark": "#E0E0E0",
     "focusDimmedDark": "#78787D",
@@ -87,6 +89,8 @@
     "imageMissingDark": "#9A9AA0",
     "fieldDark": "#3E3E45",
     "brokenFieldDark": "#6E2C2C",
+    "noteLineDark": "#6A6A72",
+    "noteFrameDark": "#5A9BE0",
     "selection": "#4285F4",
     "searchMatch": "#FFD600",
     "currentSearchMatch": "#FF8C00"
