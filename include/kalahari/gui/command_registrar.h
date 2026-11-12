@@ -46,6 +46,28 @@ enum class TableCommand {
     Properties,          ///< Table Properties...: its window
 };
 
+/// @brief The commands of the Image menu (the selected image of the text with the keys)
+enum class ImageCommand {
+    Properties,       ///< Image Properties...: its window
+    AddCaption,       ///< Add Caption: a paragraph of the style Caption under it
+    AltText,          ///< Alternative Text...: the window on its page Description
+    RotateRight,      ///< Rotate > Rotate Right 90°
+    RotateLeft,       ///< Rotate > Rotate Left 90°
+    FlipHorizontal,   ///< Rotate > Flip Horizontally
+    FlipVertical,     ///< Rotate > Flip Vertically
+    RotateOptions,    ///< Rotate > More Rotation Options...: the window on its page Size
+    FilterNone,       ///< Filter > Original
+    FilterGrayscale,  ///< Filter > Grayscale
+    FilterSepia,      ///< Filter > Sepia
+    FilterBlackWhite, ///< Filter > Black and White
+    FilterWash,       ///< Filter > Washout
+    ColorOptions,     ///< Filter > Colors and Brightness...: the window on its page Colors
+    Crop,             ///< Crop: the marks of the crop on it in the text
+    OriginalSize,     ///< Original Size
+    Change,           ///< Change Image...: the system window of a file
+    SaveAs,           ///< Save as Image...: the system window of a file
+};
+
 /// @brief Callbacks for MainWindow actions triggered by commands.
 ///
 /// This struct provides a way for CommandRegistrar to call MainWindow methods
@@ -129,7 +151,9 @@ struct CommandCallbacks {
     std::function<void()> onParagraph;          ///< Format > Paragraph...
     std::function<void()> onInsertLink;         ///< Insert > Link... (also edits a link)
     std::function<void()> onInsertTable;        ///< Insert > Table...
+    std::function<void()> onInsertImage;        ///< Insert > Image...
     std::function<void(TableCommand)> onTable;  ///< The Table menu
+    std::function<void(ImageCommand)> onImage;  ///< The Image menu
 
     // Format > Text Effects
     std::function<void()> onSuperscript;        ///< Format > Text Effects > Superscript

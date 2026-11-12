@@ -6,11 +6,13 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_tables.h>
 #include "book_editor_internal.h"
 #include <QColor>
+#include <QDir>
 #include <QFont>
 #include <QGuiApplication>
 #include <QHash>
@@ -1320,17 +1322,21 @@ QString ClipboardHandler::htmlDocument(const QString& fragment)
            fragment + QStringLiteral("<!--EndFragment--></body></html>");
 }
 
-std::unique_ptr<QMimeData> ClipboardHandler::mimeDataOf(const QString& kml, const ListMarks* marks)
+std::unique_ptr<QMimeData> ClipboardHandler::mimeDataOf(const QString& kml, const ListMarks* marks,
+                                                        const QString& imagesFolder)
 {
     auto mimeData = std::make_unique<QMimeData>();
     mimeData->setText(kmlToText(kml, QString(), marks));
-    mimeData->setHtml(htmlDocument(kmlToHtml(kml, QString(), marks)));
+    mimeData->setHtml(htmlDocument(kmlToHtml(kml, QString(), marks, imagesFolder)));
     mimeData->setData(QString::fromLatin1(MIME_KML), kml.toUtf8());
+    if (!imagesFolder.isEmpty() && kml.contains(QStringLiteral("<img"))) {
+        mimeData->setData(QString::fromLatin1(MIME_IMAGES_FOLDER), imagesFolder.toUtf8());
+    }
     return mimeData;
 }
 
 QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBreakStyle,
-                                    const ListMarks* marks)
+                                    const ListMarks* marks, const QString& imagesFolder)
 {
     if (kml.isEmpty()) {
         return QString();
@@ -1427,6 +1433,32 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                     reader.skipCurrentElement();
                     emptyParagraph = false;
                     endsWithBreak = true;
+                    break;
+                }
+                if (tag == QStringLiteral("img")) {
+                    // An image: the address of its file, its text and its width
+                    const ImageProperties image = imagePropertiesOfKml(reader.attributes());
+                    reader.skipCurrentElement();
+                    if (imagesFolder.isEmpty() || !isSafeImageSource(image.source)) {
+                        break;
+                    }
+                    const QString file = QDir::cleanPath(
+                        imagesFolder + QLatin1Char('/') +
+                        QString(image.source).replace(QLatin1Char('\\'), QLatin1Char('/')));
+                    writer.writeEmptyElement(QStringLiteral("img"));
+                    writer.writeAttribute(QStringLiteral("src"), QUrl::fromLocalFile(file).toString());
+                    if (!image.alt.isEmpty()) {
+                        writer.writeAttribute(QStringLiteral("alt"), image.alt);
+                    }
+                    if (image.unit == ImageWidthUnit::Percent) {
+                        writer.writeAttribute(QStringLiteral("style"),
+                                              QStringLiteral("width:%1%").arg(image.width));
+                    } else if (image.unit == ImageWidthUnit::Centimeters) {
+                        writer.writeAttribute(QStringLiteral("style"),
+                                              QStringLiteral("width:%1cm").arg(image.width));
+                    }
+                    emptyParagraph = false;
+                    endsWithBreak = false;
                     break;
                 }
                 const QXmlStreamAttributes attrs = reader.attributes();

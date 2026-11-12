@@ -234,6 +234,8 @@ std::map<std::string, json> buildDefaults() {
         {"project.lastFolders.importArchive", ""},
         {"project.lastFolders.importDestination", ""},
         {"project.lastFolders.addMaterial", ""},
+        {"project.lastFolders.insertImage", ""},
+        {"project.lastFolders.saveImage", ""},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},
@@ -259,6 +261,7 @@ std::map<std::string, json> buildDefaults() {
         // goes to, keeping headings, quotes, emphasis and lines), "source" (also its fonts,
         // sizes and colors) or "text" (only the text)
         {"editor.paste.mode", "merge"},
+        {"editor.images.keepSizeOnChange", true},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},

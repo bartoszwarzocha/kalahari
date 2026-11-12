@@ -6,13 +6,16 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <QAbstractTextDocumentLayout>
 #include <QTextBlock>
 #include <QTextCharFormat>
 #include <QFont>
+#include <QMarginsF>
 #include <functional>
 #include <map>
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -23,6 +26,8 @@ class QTextTable;
 class QTimer;
 
 namespace kalahari::editor {
+
+class ImageStore;
 
 /// @brief Custom document layout that positions text lines without Qt's internal leading
 ///
@@ -79,8 +84,9 @@ public:
     explicit KalahariTextDocumentLayout(QTextDocument* doc);
     ~KalahariTextDocumentLayout() override;
 
-    /// @brief Size of an object of the text (QTextObjectInterface): as wide as the text, one
-    ///        line high, as resizeInlineObject() gives it
+    /// @brief Size of an object of the text (QTextObjectInterface), as resizeInlineObject()
+    ///        gives it: a line or a break as wide as the text and one line high, an image
+    ///        as imageSize() gives it
     QSizeF intrinsicSize(QTextDocument* doc, int posInDocument,
                          const QTextFormat& format) override;
 
@@ -145,6 +151,54 @@ public:
     /// when the view switches between the pages and the endless page.
     void setPageFlow(const PageFlow& flow);
     const PageFlow& pageFlow() const { return m_pageFlow; }
+
+    // ==========================================================================
+    // Images
+    // ==========================================================================
+
+    /// @brief Set the files of the images of the text (the book's); without them every
+    ///        image is shown as a missing file. The blocks with images wait for layout again.
+    void setImageStore(std::shared_ptr<ImageStore> store);
+    const std::shared_ptr<ImageStore>& imageStore() const { return m_imageStore; }
+
+    /// @brief The files of the images changed (the store got another folder): the blocks
+    ///        with images wait for layout again
+    void refreshImages();
+
+    /// @brief The size of an image's box in a block (whole pixels): its picture's width (the
+    ///        file's own as cropped and turned, a percentage of the width of the block's
+    ///        lines, or centimeters shown as the style's points are), its height in
+    ///        proportion or its own, and its frame around (imageFrameMargins()); never wider
+    ///        than the lines nor higher than a page's text, the picture made smaller in its
+    ///        shape; a missing file a frame of the width with room for its name
+    QSizeF imageSize(const QTextBlock& block, const ImageProperties& image) const;
+
+    /// @brief The image of a block whose box is made @p width wide (the layout's pixels, as
+    ///        a handle dragged gives it), in its own unit: centimeters stay centimeters,
+    ///        otherwise a whole percent of the width of the block's lines; an own height
+    ///        changes in proportion
+    ImageProperties imageOfWidth(const QTextBlock& block, const ImageProperties& image,
+                                 qreal width) const;
+
+    /// @brief The width of a block's lines an image's percent is of (the area less the
+    ///        paragraph's indents)
+    qreal imageLineWidth(const QTextBlock& block) const;
+
+    /// @brief The room an image's frame takes around its picture (the layout's pixels): its
+    ///        border and the room inside it on each side, its shadow to the right and down
+    QMarginsF imageFrameMargins(const ImageProperties& image) const;
+
+    /// @brief The widest an image of a block is shown (the layout's pixels): its lines'
+    ///        width, less the first line's indent
+    qreal widestImage(const QTextBlock& block) const;
+
+    /// @brief Whether the image's file is missing (or is not an image the editor reads)
+    bool isImageMissing(const ImageProperties& image) const;
+
+    /// @brief The rectangle of the image at a position of a laid out block, in the block's
+    ///        coordinates (as its lines are placed); std::nullopt: no image there, or its
+    ///        block is not laid out
+    std::optional<QRectF> imageRect(int position) const;
 
     /// @brief Paragraph spacing at the current document font (whole pixels)
     qreal paragraphSpacing() const;
@@ -503,13 +557,34 @@ private:
 
     /// @brief Height of a line's box: the line, or for the line of an empty paragraph
     ///        (@p empty) the line of its style's font, with its share of the line spacing
-    static qreal lineBoxHeight(const QTextLine& line, const BlockMetrics& metrics, bool empty);
+    ///        @p excess: the part of the line above the line of the style's font that an
+    ///        image takes, which gets no share of the line spacing
+    static qreal lineBoxHeight(const QTextLine& line, const BlockMetrics& metrics, bool empty,
+                               qreal excess = 0.0);
 
     /// @brief Height of the box of a line @p height high, as the line spacing makes it
     static qreal boxHeightOf(qreal height, const BlockMetrics& metrics);
 
     /// @brief Top of a line in its box (from the top of the box)
-    static qreal lineTopInBox(const QTextLine& line, const BlockMetrics& metrics, bool empty);
+    static qreal lineTopInBox(const QTextLine& line, const BlockMetrics& metrics, bool empty,
+                              qreal excess = 0.0);
+
+    /// @brief How much higher an image makes a line of a block than a line of the style's
+    ///        font (0: no image in the line, or not higher)
+    qreal imageExcess(const QTextBlock& block, const QTextLine& line,
+                      const BlockMetrics& metrics) const;
+
+    /// @brief The width a block's lines lie in, with its margins: the text's, in a table
+    ///        the cell's text
+    qreal areaWidth(const QTextBlock& block) const;
+
+
+    /// @brief Draw an image in its box: its frame, and inside it its picture or the frame of
+    ///        a missing file
+    void drawImage(QPainter* painter, const QRectF& box, const ImageProperties& image) const;
+
+    /// @brief Draw an image's border and shadow around its picture
+    void drawImageFrame(QPainter* painter, const QRectF& box, const ImageProperties& image) const;
 
     /// @brief Metrics of a style at the current font and typography (uncached)
     BlockMetrics styleMetrics(const ParagraphStyle& style) const;
@@ -587,7 +662,7 @@ private:
     /// @brief Place a laid out block's lines in the page flow
     /// @param top Top of the block (document coordinates)
     /// @return Height of the block in the flow, including its spacing above and below
-    qreal paginateBlock(QTextLayout* layout, qreal top, const BlockMetrics& metrics) const;
+    qreal paginateBlock(const QTextBlock& block, qreal top, const BlockMetrics& metrics) const;
 
     /// @brief Page flow, per block and kept in step with the document: what the flow needs
     ///        of the block's style, so a long text is placed without asking blockMetrics()
@@ -720,6 +795,11 @@ private:
 
     // Page flow (page mode); its text areas in whole pixels
     PageFlow m_pageFlow;
+
+    // The files of the images; whether the document has shown an image (laid out again
+    // when the page's height changes)
+    std::shared_ptr<ImageStore> m_imageStore;
+    mutable bool m_hasImages = false;
 
     // Per block, indexed by block number and kept in step with the document: height
     // (estimated while waiting for layout), text length in average characters (for

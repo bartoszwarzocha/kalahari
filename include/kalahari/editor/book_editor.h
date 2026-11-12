@@ -23,11 +23,13 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/annotation_cards.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/image_store.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_sorting.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/view_modes.h>
@@ -907,6 +909,145 @@ public:
     std::optional<TextLink> linkAt(const QPointF& widgetPos) const;
 
     // =========================================================================
+    // Images (text_images.h, image_store.h)
+    //
+    // An image's file is named relative to the book's main folder; a new image is copied
+    // into the book's folder of images. Each change is one undo step, which brings back the
+    // cursor and selection it was made with.
+    // =========================================================================
+
+    /// @brief Set the book's main folder: the files of the images are found in it, and new
+    ///        images go into its folder of images; empty: none (every image is shown as a
+    ///        missing file, and none can be inserted). Set it before the content.
+    void setImagesFolder(const QString& folder);
+
+    /// @brief The book's main folder of the images; empty: none
+    QString imagesFolder() const;
+
+    /// @brief The text is saved in another folder (Save As of a file): the files of its images
+    ///        are copied into that folder's folder of images, which the images name from now
+    ///        on (where a name there is taken by another picture, the image names the copy's)
+    void moveImagesFolder(const QString& folder);
+
+    /// @brief The files of the images: their sizes and pictures
+    const std::shared_ptr<ImageStore>& imageStore() const { return m_imageStore; }
+
+    /// @brief Whether an image can be inserted: the text can be changed and has a folder
+    ///        for its images
+    bool canInsertImage() const;
+
+    /// @brief Insert > Image...: copy a file into the folder of images and insert its image
+    ///        at the cursor, replacing the selection, as one undo step
+    ///
+    /// The image gets its file's own width (never wider than the line). Inserted into an
+    /// empty paragraph, the paragraph is centered. The image is selected.
+    /// @return false when the file could not be copied or is not an image, without a folder
+    ///         of images, or in a read-only text (changeRefused())
+    bool insertImageFile(const QString& path);
+
+    /// @brief Insert a picture (pasted, a screenshot) saved as a PNG file in the folder of
+    ///        images, as insertImageFile() inserts a file
+    bool insertPicture(const QImage& picture);
+
+    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does
+    bool insertImage(const ImageProperties& image);
+
+    /// @brief The image the selection is (exactly one image): its position in the document
+    std::optional<int> selectedImage() const;
+
+    /// @brief The image under a point of the widget: its position in the document
+    std::optional<int> imagePositionAt(const QPointF& widgetPos) const;
+
+    /// @brief Select the image at a position of the document (its character)
+    void selectImage(int position);
+
+    /// @brief The rectangle of the image at a position, in the widget (laid out, in view or
+    ///        not); std::nullopt: no image there
+    std::optional<QRectF> imageRect(int position) const;
+
+    /// @brief Give the image at a position other properties, as one undo step
+    /// @return false when there is no image there, nothing changes, or in a read-only text
+    bool setImageProperties(int position, const ImageProperties& image);
+
+    /// @brief Original Size: the image at a position gets its file's own width
+    bool setImageOriginalSize(int position);
+
+    /// @brief Resize the image at a position as a dragged handle does: @p width wide in the
+    ///        layout's pixels (its height in proportion), kept in its own unit
+    ///        (KalahariTextDocumentLayout::imageOfWidth()), as one undo step
+    bool setImageLayoutWidth(int position, qreal width);
+
+    /// @brief Image > Rotate: turn the image at a position by quarter turns, clockwise for
+    ///        a positive number, as one undo step; an image of its own height turns its
+    ///        shape with it (its height becomes its width)
+    bool rotateImage(int position, int quarters);
+
+    /// @brief Image > Rotate > Flip Horizontally or Vertically: mirror the image at a
+    ///        position as it is shown, as one undo step
+    bool flipImage(int position, Qt::Orientation orientation);
+
+    /// @brief Image > Filter: the filter of the image at a position, as one undo step
+    bool setImageFilter(int position, ImageFilter filter);
+
+    /// @brief Ctrl+] and Ctrl+[: the image at a position larger or smaller by a part of its
+    ///        width (IMAGE_KEY_RESIZE), in proportion, in its own unit and within its line,
+    ///        as one undo step; a label beside it shows its new width for a moment
+    /// @param larger true: larger; false: smaller
+    bool resizeImageByStep(int position, bool larger);
+
+    /// @brief Image > Crop: marks at the sides and corners of the image at a position, which
+    ///        cut its sides off where they are dragged; the cut parts show faint around it
+    ///
+    /// Enter, or a click outside the image, crops it as one undo step (the rest of the
+    /// picture as large as it was: the image gets smaller), Esc leaves it as it was.
+    /// @return false without the picture of its file, or in a read-only text
+    bool startImageCrop(int position);
+
+    /// @brief Whether the image at a position can be cropped in the text (startImageCrop()):
+    ///        the picture of its file is there and the text can be changed
+    bool canCropImage(int position) const;
+
+    /// @brief The crop of the sides, as the image is shown, that the marks set while the
+    ///        image is being cropped in the text; std::nullopt: none is
+    std::optional<ImageCrop> imageCropInProgress() const;
+
+    /// @brief Stop cropping in the text
+    /// @param crop true: the image gets the crop of the marks (Enter); false: it stays as
+    ///        it was (Esc)
+    void finishImageCrop(bool crop);
+
+    /// @brief Change Image...: the image at a position shows another file, copied into the
+    ///        folder of images; its width and alternative text stay
+    /// @return false when the file is not a picture or could not be copied, or in a
+    ///         read-only text; true also when the image showed that file already
+    bool changeImageFile(int position, const QString& path);
+
+    /// @brief Add Caption: the cursor goes into the caption of the image at a position, the
+    ///        paragraph after the image's in the style Caption; without one, a new empty one
+    ///        (one undo step)
+    bool addImageCaption(int position);
+
+    /// @brief The caption of the image at a position: the text of the paragraph after the
+    ///        image's in the style Caption; std::nullopt without one
+    std::optional<QString> imageCaption(int position) const;
+
+    /// @brief The file of the image at a position, a path on the disk; empty: none
+    QString imageFilePath(int position) const;
+
+    /// @brief What the window Image Properties shows of the image at a position: its
+    ///        properties, its file and the widths it is measured against;
+    ///        std::nullopt: no image there
+    std::optional<ImagePropertiesData> imagePropertiesData(int position) const;
+
+    /// @brief Give the image the properties of the window Image Properties, as one undo
+    ///        step: with a new file, the file copied into the folder of images (and without
+    ///        keepSizeAndCrop, its file's own size, uncropped)
+    /// @return false when the new file is not a picture or could not be copied, or in a
+    ///         read-only text; true also when the image had these properties already (no
+    ///         step of Undo then)
+    bool setImagePropertiesData(const ImagePropertiesData& propertiesData);
+
+    // =========================================================================
     // Annotations: comments, TODOs and notes
     // =========================================================================
 
@@ -1280,6 +1421,20 @@ public:
     ///        editing items: Insert, Delete and Select as its own submenus, then the others,
     ///        enabled as in the Table menu
     void setContextMenuTableActions(const ContextMenuTableActions& actions);
+
+    /// @brief The application's commands of the Image menu (setContextMenuImageActions())
+    struct ContextMenuImageActions {
+        QList<QAction*> top;     ///< Image Properties..., Add Caption, Alternative Text...
+        QList<QAction*> rotate;  ///< The submenu Rotate; a null: a line
+        QList<QAction*> filter;  ///< The submenu Filter; a null: a line
+        QList<QAction*> bottom;  ///< Crop... Save as Image...; a null: a line
+    };
+
+    /// @brief The commands of the Image menu the context menu of an image shows above its
+    ///        editing items, Rotate and Filter as its own submenus, enabled as in the Image
+    ///        menu (the click selects the image they work on); without them the menu has the
+    ///        editor's own items of an image
+    void setContextMenuImageActions(const ContextMenuImageActions& actions);
 
     /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
     ///        do: for a misspelled word at the cursor it offers what to put in its place
@@ -1694,6 +1849,21 @@ signals:
     /// @brief Edit Link... of the context menu of a link: the window of Insert > Link
     ///        (linkTarget(), setLink())
     void linkDialogAsked();
+
+    /// @brief The writer asked for the properties of the selected image (a double click on
+    ///        it, its context menu): the application opens Image Properties
+    /// @param position The image's character
+    /// @param page The page of the window shown first (gui::dialogs::ImagePropertiesDialog::
+    ///        Page): 0 Image, 1 Size and Rotation, 4 Colors, 5 Description
+    void imagePropertiesAsked(int position, int page);
+
+    /// @brief The writer asked to change the file of the image at a position (its context
+    ///        menu): the application asks for one and calls changeImageFile()
+    void imageFileAsked(int position);
+
+    /// @brief The writer asked to save the image at a position as a file of its own (its
+    ///        context menu): the application asks where
+    void imageSaveAsked(int position);
 
     /// @brief A link was Ctrl+clicked, or Open Link chosen in its context menu
     /// @param address The link's address; the program opens only some (isOpenableLinkAddress())
@@ -2264,11 +2434,120 @@ private:
     /// @brief Draw the line where the edge being dragged goes
     void paintColumnGuide(QPainter& painter) const;
 
+    // Images: selected, resized by the handles in their corners (book_editor_images.cpp)
+
+    /// @brief A corner of an image, with a handle when the image is selected
+    enum class ImageCorner { TopLeft, TopRight, BottomLeft, BottomRight };
+
+    /// @brief An image being resized by a handle
+    struct ImageResize {
+        int position = 0;                               ///< The image's character
+        ImageCorner corner = ImageCorner::BottomRight;  ///< The handle dragged
+        QRectF start;                                   ///< The image in the widget, pressed
+        QPointF pressed;                                ///< Where the handle was pressed
+        QRectF preview;                                 ///< Where the image goes
+    };
+
+    /// @brief The handle of the selected image at a widget point, in a text that can change
+    std::optional<ImageCorner> imageHandleAt(const QPointF& widgetPos) const;
+
+    /// @brief The handle of a corner of an image's rectangle, in the widget
+    static QRectF imageHandleRect(const QRectF& image, ImageCorner corner);
+
+    /// @brief A press of the left button on an image or the handle of the selected one: a
+    ///        handle starts resizing, an image is selected (dragged, it moves as selected
+    ///        text does)
+    /// @return Whether the press was on one
+    bool pressImage(const QPointF& widgetPos);
+
+    /// @brief The image being resized follows the handle, in proportion, within its line
+    void dragImageHandle(const QPointF& widgetPos);
+
+    /// @brief The handle let go: the image gets the size of the preview (one undo step)
+    void finishImageResize();
+
+    /// @brief What the label beside a resized image says: its new width in its unit
+    QString imageWidthLabel(int position, qreal widgetWidth) const;
+
+    /// @brief The size of a label beside an image: the width of an image being resized,
+    ///        what the keys of cropping do
+    QSizeF imageLabelSize(const QString& label) const;
+
+    /// @brief Draw a label beside an image at a widget point (its top left corner), moved
+    ///        inside the view where it would leave it
+    void paintImageLabel(QPainter& painter, const QString& label, const QPointF& at) const;
+
+    /// @brief An image being cropped in the text (startImageCrop())
+    struct ImageCropping {
+        int position = 0;       ///< The image's character
+        ImageProperties image;  ///< The image as it was when the cropping began
+        ImageCrop crop;         ///< The crop of its sides as shown, as the marks set it
+        int sides = 0;          ///< The sides whose mark is dragged (bits, left first); 0: none
+        QPointF pressed;        ///< Where that mark was pressed
+        ImageCrop pressedCrop;  ///< The crop then
+    };
+
+    /// @brief The image being cropped as it still is in the text: std::nullopt (and the
+    ///        cropping dropped) when it has changed or gone
+    const ImageCropping* imageCropping() const;
+
+    /// @brief The whole picture of the image being cropped (its crop taken off) and the part
+    ///        of it the marks keep, in the widget
+    std::optional<std::pair<QRectF, QRectF>> imageCropRects() const;
+
+    /// @brief The sides whose mark is at a widget point (a corner's: two of them); 0: none
+    int imageCropSidesAt(const QPointF& widgetPos) const;
+
+    /// @brief The pointer over the image being cropped: arrows over a mark, the arrow over
+    ///        the picture; std::nullopt elsewhere or with no image being cropped
+    std::optional<Qt::CursorShape> imageCropPointerAt(const QPointF& widgetPos) const;
+
+    /// @brief A press of the left button while an image is being cropped: on a mark it
+    ///        starts dragging it, elsewhere on the image it does nothing, outside the image
+    ///        it crops it
+    /// @return Whether the press was taken (outside the image it goes on to the text)
+    bool pressImageCrop(const QPointF& widgetPos);
+
+    /// @brief The mark being dragged follows the mouse, leaving some of the picture
+    void dragImageCrop(const QPointF& widgetPos);
+
+    /// @brief Draw the image being cropped: its cut parts faint around it, the marks and
+    ///        what the keys do
+    void paintImageCropping(QPainter& painter) const;
+
+    /// @brief Esc on the selected image: back to the text, the cursor after the image
+    /// @return Whether an image was selected
+    bool leaveSelectedImage();
+
+    /// @brief Whether a key is Ctrl+] (true: larger) or Ctrl+[ (false: smaller), the keys of
+    ///        the size of the selected image
+    static std::optional<bool> imageResizeKey(const QKeyEvent& event);
+
+    /// @brief Draw the selected image's frame and handles, the preview of a resize and its
+    ///        label, and the selection's color over the images among selected text
+    void paintImageSelection(QPainter& painter) const;
+
+    /// @brief Add the items of the selected image to a context menu: Image Properties...,
+    ///        Add Caption, Change Image..., Original Size, Save as Image...
+    void addImageActions(QMenu& menu, int position);
+
     /// @brief Whether a position lies in the selection, its ends included
     bool isInSelection(const CursorPosition& position) const;
 
-    /// @brief Whether insertFromMimeData() can insert the content
-    static bool canInsertFromMimeData(const QMimeData* source);
+    /// @brief Whether insertFromMimeData() can insert the content: Kalahari's text, text, and
+    ///        with a folder of images a picture or files of pictures
+    bool canInsertFromMimeData(const QMimeData* source) const;
+
+    /// @brief Insert the pictures of MIME data at the cursor: the files of pictures (dropped
+    ///        from a folder), or a picture alone (a screenshot) saved as a PNG file
+    /// @return Whether the data was pictures (inserted, or not where the text has no folder of
+    ///         images); false for Kalahari's text and for text
+    bool insertPicturesOf(const QMimeData& source);
+
+    /// @brief The images of text pasted from another book's folder (MIME_IMAGES_FOLDER),
+    ///        between @p from and the cursor's position: their files copied into this one's
+    ///        folder of images, the images naming the copies, in the paste's undo step
+    void adoptPastedImages(const QMimeData& source, int from, const QTextCursor& cursor);
 
     /// @brief Drag the selected text (copy or move)
     ///
@@ -2605,6 +2884,11 @@ private:
     // Drag and drop of text (stage 3)
     bool m_textDragPending = false;     ///< Press on the selection: drags once the mouse moves far enough
     std::optional<ColumnEdge> m_columnDrag;  ///< The edge of columns being dragged
+    std::optional<ImageResize> m_imageResize;  ///< The image whose handle is dragged
+    mutable std::optional<ImageCropping> m_imageCropping;  ///< The image cropped in the text
+    int m_keyResizedImage = -1;  ///< The image resized by Ctrl+] or Ctrl+[: its label shows
+    QTimer* m_keyResizeLabelTimer = nullptr;  ///< Hides that label
+    bool m_imagePressed = false;  ///< The press selected an image: let go, it stays selected
     qreal m_columnDragX = 0.0;               ///< Where it goes, in the document
     QPointF m_textDragStartPos;         ///< Where that press was
     QTimer* m_autoScrollTimer = nullptr;  ///< Scrolls while selecting or dragging near the edges
@@ -2623,6 +2907,7 @@ private:
     QIcon m_paragraphMarkIcon;                   ///< What they show
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     ContextMenuTableActions m_contextMenuTableActions;  ///< The Table menu's, in a cell
+    ContextMenuImageActions m_contextMenuImageActions;  ///< The Image menu's, on an image
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
     AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
@@ -2702,6 +2987,7 @@ private:
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
     ParagraphStyleSet m_paragraphStyles;                    ///< The styles of the book
+    std::shared_ptr<ImageStore> m_imageStore{std::make_shared<ImageStore>()};  ///< Of the images
     core::WordCountRules m_wordCountRules;                  ///< What the counts take for a word
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h

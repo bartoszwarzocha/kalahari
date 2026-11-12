@@ -5,6 +5,7 @@
 
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/editor/kml_format_registry.h"
+#include "kalahari/editor/text_images.h"
 #include "kalahari/editor/text_link.h"
 #include "kalahari/core/logger.h"
 
@@ -411,6 +412,20 @@ void KmlDocumentModel::appendText(Paragraph& para, const QString& source,
         run.format = format;
         para.formats.push_back(run);
     }
+}
+
+void KmlDocumentModel::appendImage(Paragraph& para, const ImageProperties& image,
+                                   const QTextCharFormat& format)
+{
+    // Its character, in the format of its place (a link, annotations) with the image's
+    // properties
+    FormatRun run;
+    run.start = static_cast<size_t>(para.text.size());
+    para.text += QChar(QChar::ObjectReplacementCharacter);
+    run.end = static_cast<size_t>(para.text.size());
+    run.format = format;
+    setImage(run.format, image);
+    para.formats.push_back(run);
 }
 
 void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragraph& para)
@@ -1002,6 +1017,14 @@ bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 // Text run - just parse content
                 reader.readNext();
                 parseInlineContent(reader, para, currentFormat, tag);
+            } else if (tag == QStringLiteral("img")) {
+                // An image of the line; one without a file is nothing
+                const ImageProperties image = imagePropertiesOfKml(reader.attributes());
+                if (!image.source.isEmpty()) {
+                    appendImage(para, image, currentFormat);
+                }
+                reader.skipCurrentElement();
+                reader.readNext();
             } else if (tag == QStringLiteral("br")) {
                 // A line break in the paragraph (Shift+Enter): a character of its text, in
                 // the format of its place

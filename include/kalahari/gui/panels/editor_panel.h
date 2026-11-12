@@ -56,6 +56,15 @@ public:
     /// Extracts plain text from KML document.
     QString getText() const;
 
+    /// @brief Set the folder the images of the text name their files in: the book's main
+    ///        folder, or the folder of a file outside a book; empty: none (an image cannot be
+    ///        inserted). Before setContent().
+    void setImagesFolder(const QString& folder);
+
+    /// @brief The text is saved in another folder (Save As): its images name their files
+    ///        there, copied into its folder of images (BookEditor::moveImagesFolder())
+    void moveImagesFolder(const QString& folder);
+
     /// @brief Set editor content (KML)
     /// @param content KML content to display
     /// @return False when the KML is damaged, so only the text before the damaged place is shown
@@ -157,6 +166,25 @@ public:
     /// @brief Insert > Table...: the window of the new table's columns and rows; Insert puts
     ///        the table at the cursor (BookEditor::insertTable())
     void showInsertTableDialog();
+
+    /// @brief Insert > Image...: the system window choosing a picture; Open copies it into
+    ///        the folder of images and inserts it at the cursor (BookEditor::insertImageFile())
+    void showInsertImageDialog();
+
+    /// @brief Change Image... of an image's context menu: another picture for the image at a
+    ///        position of the text (BookEditor::changeImageFile())
+    void showChangeImageDialog(int position);
+
+    /// @brief Save as Image... of an image's context menu: a copy of the image's file where
+    ///        the writer chooses
+    void showSaveImageDialog(int position);
+
+    /// @brief Image > Image Properties... (Alt+Enter, a double click on an image, its
+    ///        context menu): the look of the image at a position; OK gives it to the image
+    ///        as one step of Undo (BookEditor::setImagePropertiesData())
+    /// @param position The image's character
+    /// @param page The page shown first (dialogs::ImagePropertiesDialog::Page)
+    void showImagePropertiesDialog(int position, int page = 0);
 
     /// @brief Table > Split Cells...: the columns and rows the cell with the cursor (or the
     ///        selected cells, merged first) is split into (BookEditor::splitTableCells())

@@ -166,6 +166,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     const KeyboardShortcut clearFormattingShortcut(Qt::Key_Backslash, Qt::ControlModifier);
     const KeyboardShortcut enDashShortcut;
     const KeyboardShortcut emDashShortcut;
+    // Option+Return is a new paragraph in the text: Option+Cmd+I, the inspector of macOS
+    const KeyboardShortcut imagePropertiesShortcut(Qt::Key_I,
+                                                   Qt::ControlModifier | Qt::AltModifier);
 #else
     const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
@@ -178,6 +181,8 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // Word has Ctrl with the minus of the keypad, here Zoom Out
     const KeyboardShortcut enDashShortcut(Qt::Key_Minus, Qt::AltModifier);
     const KeyboardShortcut emDashShortcut(Qt::Key_Underscore, Qt::AltModifier);
+    // Alt+Enter: Properties in the system's file managers
+    const KeyboardShortcut imagePropertiesShortcut(Qt::Key_Return, Qt::AltModifier);
 #endif
 
     // =========================================================================
@@ -432,7 +437,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // INSERT MENU
     // =========================================================================
 
-    REG_CMD("insert.image", QT_TRANSLATE_NOOP("CommandRegistrar", "&Image..."), "INSERT/Image...", 10, false, 1);
+    // An image: the system window choosing a picture, copied into the book's folder of
+    // images (no keys, as in Word)
+    REG_CMD_CB("insert.image", QT_TRANSLATE_NOOP("CommandRegistrar", "&Image..."), "INSERT/Image...", 10, false, 1,
+               callbacks.onInsertImage);
     // A table: the window of its columns and rows (no keys: Ctrl+F12 of LibreOffice switches
     // the workspaces of Xfce)
     REG_CMD_CB("insert.table", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble..."), "INSERT/Table...", 20, false, 1,
@@ -728,6 +736,66 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                table(TableCommand::Properties));
     if (Command* header = registry.getCommand("table.headerRows")) {
         header->isChecked = []() { return false; };  // the text at the cursor checks it
+    }
+
+    // =========================================================================
+    // IMAGE MENU
+    // =========================================================================
+
+    // The selected image of the text: its window, its caption and description, its turn,
+    // mirror and filter, its crop and size, its file. Ctrl+] and Ctrl+[ make it larger and
+    // smaller and Esc goes back to the text (fixed keys of the selected image,
+    // editor/book_editor.h). The access keys are those of its context menu too, unique there
+    // with the items of the text (Copy, Paste, Add To Do).
+    const auto image = [&callbacks](ImageCommand command) {
+        return [onImage = callbacks.onImage, command]() {
+            if (onImage) {
+                onImage(command);
+            }
+        };
+    };
+    REG_CMD_KEY_CB("image.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Image Prop&erties..."), "IMAGE/Image Properties...", 10, false, 0,
+                   imagePropertiesShortcut, image(ImageCommand::Properties));
+    REG_CMD_CB("image.addCaption", QT_TRANSLATE_NOOP("CommandRegistrar", "Add Capt&ion"), "IMAGE/Add Caption", 20, false, 0,
+               image(ImageCommand::AddCaption));
+    REG_CMD_CB("image.altText", QT_TRANSLATE_NOOP("CommandRegistrar", "A&lternative Text..."), "IMAGE/Alternative Text...", 30, true, 0,
+               image(ImageCommand::AltText));
+    REG_CMD_CB("image.rotateRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Rotate &Right 90°"), "IMAGE/Rotate/Rotate Right 90°", 40, false, 0,
+               image(ImageCommand::RotateRight));
+    REG_CMD_CB("image.rotateLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Rotate &Left 90°"), "IMAGE/Rotate/Rotate Left 90°", 41, false, 0,
+               image(ImageCommand::RotateLeft));
+    REG_CMD_CB("image.flipHorizontal", QT_TRANSLATE_NOOP("CommandRegistrar", "Flip &Horizontally"), "IMAGE/Rotate/Flip Horizontally", 42, false, 0,
+               image(ImageCommand::FlipHorizontal));
+    REG_CMD_CB("image.flipVertical", QT_TRANSLATE_NOOP("CommandRegistrar", "Flip &Vertically"), "IMAGE/Rotate/Flip Vertically", 43, true, 0,
+               image(ImageCommand::FlipVertical));
+    REG_CMD_CB("image.rotateOptions", QT_TRANSLATE_NOOP("CommandRegistrar", "&More Rotation Options..."), "IMAGE/Rotate/More Rotation Options...", 44, false, 0,
+               image(ImageCommand::RotateOptions));
+    REG_CMD_CB("image.filterNone", QT_TRANSLATE_NOOP("CommandRegistrar", "&Original"), "IMAGE/Filter/Original", 50, false, 0,
+               image(ImageCommand::FilterNone));
+    REG_CMD_CB("image.filterGrayscale", QT_TRANSLATE_NOOP("CommandRegistrar", "&Grayscale"), "IMAGE/Filter/Grayscale", 51, false, 0,
+               image(ImageCommand::FilterGrayscale));
+    REG_CMD_CB("image.filterSepia", QT_TRANSLATE_NOOP("CommandRegistrar", "&Sepia"), "IMAGE/Filter/Sepia", 52, false, 0,
+               image(ImageCommand::FilterSepia));
+    REG_CMD_CB("image.filterBlackWhite", QT_TRANSLATE_NOOP("CommandRegistrar", "&Black and White"), "IMAGE/Filter/Black and White", 53, false, 0,
+               image(ImageCommand::FilterBlackWhite));
+    REG_CMD_CB("image.filterWash", QT_TRANSLATE_NOOP("CommandRegistrar", "&Washout"), "IMAGE/Filter/Washout", 54, true, 0,
+               image(ImageCommand::FilterWash));
+    REG_CMD_CB("image.colorOptions", QT_TRANSLATE_NOOP("CommandRegistrar", "&Colors and Brightness..."), "IMAGE/Filter/Colors and Brightness...", 55, false, 0,
+               image(ImageCommand::ColorOptions));
+    REG_CMD_CB("image.crop", QT_TRANSLATE_NOOP("CommandRegistrar", "C&rop"), "IMAGE/Crop", 60, false, 0,
+               image(ImageCommand::Crop));
+    REG_CMD_CB("image.originalSize", QT_TRANSLATE_NOOP("CommandRegistrar", "Original Si&ze"), "IMAGE/Original Size", 70, true, 0,
+               image(ImageCommand::OriginalSize));
+    REG_CMD_CB("image.change", QT_TRANSLATE_NOOP("CommandRegistrar", "C&hange Image..."), "IMAGE/Change Image...", 80, false, 0,
+               image(ImageCommand::Change));
+    REG_CMD_CB("image.saveAs", QT_TRANSLATE_NOOP("CommandRegistrar", "Sa&ve as Image..."), "IMAGE/Save as Image...", 90, false, 0,
+               image(ImageCommand::SaveAs));
+    // The filter of the selected image is checked (MainWindow)
+    for (const char* id : {"image.filterNone", "image.filterGrayscale", "image.filterSepia",
+                           "image.filterBlackWhite", "image.filterWash"}) {
+        if (Command* filter = registry.getCommand(id)) {
+            filter->isChecked = []() { return false; };
+        }
     }
 
     // =========================================================================

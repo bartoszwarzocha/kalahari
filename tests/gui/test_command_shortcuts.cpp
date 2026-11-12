@@ -147,6 +147,11 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"format.bullets", QStringLiteral("Shift+F12")},  // as in LibreOffice
         {"format.numbering", QStringLiteral("F12")},
 #ifdef Q_OS_MACOS
+        {"image.properties", QStringLiteral("Ctrl+Alt+I")},  // Option+Return: a new paragraph
+#else
+        {"image.properties", QStringLiteral("Alt+Return")},  // Properties of the file managers
+#endif
+#ifdef Q_OS_MACOS
         {"format.clearFormatting", QStringLiteral("Ctrl+\\")},  // Cmd+\: Cmd+Space is Spotlight
 #else
         {"format.clearFormatting", QStringLiteral("Ctrl+Space")},  // as in Word

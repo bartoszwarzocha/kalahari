@@ -2,14 +2,17 @@
 /// @brief Custom QAbstractTextDocumentLayout implementation (OpenSpec #00043)
 
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/text_tables.h>
 #include <QElapsedTimer>
+#include <QFileInfo>
 #include <QFontInfo>
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QPalette>
 #include <QPen>
+#include <QSvgRenderer>
 #include <QTextDocument>
 #include <QTextFrame>
 #include <QTextLayout>
@@ -99,6 +102,43 @@ constexpr qreal OBJECT_LINE_OPACITY = 0.6;
 
 /// Lines of the objects are this many times thinner than a line of Normal is high
 constexpr qreal OBJECT_LINE_THINNESS = 20.0;
+
+/// The points of a centimeter
+constexpr qreal POINTS_PER_CENTIMETER = 72.0 / 2.54;
+
+/// The width of the frame of a missing image of the file's own width, in centimeters
+constexpr qreal MISSING_IMAGE_CENTIMETERS = 6.0;
+
+/// The least height of the frame of a missing image, in lines of the document font, and
+/// its height as a share of its width when that is more
+constexpr qreal MISSING_IMAGE_LINES = 3.5;
+constexpr qreal MISSING_IMAGE_RATIO = 0.25;
+
+/// The size of the text of the frame of a missing image, as a share of the document font
+constexpr qreal MISSING_IMAGE_LABEL_SCALE = 0.8;
+
+/// The opacity of the background of the frame of a missing image, over the text's color
+constexpr qreal MISSING_IMAGE_FILL_OPACITY = 0.04;
+
+/// How far an image's shadow falls to the right and down (points)
+constexpr qreal IMAGE_SHADOW_POINTS = 3.0;
+
+/// How opaque an image's shadow is, in the color of its border
+constexpr qreal IMAGE_SHADOW_OPACITY = 0.35;
+
+/// A double border line: two lines and the gap between them, each of the border's width
+constexpr qreal DOUBLE_BORDER_LINES = 3.0;
+
+/// The picture of a broken image on the frame of a missing one (24 units square), in the
+/// color of the text
+constexpr const char* BROKEN_IMAGE_SVG =
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"%1\" "
+    "d=\"M21 5v6.59l-3-3.01-4 4.01-4-4-4 4-3-3.01V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2zm-3 "
+    "6.42l3 3.01V19c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-6.58l3 2.99 4-4 4 4 4-3.99z\"/></svg>";
+
+/// The object types the layout sizes and draws
+constexpr int LAYOUT_OBJECTS[] = {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT,
+                                  IMAGE_OBJECT};
 
 /// A number of a style's properties, or @p fallback without it
 qreal numberOf(const QVariantMap& properties, const char* name, qreal fallback) {
@@ -226,7 +266,7 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
                 });
     }
     // Qt takes U+FFFC for an object only while the layout has a handler
-    for (const int objectType : {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT}) {
+    for (const int objectType : LAYOUT_OBJECTS) {
         registerHandler(objectType, this);
     }
     // Runs whenever the event loop has nothing else to do, while blocks wait for layout
@@ -237,7 +277,7 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
 KalahariTextDocumentLayout::~KalahariTextDocumentLayout() {
     // A handler's destroyed() goes to the layout; while the layout itself is destroyed, a
     // debug Qt stops there, as the layout's part of the object is gone already
-    for (const int objectType : {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT}) {
+    for (const int objectType : LAYOUT_OBJECTS) {
         unregisterHandler(objectType, this);
     }
 }
@@ -283,14 +323,32 @@ void KalahariTextDocumentLayout::setPageFlow(const PageFlow& flow) {
         return;
     }
     const bool placementChanged = normalized.enabled || m_pageFlow.enabled;
+    // An image is never higher than a page's text: the images get their sizes again
+    const bool imagesChanged = m_hasImages && normalized.textHeight != m_pageFlow.textHeight;
     m_pageFlow = normalized;
-    if (placementChanged) {
-        // The line breaks stay (design metrics in every view), but the lines of each block
-        // are placed anew: on the pages, or one under another
+    if (imagesChanged || placementChanged) {
+        // New sizes of the images; or the line breaks stay (design metrics in every view),
+        // but the lines of each block are placed anew: on the pages, or one under another
         invalidateAll();
     } else {
         // Only the height the endless text area takes at least: the lines stay
         reportDocumentSize();
+    }
+}
+
+void KalahariTextDocumentLayout::setImageStore(std::shared_ptr<ImageStore> store) {
+    if (store == m_imageStore) {
+        return;
+    }
+    m_imageStore = std::move(store);
+    if (m_hasImages) {
+        invalidateAll();  // the sizes of their files
+    }
+}
+
+void KalahariTextDocumentLayout::refreshImages() {
+    if (m_hasImages) {
+        invalidateAll();
     }
 }
 
@@ -1371,18 +1429,59 @@ qreal KalahariTextDocumentLayout::boxHeightOf(qreal height, const BlockMetrics& 
 }
 
 qreal KalahariTextDocumentLayout::lineBoxHeight(const QTextLine& line, const BlockMetrics& metrics,
-                                                bool empty) {
+                                                bool empty, qreal excess) {
+    // An image's height above the text's line is added to the box, without line spacing:
+    // an image is never cut by an exact line height, nor gets a share of a multiple
     const qreal height = empty ? std::max(line.height(), metrics.emptyLineHeight) : line.height();
-    return boxHeightOf(height, metrics);
+    return boxHeightOf(height - excess, metrics) + excess;
 }
 
 qreal KalahariTextDocumentLayout::lineTopInBox(const QTextLine& line, const BlockMetrics& metrics,
-                                               bool empty) {
+                                               bool empty, qreal excess) {
     const qreal height = empty ? std::max(line.height(), metrics.emptyLineHeight) : line.height();
     // The line of an empty paragraph sits on the baseline of a line in the style's font
     const qreal baseline = empty ? std::max<qreal>(0.0, std::round(metrics.emptyAscent - line.ascent()))
                                  : 0.0;
-    return leadingAbove(boxHeightOf(height, metrics) - height) + baseline;
+    const qreal text = height - excess;
+    return leadingAbove(boxHeightOf(text, metrics) - text) + baseline;
+}
+
+qreal KalahariTextDocumentLayout::imageExcess(const QTextBlock& block, const QTextLine& line,
+                                              const BlockMetrics& metrics) const {
+    if (!m_hasImages || !line.isValid()) {
+        return 0.0;  // Qt sizes each image before the lines are placed: none was sized
+    }
+    const int start = block.position() + line.textStart();
+    const int end = start + line.textLength();
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (!fragment.isValid() || fragment.position() + fragment.length() <= start) {
+            continue;
+        }
+        if (fragment.position() >= end) {
+            break;
+        }
+        if (isImageFormat(fragment.charFormat())) {
+            return std::max<qreal>(0.0, line.ascent() - metrics.emptyAscent);
+        }
+    }
+    return 0.0;
+}
+
+qreal KalahariTextDocumentLayout::areaWidth(const QTextBlock& block) const {
+    const QTextTable* table = tableOf(block);
+    if (table == nullptr) {
+        const qreal documentWidth = document()->textWidth();
+        return documentWidth > 0 ? documentWidth : UNWRAPPED_LINE_WIDTH;
+    }
+    // The width of the cell's text, as layoutTable() places it
+    const std::vector<qreal> edges = tableColumnEdges(*table);
+    const int columns = static_cast<int>(edges.size()) - 1;
+    const QTextTableCell cell = table->cellAt(block.position());
+    const int column = std::clamp(cell.column(), 0, std::max(0, columns - 1));
+    const int right = std::clamp(column + cell.columnSpan(), column + 1, columns);
+    return std::max<qreal>(1.0, edges[static_cast<size_t>(right)] -
+                                    edges[static_cast<size_t>(column)] - 2.0 * cellPadding());
 }
 
 qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* extent,
@@ -1454,9 +1553,10 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     for (QTextLine line = layout->createLine(); line.isValid(); line = layout->createLine()) {
         const qreal lineIndent = line.lineNumber() == 0 ? firstIndent : 0.0;
         line.setLineWidth(lineWidth - lineIndent);
+        const qreal excess = imageExcess(block, line, metrics);
         line.setPosition(cellOffset + QPointF(metrics.leftMargin + (rightToLeft ? 0.0 : lineIndent),
-                                              y + lineTopInBox(line, metrics, empty)));
-        const qreal box = lineBoxHeight(line, metrics, empty);
+                                              y + lineTopInBox(line, metrics, empty, excess)));
+        const qreal box = lineBoxHeight(line, metrics, empty, excess);
         if (line.lineNumber() == 0) {
             firstBox = box;
         }
@@ -1481,8 +1581,9 @@ QRectF KalahariTextDocumentLayout::lineBox(const QTextLine& line, qreal lineSpac
 QRectF KalahariTextDocumentLayout::lineBoxOf(const QTextBlock& block, const QTextLine& line) const {
     const BlockMetrics& metrics = blockMetrics(block);
     const bool empty = block.length() <= 1;
-    return QRectF(line.x(), line.y() - lineTopInBox(line, metrics, empty), line.width(),
-                  lineBoxHeight(line, metrics, empty));
+    const qreal excess = imageExcess(block, line, metrics);
+    return QRectF(line.x(), line.y() - lineTopInBox(line, metrics, empty, excess), line.width(),
+                  lineBoxHeight(line, metrics, empty, excess));
 }
 
 QRectF KalahariTextDocumentLayout::blockLineBox(const QTextBlock& block, const QTextLine& line) {
@@ -1613,7 +1714,7 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
             height = m_blockFlowOffsets[i] == FLOW_UNPLACED ? m_blockHeights[i]
                                                              : m_blockFlowHeights[i];
         } else {
-            height = paginateBlock(block.layout(), y, blockMetrics(block));
+            height = paginateBlock(block, y, blockMetrics(block));
             m_blockFlowOffsets[i] = offset;
             m_blockFlowHeights[i] = height;
         }
@@ -1638,8 +1739,9 @@ qreal KalahariTextDocumentLayout::flowLineTop(qreal top, qreal height) const {
     return (betweenAreas || crossesEnd) ? (page + 1.0) * pitch : top;
 }
 
-qreal KalahariTextDocumentLayout::paginateBlock(QTextLayout* layout, qreal top,
+qreal KalahariTextDocumentLayout::paginateBlock(const QTextBlock& block, qreal top,
                                                 const BlockMetrics& metrics) const {
+    QTextLayout* layout = block.layout();
     // Line boxes are stacked as layoutBlock() stacks them; a page break moves a line and
     // all lines after it down to the next text area. A page break's own line stays where it
     // is (a thin line that says why the page ends there): it may end in the page's margin.
@@ -1666,7 +1768,8 @@ qreal KalahariTextDocumentLayout::paginateBlock(QTextLayout* layout, qreal top,
         shift = 0;
         for (int i = 0; i < count; ++i) {
             QTextLine line = layout->lineAt(i);
-            const qreal boxHeight = lineBoxHeight(line, metrics, empty);
+            const qreal excess = imageExcess(block, line, metrics);
+            const qreal boxHeight = lineBoxHeight(line, metrics, empty, excess);
             const qreal boxTop = top + natural + shift;
             qreal placed = metrics.pageBreak ? boxTop : flowLineTop(boxTop, boxHeight);
             const qreal offset = placed - std::floor((placed + FLOW_EPSILON) / pitch) * pitch;
@@ -1675,7 +1778,8 @@ qreal KalahariTextDocumentLayout::paginateBlock(QTextLayout* layout, qreal top,
             }
             shift += placed - boxTop;
             pages[static_cast<size_t>(i)] = std::floor((placed + FLOW_EPSILON) / pitch);
-            line.setPosition(QPointF(line.x(), natural + shift + lineTopInBox(line, metrics, empty)));
+            line.setPosition(
+                QPointF(line.x(), natural + shift + lineTopInBox(line, metrics, empty, excess)));
             natural += boxHeight;
         }
     };
@@ -2062,7 +2166,8 @@ qreal KalahariTextDocumentLayout::paginateRow(size_t first, size_t last, qreal t
         qreal y = m_blockFlowEntries[index].cellTop + metrics.spaceBefore;
         for (int i = 0; i < layout->lineCount(); ++i) {
             QTextLine line = layout->lineAt(i);
-            const qreal box = lineBoxHeight(line, metrics, empty);
+            const qreal excess = imageExcess(block, line, metrics);
+            const qreal box = lineBoxHeight(line, metrics, empty, excess);
             if (!natural) {
                 const qreal boxTop = top + y + shift;
                 const qreal moved = flowLineTop(boxTop, box);
@@ -2070,7 +2175,7 @@ qreal KalahariTextDocumentLayout::paginateRow(size_t first, size_t last, qreal t
                     shift += moved + header - boxTop;
                 }
             }
-            line.setPosition(QPointF(line.x(), y + shift + lineTopInBox(line, metrics, empty)));
+            line.setPosition(QPointF(line.x(), y + shift + lineTopInBox(line, metrics, empty, excess)));
             y += box;
         }
         height = std::max(height, y + shift + padding);
@@ -2697,8 +2802,17 @@ void KalahariTextDocumentLayout::drawListMarker(QPainter* painter, const QTextBl
 // Objects of the text
 // =============================================================================
 
-void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int /*posInDocument*/,
+void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int posInDocument,
                                                     const QTextFormat& format) {
+    if (const std::optional<ImageProperties> image = imageOf(format)) {
+        // On the baseline, as a character: all of it above
+        m_hasImages = true;
+        const QSizeF size = imageSize(document()->findBlock(posInDocument), *image);
+        item.setWidth(size.width());
+        item.setAscent(size.height());
+        item.setDescent(0.0);
+        return;
+    }
     const TextObject object = textObjectOf(format);
     if (object == TextObject::None) {
         return;
@@ -2715,8 +2829,11 @@ void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int 
     item.setDescent(height - ascent);
 }
 
-QSizeF KalahariTextDocumentLayout::intrinsicSize(QTextDocument* /*doc*/, int /*posInDocument*/,
+QSizeF KalahariTextDocumentLayout::intrinsicSize(QTextDocument* /*doc*/, int posInDocument,
                                                  const QTextFormat& format) {
+    if (const std::optional<ImageProperties> image = imageOf(format)) {
+        return imageSize(document()->findBlock(posInDocument), *image);
+    }
     const TextObject object = textObjectOf(format);
     if (object == TextObject::None) {
         return QSizeF();
@@ -2734,8 +2851,15 @@ void KalahariTextDocumentLayout::drawObject(QPainter* painter, const QRectF& rec
 void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRectF& rect,
                                                   QTextInlineObject /*object*/,
                                                   int /*posInDocument*/, const QTextFormat& format) {
+    if (painter == nullptr) {
+        return;
+    }
+    if (const std::optional<ImageProperties> image = imageOf(format)) {
+        drawImage(painter, rect, *image);
+        return;
+    }
     const TextObject object = textObjectOf(format);
-    if (object == TextObject::None || painter == nullptr) {
+    if (object == TextObject::None) {
         return;
     }
     // In the color of the text (the painter's pen); lines as thin as the text's strokes
@@ -2796,6 +2920,281 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
         case TextObject::None:
             break;
     }
+    painter->restore();
+}
+
+// =============================================================================
+// Images
+// =============================================================================
+
+qreal KalahariTextDocumentLayout::imageLineWidth(const QTextBlock& block) const {
+    const BlockMetrics& metrics = blockMetrics(block);
+    return std::max<qreal>(1.0, areaWidth(block) - metrics.leftMargin - metrics.rightMargin);
+}
+
+qreal KalahariTextDocumentLayout::widestImage(const QTextBlock& block) const {
+    // Never wider than the line, the first one of the paragraph too (its indent, or the
+    // number of a list item, as layoutBlock() places them)
+    const BlockMetrics& metrics = blockMetrics(block);
+    const qreal lineWidth = imageLineWidth(block);
+    const Qt::Alignment own = ownAlignment(block.blockFormat());
+    const Qt::Alignment alignment = own ? own : metrics.alignment;
+    const bool leadingAligned = !(alignment & (Qt::AlignRight | Qt::AlignHCenter));
+    const qreal ownIndent = metrics.listItem          ? markerOverflow(block, metrics)
+                            : tableOf(block) != nullptr ? 0.0
+                                                        : metrics.firstLineIndent;
+    const qreal firstIndent =
+        leadingAligned ? std::clamp(ownIndent, -metrics.leftMargin, lineWidth / 2.0) : 0.0;
+    return std::max<qreal>(1.0, lineWidth - std::max<qreal>(0.0, firstIndent));
+}
+
+QMarginsF KalahariTextDocumentLayout::imageFrameMargins(const ImageProperties& image) const {
+    if (!image.hasFrame()) {
+        return QMarginsF();
+    }
+    const qreal pixels = packagePixels();
+    const qreal line = image.borderLine == ImageBorderLine::None ? 0.0
+                       : image.borderLine == ImageBorderLine::Double
+                           ? image.borderWidth * DOUBLE_BORDER_LINES
+                           : image.borderWidth;
+    const qreal side = std::round((line + image.borderPadding) * pixels);
+    const qreal shadow = image.shadow ? std::round(IMAGE_SHADOW_POINTS * pixels) : 0.0;
+    return QMarginsF(side, side, side + shadow, side + shadow);
+}
+
+ImageProperties KalahariTextDocumentLayout::imageOfWidth(const QTextBlock& block,
+                                                         const ImageProperties& image,
+                                                         qreal width) const {
+    // The width of the image's box: its picture is narrower by the frame
+    const QMarginsF frame = imageFrameMargins(image);
+    const qreal picture = std::max<qreal>(1.0, width - frame.left() - frame.right());
+    ImageProperties resized = image;
+    if (image.unit == ImageWidthUnit::Centimeters) {
+        resized.width =
+            std::round(picture / (POINTS_PER_CENTIMETER * packagePixels()) * 100.0) / 100.0;
+    } else {
+        resized.unit = ImageWidthUnit::Percent;
+        resized.width = std::max(MIN_IMAGE_PERCENT,
+                                 std::round(picture / imageLineWidth(block) * 100.0));
+    }
+    // An own height changes with the width: the image keeps its shape
+    if (image.height > 0.0) {
+        const QSizeF shown = imageSize(block, image);
+        const qreal before = shown.width() - frame.left() - frame.right();
+        if (before >= 1.0) {
+            resized.height = std::round(image.height * picture / before * 100.0) / 100.0;
+        }
+    }
+    return normalizedImage(resized);
+}
+
+QSizeF KalahariTextDocumentLayout::imageSize(const QTextBlock& block,
+                                             const ImageProperties& image) const {
+    const BlockMetrics& metrics = blockMetrics(block);
+    const qreal lineWidth = imageLineWidth(block);
+    const qreal widest = widestImage(block);
+
+    // The file's pixels at 96 an inch (cropped and turned), centimeters shown as the style's
+    // points are
+    const qreal pixels = packagePixels();
+    const std::optional<QSize> natural =
+        m_imageStore ? m_imageStore->shownPixelSize(image) : std::nullopt;
+    const QMarginsF frame = imageFrameMargins(image);
+    const qreal frameWidth = frame.left() + frame.right();
+    const qreal frameHeight = frame.top() + frame.bottom();
+    qreal width = 0.0;
+    switch (image.unit) {
+        case ImageWidthUnit::Natural:
+            width = natural ? natural->width() * POINTS_PER_INCH / IMAGE_PIXELS_PER_INCH * pixels
+                            : MISSING_IMAGE_CENTIMETERS * POINTS_PER_CENTIMETER * pixels;
+            break;
+        case ImageWidthUnit::Percent:
+            width = lineWidth * image.width / 100.0;
+            break;
+        case ImageWidthUnit::Centimeters:
+            width = image.width * POINTS_PER_CENTIMETER * pixels;
+            break;
+    }
+    width = std::max<qreal>(1.0, width);
+    qreal height = 0.0;
+    if (image.height > 0.0) {
+        height = image.height * POINTS_PER_CENTIMETER * pixels;
+    } else if (natural) {
+        height = width * natural->height() / natural->width();
+    } else {
+        const qreal line = QFontMetricsF(document()->defaultFont()).height();
+        height = std::max(line * MISSING_IMAGE_LINES, width * MISSING_IMAGE_RATIO);
+    }
+    // The box with its frame never wider than the line: the picture smaller, in its shape
+    const qreal widestPicture = std::max<qreal>(1.0, widest - frameWidth);
+    if (width > widestPicture) {
+        height *= widestPicture / width;
+        width = widestPicture;
+    }
+
+    // Never higher than a page's text, with the rest of its line's box and the paragraph's
+    // spacing: an image higher than a page could never be placed on one
+    if (m_pageFlow.textHeight > 0) {
+        const qreal rest =
+            std::max<qreal>(0.0, boxHeightOf(metrics.emptyLineHeight, metrics) - metrics.emptyAscent);
+        const qreal tallest = m_pageFlow.textHeight - rest - metrics.spaceBefore -
+                              metrics.spaceAfter - frameHeight;
+        if (tallest >= 1.0 && height > tallest) {
+            width *= tallest / height;
+            height = tallest;
+        }
+    }
+    return QSizeF(std::max(1.0, std::round(width)) + frameWidth,
+                  std::max(1.0, std::round(height)) + frameHeight);
+}
+
+bool KalahariTextDocumentLayout::isImageMissing(const ImageProperties& image) const {
+    return !m_imageStore || !m_imageStore->pixelSize(image.source);
+}
+
+std::optional<QRectF> KalahariTextDocumentLayout::imageRect(int position) const {
+    const std::optional<ImageProperties> image = editor::imageAt(*document(), position);
+    if (!image) {
+        return std::nullopt;
+    }
+    const QTextBlock block = document()->findBlock(position);
+    const QTextLayout* layout = block.layout();
+    if (layout == nullptr || layout->lineCount() == 0) {
+        return std::nullopt;
+    }
+    const int offset = position - block.position();
+    const QTextLine line = layout->lineForTextPosition(offset);
+    if (!line.isValid()) {
+        return std::nullopt;
+    }
+    // Qt draws an object from its line's baseline up (QTextLine::draw())
+    const qreal left = line.cursorToX(offset);
+    const qreal right = line.cursorToX(offset + 1);
+    const qreal height = imageSize(block, *image).height();
+    const qreal baseline = line.y() + line.ascent();
+    return QRectF(std::min(left, right), baseline - height, std::abs(right - left), height);
+}
+
+void KalahariTextDocumentLayout::drawImageFrame(QPainter* painter, const QRectF& box,
+                                                const ImageProperties& image) const {
+    const qreal pixels = packagePixels();
+    const qreal shadow = image.shadow ? std::round(IMAGE_SHADOW_POINTS * pixels) : 0.0;
+    // The frame's outer edge: the box less the room of the shadow
+    const QRectF outer = box.adjusted(0.0, 0.0, -shadow, -shadow);
+    const QColor color = image.borderColor.isValid() ? image.borderColor : painter->pen().color();
+    painter->save();
+    if (image.shadow) {
+        QColor shade = color;
+        shade.setAlphaF(shade.alphaF() * IMAGE_SHADOW_OPACITY);
+        painter->fillRect(outer.translated(shadow, shadow), shade);
+        // The paper under the picture, so the shadow shows only beside it (a transparent
+        // picture, its padding)
+        painter->fillRect(outer, painter->background());
+    }
+    if (image.borderLine != ImageBorderLine::None) {
+        const qreal width = std::max<qreal>(1.0, image.borderWidth * pixels);
+        Qt::PenStyle style = Qt::SolidLine;
+        if (image.borderLine == ImageBorderLine::Dashed) {
+            style = Qt::DashLine;
+        } else if (image.borderLine == ImageBorderLine::Dotted) {
+            style = Qt::DotLine;
+        }
+        painter->setBrush(Qt::NoBrush);
+        painter->setPen(QPen(color, width, style, Qt::FlatCap, Qt::MiterJoin));
+        painter->drawRect(outer.adjusted(width / 2.0, width / 2.0, -width / 2.0, -width / 2.0));
+        if (image.borderLine == ImageBorderLine::Double) {
+            const qreal inner = width * (DOUBLE_BORDER_LINES - 1.0);
+            painter->drawRect(outer.adjusted(inner + width / 2.0, inner + width / 2.0,
+                                             -inner - width / 2.0, -inner - width / 2.0));
+        }
+    }
+    painter->restore();
+}
+
+void KalahariTextDocumentLayout::drawImage(QPainter* painter, const QRectF& box,
+                                           const ImageProperties& image) const {
+    if (box.isEmpty()) {
+        return;
+    }
+    // The picture inside its frame: the border, the room around the picture, the shadow
+    const QRectF rect = box.marginsRemoved(imageFrameMargins(image));
+    if (image.hasFrame()) {
+        drawImageFrame(painter, box, image);
+    }
+    if (rect.isEmpty()) {
+        return;
+    }
+    if (m_imageStore) {
+        // The picture in the pixels it takes on the screen: sharp at every zoom
+        const QRectF device = painter->deviceTransform().mapRect(rect);
+        const QSize pixels(std::max(1, qRound(device.width())), std::max(1, qRound(device.height())));
+        const QImage picture = m_imageStore->shownImage(image, pixels);
+        if (!picture.isNull()) {
+            painter->save();
+            painter->setRenderHint(QPainter::SmoothPixmapTransform);
+            painter->drawImage(rect, picture);
+            painter->restore();
+            return;
+        }
+    }
+
+    // A missing file: a dashed frame with the picture of a broken image, the file's name
+    // and what is wrong, in the color of the text
+    const QColor textColor = painter->pen().color();
+    QColor lineColor = textColor;
+    lineColor.setAlphaF(lineColor.alphaF() * OBJECT_LINE_OPACITY);
+    QColor fillColor = textColor;
+    fillColor.setAlphaF(fillColor.alphaF() * MISSING_IMAGE_FILL_OPACITY);
+    const qreal thickness = std::max<qreal>(1.0, std::round(objectHeight(TextObject::HorizontalRule) /
+                                                            OBJECT_LINE_THINNESS));
+    painter->save();
+    painter->setClipRect(rect, Qt::IntersectClip);
+    painter->setRenderHint(QPainter::Antialiasing, false);
+    const QRectF frame = rect.adjusted(thickness / 2.0, thickness / 2.0, -thickness / 2.0,
+                                       -thickness / 2.0);
+    painter->fillRect(frame, fillColor);
+    painter->setPen(QPen(lineColor, thickness, Qt::DashLine, Qt::FlatCap));
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRect(frame);
+
+    QFont labelFont = document()->defaultFont();
+    if (labelFont.pointSizeF() > 0) {
+        labelFont.setPointSizeF(labelFont.pointSizeF() * MISSING_IMAGE_LABEL_SCALE);
+    } else if (labelFont.pixelSize() > 0) {
+        labelFont.setPixelSize(std::max(1, static_cast<int>(std::lround(
+                                               labelFont.pixelSize() * MISSING_IMAGE_LABEL_SCALE))));
+    }
+    QFont nameFont = labelFont;
+    nameFont.setWeight(QFont::DemiBold);
+    const QFontMetricsF labelMetrics(labelFont);
+    const QFontMetricsF nameMetrics(nameFont);
+    const qreal gap = std::round(labelMetrics.averageCharWidth());
+    const qreal glyph = std::round(labelMetrics.height() * 1.6);
+    const qreal textWidth = std::max<qreal>(0.0, rect.width() - glyph - 4.0 * gap);
+    const QString name = nameMetrics.elidedText(QFileInfo(image.source).fileName(),
+                                                Qt::ElideMiddle, textWidth);
+    //: The frame of an image whose file is not there, under the file's name. In Polish: Brak
+    //: pliku obrazu
+    const QString label = labelMetrics.elidedText(tr("Image file missing"), Qt::ElideRight, textWidth);
+    const qreal labelWidth =
+        std::max(nameMetrics.horizontalAdvance(name), labelMetrics.horizontalAdvance(label));
+    const qreal contentWidth = glyph + gap + labelWidth;
+    const qreal left = rect.left() + std::max(gap, std::round((rect.width() - contentWidth) / 2.0));
+    const qreal middle = rect.top() + rect.height() / 2.0;
+
+    QSvgRenderer broken(QString::fromLatin1(BROKEN_IMAGE_SVG).arg(lineColor.name()).toUtf8());
+    painter->setRenderHint(QPainter::Antialiasing, true);
+    painter->save();
+    painter->setOpacity(painter->opacity() * lineColor.alphaF());
+    broken.render(painter, QRectF(left, std::round(middle - glyph / 2.0), glyph, glyph));
+    painter->restore();
+    painter->setPen(textColor);
+    const qreal textLeft = left + glyph + gap;
+    const qreal textTop = middle - (nameMetrics.height() + labelMetrics.height()) / 2.0;
+    painter->setFont(nameFont);
+    painter->drawText(QPointF(textLeft, textTop + nameMetrics.ascent()), name);
+    painter->setFont(labelFont);
+    painter->drawText(QPointF(textLeft, textTop + nameMetrics.height() + labelMetrics.ascent()), label);
     painter->restore();
 }
 

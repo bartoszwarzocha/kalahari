@@ -22,6 +22,10 @@ namespace kalahari::editor {
 /// Custom MIME type for Kalahari KML content
 constexpr const char* MIME_KML = "application/x-kalahari-kml";
 
+/// The main folder of the book (or of the file) whose text with images was copied (UTF-8):
+/// pasted into another book, the images' files are copied into its folder of images
+constexpr const char* MIME_IMAGES_FOLDER = "application/x-kalahari-images-folder";
+
 // =============================================================================
 // Paste Modes
 // =============================================================================
@@ -128,9 +132,12 @@ public:
     /// @param marks The numbers of the list items, as the editor shows them (a part of a list
     ///        copied goes on from the number of its first item); nullptr: as the KML counts
     ///        them (listMarksOf())
+    /// @param imagesFolder The main folder the images name their files in: an image is an img
+    ///        of its file's address, its text and width; empty: the images are left out
     /// @return HTML string with equivalent formatting
     static QString kmlToHtml(const QString& kml, const QString& sceneBreakStyle = QString(),
-                             const ListMarks* marks = nullptr);
+                             const ListMarks* marks = nullptr,
+                             const QString& imagesFolder = QString());
 
     /// @brief HTML for the clipboard: a whole document in UTF-8 around @p fragment, with the
     ///        fragment marked in it
@@ -144,8 +151,11 @@ public:
     ///        paragraphs and line breaks end a line
     /// @param marks The numbers of the list items, as the editor shows them; nullptr: as the
     ///        KML counts them (kmlToHtml())
+    /// @param imagesFolder The main folder the images of the text name their files in: the
+    ///        HTML shows them, and the folder goes with the KML (MIME_IMAGES_FOLDER)
     static std::unique_ptr<QMimeData> mimeDataOf(const QString& kml,
-                                                 const ListMarks* marks = nullptr);
+                                                 const ListMarks* marks = nullptr,
+                                                 const QString& imagesFolder = QString());
 
     /// @brief Convert HTML of another program (Word, LibreOffice, a browser) to KML
     ///

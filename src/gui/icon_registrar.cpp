@@ -195,6 +195,28 @@ void registerAllIcons() {
     iconRegistry.registerIcon("table.properties", "resources/icons/twotone/tune.svg", "Table Properties");
 
     // -------------------------------------------------------------------------
+    // IMAGE MENU ICONS
+    // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("image.properties", "resources/icons/twotone/image.svg", "Image Properties");
+    iconRegistry.registerIcon("image.addCaption", "resources/icons/twotone/short_text.svg", "Add Caption");
+    iconRegistry.registerIcon("image.altText", "resources/icons/twotone/notes.svg", "Alternative Text");
+    iconRegistry.registerIcon("image.rotateRight", "resources/icons/twotone/rotate_right.svg", "Rotate Right 90°");
+    iconRegistry.registerIcon("image.rotateLeft", "resources/icons/twotone/rotate_left.svg", "Rotate Left 90°");
+    iconRegistry.registerIcon("image.flipHorizontal", "resources/icons/twotone/swap_horiz.svg", "Flip Horizontally");
+    iconRegistry.registerIcon("image.flipVertical", "resources/icons/twotone/swap_vert.svg", "Flip Vertically");
+    iconRegistry.registerIcon("image.rotateOptions", "resources/icons/twotone/tune.svg", "More Rotation Options");
+    iconRegistry.registerIcon("image.filterNone", "resources/icons/twotone/image.svg", "Original");
+    iconRegistry.registerIcon("image.filterGrayscale", "resources/icons/twotone/contrast.svg", "Grayscale");
+    iconRegistry.registerIcon("image.filterSepia", "resources/icons/twotone/brush.svg", "Sepia");
+    iconRegistry.registerIcon("image.filterBlackWhite", "resources/icons/twotone/contrast_square.svg", "Black and White");
+    iconRegistry.registerIcon("image.filterWash", "resources/icons/twotone/format_color_reset.svg", "Washout");
+    iconRegistry.registerIcon("image.colorOptions", "resources/icons/twotone/tune.svg", "Colors and Brightness");
+    iconRegistry.registerIcon("image.crop", "resources/icons/twotone/crop.svg", "Crop");
+    iconRegistry.registerIcon("image.originalSize", "resources/icons/twotone/fit_screen.svg", "Original Size");
+    iconRegistry.registerIcon("image.change", "resources/icons/twotone/swap_horizontal_circle.svg", "Change Image");
+    iconRegistry.registerIcon("image.saveAs", "resources/icons/twotone/save_as.svg", "Save as Image");
+
+    // -------------------------------------------------------------------------
     // TOOLS MENU ICONS
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("tools.stats.full", "resources/icons/twotone/analytics.svg", "Full Statistics");
@@ -313,6 +335,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.tableDelete", "resources/icons/twotone/delete.svg", "Delete");
     iconRegistry.registerIcon("menu.tableSelect", "resources/icons/twotone/select_all.svg", "Select");
     iconRegistry.registerIcon("menu.tableConvert", "resources/icons/twotone/swap_horiz.svg", "Convert");
+    iconRegistry.registerIcon("menu.imageRotate", "resources/icons/twotone/rotate_right.svg", "Rotate");
+    iconRegistry.registerIcon("menu.imageFilter", "resources/icons/twotone/palette.svg", "Filter");
     iconRegistry.registerIcon("menu.statistics", "resources/icons/twotone/bar_chart.svg", "Statistics");
     iconRegistry.registerIcon("menu.plugins", "resources/icons/twotone/extension.svg", "Plugins");
     iconRegistry.registerIcon("menu.assistantActions", "resources/icons/twotone/lightbulb.svg", "Assistant Actions");
