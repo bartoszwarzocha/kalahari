@@ -1273,9 +1273,13 @@ QWidget* ImagePropertiesDialog::createDescriptionPage()
 
 QWidget* ImagePropertiesDialog::createCaptionPage()
 {
+    // The preview on the left, as on the other pages, the fields on the right: the page no
+    // higher than the others
     auto* page = new QWidget(this);
-    auto* layout = new QVBoxLayout(page);
-    layout->setContentsMargins(0, 0, 0, 0);
+    auto* body = new QHBoxLayout(page);
+    body->setContentsMargins(0, 0, 0, 0);
+    body->setSpacing(12);
+    auto* layout = new QVBoxLayout();
 
     //: In Polish: Pokaż podpi&s
     m_captionShown = new QCheckBox(tr("S&how a caption"), page);
@@ -1284,12 +1288,11 @@ QWidget* ImagePropertiesDialog::createCaptionPage()
     auto* grid = new QGridLayout();
     grid->setColumnStretch(1, 1);
     m_captionLabel = new QComboBox(page);
-    m_captionLabel->setMinimumContentsLength(14);
+    m_captionLabel->setMinimumContentsLength(12);
     m_captionLabel->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     //: In Polish: &Nowa etykieta…
     m_newCaptionLabel = new QPushButton(tr("&New Label..."), page);
-    m_captionNumber = hintLabel(QString(), page);
-    m_captionNumber->setWordWrap(false);
+    m_captionNumber = hintLabel(QString(), page);  // in two lines when the row is narrow
     auto* labelRow = new QHBoxLayout();
     labelRow->addWidget(m_captionLabel);
     labelRow->addWidget(m_newCaptionLabel);
@@ -1338,13 +1341,16 @@ QWidget* ImagePropertiesDialog::createCaptionPage()
     for (QLabel* caption : {m_captionPreviewAbove, m_captionPreviewBelow}) {
         caption->setTextFormat(Qt::RichText);
         caption->setWordWrap(true);
-        caption->setFixedWidth(CAPTION_PREVIEW.width() + 2 * fontMetrics().averageCharWidth() * 10);
+        // A little wider than the picture: the page no wider than the others
+        caption->setFixedWidth(CAPTION_PREVIEW.width() + 2 * fontMetrics().averageCharWidth() * 3);
         caption->setAlignment(Qt::AlignHCenter);
     }
     preview->addWidget(m_captionPreviewAbove, 0, Qt::AlignHCenter);
     preview->addWidget(m_previews[4], 0, Qt::AlignHCenter);
     preview->addWidget(m_captionPreviewBelow, 0, Qt::AlignHCenter);
-    layout->addLayout(preview);
+    preview->addStretch(1);
+    body->addLayout(preview);
+    body->addLayout(layout, 1);
 
     //: In Polish: Numer na szarym tle nadaje program – nie da się go nadpisać. Jak liczy ta
     //: książka: Wstaw > Podpis… > Numeracja…; etykiety i numeracja nowych książek: koło zębate.

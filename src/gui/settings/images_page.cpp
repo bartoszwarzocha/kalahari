@@ -109,11 +109,15 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
     m_captionLabel->setAccessibleName(tr("Label of the caption of a new image"));
     m_captionLabel->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     m_captionLabel->setMinimumContentsLength(MIN_LABEL_CHARACTERS);
-    auto* captionRow = new QHBoxLayout();
-    captionRow->addWidget(caption);
-    captionRow->addWidget(m_captionLabel);
-    captionRow->addStretch();
-    image->addRow(captionRow);
+    // The label under the check box's text: the row is no wider than either (a narrow window)
+    image->addRow(caption);
+    auto* labelRow = new QWidget();
+    auto* labelLayout = new QHBoxLayout(labelRow);
+    labelLayout->setContentsMargins(0, 0, 0, 0);
+    labelLayout->addWidget(m_captionLabel);
+    labelLayout->addStretch();
+    image->addRow(labelRow);
+    alignWithText(labelRow, caption);
     bind(caption, IMAGE_CAPTION_KEY);
     const auto syncCaption = [this, caption]() { m_captionLabel->setEnabled(caption->isChecked()); };
     connect(caption, &QCheckBox::toggled, this, syncCaption);
@@ -247,13 +251,13 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
     dpi->setAccessibleName(tr("Resolution in dots per inch"));
     //: In Polish: dpi w rozmiarze z tekstu
     auto* dpiText = new QLabel(tr("dpi at their size in the text"));
+    dpiText->setWordWrap(true);  // in a narrow window in two lines
     auto* dpiRow = new QWidget();
     auto* downscaleRow = new QHBoxLayout(dpiRow);
     downscaleRow->setContentsMargins(0, 0, 0, 0);
     downscaleRow->addWidget(above);
     downscaleRow->addWidget(dpi);
-    downscaleRow->addWidget(dpiText);
-    downscaleRow->addStretch();
+    downscaleRow->addWidget(dpiText, 1);
     files->addRow(dpiRow);
     alignWithText(dpiRow, downscale);
     bind(downscale, IMAGE_DOWNSCALE_KEY);
