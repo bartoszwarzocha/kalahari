@@ -31,6 +31,8 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "INSERT") return QObject::tr("&Insert");
     if (technicalName == "FORMAT") return QObject::tr("F&ormat");
     if (technicalName == "TABLE") return QObject::tr("Tab&le");
+    //: The menu of the selected image, between Table and Tools. In Polish: O&braz
+    if (technicalName == "IMAGE") return QObject::tr("I&mage");
     if (technicalName == "TOOLS") return QObject::tr("&Tools");
     if (technicalName == "ASSISTANT") return QObject::tr("&Assistant");
     if (technicalName == "VIEW") return QObject::tr("&View");
@@ -52,6 +54,11 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Delete") return QObject::tr("D&elete");
     if (technicalName == "Select") return QObject::tr("&Select");
     if (technicalName == "Convert") return QObject::tr("&Convert");
+    // The Image menu (the image's context menu has the same keys)
+    //: In Polish: Ob&róć
+    if (technicalName == "Rotate") return QObject::tr("R&otate");
+    //: In Polish: &Filtr
+    if (technicalName == "Filter") return QObject::tr("&Filter");
     if (technicalName == "Statistics") return QObject::tr("&Statistics");
     if (technicalName == "Plugins") return QObject::tr("P&lugins");
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant A&ctions");
@@ -73,8 +80,8 @@ QString MenuBuilder::menuTitle(const std::string& technicalName) {
 
 const std::vector<std::string>& MenuBuilder::topLevelMenus() {
     static const std::vector<std::string> menus = {
-        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TABLE", "TOOLS", "ASSISTANT", "VIEW", "WINDOW",
-        "HELP"
+        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TABLE", "IMAGE", "TOOLS", "ASSISTANT", "VIEW",
+        "WINDOW", "HELP"
     };
     return menus;
 }
@@ -94,6 +101,8 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Delete", QStringLiteral("menu.tableDelete")},
         {"Select", QStringLiteral("menu.tableSelect")},
         {"Convert", QStringLiteral("menu.tableConvert")},
+        {"Rotate", QStringLiteral("menu.imageRotate")},
+        {"Filter", QStringLiteral("menu.imageFilter")},
         {"Statistics", QStringLiteral("menu.statistics")},
         {"Plugins", QStringLiteral("menu.plugins")},
         {"Assistant Actions", QStringLiteral("menu.assistantActions")},

@@ -328,6 +328,7 @@ bool BookEditor::setImageOriginalSize(int position)
     }
     image->unit = ImageWidthUnit::Natural;
     image->width = 0.0;
+    image->height = 0.0;
     return setImageProperties(position, *image);
 }
 
@@ -341,6 +342,10 @@ bool BookEditor::changeImageFile(int position, const QString& path)
     const QString source = m_imageStore->addFile(path);
     if (source.isEmpty()) {
         return false;
+    }
+    // The same picture (its own file, or a copy of it): nothing to change
+    if (source == image->source) {
+        return true;
     }
     image->source = source;
     return setImageProperties(position, *image);
@@ -413,6 +418,62 @@ QString BookEditor::imageFilePath(int position) const
     return image ? m_imageStore->filePath(image->source) : QString();
 }
 
+std::optional<ImagePropertiesData> BookEditor::imagePropertiesData(int position) const
+{
+    const std::optional<ImageProperties> image =
+        m_textBuffer ? editor::imageAt(*m_textBuffer, position) : std::nullopt;
+    if (!image) {
+        return std::nullopt;
+    }
+    ImagePropertiesData propertiesData;
+    propertiesData.position = position;
+    propertiesData.image = *image;
+    propertiesData.filePath = m_imageStore->filePath(image->source);
+    if (const std::optional<QSize> pixels = m_imageStore->pixelSize(image->source)) {
+        propertiesData.filePixels = *pixels;
+        propertiesData.fileBytes = QFileInfo(propertiesData.filePath).size();
+    }
+    // The widths in points, as the layout measures them
+    const auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    if (layout != nullptr && layout->pixelsPerPoint() > 0.0) {
+        const QTextBlock block = m_textBuffer->findBlock(position);
+        const QMarginsF frame = layout->imageFrameMargins(*image);
+        propertiesData.lineWidth = layout->imageLineWidth(block) / layout->pixelsPerPoint();
+        const qreal box = layout->imageSize(block, *image).width();
+        propertiesData.shownWidth = (box - frame.left() - frame.right()) / layout->pixelsPerPoint();
+    }
+    return propertiesData;
+}
+
+bool BookEditor::setImagePropertiesData(const ImagePropertiesData& propertiesData)
+{
+    const std::optional<ImageProperties> old =
+        m_textBuffer ? editor::imageAt(*m_textBuffer, propertiesData.position) : std::nullopt;
+    if (!old || refusesChange()) {
+        return false;
+    }
+    ImageProperties image = propertiesData.image;
+    if (!propertiesData.newFile.isEmpty()) {
+        // Another picture: its file copied in first, its own size unless the size stays
+        if (!m_imageStore->hasFolder() || !ImageStore::fileSize(propertiesData.newFile)) {
+            return false;
+        }
+        const QString source = m_imageStore->addFile(propertiesData.newFile);
+        if (source.isEmpty()) {
+            return false;
+        }
+        image.source = source;
+        if (!propertiesData.keepSizeAndCrop) {
+            image.unit = ImageWidthUnit::Natural;
+            image.width = 0.0;
+            image.height = 0.0;
+            image.crop = ImageCrop{};
+        }
+    }
+    // Nothing changed: no step of Undo, and nothing went wrong
+    return normalizedImage(image) == *old || setImageProperties(propertiesData.position, image);
+}
+
 bool BookEditor::setImageLayoutWidth(int position, qreal width)
 {
     const std::optional<ImageProperties> image =
@@ -443,7 +504,7 @@ QRectF BookEditor::imageHandleRect(const QRectF& image, ImageCorner corner)
 std::optional<BookEditor::ImageCorner> BookEditor::imageHandleAt(const QPointF& widgetPos) const
 {
     const std::optional<int> position = selectedImage();
-    if (!position || m_readOnly) {
+    if (!position || m_readOnly || imageCropping() != nullptr) {
         return std::nullopt;
     }
     const std::optional<QRectF> rect = imageRect(*position);
@@ -584,6 +645,14 @@ void BookEditor::paintImageSelection(QPainter& painter) const
         return;
     }
 
+    // Being cropped: its marks instead of the frame
+    if (const ImageCropping* cropping = imageCropping(); cropping != nullptr &&
+                                                         cropping->position == *selected) {
+        painter.restore();
+        paintImageCropping(painter);
+        return;
+    }
+
     // The image alone: a frame in the selection's color, a handle in each corner where it can
     // be resized
     const std::optional<QRectF> rect = imageRect(*selected);
@@ -615,34 +684,56 @@ void BookEditor::paintImageSelection(QPainter& painter) const
 
         const QString label = imageWidthLabel(*selected, preview.width());
         if (!label.isEmpty()) {
-            const QFontMetricsF metrics(font());
-            const QSizeF size(metrics.horizontalAdvance(label) + 2.0 * IMAGE_LABEL_PADDING,
-                              metrics.height() + IMAGE_LABEL_PADDING);
+            const QSizeF size = imageLabelSize(label);
             const int corner = static_cast<int>(m_imageResize->corner);
-            const QPointF at(isRightCorner(corner) ? preview.right() + IMAGE_LABEL_GAP
-                                                   : preview.left() - IMAGE_LABEL_GAP - size.width(),
-                             isBottomCorner(corner) ? preview.bottom() + IMAGE_LABEL_GAP
-                                                    : preview.top() - IMAGE_LABEL_GAP - size.height());
-            // Inside the view, off its scroll bars, where the handle is near its edge
-            const qreal right = width() - (m_verticalScrollBar != nullptr && !m_verticalScrollBar->isHidden()
-                                               ? m_verticalScrollBar->width()
-                                               : 0);
-            const qreal bottom = height() - (m_horizontalScrollBar != nullptr &&
-                                                     !m_horizontalScrollBar->isHidden()
-                                                 ? m_horizontalScrollBar->height()
-                                                 : 0);
-            const QRectF box(QPointF(std::clamp(at.x(), 0.0, std::max(0.0, right - size.width())),
-                                     std::clamp(at.y(), 0.0, std::max(0.0, bottom - size.height()))),
-                             size);
-            const QColor text = m_appearance.colors.textColor(m_appearance.colorMode);
-            painter.setPen(QPen(line, 1.0));
-            painter.setBrush(paper);
-            painter.drawRect(box.adjusted(0.5, 0.5, -0.5, -0.5));
-            painter.setPen(text);
-            painter.setFont(font());
-            painter.drawText(box, Qt::AlignCenter, label);
+            const qreal gap = IMAGE_LABEL_GAP;
+            const qreal x = isRightCorner(corner) ? preview.right() + gap
+                                                  : preview.left() - gap - size.width();
+            const qreal y = isBottomCorner(corner) ? preview.bottom() + gap
+                                                   : preview.top() - gap - size.height();
+            paintImageLabel(painter, label, QPointF(x, y));
         }
     }
+
+    // Resized by Ctrl+] or Ctrl+[: its new width beside its bottom right corner for a moment
+    if (!m_imageResize && m_keyResizedImage == *selected) {
+        const QString label = imageWidthLabel(*selected, rect->width());
+        if (!label.isEmpty()) {
+            paintImageLabel(painter, label,
+                            rect->bottomRight() + QPointF(IMAGE_LABEL_GAP, IMAGE_LABEL_GAP));
+        }
+    }
+    painter.restore();
+}
+
+QSizeF BookEditor::imageLabelSize(const QString& label) const
+{
+    const QFontMetricsF metrics(font());
+    return QSizeF(metrics.horizontalAdvance(label) + 2.0 * IMAGE_LABEL_PADDING,
+                  metrics.height() + IMAGE_LABEL_PADDING);
+}
+
+void BookEditor::paintImageLabel(QPainter& painter, const QString& label, const QPointF& at) const
+{
+    const QSizeF size = imageLabelSize(label);
+    // Inside the view, off its scroll bars, where the image is near its edge
+    const bool rightBar = m_verticalScrollBar != nullptr && !m_verticalScrollBar->isHidden();
+    const bool bottomBar = m_horizontalScrollBar != nullptr && !m_horizontalScrollBar->isHidden();
+    const qreal right = width() - (rightBar ? m_verticalScrollBar->width() : 0);
+    const qreal bottom = height() - (bottomBar ? m_horizontalScrollBar->height() : 0);
+    const QRectF box(QPointF(std::clamp(at.x(), 0.0, std::max(0.0, right - size.width())),
+                             std::clamp(at.y(), 0.0, std::max(0.0, bottom - size.height()))),
+                     size);
+    QColor line = m_appearance.colors.selection;
+    line.setAlpha(255);
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, false);
+    painter.setPen(QPen(line, 1.0));
+    painter.setBrush(m_appearance.colors.background(m_appearance.colorMode));
+    painter.drawRect(box.adjusted(0.5, 0.5, -0.5, -0.5));
+    painter.setPen(m_appearance.colors.textColor(m_appearance.colorMode));
+    painter.setFont(font());
+    painter.drawText(box, Qt::AlignCenter, label);
     painter.restore();
 }
 
@@ -653,12 +744,45 @@ void BookEditor::addImageActions(QMenu& menu, int position)
     if (!image) {
         return;
     }
+    // The commands of the Image menu, as there, where the application gives them
+    const ContextMenuImageActions& commands = m_contextMenuImageActions;
+    if (std::any_of(commands.top.cbegin(), commands.top.cend(),
+                    [](const QAction* action) { return action != nullptr; })) {
+        const auto addActions = [](QMenu& to, const QList<QAction*>& actions) {
+            for (QAction* action : actions) {
+                if (action != nullptr) {
+                    to.addAction(action);
+                } else {
+                    to.addSeparator();
+                }
+            }
+        };
+        const auto addSubmenu = [&menu, &addActions](const QString& title,
+                                                     const QList<QAction*>& actions) {
+            if (actions.isEmpty()) {
+                return;
+            }
+            QMenu* submenu = menu.addMenu(title);
+            submenu->setToolTipsVisible(true);
+            addActions(*submenu, actions);
+        };
+        addActions(menu, commands.top);
+        menu.addSeparator();
+        //: The context menu of an image, as the Image menu's submenus. In Polish: Ob&róć
+        addSubmenu(tr("R&otate"), commands.rotate);
+        //: In Polish: &Filtr
+        addSubmenu(tr("&Filter"), commands.filter);
+        addActions(menu, commands.bottom);
+        return;
+    }
+
     // The windows and file pickers are the application's: their items are there when it
     // gives them
     if (isSignalConnected(QMetaMethod::fromSignal(&BookEditor::imagePropertiesAsked))) {
         //: The context menu of an image. In Polish: Właściwości &obrazu...
-        disableWhileReadOnly(menu.addAction(tr("Image Pr&operties..."), this,
-                                            [this, position]() { emit imagePropertiesAsked(position); }));
+        disableWhileReadOnly(menu.addAction(tr("Image Pr&operties..."), this, [this, position]() {
+            emit imagePropertiesAsked(position, 0);
+        }));
     }
     //: In Polish: &Dodaj podpis
     disableWhileReadOnly(menu.addAction(tr("A&dd Caption"), this,

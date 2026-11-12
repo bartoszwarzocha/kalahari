@@ -6,6 +6,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
 #include "kalahari/gui/dialogs/hyperlink_dialog.h"
+#include "kalahari/gui/dialogs/image_properties_dialog.h"
 #include "kalahari/gui/dialogs/insert_table_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
 #include "kalahari/gui/dialogs/paragraph_dialog.h"
@@ -147,6 +148,14 @@ EditorPanel::EditorPanel(QWidget* parent)
          actions({"table.selectCell", "table.selectRow", "table.selectColumn", "table.selectTable"}),
          actions({"table.mergeCells", "table.splitCells", nullptr, "table.distributeRows",
                   "table.distributeColumns", nullptr, "table.sort", "table.properties"})});
+    // The context menu of an image: the commands of the Image menu, enabled as there
+    m_bookEditor->setContextMenuImageActions(
+        {actions({"image.properties", "image.addCaption", "image.altText"}),
+         actions({"image.rotateRight", "image.rotateLeft", "image.flipHorizontal",
+                  "image.flipVertical", nullptr, "image.rotateOptions"}),
+         actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
+                  "image.filterBlackWhite", "image.filterWash", nullptr, "image.colorOptions"}),
+         actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
 
     // Autocorrect puts in the quotation marks of the text's language, asked when they are
     // typed: the book's language may change, and a chapter is told from a file outside the
@@ -190,6 +199,9 @@ EditorPanel::EditorPanel(QWidget* parent)
             &EditorPanel::showChangeImageDialog);
     connect(m_bookEditor, &editor::BookEditor::imageSaveAsked, this,
             &EditorPanel::showSaveImageDialog);
+    // Its look, asked for by a double click or its context menu
+    connect(m_bookEditor, &editor::BookEditor::imagePropertiesAsked, this,
+            [this](int position, int page) { showImagePropertiesDialog(position, page); });
 
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
@@ -468,6 +480,10 @@ void EditorPanel::applySettings() {
     tables.headerDark = themes.editorColor(dark.tableHeader, defaults.tables.headerDark);
     tables.gridlinesLight = themes.editorColor(light.tableGridlines, defaults.tables.gridlinesLight);
     tables.gridlinesDark = themes.editorColor(dark.tableGridlines, defaults.tables.gridlinesDark);
+    auto& images = appearance.colors.images;
+    images.cropMarksLight =
+        themes.editorColor(light.imageCropMarks, defaults.images.cropMarksLight);
+    images.cropMarksDark = themes.editorColor(dark.imageCropMarks, defaults.images.cropMarksDark);
     // Under the text on both papers: translucent, so the text stays readable
     appearance.colors.selection =
         editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
@@ -782,7 +798,7 @@ void EditorPanel::showChangeImageDialog(int position) {
     if (!m_bookEditor->canInsertImage() || m_bookEditor->imageFilePath(position).isEmpty()) {
         return;
     }
-    //: The system window of Change Image... of an image's context menu. In Polish: Zmień obraz
+    //: The system window of Change Image... In Polish: Zmień obraz
     const QString path = chooseImageFile(window(), tr("Change Image"));
     if (!path.isEmpty() && !m_bookEditor->changeImageFile(position, path)) {
         warnImageNotInserted(window(), path);
@@ -832,6 +848,43 @@ void EditorPanel::showSaveImageDialog(int position) {
             tr("Image Not Saved"),
             //: In Polish: Nie udało się zapisać obrazu w pliku „%1”.
             tr("The image could not be saved as \"%1\".").arg(QDir::toNativeSeparators(target)));
+    }
+}
+
+void EditorPanel::showImagePropertiesDialog(int position, int page) {
+    const std::optional<editor::ImagePropertiesData> properties =
+        m_bookEditor->imagePropertiesData(position);
+    if (m_bookEditor->isReadOnly() || !properties) {
+        return;
+    }
+    // An automatic border has the color of the text, on the editor's paper
+    const editor::EditorAppearance& appearance = m_bookEditor->appearance();
+    dialogs::ImagePropertiesDialog dialog(
+        *properties, appearance.colors.textColor(appearance.colorMode), window());
+    // Another picture needs the folder of images: a book saved
+    if (m_bookEditor->canInsertImage()) {
+        dialog.setFileChooser([&dialog]() {
+            //: The system window of Change Image... In Polish: Zmień obraz
+            return chooseImageFile(&dialog, tr("Change Image"));
+        });
+    }
+    dialog.setImageSaver([this, position]() { showSaveImageDialog(position); });
+    dialog.setCropInTextAvailable(true);
+    if (page > 0 && page < dialogs::ImagePropertiesDialog::PageCount) {
+        dialog.showPage(static_cast<dialogs::ImagePropertiesDialog::Page>(page));
+    }
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const editor::ImagePropertiesData chosen = dialog.data();
+    if (!m_bookEditor->setImagePropertiesData(chosen) && !chosen.newFile.isEmpty()) {
+        warnImageNotInserted(window(), chosen.newFile);
+        return;
+    }
+    // Crop in the Text: the marks on the image, with the changes made
+    if (dialog.cropInTextAsked()) {
+        m_bookEditor->setFocus();
+        m_bookEditor->startImageCrop(position);
     }
 }
 

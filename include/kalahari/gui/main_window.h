@@ -44,6 +44,7 @@ class BookEditor;
 namespace gui {
 
 enum class TableCommand;  // The commands of the Table menu (command_registrar.h)
+enum class ImageCommand;  // The commands of the Image menu (command_registrar.h)
 
 // Forward declarations for panels
 class DashboardPanel;
@@ -350,6 +351,14 @@ private slots:
     /// @brief Do a command of the Table menu in @p text: its window, of the text's panel,
     ///        or the change itself
     void onTableCommand(editor::BookEditor& text, TableCommand command);
+
+    /// @brief The commands of the Image menu on the selected image of the book's text with
+    ///        the keys: greyed out where they do nothing, saying why; its filter checked
+    void addImageCommands();
+
+    /// @brief Do a command of the Image menu on the selected image of @p text: its window,
+    ///        of the text's panel, or the change itself
+    void onImageCommand(editor::BookEditor& text, ImageCommand command);
 
     /// @brief Update action states based on editor state
     ///

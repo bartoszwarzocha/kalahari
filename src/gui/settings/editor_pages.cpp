@@ -608,6 +608,9 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
         addThemeColor(form, tr("Table borders"), keys.tableLines);
         addThemeColor(form, tr("Table header rows"), keys.tableHeader);
         addThemeColor(form, tr("Table gridlines (no border)"), keys.tableGridlines);
+        //: The marks at the sides of an image being cropped in the text. In Polish:
+        //: Znaczniki przycinania obrazu
+        addThemeColor(form, tr("Crop marks of an image"), keys.imageCropMarks);
         addThemeColor(form, tr("Around the paper"), keys.desk);
         addRestoreColorsButton(form);
     };

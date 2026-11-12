@@ -551,7 +551,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         pictured.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                         registry.getAction(QStringLiteral("insert.todo")),
                                         registry.getAction(QStringLiteral("insert.note"))});
-        QObject::connect(&pictured, &editor::BookEditor::imagePropertiesAsked, [](int) {});
+        QObject::connect(&pictured, &editor::BookEditor::imagePropertiesAsked, [](int, int) {});
         QObject::connect(&pictured, &editor::BookEditor::imageFileAsked, [](int) {});
         QObject::connect(&pictured, &editor::BookEditor::imageSaveAsked, [](int) {});
         const std::optional<QRectF> image = pictured.imageRect(4);
@@ -560,6 +560,30 @@ void checkTextMenus(bool shown, QStringList& problems) {
             contextMenu(&pictured, &pictured, image->center().toPoint());
         collectProblems(imageMenu, QStringLiteral("Image"), {}, problems);
         CHECK(itemCount(imageMenu) == 8 + 5);
+
+        // With the commands of the Image menu, as the editor panel gives them: Image
+        // Properties..., Add Caption, Alternative Text..., Rotate and Filter with their items,
+        // Crop, Original Size, Change Image..., Save as Image...
+        const auto actions = [&registry](std::initializer_list<const char*> ids) {
+            QList<QAction*> list;
+            for (const char* id : ids) {
+                QAction* action = id != nullptr ? registry.getAction(QString::fromLatin1(id)) : nullptr;
+                CHECK((action != nullptr || id == nullptr));
+                list << action;
+            }
+            return list;
+        };
+        pictured.setContextMenuImageActions(
+            {actions({"image.properties", "image.addCaption", "image.altText"}),
+             actions({"image.rotateRight", "image.rotateLeft", "image.flipHorizontal",
+                      "image.flipVertical", nullptr, "image.rotateOptions"}),
+             actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
+                      "image.filterBlackWhite", "image.filterWash", nullptr, "image.colorOptions"}),
+             actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
+        QList<test::MenuItem> commandsMenu =
+            contextMenu(&pictured, &pictured, image->center().toPoint());
+        collectProblems(commandsMenu, QStringLiteral("Image with commands"), {}, problems);
+        CHECK(itemCount(commandsMenu) == 8 + (3 + (1 + 5) + (1 + 6) + 4));
     }
 
     // A cell of a table: Insert, Delete and Select, and the commands of the Table menu the

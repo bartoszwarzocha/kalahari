@@ -179,6 +179,13 @@ public:
     ///        the writer chooses
     void showSaveImageDialog(int position);
 
+    /// @brief Image > Image Properties... (Alt+Enter, a double click on an image, its
+    ///        context menu): the look of the image at a position; OK gives it to the image
+    ///        as one step of Undo (BookEditor::setImagePropertiesData())
+    /// @param position The image's character
+    /// @param page The page shown first (dialogs::ImagePropertiesDialog::Page)
+    void showImagePropertiesDialog(int position, int page = 0);
+
     /// @brief Table > Split Cells...: the columns and rows the cell with the cursor (or the
     ///        selected cells, merged first) is split into (BookEditor::splitTableCells())
     void showSplitCellsDialog();

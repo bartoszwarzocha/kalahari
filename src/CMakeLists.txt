@@ -189,6 +189,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/hyperlink_dialog.cpp       # Insert > Link...
     gui/dialogs/insert_table_dialog.cpp    # Insert > Table...
     gui/dialogs/table_dialogs.cpp          # The windows of the Table menu
+    gui/dialogs/image_properties_dialog.cpp  # Image > Image Properties...
     gui/widgets/character_grid.cpp  # CharacterGrid - characters in cells, in the font of the text
     gui/widgets/quick_character_palette.cpp  # QuickCharacterPalette - Insert > Quick Character
     gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
@@ -347,6 +348,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_lists.cpp
     editor/book_editor_links.cpp
     editor/book_editor_images.cpp
+    editor/book_editor_image_look.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
     editor/book_editor_tables.cpp
@@ -415,6 +417,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/hyperlink_dialog.h  # Insert > Link... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/table_dialogs.h  # The windows of the Table menu, with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/image_properties_dialog.h  # Image Properties, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT

@@ -1570,6 +1570,7 @@ Rules for a new shortcut:
 | Format > Align Center | Ctrl+E |
 | Format > Align Right | Ctrl+R |
 | Format > Justify | Ctrl+J |
+| Image > Image Properties... | Alt+Enter (macOS: Cmd+Option+I; Option+Return is a new paragraph) |
 | Tools > Check Spelling as You Type | Shift+F7 |
 | Tools > Next Misspelling | F7 |
 | Tools > Next Repetition | Ctrl+Shift+F7 |
@@ -1611,6 +1612,10 @@ may have them too.
   field – replace, Esc – close, Alt+C – match case, Alt+W – whole words, Alt+R – regular
   expression (in the bar and in the text under it, before the menus with these letters).
 - **Annotation frame:** Ctrl+Enter – keep the text, Esc – drop it.
+- **An image in the text** (only while one is selected, so a command may have them too):
+  Ctrl+] and Ctrl+[ – larger and smaller by 5% of its width, Esc – back to the text, the
+  cursor after it; while it is cropped in the text (Image > Crop) Enter – crop it, Esc –
+  leave it as it was.
 - **Quick insert list** (open at the cursor after @ or # at the start of a word, or Insert >
   Quick Insert...): Up and Down, Page Up and Page Down – choose an item, Enter or Tab –
   insert it in place of what was typed, Esc – close the list and keep the text.

@@ -12,6 +12,7 @@
 #include <QTextBlock>
 #include <QTextCharFormat>
 #include <QFont>
+#include <QMarginsF>
 #include <functional>
 #include <map>
 #include <memory>
@@ -164,18 +165,28 @@ public:
     ///        with images wait for layout again
     void refreshImages();
 
-    /// @brief The size an image of a block is shown in (whole pixels): its width (the
-    ///        file's own, a percentage of the width of the block's lines, or centimeters
-    ///        shown as the style's points are) never wider than the lines, its height in
-    ///        proportion, never higher than a page's text; a missing file a frame of the
-    ///        width with room for its name
+    /// @brief The size of an image's box in a block (whole pixels): its picture's width (the
+    ///        file's own as cropped and turned, a percentage of the width of the block's
+    ///        lines, or centimeters shown as the style's points are), its height in
+    ///        proportion or its own, and its frame around (imageFrameMargins()); never wider
+    ///        than the lines nor higher than a page's text, the picture made smaller in its
+    ///        shape; a missing file a frame of the width with room for its name
     QSizeF imageSize(const QTextBlock& block, const ImageProperties& image) const;
 
-    /// @brief The image of a block made @p width wide (the layout's pixels, as a handle
-    ///        dragged gives it), in its own unit: centimeters stay centimeters, otherwise a
-    ///        whole percent of the width of the block's lines
+    /// @brief The image of a block whose box is made @p width wide (the layout's pixels, as
+    ///        a handle dragged gives it), in its own unit: centimeters stay centimeters,
+    ///        otherwise a whole percent of the width of the block's lines; an own height
+    ///        changes in proportion
     ImageProperties imageOfWidth(const QTextBlock& block, const ImageProperties& image,
                                  qreal width) const;
+
+    /// @brief The width of a block's lines an image's percent is of (the area less the
+    ///        paragraph's indents)
+    qreal imageLineWidth(const QTextBlock& block) const;
+
+    /// @brief The room an image's frame takes around its picture (the layout's pixels): its
+    ///        border and the room inside it on each side, its shadow to the right and down
+    QMarginsF imageFrameMargins(const ImageProperties& image) const;
 
     /// @brief The widest an image of a block is shown (the layout's pixels): its lines'
     ///        width, less the first line's indent
@@ -567,12 +578,13 @@ private:
     ///        the cell's text
     qreal areaWidth(const QTextBlock& block) const;
 
-    /// @brief The width of a block's lines an image's percent is of (the area less the
-    ///        paragraph's indents)
-    qreal imageLineWidth(const QTextBlock& block) const;
 
-    /// @brief Draw an image in its rectangle: its picture, or the frame of a missing file
-    void drawImage(QPainter* painter, const QRectF& rect, const ImageProperties& image) const;
+    /// @brief Draw an image in its box: its frame, and inside it its picture or the frame of
+    ///        a missing file
+    void drawImage(QPainter* painter, const QRectF& box, const ImageProperties& image) const;
+
+    /// @brief Draw an image's border and shadow around its picture
+    void drawImageFrame(QPainter* painter, const QRectF& box, const ImageProperties& image) const;
 
     /// @brief Metrics of a style at the current font and typography (uncached)
     BlockMetrics styleMetrics(const ParagraphStyle& style) const;

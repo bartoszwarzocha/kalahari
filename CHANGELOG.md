@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Images: the Image menu and Image Properties** - 2026-11-11. A new Image menu between Table
+  and Tools, and the same commands in the context menu of an image, work on the selected image:
+  Image Properties... (Alt+Enter; Cmd+Option+I on macOS, where Option+Return is a new
+  paragraph), Add Caption, Alternative Text..., Rotate (right and left by 90°, Flip
+  Horizontally and Vertically, More Rotation Options...), Filter (Original, Grayscale, Sepia,
+  Black and White, Washout, Colors and Brightness...), Crop, Original Size, Change Image... and
+  Save as Image...; a change is one step of Undo, and the file stays as it is. A command that
+  does nothing is greyed out and says why. Image Properties... (also a double click on the
+  image) has six pages in a list on the left, each with its access key, and the window is as
+  large on all of them: Image (the file, its pixels, Change Image... with the size and crop
+  kept if wanted, Save as Image...), Size and Rotation (the width in percent of the text, of
+  the original or as a length, the height in proportion or its own, Original Size, the angle
+  and the mirrors), Crop (each side in percent as the image is shown, an aspect ratio, the
+  image's size or its scale kept, Crop in the Text, Remove Crop), Border (the line, its width
+  and color, the room around the picture, a shadow), Colors (the filters as tiles, brightness,
+  contrast, threshold and transparency) and Description (a name, the alternative text, a long
+  description, decorative). Its previews show the image as it will be. Crop puts marks at the
+  sides and corners of the image in the text: dragged, they cut its sides off, the cut parts
+  faint around it; Enter or a click outside the image crops it, Esc leaves it as it was.
+  Ctrl+] and Ctrl+[ make the selected image larger and smaller by 5% of its width (a label
+  shows its new width), and Esc goes back to the text, the cursor after the image. The color
+  of the crop marks is set per paper in Settings > Editor > Colors.
 - **Images in the text** - 2026-11-11. Insert > Image... puts a picture (PNG, JPEG, GIF, BMP
   or SVG) at the cursor as a part of its line: the paragraph's alignment places it, and Undo,
   the clipboard and drag and drop take it with the text. The file is copied into the folder

@@ -455,6 +455,15 @@ bool BookEditor::event(QEvent* event)
             event->accept();
             return true;
         }
+        // Esc lets go of an image being cropped or selected, Ctrl+] and Ctrl+[ resize the
+        // selected one (keyPressEvent())
+        const bool escape =
+            key->key() == Qt::Key_Escape && key->modifiers() == Qt::NoModifier;
+        const bool imageKey = escape || imageResizeKey(*key).has_value();
+        if (imageKey && (imageCropping() != nullptr || selectedImage().has_value())) {
+            event->accept();
+            return true;
+        }
     }
     // Tab types a tab character, as in word processors: QWidget::event() would go to the next
     // field. Shift+Tab still goes to the field before, and so does Tab in a read-only text, as

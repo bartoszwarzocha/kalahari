@@ -286,6 +286,33 @@ void BookEditor::keyPressEvent(QKeyEvent* event)
         return;
     }
 
+    // An image being cropped in the text takes the keys: Enter crops it, Esc leaves it as it
+    // was, the others wait until it is done
+    if (imageCropping() != nullptr) {
+        const int key = event->key();
+        if (key == Qt::Key_Escape || key == Qt::Key_Return || key == Qt::Key_Enter) {
+            finishImageCrop(key != Qt::Key_Escape);
+            updatePointerShape(mapFromGlobal(QCursor::pos()), event->modifiers());
+        }
+        event->accept();
+        return;
+    }
+
+    // Esc on the selected image goes back to the text, the cursor after the image; Ctrl+]
+    // and Ctrl+[ make it larger and smaller
+    if (event->key() == Qt::Key_Escape && event->modifiers() == Qt::NoModifier &&
+        leaveSelectedImage()) {
+        event->accept();
+        return;
+    }
+    if (const std::optional<bool> larger = imageResizeKey(*event)) {
+        if (const std::optional<int> image = selectedImage(); image && !refusesChange()) {
+            resizeImageByStep(*image, *larger);
+        }
+        event->accept();
+        return;
+    }
+
     // Ctrl pressed over a link: the hand of Ctrl+click at once, as the mouse stays
     if (event->key() == Qt::Key_Control && underMouse()) {
         updatePointerShape(mapFromGlobal(QCursor::pos()), event->modifiers());
@@ -494,6 +521,16 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         return;
     }
 
+    // An image being cropped in the text: a mark is dragged, a press on its picture changes
+    // nothing; a press elsewhere crops it and does what it does
+    if (pressImageCrop(event->position())) {
+        setFocus();
+        m_clickCount = 0;
+        updatePointerShape(event->position(), event->modifiers());
+        event->accept();
+        return;
+    }
+
     // A click on an annotation's card does what its part does; one on an annotation's mark
     // collapses or expands its card, or opens the annotation without cards; one on the mark
     // beside a paragraph chooses a material. The cursor stays.
@@ -656,6 +693,11 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
         event->accept();
         return;
     }
+    if (imageCropping() != nullptr) {
+        dragImageCrop(pos);
+        event->accept();
+        return;
+    }
     if (m_imageResize) {
         dragImageHandle(pos);
         event->accept();
@@ -691,7 +733,9 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
     // the buttons of a card and with Ctrl over a link, which Ctrl+click opens; an arrow over a
     // card and over the selected text, which can be dragged; an I-beam elsewhere
     Qt::CursorShape shape = Qt::IBeamCursor;
-    if (hoverAnnotationCard(pos)) {
+    if (const std::optional<Qt::CursorShape> cropping = imageCropPointerAt(pos)) {
+        shape = *cropping;  // an image being cropped: its marks are dragged
+    } else if (hoverAnnotationCard(pos)) {
         shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
                     ? Qt::ArrowCursor
                     : Qt::PointingHandCursor;
@@ -728,6 +772,13 @@ void BookEditor::mouseReleaseEvent(QMouseEvent* event)
 
     stopAutoScroll();
     m_isDragging = false;
+    if (imageCropping() != nullptr && m_imageCropping) {
+        // The mark let go: the image is cropped only when it is done (Enter, a click outside)
+        m_imageCropping->sides = 0;
+        updatePointerShape(event->position(), event->modifiers());
+        event->accept();
+        return;
+    }
     if (m_columnDrag) {
         // The edge where it was let go: the widths of the two columns, one step of Undo
         const int column = m_columnDrag->column;
@@ -775,6 +826,12 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
         return;
     }
 
+    // On an image being cropped (the first click left it so): nothing more
+    if (imageCropping() != nullptr) {
+        event->accept();
+        return;
+    }
+
     // A double click on a card edits its annotation; on its buttons it does no more than
     // the first click
     if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->position())) {
@@ -790,7 +847,7 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
     if (const std::optional<int> image = imagePositionAt(event->position())) {
         selectImage(*image);
         if (!m_readOnly) {
-            emit imagePropertiesAsked(*image);
+            emit imagePropertiesAsked(*image, 0);
         }
         event->accept();
         return;
@@ -1049,6 +1106,11 @@ void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions
 void BookEditor::setContextMenuTableActions(const ContextMenuTableActions& actions)
 {
     m_contextMenuTableActions = actions;
+}
+
+void BookEditor::setContextMenuImageActions(const ContextMenuImageActions& actions)
+{
+    m_contextMenuImageActions = actions;
 }
 
 void BookEditor::setNextIssueAction(QAction* action)

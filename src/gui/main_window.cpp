@@ -33,6 +33,7 @@
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/dialogs/about_dialog.h"
 #include "kalahari/gui/dialogs/icon_downloader_dialog.h"
+#include "kalahari/gui/dialogs/image_properties_dialog.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_item_dialog.h"
@@ -44,6 +45,7 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/text_images.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/view_modes.h"
@@ -139,6 +141,41 @@ constexpr const char* TABLE_COMMANDS[] = {
 /// The commands of the Table menu that select a part of the table
 constexpr const char* TABLE_SELECT_COMMANDS[] = {"table.selectCell", "table.selectRow",
                                                   "table.selectColumn", "table.selectTable"};
+
+/// The commands of the Image menu that change the selected image or open its window
+constexpr const char* IMAGE_COMMANDS[] = {
+    "image.properties",      "image.addCaption",     "image.altText",
+    "image.rotateRight",     "image.rotateLeft",     "image.flipHorizontal",
+    "image.flipVertical",    "image.rotateOptions",  "image.filterNone",
+    "image.filterGrayscale", "image.filterSepia",    "image.filterBlackWhite",
+    "image.filterWash",      "image.colorOptions"};
+
+/// The commands of Image > Filter and their filters
+constexpr std::pair<const char*, editor::ImageFilter> IMAGE_FILTER_COMMANDS[] = {
+    {"image.filterNone", editor::ImageFilter::None},
+    {"image.filterGrayscale", editor::ImageFilter::Grayscale},
+    {"image.filterSepia", editor::ImageFilter::Sepia},
+    {"image.filterBlackWhite", editor::ImageFilter::BlackWhite},
+    {"image.filterWash", editor::ImageFilter::Wash}};
+
+/// The selected image of a text, as it is
+std::optional<editor::ImageProperties> selectedImageOf(const editor::BookEditor& text) {
+    const std::optional<int> position = text.selectedImage();
+    return position && text.textDocument() != nullptr
+               ? editor::imageAt(*text.textDocument(), *position)
+               : std::nullopt;
+}
+
+/// The panel of a text, whose windows are its own: the one in front without one
+EditorPanel* panelOf(const editor::BookEditor& text, EditorPanel* inFront) {
+    for (QWidget* widget = text.parentWidget(); widget != nullptr;
+         widget = widget->parentWidget()) {
+        if (auto* panel = qobject_cast<EditorPanel*>(widget)) {
+            return panel;
+        }
+    }
+    return inFront;
+}
 
 } // namespace
 
@@ -566,6 +603,7 @@ MainWindow::MainWindow(QWidget* parent)
         }
     }
     addTableCommands();
+    addImageCommands();
     m_editCoordinator->updateStates();
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
@@ -986,6 +1024,14 @@ void MainWindow::registerCommands() {
             return;
         }
         onTableCommand(*text, command);
+    };
+    // The Image menu: on the selected image of the book's text with the keys
+    callbacks.onImage = [this](ImageCommand command) {
+        editor::BookEditor* text = m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr;
+        if (text == nullptr) {
+            return;
+        }
+        onImageCommand(*text, command);
     };
 
     // Alignment commands
@@ -1905,14 +1951,7 @@ void MainWindow::addTableCommands() {
 
 void MainWindow::onTableCommand(editor::BookEditor& text, TableCommand command) {
     // The windows are those of the text's panel (the one in front, without one)
-    EditorPanel* panel = nullptr;
-    for (QWidget* widget = text.parentWidget(); widget != nullptr && panel == nullptr;
-         widget = widget->parentWidget()) {
-        panel = qobject_cast<EditorPanel*>(widget);
-    }
-    if (panel == nullptr) {
-        panel = getCurrentEditor();
-    }
+    EditorPanel* panel = panelOf(text, getCurrentEditor());
     using Part = editor::BookEditor::TablePart;
     switch (command) {
     case TableCommand::InsertTable:
@@ -1994,6 +2033,174 @@ void MainWindow::onTableCommand(editor::BookEditor& text, TableCommand command) 
     default:
         break;
     }
+}
+
+void MainWindow::addImageCommands() {
+    // Each greyed out where it does nothing: without a selected image, over a chapter of a
+    // book open read-only those that change it, without its file those that need it
+    using Text = const editor::BookEditor&;
+    const auto commands = [](std::initializer_list<const char*> ids) {
+        return std::vector<std::string>(ids.begin(), ids.end());
+    };
+    const auto changeable = [](Text text) {
+        return !text.isReadOnly() && text.selectedImage().has_value();
+    };
+    m_editCoordinator->addTextCommands(
+        std::vector<std::string>(std::begin(IMAGE_COMMANDS), std::end(IMAGE_COMMANDS)), changeable);
+    m_editCoordinator->addTextCommands(commands({"image.crop"}), [](Text text) {
+        const std::optional<int> image = text.selectedImage();
+        return image && text.canCropImage(*image);
+    });
+    m_editCoordinator->addTextCommands(commands({"image.originalSize"}), [changeable](Text text) {
+        const std::optional<editor::ImageProperties> image = selectedImageOf(text);
+        return changeable(text) && image && image->unit != editor::ImageWidthUnit::Natural;
+    });
+    m_editCoordinator->addTextCommands(commands({"image.change"}), [changeable](Text text) {
+        return changeable(text) && text.canInsertImage();
+    });
+    m_editCoordinator->addTextCommands(commands({"image.saveAs"}), [](Text text) {
+        const std::optional<int> image = text.selectedImage();
+        return image && QFileInfo(text.imageFilePath(*image)).isFile();
+    });
+
+    // The filter of the selected image
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    for (const auto& [id, filter] : IMAGE_FILTER_COMMANDS) {
+        if (Command* command = registry.getCommand(id)) {
+            command->isChecked = [this, wanted = filter]() {
+                const editor::BookEditor* text =
+                    m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr;
+                const std::optional<editor::ImageProperties> image =
+                    text != nullptr ? selectedImageOf(*text) : std::nullopt;
+                return image && image->filter == wanted;
+            };
+        }
+    }
+
+    // Why
+    const auto explain = [this, &registry](const std::string& id,
+                                           const std::function<QString(Text)>& why) {
+        if (Command* command = registry.getCommand(id)) {
+            command->disabledReason = [this, why]() {
+                const editor::BookEditor* text = m_editCoordinator->textWithKeys();
+                if (text == nullptr) {
+                    return QString();
+                }
+                //: Why the commands of the Image menu are greyed out. In Polish: Zaznacz obraz
+                //: w tekście
+                return !text->selectedImage() ? tr("Select an image in the text") : why(*text);
+            };
+        }
+    };
+    const auto readOnly = [](Text text) {
+        return text.isReadOnly() ? readOnlyReason() : QString();
+    };
+    //: Why Image > Crop and Save as Image... are greyed out for an image whose file is not
+    //: in the book's folder of images. In Polish: Brak pliku obrazu w folderze książki
+    QString missing = tr("The image's file is not in the book's folder");
+    for (const char* id : IMAGE_COMMANDS) {
+        explain(id, readOnly);
+    }
+    explain("image.crop", [readOnly, missing](Text text) {
+        return text.isReadOnly() ? readOnly(text) : missing;
+    });
+    explain("image.originalSize", [readOnly](Text text) {
+        //: Why Image > Original Size is greyed out. In Polish: Obraz ma już rozmiar swojego
+        //: pliku
+        return text.isReadOnly() ? readOnly(text)
+                                 : tr("The image already has the size of its file");
+    });
+    explain("image.change", [readOnly](Text text) {
+        return text.isReadOnly() ? readOnly(text)
+                                 : tr("Save the file first: its images are kept in a folder "
+                                      "next to it");
+    });
+    explain("image.saveAs", [missing](Text) { return missing; });
+}
+
+void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) {
+    const std::optional<int> image = text.selectedImage();
+    if (!image) {
+        return;
+    }
+    // The windows are those of the text's panel (the one in front, without one)
+    EditorPanel* panel = panelOf(text, getCurrentEditor());
+    if (panel != nullptr && panel->getBookEditor() != &text) {
+        panel = nullptr;
+    }
+    using Page = dialogs::ImagePropertiesDialog::Page;
+    const auto showPage = [panel, image](Page page) {
+        if (panel != nullptr) {
+            panel->showImagePropertiesDialog(*image, page);
+        }
+    };
+    const auto filter = [&text, image](editor::ImageFilter look) {
+        text.setImageFilter(*image, look);
+    };
+    switch (command) {
+    case ImageCommand::Properties:
+        showPage(Page::ImagePage);
+        break;
+    case ImageCommand::AddCaption:
+        text.addImageCaption(*image);
+        break;
+    case ImageCommand::AltText:
+        showPage(Page::DescriptionPage);
+        break;
+    case ImageCommand::RotateRight:
+        text.rotateImage(*image, 1);
+        break;
+    case ImageCommand::RotateLeft:
+        text.rotateImage(*image, -1);
+        break;
+    case ImageCommand::FlipHorizontal:
+        text.flipImage(*image, Qt::Horizontal);
+        break;
+    case ImageCommand::FlipVertical:
+        text.flipImage(*image, Qt::Vertical);
+        break;
+    case ImageCommand::RotateOptions:
+        showPage(Page::SizePage);
+        break;
+    case ImageCommand::FilterNone:
+        filter(editor::ImageFilter::None);
+        break;
+    case ImageCommand::FilterGrayscale:
+        filter(editor::ImageFilter::Grayscale);
+        break;
+    case ImageCommand::FilterSepia:
+        filter(editor::ImageFilter::Sepia);
+        break;
+    case ImageCommand::FilterBlackWhite:
+        filter(editor::ImageFilter::BlackWhite);
+        break;
+    case ImageCommand::FilterWash:
+        filter(editor::ImageFilter::Wash);
+        break;
+    case ImageCommand::ColorOptions:
+        showPage(Page::ColorsPage);
+        break;
+    case ImageCommand::Crop:
+        // The marks in the text, which takes the keys: Enter crops, Esc leaves it
+        text.setFocus();
+        text.startImageCrop(*image);
+        break;
+    case ImageCommand::OriginalSize:
+        text.setImageOriginalSize(*image);
+        break;
+    case ImageCommand::Change:
+        if (panel != nullptr) {
+            panel->showChangeImageDialog(*image);
+        }
+        break;
+    case ImageCommand::SaveAs:
+        if (panel != nullptr) {
+            panel->showSaveImageDialog(*image);
+        }
+        break;
+    }
+    // A check of Image > Filter follows at once, as a menu shows it
+    m_editCoordinator->updateStates();
 }
 
 void MainWindow::updateEditorActionStates() {

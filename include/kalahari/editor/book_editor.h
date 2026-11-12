@@ -977,8 +977,49 @@ public:
     ///        (KalahariTextDocumentLayout::imageOfWidth()), as one undo step
     bool setImageLayoutWidth(int position, qreal width);
 
+    /// @brief Image > Rotate: turn the image at a position by quarter turns, clockwise for
+    ///        a positive number, as one undo step; an image of its own height turns its
+    ///        shape with it (its height becomes its width)
+    bool rotateImage(int position, int quarters);
+
+    /// @brief Image > Rotate > Flip Horizontally or Vertically: mirror the image at a
+    ///        position as it is shown, as one undo step
+    bool flipImage(int position, Qt::Orientation orientation);
+
+    /// @brief Image > Filter: the filter of the image at a position, as one undo step
+    bool setImageFilter(int position, ImageFilter filter);
+
+    /// @brief Ctrl+] and Ctrl+[: the image at a position larger or smaller by a part of its
+    ///        width (IMAGE_KEY_RESIZE), in proportion, in its own unit and within its line,
+    ///        as one undo step; a label beside it shows its new width for a moment
+    /// @param larger true: larger; false: smaller
+    bool resizeImageByStep(int position, bool larger);
+
+    /// @brief Image > Crop: marks at the sides and corners of the image at a position, which
+    ///        cut its sides off where they are dragged; the cut parts show faint around it
+    ///
+    /// Enter, or a click outside the image, crops it as one undo step (the rest of the
+    /// picture as large as it was: the image gets smaller), Esc leaves it as it was.
+    /// @return false without the picture of its file, or in a read-only text
+    bool startImageCrop(int position);
+
+    /// @brief Whether the image at a position can be cropped in the text (startImageCrop()):
+    ///        the picture of its file is there and the text can be changed
+    bool canCropImage(int position) const;
+
+    /// @brief The crop of the sides, as the image is shown, that the marks set while the
+    ///        image is being cropped in the text; std::nullopt: none is
+    std::optional<ImageCrop> imageCropInProgress() const;
+
+    /// @brief Stop cropping in the text
+    /// @param crop true: the image gets the crop of the marks (Enter); false: it stays as
+    ///        it was (Esc)
+    void finishImageCrop(bool crop);
+
     /// @brief Change Image...: the image at a position shows another file, copied into the
     ///        folder of images; its width and alternative text stay
+    /// @return false when the file is not a picture or could not be copied, or in a
+    ///         read-only text; true also when the image showed that file already
     bool changeImageFile(int position, const QString& path);
 
     /// @brief Add Caption: the cursor goes into the caption of the image at a position, the
@@ -992,6 +1033,19 @@ public:
 
     /// @brief The file of the image at a position, a path on the disk; empty: none
     QString imageFilePath(int position) const;
+
+    /// @brief What the window Image Properties shows of the image at a position: its
+    ///        properties, its file and the widths it is measured against;
+    ///        std::nullopt: no image there
+    std::optional<ImagePropertiesData> imagePropertiesData(int position) const;
+
+    /// @brief Give the image the properties of the window Image Properties, as one undo
+    ///        step: with a new file, the file copied into the folder of images (and without
+    ///        keepSizeAndCrop, its file's own size, uncropped)
+    /// @return false when the new file is not a picture or could not be copied, or in a
+    ///         read-only text; true also when the image had these properties already (no
+    ///         step of Undo then)
+    bool setImagePropertiesData(const ImagePropertiesData& propertiesData);
 
     // =========================================================================
     // Annotations: comments, TODOs and notes
@@ -1367,6 +1421,20 @@ public:
     ///        editing items: Insert, Delete and Select as its own submenus, then the others,
     ///        enabled as in the Table menu
     void setContextMenuTableActions(const ContextMenuTableActions& actions);
+
+    /// @brief The application's commands of the Image menu (setContextMenuImageActions())
+    struct ContextMenuImageActions {
+        QList<QAction*> top;     ///< Image Properties..., Add Caption, Alternative Text...
+        QList<QAction*> rotate;  ///< The submenu Rotate; a null: a line
+        QList<QAction*> filter;  ///< The submenu Filter; a null: a line
+        QList<QAction*> bottom;  ///< Crop... Save as Image...; a null: a line
+    };
+
+    /// @brief The commands of the Image menu the context menu of an image shows above its
+    ///        editing items, Rotate and Filter as its own submenus, enabled as in the Image
+    ///        menu (the click selects the image they work on); without them the menu has the
+    ///        editor's own items of an image
+    void setContextMenuImageActions(const ContextMenuImageActions& actions);
 
     /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
     ///        do: for a misspelled word at the cursor it offers what to put in its place
@@ -1784,7 +1852,10 @@ signals:
 
     /// @brief The writer asked for the properties of the selected image (a double click on
     ///        it, its context menu): the application opens Image Properties
-    void imagePropertiesAsked(int position);
+    /// @param position The image's character
+    /// @param page The page of the window shown first (gui::dialogs::ImagePropertiesDialog::
+    ///        Page): 0 Image, 1 Size and Rotation, 4 Colors, 5 Description
+    void imagePropertiesAsked(int position, int page);
 
     /// @brief The writer asked to change the file of the image at a position (its context
     ///        menu): the application asks for one and calls changeImageFile()
@@ -2398,6 +2469,60 @@ private:
     /// @brief What the label beside a resized image says: its new width in its unit
     QString imageWidthLabel(int position, qreal widgetWidth) const;
 
+    /// @brief The size of a label beside an image: the width of an image being resized,
+    ///        what the keys of cropping do
+    QSizeF imageLabelSize(const QString& label) const;
+
+    /// @brief Draw a label beside an image at a widget point (its top left corner), moved
+    ///        inside the view where it would leave it
+    void paintImageLabel(QPainter& painter, const QString& label, const QPointF& at) const;
+
+    /// @brief An image being cropped in the text (startImageCrop())
+    struct ImageCropping {
+        int position = 0;       ///< The image's character
+        ImageProperties image;  ///< The image as it was when the cropping began
+        ImageCrop crop;         ///< The crop of its sides as shown, as the marks set it
+        int sides = 0;          ///< The sides whose mark is dragged (bits, left first); 0: none
+        QPointF pressed;        ///< Where that mark was pressed
+        ImageCrop pressedCrop;  ///< The crop then
+    };
+
+    /// @brief The image being cropped as it still is in the text: std::nullopt (and the
+    ///        cropping dropped) when it has changed or gone
+    const ImageCropping* imageCropping() const;
+
+    /// @brief The whole picture of the image being cropped (its crop taken off) and the part
+    ///        of it the marks keep, in the widget
+    std::optional<std::pair<QRectF, QRectF>> imageCropRects() const;
+
+    /// @brief The sides whose mark is at a widget point (a corner's: two of them); 0: none
+    int imageCropSidesAt(const QPointF& widgetPos) const;
+
+    /// @brief The pointer over the image being cropped: arrows over a mark, the arrow over
+    ///        the picture; std::nullopt elsewhere or with no image being cropped
+    std::optional<Qt::CursorShape> imageCropPointerAt(const QPointF& widgetPos) const;
+
+    /// @brief A press of the left button while an image is being cropped: on a mark it
+    ///        starts dragging it, elsewhere on the image it does nothing, outside the image
+    ///        it crops it
+    /// @return Whether the press was taken (outside the image it goes on to the text)
+    bool pressImageCrop(const QPointF& widgetPos);
+
+    /// @brief The mark being dragged follows the mouse, leaving some of the picture
+    void dragImageCrop(const QPointF& widgetPos);
+
+    /// @brief Draw the image being cropped: its cut parts faint around it, the marks and
+    ///        what the keys do
+    void paintImageCropping(QPainter& painter) const;
+
+    /// @brief Esc on the selected image: back to the text, the cursor after the image
+    /// @return Whether an image was selected
+    bool leaveSelectedImage();
+
+    /// @brief Whether a key is Ctrl+] (true: larger) or Ctrl+[ (false: smaller), the keys of
+    ///        the size of the selected image
+    static std::optional<bool> imageResizeKey(const QKeyEvent& event);
+
     /// @brief Draw the selected image's frame and handles, the preview of a resize and its
     ///        label, and the selection's color over the images among selected text
     void paintImageSelection(QPainter& painter) const;
@@ -2760,6 +2885,9 @@ private:
     bool m_textDragPending = false;     ///< Press on the selection: drags once the mouse moves far enough
     std::optional<ColumnEdge> m_columnDrag;  ///< The edge of columns being dragged
     std::optional<ImageResize> m_imageResize;  ///< The image whose handle is dragged
+    mutable std::optional<ImageCropping> m_imageCropping;  ///< The image cropped in the text
+    int m_keyResizedImage = -1;  ///< The image resized by Ctrl+] or Ctrl+[: its label shows
+    QTimer* m_keyResizeLabelTimer = nullptr;  ///< Hides that label
     bool m_imagePressed = false;  ///< The press selected an image: let go, it stays selected
     qreal m_columnDragX = 0.0;               ///< Where it goes, in the document
     QPointF m_textDragStartPos;         ///< Where that press was
@@ -2779,6 +2907,7 @@ private:
     QIcon m_paragraphMarkIcon;                   ///< What they show
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
     ContextMenuTableActions m_contextMenuTableActions;  ///< The Table menu's, in a cell
+    ContextMenuImageActions m_contextMenuImageActions;  ///< The Image menu's, on an image
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
     AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
