@@ -418,6 +418,7 @@ void VersionHistoryDialog::setUpPreview() {
     if (m_text.editor != nullptr) {
         m_preview->setParagraphStyles(m_text.editor->paragraphStyles());
         m_preview->setPaperScale(m_text.editor->paperScale());
+        m_preview->setImagesFolder(m_text.editor->imagesFolder());  // the text's images
     }
     m_preview->setWordCountRules(core::wordCountRules());
     m_preview->setReadOnly(true);

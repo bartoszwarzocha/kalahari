@@ -536,6 +536,32 @@ void checkTextMenus(bool shown, QStringList& problems) {
     collectProblems(linkMenu, QStringLiteral("Link"), {}, problems);
     CHECK(itemCount(linkMenu) == 6 + 4);
 
+    // An image, selected by the click: Image Properties..., Add Caption, Change Image...,
+    // Original Size and Save as Image... (the windows the editor panel gives) on top of the
+    // menu of selected text
+    {
+        editor::BookEditor pictured;
+        test::resizeWidget(pictured, QSize(600, 400));
+        pictured.fromKml(QStringLiteral("<kml><p>One <img src=\"images/map.png\" width=\"3cm\"/> "
+                                        "two</p></kml>"));
+        pictured.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
+                                            registry.getAction(QStringLiteral("edit.copy")),
+                                            registry.getAction(QStringLiteral("edit.paste")),
+                                            registry.getAction(QStringLiteral("edit.selectAll"))});
+        pictured.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
+                                        registry.getAction(QStringLiteral("insert.todo")),
+                                        registry.getAction(QStringLiteral("insert.note"))});
+        QObject::connect(&pictured, &editor::BookEditor::imagePropertiesAsked, [](int) {});
+        QObject::connect(&pictured, &editor::BookEditor::imageFileAsked, [](int) {});
+        QObject::connect(&pictured, &editor::BookEditor::imageSaveAsked, [](int) {});
+        const std::optional<QRectF> image = pictured.imageRect(4);
+        REQUIRE(image);
+        QList<test::MenuItem> imageMenu =
+            contextMenu(&pictured, &pictured, image->center().toPoint());
+        collectProblems(imageMenu, QStringLiteral("Image"), {}, problems);
+        CHECK(itemCount(imageMenu) == 8 + 5);
+    }
+
     // A cell of a table: Insert, Delete and Select, and the commands of the Table menu the
     // editor panel gives, on top of the usual menu
     const auto actions = [&registry](std::initializer_list<const char*> ids) {

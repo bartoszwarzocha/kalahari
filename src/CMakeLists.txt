@@ -16,6 +16,8 @@ set(KALAHARI_CORE_SOURCES
     editor/character_format.cpp  # The character formatting of Format > Font, Change Case
     editor/text_lists.cpp        # Bulleted and numbered lists
     editor/text_tables.cpp       # Tables: a table of the document, its cells of paragraphs
+    editor/text_images.cpp       # Images: a picture that is a character of its line
+    editor/image_store.cpp       # Images: the files of a book, their sizes and pictures
     editor/table_editing.cpp     # Tables: rows, columns, cells, moving, sorting, conversions
     editor/text_sorting.cpp      # Sorting rows and paragraphs: text, numbers, dates
     editor/kml_document_model.cpp  # KML reader (the clipboard reads the lists of KML)
@@ -344,6 +346,7 @@ set(KALAHARI_SOURCES
     editor/book_editor_formatting.cpp
     editor/book_editor_lists.cpp
     editor/book_editor_links.cpp
+    editor/book_editor_images.cpp
     editor/book_editor_input.cpp
     editor/book_editor_search.cpp
     editor/book_editor_tables.cpp

@@ -372,6 +372,8 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
 
     // The text loaded is the saved text (BookEditor::fromKml()); the signals below are
     // connected after it, so loading counts no words
+    // The images of the text name their files in the book's main folder
+    newEditor->setImagesFolder(pm.imagesBaseFolder());
     logElapsed("Before setContent");
     const bool complete = newEditor->setContent(content);
     logElapsed("After setContent");

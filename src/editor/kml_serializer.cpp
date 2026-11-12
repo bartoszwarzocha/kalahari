@@ -9,6 +9,7 @@
 #include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId enum and registry functions
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_tables.h>
@@ -632,10 +633,17 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     }
 
     // Escape XML special characters in text content, a line break in the paragraph is the
-    // element <br/>; the annotations on places inside the run go after their characters
-    const auto textKml = [](const QString& part) {
-        QString kml = KmlFormatRegistry::escapeXml(QString(part).remove(QChar::ObjectReplacementCharacter));
+    // element <br/>, an image the element <img/>; the annotations on places inside the run
+    // go after their characters
+    const std::optional<ImageProperties> image = imageOf(format);
+    const QString imageElement = image ? imageKml(*image) : QString();
+    const auto textKml = [&imageElement](const QString& part) {
+        QString kml = KmlFormatRegistry::escapeXml(
+            imageElement.isEmpty() ? QString(part).remove(QChar::ObjectReplacementCharacter) : part);
         kml.replace(QChar(QChar::LineSeparator), QStringLiteral("<br/>"));
+        if (!imageElement.isEmpty()) {
+            kml.replace(QChar(QChar::ObjectReplacementCharacter), imageElement);
+        }
         return kml;
     };
     QString escapedText;

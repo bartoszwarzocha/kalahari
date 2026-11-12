@@ -166,7 +166,7 @@ void BookEditor::resetCursorBlink()
 
     // Sync to RenderPipeline (the cursor is drawn only while the editor has focus)
     if (m_renderPipeline) {
-        m_renderPipeline->setCursorVisible(hasFocus());
+        m_renderPipeline->setCursorVisible(hasFocus() && !selectedImage());
         m_renderPipeline->setCursorBlinkState(true);
     }
 
@@ -197,7 +197,7 @@ void BookEditor::ensureCursorVisible()
 
     // Sync to RenderPipeline (Phase 12 fix)
     if (m_renderPipeline) {
-        m_renderPipeline->setCursorVisible(hasFocus());  // Drawn only while focused
+        m_renderPipeline->setCursorVisible(hasFocus() && !selectedImage());  // While focused
         m_renderPipeline->setCursorBlinkState(true);
     }
 
