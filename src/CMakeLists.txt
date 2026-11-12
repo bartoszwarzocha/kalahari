@@ -18,6 +18,7 @@ set(KALAHARI_CORE_SOURCES
     editor/text_tables.cpp       # Tables: a table of the document, its cells of paragraphs
     editor/text_images.cpp       # Images: a picture that is a character of its line
     editor/text_captions.cpp     # Numbered captions, cross-references and the list of figures
+    editor/text_footnotes.cpp    # Footnotes and endnotes: the number in the text, the note inside it
     editor/image_store.cpp       # Images: the files of a book, their sizes and pictures
     editor/table_editing.cpp     # Tables: rows, columns, cells, moving, sorting, conversions
     editor/text_sorting.cpp      # Sorting rows and paragraphs: text, numbers, dates

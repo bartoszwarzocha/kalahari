@@ -27,16 +27,6 @@ struct FormatRun {
                format.verticalAlignment() != QTextCharFormat::AlignNormal;
     }
 
-    /// @brief Check if this run has footnote metadata
-    bool hasFootnote() const {
-        return format.hasProperty(KmlPropFootnote);
-    }
-
-    /// @brief Check if this run has any metadata
-    bool hasMetadata() const {
-        return hasFootnote();
-    }
-
     /// @brief Get length of this run
     size_t length() const {
         return end > start ? end - start : 0;

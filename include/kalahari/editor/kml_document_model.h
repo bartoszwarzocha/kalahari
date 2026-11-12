@@ -282,6 +282,7 @@ private:
     QHash<QString, Annotation> m_annotations;  ///< The annotations of the section, by id
     QSet<QString> m_anchoredIds;            ///< Ids of the annotations anchored in the text
     QSet<QString> m_captionIds;             ///< Ids of the caption numbers read
+    QSet<QString> m_noteIds;                ///< Ids of the notes read
 
     static const std::vector<FormatRun> s_emptyFormats;  ///< Empty format vector
 };

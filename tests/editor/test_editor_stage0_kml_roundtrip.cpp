@@ -14,6 +14,7 @@
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include <kalahari/editor/text_footnotes.h>
 #include "editor_test_utils.h"
 #include <QDir>
 #include <QDirIterator>
@@ -190,21 +191,25 @@ TEST_CASE("Stage0 KML: annotation author/created/done and unknown attributes sur
     CHECK(saved.contains(QStringLiteral("priority=\"high\"")));
 }
 
-TEST_CASE("Stage0 KML: footnote anchor and id survive load and save", "[editor][stage0][kml]") {
+TEST_CASE("Stage0 KML: a note keeps its id and text through load and save", "[editor][stage0][kml]") {
     BookEditor editor;
-    editor.fromKml(QStringLiteral("<kml><p>Text<footnote id=\"f1\">1</footnote>.</p></kml>"));
+    editor.fromKml(QStringLiteral("<kml><p>Text<footnote id=\"f1\">A <i>note</i></footnote>.</p></kml>"));
 
-    const QTextCharFormat fmt =
-        formatOfFragmentContaining(editor.textDocument()->begin(), QStringLiteral("1"));
-    REQUIRE(fmt.hasProperty(KmlPropFootnote));
-    CHECK(editor.toKml().contains(QStringLiteral("<footnote id=\"f1\">1</footnote>")));
+    const std::vector<NotePlace> notes = notesIn(*editor.textDocument());
+    REQUIRE(notes.size() == 1);
+    CHECK(notes[0].position == 4);
+    CHECK(notes[0].note.id == QStringLiteral("f1"));
+    CHECK(editor.toKml().contains(
+        QStringLiteral("<p>Text<footnote id=\"f1\">A <i>note</i></footnote>.</p>")));
 }
 
-TEST_CASE("Stage0 KML: footnote number survives load", "[editor][stage0][kml]") {
-    // Regression (fixed in Stage 1): same cause as the comment-attribute test above.
+TEST_CASE("Stage0 KML: the old footnote on a range keeps its text", "[editor][stage0][kml]") {
+    // The footnote of the time marked a range of the text and kept its number: its text stays
+    // in the paragraph, without a mark (nothing of a saved book is lost)
     const QString saved = roundTrip(QStringLiteral(
         "<kml><p>Text<footnote id=\"f1\" number=\"7\">7</footnote>.</p></kml>"));
-    CHECK(saved.contains(QStringLiteral("number=\"7\"")));
+    CHECK(saved.contains(QStringLiteral("<p>Text7.</p>")));
+    CHECK_FALSE(saved.contains(QStringLiteral("footnote")));
 }
 
 TEST_CASE("Stage0 KML: an annotation added in the editor survives save and reload",

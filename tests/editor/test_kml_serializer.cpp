@@ -10,6 +10,7 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <QDateTime>
 #include <QTextDocument>
 #include <QTextCursor>
@@ -409,26 +410,28 @@ TEST_CASE("KmlSerializer - Annotations", "[editor][kml_serializer][metadata]") {
     }
 }
 
-TEST_CASE("KmlSerializer - Footnote metadata", "[editor][kml_serializer][metadata]") {
+TEST_CASE("KmlSerializer - Notes", "[editor][kml_serializer][footnotes]") {
     KmlSerializer serializer;
 
-    SECTION("Footnote with id and number") {
+    SECTION("A footnote and an endnote at the places of their numbers, with their text") {
         QTextDocument doc;
         QTextCursor cursor(&doc);
+        cursor.insertText("Text");
+        QTextCharFormat note;
+        setFootnote(note, {QStringLiteral("f00a1b"), NoteKind::Footnote,
+                           QStringLiteral("A <i>note</i>")});
+        cursor.insertText(QString(QChar::ObjectReplacementCharacter), note);
+        cursor.insertText(" and");
+        QTextCharFormat endnote;
+        setFootnote(endnote, {QStringLiteral("f00a1c"), NoteKind::Endnote,
+                              QStringLiteral("<p>One</p><p>Two</p>")});
+        cursor.insertText(QString(QChar::ObjectReplacementCharacter), endnote);
 
-        QTextCharFormat fmt;
-        QVariantMap footnoteData;
-        footnoteData["id"] = "f1";
-        footnoteData["number"] = 1;
-        fmt.setProperty(KmlPropFootnote, footnoteData);
-
-        cursor.insertText("note", fmt);
-
-        QString kml = serializer.toKml(&doc);
-        REQUIRE(kml.contains("<footnote"));
-        REQUIRE(kml.contains("id=\"f1\""));
-        REQUIRE(kml.contains("number=\"1\""));
-        REQUIRE(kml.contains(">note</footnote>"));
+        const QString kml = serializer.toKml(&doc);
+        CHECK(kml.contains(QStringLiteral(
+            "Text<footnote id=\"f00a1b\">A <i>note</i></footnote> and"
+            "<endnote id=\"f00a1c\"><p>One</p><p>Two</p></endnote>")));
+        CHECK_FALSE(kml.contains(QStringLiteral("number=")));
     }
 }
 
@@ -619,25 +622,37 @@ TEST_CASE("KmlSerializer - Round trip metadata", "[editor][kml_serializer][round
         CHECK(annotations[0].author == QStringLiteral("Jan"));
     }
 
-    SECTION("Footnote round-trip") {
-        QString originalKml = R"(<kml><p>Text<footnote id="f1" number="1">note</footnote></p></kml>)";
+    SECTION("Note round-trip") {
+        const QString originalKml = QStringLiteral(
+            "<kml><p>Text<footnote id=\"f1\">A <b>note</b><br/>of two lines</footnote> on</p></kml>");
 
         const LoadedKml doc = loadKml(originalKml);
         REQUIRE(doc != nullptr);
+        REQUIRE(doc->toPlainText() == QStringLiteral("Text") + QChar(QChar::ObjectReplacementCharacter) +
+                                          QStringLiteral(" on"));
 
-        QString serializedKml = serializer.toKml(doc.get());
+        const QString serializedKml = serializer.toKml(doc.get());
+        CHECK(serializedKml.contains(QStringLiteral(
+            "Text<footnote id=\"f1\">A <b>note</b><br/>of two lines</footnote> on")));
 
         const LoadedKml doc2 = loadKml(serializedKml);
         REQUIRE(doc2 != nullptr);
+        const std::optional<Footnote> note = footnoteOf(getFormatAt(doc2.get(), 4));
+        REQUIRE(note.has_value());
+        CHECK(note->id == QStringLiteral("f1"));
+        CHECK(note->kind == NoteKind::Footnote);
+        CHECK(notePlainText(note->content) == QStringLiteral("A note of two lines"));
+    }
 
-        // "Text" = 4 chars, "note" starts at position 4
-        QTextCharFormat fmt = getFormatAt(doc2.get(), 4);
-        QVariant footnoteData = fmt.property(KmlPropFootnote);
-        REQUIRE(footnoteData.isValid());
-
-        QVariantMap meta = footnoteData.toMap();
-        REQUIRE(meta["id"].toString() == "f1");
-        REQUIRE(meta["number"].toInt() == 1);
+    SECTION("The old footnote on a range of the text keeps its text, without a mark") {
+        const LoadedKml doc = loadKml(QStringLiteral(
+            "<kml><p>Text <footnote id=\"f1\" number=\"1\">kept</footnote> here</p></kml>"));
+        REQUIRE(doc != nullptr);
+        CHECK(doc->toPlainText() == QStringLiteral("Text kept here"));
+        CHECK(notesIn(*doc.get()).empty());
+        const QString serializedKml = serializer.toKml(doc.get());
+        CHECK(serializedKml.contains(QStringLiteral("<p>Text kept here</p>")));
+        CHECK_FALSE(serializedKml.contains(QStringLiteral("footnote")));
     }
 }
 

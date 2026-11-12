@@ -48,7 +48,6 @@ const QSet<QString>& formattingTagSet()
 const QSet<QString>& metadataTagSet()
 {
     static const QSet<QString> tags = {
-        QStringLiteral("footnote"),
         QStringLiteral("charref"),
         QStringLiteral("locref")
     };
@@ -59,11 +58,6 @@ const QSet<QString>& metadataTagSet()
 const QVector<MetadataTagDef>& metadataDefinitions()
 {
     static const QVector<MetadataTagDef> defs = {
-        {
-            QStringLiteral("footnote"),
-            KmlPropFootnote,
-            {QStringLiteral("id"), QStringLiteral("number")}
-        },
         {
             QStringLiteral("charref"),
             KmlPropCharRef,

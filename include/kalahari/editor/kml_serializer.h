@@ -7,7 +7,7 @@
 /// Key design principles (Phase 11 Architecture Correction):
 /// - Direct QTextDocument -> KML serialization
 /// - Standard formatting via QTextCharFormat (bold, italic, underline, strikethrough)
-/// - Metadata (footnotes, references) and annotations via QTextFormat::UserProperty
+/// - Metadata (references), footnotes and annotations via QTextFormat::UserProperty
 ///
 /// Output KML structure:
 /// @code
@@ -42,8 +42,9 @@ namespace editor {
 /// @brief Serializer for converting QTextDocument to KML format
 ///
 /// Converts QTextDocument content back to KML markup. Uses QTextCharFormat
-/// properties for formatting (bold, italic, etc.), metadata (footnotes, references) and
-/// annotations (comments, TODOs, notes: the <annotations> section and the anchors).
+/// properties for formatting (bold, italic, etc.), metadata (references), the footnotes and
+/// endnotes (text_footnotes.h) and annotations (comments, TODOs, notes: the <annotations>
+/// section and the anchors).
 ///
 /// Example usage:
 /// @code

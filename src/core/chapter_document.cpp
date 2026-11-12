@@ -7,6 +7,7 @@
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include <kalahari/editor/text_footnotes.h>
 
 #include <QFile>
 #include <QJsonDocument>
@@ -507,7 +508,10 @@ private:
                     (isParagraphElement(reader.name()) || isListElement(reader.name()))) {
                     return false;
                 }
-                if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString())) {
+                // The old footnote on a range of the text keeps its text; a note's own text is
+                // not the text of its paragraph
+                if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString()) ||
+                    (reader.name() == u"footnote" && editor::isOldFootnote(reader.attributes()))) {
                     ++depth;
                 } else {
                     if (reader.name() == u"br") {
