@@ -37,7 +37,13 @@ namespace core {
     struct Theme;  // Forward declaration for Theme (Task #00023)
 }
 
+namespace editor {
+class BookEditor;
+}
+
 namespace gui {
+
+enum class TableCommand;  // The commands of the Table menu (command_registrar.h)
 
 // Forward declarations for panels
 class DashboardPanel;
@@ -336,6 +342,14 @@ private slots:
 
     /// @brief Give every editor Distraction-Free, or take it back, as the window lays out
     void onDistractionFreeChanged(bool enabled);
+
+    /// @brief The commands of the Table menu in the book's text with the keys: greyed out
+    ///        where they do nothing, saying why (EditCoordinator::addTextCommands())
+    void addTableCommands();
+
+    /// @brief Do a command of the Table menu in @p text: its window, of the text's panel,
+    ///        or the change itself
+    void onTableCommand(editor::BookEditor& text, TableCommand command);
 
     /// @brief Update action states based on editor state
     ///

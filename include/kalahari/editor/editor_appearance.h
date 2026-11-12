@@ -49,16 +49,20 @@ struct PaperColorKeys {
     const char* formattingMarks;  ///< The formatting marks
     const char* link;             ///< The text of links, unless it has a color of its own
     const char* desk;             ///< Around the paper: beside and between the sheets
+    const char* tableLines;       ///< The borders of tables of the color "Automatic"
+    const char* tableHeader;      ///< The background of the header rows of tables
+    const char* tableGridlines;   ///< The faint lines where a table has no border
 };
 
 /// @brief The names of the light paper's colors
 inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
     "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
-    "deskLight"};
+    "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
-    "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark"};
+    "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark",
+    "tableLinesDark", "tableHeaderDark", "tableGridlinesDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -158,6 +162,17 @@ struct EditorColors {
     QColor linkColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? links.light : links.dark;
     }
+
+    /// @brief The tables: the lines of their borders (the color "Automatic"), the background
+    ///        of their header rows, and the faint lines shown where a table has no border
+    struct TableColors {
+        QColor linesLight{154, 154, 154};
+        QColor linesDark{120, 120, 123};
+        QColor headerLight{242, 242, 242};
+        QColor headerDark{46, 46, 51};
+        QColor gridlinesLight{180, 198, 231};
+        QColor gridlinesDark{74, 88, 120};
+    } tables;
 
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)

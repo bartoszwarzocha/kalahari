@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/clipboard_handler.h>
+#include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_serializer.h>
@@ -292,7 +293,7 @@ const QString LONG_TEXT = QStringLiteral(
 
 TEST_CASE("Tables: the cells of a row side by side, the row as high as its highest cell",
           "[editor][tables][layout]") {
-    TableDocument d(TableShape{2, 2, {}, 0, {}},
+    TableDocument d(TableShape{2, 2, {}, 0, {}, {}, {}, {}},
                     {QStringLiteral("A"), LONG_TEXT, QStringLiteral("C"), QStringLiteral("D")});
     KalahariTextDocumentLayout& layout = *d.layout;
     const std::vector<qreal> edges = layout.tableColumnEdges(*d.table);
@@ -337,7 +338,7 @@ TEST_CASE("Tables: the cells of a row side by side, the row as high as its highe
 }
 
 TEST_CASE("Tables: a row grows with the text typed in a cell", "[editor][tables][layout]") {
-    TableDocument d(TableShape{2, 2, {50.0, 50.0}, 0, {}});
+    TableDocument d(TableShape{2, 2, {50.0, 50.0}, 0, {}, {}, {}, {}});
     KalahariTextDocumentLayout& layout = *d.layout;
     const qreal before = layout.tableRows(*d.table)[1].height;
     const qreal afterTable = layout.blockY(6);
@@ -361,7 +362,7 @@ TEST_CASE("Tables: a row grows with the text typed in a cell", "[editor][tables]
 }
 
 TEST_CASE("Tables: cells spanning columns and rows", "[editor][tables][layout]") {
-    TableDocument d(TableShape{2, 3, {}, 0, {{0, 0, 2, 1}, {1, 1, 1, 2}}},
+    TableDocument d(TableShape{2, 3, {}, 0, {{0, 0, 2, 1}, {1, 1, 1, 2}}, {}, {}, {}},
                     {LONG_TEXT, QStringLiteral("B"), QStringLiteral("C"), QStringLiteral("Wide")});
     KalahariTextDocumentLayout& layout = *d.layout;
     const std::vector<qreal> edges = layout.tableColumnEdges(*d.table);
@@ -380,7 +381,7 @@ TEST_CASE("Tables: cells spanning columns and rows", "[editor][tables][layout]")
 }
 
 TEST_CASE("Tables: a point in a row is in the cell under it", "[editor][tables][layout]") {
-    TableDocument d(TableShape{2, 2, {}, 0, {}},
+    TableDocument d(TableShape{2, 2, {}, 0, {}, {}, {}, {}},
                     {QStringLiteral("A"), QStringLiteral("B"), QStringLiteral("C"), QStringLiteral("D")});
     KalahariTextDocumentLayout& layout = *d.layout;
     // A second paragraph in cell (0, 1)
@@ -405,7 +406,7 @@ TEST_CASE("Tables: a point in a row is in the cell under it", "[editor][tables][
 }
 
 TEST_CASE("Tables: the header row in bold", "[editor][tables][layout]") {
-    TableDocument d(TableShape{2, 1, {}, 1, {}}, {QStringLiteral("Head"), QStringLiteral("Body")});
+    TableDocument d(TableShape{2, 1, {}, 1, {}, {}, {}, {}}, {QStringLiteral("Head"), QStringLiteral("Body")});
     const QList<QTextLayout::FormatRange> header = d.block(d.number(0, 0)).layout()->formats();
     REQUIRE_FALSE(header.isEmpty());
     CHECK(header.first().format.fontWeight() == QFont::Bold);
@@ -418,7 +419,7 @@ TEST_CASE("Tables: in the page view a row that does not fit goes to the next pag
     for (int i = 0; i < 24; ++i) {
         cells << (i % 2 == 0 ? QStringLiteral("Row %1").arg(i / 2) : LONG_TEXT);
     }
-    TableDocument d(TableShape{12, 2, {}, 0, {}}, cells);
+    TableDocument d(TableShape{12, 2, {}, 0, {}, {}, {}, {}}, cells);
     KalahariTextDocumentLayout& layout = *d.layout;
     constexpr qreal pitch = 400.0;
     constexpr qreal textHeight = 300.0;
@@ -503,6 +504,86 @@ TEST_CASE("Tables: the grid of a table as the view draws it", "[editor][tables][
     // The whole view is drawn with the table
     const QImage image = editor->grab().toImage();
     CHECK_FALSE(image.isNull());
+}
+
+TEST_CASE("Tables: of a long table the view draws the cells of the rows it shows", "[editor][tables][view]") {
+    // A header row, 39 rows of two cells; the first cell of row 20 spans row 21. Blocks:
+    // 1-2 the header, 2r+1 and 2r+2 row r up to 20, 43 row 21, 2r and 2r+1 row r from 22.
+    QString rows = QStringLiteral("<tr><th><p>H1</p></th><th><p>H2</p></th></tr>");
+    for (int row = 1; row < 40; ++row) {
+        rows += row == 20   ? QStringLiteral("<tr><td rowspan=\"2\"><p>a20</p></td><td><p>b20</p></td></tr>")
+                : row == 21 ? QStringLiteral("<tr><td><p>b21</p></td></tr>")
+                            : QStringLiteral("<tr><td><p>a%1</p></td><td><p>b%1</p></td></tr>").arg(row);
+    }
+    auto editor = editorWith(QStringLiteral("<kml><p>Before</p><table>") + rows +
+                             QStringLiteral("</table><p>After</p></kml>"));
+    QTextDocumentSource source(editor->textDocument());
+    const auto cellsOf = [](const TableGrid& grid) {
+        std::vector<std::pair<int, int>> cells;
+        cells.reserve(grid.cells.size());
+        for (const TableGridCell& cell : grid.cells) {
+            cells.emplace_back(cell.row, cell.column);
+        }
+        return cells;
+    };
+
+    // Rows 22 and 23 in view: rows 21 to 24 with the cell spanning into 21, and the header
+    std::vector<TableGrid> grids = source.tablesIn(44, 46);
+    REQUIRE(grids.size() == 1);
+    CHECK(grids.front().rowTops.size() == 40);
+    CHECK(cellsOf(grids.front()) == std::vector<std::pair<int, int>>{
+                                        {0, 0}, {0, 1}, {20, 0}, {21, 1}, {22, 0}, {22, 1},
+                                        {23, 0}, {23, 1}, {24, 0}, {24, 1}});
+    // Near the top: the header once
+    grids = source.tablesIn(0, 4);
+    REQUIRE(grids.size() == 1);
+    CHECK(cellsOf(grids.front()) == std::vector<std::pair<int, int>>{
+                                        {0, 0}, {0, 1}, {1, 0}, {1, 1}, {2, 0}, {2, 1}});
+    // The whole table
+    grids = source.tablesIn(0, static_cast<size_t>(editor->textDocument()->blockCount() - 1));
+    REQUIRE(grids.size() == 1);
+    CHECK(grids.front().cells.size() == 79);
+}
+
+TEST_CASE("Tables: on the dark paper a cell's own background is drawn darker", "[editor][tables][view]") {
+    const QColor saved(QStringLiteral("#ffee88"));
+    const auto backgroundPixels = [&saved](EditorColorMode mode) {
+        auto editor = std::make_unique<BookEditor>();
+        resizeWidget(*editor, QSize(600, 300));
+        EditorAppearance appearance;
+        appearance.colorMode = mode;
+        appearance.cursor.blinking = false;
+        editor->setAppearance(appearance);
+        editor->fromKml(QStringLiteral("<kml><table><tr><td background=\"#ffee88\"><p>Tall</p><p></p>"
+                                       "<p></p></td><td><p>b</p></td></tr></table></kml>"));
+        QImage image(editor->size(), QImage::Format_ARGB32_Premultiplied);
+        image.fill(Qt::transparent);
+        editor->render(&image);
+        // The pixels of the cell's background: as saved, or of its hue and darker
+        int asSaved = 0;
+        int darker = 0;
+        for (int y = 0; y < image.height(); ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                const QColor pixel = image.pixelColor(x, y);
+                if (pixel == saved) {
+                    ++asSaved;
+                } else if (pixel.lightness() < saved.lightness() - 60 && pixel.red() > pixel.blue() + 40 &&
+                           pixel.green() > pixel.blue() + 40) {
+                    ++darker;
+                }
+            }
+        }
+        CHECK(editor->toKml().contains(QStringLiteral("background=\"#ffee88\"")));
+        return std::pair{asSaved, darker};
+    };
+
+    const auto [lightSaved, lightDarker] = backgroundPixels(EditorColorMode::Light);
+    // On the light paper as saved (only the edges of the letters over it are darker)
+    CHECK(lightSaved > 1000);
+    CHECK(lightDarker * 10 < lightSaved);
+    const auto [darkSaved, darkDarker] = backgroundPixels(EditorColorMode::Dark);
+    CHECK(darkSaved == 0);
+    CHECK(darkDarker > 1000);
 }
 
 TEST_CASE("Tables: the end of a cell has its own formatting mark", "[editor][tables][view]") {
@@ -746,10 +827,13 @@ TEST_CASE("Tables: a selection going into or out of a table", "[editor][tables][
         CHECK(editor->cursorPosition() == CursorPosition{4, 2});
     }
 
-    SECTION("from cell to cell") {
+    SECTION("from cell to cell: the cells selected lose their text, as in Word") {
         select(*editor, {3, 2}, {4, 2});
         press(*editor, Qt::Key_Delete);
-        CHECK(textOf(*editor) == "Before|0,0:Who|0,1:Role|1,0:An|1,1:rrator|1,1:Second|2,0:Both|After");
+        CHECK(textOf(*editor) == "Before|0,0:Who|0,1:Role|1,0:|1,1:|2,0:Both|After");
+        CHECK(editor->cursorPosition() == CursorPosition{3, 0});
+        editor->undo();
+        CHECK(editor->toKml().toStdString() == TABLE_KML.toStdString());
     }
 
     SECTION("text typed in its place goes at its start") {
@@ -876,12 +960,12 @@ TEST_CASE("Tables: copied, a part of a table is the rows from the start's cell t
         return data;
     };
 
-    SECTION("from cell to cell: the selected text, the other cells of its rows empty") {
+    SECTION("from cell to cell: the whole cells of the rectangle, as in Word") {
         const std::unique_ptr<QMimeData> data = copied({4, 2}, {6, 2});
         CHECK(kmlOf(*data) == "<kml><table><col width=\"40%\"/><col width=\"60%\"/>"
-                              "<tr><td><p></p></td><td><p>rrator</p><p>Second</p></td></tr>"
-                              "<tr><td colspan=\"2\"><p>Bo</p></td></tr></table></kml>");
-        CHECK(data->text().toStdString() == "\trrator Second\nBo");
+                              "<tr><td><p>Anna</p></td><td><p>Narrator</p><p>Second</p></td></tr>"
+                              "<tr><td colspan=\"2\"><p>Both</p></td></tr></table></kml>");
+        CHECK(data->text().toStdString() == "Anna\tNarrator Second\nBoth");
     }
 
     SECTION("from the text before it into a cell") {
@@ -971,7 +1055,7 @@ TEST_CASE("Tables: a table pasted in the text, and in a cell as its text",
         editor->clearSelection();
         editor->setCursorPosition({7, 5});
         editor->insertFromMimeData(copied.get());
-        CHECK(textOf(*editor) == TABLE_TEXT + "|0,0:|0,1:rrator|0,1:Second|1,0:Bo|");
+        CHECK(textOf(*editor) == TABLE_TEXT + "|0,0:Anna|0,1:Narrator|0,1:Second|1,0:Both|");
     }
 
     SECTION("in a cell: a table is its rows of text, a line an empty paragraph") {

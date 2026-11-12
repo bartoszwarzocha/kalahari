@@ -30,6 +30,7 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "BOOK") return QObject::tr("&Book");
     if (technicalName == "INSERT") return QObject::tr("&Insert");
     if (technicalName == "FORMAT") return QObject::tr("F&ormat");
+    if (technicalName == "TABLE") return QObject::tr("Tab&le");
     if (technicalName == "TOOLS") return QObject::tr("&Tools");
     if (technicalName == "ASSISTANT") return QObject::tr("&Assistant");
     if (technicalName == "VIEW") return QObject::tr("&View");
@@ -46,6 +47,11 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Change Case") return QObject::tr("&Change Case");
     if (technicalName == "Align Text") return QObject::tr("A&lign Text");
     if (technicalName == "Formatting Character") return QObject::tr("Fo&rmatting Character");
+    // The Table menu (the cell's context menu has the same keys)
+    if (technicalName == "Insert") return QObject::tr("Inse&rt");
+    if (technicalName == "Delete") return QObject::tr("D&elete");
+    if (technicalName == "Select") return QObject::tr("&Select");
+    if (technicalName == "Convert") return QObject::tr("&Convert");
     if (technicalName == "Statistics") return QObject::tr("&Statistics");
     if (technicalName == "Plugins") return QObject::tr("P&lugins");
     if (technicalName == "Assistant Actions") return QObject::tr("Assistant A&ctions");
@@ -67,7 +73,8 @@ QString MenuBuilder::menuTitle(const std::string& technicalName) {
 
 const std::vector<std::string>& MenuBuilder::topLevelMenus() {
     static const std::vector<std::string> menus = {
-        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TOOLS", "ASSISTANT", "VIEW", "WINDOW", "HELP"
+        "FILE", "EDIT", "BOOK", "INSERT", "FORMAT", "TABLE", "TOOLS", "ASSISTANT", "VIEW", "WINDOW",
+        "HELP"
     };
     return menus;
 }
@@ -83,6 +90,10 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Text Effects", QStringLiteral("menu.textEffects")},
         {"Change Case", QStringLiteral("menu.changeCase")},
         {"Align Text", QStringLiteral("menu.alignText")},
+        {"Insert", QStringLiteral("menu.tableInsert")},
+        {"Delete", QStringLiteral("menu.tableDelete")},
+        {"Select", QStringLiteral("menu.tableSelect")},
+        {"Convert", QStringLiteral("menu.tableConvert")},
         {"Statistics", QStringLiteral("menu.statistics")},
         {"Plugins", QStringLiteral("menu.plugins")},
         {"Assistant Actions", QStringLiteral("menu.assistantActions")},

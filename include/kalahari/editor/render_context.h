@@ -82,6 +82,12 @@ struct RenderColors {
     /// @brief The text of links (underlined in it), unless it has a color of its own
     QColor link{5, 99, 193};
 
+    /// @brief The lines of the tables' borders (of the color "Automatic"), the background of
+    ///        their header rows, and the faint lines shown where a table has no border
+    QColor tableLines{154, 154, 154};
+    QColor tableHeader{242, 242, 242};
+    QColor tableGridlines{180, 198, 231};
+
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
         return text == other.text &&
@@ -102,7 +108,10 @@ struct RenderColors {
                annotationTodo == other.annotationTodo &&
                annotationNote == other.annotationNote &&
                formattingMarks == other.formattingMarks &&
-               link == other.link;
+               link == other.link &&
+               tableLines == other.tableLines &&
+               tableHeader == other.tableHeader &&
+               tableGridlines == other.tableGridlines;
     }
 
     bool operator!=(const RenderColors& other) const {

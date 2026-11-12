@@ -21,6 +21,31 @@ enum class CaseChange;  // editor/character_format.h
 
 namespace gui {
 
+/// @brief The commands of the Table menu (the table of the cursor in the text with the keys)
+enum class TableCommand {
+    InsertTable,         ///< Insert Table...: the window of a new table
+    InsertRowsAbove,
+    InsertRowsBelow,
+    InsertColumnsLeft,
+    InsertColumnsRight,
+    DeleteRows,
+    DeleteColumns,
+    DeleteTable,
+    SelectCell,
+    SelectRow,
+    SelectColumn,
+    SelectTable,
+    MergeCells,
+    SplitCells,          ///< Split Cells...: its window
+    DistributeRows,
+    DistributeColumns,
+    HeaderRows,          ///< Repeat Header Rows: on or off
+    Sort,                ///< Sort...: its window
+    TextToTable,         ///< Convert > Text to Table...: its window
+    TableToText,         ///< Convert > Table to Text...: its window
+    Properties,          ///< Table Properties...: its window
+};
+
 /// @brief Callbacks for MainWindow actions triggered by commands.
 ///
 /// This struct provides a way for CommandRegistrar to call MainWindow methods
@@ -104,6 +129,7 @@ struct CommandCallbacks {
     std::function<void()> onParagraph;          ///< Format > Paragraph...
     std::function<void()> onInsertLink;         ///< Insert > Link... (also edits a link)
     std::function<void()> onInsertTable;        ///< Insert > Table...
+    std::function<void(TableCommand)> onTable;  ///< The Table menu
 
     // Format > Text Effects
     std::function<void()> onSuperscript;        ///< Format > Text Effects > Superscript

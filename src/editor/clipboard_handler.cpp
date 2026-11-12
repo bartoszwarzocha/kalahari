@@ -1367,6 +1367,7 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
         int rows = 0;
         int column = 0;
         bool head = false;
+        double rowHeight = 0.0;  ///< The least height of the row, in points
     };
     std::optional<OpenTable> table;
 
@@ -1469,14 +1470,37 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                         reader.skipCurrentElement();  // a table holds none
                         break;
                     }
-                    // As wide as the text, with a thin grid: Word, LibreOffice and the
-                    // browsers show it as the editor does
+                    // As wide as the text or of its width, where it is, with its lines (a
+                    // thin grid at first): Word, LibreOffice and the browsers show it as the
+                    // editor does
+                    const TableProperties properties = tablePropertiesOfKml(attrs);
+                    QStringList css{QStringLiteral("border-collapse:collapse")};
+                    if (properties.alignment == TableAlignment::Center) {
+                        css << QStringLiteral("margin-left:auto;margin-right:auto");
+                    } else if (properties.alignment == TableAlignment::Right) {
+                        css << QStringLiteral("margin-left:auto;margin-right:0");
+                    } else if (properties.indent > 0.0) {
+                        css << QStringLiteral("margin-left:") + kmlLength(properties.indent);
+                    }
                     startElement(QStringLiteral("table"), false, QString(),
-                                 QStringLiteral("border-collapse:collapse"));
-                    writer.writeAttribute(QStringLiteral("border"), QStringLiteral("1"));
+                                 css.join(QLatin1Char(';')));
+                    writer.writeAttribute(
+                        QStringLiteral("border"),
+                        properties.borders.lines == BORDER_NONE ? QStringLiteral("0")
+                                                                : QStringLiteral("1"));
                     writer.writeAttribute(QStringLiteral("cellspacing"), QStringLiteral("0"));
                     writer.writeAttribute(QStringLiteral("cellpadding"), QStringLiteral("4"));
-                    writer.writeAttribute(QStringLiteral("width"), QStringLiteral("100%"));
+                    if (properties.alignment != TableAlignment::Left) {
+                        writer.writeAttribute(QStringLiteral("align"),
+                                              properties.alignment == TableAlignment::Center
+                                                  ? QStringLiteral("center")
+                                                  : QStringLiteral("right"));
+                    }
+                    writer.writeAttribute(
+                        QStringLiteral("width"),
+                        properties.width
+                            ? QString::number(std::round(*properties.width * 4.0 / 3.0))
+                            : QStringLiteral("100%"));
                     table = OpenTable{};
                     element.written = true;
                     element.table = true;
@@ -1495,6 +1519,7 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                 if (table && tag == QStringLiteral("tr")) {
                     ++table->rows;
                     table->column = 0;
+                    table->rowHeight = rowPropertiesOfKml(attrs).minHeight;
                     element.row = true;
                     open.push_back(element);
                     break;
@@ -1513,6 +1538,11 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                             table->head = false;
                         }
                         writer.writeStartElement(QStringLiteral("tr"));
+                        if (table->rowHeight > 0.0) {
+                            writer.writeAttribute(QStringLiteral("style"),
+                                                  QStringLiteral("height:") +
+                                                      kmlLength(table->rowHeight));
+                        }
                         open.back().written = true;
                     }
                     writer.writeStartElement(tag);
@@ -1540,7 +1570,18 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                                     QLatin1Char('%'));
                         }
                     }
-                    writer.writeAttribute(QStringLiteral("valign"), QStringLiteral("top"));
+                    const TableCellProperties cellProperties = cellPropertiesOfKml(attrs);
+                    writer.writeAttribute(QStringLiteral("valign"),
+                                          cellProperties.alignment == CellAlignment::Middle
+                                              ? QStringLiteral("middle")
+                                          : cellProperties.alignment == CellAlignment::Bottom
+                                              ? QStringLiteral("bottom")
+                                              : QStringLiteral("top"));
+                    if (cellProperties.background.isValid()) {
+                        writer.writeAttribute(QStringLiteral("style"),
+                                              QStringLiteral("background-color:") +
+                                                  cellProperties.background.name());
+                    }
                     table->column += columns;
                     element.written = true;
                     element.cell = true;

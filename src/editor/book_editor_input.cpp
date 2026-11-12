@@ -24,6 +24,7 @@
 #include <QHash>
 #include <QScopedValueRollback>
 #include <QSet>
+#include <QTextTable>
 #include <QTimer>
 #include <algorithm>
 #include <optional>
@@ -277,6 +278,14 @@ void giveUniqueAccessKeys(QMenu& menu) {
 
 void BookEditor::keyPressEvent(QKeyEvent* event)
 {
+    // Esc lets go of the edge of columns being dragged: the columns stay as they were
+    if (m_columnDrag && event->key() == Qt::Key_Escape) {
+        m_columnDrag.reset();
+        update();
+        event->accept();
+        return;
+    }
+
     // Ctrl pressed over a link: the hand of Ctrl+click at once, as the mouse stays
     if (event->key() == Qt::Key_Control && underMouse()) {
         updatePointerShape(mapFromGlobal(QCursor::pos()), event->modifiers());
@@ -528,6 +537,16 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
 
     QPointF clickPos = event->position();
 
+    // The edge between two columns of a table: dragged, it sets their widths
+    if (!(event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier))) {
+        if (std::optional<ColumnEdge> edge = columnEdgeAt(clickPos)) {
+            m_columnDrag = edge;
+            dragColumnEdge(clickPos);
+            event->accept();
+            return;
+        }
+    }
+
     // Check for multi-click (double/triple)
     bool isMultiClick = false;
     if (m_clickTimer != nullptr && m_clickTimer->isActive()) {
@@ -626,6 +645,12 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
+    if (m_columnDrag) {
+        dragColumnEdge(pos);
+        event->accept();
+        return;
+    }
+
     if (m_textDragPending) {
         if ((pos - m_textDragStartPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_textDragPending = false;
@@ -661,6 +686,9 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
     } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos) ||
                ((modifiers & Qt::ControlModifier) && linkAt(pos).has_value())) {
         shape = Qt::PointingHandCursor;
+    } else if (!(modifiers & (Qt::ShiftModifier | Qt::ControlModifier)) &&
+               columnEdgeAt(pos).has_value()) {
+        shape = Qt::SplitHCursor;  // the edge between two columns, which can be dragged
     } else if (isOverSelectedText(pos)) {
         shape = Qt::ArrowCursor;
     }
@@ -681,6 +709,19 @@ void BookEditor::mouseReleaseEvent(QMouseEvent* event)
 
     stopAutoScroll();
     m_isDragging = false;
+    if (m_columnDrag) {
+        // The edge where it was let go: the widths of the two columns, one step of Undo
+        const int column = m_columnDrag->column;
+        QTextTable* table = columnDragTable();
+        m_columnDrag.reset();
+        if (table) {
+            setColumnEdge(*table, column, m_columnDragX);
+        }
+        updatePointerShape(event->position(), event->modifiers());
+        update();
+        event->accept();
+        return;
+    }
     if (m_textDragPending) {
         // A click on the selected text without dragging places the cursor there
         m_textDragPending = false;
@@ -845,8 +886,21 @@ void BookEditor::startTextDrag()
     const bool movedAway = !m_readOnly && action == Qt::MoveAction && target != this &&
                            (target == nullptr || !isAncestorOf(target));
     if (movedAway && dragged.position() < draggedEnd.position()) {
+        // Selected cells are cleared, the cells staying
+        const std::optional<TableCellRange> cells =
+            selectedCells(*m_textBuffer, dragged.position(), draggedEnd.position());
         clearSelection();
-        removeKeepingTables(dragged, dragged.position(), draggedEnd.position(), false);
+        if (cells) {
+            dragged.beginEditBlock();
+            const std::vector<QTextTableCell> cleared = startingCellsOf(*cells);
+            for (auto cell = cleared.rbegin(); cell != cleared.rend(); ++cell) {
+                clearCell(dragged, *cell);
+            }
+            dragged.endEditBlock();
+            dragged.setPosition(cells->table->cellAt(cells->firstRow, cells->firstColumn).firstPosition());
+        } else {
+            removeKeepingTables(dragged, dragged.position(), draggedEnd.position(), false);
+        }
         finishEdit(dragged);
     }
 }
@@ -948,6 +1002,11 @@ void BookEditor::setContextMenuActions(const QList<QAction*>& actions)
 void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions)
 {
     m_contextMenuEditActions = actions;
+}
+
+void BookEditor::setContextMenuTableActions(const ContextMenuTableActions& actions)
+{
+    m_contextMenuTableActions = actions;
 }
 
 void BookEditor::setNextIssueAction(QAction* action)
@@ -1111,6 +1170,42 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         higher->setEnabled(higher->isEnabled() && item->level > 0);
         disableWhileReadOnly(menu.addAction(tr("Bullets and Numberin&g..."), this,
                                             &BookEditor::bulletsAndNumberingAsked));
+        menu.addSeparator();
+    }
+
+    // A cell of a table: the commands of the Table menu, Insert, Delete and Select in
+    // submenus of the menu's own (their keys those of the Table menu's submenus)
+    const ContextMenuTableActions& table = m_contextMenuTableActions;
+    if (isInTable() && (!table.insert.isEmpty() || !table.commands.isEmpty())) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        const auto addSubmenu = [&menu](const QString& title, const QList<QAction*>& actions) {
+            if (actions.isEmpty()) {
+                return;
+            }
+            QMenu* submenu = menu.addMenu(title);
+            submenu->setToolTipsVisible(true);
+            for (QAction* action : actions) {
+                if (action != nullptr) {
+                    submenu->addAction(action);
+                }
+            }
+        };
+        //: The context menu of a cell, as the Table menu's submenus. In Polish: W&staw
+        addSubmenu(tr("Inse&rt"), table.insert);
+        //: In Polish: &Usuń
+        addSubmenu(tr("D&elete"), table.remove);
+        //: In Polish: Z&aznacz
+        addSubmenu(tr("&Select"), table.select);
+        menu.addSeparator();
+        for (QAction* action : table.commands) {
+            if (action != nullptr) {
+                menu.addAction(action);
+            } else {
+                menu.addSeparator();
+            }
+        }
         menu.addSeparator();
     }
 

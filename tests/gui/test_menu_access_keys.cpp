@@ -535,6 +535,41 @@ void checkTextMenus(bool shown, QStringList& problems) {
     QList<test::MenuItem> linkMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
     collectProblems(linkMenu, QStringLiteral("Link"), {}, problems);
     CHECK(itemCount(linkMenu) == 6 + 4);
+
+    // A cell of a table: Insert, Delete and Select, and the commands of the Table menu the
+    // editor panel gives, on top of the usual menu
+    const auto actions = [&registry](std::initializer_list<const char*> ids) {
+        QList<QAction*> list;
+        for (const char* id : ids) {
+            list << (id != nullptr ? registry.getAction(QString::fromLatin1(id)) : nullptr);
+        }
+        return list;
+    };
+    editor::BookEditor::ContextMenuTableActions tableActions;
+    tableActions.insert = actions({"table.insertRowsAbove", "table.insertRowsBelow",
+                                   "table.insertColumnsLeft", "table.insertColumnsRight"});
+    tableActions.remove = actions({"table.deleteRows", "table.deleteColumns", "table.deleteTable"});
+    tableActions.select = actions({"table.selectCell", "table.selectRow", "table.selectColumn",
+                                   "table.selectTable"});
+    tableActions.commands = actions({"table.mergeCells", "table.splitCells", nullptr,
+                                     "table.distributeRows", "table.distributeColumns", nullptr,
+                                     "table.sort", "table.properties"});
+    for (const QList<QAction*>* list : {&tableActions.insert, &tableActions.remove,
+                                        &tableActions.select, &tableActions.commands}) {
+        for (const QAction* action : *list) {
+            CHECK((action != nullptr || list == &tableActions.commands));
+        }
+    }
+    editor.setContextMenuTableActions(tableActions);
+    editor.fromKml(QStringLiteral("<kml><table><tr><td><p>") + sentence() +
+                   QStringLiteral("</p></td><td><p>Two</p></td></tr></table></kml>"));
+    editor.setCursorPosition({1, 1});
+    REQUIRE(editor.isInTable());
+    QList<test::MenuItem> cellMenu = contextMenu(
+        &editor, &editor, editor.inputMethodQuery(Qt::ImCursorRectangle).toRect().center());
+    collectProblems(cellMenu, QStringLiteral("Table cell"), {}, problems);
+    CHECK(itemCount(cellMenu) == 6 + (3 + 4 + 3 + 4) + 6);
+    editor.setContextMenuTableActions({});
     editor.fromKml(test::kmlOf({sentence()}));
 
     // The annotation at the click on top of the usual menu: a line with its kind and the start

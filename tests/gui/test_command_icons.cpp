@@ -101,9 +101,10 @@ TEST_CASE("Menus: every submenu has an icon, in the icon colors after they chang
         collectSubmenus(menu->menu(), menu->text(), submenus);
     }
     // Recent Books, Import, Export, Formatting Character, Text Style, Text Effects, Change
-    // Case, Align Text, Statistics, Plugins, Assistant Actions, View Mode, Zoom, Margin
-    // Numbering, Panels, Perspectives, Toolbars
-    CHECK(submenus.size() == 17);
+    // Case, Align Text, the Table menu's Insert, Delete, Select and Convert, Statistics,
+    // Plugins, Assistant Actions, View Mode, Zoom, Margin Numbering, Panels, Perspectives,
+    // Toolbars
+    CHECK(submenus.size() == 21);
     for (const auto& [path, submenu] : submenus) {
         INFO(path.toStdString());
         CHECK_FALSE(submenu->icon().isNull());

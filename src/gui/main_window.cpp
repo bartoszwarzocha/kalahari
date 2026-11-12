@@ -129,6 +129,17 @@ QString inTableReason() {
     return MainWindow::tr("A cell of a table holds only text");
 }
 
+/// The commands of the Table menu that work in the table with the cursor
+constexpr const char* TABLE_COMMANDS[] = {
+    "table.insertRowsAbove", "table.insertRowsBelow", "table.insertColumnsLeft",
+    "table.insertColumnsRight", "table.deleteRows",   "table.deleteColumns",
+    "table.deleteTable",       "table.splitCells",    "table.distributeRows",
+    "table.distributeColumns", "table.tableToText",   "table.properties"};
+
+/// The commands of the Table menu that select a part of the table
+constexpr const char* TABLE_SELECT_COMMANDS[] = {"table.selectCell", "table.selectRow",
+                                                  "table.selectColumn", "table.selectTable"};
+
 } // namespace
 
 MainWindow::MainWindow(QWidget* parent)
@@ -554,6 +565,7 @@ MainWindow::MainWindow(QWidget* parent)
             };
         }
     }
+    addTableCommands();
     m_editCoordinator->updateStates();
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
@@ -960,6 +972,14 @@ void MainWindow::registerCommands() {
         if (EditorPanel* editor = getCurrentEditor()) {
             editor->showInsertTableDialog();
         }
+    };
+    // The Table menu: in the table of the book's text with the keys, the windows of its panel
+    callbacks.onTable = [this](TableCommand command) {
+        editor::BookEditor* text = m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr;
+        if (text == nullptr) {
+            return;
+        }
+        onTableCommand(*text, command);
     };
 
     // Alignment commands
@@ -1785,6 +1805,170 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
     registry.updateActionState("view.fullScreen");
 }
 
+void MainWindow::addTableCommands() {
+    // Each greyed out where it does nothing: over a chapter of a book open read-only those
+    // that change the text, and outside a table those of a table
+    using Text = const editor::BookEditor&;
+    const auto commands = [](std::initializer_list<const char*> ids) {
+        return std::vector<std::string>(ids.begin(), ids.end());
+    };
+    std::vector<std::string> tableCommands(std::begin(TABLE_COMMANDS), std::end(TABLE_COMMANDS));
+    m_editCoordinator->addTextCommands(
+        tableCommands, [](Text text) { return !text.isReadOnly() && text.isInTable(); });
+    m_editCoordinator->addTextCommands(
+        std::vector<std::string>(std::begin(TABLE_SELECT_COMMANDS), std::end(TABLE_SELECT_COMMANDS)),
+        [](Text text) { return text.isInTable(); });
+    m_editCoordinator->addTextCommands(commands({"table.insert"}), [](Text text) {
+        return !text.isReadOnly() && !text.isInTable();
+    });
+    m_editCoordinator->addTextCommands(commands({"table.mergeCells"}), [](Text text) {
+        return !text.isReadOnly() && text.canMergeTableCells();
+    });
+    m_editCoordinator->addTextCommands(commands({"table.headerRows"}), [](Text text) {
+        return !text.isReadOnly() && text.canChangeTableHeader();
+    });
+    m_editCoordinator->addTextCommands(commands({"table.sort"}), [](Text text) {
+        return !text.isReadOnly() && text.sortSubject().has_value();
+    });
+    m_editCoordinator->addTextCommands(commands({"table.textToTable"}), [](Text text) {
+        return !text.isReadOnly() && text.canConvertTextToTable();
+    });
+
+    // Why
+    CommandRegistry& registry = CommandRegistry::getInstance();
+    const auto explain = [this, &registry](const std::string& id,
+                                           const std::function<QString(Text)>& why) {
+        if (Command* command = registry.getCommand(id)) {
+            command->disabledReason = [this, why]() {
+                const editor::BookEditor* text = m_editCoordinator->textWithKeys();
+                if (text == nullptr) {
+                    return QString();
+                }
+                return text->isReadOnly() ? readOnlyReason() : why(*text);
+            };
+        }
+    };
+    //: Why the commands of the Table menu are greyed out outside a table. In Polish: Kursor
+    //: nie jest w tabeli
+    const QString notInTable = tr("The cursor is not in a table");
+    for (const std::string& id : tableCommands) {
+        explain(id, [notInTable](Text text) { return text.isInTable() ? QString() : notInTable; });
+    }
+    explain("table.insert", [](Text text) { return text.isInTable() ? inTableReason() : QString(); });
+    explain("table.mergeCells", [notInTable](Text text) {
+        //: Why Table > Merge Cells is greyed out. In Polish: Zaznacz komórki do scalenia
+        return text.isInTable() ? tr("Select the cells to merge") : notInTable;
+    });
+    explain("table.headerRows", [notInTable](Text text) {
+        //: Why Table > Repeat Header Rows is greyed out in a row under the body's first one
+        return text.isInTable() ? tr("The header rows are the first rows of the table: put "
+                                     "the cursor in them or in the row under them")
+                                : notInTable;
+    });
+    explain("table.sort", [](Text text) { return text.sortRefusal(); });
+    explain("table.textToTable", [](Text text) {
+        return text.isInTable()
+                   //: Why Table > Convert > Text to Table... is greyed out in a table
+                   ? tr("The cursor is in a table: Table to Text... makes text of it")
+                   //: Why Table > Convert > Text to Table... is greyed out for a selection
+                   : tr("Only paragraphs of text become a table: the selection holds a table "
+                        "or an object");
+    });
+}
+
+void MainWindow::onTableCommand(editor::BookEditor& text, TableCommand command) {
+    // The windows are those of the text's panel (the one in front, without one)
+    EditorPanel* panel = nullptr;
+    for (QWidget* widget = text.parentWidget(); widget != nullptr && panel == nullptr;
+         widget = widget->parentWidget()) {
+        panel = qobject_cast<EditorPanel*>(widget);
+    }
+    if (panel == nullptr) {
+        panel = getCurrentEditor();
+    }
+    using Part = editor::BookEditor::TablePart;
+    switch (command) {
+    case TableCommand::InsertTable:
+        if (panel != nullptr) {
+            panel->showInsertTableDialog();
+        }
+        return;
+    case TableCommand::InsertRowsAbove:
+        text.insertTableRows(false);
+        return;
+    case TableCommand::InsertRowsBelow:
+        text.insertTableRows(true);
+        return;
+    case TableCommand::InsertColumnsLeft:
+        text.insertTableColumns(false);
+        return;
+    case TableCommand::InsertColumnsRight:
+        text.insertTableColumns(true);
+        return;
+    case TableCommand::DeleteRows:
+        text.deleteTableRows();
+        return;
+    case TableCommand::DeleteColumns:
+        text.deleteTableColumns();
+        return;
+    case TableCommand::DeleteTable:
+        text.deleteTable();
+        return;
+    case TableCommand::SelectCell:
+        text.selectTablePart(Part::Cell);
+        return;
+    case TableCommand::SelectRow:
+        text.selectTablePart(Part::Row);
+        return;
+    case TableCommand::SelectColumn:
+        text.selectTablePart(Part::Column);
+        return;
+    case TableCommand::SelectTable:
+        text.selectTablePart(Part::Table);
+        return;
+    case TableCommand::MergeCells:
+        text.mergeTableCells();
+        return;
+    case TableCommand::DistributeRows:
+        text.distributeTableRows();
+        return;
+    case TableCommand::DistributeColumns:
+        text.distributeTableColumns();
+        return;
+    case TableCommand::HeaderRows:
+        text.setTableHeader(!text.isTableHeader());
+        return;
+    case TableCommand::SplitCells:
+    case TableCommand::Sort:
+    case TableCommand::TextToTable:
+    case TableCommand::TableToText:
+    case TableCommand::Properties:
+        break;
+    }
+    if (panel == nullptr || panel->getBookEditor() != &text) {
+        return;
+    }
+    switch (command) {
+    case TableCommand::SplitCells:
+        panel->showSplitCellsDialog();
+        break;
+    case TableCommand::Sort:
+        panel->showSortDialog();
+        break;
+    case TableCommand::TextToTable:
+        panel->showTextToTableDialog();
+        break;
+    case TableCommand::TableToText:
+        panel->showTableToTextDialog();
+        break;
+    case TableCommand::Properties:
+        panel->showTablePropertiesDialog();
+        break;
+    default:
+        break;
+    }
+}
+
 void MainWindow::updateEditorActionStates() {
     // Undo, Redo and the clipboard follow the element with the keys
     if (m_editCoordinator) {
@@ -1824,6 +2008,7 @@ void MainWindow::updateEditorActionStates() {
     const Qt::Alignment alignment = bookEditor != nullptr
                                         ? bookEditor->currentAlignment() & Qt::AlignHorizontal_Mask
                                         : Qt::Alignment();
+    setChecked("table.headerRows", bookEditor != nullptr && bookEditor->isTableHeader());
     setChecked("format.alignLeft", bookEditor != nullptr && alignment == Qt::AlignLeft);
     setChecked("format.alignCenter", alignment == Qt::AlignHCenter);
     setChecked("format.alignRight", alignment == Qt::AlignRight);

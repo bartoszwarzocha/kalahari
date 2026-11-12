@@ -158,6 +158,26 @@ public:
     ///        the table at the cursor (BookEditor::insertTable())
     void showInsertTableDialog();
 
+    /// @brief Table > Split Cells...: the columns and rows the cell with the cursor (or the
+    ///        selected cells, merged first) is split into (BookEditor::splitTableCells())
+    void showSplitCellsDialog();
+
+    /// @brief Table > Sort...: the keys the rows of the table, or the paragraphs, are
+    ///        sorted by (BookEditor::sortSelection())
+    void showSortDialog();
+
+    /// @brief Table > Convert > Text to Table...: the selected paragraphs made a table
+    ///        (BookEditor::convertTextToTable())
+    void showTextToTableDialog();
+
+    /// @brief Table > Convert > Table to Text...: the table with the cursor made paragraphs
+    ///        (BookEditor::convertTableToText())
+    void showTableToTextDialog();
+
+    /// @brief Table > Table Properties...: the look of the table with the cursor, its rows,
+    ///        columns and cells (BookEditor::setTablePropertiesData())
+    void showTablePropertiesDialog();
+
     /// @brief Open a link's address in the system's program (a Ctrl+click, Open Hyperlink):
     ///        a page, a file server or a new e-mail; another address is refused with a
     ///        message in the status bar (editor::isOpenableLinkAddress())

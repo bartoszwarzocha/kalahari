@@ -19,6 +19,11 @@
 ///
 /// The document has headings, dialog in the style Dialogue and scene breaks, and the editor
 /// the paragraph styles of the base book type, as a chapter of a book in the program.
+///
+/// The benchmark of tables ("[benchmark][tables]", results in tables_benchmark_results.md)
+/// takes the same chapter with a table every 200 paragraphs and a long table in the middle:
+/// loading, the pages (the header rows repeated, a row higher than a page split), typing in a
+/// cell, and the commands of the Table menu.
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_type_registry.h>
@@ -29,6 +34,8 @@
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/search_engine.h>
+#include <kalahari/editor/text_sorting.h>
+#include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/viewport_manager.h>
 #include "../editor/editor_test_utils.h"
 #include "test_document_generator.h"
@@ -42,6 +49,7 @@
 #include <QPixmap>
 #include <QScreen>
 #include <QTextDocument>
+#include <QTextTable>
 #include <QTextStream>
 #include <QWheelEvent>
 
@@ -140,7 +148,8 @@ void typeChar(QWidget& widget, QChar c) {
     QCoreApplication::sendEvent(&widget, &press);
 }
 
-void report(const std::vector<BenchRow>& rows, const QStringList& header) {
+void report(const std::vector<BenchRow>& rows, const QStringList& header,
+            const QString& defaultPath = QStringLiteral("stage0_benchmark_results.md")) {
     QString out;
     QTextStream s(&out);
     for (const auto& line : header) s << line << "\n";
@@ -154,20 +163,16 @@ void report(const std::vector<BenchRow>& rows, const QStringList& header) {
     WARN(out.toStdString());  // Catch2 always prints WARN messages
 
     QString path = qEnvironmentVariable("KALAHARI_BENCH_OUT");
-    if (path.isEmpty()) path = QStringLiteral("stage0_benchmark_results.md");
+    if (path.isEmpty()) path = defaultPath;
     QFile file(path);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         file.write(out.toUtf8());
     }
 }
 
-}  // anonymous namespace
-
-TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
-          "[.][benchmark][stage0]") {
-    std::vector<BenchRow> rows;
+/// The configuration and the screen, the first lines of a report
+QStringList reportHeader() {
     QStringList header;
-
 #ifdef NDEBUG
     header << QStringLiteral("Konfiguracja: Release");
 #else
@@ -180,6 +185,96 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
                       .arg(screen->logicalDotsPerInch(), 0, 'f', 1)
                       .arg(screen->devicePixelRatio(), 0, 'f', 2);
     }
+    return header;
+}
+
+/// A table of KML: a header row and @p rows rows of four cells (a name, a description of two
+/// paragraphs, a date and a number); with @p tallRow, a row of a cell of 120 paragraphs, higher
+/// than a page
+QString tableKml(int rows, int number, bool tallRow) {
+    QString kml = QStringLiteral("<table><col width=\"20%\"/><col width=\"50%\"/>"
+                                 "<col width=\"15%\"/><col width=\"15%\"/>"
+                                 "<tr><th><p>Postać</p></th><th><p>Opis</p></th>"
+                                 "<th><p>Data</p></th><th><p>Liczba</p></th></tr>");
+    for (int row = 0; row < rows; ++row) {
+        const int value = (row * 7919 + number * 31) % 1000;
+        kml += QStringLiteral("<tr><td><p>Postać %1</p></td><td><p>Opis postaci %1, która "
+                              "pojawia się w rozdziale i ma swoją rolę w opowieści.</p>"
+                              "<p>Drugi akapit opisu.</p></td><td><p>%2.%3.2026</p></td>"
+                              "<td><p>%4</p></td></tr>")
+                   .arg(value)
+                   .arg(row % 28 + 1)
+                   .arg(row % 12 + 1)
+                   .arg(value * 3);
+        if (tallRow && row == rows / 2) {
+            kml += QStringLiteral("<tr><td><p>Wysoki wiersz</p></td><td>") +
+                   QStringLiteral("<p>Akapit wysokiego wiersza, który nie mieści się na stronie.</p>")
+                       .repeated(120) +
+                   QStringLiteral("</td><td><p>1.1.2026</p></td><td><p>1</p></td></tr>");
+        }
+    }
+    return kml + QStringLiteral("</table>");
+}
+
+/// The chapter with a table of 12 rows after every 200th paragraph, and one of @p longRows rows
+/// (with a row higher than a page) in the middle; @p tables gets their number
+QString withTables(const QString& kml, int longRows, int* tables) {
+    const QString end = QStringLiteral("</p>");
+    const qsizetype total = kml.count(end);
+    QString result;
+    result.reserve(kml.size() * 3 / 2);
+    qsizetype from = 0;
+    qsizetype paragraph = 0;
+    int count = 0;
+    for (qsizetype at = kml.indexOf(end); at >= 0; at = kml.indexOf(end, from)) {
+        const qsizetype after = at + end.size();
+        result += QStringView(kml).mid(from, after - from);
+        from = after;
+        ++paragraph;
+        if (paragraph == total / 2) {
+            result += tableKml(longRows, count++, true);
+        } else if (paragraph % 200 == 0) {
+            result += tableKml(12, count++, false);
+        }
+    }
+    result += QStringView(kml).mid(from);
+    *tables = count;
+    return result;
+}
+
+/// The first table with at least @p rows rows
+QTextTable* tableWithRows(const BookEditor& editor, int rows) {
+    for (QTextBlock block = editor.textDocument()->begin(); block.isValid(); block = block.next()) {
+        if (QTextTable* table = tableOf(block); table && table->rows() >= rows) {
+            return table;
+        }
+    }
+    return nullptr;
+}
+
+/// The first paragraph from the given one on that is not in a table
+int paragraphOutsideTables(const BookEditor& editor, int from) {
+    for (QTextBlock block = editor.textDocument()->findBlockByNumber(from); block.isValid();
+         block = block.next()) {
+        if (tableOf(block) == nullptr && block.length() > 1) {
+            return block.blockNumber();
+        }
+    }
+    return from;
+}
+
+/// The place of the start of a cell, for the cursor
+CursorPosition cellPlace(const QTextTable& table, int row, int column) {
+    const QTextBlock block = table.document()->findBlock(table.cellAt(row, column).firstPosition());
+    return {block.blockNumber(), 0};
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
+          "[.][benchmark][stage0]") {
+    std::vector<BenchRow> rows;
+    QStringList header = reportHeader();
 
     // -------------------------------------------------------------------------
     // 1. Load scaling: fromKml at growing sizes (quadratic => ~4x per 2x)
@@ -481,4 +576,250 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
 
     report(rows, header);
     CHECK(editor.paragraphCount() > 0);
+}
+
+TEST_CASE("Tables benchmark: the Table menu on a 150k-word chapter with tables",
+          "[.][benchmark][tables]") {
+    std::vector<BenchRow> rows;
+    QStringList header = reportHeader();
+    constexpr int LONG_ROWS = 400;
+
+    // -------------------------------------------------------------------------
+    // 1. Loading
+    // -------------------------------------------------------------------------
+    int tables = 0;
+    const QString kml = withTables(generateKml(150000), LONG_ROWS, &tables);
+    BookEditor editor;
+    resizeWidget(editor, QSize(1000, 800));
+    editor.setParagraphStyles(bookStyles());
+    const double loadMs = timeMs([&] { editor.fromKml(kml); });
+    const double firstPaintMs = timeMs([&] { paint(editor); });
+    KalahariTextDocumentLayout* layout = layoutOf(editor);
+    const double restMs = timeMs([&] { layout->layoutPendingBlocks(); });
+    header << QStringLiteral("Dokument: %1 słów, %2 akapitów (z akapitami komórek), %3 tabel: po "
+                             "12 wierszy co 200 akapitów i jedna z %4 wierszami, a w niej wiersz "
+                             "wyższy od strony (komórka ze 120 akapitami)")
+                  .arg(editor.wordCount())
+                  .arg(editor.paragraphCount())
+                  .arg(tables)
+                  .arg(LONG_ROWS);
+    rows.push_back({QStringLiteral("fromKml – 150k słów z tabelami"), loadMs,
+                    QStringLiteral("pierwszy paintEvent %1 ms; łamanie reszty w tle %2 ms")
+                        .arg(firstPaintMs, 0, 'f', 1)
+                        .arg(restMs, 0, 'f', 1)});
+
+    QTextTable* big = tableWithRows(editor, LONG_ROWS);
+    REQUIRE(big != nullptr);
+    const int bigRows = big->rows();
+    const auto toCell = [&](int row, int column) {
+        editor.clearSelection();
+        editor.setCursorPosition(cellPlace(*big, row, column));
+        paint(editor);
+    };
+
+    // -------------------------------------------------------------------------
+    // 2. Continuous: painting and typing in a cell
+    // -------------------------------------------------------------------------
+    const QString typed = QStringLiteral("lorem ipsum dolor sit amet ").repeated(4).left(100);
+    const auto typeHundred = [&]() {
+        return timeMs([&] {
+            for (QChar c : typed) {
+                typeChar(editor, c);
+                paint(editor);
+            }
+        });
+    };
+    // For comparison: a paragraph outside the tables, and a cell of a table of 12 rows
+    {
+        const int outside = paragraphOutsideTables(editor, static_cast<int>(editor.paragraphCount() / 4));
+        REQUIRE(tableOf(editor.textDocument()->findBlockByNumber(outside)) == nullptr);
+        editor.setCursorPosition({outside, 0});
+        paint(editor);
+        const double ms = typeHundred();
+        rows.push_back({QStringLiteral("Wpisanie 100 znaków w akapicie poza tabelą – Continuous (z "
+                                       "paintEvent po każdym)"),
+                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+        // ("small" is a macro of the Windows headers)
+        QTextTable* shortTable = tableWithRows(editor, 12);
+        REQUIRE(shortTable != nullptr);
+        editor.setCursorPosition(cellPlace(*shortTable, 5, 1));
+        paint(editor);
+        const double cellMs = typeHundred();
+        rows.push_back({QStringLiteral("Wpisanie 100 znaków w komórce tabeli z 12 wierszami – "
+                                       "Continuous (z paintEvent po każdym)"),
+                        cellMs, QStringLiteral("%1 ms/znak").arg(cellMs / 100.0, 0, 'f', 2)});
+    }
+    toCell(100, 1);
+    rows.push_back({QStringLiteral("paintEvent – Continuous, tabela w widoku (średnio z 10)"),
+                    timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0, QString()});
+    {
+        const double ms = typeHundred();
+        rows.push_back({QStringLiteral("Wpisanie 100 znaków w komórce tabeli z %1 wierszami – "
+                                       "Continuous (z paintEvent po każdym)")
+                            .arg(bigRows),
+                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+    }
+
+    // -------------------------------------------------------------------------
+    // 3. Page view: the header rows on each page, the row higher than a page split
+    // -------------------------------------------------------------------------
+    editor.setViewMode(ViewMode::Page);
+    {
+        const double ms = timeMs([&] { paint(editor); });
+        int splitRows = 0;
+        for (const auto& row : layout->tableRows(*big)) {
+            splitRows += row.parts.size() > 1 ? 1 : 0;
+        }
+        rows.push_back({QStringLiteral("Przełączenie na Page + pierwszy paintEvent (paginacja)"), ms,
+                        QStringLiteral("nagłówek długiej tabeli powtórzony %1 razy; wierszy "
+                                       "podzielonych między strony: %2")
+                            .arg(layout->headerRepeats(*big).size())
+                            .arg(splitRows)});
+        CHECK(!layout->headerRepeats(*big).empty());
+        CHECK(splitRows >= 1);
+    }
+    toCell(300, 1);
+    rows.push_back({QStringLiteral("paintEvent – Page, tabela z powtórzonym nagłówkiem (średnio z 10)"),
+                    timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0, QString()});
+    {
+        const double ms = typeHundred();
+        rows.push_back({QStringLiteral("Wpisanie 100 znaków w komórce – Page (z paintEvent po każdym)"),
+                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. The commands of the Table menu on the long table, in the page view
+    // -------------------------------------------------------------------------
+    const auto step = [&](const QString& name, const std::function<void()>& command,
+                          const QString& note = QString()) {
+        rows.push_back({name + QStringLiteral(" + paintEvent"), timeMs([&] {
+                            command();
+                            paint(editor);
+                        }),
+                        note});
+        rows.push_back({QStringLiteral("    cofnięcie (Ctrl+Z) + paintEvent"), timeMs([&] {
+                            editor.undo();
+                            paint(editor);
+                        }),
+                        QString()});
+        big = tableWithRows(editor, LONG_ROWS);
+        REQUIRE(big != nullptr);
+        CHECK(big->rows() == bigRows);
+    };
+
+    toCell(50, 1);
+    step(QStringLiteral("Wstaw > Wiersze poniżej"), [&] { editor.insertTableRows(true); },
+         QStringLiteral("strony za nim przesuwają się"));
+    toCell(50, 1);
+    step(QStringLiteral("Usuń > Wiersze"), [&] { editor.deleteTableRows(); });
+    toCell(50, 1);
+    step(QStringLiteral("Wstaw > Kolumny z prawej"), [&] { editor.insertTableColumns(true); },
+         QStringLiteral("%1 nowych komórek").arg(bigRows));
+
+    // A rectangle of 100 rows: Shift+Down, copy, Delete
+    toCell(10, 0);
+    rows.push_back({QStringLiteral("Zaznaczenie prostokąta komórek: Shift+↓ ×100 (paintEvent po każdym)"),
+                    timeMs([&] {
+                        for (int i = 0; i < 100; ++i) {
+                            QKeyEvent down(QEvent::KeyPress, Qt::Key_Down, Qt::ShiftModifier);
+                            QCoreApplication::sendEvent(&editor, &down);
+                            paint(editor);
+                        }
+                    }),
+                    QString()});
+    {
+        const std::optional<TableCellRange> cells = editor.selectedCellRange();
+        REQUIRE(cells.has_value());
+        CHECK(cells->rows() > 50);
+        rows.push_back({QStringLiteral("Kopiowanie zaznaczonych komórek"),
+                        timeMs([&] { editor.createMimeDataFromSelection(); }),
+                        QStringLiteral("%1 wierszy; dane dla schowka (KML, HTML, tekst)")
+                            .arg(cells->rows())});
+    }
+    step(QStringLiteral("Delete – wyczyszczenie zaznaczonych komórek"), [&] {
+        QKeyEvent key(QEvent::KeyPress, Qt::Key_Delete, Qt::NoModifier);
+        QCoreApplication::sendEvent(&editor, &key);
+    });
+
+    toCell(50, 1);
+    step(QStringLiteral("Sortuj… – według kolumny Liczba, malejąco"), [&] {
+        SortOptions options;
+        options.keys.push_back({3, SortType::Numbers, true});
+        editor.sortSelection(options);
+    }, QStringLiteral("%1 wierszy pod nagłówkiem").arg(bigRows - 1));
+    toCell(50, 1);
+    step(QStringLiteral("Sortuj… – według kolumny Postać (tekst), potem Data"), [&] {
+        SortOptions options;
+        options.keys.push_back({0, SortType::Text, false});
+        options.keys.push_back({2, SortType::Dates, false});
+        editor.sortSelection(options);
+    });
+
+    toCell(50, 1);
+    rows.push_back({QStringLiteral("Alt+Shift+↓ ×10 (paintEvent po każdym)"), timeMs([&] {
+                        for (int i = 0; i < 10; ++i) {
+                            editor.moveParagraphsOrRows(true);
+                            paint(editor);
+                        }
+                    }),
+                    QStringLiteral("każde przesunięcie to krok cofania")});
+    for (int i = 0; i < 10; ++i) {
+        editor.undo();
+    }
+
+    toCell(50, 1);
+    step(QStringLiteral("Właściwości tabeli… – do środka, ramka, wiersz wysoki na 1 cm"), [&] {
+        std::optional<TablePropertiesData> data = editor.tablePropertiesData();
+        REQUIRE(data.has_value());
+        data->table.alignment = TableAlignment::Center;
+        data->table.width = 360.0;
+        data->table.borders.lines = BORDER_BOX;
+        data->rows[50].minHeight = 72.0 / 2.54;
+        editor.setTablePropertiesData(*data);
+    });
+    toCell(50, 1);
+    step(QStringLiteral("Przeciągnięcie krawędzi kolumny"), [&] {
+        const std::vector<qreal> edges = layout->tableColumnEdges(*big);
+        editor.setColumnEdge(*big, 1, edges[1] + 40.0);
+    });
+    toCell(50, 1);
+    step(QStringLiteral("Rozłóż kolumny równomiernie"), [&] { editor.distributeTableColumns(); });
+
+    // Table to text and back
+    toCell(50, 1);
+    int firstParagraph = 0;
+    rows.push_back({QStringLiteral("Tabelę na tekst… (tabulatory) + paintEvent"), timeMs([&] {
+                        editor.convertTableToText(QLatin1Char('\t'));
+                        paint(editor);
+                    }),
+                    QStringLiteral("%1 akapitów").arg(bigRows)});
+    firstParagraph = editor.cursorPosition().paragraph;
+    CHECK(tableWithRows(editor, LONG_ROWS) == nullptr);
+    {
+        const int last = firstParagraph + bigRows - 1;
+        const QTextBlock lastBlock = editor.textDocument()->findBlockByNumber(last);
+        editor.setCursorPosition({last, lastBlock.length() - 1});
+        editor.setSelection({{firstParagraph, 0}, {last, lastBlock.length() - 1}});
+    }
+    rows.push_back({QStringLiteral("Tekst na tabelę… (tabulatory) + paintEvent"), timeMs([&] {
+                        editor.convertTextToTable(QLatin1Char('\t'), 0, true);
+                        paint(editor);
+                    }),
+                    QString()});
+    CHECK(tableWithRows(editor, LONG_ROWS) != nullptr);
+    rows.push_back({QStringLiteral("Cofnięcie obu zamian (Ctrl+Z ×2) + paintEvent"), timeMs([&] {
+                        editor.undo();
+                        editor.undo();
+                        paint(editor);
+                    }),
+                    QString()});
+    big = tableWithRows(editor, LONG_ROWS);
+    REQUIRE(big != nullptr);
+    CHECK(big->rows() == bigRows);
+
+    // Saving: the whole chapter with its tables as KML
+    rows.push_back({QStringLiteral("toKml – cały rozdział z tabelami"),
+                    timeMs([&] { CHECK(!editor.toKml().isEmpty()); }), QString()});
+
+    report(rows, header, QStringLiteral("tables_benchmark_results.md"));
 }

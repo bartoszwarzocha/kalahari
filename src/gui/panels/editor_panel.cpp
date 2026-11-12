@@ -9,12 +9,14 @@
 #include "kalahari/gui/dialogs/insert_table_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
 #include "kalahari/gui/dialogs/paragraph_dialog.h"
+#include "kalahari/gui/dialogs/table_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/quick_insert_items.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/utils/language_names.h"
 #include "kalahari/gui/utils/caps_lock.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
@@ -123,6 +125,21 @@ EditorPanel::EditorPanel(QWidget* parent)
          registry.getAction(QStringLiteral("edit.paste")),
          registry.getAction(QStringLiteral("edit.selectAll")),
          registry.getAction(QStringLiteral("insert.link"))});
+    // The context menu of a cell: the commands of the Table menu, enabled as there
+    const auto actions = [&registry](std::initializer_list<const char*> ids) {
+        QList<QAction*> found;
+        for (const char* id : ids) {
+            found << (id != nullptr ? registry.getAction(QString::fromLatin1(id)) : nullptr);
+        }
+        return found;
+    };
+    m_bookEditor->setContextMenuTableActions(
+        {actions({"table.insertRowsAbove", "table.insertRowsBelow", "table.insertColumnsLeft",
+                  "table.insertColumnsRight"}),
+         actions({"table.deleteRows", "table.deleteColumns", "table.deleteTable"}),
+         actions({"table.selectCell", "table.selectRow", "table.selectColumn", "table.selectTable"}),
+         actions({"table.mergeCells", "table.splitCells", nullptr, "table.distributeRows",
+                  "table.distributeColumns", nullptr, "table.sort", "table.properties"})});
 
     // Autocorrect puts in the quotation marks of the text's language, asked when they are
     // typed: the book's language may change, and a chapter is told from a file outside the
@@ -431,6 +448,13 @@ void EditorPanel::applySettings() {
         themes.editorColor(dark.formattingMarks, defaults.formattingMarks.dark);
     appearance.colors.links.light = themes.editorColor(light.link, defaults.links.light);
     appearance.colors.links.dark = themes.editorColor(dark.link, defaults.links.dark);
+    auto& tables = appearance.colors.tables;
+    tables.linesLight = themes.editorColor(light.tableLines, defaults.tables.linesLight);
+    tables.linesDark = themes.editorColor(dark.tableLines, defaults.tables.linesDark);
+    tables.headerLight = themes.editorColor(light.tableHeader, defaults.tables.headerLight);
+    tables.headerDark = themes.editorColor(dark.tableHeader, defaults.tables.headerDark);
+    tables.gridlinesLight = themes.editorColor(light.tableGridlines, defaults.tables.gridlinesLight);
+    tables.gridlinesDark = themes.editorColor(dark.tableGridlines, defaults.tables.gridlinesDark);
     // Under the text on both papers: translucent, so the text stays readable
     appearance.colors.selection =
         editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
@@ -687,6 +711,72 @@ void EditorPanel::showInsertTableDialog() {
     dialogs::InsertTableDialog dialog(window());
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow());
+    }
+}
+
+void EditorPanel::showSplitCellsDialog() {
+    if (m_bookEditor->isReadOnly() || !m_bookEditor->canSplitTableCells()) {
+        return;
+    }
+    const bool cellsSelected = m_bookEditor->selectedCellRange().has_value();
+    dialogs::SplitCellsDialog dialog(
+        cellsSelected,
+        [this](bool mergeFirst) { return m_bookEditor->splitCellParagraphs(mergeFirst); },
+        window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->splitTableCells(dialog.columns(), dialog.rows(), dialog.mergeFirst(),
+                                      dialog.distribute());
+    }
+}
+
+void EditorPanel::showSortDialog() {
+    const std::optional<editor::BookEditor::SortSubject> subject = m_bookEditor->sortSubject();
+    if (m_bookEditor->isReadOnly() || !subject) {
+        return;
+    }
+    dialogs::SortDialog dialog(subject->tableRows, subject->columns, subject->header,
+                               utils::languageName(textLanguage()), window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->sortSelection(dialog.options());
+    }
+}
+
+void EditorPanel::showTextToTableDialog() {
+    const QStringList paragraphs = m_bookEditor->paragraphsForTable();
+    if (m_bookEditor->isReadOnly() || paragraphs.isEmpty()) {
+        return;
+    }
+    dialogs::TextToTableDialog dialog(paragraphs, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->convertTextToTable(dialog.separator(), dialog.columns(), dialog.headerRow());
+    }
+}
+
+void EditorPanel::showTableToTextDialog() {
+    const std::vector<QStringList> rows = m_bookEditor->tableTexts();
+    if (m_bookEditor->isReadOnly() || rows.empty()) {
+        return;
+    }
+    dialogs::TableToTextDialog dialog(rows, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->convertTableToText(dialog.separator());
+    }
+}
+
+void EditorPanel::showTablePropertiesDialog() {
+    const std::optional<editor::TablePropertiesData> properties =
+        m_bookEditor->tablePropertiesData();
+    if (m_bookEditor->isReadOnly() || !properties) {
+        return;
+    }
+    // The lines without a color of their own have the editor's, on its paper
+    const editor::EditorAppearance& appearance = m_bookEditor->appearance();
+    const QColor lines = appearance.colorMode == editor::EditorColorMode::Light
+                             ? appearance.colors.tables.linesLight
+                             : appearance.colors.tables.linesDark;
+    dialogs::TablePropertiesDialog dialog(*properties, lines, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->setTablePropertiesData(dialog.data());
     }
 }
 

@@ -904,6 +904,27 @@ QString BookEditor::selectedText() const
         return QString();
     }
 
+    // Selected cells: a line of each row, its cells separated by tabs
+    if (const std::optional<TableCellRange> cells = selectedCellRange()) {
+        QStringList rows;
+        for (int row = cells->firstRow; row <= cells->lastRow; ++row) {
+            QStringList texts;
+            for (int column = cells->firstColumn; column <= cells->lastColumn; ++column) {
+                const QTextTableCell cell = cells->table->cellAt(row, column);
+                if (cell.row() != row || cell.column() != column) {
+                    continue;
+                }
+                QStringList paragraphs;
+                for (const CopiedParagraph& paragraph : cellParagraphs(cell)) {
+                    paragraphs << paragraph.text();
+                }
+                texts << paragraphs.join(QLatin1Char(' '));
+            }
+            rows << texts.join(QLatin1Char('\t'));
+        }
+        return rows.join(QChar(QChar::ParagraphSeparator));
+    }
+
     SelectionRange sel = m_selection.normalized();
     QString result;
 
@@ -1237,6 +1258,10 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
         return;
     case Action::Yank:
         yank();
+        return;
+    case Action::MoveUp:
+    case Action::MoveDown:
+        moveParagraphsOrRows(action == Action::MoveDown);
         return;
     case Action::Undo:
         undo();

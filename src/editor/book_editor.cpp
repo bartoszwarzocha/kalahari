@@ -64,6 +64,11 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     colors.inactiveText = appearance.colors.focusInactiveColor(mode);
     colors.formattingMarks = appearance.colors.formattingMarksColor(mode);
     colors.link = appearance.colors.linkColor(mode);
+    const bool light = mode == EditorColorMode::Light;
+    const EditorColors::TableColors& tables = appearance.colors.tables;
+    colors.tableLines = light ? tables.linesLight : tables.linesDark;
+    colors.tableHeader = light ? tables.headerLight : tables.headerDark;
+    colors.tableGridlines = light ? tables.gridlinesLight : tables.gridlinesDark;
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
     colors.annotationComment = annotations.comment;
     colors.annotationTodo = annotations.todo;
@@ -552,6 +557,7 @@ void BookEditor::paintEvent(QPaintEvent* event)
     const QScopedValueRollback<bool> paintingWholeView(m_paintingWholeView,
                                                        event->region().contains(rect()));
     m_renderPipeline->render(&painter, event->rect());
+    paintColumnGuide(painter);
 
     // Distraction-free mode overlay (not yet migrated to pipeline)
     paintDistractionFreeOverlay(painter);

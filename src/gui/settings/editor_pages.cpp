@@ -605,6 +605,9 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
         addThemeColor(form, tr("Dimmed text (Focus)"), keys.focusDimmed);
         addThemeColor(form, tr("Formatting marks"), keys.formattingMarks);
         addThemeColor(form, tr("Links"), keys.link);
+        addThemeColor(form, tr("Table borders"), keys.tableLines);
+        addThemeColor(form, tr("Table header rows"), keys.tableHeader);
+        addThemeColor(form, tr("Table gridlines (no border)"), keys.tableGridlines);
         addThemeColor(form, tr("Around the paper"), keys.desk);
         addRestoreColorsButton(form);
     };

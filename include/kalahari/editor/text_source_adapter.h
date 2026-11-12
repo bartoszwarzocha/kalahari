@@ -16,6 +16,10 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/formatting_marks.h>
 #include <kalahari/editor/text_highlight.h>
+#include <kalahari/editor/text_tables.h>
+#include <QColor>
+#include <optional>
+#include <utility>
 #include <vector>
 #include <memory>
 
@@ -27,12 +31,14 @@ namespace kalahari::editor {
 // Forward declarations
 class KalahariTextDocumentLayout;
 
-/// @brief A cell of a table's grid: its row and column, and the rows and columns it spans
+/// @brief A cell of a table's grid: its row and column, the rows and columns it spans, and
+///        its background
 struct TableGridCell {
     int row = 0;
     int column = 0;
     int rows = 1;
     int columns = 1;
+    QColor background;                 ///< Not valid: none
 };
 
 /// @brief A table as its grid is drawn (document coordinates)
@@ -42,8 +48,28 @@ struct TableGrid {
     std::vector<double> rowTops;       ///< Top of each row (in the page flow a row may start
                                        ///< the next page)
     std::vector<double> rowHeights;    ///< Height of each row
+    std::vector<std::vector<std::pair<double, double>>> rowParts;  ///< Each row's parts on
+                                       ///< the pages: top and bottom (one, but for a row split
+                                       ///< between pages)
     std::vector<TableGridCell> cells;  ///< Its cells, row by row
     int headerRows = 0;                ///< The rows of header cells at its top
+    TableBorders borders;              ///< Its borders
+    double borderWidth = 1.0;          ///< The width of the borders' lines (document pixels)
+    size_t firstParagraph = 0;         ///< The paragraph of its first cell
+    size_t headerEnd = 0;              ///< The first paragraph after its header rows
+    std::vector<double> headerRepeats; ///< The tops of the copies of its header rows at the
+                                       ///< top of the pages it goes on to
+};
+
+/// @brief Cells of a table a selection selects whole (Shift and the arrows across the edge
+///        of a cell, the mouse dragged over cells): the table by its first paragraph, and the
+///        rectangle of the cells
+struct TableCellSelection {
+    size_t tableFirstParagraph = 0;
+    int firstRow = 0;
+    int lastRow = 0;
+    int firstColumn = 0;
+    int lastColumn = 0;
 };
 
 /// @brief Abstract interface for the text source of the render pipeline
@@ -166,6 +192,15 @@ public:
     /// @brief The tables with a paragraph among [first, last], as their grids are drawn
     virtual std::vector<TableGrid> tablesIn(size_t /*first*/, size_t /*last*/) const { return {}; }
 
+    /// @brief The cells a selection selects whole; nothing for a selection of text
+    virtual std::optional<TableCellSelection> cellSelection(const SelectionRange& /*selection*/) const {
+        return std::nullopt;
+    }
+
+    /// @brief A point (document coordinates) in a copy of a table's header moved to the same
+    ///        place of the header itself; another point as it is
+    virtual QPointF fromRepeatedHeader(const QPointF& point) const { return point; }
+
     // =========================================================================
     // Configuration
     // =========================================================================
@@ -260,6 +295,8 @@ public:
     size_t firstParagraphAtY(double y) const override;
     size_t paragraphAt(const QPointF& point) const override;
     std::vector<TableGrid> tablesIn(size_t first, size_t last) const override;
+    std::optional<TableCellSelection> cellSelection(const SelectionRange& selection) const override;
+    QPointF fromRepeatedHeader(const QPointF& point) const override;
 
     void setTextWidth(double width) override;
     double textWidth() const override;

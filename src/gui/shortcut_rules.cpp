@@ -291,6 +291,8 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     row(keysFor(tr("Cut to the end of the paragraph / paste what was cut"),
                 {A::KillToParagraphEnd, A::Yank}));
     row(keysFor(tr("Swap the characters around the cursor"), {A::Transpose}));
+    row(keysFor(tr("Move the rows of a table, or the paragraphs, up / down"),
+                {A::MoveUp, A::MoveDown}));
     row(keysFor(tr("New paragraph"), {A::NewParagraph}));
     row(keysFor(tr("New line in the paragraph"), {A::NewLine}));
     row(keysFor(tr("New paragraph after the cursor"), {A::OpenLine}));
@@ -737,6 +739,12 @@ QString ShortcutRules::textKeyReason(QKeyCombination keys, TextKeyAction action,
         break;
     case TextKeyAction::Yank:
         does = tr("pastes the text cut last");
+        break;
+    case TextKeyAction::MoveUp:
+        does = tr("moves the rows of a table, or the selected paragraphs, one place up");
+        break;
+    case TextKeyAction::MoveDown:
+        does = tr("moves the rows of a table, or the selected paragraphs, one place down");
         break;
     case TextKeyAction::Undo:
         does = tr("undoes (the second shortcut of Undo)");
