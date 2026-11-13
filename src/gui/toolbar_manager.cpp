@@ -149,12 +149,12 @@ ToolbarManager::ToolbarManager(CommandRegistry& commands, QMainWindow* mainWindo
 
     // OpenSpec #00031: Initialize default configs for reset functionality
     for (const auto& [id, config] : m_configs) {
-        QStringList commands;
+        QStringList toolbarCommands;
         for (const auto& cmdId : config.commandIds) {
-            commands << QString::fromStdString(cmdId);
+            toolbarCommands << QString::fromStdString(cmdId);
         }
-        m_defaultConfigs[QString::fromStdString(id)] = commands;
-        m_toolbarCommands[QString::fromStdString(id)] = commands;
+        m_defaultConfigs[QString::fromStdString(id)] = toolbarCommands;
+        m_toolbarCommands[QString::fromStdString(id)] = toolbarCommands;
     }
 
     // Load user configurations (may override defaults)

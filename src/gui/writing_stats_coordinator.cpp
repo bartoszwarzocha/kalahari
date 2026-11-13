@@ -122,8 +122,8 @@ WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
     m_model->openJournal(journalPath.isEmpty() ? core::WritingJournal::defaultPath()
                                                : journalPath);
     m_model->setBookWordsSource([this]() {
-        const core::ProjectBook* book = m_book.book();
-        return book != nullptr ? m_book.statisticsOf(book->mainElements).words : 0;
+        const core::ProjectBook* openBook = m_book.book();
+        return openBook != nullptr ? m_book.statisticsOf(openBook->mainElements).words : 0;
     });
     m_tracker = new WritingAwardsTracker(m_model, this);
     m_tracker->setBookSource(awardsSource(m_book));
@@ -181,8 +181,8 @@ WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
                 return element != nullptr ? element->title : QString();
             },
             [this]() {
-                const core::ProjectBook* book = m_book.book();
-                return book != nullptr ? book->title : QString();
+                const core::ProjectBook* openBook = m_book.book();
+                return openBook != nullptr ? openBook->title : QString();
             });
         connect(panel, &WritingStatsPanel::goalsRequested, this, [this]() {
             m_commands.executeCommand("tools.writingGoals");
