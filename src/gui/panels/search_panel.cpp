@@ -6,6 +6,7 @@
 
 #include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/gui/widgets/flow_layout.h"
+#include "kalahari/gui/widgets/wrapping_button.h"
 
 #include <QApplication>
 #include <QEvent>
@@ -188,7 +189,8 @@ SearchPanel::SearchPanel(QWidget* parent) : QWidget(parent) {
     replaceRow->setContentsMargins(0, 0, 0, 0);
     replaceRow->addStretch(1);
     //: In Polish: Zamień wszystko w książce
-    m_replaceButton = new QPushButton(tr("Replace All in Book"), this);
+    // Its text goes on in a second line where the panel is narrow
+    m_replaceButton = new WrappingButton(tr("Replace All in Book"), this);
     m_replaceButton->setEnabled(false);
     replaceRow->addWidget(m_replaceButton);
     layout->addLayout(replaceRow);

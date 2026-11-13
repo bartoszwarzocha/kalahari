@@ -1,8 +1,9 @@
 /// @file test_wrapping_labels.cpp
-/// @brief Labels that wrap on a narrow panel instead of being cut off
+/// @brief Labels and buttons that wrap on a narrow panel instead of being cut off
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/widgets/path_label.h"
+#include "kalahari/gui/widgets/wrapping_button.h"
 #include "kalahari/gui/widgets/wrapping_label.h"
 
 #include <QChar>
@@ -10,6 +11,9 @@
 #include <QFontMetrics>
 #include <QLabel>
 #include <QString>
+#include <QStringList>
+#include <QVBoxLayout>
+#include <QWidget>
 
 using namespace kalahari::gui;
 
@@ -17,6 +21,9 @@ namespace {
 
 const QString LONG_TEXT =
     QStringLiteral("Open the last project on startup, with the chapters that were open");
+
+/// A button's text with its access key
+const QString BUTTON_TEXT = QStringLiteral("&Replace All the Matches in All the Texts");
 
 /// A folder named with a long number, which has no place to end a line in it
 const QString LONG_NAME = QStringLiteral("6e1ac65f-8806-5aba-876d-5f142cdd2d6b");
@@ -86,4 +93,54 @@ TEST_CASE("PathLabel: a long name in the path wraps too", "[gui][layout]") {
     const int narrow =
         shortNames.fontMetrics().horizontalAdvance(QStringLiteral("/aaaa/bb")) + 1;
     CHECK(linesOf(shortNames, shortNames.heightForWidth(narrow)) == 3);
+}
+
+TEST_CASE("WrappingButton: one line where it has room, more where it has less",
+          "[gui][layout]") {
+    QWidget panel;
+    auto* layout = new QVBoxLayout(&panel);
+    layout->setContentsMargins(0, 0, 0, 0);
+    auto* button = new WrappingButton(BUTTON_TEXT, &panel);
+    layout->addWidget(button);
+    layout->addStretch(1);
+    const QString shownText = QString(BUTTON_TEXT).remove(QLatin1Char('&'));
+
+    // In one line where it has room, as wide as its text
+    const QSize hint = button->sizeHint();
+    CHECK(hint.width() >= button->fontMetrics().horizontalAdvance(shownText));
+    CHECK(button->heightForWidth(hint.width()) == hint.height());
+
+    // A push button is not narrower than its text; this one is as narrow as its longest word,
+    // in more lines
+    const int narrow = button->minimumSizeHint().width();
+    CHECK(narrow < hint.width() / 2);
+    CHECK(panel.minimumSizeHint().width() == narrow);
+    CHECK(button->heightForWidth(narrow) > hint.height());
+
+    // Laid out narrow, it shows its text in lines, with its access key; wide, in one line
+    panel.show();
+    panel.resize(narrow, 2 * panel.heightForWidth(narrow));
+    layout->activate();
+    REQUIRE(button->width() == narrow);
+    const QStringList lines = button->text().split(QLatin1Char('\n'));
+    CHECK(lines.size() > 1);
+    CHECK(lines.join(QLatin1Char(' ')) == BUTTON_TEXT);
+    CHECK(button->text().startsWith(QLatin1Char('&')));
+    CHECK(button->height() == button->heightForWidth(narrow));
+    CHECK(button->height() > hint.height());
+
+    panel.resize(hint.width() + 40, panel.height());
+    layout->activate();
+    CHECK(button->text() == BUTTON_TEXT);
+    CHECK(button->height() == hint.height());
+
+    // A new text shows at once in the lines of the button's width
+    panel.resize(narrow, panel.height());
+    layout->activate();
+    button->setFullText(QStringLiteral("OK"));
+    CHECK(button->text() == QStringLiteral("OK"));
+    CHECK(button->fullText() == QStringLiteral("OK"));
+    button->setFullText(BUTTON_TEXT);
+    CHECK(button->text().contains(QLatin1Char('\n')));
+    CHECK(button->fullText() == BUTTON_TEXT);
 }

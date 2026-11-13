@@ -32,7 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   how many matches changed, with Undo for the whole change until a text changes. Keys: Tab
   through the field, the options, the replacement, Replace All in Book and the tree; Down from
   the field to the first match; Esc back to the text. The panel's gear opens Settings >
-  Editor > Colors, with the color of the hits.
+  Editor > Colors, with the color of the hits. In a narrow panel the text of Replace All in
+  Book goes on in a second line, so the panel stays narrow on a small screen.
 - **Footnotes and endnotes: the book's numbering, the words, the search and the checking** -
   2026-11-13. Insert > Footnote Layout... (its gear opens Settings > Editor > General) sets a
   book's numbering of each kind of note: 1, a, A, i, I or *, †, ‡, §, anew in each text or
