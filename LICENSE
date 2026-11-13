@@ -33,7 +33,7 @@ Kalahari uses the following third-party libraries and frameworks. Each has its o
 
 ### Qt Framework - LGPL v3
 
-Kalahari uses **Qt 6.5+** framework, licensed under GNU Lesser General Public License version 3 (LGPL v3).
+Kalahari uses **Qt 6.4+** framework (builds use Qt 6.9), licensed under GNU Lesser General Public License version 3 (LGPL v3).
 
 **Important LGPL v3 Compliance:**
 - Qt is **dynamically linked** (not static) to comply with LGPL v3 requirements.
@@ -50,6 +50,12 @@ Kalahari uses **Qt 6.5+** framework, licensed under GNU Lesser General Public Li
 - Qt6::Core - Core non-GUI functionality
 - Qt6::Widgets - Widget classes for GUI
 - Qt6::Gui - Base GUI classes (QPainter, QImage, etc.)
+- Qt6::Svg and Qt6::SvgWidgets - SVG icons, pictures and previews
+- Qt6::Network - Downloads of icons and materials, the grammar server
+- Qt6::Xml - SVG icon conversion
+- Qt6::Sql - The project database (SQLite)
+- Qt6::TextToSpeech - Only when the module is present at build time
+- Qt Image Formats plugins (TIFF, WebP) - Pictures of the books, on vcpkg builds
 
 **Note:** If you redistribute Kalahari, you must include Qt dynamic libraries (.dll, .so, .dylib) and inform users they can replace them. See LGPL v3 for full requirements.
 
@@ -230,6 +236,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ---
 
+### OpenSSL - Apache License 2.0
+
+**Homepage:** https://www.openssl.org/
+**License:** Apache License 2.0 (OpenSSL 3.0 and later)
+**Usage:** Verification of plugin signatures (Ed25519) and SHA-256 hashes; linked dynamically
+
+---
+
 ### Hunspell - MPL 1.1 / GPL 2.0 / LGPL 2.1
 
 **Homepage:** https://hunspell.github.io/
@@ -253,21 +267,35 @@ Kalahari uses it under the MPL 1.1, linked dynamically
 
 ---
 
+### Material Icons - Apache License 2.0
+
+**Location:** `resources/icons/` (the filled, outlined, rounded and twotone styles)
+**Homepage:** https://github.com/google/material-design-icons
+**License:** Apache License 2.0 - Material Icons by Google
+**Usage:** Icons of the menus, toolbars and panels
+
+The SVG files are changed: their colors are placeholders that the program fills with
+the colors of the theme (`scripts/convert_all_icons.py`).
+
+---
+
 ## Summary of Licenses
 
 | Dependency | License | Type | Commercial Use |
 |------------|---------|------|----------------|
 | Kalahari (Application) | MIT | Permissive | ✅ Allowed |
-| Qt 6.5+ | LGPL v3 | Weak Copyleft | ✅ Allowed (dynamic linking) |
+| Qt 6.4+ | LGPL v3 | Weak Copyleft | ✅ Allowed (dynamic linking) |
 | spdlog | MIT | Permissive | ✅ Allowed |
 | nlohmann_json | MIT | Permissive | ✅ Allowed |
 | libzip | BSD 3-Clause | Permissive | ✅ Allowed |
 | Catch2 | BSL-1.0 | Permissive | ✅ Allowed |
 | Python 3.11 | PSF | Permissive | ✅ Allowed |
 | pybind11 | BSD 3-Clause | Permissive | ✅ Allowed |
+| OpenSSL | Apache 2.0 | Permissive | ✅ Allowed |
 | Hunspell | MPL 1.1 / GPL 2.0 / LGPL 2.1 | Weak Copyleft (MPL) | ✅ Allowed (dynamic linking) |
 | Polish dictionary (pl_PL) | Apache 2.0 (chosen of five) | Permissive | ✅ Allowed |
 | English dictionary (en_US) | SCOWL (BSD-like) | Permissive | ✅ Allowed |
+| Material Icons | Apache 2.0 | Permissive | ✅ Allowed |
 
 **All dependencies use permissive or weak copyleft licenses compatible with commercial use.**
 
@@ -337,6 +365,6 @@ All Qt libraries should be dynamically linked (.so, .dylib, .dll files).
 
 ---
 
-**Last Updated:** 2025-11-20
-**Kalahari Version:** 0.3.0-alpha (Qt Foundation)
-**Document Version:** 1.0
+**Last Updated:** 2026-11-13
+**Kalahari Version:** 0.4.0-alpha
+**Document Version:** 1.1

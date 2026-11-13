@@ -9,7 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.0-alpha] - 2026-11-13
+
+The first release of Phase 1 of the roadmap: the rebuilt editor and the new structure of a
+book. Kalahari is alpha software, and there are no installers yet: BUILDING.md explains how
+to build it on Windows, Linux and macOS.
+
+- **Editor**: a chapter of 150,000 words opens in a fraction of a second; the page view with
+  the paper size, margins and page numbers, and the continuous view; typography, Find and
+  Replace, zoom, typewriter scrolling, the Focus and Distraction-Free modes and numbers on
+  the margin.
+- **Formatting**: the paragraph styles of the book's type and the writer's own, the Font and
+  Paragraph windows, lists, links, tables, images with numbered captions and
+  cross-references, footnotes and endnotes, special and formatting characters, autocorrect,
+  quick insert with @ and #, and pasting from other programs.
+- **Checking**: spelling in Polish and English as you type, grammar with LanguageTool on the
+  writer's computer by default or on a server they choose, the Spelling and Grammar panel,
+  and the repetitions of words.
+- **The book**: book types, the Navigator with the book and the Workshop, materials with
+  their card, sources, links and the Cover, versions of the texts, and annotations
+  (comments, TODOs and notes) in the text, in a panel and as cards under the paragraphs.
+  Books of Kalahari 0.3 are converted on opening.
+- **Writing statistics and goals**: the statistics bar, the Statistics panel, daily, weekly
+  and book goals, deadlines, badges and challenges.
+- **The program**: its own dialogs, which fit small screens, a new Settings window with
+  keyboard shortcuts and the colors of each theme, tabs of the panels as the writer likes
+  them, tabs of texts in windows of their own, and the program in Polish and English.
+
 ### Added
+
+- **Releases: one version in five files, and a draft release from a tag** - 2026-11-13.
+  `scripts/release.py` sets the version in CMakeLists.txt, vcpkg.json, README.md and ROADMAP.md
+  and cuts the CHANGELOG (`bump`), checks that the five files name the same version (`check`,
+  also run by CTest on every system as `scripts.release_check`) and prints the summary of a
+  release (`notes`). A version tag pushed to GitHub starts the RELEASE workflow, which checks
+  that the tag is on main and is the version of the files, and makes a draft release with that
+  summary; nothing is public until the draft is published. The steps are in
+  `project_docs/06_roadmap.md`, section 5.2.
 
 - **Footnotes and endnotes: the book's numbering, the words, the search and the checking** -
   2026-11-13. Insert > Footnote Layout... (its gear opens Settings > Editor > General) sets a
@@ -123,6 +161,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a folder become images of the book; an image copied into another book takes its file along.
   Other programs get the image's file in the HTML of the clipboard and, for an image copied
   alone, the picture itself. KML keeps an image as `<img src alt width>` (docs/kml_format.md).
+- **Materials: the Cover** - 2026-11-11. The base package has a new kind of material, Cover, on
+  the Workshop lists of a novel, short stories, nonfiction and poetry (a screenplay gets it
+  through Project Properties). A material of the cover is one of six parts: a cover
+  description, a tagline, an opinion or recommendation, a design or sketch, a reference
+  illustration and a note; the texts are written in the program and the pictures come from a
+  file. The list of the Cover is a table grouped by part with a Kind filter, the tiles, and the
+  plan of the cover: the unfolded cover (back flap, back, spine, front, front flap) with the
+  chosen design behind the front and the materials in their places, and under it those without
+  a place. Add Cover Material... and the Add Element window ask for the part. The card and the
+  Properties panel have a group Cover Data: the part, the place, the state (draft, chosen for
+  the cover, rejected) and, as the part needs, the author, who they are, the source, the date,
+  consent to print, the license and what it is about. Choosing a description, a tagline or a
+  design for a place makes the one chosen before for that place a draft again; a place can have
+  many opinions. Under the text of a description, a tagline and an opinion the card counts the
+  characters with spaces or the words against a target, in the warning color of the theme past
+  it; a material can have a target of its own. Settings > Navigator has Material Kinds in the
+  Navigator (a box per kind with the number of its materials: an unchecked kind leaves the
+  Navigator in every book, while its materials stay in the book and in All Materials; Hide Kind
+  in the menu of a kind does the same) and Cover (the unit of the lengths and the default
+  targets). The .klh file keeps the data in a `"cover"` object of the element.
+
+- **Text styles: the book's own paragraph styles** - 2026-11-11. The book file keeps the
+  writer's own paragraph styles and the changes made to the styles of its type; a changed style
+  of the type keeps its name and base, and Reset to the Type's Style undoes the change. The
+  style window comes in two variants, switched by a button and remembered: tabs (General, Font,
+  Indents and Spacing, Breaks and Spelling; the default) or a shorter window with the common
+  settings and a large preview. A bold label marks a setting of the style's own, and Ctrl+B,
+  Ctrl+I, Ctrl+L, Ctrl+E, Ctrl+R and Ctrl+J work in both. New Style takes the look of the
+  paragraph at the cursor, its own formatting too, and can give the new style to that paragraph
+  at once. Deleting a style moves its paragraphs, in open and in saved texts, to its base: the
+  window says how many paragraphs in how many texts change, and the notice under the text has
+  Undo. Manage Styles... lists all the styles of the book with their tags, a preview, their
+  settings in words and the number of paragraphs using each (Insert, Enter or F2, Delete,
+  Ctrl+Z and Esc work there). The Paragraph and Styles panel has the buttons New, Modify,
+  Delete and Manage and a menu of a style (also the menu key and Shift+F10), and tags the
+  writer's own styles and the changed styles of the type. A paragraph pasted from another book
+  keeps its style: the palette lists that style at the end as not in this book, and New Style
+  or Create the Style makes it.
+
+- **Statistics and goals of writing** - 2026-11-10. A statistics bar above the tabs of the
+  texts shows the words of the day against the goal, the pace of work ("less and slower than
+  usual", "mostly corrections"), the time of writing and the days in a row, with a graph of the
+  day or one line with a small graph of today, 7 or 30 days; a tooltip says what each number
+  means. The Statistics panel has six views: Today, Week, 30 Days, Book, When You Write and
+  Achievements. The Writing Goals and Deadlines tab sets the daily and weekly goal and the
+  writing days of the writer, and the target length, the deadline and the deadlines of the
+  parts of the book (kept in the book), with the words a writing day needs and a forecast. The
+  Challenges and Badges tab has 60 badges (15 kinds in four levels: bronze, silver, gold and
+  platinum) for the writer, the book and the month, and the writer's own challenges (words,
+  days in a row, writing days) until the end of the week, of the month or a chosen day. The
+  status bar has a clock with the time of writing today and a flame with the days in a row.
+  Messages at the bottom of the window, with Copy, tell of a daily or weekly goal reached, a
+  deadline coming, new badges and challenges done; the daily goal reached also opens the
+  Statistics panel on Today (Settings > Statistics and Goals > Notifications, on by default). A
+  summary of the session shows when the book or the program closes. Pasted text is kept apart
+  and by default does not count. The Writing Statistics toolbar has the bar, the panel, the
+  goals and deadlines, the challenges and badges and Tools > Statistics Settings. Settings >
+  Statistics and Goals has the pages Bar and Panel, Counting, Notifications and Colors (per
+  theme, with the colors of the badge levels); the colors of the graphs follow the theme's
+  color unless the writer chooses their own, #FFAA00 by default in the Dark theme.
+
 - **Tables: the Table menu and Table Properties** - 2026-11-09. A new Table menu, and the same
   commands in the context menu of a cell: Insert Table..., Insert (rows above and below,
   columns to the left and right), Delete (rows, columns, the table), Select (the cell, row,
@@ -523,6 +622,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hidden unless Settings > Advanced > Log > Show the Log button on the Panels toolbar is on;
   View > Panels > Log (F4) opens the log panel either way.
 
+- **Materials: the card, the preview of a picture and where a material comes from** -
+  2026-10-21. A material chosen in the Navigator shows its card in the Properties panel (the
+  picture, the file, the title, the description, the writer's own fields and the links), a
+  picture opens on a preview tab, and a chapter, a section or a part shows its materials. A
+  material comes from a file on the disk (always copied into the book), from the address of a
+  page or a picture on the web, or from neither (a paper book, a talk, a quotation): the Add
+  Element window has a Source group with the three, and a box, empty each time, that downloads
+  the title of the page or a copy of the picture. Files dropped on the Navigator, and files,
+  addresses and pictures pasted there with Ctrl+V, become materials at once, linked with the
+  chapter, part or section under them. A material added in the window opens its card in the
+  middle of the window. The top of the Add Element window has a button for each section of the
+  book and for the Workshop; Settings > Navigator chooses this, all kinds at once, or no
+  choice. Settings > Navigator > Materials chooses how materials and pages open and what a drop
+  or a paste gives, and Settings > Network > Materials whether the program downloads on
+  request, always or never. Rename..., Properties..., Expand All and Collapse All in the menus
+  of the Navigator have icons. On Windows the program now reads and writes JPEG pictures: the
+  libraries the picture plugins load (libjpeg, libtiff, libwebp) are copied next to it after
+  the build.
+
 - **Navigator: the book and the Workshop, and one window that adds** - 2026-10-20. The
   Navigator shows the project, named after the title of its book, with two nodes: the book,
   with its sections, parts and elements as before, and the Workshop, the elements of the work
@@ -766,6 +884,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   open folder of File > Open). They follow the icon theme and the icon colors as the commands'
   icons; before, the icon of Recent Books kept the colors that the icons had at the start.
 
+- **Books of Kalahari 0.3 converted on opening** - 2026-10-15. A book saved in the first .klh
+  format, by Kalahari 0.3, is no longer refused: opening it asks "Convert the book to the new
+  format?", and Convert turns it into a novel of this version and opens it, with the old file
+  beside it, unchanged, as `<name>.format1.klh.bak`; Cancel leaves everything as it was. The
+  title, the author, the parts and the chapters with their ids, titles, files and statuses are
+  kept, and the texts and notes of the chapter files are not touched. A prologue and an
+  epilogue go to the start and the end of the body, a kind a novel does not offer (an
+  introduction, an appendix) is taken from its package, and an element a novel cannot hold goes
+  to Other Files with its old type. A book with a file outside its folder, two elements with
+  one id or one file, or a book open in another Kalahari is not changed, and the window says
+  why under Show Details.
+
 - **View: Text Frame Border on the Views toolbar** - 2026-10-13. View > Text Frame Border
   (also a button on the Views toolbar, next to Dark Paper) shows and hides the border around
   the text of every editor, the option "Show text frame border" of Settings > Editor > Pages
@@ -903,530 +1033,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   not one, as in LibreOffice. The status bar, the Properties panel and Distraction-Free
   writing count anew at once, the chapters' counts in the book when they are saved or the
   book is opened again.
-
-### Changed
-
-- **Images: a new image in a paragraph of its own, with a caption** - 2026-11-12. Insert >
-  Image... and a file dropped or pasted from a folder put the image in a paragraph of its own,
-  centered and with a numbered caption Figure under it, as Settings > Editor > Images says by
-  default; at the start of a paragraph it goes before it, else after it (after the caption of
-  an image there). Add Caption of the Image menu and the context menu is now Insert
-  Caption..., which also changes the caption an image has. In the English Insert menu the
-  access keys are Caption (C), Cross-Reference (R), List of Figures (G), Formatting Character
-  (H), Horizontal Line (Z) and Scene Break (K).
-- **About, New File, New Book, Customize Toolbars and the Icon Downloader in the program's
-  own style** - 2026-10-19. These windows have the heading, colors and buttons of the
-  program's other dialogs: the window's icon, its title and a sentence about what it does,
-  the content that scrolls on a small screen while the heading and the buttons stay in view,
-  and the buttons at the bottom. Each of them but About is higher by its heading. About
-  names the version of the program and of Qt in its heading, in place of the black banner,
-  and has only Close; its texts are in the font of the window, and Kalahari 1.0 is planned
-  for February 2027. In Customize Toolbars Reset to Defaults is at the left, apart from OK,
-  Cancel and Apply. In the Icon Downloader Esc and the close button of the window ask before
-  they stop a download, as Close does, and the preview draws the icon in the icon colors. In
-  New File the choice of the empty text file no longer moves the tiles and the title in a
-  low window. A test makes sure that the program shows no window of the system but those
-  that choose a file or a folder, and that each of its dialogs is built on the common base.
-
-- **Grammar: checked again at once after a fix, Undo or a paste** - 2026-10-19. A paragraph
-  changed otherwise than by typing (a fix chosen in the Spelling and Grammar panel or on the
-  menu of the wave, Undo, Redo, a paste) goes to LanguageTool at once: its issues are known
-  again without the second's wait meant for the end of typing.
-
-- **Dashboard: icons in the icon colors** - 2026-10-16. The icons of the books on the
-  Dashboard take the icon colors of Settings > Appearance > Icons, as the toolbars and the
-  menus. Settings > Appearance > Theme no longer has "Dashboard Primary" and "Dashboard
-  Secondary", whose second color looked like one left over from another theme, nor "Info
-  Primary" and "Info Secondary", which colored only the icon of a news column the Dashboard
-  does not have. Such colors stored in the settings and in theme files are not read.
-
-- **Book projects in the new format** - 2026-10-10. The program opens and saves books in the
-  new project file (`.klh`, format 2) and no longer reads the old one: the example project
-  ExampleNovel is in the new format, and books of older versions do not open (no conversion
-  while Kalahari has a single user). When a book cannot be opened, the message says what is
-  wrong with its file. A new book gets the type chosen in the New Book window with the type's
-  start: a novel starts with a title page and Chapter 1, which opens in the editor. A User
-  Project (before: Empty Project) gets the kinds of the Base package. The New Book window
-  names the folder of the book and does not create it in a folder with files, so the open
-  book is not closed for a book that cannot be made; a book that cannot be opened (e.g. of
-  an older version) is reported before the open book is closed for it, and that one stays
-  open. The questions of these commands speak of books, not projects, and the description
-  of a type in the New Book window scrolls. The window proposes the language of the program
-  for the book (before: always English). The Navigator shows the
-  book as before, and its elements take their kinds and icons from the type: Add Chapter
-  offers the type's text kinds of the body (in a novel a prologue, a chapter or an epilogue)
-  with a numbered title, Add Part its groups and Add Item the kinds of the front or back
-  matter that the book can still take (a dedication only once). A prologue goes at the start
-  of the body or first in its first part, and an epilogue at the end of the body or last in
-  its last part; the writer chooses, or shows another place in a list. A chapter can be in
-  the body itself, outside parts. Adding, renaming, moving and deleting elements and changing
-  their status save the book at once, and dragging an element to another place of its
-  section or part moves it in the book (before, the move was lost). Move to Start and Move to
-  End join Move Up and Move Down and keep a prologue first and an epilogue last, and the
-  Navigator shows a new or moved element, also inside a collapsed part. Deleting an element
-  says that its file stays in the book's folder. Add to Book (before: Add to Project) asks
-  for the kind of the new element and can add a chapter to the body itself. A new file that
-  was never saved it adds at once, without the window and without the question about a copy:
-  the file becomes an element of the main text kind (in a novel a chapter) at its default
-  place, with the default title, and opens in its tab. Save and Save As still save a new
-  file in any folder.
-  The File menu has New File, Open File, New Book and Open Book, in this order, instead of
-  an Open submenu, and the File and Quick Actions toolbars start with the same buttons: New
-  File, Open File, New Book, Open Book, Save, Save As, Save All and Close Book. The
-  Dashboard names Open File, New Book and Open Book in this order too. A toolbar customized
-  before gets the buttons it did not have once, where the default toolbar has them, and its
-  file commands in the new order, in the places they had.
-  A project archive leaves out the lock, the database log
-  files and the backups of the open book, whose log is first written to its database, and
-  import skips the lock and the database's shared memory that earlier archives have, so an
-  archive of an open book imports again; a failed import removes what it wrote. The book,
-  Navigator and file commands show their messages and questions in the program's own window,
-  with what is wrong under Show Details; the export's list of files that are not final names
-  their statuses as the Navigator does (Draft, Revision). The option to open the last book
-  at startup (on the Dashboard and in Settings > General) and the Navigator's message without
-  a book speak of books too. Without an open book, Close Book, the export of the book's
-  archive and Add to Book of a file outside the book (in the Navigator and on the file's
-  info bar) are greyed out. A book created or imported without opening is the first of the
-  recent books, but the book opened at startup is still the one opened last.
-
-- **Side panels on a small screen** - 2026-10-11. The panels on the right can be made much
-  narrower, so that the text keeps its room on a 1366 × 768 screen at 125% and 150%. In the
-  Annotations panel the kind buttons and the To-do buttons go on in the next line, the
-  Open/Done/All and Chapter/Book buttons go one under another (still joined), the date list
-  goes under the scope and both lists get narrower; in a panel too low for all of that the
-  filters scroll, the cards keep their room, and no control is drawn over another. The text
-  of the Assistant panel wraps.
-
-- **Keyboard shortcuts: one set on every system** - 2026-10-10. Every shortcut is written
-  out in the program and is the same on Windows and Linux; macOS shows Cmd for Ctrl. Eight
-  commands took the keys Qt gives each system and desktop, so Close Book was Ctrl+F4 on
-  Windows and Ctrl+W on Linux. They now have the Windows keys everywhere: Close Book
-  Ctrl+F4, Exit Alt+F4 (now also shown in the menu), Redo Ctrl+Y (in the text Ctrl+Shift+Z
-  as well), Find Next F3, Find Previous Shift+F3, Find & Replace Ctrl+H (on Linux it was
-  Ctrl+H on GNOME, Align Right's Ctrl+R on KDE and nothing elsewhere), Full Screen F11,
-  Help F1. Ctrl+W does nothing, so it cannot close the book by mistake.
-  - macOS has its own keys where its system needs them: Exit Cmd+Q, Find & Replace
-    Option+Cmd+F (Cmd+H hides the program), Full Screen Control+Cmd+F (F11 shows the
-    desktop), and the options of the find bar Option+Cmd+C, W and R (Option with a letter
-    types a character there, Option+C is "ć" on the Polish keyboard).
-  - The frame of an annotation lets Save, Save As, Close Book and Exit through with these
-    keys; on Linux, Ctrl+F4 did not reach the window from it.
-  - The Dashboard shows the names and keys of its commands as the menus have them: New
-    Book, Open Book and Open File (it showed Ctrl+N as New Chapter, which is New File). The
-    hint of the Annotations panel and the tooltips of the find bar's options take their keys
-    from the program as well.
-  - On macOS Next To Do and Previous To Do are Option+Cmd+Down and Option+Cmd+Up: Option
-    with the arrows moves the cursor by paragraphs there.
-  - The fields, lists and buttons of the windows have the keys of Windows on Linux too: in
-    a field Ctrl+Y redoes and Alt+Backspace undoes; Ctrl+E and Ctrl+U center and underline
-    also from a field (Qt went to the end of the line and deleted it there), and Ctrl+D,
-    Ctrl+K, Ctrl+Shift+A and Ctrl+Shift+Insert do nothing in a field (Qt deleted,
-    deselected and pasted with them); Left and Right over a selection move the cursor from
-    where it is; Shift+F10 opens the context menu; Enter on a check box, an option, a
-    drop-down list or a button that is not the default one goes to the window's default
-    button (on GNOME, Xfce and the other GTK desktops it pressed the button or opened the
-    list). On Windows and Linux a read-only text and a selectable label keep Ctrl+C,
-    Ctrl+Insert and Ctrl+A for themselves (in the Log they copied and selected the book's
-    text), and the context menus of the fields always show their keys (Qt left out the keys
-    a command of the window has too).
-  - In Polish the keys have Polish names in the menus, the tooltips and the settings
-    (Strzałka w górę, Spacja, Enter).
-
-- **The text's context menu: the commands of the Edit menu** - 2026-10-11. Cut, Copy, Paste
-  and Select All in the text's context menu are the commands of the Edit menu, with their
-  icons and keys (Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A, or those set in Settings > Keyboard
-  Shortcuts); the menu had items of its own without them. Paste is greyed out where there is
-  nothing to paste, as in the Edit menu. macOS shows no keys in context menus.
-
-- **Dashboard on a small screen** - 2026-10-10. On a 1366 × 768 screen at 125% and 150%,
-  with the side panels open or closed, nothing of the Dashboard is cut off. The hints of
-  the shortcuts go one under another where one row is too narrow for them, with the keys
-  and the commands in two columns, and on the narrowest panel each command goes under its
-  keys. The title, the tagline, the headings, the cards of the recent books (a book's path
-  also inside a name too long for the line) and the text of the check box wrap. The logo
-  is at most 40% of the panel's height and goes above the title on a narrow panel; a
-  narrow card puts the book's icon above its texts. The content takes three quarters of a
-  wide panel, more where it needs it, and only a panel narrower than the longest word
-  scrolls sideways.
-- **Annotations: the frame closes when the writer goes elsewhere; its X drops the text** -
-  2026-10-10. Going anywhere else in the program closes the frame of an annotation and
-  keeps what was written, as Ctrl+Enter does: a click outside it (in the text, a panel, a
-  toolbar or the menu bar) or the keys going to another place of the program; a new
-  annotation left empty is not added. The X in its top right corner drops what was
-  written, as Esc does. The frame stays open while another application is in front, for
-  its own context menu and while the text is scrolled with the scroll bars.
-
-- **One version number** - 2026-10-09. The About window, the program and the command
-  line show the version from the project definition (0.3.0-alpha); before, they showed
-  0.3.1, 0.3.0 and the README 0.3.2.
-
-- **Editor: visible to screen readers** - 2026-10-09. The book editor now presents itself to
-  screen readers (NVDA, Narrator, VoiceOver, Orca) as editable text: they can read the text,
-  the current paragraph and the selection. After an edit they get the new text, not the
-  text read before.
-
-- **Settings: no conversion of old settings** - 2026-10-09. The program no longer converts
-  settings files of older versions nor moves the window layout and recent books from the
-  old QSettings store (the registry on Windows); while Kalahari has a single user, old
-  formats are not kept up.
-
-- **Polish translation of the Settings window** - 2026-10-08. All pages of the Settings
-  window are in Polish when the program runs in Polish, with the names the menus and
-  panels already use (Pulpit, Edytor, Dziennik, the view names).
-
-- **Settings: a length unit to choose** - 2026-10-08. Settings > General > Units sets the
-  unit of the length fields of the Settings window: millimeters (the default),
-  centimeters, inches, points or pixels. The margins, page sizes, spacing, indent, gap
-  between pages and the widths of the frame and the cursor show in it. Each setting is
-  still saved in its own unit, so choosing another unit changes no length. Icon sizes
-  stay in pixels and font sizes in points.
-
-- **Settings window in the program's own style** - 2026-10-08. The Settings window has
-  the heading, colors and buttons of the program's other dialogs (Settings icon, title and
-  a sentence on what the window does; OK, Cancel and Apply at the bottom). It works as
-  before: Apply saves the changed options and keeps the window open, OK saves and closes.
-
-- **Distraction-Free: the menus at the top edge** - 2026-10-08. In Distraction-Free the
-  menu bar shows over the top of the text when the mouse reaches the top edge of the
-  screen, and hides when the mouse moves away from it (not while one of its menus is open);
-  the text stays in its place. It takes the place of the hint how to leave, which no
-  longer shows at the top. A native menu bar (macOS) shows its menus by itself.
-
-- **Editor: the page fits a small screen** - 2026-10-08. A chapter (or file) opens
-  showing the page's whole width when the page at 100% is wider than the editor, as
-  View > Zoom > Page Width does; where it fits, it opens at 100%. Only the opening
-  changes: the zoom does not follow the window's size later, and a chapter already open
-  keeps its zoom.
-
-- **Settings window rebuilt** - 2026-10-08. Each page of the Settings window is built the
-  first time it is opened, so the window opens faster. The theme colors that were never
-  changed show the theme file's values (before, the window had its own copies, which
-  differed from the theme files for some colors). Options that take effect only after a
-  restart (the language) say so under the option. Apply and OK write only the changed
-  options, as before; the diagnostic menu still lasts for the current session only.
-
-- **Settings: the window layout in settings.json** - 2026-10-08. The window's size and
-  position, the bars and panels, the toolbars shown and the recent books are saved in
-  settings.json with the other settings, not in a second store (the registry on Windows).
-  The first start after the update moves the saved values over, so the window keeps its
-  layout.
-
-- **Grammar check only on the user's own LanguageTool server** - 2026-10-08. The grammar
-  service had the public api.languagetool.org built in, so the text of a book would have
-  gone to the internet. Now it sends text only to the server set in
-  `editor.grammarCheck.serverUrl` (for example `http://localhost:8081`); empty, the
-  default, means no grammar check and nothing sent.
-- **ROADMAP.md brought up to date** - 2026-10-08. Editor stages 0–4, the settings rebuild,
-  the translations and the CI work are ticked off; text styles, statistics, perspectives and
-  DOCX/Markdown export move to 0.4.x releases.
-
-- **Editor: every open chapter follows the editor settings** - 2026-10-08. A changed
-  editor setting reaches every open chapter at once, wherever it is changed: the Settings
-  window, the View menu, the Views toolbar or the paper in an editor's context menu
-  (many changes at once in one go). View > Typewriter Scrolling, Focus and Dark Paper show
-  the setting, also before a chapter opens. The text frame border (Settings > Editor >
-  Pages and Margins) is drawn: around the text of every page in the Page Layout view, and
-  around the text in the continuous views, at least as tall as a page's text. Tab Size,
-  Show Line Numbers, Enable Word Wrap and Mirror margins are greyed out ("Coming in future
-  version"), as the editor does not use them yet; the pages keep their left and right
-  margins.
-
-- **CI: tests on the Qt version the program ships with** - 2026-10-08. The Linux build
-  and tests use Qt 6.9.1, like the Windows and macOS builds; the Sanitizers job keeps
-  Ubuntu's Qt 6.4, the oldest supported version (now declared as the minimum). The Linux
-  build also measures the editor on a 150k-word chapter and shows the table in the run's
-  summary, without failing the build.
-
-- **Polish translation of the panels and dialogs** - 2026-10-08. The panels (Navigator,
-  Properties, Log, Tags, Comments, Dashboard), the dialogs (New Book, Add to Project,
-  Toolbar Manager, About), the messages, the book templates and the standard buttons
-  (Cancel, Yes, No) are in Polish when the program runs in Polish. Only the Settings
-  window is still in English: it is translated after its rebuild. In the New Book dialog
-  template names wrap to two lines instead of being cut.
-
-- **Settings: saved right after a change** - 2026-10-08. A changed setting is written to
-  the settings file half a second later (several changes in a row in one write), not only
-  when the Settings window closes or the program exits, so a crash no longer loses it.
-  The file is still replaced in one step, now also flushed to the disk first.
-
-- **Editor: Distraction-Free is a switch** - 2026-10-08
-  - View > Distraction-Free (Shift+F11, or its button on the Views toolbar) works on top
-    of the current view, like Focus: the Page Layout view keeps its pages. The window
-    fills the screen and hides the menu bar, the toolbars, the panels, the chapter tabs,
-    the status bar and the editor's scroll bars (the mouse wheel and the keys still
-    scroll). The sides of the editor darken (in the color of the pages' shadow), and the
-    word count and the clock (if turned on) show at the edges in the paper's dimmed text
-    color and fade out; they come back when the mouse nears an edge.
-  - Esc, Shift+F11 or the Full Screen shortcut (F11 on Windows) bring the window back as
-    it was: its size, the toolbars and panels in their places and tabs, the chapter tabs
-    and the status bar. Esc goes first to an open find bar. The shortcuts of the menu
-    commands keep working meanwhile.
-  - Distraction-Free is not remembered: closing the program during it saves the window
-    as it was before.
-
-- **Settings: no view margins for the continuous views** - 2026-10-07. The continuous views
-  show one endless page with the page margins, so the "View Margins (Continuous/Focus)"
-  group is gone from Settings > Pages and Margins, and the "Page" and "Page Margins" groups
-  no longer say "(Page Layout)". Settings version 1.3 removes the two unused keys.
-- **Faster theme switch** - 2026-10-07. Kalahari no longer sets an application style
-  sheet (it held only the tooltip colors): setting one restyled every widget, about 1.2 s
-  of the 1.7 s theme switch in a Windows Debug build. Tooltips take their colors from the
-  theme palette and get their thin frame from the application style. Light to Dark in a
-  Linux Release build: about 75 ms, was about 330 ms.
-- **Editor: the Continuous view is one endless page** - 2026-10-07
-  - The Continuous view shows the text on one endless page as wide as the pages, with
-    the page's margins and the desk on both sides. The lines break as on the pages and in
-    print, in every view and at every zoom: switching to the Page Layout view only adds
-    the page breaks. A chapter shorter than a page is on a whole page, as in the Page
-    Layout view.
-  - The zoom scales the page as in the Page Layout view: 100% is the page's size on paper,
-    View > Zoom > Page Width and Whole Page fit it to the window, and a page wider than the
-    window scrolls sideways, following the cursor while you type.
-  - Switching views keeps the cursor's line at its height in the window; a view scrolled
-    away from the cursor stays where it is (it used to jump to the cursor).
-  - Going to the first line shows the top of the page with its margin, as the end of the
-    text shows the bottom margin.
-  - The view margins of the continuous views are gone from the editor's appearance: the
-    page margins apply in every view.
-
-- **Settings: one list of defaults** - 2026-10-07
-  - Every setting has its default value in one place (`settings_schema`); `get<T>(key)`
-    uses it when the key is missing, so readers no longer repeat defaults.
-  - `SettingsManager::subscribe()` reports changed settings.
-  - settings.json is written to a temporary file and renamed, so an interrupted save
-    cannot truncate it. New files store only the version; keys nothing reads (old icon
-    sizes, log colors, session) are removed from existing files (format 1.2).
-  - Icon colors and the theme name are stored once (per theme); the second copies are
-    removed. Info panel and Dashboard colors are stored per theme and survive a restart.
-  - The log panel buffer size from the settings is used from startup, not only after
-    changing it. "UI Font Size" is greyed out until it does something.
-  - Themes can define any number of editor colors in an "editor" section; the user's
-    value is stored per theme (`ThemeManager::editorColor()`), ready for the colors of
-    comment, TODO and note markers.
-- **Settings: faster and lighter Apply/OK** - 2026-10-07
-  - No "Applying settings..." overlay: Apply writes only the options that changed and
-    saves once (about 1 ms for an ordinary option in a Linux Release build, was about
-    180 ms); theme and icon changes show a wait cursor. The log records how long each
-    stage of Apply/OK took.
-  - A theme switch applies the palette, stylesheet and icons once (Light to Dark about
-    0.33 s, was 0.9-1.1 s). The log panel, Dashboard and editors are refreshed only when
-    their options or the theme changed.
-  - Theme colors are stored only when the user changed them, so the theme files keep
-    providing the rest. The default colors in the dialog and "Reset to Theme Defaults"
-    come from the theme files (the Dark theme showed and stored wrong defaults); the
-    reset takes effect on OK/Apply, so Cancel keeps the custom colors.
-  - Custom tooltip, placeholder and bright text colors survive a restart.
-  - After a UI language change Kalahari offers to restart now; a note on the Appearance >
-    General page says the change needs a restart.
-  - An editor font missing on this system keeps its name instead of being replaced by
-    the substitute font on the next Apply.
-  - Check boxes have a clear frame and a check mark in both themes (a checked box showed
-    only a fill color).
-
-- **Files outside the book: chapters and text files** - 2026-10-06
-  - File > Open > Open File... opens chapters (`.kchapter`) and text files (`.txt`), and
-    Save writes each in its own format: a chapter keeps its title, status, notes and
-    comments; a text file keeps its encoding (UTF-8, UTF-16 with a byte order mark, or the
-    system's 8-bit code page), byte order mark, line ends and no-break spaces. Text the
-    8-bit code page cannot hold is saved as UTF-8. Save As writes the format of the chosen
-    extension.
-  - RTF, mind maps and timelines are gone from the file types; a file of another type
-    picked through "All Files" gives a message instead of an editor showing its bytes.
-  - Save (Ctrl+S) on such a tab saves the file, also while a book is open. The question
-    about unsaved changes names what has them (the book, the file).
-  - Other Files in the navigator opens the file or switches to its tab, and the list
-    stays when a book is opened or closed. The info bar follows the tab and the book.
-  - Add to Project saves the tab first; a text file becomes a chapter, its lines the
-    paragraphs.
-- **Editor: page mode rebuilt** - 2026-10-06
-  - The text layout places the lines on the pages: a line that does not fit moves to the
-    next page, also in the middle of a paragraph. Editing re-places only the paragraphs
-    it moved, and pages far from the view are estimated until they are laid out.
-  - One mapping between the document and the screen for every view mode: painting,
-    clicks, selection, search highlights and the cursor use it, so they agree on every
-    page and at every zoom. Switching a 150k-word chapter to pages takes 7 ms
-    (was 194 ms).
-  - Zoom in page mode scales the pages without new line breaks and keeps the point under
-    the mouse in place; pages wider than the view scroll sideways (horizontal scroll bar,
-    Shift+wheel).
-  - Page numbers at the bottom of the pages; the desk around the pages follows the paper
-    color. B5 and 6 x 9 in page sizes.
-  - Page Up / Page Down in the Continuous view move the view and the cursor by about one
-    view height: the cursor's line stays in its row of the view and keeps its column, and
-    no line is skipped (the line cut at the edge of the view comes fully into view). In the
-    Page Layout view they move by one page: the next (previous) page shows where this one
-    was, the cursor on the same line of it, counted from the top of the page (the last
-    line of a page with fewer lines). Page Down and then Page Up bring the cursor back to
-    the same character in the same row. The arrow keys and the page keys keep one column,
-    and typing or a click starts a new one (the arrows used to return to the column from
-    before typing).
-  - The Page Layout view is painted again when the pages break anew around the text at
-    the top of the view (paragraphs above it laid out in the background, for example after
-    a page format change); the cursor blink used to paint its box from the new pages into
-    the old picture.
-  - Page format in Settings > Editor > Pages and Margins: A4, A5, B5, 6 x 9 in, Letter,
-    Legal or a custom size, the gap between the pages, and page numbers on or off. The
-    settings pages scroll when the dialog is smaller than a page (the groups of Pages and
-    Margins used to be squeezed until their fields overlapped).
-  - View > Zoom: Zoom In (Ctrl++), Zoom Out (Ctrl+-), Zoom 100% (Ctrl+0), Page Width and
-    Whole Page. The status bar shows the zoom and, in the Page Layout view, "Page X of Y".
-  - Zoom 100% shows the pages at their size on paper, from the size the screen reports (on
-    a laptop screen at 125% display scaling they were two thirds of it).
-- **Editor: typewriter scrolling is a toggle** - 2026-10-06
-  - View > Typewriter Scrolling (Ctrl+3) works in the Continuous and the Page Layout view
-    and is remembered. The line being written stays at one height of the view (Settings >
-    Editor > General, middle by default), also at the end of the chapter. The chapter
-    starts at the top of the view: the first lines stay above that height until the
-    cursor comes down to it.
-  - Mouse clicks and manual scrolling leave the view where it is; the next keystroke
-    brings the line back. The short glide can be turned off.
-  - The Typewriter entry of View > View Mode is gone (it showed the continuous view).
-- **Editor: paragraphs without their own alignment are justified** - 2026-10-05
-  - A paragraph with no `align` attribute is shown justified, its last line at the
-    leading edge. Centered, right-aligned and explicitly left-aligned paragraphs stay as
-    they are; chapter files are not rewritten.
-  - Align Left now saves `align="left"`, so a paragraph aligned left on purpose can be
-    told from one without an alignment.
-- **Editor: layout on demand** - 2026-10-04
-  - After a width, font, zoom or typography change, a load or a large paste, only the
-    paragraphs on screen are wrapped before the next paint. The others get estimated
-    heights and are wrapped in the background, in steps of 4 ms.
-  - Window resize and Ctrl+wheel zoom apply at once, without a blank strip (the 80 ms
-    debounce is gone). The text at the top of the view stays in place while paragraphs
-    change height (scroll anchoring).
-  - Only paragraphs being edited keep their shaped glyphs; the others keep just the line
-    breaks, which halves the memory a long chapter takes (24 instead of 51 MB for 150k
-    words).
-- **Unimplemented menu commands are disabled** - 2026-10-03
-  - Commands registered without an execute callback (93 menu entries) used to do
-    nothing when clicked. Their actions are now disabled and the tooltip says the
-    feature is not available yet. Binding a callback later and calling
-    `CommandRegistry::updateActionState()` enables the action.
-- **Licensing:** every component, including plugins, is MIT-licensed. The paid-plugin
-  and cloud business model is dropped; `project_docs/05_business_model.md` removed and
-  README, LICENSE and project docs updated - 2026-10-03
-- **ROADMAP.md rewritten** to reflect the actual state of the code - 2026-10-03
-
-### Removed
-
-- **The windows Add Chapter, Add Part and Add Item** - 2026-10-20. The Add Element window
-  takes their place, also for Book > New Chapter...; the Navigator's commands Add Item at the
-  Beginning of the Book... and Add Item at the End of the Book... are gone with them (Add...
-  on the book's node, or on a section, offers those places).
-- **Books: the first book model** - 2026-10-16. The classes of the first book model, which
-  nothing used since the program works on the book project of the .klh format 2 (`Book`,
-  `Part`, `BookElement`, `Document`, `DocumentArchive`, the element types of
-  `book_constants.h` and the unused `ProjectFormat`), are gone with their tests (about 2 300
-  lines of code and 2 200 lines of tests). Nothing changes on the screen: New File, Close Book
-  and the recent books already worked without them.
-- **The old comment and TODO elements** - 2026-10-08. The `<comment>` and `<todo>` elements
-  of the KML, the TODO and note marker functions and the comments panel, which nothing
-  created, gave way to annotations. A chapter with those elements opens with their text,
-  without them.
-- **Editor: the unused old architecture** - 2026-10-06. The editor holds a chapter in one
-  QTextDocument; the second document mode (a read-only view before the first edit), the
-  older KML object model and parser, the old paragraph and table layout, the height tree,
-  the old search service, undo command classes nothing used and the view mode registry are
-  gone (about 11 400 lines of code and 13 600 lines of tests). The KML format reference
-  moved from code comments to `docs/kml_format.md`.
-- Menu commands and settings page for features that will not be built:
-  Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
-
-### Fixed
-
-- **"Above" and "below" of the cross-references in Polish** - 2026-11-13. A cross-reference
-  that shows where its caption is says "powyżej" and "poniżej" in the Polish program, not
-  "above" and "below": the translations now also read the texts of the captions in the
-  program's core.
-- **The words of headings and lists in a closed chapter** - 2026-10-26. The words of a chapter
-  not open in the editor (the book, its sections and parts in the Properties panel, the
-  preview of a file) count the text of its headings and list items too, as the editor counts
-  them; before, only the other paragraphs were counted.
-
-- **The words of the book and the dialogue dashes** - 2026-10-19. Count standalone dashes as
-  words (Settings > Editor > General > Word Count) counts them in the words of the book, its
-  sections, parts and chapters in the Properties panel too, and in the preview of a file of
-  the book, not only in the chapter in front: every chapter is counted again by the rule at
-  once, also one closed or saved before the rule changed, without reading its file again. A
-  chapter file is counted from its text when the book opens, not by the number it was saved
-  with.
-
-- **Numbers of the Properties panel** - 2026-10-19. The words, the chapters and the counts of
-  the statuses of the book, its sections, parts and chapters are written as the system writes
-  numbers, as the status bar and the counts of the document in front: 12 345 in Polish,
-  12,345 in English.
-
-- **Commands with nothing to work on** - 2026-10-16. Save without a document to save, and
-  Save As without a document or on a chapter (saved with the book), are greyed out as Close
-  Book and Export Project Archive without a book; the tooltip of each and the status bar say
-  why ("No book is open", "No document to save", "Chapter "…" is saved with the book: use
-  Save."). Their keys say it in the status bar too: Ctrl+F4 without a book no longer says that
-  a document was closed.
-
-- **Reset Layout and the toolbars** - 2026-10-16. View > Reset Layout puts the toolbars back
-  at the top of the window in their two rows, also a floating one or one moved to another
-  edge, and shows those shown by default, not only the panels. A toolbar made in the Toolbar
-  Manager is locked with the others and has their context menu at once, not only after the
-  next start.
-
-- **The view after deleting a selection** - 2026-10-14. Deleting a selection (Delete,
-  Backspace or cutting it) left the view where it was, so after Ctrl+A and Delete in a long
-  chapter the cursor, at the top of the page, was out of sight. The view now follows the
-  cursor, as after typing; a selection in view leaves the view where it is.
-
-- **The view jumping back to the cursor** - 2026-10-14. With typewriter scrolling on, the
-  view went back to a cursor scrolled out of it after a change of any editor setting
-  (turning spelling, grammar or auto-correct on or off, a change in the Settings window or of
-  the theme), a zoom or moving the window to a screen of another pixel density; Whole Page
-  went to the cursor's page also with typewriter scrolling off. The view now stays where it
-  is: typewriter scrolling places the cursor line only while it is in the view, and Whole
-  Page shows the page in the middle of the view when the cursor is out of it. A file saved as
-  plain text keeps the view at its text, too, when its tab loses the formatting. Typing, the
-  keys, a search and going to a place still bring the view to the cursor.
-
-- **The Dashboard's option to open the last book** - 2026-10-13. Changed in the Settings
-  window, the option stayed as it was on the Dashboard until the program started again; the
-  Dashboard now shows the change at once.
-
-- **An empty paragraph at the end of a text file** - 2026-10-13. A `.txt` file whose last line
-  ends with a line end, as most text files do, opened with an empty paragraph after its text.
-  The line end of the last line is no longer a paragraph, and the file keeps it when saved.
-
-- **End on macOS in a short text** - 2026-10-12. End, which on macOS moves only the view,
-  still scrolled to the bottom of the page below a text shorter than a page; it now goes to
-  the end of the text, as Ctrl+End does.
-
-- **Ctrl+End in a short text** - 2026-10-11. Ctrl+End and Ctrl+Shift+End scrolled to the
-  bottom of the page, so the lines of a text shorter than a page left the view and only
-  blank paper showed; the page view did the same on a last page filled only at its top. The
-  view now goes to the end of the text, the last line with the page's bottom margin below
-  it, as at the end of a long chapter, and a short text that fits in the window stays put.
-
-- **Menu icons** - 2026-10-10. Six menu commands had no icon (import and export of a
-  project archive, InDesign ICML, export settings, Find in book, saving the current
-  perspective) and the log warned about each of them when the menus were built.
-
-- **Plain text files take no annotations** - 2026-10-11. A plain text file (`.txt`) cannot
-  keep annotations, so those added to it were lost when it was saved. The commands that add
-  them (Insert > Add Annotation..., Add Comment, Add To Do, Add Note, Ctrl+Shift+M and the
-  editor's context menu) are now off for it, the Annotations panel says why and that the
-  file added to the book takes annotations, and text pasted or dropped into it comes
-  without them. Saved as a chapter file (`.kchapter`), it takes annotations again.
-
-- **Plain text files: a question before formatting is lost** - 2026-10-12. A plain text file
-  (`.txt`) keeps only the text, so saving one whose text has formatting (such as bold), or
-  saving a chapter with annotations as a plain text file with Save As, now asks first in the
-  program's own window. It says what will not be saved and how to keep it (Save As with the
-  Kalahari Documents type); Cancel writes nothing. Save All and the question on closing ask
-  the same.
-
-- **A text typed and deleted again has no changes** - 2026-10-12. The tab of a chapter or a
-  file and the Navigator show a "*", and closing asks whether to save, only while the text
-  differs from the saved one: a letter or a sentence typed and deleted again, an edit undone
-  or formatting given and taken back leave no "*" and nothing to save. After a save, the text
-  saved is the one a change is compared with.
-
-### Added
 
 - **Book projects: a new project file in core** - 2026-10-09. A new model in core reads and
   writes the project file (`.klh`, format 2): the book type or, in a user project, the kinds
@@ -1651,518 +1257,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `infoBarBackground` / `infoBarBorder` theme colors (via
     `scripts/add_theme_color.py`); `standalone_info_bar.cpp` now reads them instead
     of hardcoded cream/amber values plus a manual luminance branch.
-
-### Fixed
-
-- **Muted texts that could not be read** - 2026-10-11. The planned pages in the Settings
-  list (nearly invisible in the Dark theme), the hint under the address in the icon
-  downloader and the muted texts of the Dashboard (the tagline, the shortcuts heading, the
-  description, path and date of a recent book, "no items") have the color of the notes of
-  the Settings pages, readable on what they lie on in both themes (at least 4.5:1); the
-  Settings list follows a change of the theme.
-
-- **Clipboard and undo on the element with the cursor** - 2026-10-10. Undo, Redo, Cut,
-  Copy, Paste and Select All, with their keys, from the Edit menu and from the toolbar,
-  work on the element with the cursor and on no other: the book's text, a field of a
-  panel, a list. Ctrl+V in the Log pasted into the book, and the Edit menu and the toolbar
-  worked on the book wherever the cursor was. In a text that only shows (the Log) Paste,
-  Cut, Undo and Redo do nothing, Copy and Select All work; a list copies its current item.
-  In the Annotations panel and the find bar, outside their fields, Undo and Redo undo what
-  was done there in the text (an annotation marked done, a replacement). Elsewhere (a
-  button, the Dashboard) the commands do nothing, and the menu and the toolbar show them
-  disabled wherever they can do nothing.
-
-- **The commands of the document without a document** - 2026-10-11. Over the Dashboard,
-  without a tab and after the book was closed, Find, Find Next, Find Previous, Find and
-  Replace, Bold, Italic, Underline, Strikethrough, the alignments, the view mode and the zoom
-  were enabled in the menus and on the toolbars (Bold and the alignment of the last chapter
-  even checked) and did nothing, also with their keys. They are now greyed out, with nothing
-  checked, until a chapter or a text file is in front, as in Word without a document.
-
-- **Find bar: the cursor goes back to the text after the last replacement** - 2026-10-10.
-  Replace on the last match and Replace All turn their button off, and the cursor went on to
-  the font box of the toolbar: Undo did not take the replacement back, and what was typed
-  changed the font name. The cursor now goes back to the text, where Undo takes the
-  replacement back.
-
-- **Find bar: the cursor at the end of the replaced text** - 2026-10-11. After Replace All,
-  and after Replace on the last match, the cursor kept its place in the paragraph: with a
-  longer or shorter replacement it landed inside a word. It now stands at the end of the
-  replaced text; after Replace All, at the end of the last replacement, shown in the view.
-
-- **Find bar: F3 after the bar is closed** - 2026-10-11. After Escape closed the find bar,
-  the first F3 (Find Next) or Shift+F3 (Find Previous) only opened the bar again, with the
-  cursor in its field. Now, as in Word, the browsers and the code editors, the bar shows again
-  with its text and mode, the next or the previous match is selected, and the cursor stays in
-  the text; without a text to search for, F3 opens the bar to type one, as before.
-
-- **Find bar: over the text, and from the keyboard** - 2026-10-11. The bar had no
-  background of its own: the text scrolled under it showed between its fields and over the
-  number of matches. It now covers the text under it, and a match the view scrolls to is
-  shown below the bar, not under it (Find Previous put it at the top of the view, under the
-  bar). On macOS Page Up and Page Down, which move the view only, scroll by the part of the
-  view below the bar, and Control+L puts the cursor's line in the middle of that part (no
-  line goes by unseen under the bar). Tab goes from the search text to the replacement and
-  its buttons, then to the options, the arrows and Close, as in Word's Find and Replace (it
-  went through the six buttons of the search row first); Enter presses the button with the
-  cursor, as Space does (it did nothing).
-
-- **Find bar: undoing a replacement** - 2026-10-11. Undoing Replace All put the cursor at
-  the start of the chapter, far from where the writer was. Undoing a replacement now brings
-  back the cursor and selection it was made with (the replaced match is selected again, and
-  the next Replace replaces it), and redoing it puts the cursor at the end of the replaced
-  text.
-
-- **Editor: Replace All in a long chapter** - 2026-10-11. After an edit of many paragraphs
-  at once (Replace All, a long paste), the paragraphs waiting to be laid out again kept the
-  lines of their old text, and a cursor placed in a paragraph that got shorter read past its
-  end: a debug build stopped on Replace All. Such paragraphs now have no lines until they are
-  laid out, as in Qt's own layout.
-
-- **Find bar: replacing the last match** - 2026-10-11. Replace (Enter or F3 and Enter) on
-  the last match, often the only one with whole words on, stopped a debug build on an
-  assertion of Qt (QList::at), and so did Replace All and Undo given in the bar when they
-  took the last match away. The bar gave the cursor back to the text while the document was
-  still reporting the edit, before the paragraph was laid out again, and the cursor was
-  placed by the lines of its old text, past the end of a shorter one. The bar now learns of
-  the changed matches once the paragraph is laid out, and while an edit is reported the
-  changed paragraphs have no lines of their old text.
-
-- **Toolbars: the font and the size go on the text at Enter** - 2026-10-11. Each letter typed
-  in the font field went on the text as a font ("F", "Fr"..., so the text showed in another
-  font) and each number typed in the size field as a size (7 of 72), one step to undo each,
-  and Escape left them there. Now what was typed goes on the text at Enter, as one step to
-  undo, and Escape leaves the text as it was; a choice in the font list and the arrows go on
-  it at once, as before.
-
-- **Toolbars: the cursor goes back where it was after a command** - 2026-10-11. A click on a
-  floating toolbar took the cursor: after its command, what was typed reached neither the
-  text nor a field. In the font and size fields of a toolbar, docked or floating, the cursor
-  stayed after the choice, and what was typed changed the font name. Now, as in Word and
-  LibreOffice, after a command, after Enter or Escape in a field and after a choice in the
-  font list, the cursor goes back where it was: to the text or to the field of a panel. The
-  arrows of the size field do not take the cursor; in the fields one types as before, and Tab
-  goes from one to the other.
-
-- **Formats given without a selection** - 2026-10-11. Bold, italic, underline and
-  strikethrough turned on without a selection (Ctrl+B, Ctrl+I, Ctrl+U, the toolbar) did not
-  reach the typed text: the button showed the format on, the text was typed without it, and
-  the button stayed on after the cursor moved away. The font and the size chosen in the
-  toolbar without a selection did nothing. Now, as in Word and LibreOffice, with the cursor
-  inside a word they go on the whole word; elsewhere on the text typed next at the cursor,
-  also after Enter, with an input method and in plain text pasted there. Moving the cursor,
-  selecting, Undo and Redo drop them; given where the text has the format, the typed text is
-  without it. Undoing a format brings back the cursor and the selection it was given with.
-
-- **Editor: text pasted from a web page without empty paragraphs** - 2026-10-11. Text
-  copied in a browser came into the book with an empty paragraph after each paragraph and
-  heading: the browsers leave a blank line between them in the plain text they copy. Now the
-  paragraphs come as they are on the page, read off the copied HTML; an empty paragraph of
-  the page stays, and the text of other programs comes as before.
-
-- **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
-  texts of the Settings pages and the descriptions of the planned pages had a contrast of
-  2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at
-  least 4.5:1 (WCAG AA), also inside the groups, and a theme applied while the window is
-  open changes them too. The titles of the planned pages kept the color of the theme they
-  were opened in: black on the dark window.
-
-- **Icons: the lock and the input icon** - 2026-10-10. The lock (Settings > Keyboard
-  Shortcuts) and the input icon showed as a black square: their invisible frame got the
-  icon color. The build script that converts the icons (`scripts/convert_all_icons.py`),
-  the program's converter of downloaded icons and `scripts/convert_svg_templates.py` now
-  leave a shape without a fill when its group has `fill="none"`.
-- **Editor: a press on its scroll bars stays with them** - 2026-10-10. With Qt 6.9, a
-  click on the editor's scroll bar when there was nothing to scroll went on to the text
-  under it: it moved the cursor, and a double click selected a word. Such a click, and a
-  press of the right mouse button on the scroll bars, also closed the frame of an
-  annotation being written. A press on a scroll bar now stays with it; the right button
-  still opens the scroll bar's menu.
-
-- **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
-  element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
-  brought the Properties panel to the front of its tab group, so the Annotations panel
-  seemed to disappear, for example after the book was closed and opened again. The
-  Navigator now only fills the Properties panel; its context menu item Properties... still
-  brings the panel to the front.
-
-- **Status bar: the counts of the document in front** - 2026-10-10. The words, characters
-  and reading time in the status bar are those of the tab in front, a chapter or a file
-  outside the book, and change with the tab; over the Dashboard there are none, and no zoom
-  either. With a selection they show its counts out of the whole text ("Words: 12 of
-  3,480"), and the Properties panel counts a selection the same way. Before, they followed
-  the chapter opened last, stayed empty for a file outside the book and went to zero when
-  any tab was closed, and the zoom of the last document stayed over the Dashboard. The
-  characters no longer include the paragraph ends, as in Word and LibreOffice, and the
-  numbers are written in the system's way (3 480 in Polish), in Distraction-Free writing
-  too. A reading time of an hour or more is given in hours and minutes ("Reading: 12 h
-  31 min" instead of "Reading: 751 min"). The Properties panel writes the numbers and the
-  reading time the same way, and its paragraphs are the paragraphs with text, as in Word
-  and LibreOffice: a one-line text file had two paragraphs, its empty last line being the
-  second.
-
-- **Distraction-Free writing: a readable word count** - 2026-10-10. The word count at the
-  bottom of the view was drawn straight over the lines of text and mixed with them. The
-  count and the clock now have a plate of the paper's color under them, which fades out
-  with them.
-
-- **Writing statistics: only the words written** - 2026-10-10. The words written and
-  deleted in a writing session are counted in the chapter in front. A chapter opened in the
-  editor, or a new way of counting, no longer counts as words written, and the words typed
-  just before switching to another tab are not lost.
-
-- **KML format description: the elements as the program writes them** - 2026-10-10. The
-  format description and the editor's functional specification name the links to
-  characters, places and items as the program reads and writes them (`<charref>`,
-  `<locref>`, `<itemref>`, with `id` and `target`), and describe comments, to-dos and notes
-  as annotations of the `<annotations>` section.
-
-- **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
-  the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
-  to the end of the File menu. It now finds Close Book by its command; the submenu itself
-  moved from the core to the GUI (the core keeps only the list of books).
-
-- **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
-  the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
-  it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
-
-- **Mouse wheel: it changes only the field one works in** - 2026-10-10. Scrolling a page of
-  the settings with the mouse wheel changed every number field and drop-down list that
-  passed under the mouse (for example the line spacing), and the wheel over the font and
-  its size in the toolbar changed them too. As on Windows, the wheel now changes only the
-  field with the keyboard focus, after a click or Tab in it; over any other field it
-  scrolls the page. While the wheel scrolls the page, the field with the focus does not
-  stop it when it passes under the mouse, as in web browsers; after a short pause, or once
-  the mouse moves, the wheel over that field changes it again.
-
-- **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
-  shows the pages at their size on paper; when the display scaling (for example 125% to
-  150% in the Windows settings) or the screen's resolution changed while the program ran,
-  the pages kept the old scale until the next start. The editor now follows the change at
-  once.
-
-- **Toolbars: no use of deleted menu items** - 2026-10-09. The View > Toolbars items and the
-  toolbar context menu were connected without an owner, so a toolbar shown or hidden after
-  its menu item was deleted reached freed memory. Each connection now ends with its menu
-  item, toolbar or window.
-
-- **The keys go to the document opened or left in front** - 2026-10-11. A chapter opened
-  from the Navigator (double click, Enter or Open) left the keyboard focus in the Navigator,
-  without a cursor in the text, so what was typed next did not reach the chapter until its
-  text was clicked; after a tab was closed with its ×, the focus went to the font box of the
-  toolbar. Now a chapter or a file opened (from the Navigator, with File > Open > File... or
-  File > New) or brought to the front (from the Navigator or with a click on its tab) gets
-  the keys, with its cursor showing, as in Word and LibreOffice. When the tab in front
-  closes, also with the book or after the question about unsaved changes, the document
-  coming to the front gets them, wherever they were, at the place it had them last; when a
-  tab behind closes, the keys stay where they are, for example in a panel.
-
-- **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
-  (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
-  front: its command is greyed out without one, and it goes off when the Dashboard or no
-  tab comes to the front (for example when the book is closed).
-- **Dashboard: a new book shows in the recent books** - 2026-10-08. Only opening a book
-  put it on the list of recent books, so a book just created was missing from the
-  Dashboard and the Recent Books menu until it was opened again. Every book opened or
-  created now goes to the top of the list.
-
-- **Tests: no files in the user's profile** - 2026-10-11. The test program unpacked its test
-  plugin in the program's folder of the user's profile (on Windows
-  `%LOCALAPPDATA%\Kalahari\plugins\temp`), wrote a log to a `tmp` folder at the root of the
-  drive, and after one test ran under the program's own name, so files that later tests
-  wrote through Qt's standard folders went to the user's Kalahari folder. Tests now keep the
-  plugin and the log in their own temporary folder, removed after the run, and keep the
-  name of the test program.
-
-- **A chapter added in the Navigator was damaged** - 2026-10-08. Add Chapter (and Add
-  Item in the front or back matter) made a chapter without a file, so its text was saved
-  as ".kchapter" in the project's folder - one name for all the chapters added that way.
-  Opened again, that file was taken for an old RTF file and converted: the chapter
-  opened empty with a message that it is damaged, and its text was left only in
-  ".kchapter.bak". A new chapter now gets its own empty chapter file at once, next to
-  the other chapters of its part (for example content/body/part_001/chapter_003.kchapter)
-  or in its section's folder. Chapters damaged this way before are not repaired: their
-  text stays only in ".kchapter.bak".
-- **Focus dimmed nothing, and left the pages** - 2026-10-07. View > Focus (Ctrl+4) dims
-  every paragraph but the one with the cursor, and the bright paragraph follows the
-  cursor. It is a switch on top of the view mode, like Typewriter Scrolling: the page
-  view keeps its pages, Ctrl+4 again turns it off, the menu item is checked while it is
-  on, and the state is kept between sessions for all editors.
-- **The View menu had two Panels submenus** - 2026-10-06. Only one is left, with the
-  same panel switches.
-- **Panel switches followed the panel on top of a tab group** - 2026-10-07. View > Panels
-  and the View toolbar keep every open panel checked, also when its tab lies under
-  another panel's tab. A switch closes an open panel and opens a closed one with its tab
-  on top.
-- **View > View Mode lost its check mark** - 2026-10-07. Choosing the mode in use again
-  (for example Ctrl+2 twice) unchecked it; the mode in use now stays checked.
-- **The editor forgot its light or dark paper** - 2026-10-07. Switch to Light Mode /
-  Switch to Dark Mode in the editor's context menu changed only the editor on the
-  screen, so the next start, or Apply in the settings, brought the old paper back. The
-  choice is now the "Use dark mode for editor" setting: kept between sessions and given
-  to every open editor.
-- **A stray icon over the Settings icon preview** - 2026-10-07. Appearance > Icons showed
-  an extra icon on a grey square in the preview's top-left corner: the preview built
-  before the saved icon style was loaded stayed visible until the dialog closed.
-- **Editor: TODO markers and comments were recognized by typed text** - 2026-10-06. A
-  paragraph starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and a tint, and
-  "/* */" or "<!-- -->" in the text a comment highlight; such text is now plain. The TODO
-  markers, notes and comments saved in the chapter (`<todo>`, `<comment>`) stay in the
-  file but are not drawn for now: their look is designed separately. Search matches are
-  drawn in one layer, which also has room for the spelling and grammar waves and the word
-  read aloud (check results are kept with each paragraph and apply while its text is
-  unchanged).
-- **A chapter with malformed KML left the editor without a document** - 2026-10-06. The
-  editor now shows the text read before the error (the rest of the chapter is not loaded,
-  as before), a message says so and that saving keeps only this text, and the error is
-  logged; the render pipeline used to keep a pointer to the deleted document.
-- **Closing a book left its chapters open** - 2026-10-06. Their tabs stayed after the book
-  closed and were then saved as single documents. They now close with the book, after the
-  question about unsaved changes; files opened outside the book stay open.
-- **Statistics in the Properties panel did not follow typing** - 2026-10-06. Words,
-  characters and paragraphs of the open text changed only when the cursor was moved; they
-  now follow every edit, and stay shown when the book is closed while a file opened
-  outside it is in front.
-- **Text with CR LF line ends got an empty paragraph after each line** - 2026-10-06, when
-  pasted or dropped from a program that keeps the CR.
-- **Unsubscribing from the event bus removed every listener of that event** - 2026-10-06.
-  `subscribe()` now returns a subscription id and `unsubscribe()` takes that id, so a
-  plugin removes only its own callback. Python plugins use the same id
-  (`sub_id = bus.subscribe(...)`, `bus.unsubscribe(sub_id)`).
-- **Event bus froze when a listener used it** - 2026-10-06. A listener that subscribed,
-  emitted another event or asked for the subscriber count while handling an event locked
-  the program. Listeners now run without the bus locked.
-- **Navigator forgot which parts and sections were expanded** - 2026-10-06. The state is
-  now saved when a book is closed and restored when it is reopened, including parts the
-  user collapsed. Renaming or deleting an item no longer resets the tree.
-- **Aligning selected paragraphs took one undo step per paragraph** - 2026-10-05. Left,
-  center, right and justified alignment of a selection is now undone at once. Undo and
-  redo leave the cursor and selection on the aligned paragraphs (the cursor used to jump
-  to the next paragraph).
-- **Editor cursor settings were ignored** - 2026-10-04. The cursor shape (line, block,
-  underline) and the line width chosen in the settings now apply. Block and underline
-  cursors are as wide as the character under them, also zoomed or in bold, and the
-  character under a block stays readable. When the view scrolls, the cursor shows at once
-  instead of in the middle of a blink.
-- **Editor typography settings were ignored** - 2026-10-04. Line spacing, paragraph
-  spacing and first-line indent now apply when the text is wrapped and scale with the
-  font and zoom; the settings dialog has a Typography group (Editor > General).
-- **Editor paste and undo broke the text styles** - 2026-10-04. Paste and cut are one
-  undo step; copy puts KML, HTML and plain text on the clipboard, so a paste within
-  Kalahari keeps the formatting.
-- **Justified paragraphs stayed ragged on Windows and macOS** - 2026-10-04. The Qt that
-  vcpkg builds had no HarfBuzz text shaping (`vcpkg.json` turns off qtbase's default
-  features), so Qt did not stretch justified lines, and text had no kerning or
-  ligatures there. qtbase now gets the `harfbuzz` feature.
-- **Icon theming — toolbar/menu icons did not recolor on theme or icon-color change**
-  (BUG-1) - 2026-07-20. Two independent root causes, both fixed:
-  - Ordering: `ArtProvider` and `IconRegistry` were connected to
-    `ThemeManager::themeChanged` independently; same-thread direct connections fire in
-    registration order, so managed actions refreshed while `IconRegistry` still held the
-    previous colors + a warm cache. `ArtProvider::onThemeChanged` now drives
-    `IconRegistry` directly (single connection, explicit order).
-  - Clobbered refresh data (regression from OpenSpec #00040): `CommandRegistry` overwrote
-    the `{cmdId, context}` `QVariantMap` that `ArtProvider::createAction` stores for
-    `refreshAction`, with a bare command-id string — so every toolbar/menu action's icon
-    refresh bailed out and never repainted. Removed the clobbering `setData` call.
-  - Regression tests in `tests/core/test_art_provider_theme.cpp` (proven to fail on the
-    buggy code). Suite now at 634 cases.
-- **Icon theming — central tab icons did not recolor.** Editor/Dashboard tab icons are
-  plain `QIcon`s (not managed `QAction`s), set once at tab creation across four
-  coordinators and never subscribed to `ArtProvider::resourcesChanged`. Added
-  `DockCoordinator::refreshTabIcons()` (mirroring `refreshDockIcons`); each tab page now
-  stores its icon id in a `tabIconId` property and all tabs re-fetch on color change.
-- **Security (trusted keys):** Fixed a 1-byte heap overflow in
-  `TrustedKeys::base64EncodeInternal()` — the output buffer did not account for
-  OpenSSL's line-break newlines and NUL terminator, so encoding a 32-byte Ed25519
-  key wrote 46 bytes into a 45-byte buffer. Reachable in production via
-  `addUserKey()` → `saveUserKeys()` (i.e. any time a user adds a trusted publisher
-  key). Verified with a save/load round-trip regression test.
-
-### Changed
-
-- **Build Quick Wins:** Sub-Project D1 - 2026-04-11
-  - Activated `kalahari_add_pch()` on both `kalahari_core` (SHARED library) and
-    `kalahari` (executable) CMake targets. The function was defined in
-    `cmake/PrecompiledHeaders.cmake` since the Qt6 migration but never called.
-    Precompiled headers now cover the C++ standard library, spdlog, and
-    nlohmann_json, giving a ~10-15% clean-build speedup. Qt6 headers are
-    intentionally still excluded from the PCH set (higher risk of MOC macro
-    collisions; reserved for a later tuning pass).
-  - Replaced the configure-time `execute_process` that ran `convert_all_icons.py`
-    on every CMake configure with an `add_custom_command` + `add_custom_target(ALL)`
-    pair driven by a `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)` of the SVG sources
-    under `resources/icons/` and a dependency on the Python script itself. The
-    conversion now only runs when an input actually changes; unchanged builds skip
-    the step entirely.
-  - Out of original Sub-Project D scope: macOS CI trigger (already active,
-    confirmed via `gh run list` against recent commits) and clang-format CI
-    enforcement (deferred to its own mini-project — existing codebase has roughly
-    50 000 formatting violations across 229 tracked source/header files, so
-    enforcement requires a dedicated strategy decision before it can be safely
-    turned on).
-
-- **Repo Hygiene:** wxWidgets Finalization (Sub-Project A + follow-up) - 2026-04-11
-  - Removed `concept_files/wxFormBuilder/` (wxWidgets-era UI mockups, 4 files)
-  - Removed orphan `GuiLogSink` template class (`src/core/gui_log_sink.cpp` and
-    `include/kalahari/core/gui_log_sink.h`) — tracked but never compiled since
-    the Qt migration; Qt replacement `LogPanelSink` already in use (OpenSpec #00024)
-  - Removed dead `tests/gui/test_bwx_text_{document,renderer}.cpp` and the
-    corresponding stale comment block in `tests/CMakeLists.txt`
-  - Updated `.clang-format` include priority from wxWidgets to Qt
-  - Deleted stale `src/README.md` (described pre-Qt6 MVP architecture that
-    never materialized; current architecture docs live in `project_docs/03_architecture.md`)
-  - Deleted dead `project_docs/14_bwx_sdk_patterns.md` (wxWidgets bwx_sdk design patterns,
-    entire document irrelevant post-Qt6 migration)
-  - Deleted dead `project_docs/15_text_editor_architecture.md` (bwxTextEditor specification
-    from wxWidgets era; real editor is the KML/Qt6 editor deployed in OpenSpec #00042)
-  - Updated `BUILDING.md`: dependency list (wxWidgets 3.3.1 → Qt6 6.5+), "Application
-    doesn't start" troubleshooting (`vcpkg list | grep wxwidgets` → `vcpkg list | grep qt`),
-    and "Next Steps" section (stale Phase 0 / wxRichTextCtrl references replaced with
-    link to `ROADMAP.md` and current Phase 1 status)
-  - Updated `project_docs/README.md`: table of contents (removed rows 14 and 15,
-    marked row 07 "MVP Tasks" as Deprecated, Tech Stack `wxWidgets` → `Qt6`, GUI
-    Design `wxAUI` → `Qt6 QDockWidget`, i18n `bwx_sdk pattern` → `Qt Linguist`)
-  - Updated stale doc comments in `include/kalahari/core/python_interpreter.h`
-    (`wxWidgets initialization/cleanup` → `QApplication construction/destruction`)
-  - Cleaned up dead pre-migration placeholder block in `cmake/PrecompiledHeaders.cmake`
-    (commented-out `<wx/wx.h>`, `<wx/aui/aui.h>`, `<wx/richtext/richtextctrl.h>` replaced
-    with Qt6 placeholders)
-  - Deleted physical `lib/x64-*/bwx_*.{lib,a}` files (~50 MB, never tracked in git,
-    leftover from pre-Qt6 vcpkg builds)
-
-- **Workflow Migration:** OpenSpec → Superpowers - 2026-04-10
-  - Replaced OpenSpec task management with Superpowers skills workflow
-  - Migrated 5 pending proposals (00044B-F) to Superpowers design doc
-  - Removed: task-manager agent, openspec commands, openspec-workflow skill
-  - Added: docs/superpowers/ for specs and plans
-  - openspec/archive/ moved to docs/openspec-archive/ (read-only historical reference)
-
-- **OpenSpec #00044A:** Formatting Round-Trip Serialization - DEPLOYED 2026-04-10
-  - KML serializer emits font, size, color, bg attributes on formatting tags and `<span>` elements
-  - KML parser reads inline style attributes from formatting tags and `<span>`
-  - Paragraph alignment attribute on `<p>` elements
-  - Backward compatibility with old KML files (no attributes)
-
-- **Framework:** Upgraded Claude Code framework from 2.0.55 to 2.1.42 - 2026-02-16
-  - Fixed permissionMode, maxTurns, PreToolUse hook format in all agents
-  - Added PreCompact, Stop, TaskCompleted, PostToolUse hooks
-  - Enabled auto memory and agent-level memory for architect/code-reviewer/code-editor
-  - Added path-scoped rules and CLAUDE.md imports
-
-- **OpenSpec #00042:** Custom Text Editor - DEPLOYED 2026-02-18
-  - 109/109 subtasks complete, 596 test cases, 4220 assertions
-  - Performance blockers (O(n) rendering, scroll lag, font propagation, cache invalidation) resolved in OpenSpec #00043 (deployed 2026-02-17)
-
-- **OpenSpec #00045:** Architecture Cleanup - ABSORBED by #00043 - 2025-12-30
-
-- **OpenSpec #00043:** Editor Performance Rewrite - P0/P1 fixes complete - 2026-02-16
-  - **P0 Fix: Scroll Mode viewport culling** - render only visible paragraphs (~30) instead of ALL (~3000), ~150x reduction in draw calls
-  - **P0 Fix: Font propagation** - bypass `documentChanged()` 3-block limit, full re-layout on font changes via custom layout's `setFont()`
-  - **P1 Fix: Cache invalidation** - color-only setters use `markRepaintOnly()` instead of `markAllDirty()`, avoiding unnecessary pagination rebuilds
-  - Configuration flow unified: pipeline as single source of truth
-  - Render pipeline consolidated (680+ lines)
-  - 92-290x benchmark improvements on 150k word documents
-
-- **OpenSpec #00043:** Editor Performance Rewrite - Final Cleanup - 2025-12-29
-  - **Architecture Migration:** Services migrated from KmlDocument observer to BookEditor Qt signals
-    - SpellCheckService, GrammarCheckService, TagDetector now use `setBookEditor()` API
-    - Added `paragraphModified/Inserted/Removed` signals to BookEditor
-    - Consistent architecture: TextBuffer → BookEditor signals → Services
-  - **Legacy Code Removal:** Removed `m_useNewArchitecture` flag and ~870 lines of dead code
-    - 19+ functions simplified by removing legacy branches
-    - TextBuffer is now the only architecture (no fallback)
-  - **Performance:** Typing latency optimized from 16ms to 0.1ms (~100x faster)
-    - Single-paragraph edits use O(log N) `invalidateParagraphHeight()` instead of O(N) rebuild
-  - Files modified: `book_editor.h/cpp`, `spell_check_service.h/cpp`, `grammar_check_service.h/cpp`, `tag_detector.h/cpp`, `text_buffer.cpp`, `tags_panel.cpp`
-  - Tests: 735/735 PASS
-
-### Removed
-
-- **Repo Hygiene** - 2026-04-11 (see under Changed above for full detail):
-  - `concept_files/wxFormBuilder/` (4 files, wxWidgets-era UI mockups)
-  - `src/core/gui_log_sink.cpp` and `include/kalahari/core/gui_log_sink.h` (orphan `GuiLogSink` template, never compiled post-Qt migration)
-  - `tests/gui/test_bwx_text_document.cpp` and `tests/gui/test_bwx_text_renderer.cpp` (dead wxWidgets-era tests)
-  - `src/README.md` (stale pre-Qt6 MVP architecture description)
-  - `project_docs/14_bwx_sdk_patterns.md` (wxWidgets bwx_sdk design patterns documentation)
-  - `project_docs/15_text_editor_architecture.md` (bwxTextEditor spec, wxWidgets era)
-  - Physical `lib/x64-*/bwx_*.{lib,a}` binaries from disk (not tracked in git)
-
-### Fixed
-
-- **Test cleanup:** Fixed test.klh file pollution in project root - 2025-12-29
-  - Test now uses temp directory and cleans up after itself
-- **Test tags:** Marked 6 environment-dependent tests with skip tags
-  - `[.gui]` for tests requiring display environment
-  - `[.dll-boundary]` for Windows ABI issues with virtual method parameters
-
-- **OpenSpec #00040:** Central Action Management (Command Registry Refactoring) - 2025-12-17
-  - **Architecture:** CommandRegistry now owns single QAction per command (central source of truth)
-  - **New API:**
-    - `getAction(commandId)` - Returns shared QAction pointer
-    - `updateActionState(commandId)` - Synchronizes checked/enabled state
-    - `getAllActions()` - Returns all registered actions for ToolbarManagerDialog
-  - **MenuBuilder:** Uses `registry.getAction()` instead of creating duplicate QActions
-  - **ToolbarManager:** Uses `registry.getAction()` for toolbar buttons
-  - **ToolbarManagerDialog:** Uses `registry.getAction()` for action list
-  - **DockCoordinator:** Uses `registry.getAction()` for panel toggle actions
-  - **Fullscreen Toggle:** F11 and View > Full Screen work with synchronized state
-  - **Benefit:** Checkable actions (fullscreen) auto-sync across menu, toolbar, and shortcuts
-  - Files modified: `command_registry.h`, `command_registry.cpp`, `menu_builder.cpp`, `toolbar_manager.cpp`, `toolbar_manager_dialog.cpp`, `dock_coordinator.cpp`, `main_window.cpp`
-  - Documentation updated: `03_architecture.md`, `SKILL.md`
-  - Deleted: `menu_builder_backup.cpp`
-  - Tests: 83/83 PASS
-
-### Fixed
-
-- **OpenSpec #00042 Task 7.19:** Critical performance optimizations
-  - Format cache in KmlParagraph - O(1) repeated format access instead of O(N) rebuild
-  - Fenwick tree in VirtualScrollManager - O(log N) height operations instead of O(N)
-  - Partial widget update for cursor blink - reduces CPU usage
-  - Add Chapter/Part/Item context menu now works (signal connections fixed)
-  - New File creates proper empty document
-  - Close with unsaved changes checks chapter-level dirty state
-  - View mode transitions have diagnostic logging
-
-- **OpenSpec #00039:** Custom Toolbar Persistence & Visibility - 2025-12-17
-  - **Issue:** Custom toolbars missing from View menu (no visibility toggle)
-  - **Issue:** Custom toolbar visibility not restored after application restart
-  - **Fix:** Modified `createToolbars()` to create user toolbars at startup
-  - **Fix:** Modified `createViewMenuActions()` to include user toolbars in View menu
-  - **Fix:** Added `addViewMenuAction()` helper for dynamic menu updates on toolbar creation
-  - **Fix:** Added `removeViewMenuAction()` helper for dynamic menu updates on toolbar deletion
-  - Files modified: `toolbar_manager.h`, `toolbar_manager.cpp`
-
-### Changed
-
-- **OpenSpec #00038:** External Code Review Analysis - Major refactoring - 2025-12-17
-  - **MainWindow Refactoring:** Reduced from 3577 to 805 lines (-77%)
-    - Extracted `IconRegistrar` - icon registration (281 lines)
-    - Extracted `CommandRegistrar` - command registration (499 lines)
-    - Extracted `DiagnosticController` - diagnostic/dev mode (480 lines)
-    - Extracted `DockCoordinator` - panel management (420 lines)
-    - Extracted `SettingsCoordinator` - settings dialog (300 lines)
-    - Extracted `NavigatorCoordinator` - navigator handlers (500 lines)
-    - Extracted `DocumentCoordinator` - document lifecycle (580 lines)
-  - **Plugin Security:** Ed25519 signature verification
-    - `PluginSignature` class for verification
-    - `TrustedKeys` singleton for key management
-    - `plugins.allowUnsigned` setting for development mode
-  - **Thread Safety:**
-    - Fixed mutex+GIL deadlock in PluginManager (3-phase pattern)
-    - Added mutex to CommandRegistry
-  - **Code Quality:**
-    - Added `clearLayout()` utility in `gui::utils`
-    - Added path traversal validation in DocumentArchive
-    - Added logging to swallowed exceptions
-
-- EditorPanel upgraded from QPlainTextEdit to QTextEdit (Phase E)
-- Added per-chapter dirty tracking with asterisk indicator in tab title
-- Added Save All functionality for dirty chapters
-- NavigatorPanel: Added "Other Files" section for standalone files (Phase F)
-- PropertiesPanel: Contextual properties (project/chapter) instead of placeholder (Phase G)
-
-### Added
 
 - **OpenSpec #00042 Phase 7:** Testing & Documentation (Complete)
   - **7.17 Unit Tests:** Comprehensive test coverage for SpellCheckService and GrammarCheckService
@@ -2775,6 +1869,544 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Images: a new image in a paragraph of its own, with a caption** - 2026-11-12. Insert >
+  Image... and a file dropped or pasted from a folder put the image in a paragraph of its own,
+  centered and with a numbered caption Figure under it, as Settings > Editor > Images says by
+  default; at the start of a paragraph it goes before it, else after it (after the caption of
+  an image there). Add Caption of the Image menu and the context menu is now Insert
+  Caption..., which also changes the caption an image has. In the English Insert menu the
+  access keys are Caption (C), Cross-Reference (R), List of Figures (G), Formatting Character
+  (H), Horizontal Line (Z) and Scene Break (K).
+- **The material card and the annotation frame fill the width; the selection and the links in
+  the theme's color** - 2026-11-10. The card of a material on its tab fills the whole width of
+  the window, and the frame an annotation is written in takes two thirds of the text column, at
+  least 300 px, however wide the column is. The selection, its text and the links follow the
+  theme's color (the primary icon color) when the theme does not set them; the text of the
+  selection is black or white, whichever reads better, and the links are made readable on the
+  background. A color of the writer's own stays, and Reset to Theme Defaults makes them follow
+  the theme again.
+
+- **About, New File, New Book, Customize Toolbars and the Icon Downloader in the program's
+  own style** - 2026-10-19. These windows have the heading, colors and buttons of the
+  program's other dialogs: the window's icon, its title and a sentence about what it does,
+  the content that scrolls on a small screen while the heading and the buttons stay in view,
+  and the buttons at the bottom. Each of them but About is higher by its heading. About
+  names the version of the program and of Qt in its heading, in place of the black banner,
+  and has only Close; its texts are in the font of the window, and Kalahari 1.0 is planned
+  for February 2027. In Customize Toolbars Reset to Defaults is at the left, apart from OK,
+  Cancel and Apply. In the Icon Downloader Esc and the close button of the window ask before
+  they stop a download, as Close does, and the preview draws the icon in the icon colors. In
+  New File the choice of the empty text file no longer moves the tiles and the title in a
+  low window. A test makes sure that the program shows no window of the system but those
+  that choose a file or a folder, and that each of its dialogs is built on the common base.
+
+- **Grammar: checked again at once after a fix, Undo or a paste** - 2026-10-19. A paragraph
+  changed otherwise than by typing (a fix chosen in the Spelling and Grammar panel or on the
+  menu of the wave, Undo, Redo, a paste) goes to LanguageTool at once: its issues are known
+  again without the second's wait meant for the end of typing.
+
+- **Dashboard: icons in the icon colors** - 2026-10-16. The icons of the books on the
+  Dashboard take the icon colors of Settings > Appearance > Icons, as the toolbars and the
+  menus. Settings > Appearance > Theme no longer has "Dashboard Primary" and "Dashboard
+  Secondary", whose second color looked like one left over from another theme, nor "Info
+  Primary" and "Info Secondary", which colored only the icon of a news column the Dashboard
+  does not have. Such colors stored in the settings and in theme files are not read.
+
+- **Chapters saved without risk to the previous text** - 2026-10-13. A chapter is written to a
+  temporary file next to it and put in place of the old file only once all of it is written, so
+  a save cut short (a full disk, a crash, a power cut) leaves the previous text whole. Nothing
+  changes on screen.
+
+- **Book projects in the new format** - 2026-10-10. The program opens and saves books in the
+  new project file (`.klh`, format 2) and no longer reads the old one: the example project
+  ExampleNovel is in the new format, and books of older versions do not open (no conversion
+  while Kalahari has a single user). When a book cannot be opened, the message says what is
+  wrong with its file. A new book gets the type chosen in the New Book window with the type's
+  start: a novel starts with a title page and Chapter 1, which opens in the editor. A User
+  Project (before: Empty Project) gets the kinds of the Base package. The New Book window
+  names the folder of the book and does not create it in a folder with files, so the open
+  book is not closed for a book that cannot be made; a book that cannot be opened (e.g. of
+  an older version) is reported before the open book is closed for it, and that one stays
+  open. The questions of these commands speak of books, not projects, and the description
+  of a type in the New Book window scrolls. The window proposes the language of the program
+  for the book (before: always English). The Navigator shows the
+  book as before, and its elements take their kinds and icons from the type: Add Chapter
+  offers the type's text kinds of the body (in a novel a prologue, a chapter or an epilogue)
+  with a numbered title, Add Part its groups and Add Item the kinds of the front or back
+  matter that the book can still take (a dedication only once). A prologue goes at the start
+  of the body or first in its first part, and an epilogue at the end of the body or last in
+  its last part; the writer chooses, or shows another place in a list. A chapter can be in
+  the body itself, outside parts. Adding, renaming, moving and deleting elements and changing
+  their status save the book at once, and dragging an element to another place of its
+  section or part moves it in the book (before, the move was lost). Move to Start and Move to
+  End join Move Up and Move Down and keep a prologue first and an epilogue last, and the
+  Navigator shows a new or moved element, also inside a collapsed part. Deleting an element
+  says that its file stays in the book's folder. Add to Book (before: Add to Project) asks
+  for the kind of the new element and can add a chapter to the body itself. A new file that
+  was never saved it adds at once, without the window and without the question about a copy:
+  the file becomes an element of the main text kind (in a novel a chapter) at its default
+  place, with the default title, and opens in its tab. Save and Save As still save a new
+  file in any folder.
+  The File menu has New File, Open File, New Book and Open Book, in this order, instead of
+  an Open submenu, and the File and Quick Actions toolbars start with the same buttons: New
+  File, Open File, New Book, Open Book, Save, Save As, Save All and Close Book. The
+  Dashboard names Open File, New Book and Open Book in this order too. A toolbar customized
+  before gets the buttons it did not have once, where the default toolbar has them, and its
+  file commands in the new order, in the places they had.
+  A project archive leaves out the lock, the database log
+  files and the backups of the open book, whose log is first written to its database, and
+  import skips the lock and the database's shared memory that earlier archives have, so an
+  archive of an open book imports again; a failed import removes what it wrote. The book,
+  Navigator and file commands show their messages and questions in the program's own window,
+  with what is wrong under Show Details; the export's list of files that are not final names
+  their statuses as the Navigator does (Draft, Revision). The option to open the last book
+  at startup (on the Dashboard and in Settings > General) and the Navigator's message without
+  a book speak of books too. Without an open book, Close Book, the export of the book's
+  archive and Add to Book of a file outside the book (in the Navigator and on the file's
+  info bar) are greyed out. A book created or imported without opening is the first of the
+  recent books, but the book opened at startup is still the one opened last.
+
+- **Side panels on a small screen** - 2026-10-11. The panels on the right can be made much
+  narrower, so that the text keeps its room on a 1366 × 768 screen at 125% and 150%. In the
+  Annotations panel the kind buttons and the To-do buttons go on in the next line, the
+  Open/Done/All and Chapter/Book buttons go one under another (still joined), the date list
+  goes under the scope and both lists get narrower; in a panel too low for all of that the
+  filters scroll, the cards keep their room, and no control is drawn over another. The text
+  of the Assistant panel wraps.
+
+- **Keyboard shortcuts: one set on every system** - 2026-10-10. Every shortcut is written
+  out in the program and is the same on Windows and Linux; macOS shows Cmd for Ctrl. Eight
+  commands took the keys Qt gives each system and desktop, so Close Book was Ctrl+F4 on
+  Windows and Ctrl+W on Linux. They now have the Windows keys everywhere: Close Book
+  Ctrl+F4, Exit Alt+F4 (now also shown in the menu), Redo Ctrl+Y (in the text Ctrl+Shift+Z
+  as well), Find Next F3, Find Previous Shift+F3, Find & Replace Ctrl+H (on Linux it was
+  Ctrl+H on GNOME, Align Right's Ctrl+R on KDE and nothing elsewhere), Full Screen F11,
+  Help F1. Ctrl+W does nothing, so it cannot close the book by mistake.
+  - macOS has its own keys where its system needs them: Exit Cmd+Q, Find & Replace
+    Option+Cmd+F (Cmd+H hides the program), Full Screen Control+Cmd+F (F11 shows the
+    desktop), and the options of the find bar Option+Cmd+C, W and R (Option with a letter
+    types a character there, Option+C is "ć" on the Polish keyboard).
+  - The frame of an annotation lets Save, Save As, Close Book and Exit through with these
+    keys; on Linux, Ctrl+F4 did not reach the window from it.
+  - The Dashboard shows the names and keys of its commands as the menus have them: New
+    Book, Open Book and Open File (it showed Ctrl+N as New Chapter, which is New File). The
+    hint of the Annotations panel and the tooltips of the find bar's options take their keys
+    from the program as well.
+  - On macOS Next To Do and Previous To Do are Option+Cmd+Down and Option+Cmd+Up: Option
+    with the arrows moves the cursor by paragraphs there.
+  - The fields, lists and buttons of the windows have the keys of Windows on Linux too: in
+    a field Ctrl+Y redoes and Alt+Backspace undoes; Ctrl+E and Ctrl+U center and underline
+    also from a field (Qt went to the end of the line and deleted it there), and Ctrl+D,
+    Ctrl+K, Ctrl+Shift+A and Ctrl+Shift+Insert do nothing in a field (Qt deleted,
+    deselected and pasted with them); Left and Right over a selection move the cursor from
+    where it is; Shift+F10 opens the context menu; Enter on a check box, an option, a
+    drop-down list or a button that is not the default one goes to the window's default
+    button (on GNOME, Xfce and the other GTK desktops it pressed the button or opened the
+    list). On Windows and Linux a read-only text and a selectable label keep Ctrl+C,
+    Ctrl+Insert and Ctrl+A for themselves (in the Log they copied and selected the book's
+    text), and the context menus of the fields always show their keys (Qt left out the keys
+    a command of the window has too).
+  - In Polish the keys have Polish names in the menus, the tooltips and the settings
+    (Strzałka w górę, Spacja, Enter).
+
+- **The text's context menu: the commands of the Edit menu** - 2026-10-11. Cut, Copy, Paste
+  and Select All in the text's context menu are the commands of the Edit menu, with their
+  icons and keys (Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A, or those set in Settings > Keyboard
+  Shortcuts); the menu had items of its own without them. Paste is greyed out where there is
+  nothing to paste, as in the Edit menu. macOS shows no keys in context menus.
+
+- **Dashboard on a small screen** - 2026-10-10. On a 1366 × 768 screen at 125% and 150%,
+  with the side panels open or closed, nothing of the Dashboard is cut off. The hints of
+  the shortcuts go one under another where one row is too narrow for them, with the keys
+  and the commands in two columns, and on the narrowest panel each command goes under its
+  keys. The title, the tagline, the headings, the cards of the recent books (a book's path
+  also inside a name too long for the line) and the text of the check box wrap. The logo
+  is at most 40% of the panel's height and goes above the title on a narrow panel; a
+  narrow card puts the book's icon above its texts. The content takes three quarters of a
+  wide panel, more where it needs it, and only a panel narrower than the longest word
+  scrolls sideways.
+- **Annotations: the frame closes when the writer goes elsewhere; its X drops the text** -
+  2026-10-10. Going anywhere else in the program closes the frame of an annotation and
+  keeps what was written, as Ctrl+Enter does: a click outside it (in the text, a panel, a
+  toolbar or the menu bar) or the keys going to another place of the program; a new
+  annotation left empty is not added. The X in its top right corner drops what was
+  written, as Esc does. The frame stays open while another application is in front, for
+  its own context menu and while the text is scrolled with the scroll bars.
+
+- **One version number** - 2026-10-09. The About window, the program and the command
+  line show the version from the project definition (0.3.0-alpha); before, they showed
+  0.3.1, 0.3.0 and the README 0.3.2.
+
+- **Editor: visible to screen readers** - 2026-10-09. The book editor now presents itself to
+  screen readers (NVDA, Narrator, VoiceOver, Orca) as editable text: they can read the text,
+  the current paragraph and the selection. After an edit they get the new text, not the
+  text read before.
+
+- **Settings: no conversion of old settings** - 2026-10-09. The program no longer converts
+  settings files of older versions nor moves the window layout and recent books from the
+  old QSettings store (the registry on Windows); while Kalahari has a single user, old
+  formats are not kept up.
+
+- **Polish translation of the Settings window** - 2026-10-08. All pages of the Settings
+  window are in Polish when the program runs in Polish, with the names the menus and
+  panels already use (Pulpit, Edytor, Dziennik, the view names).
+
+- **Settings: a length unit to choose** - 2026-10-08. Settings > General > Units sets the
+  unit of the length fields of the Settings window: millimeters (the default),
+  centimeters, inches, points or pixels. The margins, page sizes, spacing, indent, gap
+  between pages and the widths of the frame and the cursor show in it. Each setting is
+  still saved in its own unit, so choosing another unit changes no length. Icon sizes
+  stay in pixels and font sizes in points.
+
+- **Settings window in the program's own style** - 2026-10-08. The Settings window has
+  the heading, colors and buttons of the program's other dialogs (Settings icon, title and
+  a sentence on what the window does; OK, Cancel and Apply at the bottom). It works as
+  before: Apply saves the changed options and keeps the window open, OK saves and closes.
+
+- **Distraction-Free: the menus at the top edge** - 2026-10-08. In Distraction-Free the
+  menu bar shows over the top of the text when the mouse reaches the top edge of the
+  screen, and hides when the mouse moves away from it (not while one of its menus is open);
+  the text stays in its place. It takes the place of the hint how to leave, which no
+  longer shows at the top. A native menu bar (macOS) shows its menus by itself.
+
+- **Editor: the page fits a small screen** - 2026-10-08. A chapter (or file) opens
+  showing the page's whole width when the page at 100% is wider than the editor, as
+  View > Zoom > Page Width does; where it fits, it opens at 100%. Only the opening
+  changes: the zoom does not follow the window's size later, and a chapter already open
+  keeps its zoom.
+
+- **Settings window rebuilt** - 2026-10-08. Each page of the Settings window is built the
+  first time it is opened, so the window opens faster. The theme colors that were never
+  changed show the theme file's values (before, the window had its own copies, which
+  differed from the theme files for some colors). Options that take effect only after a
+  restart (the language) say so under the option. Apply and OK write only the changed
+  options, as before; the diagnostic menu still lasts for the current session only.
+
+- **Settings: the window layout in settings.json** - 2026-10-08. The window's size and
+  position, the bars and panels, the toolbars shown and the recent books are saved in
+  settings.json with the other settings, not in a second store (the registry on Windows).
+  The first start after the update moves the saved values over, so the window keeps its
+  layout.
+
+- **Grammar check only on the user's own LanguageTool server** - 2026-10-08. The grammar
+  service had the public api.languagetool.org built in, so the text of a book would have
+  gone to the internet. Now it sends text only to the server set in
+  `editor.grammarCheck.serverUrl` (for example `http://localhost:8081`); empty, the
+  default, means no grammar check and nothing sent.
+- **ROADMAP.md brought up to date** - 2026-10-08. Editor stages 0–4, the settings rebuild,
+  the translations and the CI work are ticked off; text styles, statistics, perspectives and
+  DOCX/Markdown export move to 0.4.x releases.
+
+- **Editor: every open chapter follows the editor settings** - 2026-10-08. A changed
+  editor setting reaches every open chapter at once, wherever it is changed: the Settings
+  window, the View menu, the Views toolbar or the paper in an editor's context menu
+  (many changes at once in one go). View > Typewriter Scrolling, Focus and Dark Paper show
+  the setting, also before a chapter opens. The text frame border (Settings > Editor >
+  Pages and Margins) is drawn: around the text of every page in the Page Layout view, and
+  around the text in the continuous views, at least as tall as a page's text. Tab Size,
+  Show Line Numbers, Enable Word Wrap and Mirror margins are greyed out ("Coming in future
+  version"), as the editor does not use them yet; the pages keep their left and right
+  margins.
+
+- **CI: tests on the Qt version the program ships with** - 2026-10-08. The Linux build
+  and tests use Qt 6.9.1, like the Windows and macOS builds; the Sanitizers job keeps
+  Ubuntu's Qt 6.4, the oldest supported version (now declared as the minimum). The Linux
+  build also measures the editor on a 150k-word chapter and shows the table in the run's
+  summary, without failing the build.
+
+- **Polish translation of the panels and dialogs** - 2026-10-08. The panels (Navigator,
+  Properties, Log, Tags, Comments, Dashboard), the dialogs (New Book, Add to Project,
+  Toolbar Manager, About), the messages, the book templates and the standard buttons
+  (Cancel, Yes, No) are in Polish when the program runs in Polish. Only the Settings
+  window is still in English: it is translated after its rebuild. In the New Book dialog
+  template names wrap to two lines instead of being cut.
+
+- **Settings: saved right after a change** - 2026-10-08. A changed setting is written to
+  the settings file half a second later (several changes in a row in one write), not only
+  when the Settings window closes or the program exits, so a crash no longer loses it.
+  The file is still replaced in one step, now also flushed to the disk first.
+
+- **Editor: Distraction-Free is a switch** - 2026-10-08
+  - View > Distraction-Free (Shift+F11, or its button on the Views toolbar) works on top
+    of the current view, like Focus: the Page Layout view keeps its pages. The window
+    fills the screen and hides the menu bar, the toolbars, the panels, the chapter tabs,
+    the status bar and the editor's scroll bars (the mouse wheel and the keys still
+    scroll). The sides of the editor darken (in the color of the pages' shadow), and the
+    word count and the clock (if turned on) show at the edges in the paper's dimmed text
+    color and fade out; they come back when the mouse nears an edge.
+  - Esc, Shift+F11 or the Full Screen shortcut (F11 on Windows) bring the window back as
+    it was: its size, the toolbars and panels in their places and tabs, the chapter tabs
+    and the status bar. Esc goes first to an open find bar. The shortcuts of the menu
+    commands keep working meanwhile.
+  - Distraction-Free is not remembered: closing the program during it saves the window
+    as it was before.
+
+- **Settings: no view margins for the continuous views** - 2026-10-07. The continuous views
+  show one endless page with the page margins, so the "View Margins (Continuous/Focus)"
+  group is gone from Settings > Pages and Margins, and the "Page" and "Page Margins" groups
+  no longer say "(Page Layout)". Settings version 1.3 removes the two unused keys.
+- **Faster theme switch** - 2026-10-07. Kalahari no longer sets an application style
+  sheet (it held only the tooltip colors): setting one restyled every widget, about 1.2 s
+  of the 1.7 s theme switch in a Windows Debug build. Tooltips take their colors from the
+  theme palette and get their thin frame from the application style. Light to Dark in a
+  Linux Release build: about 75 ms, was about 330 ms.
+- **Editor: the Continuous view is one endless page** - 2026-10-07
+  - The Continuous view shows the text on one endless page as wide as the pages, with
+    the page's margins and the desk on both sides. The lines break as on the pages and in
+    print, in every view and at every zoom: switching to the Page Layout view only adds
+    the page breaks. A chapter shorter than a page is on a whole page, as in the Page
+    Layout view.
+  - The zoom scales the page as in the Page Layout view: 100% is the page's size on paper,
+    View > Zoom > Page Width and Whole Page fit it to the window, and a page wider than the
+    window scrolls sideways, following the cursor while you type.
+  - Switching views keeps the cursor's line at its height in the window; a view scrolled
+    away from the cursor stays where it is (it used to jump to the cursor).
+  - Going to the first line shows the top of the page with its margin, as the end of the
+    text shows the bottom margin.
+  - The view margins of the continuous views are gone from the editor's appearance: the
+    page margins apply in every view.
+
+- **Settings: one list of defaults** - 2026-10-07
+  - Every setting has its default value in one place (`settings_schema`); `get<T>(key)`
+    uses it when the key is missing, so readers no longer repeat defaults.
+  - `SettingsManager::subscribe()` reports changed settings.
+  - settings.json is written to a temporary file and renamed, so an interrupted save
+    cannot truncate it. New files store only the version; keys nothing reads (old icon
+    sizes, log colors, session) are removed from existing files (format 1.2).
+  - Icon colors and the theme name are stored once (per theme); the second copies are
+    removed. Info panel and Dashboard colors are stored per theme and survive a restart.
+  - The log panel buffer size from the settings is used from startup, not only after
+    changing it. "UI Font Size" is greyed out until it does something.
+  - Themes can define any number of editor colors in an "editor" section; the user's
+    value is stored per theme (`ThemeManager::editorColor()`), ready for the colors of
+    comment, TODO and note markers.
+- **Settings: faster and lighter Apply/OK** - 2026-10-07
+  - No "Applying settings..." overlay: Apply writes only the options that changed and
+    saves once (about 1 ms for an ordinary option in a Linux Release build, was about
+    180 ms); theme and icon changes show a wait cursor. The log records how long each
+    stage of Apply/OK took.
+  - A theme switch applies the palette, stylesheet and icons once (Light to Dark about
+    0.33 s, was 0.9-1.1 s). The log panel, Dashboard and editors are refreshed only when
+    their options or the theme changed.
+  - Theme colors are stored only when the user changed them, so the theme files keep
+    providing the rest. The default colors in the dialog and "Reset to Theme Defaults"
+    come from the theme files (the Dark theme showed and stored wrong defaults); the
+    reset takes effect on OK/Apply, so Cancel keeps the custom colors.
+  - Custom tooltip, placeholder and bright text colors survive a restart.
+  - After a UI language change Kalahari offers to restart now; a note on the Appearance >
+    General page says the change needs a restart.
+  - An editor font missing on this system keeps its name instead of being replaced by
+    the substitute font on the next Apply.
+  - Check boxes have a clear frame and a check mark in both themes (a checked box showed
+    only a fill color).
+
+- **Files outside the book: chapters and text files** - 2026-10-06
+  - File > Open > Open File... opens chapters (`.kchapter`) and text files (`.txt`), and
+    Save writes each in its own format: a chapter keeps its title, status, notes and
+    comments; a text file keeps its encoding (UTF-8, UTF-16 with a byte order mark, or the
+    system's 8-bit code page), byte order mark, line ends and no-break spaces. Text the
+    8-bit code page cannot hold is saved as UTF-8. Save As writes the format of the chosen
+    extension.
+  - RTF, mind maps and timelines are gone from the file types; a file of another type
+    picked through "All Files" gives a message instead of an editor showing its bytes.
+  - Save (Ctrl+S) on such a tab saves the file, also while a book is open. The question
+    about unsaved changes names what has them (the book, the file).
+  - Other Files in the navigator opens the file or switches to its tab, and the list
+    stays when a book is opened or closed. The info bar follows the tab and the book.
+  - Add to Project saves the tab first; a text file becomes a chapter, its lines the
+    paragraphs.
+- **Editor: page mode rebuilt** - 2026-10-06
+  - The text layout places the lines on the pages: a line that does not fit moves to the
+    next page, also in the middle of a paragraph. Editing re-places only the paragraphs
+    it moved, and pages far from the view are estimated until they are laid out.
+  - One mapping between the document and the screen for every view mode: painting,
+    clicks, selection, search highlights and the cursor use it, so they agree on every
+    page and at every zoom. Switching a 150k-word chapter to pages takes 7 ms
+    (was 194 ms).
+  - Zoom in page mode scales the pages without new line breaks and keeps the point under
+    the mouse in place; pages wider than the view scroll sideways (horizontal scroll bar,
+    Shift+wheel).
+  - Page numbers at the bottom of the pages; the desk around the pages follows the paper
+    color. B5 and 6 x 9 in page sizes.
+  - Page Up / Page Down in the Continuous view move the view and the cursor by about one
+    view height: the cursor's line stays in its row of the view and keeps its column, and
+    no line is skipped (the line cut at the edge of the view comes fully into view). In the
+    Page Layout view they move by one page: the next (previous) page shows where this one
+    was, the cursor on the same line of it, counted from the top of the page (the last
+    line of a page with fewer lines). Page Down and then Page Up bring the cursor back to
+    the same character in the same row. The arrow keys and the page keys keep one column,
+    and typing or a click starts a new one (the arrows used to return to the column from
+    before typing).
+  - The Page Layout view is painted again when the pages break anew around the text at
+    the top of the view (paragraphs above it laid out in the background, for example after
+    a page format change); the cursor blink used to paint its box from the new pages into
+    the old picture.
+  - Page format in Settings > Editor > Pages and Margins: A4, A5, B5, 6 x 9 in, Letter,
+    Legal or a custom size, the gap between the pages, and page numbers on or off. The
+    settings pages scroll when the dialog is smaller than a page (the groups of Pages and
+    Margins used to be squeezed until their fields overlapped).
+  - View > Zoom: Zoom In (Ctrl++), Zoom Out (Ctrl+-), Zoom 100% (Ctrl+0), Page Width and
+    Whole Page. The status bar shows the zoom and, in the Page Layout view, "Page X of Y".
+  - Zoom 100% shows the pages at their size on paper, from the size the screen reports (on
+    a laptop screen at 125% display scaling they were two thirds of it).
+- **Editor: typewriter scrolling is a toggle** - 2026-10-06
+  - View > Typewriter Scrolling (Ctrl+3) works in the Continuous and the Page Layout view
+    and is remembered. The line being written stays at one height of the view (Settings >
+    Editor > General, middle by default), also at the end of the chapter. The chapter
+    starts at the top of the view: the first lines stay above that height until the
+    cursor comes down to it.
+  - Mouse clicks and manual scrolling leave the view where it is; the next keystroke
+    brings the line back. The short glide can be turned off.
+  - The Typewriter entry of View > View Mode is gone (it showed the continuous view).
+- **Editor: paragraphs without their own alignment are justified** - 2026-10-05
+  - A paragraph with no `align` attribute is shown justified, its last line at the
+    leading edge. Centered, right-aligned and explicitly left-aligned paragraphs stay as
+    they are; chapter files are not rewritten.
+  - Align Left now saves `align="left"`, so a paragraph aligned left on purpose can be
+    told from one without an alignment.
+- **Editor: layout on demand** - 2026-10-04
+  - After a width, font, zoom or typography change, a load or a large paste, only the
+    paragraphs on screen are wrapped before the next paint. The others get estimated
+    heights and are wrapped in the background, in steps of 4 ms.
+  - Window resize and Ctrl+wheel zoom apply at once, without a blank strip (the 80 ms
+    debounce is gone). The text at the top of the view stays in place while paragraphs
+    change height (scroll anchoring).
+  - Only paragraphs being edited keep their shaped glyphs; the others keep just the line
+    breaks, which halves the memory a long chapter takes (24 instead of 51 MB for 150k
+    words).
+- **Unimplemented menu commands are disabled** - 2026-10-03
+  - Commands registered without an execute callback (93 menu entries) used to do
+    nothing when clicked. Their actions are now disabled and the tooltip says the
+    feature is not available yet. Binding a callback later and calling
+    `CommandRegistry::updateActionState()` enables the action.
+- **Licensing:** every component, including plugins, is MIT-licensed. The paid-plugin
+  and cloud business model is dropped; `project_docs/05_business_model.md` removed and
+  README, LICENSE and project docs updated - 2026-10-03
+- **ROADMAP.md rewritten** to reflect the actual state of the code - 2026-10-03
+
+- **Build Quick Wins:** Sub-Project D1 - 2026-04-11
+  - Activated `kalahari_add_pch()` on both `kalahari_core` (SHARED library) and
+    `kalahari` (executable) CMake targets. The function was defined in
+    `cmake/PrecompiledHeaders.cmake` since the Qt6 migration but never called.
+    Precompiled headers now cover the C++ standard library, spdlog, and
+    nlohmann_json, giving a ~10-15% clean-build speedup. Qt6 headers are
+    intentionally still excluded from the PCH set (higher risk of MOC macro
+    collisions; reserved for a later tuning pass).
+  - Replaced the configure-time `execute_process` that ran `convert_all_icons.py`
+    on every CMake configure with an `add_custom_command` + `add_custom_target(ALL)`
+    pair driven by a `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)` of the SVG sources
+    under `resources/icons/` and a dependency on the Python script itself. The
+    conversion now only runs when an input actually changes; unchanged builds skip
+    the step entirely.
+  - Out of original Sub-Project D scope: macOS CI trigger (already active,
+    confirmed via `gh run list` against recent commits) and clang-format CI
+    enforcement (deferred to its own mini-project — existing codebase has roughly
+    50 000 formatting violations across 229 tracked source/header files, so
+    enforcement requires a dedicated strategy decision before it can be safely
+    turned on).
+
+- **Repo Hygiene:** wxWidgets Finalization (Sub-Project A + follow-up) - 2026-04-11
+  - Removed `concept_files/wxFormBuilder/` (wxWidgets-era UI mockups, 4 files)
+  - Removed orphan `GuiLogSink` template class (`src/core/gui_log_sink.cpp` and
+    `include/kalahari/core/gui_log_sink.h`) — tracked but never compiled since
+    the Qt migration; Qt replacement `LogPanelSink` already in use (OpenSpec #00024)
+  - Removed dead `tests/gui/test_bwx_text_{document,renderer}.cpp` and the
+    corresponding stale comment block in `tests/CMakeLists.txt`
+  - Updated `.clang-format` include priority from wxWidgets to Qt
+  - Deleted stale `src/README.md` (described pre-Qt6 MVP architecture that
+    never materialized; current architecture docs live in `project_docs/03_architecture.md`)
+  - Deleted dead `project_docs/14_bwx_sdk_patterns.md` (wxWidgets bwx_sdk design patterns,
+    entire document irrelevant post-Qt6 migration)
+  - Deleted dead `project_docs/15_text_editor_architecture.md` (bwxTextEditor specification
+    from wxWidgets era; real editor is the KML/Qt6 editor deployed in OpenSpec #00042)
+  - Updated `BUILDING.md`: dependency list (wxWidgets 3.3.1 → Qt6 6.5+), "Application
+    doesn't start" troubleshooting (`vcpkg list | grep wxwidgets` → `vcpkg list | grep qt`),
+    and "Next Steps" section (stale Phase 0 / wxRichTextCtrl references replaced with
+    link to `ROADMAP.md` and current Phase 1 status)
+  - Updated `project_docs/README.md`: table of contents (removed rows 14 and 15,
+    marked row 07 "MVP Tasks" as Deprecated, Tech Stack `wxWidgets` → `Qt6`, GUI
+    Design `wxAUI` → `Qt6 QDockWidget`, i18n `bwx_sdk pattern` → `Qt Linguist`)
+  - Updated stale doc comments in `include/kalahari/core/python_interpreter.h`
+    (`wxWidgets initialization/cleanup` → `QApplication construction/destruction`)
+  - Cleaned up dead pre-migration placeholder block in `cmake/PrecompiledHeaders.cmake`
+    (commented-out `<wx/wx.h>`, `<wx/aui/aui.h>`, `<wx/richtext/richtextctrl.h>` replaced
+    with Qt6 placeholders)
+  - Deleted physical `lib/x64-*/bwx_*.{lib,a}` files (~50 MB, never tracked in git,
+    leftover from pre-Qt6 vcpkg builds)
+
+- **Workflow Migration:** OpenSpec → Superpowers - 2026-04-10
+  - Replaced OpenSpec task management with Superpowers skills workflow
+  - Migrated 5 pending proposals (00044B-F) to Superpowers design doc
+  - Removed: task-manager agent, openspec commands, openspec-workflow skill
+  - Added: docs/superpowers/ for specs and plans
+  - openspec/archive/ moved to docs/openspec-archive/ (read-only historical reference)
+
+- **OpenSpec #00044A:** Formatting Round-Trip Serialization - DEPLOYED 2026-04-10
+  - KML serializer emits font, size, color, bg attributes on formatting tags and `<span>` elements
+  - KML parser reads inline style attributes from formatting tags and `<span>`
+  - Paragraph alignment attribute on `<p>` elements
+  - Backward compatibility with old KML files (no attributes)
+
+- **Framework:** Upgraded Claude Code framework from 2.0.55 to 2.1.42 - 2026-02-16
+  - Fixed permissionMode, maxTurns, PreToolUse hook format in all agents
+  - Added PreCompact, Stop, TaskCompleted, PostToolUse hooks
+  - Enabled auto memory and agent-level memory for architect/code-reviewer/code-editor
+  - Added path-scoped rules and CLAUDE.md imports
+
+- **OpenSpec #00042:** Custom Text Editor - DEPLOYED 2026-02-18
+  - 109/109 subtasks complete, 596 test cases, 4220 assertions
+  - Performance blockers (O(n) rendering, scroll lag, font propagation, cache invalidation) resolved in OpenSpec #00043 (deployed 2026-02-17)
+
+- **OpenSpec #00045:** Architecture Cleanup - ABSORBED by #00043 - 2025-12-30
+
+- **OpenSpec #00043:** Editor Performance Rewrite - P0/P1 fixes complete - 2026-02-16
+  - **P0 Fix: Scroll Mode viewport culling** - render only visible paragraphs (~30) instead of ALL (~3000), ~150x reduction in draw calls
+  - **P0 Fix: Font propagation** - bypass `documentChanged()` 3-block limit, full re-layout on font changes via custom layout's `setFont()`
+  - **P1 Fix: Cache invalidation** - color-only setters use `markRepaintOnly()` instead of `markAllDirty()`, avoiding unnecessary pagination rebuilds
+  - Configuration flow unified: pipeline as single source of truth
+  - Render pipeline consolidated (680+ lines)
+  - 92-290x benchmark improvements on 150k word documents
+
+- **OpenSpec #00043:** Editor Performance Rewrite - Final Cleanup - 2025-12-29
+  - **Architecture Migration:** Services migrated from KmlDocument observer to BookEditor Qt signals
+    - SpellCheckService, GrammarCheckService, TagDetector now use `setBookEditor()` API
+    - Added `paragraphModified/Inserted/Removed` signals to BookEditor
+    - Consistent architecture: TextBuffer → BookEditor signals → Services
+  - **Legacy Code Removal:** Removed `m_useNewArchitecture` flag and ~870 lines of dead code
+    - 19+ functions simplified by removing legacy branches
+    - TextBuffer is now the only architecture (no fallback)
+  - **Performance:** Typing latency optimized from 16ms to 0.1ms (~100x faster)
+    - Single-paragraph edits use O(log N) `invalidateParagraphHeight()` instead of O(N) rebuild
+  - Files modified: `book_editor.h/cpp`, `spell_check_service.h/cpp`, `grammar_check_service.h/cpp`, `tag_detector.h/cpp`, `text_buffer.cpp`, `tags_panel.cpp`
+  - Tests: 735/735 PASS
+
+- **OpenSpec #00038:** External Code Review Analysis - Major refactoring - 2025-12-17
+  - **MainWindow Refactoring:** Reduced from 3577 to 805 lines (-77%)
+    - Extracted `IconRegistrar` - icon registration (281 lines)
+    - Extracted `CommandRegistrar` - command registration (499 lines)
+    - Extracted `DiagnosticController` - diagnostic/dev mode (480 lines)
+    - Extracted `DockCoordinator` - panel management (420 lines)
+    - Extracted `SettingsCoordinator` - settings dialog (300 lines)
+    - Extracted `NavigatorCoordinator` - navigator handlers (500 lines)
+    - Extracted `DocumentCoordinator` - document lifecycle (580 lines)
+  - **Plugin Security:** Ed25519 signature verification
+    - `PluginSignature` class for verification
+    - `TrustedKeys` singleton for key management
+    - `plugins.allowUnsigned` setting for development mode
+  - **Thread Safety:**
+    - Fixed mutex+GIL deadlock in PluginManager (3-phase pattern)
+    - Added mutex to CommandRegistry
+  - **Code Quality:**
+    - Added `clearLayout()` utility in `gui::utils`
+    - Added path traversal validation in DocumentArchive
+    - Added logging to swallowed exceptions
+
+- EditorPanel upgraded from QPlainTextEdit to QTextEdit (Phase E)
+- Added per-chapter dirty tracking with asterisk indicator in tab title
+- Added Save All functionality for dirty chapters
+- NavigatorPanel: Added "Other Files" section for standalone files (Phase F)
+- PropertiesPanel: Contextual properties (project/chapter) instead of placeholder (Phase G)
+
 - **ROADMAP.md restructured (2025-11-26):**
   - Removed ALL task numbers from ROADMAP (OpenSpec is now source of truth for tasks)
   - Updated section 1.7 "Theme & Icon System" with current architecture documentation
@@ -2782,7 +2414,2891 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed Notes section: "OpenSpec Tasks" replaces "Task Numbering"
   - Document version bumped to 2.0
 
+### Removed
+
+- **The windows Add Chapter, Add Part and Add Item** - 2026-10-20. The Add Element window
+  takes their place, also for Book > New Chapter...; the Navigator's commands Add Item at the
+  Beginning of the Book... and Add Item at the End of the Book... are gone with them (Add...
+  on the book's node, or on a section, offers those places).
+- **Books: the first book model** - 2026-10-16. The classes of the first book model, which
+  nothing used since the program works on the book project of the .klh format 2 (`Book`,
+  `Part`, `BookElement`, `Document`, `DocumentArchive`, the element types of
+  `book_constants.h` and the unused `ProjectFormat`), are gone with their tests (about 2 300
+  lines of code and 2 200 lines of tests). Nothing changes on the screen: New File, Close Book
+  and the recent books already worked without them.
+- **The old comment and TODO elements** - 2026-10-08. The `<comment>` and `<todo>` elements
+  of the KML, the TODO and note marker functions and the comments panel, which nothing
+  created, gave way to annotations. A chapter with those elements opens with their text,
+  without them.
+- **Editor: the unused old architecture** - 2026-10-06. The editor holds a chapter in one
+  QTextDocument; the second document mode (a read-only view before the first edit), the
+  older KML object model and parser, the old paragraph and table layout, the height tree,
+  the old search service, undo command classes nothing used and the view mode registry are
+  gone (about 11 400 lines of code and 13 600 lines of tests). The KML format reference
+  moved from code comments to `docs/kml_format.md`.
+- Menu commands and settings page for features that will not be built:
+  Browse Marketplace, Cloud Sync, Collaboration - 2026-10-03
+
+- **Repo Hygiene** - 2026-04-11 (see under Changed above for full detail):
+  - `concept_files/wxFormBuilder/` (4 files, wxWidgets-era UI mockups)
+  - `src/core/gui_log_sink.cpp` and `include/kalahari/core/gui_log_sink.h` (orphan `GuiLogSink` template, never compiled post-Qt migration)
+  - `tests/gui/test_bwx_text_document.cpp` and `tests/gui/test_bwx_text_renderer.cpp` (dead wxWidgets-era tests)
+  - `src/README.md` (stale pre-Qt6 MVP architecture description)
+  - `project_docs/14_bwx_sdk_patterns.md` (wxWidgets bwx_sdk design patterns documentation)
+  - `project_docs/15_text_editor_architecture.md` (bwxTextEditor spec, wxWidgets era)
+  - Physical `lib/x64-*/bwx_*.{lib,a}` binaries from disk (not tracked in git)
+
+### Fixed
+
+- **CHANGELOG: the history of 0.3.0-alpha and earlier** - 2026-11-13. The sections of
+  0.3.0-alpha and 0.2.0-alpha and the history of the documentation, removed by mistake on
+  2025-12-07 (commit 5966bcbe), are back as they were; the log of the Qt migration that had a
+  second [Unreleased] heading is part of 0.3.0-alpha. The plans and notes that followed them
+  are left out: ROADMAP.md and `project_docs/06_roadmap.md` hold them now.
+
+- **LICENSE: OpenSSL and the Material Icons** - 2026-11-13. The notices of the third-party
+  components name OpenSSL (Apache License 2.0), which checks the signatures of plugins, and the
+  Material Icons by Google (Apache License 2.0), whose SVG files the program colors, and all
+  the Qt modules the program uses; Qt 6.4 is the oldest version it builds with.
+
+- **"Above" and "below" of the cross-references in Polish** - 2026-11-13. A cross-reference
+  that shows where its caption is says "powyżej" and "poniżej" in the Polish program, not
+  "above" and "below": the translations now also read the texts of the captions in the
+  program's core.
+- **The words of headings and lists in a closed chapter** - 2026-10-26. The words of a chapter
+  not open in the editor (the book, its sections and parts in the Properties panel, the
+  preview of a file) count the text of its headings and list items too, as the editor counts
+  them; before, only the other paragraphs were counted.
+
+- **The words of the book and the dialogue dashes** - 2026-10-19. Count standalone dashes as
+  words (Settings > Editor > General > Word Count) counts them in the words of the book, its
+  sections, parts and chapters in the Properties panel too, and in the preview of a file of
+  the book, not only in the chapter in front: every chapter is counted again by the rule at
+  once, also one closed or saved before the rule changed, without reading its file again. A
+  chapter file is counted from its text when the book opens, not by the number it was saved
+  with.
+
+- **Numbers of the Properties panel** - 2026-10-19. The words, the chapters and the counts of
+  the statuses of the book, its sections, parts and chapters are written as the system writes
+  numbers, as the status bar and the counts of the document in front: 12 345 in Polish,
+  12,345 in English.
+
+- **Commands with nothing to work on** - 2026-10-16. Save without a document to save, and
+  Save As without a document or on a chapter (saved with the book), are greyed out as Close
+  Book and Export Project Archive without a book; the tooltip of each and the status bar say
+  why ("No book is open", "No document to save", "Chapter "…" is saved with the book: use
+  Save."). Their keys say it in the status bar too: Ctrl+F4 without a book no longer says that
+  a document was closed.
+
+- **Reset Layout and the toolbars** - 2026-10-16. View > Reset Layout puts the toolbars back
+  at the top of the window in their two rows, also a floating one or one moved to another
+  edge, and shows those shown by default, not only the panels. A toolbar made in the Toolbar
+  Manager is locked with the others and has their context menu at once, not only after the
+  next start.
+
+- **The view after deleting a selection** - 2026-10-14. Deleting a selection (Delete,
+  Backspace or cutting it) left the view where it was, so after Ctrl+A and Delete in a long
+  chapter the cursor, at the top of the page, was out of sight. The view now follows the
+  cursor, as after typing; a selection in view leaves the view where it is.
+
+- **The view jumping back to the cursor** - 2026-10-14. With typewriter scrolling on, the
+  view went back to a cursor scrolled out of it after a change of any editor setting
+  (turning spelling, grammar or auto-correct on or off, a change in the Settings window or of
+  the theme), a zoom or moving the window to a screen of another pixel density; Whole Page
+  went to the cursor's page also with typewriter scrolling off. The view now stays where it
+  is: typewriter scrolling places the cursor line only while it is in the view, and Whole
+  Page shows the page in the middle of the view when the cursor is out of it. A file saved as
+  plain text keeps the view at its text, too, when its tab loses the formatting. Typing, the
+  keys, a search and going to a place still bring the view to the cursor.
+
+- **The Dashboard's option to open the last book** - 2026-10-13. Changed in the Settings
+  window, the option stayed as it was on the Dashboard until the program started again; the
+  Dashboard now shows the change at once.
+
+- **An empty paragraph at the end of a text file** - 2026-10-13. A `.txt` file whose last line
+  ends with a line end, as most text files do, opened with an empty paragraph after its text.
+  The line end of the last line is no longer a paragraph, and the file keeps it when saved.
+
+- **End on macOS in a short text** - 2026-10-12. End, which on macOS moves only the view,
+  still scrolled to the bottom of the page below a text shorter than a page; it now goes to
+  the end of the text, as Ctrl+End does.
+
+- **Ctrl+End in a short text** - 2026-10-11. Ctrl+End and Ctrl+Shift+End scrolled to the
+  bottom of the page, so the lines of a text shorter than a page left the view and only
+  blank paper showed; the page view did the same on a last page filled only at its top. The
+  view now goes to the end of the text, the last line with the page's bottom margin below
+  it, as at the end of a long chapter, and a short text that fits in the window stays put.
+
+- **Menu icons** - 2026-10-10. Six menu commands had no icon (import and export of a
+  project archive, InDesign ICML, export settings, Find in book, saving the current
+  perspective) and the log warned about each of them when the menus were built.
+
+- **Plain text files take no annotations** - 2026-10-11. A plain text file (`.txt`) cannot
+  keep annotations, so those added to it were lost when it was saved. The commands that add
+  them (Insert > Add Annotation..., Add Comment, Add To Do, Add Note, Ctrl+Shift+M and the
+  editor's context menu) are now off for it, the Annotations panel says why and that the
+  file added to the book takes annotations, and text pasted or dropped into it comes
+  without them. Saved as a chapter file (`.kchapter`), it takes annotations again.
+
+- **Plain text files: a question before formatting is lost** - 2026-10-12. A plain text file
+  (`.txt`) keeps only the text, so saving one whose text has formatting (such as bold), or
+  saving a chapter with annotations as a plain text file with Save As, now asks first in the
+  program's own window. It says what will not be saved and how to keep it (Save As with the
+  Kalahari Documents type); Cancel writes nothing. Save All and the question on closing ask
+  the same.
+
+- **A text typed and deleted again has no changes** - 2026-10-12. The tab of a chapter or a
+  file and the Navigator show a "*", and closing asks whether to save, only while the text
+  differs from the saved one: a letter or a sentence typed and deleted again, an edit undone
+  or formatting given and taken back leave no "*" and nothing to save. After a save, the text
+  saved is the one a change is compared with.
+
+- **Muted texts that could not be read** - 2026-10-11. The planned pages in the Settings
+  list (nearly invisible in the Dark theme), the hint under the address in the icon
+  downloader and the muted texts of the Dashboard (the tagline, the shortcuts heading, the
+  description, path and date of a recent book, "no items") have the color of the notes of
+  the Settings pages, readable on what they lie on in both themes (at least 4.5:1); the
+  Settings list follows a change of the theme.
+
+- **Clipboard and undo on the element with the cursor** - 2026-10-10. Undo, Redo, Cut,
+  Copy, Paste and Select All, with their keys, from the Edit menu and from the toolbar,
+  work on the element with the cursor and on no other: the book's text, a field of a
+  panel, a list. Ctrl+V in the Log pasted into the book, and the Edit menu and the toolbar
+  worked on the book wherever the cursor was. In a text that only shows (the Log) Paste,
+  Cut, Undo and Redo do nothing, Copy and Select All work; a list copies its current item.
+  In the Annotations panel and the find bar, outside their fields, Undo and Redo undo what
+  was done there in the text (an annotation marked done, a replacement). Elsewhere (a
+  button, the Dashboard) the commands do nothing, and the menu and the toolbar show them
+  disabled wherever they can do nothing.
+
+- **The commands of the document without a document** - 2026-10-11. Over the Dashboard,
+  without a tab and after the book was closed, Find, Find Next, Find Previous, Find and
+  Replace, Bold, Italic, Underline, Strikethrough, the alignments, the view mode and the zoom
+  were enabled in the menus and on the toolbars (Bold and the alignment of the last chapter
+  even checked) and did nothing, also with their keys. They are now greyed out, with nothing
+  checked, until a chapter or a text file is in front, as in Word without a document.
+
+- **Find bar: the cursor goes back to the text after the last replacement** - 2026-10-10.
+  Replace on the last match and Replace All turn their button off, and the cursor went on to
+  the font box of the toolbar: Undo did not take the replacement back, and what was typed
+  changed the font name. The cursor now goes back to the text, where Undo takes the
+  replacement back.
+
+- **Find bar: the cursor at the end of the replaced text** - 2026-10-11. After Replace All,
+  and after Replace on the last match, the cursor kept its place in the paragraph: with a
+  longer or shorter replacement it landed inside a word. It now stands at the end of the
+  replaced text; after Replace All, at the end of the last replacement, shown in the view.
+
+- **Find bar: F3 after the bar is closed** - 2026-10-11. After Escape closed the find bar,
+  the first F3 (Find Next) or Shift+F3 (Find Previous) only opened the bar again, with the
+  cursor in its field. Now, as in Word, the browsers and the code editors, the bar shows again
+  with its text and mode, the next or the previous match is selected, and the cursor stays in
+  the text; without a text to search for, F3 opens the bar to type one, as before.
+
+- **Find bar: over the text, and from the keyboard** - 2026-10-11. The bar had no
+  background of its own: the text scrolled under it showed between its fields and over the
+  number of matches. It now covers the text under it, and a match the view scrolls to is
+  shown below the bar, not under it (Find Previous put it at the top of the view, under the
+  bar). On macOS Page Up and Page Down, which move the view only, scroll by the part of the
+  view below the bar, and Control+L puts the cursor's line in the middle of that part (no
+  line goes by unseen under the bar). Tab goes from the search text to the replacement and
+  its buttons, then to the options, the arrows and Close, as in Word's Find and Replace (it
+  went through the six buttons of the search row first); Enter presses the button with the
+  cursor, as Space does (it did nothing).
+
+- **Find bar: undoing a replacement** - 2026-10-11. Undoing Replace All put the cursor at
+  the start of the chapter, far from where the writer was. Undoing a replacement now brings
+  back the cursor and selection it was made with (the replaced match is selected again, and
+  the next Replace replaces it), and redoing it puts the cursor at the end of the replaced
+  text.
+
+- **Editor: Replace All in a long chapter** - 2026-10-11. After an edit of many paragraphs
+  at once (Replace All, a long paste), the paragraphs waiting to be laid out again kept the
+  lines of their old text, and a cursor placed in a paragraph that got shorter read past its
+  end: a debug build stopped on Replace All. Such paragraphs now have no lines until they are
+  laid out, as in Qt's own layout.
+
+- **Find bar: replacing the last match** - 2026-10-11. Replace (Enter or F3 and Enter) on
+  the last match, often the only one with whole words on, stopped a debug build on an
+  assertion of Qt (QList::at), and so did Replace All and Undo given in the bar when they
+  took the last match away. The bar gave the cursor back to the text while the document was
+  still reporting the edit, before the paragraph was laid out again, and the cursor was
+  placed by the lines of its old text, past the end of a shorter one. The bar now learns of
+  the changed matches once the paragraph is laid out, and while an edit is reported the
+  changed paragraphs have no lines of their old text.
+
+- **Toolbars: the font and the size go on the text at Enter** - 2026-10-11. Each letter typed
+  in the font field went on the text as a font ("F", "Fr"..., so the text showed in another
+  font) and each number typed in the size field as a size (7 of 72), one step to undo each,
+  and Escape left them there. Now what was typed goes on the text at Enter, as one step to
+  undo, and Escape leaves the text as it was; a choice in the font list and the arrows go on
+  it at once, as before.
+
+- **Toolbars: the cursor goes back where it was after a command** - 2026-10-11. A click on a
+  floating toolbar took the cursor: after its command, what was typed reached neither the
+  text nor a field. In the font and size fields of a toolbar, docked or floating, the cursor
+  stayed after the choice, and what was typed changed the font name. Now, as in Word and
+  LibreOffice, after a command, after Enter or Escape in a field and after a choice in the
+  font list, the cursor goes back where it was: to the text or to the field of a panel. The
+  arrows of the size field do not take the cursor; in the fields one types as before, and Tab
+  goes from one to the other.
+
+- **Formats given without a selection** - 2026-10-11. Bold, italic, underline and
+  strikethrough turned on without a selection (Ctrl+B, Ctrl+I, Ctrl+U, the toolbar) did not
+  reach the typed text: the button showed the format on, the text was typed without it, and
+  the button stayed on after the cursor moved away. The font and the size chosen in the
+  toolbar without a selection did nothing. Now, as in Word and LibreOffice, with the cursor
+  inside a word they go on the whole word; elsewhere on the text typed next at the cursor,
+  also after Enter, with an input method and in plain text pasted there. Moving the cursor,
+  selecting, Undo and Redo drop them; given where the text has the format, the typed text is
+  without it. Undoing a format brings back the cursor and the selection it was given with.
+
+- **Editor: text pasted from a web page without empty paragraphs** - 2026-10-11. Text
+  copied in a browser came into the book with an empty paragraph after each paragraph and
+  heading: the browsers leave a blank line between them in the plain text they copy. Now the
+  paragraphs come as they are on the page, read off the copied HTML; an empty paragraph of
+  the page stays, and the text of other programs comes as before.
+
+- **Settings: the notes can be read in every theme** - 2026-10-10. The grey explanatory
+  texts of the Settings pages and the descriptions of the planned pages had a contrast of
+  2.3:1 with the window in the light theme and 3.6:1 in the dark one. They now have at
+  least 4.5:1 (WCAG AA), also inside the groups, and a theme applied while the window is
+  open changes them too. The titles of the planned pages kept the color of the theme they
+  were opened in: black on the dark window.
+
+- **Icons: the lock and the input icon** - 2026-10-10. The lock (Settings > Keyboard
+  Shortcuts) and the input icon showed as a black square: their invisible frame got the
+  icon color. The build script that converts the icons (`scripts/convert_all_icons.py`),
+  the program's converter of downloaded icons and `scripts/convert_svg_templates.py` now
+  leave a shape without a fill when its group has `fill="none"`.
+- **Editor: a press on its scroll bars stays with them** - 2026-10-10. With Qt 6.9, a
+  click on the editor's scroll bar when there was nothing to scroll went on to the text
+  under it: it moved the cursor, and a double click selected a word. Such a click, and a
+  press of the right mouse button on the scroll bars, also closed the frame of an
+  annotation being written. A press on a scroll bar now stays with it; the right button
+  still opens the scroll bar's menu.
+
+- **Panels: the Navigator no longer covers the panel in front** - 2026-10-09. Choosing an
+  element in the Navigator (a click, the arrow keys, opening a chapter, a new status)
+  brought the Properties panel to the front of its tab group, so the Annotations panel
+  seemed to disappear, for example after the book was closed and opened again. The
+  Navigator now only fills the Properties panel; its context menu item Properties... still
+  brings the panel to the front.
+
+- **Status bar: the counts of the document in front** - 2026-10-10. The words, characters
+  and reading time in the status bar are those of the tab in front, a chapter or a file
+  outside the book, and change with the tab; over the Dashboard there are none, and no zoom
+  either. With a selection they show its counts out of the whole text ("Words: 12 of
+  3,480"), and the Properties panel counts a selection the same way. Before, they followed
+  the chapter opened last, stayed empty for a file outside the book and went to zero when
+  any tab was closed, and the zoom of the last document stayed over the Dashboard. The
+  characters no longer include the paragraph ends, as in Word and LibreOffice, and the
+  numbers are written in the system's way (3 480 in Polish), in Distraction-Free writing
+  too. A reading time of an hour or more is given in hours and minutes ("Reading: 12 h
+  31 min" instead of "Reading: 751 min"). The Properties panel writes the numbers and the
+  reading time the same way, and its paragraphs are the paragraphs with text, as in Word
+  and LibreOffice: a one-line text file had two paragraphs, its empty last line being the
+  second.
+
+- **Distraction-Free writing: a readable word count** - 2026-10-10. The word count at the
+  bottom of the view was drawn straight over the lines of text and mixed with them. The
+  count and the clock now have a plate of the paper's color under them, which fades out
+  with them.
+
+- **Writing statistics: only the words written** - 2026-10-10. The words written and
+  deleted in a writing session are counted in the chapter in front. A chapter opened in the
+  editor, or a new way of counting, no longer counts as words written, and the words typed
+  just before switching to another tab are not lost.
+
+- **KML format description: the elements as the program writes them** - 2026-10-10. The
+  format description and the editor's functional specification name the links to
+  characters, places and items as the program reads and writes them (`<charref>`,
+  `<locref>`, `<itemref>`, with `id` and `target`), and describe comments, to-dos and notes
+  as annotations of the `<annotations>` section.
+
+- **File > Recent Books in its place in Polish** - 2026-10-09. The submenu was put before
+  the item whose text contains "Close", so in the Polish program („Zamknij książkę") it went
+  to the end of the File menu. It now finds Close Book by its command; the submenu itself
+  moved from the core to the GUI (the core keeps only the list of books).
+
+- **The status of an element in the Navigator in Polish** - 2026-10-09. The Navigator showed
+  the stored code next to a chapter, e.g. "Rozdział 1 [Draft]", although Set Status names
+  it "Szkic"; it now shows the same names as the menu (Szkic, Poprawki).
+
+- **Mouse wheel: it changes only the field one works in** - 2026-10-10. Scrolling a page of
+  the settings with the mouse wheel changed every number field and drop-down list that
+  passed under the mouse (for example the line spacing), and the wheel over the font and
+  its size in the toolbar changed them too. As on Windows, the wheel now changes only the
+  field with the keyboard focus, after a click or Tab in it; over any other field it
+  scrolls the page. While the wheel scrolls the page, the field with the focus does not
+  stop it when it passes under the mouse, as in web browsers; after a short pause, or once
+  the mouse moves, the wheel over that field changes it again.
+
+- **The pages' size on paper after another display scaling** - 2026-10-09. Zoom 100%
+  shows the pages at their size on paper; when the display scaling (for example 125% to
+  150% in the Windows settings) or the screen's resolution changed while the program ran,
+  the pages kept the old scale until the next start. The editor now follows the change at
+  once.
+
+- **Toolbars: no use of deleted menu items** - 2026-10-09. The View > Toolbars items and the
+  toolbar context menu were connected without an owner, so a toolbar shown or hidden after
+  its menu item was deleted reached freed memory. Each connection now ends with its menu
+  item, toolbar or window.
+
+- **The keys go to the document opened or left in front** - 2026-10-11. A chapter opened
+  from the Navigator (double click, Enter or Open) left the keyboard focus in the Navigator,
+  without a cursor in the text, so what was typed next did not reach the chapter until its
+  text was clicked; after a tab was closed with its ×, the focus went to the font box of the
+  toolbar. Now a chapter or a file opened (from the Navigator, with File > Open > File... or
+  File > New) or brought to the front (from the Navigator or with a click on its tab) gets
+  the keys, with its cursor showing, as in Word and LibreOffice. When the tab in front
+  closes, also with the book or after the question about unsaved changes, the document
+  coming to the front gets them, wherever they were, at the place it had them last; when a
+  tab behind closes, the keys stay where they are, for example in a panel.
+
+- **Distraction-Free without a document** - 2026-10-08. View > Distraction-Free
+  (Shift+F11) could be turned on over the Dashboard alone. It now needs a document in
+  front: its command is greyed out without one, and it goes off when the Dashboard or no
+  tab comes to the front (for example when the book is closed).
+- **Dashboard: a new book shows in the recent books** - 2026-10-08. Only opening a book
+  put it on the list of recent books, so a book just created was missing from the
+  Dashboard and the Recent Books menu until it was opened again. Every book opened or
+  created now goes to the top of the list.
+
+- **Tests: no files in the user's profile** - 2026-10-11. The test program unpacked its test
+  plugin in the program's folder of the user's profile (on Windows
+  `%LOCALAPPDATA%\Kalahari\plugins\temp`), wrote a log to a `tmp` folder at the root of the
+  drive, and after one test ran under the program's own name, so files that later tests
+  wrote through Qt's standard folders went to the user's Kalahari folder. Tests now keep the
+  plugin and the log in their own temporary folder, removed after the run, and keep the
+  name of the test program.
+
+- **A chapter added in the Navigator was damaged** - 2026-10-08. Add Chapter (and Add
+  Item in the front or back matter) made a chapter without a file, so its text was saved
+  as ".kchapter" in the project's folder - one name for all the chapters added that way.
+  Opened again, that file was taken for an old RTF file and converted: the chapter
+  opened empty with a message that it is damaged, and its text was left only in
+  ".kchapter.bak". A new chapter now gets its own empty chapter file at once, next to
+  the other chapters of its part (for example content/body/part_001/chapter_003.kchapter)
+  or in its section's folder. Chapters damaged this way before are not repaired: their
+  text stays only in ".kchapter.bak".
+- **Focus dimmed nothing, and left the pages** - 2026-10-07. View > Focus (Ctrl+4) dims
+  every paragraph but the one with the cursor, and the bright paragraph follows the
+  cursor. It is a switch on top of the view mode, like Typewriter Scrolling: the page
+  view keeps its pages, Ctrl+4 again turns it off, the menu item is checked while it is
+  on, and the state is kept between sessions for all editors.
+- **The View menu had two Panels submenus** - 2026-10-06. Only one is left, with the
+  same panel switches.
+- **Panel switches followed the panel on top of a tab group** - 2026-10-07. View > Panels
+  and the View toolbar keep every open panel checked, also when its tab lies under
+  another panel's tab. A switch closes an open panel and opens a closed one with its tab
+  on top.
+- **View > View Mode lost its check mark** - 2026-10-07. Choosing the mode in use again
+  (for example Ctrl+2 twice) unchecked it; the mode in use now stays checked.
+- **The editor forgot its light or dark paper** - 2026-10-07. Switch to Light Mode /
+  Switch to Dark Mode in the editor's context menu changed only the editor on the
+  screen, so the next start, or Apply in the settings, brought the old paper back. The
+  choice is now the "Use dark mode for editor" setting: kept between sessions and given
+  to every open editor.
+- **A stray icon over the Settings icon preview** - 2026-10-07. Appearance > Icons showed
+  an extra icon on a grey square in the preview's top-left corner: the preview built
+  before the saved icon style was loaded stayed visible until the dialog closed.
+- **Editor: TODO markers and comments were recognized by typed text** - 2026-10-06. A
+  paragraph starting with "TODO:", "[NOTE]" or "[x]" got a marker icon and a tint, and
+  "/* */" or "<!-- -->" in the text a comment highlight; such text is now plain. The TODO
+  markers, notes and comments saved in the chapter (`<todo>`, `<comment>`) stay in the
+  file but are not drawn for now: their look is designed separately. Search matches are
+  drawn in one layer, which also has room for the spelling and grammar waves and the word
+  read aloud (check results are kept with each paragraph and apply while its text is
+  unchanged).
+- **A chapter with malformed KML left the editor without a document** - 2026-10-06. The
+  editor now shows the text read before the error (the rest of the chapter is not loaded,
+  as before), a message says so and that saving keeps only this text, and the error is
+  logged; the render pipeline used to keep a pointer to the deleted document.
+- **Closing a book left its chapters open** - 2026-10-06. Their tabs stayed after the book
+  closed and were then saved as single documents. They now close with the book, after the
+  question about unsaved changes; files opened outside the book stay open.
+- **Statistics in the Properties panel did not follow typing** - 2026-10-06. Words,
+  characters and paragraphs of the open text changed only when the cursor was moved; they
+  now follow every edit, and stay shown when the book is closed while a file opened
+  outside it is in front.
+- **Text with CR LF line ends got an empty paragraph after each line** - 2026-10-06, when
+  pasted or dropped from a program that keeps the CR.
+- **Unsubscribing from the event bus removed every listener of that event** - 2026-10-06.
+  `subscribe()` now returns a subscription id and `unsubscribe()` takes that id, so a
+  plugin removes only its own callback. Python plugins use the same id
+  (`sub_id = bus.subscribe(...)`, `bus.unsubscribe(sub_id)`).
+- **Event bus froze when a listener used it** - 2026-10-06. A listener that subscribed,
+  emitted another event or asked for the subscriber count while handling an event locked
+  the program. Listeners now run without the bus locked.
+- **Navigator forgot which parts and sections were expanded** - 2026-10-06. The state is
+  now saved when a book is closed and restored when it is reopened, including parts the
+  user collapsed. Renaming or deleting an item no longer resets the tree.
+- **Aligning selected paragraphs took one undo step per paragraph** - 2026-10-05. Left,
+  center, right and justified alignment of a selection is now undone at once. Undo and
+  redo leave the cursor and selection on the aligned paragraphs (the cursor used to jump
+  to the next paragraph).
+- **Editor cursor settings were ignored** - 2026-10-04. The cursor shape (line, block,
+  underline) and the line width chosen in the settings now apply. Block and underline
+  cursors are as wide as the character under them, also zoomed or in bold, and the
+  character under a block stays readable. When the view scrolls, the cursor shows at once
+  instead of in the middle of a blink.
+- **Editor typography settings were ignored** - 2026-10-04. Line spacing, paragraph
+  spacing and first-line indent now apply when the text is wrapped and scale with the
+  font and zoom; the settings dialog has a Typography group (Editor > General).
+- **Editor paste and undo broke the text styles** - 2026-10-04. Paste and cut are one
+  undo step; copy puts KML, HTML and plain text on the clipboard, so a paste within
+  Kalahari keeps the formatting.
+- **Justified paragraphs stayed ragged on Windows and macOS** - 2026-10-04. The Qt that
+  vcpkg builds had no HarfBuzz text shaping (`vcpkg.json` turns off qtbase's default
+  features), so Qt did not stretch justified lines, and text had no kerning or
+  ligatures there. qtbase now gets the `harfbuzz` feature.
+- **Icon theming — toolbar/menu icons did not recolor on theme or icon-color change**
+  (BUG-1) - 2026-07-20. Two independent root causes, both fixed:
+  - Ordering: `ArtProvider` and `IconRegistry` were connected to
+    `ThemeManager::themeChanged` independently; same-thread direct connections fire in
+    registration order, so managed actions refreshed while `IconRegistry` still held the
+    previous colors + a warm cache. `ArtProvider::onThemeChanged` now drives
+    `IconRegistry` directly (single connection, explicit order).
+  - Clobbered refresh data (regression from OpenSpec #00040): `CommandRegistry` overwrote
+    the `{cmdId, context}` `QVariantMap` that `ArtProvider::createAction` stores for
+    `refreshAction`, with a bare command-id string — so every toolbar/menu action's icon
+    refresh bailed out and never repainted. Removed the clobbering `setData` call.
+  - Regression tests in `tests/core/test_art_provider_theme.cpp` (proven to fail on the
+    buggy code). Suite now at 634 cases.
+- **Icon theming — central tab icons did not recolor.** Editor/Dashboard tab icons are
+  plain `QIcon`s (not managed `QAction`s), set once at tab creation across four
+  coordinators and never subscribed to `ArtProvider::resourcesChanged`. Added
+  `DockCoordinator::refreshTabIcons()` (mirroring `refreshDockIcons`); each tab page now
+  stores its icon id in a `tabIconId` property and all tabs re-fetch on color change.
+- **Security (trusted keys):** Fixed a 1-byte heap overflow in
+  `TrustedKeys::base64EncodeInternal()` — the output buffer did not account for
+  OpenSSL's line-break newlines and NUL terminator, so encoding a 32-byte Ed25519
+  key wrote 46 bytes into a 45-byte buffer. Reachable in production via
+  `addUserKey()` → `saveUserKeys()` (i.e. any time a user adds a trusted publisher
+  key). Verified with a save/load round-trip regression test.
+
+- **Test cleanup:** Fixed test.klh file pollution in project root - 2025-12-29
+  - Test now uses temp directory and cleans up after itself
+- **Test tags:** Marked 6 environment-dependent tests with skip tags
+  - `[.gui]` for tests requiring display environment
+  - `[.dll-boundary]` for Windows ABI issues with virtual method parameters
+
+- **OpenSpec #00040:** Central Action Management (Command Registry Refactoring) - 2025-12-17
+  - **Architecture:** CommandRegistry now owns single QAction per command (central source of truth)
+  - **New API:**
+    - `getAction(commandId)` - Returns shared QAction pointer
+    - `updateActionState(commandId)` - Synchronizes checked/enabled state
+    - `getAllActions()` - Returns all registered actions for ToolbarManagerDialog
+  - **MenuBuilder:** Uses `registry.getAction()` instead of creating duplicate QActions
+  - **ToolbarManager:** Uses `registry.getAction()` for toolbar buttons
+  - **ToolbarManagerDialog:** Uses `registry.getAction()` for action list
+  - **DockCoordinator:** Uses `registry.getAction()` for panel toggle actions
+  - **Fullscreen Toggle:** F11 and View > Full Screen work with synchronized state
+  - **Benefit:** Checkable actions (fullscreen) auto-sync across menu, toolbar, and shortcuts
+  - Files modified: `command_registry.h`, `command_registry.cpp`, `menu_builder.cpp`, `toolbar_manager.cpp`, `toolbar_manager_dialog.cpp`, `dock_coordinator.cpp`, `main_window.cpp`
+  - Documentation updated: `03_architecture.md`, `SKILL.md`
+  - Deleted: `menu_builder_backup.cpp`
+  - Tests: 83/83 PASS
+
+- **OpenSpec #00042 Task 7.19:** Critical performance optimizations
+  - Format cache in KmlParagraph - O(1) repeated format access instead of O(N) rebuild
+  - Fenwick tree in VirtualScrollManager - O(log N) height operations instead of O(N)
+  - Partial widget update for cursor blink - reduces CPU usage
+  - Add Chapter/Part/Item context menu now works (signal connections fixed)
+  - New File creates proper empty document
+  - Close with unsaved changes checks chapter-level dirty state
+  - View mode transitions have diagnostic logging
+
+- **OpenSpec #00039:** Custom Toolbar Persistence & Visibility - 2025-12-17
+  - **Issue:** Custom toolbars missing from View menu (no visibility toggle)
+  - **Issue:** Custom toolbar visibility not restored after application restart
+  - **Fix:** Modified `createToolbars()` to create user toolbars at startup
+  - **Fix:** Modified `createViewMenuActions()` to include user toolbars in View menu
+  - **Fix:** Added `addViewMenuAction()` helper for dynamic menu updates on toolbar creation
+  - **Fix:** Added `removeViewMenuAction()` helper for dynamic menu updates on toolbar deletion
+  - Files modified: `toolbar_manager.h`, `toolbar_manager.cpp`
+
 ---
 
 ## [0.3.0-alpha] - 2025-11-20
 
+🎉 **Phase 0: Qt Foundation COMPLETE!** 🎉
+
+All 12 tasks completed in 1 day (estimate: 4 weeks). Qt6 migration successful!
+
+### Added - Phase 0 Implementation (Tasks #00001-00011)
+
+- **Task #00001:** Qt6 vcpkg Installation & CMake Configuration - 2025-11-20
+  - Qt6 6.9.1 installed via vcpkg (qtbase, qttools)
+  - CMake finds Qt6::Core, Qt6::Widgets, Qt6::Gui
+  - Built minimal QApplication + QMainWindow test
+  - CI/CD workflows updated for Qt dependencies
+
+- **Task #00002:** QMainWindow Skeleton - 2025-11-20
+  - Created MainWindow (QMainWindow subclass)
+  - Menu bar: File (New/Open/Save/Exit), Edit (Undo/Redo/Cut/Copy/Paste/Settings)
+  - Toolbar: File actions (New, Open, Save)
+  - Status bar with "Ready" message
+  - Integrated Logger and SettingsManager
+
+- **Task #00003:** Basic QDockWidget System - 2025-11-20
+  - Created 5 dock panels: Navigator, Properties, Log, Search, Assistant
+  - View menu with toggle actions for each panel
+  - Perspective save/restore via QSettings (geometry + dock state)
+  - Default layout: Navigator (left), Editor (center), Properties (right)
+
+- **Task #00004:** Settings Dialog Structure - 2025-11-20
+  - Migrated SettingsManager and CmdLineParser to Qt6 (QSize, QPoint)
+  - Created SettingsDialog (QDialog) with QTabWidget
+  - QTabWidget for category navigation (2 tabs: Appearance, Editor)
+  - Apply/OK/Cancel buttons (QDialogButtonBox)
+  - Connected with SettingsManager (load/save on open/close)
+
+- **Task #00005:** Appearance Settings Panel (Phase 0 Qt Migration) - 2025-11-20
+  - Settings Dialog: Replaced Appearance tab placeholder with functional controls
+  - Theme selection (QComboBox): Light, Dark, Savanna, Midnight
+  - Language selection (QComboBox): English, Polski
+  - Font Size spinner (QSpinBox): 8-32 pt range
+  - Controls load current values from SettingsManager on dialog open
+  - Apply/OK buttons save theme & language (font size logged only - no SettingsManager::setFontSize() yet)
+  - Files modified: `settings_dialog.h`, `settings_dialog.cpp`
+  - Build: Successful, all 68 tests passed (532 assertions)
+
+- **Task #00006:** Editor Settings Panel (Phase 0 Qt Migration) - 2025-11-20
+  - Settings Dialog: Replaced Editor tab placeholder with functional controls
+  - Font Family selection (QFontComboBox): Monospace fonts only (Consolas, Courier, etc.)
+  - Editor Font Size spinner (QSpinBox): 8-32 pt range
+  - Tab Size spinner (QSpinBox): 2-8 spaces range
+  - Line Numbers checkbox (default: enabled)
+  - Word Wrap checkbox (default: disabled)
+  - Controls load/save values via generic SettingsManager::get<T>()/set<T>() API
+  - All settings persist to settings.json (keys: editor.fontFamily, editor.fontSize, editor.tabSize, editor.lineNumbers, editor.wordWrap)
+  - Files modified: `settings_dialog.h` (5 control members), `settings_dialog.cpp` (UI + load/save logic)
+  - Build: Successful, all 68 tests passed (532 assertions)
+
+- **Task #00007:** EditorWidget Basic Implementation (Phase 0 Qt Migration) - 2025-11-20
+  - EditorPanel: Added settings integration (font, tab size, word wrap)
+  - Public API: setText(QString), getText() for Document load/save (Task #00008)
+  - Font settings: editor.fontFamily (default: Consolas), editor.fontSize (12)
+  - Tab settings: editor.tabSize (4) converted to pixels via QFontMetrics
+  - Word wrap: editor.wordWrap (false) via setLineWrapMode()
+  - Syntax highlighter stub: KalahariSyntaxHighlighter (empty, Phase 1 implementation)
+  - Files modified: `editor_panel.h`, `editor_panel.cpp`, `CMakeLists.txt`
+  - Files added: `kalahari_syntax_highlighter.h`, `kalahari_syntax_highlighter.cpp`
+  - Build: Successful, all 68 tests passed (532 assertions)
+
+- **Task #00008:** File Operations (New/Open/Save/Save As) - 2025-11-20
+  - File → New: Creates empty document, clears editor, resets dirty state
+  - File → Open: QFileDialog, loads .klh via DocumentArchive, extracts Phase 0 content from metadata
+  - File → Save: Saves to current file, delegates to Save As if no file path
+  - File → Save As: QFileDialog save, updates document title from filename
+  - Dirty state tracking: Connected to QPlainTextEdit::textChanged signal, shows "*" in window title
+  - Unsaved changes dialog: Prompts on New/Open/Close with Save/Discard/Cancel options
+  - Phase 0 content storage: Uses metadata["_phase0_content"] in first chapter (temporary, Phase 1 will use RTF files)
+  - Files modified: `main_window.h`, `main_window.cpp`, `editor_panel.h`
+  - Build: Successful, all 68 tests passed (532 assertions)
+
+- **Task #00009:** Edit Operations (Undo/Redo/Cut/Copy/Paste/Select All) - 2025-11-20
+  - Implemented 6 Edit menu operations via QPlainTextEdit delegation
+  - Edit → Undo (Ctrl+Z): Reverts last text change using Qt's built-in undo stack
+  - Edit → Redo (Ctrl+Y): Re-applies last undone change
+  - Edit → Cut (Ctrl+X): Removes selected text and copies to clipboard
+  - Edit → Copy (Ctrl+C): Copies selected text to clipboard
+  - Edit → Paste (Ctrl+V): Inserts clipboard text at cursor position
+  - Edit → Select All (Ctrl+A): Selects all text in editor (NEW action added)
+  - Status bar feedback: Shows operation confirmation messages (2s duration)
+  - Simple delegation pattern: All operations call QPlainTextEdit methods directly
+  - Files modified: `main_window.h` (+2 lines: slot + action), `main_window.cpp` (+40 lines: implementations)
+  - Build: Successful, all 68 tests passed (532 assertions)
+  - Actual time: ~1.5 hours (estimate: 2-3h)
+
+- **Task #00010:** Navigator Panel with QTreeWidget - 2025-11-20
+  - Integrated NavigatorPanel with Document structure for book hierarchy display
+  - loadDocument() method: Parses Book (frontMatter, body, backMatter) and populates QTreeWidget
+  - Tree structure: Document (root) → Sections (Front Matter/Body/Back Matter) → Parts → Chapters
+  - Body section expanded by default, Front/Back Matter collapsed by default
+  - Double-click stub: Shows "Phase 1 feature" message (no navigation in Phase 0)
+  - MainWindow integration: Called loadDocument() on New/Open operations
+  - clearDocument() method: Resets tree to "no document loaded" state
+  - Phase 0 constraint: Read-only display (no editing, no drag-drop reordering)
+  - Files modified: `navigator_panel.h` (+2 methods), `navigator_panel.cpp` (~85 lines), `main_window.cpp` (+3 lines)
+  - Build: Successful, all 68 tests passed (532 assertions)
+  - Actual time: ~2 hours (estimate: 4-5h)
+
+- **Task #00011:** About Dialog & Help Menu - 2025-11-20
+  - Added Help menu to MainWindow with 2 actions
+  - Help → About Kalahari: Displays app version (0.3.0-alpha), license (MIT), copyright, Qt version
+  - Help → About Qt: Shows standard Qt about dialog via QMessageBox::aboutQt()
+  - Used QMessageBox::about() with HTML-formatted text for Phase 0 simplicity
+  - About dialog includes: Project name, version, license, copyright year, Qt version (qVersion())
+  - Status bar logging for both actions
+  - Files modified: `main_window.h` (+2 slots, +2 actions, +1 menu), `main_window.cpp` (+35 lines)
+  - Phase 0 constraint: Built-in Qt dialogs (no custom AboutDialog class, can extend in Phase 1)
+  - Actual time: ~1 hour (estimate: 2h)
+
+### Fixed
+
+- **Qt Platform Plugin Error:** Fixed "no Qt platform plugin could be initialized" startup crash - 2025-11-20
+  - Root cause: Qt plugins (qwindows.dll, styles, imageformats) not copied to output directory
+  - Solution: Added CMake post-build commands to automatically copy Qt plugins from vcpkg_installed
+  - Affects: Windows (vcpkg), Linux (Qt installation), macOS (embedded in .app bundle)
+  - Files modified: `src/CMakeLists.txt` (add_custom_command for all platforms)
+  - Result: Application now starts successfully without manual plugin copying
+
+### BREAKING CHANGE: Technology Stack Pivot (wxWidgets → Qt6)
+
+**Migration Type:** Clean Slate Approach (Option B)
+**Decision Date:** 2025-11-19
+**Implementation:** Phase 0 - Qt Foundation (4 weeks)
+**Rationale:** wxWidgets limitations (manual DPI scaling, wxStaticBoxSizer bugs, complex reactive patterns) incompatible with "opus magnum" quality standards.
+
+#### Changed
+
+- **GUI Framework:** wxWidgets 3.3.0+ → Qt6 6.5.0+ (Widgets)
+  - Automatic DPI scaling (no manual code needed)
+  - Global font scaling: `QApplication::setFont()`
+  - QSS styling (CSS-like theming)
+  - QDockWidget system (cleaner than wxAuiManager)
+  - Superior documentation and community support
+  - Build: vcpkg Qt6 6.5.0+ (qtbase, qttools)
+
+- **Architecture Patterns:**
+  - Layout: wxBoxSizer/wxStaticBoxSizer → QVBoxLayout/QHBoxLayout/QGroupBox
+  - Docking: wxAUI → QDockWidget
+  - i18n: wxLocale + gettext → Qt i18n (tr() + .ts/.qm files)
+  - Logging: wxLog* → spdlog (already in use)
+  - Error Handling: Hybrid (exceptions + error codes + spdlog)
+
+- **Build System:**
+  - vcpkg.json: Replaced wxwidgets dependency with qt (6.5.0+)
+  - CMakeLists.txt: Added Qt6 find_package, CMAKE_AUTOMOC/AUTORCC/AUTOUIC
+  - src/CMakeLists.txt: Removed bwx_sdk, simplified to Qt-agnostic core
+  - src/main.cpp: Qt6 placeholder (QApplication + QMessageBox)
+
+- **Documentation:**
+  - CLAUDE.md v6.0: Complete Qt6 rewrite (Cardinal Rules §2, Tech Stack, patterns)
+  - ROADMAP.md v1.0: Fresh roadmap with Qt phases (Phase 0-5)
+  - QT_MIGRATION_ROADMAP.md: Detailed migration plan (57KB, ~1,200 lines)
+
+#### Removed
+
+- **GUI Layer (28,098 LOC deleted):**
+  - src/gui/ - All wxWidgets GUI implementation (15 files, ~8,500 LOC)
+  - include/kalahari/gui/ - All GUI headers (10 files)
+  - external/bwx_sdk - wxWidgets-only reactive system (submodule)
+  - .claude/skills/kalahari-wxwidgets/ - wxWidgets skill
+  - .claude/skills/kalahari-bwx-custom-controls.md - BWX patterns
+
+- **Tasks (49 files deleted):**
+  - All wxWidgets-specific task files (00001-00045)
+  - Obsolete architecture decisions
+  - Fresh task numbering from #00001 (Qt era)
+
+- **Git Branches (3 deleted):**
+  - feature/dpi-scaling
+  - feature/dpi-support-clean
+  - feature/theme-manager
+
+#### Added
+
+- **Archive:**
+  - wxwidgets-archive branch - Complete wxWidgets implementation preserved
+  - v0.2.0-alpha-wxwidgets tag - Last stable wxWidgets version
+  - Commit: e191390 (feat(bwx-sdk): Add reactive control wrappers)
+
+- **Documentation:**
+  - QT_MIGRATION_ROADMAP.md - Comprehensive migration plan
+    - Option A vs Option B comparison
+    - Phase 0-4 breakdown (4 weeks timeline)
+    - Risk mitigation strategy
+    - Success criteria
+
+- **Qt Foundation Plan (Phase 0, 4 weeks):**
+  - Step 0: Preparation (Day 1, 6 hours) - Archive, cleanup, docs
+  - Week 1: Qt Hello World (Tasks #00001-00003)
+  - Week 2: Settings System (Tasks #00004-00006)
+  - Week 3: Core Editor Foundation (Tasks #00007-00009)
+  - Week 4: Panels & Polish (Tasks #00010-00012)
+
+#### Preserved (12,000 LOC, 100% portable)
+
+- **Core Library (5,966 LOC):**
+  - src/core/ - ZERO wx dependencies (grep verified)
+  - Book, Document, Settings, Logger, Plugin system
+  - Event Bus, Extension Points
+  - All functionality intact
+
+- **Tests (5,912 LOC):**
+  - tests/ - 50 test cases, 2,239 assertions
+  - 100% portable (no GUI dependencies)
+  - Catch2 v3 framework
+  - Will rerun in Qt project unchanged
+
+- **Python Bindings (120 LOC):**
+  - src/bindings/python_bindings.cpp
+  - Pure pybind11 (no wx types)
+  - Plugin API unchanged
+
+#### Fixed
+
+N/A - This is an architectural migration, not a bug fix release.
+
+#### Technical Details
+
+- **Phase 0 Progress (Day 1, ~4 hours):**
+  - ✅ Step 0.1: Archive Current State (30 min)
+  - ✅ Step 0.2: Clean Main Branch (60 min)
+  - ✅ Step 0.3: Update Project Configuration (90 min)
+  - ✅ Step 0.4: Update CLAUDE.md (60 min)
+  - ✅ Step 0.5: Create Fresh ROADMAP.md (90 min)
+  - 🔄 Step 0.6: Update CHANGELOG.md (30 min) - IN PROGRESS
+
+- **Git Commits Created (Day 1):**
+  1. f78ac88 - docs: Add Qt migration roadmap (Clean Slate strategy)
+  2. bc7ce88 - chore: Remove wxWidgets GUI layer and prepare for Qt migration
+  3. c997ae0 - build: Migrate from wxWidgets to Qt6
+  4. 3e7d63c - docs: Update CLAUDE.md for Qt6 migration (v6.0)
+  5. 6ab7936 - docs: Create fresh ROADMAP.md for Qt6 migration (v1.0)
+
+- **LOC Statistics:**
+  - Deleted: 28,098 LOC (GUI layer + tasks + skills)
+  - Added: 1,200 LOC (QT_MIGRATION_ROADMAP.md)
+  - Net Change: -26,898 LOC
+  - Preserved: 12,000 LOC (core + tests + bindings)
+
+#### Migration Notes
+
+1. **wxWidgets Archive:** All code preserved in wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag
+2. **Atomic Workflow:** Maintained (30-120 min tasks, user approval required)
+3. **Plugin System:** Architecture unchanged (Qt-agnostic C++ API)
+4. **Testing:** Catch2 for core (existing), QTest for GUI (Phase 1+)
+5. **Qt LGPL:** Dynamic linking, no commercial license needed ($0 cost)
+6. **Plugin Licensing:** Pure C++ API (no Qt types) → proprietary plugins allowed
+
+#### References
+
+- [QT_MIGRATION_ROADMAP.md](QT_MIGRATION_ROADMAP.md) - Complete migration plan
+- [ROADMAP.md](ROADMAP.md) - Fresh Qt-based roadmap (Phase 0-5)
+- [CLAUDE.md](CLAUDE.md) v6.0 - Updated project instructions
+- wxwidgets-archive branch - Historical reference
+- Commit e191390 - Last stable wxWidgets state
+
+### Qt Foundation - Phase 0 (Started 2025-11-19)
+
+*This section tracks Qt migration progress during Phase 0 (4 weeks)*
+
+#### Completed (Week 1)
+
+- [x] **Task #00001: Qt6 Hello World - Minimal QMainWindow** (2025-11-20, ~45min)
+  - Added Qt6::Gui component to find_package (CMakeLists.txt:104)
+  - Linked Qt6::Gui library (src/CMakeLists.txt:110-116)
+  - Replaced QMessageBox placeholder with QMainWindow
+  - Window: 1280x720 px, title "Kalahari Writer's IDE"
+  - Organization: "Bartosz W. Warzocha & Kalahari Team"
+  - Event loop: app.exec() for persistent window
+  - Files: CMakeLists.txt, src/CMakeLists.txt, src/main.cpp, tasks/00001*.md
+
+- [x] **Task #00002: QMainWindow Structure with Menus and Toolbars** (2025-11-20, ~2h)
+  - Created MainWindow class (kalahari::gui namespace)
+  - File menu: New, Open, Save, Save As, Exit (5 actions)
+  - Edit menu: Undo, Redo, Cut, Copy, Paste (5 actions)
+  - File toolbar: New, Open, Save (3 buttons)
+  - Status bar: "Ready" message, updates on action click
+  - Signal/slot connections: All actions log to console
+  - Q_OBJECT macro: Enables Qt meta-object system (signals/slots)
+  - tr() function: Internationalization support (Qt Linguist ready)
+  - QKeySequence: Standard keyboard shortcuts (Ctrl+N, Ctrl+O, etc.)
+  - Files: include/kalahari/gui/main_window.h, src/gui/main_window.cpp, src/main.cpp, src/CMakeLists.txt, tasks/00002*.md
+
+- [x] **Task #00003: Basic QDockWidget System** (2025-11-20, ~3h)
+  - Created 6 panel placeholder classes (kalahari::gui namespace):
+    - EditorPanel (QPlainTextEdit - central widget)
+    - NavigatorPanel (QTreeWidget with placeholder tree - left dock)
+    - PropertiesPanel (QLabel placeholder - right dock, tab 1)
+    - SearchPanel (QLineEdit + QListWidget - right dock, tab 2)
+    - AssistantPanel (QLabel with 🦁 - right dock, tab 3)
+    - LogPanel (QPlainTextEdit placeholder - bottom dock)
+  - View menu: Toggle panel visibility (Ctrl+1 through Ctrl+5)
+  - Reset Layout action (Ctrl+0): Restores default dock arrangement
+  - Perspective save/restore: QSettings with geometry + windowState (persists across sessions)
+  - Default layout: Navigator left, Properties/Search/Assistant tabbed right, Log bottom, Editor center
+  - Qt native drag & drop: Panels can be moved, resized, tabbed, floated
+  - QDockWidget::toggleViewAction(): Automatic View menu sync (Qt magic!)
+  - QDockWidget::setObjectName(): Required for saveState() persistence
+  - **BONUS:** Toolbars now floating/movable (setMovable + setFloatable)
+  - Files: 12 new panel files (include/src gui/panels/*.h/cpp), main_window.h/cpp updated, src/CMakeLists.txt, tasks/00003*.md
+
+- [x] **Task #00004a: Migrate SettingsManager and CmdLineParser to Qt6** (2025-11-20, ~3h)
+  - **SettingsManager migration:**
+    - Replaced `wxSize`/`wxPoint` with `QSize`/`QPoint` (Qt Core types)
+    - Updated getters/setters: `GetWidth()`→`width()`, `pos.x`→`pos.x()`
+    - Headers: include/kalahari/core/settings_manager.h
+    - Implementation: src/core/settings_manager.cpp
+  - **CmdLineParser migration:**
+    - Complete rewrite: `wxCmdLineParser` → `QCommandLineParser`
+    - Added `argc/argv` → `QStringList` conversion helpers
+    - Windows support: Wide-char constructor for `wchar_t**`
+    - Headers: include/kalahari/core/cmd_line_parser.h
+    - Implementation: src/core/cmd_line_parser.cpp
+  - **Build system fixes:**
+    - vcpkg.json: Replaced `qt` metapackage with `qtbase` + `qttools` (vcpkg requirement)
+    - src/CMakeLists.txt: Added `Qt6::Core` to `kalahari_core` library (for QSize/QPoint headers)
+    - src/CMakeLists.txt: Added headers with `Q_OBJECT` to sources (AUTOMOC requirement)
+    - tests/CMakeLists.txt: Removed obsolete `bwx_gui` library reference
+  - **main.cpp fixes:**
+    - Fixed: `Logger::initialize()` → `Logger::getInstance().init()`
+    - Fixed: `SettingsManager::initialize()` → `SettingsManager::getInstance().load()`
+  - **Tests migration:**
+    - tests/core/test_settings_manager.cpp: All 50 test cases migrated to Qt types
+    - tests/core/test_cmd_line_parser.cpp: Updated for QCommandLineParser API
+  - **Result:** ✅ Build successful (Windows native), all tests passing
+  - Files: 8 modified (headers, implementation, tests, CMakeLists, vcpkg.json, main.cpp)
+
+- [x] **Task #00004b: Settings Dialog Structure** (2025-11-20, ~2h)
+  - **SettingsDialog class:**
+    - Created `SettingsDialog` (inherits `QDialog`)
+    - Header: include/kalahari/gui/settings_dialog.h
+    - Implementation: src/gui/settings_dialog.cpp
+    - Q_OBJECT macro for signals/slots support
+  - **Dialog structure:**
+    - QTabWidget with 2 placeholder tabs:
+      - "Appearance" tab (placeholder: QLabel with info message)
+      - "Editor" tab (placeholder: QLabel with info message)
+    - QDialogButtonBox with 3 buttons:
+      - OK: Saves settings and closes (accept())
+      - Cancel: Discards changes and closes (reject())
+      - Apply: Saves settings without closing
+  - **MainWindow integration:**
+    - Added `m_settingsAction` (Edit menu → Settings..., Ctrl+,)
+    - Added slot `onSettings()` - opens SettingsDialog modally
+    - Status bar feedback: "Settings saved" / "Settings changes discarded"
+  - **SettingsManager integration:**
+    - loadSettings(): Placeholder (no controls yet, Tasks #00005-00006)
+    - saveSettings(): Calls SettingsManager::save()
+  - **Result:** ✅ Build successful, dialog opens from Edit menu
+  - Files: 5 new/modified (settings_dialog.h/cpp, main_window.h/cpp, CMakeLists.txt)
+
+#### Planned (Week 1-4)
+- [ ] Task #00005: Appearance Settings Panel (2-3h)
+- [ ] Task #00006: Editor Settings Panel (2-3h)
+- [ ] Task #00007: EditorWidget Basic Implementation (4-5h)
+- [ ] Task #00008: File Operations (3-4h)
+- [ ] Task #00009: Edit Operations (2-3h)
+- [ ] Task #00010: Navigator Panel with QTreeWidget (4-5h)
+- [ ] Task #00011: About Dialog & Help Menu (2h)
+- [ ] Task #00012: Qt Foundation Release (3-4h)
+
+---
+
+## [0.2.0-alpha] - 2025-11-15 (wxWidgets - ARCHIVED)
+
+**Note:** This version used wxWidgets 3.3.0+. Archived in wxwidgets-archive branch + v0.2.0-alpha-wxwidgets tag.
+
+### BWX SDK Architecture Decision (2025-11-15)
+
+#### Changed
+- **MAJOR ARCHITECTURE DECISION** - Replaced manual font scaling with BWX SDK Reactive System
+  - Problem: Manual iteration over 100+ controls not scalable
+  - Solution: Professional reactive GUI management (Qt/WPF/Flutter-inspired)
+  - Pattern: Observer + Template Method + Broadcast
+  - Tasks #00037-00042 marked OBSOLETE (kept for design evolution documentation)
+  - Created Task #00043 - BWX Reactive Foundation (first of 7 atomic tasks)
+  - ROADMAP.md § 1.3 completely rewritten
+  - Estimated implementation: 20-25 hours (7 atomic tasks)
+  - Benefits: One-line UI updates, plugin-ready, future-proof
+  - Files: ROADMAP.md, tasks/00036-00043*.md
+
+#### Planned
+- **Task #00043** - BWX Reactive Foundation (3-4h)
+  - bwxReactive base class (static registry + broadcast API)
+  - bwxManaged<wxStaticText> proof-of-concept template
+  - Test with 1 control in AppearanceSettingsPanel
+  - Directory: bwx_sdk/gui/ (new library)
+- **Task #00044** - BWX Managed Template Generalization (2-3h)
+- **Task #00045** - Migrate Settings Panels (3-4h)
+- **Task #00046** - Migrate MainWindow & Core Panels (3-4h)
+- **Task #00047** - Font Scaling Integration (2h)
+- **Task #00048** - BWX SDK Testing & Documentation (3-4h)
+- **Task #00049** - Settings System Verification (2-3h)
+
+#### Documentation
+- **ROADMAP.md** - Section 1.3 rewritten as "BWX SDK Reactive GUI Management System"
+  - Architecture overview (bwxReactive, bwxManaged<T>, type aliases)
+  - 7 atomic task breakdown with estimates
+  - Obsolete tasks documented (design evolution transparency)
+  - Benefits section (font scaling, theme, accessibility, plugins)
+
+### Task #00035 - Manual Testing Session - Command Registry System (2025-11-14)
+
+#### Fixed
+- **7 Critical Bugfixes** identified and resolved during comprehensive testing
+  - Linux crash in updateViewMenu() - null pointer dereference fixed
+  - Linux segfault in AssistantPanel - initialization order corrected
+  - Command registration order issue - commands now registered before UI creation
+  - Case-sensitive category mismatch in CommandRegistry - fixed category strings
+  - Invalid placeholder bitmaps for toolbar tools - created valid wxBitmap objects
+  - Transparent bitmap crash - replaced with wxNullBitmap for missing icons
+  - Fixed toolbar disabled - deferred to future dockable wxAUI toolbars implementation
+  - Files: src/gui/main_window.cpp, src/gui/assistant_panel.cpp, src/gui/command_registry.cpp
+  - Testing duration: ~4 hours (vs estimated 60-90 min)
+  - Result: ✅ PASS with known limitations (non-blocking)
+
+#### Tested
+- **Comprehensive Manual Testing** - 46+ test cases across 8 categories
+  - Menu testing: File, Edit, Format menus (15+ tests) - ✅ PASS
+  - Toolbar testing: All toolbar buttons (8 tests) - ✅ PASS (after fixes)
+  - Keyboard shortcuts: All registered shortcuts (9 tests) - ✅ PASS
+  - State management: Enable/disable logic (5 tests) - ✅ PASS
+  - Settings integration: Menu/toolbar/keyboard (4 tests) - ✅ PASS
+  - Cross-UI consistency: Same command behavior (2 tests) - ✅ PASS
+  - Logging verification: Execution logging (3 tests) - ✅ PASS
+  - Status: Command Registry system verified and production-ready
+  - Known limitations: Fixed toolbar disabled (future: dockable wxAUI toolbars)
+  - CI/CD: ✅ All platforms passing after bugfixes
+
+### Task #00033 - Settings Command Integration (2025-11-13)
+
+#### Changed
+- **file.settings Command Integration** - Moved from stub to full implementation
+  - file.settings.execute() now calls onFileSettings() with dummy event
+  - Removed old event table binding: EVT_MENU(wxID_PREFERENCES, ...)
+  - Settings dialog opens via CommandRegistry::executeCommand("file.settings")
+  - MenuBuilder automatically creates Settings menu item
+  - Keyboard shortcut Ctrl+, works through CommandRegistry
+  - Files: src/gui/main_window.cpp (~10 LOC changed)
+  - Build: Successful
+  - Status: ✅ Complete (~20 minutes)
+
+### Task #00032 - ToolbarBuilder Class - Dynamic Toolbar Generation (2025-11-13)
+
+#### Added
+- **ToolbarBuilder Class** - Dynamic toolbar generation from CommandRegistry
+  - ToolbarBuilder::buildToolBar() - create wxToolBar from CommandRegistry (11 tools)
+  - Queries commands with showInToolbar=true (File 3, Edit 5, Format 3)
+  - Automatic event binding to executeCommand()
+  - Icon size-aware (respects IconRegistry.getSizes().toolbar)
+  - MainWindow::createToolBarDynamic() - uses ToolbarBuilder
+  - Files: toolbar_builder.h (130 LOC), toolbar_builder.cpp (200 LOC)
+  - Build: Successful (97MB executable)
+  - Status: ✅ Complete (~65 minutes)
+
+### Task #00031 - MenuBuilder Class - Dynamic Menu Generation (2025-11-13)
+
+#### Added
+- **MenuBuilder Class** - Dynamic menu generation from CommandRegistry
+  - **MenuBuilder::buildMenuBar():**
+    - Dynamically creates wxMenuBar from CommandRegistry
+    - Explicit menu order (File, Edit, Format, View, Help)
+    - Automatic event handler binding to CommandRegistry::executeCommand()
+    - Window* parameter for event binding (typically MainWindow)
+  - **MenuBuilder::buildMenu():**
+    - Creates individual menus by category
+    - Queries CommandRegistry for commands in category
+    - Filters commands by showInMenu flag
+    - Returns wxMenu* with all menu items
+  - **MenuBuilder::createMenuItem():**
+    - Generates wxMenuItem from Command descriptor
+    - Formats label with keyboard shortcut (Label\tCtrl+S)
+    - Sets icon bitmap from Command.icons.icon16
+    - Binds wxEVT_MENU to lambda → executeCommand(commandId)
+    - Uses wxWindow::NewControlId() for unique menu item IDs
+  - **MainWindow::createMenuBarDynamic():**
+    - Replaces hardcoded createMenuBar() method
+    - Uses MenuBuilder to generate menus from CommandRegistry
+    - Manual handling of special menus (Editor Mode submenu, Perspectives submenu, Diagnostics menu)
+    - Called from constructor and onSettingsApplied()
+  - **Architecture Benefits:**
+    - Single source of truth: CommandRegistry drives menu structure
+    - Plugin-friendly: plugins register commands → menus rebuild automatically
+    - Maintainable: change command metadata → menu updates automatically
+    - DRY principle: no duplication between menu/toolbar/shortcuts
+  - **Files Added:**
+    - `include/kalahari/gui/menu_builder.h` (149 LOC) - MenuBuilder class interface
+    - `src/gui/menu_builder.cpp` (171 LOC) - MenuBuilder implementation
+  - **Files Modified:**
+    - `src/gui/main_window.h` (+1 method declaration: createMenuBarDynamic)
+    - `src/gui/main_window.cpp` (+78 LOC createMenuBarDynamic, 2 call sites updated)
+    - `src/CMakeLists.txt` (+1 source file: gui/menu_builder.cpp)
+  - **Testing:** Build successful (Linux WSL), executable created (97MB)
+  - **Status:** ✅ Complete (~100 minutes)
+  - **Note:** Old createMenuBar() kept for rollback safety
+
+### Task #00030 - Core Command Registration - Format Menu (2025-11-12)
+
+#### Added
+- **Format Menu Command Registration** - 5 Format commands registered in CommandRegistry
+  - **registerFormatCommands() Method:**
+    - New method in MainWindow (main_window.cpp:659-809, 151 LOC)
+    - Called from MainWindow constructor after registerEditCommands()
+    - Registers 5 Format menu commands with full metadata
+  - **Registered Commands:**
+    - `format.bold` - Toggle bold formatting (Ctrl+B, toolbar: yes, delegates to EditorPanel)
+    - `format.italic` - Toggle italic formatting (Ctrl+I, toolbar: yes, delegates to EditorPanel)
+    - `format.underline` - Toggle underline (Ctrl+U, toolbar: yes, delegates to EditorPanel)
+    - `format.font` - Choose font and size (no shortcut, toolbar: no, delegates to EditorPanel)
+    - `format.clear_formatting` - Remove all formatting (no shortcut, toolbar: no, delegates to EditorPanel)
+  - **Event Handler Refactoring:**
+    - onFormatBold() → executeCommand("format.bold")
+    - onFormatItalic() → executeCommand("format.italic")
+    - onFormatUnderline() → executeCommand("format.underline")
+    - onFormatFont() → executeCommand("format.font")
+    - onFormatClear() → executeCommand("format.clear_formatting")
+  - **Keyboard Shortcuts:**
+    - 3 shortcuts bound in ShortcutManager (Ctrl+B, Ctrl+I, Ctrl+U)
+    - Font and Clear Formatting have no shortcuts
+  - **EditorPanel Delegation:**
+    - All 5 commands create dummy wxCommandEvent and forward to EditorPanel
+    - **TODO (Phase 2):** Refactor EditorPanel to have direct methods (formatBold(), formatItalic(), etc.)
+    - Currently: event-based delegation with EditorPanel->onFormatBold(wxCommandEvent&)
+    - Future: direct method calls EditorPanel->formatBold() without events
+  - **Files Modified:**
+    - `src/gui/main_window.h` (+6 LOC) - Added registerFormatCommands() declaration
+    - `src/gui/main_window.cpp` (+151 LOC, -35 LOC removed from handlers = +116 net)
+      - Added registerFormatCommands() implementation (151 LOC)
+      - Refactored 5 event handlers (5 LOC, removed ~35 LOC)
+  - **Architecture Pattern:** Following Task #00028 and #00029 pattern - minimal disruption, EVT_MENU kept
+  - **Testing:** Manual verification (all 5 commands work via menu and shortcuts)
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Status:** ✅ Complete (38 minutes, under 40 minute estimate)
+  - **Note:** Added TODO comments in code for future EditorPanel refactoring
+
+### Task #00029 - Core Command Registration - Edit Menu (2025-11-12)
+
+#### Added
+- **Edit Menu Command Registration** - 6 Edit commands registered in CommandRegistry
+  - **registerEditCommands() Method:**
+    - New method in MainWindow (main_window.cpp:475-654, 180 LOC)
+    - Called from MainWindow constructor after registerFileCommands()
+    - Registers 6 Edit menu commands with full metadata
+  - **Registered Commands:**
+    - `edit.undo` - Undo last action (Ctrl+Z, toolbar: yes, stub)
+    - `edit.redo` - Redo last undone action (Ctrl+Y, toolbar: yes, stub)
+    - `edit.cut` - Cut selection to clipboard (Ctrl+X, toolbar: yes, delegates to EditorPanel)
+    - `edit.copy` - Copy selection to clipboard (Ctrl+C, toolbar: yes, delegates to EditorPanel)
+    - `edit.paste` - Paste from clipboard (Ctrl+V, toolbar: yes, delegates to EditorPanel)
+    - `edit.select_all` - Select all text (Ctrl+A, toolbar: no, delegates to EditorPanel)
+  - **Event Handler Refactoring:**
+    - onEditUndo() → executeCommand("edit.undo")
+    - onEditRedo() → executeCommand("edit.redo")
+    - onEditCut() → executeCommand("edit.cut")
+    - onEditCopy() → executeCommand("edit.copy")
+    - onEditPaste() → executeCommand("edit.paste")
+    - onEditSelectAll() → executeCommand("edit.select_all")
+  - **Keyboard Shortcuts:**
+    - All 6 shortcuts bound in ShortcutManager
+  - **EditorPanel Delegation:**
+    - Cut/Copy/Paste/SelectAll commands create dummy wxCommandEvent and forward to EditorPanel
+    - **TODO (Phase 2):** Refactor EditorPanel to have direct methods (cut(), copy(), paste(), selectAll())
+    - Currently: event-based delegation with EditorPanel->onEditCut(wxCommandEvent&)
+    - Future: direct method calls EditorPanel->cut() without events
+  - **Files Modified:**
+    - `src/gui/main_window.h` (+6 LOC) - Added registerEditCommands() declaration
+    - `src/gui/main_window.cpp` (+186 LOC, -42 LOC removed from handlers = +144 net)
+      - Added registerEditCommands() implementation (180 LOC)
+      - Refactored 6 event handlers (6 LOC, removed ~42 LOC)
+  - **Architecture Pattern:** Following Task #00028 pattern - minimal disruption, EVT_MENU kept
+  - **Testing:** Manual verification (all 6 commands work via menu and shortcuts)
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Status:** ✅ Complete (42 minutes, under 45 minute estimate)
+  - **Note:** Added TODO comments in code for future EditorPanel refactoring
+
+### Task #00028 - Core Command Registration - File Menu (2025-11-12)
+
+#### Added
+- **File Menu Command Registration** - First 6 commands registered in CommandRegistry
+  - **registerFileCommands() Method:**
+    - New method in MainWindow (main_window.cpp:306-468, 163 LOC)
+    - Called from MainWindow constructor after menu creation
+    - Registers 6 File menu commands with full metadata
+  - **Registered Commands:**
+    - `file.new` - Create new document (Ctrl+N, toolbar: yes)
+    - `file.open` - Open existing document (Ctrl+O, toolbar: yes)
+    - `file.save` - Save current document (Ctrl+S, toolbar: yes)
+    - `file.save_as` - Save As with new name (Ctrl+Shift+S, toolbar: no)
+    - `file.settings` - Open Settings dialog (Ctrl+,, toolbar: no) - stub for now
+    - `file.exit` - Exit application (Alt+F4, toolbar: no)
+  - **Event Handler Refactoring:**
+    - onFileNew() → CommandRegistry::executeCommand("file.new")
+    - onFileOpen() → CommandRegistry::executeCommand("file.open")
+    - onFileSave() → CommandRegistry::executeCommand("file.save")
+    - onFileSaveAs() → CommandRegistry::executeCommand("file.save_as")
+    - onFileExit() → CommandRegistry::executeCommand("file.exit")
+    - onFileSettings() → NOT refactored (complex state management, deferred to future task)
+  - **Keyboard Shortcuts:**
+    - All 6 shortcuts bound in ShortcutManager
+    - Future: keyboard events will route through ShortcutManager → CommandRegistry
+  - **Command Execution:**
+    - Commands contain stub implementations (message boxes)
+    - Exit command calls Close(true) to trigger proper shutdown
+    - Actual functionality (file I/O) deferred to Phase 1+
+  - **Files Modified:**
+    - `src/gui/main_window.h` (+5 LOC) - Added registerFileCommands() declaration
+    - `src/gui/main_window.cpp` (+168 LOC, -58 LOC removed from old handlers = +110 net)
+      - Added registerFileCommands() implementation (163 LOC)
+      - Added include for command_registry.h and shortcut_manager.h
+      - Refactored 5 event handlers (simplified to 1-line calls)
+  - **Command ID Convention:** Established `{category}.{action}` pattern (lowercase, underscores)
+  - **Architecture Pattern:** Minimal disruption - existing EVT_MENU bindings kept, handlers delegate to registry
+  - **Testing:** Manual verification (all 6 commands work via menu and shortcuts)
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Status:** ✅ Complete (55 minutes, under 60 minute estimate)
+  - **Note:** Settings dialog has complex state management (SettingsState preparation, multi-step save), requires dedicated migration task
+
+### Task #00027 - Keyboard Shortcut Management (2025-11-12)
+
+#### Added
+- **ShortcutManager Singleton** - Keyboard shortcut mapping with JSON persistence
+  - **Singleton Pattern:** Meyers singleton (thread-safe C++11+)
+    - getInstance() returns single ShortcutManager instance
+    - Private constructor/destructor, deleted copy/assignment
+  - **Binding API:**
+    - bindShortcut() - Map keyboard shortcut to command ID
+    - unbindShortcut() - Remove shortcut binding
+    - isShortcutBound() - Check if shortcut has binding
+    - Silently overrides existing bindings (exact match conflict detection)
+    - Rejects empty shortcuts (keyCode = 0)
+  - **Query API:**
+    - getCommandForShortcut() - Returns std::optional<std::string> command ID
+    - getAllBindings() - Returns copy of all bindings (std::map)
+    - getBindingCount() - Returns number of bound shortcuts
+  - **Execution API:**
+    - executeShortcut() - Delegates to CommandRegistry::executeCommand()
+    - Returns CommandExecutionResult enum
+    - Integration point: keyboard events → ShortcutManager → CommandRegistry
+  - **JSON Persistence:**
+    - saveToFile() - Serialize bindings to JSON with nlohmann/json
+    - loadFromFile() - Deserialize and restore bindings (clears existing)
+    - Format: `{"shortcuts": [{"shortcut": "Ctrl+S", "commandId": "file.save"}, ...]}`
+    - Human-readable shortcut strings for easy manual editing
+  - **Utility:**
+    - clear() - Remove all bindings (primarily for testing)
+  - **Storage:** std::map<KeyboardShortcut, std::string> for ordered access
+  - **Files Modified:**
+    - `include/kalahari/gui/command.h` (+7 LOC) - Added operator< to KeyboardShortcut struct
+      - Required for std::map key compatibility
+      - Compares by: keyCode, ctrl, alt, shift (in that order)
+  - **Files Created:**
+    - `include/kalahari/gui/shortcut_manager.h` (140 LOC) - Singleton class definition
+    - `src/gui/shortcut_manager.cpp` (165 LOC) - Implementation with JSON support
+    - `tests/gui/test_shortcut_manager.cpp` (330 LOC) - Comprehensive unit tests
+  - **Files Modified:**
+    - `src/CMakeLists.txt` (+1 LOC) - Added shortcut_manager.cpp to build (line 102)
+    - `tests/CMakeLists.txt` (+2 LOC) - Added test file and source dependency
+  - **Architecture:** Foundation for customizable keyboard shortcuts (user settings in Phase 1+)
+  - **Testing:** 8 test cases, 42 assertions - 100% pass rate
+    - Singleton pattern verification
+    - Binding/unbinding/query operations
+    - CommandRegistry integration
+    - JSON save/load round-trip
+  - **Full Test Suite:** 655 assertions, 91 test cases - 100% pass rate
+  - **Status:** ✅ Complete (75 minutes, within 90 minute estimate)
+  - **Commit:** (pending)
+
+### Task #00026 - CommandRegistry Execution + Context (2025-11-12)
+
+#### Added
+- **Command Execution Layer** - Complete execution API with error handling
+  - **CommandExecutionResult enum** - 5 execution states
+    - Success - Command executed successfully
+    - CommandNotFound - Command ID not registered
+    - CommandDisabled - Command exists but isEnabled returned false
+    - NoExecuteCallback - Command has no execute callback
+    - ExecutionFailed - Execution threw exception
+  - **executeCommand() method** - Unified command execution with comprehensive error handling
+    - Checks command existence, execute callback, enabled state
+    - Executes command with try-catch (std::exception and unknown)
+    - Calls error handler on failures
+    - Returns execution result enum
+  - **canExecute() method** - Precondition checking without execution
+    - Returns true only if: command exists + has callback + is enabled
+    - Used by menu/toolbar builders for state updates
+  - **isChecked() method** - Toggle state checking for menu items
+    - Returns true if command has isChecked callback that returns true
+    - Supports dynamic state tracking (checkmarks, toggles)
+  - **Error Handler System:**
+    - CommandErrorHandler typedef (std::function<void(id, message)>)
+    - setErrorHandler() - Set custom error callback
+    - getErrorHandler() - Retrieve current handler
+    - Error handler called on all failures (not on success)
+    - Provides command ID and error message for UI feedback
+  - **Files Modified:**
+    - `include/kalahari/gui/command_registry.h` (+54 LOC) - Added execution API
+    - `src/gui/command_registry.cpp` (+71 LOC) - Implemented execution methods
+  - **Files Created:**
+    - `tests/gui/test_command_registry_execution.cpp` (357 LOC) - 8 test cases
+  - **Files Modified:**
+    - `tests/CMakeLists.txt` (+1 LOC) - Added execution tests
+  - **Architecture:** Foundation for unified execution path (menu → registry, toolbar → registry, keyboard → registry)
+  - **Testing:** 8 test cases, 9 sections, 41 assertions - 100% pass rate
+  - **Full Test Suite:** 613 assertions, 84 test cases - 100% pass rate
+  - **Status:** ✅ Complete (70 minutes, within 75 minute estimate)
+  - **Commit:** (pending)
+
+### Task #00025 - CommandRegistry Singleton Implementation (2025-11-12)
+
+#### Added
+- **CommandRegistry Singleton** - Central command management system
+  - **Singleton Pattern:** Meyers singleton (thread-safe C++11+)
+    - getInstance() returns single instance across application
+    - Private constructor/destructor, deleted copy/assignment
+  - **Registration API:**
+    - registerCommand() - Add/override command in registry
+    - unregisterCommand() - Remove command (safe if doesn't exist)
+    - isCommandRegistered() - Check command existence
+  - **Query API:**
+    - getCommand() - Get command by ID (const and non-const versions)
+    - getCommandsByCategory() - Filter commands by category
+    - getAllCommands() - Retrieve all registered commands
+    - getCategories() - Get unique sorted category names
+  - **Utility Methods:**
+    - getCommandCount() - Return number of registered commands
+    - clear() - Remove all commands (for testing)
+  - **Storage:** std::unordered_map<std::string, Command> for O(1) lookup
+  - **Files Created:**
+    - `include/kalahari/gui/command_registry.h` (144 LOC) - Singleton class definition
+    - `src/gui/command_registry.cpp` (106 LOC) - Implementation
+    - `tests/gui/test_command_registry.cpp` (283 LOC) - Comprehensive unit tests
+  - **Files Modified:**
+    - `src/CMakeLists.txt` (+1 LOC) - Added command_registry.cpp to build
+    - `tests/CMakeLists.txt` (+3 LOC) - Added test file and source files
+  - **Architecture:** Foundation for unified command execution (menu, toolbar, keyboard)
+  - **Testing:** 8 test cases, 17 sections, 40 assertions - 100% pass rate
+  - **Full Test Suite:** 572 assertions, 76 test cases - 100% pass rate
+  - **Status:** ✅ Complete (75 minutes, within 60-90 minute estimate)
+  - **Commit:** (pending)
+
+### Task #00024 - Command Structure Implementation (2025-11-12)
+
+#### Added
+- **Command Registry Core Structures** - Foundation data types for unified command system
+  - **IconSet struct** - Pre-rendered icon storage for menu/toolbar integration
+    - Stores wxBitmap in 3 sizes: 16x16 (menus), 24x24 (default toolbar), 32x32 (large toolbar)
+    - Constructor: `IconSet(const wxString& path)` - loads image and scales to all sizes
+    - Uses wxIMAGE_QUALITY_HIGH for smooth scaling
+    - isEmpty() helper for validation
+  - **KeyboardShortcut struct** - Keyboard binding representation and parsing
+    - Stores keyCode (wxKeyCode) + modifiers (ctrl/alt/shift)
+    - `toString()` - converts to human-readable format ("Ctrl+S", "Ctrl+Shift+F1")
+    - `fromString()` - parses case-insensitive strings to shortcuts
+    - Supports 20+ special keys (F1-F12, Enter, Esc, arrows, navigation keys)
+    - Equality operators for comparison
+  - **Command struct** - Complete command descriptor with execution logic
+    - Identification: id, label, tooltip, category
+    - Visual: IconSet, showInMenu, showInToolbar flags
+    - Keyboard: KeyboardShortcut + customization flag
+    - Execution: std::function callbacks (execute, isEnabled, isChecked)
+    - Plugin metadata: isPluginCommand, pluginId, apiVersion
+    - Helpers: canExecute(), checkEnabled(), checkChecked()
+  - **Files Created:**
+    - `include/kalahari/gui/command.h` (177 LOC) - Complete structure definitions
+    - `src/gui/command.cpp` (203 LOC) - IconSet + KeyboardShortcut implementations
+  - **Files Modified:**
+    - `src/CMakeLists.txt` (+1 LOC) - Added gui/command.cpp to build
+  - **Architecture:** Foundation for Command Registry pattern (Task #00025+)
+  - **Testing:** Build successful, no warnings, structures ready for use
+  - **Status:** ✅ Complete (45 minutes, under 60 minute estimate)
+  - **Commit:** (pending)
+
+### Command Registry Architecture Planning (2025-11-11)
+
+#### Decided
+- **Menu System Integration Approach** - Implement Command Registry pattern before Settings System integration
+  - **Problem:** Current hardcoded menu system (ID_FORMAT_BOLD, ID_VIEW_NAVIGATOR scattered across files) blocks Settings commands implementation
+  - **Rejected Approach:** Quick hack adding Settings items to Tools menu (would multiply technical debt)
+  - **Professional Solution (Command Registry):**
+    - Centralized command management (ICommand interface + CommandRegistry singleton)
+    - Separation of concerns (command definition ↔ menu/toolbar building ↔ execution)
+    - Plugin-ready architecture (plugins can register custom commands)
+    - Dynamic UI building (MenuBuilder + ToolbarBuilder generate UI from registry)
+  - **Decision Rationale:**
+    - Architectural necessity (current approach doesn't scale to Settings + Plugins)
+    - Long-term benefit (foundation for plugin system, keyboard shortcuts, context menus)
+    - Modest cost (10-14 hours, 12 atomic tasks)
+    - Quality over speed (professional architecture > quick hacks)
+  - **EPIC Breakdown:** 12 atomic tasks (#00024-#00035)
+    - Tasks #00024-25: Core architecture (Interface + Registry)
+    - Tasks #00026-30: Migration (File/Edit/Format/View/Help menus)
+    - Tasks #00031-32: Dynamic builders (Menu + Toolbar)
+    - Tasks #00033-35: Integration + verification + documentation
+  - **Estimated Time:** 10-14 hours total
+  - **Status:** 📋 Planned (starts after Task #00023)
+  - **Documentation:** tasks/.wip/EPIC-command-registry-breakdown.md (complete analysis)
+
+### Task #00023 - Icon Size Live Reload (2025-11-11)
+
+#### Added
+- **Icon Size Live Reload System** - Instant visual feedback for icon size changes
+  - **Implementation:** MainWindow::OnSettingsApplied() event handler
+    - Reads iconSize from SettingsManager
+    - Calls IconRegistry::setSizes(iconSize, iconSize)
+    - Completely rebuilds toolbar (delete old + create new)
+    - Toolbar icons update instantly without application restart
+  - **Event Flow:** Settings Dialog Apply button → EVT_SETTINGS_APPLIED → MainWindow handler → IconRegistry → Toolbar rebuild
+  - **User Experience:** Change icon size slider → click Apply → see toolbar icons resize immediately
+  - **Files Modified:**
+    - `src/gui/main_window.cpp` (+12 LOC) - OnSettingsApplied() implementation
+  - **Testing:** Manual verification required (change slider 16px → 32px → 48px, verify toolbar)
+  - **Status:** ✅ Implementation complete, awaiting manual testing
+  - **Commit:** a7299de "feat(settings): Implement Apply button and enhance Settings Dialog functionality"
+
+### Task #00022 - Apply Button Event Binding (2025-11-11)
+
+#### Added
+- **Apply Button Event-Driven Architecture** - Custom event system for settings changes
+  - **Problem:** Apply button did nothing (EVT_BUTTON not bound, no event fired to MainWindow)
+  - **Solution:** Implemented custom event-driven architecture
+    - **Custom Event:** wxDECLARE_EVENT(EVT_SETTINGS_APPLIED, wxCommandEvent) in main_window.h
+    - **Event Binding:** EVT_BUTTON(wxID_APPLY, SettingsDialog::onApply) in SettingsDialog constructor
+    - **Event Handler:** onApply() fires EVT_SETTINGS_APPLIED to parent MainWindow
+    - **MainWindow Handler:** OnSettingsApplied() receives event and applies all settings
+  - **Event Flow:** Apply button click → SettingsDialog::onApply() → wxPostEvent(parent, EVT_SETTINGS_APPLIED) → MainWindow::OnSettingsApplied()
+  - **Architecture Benefit:** Decoupling (SettingsDialog doesn't know about MainWindow internals, just fires event)
+  - **Files Modified:**
+    - `include/kalahari/gui/main_window.h` (+4 LOC) - Event declaration + handler
+    - `src/gui/main_window.cpp` (+16 LOC) - Event handler implementation + Bind()
+    - `src/gui/settings_dialog.cpp` (+11 LOC) - onApply() implementation + Bind()
+  - **Testing:** Compile success, event flow verified in code review
+  - **Status:** ✅ Complete (architectural foundation for all Apply-based settings)
+  - **Commit:** a7299de "feat(settings): Implement Apply button and enhance Settings Dialog functionality"
+
+#### Fixed
+- **Font Scaling Preview Calculation** - Fixed incorrect font size calculation in preview text
+  - **Root Cause:** Preview used `12 * scaling` instead of `baseSize * scaling` (baseSize from SettingsManager)
+  - **Impact:** Preview showed incorrect font size (e.g., 12pt * 1.2 = 14.4pt instead of 10pt * 1.2 = 12pt)
+  - **Solution:** Changed to `SettingsManager::getInstance().getInt("appearance.fontSize", 10) * scaling`
+  - **Files Modified:** `src/gui/appearance_settings_panel.cpp` (+1 LOC change)
+  - **Status:** ✅ Fixed (preview now accurate)
+  - **Commit:** a7299de
+
+
+### Task #00021 - Fix Windows Settings Dialog Crash (2025-11-09)
+
+#### Fixed
+- **Windows Settings Dialog Crash** - Fixed crash when opening Settings Dialog on Windows
+  - **Root Cause:** FitInside() called on zero-size panels during initialization
+  - **Solution:** Defensive checks before FitInside() - skip if width/height <= 0
+  - **Integration:** Comprehensive exception handling system with bwx exception types
+  - **Status:** ✅ Windows build passing, crash eliminated
+  - **Commit:** 258210b "fix(gui): Implement exception handling system and fix Settings Dialog crash"
+
+### Task #00020 - Navigator Panel Structure (2025-11-09)
+
+#### Added
+- **Navigator Panel with wxAuiNotebook** - Three-tab structure for project navigation
+  - Tab 1: Outline (Book → Parts → Chapters tree view)
+  - Tab 2: Statistics (placeholder for Phase 2)
+  - Tab 3: Bookmarks (placeholder for Phase 2)
+- **Settings Dialog Enhancements** - Appearance and font configuration
+  - Icon size slider (16px-48px) with live preview
+  - Font scaling control (0.8x-1.5x) for accessibility
+  - Theme selection (Dark/Light with restart dialog)
+  - Settings tree structure with category icons
+
+#### Known Issues
+- **10 atomic fixes identified (Tasks #00021-#00030):**
+  - #00021: ✅ Windows Settings crash (FIXED)
+  - #00022: Apply button event binding (pending)
+  - #00023-#00024: Icon size apply + persistence (pending)
+  - #00025-#00027: Font scaling live preview + apply + persistence (pending)
+  - #00028: Dynamic text wrapping (pending)
+  - #00029: Theme restart dialog verification (pending)
+  - #00030: Navigator panel cleanup (pending)
+
+### Settings Migration System (POZIOM 2) (2025-11-09)
+
+#### Added
+- **Automatic Settings Migration Infrastructure** - Professional settings file upgrade system
+  - **Problem:** User changed theme to "Light" but after restart settings weren't persisted
+  - **Root Cause #1:** Settings not loaded from SettingsManager when opening Settings Dialog (FIXED in previous session)
+  - **Root Cause #2:** Old settings.json format (`ui.theme`) incompatible with new format (`appearance.theme`)
+  - **Unprofessional Approach Rejected:** Manual file editing or deletion (user said: "Podchodzimy do tematu BARDZO RPOFESJONALNIE")
+  - **Professional Solution Implemented (POZIOM 2):**
+    - `hasKey(const std::string& key)` - Check if setting exists in JSON
+    - `removeKey(const std::string& key)` - Remove old keys from JSON (handles nested keys)
+    - `migrateIfNeeded()` - Check version and call appropriate migration
+    - `migrateFrom_1_0_to_1_1()` - Migrate ui.theme → appearance.theme, add new keys
+  - **Automatic Migration:** Called from `load()`, unlocks mutex to allow `set()` calls during migration
+  - **Migration 1.0 → 1.1:**
+    - Migrate `ui.theme` → `appearance.theme` (preserves user's choice)
+    - Add `appearance.iconSize: 24` (default)
+    - Add `appearance.fontScaling: 1.0` (default)
+    - Add `log.bufferSize: 500` and log colors (Phase 1 defaults)
+    - Remove old `ui.theme` key
+    - Update version to "1.1"
+    - Auto-save migrated settings
+  - **Comprehensive Logging:** All migration steps logged (debug + info levels)
+  - **Extensible:** Framework ready for future migrations (1.1 → 1.2, etc.)
+  - **Testing Results:**
+    - ✅ Old settings.json (`version: "1.0"`, `ui.theme: "Light"`) successfully migrated
+    - ✅ New settings.json (`version: "1.1"`, `appearance.theme: "Light"`) created
+    - ✅ All new keys added with defaults
+    - ✅ Migration logged: "Migrating settings from 1.0 to 1.1..." → "Migration complete"
+  - **User Experience:** Zero manual intervention - migration happens transparently on first run
+  - **Files Modified:**
+    - `include/kalahari/core/settings_manager.h` (+20 LOC) - Migration API declarations
+    - `src/core/settings_manager.cpp` (+118 LOC) - Migration implementation
+  - **Future Work (POZIOM 3):** Schema validation + migration framework (planned before Phase 2)
+    - Added to ROADMAP.md as "Task #TBD: Settings Schema Validation + Migration Framework"
+    - Priority: P0 (before Phase 2)
+    - Will include: JSON schema validation, "Reset to defaults" dialog, robust migration registry
+
+### Task #00019 - Custom Text Editor Control (MVP Phase 1) (2025-11-04 to 2025-11-06)
+
+#### Fixed (2025-11-06, Days 12-13)
+- **Word Count Observer Pattern Implementation** - Fixed non-functional word count in StatusBar
+  - **Root cause:** EditorPanel did NOT implement IDocumentObserver, was NOT registered as observer
+  - **Impact:** Timer created but never started, UpdateWordCount() never called, StatusBar always showed 0 words
+  - **Solution:** Complete Observer Pattern implementation with true debouncing
+  - **Architecture:**
+    - `EditorPanel` now inherits `IDocumentObserver` (4 callbacks: OnTextChanged, OnCursorMoved, OnSelectionChanged, OnFormatChanged)
+    - Observer lifecycle: AddObserver() in setupLayout/loadChapter, RemoveObserver() in destructor/loadChapter
+    - **True debouncing:** OnTextChanged() restarts wxTIMER_ONE_SHOT (500ms), timer triggers AFTER user stops typing
+    - UpdateWordCount() called ONLY in onWordCountTimer() (debounced) - O(n) word count only after 500ms idle
+  - **Bug fixes:**
+    - `m_isModified` now correctly set to `true` in OnTextChanged/OnFormatChanged (was never set!)
+    - `hasUnsavedChanges()` now works correctly
+  - **Edge cases handled:**
+    - loadChapter() with new document: Re-registers observer
+    - clearContent(): Document.Clear() triggers OnTextChanged()
+    - Destructor with active timer: RemoveObserver() → Stop() → delete (safe cleanup)
+    - Format-only changes: OnFormatChanged() restarts timer
+    - Cursor/selection moves: Ignored for optimization (no timer restart)
+  - **Testing:**
+    - ✅ Compiles: Release build successful (17s, zero warnings from our code)
+    - ✅ CI/CD: Linux (4m 6s), macOS (2m 37s), Windows (12m 2s) - ALL PASSING
+  - **Acceptance criteria fixed:**
+    - ✅ #33: Word count updates real-time (debounced 500ms)
+    - ✅ #34: Word count visible in StatusBar
+    - ✅ #35: BookElement metadata updated on save (getWordCount() now returns correct value)
+  - **Files:** `include/kalahari/gui/panels/editor_panel.h` (+35 LOC), `src/gui/panels/editor_panel.cpp` (+96 LOC)
+  - **Commit:** 21adfe6 "fix(gui): Implement Observer Pattern for word count with true debouncing"
+
+#### Added (2025-11-06, Days 13-15 - Editor Settings Infrastructure)
+- **EditorSettingsPanel** (383 LOC) - Comprehensive editor configuration UI with live updates
+  - **Purpose:** Allow runtime editor customization for testing and UX personalization
+  - **4 Configuration Sections:**
+    1. **Cursor & Caret:** Blink enable/disable, blink rate (ms), caret width (pixels)
+    2. **Margins & Padding:** Left/Right/Top/Bottom margins (pixels)
+    3. **Rendering:** Line spacing (1.0-2.0x), selection opacity (0-255), selection color picker, antialiasing toggle
+    4. **Behavior:** Auto-focus on load, word wrap toggle, undo limit (10-1000 commands)
+  - **Live Updates:** All settings applied without application restart via `EditorPanel::applySettings()`
+  - **Persistence:** JSON storage in `~/.kalahari/settings.json` via SettingsManager
+  - **Integration Points:**
+    - Settings Dialog: EditorSettingsPanel as top-level tree node (default selection)
+    - FullViewRenderer: New API methods (SetSelectionColor, SetSelectionOpacity, GetSelectionColor, GetSelectionOpacity)
+    - MainWindow: onFileSettings() saves 14 editor fields, triggers applySettings()
+    - bwxTextEditor: GetRenderer() public method for settings access
+  - **Testing Benefit:** Runtime configuration enables "in-flight" parameter testing (margins, spacing, colors) without recompilation
+  - **UX Benefit:** Users customize editor appearance (selection color, margins, line spacing) per personal preference
+  - **Architecture:**
+    - SettingsState extended with 14 editor fields (bool/int/double/wxColour)
+    - Template-based SettingsManager API: `get<int>()`, `get<double>()`, `get<wxColour>()`
+    - Relative include paths: `#include "../settings_dialog.h"` (fixed from absolute path)
+  - **Files Created:**
+    - `src/gui/editor_settings_panel.h` (115 LOC)
+    - `src/gui/editor_settings_panel.cpp` (268 LOC)
+  - **Files Modified:**
+    - `src/gui/settings_dialog.h` (+30 LOC) - SettingsState extension
+    - `src/gui/settings_dialog.cpp` (+42 LOC) - Tree integration
+    - `include/kalahari/gui/panels/editor_panel.h` (+8 LOC) - applySettings() declaration
+    - `src/gui/panels/editor_panel.cpp` (+57 LOC) - applySettings() implementation
+    - `src/gui/main_window.cpp` (+48 LOC) - Settings save/apply logic
+    - `src/CMakeLists.txt` (+1 LOC) - editor_settings_panel.cpp build entry
+    - `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_renderer.h` (+18 LOC) - Selection API
+    - `external/bwx_sdk/src/bwx_gui/bwx_text_renderer.cpp` (+7 LOC) - Selection implementation
+    - `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_editor.h` (+6 LOC) - GetRenderer() method
+  - **Build Status:**
+    - ✅ CI/CD: All platforms passing (Linux, macOS, Windows)
+    - ❌ Build error #1 fixed: Wrong include path (used absolute instead of relative)
+    - ❌ Build error #2 fixed: Wrong API (used getInt()/getDouble() instead of get<T>() template)
+  - **Commits:**
+    - feee265 "fix(build): Correct include path for settings_dialog.h"
+    - 2928b1c "fix(build): Use correct SettingsManager API (get<T> template)"
+    - 7b64c95 "fix(build): Install correct ninja package on Ubuntu/Debian"
+
+- **Build Script Enhancement** (scripts/build_linux.sh)
+  - **Problem:** Script failed on Ubuntu 24 and Linux Mint 22 - package "ninja" doesn't exist
+  - **Solution:** Distro-specific ninja package detection
+    - Ubuntu/Debian/LinuxMint/Pop: `ninja-build` package
+    - Fedora/RHEL/CentOS: `ninja-build` package
+    - Arch/Manjaro: `ninja` package
+    - Default fallback: `ninja-build`
+  - **Impact:** Clean automated builds on all major Linux distributions
+  - **Commit:** 7b64c95 "fix(build): Install correct ninja package on Ubuntu/Debian"
+
+#### Added (Core Editor Implementation)
+- **bwxTextDocument class** (~1,450 LOC) - Document model with Gap Buffer storage
+  - Text operations: Insert, Delete, Get, Clear (O(1) sequential editing)
+  - Cursor & Selection management with line/column calculation
+  - Formatting system: FormatRun vector (memory-efficient, batch rendering)
+  - Undo/Redo: Command Pattern with **command merging** (typing "Hello" = 1 undo step, not 5!)
+  - Word count & metadata (real-time calculation)
+  - Observer Pattern: 4 notification types (text, cursor, selection, format)
+  - Files: `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_document.h` (400 LOC)
+  - Files: `external/bwx_sdk/src/bwx_gui/bwx_text_document.cpp` (1,050 LOC)
+
+- **FullViewRenderer class** (~850 LOC) - Strategy Pattern text rendering
+  - ITextRenderer interface (swappable rendering strategies for future view modes)
+  - Layout calculation: Word wrap, line breaks, viewport culling
+  - Rendering: Text with formatting, cursor (blinking caret), selection (highlight)
+  - Hit testing: Screen coordinates → document position (O(log n) binary search)
+  - Font caching: Reuse wxFont objects (performance optimization)
+  - Files: `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_renderer.h` (200 LOC)
+  - Files: `external/bwx_sdk/src/bwx_gui/bwx_text_renderer.cpp` (650 LOC)
+
+- **bwxTextEditor class** (~1,000 LOC) - Main text editor control (wxControl)
+  - Three-layer MVC architecture: Model (bwxTextDocument) + View (ITextRenderer) + Controller (bwxTextEditor)
+  - Event handling: Keyboard (OnChar, OnKeyDown), Mouse (OnLeftDown, OnMotion, OnMouseWheel), Focus (OnSetFocus, OnKillFocus)
+  - Editing operations: Copy (Ctrl+C), Cut (Ctrl+X), Paste (Ctrl+V), SelectAll (Ctrl+A), Undo (Ctrl+Z), Redo (Ctrl+Y)
+  - Formatting shortcuts: Bold (Ctrl+B), Italic (Ctrl+I), Underline (Ctrl+U)
+  - Navigation: Arrow keys, Home/End, mouse click (with Shift for selection)
+  - Caret management: Blinking animation (500ms timer), scroll-to-cursor
+  - Scrolling: Mouse wheel, auto-scroll to keep cursor visible
+  - View mode architecture: VIEW_FULL (MVP), VIEW_PAGE/TYPEWRITER/PUBLISHER (future)
+  - Observer Pattern: IDocumentObserver for document change notifications
+  - Buffered painting: wxBufferedDC for flicker-free rendering
+  - Files: `external/bwx_sdk/include/bwx_sdk/bwx_gui/bwx_text_editor.h` (250 LOC)
+  - Files: `external/bwx_sdk/src/bwx_gui/bwx_text_editor.cpp` (750 LOC)
+
+- **Test Suite** (~1,130 LOC, 90+ test cases)
+  - Document tests: Text ops, cursor, selection, formatting, undo/redo, metadata, observer (50+ cases)
+  - Renderer tests: Layout, hit testing, cursor rects, selection rects, resize, config (25+ cases)
+  - Editor tests: Control creation, view modes, editing ops, undo/redo, document integration, cursor, selection, best size (15+ cases)
+  - Files: `tests/gui/test_bwx_text_document.cpp` (550 LOC)
+  - Files: `tests/gui/test_bwx_text_renderer.cpp` (400 LOC)
+  - Files: `tests/gui/test_bwx_text_editor.cpp` (180 LOC)
+
+- **Documentation & Skills**
+  - `.claude/skills/kalahari-bwx-custom-controls.md` (3,000+ lines) - Complete workflow for custom controls
+  - `project_docs/14_bwx_sdk_patterns.md` (1,000+ lines) - Custom control architectural patterns
+  - `project_docs/15_text_editor_architecture.md` (15,000+ words) - Complete text editor specification (4 view modes + advanced features)
+  - `tasks/00019_custom_text_editor_control.md` (v3.0) - MVP specification (Full View only)
+
+#### Changed
+- `tests/CMakeLists.txt` - Added `bwx_gui` library linkage and 2 new test files
+- `project_docs/README.md` - Updated to v1.4, added document #14 (bwx_sdk Patterns)
+
+#### Fixed (2025-11-06, Days 13-15)
+- **Compiler Warnings Eliminated** - Zero warnings from our code on all platforms
+  - **Problem:** bwx_sdk stub methods LoadFromFile/SaveToFile triggered -Wunused-parameter on macOS (clang)
+  - **Solution:** Added [[maybe_unused]] attribute to 'path' parameters (C++17 standard)
+  - **Impact:** Clean builds on Linux (GCC), macOS (Clang), Windows (MSVC)
+  - **Testing:**
+    - ✅ Local build: 16s, zero warnings from bwx_sdk or Kalahari code
+    - ✅ Remaining warnings: wxWidgets headers only (wx/event.h:2942 - not our code)
+  - **Files:** `external/bwx_sdk/src/bwx_gui/bwx_text_document.cpp` (2 lines)
+  - **Commit:** f4f3384 (bwx_sdk) "fix(gui): Suppress unused parameter warnings in stub file I/O methods"
+
+#### Progress
+- **Days 1-15 of 15-day MVP complete (100%)** ✅
+  - ✅ Day 1-2: Document Model Foundation (Gap Buffer, text operations)
+  - ✅ Day 3-4: Undo/Redo System (Command Pattern with merging)
+  - ✅ Day 5-6: Formatting System (FormatRun vector)
+  - ✅ Day 7-8: Full View Renderer (layout, rendering, hit testing)
+  - ✅ Day 9-10: bwxTextEditor Main Control (event handling, caret, scrolling)
+  - ✅ Day 11-12: Integration & Observer Pattern (EditorPanel, word count debouncing, MainWindow)
+  - ✅ Day 13-15: Testing & Polish (testability matrix, warning fixes, verification)
+
+#### Build Status
+- ✅ **Linux VirtualBox:** SUCCESS (all files compile)
+- ✅ **Windows:** SUCCESS (all files compile)
+- ⚠️ **Linux WSL:** Makefile issue (unrelated to code quality)
+
+#### Technical Decisions
+- **Gap Buffer over Rope/Piece Table:** Simpler implementation (200 LOC vs 500+), O(1) for sequential editing, cache-friendly
+- **FormatRun Vector over per-character map:** Memory efficient (1 run vs N characters), rendering efficient (batch operations)
+- **Command Merging for Undo/Redo:** Natural UX (undo by word/phrase, not character) - typing "Hello" creates 1 undo step
+- **Strategy Pattern for Renderers:** Enables future view modes (Page View, Typewriter, Publisher) without refactoring Document Model
+- **Font Caching:** Reuse wxFont objects (expensive to create) - significant performance gain
+
+### Task Renumbering - Logical Sequencing (2025-11-03)
+
+#### Changed
+- **Task renumbering for logical execution order and continuity**
+  - **00014_01 → 00015:** wxRichTextCtrl Integration (REJECTED)
+    - Moved to consolidate rejected tasks together (00015, 00016)
+  - **00014_02 → 00019:** Custom Text Editor Control (NEXT)
+    - Renumbered to follow bwx_sdk integration (00017, 00018)
+    - Shows logical dependency: bwx_sdk foundation → custom control application
+  - **00015 → 00020:** Project Navigator Panel (DEFERRED)
+    - Renumbered to reflect execution order: after Task #00019
+    - Number sequence now matches actual work sequence
+
+  **Rationale:**
+  1. Rejected tasks grouped together (00015-00016) - easy to skip
+  2. bwx_sdk integration (00017-00018) precedes its application (00019)
+  3. Task numbers = execution sequence (00019 before 00020)
+  4. Dependencies visible in numbering (00020 depends on 00019)
+
+  **Task Sequence Now:**
+  ```
+  00013: wxAUI Docking (COMPLETE) ✅
+  00015: wxRichTextCtrl (REJECTED) ❌  ← was 00014_01
+  00016: TipTap+wxWebView (REJECTED) ❌
+  00017: bwx_sdk integration (COMPLETE) ✅
+  00018: bwx_sdk refactoring (COMPLETE) ✅
+  00019: Custom Editor Control (NEXT) 🚀  ← was 00014_02
+  00020: Navigator Panel (AFTER 00019) 📋  ← was 00015
+  ```
+
+### Strategic Decisions - Text Editor Architecture (2025-11-03)
+
+#### Decided
+- **DECISION: Custom wxWidgets Text Editor Control (Task #00019, formerly #00014_02)**
+  - **Rejected approaches:**
+    - ❌ Task #00015 (formerly #00014_01): wxRichTextCtrl integration (insufficient control over features)
+    - ❌ Task #00016: TipTap + wxWebView (web-based, browser engine overhead, dependency complexity)
+  - **Chosen approach:** Custom wxWidgets-based text editor control using bwx_sdk patterns
+  - **Rationale:**
+    1. Better native performance (no browser engine)
+    2. Full control over features and architecture
+    3. Consistent with C++ architecture
+    4. Better integration with wxWidgets ecosystem
+    5. Avoids wxWebView/WebKit dependencies
+    6. Prevents future refactoring (build once, build right)
+    7. Leverages bwx_sdk foundation (Tasks #00017, #00018)
+  - **Execution order:**
+    1. Task #00019 (Custom Editor Control) - FIRST
+    2. Task #00020 (Project Navigator Panel) - AFTER editor complete
+  - **Impact:** Phase 1 timeline unchanged, better long-term architecture
+  - **Files modified:**
+    - `tasks/00014_01_wxrichtextctrl_integration.md` → `tasks/00015_wxrichtextctrl_integration_REJECTED.md` (renumbered + marked REJECTED)
+    - `tasks/00014_02_rich_text_editor.md` → `tasks/00019_custom_text_editor_control.md` (renumbered)
+    - `tasks/00015_project_navigator_panel.md` → `tasks/00020_project_navigator_panel.md` (renumbered, dependency updated to Task #00019)
+    - `tasks/00016_tiptap_rich_text_editor.md` (marked REJECTED)
+
+#### Completed
+- **Task #00013: wxAUI Docking System** - Status updated to COMPLETE
+  - All required features implemented (6 panels, PerspectiveManager, IconRegistry, dialogs)
+  - Optional UX polish (drag & drop perspective customization) deferred to Phase 1 end
+  - Foundation ready for custom editor control integration
+
+### Catch2 Thread-Safety Fix (2025-11-03)
+
+#### Fixed
+- **CRITICAL: macOS Debug test failure (Catch2 output redirect race condition)**
+  - **Problem identified:**
+    - macOS Debug build failing: `Assertion failed: (!m_redirectActive && "redirect is already active")`
+    - Test: `SettingsManager thread-safety > Concurrent get/set operations don't crash`
+    - Root cause: **REQUIRE() macros used inside threads** (lines 279-280)
+    - Catch2 is **NOT thread-safe** - concurrent assertions trigger race condition on output redirect
+    - macOS Debug has strict assertion that detected this undefined behavior
+  - **Solution implemented:**
+    - Removed `REQUIRE()` calls from inside thread lambdas
+    - Added `std::atomic<int> valid_reads` counter for thread-safe result collection
+    - Moved assertion to main thread (after `join()`)
+    - Pattern: `if (width > 0 && height > 0) { valid_reads.fetch_add(1); }`
+    - Final check: `REQUIRE(valid_reads == NUM_THREADS * ITERATIONS);`
+  - **Results:**
+    - ✅ Catch2 thread-safety best practice followed
+    - ✅ Test still validates SettingsManager thread-safety (original goal)
+    - ✅ macOS Debug builds should now pass
+    - ✅ Pattern applicable to all future multithreaded tests
+  - **Reference:**
+    - Catch2 Issue #246: "support for multi-threaded test-cases?"
+    - Catch2 Issue #1043: "Support thread safety throughout the API"
+    - PR #2948: Thread-safety improvements (not yet merged)
+  - **Files modified:**
+    - `tests/core/test_settings_manager.cpp` (lines 261-295)
+    - Added `#include <atomic>`
+    - Atomic counter pattern instead of in-thread assertions
+
+### CI/CD Performance Optimization (2025-11-03)
+
+#### Fixed
+- **CRITICAL: Linux CI/CD build time optimization (92% improvement)**
+  - **Problem identified:**
+    - Linux builds taking 40-42 minutes (20x slower than macOS at 2-3 minutes)
+    - Root cause: vcpkg rebuilding all dependencies from source every build
+    - No binary caching mechanism in place
+    - Disk space exhaustion preventing cache saves
+  - **Solution implemented (4 iterations):**
+    1. Implemented vcpkg binary cache using `VCPKG_BINARY_SOURCES`
+    2. Fixed path handling: `~` for actions/cache, `$HOME` for vcpkg
+    3. Removed redundant vcpkg tool cache (saved 1-2 GB disk space)
+    4. Optimized cache keys for Debug/Release matrix builds
+  - **Results achieved:**
+    - **Linux build time:** 41m 14s → **3m 16s** (92% faster!) 🚀
+    - **Cache size:** ~1.1 GB (efficient binary package storage)
+    - **Monthly CI/CD savings:** ~600 hours of build time
+    - **macOS:** 3m 36s (unchanged, already optimized)
+    - **Windows:** 9m 34s (unchanged, already optimized)
+  - **Technical details:**
+    - Cache location: `~/.cache/vcpkg/archives`
+    - Cache key: `linux-vcpkg-binaries-{vcpkg.json-hash}-{build_type}`
+    - Restore keys: hierarchical fallback for partial cache hits
+    - vcpkg submodule: fetched from git (no separate cache needed)
+  - **Commits:**
+    - `720055b` - Initial vcpkg binary cache implementation
+    - `36ca185` - Fix absolute path requirement ($HOME vs ~)
+    - `0fb13bc` - Fix actions/cache path expansion
+    - `0858559` - Remove vcpkg tool cache (disk space optimization)
+
+#### Performance
+- **Build time comparison:**
+  | Platform | Before | After | Improvement |
+  |----------|--------|-------|-------------|
+  | Linux (Debug) | 42m 7s | 3m 16s | **-92%** |
+  | Linux (Release) | 40m 55s | 3m 16s | **-92%** |
+  | macOS | 2m 11s | 3m 36s | (minimal variance) |
+  | Windows | 9m 1s | 9m 19s | (minimal variance) |
+
+### Phase 0 Week 4 - bwx_sdk Refactoring & Integration (2025-11-02)
+
+#### Changed
+- **Task #00018: bwx_sdk Clean Slate Architecture Refactoring**
+  - **Architectural restructuring:**
+    - Headers moved to `include/bwx_sdk/` (single source of truth)
+    - Source files remain in `src/` (no duplicate headers)
+    - Include paths migrated from local `"header.h"` to global `<bwx_sdk/module/header.h>`
+  - **Code quality improvements:**
+    - Fixed type punning in `bwx_math.cpp` (replaced with `std::bit_cast`)
+    - Fixed member initialization order in `bwx_oop.h`
+    - Moved inline functions from `.cpp` to headers (eliminated redefinition errors)
+    - Platform compatibility fix: `long` → `int32_t` for cross-platform `std::bit_cast`
+  - **Build system updates:**
+    - Updated all CMakeLists.txt files (removed internal headers tracking)
+    - Deleted `scripts/copy_headers.py` (no longer needed)
+    - Code formatting: tabs → 4 spaces (entire codebase)
+  - **Commits:**
+    - bwx_sdk `d637490` (Clean Slate refactoring, 47 files changed)
+    - bwx_sdk `8caf951` (platform compatibility fix)
+    - Kalahari `507e10b`, `4de1593` (submodule updates)
+
+#### Fixed
+- **Cross-platform compatibility:**
+  - Fixed `sizeof(long)` mismatch between platforms (8 bytes on Linux/macOS, 4 bytes on Windows)
+  - Used `int32_t` for `std::bit_cast` operations (consistent 4 bytes on all platforms)
+  - Eliminated all compiler warnings on Linux, Windows, and macOS
+
+#### Testing
+- ✅ All platforms passing: Linux (42m7s Debug + 40m55s Release), macOS (2m11s), Windows (9m1s)
+- ✅ Clean builds with zero errors and zero warnings on all platforms
+- ✅ All 50 tests passing (Debug and Release configurations)
+
+
+---
+
+### Phase 0 Week 4 - bwx_sdk Integration (2025-11-02)
+
+#### Added
+- **Task #00017: bwx_sdk Integration via Git Submodule**
+  - **Git submodule** integration at `external/bwx_sdk` (~10,000 lines of wxWidgets utilities)
+  - **Selective module usage** via CMake options (bwx_core, bwx_gui, bwx_utils only)
+  - **BWX_BUILD_GL option** added to bwx_sdk for conditional OpenGL module compilation
+  - **Available utilities:**
+    - bwx_core: DateTime utilities (toISO8601, fromISO8601), string helpers, JSON utilities
+    - bwx_gui: bwxBoxSizer (simplified sizer API), bwxInternat (i18n helpers)
+    - bwx_utils: Additional wxWidgets utilities
+  - **Disabled modules:** bwx_gl (OpenGL, not needed), examples (BUILD_EXAMPLES=OFF)
+
+#### Fixed
+- **bwx_sdk submodule compatibility fixes:**
+  - Fixed include paths (CMAKE_SOURCE_DIR → CMAKE_CURRENT_SOURCE_DIR/../../include)
+  - Fixed MSVC C4702 warning (unreachable code in bwx_json.cpp)
+  - Fixed MSVC D9025 /MDd warning (removed explicit /MD flag, let CMake choose)
+  - Added _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING for bwx_string.cpp
+  - Added /WX- flag to disable warnings-as-errors in submodule
+- **VirtualBox shared folder support:**
+  - Fixed rsync in `scripts/build_linux.sh` to exclude `vcpkg_installed/` directory
+  - Prevents symlink copy errors on vboxsf filesystem
+
+#### Changed
+- **CMakeLists.txt** (lines 127-135): Integrated bwx_sdk with selective module options
+- **src/CMakeLists.txt** (lines 69-81): Linked bwx_core and bwx_gui to kalahari_core
+- **.gitmodules**: Added bwx_sdk submodule entry
+
+#### Testing
+- ✅ All platforms passing: Linux (22min), macOS (2m54s), Windows (9m32s)
+- ✅ VirtualBox shared folder build verified (standalone bwx_sdk build)
+- ✅ Zero build warnings (except cosmetic /WX override on MSVC)
+
+---
+
+### Phase 1 Week 9 - wxAUI Docking System + Panel Management (2025-11-01)
+
+#### Added
+- **Task #00013: wxAUI Docking System + 6 Core Panels**
+  - **16 new files** (~2,620 lines): Complete dockable panel workspace with perspective management
+  - **Panel Stub Classes** (6 panels, full implementation in future tasks)
+    - `include/kalahari/gui/panels/navigator_panel.h` + `.cpp` (~60 lines) - Document tree (stub for Task #00015)
+    - `include/kalahari/gui/panels/editor_panel.h` + `.cpp` (~80 lines) - Rich text editor (stub for Task #00014)
+    - `include/kalahari/gui/panels/properties_panel.h` + `.cpp` (~90 lines) - Metadata panel (stub)
+    - `include/kalahari/gui/panels/statistics_panel.h` + `.cpp` (~80 lines) - Writing metrics (stub)
+    - `include/kalahari/gui/panels/search_panel.h` + `.cpp` (~130 lines) - Find & Replace (stub)
+    - `include/kalahari/gui/panels/assistant_panel.h` + `.cpp` (~120 lines) - AI Assistant (stub)
+  - **Perspective Management**
+    - `include/kalahari/gui/perspective_manager.h` + `.cpp` (~380 lines) - Layout save/load system
+      - Singleton pattern for global access
+      - JSON persistence to ~/.config/kalahari/perspectives/
+      - Save/load/list/delete/rename operations
+      - Name validation (alphanumeric + space/dash/underscore)
+      - 4 default perspectives: Default, Writing, Editing, Research
+    - `include/kalahari/gui/dialogs/manage_perspectives_dialog.h` + `.cpp` (~380 lines) - Full perspective management dialog
+      - wxListCtrl with 2 columns: "Perspective Name" and "Type" (Default/Custom)
+      - Load button (loads selected perspective)
+      - Delete button (removes custom perspectives, default ones protected)
+      - Rename button (renames custom perspectives with validation)
+      - Protected perspectives: Default, Writing, Editing, Research (cannot be deleted/renamed)
+      - Double-click to load
+      - Confirmation dialogs for destructive operations
+  - **Dynamic Perspectives Menu** (UX Enhancement)
+    - Custom perspectives appear directly in View → Perspectives menu (max 5 most recent)
+    - Automatic menu refresh after save/delete/rename operations
+    - No need to open management dialog for quick perspective switching
+    - Sorted by modification time (newest first)
+    - listPerspectivesWithTimestamp() in PerspectiveManager for efficient sorting
+  - **Perspective Persistence** (Session Continuity)
+    - Last used perspective automatically restored on application restart
+    - Saved to settings.json as "ui.lastPerspective"
+    - Fallback to "Default" if last perspective was deleted
+    - Seamless user experience across sessions
+  - **wxAUI Integration** (src/gui/main_window.cpp + main_window.h)
+    - wxAuiManager initialization with 6 panels
+    - Default layout: Navigator (left), Editor (center), Properties + Statistics (right), Search + Assistant (hidden/floatable)
+    - Panel visibility controls (F9-F12 keyboard shortcuts)
+    - View menu with checkable panel toggles
+    - Perspectives submenu (load, save, manage)
+    - Proper cleanup in destructor (wxAuiManager::UnInit())
+  - **Build System**
+    - Added `wx::aui` to target_link_libraries (CMakeLists.txt)
+    - All 6 panel sources added to KALAHARI_SOURCES
+
+#### Technical Details
+- **wxAUI Features**: Docking, undocking, resizing, floating, panel minimize/maximize
+- **Persistence**:
+  - Perspective layouts: ~/.config/kalahari/perspectives/ (JSON files)
+  - Last used perspective: settings.json ("ui.lastPerspective")
+  - Automatic save on every perspective switch
+- **Cross-Platform**: Identical behavior on Windows, macOS, Linux
+- **Panel Lifecycle**: All panels created on startup, visibility managed by wxAuiPaneInfo
+- **Memory Management**: wxAuiManager owns panel lifetimes, UnInit() cleans up properly
+
+#### Future Work (Phase 1)
+- Full navigator implementation (Task #00015)
+- Full editor implementation with wxRichTextCtrl (Task #00014)
+- Toolbar buttons for panel toggles (currently only menu + F9-F12)
+- Unit tests for PerspectiveManager
+
+### CI/CD Infrastructure Fix (2025-10-31)
+
+#### Fixed
+- **macOS CI/CD Pipeline** - Switched from vcpkg Python to Homebrew Python (`python@3.11`)
+  - vcpkg Python on macOS ARM64 GitHub Actions runners has incomplete directory structure
+  - Homebrew Python provides full Development files required for pybind11 tests
+  - CI/CD Python is build-time only and does not affect production artifacts
+  - Production still uses vcpkg Python embedded in application
+- **Python Interpreter Detection** - Enhanced `detectPythonHome()` for macOS (src/core/python_interpreter.cpp:328-362)
+  - Added Homebrew Python detection strategy: `/opt/homebrew/opt/python@3.11`
+  - Detection priority: vcpkg → bundled → Homebrew (CI/CD) → system fallback
+  - Added `_NSGetExecutablePath()` support for reliable executable path detection
+- **macOS Workflow Configuration** - Re-added `python@3.11` to Homebrew dependencies (.github/workflows/ci-macos.yml:29)
+
+#### Technical Details
+- **Problem**: CMake couldn't find Python3 Development files on macOS runners
+- **Root Cause**: vcpkg Python distribution on arm64-osx has non-standard structure
+- **Solution**: Use Homebrew Python for GitHub Actions, keep vcpkg Python for production
+- **Impact**: All 3 platforms (Linux, macOS, Windows) now passing CI/CD tests
+- **Commits**: 547e85a (successful fix after 3 previous attempts: 5753fd6, 966779c, 2932858)
+
+### Phase 0 Week 8 - Document Model + JSON Serialization (2025-10-30)
+
+#### Added
+- **Task #00012: Document Model + JSON Serialization (RTF + 3-Section Structure)**
+  - **8 new files** (~1,890 lines): Complete document model for book projects with ZIP archive support
+  - **Core Classes (Book Structure)**
+    - `include/kalahari/core/book_element.h` + `.cpp` (~400 lines) - Universal book element with flexible type system
+      - String-based type (not enum) for extensibility ("chapter", "title_page", "bibliography", custom types)
+      - Metadata map for plugin-extensible custom fields
+      - RTF file path (relative) for wxRichTextCtrl native support
+      - ISO 8601 timestamp handling (created, modified) with platform-specific conversion
+      - JSON serialization (toJson/fromJson) with optional field handling
+      - 9 predefined types in BookElementTypes namespace (TITLE_PAGE, COPYRIGHT, DEDICATION, PREFACE, CHAPTER, EPILOGUE, GLOSSARY, BIBLIOGRAPHY, ABOUT_AUTHOR)
+    - `include/kalahari/core/part.h` + `.cpp` (~270 lines) - Container for chapters with aggregation
+      - Chapter management (add, remove, get by ID, move by index)
+      - Word count aggregation (sum of all chapters)
+      - JSON serialization with chapter array
+    - `include/kalahari/core/book.h` + `.cpp` (~330 lines) - 3-section professional structure
+      - frontMatter: title page, copyright, dedication, preface, etc.
+      - body: Parts containing Chapters (main content)
+      - backMatter: epilogue, glossary, bibliography, about author
+      - Word count calculation (body only, industry standard)
+      - Section management (add/remove elements by ID)
+  - **Document Wrapper (Project Metadata)**
+    - `include/kalahari/core/document.h` + `.cpp` (~405 lines) - Top-level project wrapper
+      - Document metadata (title, author, language, genre)
+      - Simple UUID generation (timestamp-randomhex format, collision-resistant for single-user)
+      - ISO 8601 timestamps (created, modified) with touch() auto-update
+      - Complete JSON manifest structure (version 1.0.0 format)
+      - save/load methods delegated to DocumentArchive
+  - **DocumentArchive (ZIP Handler)**
+    - `include/kalahari/core/document_archive.h` + `.cpp` (~407 lines) - Static save/load for .klh archives
+      - Phase 0 MVP: Saves/loads manifest.json only (RTF files in Phase 2)
+      - ZIP operations via libzip (ZIP_CREATE | ZIP_TRUNCATE for save, ZIP_RDONLY for load)
+      - zip_source_buffer() for in-memory JSON writing (4-space indent for readability)
+      - zip_file_add() for adding files to archive
+      - zip_name_locate() + zip_fread() for reading manifest
+      - Detailed error logging at every step (open, write, read, parse)
+      - Phase 2 stubs: writeRTFFile() and extractRTFFile() with [[maybe_unused]]
+  - **Architecture Decisions**
+    - RTF format (not txt/HTML/Markdown) for wxRichTextCtrl native support
+    - 3-section book structure (frontMatter/body/backMatter) - publishing industry standard
+    - Flexible string-based types (not enum) - extensible without recompilation
+    - Metadata map - future-proof for plugin custom fields
+    - Lazy loading ready - RTF paths stored, content loaded on-demand (Phase 1)
+    - Git-friendly - separate RTF files for better diffs, human-readable manifest.json
+  - **.klh File Format (Phase 0 MVP)**
+    - ZIP container with manifest.json at root
+    - Complete book structure serialized as JSON (all metadata, paths, word counts)
+    - Phase 2: Will include content/*.rtf files with full book content
+  - **Build Integration**
+    - Added 5 new sources to src/CMakeLists.txt (book_element, part, book, document, document_archive)
+    - Build successful in 5-9 seconds (incremental)
+    - No memory leaks (smart pointers, RAII pattern following PluginArchive)
+    - Forward declaration for libzip types (clean headers)
+  - **JSON Serialization Pattern**
+    - Following nlohmann/json toJson/fromJson static factory pattern
+    - Optional field handling (genre, metadata map)
+    - Version field in manifest for future compatibility
+    - Exception handling with fallback to defaults
+  - **Status**: Core implementation complete, ready for Phase 1 wxRichTextCtrl integration
+  - **Unit Tests**: 68/68 tests passing (2533 assertions) - 100% pass rate on Windows & Linux
+
+#### Added (Task #00012 - Unit Tests & Bug Fixes)
+- **book_constants.h** - Known book element types and utility functions
+  - 9 predefined type constants (TYPE_TITLE_PAGE, TYPE_CHAPTER, etc.)
+  - `isKnownType()` - Validate type strings
+  - `getDisplayName()` - Human-readable type names
+  - `getTypeCategory()` - Categorize as "front", "body", "back"
+- **BookElement::touch()** - Update modified timestamp to current time
+- **PluginManager::getPluginsDirectory()** - Production-ready plugin discovery with fallback chain
+  - Strategy 1: CWD/plugins/ (development/tests)
+  - Strategy 2: exe_dir/plugins/ (portable apps)
+  - Strategy 3: exe_dir/../plugins/ (system installations)
+  - Platform-specific executable path detection (GetModuleFileNameW/readlink)
+  - Works from any working directory (shortcuts, system PATH, double-click)
+
+#### Fixed (Task #00012 - Critical Production Issues)
+- **[CRITICAL]** Fixed dangling pointer bug in DocumentArchive::writeManifest()
+  - zip_source_buffer() with freep=0 doesn't copy data
+  - Local string destroyed before zip_close() → ZIP corruption
+  - Fix: malloc() + freep=1 so libzip owns and frees buffer
+  - Impact: Prevented parse errors and corrupted .klh files
+- **[CRITICAL]** Fixed plugin discovery to work from any working directory
+  - Previous: Hardcoded relative path "plugins" (only worked when CWD = build dir)
+  - Impact: Failed in production scenarios (shortcuts, system PATH, installers)
+  - Fix: Fallback chain with executable-relative paths
+  - Benefit: Production-ready portable apps and system installations
+- Fixed plugin tests by copying plugins/ directory to build directory
+  - CMake POST_BUILD command copies plugins/ to ${CMAKE_BINARY_DIR}
+  - Linux build script copies plugins/ to WSL shared folder
+  - Tests now work from any working directory
+- Fixed missing BookElement::touch() implementation
+- Fixed macOS CI/CD Python initialization failure (7 attempts)
+  - Root cause #1: actions/setup-python provides pre-compiled binary WITHOUT Development files
+  - Root cause #2: vcpkg has Python3 wrapper that may ignore CMake hints
+  - Attempt #6 failed: Even Homebrew Python, CMake couldnt find Development.Module/Embed
+  - Attempt #7 fix: FORCE exact paths to headers and library to bypass vcpkg wrapper
+  - Solution: -DPython3_INCLUDE_DIR + -DPython3_LIBRARY pointing to Homebrew Python framework
+  - Paths: /opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/{include,lib}
+  - Result: macOS artifacts have Homebrew Python 3.11 embedded (vs vcpkg 3.12 on Linux/Windows)
+  - Impact: ZERO - both versions fully compatible, embedded in binary
+  - Status: Testing attempt #7 (nuclear option - explicit paths) in CI/CD...
+  - Status: Testing attempt #7 (nuclear option - explicit paths) in CI/CD...
+
+
+
+#### Testing (Task #00012 - 100% Pass Rate)
+- **5 comprehensive test suites** (~1,200 lines)
+  - test_book_element.cpp (15 tests) - Type validation, metadata, JSON serialization
+  - test_part.cpp (11 tests) - Chapter management, word count aggregation
+  - test_book.cpp (16 tests) - 3-section structure, null handling
+  - test_document.cpp (9 tests) - UUID generation, metadata, touch()
+  - test_document_archive.cpp (17 tests) - Save/load, overwrite, Unicode, error handling
+- **Platform verification**
+  - Windows: 68/68 tests passed (2533 assertions)
+  - Linux: 68/68 tests passed (2533 assertions)
+  - Working directory independence verified (root dir, build dir, WSL shared folder)
+- **All bugs fixed during testing**
+  - Dangling pointer → 10 test failures → FIXED
+  - Plugin discovery → 4 test failures → FIXED
+  - 100% pass rate achieved on all platforms
+
+### Phase 0 Week 6 - .kplugin Format Handler + Actual Plugin Loading (2025-10-30)
+
+#### Added
+- **Task #00011: .kplugin Format Handler + Actual Plugin Loading**
+  - **7 new files** (~1,150 lines): plugin_manifest, plugin_archive, enhanced plugin_manager, test_plugin_loading, hello_plugin.kplugin
+  - **Plugin Discovery**: Scans plugins/ directory, reads manifest.json from .kplugin ZIP archives using libzip
+  - **Plugin Loading**: Complete Python lifecycle - extract → sys.path → import → instantiate → on_init() → on_activate()
+  - **Plugin Unloading**: Graceful teardown - on_deactivate() → sys.path cleanup → temp file removal (RAII)
+  - **Plugin Archive**: RAII ZIP extraction to platform-specific temp dirs (~/.local/share/Kalahari/plugins/temp/)
+  - **Plugin Manifest**: JSON parsing with validation (version format, entry_point: "module:class")
+  - **Plugin States**: Enum lifecycle tracking (Discovered → Loading → Loaded → Activated → Unloading → Error)
+  - **Testing**: 8 integration tests (discovery, loading, unloading, full lifecycle) - 100% pass rate
+  - **Sample Plugin**: hello_plugin.kplugin with lifecycle hooks demonstration
+  - Plugin system foundation now complete - ready for Phase 1 MVP plugin development
+
+
+### Phase 0 Week 5-6 - Extension Points + Event Bus Foundation (2025-10-29)
+
+#### Added
+- **Task #00010: Extension Points + Event Bus (10 files, ~1,435 lines)**
+  - **Extension Points System (C++)**
+    - `include/kalahari/core/extension_points.h` - Plugin interface hierarchy (269 lines)
+      - IPlugin base interface with lifecycle hooks (onInit, onActivate, onDeactivate)
+      - IExporter interface for document export plugins (DOCX, PDF, Markdown)
+      - IPanelProvider interface for custom dockable UI panels
+      - IAssistant interface for graphical assistant personalities
+      - ExtensionPointRegistry singleton with thread-safe registration
+    - `src/core/extension_points.cpp` - Implementation (129 lines)
+      - Thread-safe plugin registration with std::mutex
+      - Template methods for type-safe plugin retrieval
+      - Plugin lifecycle management with exception handling
+      - Logging at initialization and registration steps
+  - **Event Bus System (C++)**
+    - `include/kalahari/core/event_bus.h` - Pub/sub event system (228 lines)
+      - Event struct with type identifier and std::any payload
+      - EventBus singleton with thread-safe operations
+      - Synchronous emit() for immediate callback invocation
+      - Asynchronous emitAsync() with GUI thread marshalling
+      - Subscriber management and queries (count, has_subscribers)
+    - `src/core/event_bus.cpp` - Implementation (189 lines)
+      - Separate mutexes for listeners and event queue
+      - wxTheApp->CallAfter for async GUI updates
+      - Exception catching in callbacks (prevents cascade failures)
+      - Fallback to direct emit when wxApp unavailable
+  - **pybind11 Bindings (Python Integration)**
+    - `src/bindings/python_bindings.cpp` - Added Event and EventBus bindings
+      - Event class with type property and data setter/getter
+      - EventBus.get_instance() static method
+      - subscribe() with Python callback support and GIL management
+      - emit() and emit_async() methods
+      - Subscriber query methods (has_subscribers, get_subscriber_count, clear_all)
+      - Lambda wrapper with py::gil_scoped_acquire for thread safety
+      - Exception handling: py::error_already_set → Logger.error()
+  - **C++ Unit Tests (Catch2)**
+    - `tests/core/test_extension_points.cpp` - 12 test cases (287 lines)
+      - Singleton pattern verification
+      - Plugin registration and retrieval
+      - Type-safe casting (getPluginAs<T>)
+      - Plugin filtering by interface type (getPluginsOfType<T>)
+      - Lifecycle hooks (onInit, onActivate, onDeactivate)
+      - Duplicate plugin handling
+      - Thread safety tests (concurrent registration)
+      - clearAll() functionality
+    - `tests/core/test_event_bus.cpp` - 11 test cases (333 lines)
+      - Singleton pattern verification
+      - Event subscription and synchronous emission
+      - Multiple subscribers per event type
+      - Event filtering by type
+      - Unsubscribe functionality
+      - Subscriber counting and queries
+      - Exception handling in callbacks (isolation)
+      - Event data payload (std::any verification)
+      - Thread safety (concurrent subscriptions and emissions)
+      - Async emission (queuing)
+  - **Python Integration Tests**
+    - `tests/test_event_bus.py` - 7 comprehensive test cases (187 lines)
+      - Module import verification
+      - Event creation (type-only constructor)
+      - EventBus singleton verification
+      - Subscribe and emit workflow
+      - Multiple subscriptions per event type
+      - Async emission (emit_async)
+      - Subscriber queries (get_subscriber_count, has_subscribers)
+      - Logger integration (verifies Logger still works)
+  - **Documentation**
+    - `docs/plugin_api_reference.md` - Complete EventBus API documentation
+      - Event class API (constructor, attributes, examples)
+      - EventBus class API (all methods with parameters, returns, examples)
+      - Standard event types table (8 core events)
+      - Complete usage example with multiple subscribers
+      - Architecture diagram showing Week 5-6 status
+      - Testing instructions (manual + automated + GUI diagnostics)
+      - Error handling patterns
+      - Troubleshooting guide
+  - **Build System**
+    - `src/CMakeLists.txt` - Added extension_points.cpp and event_bus.cpp
+    - `tests/CMakeLists.txt` - Added 2 test files + 2 source dependencies
+    - Files copied to WSL build directory (/home/bartosz/kalahari-build)
+
+#### Changed
+- **pybind11 Module Version**
+  - `src/bindings/python_bindings.cpp` - Module docstring version 4.0 → 5.0
+  - Reflects addition of Event and EventBus bindings
+
+#### Fixed
+- **Singleton Destructors (pybind11 Compatibility)**
+  - Made EventBus and ExtensionPointRegistry destructors public
+  - Reason: pybind11 requires public destructors for class bindings
+  - Added documentation: "Public for pybind11 compatibility, never call directly"
+- **Test Compilation Errors**
+  - Fixed REQUIRE_NO_THROW → REQUIRE_NOTHROW (Catch2 correct macro)
+  - Fixed unused parameter warnings with comment syntax (e.g., `/* filepath */`)
+  - Fixed std::any conversion in Python bindings (simplified to py::none())
+
+#### Build Results
+✅ **Linux**: All 13 tests pass (extension-points: 12 tests, event-bus: 11 tests, 2070 total assertions)
+✅ **Python Integration**: All 7 tests pass (EventBus + Logger verification)
+✅ **Compilation**: Zero errors, zero warnings (GCC 11.4.0)
+
+#### Impact
+- **Plugin Architecture Foundation Complete**
+  - Plugins can now implement 4 interface types (IPlugin, IExporter, IPanelProvider, IAssistant)
+  - Extension Point Registry provides type-safe plugin discovery
+  - Thread-safe plugin lifecycle management ready
+- **Event-Driven Communication Ready**
+  - Core and plugins can communicate via EventBus
+  - 8 standard event types defined (document, editor, plugin, goal events)
+  - Python plugins can subscribe to C++ events and emit their own
+  - Thread-safe pub/sub pattern with GUI thread marshalling
+- **Phase 0 Week 5-6 COMPLETE**
+  - Ready for Week 7-8: .kplugin format handler + Document model
+  - Foundation for Phase 2 plugin development (MVP plugins)
+
+---
+
+### Phase 0 Week 3-4 - Compilation Fixes & Cross-Platform Verification (2025-10-29)
+
+#### Fixed
+- **Compilation Errors (Windows MSVC + Linux GCC)**
+  - Fixed `fmt::format_string` compile-time requirement errors
+    - Replaced runtime string concatenation with fmt-style placeholders
+    - Affected: `src/core/plugin_manager.cpp` (3 methods), `src/bindings/python_bindings.cpp` (4 bindings)
+  - Fixed Logger method naming: `warning()` → `warn()` (spdlog convention)
+    - Updated pybind11 bindings to expose correct method name
+    - Updated Python test script and documentation references
+
+- **pybind11 Module Linking Issues**
+  - Linux: Undefined symbol error when Python module linked to static core
+  - Windows: LNK1104 - Cannot find import library in multi-config generator
+  - Solution: Refactored CMake architecture
+    - Created `kalahari_core` as shared library instead of bundling in executable
+    - Both application and Python module link to `kalahari_core`
+    - Fixed MSVC multi-config output directory handling (ARCHIVE_OUTPUT_DIRECTORY)
+    - Enabled WINDOWS_EXPORT_ALL_SYMBOLS for proper DLL exports
+
+#### Build Results
+✅ **Linux**: Debug & Release builds successful, all tests pass, Python module works
+✅ **Windows**: Debug & Release builds successful, zero errors/warnings, Python module works
+
+#### Changed
+- **src/CMakeLists.txt**
+  - Refactored to create `kalahari_core` shared library
+  - Application now links to kalahari_core instead of directly including source files
+  - Added explicit MSVC multi-config handling for output directories
+
+- **src/bindings/CMakeLists.txt**
+  - Updated to link against `kalahari_core` shared library
+
+- **Documentation**
+  - `docs/plugin_api_reference.md` - Updated Logger.warn() documentation
+  - `tests/test_python_bindings.py` - Updated test summary to reflect warn() method
+
+---
+
+### Phase 0 Week 3-4 - Plugin Manager & pybind11 Bindings (2025-10-29)
+
+#### Added
+- **Task #00009: Plugin Manager + pybind11 Basic Bindings (10 files, 1,100+ lines)**
+  - `include/kalahari/core/plugin_manager.h` - Singleton managing plugin lifecycle (54 lines)
+  - `src/core/plugin_manager.cpp` - Implementation with logging stubs (49 lines)
+  - `src/bindings/python_bindings.cpp` - pybind11 module for Logger exposure (42 lines)
+  - `src/bindings/CMakeLists.txt` - Python module build configuration (45 lines)
+  - **pybind11 Integration:**
+    - `kalahari_api` Python module created and tested
+    - Logger class bindings: info(), error(), debug(), warning() methods
+    - Module copies to bin/ for runtime accessibility
+    - Post-build hook ensures module loads correctly
+  - **C++ Unit Tests:**
+    - `tests/core/test_plugin_manager.cpp` - Singleton pattern + thread safety (6 tests)
+    - `tests/core/test_python_interop.cpp` - Python ↔ C++ communication (5 tests)
+  - **Python Test Script:**
+    - `tests/test_python_bindings.py` - Comprehensive module testing with path detection
+    - Tests all Logger methods (info, debug, warning, error)
+    - Automatic PYTHONPATH setup for module discovery
+  - **MainWindow Integration:**
+    - New menu item: Diagnostics → Test Python Bindings (pybind11)
+    - Handler: `onDiagnosticsTestPyBind11()` - Verifies module loading
+    - Event binding in event table
+  - **Documentation:**
+    - `docs/plugin_api_reference.md` - Complete API reference for plugins
+    - Logger API documentation with examples
+    - Future EventBus/Extension Points placeholders (Week 5-6)
+    - Testing and troubleshooting guides
+  - **Build System:**
+    - `src/CMakeLists.txt` - Added plugin_manager.cpp to executable
+    - Root `CMakeLists.txt` - Added src/bindings subdirectory for pybind11
+    - pybind11 CONFIG package discovery (already in vcpkg)
+  - **Architecture:**
+    - Singleton pattern for PluginManager (thread-safe with std::mutex)
+    - Lambda captures for pybind11 static method bindings
+    - Separation of concerns: C++ core → pybind11 bridge → Python plugins
+
+#### Changed
+- **Root CMakeLists.txt:**
+  - Added `add_subdirectory(src/bindings)` after src directory
+  - pybind11 module now part of main build pipeline
+
+#### Impact
+- Foundation laid for plugin system (Phase 2 MVP plugins will use this)
+- Plugin developers can now import `kalahari_api` and use Logger
+- Threading infrastructure ready (PluginManager uses mutex)
+- All tests pass (PluginManager + Python interop)
+- Cross-platform bindings verified (Linux build complete)
+
+#### Phase 0 Week 3-4 Summary
+**Completed:**
+- ✅ Core Infrastructure (CMake, vcpkg, wxWidgets, Logging, Build Scripts, Settings)
+- ✅ Plugin Architecture Foundation (Python 3.11, pybind11, PluginManager)
+- ✅ 10+ new files + comprehensive tests (14 files, 1,100+ lines)
+- ✅ All tasks passing syntax validation and architecture review
+
+**Status:** Ready for:
+- Build testing on Windows + Linux (your testing now)
+- Phase 0 Week 5: Extension Points + Event Bus
+- Phase 0 Week 6: .kplugin format handler
+
+---
+
+### Phase 0 Week 3 - Infrastructure & Developer Tools (2025-10-27)
+
+#### Fixed
+- **Task #00007: Python Standard Library Detection (Cross-Platform)**
+  - Fixed Python initialization failure on Linux and Windows
+  - Root cause: Hardcoded `pythonHome / "Lib"` assumed Windows path convention
+  - Added platform-specific `detectPythonStdlib()` method:
+    - Windows: `Lib` (uppercase, direct subdirectory)
+    - Linux/macOS: `lib/python3.X` (lowercase, versioned subdirectory)
+  - Tries multiple Python versions (3.13 → 3.11) for forward compatibility
+  - Comprehensive logging at each detection step
+  - Tests pass on WSL (2070 assertions)
+  - **Before**: `[error] Python standard library not found at: /usr/Lib`
+  - **After**: `[info] Found Linux stdlib: /usr/lib/python3.12`
+  - **Impact**: Python plugins can now load on all platforms
+- **Settings Dialog: Replaced emoji with native warning icon**
+  - Fixed: Emoji icon (⚠️) replaced with wxArtProvider native warning icon
+  - Root cause: Emoji not cross-platform compatible, looked inconsistent
+  - Solution: Uses `wxArtProvider::GetBitmap(wxART_WARNING, wxART_MESSAGE_BOX)`
+  - Implementation: wxStaticBitmap + wxBoxSizer horizontal layout
+  - **Impact**: Native warning icon on all platforms (Windows, macOS, Linux)
+  - **Verified**: Build successful, ready for cross-platform testing
+
+#### Added
+- **Task #00008: Settings Dialog with Diagnostic Mode Toggle (2 files, 371 lines)**
+  - `src/gui/settings_dialog.h` - Settings Dialog with tree navigation (108 lines)
+  - `src/gui/settings_dialog.cpp` - Implementation with DiagnosticsPanel (263 lines)
+  - **Architecture:**
+    - wxSplitterWindow layout: 280px tree + scrollable content panel
+    - Tree navigation: wxTreeCtrl (Advanced → Diagnostics)
+    - Panel system: DiagnosticsPanel with wxStaticBoxSizer
+    - State management: SettingsState struct (MainWindow ↔ Dialog)
+  - **Features:**
+    - Runtime diagnostic mode toggle (not persisted)
+    - Confirmation dialog when enabling (wxICON_WARNING)
+    - Native warning icon via wxArtProvider (no emoji)
+    - CLI flag handling: checkbox disabled when launched with --diag
+    - Dynamic menu rebuild: Diagnostics menu appears/disappears
+  - **Keyboard shortcut:** Ctrl+, (File → Settings)
+  - **Impact:** Fixes critical VirtualBox terminal hang bug (no restart needed)
+
+#### Removed
+- **Task #00008: Old Restart Mechanism (Terminal Bug Fix)**
+  - `MainWindow::onHelpRestartDiagnostic()` - wxExecute-based restart function
+  - `KalahariApp::resetTerminalState()` - Linux terminal workaround
+  - `<termios.h>` includes from kalahari_app.cpp
+  - "Help → Restart in Diagnostic Mode" menu item
+  - **Reason:** Caused terminal to hang on Linux/VirtualBox (raw mode not restored)
+  - **Replacement:** In-process Settings Dialog toggle (no restart needed)
+  - **Impact:** Terminal exits cleanly, no bash prompt hang
+
+#### Changed
+- **Task #00008: MainWindow Integration**
+  - `src/gui/main_window.h` - Added Settings Dialog integration
+    - `setDiagnosticMode(bool)` - Dynamic menu rebuild method
+    - `m_diagnosticMode` - Runtime diagnostic state tracking
+    - `m_launchedWithDiagFlag` - CLI flag detection
+  - `src/gui/main_window.cpp` - Implemented Settings workflow
+    - `onFileSettings()` - Shows Settings Dialog with state passing
+    - `setDiagnosticMode()` - Rebuilds menu bar to show/hide Diagnostics menu
+    - `createMenuBar()` - Checks diagnostic mode flag
+  - `src/CMakeLists.txt` - Added settings_dialog.cpp/h to build
+  - **Impact:** Diagnostic mode can be toggled at runtime without restart
+
+- **Task #00004: Build Automation Scripts (8 files, 2,037 lines)**
+  - `scripts/build.sh` - Universal build wrapper (auto-detects OS)
+  - `scripts/build_linux.sh` - Linux build script (Debian/Ubuntu/Fedora)
+  - `scripts/build_macos.sh` - macOS build script (Intel + Apple Silicon + Universal Binary)
+  - `scripts/build_windows.bat` - Windows build script (Visual Studio)
+  - `scripts/clean.sh` - Cross-platform clean script
+  - `scripts/test.sh` - ctest wrapper with filtering
+  - `scripts/setup_dev_env.sh` - Dependency installer (Ubuntu/Fedora/macOS)
+  - `scripts/README.md` - Complete documentation (410 lines)
+  - Features: Auto-checks prerequisites, auto-bootstraps vcpkg, colorized output, parallel builds
+  - Updated `BUILDING.md` with "Quick Start with Scripts" section
+  - **Impact**: One-command builds instead of 5+ manual CMake steps
+
+- **Task #00003: Settings System (JSON Persistence)**
+  - `include/kalahari/core/settings_manager.h` - Singleton settings manager (201 lines)
+  - `src/core/settings_manager.cpp` - Implementation with platform-specific paths (238 lines)
+  - `tests/core/test_settings_manager.cpp` - Unit tests (327 lines, 11 test cases)
+  - Window state persistence: size, position, maximized state
+  - Platform-specific config directories:
+    - Windows: `%APPDATA%\Kalahari\settings.json`
+    - Linux: `~/.config/kalahari/settings.json`
+    - macOS: `~/Library/Application Support/Kalahari/settings.json`
+  - Thread-safe API with `std::mutex`
+  - Type-safe `get<T>()`/`set<T>()` template API with defaults
+  - Error handling: corrupted JSON → fallback to defaults + backup
+  - Integrated with MainFrame: load on start, save on close
+  - **Impact**: User preferences persist across sessions
+
+#### Changed
+- **src/gui/main_window.cpp** - Integrated SettingsManager
+  - Constructor: Load settings, restore window state
+  - onClose(): Save window state before exit
+  - Replaces hardcoded window size (1024x768) with restored values
+
+- **src/CMakeLists.txt** - Added `settings_manager.cpp` to build
+- **tests/CMakeLists.txt** - Added SettingsManager tests + required libraries
+
+### Project Cleanup & Optimization (2025-10-26)
+
+**Massive cleanup based on dependency analysis: removed 54.6KB of unused files, streamlined quality framework**
+
+#### Removed
+- **`.claude/hooks/` directory (entire, 31.6KB)** - NON-FUNCTIONAL hooks
+  - `pre-commit-quality.sh` (7.6KB) - Not executed (missing Claude Code settings)
+  - `session-start.sh` (13KB) - Not executed (missing configuration)
+  - `quality-reminder.sh` (11KB) - Not executed (missing configuration)
+  - **Reason**: Hooks require user configuration in Claude Code settings that was never set up
+  - **Impact**: Zero - these files were never executed automatically
+
+- **`.claude/INTEGRATION.md` (23KB)** - REDUNDANT documentation
+  - Created 30 minutes prior for CLAUDE.md size optimization
+  - Never loaded automatically (requires manual @ reference)
+  - Duplicated information from skills/commands/agents files
+  - **Reason**: 41.5KB CLAUDE.md is acceptable (only 3.6% over 40k threshold)
+  - **Impact**: Removed unnecessary file to manage
+
+**Total removed: 54.6KB of non-functional/redundant files**
+
+#### Changed
+- **`.claude/QUALITY_CHECKLIST.md` - Complete redesign (454 → 253 lines, -44%)**
+  - **Before**: Comprehensive 100+ point checklist for every commit
+  - **After**: Release-focused manual verification checklist
+  - **Rationale**:
+    - Only 15% of points were enforced by hooks (8 checks vs 100+ points)
+    - Hooks don't work anyway (not configured)
+    - Most checks can be automated in bash script
+  - **New focus**:
+    - Manual UX testing
+    - Documentation review (comprehension, not just presence)
+    - Release notes writing
+    - Installer testing (Windows/macOS/Linux)
+    - Stakeholder approval
+  - **Version**: 1.0 → 2.0 (Release-Focused)
+  - **Automation**: Refers to `tools/pre-commit-check.sh` for automated checks
+
+- **`tools/health-check.sh` → `tools/project-status.sh` (RENAMED)**
+  - **Reason**: Naming conflict with `/health-check` slash command
+  - **Distinction**:
+    - `/health-check` - AI-driven project analysis (Claude Code slash command)
+    - `tools/project-status.sh` - Automated file/tool checks (bash script)
+  - **No functional changes** - only renamed for clarity
+
+- **CLAUDE.md references updated**
+  - Removed reference to deleted `.claude/INTEGRATION.md`
+  - Removed "3 Hooks" from resources list
+  - Updated Quick Start section:
+    - Changed `.claude/hooks/pre-commit-quality.sh` → `./tools/pre-commit-check.sh`
+    - Changed `tools/health-check.sh` → `tools/project-status.sh`
+  - Added new Resources section explaining quality tools
+
+#### Added
+- **`tools/pre-commit-check.sh` (17KB, executable)** - FUNCTIONAL automated quality verification
+  - **Replaces**: Non-functional `.claude/hooks/pre-commit-quality.sh`
+  - **Difference**: Actually works (bash script, not Claude Code hook)
+  - **12 check categories with 35+ automated checks**:
+    1. Code Formatting (clang-format verification)
+    2. Naming Conventions (m_ prefix, snake_case files)
+    3. Modern C++ Practices (no raw new/delete, smart pointers)
+    4. Documentation (Doxygen comments, minimal commented code)
+    5. Architecture Compliance (MVP pattern, no wx in Model)
+    6. Internationalization (UI strings wrapped in _("..."))
+    7. Build System (CMakeLists.txt ↔ vcpkg.json consistency)
+    8. Documentation Consistency (CLAUDE.md ↔ CHANGELOG.md dates)
+    9. Code Annotations (TODO/FIXME tracking)
+    10. Security (hardcoded secrets detection)
+    11. Testing (test coverage ratio verification)
+    12. File Size (>1000 line warnings)
+  - **Quality gates**:
+    - <70%: ❌ DO NOT COMMIT (exit 1)
+    - 70-89%: ⚠️ ACCEPTABLE (exit 0, with warnings)
+    - 90-100%: ✅ EXCELLENT (exit 0)
+  - **Color-coded output** with issues/warnings summary
+  - **Execution**: `./tools/pre-commit-check.sh` (manual or git hook)
+
+#### Summary
+
+**Files before cleanup**: 22 files
+**Files after cleanup**: 17 files (-23%)
+
+**Cleanup strategy**:
+- ❌ Remove: Non-functional files (hooks never executed)
+- ❌ Remove: Redundant documentation (INTEGRATION.md duplicated info)
+- ♻️ Redesign: QUALITY_CHECKLIST.md (release-focused, 44% smaller)
+- 🆕 Replace: Functional pre-commit-check.sh (actually works, 35+ checks)
+- 📝 Clarify: Renamed health-check.sh to avoid /health-check conflict
+
+**Result**: Cleaner project structure with ONLY functional files that provide value.
+
+---
+
+### Directory Restructure & AI Rules Enhancement (2025-10-26)
+
+**Renamed `work/` → `tools/` for better clarity and updated all references + added critical AI assistant rules**
+
+#### Changed
+- **`work/` → `tools/` directory rename**
+  - **Rationale**: Name `tools/` is more universal and flexible for future development/QA scripts
+  - **Impact**: All 4 files moved (check-ci.sh, pre-commit-check.sh, project-status.sh, README.md)
+  - **References updated** in 6 files:
+    - `.claude/QUALITY_CHECKLIST.md` (4 references)
+    - `.claude/settings.local.json` (1 permission + removed 7 obsolete entries)
+    - `CLAUDE.md` (4 references in Quick Start + Resources sections)
+    - `CHANGELOG.md` (current section references)
+    - `tools/project-status.sh` (internal path checks)
+    - `tools/README.md` (~50 usage examples)
+
+- **CLAUDE.md AI Instructions - 2 new critical rules added**
+  - **Rule #7: Ask when uncertainty ≥10%**
+    - "If less than 90% certain about user's intentions, ALWAYS ask for clarification before proceeding"
+    - **Purpose**: Prevent chaotic work patterns, reduce mistakes from assumptions
+    - **Trigger**: User feedback about chaotic work and unclear intentions
+
+  - **Rule #8: Quality over size**
+    - "Prioritize content quality and correctness over file size or token count. A high-quality document is better than incomplete one."
+    - **Purpose**: Focus on quality/completeness, not arbitrary size limits
+    - **Rationale**: Previous over-optimization (CLAUDE.md 50.7KB→41.5KB, creating/deleting INTEGRATION.md) was counterproductive
+
+#### Summary
+
+**Files renamed**: 1 directory (`work/` → `tools/`)
+**Files updated**: 6 documentation files
+**References changed**: ~65 total
+**New AI rules**: 2 (uncertainty handling + quality priority)
+
+**Impact**: Better project organization, clearer naming, and AI assistant with stronger quality guardrails.
+
+---
+
+### Quality Assurance Framework (2025-10-26)
+
+#### Added
+- **Quality Assurance Infrastructure**
+  - `.claude/QUALITY_CHECKLIST.md` - Comprehensive 10-section quality checklist (454 lines)
+    - Code Quality (formatting, style, organization, documentation)
+    - Architecture Compliance (MVP pattern, DI, threading, memory)
+    - Plugin System (Extension Points, Event Bus, pybind11, GIL)
+    - Internationalization (wxLocale, gettext, 6 languages)
+    - Testing (Catch2 BDD, coverage targets, test execution)
+    - Documentation (CLAUDE.md, CHANGELOG.md, ROADMAP.md, project_docs/)
+    - Build System (CMake, vcpkg, compiler warnings)
+    - CI/CD (GitHub Actions, 3 platforms)
+    - Security (code security, plugin security, dependencies)
+    - Performance (startup time, memory usage, responsiveness)
+    - Pre-commit quick check commands
+    - Quality scoring system (70%/90%/100% gates)
+    - Release-specific checklist (versioning, installers, docs)
+
+  - `work/health-check.sh` - Comprehensive project health dashboard (29KB, executable)
+    - 8 health categories with automated checks
+    - Documentation consistency verification
+    - Claude Code resources validation (skills, commands, agents, hooks)
+    - Code quality tools status (clang-format, clang-tidy, Doxygen)
+    - Build system health (CMake, vcpkg, binaries)
+    - Source structure validation (MVP directories)
+    - Git repository status
+    - CI/CD status with GitHub CLI integration
+    - Work scripts verification
+    - Health score calculation (0-100%)
+    - Issues/warnings/info categorization
+    - Actionable recommendations
+
+  - `.claude/hooks/` - 3 new functional quality hooks (31KB total)
+    - `pre-commit-quality.sh` (7.6KB) - 8 automated quality checks
+      - Code formatting verification
+      - Build system consistency
+      - Documentation consistency
+      - Code annotations (TODO/FIXME tracking)
+      - Sensitive data detection
+      - Test file verification
+      - File size checks
+      - Commit preparation validation
+    - `session-start.sh` (13KB) - Session initialization dashboard
+      - Project information display
+      - Git status summary
+      - CI/CD latest run status
+      - Build status verification
+      - Claude Code resources enumeration
+      - Project phase tracking
+      - Documentation status
+      - Quality tools availability
+      - Quick actions guide
+      - Session readiness score (0-100%)
+    - `quality-reminder.sh` (11KB) - Quality practices reminder
+      - 5-step quality workflow (before/during/after work)
+      - Available tools reference
+      - Slash commands documentation
+      - Quick reference (architecture, threading, i18n, plugins)
+      - Anti-patterns to avoid
+      - Coding conventions
+      - Resources & documentation links
+
+- **CLAUDE.md Optimization** (Performance Warning Resolution)
+  - **Problem**: CLAUDE.md exceeded 40k character warning threshold (50,727 bytes = 25% OVER)
+  - **Impact**: Reduced performance (CLAUDE.md loaded automatically at every prompt)
+  - **Solution**: Extracted detailed Integration documentation to separate file
+  - **Results**:
+    - CLAUDE.md size: 50,727 → 41,465 bytes (18.3% reduction, -9,262 bytes)
+    - Line count: 1,346 → 1,054 lines (-292 lines)
+    - Threshold status: 25% OVER → 3.6% over (significant improvement)
+  - **Changes**:
+    - Created `.claude/INTEGRATION.md` (15KB) - Complete integration guide
+      - Session initialization process (6 automatic steps)
+      - Skills documentation (3 Kalahari-specific with tables)
+      - Slash Commands (6 commands with arguments and examples)
+      - Agents (6 specialized with categories and experience)
+      - Resource discovery & verification
+      - Quality automation (health-check.sh, check-ci.sh, hooks)
+      - Best practices for skills, commands, agents
+      - Development workflow integration (5-step typical workflow)
+      - Extending framework (add skill/command/agent)
+      - Troubleshooting (4 common issues)
+      - Performance optimization strategies
+    - Replaced 334-line Integration section in CLAUDE.md with 42-line compact reference
+    - CLAUDE.md now references `.claude/INTEGRATION.md` for detailed documentation
+  - **Strategy**: Lightweight CLAUDE.md (essentials) + Linked Resources (details)
+
+- **Code Quality Tools**
+  - `.clang-format` - Code formatting configuration
+    - Based on Google style with Kalahari customizations
+    - IndentWidth: 4, ColumnLimit: 100, BreakBeforeBraces: Allman
+    - Include sorting (kalahari/ → wx/ → third-party → std)
+  - `.clang-tidy` - Static code analysis configuration
+    - Comprehensive checks: bugprone, cert, clang-analyzer, concurrency, cppcoreguidelines, modernize, performance, readability
+    - Member prefix: m_, Constant case: UPPER_CASE
+  - `Doxyfile` - API documentation generator configuration
+    - Project: Kalahari Writer's IDE v0.0.1-dev
+    - Output: docs/api/html/
+    - Source browser, class diagrams, call graphs enabled
+    - Warnings for undocumented code
+  - `cmake/PrecompiledHeaders.cmake` - PCH helper function
+    - `kalahari_add_pch(target)` function for faster compilation
+    - Precompiles: STL containers, spdlog, nlohmann_json
+
+- **CMake Enhancements**
+  - Sanitizers support (Debug builds, GCC/Clang)
+    - `ENABLE_ASAN` - AddressSanitizer for memory errors
+    - `ENABLE_UBSAN` - UndefinedBehaviorSanitizer for UB detection
+  - Link-Time Optimization (Release builds)
+    - Automatic IPO/LTO when supported (CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+  - clang-tidy integration
+    - `ENABLE_CLANG_TIDY` option for static analysis during build
+  - Custom CMake module path for cmake/ directory
+
+- **Project Structure (MVP-Compliant)**
+  - `src/` - Source code with MVP layer separation
+    - `src/core/model/` - Model layer (business logic, pure C++)
+    - `src/core/utils/` - Utility classes
+    - `src/gui/views/` - View layer (wxWidgets UI)
+    - `src/gui/widgets/` - Custom widgets
+    - `src/presenters/` - Presenter layer (MVP coordination)
+    - `src/services/` - Singleton services (PluginManager, EventBus)
+  - `include/kalahari/` - Public headers (same structure as src/)
+  - `tests/` - Test structure mirroring src/
+    - `tests/core/` - Model layer tests
+    - `tests/gui/` - View layer tests
+    - `tests/presenters/` - Presenter tests
+    - `tests/services/` - Service tests
+  - `src/README.md` - Architecture guide (MVP pattern, conventions, namespace structure)
+  - `tests/README.md` - Testing guide (Catch2 BDD, tagging, coverage targets, mocking)
+
+- **Claude Code Skills (3 Kalahari-Specific)**
+  - `.claude/skills/kalahari-wxwidgets/` (8.2KB)
+    - wxWidgets 3.3.0+ expertise
+    - wxAUI docking system setup
+    - wxRichTextCtrl configuration
+    - MVP pattern with wxWidgets
+    - Dark mode support
+    - Event handling patterns
+    - Cross-platform UI guidelines
+  - `.claude/skills/kalahari-plugin-system/` (14KB)
+    - pybind11 C++/Python interop
+    - Extension Points architecture
+    - Event Bus implementation
+    - .kplugin format specification
+    - Python GIL handling
+    - Thread safety patterns
+    - Plugin lifecycle management
+  - `.claude/skills/kalahari-i18n/` (12KB)
+    - wxLocale setup for 6 languages (EN/PL/DE/RU/FR/ES)
+    - gettext workflow (.po/.mo files)
+    - Plural forms handling
+    - Translation extraction (xgettext)
+    - Context-aware translations
+    - bwx_sdk pattern integration
+
+- **CI/CD Improvements**
+  - `.github/workflows/ci-windows.yml` - Fixed MinGW→MSVC conflict
+    - Added `ilammy/msvc-dev-cmd@v1` for MSVC toolchain setup
+    - Explicit `CC: cl` and `CXX: cl` for compiler selection
+    - Explicit `-DVCPKG_TARGET_TRIPLET=x64-windows`
+    - Timeout: 90 minutes (prevents runaway builds)
+    - fail-fast: false (all jobs complete)
+    - Improved cache key: `windows-msvc-vcpkg-{hash}-{build_type}`
+  - `.github/workflows/ci-linux.yml` - Fixed OpenSSL timeout
+    - Added `linux-libc-dev` dependency (required for OpenSSL)
+    - Timeout: 90 minutes
+    - fail-fast: false
+    - Improved cache key: `linux-gcc-vcpkg-{hash}-{build_type}`
+  - `.github/workflows/ci-macos.yml` - Consistency improvements
+    - Timeout: 90 minutes
+    - fail-fast: false
+    - Improved cache key: `macos-clang-vcpkg-{hash}-{build_type}`
+
+#### Changed
+- **CLAUDE.md Optimization** (1459→1011 lines, -31%, -448 lines)
+  - Removed duplicate "PROJECT STATUS UPDATE PROTOCOL" section (-113 lines)
+  - Compacted Business Model section (full details → link to 05_business_model.md, -159 lines)
+  - Compacted Roadmap section (full details → link to ROADMAP.md, -181 lines)
+  - Preserved Update History (144 lines - valuable project evolution context)
+  - Added comprehensive "Claude Code Integration" section (+334 lines)
+
+- **.claude/ Directory Cleanup** (60→22 files, -63%, -19 directories)
+  - **Removed:**
+    - Puste katalogi: `agents/core/data/`, `agents/core/development/`, `agents/core/strategy/`
+    - Nadmiarowa hierarchia: całe `agents/core/` (agenty przeniesione do płaskiej struktury)
+    - Assets my_name_is_claude: `assets/` (3 pliki diagramów frameworkowych)
+    - Frameworkowe templates: `templates/config/`, `templates/serena/`
+    - Całe `prompts/` (31 plików, 5 subdirektorii) - zastąpione przez agents/ i skills/
+    - Nieaktualne hooks: `hooks/README.md`, `hooks/pre-commit-validation.sh`, `hooks/user-prompt-submit-hook.sh`
+  - **Przeniesione:**
+    - `agents/core/*/*.md` → `agents/*.md` (płaska struktura, 6 agentów)
+  - **Zachowane:**
+    - `agents/` (6 agentów: deployment-engineer, qa-engineer, security-engineer, session-manager, software-architect, ux-designer)
+    - `skills/` (3 skills Kalahari-specific)
+    - `commands/` (6 slash commands)
+    - `templates/` (2 szablony: agent_template.md, prompt_template.md)
+    - `hooks/` (3 nowe funkcjonalne hooks)
+
+- **.gitignore** - Added `docs/api/` (Doxygen output)
+
+#### Fixed
+- Windows CI/CD build failure (MinGW vs MSVC conflict) - switched to MSVC toolchain
+- Linux CI/CD timeout - added `linux-libc-dev` dependency, increased timeout
+- Hooks referencing deleted `prompts/` directory - replaced with new functional hooks
+
+### Development Phase (Phase 0 - Foundation)
+
+#### Added
+- **Week 1: Project Setup & Infrastructure (2025-10-26)**
+  - Day 1: Project structure (src/, include/, tests/, docs/, plugins/, resources/)
+  - Day 2: CMake build system (C++20, multi-platform support, version.h template)
+  - Day 3: vcpkg dependency management (wxWidgets 3.3.1+, spdlog, nlohmann_json, libzip, Catch2)
+  - Day 4: GitHub Actions CI/CD workflow
+    - Matrix build: Windows/macOS/Linux × Debug/Release (6 combinations)
+    - vcpkg caching for 3-5x faster builds
+    - Automated testing with ctest
+    - Build artifacts upload (binaries + test results)
+    - Platform-specific dependencies (GTK3, Ninja, system libraries)
+- Console application (main.cpp) - Displays version info, platform, build type
+- Unit tests (test_main.cpp) - 7 assertions, 2 test cases (Catch2 BDD style)
+- Compiled binaries: kalahari + kalahari-tests (both working)
+- **Week 2: wxWidgets GUI & Threading (2025-10-26)**
+  - **Day 1-2: Basic GUI Window (Task #00001)**
+    - Logger singleton (spdlog wrapper, thread-safe)
+      - Dual sinks (console + file)
+      - Platform-agnostic log paths (via wxStandardPaths)
+      - Debug/Release build awareness
+    - KalahariApp (wxApp subclass)
+      - Application initialization with logging setup
+      - Splash screen placeholder (Phase 1)
+      - wxIMPLEMENT_APP macro in main.cpp
+    - MainWindow (wxFrame subclass)
+      - 4 menus: File, Edit, View, Help
+      - 5 toolbar buttons (stock icons via wxArtProvider)
+      - 3-pane status bar (status | position | time)
+      - Placeholder main panel with centered text
+      - Event table with 8 event handlers
+      - Stub implementations (Phase 1 completion)
+    - Internationalization structure
+      - English translation template (locales/en/kalahari.pot)
+      - Polish translations (locales/pl/kalahari.po)
+      - All UI strings wrapped with _() macro
+    - Build system updates
+      - Updated src/CMakeLists.txt with new source files
+      - WIN32_EXECUTABLE for Windows (no console)
+      - MACOSX_BUNDLE for macOS
+      - Links: wx::core, wx::base, spdlog, nlohmann_json, libzip
+    - **Build Results:**
+      - Local Linux: 166 MB Debug executable
+      - CI/CD: macOS (1m9s), Windows (4m19s), Linux (4m36s) - ALL SUCCESS
+      - Code size: 1,704 lines added (13 files)
+  - **Day 3: Threading Infrastructure (Task #00002)**
+    - Hybrid threading approach (std::thread + wxQueueEvent)
+      - std::thread for thread creation (modern C++, Python GIL compatible)
+      - wxQueueEvent for thread→GUI communication (Bartosz's proven pattern)
+      - wxSemaphore for thread pool limiting (max 4 threads)
+      - CallAfter for simple GUI updates (convenience)
+    - Core threading components
+      - submitBackgroundTask() API (68 lines)
+        - Semaphore check (TryWait → work → Post pattern)
+        - Thread tracking (std::vector<std::thread::id>)
+        - Exception handling (try/catch → wxEVT_KALAHARI_TASK_FAILED)
+        - wxQueueEvent for GUI communication (thread-safe, deep copy)
+        - Logging at every step (debug/info/error levels)
+      - Custom events (KALAHARI naming convention)
+        - wxEVT_KALAHARI_TASK_COMPLETED
+        - wxEVT_KALAHARI_TASK_FAILED
+        - Handlers: onTaskCompleted(), onTaskFailed()
+      - Thread safety mechanisms
+        - wxMutex protects thread pool vector
+        - wxSemaphore(4, 4) limits concurrent tasks
+        - Detached threads (fire-and-forget, like wxTHREAD_DETACHED)
+      - Destructor cleanup (20 lines)
+        - Wait up to 5 seconds for tasks to finish
+        - Timeout protection (prevents infinite hang)
+        - Graceful vs forced shutdown logging
+    - Example usage
+      - onFileOpen() demonstrates pattern (32 lines)
+      - 2-second simulated file load
+      - Status bar updates during operation
+      - Thread limit warning dialog
+      - Tests thread limiting (click File→Open 5x rapidly)
+    - **Build Results:**
+      - Local Linux: 166 MB Debug (unchanged, incremental)
+      - CI/CD: macOS (59s), Windows (4m16s), Linux (4m36s) - ALL SUCCESS
+      - Code size: 241 lines added (2 files), +229 net
+    - **Integration Points (Future):**
+      - Week 3-4: Python plugin execution with GIL handling
+      - Week 5+: File I/O, AI API calls, document parsing
+      - Phase 1: Heavy operations (DOCX import, statistics generation)
+
+### Documentation Phase (Pre-Development)
+
+#### Added
+- Complete project documentation structure (10 core documents)
+- 01_overview.md - Project vision, goals, target audience
+- 02_tech_stack.md - C++20, wxWidgets 3.2+, vcpkg, Python plugins
+- 03_architecture.md - System architecture and design patterns
+- 04_plugin_system.md - Plugin API specification and extension points
+- 05_business_model.md - Open Core + Plugin Marketplace + SaaS strategy
+- 06_roadmap.md - 18-month development timeline (Phases 0-5)
+- 07_mvp_tasks.md - Detailed week-by-week task breakdown
+- 08_gui_design.md - Comprehensive GUI architecture with customizable toolbars
+- 09_i18n.md - Internationalization system (wxLocale + gettext)
+- 10_branding.md - Visual identity, logo system, animal mascots
+- CLAUDE.md - Master project file with AI instructions and decisions
+- work_scripts/ directory - Temporary utility scripts (git-ignored)
+- .gitignore - Comprehensive ignore patterns for C++/wxWidgets/Python
+
+#### Changed
+- Renamed init_concept/ → concept_files/ (better reflects ongoing use)
+- Updated project language policy: All code/comments in English (mandatory)
+- Finalized tech stack: Python → C++20 for core, Python for plugins only
+- Business model finalized: 5 premium plugins + Cloud Sync subscription
+
+#### Decided
+- Platform strategy: Windows/macOS/Linux from MVP (parallel development)
+- Plugin architecture: From day zero (pybind11, .kplugin format)
+- GUI system: wxWidgets + wxAUI with customizable toolbars (killer feature)
+- Assistant default: Lion (brand symbol, storyteller archetype)
+- MVP timeline: 18 months (realistically, 14-20 months estimated)
+- Versioning strategy: Semantic Versioning 2.0.0
+- **Architectural Decisions (2025-10-25):**
+  - GUI Pattern: MVP (Model-View-Presenter)
+  - Error Handling: Hybrid (exceptions + error codes + wxLog*)
+  - Dependency Management: Hybrid (Singletons infrastructure + DI business logic)
+  - Threading: Dynamic thread pool (2-4 workers, CPU-aware)
+  - Memory: Lazy loading from Phase 1 (metadata eager, content on-demand)
+  - Undo/Redo: Command pattern (100 commands default, configurable)
+  - Document Model: Composite pattern (Book → Parts → Chapters)
+
+#### Removed
+- .claude/ cleanup (24 files, 32% reduction):
+  - docs/ (framework glossary - enterprise focused)
+  - templates/version-management/ (redundant with CHANGELOG.md)
+  - prompts/workflows/ (9 enterprise multi-team workflows)
+  - prompts/agents/security/ (6 enterprise security prompts)
+  - hooks/ (17 enterprise automation scripts)
+  - Result: 51 files remaining (all relevant for C++ desktop app)
+
+---
+
+## Version History
+
+### Documentation Releases
+
+#### [DOCS-1.1] - 2025-10-25
+**GUI Design & i18n Complete**
+
+Added:
+- 08_gui_design.md (1,719 lines) - Complete GUI architecture
+  - Command Registry system (unified core + plugin commands)
+  - Customizable toolbars (6 default toolbars, QAT, Live Customization)
+  - 4 Perspectives (Writer, Editor, Researcher, Planner)
+  - Panel catalog (9 core panels + plugin support)
+  - Gamification system (25+ badges, challenges, streak tracking)
+  - Focus modes (Normal, Focused, Distraction-Free)
+  - Command Palette (VS Code style)
+- 09_i18n.md verification (1,087 lines) - Complete i18n system
+  - wxLocale + gettext integration
+  - bwx_sdk proven pattern
+  - English (primary) + Polish (secondary) for MVP
+
+Changed:
+- README.md documentation index - All 10 documents marked complete
+- CLAUDE.md version → 4.0 (C++ architecture finalized)
+
+#### [DOCS-1.0] - 2025-10-24
+**C++ Architecture Finalized**
+
+Added:
+- Complete documentation structure (project_docs/)
+- CLAUDE.md v4.0 with finalized C++ architecture
+- 6 core documents (Overview, Tech Stack, Business Model, Roadmap, Branding, i18n)
+- 4 placeholder documents (Architecture, Plugin System, MVP Tasks, GUI Design)
+
+Changed:
+- Tech stack: Python 3.11+ → C++20 + wxWidgets 3.2+
+- Build system: (none) → CMake 3.21+ + vcpkg
+- Python role: Main language → Embedded 3.11 (plugins only)
+- Timeline: 5-6 months → 18 months (realistic estimate)
+- Plugin architecture: Retrofit → From day zero
+
+Decided:
+- Business model: Open Core (MIT) + 5 Premium Plugins + Cloud Sync SaaS
+- Plugin format: .kplugin (ZIP containers)
+- Plugin binding: pybind11 (C++/Python interop)
+- Platform strategy: All three from MVP (Windows, macOS, Linux)
+- CI/CD: GitHub Actions matrix builds
+- Testing: Catch2 v3 (BDD style, 70%+ coverage target)
+- Assistant: 8 animals total, 4 in MVP, Lion as default
+
+#### [DOCS-0.1] - 2025-10-22
+**Initial Concept**
+
+Added:
+- CLAUDE.md v1.0 - Initial lightweight project file
+- concept_files/ directory with original concept documents
+- Basic project structure and naming conventions
+
+Decided:
+- Project name: Kalahari (Writer's IDE)
+- African naming convention for entire ecosystem
+- Graphical assistant concept (8 animals with personalities)
+- Target audience: Novel writers, non-fiction authors

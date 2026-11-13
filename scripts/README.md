@@ -25,6 +25,7 @@ This directory contains convenience scripts to simplify building, testing, and m
 | **test.sh** | Run Catch2 tests via ctest wrapper |
 | **setup_dev_env.sh** | Install system dependencies (Ubuntu/Fedora/macOS) |
 | **copy_clean.sh** | Copy project without build artifacts (useful for VirtualBox workflows) |
+| **release.py** | The version in its five files and the cut of the CHANGELOG: `check`, `bump`, `notes` (see `project_docs/06_roadmap.md`, 5.2) |
 
 ---
 
