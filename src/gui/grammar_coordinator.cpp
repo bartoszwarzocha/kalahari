@@ -92,6 +92,21 @@ bool isInFolder(const QString& path, const QString& folder) {
 
 }  // namespace
 
+struct GrammarCoordinator::SharedGrammar {
+    std::unique_ptr<LanguageToolServer> server = std::make_unique<LanguageToolServer>();
+    std::unique_ptr<GrammarSetup> setup = std::make_unique<GrammarSetup>(server.get());
+};
+
+std::shared_ptr<GrammarCoordinator::SharedGrammar> GrammarCoordinator::sharedGrammar() {
+    static std::weak_ptr<SharedGrammar> shared;
+    std::shared_ptr<SharedGrammar> grammar = shared.lock();
+    if (!grammar) {
+        grammar = std::make_shared<SharedGrammar>();
+        shared = grammar;
+    }
+    return grammar;
+}
+
 GrammarCoordinator::GrammarCoordinator(core::ProjectManager& book, CommandRegistry& commands,
                                        QTabWidget* centralTabs, QStatusBar* statusBar,
                                        QObject* parent)
@@ -99,8 +114,9 @@ GrammarCoordinator::GrammarCoordinator(core::ProjectManager& book, CommandRegist
       m_centralTabs(centralTabs),
       m_statusBar(statusBar),
       m_service(new editor::GrammarCheckService(this)),
-      m_server(new LanguageToolServer(this)),
-      m_setup(new GrammarSetup(m_server, this)),
+      m_shared(sharedGrammar()),
+      m_server(m_shared->server.get()),
+      m_setup(m_shared->setup.get()),
       m_book(book),
       m_commands(commands) {
     connect(m_service, &editor::GrammarCheckService::serverError, this,

@@ -94,6 +94,10 @@ void SpecialCharacterCoordinator::connectCommands()
         core::Logger::getInstance().info("Special characters: {} with the writer's keys",
                                          ids.size());
     }
+    // Keys given to a character in another book window: its command comes to this one too
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, this, [this]() {
+        attachCommands(registerCharacterCommands(m_commands, m_insertWithKeys));
+    });
 }
 
 void SpecialCharacterCoordinator::attachCommands(const std::vector<std::string>& ids)

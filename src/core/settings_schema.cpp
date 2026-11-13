@@ -182,6 +182,14 @@ std::map<std::string, json> buildDefaults() {
         // created or imported without opening is the first of the recent books but not this
         // one. Empty: the first of the recent books
         {"startup.lastBook", ""},
+        // With the option above: the books of the last work open, each in its window ("all"),
+        // or only the book opened last ("last"); the books open when the program ended last
+        // (their .klh files, the one in front last)
+        {"startup.books", "all"},
+        {"startup.openBooks", json::array()},
+        // A book opened while another one is open in the window: the question Opening a Book
+        // ("ask"), a new window ("new") or in place of the open book ("this")
+        {"window.otherBook", "ask"},
         // A tab moved to a window of its own: the window shows the menus and the toolbars of the
         // book window ("full") or the Format toolbar ("writing"); closing it takes its texts back
         // to the book window ("return") or closes them ("close")

@@ -16,6 +16,8 @@
 #include <QToolBar>
 #include <QTabWidget>
 #include <QLabel>
+#include <QByteArray>
+#include <QList>
 #include <QMap>
 #include <functional>
 #include <memory>
@@ -169,6 +171,44 @@ public:
     /// @brief The book or the other file to open when the window is shown first, given on the
     /// command line; it takes the place of the last book
     void setStartupFile(const QString& path);
+
+    // =========================================================================
+    // The book windows of the program
+    // =========================================================================
+
+    /// @brief The first window of the program: shown first, it opens the file of the command
+    /// line (setStartupFile()) or, when the settings say so, the books of the last work, the
+    /// first one in it and each other one in a window of its own. The other windows open
+    /// nothing by themselves.
+    void setFirstWindow(bool first) { m_firstWindow = first; }
+
+    /// @brief The book windows of the program, in the order they were made
+    static QList<MainWindow*> windows();
+
+    /// @brief The book window that has @p widget (itself, a window of its own of its tabs or a
+    /// dialog over it); none: no book window has it
+    static MainWindow* windowOf(const QWidget* widget);
+
+    /// @brief The book window that has the book of @p manifest (its .klh file) open; none:
+    /// no window has it open
+    static MainWindow* windowOfBook(const QString& manifest);
+
+    /// @brief The book window in front, or the one in front last when the program is not in
+    /// front (a window of its own of its tabs counts as it); none: no window
+    static MainWindow* frontWindow();
+
+    /// @brief Window > New Window: a new book window with the Dashboard, its panels and bars
+    /// as in this one, a little lower and to the right; it closes and is deleted on its own
+    MainWindow* openNewWindow();
+
+    /// @brief Open the book of @p manifest in a new window (openNewWindow())
+    MainWindow* openBookInNewWindow(const QString& manifest);
+
+    /// @brief File > Exit: close every book window, asking once about the unsaved changes of
+    /// all of them, over @p asking; the books open then are the books of the last work
+    /// @return false: the writer cancelled, or something could not be saved, and every window
+    ///         stays open
+    static bool closeAllWindows(MainWindow* asking);
 
 public slots:
     /// @brief A later start of the program handed over its request: the window comes to the
@@ -431,6 +471,27 @@ private:
 
     // First show flag (for geometry restore)
     bool m_firstShow;
+
+    /// The first window of the program (setFirstWindow())
+    bool m_firstWindow = false;
+
+    /// @brief The layout of the window a new window came from (openNewWindow()): taken in place
+    /// of the saved one when it is shown first
+    struct Layout {
+        QByteArray geometry;
+        QByteArray state;
+    };
+    std::optional<Layout> m_layoutFrom;
+
+    /// @brief Restore the size and place of the window and its panels and bars when it is shown
+    /// first: those of the window it came from, or the saved ones
+    void restoreLayout();
+
+    /// @brief When shown first: the file of the command line, or the books of the last work
+    void openAtStart();
+
+    /// @brief Keep the annotation or the note being written
+    void finishWriting();
 
     /// The book or file given on the command line, opened at the first show
     QString m_startupFile;

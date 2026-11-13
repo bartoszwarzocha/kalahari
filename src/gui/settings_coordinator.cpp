@@ -26,6 +26,16 @@
 namespace kalahari {
 namespace gui {
 
+namespace {
+
+/// The settings coordinators of every book window, in the order they were made
+QList<SettingsCoordinator*>& liveCoordinators() {
+    static QList<SettingsCoordinator*> coordinators;
+    return coordinators;
+}
+
+}  // namespace
+
 SettingsCoordinator::SettingsCoordinator(const core::ProjectManager& book,
                                          CommandRegistry& commands, QMainWindow* mainWindow,
                                          DockCoordinator* dockCoordinator, QStatusBar* statusBar,
@@ -39,6 +49,15 @@ SettingsCoordinator::SettingsCoordinator(const core::ProjectManager& book,
       m_book(book) {
     auto& logger = core::Logger::getInstance();
     logger.debug("SettingsCoordinator: Created");
+    liveCoordinators().append(this);
+}
+
+SettingsCoordinator::~SettingsCoordinator() {
+    liveCoordinators().removeAll(this);
+}
+
+QList<SettingsCoordinator*> SettingsCoordinator::coordinators() {
+    return liveCoordinators();
 }
 
 void SettingsCoordinator::setDiagnosticModeGetter(std::function<bool()> callback) {
@@ -119,10 +138,11 @@ void SettingsCoordinator::offerRestartForLanguage() {
         return;
     }
 
-    // main() starts a new instance once the event loop ends. Closing the window asks
+    // main() starts a new instance once the event loop ends. Closing the windows asks
     // about unsaved changes as usual; if the user cancels there, nothing restarts.
     qApp->setProperty("kalahari.restartRequested", true);
-    if (!m_mainWindow->close()) {
+    const bool closed = m_closeProgram ? m_closeProgram() : m_mainWindow->close();
+    if (!closed) {
         qApp->setProperty("kalahari.restartRequested", false);
     }
 }
@@ -146,6 +166,19 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
         applyCustomShortcuts();
         logger.info("SettingsCoordinator: Keyboard shortcuts updated");
     }
+
+    // The settings are those of every window: each one shows them at once
+    for (SettingsCoordinator* coordinator : coordinators()) {
+        coordinator->applyInWindow(changedKeys);
+    }
+}
+
+void SettingsCoordinator::applyInWindow(const QStringList& changedKeys) {
+    auto& logger = core::Logger::getInstance();
+    const auto changed = [&changedKeys](const QString& prefix) {
+        return std::any_of(changedKeys.cbegin(), changedKeys.cend(),
+                           [&prefix](const QString& key) { return key.startsWith(prefix); });
+    };
 
     // Log panel: buffer size and colors (theme switch or per-theme log colors, not the editor
     // colors kept for each theme as well)

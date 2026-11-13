@@ -9,6 +9,8 @@
 #include <QObject>
 #include <QString>
 
+#include <memory>
+
 class QStatusBar;
 class QTabWidget;
 class QToolButton;
@@ -105,10 +107,10 @@ public:
     /// @brief The checking the editors send their paragraphs to
     editor::GrammarCheckService* service() const { return m_service; }
 
-    /// @brief The LanguageTool server on this computer
+    /// @brief The LanguageTool server on this computer, the same for every book window
     LanguageToolServer* server() const { return m_server; }
 
-    /// @brief The preparation of Java and LanguageTool
+    /// @brief The preparation of Java and LanguageTool, the same for every book window
     GrammarSetup* setup() const { return m_setup; }
 
     /// @brief What grammar as you type can do now
@@ -202,9 +204,17 @@ private:
 
     QTabWidget* m_centralTabs;
     QStatusBar* m_statusBar;
+    /// @brief The server and its preparation of every book window: one server runs for all
+    struct SharedGrammar;
+
+    /// @brief The server and its preparation of the windows open; made for the first one, gone
+    ///        with the last one
+    static std::shared_ptr<SharedGrammar> sharedGrammar();
+
     editor::GrammarCheckService* m_service;
-    LanguageToolServer* m_server;
-    GrammarSetup* m_setup;
+    std::shared_ptr<SharedGrammar> m_shared;  ///< Kept while the window is open
+    LanguageToolServer* m_server;             ///< Of m_shared
+    GrammarSetup* m_setup;                    ///< Of m_shared
     QToolButton* m_setupButton{nullptr};  ///< In the status bar, which may delete it first
     dialogs::GrammarSetupDialog* m_setupDialog{nullptr};  ///< While its window is open
     int m_settingsListener{0};

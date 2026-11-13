@@ -47,6 +47,10 @@ MainWindow orchestrates 7 coordinators:
 - Shared by all windows: core::ProjectManager::installedBookTypes(); the user's keys
   (gui::applyCustomShortcuts() gives them to every CommandRegistry::registries())
 - Tests: kalahari::test::book(), kalahari::test::commands() (tests/test_support/window_parts.h)
+- Several book windows: MainWindow::windows() / windowOfBook() / openBookInNewWindow(),
+  closeAllWindows() (File > Exit); DocumentWindows::programWindows() (Window menu, Ctrl+F6);
+  settings are applied in every window (SettingsCoordinator::coordinators()); one LanguageTool
+  server and one user dictionary for all windows
 
 ## MANDATORY Patterns (CORRECT API)
 
