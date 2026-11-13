@@ -253,7 +253,9 @@ void DockCoordinator::createCentralWidget() {
 
     m_mainWindow->setCentralWidget(m_centralWrapper);
 
-    // Add Dashboard as first tab (default at startup, closable)
+    // Add Dashboard as first tab (default at startup, closable). clang-analyzer takes the
+    // shared reference count of the QPointer for a use after free.
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
     m_dashboardPanel = new DashboardPanel(m_commands, m_mainWindow);
     auto& artProvider = core::ArtProvider::getInstance();
     QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
