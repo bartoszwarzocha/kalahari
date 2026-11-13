@@ -18,6 +18,7 @@
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QGuiApplication>
+#include <QImage>
 #include <QMimeData>
 #include <QPushButton>
 #include <QTextBlock>
@@ -27,6 +28,7 @@
 #include <QXmlStreamReader>
 #include <memory>
 #include <string>
+#include <vector>
 
 using namespace kalahari::editor;
 using namespace kalahari::test;
@@ -858,5 +860,127 @@ TEST_CASE("Copy and paste: small and all capitals and the letter spacing", "[edi
 
     SECTION("Keep Text Only") {
         CHECK(pasted(caps, PasteMode::Text) == utf8(kml("<p>small all</p>")));
+    }
+}
+
+// =============================================================================
+// Edit > Paste Special...
+// =============================================================================
+
+TEST_CASE("Paste Special: where the content of the clipboard comes from",
+          "[editor][paste][special]") {
+    CHECK(ClipboardHandler::sourceOf(nullptr) == ClipboardSource::Nothing);
+    QMimeData data;
+    CHECK(ClipboardHandler::sourceOf(&data) == ClipboardSource::Nothing);
+    data.setText(QStringLiteral("Plain"));
+    CHECK(ClipboardHandler::sourceOf(&data) == ClipboardSource::Text);
+    data.setHtml(html(WORD_HTML));
+    CHECK(ClipboardHandler::sourceOf(&data) == ClipboardSource::Word);
+    data.setHtml(html(LIBREOFFICE_HTML));
+    CHECK(ClipboardHandler::sourceOf(&data) == ClipboardSource::LibreOffice);
+    data.setHtml(html(BROWSER_HTML));
+    CHECK(ClipboardHandler::sourceOf(&data) == ClipboardSource::Html);
+    // Google Docs marks its fragment; a page that names Word in its text is a page
+    data.setHtml(QStringLiteral("<meta charset=\"utf-8\"><b style=\"font-weight:normal;\" "
+                                "id=\"docs-internal-guid-1a2b3c\"><p>Docs</p></b>"));
+    CHECK(ClipboardHandler::sourceOf(&data) == ClipboardSource::GoogleDocs);
+    data.setHtml(QStringLiteral("<html><body><p>Written in Microsoft Word and LibreOffice</p>"
+                                "</body></html>"));
+    CHECK(ClipboardHandler::sourceOf(&data) == ClipboardSource::Html);
+    data.setData(QString::fromLatin1(MIME_KML), QByteArrayLiteral("<kml><p>Plain</p></kml>"));
+    CHECK(ClipboardHandler::sourceOf(&data) == ClipboardSource::Kalahari);
+
+    // A picture without text, also with blank text
+    QImage image(QSize(4, 4), QImage::Format_RGB32);
+    image.fill(Qt::blue);
+    QMimeData picture;
+    picture.setImageData(image);
+    CHECK(ClipboardHandler::sourceOf(&picture) == ClipboardSource::Image);
+    picture.setText(QStringLiteral("  "));
+    CHECK(ClipboardHandler::sourceOf(&picture) == ClipboardSource::Image);
+}
+
+TEST_CASE("Paste Special: the forms of the content, each pasted as it alone is",
+          "[editor][paste][special]") {
+    auto editor = editorWith(kml("<p><i>xy</i></p>"));
+    editor->setCursorPosition({0, 1});  // x|y, in italic text
+    QMimeData other;
+    other.setText(QStringLiteral("A B"));
+    other.setHtml(QStringLiteral("<p><span style=\"font-family: Arial\">A</span> <b>B</b></p>"));
+    QMimeData plain;
+    plain.setText(QStringLiteral("A"));
+    // Text copied in Kalahari: its KML with an annotation, its HTML and its text
+    QMimeData own;
+    own.setText(QStringLiteral("B"));
+    own.setHtml(QStringLiteral("<p><b>B</b></p>"));
+    own.setData(QString::fromLatin1(MIME_KML),
+                QByteArrayLiteral("<kml><annotations><annotation id=\"a9\" kind=\"comment\">C"
+                                  "</annotation></annotations><p><anchor ref=\"a9\"><b>B</b>"
+                                  "</anchor></p></kml>"));
+    using Forms = std::vector<PasteForm>;
+
+    SECTION("The forms each content has") {
+        CHECK(editor->pasteFormsOf(nullptr).empty());
+        CHECK(editor->pasteFormsOf(&other) ==
+              Forms{PasteForm::Source, PasteForm::Merge, PasteForm::Text});
+        CHECK(editor->pasteFormsOf(&plain) == Forms{PasteForm::Text});
+        CHECK(editor->pasteFormsOf(&own) ==
+              Forms{PasteForm::Kalahari, PasteForm::Source, PasteForm::Merge, PasteForm::Text});
+        // A picture where the text keeps no images: nothing
+        QImage image(QSize(4, 4), QImage::Format_RGB32);
+        image.fill(Qt::blue);
+        QMimeData picture;
+        picture.setImageData(image);
+        CHECK(editor->pasteFormsOf(&picture).empty());
+        // A read-only text pastes nothing
+        editor->setReadOnly(true);
+        CHECK(editor->pasteFormsOf(&other).empty());
+        editor->insertInForm(&other, PasteForm::Text);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xy</i></p>")));
+    }
+
+    SECTION("The formatting of the source, merged, the text only: one step of Undo each") {
+        editor->insertInForm(&other, PasteForm::Source);
+        CHECK(utf8(editor->toKml()) ==
+              utf8(kml("<p><i>x</i><span font=\"Arial\">A</span> <b>B</b><i>y</i></p>")));
+        editor->undo();
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xy</i></p>")));
+        editor->insertInForm(&other, PasteForm::Merge);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xA </i><b><i>B</i></b><i>y</i></p>")));
+        editor->undo();
+        editor->insertInForm(&other, PasteForm::Text);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xA By</i></p>")));
+        editor->undo();
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xy</i></p>")));
+    }
+
+    SECTION("Text copied in Kalahari: with its annotations only in the Kalahari format") {
+        editor->insertInForm(&own, PasteForm::Kalahari);
+        CHECK(editor->toKml().contains(QStringLiteral("<anchor ref=\"a9\">")));
+        CHECK(editor->annotations().size() == 1);
+        editor->undo();
+        editor->insertInForm(&own, PasteForm::Merge);
+        CHECK_FALSE(editor->toKml().contains(QStringLiteral("anchor")));
+        CHECK(editor->annotations().empty());
+        CHECK(utf8(editor->plainText()) == "xBy");
+        editor->undo();
+        editor->insertInForm(&own, PasteForm::Text);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xBy</i></p>")));
+    }
+
+    SECTION("A form the content has not: nothing") {
+        editor->insertInForm(&plain, PasteForm::Source);
+        editor->insertInForm(&plain, PasteForm::Kalahari);
+        editor->insertInForm(&other, PasteForm::Image);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xy</i></p>")));
+    }
+
+    SECTION("The clipboard") {
+        auto* data = new QMimeData();
+        data->setText(other.text());
+        data->setHtml(other.html());
+        QGuiApplication::clipboard()->setMimeData(data);
+        editor->pasteInForm(PasteForm::Text);
+        CHECK(utf8(editor->toKml()) == utf8(kml("<p><i>xA By</i></p>")));
     }
 }

@@ -31,6 +31,7 @@
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_places.h>
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_issue.h>
@@ -598,6 +599,20 @@ public:
     /// As paste(), with text from other programs read as @p mode says. Without formatting
     /// (PasteMode::Text) text copied in Kalahari comes as its plain text too.
     void pasteAs(PasteMode mode);
+
+    /// @brief The forms Edit > Paste Special... can paste MIME data in here, in their order:
+    ///        the KML of text copied in Kalahari, the HTML (with the formatting of the source,
+    ///        merged) and the text, where it has text to insert, and a picture or files of
+    ///        pictures, where the text keeps images; none in a read-only text
+    std::vector<PasteForm> pasteFormsOf(const QMimeData* source) const;
+
+    /// @brief Edit > Paste Special...: insert MIME data in a form at the cursor, replacing
+    ///        the selection, as one undo step, as the paste of that form of it alone does;
+    ///        nothing in a form pasteFormsOf() does not give
+    void insertInForm(const QMimeData* source, PasteForm form);
+
+    /// @brief insertInForm() of the clipboard
+    void pasteInForm(PasteForm form);
 
     /// @brief Clipboard content of the selection: KML (native), HTML and plain text
     /// @return New MIME data, or nullptr without a selection
@@ -1862,6 +1877,28 @@ public:
     void previousPage();
 
     // =========================================================================
+    // Edit > Go To...
+    // =========================================================================
+
+    /// @brief Edit > Go To..., Go: the place of a kind with a number, or on or back from the
+    ///        place of the cursor (placeNumberOf())
+    ///
+    /// "5" is page 5, the fifth heading, image, table or annotation of the text, and the note
+    /// that shows 5 (a note's number also as it shows it: "iii", "*"). "+2" and "-1" count from
+    /// the place of the cursor: its page, or the last place at or before it. The place comes
+    /// into view: the cursor at a heading's paragraph or in a table's first cell, after a
+    /// note's number, an image or an annotation's fragment selected.
+    GoToOutcome goToPlace(PlaceKind kind, const QString& number);
+
+    /// @brief Edit > Go To..., Next and Previous: the place after or before the cursor (the
+    ///        next page, the page before), as goToPlace() goes to it
+    GoToOutcome goToAdjacentPlace(PlaceKind kind, bool next);
+
+    /// @brief The places of a kind, in text order: where Go To puts the cursor (where its
+    ///        selection starts); none for the pages
+    std::vector<int> placePositions(PlaceKind kind) const;
+
+    // =========================================================================
     // Appearance (Phase 5.1)
     // =========================================================================
 
@@ -2462,6 +2499,17 @@ private:
 
     /// @brief insertFromMimeData() with text from other programs read as @p mode says
     void insertMimeDataAs(const QMimeData* source, PasteMode mode);
+
+    /// @brief Go To: the place @p index of @p places (placePositions()), and the outcome
+    GoToOutcome goToPlaceAt(PlaceKind kind, const std::vector<int>& places, int index);
+
+    /// @brief The place of the cursor for Go To: where the selection starts, else the cursor
+    int placeOfCursor() const;
+
+    /// @brief How many of the places are before the cursor, which is the index of the next
+    ///        one: an image or an annotation the cursor is at but which is not selected is
+    ///        still ahead
+    int placesBeforeCursor(PlaceKind kind, const std::vector<int>& places) const;
 
     /// @brief Remove the selected text
     /// @param keepAnnotations true: its annotations stay on its place; false: they go with
@@ -3349,6 +3397,16 @@ private:
     std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
+
+    /// @brief The place Go To went to last, with the cursor it left: while the cursor stays
+    ///        there, Next and Previous go on from it, also past places at the same position
+    struct LastPlace {
+        PlaceKind kind = PlaceKind::Page;
+        int index = -1;   ///< Of placePositions()
+        int cursor = -1;  ///< The cursor and the anchor of the selection it left
+        int anchor = -1;
+    };
+    LastPlace m_lastPlace;
 
     /// The levels of undo below the text as it is: one for each step undo() takes back
     int m_undoLevel = 0;

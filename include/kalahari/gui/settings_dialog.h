@@ -54,6 +54,8 @@ public:
     /// Editor > General, the cursor in the gray background of the fields (the gear of Insert >
     /// Field...)
     static constexpr const char* FIELDS_PAGE = "editor.general.fields";
+    /// Editor > General, the cursor in the Paste Command (the gear of Edit > Paste Special...)
+    static constexpr const char* PASTE_PAGE = "editor.general.paste";
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
     /// Editor > Pages and Margins, scrolled to its group Margin Numbering, the cursor in it
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";

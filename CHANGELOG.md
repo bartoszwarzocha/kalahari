@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Paste Special and Go To** - 2026-11-13. Edit > Paste Special... (no keys: Ctrl+Shift+V
+  pastes the text only) says where the content of the clipboard comes from (Kalahari,
+  Microsoft Word, LibreOffice, Google Docs, a web page or another program, text, a picture,
+  files of pictures) and pastes it in the form chosen: the Kalahari format, with the
+  annotations, of text copied in Kalahari; its formatting kept or merged with the book's look,
+  the text only; a picture (a screenshot, the picture Word gives with its text) or files of
+  pictures as images. The forms the clipboard has not are greyed out, saying why, and the
+  hint says what the one chosen keeps; the one Paste would give is chosen first, and the gear
+  opens the Paste Command in Settings > Editor > General. Text copied in Kalahari pasted with
+  its formatting kept or merged comes as from another program, without its annotations and
+  images. Edit > Go To... (Ctrl+G) goes to a page (in the Page Layout view), a heading, a
+  footnote or an endnote (by the number it shows), an image, a table or an annotation of the
+  text: by its number, on or back from the cursor ("+2", "-1"), or Next and Previous; the
+  window stays open over the text and says where it went ("Heading 3 of 7") or why not. The
+  Edit menu has Go To... after Find in Book..., as the mockup of the menu, and Settings...
+  once: Preferences..., which opened the same window, is no more in it (the command stays for
+  the keys and the toolbars), so every item keeps a key of its own.
 - **Fields** - 2026-11-13. Insert > Field... inserts a value that changes by itself: the title
   of the book, its author, the title of the text (named after its kind: "Chapter Title"), the
   page number, the page count, the word count of the text and the date, each in its formats

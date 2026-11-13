@@ -480,7 +480,7 @@
     </message>
     <message>
         <source>Paste with Source Formatt&amp;ing</source>
-        <translation>Wkle&amp;j z formatowaniem źródła</translation>
+        <translation>Wklej z &amp;formatowaniem źródła</translation>
     </message>
     <message>
         <source>Paste and &amp;Merge Formatting</source>
@@ -541,10 +541,6 @@
     <message>
         <source>Pr&amp;eferences...</source>
         <translation>Pre&amp;ferencje...</translation>
-    </message>
-    <message>
-        <source>Settin&amp;gs...</source>
-        <translation>Ustawi&amp;enia...</translation>
     </message>
     <message>
         <source>&amp;New Chapter...</source>
@@ -1341,6 +1337,14 @@
     <message>
         <source>Current Time as Text</source>
         <translation>Bieżąca godzina jako tekst</translation>
+    </message>
+    <message>
+        <source>&amp;Go To...</source>
+        <translation>Prze&amp;jdź do...</translation>
+    </message>
+    <message>
+        <source>S&amp;ettings...</source>
+        <translation>Ustawi&amp;enia...</translation>
     </message>
 </context>
 <context>
@@ -14924,6 +14928,325 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::GoToDialog</name>
+    <message>
+        <source>Page</source>
+        <extracomment>Edit &gt; Go To..., the kinds of places. In Polish: Strona</extracomment>
+        <translation>Strona</translation>
+    </message>
+    <message>
+        <source>Heading</source>
+        <extracomment>In Polish: Nagłówek</extracomment>
+        <translation>Nagłówek</translation>
+    </message>
+    <message>
+        <source>Footnote or Endnote</source>
+        <extracomment>In Polish: Przypis</extracomment>
+        <translation>Przypis</translation>
+    </message>
+    <message>
+        <source>Image</source>
+        <extracomment>In Polish: Obraz</extracomment>
+        <translation>Obraz</translation>
+    </message>
+    <message>
+        <source>Table</source>
+        <extracomment>In Polish: Tabela</extracomment>
+        <translation>Tabela</translation>
+    </message>
+    <message>
+        <source>Annotation</source>
+        <extracomment>In Polish: Uwaga</extracomment>
+        <translation>Uwaga</translation>
+    </message>
+    <message>
+        <source>Page n&amp;umber</source>
+        <extracomment>In Polish: Nu&amp;mer strony</extracomment>
+        <translation>Nu&amp;mer strony</translation>
+    </message>
+    <message>
+        <source>Heading n&amp;umber</source>
+        <extracomment>In Polish: Nu&amp;mer nagłówka</extracomment>
+        <translation>Nu&amp;mer nagłówka</translation>
+    </message>
+    <message>
+        <source>Footnote or endnote n&amp;umber</source>
+        <extracomment>In Polish: Nu&amp;mer przypisu</extracomment>
+        <translation>Nu&amp;mer przypisu</translation>
+    </message>
+    <message>
+        <source>Image n&amp;umber</source>
+        <extracomment>In Polish: Nu&amp;mer obrazu</extracomment>
+        <translation>Nu&amp;mer obrazu</translation>
+    </message>
+    <message>
+        <source>Table n&amp;umber</source>
+        <extracomment>In Polish: Nu&amp;mer tabeli</extracomment>
+        <translation>Nu&amp;mer tabeli</translation>
+    </message>
+    <message>
+        <source>Annotation n&amp;umber</source>
+        <extracomment>In Polish: Nu&amp;mer uwagi</extracomment>
+        <translation>Nu&amp;mer uwagi</translation>
+    </message>
+    <message>
+        <source>“3”: the third page of the text, “+2”: two pages on, “-1”: a page back. Next and Previous go to the page after or before.</source>
+        <extracomment>In Polish: „3” – trzecia strona tekstu, „+2” – dwie strony dalej, „-1” – stronę wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</extracomment>
+        <translation>„3” – trzecia strona tekstu, „+2” – dwie strony dalej, „-1” – jedna strona wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej strony.</translation>
+    </message>
+    <message>
+        <source>“3”: the third heading of the text, “+2”: two headings on, “-1”: a heading back. Next and Previous go to the heading after or before.</source>
+        <extracomment>In Polish: „3” – trzeci nagłówek tekstu, „+2” – dwa nagłówki dalej, „-1” – nagłówek wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniego nagłówka.</extracomment>
+        <translation>„3” – trzeci nagłówek tekstu, „+2” – dwa nagłówki dalej, „-1” – jeden nagłówek wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniego nagłówka.</translation>
+    </message>
+    <message>
+        <source>“3”: the note numbered 3, “+2”: two notes on, “-1”: a note back. Next and Previous go to the note after or before.</source>
+        <extracomment>In Polish: „3” – przypis o numerze 3, „+2” – dwa przypisy dalej, „-1” – przypis wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniego przypisu.</extracomment>
+        <translation>„3” – przypis o numerze 3, „+2” – dwa przypisy dalej, „-1” – jeden przypis wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniego przypisu.</translation>
+    </message>
+    <message>
+        <source>“3”: the third image of the text, “+2”: two images on, “-1”: an image back. Next and Previous go to the image after or before.</source>
+        <extracomment>In Polish: „3” – trzeci obraz tekstu, „+2” – dwa obrazy dalej, „-1” – obraz wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniego obrazu.</extracomment>
+        <translation>„3” – trzeci obraz tekstu, „+2” – dwa obrazy dalej, „-1” – jeden obraz wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniego obrazu.</translation>
+    </message>
+    <message>
+        <source>“3”: the third table of the text, “+2”: two tables on, “-1”: a table back. Next and Previous go to the table after or before.</source>
+        <extracomment>In Polish: „3” – trzecia tabela tekstu, „+2” – dwie tabele dalej, „-1” – tabelę wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej tabeli.</extracomment>
+        <translation>„3” – trzecia tabela tekstu, „+2” – dwie tabele dalej, „-1” – jedna tabela wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej tabeli.</translation>
+    </message>
+    <message>
+        <source>“3”: the third annotation of the text, “+2”: two annotations on, “-1”: an annotation back. Next and Previous go to the annotation after or before.</source>
+        <extracomment>In Polish: „3” – trzecia uwaga tekstu, „+2” – dwie uwagi dalej, „-1” – uwagę wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej uwagi.</extracomment>
+        <translation>„3” – trzecia uwaga tekstu, „+2” – dwie uwagi dalej, „-1” – jedna uwaga wcześniej. „Następny” i „Poprzedni” przechodzą do sąsiedniej uwagi.</translation>
+    </message>
+    <message>
+        <source>The pages show in the Page Layout view (View &gt; View Mode).</source>
+        <extracomment>In Polish: Strony są widoczne w widoku „Układ strony” (Widok &gt; Tryb widoku).</extracomment>
+        <translation>Strony widać w widoku „Układ strony” (Widok &gt; Tryb widoku).</translation>
+    </message>
+    <message>
+        <source>Go To</source>
+        <extracomment>In Polish: Przejdź do / Miejsce w rozdziale według numeru albo następne i poprzednie.</extracomment>
+        <translation>Przejdź do</translation>
+    </message>
+    <message>
+        <source>A place of the text by its number, or the next and the previous one.</source>
+        <translation>Miejsce w tekście według numeru, a także następne i poprzednie.</translation>
+    </message>
+    <message>
+        <source>&amp;Go</source>
+        <extracomment>In Polish: Prze&amp;jdź</extracomment>
+        <translation>Prze&amp;jdź</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <extracomment>In Polish: Zamknij</extracomment>
+        <translation>Zamknij</translation>
+    </message>
+    <message>
+        <source>&amp;Previous</source>
+        <extracomment>In Polish: &amp;Poprzedni</extracomment>
+        <translation>&amp;Poprzedni</translation>
+    </message>
+    <message>
+        <source>&amp;Next</source>
+        <extracomment>In Polish: &amp;Następny</extracomment>
+        <translation>&amp;Następny</translation>
+    </message>
+    <message>
+        <source>Go &amp;to</source>
+        <extracomment>The list of the kinds of places. In Polish: Przejdź &amp;do</extracomment>
+        <translation>Przejdź &amp;do</translation>
+    </message>
+    <message>
+        <source>What Go To did</source>
+        <translation>Wynik przejścia</translation>
+    </message>
+    <message>
+        <source>No chapter or file is open</source>
+        <extracomment>In Polish: Żaden rozdział ani plik nie jest otwarty</extracomment>
+        <translation>Nie jest otwarty żaden rozdział ani plik</translation>
+    </message>
+    <message>
+        <source>Type the note&apos;s number, as 3, +2 or -1.</source>
+        <extracomment>In Polish: Wpisz numer, np. 3, +2 albo -1.</extracomment>
+        <translation>Wpisz numer przypisu, np. 3, +2 albo -1.</translation>
+    </message>
+    <message>
+        <source>Type a number, as 3, +2 or -1.</source>
+        <translation>Wpisz numer, np. 3, +2 albo -1.</translation>
+    </message>
+    <message>
+        <source>Page %1 of %2</source>
+        <extracomment>Where Go To went. In Polish: Strona %1 z %2</extracomment>
+        <translation>Strona %1 z %2</translation>
+    </message>
+    <message>
+        <source>This is the last page of the text.</source>
+        <extracomment>In Polish: To ostatnia strona tekstu.</extracomment>
+        <translation>To ostatnia strona tekstu.</translation>
+    </message>
+    <message>
+        <source>This is the first page of the text.</source>
+        <extracomment>In Polish: To pierwsza strona tekstu.</extracomment>
+        <translation>To pierwsza strona tekstu.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The text has %n page(s).</source>
+        <extracomment>In Polish: Tekst ma %n stronę / strony / stron.</extracomment>
+        <translation>
+            <numerusform>Tekst ma %n stronę.</numerusform>
+            <numerusform>Tekst ma %n strony.</numerusform>
+            <numerusform>Tekst ma %n stron.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Heading %1 of %2</source>
+        <extracomment>In Polish: Nagłówek %1 z %2</extracomment>
+        <translation>Nagłówek %1 z %2</translation>
+    </message>
+    <message>
+        <source>The text has no headings.</source>
+        <extracomment>In Polish: Tekst nie ma nagłówków.</extracomment>
+        <translation>Tekst nie ma nagłówków.</translation>
+    </message>
+    <message>
+        <source>There is no heading after the cursor.</source>
+        <extracomment>In Polish: Za kursorem nie ma już nagłówka.</extracomment>
+        <translation>Za kursorem nie ma już nagłówka.</translation>
+    </message>
+    <message>
+        <source>There is no heading before the cursor.</source>
+        <extracomment>In Polish: Przed kursorem nie ma nagłówka.</extracomment>
+        <translation>Przed kursorem nie ma już nagłówka.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The text has %n heading(s).</source>
+        <extracomment>In Polish: Tekst ma %n nagłówek / nagłówki / nagłówków.</extracomment>
+        <translation>
+            <numerusform>Tekst ma %n nagłówek.</numerusform>
+            <numerusform>Tekst ma %n nagłówki.</numerusform>
+            <numerusform>Tekst ma %n nagłówków.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Note %1 (%2 of %3)</source>
+        <extracomment>%1: the number the note shows, %2 and %3: which one of the notes of the text it is. In Polish: Przypis %1 (%2 z %3)</extracomment>
+        <translation>Przypis %1 (%2 z %3)</translation>
+    </message>
+    <message>
+        <source>The text has no footnotes or endnotes.</source>
+        <extracomment>In Polish: Tekst nie ma przypisów.</extracomment>
+        <translation>Tekst nie ma przypisów.</translation>
+    </message>
+    <message>
+        <source>There is no note after the cursor.</source>
+        <extracomment>In Polish: Za kursorem nie ma już przypisu.</extracomment>
+        <translation>Za kursorem nie ma już przypisu.</translation>
+    </message>
+    <message>
+        <source>There is no note before the cursor.</source>
+        <extracomment>In Polish: Przed kursorem nie ma przypisu.</extracomment>
+        <translation>Przed kursorem nie ma już przypisu.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The text has no note of this number; it has %n note(s).</source>
+        <extracomment>In Polish: Tekst nie ma przypisu o tym numerze; ma %n przypis / przypisy / przypisów.</extracomment>
+        <translation>
+            <numerusform>Tekst nie ma przypisu o tym numerze; ma %n przypis.</numerusform>
+            <numerusform>Tekst nie ma przypisu o tym numerze; ma %n przypisy.</numerusform>
+            <numerusform>Tekst nie ma przypisu o tym numerze; ma %n przypisów.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Image %1 of %2</source>
+        <extracomment>In Polish: Obraz %1 z %2</extracomment>
+        <translation>Obraz %1 z %2</translation>
+    </message>
+    <message>
+        <source>The text has no images.</source>
+        <extracomment>In Polish: Tekst nie ma obrazów.</extracomment>
+        <translation>Tekst nie ma obrazów.</translation>
+    </message>
+    <message>
+        <source>There is no image after the cursor.</source>
+        <extracomment>In Polish: Za kursorem nie ma już obrazu.</extracomment>
+        <translation>Za kursorem nie ma już obrazu.</translation>
+    </message>
+    <message>
+        <source>There is no image before the cursor.</source>
+        <extracomment>In Polish: Przed kursorem nie ma obrazu.</extracomment>
+        <translation>Przed kursorem nie ma już obrazu.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The text has %n image(s).</source>
+        <extracomment>In Polish: Tekst ma %n obraz / obrazy / obrazów.</extracomment>
+        <translation>
+            <numerusform>Tekst ma %n obraz.</numerusform>
+            <numerusform>Tekst ma %n obrazy.</numerusform>
+            <numerusform>Tekst ma %n obrazów.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Table %1 of %2</source>
+        <extracomment>In Polish: Tabela %1 z %2</extracomment>
+        <translation>Tabela %1 z %2</translation>
+    </message>
+    <message>
+        <source>The text has no tables.</source>
+        <extracomment>In Polish: Tekst nie ma tabel.</extracomment>
+        <translation>Tekst nie ma tabel.</translation>
+    </message>
+    <message>
+        <source>There is no table after the cursor.</source>
+        <extracomment>In Polish: Za kursorem nie ma już tabeli.</extracomment>
+        <translation>Za kursorem nie ma już tabeli.</translation>
+    </message>
+    <message>
+        <source>There is no table before the cursor.</source>
+        <extracomment>In Polish: Przed kursorem nie ma tabeli.</extracomment>
+        <translation>Przed kursorem nie ma już tabeli.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The text has %n table(s).</source>
+        <extracomment>In Polish: Tekst ma %n tabelę / tabele / tabel.</extracomment>
+        <translation>
+            <numerusform>Tekst ma %n tabelę.</numerusform>
+            <numerusform>Tekst ma %n tabele.</numerusform>
+            <numerusform>Tekst ma %n tabel.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Annotation %1 of %2</source>
+        <extracomment>In Polish: Uwaga %1 z %2</extracomment>
+        <translation>Uwaga %1 z %2</translation>
+    </message>
+    <message>
+        <source>The text has no annotations.</source>
+        <extracomment>In Polish: Tekst nie ma uwag.</extracomment>
+        <translation>Tekst nie ma uwag.</translation>
+    </message>
+    <message>
+        <source>There is no annotation after the cursor.</source>
+        <extracomment>In Polish: Za kursorem nie ma już uwagi.</extracomment>
+        <translation>Za kursorem nie ma już uwagi.</translation>
+    </message>
+    <message>
+        <source>There is no annotation before the cursor.</source>
+        <extracomment>In Polish: Przed kursorem nie ma uwagi.</extracomment>
+        <translation>Przed kursorem nie ma już uwagi.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The text has %n annotation(s).</source>
+        <extracomment>In Polish: Tekst ma %n uwagę / uwagi / uwag.</extracomment>
+        <translation>
+            <numerusform>Tekst ma %n uwagę.</numerusform>
+            <numerusform>Tekst ma %n uwagi.</numerusform>
+            <numerusform>Tekst ma %n uwag.</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::FootnoteCoordinator</name>
     <message>
         <source>No book is open</source>
@@ -18009,6 +18332,151 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
         <source>A style has its line spacing in lines: single, 1.5 lines, double or multiple.</source>
         <extracomment>In Polish: Interlinię stylu podaje się w wierszach: pojedyncza, 1,5 wiersza, podwójna albo wielokrotna.</extracomment>
         <translation>Interlinię stylu podaje się w wierszach: pojedyncza, 1,5 wiersza, podwójna albo wielokrotna.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::PasteSpecialDialog</name>
+    <message>
+        <source>Paste Special</source>
+        <extracomment>In Polish: Wklej specjalnie / Postać, w jakiej zawartość schowka trafi do tekstu.</extracomment>
+        <translation>Wklej specjalnie</translation>
+    </message>
+    <message>
+        <source>The form the content of the clipboard goes into the text in.</source>
+        <translation>Postać, w jakiej zawartość schowka trafi do tekstu.</translation>
+    </message>
+    <message>
+        <source>Paste</source>
+        <extracomment>In Polish: Wklej</extracomment>
+        <translation>Wklej</translation>
+    </message>
+    <message>
+        <source>Paste Settings</source>
+        <extracomment>The tooltip of the gear of Paste Special: the Paste Command chooses the form Paste gives the text of other programs. In Polish: Ustawienia wklejania</extracomment>
+        <translation>Ustawienia wklejania</translation>
+    </message>
+    <message>
+        <source>Source: %1</source>
+        <extracomment>Where the content of the clipboard comes from. %1: &quot;Microsoft Word&quot;. In Polish: Źródło: %1</extracomment>
+        <translation>Źródło: %1</translation>
+    </message>
+    <message>
+        <source>Kalahari Format (with annotations)</source>
+        <extracomment>In Polish: Format Kalahari (z uwagami)</extracomment>
+        <translation>Format Kalahari (z uwagami)</translation>
+    </message>
+    <message>
+        <source>The Kalahari format is there when the text was copied in Kalahari.</source>
+        <extracomment>In Polish: Format Kalahari jest dostępny, gdy tekst skopiowano w Kalahari.</extracomment>
+        <translation>Format Kalahari jest dostępny, gdy tekst skopiowano w Kalahari.</translation>
+    </message>
+    <message>
+        <source>Keep Source Formatting</source>
+        <extracomment>In Polish: Zachowaj formatowanie źródła</extracomment>
+        <translation>Zachowaj formatowanie źródła</translation>
+    </message>
+    <message>
+        <source>The clipboard has no formatted text.</source>
+        <extracomment>In Polish: Schowek nie ma tekstu z formatowaniem.</extracomment>
+        <translation>Schowek nie ma tekstu z formatowaniem.</translation>
+    </message>
+    <message>
+        <source>Merge Formatting</source>
+        <extracomment>In Polish: Scal formatowanie</extracomment>
+        <translation>Scal formatowanie</translation>
+    </message>
+    <message>
+        <source>Text Only</source>
+        <extracomment>In Polish: Tylko tekst</extracomment>
+        <translation>Tylko tekst</translation>
+    </message>
+    <message>
+        <source>The clipboard has no text.</source>
+        <extracomment>In Polish: Schowek nie ma tekstu.</extracomment>
+        <translation>Schowek nie ma tekstu.</translation>
+    </message>
+    <message>
+        <source>Image</source>
+        <extracomment>In Polish: Obraz</extracomment>
+        <translation>Obraz</translation>
+    </message>
+    <message>
+        <source>The clipboard has no picture.</source>
+        <extracomment>In Polish: Schowek nie ma obrazu.</extracomment>
+        <translation>Schowek nie ma obrazu.</translation>
+    </message>
+    <message>
+        <source>Paste &amp;as</source>
+        <extracomment>The list of the forms. In Polish: &amp;Wklej jako</extracomment>
+        <translation>&amp;Wklej jako</translation>
+    </message>
+    <message>
+        <source>Everything the text had in Kalahari: its styles, annotations, notes, images and fields.</source>
+        <extracomment>In Polish: Wszystko, co tekst miał w Kalahari: style, uwagi, przypisy, obrazy i pola.</extracomment>
+        <translation>Wszystko, co tekst miał w Kalahari: style, uwagi, przypisy, obrazy i pola.</translation>
+    </message>
+    <message>
+        <source>Headings, quotes, paragraphs, emphasis, lists and tables stay, and so do the font, size, color and alignment of the source.</source>
+        <extracomment>In Polish: Zostają nagłówki, cytaty, akapity, wyróżnienia, listy i tabele, a także czcionka, rozmiar, kolor i wyrównanie źródła.</extracomment>
+        <translation>Zostają nagłówki, cytaty, akapity, wyróżnienia, listy i tabele, a także czcionka, rozmiar, kolor i wyrównanie źródła.</translation>
+    </message>
+    <message>
+        <source>Headings, quotes, paragraphs, emphasis, lists and tables stay; the font, size and color are those of the book.</source>
+        <extracomment>In Polish: Zostają nagłówki, cytaty, akapity, wyróżnienia, listy i tabele; czcionka, rozmiar i kolor są takie jak w książce.</extracomment>
+        <translation>Zostają nagłówki, cytaty, akapity, wyróżnienia, listy i tabele; czcionka, rozmiar i kolor są takie jak w książce.</translation>
+    </message>
+    <message>
+        <source>Only the text, with its paragraphs, in the look of the place it goes to.</source>
+        <extracomment>In Polish: Sam tekst z akapitami, w wyglądzie miejsca, do którego trafia.</extracomment>
+        <translation>Sam tekst z akapitami, w wyglądzie miejsca, do którego trafia.</translation>
+    </message>
+    <message>
+        <source>The files of pictures as images of the text.</source>
+        <translation>Pliki obrazów jako obrazy w tekście.</translation>
+    </message>
+    <message>
+        <source>The picture of the clipboard (a screenshot, say) as an image of the text.</source>
+        <translation>Obraz ze schowka (np. zrzut ekranu) jako obraz w tekście.</translation>
+    </message>
+    <message>
+        <source>Text copied in Kalahari comes without its annotations and images, as from another program.</source>
+        <extracomment>In Polish: Tekst skopiowany w Kalahari przychodzi bez uwag i obrazów, tak jak z innego programu.</extracomment>
+        <translation>Tekst skopiowany w Kalahari przychodzi bez uwag i obrazów, tak jak z innego programu.</translation>
+    </message>
+    <message>
+        <source>Save the file first: its images are kept in a folder next to it</source>
+        <extracomment>Why Image is greyed out in a new file. In Polish: Najpierw zapisz plik: jego obrazy są przechowywane w folderze obok niego</extracomment>
+        <translation>Najpierw zapisz plik: jego obrazy są przechowywane w folderze obok niego</translation>
+    </message>
+    <message>
+        <source>an empty clipboard</source>
+        <extracomment>The clipboard is empty. In Polish: pusty schowek</extracomment>
+        <translation>pusty schowek</translation>
+    </message>
+    <message>
+        <source>Google Docs</source>
+        <extracomment>In Polish: Dokumenty Google</extracomment>
+        <translation>Dokumenty Google</translation>
+    </message>
+    <message>
+        <source>a web page or another program</source>
+        <extracomment>In Polish: strona internetowa albo inny program</extracomment>
+        <translation>strona internetowa albo inny program</translation>
+    </message>
+    <message>
+        <source>text without formatting</source>
+        <extracomment>In Polish: tekst bez formatowania</extracomment>
+        <translation>tekst bez formatowania</translation>
+    </message>
+    <message>
+        <source>a picture</source>
+        <extracomment>In Polish: obraz</extracomment>
+        <translation>obraz</translation>
+    </message>
+    <message>
+        <source>files of pictures</source>
+        <extracomment>In Polish: pliki obrazów</extracomment>
+        <translation>pliki obrazów</translation>
     </message>
 </context>
 <context>

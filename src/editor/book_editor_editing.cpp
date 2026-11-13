@@ -16,13 +16,13 @@
 #include <kalahari/editor/text_images.h>
 #include <QAction>
 #include <QClipboard>
-#include <QFileInfo>
 #include <QHash>
 #include <QImage>
 #include <QGuiApplication>
 #include <QMimeData>
 #include <QTextBoundaryFinder>
 #include <QTextDocumentFragment>
+#include <QUrl>
 #include <algorithm>
 #include <utility>
 
@@ -376,22 +376,6 @@ void insertMimeData(QTextCursor& cursor, const QMimeData& source, PasteMode mode
     cursor.beginEditBlock();  // the replaced selection and the text: one undo step
     insertKeepingAnnotations(cursor, pastedPlainText(text), typed);
     cursor.endEditBlock();
-}
-
-/// @brief The files of pictures among the addresses of MIME data (files dragged from a
-///        folder), in their order
-QStringList pictureFilesOf(const QMimeData& source) {
-    QStringList files;
-    if (!source.hasUrls()) {
-        return files;
-    }
-    for (const QUrl& url : source.urls()) {
-        const QString path = url.isLocalFile() ? url.toLocalFile() : QString();
-        if (!path.isEmpty() && isImageFileName(path) && QFileInfo(path).isFile()) {
-            files << path;
-        }
-    }
-    return files;
 }
 
 /// @brief The text the last Control+K presses in a row deleted (macOS), for Control+Y: one
@@ -1353,6 +1337,80 @@ void BookEditor::pasteAs(PasteMode mode)
     insertMimeDataAs(&plain, mode);
 }
 
+std::vector<PasteForm> BookEditor::pasteFormsOf(const QMimeData* source) const
+{
+    std::vector<PasteForm> forms;
+    if (source == nullptr || m_readOnly) {
+        return forms;
+    }
+    if (source->hasFormat(QString::fromLatin1(MIME_KML))) {
+        forms.push_back(PasteForm::Kalahari);
+    }
+    const bool text = source->hasText() && !pastedPlainText(source->text()).isEmpty();
+    if (text && source->hasHtml()) {
+        forms.push_back(PasteForm::Source);
+        forms.push_back(PasteForm::Merge);
+    }
+    if (text) {
+        forms.push_back(PasteForm::Text);
+    }
+    if (m_imageStore->hasFolder() &&
+        (source->hasImage() || !ClipboardHandler::pictureFilesOf(*source).isEmpty())) {
+        forms.push_back(PasteForm::Image);
+    }
+    return forms;
+}
+
+void BookEditor::insertInForm(const QMimeData* source, PasteForm form)
+{
+    const std::vector<PasteForm> forms = pasteFormsOf(source);
+    if (std::find(forms.begin(), forms.end(), form) == forms.end()) {
+        return;
+    }
+    // Only that form of the data, which the paste reads as it reads it alone
+    QMimeData alone;
+    switch (form) {
+        case PasteForm::Kalahari:
+            for (const char* format : {MIME_KML, MIME_IMAGES_FOLDER}) {
+                const QString name = QString::fromLatin1(format);
+                if (source->hasFormat(name)) {
+                    alone.setData(name, source->data(name));
+                }
+            }
+            insertMimeDataAs(&alone, m_pasteMode);
+            return;
+        case PasteForm::Source:
+        case PasteForm::Merge:
+        case PasteForm::Text:
+            // The HTML also tells the line breaks of the plain text from its paragraph ends
+            alone.setText(source->text());
+            if (source->hasHtml()) {
+                alone.setHtml(source->html());
+            }
+            insertMimeDataAs(&alone, form == PasteForm::Source  ? PasteMode::Source
+                                     : form == PasteForm::Merge ? PasteMode::Merge
+                                                                : PasteMode::Text);
+            return;
+        case PasteForm::Image:
+            if (source->hasImage()) {
+                alone.setImageData(source->imageData());
+            } else {
+                QList<QUrl> files;
+                for (const QString& file : ClipboardHandler::pictureFilesOf(*source)) {
+                    files << QUrl::fromLocalFile(file);
+                }
+                alone.setUrls(files);
+            }
+            insertMimeDataAs(&alone, m_pasteMode);
+            return;
+    }
+}
+
+void BookEditor::pasteInForm(PasteForm form)
+{
+    insertInForm(QGuiApplication::clipboard()->mimeData(), form);
+}
+
 std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
 {
     if (!hasSelection() || !m_textBuffer) {
@@ -1448,7 +1506,8 @@ bool BookEditor::canInsertFromMimeData(const QMimeData* source) const
     if (source->hasFormat(QString::fromLatin1(MIME_KML)) || source->hasText()) {
         return true;
     }
-    return m_imageStore->hasFolder() && (source->hasImage() || !pictureFilesOf(*source).isEmpty());
+    return m_imageStore->hasFolder() &&
+           (source->hasImage() || !ClipboardHandler::pictureFilesOf(*source).isEmpty());
 }
 
 bool BookEditor::insertPicturesOf(const QMimeData& source)
@@ -1457,7 +1516,7 @@ bool BookEditor::insertPicturesOf(const QMimeData& source)
         return false;
     }
     // Files of pictures, one after the other; one of them stays selected
-    const QStringList files = pictureFilesOf(source);
+    const QStringList files = ClipboardHandler::pictureFilesOf(source);
     if (!files.isEmpty()) {
         int inserted = 0;
         for (const QString& file : files) {
@@ -1586,7 +1645,7 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     // Files of pictures dropped from a folder, a picture dropped from a browser: images at
     // the drop point
     if (!moveSelection && !source->hasFormat(QString::fromLatin1(MIME_KML)) &&
-        (!pictureFilesOf(*source).isEmpty() ||
+        (!ClipboardHandler::pictureFilesOf(*source).isEmpty() ||
          (source->hasImage() && pastedPlainText(source->text()).trimmed().isEmpty()))) {
         if (!m_imageStore->hasFolder()) {
             return false;

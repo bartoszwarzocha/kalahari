@@ -75,6 +75,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.findPrevious", "resources/icons/twotone/navigate_before.svg", "Find Previous");
     iconRegistry.registerIcon("edit.findReplace", "resources/icons/twotone/find_replace.svg", "Find & Replace");
     iconRegistry.registerIcon("edit.findInBook", "resources/icons/twotone/search.svg", "Find in Book");
+    iconRegistry.registerIcon("edit.goTo", "resources/icons/twotone/arrow_forward.svg", "Go To");
     iconRegistry.registerIcon("edit.nextTodo", "resources/icons/twotone/navigate_next.svg", "Next To Do");
     iconRegistry.registerIcon("edit.previousTodo", "resources/icons/twotone/navigate_before.svg", "Previous To Do");
     iconRegistry.registerIcon("edit.preferences", "resources/icons/twotone/settings.svg", "Preferences");

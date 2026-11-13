@@ -16,6 +16,7 @@
 #include "book_editor_internal.h"
 #include <QColor>
 #include <QDir>
+#include <QFileInfo>
 #include <QFont>
 #include <QGuiApplication>
 #include <QHash>
@@ -1637,6 +1638,62 @@ QString ClipboardHandler::pasteAsText()
     }
 
     return QString();
+}
+
+ClipboardSource ClipboardHandler::sourceOf(const QMimeData* data)
+{
+    if (data == nullptr) {
+        return ClipboardSource::Nothing;
+    }
+    if (data->hasFormat(QString::fromLatin1(MIME_KML))) {
+        return ClipboardSource::Kalahari;
+    }
+    // Text of its own: Qt also reads the paths of copied files as text
+    const bool text = data->hasFormat(QStringLiteral("text/plain")) &&
+                      !data->text().trimmed().isEmpty();
+    if (data->hasHtml() && text) {
+        // The program names itself in the head (Word also by its namespaces, as Outlook
+        // writing Word's HTML), Google Docs marks its fragment
+        const QString html = data->html();
+        const qsizetype body = html.indexOf(QLatin1String("<body"), 0, Qt::CaseInsensitive);
+        const QString head = (body < 0 ? html : html.left(body)).toLower();
+        if (head.contains(QLatin1String("urn:schemas-microsoft-com:office:word")) ||
+            head.contains(QLatin1String("microsoft word")) ||
+            head.contains(QLatin1String("word.document"))) {
+            return ClipboardSource::Word;
+        }
+        if (head.contains(QLatin1String("libreoffice")) ||
+            head.contains(QLatin1String("openoffice"))) {
+            return ClipboardSource::LibreOffice;
+        }
+        if (html.contains(QLatin1String("docs-internal-guid"))) {
+            return ClipboardSource::GoogleDocs;
+        }
+        return ClipboardSource::Html;
+    }
+    if (text) {
+        return ClipboardSource::Text;
+    }
+    if (data->hasImage()) {
+        return ClipboardSource::Image;
+    }
+    return pictureFilesOf(*data).isEmpty() ? ClipboardSource::Nothing
+                                           : ClipboardSource::ImageFiles;
+}
+
+QStringList ClipboardHandler::pictureFilesOf(const QMimeData& data)
+{
+    QStringList files;
+    if (!data.hasUrls()) {
+        return files;
+    }
+    for (const QUrl& url : data.urls()) {
+        const QString path = url.isLocalFile() ? url.toLocalFile() : QString();
+        if (!path.isEmpty() && isImageFileName(path) && QFileInfo(path).isFile()) {
+            files << path;
+        }
+    }
+    return files;
 }
 
 // =============================================================================

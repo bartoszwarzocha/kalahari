@@ -922,6 +922,54 @@ TEST_CASE("Images: files of pictures pasted or dropped become images, one after 
     CHECK(loose->toKml() == QStringLiteral("<kml><p>ab</p></kml>"));
 }
 
+TEST_CASE("Images: Paste Special pastes the picture of text, or the files of pictures",
+          "[editor][images][clipboard][special]") {
+    BookFolder book;
+    QImage picture(QSize(16, 8), QImage::Format_RGB32);
+    picture.fill(Qt::green);
+
+    // Text of another program with a picture of it (as Word gives it): the picture as an image
+    QMimeData withText;
+    withText.setImageData(picture);
+    withText.setText(QStringLiteral("cd"));
+    withText.setHtml(QStringLiteral("<p><b>cd</b></p>"));
+    auto editor = editorWith(QStringLiteral("<kml><p>ab</p></kml>"), book.path());
+    editor->setCursorPosition({0, 1});
+    CHECK(editor->pasteFormsOf(&withText) ==
+          std::vector<PasteForm>{PasteForm::Source, PasteForm::Merge, PasteForm::Text,
+                                 PasteForm::Image});
+    editor->insertInForm(&withText, PasteForm::Image);
+    CHECK(editor->toKml() ==
+          QStringLiteral("<kml><p>ab</p><p align=\"center\"><img src=\"images/image.png\"/></p></kml>"));
+    editor->undo();
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>ab</p></kml>"));
+    editor->setCursorPosition({0, 1});
+    editor->insertInForm(&withText, PasteForm::Text);
+    CHECK(editor->toKml() == QStringLiteral("<kml><p>acdb</p></kml>"));
+
+    // Files of pictures
+    QTemporaryDir outside;
+    const QString red = pictureFile(outside, QStringLiteral("red.png"), QSize(8, 8), Qt::red);
+    QMimeData files;
+    files.setUrls({QUrl::fromLocalFile(red)});
+    files.setText(red);
+    auto other = editorWith(QStringLiteral("<kml><p>ab</p></kml>"), book.path());
+    other->setCursorPosition({0, 1});
+    CHECK(other->pasteFormsOf(&files) == std::vector<PasteForm>{PasteForm::Text, PasteForm::Image});
+    other->insertInForm(&files, PasteForm::Image);
+    CHECK(other->toKml() == QStringLiteral("<kml><p>ab</p><p align=\"center\"><img "
+                                           "src=\"images/red.png\"/></p></kml>"));
+    CHECK(ClipboardHandler::sourceOf(&files) == ClipboardSource::Text);
+    QMimeData filesAlone;
+    filesAlone.setUrls({QUrl::fromLocalFile(red)});
+    CHECK(ClipboardHandler::sourceOf(&filesAlone) == ClipboardSource::ImageFiles);
+
+    // Without a folder of images: no Image
+    auto loose = editorWith(QStringLiteral("<kml><p>ab</p></kml>"));
+    CHECK(loose->pasteFormsOf(&withText) ==
+          std::vector<PasteForm>{PasteForm::Source, PasteForm::Merge, PasteForm::Text});
+}
+
 TEST_CASE("Images: a file saved in another folder takes its images along",
           "[editor][images][files]") {
     BookFolder before;

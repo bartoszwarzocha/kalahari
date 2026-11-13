@@ -115,6 +115,7 @@ void SettingsDialog::createNavigationTree() {
     m_pageItems[WORD_COUNT_PAGE] =
         addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
     m_pageItems[FIELDS_PAGE] = m_pageItems[WORD_COUNT_PAGE];
+    m_pageItems[PASTE_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
@@ -321,18 +322,18 @@ bool SettingsDialog::openPage(const QString& page) {
         if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
             shortcuts->setFocus(Qt::OtherFocusReason);
         }
-    } else if (page == QLatin1String(FIELDS_PAGE)) {
-        // The cursor in the gray background of the fields, in view
+    } else if (page == QLatin1String(FIELDS_PAGE) || page == QLatin1String(PASTE_PAGE)) {
+        // The cursor in the gray background of the fields, in the Paste Command, in view
         const auto built = m_builtPages.find(item->second);
         auto* scrollArea =
             built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
-        auto* shading = scrollArea != nullptr
-                            ? scrollArea->findChild<QWidget*>(QStringLiteral("fieldShading"))
-                            : nullptr;
-        if (shading != nullptr) {
-            shading->setFocus(Qt::OtherFocusReason);
-            QTimer::singleShot(0, scrollArea, [scrollArea, shading]() {
-                scrollArea->ensureWidgetVisible(shading);
+        const QString name = page == QLatin1String(FIELDS_PAGE) ? QStringLiteral("fieldShading")
+                                                                : QStringLiteral("pasteMode");
+        auto* field = scrollArea != nullptr ? scrollArea->findChild<QWidget*>(name) : nullptr;
+        if (field != nullptr) {
+            field->setFocus(Qt::OtherFocusReason);
+            QTimer::singleShot(0, scrollArea, [scrollArea, field]() {
+                scrollArea->ensureWidgetVisible(field);
             });
         }
     } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE) ||

@@ -420,6 +420,7 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
                        QString::fromLatin1(editor::PASTE_MODE_SOURCE));
     pasteMode->addItem(tr("Keep Text Only"), QString::fromLatin1(editor::PASTE_MODE_TEXT));
     addField(behavior, tr("Paste Command:"), pasteMode, editor::PASTE_MODE_KEY);
+    pasteMode->setObjectName(QStringLiteral("pasteMode"));  // SettingsDialog::openPage()
     QLabel* pasteNote = addNote(behavior, QString());
     // With the keys Paste has now (the user may change them)
     const auto showPasteKeys = [pasteNote]() {

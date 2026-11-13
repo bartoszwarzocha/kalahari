@@ -23,6 +23,8 @@
 #include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/chapter_break_coordinator.h"
 #include "kalahari/gui/field_coordinator.h"
+#include "kalahari/gui/go_to_coordinator.h"
+#include "kalahari/gui/dialogs/edit_dialogs.h"
 #include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -85,6 +87,9 @@
 #include <QToolBar>
 #include <QStatusBar>
 #include <QApplication>
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QMimeData>
 #include <QSettings>
 #include <QDockWidget>
 #include <QCloseEvent>
@@ -624,8 +629,18 @@ MainWindow::MainWindow(QWidget* parent)
         "edit.pasteSourceFormatting", "edit.pasteMergeFormatting", "edit.pasteTextOnly"};
     m_editCoordinator->addTextCommands(
         pasteCommands, [](const editor::BookEditor& text) { return text.canPaste(); });
+    // Paste Special... also with a picture alone, which Paste inserts too (its formats only:
+    // reading the content may ask another program for it)
+    m_editCoordinator->addTextCommands({"edit.pasteSpecial"}, [](const editor::BookEditor& text) {
+        const QMimeData* clipboard = QGuiApplication::clipboard()->mimeData();
+        return !text.isReadOnly() && clipboard != nullptr &&
+               (clipboard->hasText() || clipboard->hasHtml() || clipboard->hasImage() ||
+                clipboard->hasUrls() ||
+                clipboard->hasFormat(QString::fromLatin1(editor::MIME_KML)));
+    });
     std::vector<std::string> changingCommands = insertCommands;
     changingCommands.insert(changingCommands.end(), pasteCommands.begin(), pasteCommands.end());
+    changingCommands.emplace_back("edit.pasteSpecial");
     for (const std::string& id : changingCommands) {
         if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
             const bool object =
@@ -771,6 +786,14 @@ MainWindow::MainWindow(QWidget* parent)
             };
         }
     }
+
+    // Edit > Go To...: in the book's text with the keys, also a read-only one; the window
+    // stays open over the text that had the keys last
+    m_goToCoordinator = new GoToCoordinator(
+        [this]() { return m_editCoordinator->textWithKeys(); }, this, this);
+    m_goToCoordinator->connectCommands();
+    m_editCoordinator->addTextCommands({GoToCoordinator::COMMAND},
+                                       [](const editor::BookEditor&) { return true; });
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
     // the object)
@@ -1116,6 +1139,11 @@ void MainWindow::registerCommands() {
     callbacks.onPasteSourceFormatting = pasteAs(editor::PasteMode::Source);
     callbacks.onPasteMergeFormatting = pasteAs(editor::PasteMode::Merge);
     callbacks.onPasteTextOnly = pasteAs(editor::PasteMode::Text);
+    callbacks.onPasteSpecial = inText([this](editor::BookEditor& text) {
+        if (dialogs::PasteSpecialDialog::pasteInto(text, this)) {
+            statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
+        }
+    });
     callbacks.onFind = [this]() { onFind(); };
     callbacks.onFindNext = [this]() { onFindNext(); };
     callbacks.onFindPrevious = [this]() { onFindPrevious(); };
