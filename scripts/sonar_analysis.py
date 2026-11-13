@@ -175,17 +175,45 @@ def header_filter() -> str:
     return f"^{pattern}[/\\\\]({'|'.join(HEADER_DIRS)})[/\\\\].*"
 
 
-def run_clang_tidy(clang_tidy: str, build_dir: Path, unit: Path, checks: str,
+def unique_database(database: Path, target_dir: Path) -> Path:
+    """Copy of the compilation database with one command per source file.
+
+    clang-tidy runs every command it finds for a file; a file built by two targets
+    would be analysed twice for the same findings.
+    """
+    entries = json.loads(database.read_text(encoding="utf-8"))
+    seen = set()
+    unique = []
+    for entry in entries:
+        path = Path(entry["file"])
+        if not path.is_absolute():
+            path = Path(entry["directory"]) / path
+        key = normalized(path)
+        if key not in seen:
+            seen.add(key)
+            unique.append(entry)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / "compile_commands.json"
+    target.write_text(json.dumps(unique, indent=1), encoding="utf-8")
+    return target_dir
+
+
+def run_clang_tidy(clang_tidy: str, database_dir: Path, unit: Path, checks: str,
                    environment: Optional[Dict[str, str]]) -> Tuple[Path, int, str, str]:
+    if os.name == "nt":
+        # The build treats compiler warnings as errors (/WX), here they are findings;
+        # MSVC precompiled headers cannot be read by clang (/Y- turns them off)
+        extra = ["--extra-arg=/WX-", "--extra-arg=/Y-"]
+    else:
+        extra = ["--extra-arg=-Wno-error"]
     command = [
         clang_tidy,
-        "-p", str(build_dir),
+        "-p", str(database_dir),
         f"--checks={checks}",
-        "--warnings-as-errors=-*",           # keep "warning:"; errors would rename the check
+        "--warnings-as-errors=-*",           # report findings as warnings, not errors
         f"--header-filter={header_filter()}",
         "--quiet",
-        # The build treats compiler warnings as errors (/WX, -Werror); here they are findings
-        "--extra-arg=/WX-" if os.name == "nt" else "--extra-arg=-Wno-error",
+        *extra,
         str(unit),
     ]
     try:
@@ -232,6 +260,7 @@ def clang_tidy_step(args, build_dir: Path, report: Path) -> None:
     version = subprocess.run([clang_tidy, "--version"], capture_output=True, text=True,
                              check=False).stdout.strip().splitlines()
     environment = msvc_environment()
+    database_dir = unique_database(database, report.parent)
     jobs = args.jobs or os.cpu_count() or 4
     print(f"[INFO] clang-tidy: {clang_tidy} ({' '.join(version[1:2]).strip()})")
     print(f"[INFO] {len(units)} translation units, checks: {args.checks}, jobs: {jobs}")
@@ -241,7 +270,7 @@ def clang_tidy_step(args, build_dir: Path, report: Path) -> None:
     failed_units: List[str] = []
     started = time.monotonic()
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
-        futures = [pool.submit(run_clang_tidy, clang_tidy, build_dir, unit, args.checks,
+        futures = [pool.submit(run_clang_tidy, clang_tidy, database_dir, unit, args.checks,
                                environment) for unit in units]
         for done, future in enumerate(concurrent.futures.as_completed(futures), start=1):
             unit, returncode, stdout, stderr = future.result()
