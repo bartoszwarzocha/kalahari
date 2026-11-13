@@ -207,12 +207,13 @@ private slots:
     /// @brief Forget the tracked editor when it is destroyed
     void onEditorDestroyed(QObject* object);
 
-    /// @brief Text is about to be pasted: the words typed before it are counted now
-    void onPastingStarted();
-
     /// @brief Text was pasted, or a paste undone or redone: its words are pasted words (the
     /// words typed into the level of undo of a paste, written or deleted)
     void onPastingFinished(int level, bool undoOrRedo);
+
+    /// @brief The words typed and not counted yet are counted now: a change that is not
+    /// typed follows (a paste, or text moved to or from another text)
+    void countPendingChange();
 
 private:
     /// @brief Called when editor content changes

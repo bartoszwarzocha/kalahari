@@ -335,6 +335,42 @@ TEST_CASE("StatisticsCollector: a text loaded into the editor is not written",
     collector.setBookEditor(nullptr);
 }
 
+TEST_CASE("StatisticsCollector: text moved to another text is not written or deleted",
+          "[editor][statistics]") {
+    // Book > Chapter Break: the text from the cursor goes to a new text, and comes back with
+    // its Undo
+    BookEditor editor;
+    editor.fromKml(createKmlParagraphs({"One two three.", "Four five six seven."}));
+    StatisticsCollector collector;
+    collector.setBookEditor(&editor);
+    collector.startSession();
+    REQUIRE(collector.wordCount() == 7);
+
+    // The words typed right before it are counted, the words moved are not
+    editor.setCursorPosition({0, 14});
+    editor.insertText(QStringLiteral(" Eight"));
+    REQUIRE(editor.removeTextFrom({1, 0}));
+    CHECK(collector.wordCount() == 4);
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 1);
+    CHECK(collector.wordsDeletedThisSession() == 0);
+
+    editor.undoMovedText();
+    CHECK(collector.wordCount() == 8);
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 1);
+    CHECK(collector.wordsDeletedThisSession() == 0);
+
+    // The words typed after it are writing again
+    editor.setCursorPosition({1, 20});
+    editor.insertText(QStringLiteral(" nine"));
+    waitForCount();
+    CHECK(collector.wordsWrittenThisSession() == 2);
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+}
+
 TEST_CASE("StatisticsCollector: new rules of counting are not words written or deleted",
           "[editor][statistics]") {
     BookEditor editor;

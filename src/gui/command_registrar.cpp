@@ -426,6 +426,11 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_CB("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Timeline..."), "BOOK/New Timeline...", 70, true, 1,
                newInWorkshop("timeline"));
 
+    // The text from the cursor to a new text right after the text in front, named after the
+    // texts of the book, as New Chapter... (MainWindow); ChapterBreakCoordinator gives it its
+    // callback
+    REG_CMD("book.chapterBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Chapter Brea&k"), "BOOK/Chapter Break", 80, false, 0);
+
     // The same as Insert > Scene Break
     REG_CMD_CB("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 0,
                callbacks.onInsertSceneBreak);

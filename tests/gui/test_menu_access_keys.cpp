@@ -302,26 +302,35 @@ void checkEveryMenu() {
     collectProblems(menuBar, QStringLiteral("Menu bar"), {}, problems);
     CHECK(itemCount(menuBar) > 150);
 
-    // Book > New Chapter... as MainWindow names it after the texts of the open book
-    // ("&New Story..."): with the name of each kind of the installed types, it keeps its key
+    // Book > New Chapter... and Chapter Break as MainWindow names them after the texts of the
+    // open book ("&New Story...", "Story Brea&k"): with the name of each kind of the installed
+    // types, they keep their keys
     QMenu* bookMenu = menus.menu("BOOK");
     QAction* newText = kalahari::test::commands().getAction(QStringLiteral("book.newChapter"));
+    QAction* textBreak =
+        kalahari::test::commands().getAction(QStringLiteral("book.chapterBreak"));
     REQUIRE(bookMenu != nullptr);
     REQUIRE(newText != nullptr);
+    REQUIRE(textBreak != nullptr);
     const QString commandText = newText->text();
+    const QString breakText = textBreak->text();
     CHECK(newTextMenuText({}) == commandText);
+    CHECK(textBreakMenuText({}) == breakText);
     core::BookTypeRegistry types;
     types.load({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     const QList<core::KindRef> kinds = types.allKinds();
     CHECK(kinds.size() > 20);
     for (const core::KindRef& kind : kinds) {
         newText->setText(newTextMenuText(kind));
-        INFO(newText->text().toStdString());
+        textBreak->setText(textBreakMenuText(kind));
+        INFO(newText->text().toStdString() + " / " + textBreak->text().toStdString());
         CHECK(accessKeyOf(newText->text()) == accessKeyOf(commandText));
+        CHECK(accessKeyOf(textBreak->text()) == accessKeyOf(breakText));
         collectProblems(test::menuItems(bookMenu->actions()),
                         QStringLiteral("Book with ") + kind.reference(), {}, problems);
     }
     newText->setText(commandText);
+    textBreak->setText(breakText);
 
     // Alt with a letter opens a menu: Settings > Keyboard Shortcuts keeps those for them
     for (const QAction* menu : menus.menuBar()->actions()) {

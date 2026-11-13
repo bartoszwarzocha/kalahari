@@ -131,6 +131,20 @@ public:
     /// @brief Refresh navigator with the open project, keeping its expanded items
     void refreshNavigator();
 
+    /// @brief Close the editor tabs of @p element and of the elements inside it
+    void closeTabsOf(const core::ProjectElement& element);
+
+    /// @brief Write the unsaved text of @p element and of the elements inside it to their
+    /// chapter files, with the changes of their open tabs; a tab whose text is written no
+    /// longer shows changes. The files get the titles, the statuses and the notes of the
+    /// elements, for the files that stay when the elements leave the book.
+    /// @return The elements whose text could not be written: @p element or elements inside it
+    QList<const core::ProjectElement*> saveTextsOf(const core::ProjectElement& element);
+
+    /// @brief The new element @p elementId with @p title is shown in the Navigator; a text
+    /// element opens in the editor with the cursor at the start of its text
+    void showAdded(const QString& elementId, const QString& title);
+
     /// @brief Show the title of element @p elementId on its open tab, with the "*" of its
     /// unsaved changes
     void refreshTabTitle(const QString& elementId);
@@ -366,19 +380,9 @@ private:
     /// @return Active EditorPanel or nullptr if not an editor tab
     EditorPanel* getCurrentEditor() const;
 
-    /// @brief Close the editor tabs of @p element and of the elements inside it
-    void closeTabsOf(const core::ProjectElement& element);
-
     /// @brief The tab @p editor of element @p elementId and the Navigator show whether its
     /// text differs from the saved text; back to the saved text, it has no changes to keep
     void showChapterModified(const QString& elementId, EditorPanel* editor, bool modified);
-
-    /// @brief Write the unsaved text of @p element and of the elements inside it to their
-    /// chapter files, with the changes of their open tabs; a tab whose text is written no
-    /// longer shows changes. The files get the titles, the statuses and the notes of the
-    /// elements, for the files that stay when the elements leave the book.
-    /// @return The elements whose text could not be written: @p element or elements inside it
-    QList<const core::ProjectElement*> saveTextsOf(const core::ProjectElement& element);
 
     /// @brief Delete @p files: to the system's Trash when @p trash, else for good
     ///
@@ -395,10 +399,6 @@ private:
     /// @brief Move element @p elementId to @p place of the book without it, and show it there;
     /// the writer is told when the book cannot be saved
     void moveElementTo(const QString& elementId, const core::ElementPlace& place);
-
-    /// @brief The new element @p elementId with @p title is shown in the Navigator; a text
-    /// element opens in the editor with the cursor at the start of its text
-    void showAdded(const QString& elementId, const QString& title);
 
     /// @brief The Add Element window on @p target, which @p prepare fills before it opens (a
     /// material dropped on the Navigator), and the element added with it: a material opens on

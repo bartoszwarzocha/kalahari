@@ -36,6 +36,11 @@
 /// (its KML) and open (its editor's document) as the search reads it, the searches with each
 /// option, the lines around the matches the Search panel lists, and Replace All in Book in a
 /// closed chapter and in an open one, with its undo.
+///
+/// The benchmark of Chapter Break ("[benchmark][chapterbreak]", results in
+/// chapter_break_benchmark_results.md) splits the chapter with the same notes in the middle:
+/// in the editor (the text from the cursor as KML, taken away, and back with its undo), and as
+/// the whole command in a book, with its saving, the tab of the new text and Undo.
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_type_registry.h>
@@ -52,7 +57,9 @@
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/gui/book_search_coordinator.h>
+#include <kalahari/gui/chapter_break_coordinator.h>
 #include "../editor/editor_test_utils.h"
+#include "../gui/document_window.h"
 #include "test_document_generator.h"
 
 #include <QCoreApplication>
@@ -88,6 +95,8 @@ using namespace kalahari::editor;
 using namespace kalahari::test;
 using kalahari::benchmarks::TestDocumentGenerator;
 using kalahari::gui::BookSearchCoordinator;
+using kalahari::gui::ChapterBreakCoordinator;
+using kalahari::gui::chapterBreakTitle;
 using kalahari::gui::SearchPanelHit;
 using kalahari::gui::shownSearchHit;
 
@@ -1160,4 +1169,80 @@ TEST_CASE("Find in Book benchmark: a 150k-word chapter with notes", "[.][benchma
     CHECK(editor.toKml() == kept);
 
     report(rows, header, QStringLiteral("find_in_book_benchmark_results.md"));
+}
+
+TEST_CASE("Chapter Break benchmark: a 150k-word chapter with notes split in the middle",
+          "[.][benchmark][chapterbreak]") {
+    std::vector<BenchRow> rows;
+    QStringList header = reportHeader();
+    int notes = 0;
+    const QString kml = withNotes(generateKml(150000), &notes);
+
+    // -------------------------------------------------------------------------
+    // 1. The editor: the text from the middle as KML, taken away, and back
+    // -------------------------------------------------------------------------
+    BookEditor editor;
+    resizeWidget(editor, QSize(1000, 800));
+    editor.setParagraphStyles(bookStyles());
+    editor.fromKml(kml);
+    paint(editor);
+    layoutOf(editor)->layoutPendingBlocks();
+    header << QStringLiteral("Dokument: %1 słów, %2 akapitów, %3 przypisów: dolny na końcu co "
+                             "5. akapitu, końcowy co 50; podział w połowie.")
+                  .arg(editor.wordCount())
+                  .arg(editor.paragraphCount())
+                  .arg(notes);
+    const CursorPosition middle{static_cast<int>(editor.paragraphCount() / 2), 0};
+    editor.setCursorPosition(middle);
+    paint(editor);
+    const int from = editor.textDocument()->findBlockByNumber(middle.paragraph).position();
+    QString title;
+    rows.push_back({QStringLiteral("Tytuł nowego tekstu (nagłówek od kursora)"),
+                    timeMs([&] { title = chapterBreakTitle(*editor.textDocument(), from); }),
+                    title.isEmpty() ? QStringLiteral("bez nagłówka")
+                                    : QStringLiteral("„%1”").arg(title)});
+    const QString kept = editor.toKml();
+    QString moved;
+    rows.push_back({QStringLiteral("KML tekstu od kursora do końca (kmlFrom)"),
+                    timeMs([&] { moved = editor.kmlFrom(middle); }),
+                    QStringLiteral("%1 przypisów").arg(moved.count(QStringLiteral("<footnote ")) +
+                                                       moved.count(QStringLiteral("<endnote ")))});
+    CHECK_FALSE(moved.isEmpty());
+    rows.push_back({QStringLiteral("Usunięcie tekstu od kursora (removeTextFrom) + paintEvent"),
+                    timeMs([&] {
+                        REQUIRE(editor.removeTextFrom(middle));
+                        paint(editor);
+                    }),
+                    QStringLiteral("jeden krok cofania")});
+    rows.push_back({QStringLiteral("    cofnięcie (Ctrl+Z) + paintEvent"), timeMs([&] {
+                        editor.undo();
+                        paint(editor);
+                    }),
+                    QString()});
+    CHECK(editor.toKml() == kept);
+
+    // -------------------------------------------------------------------------
+    // 2. The whole command in a book: saving, the new text, its tab, and Undo
+    // -------------------------------------------------------------------------
+    OpenNovel book(QStringLiteral("Break"));
+    book.pm.setChapterContent(book.chapterId, kml);
+    REQUIRE(book.pm.saveChapterContent(book.chapterId));
+    Window window;
+    window.navigator.onElementSelected(book.chapterId, QStringLiteral("The Storm"));
+    BookEditor* text = window.editor(window.tabs->currentIndex())->getBookEditor();
+    text->setCursorPosition(middle);
+    ChapterBreakCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(),
+                                        window.tabs, &window.navigator, {}, {},
+                                        &window.statusBar, &window.window);
+    QString added;
+    rows.push_back({QStringLiteral("Książka > Podział rozdziału – całość"),
+                    timeMs([&] { added = coordinator.breakText(text); }),
+                    QStringLiteral("zapis obu tekstów, nowy element, otwarcie jego karty")});
+    REQUIRE_FALSE(added.isEmpty());
+    rows.push_back({QStringLiteral("    „Cofnij” w komunikacie"),
+                    timeMs([&] { CHECK(coordinator.undo()); }),
+                    QStringLiteral("usunięcie nowego tekstu z plikiem, cofnięcie, zapis")});
+    CHECK(book.pm.findElement(added) == nullptr);
+
+    report(rows, header, QStringLiteral("chapter_break_benchmark_results.md"));
 }

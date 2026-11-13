@@ -21,6 +21,7 @@
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
+#include "kalahari/gui/chapter_break_coordinator.h"
 #include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -703,6 +704,23 @@ MainWindow::MainWindow(QWidget* parent)
     // Texts added, moved or removed: the matches in the book's order
     connect(m_navigatorCoordinator, &NavigatorCoordinator::refreshNavigatorRequested,
             m_bookSearchCoordinator, [this]() { m_bookSearchCoordinator->searchAgain(); });
+
+    // Book > Chapter Break: the text from the cursor to a new text right after the text with
+    // the keys; the bar under the new text says where the text went, with Undo
+    m_chapterBreakCoordinator = new ChapterBreakCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(), m_navigatorCoordinator,
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        },
+        statusBar(), this, this);
+    m_chapterBreakCoordinator->connectCommands();
+    m_editCoordinator->addTextCommands(
+        {ChapterBreakCoordinator::COMMAND}, [this](const editor::BookEditor& text) {
+            return m_chapterBreakCoordinator->canBreak(text);
+        });
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
     // the object)
@@ -2757,6 +2775,20 @@ void MainWindow::updateBookCommands() {
         newText->label = withoutAccessKey(menuText).toStdString();
         newText->tooltip = newText->label;
         if (QAction* action = registry.getAction(std::string("book.newChapter"))) {
+            action->setText(menuText);
+        }
+    }
+    if (Command* textBreak = registry.getCommand(ChapterBreakCoordinator::COMMAND)) {
+        // Named after the texts of the book too: "Story Break"
+        const auto& projects = book();
+        const core::KindRef kind = projects.isProjectOpen()
+                                       ? projects.chapterKindFor(core::BookPlace::Main)
+                                       : core::KindRef{};
+        const QString menuText = textBreakMenuText(kind);
+        textBreak->menuText = menuText.toStdString();
+        textBreak->label = withoutAccessKey(menuText).toStdString();
+        textBreak->tooltip = textBreak->label;
+        if (QAction* action = registry.getAction(std::string(ChapterBreakCoordinator::COMMAND))) {
             action->setText(menuText);
         }
     }

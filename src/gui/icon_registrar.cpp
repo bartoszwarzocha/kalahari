@@ -91,6 +91,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("book.newItem", "resources/icons/twotone/add_box.svg", "New Item");
     iconRegistry.registerIcon("book.newMindMap", "resources/icons/twotone/account_tree.svg", "New Mind Map");
     iconRegistry.registerIcon("book.newTimeline", "resources/icons/twotone/timeline.svg", "New Timeline");
+    iconRegistry.registerIcon("book.chapterBreak", "resources/icons/twotone/horizontal_split.svg", "Chapter Break");
     iconRegistry.registerIcon("book.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Scene Break");
     iconRegistry.registerIcon("book.properties", "resources/icons/twotone/tune.svg", "Book Properties");
 
