@@ -1579,6 +1579,11 @@ bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block
     m_blockHeights[index] = height;
     m_blockExtents[index] = extent;
     m_blockFlowOffsets[index] = FLOW_UNPLACED;  // the new lines follow the block's top
+    if (m_pageFlow.enabled) {
+        // and go on the pages again, also when the block is as high as before (a line moved
+        // to the next page would stay at the end of its own)
+        m_positionsDirty = true;
+    }
     storeFlowEntries(number, block, lead);
     if (m_blockPending[index] != 0) {
         m_blockPending[index] = 0;

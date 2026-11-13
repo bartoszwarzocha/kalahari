@@ -70,6 +70,15 @@ public:
     /// @param field The field; the label is its buddy
     void addField(const QString& label, QWidget* field);
 
+    /// @brief A field with its label above it, as addField() adds it, for a layout of its own
+    /// (columns side by side)
+    /// @param label Label text, without a colon
+    /// @param field The field; the label is its buddy
+    QVBoxLayout* fieldLayout(const QString& label, QWidget* field);
+
+    /// @brief Space between the columns of the content, as between its parts
+    static int columnSpacing();
+
     /// @brief The button that does the dialog's job; it is the default button
     QPushButton* acceptButton() const { return m_acceptButton; }
 
