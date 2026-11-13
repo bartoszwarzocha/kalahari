@@ -362,8 +362,8 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
             CHECK(tabs->tabText(0) == QStringLiteral("&Book"));
             CHECK(tabs->tabText(3) == QStringLiteral("&Date"));
             int fieldCount = 0;
-            for (int tab = 0; tab < tabs->count(); ++tab) {
-                fieldCount += tabs->widget(tab)->findChild<QListWidget*>()->count();
+            for (const QListWidget* list : tabs->findChildren<QListWidget*>()) {
+                fieldCount += list->count();
             }
             CHECK(fieldCount == static_cast<int>(editor::FIELD_TYPES.size()));
             CHECK(tabs->currentIndex() == 0);
