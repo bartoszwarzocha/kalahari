@@ -13,10 +13,14 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QPalette>
+#include <QTabBar>
+#include <QTabWidget>
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <array>
 #include <utility>
+#include <vector>
 
 namespace kalahari {
 namespace gui {
@@ -28,9 +32,7 @@ namespace {
 constexpr int LIST_WIDTH_CHARS = 30;
 
 /// The lines of the hint of Insert > Field... (the window keeps its height for every field)
-/// and its width, in average characters, next to the list
-constexpr int HINT_LINES = 4;
-constexpr int HINT_WIDTH_CHARS = 40;
+constexpr int HINT_LINES = 3;
 
 /// The number the formats of the word count show
 constexpr int EXAMPLE_WORDS = 12345;
@@ -50,6 +52,12 @@ public:
     {
         return {fontMetrics().averageCharWidth() * LIST_WIDTH_CHARS + 2 * frameWidth(),
                 linesHeight()};
+    }
+
+    // Also as low as its lines when it has fewer than a list's own least height
+    QSize minimumSizeHint() const override
+    {
+        return {QListWidget::minimumSizeHint().width(), linesHeight()};
     }
 
 private:
@@ -200,34 +208,68 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
     //: The tooltip of the gear of Insert > Field.... In Polish: Ustawienia pól
     addSettingsButton(QString::fromLatin1(SettingsDialog::FIELDS_PAGE), tr("Field Settings"));
 
-    m_fields = new LinesList(static_cast<int>(editor::FIELD_TYPES.size()), this);
-    for (size_t i = 0; i < editor::FIELD_TYPES.size(); ++i) {
-        const editor::FieldType type = editor::FIELD_TYPES.at(i);
-        const QString name = m_data.names.at(i).isEmpty() ? editor::fieldTypeTitle(type)
-                                                          : m_data.names.at(i);
-        auto* item = new QListWidgetItem(name, m_fields);
-        item->setData(Qt::UserRole, static_cast<int>(type));
+    // The fields in tabs, by what they show: the book, the text, the pages, the date
+    const std::array<std::pair<QString, std::vector<editor::FieldType>>, 4> tabs{{
+        //: A tab of Insert > Field...: the book's title and author. In Polish: &Książka
+        {tr("&Book"), {editor::FieldType::BookTitle, editor::FieldType::Author}},
+        //: A tab of Insert > Field...: the text's title and words. In Polish: &Tekst
+        {tr("&Text"), {editor::FieldType::TextTitle, editor::FieldType::Words}},
+        //: A tab of Insert > Field...: the page number and count. In Polish: &Strony
+        {tr("&Pages"), {editor::FieldType::Page, editor::FieldType::Pages}},
+        //: A tab of Insert > Field...: the date. In Polish: &Data
+        {tr("&Date"), {editor::FieldType::Date}},
+    }};
+    size_t lines = 1;
+    for (const auto& tab : tabs) {
+        lines = std::max(lines, tab.second.size());
     }
-    m_fields->setCurrentRow(static_cast<int>(m_data.field.type));
-    m_fields->setMinimumHeight(m_fields->sizeHint().height());
+    m_tabs = new QTabWidget(this);
+    int firstTab = 0;
+    for (const auto& [title, types] : tabs) {
+        auto* page = new QWidget(m_tabs);
+        auto* pageLayout = new QVBoxLayout(page);
+        pageLayout->setSpacing(contentLayout()->spacing());
+        auto* list = new LinesList(static_cast<int>(lines), page);
+        //: The list of the fields of a tab of Insert > Field.... In Polish: Pola
+        list->setAccessibleName(tr("Fields"));
+        for (const editor::FieldType type : types) {
+            const auto index = static_cast<size_t>(type);
+            const QString name = m_data.names.at(index).isEmpty() ? editor::fieldTypeTitle(type)
+                                                                  : m_data.names.at(index);
+            auto* item = new QListWidgetItem(name, list);
+            item->setData(Qt::UserRole, static_cast<int>(type));
+            if (type == m_data.field.type) {
+                list->setCurrentItem(item);
+                firstTab = static_cast<int>(m_lists.size());
+            }
+        }
+        if (list->currentRow() < 0) {
+            list->setCurrentRow(0);
+        }
+        pageLayout->addWidget(list);
+        m_tabs->addTab(page, title);
+        m_lists.push_back(list);
+        connect(list, &QListWidget::currentRowChanged, this, [this]() { showFormats(QString()); });
+        connect(list, &QListWidget::itemActivated, this, [this]() { accept(); });
+    }
+    contentLayout()->addWidget(m_tabs);
 
-    // The list on the left, the format, how the field looks and the hint on the right: the
-    // window stays low enough for a small screen
-    auto* columns = new QHBoxLayout();
-    columns->setSpacing(columnSpacing());
-    //: The list of the fields. In Polish: &Pole
-    columns->addLayout(fieldLayout(tr("&Field"), m_fields));
-    auto* details = new QVBoxLayout();
-    details->setSpacing(contentLayout()->spacing());
-    columns->addLayout(details, 1);
-    contentLayout()->addLayout(columns);
-
-    m_formats = new QComboBox(this);
-    //: In Polish: F&ormat
-    details->addLayout(fieldLayout(tr("F&ormat"), m_formats));
+    // The format, how the field looks and the hint: in the tab shown, under its list, the
+    // names of the format and the look on their left
+    m_details = new QWidget(this);
+    auto* details = new QGridLayout(m_details);
+    details->setContentsMargins(0, 0, 0, 0);
+    details->setVerticalSpacing(contentLayout()->spacing());
+    details->setColumnStretch(1, 1);
+    m_formats = new QComboBox(m_details);
+    //: In Polish: F&ormat:
+    auto* formatLabel = new QLabel(tr("F&ormat:"), m_details);
+    formatLabel->setBuddy(m_formats);
+    details->addWidget(formatLabel, 0, 0);
+    details->addWidget(m_formats, 0, 1);
 
     // As in the text: on the gray background of the fields, in the color of the text
-    m_preview = new QLabel(this);
+    m_preview = new QLabel(m_details);
     m_preview->setTextFormat(Qt::PlainText);
     m_preview->setMargin(fontMetrics().averageCharWidth() / 2);
     if (m_data.background.isValid() || m_data.text.isValid()) {
@@ -241,29 +283,43 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
         }
         m_preview->setPalette(palette);
     }
-    auto* previewRow = new QHBoxLayout();
-    previewRow->addWidget(m_preview);
-    previewRow->addStretch(1);
-    //: How the field shows in the text. In Polish: W tekście
-    auto* previewLabel = new QLabel(tr("In the text:"), this);
-    auto* previewBox = new QVBoxLayout();
-    previewBox->setSpacing(fontMetrics().lineSpacing() / 4);
-    previewBox->addWidget(previewLabel);
-    previewBox->addLayout(previewRow);
-    details->addLayout(previewBox);
+    //: How the field shows in the text. In Polish: W tekście:
+    details->addWidget(new QLabel(tr("In the text:"), m_details), 1, 0);
+    details->addWidget(m_preview, 1, 1, Qt::AlignLeft);
 
-    m_hint = hintLabel(QString(), this);
-    m_hint->setMinimumSize(m_hint->fontMetrics().averageCharWidth() * HINT_WIDTH_CHARS,
-                           m_hint->fontMetrics().lineSpacing() * HINT_LINES);
+    m_hint = hintLabel(QString(), m_details);
+    m_hint->setMinimumHeight(m_hint->fontMetrics().lineSpacing() * HINT_LINES);
     m_hint->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    details->addWidget(m_hint);
-    details->addStretch(1);
+    details->addWidget(m_hint, 2, 0, 1, 2);
 
+    m_tabs->setCurrentIndex(firstTab);
+    showTab(firstTab);
     showFormats(m_data.field.format);
-    connect(m_fields, &QListWidget::currentRowChanged, this, [this]() { showFormats(QString()); });
+    connect(m_tabs, &QTabWidget::currentChanged, this, [this](int tab) {
+        showTab(tab);
+        showFormats(QString());
+    });
     connect(m_formats, &QComboBox::currentIndexChanged, this, &FieldDialog::showPreview);
-    connect(m_fields, &QListWidget::itemActivated, this, [this]() { accept(); });
-    m_fields->setFocus();
+    m_lists.at(static_cast<size_t>(firstTab))->setFocus();
+}
+
+void FieldDialog::showTab(int tab)
+{
+    if (tab < 0 || static_cast<size_t>(tab) >= m_lists.size()) {
+        return;
+    }
+    QWidget* page = m_tabs->widget(tab);
+    if (QWidget* was = m_details->parentWidget(); was != page && was != nullptr) {
+        if (QLayout* layout = was->layout()) {
+            layout->removeWidget(m_details);
+        }
+    }
+    page->layout()->addWidget(m_details);
+    m_details->show();
+    // The keys go to the list of the tab, unless they move between the tabs
+    if (!m_tabs->tabBar()->hasFocus() && m_tabs->isVisible()) {
+        m_lists.at(static_cast<size_t>(tab))->setFocus();
+    }
 }
 
 editor::TextField FieldDialog::field() const
@@ -276,7 +332,10 @@ editor::TextField FieldDialog::field() const
 
 editor::FieldType FieldDialog::chosenType() const
 {
-    const QListWidgetItem* item = m_fields->currentItem();
+    const int tab = m_tabs->currentIndex();
+    const QListWidgetItem* item = tab >= 0 && static_cast<size_t>(tab) < m_lists.size()
+                                      ? m_lists.at(static_cast<size_t>(tab))->currentItem()
+                                      : nullptr;
     const int type = item != nullptr ? item->data(Qt::UserRole).toInt() : 0;
     return editor::FIELD_TYPES.at(static_cast<size_t>(
         std::clamp(type, 0, static_cast<int>(editor::FIELD_TYPES.size()) - 1)));

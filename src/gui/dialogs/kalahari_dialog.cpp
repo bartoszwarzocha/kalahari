@@ -154,25 +154,15 @@ void KalahariDialog::setCompactHeading(bool compact)
 
 void KalahariDialog::addField(const QString& label, QWidget* field)
 {
-    m_contentLayout->addLayout(fieldLayout(label, field));
-}
-
-QVBoxLayout* KalahariDialog::fieldLayout(const QString& label, QWidget* field)
-{
     auto* fieldLabel = new QLabel(label, this);
     fieldLabel->setTextFormat(Qt::PlainText);
     fieldLabel->setBuddy(field);
 
-    auto* layout = new QVBoxLayout();
-    layout->setSpacing(LABEL_SPACING);
-    layout->addWidget(fieldLabel);
-    layout->addWidget(field);
-    return layout;
-}
-
-int KalahariDialog::columnSpacing()
-{
-    return SPACING * 2;
+    auto* fieldLayout = new QVBoxLayout();
+    fieldLayout->setSpacing(LABEL_SPACING);
+    fieldLayout->addWidget(fieldLabel);
+    fieldLayout->addWidget(field);
+    m_contentLayout->addLayout(fieldLayout);
 }
 
 QToolButton* KalahariDialog::addSettingsButton(const QString& page, const QString& toolTip)

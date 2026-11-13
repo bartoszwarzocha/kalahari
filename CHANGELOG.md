@@ -26,8 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or, with Update Automatically, as a field; Alt+Shift+D and Alt+Shift+T insert the date (in
   the format chosen last) and the time at once, as text (Settings > Keyboard Shortcuts lists
   them under Insert). A plain text file keeps no fields, only the date as text. KML: `<field>`
-  (docs/kml_format.md). The window has the list of the fields on the left and the format, how
-  the field shows and its hint on the right, so it fits a small screen.
+  (docs/kml_format.md). The window has the fields in four tabs (Book, Text, Pages, Date; Ctrl+Tab
+  or Alt with the tab's letter goes between them), with the format, how the field shows and its
+  hint under the list of the tab, so it fits a small screen without scrolling.
 - **Chapter Break** - 2026-11-13. Book > Chapter Break (named after the texts of the book:
   "Story Break" in a collection of stories) moves the text from the cursor, or from the start
   of the selection, to a new text right after the one it was in, in the same part, of the

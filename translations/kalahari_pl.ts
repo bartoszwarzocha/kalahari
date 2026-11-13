@@ -15607,18 +15607,38 @@ Harmonogram projektu:
         <translation>Ustawienia pól</translation>
     </message>
     <message>
-        <source>&amp;Field</source>
-        <extracomment>The list of the fields. In Polish: &amp;Pole</extracomment>
-        <translation>&amp;Pole</translation>
+        <source>&amp;Book</source>
+        <extracomment>A tab of Insert &gt; Field...: the book&apos;s title and author. In Polish: &amp;Książka</extracomment>
+        <translation>&amp;Książka</translation>
     </message>
     <message>
-        <source>F&amp;ormat</source>
-        <extracomment>In Polish: F&amp;ormat</extracomment>
-        <translation>F&amp;ormat</translation>
+        <source>&amp;Text</source>
+        <extracomment>A tab of Insert &gt; Field...: the text&apos;s title and words. In Polish: &amp;Tekst</extracomment>
+        <translation>&amp;Tekst</translation>
+    </message>
+    <message>
+        <source>&amp;Pages</source>
+        <extracomment>A tab of Insert &gt; Field...: the page number and count. In Polish: &amp;Strony</extracomment>
+        <translation>&amp;Strony</translation>
+    </message>
+    <message>
+        <source>&amp;Date</source>
+        <extracomment>A tab of Insert &gt; Field...: the date. In Polish: &amp;Data</extracomment>
+        <translation>&amp;Data</translation>
+    </message>
+    <message>
+        <source>Fields</source>
+        <extracomment>The list of the fields of a tab of Insert &gt; Field.... In Polish: Pola</extracomment>
+        <translation>Pola</translation>
+    </message>
+    <message>
+        <source>F&amp;ormat:</source>
+        <extracomment>In Polish: F&amp;ormat:</extracomment>
+        <translation>F&amp;ormat:</translation>
     </message>
     <message>
         <source>In the text:</source>
-        <extracomment>How the field shows in the text. In Polish: W tekście</extracomment>
+        <extracomment>How the field shows in the text. In Polish: W tekście:</extracomment>
         <translation>W tekście:</translation>
     </message>
     <message>

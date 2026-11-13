@@ -12,11 +12,13 @@
 
 #include <array>
 #include <functional>
+#include <vector>
 
 class QCheckBox;
 class QComboBox;
 class QLabel;
 class QListWidget;
+class QTabWidget;
 
 namespace kalahari {
 namespace gui {
@@ -60,10 +62,11 @@ private:
 
 /// @brief Insert > Field...: a value that refreshes by itself
 ///
-/// The list of the fields (the book's title, its author, the text's title, the page, the pages,
-/// the words, the date), the formats of the one chosen and how it shows in the text, on the
-/// gray background of the fields. The same window changes a field (Edit Field...). The gear
-/// opens Settings > Editor > General, where the gray background can be turned off.
+/// The fields in four tabs (the book: its title and author; the text: its title and words;
+/// the pages: the page and the page count; the date), and under the list of the tab shown the
+/// formats of the field chosen and how it shows in the text, on the gray background of the
+/// fields. The same window changes a field (Edit Field...). The gear opens Settings > Editor >
+/// General, where the gray background can be turned off.
 class FieldDialog : public KalahariDialog {
     Q_OBJECT
 
@@ -91,6 +94,9 @@ private:
     /// @brief The formats of the field chosen, the one of @p format chosen
     void showFormats(const QString& format);
 
+    /// @brief The format, the preview and the hint in tab @p tab, under its list
+    void showTab(int tab);
+
     /// @brief How the field chosen shows in the text, and what changes it
     void showPreview();
 
@@ -98,7 +104,9 @@ private:
     [[nodiscard]] editor::FieldType chosenType() const;
 
     Data m_data;
-    QListWidget* m_fields = nullptr;
+    QTabWidget* m_tabs = nullptr;
+    std::vector<QListWidget*> m_lists;  ///< Of the tabs, in their order
+    QWidget* m_details = nullptr;       ///< The format, the preview and the hint
     QComboBox* m_formats = nullptr;
     QLabel* m_preview = nullptr;
     QLabel* m_hint = nullptr;
