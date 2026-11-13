@@ -2459,15 +2459,15 @@ std::pair<qreal, qreal> KalahariTextDocumentLayout::placeRow(size_t i, size_t la
         }
         top += header;
     }
-    const qreal page = std::floor((pageTop + FLOW_EPSILON) / m_pageFlow.pitch);
-    const bool fits = top + natural <= pageTop + flowAreaHeight(page) + FLOW_EPSILON;
+    const qreal pageIndex = std::floor((pageTop + FLOW_EPSILON) / m_pageFlow.pitch);
+    const bool fits = top + natural <= pageTop + flowAreaHeight(pageIndex) + FLOW_EPSILON;
     const bool split = !fits && (splits || moved || startsPage);
 
     qreal height = natural;
     const bool laidOut = inStep && m_blockPending[i] == 0;
     const qreal offset = top - pageTop;
     // Placed again on a page with notes: they may take another part of it now
-    const bool underNotes = page <= m_notesLastPage;
+    const bool underNotes = pageIndex <= m_notesLastPage;
     if (split && laidOut) {
         if (!underNotes && std::abs(m_blockFlowOffsets[i] - offset) < FLOW_EPSILON &&
             m_blockFlowHeights[i] > 0) {
