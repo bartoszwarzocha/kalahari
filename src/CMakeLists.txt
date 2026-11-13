@@ -243,6 +243,7 @@ set(KALAHARI_SOURCES
     gui/book_export_coordinator.cpp  # BookExportCoordinator - the export of the book to DOCX and Markdown
     gui/footnote_coordinator.cpp  # FootnoteCoordinator - Insert > Footnote, Endnote and the frame of a note
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
+    gui/book_search_coordinator.cpp  # BookSearchCoordinator - Find in Book and Replace All in Book
     gui/dialogs/style_dialog.cpp  # StyleDialog - New Style and Modify Style, in two variants
     gui/dialogs/manage_styles_dialog.cpp  # ManageStylesDialog - Format > Text Style > Manage Styles
     gui/widgets/style_tag_delegate.cpp  # The names of styles in a list, with "own" or "changed"
@@ -292,6 +293,7 @@ set(KALAHARI_SOURCES
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
     gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
+    gui/widgets/wrapping_button.cpp  # A button that wraps its text only where it does not fit
     gui/widgets/flow_layout.cpp  # A row of buttons that wraps on a narrow panel
     gui/widgets/segmented_layout.cpp  # Joined buttons, one under another on a narrow panel
     gui/widgets/height_for_width_scroll_area.cpp  # Rows that wrap, and scroll in a low panel
@@ -456,6 +458,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_export_coordinator.h  # BookExportCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h

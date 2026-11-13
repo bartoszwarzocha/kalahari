@@ -71,6 +71,7 @@ class StyleCoordinator;
 class BookExportCoordinator;
 class CaptionCoordinator;
 class FootnoteCoordinator;
+class BookSearchCoordinator;
 class ImageFilterCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
@@ -472,6 +473,9 @@ private:
 
     /// @brief File > Export > DOCX and Markdown
     BookExportCoordinator* m_bookExportCoordinator{nullptr};
+
+    /// @brief Edit > Find in Book... and Replace All in Book, in the Search panel
+    BookSearchCoordinator* m_bookSearchCoordinator{nullptr};
 
     /// @brief Image > Filter > Same Filter for All Images...
     ImageFilterCoordinator* m_imageFilterCoordinator{nullptr};

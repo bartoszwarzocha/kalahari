@@ -3,7 +3,9 @@
 
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/text_footnotes.h>
+#include "book_editor_internal.h"
 #include <QStringView>
 #include <QTextBlock>
 #include <QTextCursor>
@@ -29,7 +31,61 @@ bool startsBefore(const SearchMatch& match, size_t position) {
     return match.start < position;
 }
 
+/// A block as the search reads it; @p number is its block number
+SearchableParagraph searchableParagraphOf(const QTextBlock& block, int number) {
+    SearchableParagraph paragraph;
+    paragraph.number = number;
+    paragraph.position = block.position();
+    paragraph.text = block.text();
+    if (hasNotes(block)) {
+        for (const NotePlace& place : notesIn(block)) {
+            paragraph.notes.push_back(
+                {place.note.id, place.note.kind, place.position, noteText(place.note.content)});
+        }
+    }
+    return paragraph;
+}
+
 }  // anonymous namespace
+
+// =============================================================================
+// Text as the search reads it
+// =============================================================================
+
+std::vector<SearchableParagraph> searchableParagraphs(const QTextDocument& document) {
+    std::vector<SearchableParagraph> paragraphs;
+    paragraphs.reserve(static_cast<size_t>(document.blockCount()));
+    int number = 0;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next(), ++number) {
+        paragraphs.push_back(searchableParagraphOf(block, number));
+    }
+    return paragraphs;
+}
+
+std::vector<SearchableParagraph> searchableParagraphsOfKml(const QString& kml) {
+    QTextDocument document;
+    readKmlInto(document, kml);
+    return searchableParagraphs(document);
+}
+
+QString replacedInKml(const QString& kml, const QString& searchText, const QString& replaceText,
+                      const SearchOptions& options, int* count) {
+    if (count != nullptr) {
+        *count = 0;
+    }
+    QTextDocument document;
+    readKmlInto(document, kml);
+    SearchEngine engine;
+    engine.setDocument(&document);
+    engine.setSearchText(searchText);
+    engine.setReplaceText(replaceText);
+    engine.setOptions(options);
+    const int replaced = engine.replaceAll();
+    if (count != nullptr) {
+        *count = replaced;
+    }
+    return replaced > 0 ? KmlSerializer().toKml(&document) : kml;
+}
 
 // =============================================================================
 // Constructor
@@ -140,6 +196,23 @@ std::vector<SearchMatch> SearchEngine::findAll() {
         rebuildMatches();
     }
     return m_matches;
+}
+
+std::vector<SearchMatch> SearchEngine::findIn(const std::vector<SearchableParagraph>& paragraphs) {
+    std::vector<SearchMatch> found;
+    if (prepareSearch()) {
+        for (const SearchableParagraph& paragraph : paragraphs) {
+            searchParagraph(paragraph, found);
+        }
+    }
+    return found;
+}
+
+bool SearchEngine::canSearch() const {
+    if (m_searchText.isEmpty()) {
+        return false;
+    }
+    return !m_options.useRegex || QRegularExpression(m_searchText).isValid();
 }
 
 // =============================================================================
@@ -437,48 +510,50 @@ void SearchEngine::searchBlocks(QTextBlock block, const QTextBlock& last,
                                 std::vector<SearchMatch>& found) const {
     // Paragraph by paragraph, as QTextDocument::find() searches: a match never spans two
     for (int number = block.blockNumber(); block.isValid(); block = block.next(), ++number) {
-        const int position = block.position();
-        const QString text = block.text();
-        const auto blockFirst = static_cast<std::ptrdiff_t>(found.size());
-        for (const auto& [offset, length] : matchesIn(text)) {
-            SearchMatch match;
-            match.start = static_cast<size_t>(position + offset);
-            match.length = static_cast<size_t>(length);
-            match.paragraph = number;
-            match.paragraphOffset = static_cast<int>(offset);
-            match.matchedText = text.mid(offset, length);
-            found.push_back(std::move(match));
-        }
-
-        // The texts of its notes, each at its number, a line of a note at a time
-        if (hasNotes(block)) {
-            const auto inText = static_cast<std::ptrdiff_t>(found.size());
-            for (const NotePlace& place : notesIn(block)) {
-                const QString note = noteText(place.note.content);
-                qsizetype lineStart = 0;
-                for (const QStringView line : QStringView(note).split(u'\n')) {
-                    for (const auto& [offset, length] : matchesIn(line.toString())) {
-                        SearchMatch match;
-                        match.start = static_cast<size_t>(place.position);
-                        match.length = static_cast<size_t>(length);
-                        match.paragraph = number;
-                        match.paragraphOffset = place.position - position;
-                        match.matchedText = line.mid(offset, length).toString();
-                        match.noteId = place.note.id;
-                        match.noteOffset = static_cast<int>(lineStart + offset);
-                        found.push_back(std::move(match));
-                    }
-                    lineStart += line.size() + 1;
-                }
-            }
-            // Those of the paragraph's text and those of its notes, each in order: in one
-            std::inplace_merge(found.begin() + blockFirst, found.begin() + inText, found.end());
-        }
-
+        searchParagraph(searchableParagraphOf(block, number), found);
         if (block == last) {
             break;
         }
     }
+}
+
+void SearchEngine::searchParagraph(const SearchableParagraph& paragraph,
+                                   std::vector<SearchMatch>& found) const {
+    const auto paragraphFirst = static_cast<std::ptrdiff_t>(found.size());
+    for (const auto& [offset, length] : matchesIn(paragraph.text)) {
+        SearchMatch match;
+        match.start = static_cast<size_t>(paragraph.position + offset);
+        match.length = static_cast<size_t>(length);
+        match.paragraph = paragraph.number;
+        match.paragraphOffset = static_cast<int>(offset);
+        match.matchedText = paragraph.text.mid(offset, length);
+        found.push_back(std::move(match));
+    }
+    if (paragraph.notes.empty()) {
+        return;
+    }
+
+    // The texts of its notes, each at its number, a line of a note at a time
+    const auto inText = static_cast<std::ptrdiff_t>(found.size());
+    for (const SearchableNote& note : paragraph.notes) {
+        qsizetype lineStart = 0;
+        for (const QStringView line : QStringView(note.text).split(u'\n')) {
+            for (const auto& [offset, length] : matchesIn(line.toString())) {
+                SearchMatch match;
+                match.start = static_cast<size_t>(note.position);
+                match.length = static_cast<size_t>(length);
+                match.paragraph = paragraph.number;
+                match.paragraphOffset = note.position - paragraph.position;
+                match.matchedText = line.mid(offset, length).toString();
+                match.noteId = note.id;
+                match.noteOffset = static_cast<int>(lineStart + offset);
+                found.push_back(std::move(match));
+            }
+            lineStart += line.size() + 1;
+        }
+    }
+    // Those of the paragraph's text and those of its notes, each in order: in one
+    std::inplace_merge(found.begin() + paragraphFirst, found.begin() + inText, found.end());
 }
 
 std::vector<std::pair<qsizetype, qsizetype>> SearchEngine::matchesIn(

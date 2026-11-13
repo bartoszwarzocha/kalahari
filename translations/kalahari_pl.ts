@@ -4746,6 +4746,155 @@ Przyciski na pasku panelu dziennika pozwalają:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::BookSearchCoordinator</name>
+    <message>
+        <source>No book is open</source>
+        <extracomment>Why Edit &gt; Find in Book... is greyed out. In Polish: Żadna książka nie jest otwarta
+----------
+The Search panel without a book. In Polish: Żadna książka nie jest otwarta
+----------
+Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message numerus="yes">
+        <source>Searching... %1 of %n texts</source>
+        <extracomment>How far the search of the book is. In Polish: Szukanie... %1 z %n tekstu / z %n tekstów / z %n tekstów</extracomment>
+        <translation>
+            <numerusform>Szukanie... %1 z %n tekstu</numerusform>
+            <numerusform>Szukanie... %1 z %n tekstów</numerusform>
+            <numerusform>Szukanie... %1 z %n tekstów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>endnote %1</source>
+        <extracomment>A match in an endnote in the Search panel. In Polish: przypis końcowy %1</extracomment>
+        <translation>przypis końcowy %1</translation>
+    </message>
+    <message>
+        <source>footnote %1</source>
+        <extracomment>A match in a footnote in the Search panel. In Polish: przypis dolny %1</extracomment>
+        <translation>przypis dolny %1</translation>
+    </message>
+    <message>
+        <source>Type what to find in all the texts of the book.</source>
+        <extracomment>The Search panel before a search. In Polish: Wpisz, czego szukać we wszystkich tekstach książki.</extracomment>
+        <translation>Wpisz, czego szukać we wszystkich tekstach książki.</translation>
+    </message>
+    <message>
+        <source>The regular expression is not valid.</source>
+        <extracomment>In Polish: Wyrażenie regularne jest nieprawidłowe.</extracomment>
+        <translation>Wyrażenie regularne jest nieprawidłowe.</translation>
+    </message>
+    <message>
+        <source>No matches in the book.</source>
+        <extracomment>In Polish: W książce nie ma trafień.</extracomment>
+        <translation>W książce nie ma trafień.</translation>
+    </message>
+    <message>
+        <source>%1 %2.</source>
+        <extracomment>What the search of the book found: &quot;12 matches&quot; (%1) &quot;in 4 texts&quot; (%2). In Polish the same: %1 %2.</extracomment>
+        <translation>%1 %2.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n matches</source>
+        <extracomment>In Polish: %n trafienie / %n trafienia / %n trafień</extracomment>
+        <translation>
+            <numerusform>%n trafienie</numerusform>
+            <numerusform>%n trafienia</numerusform>
+            <numerusform>%n trafień</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>in %n texts</source>
+        <extracomment>In Polish: w %n tekście / w %n tekstach / w %n tekstach</extracomment>
+        <translation>
+            <numerusform>w %n tekście</numerusform>
+            <numerusform>w %n tekstach</numerusform>
+            <numerusform>w %n tekstach</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The list shows the first %1.</source>
+        <extracomment>In Polish: Lista pokazuje pierwsze %1.</extracomment>
+        <translation>Lista pokazuje pierwsze %1.</translation>
+    </message>
+    <message>
+        <source>The text changed and does not have this match any more.</source>
+        <extracomment>In Polish: Tekst zmienił się i nie ma już tego trafienia.</extracomment>
+        <translation>Tekst zmienił się i nie ma już tego trafienia.</translation>
+    </message>
+    <message>
+        <source>Type what to find first</source>
+        <extracomment>In Polish: Najpierw wpisz, czego szukać</extracomment>
+        <translation>Najpierw wpisz, czego szukać</translation>
+    </message>
+    <message>
+        <source>Nothing was found to replace</source>
+        <extracomment>In Polish: Nie ma czego zamienić</extracomment>
+        <translation>Nie ma czego zamienić</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n matches of &quot;%1&quot; will change to &quot;%2&quot;.</source>
+        <extracomment>In Polish: %n trafienie „%1” zmieni się na „%2”. / %n trafienia „%1” zmienią się na „%2”. / %n trafień „%1” zmieni się na „%2”.</extracomment>
+        <translation>
+            <numerusform>%n trafienie „%1” zmieni się na „%2”.</numerusform>
+            <numerusform>%n trafienia „%1” zmienią się na „%2”.</numerusform>
+            <numerusform>%n trafień „%1” zmieni się na „%2”.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n matches of &quot;%1&quot; will be deleted.</source>
+        <extracomment>With nothing to replace them with. In Polish: %n trafienie „%1” zostanie usunięte. / %n trafienia „%1” zostaną usunięte. / %n trafień „%1” zostanie usuniętych.</extracomment>
+        <translation>
+            <numerusform>%n trafienie „%1” zostanie usunięte.</numerusform>
+            <numerusform>%n trafienia „%1” zostaną usunięte.</numerusform>
+            <numerusform>%n trafień „%1” zostanie usuniętych.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Texts with matches: %1. Each open text can undo the change in one step (Ctrl+Z).</source>
+        <extracomment>In Polish: Teksty z trafieniami: %1. W każdym otwartym tekście zmianę można cofnąć jednym krokiem (Ctrl+Z).</extracomment>
+        <translation>Teksty z trafieniami: %1. W każdym otwartym tekście zmianę można cofnąć jednym krokiem (Ctrl+Z).</translation>
+    </message>
+    <message>
+        <source>Replace All in Book</source>
+        <extracomment>In Polish: Zamień wszystko w książce / &amp;Zamień</extracomment>
+        <translation>Zamień wszystko w książce</translation>
+    </message>
+    <message>
+        <source>&amp;Replace</source>
+        <translation>&amp;Zamień</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n matches replaced in the book.</source>
+        <extracomment>In Polish: Zamieniono %n trafienie w książce. / Zamieniono %n trafienia w książce. / Zamieniono %n trafień w książce.</extracomment>
+        <translation>
+            <numerusform>Zamieniono %n trafienie w książce.</numerusform>
+            <numerusform>Zamieniono %n trafienia w książce.</numerusform>
+            <numerusform>Zamieniono %n trafień w książce.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>In Polish: &amp;Cofnij / Cofnij zamianę w książce</extracomment>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>Undo the replacement in the book</source>
+        <translation>Cofnij zamianę w książce</translation>
+    </message>
+    <message>
+        <source>This can no longer be undone: the texts changed since.</source>
+        <extracomment>In Polish: Tego nie da się już cofnąć: teksty zmieniły się od tamtej pory.</extracomment>
+        <translation>Tego nie da się już cofnąć: teksty zmieniły się od tamtej pory.</translation>
+    </message>
+    <message>
+        <source>The texts are as they were before the replacement.</source>
+        <extracomment>In Polish: Teksty są takie jak przed zamianą.</extracomment>
+        <translation>Teksty są takie jak przed zamianą.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::CaptionCoordinator</name>
     <message>
         <source>Delete Caption</source>
@@ -5616,6 +5765,11 @@ Szczegóły zapisano w panelu Dziennik.</translation>
         <source>Repetition Settings</source>
         <extracomment>The tooltip of the gear of the Repetitions panel. In Polish: Ustawienia powtórzeń</extracomment>
         <translation>Ustawienia powtórzeń</translation>
+    </message>
+    <message>
+        <source>Colors of the Search Hits</source>
+        <extracomment>The gear of the Search panel: Settings &gt; Editor &gt; Colors. In Polish: Kolory znalezionych wystąpień</extracomment>
+        <translation>Kolory znalezionych wystąpień</translation>
     </message>
 </context>
 <context>
@@ -10595,16 +10749,74 @@ Szczegóły są w dzienniku programu.</translation>
 <context>
     <name>kalahari::gui::SearchPanel</name>
     <message>
-        <source>Search... (placeholder)</source>
-        <translation>Szukaj... (wersja tymczasowa)</translation>
+        <source>Find in book...</source>
+        <extracomment>The field of what to find in the Search panel. In Polish: Znajdź w książce...</extracomment>
+        <translation>Znajdź w książce...</translation>
     </message>
     <message>
-        <source>Search Panel (placeholder)</source>
-        <translation>Panel wyszukiwania (wersja tymczasowa)</translation>
+        <source>Find in Book</source>
+        <extracomment>In Polish: Znajdź w książce</extracomment>
+        <translation>Znajdź w książce</translation>
     </message>
     <message>
-        <source>Full implementation in Phase 1</source>
-        <translation>Pełna wersja w fazie 1</translation>
+        <source>Aa</source>
+        <extracomment>The options of the Search panel, as on the find bar. In Polish: Uwzględniaj wielkość liter (%1) / Tylko całe wyrazy (%1) / Wyrażenie regularne (%1)</extracomment>
+        <translation>Aa</translation>
+    </message>
+    <message>
+        <source>Match Case (%1)</source>
+        <translation>Uwzględniaj wielkość liter (%1)</translation>
+    </message>
+    <message>
+        <source>W</source>
+        <translation>W</translation>
+    </message>
+    <message>
+        <source>Match Whole Word (%1)</source>
+        <translation>Tylko całe wyrazy (%1)</translation>
+    </message>
+    <message>
+        <source>.*</source>
+        <translation>.*</translation>
+    </message>
+    <message>
+        <source>Use Regular Expression (%1)</source>
+        <translation>Wyrażenie regularne (%1)</translation>
+    </message>
+    <message>
+        <source>Replace with...</source>
+        <extracomment>The field of the replacement in the Search panel. In Polish: Zamień na...</extracomment>
+        <translation>Zamień na...</translation>
+    </message>
+    <message>
+        <source>Replace With</source>
+        <extracomment>In Polish: Zamień na</extracomment>
+        <translation>Zamień na</translation>
+    </message>
+    <message>
+        <source>Replace All in Book</source>
+        <extracomment>In Polish: Zamień wszystko w książce</extracomment>
+        <translation>Zamień wszystko w książce</translation>
+    </message>
+    <message>
+        <source>Matches Found</source>
+        <extracomment>The tree of the matches of the Search panel. In Polish: Znalezione trafienia</extracomment>
+        <translation>Znalezione trafienia</translation>
+    </message>
+    <message>
+        <source>%1 (%2)</source>
+        <extracomment>A text of the book in the Search panel with the number of its matches. In Polish the same: %1 (%2)</extracomment>
+        <translation>%1 (%2)</translation>
+    </message>
+    <message>
+        <source>%1: </source>
+        <extracomment>A match in the text of a note in the Search panel, before the text around it. In Polish the same: %1: (przypis dolny 2: )</extracomment>
+        <translation>%1: </translation>
+    </message>
+    <message>
+        <source>Replace all the matches in all the texts of the book</source>
+        <extracomment>The tooltip of Replace All in Book. In Polish: Zamień wszystkie trafienia we wszystkich tekstach książki</extracomment>
+        <translation>Zamień wszystkie trafienia we wszystkich tekstach książki</translation>
     </message>
 </context>
 <context>

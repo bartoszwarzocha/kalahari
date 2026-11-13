@@ -137,4 +137,19 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
     }
 }
 
+/// @brief Fill an empty document with a text's KML as the editor reads it
+///        (BookEditor::fromKml()), so that its paragraphs and positions are those of the
+///        editor's document; the reading is not undoable
+/// @return False for unreadable KML: the document has the paragraphs read before the error
+inline bool readKmlInto(QTextDocument& document, const QString& kml) {
+    document.setUndoRedoEnabled(false);
+    KmlDocumentModel model;
+    const bool complete = model.loadKml(kml);
+    QTextCursor cursor(&document);
+    cursor.beginEditBlock();
+    appendParagraphs(cursor, model);
+    cursor.endEditBlock();
+    return complete;
+}
+
 }  // namespace kalahari::editor

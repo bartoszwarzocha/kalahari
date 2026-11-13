@@ -4,7 +4,10 @@
 #include "kalahari/gui/book_texts.h"
 
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/chapter_versions.h"
+#include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
 
 #include <QFileInfo>
 
@@ -65,6 +68,27 @@ std::optional<QString> savedTextIfChanged(const QString& elementId, QString& sig
     }
     signature = now;
     return unsaved ? kml : projects.chapterText(elementId);
+}
+
+void keepVersionBeforeReplaceAll(const QString& elementId, const QString& kml,
+                                 const QString& found, const QString& replacement, int count) {
+    auto& projects = core::ProjectManager::getInstance();
+    const auto& settings = core::SettingsManager::getInstance();
+    if (!projects.isProjectOpen() || projects.isReadOnly() ||
+        !settings.get<bool>(core::ChapterVersions::ENABLED_SETTING) ||
+        !settings.get<bool>(core::ChapterVersions::BEFORE_REPLACE_ALL_SETTING)) {
+        return;
+    }
+    const core::ProjectManager::VersionKept kept =
+        projects.keepVersion(elementId, kml,
+                             {.origin = core::VersionOrigin::ReplaceAll,
+                              .found = found,
+                              .replacement = replacement,
+                              .replaced = count});
+    if (kept == core::ProjectManager::VersionKept::Failed) {
+        core::Logger::getInstance().warn("No version of {} was kept before Replace All",
+                                         elementId.toStdString());
+    }
 }
 
 }  // namespace kalahari::gui
