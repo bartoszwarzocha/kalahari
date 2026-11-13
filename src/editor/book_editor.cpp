@@ -45,6 +45,9 @@ constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
 // How long the editing pauses before a content as long as the saved one is compared with it
 constexpr int MODIFIED_CHECK_DELAY_MS = 150;
 
+// How long typing pauses before the word count fields show the new count
+constexpr int FIELD_WORDS_DELAY_MS = 400;
+
 // Two typewriter heights closer than this are the same (as for the render pipeline)
 constexpr double TYPEWRITER_HEIGHT_EPSILON = 0.0001;
 
@@ -70,7 +73,10 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     colors.tableHeader = light ? tables.headerLight : tables.headerDark;
     colors.tableGridlines = light ? tables.gridlinesLight : tables.gridlinesDark;
     const EditorColors::FieldColors& fields = appearance.colors.fields;
-    colors.field = light ? fields.light : fields.dark;
+    // Without the gray background of the fields a cross-reference to a caption the book does
+    // not have keeps its own
+    colors.field = appearance.fieldShading ? (light ? fields.light : fields.dark)
+                                           : QColor(Qt::transparent);
     colors.brokenField = light ? fields.brokenLight : fields.brokenDark;
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
     colors.annotationComment = annotations.comment;
@@ -512,6 +518,13 @@ bool BookEditor::event(QEvent* event)
                                    .arg(lines.join(QStringLiteral("<br>"))),
                                this);
             return true;
+        }
+        // A field: what it shows and how it changes
+        if (const std::optional<int> field = fieldAt(QPointF(help->pos()))) {
+            if (const QString tip = fieldToolTip(*field); !tip.isEmpty()) {
+                QToolTip::showText(help->globalPos(), tip, this);
+                return true;
+            }
         }
         // A note's number: its name and its text, as the frame shows them
         if (noteTextAt(QPointF(help->pos())).isEmpty()) {
@@ -961,6 +974,7 @@ void BookEditor::setWordCountRules(const core::WordCountRules& rules)
         }
     }
     update();  // the word count of Distraction-Free writing
+    refreshFieldWords();
     emit countsChanged();
 }
 
@@ -1142,6 +1156,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
     layout->setMissingImageColor(m_appearance.colors.imageMissingColor(m_appearance.colorMode));
     layout->setCaptionContext(m_captionContext);  // the book around the text
+    layout->setFieldContext(m_fieldContext);
     layout->setFootnoteContext(m_footnoteContext);
 
     // The numbers on the margin go on from the lines above the view, estimated until the
@@ -1219,6 +1234,23 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
             &BookEditor::checkNotesSoon);
     checkNotesSoon();
+
+    // The word count fields show the words of the text, counted again when typing pauses
+    if (m_fieldWordsTimer == nullptr) {
+        m_fieldWordsTimer = new QTimer(this);
+        m_fieldWordsTimer->setSingleShot(true);
+        m_fieldWordsTimer->setInterval(FIELD_WORDS_DELAY_MS);
+        connect(m_fieldWordsTimer, &QTimer::timeout, this, &BookEditor::refreshFieldWords);
+    }
+    m_fieldWordsTimer->stop();
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this, [this]() {
+        const auto* shown =
+            qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+        if (shown != nullptr && shown->hasTextField(FieldType::Words)) {
+            m_fieldWordsTimer->start();
+        }
+    });
+    refreshFieldWords();
 
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());

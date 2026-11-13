@@ -51,6 +51,9 @@ public:
     /// Editor > General, scrolled to its group Word Count, the cursor in its counting of the
     /// notes' words (the gear of Insert > Footnote Layout...)
     static constexpr const char* WORD_COUNT_PAGE = "editor.general.wordCount";
+    /// Editor > General, the cursor in the gray background of the fields (the gear of Insert >
+    /// Field...)
+    static constexpr const char* FIELDS_PAGE = "editor.general.fields";
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
     /// Editor > Pages and Margins, scrolled to its group Margin Numbering, the cursor in it
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
@@ -96,10 +99,11 @@ public:
     /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
     /// IMAGES_PAGE (the gears of the windows of images and captions), PAGES_PAGE,
     /// MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
-    /// SPELLING_PAGE (the gear of the Spelling and Grammar panel), VERSIONS_PAGE (the gear of
-    /// the versions), REPETITIONS_PAGE (the gear of the Repetitions panel), ANNOTATIONS_PAGE
-    /// (the gear of the Annotations panel), NAVIGATOR_PAGE (the gear of a list of materials) or
-    /// SHORTCUTS_PAGE (as showShortcutsPage())
+    /// FIELDS_PAGE (the gear of Insert > Field...), SPELLING_PAGE (the gear of the Spelling and
+    /// Grammar panel), VERSIONS_PAGE (the gear of the versions), REPETITIONS_PAGE (the gear of
+    /// the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel),
+    /// NAVIGATOR_PAGE (the gear of a list of materials) or SHORTCUTS_PAGE (as
+    /// showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
 

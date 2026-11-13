@@ -22,6 +22,7 @@
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/chapter_break_coordinator.h"
+#include "kalahari/gui/field_coordinator.h"
 #include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -732,6 +733,44 @@ MainWindow::MainWindow(QWidget* parent)
         {ChapterBreakCoordinator::COMMAND}, [this](const editor::BookEditor& text) {
             return m_chapterBreakCoordinator->canBreak(text);
         });
+
+    // Insert > Date && Time... and the date and the time at once (Alt+Shift+D, Alt+Shift+T):
+    // in the book's text with the keys, not in a read-only one; Insert > Field... not in a
+    // plain text file either (it keeps no fields). The fields of every open text show the
+    // book's title, author and language as the Properties panel changes them
+    m_fieldCoordinator = new FieldCoordinator(
+        m_dockCoordinator->centralTabs(), [this]() { return m_editCoordinator->textWithKeys(); },
+        this, this);
+    m_fieldCoordinator->connectCommands();
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookChanged,
+            m_fieldCoordinator, &FieldCoordinator::refresh);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
+            m_fieldCoordinator, &FieldCoordinator::refresh);
+    const std::vector<std::string> dateCommands = {FieldCoordinator::DATE_TIME_COMMAND,
+                                                   FieldCoordinator::DATE_COMMAND,
+                                                   FieldCoordinator::TIME_COMMAND};
+    m_editCoordinator->addTextCommands(
+        dateCommands, [](const editor::BookEditor& text) { return !text.isReadOnly(); });
+    m_editCoordinator->addTextCommands(
+        {FieldCoordinator::FIELD_COMMAND}, [](const editor::BookEditor& text) {
+            return FieldCoordinator::whyNoField(text).isEmpty();
+        });
+    for (const char* id : {FieldCoordinator::DATE_TIME_COMMAND, FieldCoordinator::DATE_COMMAND,
+                           FieldCoordinator::TIME_COMMAND, FieldCoordinator::FIELD_COMMAND}) {
+        if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+            const bool field = std::string(id) == FieldCoordinator::FIELD_COMMAND;
+            command->disabledReason = [this, field]() {
+                const editor::BookEditor* text = m_editCoordinator->textWithKeys();
+                if (text == nullptr) {
+                    return QString();
+                }
+                if (field) {
+                    return FieldCoordinator::whyNoField(*text);
+                }
+                return text->isReadOnly() ? readOnlyReason() : QString();
+            };
+        }
+    }
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
     // the object)

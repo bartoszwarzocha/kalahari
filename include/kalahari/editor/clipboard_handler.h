@@ -61,9 +61,9 @@ struct ListMarks {
     std::vector<QString> marks;  ///< The number with its suffix, or the bullet; empty for an
                                  ///< item without one
     std::vector<int> numbers;    ///< The number (-1 for an item without one)
-    std::vector<QString> fields;  ///< The text of each <caption-number> and <cross-reference>,
-                                  ///< and of each <list-of-figures> (its rows, one a line),
-                                  ///< in the order of the elements
+    std::vector<QString> fields;  ///< The text of each <caption-number>, <cross-reference>
+                                  ///< and <field>, and of each <list-of-figures> (its rows, one
+                                  ///< a line), in the order of the elements
     std::vector<QString> notes;   ///< The number of each note (<footnote>, <endnote>), in the
                                   ///< order of the elements
 };

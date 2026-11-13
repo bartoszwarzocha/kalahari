@@ -33,6 +33,7 @@
 #include <QStringList>
 #include <QTextFormat>
 
+#include <functional>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -141,7 +142,8 @@ std::optional<CrossReference> crossReferenceOf(const QTextFormat& format);
 /// @brief Make the format one of a cross-reference (its other properties stay)
 void setCrossReference(QTextCharFormat& format, const CrossReference& reference);
 
-/// @brief Whether the format is of a field: a number or a cross-reference
+/// @brief Whether the format is of a field: a number, a cross-reference or a field of the
+///        book, the page, the words or the date (text_fields.h)
 bool isFieldFormat(const QTextFormat& format);
 
 /// @brief Take the field off the format: its object type and properties (the format of text
@@ -319,7 +321,9 @@ public:
     ///        nullptr: none
     const BookCaption* find(const QString& id) const;
 
-    /// @brief The text of the field at a position of the document with this format
+    /// @brief The text of the field at a position of the document with this format; a field of
+    ///        text_fields.h shows its value without the book and the view (the editor's layout
+    ///        has them: KalahariTextDocumentLayout::fieldText())
     FieldText fieldText(int position, const QTextFormat& format) const;
 
     /// @brief The text a cross-reference at a position of the document shows
@@ -354,6 +358,14 @@ private:
 ///        writes for them)
 std::vector<QString> fieldTexts(const QTextDocument& document, const CaptionNumbers& numbers,
                                 int from, int to);
+
+/// @brief The text of the field at a position of a document with a format
+using FieldTextOf = std::function<FieldText(int position, const QTextFormat& format)>;
+
+/// @brief The texts of the fields and of the lists of figures of [from, to) of a document, the
+///        fields' as @p textOf gives them (the editor's layout: with the book and the view)
+std::vector<QString> fieldTexts(const QTextDocument& document, const CaptionNumbers& numbers,
+                                const FieldTextOf& textOf, int from, int to);
 
 // =============================================================================
 // KML

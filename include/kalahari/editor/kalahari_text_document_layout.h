@@ -7,6 +7,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_images.h>
@@ -240,6 +241,28 @@ public:
     /// @brief Whether the document has a field (a caption's number, a cross-reference) or a
     ///        list of figures
     bool hasFields() const;
+
+    // ==========================================================================
+    // Fields of the book, the page, the words and the date (text_fields.h)
+    // ==========================================================================
+
+    /// @brief Set what the fields show of the book and the text; the laid out fields that show
+    ///        something else then are laid out again
+    void setFieldContext(const FieldContext& context);
+    const FieldContext& fieldContext() const { return m_fieldContext; }
+
+    /// @brief Set the words of the text the word count fields show (the editor counts them);
+    ///        the laid out ones are laid out again when the number changed
+    void setFieldWords(int words);
+    int fieldWords() const { return m_fieldWords; }
+
+    /// @brief Whether the document has a field of the type
+    bool hasTextField(FieldType type) const;
+
+    /// @brief The text the field at a position of the document shows, of any kind: a caption's
+    ///        number, a cross-reference, a field of text_fields.h with the book, the words and,
+    ///        in the page view, the page it is on
+    FieldText fieldText(int position, const QTextFormat& format) const;
 
     /// @brief The row of a list of figures under a point; std::nullopt: no row there, or the
     ///        list's block is not laid out
@@ -771,6 +794,20 @@ private:
     /// @brief Count the fields and their numbers again, when a change or the context asks
     void countFields() const;
 
+    /// @brief The text a field is laid out with: the text it shows; for the page, the widest
+    ///        of the pages' numbers (a field keeps its width while the text moves to another
+    ///        page)
+    QString sizedFieldText(int position, const QTextFormat& format) const;
+
+    /// @brief The page a character is on in the page view (from 1); 0 without pages or before
+    ///        the pages are placed
+    int pageOfPosition(int position) const;
+
+    /// @brief The page fields count the pages the view has now: laid out again when the
+    ///        widest of their numbers changed (after a change that changed the pages); queued
+    ///        by its name, after the layout
+    Q_INVOKABLE void refreshPageFields();
+
     /// @brief What each block with fields shows, by block number in order: the texts of its
     ///        fields, the captions of a list of figures
     std::vector<std::pair<int, QString>> fieldSignatures() const;
@@ -1105,6 +1142,17 @@ private:
     mutable bool m_hasFields = false;
     mutable std::vector<FieldChar> m_fieldChars;
     std::vector<std::pair<int, QString>> m_fieldSignatures;
+
+    // The fields of text_fields.h: what they show of the book and the text, the words the
+    // editor counted, the pages the page fields are laid out for (counted after the layout:
+    // refreshPageFields()), whether such a refresh waits and the widest numbers of the pages
+    // by format, font and pages
+    FieldContext m_fieldContext;
+    int m_fieldWords = 0;
+    int m_fieldPages = 0;
+    bool m_pageFieldsQueued = false;
+    mutable bool m_hasPageFields = false;
+    mutable QHash<QString, QString> m_widestPages;
 
     // The list of figures as last placed (figureListPlacement())
     mutable std::unique_ptr<FigureListPlacement> m_figureList;

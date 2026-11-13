@@ -963,10 +963,6 @@
         <translation>Dodaj ko&amp;mentarz</translation>
     </message>
     <message>
-        <source>Date &amp;&amp; &amp;Time</source>
-        <translation>Data i &amp;godzina</translation>
-    </message>
-    <message>
         <source>Check S&amp;pelling as You Type</source>
         <translation>Sprawdzaj &amp;pisownię podczas pisania</translation>
     </message>
@@ -1333,6 +1329,18 @@
     <message>
         <source>Chapter Brea&amp;k</source>
         <translation>Pod&amp;ział rozdziału</translation>
+    </message>
+    <message>
+        <source>Date &amp;&amp; &amp;Time...</source>
+        <translation>Data i &amp;godzina...</translation>
+    </message>
+    <message>
+        <source>Today&apos;s Date as Text</source>
+        <translation>Dzisiejsza data jako tekst</translation>
+    </message>
+    <message>
+        <source>Current Time as Text</source>
+        <translation>Bieżąca godzina jako tekst</translation>
     </message>
 </context>
 <context>
@@ -3506,6 +3514,44 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
     </message>
 </context>
 <context>
+    <name>TextFields</name>
+    <message>
+        <source>Book Title</source>
+        <extracomment>A field: the title of the book. In Polish: Tytuł książki</extracomment>
+        <translation>Tytuł książki</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <extracomment>A field: the author of the book. In Polish: Autor</extracomment>
+        <translation>Autor</translation>
+    </message>
+    <message>
+        <source>Text Title</source>
+        <extracomment>A field: the title of the text (the chapter) it is in. In Polish: Tytuł tekstu</extracomment>
+        <translation>Tytuł tekstu</translation>
+    </message>
+    <message>
+        <source>Page Number</source>
+        <extracomment>A field: the page it is on. In Polish: Numer strony</extracomment>
+        <translation>Numer strony</translation>
+    </message>
+    <message>
+        <source>Page Count</source>
+        <extracomment>A field: the pages of the text. In Polish: Liczba stron</extracomment>
+        <translation>Liczba stron</translation>
+    </message>
+    <message>
+        <source>Word Count</source>
+        <extracomment>A field: the words of the text. In Polish: Liczba słów</extracomment>
+        <translation>Liczba słów</translation>
+    </message>
+    <message>
+        <source>Date</source>
+        <extracomment>A field: today&apos;s date or time. In Polish: Data</extracomment>
+        <translation>Data</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::core::CmdLineParser</name>
     <message>
         <source>Displays help on commandline options.</source>
@@ -3877,6 +3923,74 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Delete F&amp;ootnote</source>
         <extracomment>In Polish: &amp;Usuń przypis</extracomment>
         <translation>&amp;Usuń przypis</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Field...</source>
+        <extracomment>The context menu of a field. In Polish: &amp;Edytuj pole...</extracomment>
+        <translation>&amp;Edytuj pole...</translation>
+    </message>
+    <message>
+        <source>Con&amp;vert to Text</source>
+        <extracomment>The field becomes the text it shows. In Polish: Zamień na &amp;stały tekst</extracomment>
+        <translation>Zamień na &amp;stały tekst</translation>
+    </message>
+    <message>
+        <source>The book has no title yet: write it in the Properties panel.</source>
+        <extracomment>The tooltip of a field of a book without a title</extracomment>
+        <translation>Książka nie ma jeszcze tytułu: wpisz go w panelu Właściwości.</translation>
+    </message>
+    <message>
+        <source>It changes with the book&apos;s title in the Properties panel.</source>
+        <translation>Zmienia się razem z tytułem książki w panelu Właściwości.</translation>
+    </message>
+    <message>
+        <source>The book has no author yet: write it in the Properties panel.</source>
+        <translation>Książka nie ma jeszcze autora: wpisz go w panelu Właściwości.</translation>
+    </message>
+    <message>
+        <source>It changes with the book&apos;s author in the Properties panel.</source>
+        <translation>Zmienia się razem z autorem książki w panelu Właściwości.</translation>
+    </message>
+    <message>
+        <source>It changes with the title of the text.</source>
+        <translation>Zmienia się razem z tytułem tekstu.</translation>
+    </message>
+    <message>
+        <source>The page the field is on in the Page Layout view.</source>
+        <translation>Strona, na której jest pole w widoku „Układ strony”.</translation>
+    </message>
+    <message>
+        <source>The page number shows in the Page Layout view (View &gt; View Mode).</source>
+        <translation>Numer strony widać w widoku „Układ strony” (Widok &gt; Tryb widoku).</translation>
+    </message>
+    <message>
+        <source>The pages of the text in the Page Layout view.</source>
+        <translation>Liczba stron tekstu w widoku „Układ strony”.</translation>
+    </message>
+    <message>
+        <source>The page count shows in the Page Layout view (View &gt; View Mode).</source>
+        <translation>Liczbę stron widać w widoku „Układ strony” (Widok &gt; Tryb widoku).</translation>
+    </message>
+    <message>
+        <source>The words of the text, as the status bar counts them.</source>
+        <translation>Liczba słów tekstu, liczona tak jak na pasku stanu.</translation>
+    </message>
+    <message>
+        <source>The time the text was opened or brought to the front.</source>
+        <translation>Godzina otwarcia tekstu albo wysunięcia go na wierzch.</translation>
+    </message>
+    <message>
+        <source>Today&apos;s date: it changes when the text is opened on another day.</source>
+        <translation>Dzisiejsza data: zmienia się, gdy tekst zostanie otwarty innego dnia.</translation>
+    </message>
+    <message>
+        <source>Field: %1</source>
+        <extracomment>The tooltip of a field: its name in bold, what it shows, how to change it. %1: the field&apos;s name (&quot;Page Number&quot;)</extracomment>
+        <translation>Pole: %1</translation>
+    </message>
+    <message>
+        <source>Double-click to change the field.</source>
+        <translation>Kliknij dwukrotnie, aby zmienić pole.</translation>
     </message>
 </context>
 <context>
@@ -6991,6 +7105,15 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
             <numerusform> spacji</numerusform>
         </translation>
     </message>
+    <message>
+        <source>Gray background of fields</source>
+        <extracomment>In Polish: Szare tło pól</extracomment>
+        <translation>Szare tło pól</translation>
+    </message>
+    <message>
+        <source>The fields show values that change by themselves: the date, the book&apos;s title, the page number, the number of a caption.</source>
+        <translation>Pola pokazują wartości, które zmieniają się same: datę, tytuł książki, numer strony, numer podpisu.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::EditorGrammarPage</name>
@@ -8171,6 +8294,24 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>Click the element the {kind} {kind:s=is|p=are} to go before, or move {kind:s=it|p=them} with the buttons %1.</source>
         <extracomment>%1: the arrows of the buttons, kept together on a line. In Polish: Kliknij element, przed którym {kind:s=ma|p=mają} się znaleźć {kind}, albo przesuń {kind:m=go|f=ją|n=je|p=je} przyciskami %1.</extracomment>
         <translation>Kliknij element, przed którym {kind:s=ma|p=mają} się znaleźć {kind}, albo przesuń {kind:m=go|f=ją|n=je|p=je} przyciskami %1.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FieldCoordinator</name>
+    <message>
+        <source>{Kind} Title</source>
+        <extracomment>A field: the title of the text it is in, named after its kind (&quot;Chapter Title&quot;). In Polish: Tytuł {kind:genitive}</extracomment>
+        <translation>Tytuł {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>{Kind} Word Count</source>
+        <extracomment>A field: the words of the text it is in (&quot;Chapter Word Count&quot;). In Polish: Liczba słów {kind:genitive}</extracomment>
+        <translation>Liczba słów {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>A plain text file keeps no fields</source>
+        <extracomment>Why Insert &gt; Field... is greyed out in a .txt file. In Polish: Plik zwykłego tekstu nie przechowuje pól</extracomment>
+        <translation>Plik zwykłego tekstu nie przechowuje pól</translation>
     </message>
 </context>
 <context>
@@ -15063,6 +15204,38 @@ Harmonogram projektu:
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::DateTimeDialog</name>
+    <message>
+        <source>Date and Time</source>
+        <extracomment>In Polish: Data i godzina / Dzisiejsza data albo godzina w języku książki.</extracomment>
+        <translation>Data i godzina</translation>
+    </message>
+    <message>
+        <source>Today&apos;s date or time in the language of the book.</source>
+        <translation>Dzisiejsza data albo godzina w języku książki.</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <extracomment>In Polish: Wstaw</extracomment>
+        <translation>Wstaw</translation>
+    </message>
+    <message>
+        <source>&amp;Format</source>
+        <extracomment>In Polish: &amp;Format</extracomment>
+        <translation>&amp;Format</translation>
+    </message>
+    <message>
+        <source>&amp;Update automatically (inserts a field)</source>
+        <extracomment>In Polish: &amp;Aktualizuj automatycznie (wstawia pole)</extracomment>
+        <translation>&amp;Aktualizuj automatycznie (wstawia pole)</translation>
+    </message>
+    <message>
+        <source>%1 and %2 insert the date and the time at once as text, the date in the format chosen last.</source>
+        <extracomment>%1 and %2 are the keys: Alt+Shift+D and Alt+Shift+T. In Polish: %1 i %2 wstawiają od razu datę i godzinę tekstem – datę w ostatnio wybranym formacie.</extracomment>
+        <translation>%1 i %2 wstawiają od razu datę i godzinę tekstem – datę w ostatnio wybranym formacie.</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::DeleteFilesDialog</name>
     <message>
         <source>Delete the file &quot;%1&quot;?</source>
@@ -15398,6 +15571,115 @@ Harmonogram projektu:
         <source>The texts of the book have no versions yet.</source>
         <extracomment>Under the check box of the versions, which cannot be checked. In Polish: Teksty książki nie mają jeszcze wersji.</extracomment>
         <translation>Teksty książki nie mają jeszcze wersji.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::FieldDialog</name>
+    <message>
+        <source>IN CAPITALS</source>
+        <extracomment>A format of the fields of the titles and the author. In Polish: WIELKIMI LITERAMI</extracomment>
+        <translation>WIELKIMI LITERAMI</translation>
+    </message>
+    <message>
+        <source>As in the Properties</source>
+        <translation>Jak we właściwościach</translation>
+    </message>
+    <message>
+        <source>Field</source>
+        <extracomment>Insert &gt; Field..., and Edit Field... of a field&apos;s context menu. In Polish: Pole / Wartość, która odświeża się sama.</extracomment>
+        <translation>Pole</translation>
+    </message>
+    <message>
+        <source>A value that refreshes by itself.</source>
+        <translation>Wartość, która odświeża się sama.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <translation>Wstaw</translation>
+    </message>
+    <message>
+        <source>Field Settings</source>
+        <extracomment>The tooltip of the gear of Insert &gt; Field.... In Polish: Ustawienia pól</extracomment>
+        <translation>Ustawienia pól</translation>
+    </message>
+    <message>
+        <source>&amp;Book</source>
+        <extracomment>A tab of Insert &gt; Field...: the book&apos;s title and author. In Polish: &amp;Książka</extracomment>
+        <translation>&amp;Książka</translation>
+    </message>
+    <message>
+        <source>&amp;Text</source>
+        <extracomment>A tab of Insert &gt; Field...: the text&apos;s title and words. In Polish: &amp;Tekst</extracomment>
+        <translation>&amp;Tekst</translation>
+    </message>
+    <message>
+        <source>&amp;Pages</source>
+        <extracomment>A tab of Insert &gt; Field...: the page number and count. In Polish: &amp;Strony</extracomment>
+        <translation>&amp;Strony</translation>
+    </message>
+    <message>
+        <source>&amp;Date</source>
+        <extracomment>A tab of Insert &gt; Field...: the date. In Polish: &amp;Data</extracomment>
+        <translation>&amp;Data</translation>
+    </message>
+    <message>
+        <source>Fields</source>
+        <extracomment>The list of the fields of a tab of Insert &gt; Field.... In Polish: Pola</extracomment>
+        <translation>Pola</translation>
+    </message>
+    <message>
+        <source>F&amp;ormat:</source>
+        <extracomment>In Polish: F&amp;ormat:</extracomment>
+        <translation>F&amp;ormat:</translation>
+    </message>
+    <message>
+        <source>In the text:</source>
+        <extracomment>How the field shows in the text. In Polish: W tekście:</extracomment>
+        <translation>W tekście:</translation>
+    </message>
+    <message>
+        <source>The title changes together with the book&apos;s properties.</source>
+        <extracomment>In Polish: Tytuł zmienia się razem z właściwościami książki.</extracomment>
+        <translation>Tytuł zmienia się razem z właściwościami książki.</translation>
+    </message>
+    <message>
+        <source>The author changes together with the book&apos;s properties.</source>
+        <translation>Autor zmienia się razem z właściwościami książki.</translation>
+    </message>
+    <message>
+        <source>The title changes together with the title of the text.</source>
+        <translation>Tytuł zmienia się razem z tytułem tekstu.</translation>
+    </message>
+    <message>
+        <source>The page number shows in the Page Layout view; in the Continuous view the field shows #.</source>
+        <extracomment>In Polish: Numer strony widać w widoku „Układ strony”; w widoku „Ciągły” pole pokazuje #.</extracomment>
+        <translation>Numer strony widać w widoku „Układ strony”; w widoku „Ciągły” pole pokazuje #.</translation>
+    </message>
+    <message>
+        <source>The page count shows in the Page Layout view; in the Continuous view the field shows #.</source>
+        <translation>Liczbę stron widać w widoku „Układ strony”; w widoku „Ciągły” pole pokazuje #.</translation>
+    </message>
+    <message>
+        <source>The count changes as you write, as the status bar&apos;s does.</source>
+        <translation>Liczba zmienia się w trakcie pisania, tak jak na pasku stanu.</translation>
+    </message>
+    <message>
+        <source>The time the text was opened or brought to the front.</source>
+        <extracomment>In Polish: Godzina otwarcia tekstu albo wysunięcia go na wierzch.</extracomment>
+        <translation>Godzina otwarcia tekstu albo wysunięcia go na wierzch.</translation>
+    </message>
+    <message>
+        <source>Today&apos;s date: it changes when the text is opened on another day.</source>
+        <translation>Dzisiejsza data: zmienia się, gdy tekst zostanie otwarty innego dnia.</translation>
+    </message>
+    <message>
+        <source>The gray background of the fields can be turned off in the Settings.</source>
+        <extracomment>In Polish: Szare tło pól można wyłączyć w Ustawieniach.</extracomment>
+        <translation>Szare tło pól można wyłączyć w Ustawieniach.</translation>
     </message>
 </context>
 <context>

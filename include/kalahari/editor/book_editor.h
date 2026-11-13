@@ -28,6 +28,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_sorting.h>
@@ -1271,6 +1272,48 @@ public:
     int crossReferenceCount(const QSet<QString>& ids) const;
 
     // =========================================================================
+    // Fields: the book's title, its author, the text's title, the page, the words, the date
+    // =========================================================================
+
+    /// @brief Set what the fields show of the book and the text (text_fields.h); the fields
+    ///        that show something else then are drawn anew. A context without a time gets the
+    ///        time it is set: the dates are those of when the text was opened or came to the
+    ///        front last
+    void setFieldContext(const FieldContext& context);
+    const FieldContext& fieldContext() const { return m_fieldContext; }
+
+    /// @brief Insert > Field..., Date && Time...: a field at the cursor, in place of the
+    ///        selection, as one undo step
+    /// @return false in a read-only text
+    bool insertField(const TextField& field);
+
+    /// @brief The field the field commands act on (of text_fields.h): the one selected alone,
+    ///        else the one just before the cursor, else the one just after it; std::nullopt:
+    ///        none
+    std::optional<int> fieldAtCursor() const;
+
+    /// @brief The field of text_fields.h at a position; std::nullopt: none there
+    std::optional<TextField> textFieldAt(int position) const;
+
+    /// @brief The text the field at a position shows, of any kind (a caption's number too);
+    ///        empty: no field there
+    QString fieldTextAt(int position) const;
+
+    /// @brief Edit Field: the field at a position shows something else or in another format,
+    ///        as one undo step
+    /// @return false without such a field there, in a read-only text, or when it is so already
+    bool setTextFieldAt(int position, const TextField& field);
+
+    /// @brief Convert to Text: the field at a position becomes the text it shows, in its
+    ///        formatting, as one undo step
+    /// @return false without a field of text_fields.h there or in a read-only text
+    bool convertFieldToText(int position);
+
+    /// @brief The field of any kind under a point of the widget (its character); std::nullopt:
+    ///        none there
+    std::optional<int> fieldAt(const QPointF& widgetPos) const;
+
+    // =========================================================================
     // Annotations: comments, TODOs and notes
     // =========================================================================
 
@@ -2245,6 +2288,10 @@ signals:
     /// double click on its number, Edit Footnote in the menu
     void noteEditRequested(const QString& id);
 
+    /// @brief The writer asks for the window of the field at a position: Edit Field... in the
+    /// menu, a double click on it
+    void fieldEditRequested(int position);
+
     /// @brief The notes of the text changed: one added, taken out, moved, of the other kind or
     ///        with another text (noteList()); the book numbers them again
     void notesChanged();
@@ -2810,6 +2857,17 @@ private:
     ///        Footnote), Delete Footnote
     void addNoteActions(QMenu& menu, const NotePlace& note);
 
+    /// @brief The items of the context menu for a field of text_fields.h at a position: Edit
+    ///        Field..., Convert to Text
+    void addFieldActions(QMenu& menu, int position);
+
+    /// @brief The word count fields show the words of the text as they are now
+    void refreshFieldWords();
+
+    /// @brief The tooltip of the field of text_fields.h at a position: what it shows, and for
+    ///        the page in a view without pages where it is shown
+    QString fieldToolTip(int position) const;
+
     /// @brief The note whose text is at a point of the widget: its id; empty: none (or an
     ///        endnote of another text: bookEndnoteAt())
     QString noteTextAt(const QPointF& widgetPos) const;
@@ -3356,6 +3414,8 @@ private:
     std::shared_ptr<ImageStore> m_imageStore{std::make_shared<ImageStore>()};  ///< Of the images
     NewImageOptions m_newImageOptions;  ///< How a new image goes into the text
     CaptionContext m_captionContext;    ///< What the numbers depend on outside the text
+    FieldContext m_fieldContext;        ///< What the fields show of the book and the text
+    QTimer* m_fieldWordsTimer{nullptr};  ///< Counts the words for the fields when typing pauses
     CaptionRemovalConfirmation m_confirmCaptionRemoval;  ///< Asked before a caption goes
     bool m_captionRemovalAsked = false;  ///< The writer was asked already (Image Properties)
     std::vector<CaptionEntry> m_shownCaptions;  ///< As captionsChanged() last announced them

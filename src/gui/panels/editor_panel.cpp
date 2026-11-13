@@ -547,6 +547,9 @@ void EditorPanel::applySettings() {
     // The formatting marks (View > Show Formatting Marks) and how the scene breaks look
     appearance.showFormattingMarks = settings.get<bool>("editor.showFormattingMarks");
 
+    // The gray background of the fields (Settings > Editor > General)
+    appearance.fieldShading = settings.get<bool>("editor.fieldShading");
+
     // The numbers on the left margin (View > Margin Numbering)
     editor::MarginNumbers& numbers = appearance.marginNumbers;
     numbers.numbering = editor::marginNumberingFromName(
