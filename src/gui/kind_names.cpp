@@ -67,6 +67,16 @@ QString newTextMenuText(const core::KindRef& kind) {
                            {{QStringLiteral("kind"), menuWords(wordsOf(kind))}});
 }
 
+QString textBreakMenuText(const core::KindRef& kind) {
+    if (!kind) {
+        return QCoreApplication::translate("CommandRegistrar", "Chapter Brea&k");
+    }
+    //: Book > Chapter Break named after the texts it splits, e.g. Story Break. In Polish:
+    //: Pod&ział {kind:genitive}
+    return core::fillWords(QCoreApplication::translate("KindNames", "{Kind} Brea&k"),
+                           {{QStringLiteral("kind"), menuWords(wordsOf(kind))}});
+}
+
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,
                         const core::ProjectElement& element, const core::PackageCard* card) {
     if (const core::KindRef kind = core::BookProject::kindOf(registry, element)) {

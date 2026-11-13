@@ -54,6 +54,10 @@ core::KindWords menuWords(core::KindWords words);
 /// doubled (menuWords()); without a kind, the command's own text, "&New Chapter..."
 QString newTextMenuText(const core::KindRef& kind);
 
+/// @brief The text of Book > Chapter Break in the menu, named after the texts of @p kind:
+///        "Story Brea&k" (none: "Chapter Brea&k")
+QString textBreakMenuText(const core::KindRef& kind);
+
 /// @brief Forms of the name of the kind of @p element, a kind of @p registry; when the registry
 /// does not have the kind, the names of the kind on @p card, the book's card of the kind's
 /// package, or else the id of the kind; a file of a book outside its text, which has no kind,

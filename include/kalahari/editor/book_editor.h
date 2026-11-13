@@ -467,6 +467,20 @@ public:
     /// annotations of the deleted text stay on its place.
     bool deleteSelectedText();
 
+    /// @brief The text from @p at to its end as KML, with the annotations anchored in it and
+    ///        its notes (Book > Chapter Break: the text of the new chapter)
+    /// @return Empty when nothing follows @p at
+    [[nodiscard]] QString kmlFrom(const CursorPosition& at) const;
+
+    /// @brief Take the text from @p at to its end away, as one undo step, with the annotations
+    ///        anchored in it (Book > Chapter Break: they go with it to the new chapter)
+    ///
+    /// At the start of a paragraph after a paragraph of text the end of that paragraph goes
+    /// too, so that the text ends with it, not with an empty paragraph. The cursor ends at the
+    /// end of the text.
+    /// @return false in a read-only text, or when nothing follows @p at
+    bool removeTextFrom(const CursorPosition& at);
+
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.
