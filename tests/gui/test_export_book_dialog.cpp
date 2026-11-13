@@ -317,11 +317,13 @@ private:
     bool m_loaded = false;
 };
 
-/// The window fits 1366x768 at 150% (911 pixels wide and 460 high; a Mac's larger controls
-/// need a few more) whole, so nothing in it scrolls
+/// The window fits a small screen whole, so nothing in it scrolls: on Windows and Linux
+/// 1366x768 at 150%, 911 pixels wide and 460 high. A Mac has no such scaling: its smallest
+/// screen is 1366x768 at 100% (the 11-inch MacBook Air), 640 pixels high under the menu bar,
+/// the title bar and the Dock, and its controls and spacing are larger
 void checkFitsSmallScreen(const ExportBookDialog& dialog) {
 #ifdef Q_OS_MACOS
-    constexpr int MAX_HEIGHT = 480;
+    constexpr int MAX_HEIGHT = 640;
 #else
     constexpr int MAX_HEIGHT = 460;
 #endif
