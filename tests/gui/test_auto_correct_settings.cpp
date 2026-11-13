@@ -48,6 +48,7 @@
 #include <array>
 #include <nlohmann/json.hpp>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -171,13 +172,13 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
           "changes",
           "[gui][settings][autocorrect]") {
     auto& settings = core::SettingsManager::getInstance();
-    EditorPanel panel;
+    EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     REQUIRE(bookEditor != nullptr);
     const editor::AutoCorrectOptions lists = bookEditor->autoCorrect();
     CHECK(bookEditor->autoCorrect() == withListsOf({}, lists));
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
     for (const char* text : CHECK_BOXES) {
         INFO(text);
@@ -221,11 +222,11 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
     CHECK(bookEditor->plainText() == QStringLiteral("– \"Don’t\"..."));
 
     // An editor opened later starts with them
-    EditorPanel later;
+    EditorPanel later(kalahari::test::book(), kalahari::test::commands());
     CHECK(later.getBookEditor()->autoCorrect() == expected);
 
     // A page opened again shows what is stored
-    SettingsDialog again(nullptr);
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* shown = openAutoCorrectPage(again);
     CHECK_FALSE(checkBoxOf(shown, CHECK_BOXES[0])->isChecked());
     CHECK(checkBoxOf(shown, CHECK_BOXES[1])->isChecked());
@@ -237,7 +238,7 @@ TEST_CASE("Settings > Auto-correct: everything is on at first, the open editors 
 TEST_CASE("Settings > Auto-correct: the dash is greyed out while the dialogue dash is off",
           "[gui][settings][autocorrect]") {
     core::SettingsManager::getInstance().set<bool>("editor.autoCorrect.dialogueDash", false);
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
     const QCheckBox* dialogueDash = checkBoxOf(page, CHECK_BOXES[2]);
     REQUIRE(dialogueDash != nullptr);
@@ -250,7 +251,7 @@ TEST_CASE("Settings > Auto-correct: off as a whole, the replacements are greyed 
           "their choices",
           "[gui][settings][autocorrect]") {
     auto& settings = core::SettingsManager::getInstance();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
     QCheckBox* enabled = checkBoxOf(page, "Auto-correct as you type");
     REQUIRE(enabled != nullptr);
@@ -292,31 +293,31 @@ TEST_CASE("Settings > Auto-correct: the notes give the keys Undo has",
                                      "abbreviation or the word to its list.");
     };
     SECTION("The command's keys, also those the user gives it") {
-        registerAllCommands(CommandCallbacks{});
-        const Command* undo = CommandRegistry::getInstance().getCommand("edit.undo");
+        registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+        const Command* undo = kalahari::test::commands().getCommand("edit.undo");
         REQUIRE(undo != nullptr);
         const QString keys = undo->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
         REQUIRE_FALSE(keys.isEmpty());
 
-        SettingsDialog dialog(nullptr);
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         QWidget* page = openAutoCorrectPage(dialog);
         CHECK(labelOf(page, undoNote(keys)) != nullptr);
         CHECK(labelOf(page, learnNote(keys)) != nullptr);
 
         const KeyboardShortcut userKeys(Qt::Key_F12, Qt::ControlModifier);
-        CommandRegistry::getInstance().setCustomShortcuts({{"edit.undo", userKeys}});
+        kalahari::test::commands().setCustomShortcuts({{"edit.undo", userKeys}});
         const QString newKeys = userKeys.toQKeySequence().toString(QKeySequence::NativeText);
         CHECK(labelOf(page, undoNote(newKeys)) != nullptr);
         CHECK(labelOf(page, learnNote(newKeys)) != nullptr);
 
-        CommandRegistry::getInstance().setCustomShortcuts({{"edit.undo", KeyboardShortcut()}});
+        kalahari::test::commands().setCustomShortcuts({{"edit.undo", KeyboardShortcut()}});
         CHECK(labelOf(page, undoNote(QStringLiteral("Edit > Undo"))) != nullptr);
         CHECK(labelOf(page, learnNote(QStringLiteral("Edit > Undo"))) != nullptr);
     }
 
     SECTION("No keys, no mention of them") {
-        CommandRegistry::getInstance().clear();
-        SettingsDialog dialog(nullptr);
+        kalahari::test::commands().clear();
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         QWidget* page = openAutoCorrectPage(dialog);
         CHECK(labelOf(page, undoNote(QStringLiteral("Edit > Undo"))) != nullptr);
         CHECK(labelOf(page, learnNote(QStringLiteral("Edit > Undo"))) != nullptr);
@@ -325,7 +326,7 @@ TEST_CASE("Settings > Auto-correct: the notes give the keys Undo has",
 
 TEST_CASE("Settings > Auto-correct: three tabs, Ctrl+Page Down and Ctrl+Page Up go between them",
           "[gui][settings][autocorrect]") {
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
     auto* tabs = page->findChild<QTabWidget*>();
     REQUIRE(tabs != nullptr);
@@ -359,7 +360,7 @@ TEST_CASE("Settings > Auto-correct: the replacements of the words, the capitals 
           "elements",
           "[gui][settings][autocorrect]") {
     auto& settings = core::SettingsManager::getInstance();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
     const std::array<std::pair<const char*, const char*>, 11> boxes = {{
         {"“ - ” between words with:", "editor.autoCorrect.dashBetweenWords"},
@@ -425,7 +426,7 @@ TEST_CASE("Settings > Auto-correct: the replacements of the words, the capitals 
 TEST_CASE("Settings > Auto-correct: the exceptions of the capitals",
           "[gui][settings][autocorrect]") {
     auto& settings = core::SettingsManager::getInstance();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
     auto* polish = namedChild<QListWidget>(page, "Abbreviations, Polish");
     auto* english = namedChild<QListWidget>(page, "Abbreviations, English and other languages");
@@ -488,7 +489,7 @@ TEST_CASE("Settings > Auto-correct: the exceptions of the capitals",
 TEST_CASE("Settings > Auto-correct: the replacement table", "[gui][settings][autocorrect]") {
     // Each section starts with the program's pairs (a section before may have applied others)
     setReplacementEntries(defaultReplacementEntries());
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openAutoCorrectPage(dialog);
     auto* table = namedChild<QTableWidget>(page, "Replacement table");
     auto* word = namedChild<QLineEdit>(page, "The word of a new pair");
@@ -621,7 +622,7 @@ TEST_CASE("Autocorrect: a chapter has the quotation marks of the book's language
           "those of the program's",
           "[gui][autocorrect]") {
     auto& settings = core::SettingsManager::getInstance();
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = test::book();
     REQUIRE(projects.closeProject(false));
     settings.setLanguage("en");
     settings.set<std::string>("editor.spellCheck.language", "");
@@ -631,9 +632,9 @@ TEST_CASE("Autocorrect: a chapter has the quotation marks of the book's language
     REQUIRE(projects.createProject(folder.path(), QStringLiteral("Autocorrect Test"),
                                    QStringLiteral("Author"), QStringLiteral("pl"), true));
 
-    EditorPanel chapter;
+    EditorPanel chapter(kalahari::test::book(), kalahari::test::commands());
     chapter.setProperty("elementId", QStringLiteral("chapter-1"));
-    EditorPanel file;
+    EditorPanel file(kalahari::test::book(), kalahari::test::commands());
     CHECK(chapter.textLanguage() == QStringLiteral("pl"));
     CHECK(file.textLanguage() == QStringLiteral("en"));
 
@@ -666,13 +667,14 @@ TEST_CASE("Autocorrect: Ctrl+Z right after a change brings back what was typed",
     book->setTextLanguage([]() { return QStringLiteral("pl"); });
 
     // The window's Edit commands, as MainWindow gives them to the element with the keys
-    EditCoordinator coordinator([]() -> editor::BookEditor* { return nullptr; });
+    EditCoordinator coordinator(kalahari::test::commands(),
+                                []() -> editor::BookEditor* { return nullptr; });
     CommandCallbacks callbacks;
     callbacks.onUndo = [&coordinator] { coordinator.execute(EditCoordinator::Edit::Undo); };
     callbacks.onRedo = [&coordinator] { coordinator.execute(EditCoordinator::Edit::Redo); };
-    registerAllCommands(callbacks);
+    registerAllCommands(kalahari::test::commands(), callbacks);
     for (const char* id : {"edit.undo", "edit.redo"}) {
-        window.addAction(CommandRegistry::getInstance().getAction(QString::fromLatin1(id)));
+        window.addAction(kalahari::test::commands().getAction(QString::fromLatin1(id)));
     }
     coordinator.connectCommands();
     window.show();
@@ -703,15 +705,15 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
           "its tooltip names them",
           "[gui][autocorrect][command]") {
     auto& settings = core::SettingsManager::getInstance();
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     QStatusBar statusBar;
-    EditorPanel panel;
+    EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     REQUIRE(bookEditor != nullptr);
     {
-        AutoCorrectCoordinator coordinator(&statusBar);
+        AutoCorrectCoordinator coordinator(kalahari::test::commands(), &statusBar);
         coordinator.connectCommands();
         QAction* action = registry.getAction(std::string("tools.autocorrect"));
         REQUIRE(action != nullptr);
@@ -731,7 +733,7 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
         CHECK(command->menuOrder > spelling->menuOrder);
         {
             QMainWindow window;
-            ToolbarManager manager(&window);
+            ToolbarManager manager(kalahari::test::commands(), &window);
             manager.createToolbars(registry);
             const QToolBar* tools = manager.getToolbar("tools");
             REQUIRE(tools != nullptr);
@@ -842,7 +844,7 @@ TEST_CASE("Autocorrect: Tools > Auto-correct as You Type turns all the replaceme
 TEST_CASE("Autocorrect: the settings of the words reach the editors",
           "[gui][settings][autocorrect]") {
     auto& settings = core::SettingsManager::getInstance();
-    EditorPanel panel;
+    EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     REQUIRE(bookEditor != nullptr);
 
@@ -894,10 +896,10 @@ TEST_CASE("Autocorrect: the settings of the words reach the editors",
 TEST_CASE("Autocorrect: a capital undone right after it adds to the exceptions",
           "[gui][autocorrect][undo]") {
     auto& settings = core::SettingsManager::getInstance();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     settings.set<std::string>("editor.spellCheck.language", "pl");
     QMainWindow window;
-    auto* panel = new EditorPanel();
+    auto* panel = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     window.setCentralWidget(panel);
     editor::BookEditor* bookEditor = panel->getBookEditor();
     bookEditor->fromKml(test::kmlOf({QString()}));
@@ -948,7 +950,7 @@ TEST_CASE("Autocorrect: a capital undone right after it adds to the exceptions",
 TEST_CASE("Autocorrect: a word typed with Caps Lock on turns it off, or the writer is told",
           "[gui][autocorrect]") {
     QMainWindow window;
-    auto* panel = new EditorPanel();
+    auto* panel = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     window.setCentralWidget(panel);
     editor::BookEditor* bookEditor = panel->getBookEditor();
     bookEditor->fromKml(test::kmlOf({QString()}));

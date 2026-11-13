@@ -51,12 +51,13 @@ const QList<double>& ImagePreviewPanel::zoomSteps() {
     return steps;
 }
 
-ImagePreviewPanel::ImagePreviewPanel(const QString& elementId, QWidget* parent)
-    : QWidget(parent), m_elementId(elementId) {
+ImagePreviewPanel::ImagePreviewPanel(core::ProjectManager& book, const QString& elementId,
+                                     QWidget* parent)
+    : QWidget(parent), m_elementId(elementId), m_book(book) {
     setProperty("elementId", elementId);
     setProperty("tabIconId", QStringLiteral("common.image"));
 
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     if (const core::ProjectElement* element = pm.findElement(elementId)) {
         m_path = pm.filePathOf(*element);
         m_rotation = element->rotation;
@@ -282,7 +283,7 @@ void ImagePreviewPanel::turn(int degrees) {
     m_rotation = (m_rotation + degrees) % 360;
     showPicture();
     // The material remembers it; a book open read-only only shows it
-    if (core::ProjectManager::getInstance().setRotation(m_elementId, m_rotation)) {
+    if (m_book.setRotation(m_elementId, m_rotation)) {
         emit rotationChanged(m_elementId);
     }
 }

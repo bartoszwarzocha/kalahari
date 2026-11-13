@@ -92,7 +92,7 @@ void focusInPage(QWidget* widget) {
 
 }  // namespace
 
-PropertiesPanel::PropertiesPanel(QWidget* parent)
+PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
     , m_stackedWidget(nullptr)
     , m_noProjectLabel(nullptr)
@@ -141,6 +141,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_editorReadingTimeLabel(nullptr)
     , m_isUpdating(false)
     , m_activeEditorPanel(nullptr)
+    , m_book(book)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel constructor called");
@@ -168,7 +169,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
         });
 
     // Set initial state based on ProjectManager
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (pm.isProjectOpen()) {
         showProjectProperties();
     } else {
@@ -741,7 +742,7 @@ QWidget* PropertiesPanel::createMaterialPage() {
     QVBoxLayout* layout = new QVBoxLayout(scrollContent);
     layout->setContentsMargins(11, 11, 11, 11);
     layout->setSpacing(11);
-    m_materialPage = new MaterialPage(scrollContent);
+    m_materialPage = new MaterialPage(m_book, scrollContent);
     layout->addWidget(m_materialPage);
     connect(m_materialPage, &MaterialPage::requestPreview, this,
             &PropertiesPanel::requestPreview);
@@ -767,7 +768,7 @@ QWidget* PropertiesPanel::createMaterialPage() {
 }
 
 LinkedMaterialsBox* PropertiesPanel::createMaterialsBox(QWidget* parent) {
-    auto* box = new LinkedMaterialsBox(parent);
+    auto* box = new LinkedMaterialsBox(m_book, parent);
     connect(box, &LinkedMaterialsBox::requestOpenMaterial, this,
             &PropertiesPanel::requestOpenMaterial);
     return box;
@@ -777,7 +778,7 @@ void PropertiesPanel::connectSignals() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::connectSignals()");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // Connect to ProjectManager signals
     connect(&pm, &core::ProjectManager::projectOpened,
@@ -847,7 +848,7 @@ void PropertiesPanel::showChapterProperties(const QString& elementId) {
     logger.debug("PropertiesPanel::showChapterProperties() - Element: {}", elementId.toStdString());
 
     // A material has its card
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     if (const core::ProjectElement* element = pm.findElement(elementId);
         element && pm.isMaterial(*element)) {
         showMaterialProperties(elementId);
@@ -976,7 +977,7 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
         // The counts were of the document that left the front: without one the panel shows
         // the book, as before a document was opened (the status bar shows no counts then)
         if (currentPage() == Page::Editor) {
-            if (core::ProjectManager::getInstance().isProjectOpen()) {
+            if (m_book.isProjectOpen()) {
                 showProjectProperties();
             } else {
                 showNoProject();
@@ -1037,7 +1038,7 @@ void PropertiesPanel::refresh() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::refresh()");
 
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     Page currentPage = static_cast<Page>(m_stackedWidget->currentIndex());
 
     switch (currentPage) {
@@ -1107,7 +1108,7 @@ void PropertiesPanel::refreshMaterial(const QString& elementId) {
 }
 
 void PropertiesPanel::updateWordCounts() {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         return;
     }
@@ -1160,7 +1161,7 @@ void PropertiesPanel::onProjectTitleChanged() {
     if (m_isUpdating) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::ProjectBook* book = pm.book();
     if (!book || pm.isReadOnly()) return;  // a book open read-only keeps its fields
@@ -1183,7 +1184,7 @@ void PropertiesPanel::onProjectAuthorChanged() {
     if (m_isUpdating) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::ProjectBook* book = pm.book();
     if (!book || pm.isReadOnly()) return;
@@ -1200,7 +1201,7 @@ void PropertiesPanel::onProjectLanguageChanged(int index) {
     if (m_isUpdating) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::ProjectBook* book = pm.book();
     if (!book || pm.isReadOnly()) return;
@@ -1224,7 +1225,7 @@ void PropertiesPanel::onProjectGenreChanged() {
     if (m_isUpdating) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::ProjectBook* book = pm.book();
     if (!book || pm.isReadOnly()) return;
@@ -1240,7 +1241,7 @@ void PropertiesPanel::onProjectGenreChanged() {
 void PropertiesPanel::onProjectSectionsChanged() {
     if (m_isUpdating) return;
 
-    const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    const core::ProjectBook* book = m_book.book();
     if (!book) return;
 
     const QString chosen = m_projectSectionsCombo->choice();
@@ -1265,7 +1266,7 @@ void PropertiesPanel::onProjectSectionNamesChanged() {
     if (m_projectSectionsCombo->choice() != QLatin1String(core::ProjectBook::CUSTOM_SECTIONS)) {
         return;
     }
-    if (!core::ProjectManager::getInstance().book()) return;
+    if (!m_book.book()) return;
 
     emit requestSections(core::BookSections{
         true, QString::fromLatin1(core::ProjectBook::CUSTOM_SECTIONS),
@@ -1277,7 +1278,7 @@ void PropertiesPanel::onChapterTitleChanged() {
     if (m_currentChapterId.isEmpty()) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectElement* element = pm.findElement(m_currentChapterId);
     if (!element) return;
@@ -1309,7 +1310,7 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     if (m_currentChapterId.isEmpty()) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectElement* element = pm.findElement(m_currentChapterId);
     if (!element) return;
@@ -1334,7 +1335,7 @@ void PropertiesPanel::onChapterFirstPageChanged(bool left) {
     if (m_currentChapterId.isEmpty()) return;
 
     // ProjectManager saves the project at once
-    if (!core::ProjectManager::getInstance().setFirstPageLeft(m_currentChapterId, left)) {
+    if (!m_book.setFirstPageLeft(m_currentChapterId, left)) {
         const bool wasUpdating = m_isUpdating;
         m_isUpdating = true;
         m_chapterFirstPageLeft->setChecked(!left);
@@ -1349,7 +1350,7 @@ void PropertiesPanel::onChapterNotesChanged() {
     if (m_isUpdating) return;
     if (m_currentChapterId.isEmpty()) return;
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.findElement(m_currentChapterId)) return;
 
@@ -1384,7 +1385,7 @@ void PropertiesPanel::populateProjectFields() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateProjectFields()");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::BookProject* project = pm.project();
     const core::ProjectBook* book = pm.book();
@@ -1435,7 +1436,7 @@ void PropertiesPanel::populateProjectFields() {
 
 void PropertiesPanel::showBookType(const core::BookProject& project,
                                    const core::ProjectBook& book) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     auto& art = core::ArtProvider::getInstance();
     const core::BookTypeRegistry& types = pm.installedBookTypes();
     const core::BookTypePackage* package =
@@ -1465,7 +1466,7 @@ void PropertiesPanel::showBookType(const core::BookProject& project,
     // Greyed out, as the Dashboard shows a type the program does not have
     m_projectTypeLabel->setEnabled(!missing);
     m_projectTypeIcon->setEnabled(!missing);
-    const QString why = readOnlyBookMessage();
+    const QString why = readOnlyBookMessage(m_book);
     //: The tooltip of the type of the book in the Properties panel. In Polish: Typ książki:
     //: z niego pochodzą rodzaje jej elementów
     const QString toolTip =
@@ -1499,7 +1500,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateChapterFields() - Element: {}", elementId.toStdString());
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         logger.warn("PropertiesPanel: No project open, cannot populate chapter fields");
@@ -1513,7 +1514,8 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     }
 
     // The kind of the element names the group and the tooltips: "Story Information"
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+    const QHash<QString, core::KindWords> nouns{
+        {QStringLiteral("kind"), wordsOf(m_book, *element)}};
     //: In Polish: Informacje o {kind:locative}
     m_chapterInfoGroup->setTitle(core::fillWords(tr("{Kind} Information"), nouns));
     //: In Polish: Tytuł {kind:genitive}
@@ -1586,14 +1588,14 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
 
 void PropertiesPanel::showVersions(const QString& elementId) {
     m_versionsElementId = elementId;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const std::optional<core::ChapterVersions> versions = pm.versionsOf(elementId);
     const core::ProjectElement* element = pm.findElement(elementId);
     m_chapterVersionsGroup->setVisible(versions.has_value() && element != nullptr);
     if (!versions || element == nullptr) {
         return;
     }
-    const core::KindWords kind = wordsOf(*element);
+    const core::KindWords kind = wordsOf(m_book, *element);
     const QList<core::ChapterVersion> list = versions->list();
     const bool enabled = versionsEnabled();
     if (!enabled) {
@@ -1739,7 +1741,7 @@ void PropertiesPanel::updateProjectStatistics() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::updateProjectStatistics()");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectBook* book = pm.book();
     if (!book) {
@@ -1788,7 +1790,7 @@ void PropertiesPanel::populateSectionFields(const QString& sectionType) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateSectionFields() - Section: {}", sectionType.toStdString());
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectBook* book = pm.book();
     if (!book) {
@@ -1842,7 +1844,7 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populatePartFields() - Part: {}", partId.toStdString());
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         logger.warn("PropertiesPanel: No project open, cannot populate part fields");
@@ -1863,7 +1865,7 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
     const core::TextStatistics statistics = pm.statisticsOf(part->elements);
     const core::KindRef mainKind = pm.mainTextKind();
     const QHash<QString, core::KindWords> nouns{{QStringLiteral("main"), wordsOf(mainKind)},
-                                                {QStringLiteral("group"), wordsOf(*part)}};
+                                                {QStringLiteral("group"), wordsOf(m_book, *part)}};
     if (mainKind) {
         m_partChapterCountTitle->setText(core::fillWords(tr("{Main:plural}:"), nouns));
         //: In Polish: Liczba {main:genitivePlural} w {group:m=tym|f=tej|n=tym|p=tych}
@@ -1888,7 +1890,7 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
 }
 
 void PropertiesPanel::showSectionMaterials() {
-    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const core::BookProject* project = m_book.project();
     const std::optional<core::BookPlace> place = sectionPlaceOf(m_currentSectionType);
     //: In Polish: Brak powiązanych materiałów.
     m_sectionMaterials->showLinked(project && place ? project->sectionLink(*place) : QString(),
@@ -1897,11 +1899,11 @@ void PropertiesPanel::showSectionMaterials() {
 
 void PropertiesPanel::showPartMaterials() {
     const core::ProjectElement* part =
-        core::ProjectManager::getInstance().findElement(m_currentPartId);
+        m_book.findElement(m_currentPartId);
     if (!part) {
         return;
     }
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*part)}};
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(m_book, *part)}};
     m_partMaterials->showLinked(
         m_currentPartId,
         core::fillWords(tr("{Kind:s=This|p=These} {kind} {kind:s=has|p=have} no linked "

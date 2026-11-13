@@ -14,6 +14,14 @@ class QMainWindow;
 class QStatusBar;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari {
 namespace editor {
 class SpellCheckService;
@@ -42,14 +50,15 @@ class SettingsCoordinator : public QObject {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param mainWindow Parent QMainWindow
     /// @param dockCoordinator Dock coordinator for panel access
     /// @param statusBar Status bar for feedback messages
     /// @param parent Parent QObject
-    explicit SettingsCoordinator(QMainWindow* mainWindow,
-                                  DockCoordinator* dockCoordinator,
-                                  QStatusBar* statusBar,
-                                  QObject* parent = nullptr);
+    explicit SettingsCoordinator(const core::ProjectManager& book, CommandRegistry& commands,
+                                 QMainWindow* mainWindow, DockCoordinator* dockCoordinator,
+                                 QStatusBar* statusBar, QObject* parent = nullptr);
 
     /// @brief Destructor
     ~SettingsCoordinator() override = default;
@@ -105,6 +114,8 @@ private:
     /// @param page The page it opens at (SettingsDialog::openPage()); empty: the first one
     /// @param parent The window it opens over; nullptr: the main window
     void runSettingsDialog(const QString& page, QWidget* parent = nullptr);
+    CommandRegistry& m_commands;  ///< The commands of its window
+    const core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

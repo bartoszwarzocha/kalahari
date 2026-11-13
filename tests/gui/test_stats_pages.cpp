@@ -21,6 +21,7 @@
 #include <QTreeWidget>
 
 #include <algorithm>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::SettingsDialog;
@@ -49,7 +50,7 @@ std::vector<std::string> sorted(std::vector<std::string> keys)
 
 TEST_CASE("Statistics settings: four pages under Statistics and Goals", "[gui][settings][statistics]")
 {
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     const QList<QTreeWidgetItem*> found =

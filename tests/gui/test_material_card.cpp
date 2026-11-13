@@ -47,6 +47,7 @@
 #include <cstdio>
 #include <functional>
 #include <memory>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -395,7 +396,7 @@ TEST_CASE("Material card: the picture, the file, the title and the description, 
         addMaterial(pm, writePicture(files.path(), QStringLiteral("map.png"), QSize(400, 200)),
                     QStringLiteral("Map"));
 
-    gui::MaterialPage page;
+    gui::MaterialPage page(kalahari::test::book());
     QStringList previews;
     QStringList systemOpens;
     QStringList titles;
@@ -534,7 +535,7 @@ TEST_CASE("Material card: a field with the keys gives nothing to a card being de
 
     // QWidget's destructor takes the keys from the title after the card is gone: the title
     // then finishes its editing, which nothing of the card may take
-    auto page = std::make_unique<gui::MaterialPage>();
+    auto page = std::make_unique<gui::MaterialPage>(kalahari::test::book());
     page->showMaterial(map);
     page->show();
     page->activateWindow();
@@ -559,7 +560,7 @@ TEST_CASE("Material card: own fields are added with their names suggested, saved
                                                     QStringLiteral("North"), {}}}));
     const QString map = addMaterial(pm, source, QStringLiteral("Map"));
 
-    gui::MaterialPage page;
+    gui::MaterialPage page(kalahari::test::book());
     page.showMaterial(map);
     QTableWidget* table = page.fieldsTable();
     CHECK(table->isHidden());
@@ -645,7 +646,7 @@ TEST_CASE("Material card: links are added, dropped from the Navigator, opened an
     test::Window window;
     const QString body = pm.project()->sectionLink(core::BookPlace::Main);
 
-    gui::MaterialPage page;
+    gui::MaterialPage page(kalahari::test::book());
     QStringList opened;
     QObject::connect(&page, &gui::MaterialPage::requestOpenLink, [&](const QString& link) {
         opened << link;
@@ -668,8 +669,9 @@ TEST_CASE("Material card: links are added, dropped from the Navigator, opened an
     const gui::NavigatorPanel& navigator = *window.navigatorPanel;
     QTreeWidgetItem* bodyItem = navigatorItem(navigator.tree(), QStringLiteral("section_body"));
     REQUIRE(bodyItem != nullptr);
-    CHECK(gui::NavigatorPanel::linkOf(bodyItem) == body);
-    CHECK(gui::NavigatorPanel::linkOf(navigatorItem(navigator.tree(), map)) == map);
+    CHECK(gui::NavigatorPanel::linkOf(kalahari::test::book(), bodyItem) == body);
+    CHECK(gui::NavigatorPanel::linkOf(kalahari::test::book(),
+                                      navigatorItem(navigator.tree(), map)) == map);
     const std::unique_ptr<QMimeData> section = dragged(navigator, bodyItem);
     CHECK(gui::NavigatorPanel::linksOf(section.get()) == QStringList{body});
 
@@ -755,7 +757,8 @@ TEST_CASE("Link: a material is linked with the sections and the elements, not wi
     REQUIRE(pm.setLinks(map, {novel.chapterId}));
     const QString body = pm.project()->sectionLink(core::BookPlace::Main);
 
-    gui::dialogs::LinkDialog dialog(gui::dialogs::LinkDialog::Mode::Targets, map);
+    gui::dialogs::LinkDialog dialog(kalahari::test::book(), gui::dialogs::LinkDialog::Mode::Targets,
+                                    map);
     QTreeWidget* tree = dialog.tree();
 
     // The book with its sections and their elements, and the Workshop with the other materials
@@ -831,7 +834,7 @@ TEST_CASE("Link: each link has its role, its place in the text and a note",
                                                          QStringLiteral("The whole part"), {}}}));
 
     auto dialog = std::make_unique<gui::dialogs::LinkDialog>(
-        gui::dialogs::LinkDialog::Mode::Targets, quote);
+        kalahari::test::book(), gui::dialogs::LinkDialog::Mode::Targets, quote);
     const auto* hint = dialog->findChild<QLabel*>(QStringLiteral("linkHint"));
     REQUIRE(hint != nullptr);
 
@@ -898,8 +901,8 @@ TEST_CASE("Link: each link has its role, its place in the text and a note",
     QStringList moved = text;
     moved.prepend(QStringLiteral("A new first paragraph."));
     pm.setChapterContent(novel.chapterId, kmlOf(moved));
-    dialog = std::make_unique<gui::dialogs::LinkDialog>(gui::dialogs::LinkDialog::Mode::Materials,
-                                                        novel.chapterId);
+    dialog = std::make_unique<gui::dialogs::LinkDialog>(
+        kalahari::test::book(), gui::dialogs::LinkDialog::Mode::Materials, novel.chapterId);
     REQUIRE(dialog->itemOf(quote) != nullptr);
     CHECK(dialog->itemOf(quote)->checkState(0) == Qt::Checked);
     dialog->setCurrentLink(quote);
@@ -912,8 +915,8 @@ TEST_CASE("Link: each link has its role, its place in the text and a note",
     // Without paragraphs, the place in the text is not shown, and is kept
     ParagraphsSetting::set(false);
     CHECK(gui::linkDetails(set) == QStringLiteral("source of information"));
-    dialog = std::make_unique<gui::dialogs::LinkDialog>(gui::dialogs::LinkDialog::Mode::Materials,
-                                                        novel.chapterId);
+    dialog = std::make_unique<gui::dialogs::LinkDialog>(
+        kalahari::test::book(), gui::dialogs::LinkDialog::Mode::Materials, novel.chapterId);
     dialog->setCurrentLink(quote);
     CHECK(dialog->paragraphCombo()->isHidden());
     dialog->roleCombo()->setCurrentIndex(
@@ -943,9 +946,9 @@ TEST_CASE("Link: the card of a material and the materials of a chapter follow th
                                                        core::LinkRoles::excerptOf(text.at(1)),
                                                        {}, {}}}));
 
-    gui::MaterialPage page;
+    gui::MaterialPage page(kalahari::test::book());
     page.showMaterial(map);
-    gui::PropertiesPanel properties;
+    gui::PropertiesPanel properties(kalahari::test::book());
     properties.showChapterProperties(novel.chapterId);
     gui::LinkedMaterialsBox* box = properties.chapterMaterials();
     REQUIRE(page.linksList()->topLevelItemCount() == 1);
@@ -999,8 +1002,8 @@ TEST_CASE("Paperclips: the paragraphs of an open chapter that materials are link
 
     test::Window window;
     QStringList shown;
-    gui::ParagraphMarksCoordinator coordinator(
-        window.tabs, [&shown](const QString& id) { shown << id; });
+    gui::ParagraphMarksCoordinator coordinator(kalahari::test::book(), window.tabs,
+                                               [&shown](const QString& id) { shown << id; });
     const auto settle = []() {
         for (int i = 0; i < 3; ++i) {
             QCoreApplication::processEvents();
@@ -1016,7 +1019,8 @@ TEST_CASE("Paperclips: the paragraphs of an open chapter that materials are link
     CHECK(editor->paragraphMarks() ==
           QList<editor::ParagraphMark>{
               {1, {map, photo}, {QStringLiteral("Map"), QStringLiteral("Photo")}}});
-    CHECK(gui::ParagraphMarksCoordinator::marksOf(QString(), *editor).isEmpty());
+    CHECK(gui::ParagraphMarksCoordinator::marksOf(kalahari::test::book(), QString(), *editor)
+              .isEmpty());
 
     // A material chosen at the paperclip is shown
     emit editor->paragraphMarkClicked(photo);
@@ -1067,7 +1071,7 @@ TEST_CASE("Materials of an element: the chapter, the section and the part link t
         QStringLiteral("Part One"), core::BookPlace::Main);
     REQUIRE_FALSE(part.isEmpty());
 
-    gui::PropertiesPanel properties;
+    gui::PropertiesPanel properties(kalahari::test::book());
     QStringList opened;
     QObject::connect(&properties, &gui::PropertiesPanel::requestOpenMaterial,
                      [&](const QString& id) { opened << id; });
@@ -1146,7 +1150,7 @@ TEST_CASE("Preview: the zoom, the fit, the turn saved with the material, the neg
         pm, writePicture(files.path(), QStringLiteral("map.png"), QSize(400, 200)),
         QStringLiteral("Map"));
 
-    gui::ImagePreviewPanel preview(map);
+    gui::ImagePreviewPanel preview(kalahari::test::book(), map);
     QList<double> zooms;
     QObject::connect(&preview, &gui::ImagePreviewPanel::zoomChanged,
                      [&](double zoom) { zooms << zoom; });
@@ -1199,7 +1203,7 @@ TEST_CASE("Preview: the zoom, the fit, the turn saved with the material, the neg
     // N shows the negative, which is the tab's own
     press(preview.view(), Qt::Key_N, Qt::NoModifier, QStringLiteral("n"));
     CHECK(preview.isNegative());
-    gui::ImagePreviewPanel another(map);
+    gui::ImagePreviewPanel another(kalahari::test::book(), map);
     CHECK_FALSE(another.isNegative());
     CHECK(another.rotation() == 270);
     preview.toggleNegative();
@@ -1220,7 +1224,7 @@ TEST_CASE("Preview: a file the program cannot show says why and opens in the sys
         pm, writeFile(files.path(), QStringLiteral("notes.txt"), QByteArray("Notes\n")),
         QStringLiteral("Notes"));
 
-    gui::ImagePreviewPanel preview(sketch);
+    gui::ImagePreviewPanel preview(kalahari::test::book(), sketch);
     QStringList opened;
     QObject::connect(&preview, &gui::ImagePreviewPanel::openWithSystemRequested,
                      [&](const QString& id) { opened << id; });
@@ -1238,14 +1242,14 @@ TEST_CASE("Preview: a file the program cannot show says why and opens in the sys
     CHECK(preview.rotation() == 0);
     CHECK(pm.findElement(sketch)->rotation == 0);
 
-    gui::ImagePreviewPanel text(notes);
+    gui::ImagePreviewPanel text(kalahari::test::book(), notes);
     CHECK(text.problem() == QStringLiteral("The program does not show files of this kind. Open "
                                            "the file in the system program."));
 
     // A damaged picture of a format the program shows
     const QString cut = addMaterial(
         pm, writeCutPicture(files.path(), QStringLiteral("cut.png")), QStringLiteral("Cut"));
-    gui::ImagePreviewPanel damaged(cut);
+    gui::ImagePreviewPanel damaged(kalahari::test::book(), cut);
     CHECK_FALSE(damaged.hasPicture());
     CHECK(damaged.problem().startsWith(QStringLiteral("The picture cannot be read (")));
     CHECK(damaged.problem().endsWith(QStringLiteral("). It may be damaged.")));
@@ -1280,10 +1284,10 @@ TEST_CASE("Navigator: a material clicked shows its card, and Alt+Enter brings th
     QTreeWidget* tree = navigator.tree();
     QTreeWidgetItem* mapItem = navigatorItem(tree, map);
     REQUIRE(mapItem != nullptr);
-    CHECK(gui::NavigatorPanel::isMaterialItem(mapItem));
+    CHECK(gui::NavigatorPanel::isMaterialItem(kalahari::test::book(), mapItem));
     QTreeWidgetItem* chapterItem = navigatorItem(tree, novel.chapterId);
     REQUIRE(chapterItem != nullptr);
-    CHECK_FALSE(gui::NavigatorPanel::isMaterialItem(chapterItem));
+    CHECK_FALSE(gui::NavigatorPanel::isMaterialItem(kalahari::test::book(), chapterItem));
 
     // Made current by the program, it shows its card and leaves the panel where it is
     tree->setCurrentItem(mapItem);
@@ -1371,7 +1375,7 @@ TEST_CASE("Material card: on its tab the card fills the whole width", "[gui][mat
     // In a window of its own, as in the middle of the program: a window as wide as this would
     // be made as narrow as the screen of the tests
     QWidget window;
-    gui::MaterialCardPanel card(map, &window);
+    gui::MaterialCardPanel card(kalahari::test::book(), map, &window);
     window.show();
     for (const int width : {700, 1900}) {
         card.resize(width, 800);

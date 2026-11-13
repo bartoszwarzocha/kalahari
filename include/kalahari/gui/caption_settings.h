@@ -11,6 +11,10 @@
 #include <QString>
 #include <QStringList>
 
+namespace kalahari::core {
+class ProjectManager;
+}
+
 namespace kalahari::gui {
 
 // =============================================================================
@@ -65,9 +69,9 @@ QStringList settingsCaptionLabels();
 ///        what a cross-reference shows
 core::BookCaptions settingsBookCaptions();
 
-/// @brief The captions of the open book: its own, else those of the settings (no book: the
-///        settings')
-core::BookCaptions currentBookCaptions();
+/// @brief The captions of the book open in @p book: its own, else those of the settings (no
+///        book: the settings')
+core::BookCaptions currentBookCaptions(const core::ProjectManager& book);
 
 /// @brief The numbering of a label of the book as the editor counts it
 editor::CaptionNumbering numberingOf(const core::CaptionLabelNumbering& numbering);

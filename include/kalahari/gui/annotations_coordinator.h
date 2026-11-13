@@ -24,6 +24,13 @@ class QStatusBar;
 class QTabWidget;
 class QTimer;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -69,6 +76,8 @@ public:
     using ChapterOpener = std::function<void(const QString& elementId)>;
 
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param panel The Annotations panel
     /// @param dock The panel's dock (F9 shows and hides it)
     /// @param centralTabs The tabs of the documents
@@ -76,7 +85,8 @@ public:
     ///        open cannot be gone to or changed)
     /// @param statusBar Where a short message tells there is no further to-do (may be null)
     /// @param parent Parent object
-    AnnotationsCoordinator(AnnotationsPanel* panel, QDockWidget* dock, QTabWidget* centralTabs,
+    AnnotationsCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                           AnnotationsPanel* panel, QDockWidget* dock, QTabWidget* centralTabs,
                            ChapterOpener openChapter, QStatusBar* statusBar,
                            QObject* parent = nullptr);
 
@@ -271,6 +281,8 @@ private:
     bool m_stale = false;             ///< The panel's list is old: refresh when it is shown
     QTimer* m_refreshTimer{nullptr};  ///< Lists the annotations again after edits
     QHash<QString, CachedFile> m_fileCache;  ///< By the files' paths
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

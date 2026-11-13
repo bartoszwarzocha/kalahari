@@ -197,7 +197,14 @@ scripts/build_linux.sh
 | ThemeManager | `getInstance()` | `kalahari::core` |
 | IconRegistry | `getInstance()` | `kalahari::core` |
 | Logger | `getInstance()` | `kalahari::core` |
-| CommandRegistry | `getInstance()` | `kalahari::gui` |
+
+Not singletons: each book window (`MainWindow`) owns its book (`core::ProjectManager`,
+`window.book()`) and its commands (`gui::CommandRegistry`, `window.commands()`). The parts of
+a window get them as the first parameters of their constructors (`core::ProjectManager& book`,
+`CommandRegistry& commands`, members `m_book`, `m_commands`). The installed book types are
+shared: `core::ProjectManager::installedBookTypes()`. The user's keys go to every window:
+`applyCustomShortcuts()`. In the tests: `kalahari::test::book()`, `kalahari::test::commands()`
+(`tests/test_support/window_parts.h`).
 
 ## 11. Code Intelligence & Docs
 

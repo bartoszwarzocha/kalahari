@@ -39,6 +39,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -99,15 +100,15 @@ const std::vector<SidePanel>& sidePanels() {
         {"Annotations",
          [] {
              // With the to-do buttons, as in the program
-             auto* panel = new AnnotationsPanel();
+             auto* panel = new AnnotationsPanel(kalahari::test::commands());
              panel->setTodoActions(new QAction(QStringLiteral("Previous To-Do"), panel),
                                    new QAction(QStringLiteral("Next To-Do"), panel));
              return panel;
          }},
         {"Assistant", [] { return new AssistantPanel(); }},
         {"Log", [] { return new LogPanel(); }},
-        {"Navigator", [] { return new NavigatorPanel(); }},
-        {"Properties", [] { return new PropertiesPanel(); }},
+        {"Navigator", [] { return new NavigatorPanel(kalahari::test::book()); }},
+        {"Properties", [] { return new PropertiesPanel(kalahari::test::book()); }},
         {"Search", [] { return new SearchPanel(); }},
     };
     return panels;
@@ -240,7 +241,7 @@ TEST_CASE("Panels: joined buttons of a choice go one under another where the pan
 TEST_CASE("Panels: the Annotations panel's controls never cover each other", "[gui][panels]") {
     // A narrow, low panel (1366x768 at 150%, the side panels open): the rows wrap and the
     // filters scroll instead of being drawn over each other
-    AnnotationsPanel panel;
+    AnnotationsPanel panel(kalahari::test::commands());
     panel.setTodoActions(new QAction(QStringLiteral("Previous To-Do"), &panel),
                          new QAction(QStringLiteral("Next To-Do"), &panel));
     panel.setAttribute(Qt::WA_DontShowOnScreen);
@@ -311,7 +312,7 @@ TEST_CASE("Settings: the planned pages are muted and readable in both themes",
         INFO(themeName << " theme");
         auto& themes = core::ThemeManager::getInstance();
         REQUIRE(themes.reloadTheme(QString::fromLatin1(themeName)));
-        SettingsDialog dialog(nullptr);
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         auto* tree = dialog.findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         const QColor base = themes.getCurrentTheme().palette.base;

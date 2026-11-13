@@ -49,11 +49,11 @@ bool isCancelKey(const QKeyEvent* event) {
     return event->key() == Qt::Key_Escape && event->modifiers() == Qt::NoModifier;
 }
 
-/// @brief A shortcut of the window that works while the frame has the keys: saving, closing
+/// @brief A shortcut of the window that works while @p frame has the keys: saving, closing
 /// and quitting (what is written is kept before), with the program's keys for them
-bool reachesWindow(const QKeyEvent* event) {
+bool reachesWindow(const WritingFrame& frame, const QKeyEvent* event) {
     for (const char* id : {"file.save", "file.saveAs", "file.close", "file.exit"}) {
-        if (WritingFrame::hasCommandKeys(event, id)) {
+        if (frame.hasCommandKeys(event, id)) {
             return true;
         }
     }
@@ -84,11 +84,9 @@ private:
 
 }  // namespace
 
-WritingFrame::WritingFrame(QWidget* editor, QTextEdit* textEdit, const QString& name)
-    : QFrame(editor)
-    , m_name(name)
-    , m_textEdit(textEdit)
-{
+WritingFrame::WritingFrame(CommandRegistry& commands, QWidget* editor, QTextEdit* textEdit,
+                           const QString& name)
+    : QFrame(editor), m_name(name), m_textEdit(textEdit), m_commands(commands) {
     setObjectName(name);
     setAttribute(Qt::WA_NoMousePropagation);  // a click on it does not move the editor's cursor
     setFont(QApplication::font());            // not the font of the text under it
@@ -305,12 +303,12 @@ void WritingFrame::showOwnWindow(const std::function<void()>& show) {
     }
 }
 
-bool WritingFrame::hasCommandKeys(const QKeyEvent* event, const char* commandId) {
+bool WritingFrame::hasCommandKeys(const QKeyEvent* event, const char* commandId) const {
     // As QKeyEvent::matches(): the keypad and the group switch make no difference
     const Qt::KeyboardModifiers modifiers =
         event->modifiers() & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
     const QKeyCombination keys(modifiers, static_cast<Qt::Key>(event->key()));
-    const Command* command = CommandRegistry::getInstance().getCommand(commandId);
+    const Command* command = m_commands.getCommand(commandId);
     return command != nullptr && !command->shortcut.isEmpty() &&
            command->shortcut.toQKeySequence()[0] == keys;
 }
@@ -465,7 +463,7 @@ bool WritingFrame::eventFilter(QObject* watched, QEvent* event) {
         // The keys stay in the frame: no shortcut of the window but saving, closing and
         // quitting
         auto* key = static_cast<QKeyEvent*>(event);
-        if (reachesWindow(key)) {
+        if (reachesWindow(*this, key)) {
             return false;
         }
         key->accept();

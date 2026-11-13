@@ -272,10 +272,9 @@ void DocumentWindows::updateFront() {
     m_frontPage = page;
     m_frontSaid = true;
     // The Window menu follows the page in front
-    CommandRegistry& registry = CommandRegistry::getInstance();
-    if (registry.getCommand(MOVE_TAB_COMMAND) != nullptr) {
-        registry.updateActionState(MOVE_TAB_COMMAND);
-        registry.updateActionState(RETURN_TAB_COMMAND);
+    if (m_commands != nullptr && m_commands->getCommand(MOVE_TAB_COMMAND) != nullptr) {
+        m_commands->updateActionState(MOVE_TAB_COMMAND);
+        m_commands->updateActionState(RETURN_TAB_COMMAND);
     }
     emit frontChanged(page);
 }
@@ -704,7 +703,8 @@ void DocumentWindows::listWindowsIn(QMenu* windowMenu) {
 
         // Before Window Settings...: the book window, then its windows of their own
         QAction* settings =
-            CommandRegistry::getInstance().getAction(QString::fromLatin1(SETTINGS_COMMAND));
+            m_commands != nullptr ? m_commands->getAction(QString::fromLatin1(SETTINGS_COMMAND))
+                                  : nullptr;
         QAction* before = windowMenu->actions().contains(settings) ? settings : nullptr;
         QWidget* active = QApplication::activeWindow();
         const QList<QWidget*> list = bookWindows();
@@ -802,11 +802,12 @@ DetachedWindow::DetachedWindow(DocumentWindows& owner, QMainWindow& bookWindow)
     m_statistics = new StatusBarStatistics(statusBar(), this);
 
     // The commands of the book window, so their keys work here too
-    CommandRegistry& registry = CommandRegistry::getInstance();
-    for (const Command& command : registry.getAllCommands()) {
-        if (command.canExecute()) {
-            if (QAction* action = registry.getAction(command.id)) {
-                addAction(action);
+    if (CommandRegistry* registry = owner.commands()) {
+        for (const Command& command : registry->getAllCommands()) {
+            if (command.canExecute()) {
+                if (QAction* action = registry->getAction(command.id)) {
+                    addAction(action);
+                }
             }
         }
     }

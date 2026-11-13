@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <functional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::CaptionCoordinator;
@@ -133,7 +134,7 @@ struct Captions {
 
     explicit Captions(Window& window)
         : coordinator(
-              window.tabs,
+              kalahari::test::book(), kalahari::test::commands(), window.tabs,
               [&window](const QString& id) { window.navigator.onElementSelected(id, QString()); },
               &window.window) {}
 };
@@ -149,14 +150,13 @@ struct Filters {
 
     explicit Filters(Window& window)
         : coordinator(
-              window.tabs,
+              kalahari::test::book(), window.tabs,
               [this](gui::EditorPanel*, const QString& message, const QString&, const QString&,
                      const std::function<void()>& action) {
                   notices.append(message);
                   undoButtons.append(action);
               },
-              &window.statusBar, &window.window)
-    {
+              &window.statusBar, &window.window) {
         coordinator.setConfirmer([this](int count, const QString& name) {
             asked << QStringLiteral("%1 %2").arg(count).arg(name);
             return answer;

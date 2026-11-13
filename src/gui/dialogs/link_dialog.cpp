@@ -58,10 +58,10 @@ constexpr int PARAGRAPH_TOOLTIP_CHARACTERS = 300;
 /// Characters of a quote it finds in a text at least: fewer are in nearly every text
 constexpr int MINIMUM_QUOTE = 8;
 
-/// The words of quote @p material as a text has them: its description without the quotation
-/// marks around it and with single spaces; empty for another material or a short quote
-QString quoteWords(const core::ProjectElement* material) {
-    const auto& pm = core::ProjectManager::getInstance();
+/// The words of quote @p material of @p book as a text has them: its description without the
+/// quotation marks around it and with single spaces; empty for another material or a short quote
+QString quoteWords(const core::ProjectManager& book, const core::ProjectElement* material) {
+    const auto& pm = book;
     const core::KindRef kind = material != nullptr ? pm.kindOf(*material) : core::KindRef();
     if (!kind || kind.kind->id != QLatin1String(core::MaterialKinds::QUOTE)) {
         return {};
@@ -99,11 +99,12 @@ private:
     }
 };
 
-/// An item that can be checked, of link @p link
-QTreeWidgetItem* checkItem(QTreeWidgetItem* parent, const QString& link, bool checked) {
+/// An item that can be checked, of link @p link of @p book
+QTreeWidgetItem* checkItem(const core::ProjectManager& book, QTreeWidgetItem* parent,
+                           const QString& link, bool checked) {
     auto* item = new QTreeWidgetItem(parent);
-    item->setText(0, linkTitle(link));
-    item->setIcon(0, linkIcon(link, core::IconContext::TreeView));
+    item->setText(0, linkTitle(book, link));
+    item->setIcon(0, linkIcon(book, link, core::IconContext::TreeView));
     item->setData(0, LINK_ROLE, link);
     item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable);
     item->setCheckState(0, checked ? Qt::Checked : Qt::Unchecked);
@@ -143,9 +144,9 @@ struct KindGroup {
     QList<const core::ProjectElement*> elements;
 };
 
-QList<KindGroup> workshopGroups(const core::BookProject& project, bool materials,
+QList<KindGroup> workshopGroups(const core::ProjectManager& pm,
+                                const core::BookProject& project, bool materials,
                                 const QString& without) {
-    const auto& pm = core::ProjectManager::getInstance();
     QList<KindGroup> groups;
     QList<QString> keys;
     for (const core::ProjectElement& element : project.workshop.elements) {
@@ -158,8 +159,8 @@ QList<KindGroup> workshopGroups(const core::BookProject& project, bool materials
         if (index < 0) {
             keys << key;
             groups.append({core::fillWords(QStringLiteral("{Kind:plural}"),
-                                           {{QStringLiteral("kind"), wordsOf(element)}}),
-                           NavigatorPanel::iconOf(pm.bookTypes(), element,
+                                           {{QStringLiteral("kind"), wordsOf(pm, element)}}),
+                           NavigatorPanel::iconOf(pm, element,
                                                   core::IconContext::TreeView),
                            {}});
             index = groups.size() - 1;
@@ -200,10 +201,11 @@ QList<KindGroup> workshopGroups(const core::BookProject& project, bool materials
 
 } // namespace
 
-LinkDialog::LinkDialog(Mode mode, const QString& link, QWidget* parent)
-    : KalahariDialog(parent), m_mode(mode), m_link(link) {
+LinkDialog::LinkDialog(const core::ProjectManager& book, Mode mode, const QString& link,
+                       QWidget* parent)
+    : KalahariDialog(parent), m_mode(mode), m_link(link), m_book(book) {
     setObjectName(QStringLiteral("linkDialog"));
-    const QString title = linkTitle(link);
+    const QString title = linkTitle(m_book, link);
     if (mode == Mode::Targets) {
         //: The window that links a material with what it is about. In Polish: Powiąż
         //: materiał „%1”
@@ -329,7 +331,7 @@ LinkDialog::LinkDialog(Mode mode, const QString& link, QWidget* parent)
 }
 
 void LinkDialog::fillTargets(const QString& material) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return;
@@ -353,11 +355,12 @@ void LinkDialog::fillTargets(const QString& material) {
              {core::BookPlace::Front, core::BookPlace::Main, core::BookPlace::Back}) {
             const QString section = project->sectionLink(place, index);
             QTreeWidgetItem* sectionItem =
-                checkItem(bookItem, section, links.contains(section));
+                checkItem(m_book, bookItem, section, links.contains(section));
             const std::function<void(QTreeWidgetItem*, const QList<core::ProjectElement>&)> add =
                 [&](QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements) {
                     for (const core::ProjectElement& each : elements) {
-                        QTreeWidgetItem* item = checkItem(parent, each.id, links.contains(each.id));
+                        QTreeWidgetItem* item =
+                            checkItem(m_book, parent, each.id, links.contains(each.id));
                         add(item, each.elements);
                         item->setExpanded(true);
                     }
@@ -372,17 +375,17 @@ void LinkDialog::fillTargets(const QString& material) {
     QTreeWidgetItem* workshopItem = groupItem(
         m_tree->invisibleRootItem(), NavigatorPanel::workshopName(*project),
         art.getIcon(QStringLiteral("structure.workshop"), core::IconContext::TreeView));
-    for (const KindGroup& group : workshopGroups(*project, false, material)) {
+    for (const KindGroup& group : workshopGroups(m_book, *project, false, material)) {
         QTreeWidgetItem* groupNode = groupItem(workshopItem, group.name, group.icon);
         for (const core::ProjectElement* each : group.elements) {
-            checkItem(groupNode, each->id, links.contains(each->id));
+            checkItem(m_book, groupNode, each->id, links.contains(each->id));
         }
     }
     workshopItem->setExpanded(true);
 }
 
 void LinkDialog::fillMaterials(const QString& link) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return;
@@ -391,11 +394,11 @@ void LinkDialog::fillMaterials(const QString& link) {
     QTreeWidgetItem* workshopItem = groupItem(
         m_tree->invisibleRootItem(), NavigatorPanel::workshopName(*project),
         art.getIcon(QStringLiteral("structure.workshop"), core::IconContext::TreeView));
-    for (const KindGroup& group : workshopGroups(*project, true, QString())) {
+    for (const KindGroup& group : workshopGroups(m_book, *project, true, QString())) {
         QTreeWidgetItem* groupNode = groupItem(workshopItem, group.name, group.icon);
         for (const core::ProjectElement* each : group.elements) {
             const core::ElementLink* linked = each->linkTo(link);
-            checkItem(groupNode, each->id, linked != nullptr);
+            checkItem(m_book, groupNode, each->id, linked != nullptr);
             if (linked != nullptr) {
                 m_links.insert(each->id, *linked);
             }
@@ -417,7 +420,7 @@ QStringList LinkDialog::checkedLinks() const {
 core::ElementLink LinkDialog::linkOf(const QString& id) const {
     core::ElementLink link = m_links.contains(id)
                                  ? m_links.value(id)
-                                 : core::ProjectManager::getInstance().newLink(materialOf(id), id);
+                                 : m_book.newLink(materialOf(id), id);
     link.to = m_mode == Mode::Targets ? id : m_link;
     return link;
 }
@@ -438,7 +441,7 @@ QString LinkDialog::textOf(const QString& id) const {
 }
 
 int LinkDialog::paragraphOfQuote(const QString& material, const QStringList& paragraphs) const {
-    const QString words = quoteWords(core::ProjectManager::getInstance().findElement(material));
+    const QString words = quoteWords(m_book, m_book.findElement(material));
     for (qsizetype i = 0; i < paragraphs.size(); ++i) {
         if (hasQuote(paragraphs.at(i), words)) {
             return static_cast<int>(i) + 1;
@@ -454,7 +457,7 @@ void LinkDialog::itemChecked(QTreeWidgetItem* item) {
     const QString id = item->data(0, LINK_ROLE).toString();
     if (item->checkState(0) == Qt::Checked && !m_links.contains(id)) {
         // A new link: the role its kind suggests, and a quote the paragraph with its words
-        const auto& pm = core::ProjectManager::getInstance();
+        const auto& pm = m_book;
         core::ElementLink link =
             pm.newLink(materialOf(id), m_mode == Mode::Targets ? id : m_link);
         if (core::LinkRoles::paragraphsShown()) {
@@ -534,9 +537,9 @@ void LinkDialog::fillParagraphs(const QString& id, const core::ElementLink& link
         m_paragraph->setCurrentIndex(0);
         return;
     }
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     m_paragraphs = pm.paragraphsOf(textOf(id));
-    const QString words = quoteWords(pm.findElement(materialOf(id)));
+    const QString words = quoteWords(pm, pm.findElement(materialOf(id)));
     for (qsizetype i = 0; i < m_paragraphs.size(); ++i) {
         const QString text = m_paragraphs.at(i).simplified();
         if (text.isEmpty()) {
@@ -651,17 +654,17 @@ bool LinkDialog::eventFilter(QObject* watched, QEvent* event) {
     return KalahariDialog::eventFilter(watched, event);
 }
 
-std::optional<QList<core::ElementLink>> chooseLinks(const QString& elementId,
+std::optional<QList<core::ElementLink>> chooseLinks(const core::ProjectManager& book,
+                                                    const QString& elementId,
                                                     const QString& currentLink, QWidget* parent) {
-    LinkDialog dialog(LinkDialog::Mode::Targets, elementId, parent);
+    LinkDialog dialog(book, LinkDialog::Mode::Targets, elementId, parent);
     if (!currentLink.isEmpty()) {
         dialog.setCurrentLink(currentLink);
     }
     if (dialog.exec() != QDialog::Accepted) {
         return std::nullopt;
     }
-    const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(elementId);
+    const core::ProjectElement* element = book.findElement(elementId);
     if (element == nullptr) {
         return std::nullopt;
     }

@@ -28,6 +28,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::DetachedWindow;
@@ -99,7 +100,7 @@ struct BookWindow {
         window.setCentralWidget(tabs);
         tabs->setTabsClosable(true);
         for (int i = 0; i < count; ++i) {
-            auto* text = new EditorPanel();
+            auto* text = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
             tabs->addTab(text, QStringLiteral("Chapter %1").arg(i + 1));
             texts.append(text);
         }
@@ -193,12 +194,14 @@ QList<test::MenuItem> tabMenu(QTabWidget& tabs, int index, const QString& item =
 class WindowCommands {
 public:
     explicit WindowCommands(DocumentWindows& owner) {
-        CHECK(DocumentWindows::registerCommands(gui::CommandRegistry::getInstance(),
+        // As the dock coordinator gives the book window its commands
+        owner.setCommands(test::commands());
+        CHECK(DocumentWindows::registerCommands(test::commands(),
                                                 [&owner]() { return &owner; }) == 5);
     }
     ~WindowCommands() {
         for (const char* id : IDS) {
-            gui::CommandRegistry::getInstance().unregisterCommand(id);
+            test::commands().unregisterCommand(id);
         }
     }
     WindowCommands(const WindowCommands&) = delete;
@@ -206,12 +209,12 @@ public:
 
     /// Whether the command @p id is enabled now
     [[nodiscard]] static bool enabled(const char* id) {
-        return gui::CommandRegistry::getInstance().canExecute(id);
+        return test::commands().canExecute(id);
     }
 
     /// Run the command @p id
     static void run(const char* id) {
-        REQUIRE(gui::CommandRegistry::getInstance().executeCommand(id) ==
+        REQUIRE(test::commands().executeCommand(id) ==
                 gui::CommandExecutionResult::Success);
     }
 
@@ -370,9 +373,10 @@ TEST_CASE("Windows: closing a window of its own returns its texts, or closes the
         QMainWindow window;
         auto* tabs = new QTabWidget(&window);
         window.setCentralWidget(tabs);
-        auto* text = new EditorPanel();
+        auto* text = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
         tabs->addTab(text, QStringLiteral("Chapter 1"));
-        tabs->addTab(new EditorPanel(), QStringLiteral("Chapter 2"));
+        tabs->addTab(new EditorPanel(kalahari::test::book(), kalahari::test::commands()),
+                     QStringLiteral("Chapter 2"));
         DocumentWindows& owner = DocumentWindows::of(*tabs);
         // Its changes are kept: the tab does not close
         int asked = 0;
@@ -503,10 +507,10 @@ TEST_CASE("Windows: the Window menu lists the windows of the book", "[gui][windo
     DocumentWindows& owner = book.owner();
     const WindowCommands commands(owner);
     QMenu menu;
-    menu.addAction(gui::CommandRegistry::getInstance().getAction(
+    menu.addAction(test::commands().getAction(
         QString::fromLatin1(WindowCommands::MOVE)));
     menu.addSeparator();
-    menu.addAction(gui::CommandRegistry::getInstance().getAction(
+    menu.addAction(test::commands().getAction(
         QString::fromLatin1(WindowCommands::SETTINGS)));
     owner.listWindowsIn(&menu);
     REQUIRE(owner.detach(book.texts.at(1)) != nullptr);

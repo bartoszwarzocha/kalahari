@@ -29,6 +29,7 @@
 
 #include <cstdio>
 #include <optional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -330,7 +331,7 @@ TEST_CASE("Material card: a page, a picture on the web with and without its copy
     const QString quoteId =
         addMaterial(pm, {QStringLiteral("What the guide said"), {}, {}, {}, {}, {}, {}});
 
-    gui::MaterialPage page;
+    gui::MaterialPage page(kalahari::test::book());
     QStringList browsers;
     QStringList copies;
     QStringList messages;
@@ -427,13 +428,13 @@ TEST_CASE("Material card: a page, a picture on the web with and without its copy
     CHECK_FALSE(shown(page.addressLabel(), page));
 
     // The full card on a tab has the icon of the source
-    gui::MaterialCardPanel card(pageId);
+    gui::MaterialCardPanel card(kalahari::test::book(), pageId);
     CHECK(card.elementId() == pageId);
     CHECK(card.page()->isFull());
     CHECK(card.property("elementId").toString() == pageId);
     CHECK(card.property("tabIconId").toString() == QStringLiteral("material.page"));
-    gui::MaterialCardPanel quoteCard(quoteId);
+    gui::MaterialCardPanel quoteCard(kalahari::test::book(), quoteId);
     CHECK(quoteCard.property("tabIconId").toString() == QStringLiteral("material.noFile"));
-    gui::MaterialCardPanel pictureCard(pictureId);
+    gui::MaterialCardPanel pictureCard(kalahari::test::book(), pictureId);
     CHECK(pictureCard.property("tabIconId").toString() == QStringLiteral("material.webPicture"));
 }

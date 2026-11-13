@@ -22,6 +22,14 @@ class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari {
 namespace editor {
 class SpellCheckService;
@@ -67,13 +75,16 @@ public:
     static constexpr const char* STATS_COLORS_PAGE = "stats.colors";  ///< Statistics > Colors
 
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param parent Parent widget (usually MainWindow)
     /// @param diagnosticMode Whether the diagnostic menu is shown now (not a stored setting)
     /// @param spelling The dictionary of the editors, whose own words the Spelling page
     ///        edits (none: the page does not list them)
     /// @param grammar The grammar of the editors, which the Grammar page prepares and whose
     ///        server it checks (none: the page does not)
-    explicit SettingsDialog(QWidget* parent, bool diagnosticMode = false,
+    explicit SettingsDialog(const core::ProjectManager& book, CommandRegistry& commands,
+                            QWidget* parent, bool diagnosticMode = false,
                             editor::SpellCheckService* spelling = nullptr,
                             GrammarCoordinator* grammar = nullptr);
 
@@ -165,6 +176,8 @@ private:
     IconsPage* m_iconsPage = nullptr;
     std::map<QString, QTreeWidgetItem*> m_pageItems;  ///< The pages of openPage()
     std::vector<QTreeWidgetItem*> m_plannedItems;  ///< Pages of options not available yet
+    CommandRegistry& m_commands;  ///< The commands of its window
+    const core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

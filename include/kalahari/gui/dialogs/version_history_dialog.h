@@ -23,6 +23,13 @@ class QLabel;
 class QListWidget;
 class QToolButton;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -75,10 +82,13 @@ public:
     using SaveVersion = std::function<void(QWidget* parent)>;
 
     /// @brief The window of the versions of @p text
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param text The text
     /// @param saveVersion What Save the Current Text as a Version does
     /// @param parent Parent widget
-    VersionHistoryDialog(Text text, SaveVersion saveVersion, QWidget* parent = nullptr);
+    VersionHistoryDialog(core::ProjectManager& book, CommandRegistry& commands, Text text,
+                         SaveVersion saveVersion, QWidget* parent = nullptr);
 
     /// @brief What the writer chose; None while the window is open
     Choice choice() const { return m_choice; }
@@ -203,6 +213,8 @@ private:
     Choice m_choice = Choice::None;
     core::ChapterVersion m_chosen;
     QString m_chosenKml;
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace dialogs

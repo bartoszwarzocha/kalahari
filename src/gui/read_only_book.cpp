@@ -34,8 +34,7 @@ QString readOnlyReason() {
     return QCoreApplication::translate("ReadOnlyBook", "The book is open read-only");
 }
 
-QString readOnlyBookMessage() {
-    const core::ProjectManager& pm = core::ProjectManager::getInstance();
+QString readOnlyBookMessage(const core::ProjectManager& pm) {
     const core::BookProject* project = pm.project();
     if (!pm.isProjectOpen() || project == nullptr || !pm.isReadOnly()) {
         return {};

@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::core;
 
@@ -133,7 +134,7 @@ struct Installed {
         // The icons of the program, which the cards take along
         kalahari::gui::registerAllIcons();
     }
-    ~Installed() { ProjectManager::getInstance().loadBookTypes({BUILT_IN}); }
+    ~Installed() { kalahari::test::book().loadBookTypes({BUILT_IN}); }
     Installed(const Installed&) = delete;
     Installed& operator=(const Installed&) = delete;
 
@@ -142,7 +143,7 @@ struct Installed {
 
     /// The program loads the packages of the folder, as when it starts
     void load() const {
-        auto& pm = ProjectManager::getInstance();
+        auto& pm = kalahari::test::book();
         pm.loadBookTypes({folder()});
         REQUIRE(pm.installedBookTypes().problems().isEmpty());
     }
@@ -207,7 +208,7 @@ struct Novel {
     QString chapter;
 
     explicit Novel(const QString& parentDir) {
-        auto& pm = ProjectManager::getInstance();
+        auto& pm = kalahari::test::book();
         REQUIRE(pm.createProject(parentDir, "Moja powieść", "Anna Nowak", "pl", true,
                                  "kalahari.novel"));
         manifest = pm.getManifestPath();
@@ -239,7 +240,7 @@ TEST_CASE("Package cards: a new book has a card of each package it uses",
           "[core][package_cards]") {
     const Installed installed;
     QTemporaryDir dir;
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
 
     SECTION("A novel: the name, the version and the icons of its type and of the base") {
         REQUIRE(pm.createProject(dir.path(), "Moja powieść", "Anna", "pl", true,
@@ -338,7 +339,7 @@ TEST_CASE("Package cards: a new book has a card of each package it uses",
 
 TEST_CASE("Package cards: a card is read as it is written", "[core][package_cards]") {
     const Installed installed;
-    const BookTypePackage* novel = ProjectManager::getInstance().installedBookTypes().package(
+    const BookTypePackage* novel = kalahari::test::book().installedBookTypes().package(
         "kalahari.novel");
     REQUIRE(novel != nullptr);
     const PackageCard card = PackageCard::of(*novel);
@@ -377,7 +378,7 @@ TEST_CASE("Package cards: a book whose type the program does not have opens read
           "[core][package_cards]") {
     const Installed installed;
     QTemporaryDir dir;
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     const Novel novel(dir.path());
     const std::vector<std::string> files = allFilesOf(novel.projectDir);
     REQUIRE(std::any_of(files.begin(), files.end(), [](const std::string& file) {
@@ -466,7 +467,7 @@ TEST_CASE("Package cards: a book opens read-only where the program has its type 
           "[core][package_cards]") {
     const Installed installed;
     QTemporaryDir dir;
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     const Novel novel(dir.path());
 
     // A version of the novel without the prologue, which the book has
@@ -485,7 +486,7 @@ TEST_CASE("Package cards: a newer installed package refreshes the card, an older
           "[core][package_cards]") {
     const Installed installed;
     QTemporaryDir dir;
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
 
     REQUIRE(pm.createProject(dir.path(), "Moja powieść", "Anna", "pl", true, "kalahari.novel"));
     const QString manifest = pm.getManifestPath();
@@ -540,7 +541,7 @@ TEST_CASE("Package cards: a book gets its cards when it opens without them",
           "[core][package_cards]") {
     const Installed installed;
     QTemporaryDir dir;
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     REQUIRE(pm.createProject(dir.path(), "Old", "Anna", "en", true, "kalahari.novel"));
     const QString manifest = pm.getManifestPath();
     const QString projectDir = pm.getProjectPath();
@@ -593,7 +594,7 @@ TEST_CASE("Package cards: the archive of a book takes them to another computer",
           "[core][package_cards][archive]") {
     const Installed installed;
     QTemporaryDir dir;
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
     const QString archive = QDir(dir.path()).filePath("Travels.klh.zip");
     REQUIRE(pm.exportArchive(archive));
@@ -625,7 +626,7 @@ TEST_CASE("Package cards: the cards of the book of an archive are unpacked befor
           "[core][package_cards][archive]") {
     const Installed installed;
     QTemporaryDir dir;
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
     const QString projectDir = pm.getProjectPath();
     const QString archive = QDir(dir.path()).filePath("Travels.klh.zip");

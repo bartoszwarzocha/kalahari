@@ -15,37 +15,36 @@ namespace kalahari::gui {
 namespace {
 
 /// The text elements of a list and the groups in it, in reading order
-void collectTexts(const QList<core::ProjectElement>& elements, core::BookPlace place,
+void collectTexts(const core::ProjectManager& projects,
+                  const QList<core::ProjectElement>& elements, core::BookPlace place,
                   const core::KindRef& mainKind, std::vector<BookTextElement>& texts) {
-    const auto& projects = core::ProjectManager::getInstance();
     for (const core::ProjectElement& element : elements) {
         if (!element.file.isEmpty() && projects.formOf(element) == core::ElementForm::Text) {
             const bool chapter = place == core::BookPlace::Main && mainKind &&
                                  projects.kindOf(element).kind == mainKind.kind;
             texts.push_back({&element, place, chapter});
         }
-        collectTexts(element.elements, place, mainKind, texts);
+        collectTexts(projects, element.elements, place, mainKind, texts);
     }
 }
 
 }  // namespace
 
-std::vector<BookTextElement> bookTextElements() {
+std::vector<BookTextElement> bookTextElements(const core::ProjectManager& projects) {
     std::vector<BookTextElement> texts;
-    auto& projects = core::ProjectManager::getInstance();
     const core::ProjectBook* book = projects.isProjectOpen() ? projects.book() : nullptr;
     if (book == nullptr) {
         return texts;
     }
     const core::KindRef mainKind = projects.mainTextKind();
-    collectTexts(book->frontElements, core::BookPlace::Front, mainKind, texts);
-    collectTexts(book->mainElements, core::BookPlace::Main, mainKind, texts);
-    collectTexts(book->backElements, core::BookPlace::Back, mainKind, texts);
+    collectTexts(projects, book->frontElements, core::BookPlace::Front, mainKind, texts);
+    collectTexts(projects, book->mainElements, core::BookPlace::Main, mainKind, texts);
+    collectTexts(projects, book->backElements, core::BookPlace::Back, mainKind, texts);
     return texts;
 }
 
-std::optional<QString> savedTextIfChanged(const QString& elementId, QString& signature) {
-    const auto& projects = core::ProjectManager::getInstance();
+std::optional<QString> savedTextIfChanged(const core::ProjectManager& projects,
+                                          const QString& elementId, QString& signature) {
     // The unsaved text the program keeps, else its file: read again only when it changed
     const std::vector<QString> dirty = projects.getDirtyElements();
     const bool unsaved = std::find(dirty.cbegin(), dirty.cend(), elementId) != dirty.cend();

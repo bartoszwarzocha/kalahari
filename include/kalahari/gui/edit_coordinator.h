@@ -14,6 +14,10 @@
 
 class QWidget;
 
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -49,10 +53,12 @@ public:
     using EditorInFront = std::function<editor::BookEditor*()>;
 
     /// @brief Constructor
+    /// @param commands The commands of its window
     /// @param editorInFront The text the Annotations and the Spelling and Grammar panels
     ///        change: the one in front
     /// @param parent Parent object
-    explicit EditCoordinator(EditorInFront editorInFront, QObject* parent = nullptr);
+    explicit EditCoordinator(CommandRegistry& commands, EditorInFront editorInFront,
+                             QObject* parent = nullptr);
 
     /// @brief Destructor: the commands get back the state they had before connectCommands()
     ///
@@ -117,6 +123,7 @@ private:
     QObject* m_followedText = nullptr;   ///< The book's text whose changes are followed
     std::vector<QMetaObject::Connection> m_connections;  ///< To the followed element and text
     std::vector<std::pair<std::string, TextCan>> m_textCommands;  ///< addTextCommands()
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

@@ -24,6 +24,14 @@ class QTabWidget;
 class QStatusBar;
 class QTimer;
 
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace core {
     struct ProjectElement;
@@ -66,16 +74,17 @@ class NavigatorCoordinator : public QObject {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param navigatorPanel Navigator panel instance
     /// @param propertiesPanel Properties panel instance
     /// @param centralTabs Central tab widget for editor tabs
     /// @param statusBar Status bar for feedback messages
     /// @param parent Parent QObject
-    explicit NavigatorCoordinator(NavigatorPanel* navigatorPanel,
-                                   PropertiesPanel* propertiesPanel,
-                                   QTabWidget* centralTabs,
-                                   QStatusBar* statusBar,
-                                   QObject* parent = nullptr);
+    explicit NavigatorCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                  NavigatorPanel* navigatorPanel, PropertiesPanel* propertiesPanel,
+                                  QTabWidget* centralTabs, QStatusBar* statusBar,
+                                  QObject* parent = nullptr);
 
     /// @brief Destructor
     ~NavigatorCoordinator() override = default;
@@ -443,6 +452,8 @@ private:
     /// @brief The materials whose downloads the writer asked for: a failure is told in a
     /// window
     QSet<QString> m_askedDownloads;
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

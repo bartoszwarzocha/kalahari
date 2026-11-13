@@ -21,6 +21,13 @@ class QStatusBar;
 class QTabWidget;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -65,14 +72,17 @@ public:
     };
 
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the documents
     /// @param showNotice Says under the text that a style was deleted or brought back, with
     ///        Undo (none: nothing says it)
     /// @param statusBar Where short messages go (may be null)
     /// @param window The window of the program, over which the windows of the styles open
     /// @param parent Parent object
-    StyleCoordinator(QTabWidget* centralTabs, NoticeShower showNotice, QStatusBar* statusBar,
-                     QWidget* window, QObject* parent = nullptr);
+    StyleCoordinator(core::ProjectManager& book, CommandRegistry& commands, QTabWidget* centralTabs,
+                     NoticeShower showNotice, QStatusBar* statusBar, QWidget* window,
+                     QObject* parent = nullptr);
 
     StyleCoordinator(const StyleCoordinator&) = delete;
     StyleCoordinator& operator=(const StyleCoordinator&) = delete;
@@ -253,6 +263,8 @@ private:
     ///        counting)
     editor::BookEditor* m_followed = nullptr;
     QList<QMetaObject::Connection> m_undoWatch;  ///< Changes of texts that make a change final
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

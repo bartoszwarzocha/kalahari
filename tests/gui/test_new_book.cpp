@@ -34,6 +34,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using core::BookPlace;
@@ -793,7 +794,7 @@ TEST_CASE("New Book: with a book open, the new book is created without opening i
 
 TEST_CASE("New Book: a book type that the program does not have is not on the list",
           "[gui][newbook]") {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     if (pm.isProjectOpen()) {
         REQUIRE(pm.closeProject(false));
     }
@@ -852,7 +853,7 @@ TEST_CASE("New Book: a user project gets the kinds and the elements chosen in th
           "kinds",
           "[gui][newbook]") {
     const test::RecentBooks recent;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     if (pm.isProjectOpen()) {
         REQUIRE(pm.closeProject(false));
     }

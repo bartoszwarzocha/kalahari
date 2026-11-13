@@ -28,12 +28,13 @@ constexpr const char* CONNECTED_PROPERTY = "paragraphMarksConnected";
 
 }  // namespace
 
-ParagraphMarksCoordinator::ParagraphMarksCoordinator(QTabWidget* centralTabs,
+ParagraphMarksCoordinator::ParagraphMarksCoordinator(core::ProjectManager& book,
+                                                     QTabWidget* centralTabs,
                                                      MaterialShower showMaterial, QObject* parent)
-    : QObject(parent)
-    , m_centralTabs(centralTabs)
-    , m_showMaterial(std::move(showMaterial))
-{
+    : QObject(parent),
+      m_centralTabs(centralTabs),
+      m_showMaterial(std::move(showMaterial)),
+      m_book(book) {
     // A tab that comes gets its text before the event loop runs: its paperclips after it
     m_refreshTimer = new QTimer(this);
     m_refreshTimer->setSingleShot(true);
@@ -42,7 +43,7 @@ ParagraphMarksCoordinator::ParagraphMarksCoordinator(QTabWidget* centralTabs,
     connect(m_centralTabs, &QTabWidget::currentChanged, m_refreshTimer,
             qOverload<>(&QTimer::start));
 
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::linksChanged, m_refreshTimer,
             qOverload<>(&QTimer::start));
     connect(&projects, &core::ProjectManager::projectOpened, m_refreshTimer,
@@ -63,10 +64,11 @@ ParagraphMarksCoordinator::ParagraphMarksCoordinator(QTabWidget* centralTabs,
 
 ParagraphMarksCoordinator::~ParagraphMarksCoordinator() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
-    disconnect(&core::ProjectManager::getInstance(), nullptr, m_refreshTimer, nullptr);
+    disconnect(&m_book, nullptr, m_refreshTimer, nullptr);
 }
 
-QList<editor::ParagraphMark> ParagraphMarksCoordinator::marksOf(const QString& elementId,
+QList<editor::ParagraphMark> ParagraphMarksCoordinator::marksOf(const core::ProjectManager& book,
+                                                                const QString& elementId,
                                                                 const editor::BookEditor& editor) {
     QList<editor::ParagraphMark> marks;
     const QTextDocument* document = editor.textDocument();
@@ -77,8 +79,7 @@ QList<editor::ParagraphMark> ParagraphMarksCoordinator::marksOf(const QString& e
     for (QTextBlock block = document->begin(); block.isValid(); block = block.next()) {
         paragraphs << block.text();
     }
-    for (const core::ProjectElement* material :
-         core::ProjectManager::getInstance().materialsLinkedTo(elementId)) {
+    for (const core::ProjectElement* material : book.materialsLinkedTo(elementId)) {
         const core::ElementLink* link = material->linkTo(elementId);
         const int number = link != nullptr ? core::LinkRoles::paragraphOf(paragraphs, *link) : 0;
         if (number <= 0) {
@@ -136,7 +137,7 @@ void ParagraphMarksCoordinator::refreshPanel(EditorPanel* panel) {
     // A chapter of the book: a file of its own has no element
     const QString elementId = panel->property("elementId").toString();
     editor->setParagraphMarks(
-        marksOf(elementId, *editor),
+        marksOf(m_book, elementId, *editor),
         core::ArtProvider::getInstance().getIcon(QStringLiteral("structure.materials")));
 }
 

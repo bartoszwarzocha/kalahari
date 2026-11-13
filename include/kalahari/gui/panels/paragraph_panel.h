@@ -17,6 +17,10 @@ class QTimer;
 class QToolBar;
 class QToolButton;
 
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -46,7 +50,7 @@ class ParagraphPanel : public QWidget {
     Q_OBJECT
 
 public:
-    explicit ParagraphPanel(QWidget* parent = nullptr);
+    explicit ParagraphPanel(CommandRegistry& commands, QWidget* parent = nullptr);
     ~ParagraphPanel() override;
 
     /// @brief Follow the text in front; nullptr without one (the Dashboard, no tab)
@@ -184,6 +188,7 @@ private:
     QAction* m_manageStylesAction = nullptr;
     QLabel* m_styleHint = nullptr;        ///< What a click and the menu of a style do
     QPointer<StyleCoordinator> m_styles;  ///< The styles of the book (setStyleCoordinator())
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

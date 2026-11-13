@@ -30,6 +30,14 @@ class QTableWidgetItem;
 class QTreeWidget;
 class QTreeWidgetItem;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari {
 namespace core {
 struct Theme;
@@ -163,7 +171,10 @@ public:
 class EditorGeneralPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorGeneralPage(QWidget* parent = nullptr);
+    explicit EditorGeneralPage(CommandRegistry& commands, QWidget* parent = nullptr);
+
+private:
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 /// @brief Editor > Colors: the light and the dark paper, kept for each theme
@@ -273,13 +284,14 @@ private:
 class EditorAutoCorrectPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorAutoCorrectPage(QWidget* parent = nullptr);
+    explicit EditorAutoCorrectPage(CommandRegistry& commands, QWidget* parent = nullptr);
 
 protected:
     /// @brief The keys of the table and of the fields of a new pair
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    CommandRegistry& m_commands;  ///< The commands of its window
     /// @brief The tab of the characters replaced as they are typed
     QWidget* createWhileTypingTab();
 
@@ -345,9 +357,10 @@ private:
 class EditorQuickInsertPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorQuickInsertPage(QWidget* parent = nullptr);
+    explicit EditorQuickInsertPage(CommandRegistry& commands, QWidget* parent = nullptr);
 
 private:
+    CommandRegistry& m_commands;  ///< The commands of its window
     void createSources();
     void createItems();
 
@@ -374,13 +387,14 @@ private:
 class EditorRepetitionsPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorRepetitionsPage(QWidget* parent = nullptr);
+    explicit EditorRepetitionsPage(CommandRegistry& commands, QWidget* parent = nullptr);
 
 protected:
     /// @brief Enter in the field of a new word adds it, and does not close the dialog
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    CommandRegistry& m_commands;  ///< The commands of its window
     void addWord();
     void removeWords();
     void updateButtons();
@@ -396,7 +410,10 @@ private:
 class EditorVersionsPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorVersionsPage(QWidget* parent = nullptr);
+    explicit EditorVersionsPage(CommandRegistry& commands, QWidget* parent = nullptr);
+
+private:
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 /// @brief Annotations: who new comments, to-dos and notes are by, their marks in the text, their
@@ -419,13 +436,13 @@ private:
 class NavigatorPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit NavigatorPage(QWidget* parent = nullptr);
+    explicit NavigatorPage(const core::ProjectManager& book, QWidget* parent = nullptr);
 
 private:
     QRadioButton* m_named = nullptr;   ///< "Add..." and the commands named after kinds
     QRadioButton* m_single = nullptr;  ///< "Add..." only
     QRadioButton* m_sections = nullptr;  ///< A section of the book or the Workshop at a time
-    QRadioButton* m_book = nullptr;      ///< The whole book or the Workshop
+    QRadioButton* m_wholeBook = nullptr;  ///< The whole book or the Workshop
     QRadioButton* m_place = nullptr;     ///< No choice: the kinds of the place only
     QRadioButton* m_treeTypes = nullptr;   ///< The Materials show their kinds with numbers
     QRadioButton* m_treeExpand = nullptr;  ///< The kinds have their materials under them
@@ -443,6 +460,7 @@ private:
     QRadioButton* m_unitWords = nullptr;       ///< In words
     QList<QSpinBox*> m_characterTargets;  ///< The targets of the texts of the cover in characters
     QList<QSpinBox*> m_wordTargets;       ///< In words
+    const core::ProjectManager& m_book;  ///< The book of its window
 };
 
 /// @brief Network > Materials: whether the program downloads the title of the page or the copy

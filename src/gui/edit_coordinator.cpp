@@ -266,12 +266,13 @@ struct EditCoordinator::Target {
     editor::BookEditor* history = nullptr;  ///< The text's undo history only: Undo and Redo
 };
 
-EditCoordinator::EditCoordinator(EditorInFront editorInFront, QObject* parent)
-    : QObject(parent), m_editorInFront(std::move(editorInFront)) {}
+EditCoordinator::EditCoordinator(CommandRegistry& commands, EditorInFront editorInFront,
+                                 QObject* parent)
+    : QObject(parent), m_editorInFront(std::move(editorInFront)), m_commands(commands) {}
 
 EditCoordinator::~EditCoordinator() {
     // Their states asked this coordinator
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const auto& command : COMMANDS) {
         if (Command* found = registry.getCommand(command.second)) {
             found->isEnabled = nullptr;
@@ -285,7 +286,7 @@ EditCoordinator::~EditCoordinator() {
 }
 
 void EditCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const auto& [edit, id] : COMMANDS) {
         if (Command* command = registry.getCommand(id)) {
             command->isEnabled = [this, edit = edit]() { return canDo(edit, focusedElement()); };
@@ -312,7 +313,7 @@ editor::BookEditor* EditCoordinator::textWithKeys() const {
 }
 
 void EditCoordinator::addTextCommands(const std::vector<std::string>& ids, const TextCan& can) {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const std::string& id : ids) {
         if (Command* command = registry.getCommand(id)) {
             command->isEnabled = [this, can]() {
@@ -448,7 +449,7 @@ bool EditCoordinator::execute(Edit edit, QWidget* element) {
 
 void EditCoordinator::updateStates() {
     follow(focusedElement());
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const auto& command : COMMANDS) {
         registry.updateActionState(command.second);
     }

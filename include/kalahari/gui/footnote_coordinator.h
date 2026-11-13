@@ -21,6 +21,13 @@
 class QTabWidget;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -68,13 +75,16 @@ public:
         std::vector<editor::Footnote> notes;  ///< In text order
     };
 
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the book window (DocumentWindows gives all the texts)
     /// @param textWithKeys The text the commands work in
     /// @param openChapter Opens a text of the book (a click on its endnote at the end of the
     ///        book)
     /// @param window Over which the windows open
     /// @param parent Parent object
-    FootnoteCoordinator(QTabWidget* centralTabs, TextWithKeys textWithKeys,
+    FootnoteCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                        QTabWidget* centralTabs, TextWithKeys textWithKeys,
                         ChapterOpener openChapter = {}, QWidget* window = nullptr,
                         QObject* parent = nullptr);
 
@@ -197,6 +207,8 @@ private:
     QList<editor::BookEditor*> m_attached;  ///< The editors whose signals it has
     std::optional<Writing> m_writing;
     NoteFrame* m_frame{nullptr};  ///< Destroyed with its editor (a closed tab): null again
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

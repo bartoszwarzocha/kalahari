@@ -14,6 +14,13 @@ class QTabWidget;
 class QToolButton;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class GrammarCheckService;
 }
@@ -77,11 +84,13 @@ public:
     };
 
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the documents, whose editors are checked
     /// @param statusBar Where short messages about the grammar are shown (may be null)
     /// @param parent Parent object
-    GrammarCoordinator(QTabWidget* centralTabs, QStatusBar* statusBar,
-                       QObject* parent = nullptr);
+    GrammarCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                       QTabWidget* centralTabs, QStatusBar* statusBar, QObject* parent = nullptr);
 
     /// @brief Destructor: the command has no callbacks any more; the server is closed
     ~GrammarCoordinator() override;
@@ -203,6 +212,8 @@ private:
     bool m_failureUnseen{false};  ///< The preparation failed while its window was closed
     QString m_serverError;        ///< What the status bar said when the server did not
                                   ///< answer, until it answers again
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

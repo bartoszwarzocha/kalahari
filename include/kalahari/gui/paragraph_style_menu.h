@@ -13,6 +13,10 @@ class QAction;
 class QActionGroup;
 class QMenu;
 
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -40,10 +44,12 @@ public:
     /// @brief The text in front (nullptr: none)
     using EditorInFront = std::function<editor::BookEditor*()>;
 
+    /// @param commands The commands of its window
     /// @param menu The Text Style submenu, with the fixed commands
     /// @param editorInFront The text whose styles the menu shows and changes
     /// @param parent Owner
-    ParagraphStyleMenu(QMenu* menu, EditorInFront editorInFront, QObject* parent);
+    ParagraphStyleMenu(CommandRegistry& commands, QMenu* menu, EditorInFront editorInFront,
+                       QObject* parent);
 
     /// @brief The items of the text's other styles, as the menu shows them now
     [[nodiscard]] const QList<QAction*>& bookStyleActions() const { return m_bookStyles; }
@@ -56,6 +62,7 @@ private:
     EditorInFront m_editorInFront;
     QActionGroup* m_group;          ///< The fixed commands and the other styles: one checked
     QList<QAction*> m_bookStyles;   ///< The items of the text's other styles
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

@@ -51,10 +51,10 @@ QString keysText(const KeyboardShortcut& keys)
                      keys.keyCode | static_cast<int>(keys.modifiers.toInt())));
 }
 
-/// @brief The name of a command, as its menu item says it
-QString commandTitle(const std::string& id)
+/// @brief The name of a command of @p commands, as its menu item says it
+QString commandTitle(const CommandRegistry& commands, const std::string& id)
 {
-    const Command* command = CommandRegistry::getInstance().getCommand(id);
+    const Command* command = commands.getCommand(id);
     return command != nullptr ? QString::fromStdString(command->label)
                               : QString::fromStdString(id);
 }
@@ -65,13 +65,14 @@ QString commandTitle(const std::string& id)
 // CharacterShortcutDialog
 // ============================================================================
 
-CharacterShortcutDialog::CharacterShortcutDialog(char32_t code, std::string commandId,
+CharacterShortcutDialog::CharacterShortcutDialog(CommandRegistry& commands, char32_t code,
+                                                 std::string commandId,
                                                  const KeyboardShortcut& keysNow, QWidget* parent)
-    : KalahariDialog(parent)
-    , m_commandId(std::move(commandId))
-    , m_keysNow(keysNow)
-    , m_keys(keysNow)
-{
+    : KalahariDialog(parent),
+      m_commandId(std::move(commandId)),
+      m_keysNow(keysNow),
+      m_keys(keysNow),
+      m_commands(commands) {
     setHeading(tr("Shortcut for a Character"),
                //: %1 is a character with its name, as "Em dash (—)"
                tr("Press the keys that are to insert %1.").arg(characterTitle(code)));
@@ -149,13 +150,13 @@ void CharacterShortcutDialog::record(QKeyCombination keys)
 
     m_keys = pressed;
     QStringList lines;
-    const std::string owner = ownerOfKeys(pressed);
+    const std::string owner = ownerOfKeys(m_commands, pressed);
     if (!owner.empty() && owner != m_commandId) {
         //: %1 are keys, %2 the command that has them
         lines.append(tr("%1 belongs to <b>%2</b> now: if you assign it here, that command "
                         "will be left without a shortcut.")
                          .arg(keysText(pressed).toHtmlEscaped(),
-                              commandTitle(owner).toHtmlEscaped()));
+                              commandTitle(m_commands, owner).toHtmlEscaped()));
     }
     if (check.result == KeyCheck::Result::Warning) {
         lines.append(check.reason.toHtmlEscaped());

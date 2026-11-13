@@ -88,9 +88,8 @@ core::KindWords wordsOf(const core::BookTypeRegistry& registry,
     return words;
 }
 
-core::KindWords wordsOf(const core::ProjectElement& element) {
-    const core::ProjectManager& pm = core::ProjectManager::getInstance();
-    return wordsOf(pm.bookTypes(), element, pm.packageCard(element.kind.packageId));
+core::KindWords wordsOf(const core::ProjectManager& book, const core::ProjectElement& element) {
+    return wordsOf(book.bookTypes(), element, book.packageCard(element.kind.packageId));
 }
 
 bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement& a,
@@ -103,8 +102,8 @@ bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement
     return a.kind.kindId == b.kind.kindId;
 }
 
-core::KindWords mainWords() {
-    return wordsOf(core::ProjectManager::getInstance().mainTextKind());
+core::KindWords mainWords(const core::ProjectManager& book) {
+    return wordsOf(book.mainTextKind());
 }
 
 core::KindWords elementWords() {

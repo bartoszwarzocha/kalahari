@@ -180,7 +180,7 @@ QString quickInsertTriggers() {
     return triggers;
 }
 
-QList<editor::QuickInsertItem> quickInsertItems(QChar trigger) {
+QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger) {
     QStringList sources;
     if (trigger == QLatin1Char('@')) {
         sources = sourcesOf(quick_insert_keys::AT_SOURCES);
@@ -194,9 +194,8 @@ QList<editor::QuickInsertItem> quickInsertItems(QChar trigger) {
 
     QList<editor::QuickInsertItem> items;
     if (sources.contains(QLatin1String(quick_insert_keys::SOURCE_CARDS))) {
-        auto& projects = core::ProjectManager::getInstance();
-        if (const core::BookProject* project = projects.project()) {
-            items.append(cardItems(*project, projects.bookTypes()));
+        if (const core::BookProject* project = book.project()) {
+            items.append(cardItems(*project, book.bookTypes()));
         }
     }
     const bool fragments = sources.contains(QLatin1String(quick_insert_keys::SOURCE_FRAGMENTS));

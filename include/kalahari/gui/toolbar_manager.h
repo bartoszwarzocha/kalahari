@@ -64,14 +64,18 @@ public:
     };
 
     /// @brief Constructor
+    /// @param commands The commands of its window
     /// @param mainWindow Parent QMainWindow (toolbar owner)
-    explicit ToolbarManager(QMainWindow* mainWindow);
+    explicit ToolbarManager(CommandRegistry& commands, QMainWindow* mainWindow);
 
     /// @brief Destructor
     ///
     /// ToolbarManager does NOT own toolbars - they are owned by QMainWindow.
     /// Qt parent-child ownership handles cleanup.
     ~ToolbarManager();
+
+    /// @brief The commands of its window, those the toolbars show
+    [[nodiscard]] CommandRegistry& commands() const { return m_commands; }
 
     // Disable copy and move (manager class, single instance per MainWindow)
     ToolbarManager(const ToolbarManager&) = delete;
@@ -427,6 +431,7 @@ private:
     /// Context of the connections whose lambdas capture this manager: declared last, so it is
     /// destroyed first and Qt drops those connections before the rest of the manager goes
     QObject m_connectionContext;
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

@@ -30,17 +30,17 @@ constexpr int MESSAGE_MS = 8000;
 
 }  // namespace
 
-ImageFilterCoordinator::ImageFilterCoordinator(QTabWidget* centralTabs, NoticeShower showNotice,
-                                               QStatusBar* statusBar, QWidget* window,
-                                               QObject* parent)
+ImageFilterCoordinator::ImageFilterCoordinator(core::ProjectManager& book, QTabWidget* centralTabs,
+                                               NoticeShower showNotice, QStatusBar* statusBar,
+                                               QWidget* window, QObject* parent)
     : QObject(parent),
       m_centralTabs(centralTabs),
       m_showNotice(std::move(showNotice)),
       m_statusBar(statusBar),
-      m_window(window)
-{
+      m_window(window),
+      m_book(book) {
     // Another book: the change is final
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this, &ImageFilterCoordinator::forgetUndo);
     connect(&projects, &core::ProjectManager::projectClosed, this, &ImageFilterCoordinator::forgetUndo);
 }
@@ -128,7 +128,7 @@ int ImageFilterCoordinator::applyToBook(editor::BookEditor& text, int position)
 
     // The texts: the open ones as their editors have them, the others as kept; a file outside
     // the book alone
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     QHash<QString, editor::BookEditor*> open;
     QString textId;
     for (const auto& [elementId, editor] : openEditors()) {
@@ -274,7 +274,7 @@ bool ImageFilterCoordinator::undo()
     for (editor::BookEditor* editor : step.editors) {
         editor->undo();
     }
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     for (const SavedText& chapter : step.savedTexts) {
         projects.setChapterContent(chapter.elementId, chapter.kml);
         if (chapter.saved) {

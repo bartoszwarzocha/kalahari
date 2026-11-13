@@ -347,7 +347,7 @@ int main(int argc, char *argv[]) {
 
         // Schedule benchmark execution after event loop starts
         QTimer::singleShot(500, [&window, projectPath, chapterTitle, &logger, &app]() {
-            auto& pm = kalahari::core::ProjectManager::getInstance();
+            auto& pm = window.book();
 
             // Open project if specified (and not already open)
             if (!projectPath.isEmpty() && !pm.isProjectOpen()) {
@@ -467,11 +467,9 @@ int main(int argc, char *argv[]) {
         });
     }
 
-    // Close the project while Qt is still alive: the ProjectManager singleton is
-    // destroyed after QApplication, when the Qt SQL connection registry is gone.
-    QObject::connect(&app, &QCoreApplication::aboutToQuit, []() {
-        kalahari::core::ProjectManager::getInstance().closeProject();
-    });
+    // Close the book while the event loop still runs, before the window is destroyed
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &window,
+                     [&window]() { window.book().closeProject(); });
 
     logger.info("Main window shown - entering event loop");
 

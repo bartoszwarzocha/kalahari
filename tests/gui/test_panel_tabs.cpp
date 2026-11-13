@@ -26,6 +26,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -200,7 +201,7 @@ struct TabbedPanels {
         }
         window.tabifyDockWidget(docks.at(0), docks.at(1));
         window.tabifyDockWidget(docks.at(1), docks.at(2));
-        tabs = new PanelTabs(&window, &window);
+        tabs = new PanelTabs(kalahari::test::commands(), &window, &window);
         for (QDockWidget* dock : std::as_const(docks)) {
             tabs->addPanel(dock, "test.panelTabs." + dock->objectName().toStdString());
         }

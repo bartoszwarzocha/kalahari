@@ -13,6 +13,13 @@ class QStatusBar;
 class QTabWidget;
 class QTimer;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 class SpellCheckService;
@@ -50,11 +57,13 @@ public:
     using NextIssueHandler = std::function<void(editor::BookEditor* editor, bool found)>;
 
     /// @brief Constructor: the dictionary starts loading in the background
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the documents, whose editors check with the dictionary
     /// @param statusBar Where short messages about the spelling are shown (may be null)
     /// @param parent Parent object
-    SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* statusBar,
-                        QObject* parent = nullptr);
+    SpellingCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                        QTabWidget* centralTabs, QStatusBar* statusBar, QObject* parent = nullptr);
 
     /// @brief Destructor: the commands have no callbacks any more
     ~SpellingCoordinator() override;
@@ -88,9 +97,9 @@ public:
     ///        languages have the same dictionary; it keeps the writer's own words
     editor::SpellCheckService* service() const { return m_service; }
 
-    /// @brief The language the chapters of the book are checked in: the setting, else the
-    ///        book's language, else the program's
-    static QString wantedLanguage();
+    /// @brief The language the chapters of the book open in @p book are checked in: the
+    ///        setting, else the book's language, else the program's
+    static QString wantedLanguage(const core::ProjectManager& book);
 
     /// @brief The language a document outside the book is checked in: the setting, else the
     ///        program's
@@ -149,6 +158,8 @@ private:
     QString m_otherMissingLanguage;
 
     NextIssueHandler m_nextIssueHandler;  ///< Shows the next issue instead of its menu
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

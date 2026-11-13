@@ -33,6 +33,10 @@ class QTreeWidget;
 class QVBoxLayout;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace core {
 class BookTypeRegistry;
@@ -250,9 +254,9 @@ public:
         std::function<bool(const QString& path, bool withBackups, bool withVersions,
                            const Progress& progress, core::ArchiveProblem* problem)>;
 
-    /// @brief What the window says about the book open in the program, without its changes
+    /// @brief What the window says about the book open in @p projects, without its changes
     /// that are not saved, which the caller knows
-    static Book openBook();
+    static Book openBook(const core::ProjectManager& projects);
 
     /// @brief Create the window
     /// @param book What the window says about the book

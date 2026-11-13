@@ -29,6 +29,7 @@
 #include <QTimer>
 
 #include <cmath>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;
@@ -121,7 +122,7 @@ TEST_CASE("Save All: a file that cannot be saved does not stop the others", "[gu
 TEST_CASE("Opening another book asks only about the changes of the open book",
           "[gui][save]") {
     const RecentBooks recent;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QTemporaryDir otherFolder;
     REQUIRE(otherFolder.isValid());
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
@@ -157,7 +158,7 @@ TEST_CASE("Opening another book asks only about the changes of the open book",
 TEST_CASE("Opening a book of a newer version of Kalahari says so, and the open book stays open",
           "[gui][save]") {
     const RecentBooks recent;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QTemporaryDir files;
     REQUIRE(files.isValid());
     const QString future = QDir(files.path()).filePath(QStringLiteral("Future.klh"));
@@ -214,7 +215,7 @@ TEST_CASE("Opening a book of a newer version of Kalahari says so, and the open b
 TEST_CASE("Opening a book of an older version converts it when the writer agrees",
           "[gui][save]") {
     const RecentBooks recent;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     QTemporaryDir files;
     REQUIRE(files.isValid());
@@ -444,7 +445,7 @@ TEST_CASE("Save As: a chapter with annotations saved as a plain text file asks f
 TEST_CASE("Opening a book that another Kalahari program has open says so, with Try Again",
           "[gui][save]") {
     const RecentBooks recent;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QTemporaryDir otherFolder;
     REQUIRE(otherFolder.isValid());
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});

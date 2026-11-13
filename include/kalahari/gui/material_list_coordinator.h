@@ -14,6 +14,10 @@ class QTabWidget;
 class QTimer;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari::gui {
 
 class MaterialListPanel;
@@ -40,14 +44,15 @@ public:
     using PropertiesShower = std::function<void(bool keys)>;
 
     /// @brief Constructor
+    /// @param book The book of its window
     /// @param centralTabs The tabs in the middle of the window
     /// @param navigator The commands of the elements of the book
     /// @param statusBar Where the lists say what they did
     /// @param showProperties Brings the Properties panel to the front
     /// @param parent Parent QObject
-    MaterialListCoordinator(QTabWidget* centralTabs, NavigatorCoordinator* navigator,
-                            QStatusBar* statusBar, PropertiesShower showProperties,
-                            QObject* parent = nullptr);
+    MaterialListCoordinator(core::ProjectManager& book, QTabWidget* centralTabs,
+                            NavigatorCoordinator* navigator, QStatusBar* statusBar,
+                            PropertiesShower showProperties, QObject* parent = nullptr);
     ~MaterialListCoordinator() override;
 
     MaterialListCoordinator(const MaterialListCoordinator&) = delete;
@@ -112,6 +117,7 @@ private:
     PropertiesShower m_showProperties;
     QTimer* m_refreshTimer = nullptr;
     int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 }  // namespace kalahari::gui

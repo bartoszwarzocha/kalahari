@@ -46,6 +46,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -110,8 +111,8 @@ void setDefaults() {
 /// The program's commands while the test lives
 class Commands {
 public:
-    Commands() { registerAllCommands(CommandCallbacks{}); }
-    ~Commands() { CommandRegistry::getInstance().clear(); }
+    Commands() { registerAllCommands(kalahari::test::commands(), CommandCallbacks{}); }
+    ~Commands() { kalahari::test::commands().clear(); }
     Commands(const Commands&) = delete;
     Commands& operator=(const Commands&) = delete;
 };
@@ -198,7 +199,7 @@ struct Desk {
         dock->hide();
         annotations->raise();
         coordinator = std::make_unique<RepetitionsCoordinator>(
-            panel, dock, tabs, nullptr,
+            kalahari::test::book(), kalahari::test::commands(), panel, dock, tabs, nullptr,
             [this](const QString& elementId) {
                 opened.append(elementId);
                 openChapter(elementId);
@@ -224,7 +225,7 @@ struct Desk {
     /// Open a document with the paragraphs in a tab of its own, in front
     editor::BookEditor* open(const QStringList& paragraphs,
                              const QString& title = QStringLiteral("Document")) {
-        auto* document = new EditorPanel();
+        auto* document = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
         document->setContent(kmlOf(paragraphs));
         tabs->setCurrentIndex(tabs->addTab(document, title));
         return document->getBookEditor();
@@ -232,13 +233,13 @@ struct Desk {
 
     /// Open a chapter of the book from its file, as the Navigator does
     editor::BookEditor* openChapter(const QString& elementId) {
-        auto& pm = core::ProjectManager::getInstance();
+        auto& pm = test::book();
         const core::ProjectElement* element = pm.findElement(elementId);
         REQUIRE(element != nullptr);
         const std::optional<core::ChapterDocument> chapter =
             core::ChapterDocument::load(pm.filePathOf(*element));
         REQUIRE(chapter.has_value());
-        auto* document = new EditorPanel();
+        auto* document = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
         document->setContent(chapter->kml());
         document->setProperty("elementId", elementId);
         tabs->setCurrentIndex(tabs->addTab(document, element->title));
@@ -258,7 +259,7 @@ struct Desk {
     /// Next Repetition
     static void nextRepetition() {
         QAction* next =
-            CommandRegistry::getInstance().getAction(std::string("tools.nextRepetition"));
+            kalahari::test::commands().getAction(std::string("tools.nextRepetition"));
         REQUIRE(next != nullptr);
         REQUIRE(next->isEnabled());
         next->trigger();
@@ -268,7 +269,7 @@ struct Desk {
 /// A novel with two chapters of these texts, its own chapters taken out
 struct Novel {
     QTemporaryDir dir;
-    core::ProjectManager& pm = core::ProjectManager::getInstance();
+    core::ProjectManager& pm = test::book();
     QStringList chapters;  ///< The ids of the chapters, in reading order
 
     Novel(const QStringList& first, const QStringList& second) {
@@ -484,7 +485,7 @@ TEST_CASE("Repetitions: the words of the text in front, marked in it while the p
           "[gui][repetitions][coordinator]") {
     KeptSettings kept;
     setDefaults();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk;
 
@@ -530,7 +531,7 @@ TEST_CASE("Repetitions: the words of the text in front, marked in it while the p
     CHECK(waitUntil([editor]() { return editor->repetitionMarks().size() == 5; }));
 
     // View > Repetitions in Text turns the setting off and on, checked while it is on
-    QAction* marks = CommandRegistry::getInstance().getAction(std::string("view.repetitionMarks"));
+    QAction* marks = kalahari::test::commands().getAction(std::string("view.repetitionMarks"));
     REQUIRE(marks != nullptr);
     CHECK(marks->isChecked());
     marks->trigger();
@@ -570,7 +571,7 @@ TEST_CASE("Repetitions: the words of the text in front, marked in it while the p
 TEST_CASE("Repetitions: Go To and Skip This Word on a card", "[gui][repetitions][coordinator]") {
     KeptSettings kept;
     setDefaults();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk;
     editor::BookEditor* editor = desk.open(RAIN);
@@ -619,12 +620,12 @@ TEST_CASE("Repetitions: Next Repetition selects the next word that comes back to
           "[gui][repetitions][coordinator]") {
     KeptSettings kept;
     setDefaults();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk;
 
     // No text in front: greyed out
-    QAction* next = CommandRegistry::getInstance().getAction(std::string("tools.nextRepetition"));
+    QAction* next = kalahari::test::commands().getAction(std::string("tools.nextRepetition"));
     REQUIRE(next != nullptr);
     CHECK_FALSE(next->isEnabled());
 
@@ -712,7 +713,7 @@ TEST_CASE("Repetitions: the whole book, its chapters open or not",
 
     // The book closed: the chapter again
     desk.tabs->clear();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     QApplication::processEvents();
     CHECK(desk.panel->scope() == RepetitionsPanel::Scope::Chapter);
     CHECK_FALSE(book->isEnabled());
@@ -728,7 +729,7 @@ TEST_CASE("Repetitions: the page of the settings", "[gui][repetitions][settings]
     settings().set<json>(Coordinator::SKIPPED_KEY, json::array({"said"}));
     Commands commands;
 
-    EditorRepetitionsPage page;
+    EditorRepetitionsPage page(kalahari::test::commands());
     page.load();
     const auto child = [&page]<typename Widget>(Widget*, const char* name) {
         auto* found = page.findChild<Widget*>(QString::fromLatin1(name));

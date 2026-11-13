@@ -24,8 +24,9 @@ class AnnotationFrame : public WritingFrame {
 
 public:
     /// @brief Constructor
+    /// @param commands The commands of its window, whose keys it knows
     /// @param editor The editor it lies over (its parent)
-    explicit AnnotationFrame(QWidget* editor);
+    AnnotationFrame(CommandRegistry& commands, QWidget* editor);
 
     /// @brief The annotation's kind (the frame's header)
     void setKind(editor::AnnotationKind kind);

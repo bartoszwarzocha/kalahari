@@ -60,6 +60,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -139,8 +140,8 @@ void setDefaults() {
 /// The program's commands while it lives (Next Spelling or Grammar Issue, the switches)
 class Commands {
 public:
-    Commands() { registerAllCommands(CommandCallbacks{}); }
-    ~Commands() { CommandRegistry::getInstance().clear(); }
+    Commands() { registerAllCommands(kalahari::test::commands(), CommandCallbacks{}); }
+    ~Commands() { kalahari::test::commands().clear(); }
     Commands(const Commands&) = delete;
     Commands& operator=(const Commands&) = delete;
 };
@@ -315,13 +316,16 @@ struct Desk {
         dock->hide();
         annotations->raise();
 
-        spelling = std::make_unique<SpellingCoordinator>(tabs, &statusBar);
+        spelling = std::make_unique<SpellingCoordinator>(
+            kalahari::test::book(), kalahari::test::commands(), tabs, &statusBar);
         spelling->connectCommands();
         if (withGrammar) {
-            grammar = std::make_unique<GrammarCoordinator>(tabs, nullptr);
+            grammar = std::make_unique<GrammarCoordinator>(
+                kalahari::test::book(), kalahari::test::commands(), tabs, nullptr);
         }
-        coordinator = std::make_unique<SpellingPanelCoordinator>(panel, dock, tabs, spelling.get(),
-                                                                 grammar.get());
+        coordinator = std::make_unique<SpellingPanelCoordinator>(
+            kalahari::test::book(), kalahari::test::commands(), panel, dock, tabs, spelling.get(),
+            grammar.get());
         window.resize(1000, 700);
         window.show();
         QApplication::processEvents();
@@ -343,7 +347,7 @@ struct Desk {
 
     /// Open a document with a text in KML in a tab of its own, in front
     editor::BookEditor* openKml(const QString& kml) {
-        auto* document = new EditorPanel();
+        auto* document = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
         document->setContent(kml);
         tabs->setCurrentIndex(tabs->addTab(document, QStringLiteral("Document")));
         return document->getBookEditor();
@@ -371,7 +375,7 @@ struct Desk {
 
     /// Next Spelling or Grammar Issue (F7)
     static void nextIssue() {
-        QAction* next = CommandRegistry::getInstance().getAction(std::string("tools.nextMisspelling"));
+        QAction* next = kalahari::test::commands().getAction(std::string("tools.nextMisspelling"));
         REQUIRE(next != nullptr);
         next->trigger();
     }
@@ -984,7 +988,7 @@ TEST_CASE("Spelling panel: the misspelled words of the text in front, selected i
           "[gui][spelling-panel][coordinator]") {
     KeptSettings kept;
     setDefaults();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk;
 
@@ -1048,7 +1052,7 @@ TEST_CASE("Spelling panel: a fix chosen in the panel goes to the text, and the n
           "[gui][spelling-panel][coordinator]") {
     KeptSettings kept;
     setDefaults();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk;
     desk.openPanel();
@@ -1116,7 +1120,7 @@ TEST_CASE("Spelling panel: the misspelled words of the notes' texts, at their no
           "[gui][spelling-panel][coordinator][footnotes]") {
     KeptSettings kept;
     setDefaults();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk;
     desk.openPanel();
@@ -1167,7 +1171,7 @@ TEST_CASE("Spelling panel: with the checking off it turns it on", "[gui][spellin
     KeptSettings kept;
     setDefaults();
     settings().set<bool>("editor.spellCheck.enabled", false);
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk;
     desk.openPanel();
@@ -1199,7 +1203,7 @@ TEST_CASE("Spelling panel: the grammar issues with the misspelled words, the who
     settings().set<std::string>(GrammarCoordinator::USERNAME_KEY, std::string());
     settings().set<std::string>(GrammarCoordinator::API_KEY_KEY, std::string());
     settings().set<nlohmann::json>(GrammarCoordinator::IGNORED_RULES_KEY, nlohmann::json::object());
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk(true);
 
@@ -1272,7 +1276,7 @@ TEST_CASE("Spelling panel: Next Spelling or Grammar Issue opens the panel, which
     }
     KeptSettings kept;
     setDefaults();
-    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    REQUIRE(test::book().closeProject(false));
     Commands commands;
     Desk desk;
     editor::BookEditor* editor =

@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 using Result = KeyCheck::Result;
@@ -248,9 +249,9 @@ TEST_CASE("Shortcut rules: keys some desktops take only bring a warning",
 }
 
 TEST_CASE("Shortcut rules: every shortcut of the program is allowed", "[gui][shortcuts][rules]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     const ShortcutRules rules;
-    for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
+    for (const Command& command : kalahari::test::commands().getAllCommands()) {
         if (command.shortcut.isEmpty()) {
             continue;
         }

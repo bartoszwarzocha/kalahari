@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -161,7 +162,7 @@ TEST_CASE("Dashboard: the card of a recent book shows its title, author and type
     writeJson(broken, QByteArray("{ not a book"));
 
     const RecentBooks recent({stories, own, saga, earlier, broken});
-    const gui::DashboardPanel panel;
+    const gui::DashboardPanel panel(kalahari::test::commands());
     CHECK(hasLabel(panel, QStringLiteral("Recent Books")));
 
     // The name and the icon of the type come from its package
@@ -196,7 +197,7 @@ TEST_CASE("Dashboard: the card of a recent book shows its title, author and type
 
 TEST_CASE("Dashboard: without recent books the list says so", "[gui][dashboard]") {
     const RecentBooks recent({});
-    const gui::DashboardPanel panel;
+    const gui::DashboardPanel panel(kalahari::test::commands());
     CHECK(hasLabel(panel, QStringLiteral("Recent Books")));
     CHECK(hasLabel(panel, QStringLiteral("No recent books.")));
 }
@@ -234,7 +235,7 @@ TEST_CASE("Dashboard: a book whose type the program does not have is named after
     REQUIRE_FALSE(core::IconRegistry::getInstance().hasIcon(QStringLiteral("acme.saga.tree")));
 
     const RecentBooks recent({saga});
-    const gui::DashboardPanel panel;
+    const gui::DashboardPanel panel(kalahari::test::commands());
     const Card shown = cardOf(panel, saga);
     CHECK(shown.title == QStringLiteral("Winter"));
     CHECK(shown.description == QStringLiteral("Jan Kowalski | Family Saga (read-only)"));
@@ -255,7 +256,7 @@ TEST_CASE("Dashboard: a book whose type the program does not have is named after
         REQUIRE(polish.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
         QCoreApplication::installTranslator(&polish);
         gui::setProgramLanguage(QStringLiteral("pl"));
-        const gui::DashboardPanel polishPanel;
+        const gui::DashboardPanel polishPanel(kalahari::test::commands());
         const Card polishCard = cardOf(polishPanel, saga);
         gui::setProgramLanguage(QStringLiteral("en"));
         QCoreApplication::removeTranslator(&polish);
@@ -269,7 +270,7 @@ TEST_CASE("Dashboard: a book whose type the program does not have is named after
                     QStringLiteral("Jan Kowalski"))
                 .save(saga));
     const RecentBooks again({saga});
-    const gui::DashboardPanel novelPanel;
+    const gui::DashboardPanel novelPanel(kalahari::test::commands());
     const Card novel = cardOf(novelPanel, saga);
     CHECK(novel.description == QStringLiteral("Jan Kowalski | Novel"));
     CHECK_FALSE(novel.typeGreyed);
@@ -301,7 +302,7 @@ TEST_CASE("Dashboard: the X of a recent book's card takes the book off the list,
     auto& books = core::RecentBooksManager::getInstance();
     REQUIRE(books.lastOpenedBook() == rain);
 
-    gui::DashboardPanel panel;
+    gui::DashboardPanel panel(kalahari::test::commands());
     int opened = 0;
     QObject::connect(&panel, &gui::DashboardPanel::openRecentBookRequested,
                      [&opened](const QString&) { ++opened; });

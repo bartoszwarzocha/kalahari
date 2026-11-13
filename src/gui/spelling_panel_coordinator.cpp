@@ -69,17 +69,19 @@ std::size_t kindIndex(editor::TextIssueKind kind) {
 
 }  // namespace
 
-SpellingPanelCoordinator::SpellingPanelCoordinator(SpellingPanel* panel, QDockWidget* dock,
-                                                   QTabWidget* centralTabs,
+SpellingPanelCoordinator::SpellingPanelCoordinator(core::ProjectManager& book,
+                                                   CommandRegistry& commands, SpellingPanel* panel,
+                                                   QDockWidget* dock, QTabWidget* centralTabs,
                                                    SpellingCoordinator* spelling,
                                                    GrammarCoordinator* grammar, QObject* parent)
-    : QObject(parent)
-    , m_panel(panel)
-    , m_dock(dock)
-    , m_centralTabs(centralTabs)
-    , m_spelling(spelling)
-    , m_grammar(grammar)
-{
+    : QObject(parent),
+      m_panel(panel),
+      m_dock(dock),
+      m_centralTabs(centralTabs),
+      m_spelling(spelling),
+      m_grammar(grammar),
+      m_book(book),
+      m_commands(commands) {
     m_refreshTimer = new QTimer(this);
     m_refreshTimer->setSingleShot(true);
     m_refreshTimer->setInterval(REFRESH_DELAY_MS);
@@ -132,7 +134,7 @@ SpellingPanelCoordinator::SpellingPanelCoordinator(SpellingPanel* panel, QDockWi
             &SpellingPanelCoordinator::onDockVisibilityChanged);
 
     // The keys of Next Spelling or Grammar Issue, in the row at the bottom
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, this,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, this,
             &SpellingPanelCoordinator::updateNextIssueKeys);
 
     // The settings of the panel and of the checking, wherever they change: once for all those
@@ -235,7 +237,7 @@ void SpellingPanelCoordinator::refresh() {
 
     // The names of what the panel lists: the kind of the text in front ("this story"), the
     // word "file" for a file outside the book, and the main texts the writer opens in the book
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const bool bookOpen = projects.isProjectOpen();
     editor::BookEditor* editor = m_editor;
     std::optional<core::KindWords> inFront;
@@ -245,7 +247,7 @@ void SpellingPanelCoordinator::refresh() {
             panel != nullptr ? panel->property("elementId").toString() : QString();
         const core::ProjectElement* element =
             bookOpen && !elementId.isEmpty() ? projects.findElement(elementId) : nullptr;
-        inFront = element != nullptr ? wordsOf(*element) : fileWords();
+        inFront = element != nullptr ? wordsOf(m_book, *element) : fileWords();
     }
     std::optional<core::KindWords> bookTexts;
     if (const core::KindRef mainKind = projects.mainTextKind()) {
@@ -572,7 +574,7 @@ void SpellingPanelCoordinator::onEditorFocusRequested() {
 void SpellingPanelCoordinator::turnOnChecking() {
     // The commands of the Tools menu: a grammar not prepared yet offers to prepare it
     auto& settings = core::SettingsManager::getInstance();
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (!settings.get<bool>(SPELLING_ENABLED_KEY, true)) {
         registry.executeCommand(SPELLING_COMMAND);
     }
@@ -646,7 +648,7 @@ void SpellingPanelCoordinator::updateWholeTextGrammar() {
 }
 
 void SpellingPanelCoordinator::updateNextIssueKeys() {
-    const Command* command = CommandRegistry::getInstance().getCommand(NEXT_ISSUE_COMMAND);
+    const Command* command = m_commands.getCommand(NEXT_ISSUE_COMMAND);
     const QString keys = command != nullptr
                              ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
                              : QString();

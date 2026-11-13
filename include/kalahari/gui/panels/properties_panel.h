@@ -30,6 +30,10 @@ class QPushButton;
 class QTimer;
 class QToolButton;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -71,8 +75,9 @@ public:
     };
 
     /// @brief Constructor
+    /// @param book The book of its window
     /// @param parent Parent widget
-    explicit PropertiesPanel(QWidget* parent = nullptr);
+    explicit PropertiesPanel(core::ProjectManager& book, QWidget* parent = nullptr);
 
     /// @brief Destructor
     ~PropertiesPanel() override;
@@ -460,6 +465,7 @@ private:
 
     int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting,
                                 ///< versions turned on or off
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

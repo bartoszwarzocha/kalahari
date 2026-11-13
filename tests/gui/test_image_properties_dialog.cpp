@@ -39,6 +39,7 @@
 #include <QTranslator>
 
 #include <map>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::editor;
@@ -973,7 +974,7 @@ TEST_CASE("Editor panel: Image Properties... gives the image its look and captio
           "[gui][images][dialog][captions]") {
     const Pictures pictures;
     pictures.add(QStringLiteral("bridge.png"), {800, 400});
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     panel.setImagesFolder(pictures.dir.path());
     BookEditor& editor = *panel.getBookEditor();
     const QString kml = QStringLiteral(
@@ -1066,7 +1067,7 @@ TEST_CASE("Editor panel: Image Properties... gives the image its look as one ste
           "[gui][images][dialog]") {
     const Pictures pictures;
     pictures.add(QStringLiteral("bridge.png"), {800, 400});
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     panel.setImagesFolder(pictures.dir.path());
     BookEditor& editor = *panel.getBookEditor();
     editor.fromKml(QStringLiteral("<kml><p><img src=\"images/bridge.png\" alt=\"The bridge\"/></p></kml>"));

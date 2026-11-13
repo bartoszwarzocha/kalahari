@@ -16,6 +16,7 @@
 
 namespace kalahari {
 namespace core {
+class ProjectManager;
 struct BookProject;
 struct PackageCard;
 struct ProjectElement;
@@ -62,18 +63,18 @@ core::KindWords wordsOf(const core::BookTypeRegistry& registry,
                         const core::ProjectElement& element,
                         const core::PackageCard* card = nullptr);
 
-/// @brief Forms of the name of the kind of @p element of the open book (wordsOf() with the
-/// book types and the book's cards of core::ProjectManager)
-core::KindWords wordsOf(const core::ProjectElement& element);
+/// @brief Forms of the name of the kind of @p element of the book open in @p book (wordsOf()
+/// with the book types and the book's cards of @p book)
+core::KindWords wordsOf(const core::ProjectManager& book, const core::ProjectElement& element);
 
 /// @brief Whether @p a and @p b are elements of the same kind of @p registry; when the registry
 /// does not have their kinds, whether the ids of their kinds are the same
 bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement& a,
               const core::ProjectElement& b);
 
-/// @brief Forms of the name of the main text kind of the open book: chapter, story, poem...
-/// (core::ProjectManager::mainTextKind()); none without a book
-core::KindWords mainWords();
+/// @brief Forms of the name of the main text kind of the book open in @p book: chapter, story,
+/// poem... (core::ProjectManager::mainTextKind()); none without a book
+core::KindWords mainWords(const core::ProjectManager& book);
 
 /// @brief Forms of the word "element" in the program's language, for a sentence about elements
 /// of different kinds: "3 elements", "the files of the elements"

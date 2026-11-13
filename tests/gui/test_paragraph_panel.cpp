@@ -19,6 +19,7 @@
 #include <QListWidget>
 #include <QToolBar>
 #include <QToolButton>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -44,7 +45,7 @@ struct Window {
     gui::ParagraphPanel* panel = nullptr;
 
     Window() {
-        gui::registerAllCommands(gui::CommandCallbacks{});
+        gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
         auto* layout = new QHBoxLayout(&window);
         text = new editor::BookEditor(&window);
         text->setParagraphStyles(editor::ParagraphStyleSet::fromPackage(
@@ -58,7 +59,7 @@ struct Window {
         text->fromKml(KML);
         text->setCursorPosition({0, 1});
         layout->addWidget(text, 1);
-        panel = new gui::ParagraphPanel(&window);
+        panel = new gui::ParagraphPanel(kalahari::test::commands(), &window);
         layout->addWidget(panel);
         panel->setEditor(text);
         window.resize(900, 600);
@@ -133,7 +134,7 @@ TEST_CASE("Paragraph and Styles: the band names the paragraph at the cursor or t
 TEST_CASE("Paragraph and Styles: the buttons are the commands of the Format menu",
           "[gui][styles]") {
     Window window;
-    gui::CommandRegistry& registry = gui::CommandRegistry::getInstance();
+    gui::CommandRegistry& registry = test::commands();
     const auto actionsOf = [&window](const char* name) {
         const auto* bar = window.panel->findChild<QToolBar*>(QLatin1String(name));
         REQUIRE(bar != nullptr);

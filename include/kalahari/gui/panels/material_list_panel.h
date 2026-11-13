@@ -26,6 +26,10 @@ class QStackedWidget;
 class QTableView;
 class QToolButton;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace gui {
 
@@ -69,7 +73,8 @@ public:
     static constexpr int STATE_ROLE = Qt::UserRole + 6;  ///< The state of a material of the cover
 
     /// @brief The list @p list (MaterialList::kinds(), MaterialList::ALL)
-    explicit MaterialListPanel(const QString& list, QWidget* parent = nullptr);
+    explicit MaterialListPanel(core::ProjectManager& book, const QString& list,
+                               QWidget* parent = nullptr);
     ~MaterialListPanel() override;
 
     /// @brief The list it shows
@@ -314,6 +319,7 @@ private:
     QLabel* m_sorting = nullptr;
 
     bool m_loading = false;  ///< The list is being filled: no material is chosen by the writer
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

@@ -906,6 +906,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Each book window has its own book and its own commands** - 2026-11-13. Inside the
+  program, with nothing changed on the screen: the window owns the book open in it
+  (`core::ProjectManager`, no longer one for the whole program) and its commands with their
+  actions (`gui::CommandRegistry`), and gives them to its coordinators, panels and dialogs.
+  The book types installed with the program and the user's keys of the commands are the same
+  for every window. This prepares several books open at once, each in its own window.
+
 - **Images: a new image in a paragraph of its own, with a caption** - 2026-11-12. Insert >
   Image... and a file dropped or pasted from a folder put the image in a paragraph of its own,
   centered and with a numbered caption Figure under it, as Settings > Editor > Images says by

@@ -45,15 +45,16 @@ bool hasCommand(const QString& styleId) {
 
 }  // namespace
 
-ParagraphStyleMenu::ParagraphStyleMenu(QMenu* menu, EditorInFront editorInFront,
-                                       QObject* parent)
-    : QObject(parent)
-    , m_menu(menu)
-    , m_editorInFront(std::move(editorInFront))
-    , m_group(new QActionGroup(this)) {
+ParagraphStyleMenu::ParagraphStyleMenu(CommandRegistry& commands, QMenu* menu,
+                                       EditorInFront editorInFront, QObject* parent)
+    : QObject(parent),
+      m_menu(menu),
+      m_editorInFront(std::move(editorInFront)),
+      m_group(new QActionGroup(this)),
+      m_commands(commands) {
     // One style at a time: the menu shows the items as choices of one
     m_group->setExclusive(true);
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = m_commands;
     for (const StyleCommand& command : styleCommands()) {
         if (QAction* action = registry.getAction(QString::fromLatin1(command.commandId))) {
             m_group->addAction(action);
@@ -92,7 +93,7 @@ void ParagraphStyleMenu::rebuild() {
     // After Code, before the line above Manage Styles...
     QAction* before = nullptr;
     const QList<QAction*> items = m_menu->actions();
-    QAction* code = CommandRegistry::getInstance().getAction(
+    QAction* code = m_commands.getAction(
         QString::fromLatin1(styleCommands().back().commandId));
     const qsizetype codePlace = items.indexOf(code);
     if (codePlace >= 0 && codePlace + 1 < items.size()) {

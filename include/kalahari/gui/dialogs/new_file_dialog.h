@@ -34,6 +34,10 @@ class QRadioButton;
 class QStackedWidget;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace gui {
 namespace dialogs {
@@ -139,23 +143,31 @@ public:
         /// A material of the cover: the part chosen at the start (core::CoverMaterial::BLURB...);
         /// empty: the one chosen last (COVER_PART_SETTING)
         QString coverPart;
+        /// With a choice of the book and the Workshop (AddChooser::Book), the name of the book
+        /// as the Navigator has it
+        QString bookName;
+        /// The title of a new material of the cover of a part, from the book
+        /// (CoverNames::newTitle()); none: no title
+        std::function<QString(const QString& part)> coverTitle;
     };
 
-    /// @brief The kinds and the parts of the book open in core::ProjectManager; at the start
-    /// the main text kind of the book in its main part is chosen, else the first kind of which
-    /// a new element can be made
+    /// @brief The kinds and the parts of the book open in @p pm; at the start the main text
+    /// kind of the book in its main part is chosen, else the first kind of which a new element
+    /// can be made
+    /// @param pm The book of the window
     /// @param untitled Title of an empty text file; empty: no empty text file
-    static Book openBook(const QString& untitled = QString());
+    static Book openBook(const core::ProjectManager& pm, const QString& untitled = QString());
 
     /// @brief The kinds of Add Element opened on @p target, a place of the book or of the
-    /// Workshop, in core::ProjectManager; at the start @p target's kind is chosen when an
+    /// Workshop, in @p pm, the book of the window; at the start @p target's kind is chosen when an
     /// element of it can be made there, else the usual kind of the place: the kind of the
     /// element the window was opened on, the main text kind of the book
     ///
     /// With a choice at the top (@p chooser) the window has all the kinds of the book and of
     /// the Workshop, and starts at the part of @p target; those of @p target's place go there
     /// (right after its element, inside its group). Without it, only the kinds of that place.
-    static Book forAdding(const AddTarget& target, AddChooser chooser);
+    static Book forAdding(const core::ProjectManager& pm, const AddTarget& target,
+                          AddChooser chooser);
 
     /// @brief A window in place of the system's window of files that chooses the file of a
     /// material, for tests: it gets the folder the system's window would open in and returns
@@ -353,7 +365,7 @@ protected:
 
 private:
     /// @brief forAdding() without a choice: the kinds of the place of @p target only
-    static Book forPlace(const AddTarget& target);
+    static Book forPlace(const core::ProjectManager& pm, const AddTarget& target);
 
     /// @brief The buttons at the top of Add Element that choose what the tiles are, each
     /// named with an underlined letter that the window's other words do not underline
@@ -463,8 +475,8 @@ private:
     /// how many, the file of a new one, the type, and why none can be made now
     /// @param offered The kinds of which a new element can be made there
     /// @param groups The group kinds of the book, for the words of where the kind can be
-    static NewFileKind entryOf(const core::KindRef& kind, core::BookPlace section,
-                               const QList<core::KindRef>& offered,
+    static NewFileKind entryOf(const core::ProjectManager& pm, const core::KindRef& kind,
+                               core::BookPlace section, const QList<core::KindRef>& offered,
                                const QList<core::KindRef>& groups);
 
     /// @brief The description, the title and the place of an empty text file, outside the book

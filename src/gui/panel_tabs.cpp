@@ -65,9 +65,10 @@ QStyle* noTabsStyle() {
 
 } // anonymous namespace
 
-PanelTabs::PanelTabs(QMainWindow* window, QObject* parent)
+PanelTabs::PanelTabs(CommandRegistry& commands, QMainWindow* window, QObject* parent)
     : QObject(parent)
     , m_window(window)
+    , m_commands(commands)
 {
     // Panels docked, moved, shown or closed change the window's layout, which asks to be laid
     // out again; new groups bring Qt new tabs, new children of the window
@@ -84,7 +85,7 @@ PanelTabs::PanelTabs(QMainWindow* window, QObject* parent)
             });
 
     // The tooltips say the panels' keys
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, this,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, this,
             [this]() {
                 m_refill = true;
                 scheduleRefresh();
@@ -335,9 +336,9 @@ PanelTabBar* PanelTabs::tabBar(const QDockWidget* dock) const {
     return nullptr;
 }
 
-QString PanelTabs::toolTipOf(const Panel& panel) {
+QString PanelTabs::toolTipOf(const Panel& panel) const {
     const QString name = panel.dock->windowTitle();
-    const Command* command = CommandRegistry::getInstance().getCommand(panel.commandId);
+    const Command* command = m_commands.getCommand(panel.commandId);
     const QString keys = command != nullptr
                              ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
                              : QString();

@@ -758,9 +758,9 @@ private:
 // The list
 // =============================================================================
 
-MaterialListPanel::MaterialListPanel(const QString& list, QWidget* parent)
-    : QWidget(parent)
-    , m_list(list) {
+MaterialListPanel::MaterialListPanel(core::ProjectManager& book, const QString& list,
+                                     QWidget* parent)
+    : QWidget(parent), m_list(list), m_book(book) {
     setObjectName(QStringLiteral("materialList"));
     m_model = new MaterialListModel(this);
     m_filter = new MaterialListFilter(this);
@@ -1308,7 +1308,7 @@ void MaterialListPanel::showGroups(bool groups) {
     // The groups say what the materials are: the column Kind waits for the table without them
     if (const int part = columnOf(QString::fromLatin1(MaterialList::COVER_PART)); part >= 0) {
         m_header->setSectionHidden(
-            part, groups || !MaterialList::shownColumns(m_list).contains(
+            part, groups || !MaterialList::shownColumns(m_book, m_list).contains(
                                 QString::fromLatin1(MaterialList::COVER_PART)));
         if (!m_header->isSectionHidden(part) && m_header->sectionSize(part) < 20) {
             m_header->resizeSection(part, widthOf(QString::fromLatin1(MaterialList::COVER_PART)));
@@ -1384,7 +1384,7 @@ QStringList MaterialListPanel::shownColumns() const {
 
 void MaterialListPanel::fillMenu(QMenu& menu) {
     auto& art = core::ArtProvider::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const QModelIndex current = view()->currentIndex();
     const MaterialRow* row = m_model->materialAt(m_filter->mapToSource(current).row());
     const bool changing = !pm.isReadOnly();
@@ -1550,7 +1550,7 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
     if (row == nullptr) {
         return true;
     }
-    const bool changing = !core::ProjectManager::getInstance().isReadOnly();
+    const bool changing = !m_book.isReadOnly();
     switch (what) {
     case ListKey::Edit:
         emit requestEdit(row->id, editsText(*row));
@@ -1580,14 +1580,14 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
 void MaterialListPanel::load() {
     const bool loading = m_loading;
     m_loading = true;
-    m_columns = MaterialList::columnsOf(m_list);
+    m_columns = MaterialList::columnsOf(m_book, m_list);
     const bool pictures = std::any_of(m_columns.cbegin(), m_columns.cend(),
                                       [](const MaterialColumn& column) {
                                           return column.id ==
                                                  QLatin1String(MaterialList::THUMBNAIL);
                                       });
     const bool cover = MaterialList::isCover(m_list);
-    m_model->setContents(m_columns, MaterialList::rowsOf(m_list), !pictures, cover);
+    m_model->setContents(m_columns, MaterialList::rowsOf(m_book, m_list), !pictures, cover);
     m_table->verticalHeader()->setDefaultSectionSize(
         pictures ? THUMBNAIL_ROW : m_table->fontMetrics().height() + 8);
     m_table->setIconSize(pictures ? QSize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT) : QSize(16, 16));
@@ -1698,7 +1698,7 @@ void MaterialListPanel::restoreState() {
 }
 
 void MaterialListPanel::applyColumns() {
-    const QStringList shown = MaterialList::shownColumns(m_list);
+    const QStringList shown = MaterialList::shownColumns(m_book, m_list);
     for (int column = 0; column < m_columns.size(); ++column) {
         m_header->setSectionHidden(column, !shown.contains(m_columns.at(column).id));
     }
@@ -1762,31 +1762,32 @@ void MaterialListPanel::fillLinkedWith() {
     QStringList targets;
     for (int row = 0; row < m_model->rowCount(); ++row) {
         for (const QString& link : m_model->rowAt(row)->links) {
-            if (!targets.contains(link) && !linkTitle(link).isEmpty()) {
+            if (!targets.contains(link) && !linkTitle(m_book, link).isEmpty()) {
                 targets << link;
             }
         }
     }
     QCollator collator;
     collator.setNumericMode(true);
-    std::sort(targets.begin(), targets.end(), [&collator](const QString& a, const QString& b) {
-        return collator.compare(linkTitle(a), linkTitle(b)) < 0;
-    });
+    std::sort(targets.begin(), targets.end(),
+              [this, &collator](const QString& a, const QString& b) {
+                  return collator.compare(linkTitle(m_book, a), linkTitle(m_book, b)) < 0;
+              });
     for (const QString& target : targets) {
-        m_linkedWith->addItem(linkIcon(target, core::IconContext::ComboBox), linkTitle(target),
-                              target);
+        m_linkedWith->addItem(linkIcon(m_book, target, core::IconContext::ComboBox),
+                              linkTitle(m_book, target), target);
     }
     m_linkedWith->setCurrentIndex(std::max(0, m_linkedWith->findData(chosen)));
 }
 
 void MaterialListPanel::updateCommands() {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const MaterialRow* row =
         m_model->materialAt(m_filter->mapToSource(view()->currentIndex()).row());
     const bool changing = pm.isProjectOpen() && !pm.isReadOnly();
     bool canAdd = false;
     if (m_list.isEmpty()) {
-        for (const QString& kind : MaterialList::kinds()) {
+        for (const QString& kind : MaterialList::kinds(m_book)) {
             const std::optional<core::KindReference> reference = core::KindReference::parse(kind);
             canAdd = canAdd ||
                      (reference && core::ProjectManager::canAdd(pm.bookTypes().findKind(
@@ -1906,7 +1907,7 @@ void MaterialListPanel::keepColumns() {
     // The column Kind of the cover, hidden by the groups, stays where the writer had it
     const QString part = QString::fromLatin1(MaterialList::COVER_PART);
     if (groupsApply() && !shown.contains(part)) {
-        const QStringList before = MaterialList::shownColumns(m_list);
+        const QStringList before = MaterialList::shownColumns(m_book, m_list);
         if (const qsizetype at = before.indexOf(part); at >= 0) {
             shown.insert(std::min(at, shown.size()), part);
         }

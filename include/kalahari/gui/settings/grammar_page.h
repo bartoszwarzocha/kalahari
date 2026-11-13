@@ -26,6 +26,10 @@ class QSpinBox;
 class QToolButton;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace editor {
 class GrammarCheckService;
@@ -57,10 +61,12 @@ public:
         Remote        ///< On a server in the internet
     };
 
+    /// @param book The book of its window
     /// @param grammar The grammar of the editors: its preparation and its server (none: the
     ///        page cannot prepare it or tell the state of the server)
     /// @param parent Parent widget
-    explicit EditorGrammarPage(GrammarCoordinator* grammar = nullptr, QWidget* parent = nullptr);
+    explicit EditorGrammarPage(const core::ProjectManager& book,
+                               GrammarCoordinator* grammar = nullptr, QWidget* parent = nullptr);
 
     /// @brief Write the changed values; the server can be checked with them then
     std::vector<std::string> apply() override;
@@ -225,6 +231,7 @@ private:
 
     QHash<QString, GrammarComponents::JavaInfo> m_javaInfos;  ///< By path
     QHash<QString, GrammarComponents::LanguageToolInfo> m_languageToolInfos;  ///< By path
+    const core::ProjectManager& m_book;  ///< The book of its window
 };
 
 }  // namespace gui

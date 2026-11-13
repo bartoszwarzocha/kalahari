@@ -30,6 +30,10 @@ class QToolButton;
 class QTreeWidget;
 class QTreeWidgetItem;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace gui {
 
@@ -85,7 +89,7 @@ public:
     static constexpr int MAXIMUM_FULL_THUMBNAIL_HEIGHT = 360;
 
     /// @brief The card; @p full: the full card, else the short one
-    explicit MaterialPage(QWidget* parent = nullptr, bool full = false);
+    explicit MaterialPage(core::ProjectManager& book, QWidget* parent = nullptr, bool full = false);
     /// @note What a field does while the card is destroyed (a title losing the keys) does not
     /// reach the card
     ~MaterialPage() override;
@@ -326,6 +330,7 @@ private:
     QComboBox* m_coverConsentBox = nullptr;
     QLineEdit* m_coverLicenseEdit = nullptr;
     QLineEdit* m_coverAboutEdit = nullptr;
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 /// @brief The full card of a material on a tab beside the chapters (MaterialPage): the place to
@@ -338,7 +343,8 @@ class MaterialCardPanel : public QScrollArea {
 
 public:
     /// @brief The card of material @p elementId of the open book
-    explicit MaterialCardPanel(const QString& elementId, QWidget* parent = nullptr);
+    explicit MaterialCardPanel(core::ProjectManager& book, const QString& elementId,
+                               QWidget* parent = nullptr);
 
     /// @brief The material it shows
     QString elementId() const;
@@ -351,6 +357,7 @@ public:
 
 private:
     MaterialPage* m_page = nullptr;
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 /// @brief The materials linked with an element of the book or a section, in its page of the
@@ -363,7 +370,7 @@ class LinkedMaterialsBox : public QGroupBox {
     Q_OBJECT
 
 public:
-    explicit LinkedMaterialsBox(QWidget* parent = nullptr);
+    explicit LinkedMaterialsBox(core::ProjectManager& book, QWidget* parent = nullptr);
     /// @note What the list does while the box is destroyed does not reach the box
     ~LinkedMaterialsBox() override;
 
@@ -407,6 +414,7 @@ private:
     QToolButton* m_addButton = nullptr;
     QToolButton* m_removeButton = nullptr;
     int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

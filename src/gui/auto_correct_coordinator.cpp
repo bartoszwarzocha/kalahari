@@ -35,8 +35,9 @@ bool autoCorrectSetting(const char* name) {
 
 }  // namespace
 
-AutoCorrectCoordinator::AutoCorrectCoordinator(QStatusBar* statusBar, QObject* parent)
-    : QObject(parent), m_statusBar(statusBar) {
+AutoCorrectCoordinator::AutoCorrectCoordinator(CommandRegistry& commands, QStatusBar* statusBar,
+                                               QObject* parent)
+    : QObject(parent), m_statusBar(statusBar), m_commands(commands) {
     // The tooltip follows the settings, also as the Settings dialog changes them; the
     // listener runs on the thread that changes them, the tooltip is given on this one
     m_settingsListener =
@@ -51,13 +52,13 @@ AutoCorrectCoordinator::~AutoCorrectCoordinator() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 
     // The command outlives the coordinator
-    if (Command* command = CommandRegistry::getInstance().getCommand(COMMAND_ID)) {
+    if (Command* command = m_commands.getCommand(COMMAND_ID)) {
         command->execute = nullptr;
     }
 }
 
 void AutoCorrectCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(COMMAND_ID)) {
         command->execute = [this]() { toggle(); };
     }
@@ -82,7 +83,7 @@ void AutoCorrectCoordinator::toggle() {
     }
 }
 
-QString AutoCorrectCoordinator::toolTip() {
+QString AutoCorrectCoordinator::toolTip() const {
     // The replacements chosen, in the order of the Settings page
     QStringList replacements;
     if (autoCorrectSetting("quotes")) {
@@ -113,7 +114,7 @@ QString AutoCorrectCoordinator::toolTip() {
     }
 
     QStringList lines;
-    if (const Command* command = CommandRegistry::getInstance().getCommand(COMMAND_ID)) {
+    if (const Command* command = m_commands.getCommand(COMMAND_ID)) {
         lines << QString::fromStdString(command->label);
     }
     lines << state << tr("The replacements are chosen in Edit > Settings..., group Editor > "
@@ -122,7 +123,7 @@ QString AutoCorrectCoordinator::toolTip() {
 }
 
 void AutoCorrectCoordinator::updateToolTip() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(COMMAND_ID)) {
         command->tooltip = toolTip().toStdString();
         registry.updateActionState(COMMAND_ID);

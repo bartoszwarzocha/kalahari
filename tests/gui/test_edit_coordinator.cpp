@@ -39,6 +39,7 @@
 #include <array>
 #include <string>
 #include <utility>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -77,7 +78,7 @@ std::string enabledCommands() {
     std::string enabled;
     for (std::size_t index = 0; index < IDS.size(); ++index) {
         const QAction* action =
-            CommandRegistry::getInstance().getAction(QString::fromLatin1(IDS[index]));
+            kalahari::test::commands().getAction(QString::fromLatin1(IDS[index]));
         if (action != nullptr && action->isEnabled()) {
             const char* name = NAMES[index].second;
             enabled += enabled.empty() ? std::string(name) : std::string(" ") + name;
@@ -176,7 +177,7 @@ QList<const QAction*> actionsOf(const QList<test::MenuItem>& items) {
 
 TEST_CASE("Edit commands: a read-only field copies and selects all, and changes nothing",
           "[gui][edit][clipboard]") {
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
 
     SECTION("the Log: a text that only shows") {
@@ -225,7 +226,7 @@ TEST_CASE("Edit commands: a read-only field copies and selects all, and changes 
 }
 
 TEST_CASE("Edit commands: a field one types into does them all", "[gui][edit][clipboard]") {
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
 
     SECTION("a field of one line") {
@@ -281,7 +282,7 @@ TEST_CASE("Edit commands: a field one types into does them all", "[gui][edit][cl
 
 TEST_CASE("Edit commands: Delete removes the selection, as one step of the undo history",
           "[gui][edit]") {
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
 
     SECTION("a field of one line") {
         QLineEdit line(QStringLiteral("one two"));
@@ -328,7 +329,7 @@ TEST_CASE("Edit commands: Delete removes the selection, as one step of the undo 
 
 TEST_CASE("Edit commands: the field of a spin box and of a combo box one types into",
           "[gui][edit][clipboard]") {
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("24"));
 
     SECTION("a spin box: the keys are in the box, the text is in its field") {
@@ -359,7 +360,7 @@ TEST_CASE("Edit commands: the field of a spin box and of a combo box one types i
 }
 
 TEST_CASE("Edit commands: the book's text", "[gui][edit][clipboard]") {
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
     editor::BookEditor book;
     test::resizeWidget(book, QSize(600, 400));
     book.fromKml(test::kmlOf({QStringLiteral("One two")}));
@@ -387,7 +388,7 @@ TEST_CASE("Edit commands: the book's text", "[gui][edit][clipboard]") {
 
 TEST_CASE("Edit commands: a list copies its current item and selects all where it can",
           "[gui][edit][clipboard]") {
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
     QTreeWidget list;
     list.addTopLevelItem(new QTreeWidgetItem(QStringList{QStringLiteral("Chapter 1")}));
@@ -419,7 +420,7 @@ TEST_CASE("Edit commands: in the find bar and in the Annotations panel, Undo and
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
 
     SECTION("the find bar's buttons: the book it searches") {
-        EditCoordinator coordinator(noBook);
+        EditCoordinator coordinator(kalahari::test::commands(), noBook);
         book.showFindReplace();
         auto* bar = book.findChild<editor::FindReplaceBar*>();
         REQUIRE(bar != nullptr);
@@ -439,26 +440,27 @@ TEST_CASE("Edit commands: in the find bar and in the Annotations panel, Undo and
     }
 
     SECTION("the Annotations panel outside its fields: the book in front") {
-        AnnotationsPanel panel;
+        AnnotationsPanel panel(kalahari::test::commands());
         auto* area = panel.findChild<QScrollArea*>();
         REQUIRE(area != nullptr);
         QWidget* list = area->widget();
         REQUIRE(list != nullptr);
 
-        EditCoordinator withBook([&book]() -> editor::BookEditor* { return &book; });
+        EditCoordinator withBook(kalahari::test::commands(),
+                                 [&book]() -> editor::BookEditor* { return &book; });
         CHECK(possibleOn(withBook, list) == "Undo");
         CHECK(withBook.execute(Edit::Undo, list));
         CHECK(book.plainText() == QStringLiteral("One two"));
         CHECK_FALSE(withBook.execute(Edit::Paste, list));
 
         // No book in front (the Dashboard): nothing
-        EditCoordinator withoutBook(noBook);
+        EditCoordinator withoutBook(kalahari::test::commands(), noBook);
         CHECK(possibleOn(withoutBook, list).empty());
     }
 }
 
 TEST_CASE("Edit commands: elsewhere they do nothing", "[gui][edit][clipboard]") {
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
     QPushButton button(QStringLiteral("Open"));
     CHECK(possibleOn(coordinator, &button).empty());
@@ -495,7 +497,7 @@ TEST_CASE("Edit commands: the menu bar and the window's toolbars give them to th
         qobject_cast<QToolButton*>(panelBar->widgetForAction(panelBar->actions().first()));
     REQUIRE(toolButton != nullptr);
     REQUIRE(panelButton != nullptr);
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
     coordinator.connectCommands();
     activate(window);
 
@@ -523,14 +525,14 @@ TEST_CASE("Edit commands: the menu bar and the window's toolbars give them to th
 
 TEST_CASE("Edit commands: the commands ask no coordinator that is gone", "[gui][edit]") {
     // The registry outlives the window and its coordinator
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     {
-        EditCoordinator coordinator(noBook);
+        EditCoordinator coordinator(kalahari::test::commands(), noBook);
         coordinator.connectCommands();
     }
     for (const char* id : IDS) {
         INFO(id);
-        const Command* command = CommandRegistry::getInstance().getCommand(id);
+        const Command* command = kalahari::test::commands().getCommand(id);
         REQUIRE(command != nullptr);
         CHECK(command->isEnabled == nullptr);
     }
@@ -551,10 +553,10 @@ TEST_CASE("Edit commands: the keys work on the element with the cursor", "[gui][
     dock->setWidget(log);
     window.addDockWidget(Qt::BottomDockWidgetArea, dock);
 
-    EditCoordinator coordinator(noBook);
-    registerAllCommands(callbacksOf(coordinator));
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
+    registerAllCommands(kalahari::test::commands(), callbacksOf(coordinator));
     for (const char* id : IDS) {
-        window.addAction(CommandRegistry::getInstance().getAction(QString::fromLatin1(id)));
+        window.addAction(kalahari::test::commands().getAction(QString::fromLatin1(id)));
     }
     coordinator.connectCommands();
     QGuiApplication::clipboard()->setText(QStringLiteral("Pasted"));
@@ -614,7 +616,7 @@ TEST_CASE("Edit commands: the commands of the book's text work only with the key
     book->fromKml(test::kmlOf({QStringLiteral("One two")}));
 
     // As the window gives them
-    EditCoordinator coordinator(noBook);
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
     CommandCallbacks callbacks = callbacksOf(coordinator);
     callbacks.onSelectWord = [&coordinator] {
         if (editor::BookEditor* text = coordinator.textWithKeys()) {
@@ -631,8 +633,8 @@ TEST_CASE("Edit commands: the commands of the book's text work only with the key
         ++deletes;
         coordinator.execute(Edit::Delete);
     };
-    registerAllCommands(callbacks);
-    auto& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), callbacks);
+    auto& registry = kalahari::test::commands();
     QAction* selectWord = registry.getAction(QStringLiteral("edit.selectWord"));
     QAction* pageBreak = registry.getAction(QStringLiteral("insert.pageBreak"));
     QAction* deleting = registry.getAction(QStringLiteral("edit.delete"));
@@ -696,9 +698,9 @@ TEST_CASE("Edit commands: the text's context menu gives them to its text with th
     window.resize(600, 400);
     book->fromKml(test::kmlOf({QStringLiteral("One two")}));
 
-    EditCoordinator coordinator(noBook);
-    registerAllCommands(callbacksOf(coordinator));
-    auto& registry = CommandRegistry::getInstance();
+    EditCoordinator coordinator(kalahari::test::commands(), noBook);
+    registerAllCommands(kalahari::test::commands(), callbacksOf(coordinator));
+    auto& registry = kalahari::test::commands();
     for (const char* id : IDS) {
         window.addAction(registry.getAction(QString::fromLatin1(id)));
     }

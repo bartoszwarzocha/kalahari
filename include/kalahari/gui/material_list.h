@@ -11,6 +11,10 @@
 #include <QStringList>
 #include <QVariant>
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace gui {
 
@@ -45,7 +49,7 @@ struct MaterialRow {
                                      ///< material
 };
 
-/// @brief The lists of the materials of the open book: the kinds of the Materials of its
+/// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its
 /// Workshop, the columns of each list and the rows of their materials
 ///
 /// A list is named by the kind of its materials with its package ("kalahari.base:quote");
@@ -105,22 +109,22 @@ public:
     /// the kind on a tab of its own (the usual), or "one", the one tab of the lists shows it
     static constexpr const char* TABS_SETTING = "materials.typeTabs";
 
-    /// @brief The lists of the open book besides ALL, as the Navigator has them in its
+    /// @brief The lists of the book open in @p book besides ALL, as the Navigator has them in its
     /// Materials: the working notes and the kinds of materials, in the order of the book's
     /// type, without the kinds hidden (HIDDEN_SETTING)
-    static QStringList kinds();
+    static QStringList kinds(const core::ProjectManager& book);
 
-    /// @brief The kinds of materials of the open book as the Navigator would have them with
-    /// none hidden, in its order
-    static QStringList allKinds();
+    /// @brief The kinds of materials of the book open in @p book as the Navigator would have them
+    /// with none hidden, in its order
+    static QStringList allKinds(const core::ProjectManager& book);
 
-    /// @brief The kinds Settings > Navigator shows or hides: those of the open book (allKinds()),
-    /// else the materials of the base package, then the kinds hidden that are neither
-    static QStringList settingsKinds();
+    /// @brief The kinds Settings > Navigator shows or hides: those of the book open in @p book
+    /// (allKinds()), else the materials of the base package, then the kinds hidden that are neither
+    static QStringList settingsKinds(const core::ProjectManager& book);
 
-    /// @brief How many materials of @p list the Workshop of the open book has; -1 without a
-    /// book
-    static int countOf(const QString& list);
+    /// @brief How many materials of @p list the Workshop of the book open in @p book has; -1
+    /// without a book
+    static int countOf(const core::ProjectManager& book, const QString& list);
 
     /// @brief The kinds hidden in the Navigator (HIDDEN_SETTING)
     static QStringList hiddenKinds();
@@ -147,18 +151,19 @@ public:
 
     /// @brief Columns of @p list, then one for each field of the writer's that its materials
     /// have (hidden at first), by name
-    static QList<MaterialColumn> columnsOf(const QString& list);
+    static QList<MaterialColumn> columnsOf(const core::ProjectManager& book, const QString& list);
 
     /// @brief Column @p list sorts by at first: the quote of the quotes, the kind of All
     /// Materials, else the title
     static QString firstSortOf(const QString& list);
 
-    /// @brief Rows of the materials of @p list in the open book, in the order of the Workshop
-    static QList<MaterialRow> rowsOf(const QString& list);
+    /// @brief Rows of the materials of @p list in the book open in @p book, in the order of the
+    /// Workshop
+    static QList<MaterialRow> rowsOf(const core::ProjectManager& book, const QString& list);
 
     /// @brief Columns of @p list the writer shows, in their order; those shown at first while
     /// the writer has not chosen
-    static QStringList shownColumns(const QString& list);
+    static QStringList shownColumns(const core::ProjectManager& book, const QString& list);
 
     /// @brief Show @p columns of @p list, in their order (LISTS_SETTING)
     static void setShownColumns(const QString& list, const QStringList& columns);
@@ -191,7 +196,7 @@ public:
 
     /// @brief What Copy of a material puts on the clipboard: the words of a quote, the address
     /// of a page or of a picture on the web without a copy, the path of a file, else the title
-    static QString copyTextOf(const QString& elementId);
+    static QString copyTextOf(const core::ProjectManager& book, const QString& elementId);
 };
 
 } // namespace gui

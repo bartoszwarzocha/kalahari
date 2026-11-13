@@ -71,9 +71,9 @@ QWidget* numberRow(QSpinBox* spin, std::function<QString(int)> text) {
 }
 
 /// @brief The keys of Tools > Next Repetition (the user may change them), or its place in the
-///        menu
-QString nextRepetitionKeys() {
-    const Command* command = CommandRegistry::getInstance().getCommand("tools.nextRepetition");
+///        menu (@p commands: those of the window)
+QString nextRepetitionKeys(const CommandRegistry& commands) {
+    const Command* command = commands.getCommand("tools.nextRepetition");
     if (command != nullptr && !command->shortcut.isEmpty()) {
         return command->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
     }
@@ -126,8 +126,9 @@ bool canAdd(const QListWidget* list, const QString& word) {
 
 }  // namespace
 
-EditorRepetitionsPage::EditorRepetitionsPage(QWidget* parent)
+EditorRepetitionsPage::EditorRepetitionsPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
 {
     using Coordinator = RepetitionsCoordinator;
 
@@ -176,15 +177,15 @@ EditorRepetitionsPage::EditorRepetitionsPage(QWidget* parent)
     alignWithText(addNote(counted, tr("Such as and, the, of, to, it.")), common);
     QLabel* countedNote = addNote(counted, QString());
     // With the keys Next Repetition has now (the user may change them)
-    const auto showCountedNote = [countedNote]() {
+    const auto showCountedNote = [this, countedNote]() {
         //: %1: the keys of Tools > Next Repetition (Ctrl+Shift+F7). In Polish: Tak liczą panel
         //: „Powtórzenia” (Narzędzia > Powtórzenia słów) i %1, które przechodzi do następnego
         //: powtórzenia.
         countedNote->setText(tr("So count the Repetitions panel (Tools > Word Repetitions) and "
                                 "%1, which goes to the next repetition.")
-                                 .arg(nextRepetitionKeys()));
+                                 .arg(nextRepetitionKeys(m_commands)));
     };
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, countedNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, countedNote,
             showCountedNote);
     showCountedNote();
 

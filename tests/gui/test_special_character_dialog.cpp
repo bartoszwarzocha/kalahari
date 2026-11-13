@@ -37,6 +37,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -473,9 +474,9 @@ TEST_CASE("Special characters: the commands of the characters", "[gui][special-c
 
     QStringList inserted;
     const InsertCharacters insert = [&inserted](const QString& text) { inserted.append(text); };
-    CHECK(registerCharacterCommand(U'→', insert));
-    CHECK_FALSE(registerCharacterCommand(U'→', insert));
-    const Command* command = CommandRegistry::getInstance().getCommand("insert.character.2192");
+    CHECK(registerCharacterCommand(kalahari::test::commands(), U'→', insert));
+    CHECK_FALSE(registerCharacterCommand(kalahari::test::commands(), U'→', insert));
+    const Command* command = kalahari::test::commands().getCommand("insert.character.2192");
     REQUIRE(command != nullptr);
     CHECK(command->label == "Rightwards arrow (→)");
     CHECK_FALSE(command->showInMenu);
@@ -484,12 +485,13 @@ TEST_CASE("Special characters: the commands of the characters", "[gui][special-c
 }
 
 TEST_CASE("Special characters: keys given to a character", "[gui][special-characters][shortcuts]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     QMainWindow window;
     QStringList inserted;
     std::vector<std::string> textCommands;
     SpecialCharacterCoordinator coordinator(
-        &window, window.statusBar(), []() -> editor::BookEditor* { return nullptr; },
+        kalahari::test::commands(), &window, window.statusBar(),
+        []() -> editor::BookEditor* { return nullptr; },
         [&inserted](const QString& text) { inserted.append(text); },
         [&textCommands](const std::vector<std::string>& ids) {
             textCommands.insert(textCommands.end(), ids.begin(), ids.end());
@@ -502,12 +504,12 @@ TEST_CASE("Special characters: keys given to a character", "[gui][special-charac
     coordinator.setCharacterKeys(U'→', keys);
     CHECK(textCommands == std::vector<std::string>{"insert.character.2192"});
     QAction* action =
-        CommandRegistry::getInstance().getAction(std::string("insert.character.2192"));
+        kalahari::test::commands().getAction(std::string("insert.character.2192"));
     REQUIRE(action != nullptr);
     CHECK(action->shortcut() == keys.toQKeySequence());
     CHECK(window.actions().contains(action));
     // As the system writes them: "Ctrl+F7", on macOS "⌘F7"
-    CHECK(SpecialCharacterCoordinator::keysOf(U'→') ==
+    CHECK(coordinator.keysOf(U'→') ==
           keys.toQKeySequence().toString(QKeySequence::NativeText));
     const auto stored =
         core::SettingsManager::getInstance().get<nlohmann::json>(SHORTCUTS_SETTING);
@@ -518,38 +520,38 @@ TEST_CASE("Special characters: keys given to a character", "[gui][special-charac
     // Keys of another command (Insert > Annotation..., the same keys on every system): it is
     // left without them
     const KeyboardShortcut annotationKeys =
-        CommandRegistry::getInstance().defaultShortcut("insert.annotation");
+        kalahari::test::commands().defaultShortcut("insert.annotation");
     REQUIRE_FALSE(annotationKeys.isEmpty());
     coordinator.setCharacterKeys(U'←', annotationKeys);
-    CHECK(CommandRegistry::getInstance()
+    CHECK(kalahari::test::commands()
               .getAction(std::string("insert.annotation"))
               ->shortcut()
               .isEmpty());
-    CHECK(CommandRegistry::getInstance()
+    CHECK(kalahari::test::commands()
               .getAction(std::string("insert.character.2190"))
               ->shortcut() == annotationKeys.toQKeySequence());
 
     // A character of Insert > Formatting Character: the keys of its command
     coordinator.setCharacterKeys(U'­', KeyboardShortcut(Qt::Key_F8, Qt::ControlModifier));
-    CHECK(CommandRegistry::getInstance()
+    CHECK(kalahari::test::commands()
               .getAction(std::string("insert.optionalHyphen"))
               ->shortcut() == QKeySequence(Qt::ControlModifier | Qt::Key_F8));
-    CHECK_FALSE(CommandRegistry::getInstance().isCommandRegistered("insert.character.00AD"));
+    CHECK_FALSE(kalahari::test::commands().isCommandRegistered("insert.character.00AD"));
 
     // At the next start the command comes back with its keys
-    CommandRegistry::getInstance().unregisterCommand("insert.character.2192");
-    CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
+    kalahari::test::commands().unregisterCommand("insert.character.2192");
+    kalahari::test::commands().setCustomShortcuts(loadCustomShortcuts());
     const std::vector<std::string> registered = registerCharacterCommands(
-        [](const QString&) {});
+        kalahari::test::commands(), [](const QString&) {});
     CHECK(std::find(registered.begin(), registered.end(), "insert.character.2192") !=
           registered.end());
-    CHECK(CommandRegistry::getInstance()
+    CHECK(kalahari::test::commands()
               .getAction(std::string("insert.character.2192"))
               ->shortcut() == keys.toQKeySequence());
 
     // Taken away
     coordinator.setCharacterKeys(U'→', KeyboardShortcut());
-    CHECK(CommandRegistry::getInstance()
+    CHECK(kalahari::test::commands()
               .getAction(std::string("insert.character.2192"))
               ->shortcut()
               .isEmpty());
@@ -562,8 +564,8 @@ TEST_CASE("Special characters: the window inserts in the text in front",
     window.setCentralWidget(text);
     text->fromKml(test::kmlOf({QStringLiteral("Ala")}));
     text->setCursorPosition({0, 3});
-    SpecialCharacterCoordinator coordinator(
-        &window, window.statusBar(), [text]() { return text; }, {}, {});
+    SpecialCharacterCoordinator coordinator(kalahari::test::commands(), &window, window.statusBar(),
+                                            [text]() { return text; }, {}, {});
 
     CHECK(coordinator.whyNotInsertable().isEmpty());
     CHECK(coordinator.insert(U'—'));
@@ -576,8 +578,8 @@ TEST_CASE("Special characters: the window inserts in the text in front",
     CHECK_FALSE(coordinator.insert(U'–'));
     CHECK(text->plainText() == QStringLiteral("Ala—"));
 
-    SpecialCharacterCoordinator noText(
-        &window, nullptr, []() -> editor::BookEditor* { return nullptr; }, {}, {});
+    SpecialCharacterCoordinator noText(kalahari::test::commands(), &window, nullptr,
+                                       []() -> editor::BookEditor* { return nullptr; }, {}, {});
     CHECK(noText.whyNotInsertable() == QStringLiteral("No chapter or file is open"));
     CHECK_FALSE(noText.insert(U'—'));
 }

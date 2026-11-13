@@ -22,12 +22,13 @@ RecentBooksManager::RecentBooksManager()
     : QObject(nullptr)
 {
     loadRecentFiles();
+}
 
+void RecentBooksManager::follow(const ProjectManager& book) {
     // Every book opened or just created goes to the top of the list (the Dashboard and
     // the Recent Books menu follow recentFilesChanged), and is the book opened at startup
-    auto& projectManager = ProjectManager::getInstance();
-    connect(&projectManager, &ProjectManager::projectOpened, this, [this, &projectManager]() {
-        const QString manifest = projectManager.getManifestPath();
+    connect(&book, &ProjectManager::projectOpened, this, [this, &book]() {
+        const QString manifest = book.getManifestPath();
         if (manifest.isEmpty()) {
             return;
         }

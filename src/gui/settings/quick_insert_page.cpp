@@ -74,8 +74,9 @@ QString shownText(const QString& text) {
 
 }  // namespace
 
-EditorQuickInsertPage::EditorQuickInsertPage(QWidget* parent)
+EditorQuickInsertPage::EditorQuickInsertPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
 {
     createSources();
     createItems();
@@ -168,8 +169,8 @@ void EditorQuickInsertPage::createSources() {
 
     // With the keys the command has now (the user may change them)
     QLabel* commandNote = addNote(form, QString());
-    const auto showCommandKeys = [commandNote]() {
-        const Command* command = CommandRegistry::getInstance().getCommand("insert.quickInsert");
+    const auto showCommandKeys = [this, commandNote]() {
+        const Command* command = m_commands.getCommand("insert.quickInsert");
         const QString keys = command != nullptr && !command->shortcut.isEmpty()
             ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
             : QString();
@@ -183,7 +184,7 @@ void EditorQuickInsertPage::createSources() {
                      "also when the list does not open after @ or #."));
     };
     showCommandKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, commandNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, commandNote,
             showCommandKeys);
 }
 

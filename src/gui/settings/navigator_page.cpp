@@ -107,8 +107,9 @@ void addGap(QFormLayout* form) {
 
 } // namespace
 
-NavigatorPage::NavigatorPage(QWidget* parent)
+NavigatorPage::NavigatorPage(const core::ProjectManager& book, QWidget* parent)
     : SettingsPage(parent)
+    , m_book(book)
 {
     QFormLayout* menus = addGroup(tr("Node Menus"));
     m_named = new QRadioButton(tr("\"Add...\" and a command for each kind"));
@@ -152,8 +153,8 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     QFormLayout* window = addGroup(tr("Add Element Window"));
     m_sections = new QRadioButton(tr("Sections and the Workshop"));
     m_sections->setObjectName(QStringLiteral("navigatorAddWindowSections"));
-    m_book = new QRadioButton(tr("The book and the Workshop"));
-    m_book->setObjectName(QStringLiteral("navigatorAddWindowBook"));
+    m_wholeBook = new QRadioButton(tr("The book and the Workshop"));
+    m_wholeBook->setObjectName(QStringLiteral("navigatorAddWindowBook"));
     m_place = new QRadioButton(tr("No choice"));
     m_place->setObjectName(QStringLiteral("navigatorAddWindowPlace"));
     auto* windowChoices = new QWidget();
@@ -163,8 +164,8 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     alignWithText(addNote(windowLayout, tr("The window shows one group at a time, first the one "
                                            "of the node chosen in the Navigator.")),
                   m_sections);
-    windowLayout->addWidget(m_book);
-    alignWithText(addNote(windowLayout, tr("All kinds of the book at once.")), m_book);
+    windowLayout->addWidget(m_wholeBook);
+    alignWithText(addNote(windowLayout, tr("All kinds of the book at once.")), m_wholeBook);
     windowLayout->addWidget(m_place);
     alignWithText(addNote(windowLayout, tr("Only the kinds of the place the window is opened on.")),
                   m_place);
@@ -178,11 +179,11 @@ NavigatorPage::NavigatorPage(QWidget* parent)
         return json(settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, SECTIONS));
     };
     addWindow.shown = [this]() {
-        return json(m_book->isChecked() ? BOOK : m_place->isChecked() ? PLACE : SECTIONS);
+        return json(m_wholeBook->isChecked() ? BOOK : m_place->isChecked() ? PLACE : SECTIONS);
     };
     addWindow.show = [this](const json& value) {
         const std::string chosen = value.is_string() ? value.get<std::string>() : SECTIONS;
-        (chosen == BOOK ? m_book : chosen == PLACE ? m_place : m_sections)->setChecked(true);
+        (chosen == BOOK ? m_wholeBook : chosen == PLACE ? m_place : m_sections)->setChecked(true);
     };
     addWindow.store = [&settings](const json& value) {
         settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, value.get<std::string>());
@@ -458,8 +459,8 @@ NavigatorPage::NavigatorPage(QWidget* parent)
     auto* kindsLayout = new QVBoxLayout(kindChoices);
     kindsLayout->setContentsMargins(0, 0, 0, 0);
     kindsLayout->setSpacing(4);
-    for (const QString& list : MaterialList::settingsKinds()) {
-        const int count = MaterialList::countOf(list);
+    for (const QString& list : MaterialList::settingsKinds(m_book)) {
+        const int count = MaterialList::countOf(m_book, list);
         auto* box = new QCheckBox(count < 0 ? MaterialList::nameOf(list)
                                             //: A kind of materials with the number of its
                                             //: materials in the open book. In Polish: %1 (%2)

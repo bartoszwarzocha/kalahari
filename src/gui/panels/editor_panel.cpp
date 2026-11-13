@@ -100,9 +100,11 @@ constexpr int AUTO_CORRECT_MESSAGE_MS = 5000;
 
 }  // namespace
 
-EditorPanel::EditorPanel(QWidget* parent)
+EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
     , m_bookEditor(nullptr)
+    , m_book(book)
+    , m_commands(commands)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("EditorPanel constructor called");
@@ -122,12 +124,12 @@ EditorPanel::EditorPanel(QWidget* parent)
             &EditorPanel::modifiedChanged);
 
     // A style of the book added, changed or removed: the text shows it at once
-    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::paragraphStylesChanged,
+    connect(&m_book, &core::ProjectManager::paragraphStylesChanged,
             this, [this]() { m_bookEditor->setParagraphStyles(paragraphStyles()); });
 
     // The text's context menu cuts, copies, pastes and selects all with the commands of the
     // Edit menu: their icons and keys, enabled as there
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     m_bookEditor->setContextMenuEditActions(
         {registry.getAction(QStringLiteral("edit.cut")),
          registry.getAction(QStringLiteral("edit.copy")),
@@ -167,7 +169,8 @@ EditorPanel::EditorPanel(QWidget* parent)
     // Quick insert: the cards of the book, the fragments and the characters at the cursor;
     // the editor owns it, Insert > Quick Insert... finds it there
     m_quickInsert = new editor::QuickInsertController(
-        m_bookEditor, [](QChar trigger) { return quickInsertItems(trigger); }, m_bookEditor);
+        m_bookEditor, [this](QChar trigger) { return quickInsertItems(m_book, trigger); },
+        m_bookEditor);
 
     // A change of autocorrect undone right after it: as in Word, the exceptions keep the
     // abbreviation or the word, unless the writer turned that off
@@ -355,9 +358,9 @@ void EditorPanel::setUnmodified() {
 editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
     // A chapter of the book, which NavigatorCoordinator tags with its element, has the styles
     // of the book; any other text those every book has
-    const bool chapter = core::ProjectManager::getInstance().project() != nullptr &&
+    const bool chapter = m_book.project() != nullptr &&
                          !property("elementId").toString().isEmpty();
-    return chapter ? bookParagraphStyles()
+    return chapter ? bookParagraphStyles(m_book)
                    : editor::ParagraphStyleSet::fromPackage(baseStyles(), programLanguage());
 }
 
@@ -419,7 +422,8 @@ QString EditorPanel::textLanguage() const {
     // A chapter of the book, which NavigatorCoordinator tags with its element, or a file
     // outside the book
     const bool chapter = !property("elementId").toString().isEmpty();
-    return chapter ? SpellingCoordinator::wantedLanguage() : SpellingCoordinator::defaultLanguage();
+    return chapter ? SpellingCoordinator::wantedLanguage(m_book)
+                   : SpellingCoordinator::defaultLanguage();
 }
 
 void EditorPanel::applySettings() {
@@ -875,7 +879,7 @@ void EditorPanel::showImagePropertiesDialog(int position, int page) {
         return;
     }
     // A new caption gets the label of the captions of new images (else the book's first)
-    const core::BookCaptions captions = currentBookCaptions();
+    const core::BookCaptions captions = currentBookCaptions(m_book);
     editor::ImagePropertiesData shown = *properties;
     if (shown.caption.label.isEmpty()) {
         const QString label = settingsNewImageOptions().captionLabel;
@@ -906,7 +910,7 @@ void EditorPanel::showImagePropertiesDialog(int position, int page) {
     }
     const editor::ImagePropertiesData chosen = dialog.data();
     // The labels New Label... added: the book keeps them
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     if (dialog.captionLabels() != captions.labels && projects.isProjectOpen() &&
         !projects.isReadOnly()) {
         core::BookCaptions changed = captions;

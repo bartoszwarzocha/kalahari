@@ -423,7 +423,7 @@ void ToolbarManagerDialog::populateToolbarList() {
 void ToolbarManagerDialog::populateAvailableCommands() {
     m_availableCommands->clear();
 
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_toolbarManager->commands();
 
     // Populate category combo if not done yet
     if (m_categoryCombo->count() <= 1) {
@@ -488,7 +488,7 @@ void ToolbarManagerDialog::populateCurrentToolbar(const QString& toolbarId) {
     }
 
     const QStringList& commands = m_pendingChanges[toolbarId];
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_toolbarManager->commands();
     auto& art = kalahari::core::ArtProvider::getInstance();
 
     for (const QString& cmdId : commands) {

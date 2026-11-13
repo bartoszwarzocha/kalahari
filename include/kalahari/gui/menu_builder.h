@@ -34,7 +34,7 @@ namespace gui {
 /// Example usage:
 /// @code
 /// MenuBuilder builder;
-/// CommandRegistry& registry = CommandRegistry::getInstance();
+/// CommandRegistry& registry = commands();  // the commands of the window
 /// builder.buildMenuBar(registry, this);
 ///
 /// // Register dynamic submenu

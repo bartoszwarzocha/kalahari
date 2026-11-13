@@ -35,11 +35,10 @@ static void setTexts(Command& cmd, const char* menuText) {
     cmd.tooltip = cmd.label;
 }
 
-int registerAllCommands(const CommandCallbacks& callbacks) {
+int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callbacks) {
     auto& logger = core::Logger::getInstance();
     logger.debug("Registering commands with CommandRegistry");
 
-    CommandRegistry& registry = CommandRegistry::getInstance();
     int count = 0;
 
     // =========================================================================

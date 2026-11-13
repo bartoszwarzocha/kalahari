@@ -382,10 +382,11 @@ std::vector<std::string> pathParts(const std::string& menuPath) {
 // Construction
 // ============================================================================
 
-ShortcutsPage::ShortcutsPage(QWidget* parent)
+ShortcutsPage::ShortcutsPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
     , m_fixedGroups(m_rules.fixedGroups())
-    , m_defaults(CommandRegistry::getInstance().defaultShortcuts())
+    , m_defaults(m_commands.defaultShortcuts())
 {
     createSearch();
     createList();
@@ -662,7 +663,7 @@ void ShortcutsPage::createButtons() {
 }
 
 void ShortcutsPage::buildList() {
-    const std::vector<Command> commands = CommandRegistry::getInstance().getAllCommands();
+    const std::vector<Command> commands = m_commands.getAllCommands();
     QFont groupFont = m_list->font();
     groupFont.setBold(true);
 
@@ -1063,7 +1064,7 @@ QString ShortcutsPage::titleOf(const std::string& commandId) const {
     if (const Entry* entry = entryById(commandId)) {
         return entry->menu + PATH_SEPARATOR + entry->label;
     }
-    if (const Command* command = CommandRegistry::getInstance().getCommand(commandId)) {
+    if (const Command* command = m_commands.getCommand(commandId)) {
         return QString::fromStdString(command->label);
     }
     return QString::fromStdString(commandId);

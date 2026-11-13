@@ -18,6 +18,8 @@ class QToolButton;
 
 namespace kalahari::gui {
 
+class CommandRegistry;
+
 /// @brief A frame over the editor a text is written in, at its place
 ///
 /// It lies over the editor, under the place it is for (above it when there is no room below),
@@ -59,7 +61,7 @@ public:
 
     /// @brief Whether the key is the command's shortcut, as the program has it now (also one
     ///        changed in Settings > Keyboard Shortcuts)
-    static bool hasCommandKeys(const QKeyEvent* event, const char* commandId);
+    [[nodiscard]] bool hasCommandKeys(const QKeyEvent* event, const char* commandId) const;
 
     /// @brief What is written: the frame's header, and the name of its text for the readers
     ///        of the screen
@@ -102,11 +104,13 @@ signals:
 
 protected:
     /// @brief Constructor
+    /// @param commands The commands of its window
     /// @param editor The editor it lies over (its parent)
     /// @param textEdit Where the text is written (the frame takes it)
     /// @param name The start of the names of the frame and its parts: "annotationFrame" names
     ///        "annotationFrameKind" (the header), "annotationFrameHint", "annotationFrameClose"
-    WritingFrame(QWidget* editor, QTextEdit* textEdit, const QString& name);
+    WritingFrame(CommandRegistry& commands, QWidget* editor, QTextEdit* textEdit,
+                 const QString& name);
 
     /// @brief Where the text is written
     QTextEdit* textEdit() const { return m_textEdit; }
@@ -203,6 +207,7 @@ private:
     bool m_closing = false;            ///< It asked to be closed or dropped: it asks no more
     bool m_keysAway = false;           ///< The keys went from it to another application
     bool m_keysLeftByMouse = false;    ///< The keys are leaving it with a click or the wheel
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

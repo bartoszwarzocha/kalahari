@@ -43,19 +43,22 @@ QString normalId() {
 
 }  // namespace
 
-StyleCoordinator::StyleCoordinator(QTabWidget* centralTabs, NoticeShower showNotice,
+StyleCoordinator::StyleCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                   QTabWidget* centralTabs, NoticeShower showNotice,
                                    QStatusBar* statusBar, QWidget* window, QObject* parent)
-    : QObject(parent)
-    , m_centralTabs(centralTabs)
-    , m_showNotice(std::move(showNotice))
-    , m_statusBar(statusBar)
-    , m_window(window) {
+    : QObject(parent),
+      m_centralTabs(centralTabs),
+      m_showNotice(std::move(showNotice)),
+      m_statusBar(statusBar),
+      m_window(window),
+      m_book(book),
+      m_commands(commands) {
     // The commands follow the text in front, the style at its cursor and the open book
     connect(m_centralTabs, &QTabWidget::currentChanged, this, [this]() {
         followEditor();
         updateCommandStates();
     });
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const auto bookChanged = [this]() {
         forgetUndo();
         followEditor();
@@ -74,7 +77,7 @@ StyleCoordinator::StyleCoordinator(QTabWidget* centralTabs, NoticeShower showNot
 }
 
 void StyleCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     const auto connectCommand = [&registry](const char* id, std::function<void()> execute,
                                             std::function<QString()> whyNot) {
         if (Command* command = registry.getCommand(id)) {
@@ -112,22 +115,22 @@ void StyleCoordinator::connectCommands() {
 // =============================================================================
 
 editor::ParagraphStyleSet StyleCoordinator::styles() const {
-    return bookParagraphStyles();
+    return bookParagraphStyles(m_book);
 }
 
 QList<core::BookParagraphStyle> StyleCoordinator::entries() const {
-    return core::ProjectManager::getInstance().paragraphStyles();
+    return m_book.paragraphStyles();
 }
 
 QString StyleCoordinator::typeName() const {
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     const core::BookProject* book = projects.project();
     return book != nullptr ? typeNameOf(projects.bookTypes(), *book) : QString();
 }
 
 QHash<QString, StyleCoordinator::Usage> StyleCoordinator::usage() const {
     QHash<QString, Usage> result;
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     const QHash<QString, editor::BookEditor*> open = openEditors();
     for (const QString& id : projects.textElementIds()) {
         const editor::BookEditor* text = open.value(id, nullptr);
@@ -146,7 +149,7 @@ QHash<QString, StyleCoordinator::Usage> StyleCoordinator::usage() const {
 }
 
 EditorPanel* StyleCoordinator::panelInFront() const {
-    if (!core::ProjectManager::getInstance().isProjectOpen()) {
+    if (!m_book.isProjectOpen()) {
         return nullptr;
     }
     auto* panel = qobject_cast<EditorPanel*>(m_centralTabs->currentWidget());
@@ -201,7 +204,7 @@ QString StyleCoordinator::styleFor(const QString& id) const {
 // =============================================================================
 
 QString StyleCoordinator::whyNotChange() const {
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     if (!projects.isProjectOpen()) {
         //: Why the commands of the styles of the book are greyed out. In Polish: Nie jest
         //: otwarta żadna książka
@@ -306,7 +309,7 @@ bool StyleCoordinator::modifyStyle(const QString& requested, QWidget* parent) {
         say(tr("The book has no style \"%1\"").arg(id));
         return false;
     }
-    dialogs::StyleDialog dialog(StyleDraft::existing(set, bookTypeStyles(), id), typeName(),
+    dialogs::StyleDialog dialog(StyleDraft::existing(set, bookTypeStyles(m_book), id), typeName(),
                                 false, parent != nullptr ? parent : m_window);
     if (dialog.exec() != QDialog::Accepted) {
         return false;
@@ -474,7 +477,7 @@ int StyleCoordinator::removeStyle(const QString& id) {
 
 int StyleCoordinator::change(const QString& text, const QList<core::BookParagraphStyle>& entries,
                              const std::optional<std::pair<QString, QString>>& replace) {
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     Step step;
     step.text = text;
     step.entries = projects.paragraphStyles();
@@ -577,7 +580,7 @@ bool StyleCoordinator::undo() {
     }
     const Step step = *m_undo;
     forgetUndo();
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     m_changing = true;
     const bool kept = projects.setParagraphStyles(step.entries);
     m_changing = false;
@@ -664,7 +667,7 @@ void StyleCoordinator::followEditor() {
 }
 
 void StyleCoordinator::updateCommandStates() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const char* id : {NEW_COMMAND, MODIFY_COMMAND, DELETE_COMMAND, MANAGE_COMMAND}) {
         registry.updateActionState(id);
     }

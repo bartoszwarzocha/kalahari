@@ -214,8 +214,9 @@ bool isListKey(const QKeyEvent* event) {
 
 }  // namespace
 
-AnnotationsPanel::AnnotationsPanel(QWidget* parent)
+AnnotationsPanel::AnnotationsPanel(CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
+    , m_commands(commands)
 {
     setObjectName(QStringLiteral("AnnotationsPanel"));
 
@@ -347,7 +348,7 @@ AnnotationsPanel::AnnotationsPanel(QWidget* parent)
     applyTheme(themes.getCurrentTheme());
 
     // The text of an empty list names the keys of Insert > Add Annotation
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, this, [this]() {
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, this, [this]() {
         if (!m_emptyLabel->isHidden()) {
             updateEmptyText(false);
         }
@@ -807,7 +808,7 @@ void AnnotationsPanel::updateEmptyText(bool anyShown) {
     } else if (m_entries.empty()) {
         // The keys of Insert > Add Annotation, as the program has them (written here a second
         // time, they could drift apart, as on the Dashboard)
-        const Command* add = CommandRegistry::getInstance().getCommand("insert.annotation");
+        const Command* add = m_commands.getCommand("insert.annotation");
         const QString addKeys =
             add != nullptr ? add->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
                            : QString();

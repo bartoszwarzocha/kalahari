@@ -40,6 +40,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;
@@ -96,7 +97,7 @@ enum class Missing {
 struct ReadOnlyNovel {
     QTemporaryDir booksDir;
     QTemporaryDir typesDir;
-    core::ProjectManager& pm = core::ProjectManager::getInstance();
+    core::ProjectManager& pm = test::book();
     QString manifest;
     QString chapterId;
 
@@ -204,30 +205,30 @@ bool greyedSayWhy(const QList<MenuItem>& items) {
 TEST_CASE("Read-only book: the message names what the program does not have",
           "[gui][readonly]") {
     CHECK(gui::readOnlyReason() == READ_ONLY);
-    CHECK(gui::readOnlyBookMessage().isEmpty());  // no book
+    CHECK(gui::readOnlyBookMessage(kalahari::test::book()).isEmpty());  // no book
 
     SECTION("its type") {
         const ReadOnlyNovel novel(Missing::Type);
-        CHECK(gui::readOnlyBookMessage() ==
+        CHECK(gui::readOnlyBookMessage(kalahari::test::book()) ==
               QStringLiteral("The book is open read-only: the program does not have its type "
                              "\"Novel\". You can read it and export it."));
     }
     SECTION("a kind of its type, which an older version of it has not") {
         const ReadOnlyNovel novel(Missing::Kind);
-        CHECK(gui::readOnlyBookMessage() ==
+        CHECK(gui::readOnlyBookMessage(kalahari::test::book()) ==
               QStringLiteral("The book is open read-only: the program does not have all the "
                              "book uses (Novel). You can read it and export it."));
     }
     SECTION("a book that can be changed: nothing") {
         const test::OpenNovel novel(QStringLiteral("Sun"));
-        CHECK(gui::readOnlyBookMessage().isEmpty());
+        CHECK(gui::readOnlyBookMessage(kalahari::test::book()).isEmpty());
     }
 }
 
 TEST_CASE("Read-only book: the window reads it and exports it, and changes nothing",
           "[gui][readonly]") {
     const ReadOnlyNovel novel(Missing::Type);
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     Window window;
     window.documents.onProjectOpened(novel.manifest);
     auto* tree = window.navigatorPanel->findChild<QTreeWidget*>();
@@ -240,7 +241,7 @@ TEST_CASE("Read-only book: the window reads it and exports it, and changes nothi
     // The bar at the bottom says why, and exports the archive of the book
     CHECK_FALSE(window.infoBar->isHidden());
     CHECK(window.infoBar->showsReadOnlyBook());
-    CHECK(window.infoBar->message() == gui::readOnlyBookMessage());
+    CHECK(window.infoBar->message() == gui::readOnlyBookMessage(kalahari::test::book()));
     QPushButton* exportButton = barButton(window);
     CHECK(exportButton->text() == QStringLiteral("Export Project Archive..."));
     CHECK(exportButton->isEnabled());
@@ -267,7 +268,7 @@ TEST_CASE("Read-only book: the window reads it and exports it, and changes nothi
     auto* type = child<QLabel>(window.properties, "projectTypeLabel");
     CHECK(type->text() == QStringLiteral("Novel (not in the program)"));
     CHECK_FALSE(type->isEnabled());
-    CHECK(type->toolTip() == gui::readOnlyBookMessage());
+    CHECK(type->toolTip() == gui::readOnlyBookMessage(kalahari::test::book()));
     CHECK(child<QLineEdit>(window.properties, "projectTitleEdit")->isReadOnly());
     CHECK(child<QLineEdit>(window.properties, "projectAuthorEdit")->isReadOnly());
     CHECK(child<QLineEdit>(window.properties, "projectGenreEdit")->isReadOnly());

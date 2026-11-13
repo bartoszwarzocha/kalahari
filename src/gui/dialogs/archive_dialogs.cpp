@@ -471,10 +471,9 @@ void ArchiveDialog::bringIntoView(QWidget* widget)
 // ExportArchiveDialog
 // =============================================================================
 
-ExportArchiveDialog::Book ExportArchiveDialog::openBook()
+ExportArchiveDialog::Book ExportArchiveDialog::openBook(const core::ProjectManager& pm)
 {
     Book book;
-    const auto& pm = core::ProjectManager::getInstance();
     if (const core::ProjectBook* projectBook = pm.book()) {
         book.title = projectBook->title;
     }

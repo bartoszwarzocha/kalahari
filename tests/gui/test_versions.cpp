@@ -56,6 +56,7 @@
 
 #include <cstdio>
 #include <functional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::VersionHistoryDialog;
@@ -135,7 +136,7 @@ core::ChapterVersion kept(const QString& elementId, const QString& text,
                           core::VersionOrigin origin = core::VersionOrigin::Manual,
                           const QString& name = QString()) {
     core::ChapterVersion version;
-    REQUIRE(core::ProjectManager::getInstance().keepVersion(
+    REQUIRE(test::book().keepVersion(
                 elementId, kmlOf(text), {.origin = origin, .name = name}, &version) ==
             core::ProjectManager::VersionKept::Added);
     return version;
@@ -156,13 +157,14 @@ struct HistoryWindow {
         text.elementId = novel.chapterId;
         text.title = element->title;
         text.bookTitle = QStringLiteral("Rain");
-        text.kind = gui::wordsOf(*element);
+        text.kind = gui::wordsOf(kalahari::test::book(), *element);
         text.kml = editor.toKml();
         text.editor = &editor;
         text.readOnly = readOnly;
         text.whyNotSave = readOnly ? READ_ONLY : whyNotSave;
-        dialog = std::make_unique<VersionHistoryDialog>(
-            text, [this](QWidget*) { ++saved; });
+        dialog = std::make_unique<VersionHistoryDialog>(kalahari::test::book(),
+                                                        kalahari::test::commands(), text,
+                                                        [this](QWidget*) { ++saved; });
     }
 
     /// The files of the versions the list shows, from the top
@@ -321,7 +323,7 @@ TEST_CASE("Versions: a book without versions says how to save one", "[gui][versi
     CHECK(window.dialog->summary() ==
           QStringLiteral("The chapter has no versions yet. Save the current text as a version "
                          "with the button under the list, or with %1 in the editor.")
-              .arg(gui::saveVersionKeys()));
+              .arg(gui::saveVersionKeys(kalahari::test::commands())));
     CHECK_FALSE(window.dialog->restoreButton()->isEnabled());
     CHECK_FALSE(window.dialog->insertButton()->isEnabled());
     CHECK_FALSE(window.dialog->renameButton()->isEnabled());
@@ -579,6 +581,8 @@ struct VersionsWindow {
     OpenNovel novel{QStringLiteral("Rain")};
     Window window;
     gui::VersionsCoordinator versions{
+        kalahari::test::book(),
+        kalahari::test::commands(),
         window.tabs,
         [this](const QString& elementId) {
             window.navigator.onElementSelected(elementId, QStringLiteral("The Storm"));
@@ -588,7 +592,8 @@ struct VersionsWindow {
             window.documents.showNotice(editor, message, actionText, actionToolTip,
                                         std::move(action));
         },
-        &window.statusBar, &window.window};
+        &window.statusBar,
+        &window.window};
 
     /// The chapter open in its tab with @p text
     gui::EditorPanel* chapter(const QString& text) {
@@ -637,13 +642,13 @@ TEST_CASE("Versions: the commands work for the texts of the book, and say why no
 
 TEST_CASE("Versions: turned off, no new version is saved; those kept are read and restored",
           "[gui][versions]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     VersionsWindow w;
     w.versions.connectCommands();
     auto& settings = core::SettingsManager::getInstance();
-    QAction* save = gui::CommandRegistry::getInstance().getAction(std::string("file.saveVersion"));
+    QAction* save = test::commands().getAction(std::string("file.saveVersion"));
     QAction* history =
-        gui::CommandRegistry::getInstance().getAction(std::string("file.versionHistory"));
+        test::commands().getAction(std::string("file.versionHistory"));
     REQUIRE(save != nullptr);
     REQUIRE(history != nullptr);
     const core::ChapterVersion old = kept(w.novel.chapterId, QStringLiteral("Dark night."));
@@ -1107,7 +1112,7 @@ TEST_CASE("Versions: their settings page has the settings of the versions",
     KeptVersionSettings settings;
     auto& manager = core::SettingsManager::getInstance();
     manager.set<bool>(core::ChapterVersions::ASK_NAME_SETTING, true);
-    gui::EditorVersionsPage page;
+    gui::EditorVersionsPage page(kalahari::test::commands());
     page.load();
     auto* ask = page.findChild<QCheckBox*>(QStringLiteral("versionsAskName"));
     auto* onSave = page.findChild<QCheckBox*>(QStringLiteral("versionsOnSave"));
@@ -1144,7 +1149,7 @@ TEST_CASE("Versions: their settings page has the settings of the versions",
 TEST_CASE("Versions: their settings turn them off, the rest of the page waits",
           "[gui][versions][settings]") {
     auto& manager = core::SettingsManager::getInstance();
-    gui::EditorVersionsPage page;
+    gui::EditorVersionsPage page(kalahari::test::commands());
     page.load();
     auto* enabled = page.findChild<QCheckBox*>(QStringLiteral("versionsEnabled"));
     auto* note = page.findChild<QLabel*>(QStringLiteral("versionsEnabledNote"));
@@ -1207,7 +1212,7 @@ TEST_CASE("Versions: their settings turn them off, the rest of the page waits",
     CHECK_FALSE(manager.get<bool>(core::ChapterVersions::ENABLED_SETTING));
 
     // Filled again: still off
-    gui::EditorVersionsPage again;
+    gui::EditorVersionsPage again(kalahari::test::commands());
     again.load();
     CHECK_FALSE(again.findChild<QCheckBox*>(QStringLiteral("versionsEnabled"))->isChecked());
     CHECK_FALSE(again.findChild<QCheckBox*>(QStringLiteral("versionsAskName"))->isEnabled());
@@ -1215,7 +1220,7 @@ TEST_CASE("Versions: their settings turn them off, the rest of the page waits",
 
 TEST_CASE("Versions: their settings say where their buttons are", "[gui][versions][settings]") {
     auto& manager = core::SettingsManager::getInstance();
-    gui::EditorVersionsPage page;
+    gui::EditorVersionsPage page(kalahari::test::commands());
     page.load();
     auto* buttons = page.findChild<QComboBox*>(QStringLiteral("versionsButtons"));
     REQUIRE(buttons != nullptr);

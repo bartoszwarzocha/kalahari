@@ -13,6 +13,7 @@
 
 namespace kalahari {
 namespace core {
+class ProjectManager;
 struct ProjectElement;
 } // namespace core
 
@@ -27,8 +28,9 @@ public:
     /// @brief Whether @p kind is the kind of the materials of the cover of the base package
     static bool isCoverKind(const core::KindRef& kind);
 
-    /// @brief Whether @p element is a material of the cover of the open book
-    static bool isCoverMaterial(const core::ProjectElement& element);
+    /// @brief Whether @p element is a material of the cover of the book open in @p book
+    static bool isCoverMaterial(const core::ProjectManager& book,
+                                const core::ProjectElement& element);
 
     /// @brief Name of @p part: "Description for the cover", "Tagline"...; empty for an unknown
     /// part
@@ -38,9 +40,9 @@ public:
     /// "Other" for an unknown part
     static QString groupName(const QString& part);
 
-    /// @brief Title of a new material of @p part in the open book: "Opinion 4", the number
-    /// after those of its part; empty for an unknown part
-    static QString newTitle(const QString& part);
+    /// @brief Title of a new material of @p part in the book open in @p book: "Opinion 4", the
+    /// number after those of its part; empty for an unknown part
+    static QString newTitle(const core::ProjectManager& book, const QString& part);
 
     /// @brief Icon of a material of @p part; empty for an unknown part
     static QString partIconId(const QString& part);

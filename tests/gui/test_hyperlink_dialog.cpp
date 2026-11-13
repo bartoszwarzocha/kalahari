@@ -20,6 +20,7 @@
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolButton>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::editor;
@@ -157,7 +158,7 @@ TEST_CASE("Link dialog: the gear opens the colors of the editor in the Settings 
 
 TEST_CASE("Editor panel: Insert > Link puts the window's link in the text",
           "[gui][links][dialog]") {
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     BookEditor* editor = panel.getBookEditor();
     editor->fromKml(QStringLiteral("<kml><p>One two</p></kml>"));
     editor->setSelection({{0, 4}, {0, 7}});
@@ -223,7 +224,7 @@ TEST_CASE("Editor panel: Insert > Link puts the window's link in the text",
 TEST_CASE("Editor panel: a link to another address than a page or an e-mail is not opened",
           "[gui][links]") {
     QMainWindow window;
-    auto* panel = new gui::EditorPanel();
+    auto* panel = new gui::EditorPanel(kalahari::test::book(), kalahari::test::commands());
     window.setCentralWidget(panel);
     panel->openLink(QStringLiteral("file:///C:/Windows/notepad.exe"));
     CHECK(window.statusBar()->currentMessage() ==

@@ -16,6 +16,10 @@ class QLabel;
 class QLineEdit;
 class QPushButton;
 
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari {
 namespace gui {
 
@@ -33,11 +37,12 @@ class CharacterShortcutDialog : public KalahariDialog {
     Q_OBJECT
 
 public:
+    /// @param commands The commands of its window
     /// @param code The character
     /// @param commandId The command that inserts it (character_commands.h)
     /// @param keysNow The keys it has now; none: none
     /// @param parent Parent widget
-    CharacterShortcutDialog(char32_t code, std::string commandId,
+    CharacterShortcutDialog(CommandRegistry& commands, char32_t code, std::string commandId,
                             const KeyboardShortcut& keysNow, QWidget* parent = nullptr);
 
     /// @brief The keys chosen; none: the character is left without keys
@@ -60,6 +65,7 @@ private:
     QLabel* m_message = nullptr;
     QPushButton* m_recordButton = nullptr;
     QPushButton* m_removeButton = nullptr;
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 /// @brief Add Replacement...: a word auto-correct replaces with a character as it is typed

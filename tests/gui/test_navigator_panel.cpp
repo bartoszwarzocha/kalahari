@@ -10,6 +10,7 @@
 #include <QTreeWidgetItem>
 
 #include <optional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using Spot = gui::NavigatorPanel::DropSpot;
@@ -95,7 +96,7 @@ TEST_CASE("Navigator: the elements of a book in its three sections", "[gui][navi
          part},
         {element("Afterword", "kalahari.base:afterword", "book/afterword_001.kchapter")});
 
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(project, registry());
@@ -154,7 +155,7 @@ TEST_CASE("Navigator: the elements of a book in its three sections", "[gui][navi
 }
 
 TEST_CASE("Navigator: the header says whether a book is open", "[gui][navigator]") {
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     CHECK(tree->headerItem()->text(0) == QStringLiteral("No book is open"));
@@ -171,7 +172,7 @@ TEST_CASE("Navigator: the header says whether a book is open", "[gui][navigator]
 TEST_CASE("Navigator: the sections have the names the book gives them", "[gui][navigator]") {
     core::BookProject project = novel({}, {element("Chapter 1", "kalahari.base:chapter")},
                                       {element("Afterword", "kalahari.base:afterword")});
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     const auto names = [tree]() {
@@ -228,7 +229,7 @@ TEST_CASE("Navigator: a book without sections shows its elements one after anoth
               {element("Afterword", "kalahari.base:afterword")});
     project.books[0].partsLayer = false;
 
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(project, registry());
@@ -305,7 +306,7 @@ TEST_CASE("Navigator: elements of a package that is not installed stay in the tr
     const core::BookProject project =
         novel({}, {arc, element("Board", "acme.thriller:board", "book/board.json")});
 
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(project, registry());
@@ -337,7 +338,7 @@ TEST_CASE("Navigator: an element is dragged to any place its kind can have",
                element("Chapter 1", "kalahari.base:chapter"), part,
                element("Epilogue", "kalahari.novel:epilogue")},
               {element("Afterword", "kalahari.base:afterword")});
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(project, registry());

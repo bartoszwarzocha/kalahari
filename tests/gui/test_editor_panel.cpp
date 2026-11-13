@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <memory>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using Catch::Approx;
@@ -33,7 +34,7 @@ TEST_CASE("Editor panel: the paper chosen in the editor is kept in the settings"
     // brought the saved paper back
     auto& settings = core::SettingsManager::getInstance();
     settings.set<bool>("editor.darkMode", true);
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     REQUIRE(bookEditor->editorColorMode() == editor::EditorColorMode::Dark);
 
@@ -52,7 +53,7 @@ TEST_CASE("Editor panel: the paper chosen in the editor is kept in the settings"
 
 TEST_CASE("Editor panel: Focus comes from the settings", "[gui][editor]") {
     auto& settings = core::SettingsManager::getInstance();
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     CHECK_FALSE(panel.getBookEditor()->isFocusModeEnabled());
 
     // View > Focus keeps its state in the settings of all editors
@@ -70,7 +71,8 @@ TEST_CASE("Editor panel: every document opens at 100%, or at the page's width wh
     // Regression: only the first chapter of the run fitted a small screen; a chapter
     // opened after it opened at 100%, wider than the editor
     const auto open = [](int editorWidth) {
-        auto panel = std::make_unique<gui::EditorPanel>();
+        auto panel =
+            std::make_unique<gui::EditorPanel>(kalahari::test::book(), kalahari::test::commands());
         test::resizeWidget(*panel, QSize(editorWidth, 600));  // the size of its tab
         editor::BookEditor* bookEditor = panel->getBookEditor();
         test::resizeWidget(*bookEditor, panel->size());  // all of the panel
@@ -107,7 +109,7 @@ TEST_CASE("Editor panel: the pages keep their size on paper when the screen's sc
     // Regression: another display scaling (125% to 150% on Windows) while the program ran
     // left the pages at the old scale, so zoom 100% no longer showed their size on paper
     // until the next start
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     QScreen* screen = panel.screen();
     REQUIRE(screen != nullptr);
@@ -132,9 +134,9 @@ TEST_CASE("Editor panel: the words written are counted in the chapter in front",
     // front, and closing any tab stopped it
     editor::StatisticsCollector collector;
     QTabWidget tabs;
-    auto* first = new gui::EditorPanel;
+    auto* first = new gui::EditorPanel(kalahari::test::book(), kalahari::test::commands());
     first->getBookEditor()->fromKml(test::kmlOf({QStringLiteral("One two")}));
-    auto* second = new gui::EditorPanel;
+    auto* second = new gui::EditorPanel(kalahari::test::book(), kalahari::test::commands());
     second->getBookEditor()->fromKml(test::kmlOf({QStringLiteral("Three four five")}));
     tabs.addTab(first, QStringLiteral("First"));
     tabs.addTab(second, QStringLiteral("Second"));
@@ -163,9 +165,9 @@ TEST_CASE("Editor panel: the text's context menu has the commands of the Edit me
           "[gui][editor]") {
     // Regression: the menu cut, copied, pasted and selected all with items of its own,
     // without the icons and the keys of the Edit menu
-    gui::registerAllCommands(gui::CommandCallbacks{});
-    auto& registry = gui::CommandRegistry::getInstance();
-    gui::EditorPanel panel;
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
+    auto& registry = test::commands();
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     bookEditor->fromKml(test::kmlOf({QStringLiteral("One two")}));
     bookEditor->selectAll();
@@ -192,7 +194,7 @@ TEST_CASE("Editor panel: the text's context menu has the commands of the Edit me
 }
 
 TEST_CASE("Editor panel: says whether its text differs from the saved text", "[gui][editor]") {
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     REQUIRE(panel.setContent(test::kmlOf({QStringLiteral("One two.")})));
     std::vector<bool> said;  // what modifiedChanged() said, in order
     QObject::connect(&panel, &gui::EditorPanel::modifiedChanged,

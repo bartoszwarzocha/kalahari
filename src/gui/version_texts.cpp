@@ -98,8 +98,8 @@ QString wordCountText(int words) {
     return VersionTexts::tr("%Ln word(s)", nullptr, words);
 }
 
-QString saveVersionKeys() {
-    const Command* command = CommandRegistry::getInstance().getCommand("file.saveVersion");
+QString saveVersionKeys(const CommandRegistry& commands) {
+    const Command* command = commands.getCommand("file.saveVersion");
     if (command != nullptr && !command->shortcut.isEmpty()) {
         return command->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
     }

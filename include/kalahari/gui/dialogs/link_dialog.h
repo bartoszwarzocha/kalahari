@@ -20,6 +20,10 @@ class QLineEdit;
 class QTreeWidget;
 class QTreeWidgetItem;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace gui {
 namespace dialogs {
@@ -52,11 +56,13 @@ public:
     };
 
     /// @brief Create the dialog for the open book
+    /// @param book The book of its window
     /// @param mode What the boxes link
     /// @param link The material (Targets), or the element or section (Materials,
     ///        core::BookProject::sectionLink())
     /// @param parent Parent widget
-    LinkDialog(Mode mode, const QString& link, QWidget* parent = nullptr);
+    LinkDialog(const core::ProjectManager& book, Mode mode, const QString& link,
+               QWidget* parent = nullptr);
 
     /// @brief The checked links, in the order of the tree
     QStringList checkedLinks() const;
@@ -143,15 +149,18 @@ private:
     QComboBox* m_paragraph = nullptr;
     QLineEdit* m_note = nullptr;
     QLabel* m_linkHint = nullptr;
+    const core::ProjectManager& m_book;  ///< The book of its window
 };
 
-/// @brief Choose in the Link window what material @p elementId is linked with
+/// @brief Choose in the Link window what material @p elementId of @p book is linked with
 ///
 /// The links kept stay in their order, the new ones come after them; each as it is set in the
 /// window.
+/// @param book The book of the window
 /// @param currentLink The link the window starts at; empty: its first item
 /// @return The links of the material the writer chose; none when the writer closed the window
-std::optional<QList<core::ElementLink>> chooseLinks(const QString& elementId,
+std::optional<QList<core::ElementLink>> chooseLinks(const core::ProjectManager& book,
+                                                    const QString& elementId,
                                                     const QString& currentLink, QWidget* parent);
 
 } // namespace dialogs

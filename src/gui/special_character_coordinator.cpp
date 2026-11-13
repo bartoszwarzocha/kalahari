@@ -49,32 +49,31 @@ QString characterTitle(char32_t code)
 
 } // namespace
 
-SpecialCharacterCoordinator::SpecialCharacterCoordinator(QWidget* window, QStatusBar* statusBar,
+SpecialCharacterCoordinator::SpecialCharacterCoordinator(CommandRegistry& commands, QWidget* window,
+                                                         QStatusBar* statusBar,
                                                          EditorInFront editorInFront,
                                                          InsertCharacters insertWithKeys,
-                                                         TextCommands textCommands,
-                                                         QObject* parent)
-    : QObject(parent)
-    , m_window(window)
-    , m_statusBar(statusBar)
-    , m_editorInFront(std::move(editorInFront))
-    , m_insertWithKeys(std::move(insertWithKeys))
-    , m_textCommands(std::move(textCommands))
-{
-}
+                                                         TextCommands textCommands, QObject* parent)
+    : QObject(parent),
+      m_window(window),
+      m_statusBar(statusBar),
+      m_editorInFront(std::move(editorInFront)),
+      m_insertWithKeys(std::move(insertWithKeys)),
+      m_textCommands(std::move(textCommands)),
+      m_commands(commands) {}
 
 SpecialCharacterCoordinator::~SpecialCharacterCoordinator()
 {
     QObject::disconnect(m_focusConnection);
     // The commands outlive the coordinator
     for (const char* id : {WINDOW_COMMAND, PALETTE_COMMAND}) {
-        if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+        if (Command* command = m_commands.getCommand(id)) {
             command->execute = nullptr;
         }
     }
-    for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
+    for (const Command& command : m_commands.getAllCommands()) {
         if (isCharacterCommand(command.id)) {
-            if (Command* registered = CommandRegistry::getInstance().getCommand(command.id)) {
+            if (Command* registered = m_commands.getCommand(command.id)) {
                 registered->execute = nullptr;
             }
         }
@@ -83,13 +82,13 @@ SpecialCharacterCoordinator::~SpecialCharacterCoordinator()
 
 void SpecialCharacterCoordinator::connectCommands()
 {
-    if (Command* command = CommandRegistry::getInstance().getCommand(WINDOW_COMMAND)) {
+    if (Command* command = m_commands.getCommand(WINDOW_COMMAND)) {
         command->execute = [this]() { openWindow(); };
     }
-    if (Command* command = CommandRegistry::getInstance().getCommand(PALETTE_COMMAND)) {
+    if (Command* command = m_commands.getCommand(PALETTE_COMMAND)) {
         command->execute = [this]() { openPalette(); };
     }
-    const std::vector<std::string> ids = registerCharacterCommands(m_insertWithKeys);
+    const std::vector<std::string> ids = registerCharacterCommands(m_commands, m_insertWithKeys);
     attachCommands(ids);
     if (!ids.empty()) {
         core::Logger::getInstance().info("Special characters: {} with the writer's keys",
@@ -103,7 +102,7 @@ void SpecialCharacterCoordinator::attachCommands(const std::vector<std::string>&
         return;
     }
     // No menu has them: their keys work in the window that has their actions
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = m_commands;
     for (const std::string& id : ids) {
         if (QAction* action = registry.getAction(id); action != nullptr && m_window != nullptr) {
             m_window->addAction(action);
@@ -131,7 +130,7 @@ void SpecialCharacterCoordinator::openWindow()
                 }
                 return target;
             },
-            [](char32_t code) { return keysOf(code); },
+            [this](char32_t code) { return keysOf(code); },
             [](char32_t code) {
                 return autoCorrectSources(SpecialCharacters().character(code).text());
             },
@@ -174,7 +173,7 @@ void SpecialCharacterCoordinator::openPalette()
         m_palette->close();
     }
     auto* palette = new QuickCharacterPalette(
-        text->currentFontFamily(), [](char32_t code) { return keysOf(code); },
+        text->currentFontFamily(), [this](char32_t code) { return keysOf(code); },
         [](char32_t code) {
             return autoCorrectSources(SpecialCharacters().character(code).text());
         },
@@ -232,9 +231,9 @@ bool SpecialCharacterCoordinator::insert(char32_t code)
 // Keys and replacements
 // ============================================================================
 
-QString SpecialCharacterCoordinator::keysOf(char32_t code)
+QString SpecialCharacterCoordinator::keysOf(char32_t code) const
 {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = m_commands;
     const std::string id = characterCommandId(code);
     if (!registry.isCommandRegistered(id)) {
         return {};
@@ -246,7 +245,7 @@ QString SpecialCharacterCoordinator::keysOf(char32_t code)
 
 void SpecialCharacterCoordinator::addCharacterCommand(char32_t code)
 {
-    if (registerCharacterCommand(code, m_insertWithKeys)) {
+    if (registerCharacterCommand(m_commands, code, m_insertWithKeys)) {
         attachCommands({characterCommandId(code)});
     }
 }
@@ -257,8 +256,8 @@ void SpecialCharacterCoordinator::setCharacterKeys(char32_t code, const Keyboard
     if (!keys.isEmpty()) {
         addCharacterCommand(code);
     }
-    const std::string owner = ownerOfKeys(keys);
-    saveCustomShortcuts(withKeys(id, keys));
+    const std::string owner = ownerOfKeys(m_commands, keys);
+    saveCustomShortcuts(withKeys(m_commands, id, keys));
     core::Logger::getInstance().info("Special characters: {} for {}",
                                      keys.isEmpty() ? std::string("no keys")
                                                     : portableKeys(keys),
@@ -267,7 +266,7 @@ void SpecialCharacterCoordinator::setCharacterKeys(char32_t code, const Keyboard
         //: %1 is a character with its name, as "Em dash (—)"
         showMessage(tr("%1 has no shortcut now.").arg(characterTitle(code)));
     } else if (!owner.empty() && owner != id) {
-        const Command* command = CommandRegistry::getInstance().getCommand(owner);
+        const Command* command = m_commands.getCommand(owner);
         //: %1 are keys, %2 a character with its name, %3 the command that had the keys
         showMessage(tr("%1 inserts %2 now; %3 has no shortcut.")
                         .arg(keysOf(code), characterTitle(code),
@@ -289,13 +288,13 @@ void SpecialCharacterCoordinator::chooseShortcut(char32_t code)
     }
     const std::string id = characterCommandId(code);
     KeyboardShortcut keysNow;
-    if (CommandRegistry::getInstance().isCommandRegistered(id)) {
-        const QAction* action = CommandRegistry::getInstance().getAction(id);
+    if (m_commands.isCommandRegistered(id)) {
+        const QAction* action = m_commands.getAction(id);
         if (action != nullptr && !action->shortcut().isEmpty()) {
             keysNow = KeyboardShortcut::fromQKeySequence(action->shortcut());
         }
     }
-    dialogs::CharacterShortcutDialog dialog(code, id, keysNow, m_dialog);
+    dialogs::CharacterShortcutDialog dialog(m_commands, code, id, keysNow, m_dialog);
     if (dialog.exec() == QDialog::Accepted && dialog.keys() != keysNow) {
         setCharacterKeys(code, dialog.keys());
     }

@@ -10,6 +10,7 @@
 #include <QAction>
 #include <QDir>
 #include <QMenu>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -44,7 +45,7 @@ QString bookPath(const QString& name) {
 TEST_CASE("Recent Books menu: the books, numbered, and the list cleared", "[gui][recent]") {
     RecentBooksGuard guard;
     auto& recent = core::RecentBooksManager::getInstance();
-    gui::RecentBooksMenu menu;
+    gui::RecentBooksMenu menu(kalahari::test::commands());
 
     SECTION("an empty list") {
         REQUIRE(menu.actions().size() == 1);
@@ -76,7 +77,7 @@ TEST_CASE("Recent Books menu: the books, numbered, and the list cleared", "[gui]
 TEST_CASE("Recent Books menu: before Close Book whatever its text", "[gui][recent]") {
     // Regression: the submenu looked for "Close" in the items' text, so in the Polish
     // program ("Zamknij ksiazke") it went to the end of the File menu
-    auto& registry = gui::CommandRegistry::getInstance();
+    auto& registry = test::commands();
     const bool registered = registry.isCommandRegistered("file.close");
     if (!registered) {
         gui::Command close;
@@ -93,7 +94,7 @@ TEST_CASE("Recent Books menu: before Close Book whatever its text", "[gui][recen
     fileMenu.addAction(closeBook);
     QAction* exit = fileMenu.addAction(QStringLiteral("Zakoncz"));
 
-    auto* recentBooks = new gui::RecentBooksMenu(&fileMenu);
+    auto* recentBooks = new gui::RecentBooksMenu(kalahari::test::commands(), &fileMenu);
     recentBooks->insertInto(&fileMenu);
 
     const QList<QAction*> actions = fileMenu.actions();

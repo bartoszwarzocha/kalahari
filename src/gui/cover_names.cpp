@@ -22,8 +22,9 @@ bool CoverNames::isCoverKind(const core::KindRef& kind) {
            kind.kind->id == QLatin1String(core::MaterialKinds::COVER);
 }
 
-bool CoverNames::isCoverMaterial(const core::ProjectElement& element) {
-    return isCoverKind(core::ProjectManager::getInstance().kindOf(element));
+bool CoverNames::isCoverMaterial(const core::ProjectManager& book,
+                                 const core::ProjectElement& element) {
+    return isCoverKind(book.kindOf(element));
 }
 
 QString CoverNames::partName(const QString& part) {
@@ -88,7 +89,7 @@ QString CoverNames::groupName(const QString& part) {
     return tr("Other");
 }
 
-QString CoverNames::newTitle(const QString& part) {
+QString CoverNames::newTitle(const core::ProjectManager& book, const QString& part) {
     QString title;
     if (part == QLatin1String(CoverMaterial::BLURB)) {
         //: The title of a new description for the cover; %1 its number. In Polish: Opis %1
@@ -112,11 +113,11 @@ QString CoverNames::newTitle(const QString& part) {
         return {};
     }
     int count = 0;
-    if (const core::BookProject* project = core::ProjectManager::getInstance().project()) {
+    if (const core::BookProject* project = book.project()) {
         const std::function<void(const QList<core::ProjectElement>&)> countIn =
             [&](const QList<core::ProjectElement>& elements) {
                 for (const core::ProjectElement& element : elements) {
-                    if (element.cover.part == part && isCoverMaterial(element)) {
+                    if (element.cover.part == part && isCoverMaterial(book, element)) {
                         ++count;
                     }
                     countIn(element.elements);

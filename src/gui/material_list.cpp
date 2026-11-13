@@ -70,19 +70,19 @@ QString baseKindOf(const core::KindRef& kind) {
                : QString();
 }
 
-/// The kind of list @p list in the open book
+/// The kind of list @p list, of the packages installed with the program
 core::KindRef kindOfList(const QString& list) {
     const std::optional<core::KindReference> reference = core::KindReference::parse(list);
-    return reference ? core::ProjectManager::getInstance().bookTypes().findKind(
+    return reference ? core::ProjectManager::installedBookTypes().findKind(
                            reference->packageId, reference->kindId)
                      : core::KindRef{};
 }
 
 /// The kinds of the Materials, in the order of the Navigator: those of the book's type, then
 /// those of the elements of the Workshop of other types and of earlier versions
-QList<core::KindRef> materialKinds() {
+QList<core::KindRef> materialKinds(const core::ProjectManager& book) {
     QList<core::KindRef> kinds;
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = book;
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return kinds;
@@ -107,9 +107,10 @@ QList<core::KindRef> materialKinds() {
 }
 
 /// The elements of the Workshop of the open book that list @p list has, in their order
-QList<const core::ProjectElement*> elementsOf(const QString& list) {
+QList<const core::ProjectElement*> elementsOf(const core::ProjectManager& book,
+                                              const QString& list) {
     QList<const core::ProjectElement*> elements;
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = book;
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return elements;
@@ -124,11 +125,11 @@ QList<const core::ProjectElement*> elementsOf(const QString& list) {
     return elements;
 }
 
-/// The text of the links of @p element: what each names and how, one after another
-QString linksText(const core::ProjectElement& element) {
+/// The text of the links of @p element of @p book: what each names and how, one after another
+QString linksText(const core::ProjectManager& book, const core::ProjectElement& element) {
     QStringList links;
     for (const core::ElementLink& link : element.links) {
-        const QString title = linkTitle(link.to);
+        const QString title = linkTitle(book, link.to);
         if (title.isEmpty()) {
             continue;
         }
@@ -251,8 +252,9 @@ void setCoverTexts(MaterialRow& row, const core::ProjectElement& element) {
 }
 
 /// The row of @p element, of kind @p kind
-MaterialRow rowOf(const core::ProjectElement& element, const core::KindRef& kind) {
-    const auto& pm = core::ProjectManager::getInstance();
+MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& element,
+                  const core::KindRef& kind) {
+    const auto& pm = book;
     MaterialRow row;
     row.id = element.id;
     row.kind = kind.reference();
@@ -272,7 +274,7 @@ MaterialRow rowOf(const core::ProjectElement& element, const core::KindRef& kind
     set(MaterialList::TITLE, element.title);
     set(MaterialList::TYPE, kind.kind->plural.text(programLanguage()));
     set(MaterialList::DESCRIPTION, element.description.simplified());
-    set(MaterialList::LINKS, linksText(element));
+    set(MaterialList::LINKS, linksText(book, element));
     for (const core::ElementField& field : element.fields) {
         const QString name = field.name.trimmed();
         if (!name.isEmpty()) {
@@ -353,7 +355,7 @@ MaterialRow rowOf(const core::ProjectElement& element, const core::KindRef& kind
         }
     }
     set(MaterialList::DETAILS, detailsOf(row, row.text ? QString() : baseKindOf(kind)));
-    row.copy = MaterialList::copyTextOf(element.id);
+    row.copy = MaterialList::copyTextOf(book, element.id);
 
     QStringList all = row.texts.values();
     for (const core::ElementField& field : element.fields) {
@@ -400,10 +402,10 @@ void setListSetting(const QString& list, const char* name, const json& value) {
 
 } // namespace
 
-QStringList MaterialList::kinds() {
+QStringList MaterialList::kinds(const core::ProjectManager& book) {
     QStringList lists;
     const QStringList hidden = hiddenKinds();
-    for (const core::KindRef& kind : materialKinds()) {
+    for (const core::KindRef& kind : materialKinds(book)) {
         if (!hidden.contains(kind.reference())) {
             lists << kind.reference();
         }
@@ -411,17 +413,17 @@ QStringList MaterialList::kinds() {
     return lists;
 }
 
-QStringList MaterialList::allKinds() {
+QStringList MaterialList::allKinds(const core::ProjectManager& book) {
     QStringList lists;
-    for (const core::KindRef& kind : materialKinds()) {
+    for (const core::KindRef& kind : materialKinds(book)) {
         lists << kind.reference();
     }
     return lists;
 }
 
-QStringList MaterialList::settingsKinds() {
-    QStringList lists = allKinds();
-    const auto& pm = core::ProjectManager::getInstance();
+QStringList MaterialList::settingsKinds(const core::ProjectManager& book) {
+    QStringList lists = allKinds(book);
+    const auto& pm = book;
     if (pm.project() == nullptr) {
         for (const core::KindRef& kind : pm.bookTypes().kindsIn(
                  QString::fromLatin1(core::ProjectManager::BASE_PACKAGE),
@@ -440,11 +442,11 @@ QStringList MaterialList::settingsKinds() {
     return lists;
 }
 
-int MaterialList::countOf(const QString& list) {
-    if (core::ProjectManager::getInstance().project() == nullptr) {
+int MaterialList::countOf(const core::ProjectManager& book, const QString& list) {
+    if (book.project() == nullptr) {
         return -1;
     }
-    return static_cast<int>(elementsOf(list).size());
+    return static_cast<int>(elementsOf(book, list).size());
 }
 
 QStringList MaterialList::hiddenKinds() {
@@ -515,7 +517,8 @@ bool MaterialList::hasTiles(const QString& list) {
            kindId == QLatin1String(core::MaterialKinds::PUBLICATION);
 }
 
-QList<MaterialColumn> MaterialList::columnsOf(const QString& list) {
+QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
+                                              const QString& list) {
     //: A column of the list of materials. In Polish: Tytuł
     const QString title = tr("Title");
     //: In Polish: Powiązania
@@ -612,7 +615,7 @@ QList<MaterialColumn> MaterialList::columnsOf(const QString& list) {
 
     // The fields of the writer's that the materials of the list have
     QStringList fields;
-    for (const core::ProjectElement* element : elementsOf(list)) {
+    for (const core::ProjectElement* element : elementsOf(book, list)) {
         for (const core::ElementField& field : element->fields) {
             const QString name = field.name.trimmed();
             if (!name.isEmpty() && !fields.contains(name)) {
@@ -641,17 +644,17 @@ QString MaterialList::firstSortOf(const QString& list) {
                                                                 : QString::fromLatin1(TITLE);
 }
 
-QList<MaterialRow> MaterialList::rowsOf(const QString& list) {
+QList<MaterialRow> MaterialList::rowsOf(const core::ProjectManager& book, const QString& list) {
     QList<MaterialRow> rows;
-    const auto& pm = core::ProjectManager::getInstance();
-    for (const core::ProjectElement* element : elementsOf(list)) {
-        rows << rowOf(*element, pm.kindOf(*element));
+    const auto& pm = book;
+    for (const core::ProjectElement* element : elementsOf(book, list)) {
+        rows << rowOf(book, *element, pm.kindOf(*element));
     }
     return rows;
 }
 
-QStringList MaterialList::shownColumns(const QString& list) {
-    const QList<MaterialColumn> columns = columnsOf(list);
+QStringList MaterialList::shownColumns(const core::ProjectManager& book, const QString& list) {
+    const QList<MaterialColumn> columns = columnsOf(book, list);
     const json kept = listSettings(list);
     QStringList shown;
     if (kept.contains("columns") && kept.at("columns").is_array()) {
@@ -757,8 +760,8 @@ QString MaterialList::documentKindOf(const QString& format) {
     return tr("other");
 }
 
-QString MaterialList::copyTextOf(const QString& elementId) {
-    const auto& pm = core::ProjectManager::getInstance();
+QString MaterialList::copyTextOf(const core::ProjectManager& book, const QString& elementId) {
+    const auto& pm = book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (element == nullptr) {
         return {};

@@ -39,7 +39,14 @@ MainWindow orchestrates 7 coordinators:
 - core::IconRegistry::getInstance()     # icon registry (internal)
 - core::Logger::getInstance()           # logging
 - core::TrustedKeys::getInstance()      # plugin publisher keys
-- gui::CommandRegistry::getInstance()   # command registry (thread-safe)
+
+## Per book window (NOT singletons)
+- MainWindow owns its book and its commands: window.book() (core::ProjectManager),
+  window.commands() (gui::CommandRegistry); its parts take them as the first constructor
+  parameters (core::ProjectManager& book, CommandRegistry& commands -> m_book, m_commands)
+- Shared by all windows: core::ProjectManager::installedBookTypes(); the user's keys
+  (gui::applyCustomShortcuts() gives them to every CommandRegistry::registries())
+- Tests: kalahari::test::book(), kalahari::test::commands() (tests/test_support/window_parts.h)
 
 ## MANDATORY Patterns (CORRECT API)
 

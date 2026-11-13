@@ -138,8 +138,9 @@ QString menuTextOf(const ToolbarManager::ToolbarConfig& config) {
 
 }  // namespace
 
-ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
+ToolbarManager::ToolbarManager(CommandRegistry& commands, QMainWindow* mainWindow)
     : m_mainWindow(mainWindow)
+    , m_commands(commands)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("ToolbarManager: Constructor called");
@@ -953,7 +954,7 @@ void ToolbarManager::rebuildToolbar(const QString& toolbarId) {
     toolbar->clear();
 
     const QStringList& commands = m_toolbarCommands[toolbarId];
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
 
     // Add actions and widgets using shared helper method
     for (const QString& cmdId : shownItems(toolbarId, commands)) {
