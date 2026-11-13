@@ -269,6 +269,30 @@ TEST_CASE("Fields: the page in the page view, \"#\" in the continuous one", "[ed
     CHECK(editor->fieldTextAt(0) == QStringLiteral("#"));
 }
 
+TEST_CASE("Fields: the page of a paragraph that starts a page", "[editor][fields]") {
+    // More and more lines above the page fields: one of them puts the fields' paragraph at the
+    // top of a new page, as the fonts of the system have it; the field shows that page
+    const QString line = QStringLiteral("A line of the text that fills the pages one after another.");
+    int pages = 0;
+    for (int lines = 1; lines <= 80 && pages < 3; ++lines) {
+        QStringList paragraphs;
+        for (int i = 0; i < lines; ++i) {
+            paragraphs << line;
+        }
+        paragraphs << QStringLiteral("Page <field type=\"page\"/> of <field type=\"pages\"/>");
+        auto editor = editorWith(kmlOf(paragraphs));
+        const int field = editor->textDocument()->lastBlock().position() + 5;
+        editor->setViewMode(ViewMode::Page);
+        layoutOf(*editor)->layoutPendingBlocks();
+        QCoreApplication::processEvents();  // the page fields count the pages after the layout
+        pages = editor->totalPages();
+        INFO(lines << " lines above, " << pages << " pages");
+        CHECK(editor->fieldTextAt(field) == QString::number(pages));
+        CHECK(editor->fieldTextAt(field + 5) == QString::number(pages));
+    }
+    CHECK(pages >= 3);
+}
+
 TEST_CASE("Fields: Insert, Edit Field and Convert to Text, each one undo step",
           "[editor][fields]") {
     auto editor = editorWith(QStringLiteral("<kml><p>Written on .</p></kml>"));

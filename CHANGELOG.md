@@ -43,7 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or, with Update Automatically, as a field; Alt+Shift+D and Alt+Shift+T insert the date (in
   the format chosen last) and the time at once, as text (Settings > Keyboard Shortcuts lists
   them under Insert). A plain text file keeps no fields, only the date as text. KML: `<field>`
-  (docs/kml_format.md).
+  (docs/kml_format.md). The window has the list of the fields on the left and the format, how
+  the field shows and its hint on the right, so it fits a small screen.
 - **Chapter Break** - 2026-11-13. Book > Chapter Break (named after the texts of the book:
   "Story Break" in a collection of stories) moves the text from the cursor, or from the start
   of the selection, to a new text right after the one it was in, in the same part, of the
@@ -1404,6 +1405,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A paragraph at the top of a page drawn at the bottom of the page before** - 2026-11-13. In
+  the Page Layout view a paragraph whose first line went on to the next page could be drawn
+  in the margin of the page before, and its page fields showed that page, after its list
+  number, a caption number or a page count in it changed: the paragraph is placed on the pages
+  again.
 - **"Above" and "below" of the cross-references in Polish** - 2026-11-13. A cross-reference
   that shows where its caption is says "powyżej" and "poniżej" in the Polish program, not
   "above" and "below": the translations now also read the texts of the captions in the

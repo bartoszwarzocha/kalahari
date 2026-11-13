@@ -28,7 +28,9 @@ namespace {
 constexpr int LIST_WIDTH_CHARS = 30;
 
 /// The lines of the hint of Insert > Field... (the window keeps its height for every field)
-constexpr int HINT_LINES = 3;
+/// and its width, in average characters, next to the list
+constexpr int HINT_LINES = 4;
+constexpr int HINT_WIDTH_CHARS = 40;
 
 /// The number the formats of the word count show
 constexpr int EXAMPLE_WORDS = 12345;
@@ -208,12 +210,21 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
     }
     m_fields->setCurrentRow(static_cast<int>(m_data.field.type));
     m_fields->setMinimumHeight(m_fields->sizeHint().height());
+
+    // The list on the left, the format, how the field looks and the hint on the right: the
+    // window stays low enough for a small screen
+    auto* columns = new QHBoxLayout();
+    columns->setSpacing(columnSpacing());
     //: The list of the fields. In Polish: &Pole
-    addField(tr("&Field"), m_fields);
+    columns->addLayout(fieldLayout(tr("&Field"), m_fields));
+    auto* details = new QVBoxLayout();
+    details->setSpacing(contentLayout()->spacing());
+    columns->addLayout(details, 1);
+    contentLayout()->addLayout(columns);
 
     m_formats = new QComboBox(this);
     //: In Polish: F&ormat
-    addField(tr("F&ormat"), m_formats);
+    details->addLayout(fieldLayout(tr("F&ormat"), m_formats));
 
     // As in the text: on the gray background of the fields, in the color of the text
     m_preview = new QLabel(this);
@@ -239,12 +250,14 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
     previewBox->setSpacing(fontMetrics().lineSpacing() / 4);
     previewBox->addWidget(previewLabel);
     previewBox->addLayout(previewRow);
-    contentLayout()->addLayout(previewBox);
+    details->addLayout(previewBox);
 
     m_hint = hintLabel(QString(), this);
-    m_hint->setMinimumHeight(m_hint->fontMetrics().lineSpacing() * HINT_LINES);
+    m_hint->setMinimumSize(m_hint->fontMetrics().averageCharWidth() * HINT_WIDTH_CHARS,
+                           m_hint->fontMetrics().lineSpacing() * HINT_LINES);
     m_hint->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    contentLayout()->addWidget(m_hint);
+    details->addWidget(m_hint);
+    details->addStretch(1);
 
     showFormats(m_data.field.format);
     connect(m_fields, &QListWidget::currentRowChanged, this, [this]() { showFormats(QString()); });
