@@ -90,6 +90,49 @@ struct SearchMatch {
 };
 
 // =============================================================================
+// Text as the search reads it
+// =============================================================================
+
+/// @brief The text of a note as the search reads it (SearchableParagraph)
+struct SearchableNote {
+    QString id;                          ///< The note
+    NoteKind kind = NoteKind::Footnote;  ///< A footnote or an endnote
+    int position = 0;                    ///< Its number's position in the document
+    QString text;                        ///< Its text (noteText())
+
+    bool operator==(const SearchableNote&) const = default;
+};
+
+/// @brief A paragraph as the search reads it: its text and the texts of its notes, searched
+///        without its document (SearchEngine::findIn())
+struct SearchableParagraph {
+    int number = 0;                     ///< Its block number
+    int position = 0;                   ///< Its block's position in the document
+    QString text;                       ///< Its text (QTextBlock::text())
+    std::vector<SearchableNote> notes;  ///< The texts of its notes, in text order
+
+    bool operator==(const SearchableParagraph&) const = default;
+};
+
+/// @brief The paragraphs of a document as the search reads them, in order
+std::vector<SearchableParagraph> searchableParagraphs(const QTextDocument& document);
+
+/// @brief The paragraphs of a text's KML as the search reads them: those of the document the
+///        editor makes of it (BookEditor::fromKml()), with the same numbers and positions
+std::vector<SearchableParagraph> searchableParagraphsOfKml(const QString& kml);
+
+/// @brief A text's KML with the matches of a search replaced, as Replace All of the find bar
+///        replaces them in the editor (the formatting and the annotations of the replaced text
+///        stay; in the texts of the notes too)
+/// @param kml The text
+/// @param searchText What is searched for, with @p options
+/// @param replaceText What the matches become
+/// @param options How it is searched for
+/// @param count Receives the number of matches replaced; none: @p kml is returned as it is
+QString replacedInKml(const QString& kml, const QString& searchText, const QString& replaceText,
+                      const SearchOptions& options, int* count = nullptr);
+
+// =============================================================================
 // Search Engine
 // =============================================================================
 
@@ -174,6 +217,17 @@ public:
     /// @brief Find all matches in the document
     /// @return Vector of all matches
     std::vector<SearchMatch> findAll();
+
+    /// @brief The matches of the search text in paragraphs read before
+    ///        (searchableParagraphs()), in text order: those findAll() finds in a document of
+    ///        these paragraphs
+    ///
+    /// The engine's document and its matches stay as they are.
+    std::vector<SearchMatch> findIn(const std::vector<SearchableParagraph>& paragraphs);
+
+    /// @brief Whether the search text can be searched for: not empty and, with
+    ///        SearchOptions::useRegex, a valid regular expression
+    [[nodiscard]] bool canSearch() const;
 
     // =========================================================================
     // Navigation
@@ -304,6 +358,12 @@ private:
     /// @param found Receives the matches, in document order
     void searchBlocks(QTextBlock block, const QTextBlock& last,
                       std::vector<SearchMatch>& found) const;
+
+    /// @brief Append the matches in a paragraph and in the texts of its notes
+    /// @param paragraph The paragraph
+    /// @param found Receives the matches, in text order
+    void searchParagraph(const SearchableParagraph& paragraph,
+                         std::vector<SearchMatch>& found) const;
 
     /// @brief The matches in a line of text (a paragraph, or one of a note): their offsets
     ///        and lengths, in order

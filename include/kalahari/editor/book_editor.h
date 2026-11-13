@@ -1987,6 +1987,26 @@ public:
     /// @brief Hide the find/replace bar and clear search highlights
     void hideFindReplace();
 
+    /// @brief What the selection gives to search for: the text selected within one
+    ///        paragraph, without a line break, or the range of a note's text selected (a
+    ///        match in it); empty for none
+    [[nodiscard]] QString searchTextFromSelection() const;
+
+    /// @brief Select a match of a search made outside the editor (Find in Book): in the text,
+    ///        or in the text of a note, its number selected, as Find Next selects it there
+    /// @return False when the text does not have the match there (it changed since)
+    bool goToSearchMatch(const SearchMatch& match);
+
+    /// @brief Replace every match of a search in the text, as Replace All of the find bar
+    ///        does: one undo step after aboutToReplaceAll(), the cursor at the end of the last
+    ///        replacement; the find bar's search stays its own
+    /// @param searchText What is searched for, with @p options
+    /// @param replaceText What the matches become
+    /// @param options How it is searched for
+    /// @return The number of matches replaced (none in a read-only text)
+    int replaceAllInText(const QString& searchText, const QString& replaceText,
+                         const SearchOptions& options);
+
     /// @brief Set the appearance settings
     /// @param appearance The new appearance configuration
     ///
@@ -3658,9 +3678,17 @@ private:
     /// operations: keep the cursor inside the changed text and emit contentChanged().
     void onTextReplaced();
 
-    /// @brief Where the text put in by the last replacement ends (after Replace All, the
-    /// last replacement in the text), or the cursor if nothing was replaced
-    CursorPosition replacedTextEnd() const;
+    /// @brief After replacements made in the document directly: the cursor at @p end, where
+    ///        the replaced text ends, and contentChanged()
+    void finishReplacement(int end);
+
+    /// @brief Record with each replacement step of @p engine the cursors its undo and redo
+    ///        bring back (the cursor before it, the end of the replaced text)
+    void recordReplacementCursors(SearchEngine& engine);
+
+    /// @brief The place of @p end, where the text put in by a replacement ends (after
+    /// Replace All, the last replacement in the text), or the cursor for -1 (nothing replaced)
+    CursorPosition replacedTextEnd(int end) const;
 };
 
 }  // namespace kalahari::editor
