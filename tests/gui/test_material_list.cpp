@@ -338,7 +338,8 @@ TEST_CASE("Materials list: the rows, the search, the filters and the sorting",
     CHECK_FALSE(camel.isEmpty());
 }
 
-TEST_CASE("Materials list: the keys, the commands and the menu of a row", "[gui][materials]") {
+TEST_CASE("Materials list: the keys, the commands and the menu of a row",
+          "[gui][materials][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Rain"));
     const QString sand = addQuote(QStringLiteral("Sand"), QStringLiteral("Sand everywhere"));

@@ -1369,7 +1369,7 @@ TEST_CASE("Add Element: a new part takes the elements that close the main sectio
 
 TEST_CASE("Add Element: in the Workshop a working note and materials of their kinds, without "
           "places and statuses",
-          "[gui][newfile][addelement]") {
+          "[gui][newfile][addelement][clipboard]") {
     test::OpenNovel book(QStringLiteral("Rain"));
     const core::BookTypeRegistry& types = book.pm.bookTypes();
 

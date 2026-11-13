@@ -36,7 +36,7 @@ void press(BookEditor& editor, Qt::Key key, const QString& text = QString(),
 }  // namespace
 
 TEST_CASE("Read-only text: nothing changes it, and each change says it was refused",
-          "[editor][readonly]") {
+          "[editor][readonly][clipboard]") {
     auto editor = std::make_unique<BookEditor>();
     REQUIRE(editor->fromKml(kChapter));
     CHECK_FALSE(editor->isReadOnly());
@@ -131,7 +131,7 @@ TEST_CASE("Read-only text: nothing changes it, and each change says it was refus
     }
 }
 
-TEST_CASE("Read-only text: it is selected, copied and searched", "[editor][readonly]") {
+TEST_CASE("Read-only text: it is selected, copied and searched", "[editor][readonly][clipboard]") {
     auto editor = std::make_unique<BookEditor>();
     REQUIRE(editor->fromKml(kChapter));
     editor->setReadOnly(true);

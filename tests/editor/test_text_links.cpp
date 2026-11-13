@@ -296,7 +296,7 @@ TEST_CASE("Links: Insert > Link makes, edits and removes them as one undo step e
 }
 
 TEST_CASE("Links: the context menu of a link, Ctrl+click and the link under the mouse",
-          "[editor][links][menu]") {
+          "[editor][links][menu][clipboard]") {
     auto editor = editorWith(kml("<p>A <a href=\"https://example.com\">link</a> here</p>"));
     editor->setCursorPosition({0, 3});
     QStringList texts;

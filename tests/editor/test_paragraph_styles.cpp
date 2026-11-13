@@ -731,7 +731,7 @@ TEST_CASE("Objects: a selection of whole objects", "[editor][objects]") {
     }
 }
 
-TEST_CASE("Objects: selections that end at them", "[editor][objects]") {
+TEST_CASE("Objects: selections that end at them", "[editor][objects][clipboard]") {
     const QString text = kml(QStringLiteral("<p>ab</p><hr/><h2>cd</h2>"));
 
     SECTION("Deleted from text to before the object: the object stays") {

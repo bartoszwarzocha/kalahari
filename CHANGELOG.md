@@ -2486,6 +2486,12 @@ to build it on Windows, Linux and macOS.
 
 ### Fixed
 
+- **Tests: the system clipboard one test at a time** - 2026-11-13. Twelve test cases that
+  use the system clipboard were not tagged `[clipboard]`, so `ctest --parallel` ran them
+  beside the others that use it; on Windows and macOS there is one clipboard for the whole
+  computer, and a test could read what another had put there (a test of the Navigator
+  failed on Windows this way). They are tagged now and run one at a time with the others.
+
 - **CHANGELOG: the history of 0.3.0-alpha and earlier** - 2026-11-13. The sections of
   0.3.0-alpha and 0.2.0-alpha and the history of the documentation, removed by mistake on
   2025-12-07 (commit 5966bcbe), are back as they were; the log of the Qt migration that had a

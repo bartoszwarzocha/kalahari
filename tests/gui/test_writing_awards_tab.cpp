@@ -621,7 +621,7 @@ TEST_CASE("Writing awards: the view Achievements shows the badge won last",
 // =============================================================================
 
 TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom",
-          "[gui][statistics][awards]")
+          "[gui][statistics][awards][clipboard]")
 {
     DefaultSettings defaults;
     QMainWindow window;
@@ -752,7 +752,7 @@ TEST_CASE("Writing awards: the time of writing and the days in a row in the stat
     CHECK_FALSE(labels.streakLabel()->isVisible());
 }
 
-TEST_CASE("Writing awards: the summary of the session", "[gui][statistics][awards]")
+TEST_CASE("Writing awards: the summary of the session", "[gui][statistics][awards][clipboard]")
 {
     Journal journal;
     using gui::dialogs::SessionSummary;

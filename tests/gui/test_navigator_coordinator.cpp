@@ -2854,7 +2854,7 @@ const core::ProjectElement& lastMaterial() {
 
 TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are materials of "
           "the kinds of their sources, linked with the chapter they were dropped on",
-          "[gui][navigator][materials]") {
+          "[gui][navigator][materials][clipboard]") {
     KeptMaterialSettings kept;
     OpenNovel novel;
     // The materials are in the Navigator, under their kinds
