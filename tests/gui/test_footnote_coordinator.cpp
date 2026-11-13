@@ -576,7 +576,7 @@ TEST_CASE("Notes in the book: the window in Polish, its keys, its gear, a small 
     CHECK(lists[1]->currentText() == QStringLiteral("W każdym rozdziale od 1"));
     CHECK(lists[2]->currentText() == QStringLiteral("Koniec rozdziału"));
     CHECK(lists[3]->currentText() == QStringLiteral("i, ii, iii"));
-    CHECK(QApplication::focusWidget() == lists[0]);
+    CHECK(dialog.focusWidget() == lists[0]);  // also where the window is not active
 
     // Each key once, Latin letters only (Alt does not reach "ś")
     std::map<QChar, QStringList> byKey;
