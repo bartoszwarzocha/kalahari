@@ -315,8 +315,8 @@ bool ChapterBreakCoordinator::undo() {
         }
     }
 
-    // The text whole again, saved
-    step->text->undo();
+    // The text whole again, saved; its words came back, they are not written
+    step->text->undoMovedText();
     if (const core::ProjectElement* element = projects.findElement(step->elementId);
         element != nullptr && m_navigator != nullptr) {
         m_navigator->saveTextsOf(*element);

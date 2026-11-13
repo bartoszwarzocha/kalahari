@@ -89,13 +89,17 @@ QStringList mainIds(const OpenNovel& book) {
 
 /// The paragraph of @p text whose text is @p paragraph
 int paragraphOf(const BookEditor& text, const QString& paragraph) {
-    for (QTextBlock block = text.textDocument()->begin(); block.isValid(); block = block.next()) {
+    int found = -1;
+    for (QTextBlock block = text.textDocument()->begin(); block.isValid() && found < 0;
+         block = block.next()) {
         if (block.text() == paragraph) {
-            return block.blockNumber();
+            found = block.blockNumber();
         }
     }
-    FAIL("No such paragraph");
-    return -1;
+    // A failed REQUIRE ends the test; nothing after it is unreachable for the compilers
+    INFO("The paragraph " << paragraph.toStdString());
+    REQUIRE(found >= 0);
+    return found;
 }
 
 /// A chapter with an annotation, a heading and a note after its first two paragraphs
