@@ -1,0 +1,59 @@
+name: RELEASE
+
+# A version tag pushed to GitHub (e.g. v0.4.0-alpha, on a commit of main) makes a draft
+# release of that version, with the summary of its section of the CHANGELOG. Nothing is
+# public until the owner publishes the draft on the Releases page. The steps before the tag
+# are in project_docs/06_roadmap.md, section 5.2.
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write  # gh release create
+
+jobs:
+  draft:
+    name: Draft release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # the history of main, to check that the tag is on it
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Check that the tag is on main
+      run: |
+        git fetch --no-tags origin main
+        if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+          echo "::error::$GITHUB_REF_NAME is not on main: a release is tagged on a commit of main"
+          exit 1
+        fi
+
+    - name: Check the tag against the version of the files
+      run: python scripts/release.py check --tag "$GITHUB_REF_NAME"
+
+    - name: Notes of the release from the CHANGELOG
+      run: |
+        version="${GITHUB_REF_NAME#v}"
+        python scripts/release.py notes --version "$version" > "$RUNNER_TEMP/release-notes.md"
+        cat "$RUNNER_TEMP/release-notes.md" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Draft release on GitHub
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        version="${GITHUB_REF_NAME#v}"
+        prerelease=""
+        case "$version" in
+          *-*) prerelease="--prerelease" ;;  # alpha, beta, rc
+        esac
+        gh release create "$GITHUB_REF_NAME" --draft $prerelease --verify-tag \
+          --title "Kalahari $version" --notes-file "$RUNNER_TEMP/release-notes.md"

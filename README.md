@@ -18,11 +18,11 @@
 
 ## 🚧 Status
 
-**Phase 0 Complete ✅** | **Phase 1 IN PROGRESS** (Core Editor, about half done)
+**Phase 0 Complete ✅** | **Phase 1 IN PROGRESS** (the editor released in 0.4.0-alpha; 0.4.x releases to go)
 
-**Current Version:** 0.3.0-alpha
-**Next Release:** 0.4.0-alpha (Phase 1 complete)
-**Last Updated:** 2026-10-03
+**Current Version:** 0.4.0-alpha
+**Next Release:** 0.4.x-alpha (Phase 1, Part B)
+**Last Updated:** 2026-11-13
 
 ---
 
@@ -245,20 +245,26 @@ Each assistant has unique personality and communication style, helping you stay 
 
 ### Phase 1: Core Editor - IN PROGRESS
 
-**Focus:** Custom text editor + project navigation
+**Focus:** the editor and the work on a whole book. Released in **0.4.0-alpha**:
 
-**Completed Features:**
-- ✅ Menu System Review & Cleanup (OpenSpec #00030)
-- ✅ Toolbar System with customization UI (OpenSpec #00031)
-- ✅ Project File System with .klh support (OpenSpec #00033)
-- ✅ Navigator Panel with drag & drop (OpenSpec #00034, #00036)
-- ✅ Theme & Icon System (ArtProvider, KalahariStyle)
+- ✅ Editor rebuilt for speed: a chapter of 150,000 words opens in a fraction of a second
+- ✅ Page view (paper size, margins, page numbers) and continuous view, zoom, typewriter
+  scrolling, Focus and Distraction-Free modes
+- ✅ Find and Replace in a text and in the whole book
+- ✅ Formatting: paragraph styles (the book type's and the writer's own), the Font and
+  Paragraph windows, lists, links, tables, images with captions, footnotes and endnotes,
+  special characters, autocorrect
+- ✅ Spelling (Polish, English) and grammar (LanguageTool) as you type, with the Spelling and
+  Grammar panel
+- ✅ Annotations: comments, TODOs and notes, in a panel and as cards under the paragraphs
+- ✅ Book types and the new structure of a book; the Navigator with the book and the
+  Workshop; materials and the Cover; versions of the texts; Chapter Break
+- ✅ Writing statistics, goals, badges and challenges
+- ✅ The program's own dialogs that fit small screens, the new Settings window, keyboard
+  shortcuts, the Polish translation
 
-**In Progress:**
-- Custom Text Editor (KML model, rich formatting) - performance and rendering work
-- Find & Replace, Spell Check - implemented in core, not yet wired to the GUI
-- Text styles (paragraph styles, colors, user styles)
-- Statistics (word count in status bar works; statistics panel planned)
+**Next:** export to DOCX and Markdown (0.4.x), a window of its own for each book, and a test
+of the whole program at the end of Phase 1. Every change is in [CHANGELOG.md](CHANGELOG.md).
 
 Menu commands that are not implemented yet are shown disabled.
 

@@ -315,7 +315,7 @@ TEST_CASE("Material downloads: the title of a page, the kind of a picture, and w
 }
 
 TEST_CASE("Material card: a page, a picture on the web with and without its copy, and a material "
-          "without a file", "[gui][materials]") {
+          "without a file", "[gui][materials][clipboard]") {
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Caravan"));
     auto& pm = novel.pm;

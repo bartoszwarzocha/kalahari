@@ -602,7 +602,7 @@ TEST_CASE("Paste: text of another program in the editor, in each mode", "[editor
 }
 
 TEST_CASE("Paste: the pastes of the Edit menu in each mode, whatever Paste does",
-          "[editor][paste]") {
+          "[editor][paste][clipboard]") {
     auto editor = editorWith(kml("<p><i>xy</i></p>"));
     editor->setCursorPosition({0, 1});  // x|y, in italic text
     const auto copy = [](const QString& text, const QString& html, const QByteArray& own = {}) {

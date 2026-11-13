@@ -795,4 +795,13 @@ if(USE_SYSTEM_PACKAGES)
     endforeach()
 endif()
 
+# The version of the program and the cut of the CHANGELOG (scripts/release.py), on every
+# system: the script's own tests, and the five files of the version naming the same one
+add_test(NAME scripts.release
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/test_release.py
+)
+add_test(NAME scripts.release_check
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/release.py check
+)
+
 message(STATUS "Configured test target: kalahari-tests")

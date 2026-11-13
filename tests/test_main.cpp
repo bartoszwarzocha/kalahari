@@ -147,10 +147,19 @@ TEST_CASE("Version information is valid", "[version]") {
         REQUIRE_FALSE(std::string(kalahari::VERSION).empty());
     }
 
-    SECTION("Version components are correct") {
-        REQUIRE(kalahari::VERSION_MAJOR == 0);
-        REQUIRE(kalahari::VERSION_MINOR == 3);
-        REQUIRE(kalahari::VERSION_PATCH == 0);
+    // The number itself is checked against vcpkg.json, README.md, ROADMAP.md and the
+    // CHANGELOG by scripts/release.py (CTest scripts.release_check), so it changes with
+    // each release without this test; here version.h agrees with itself.
+    SECTION("Version components make the version, and the shown version starts with it") {
+        const std::string number = std::to_string(kalahari::VERSION_MAJOR) + "." +
+                                   std::to_string(kalahari::VERSION_MINOR) + "." +
+                                   std::to_string(kalahari::VERSION_PATCH);
+        REQUIRE(std::string(kalahari::VERSION) == number);
+        const std::string shown(kalahari::VERSION_STRING);
+        const bool finalRelease = shown == number;
+        const bool withStage =
+            shown.size() > number.size() + 1 && shown.rfind(number + "-", 0) == 0;
+        REQUIRE((finalRelease || withStage));
     }
 
     SECTION("Platform is recognized") {

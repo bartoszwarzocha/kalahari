@@ -374,7 +374,7 @@ TEST_CASE("Versions: Insert Selected Fragment takes the text of the version sele
 }
 
 TEST_CASE("Versions: Ctrl+C in the changes copies the text of the version",
-          "[gui][versions][dialogs]") {
+          "[gui][versions][dialogs][clipboard]") {
     KeptVersionSettings settings;
     OpenNovel novel(QStringLiteral("Rain"));
     kept(novel.chapterId, QStringLiteral("Dark night came."));
