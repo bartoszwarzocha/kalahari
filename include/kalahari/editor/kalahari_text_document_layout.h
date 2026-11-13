@@ -8,6 +8,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_footnotes.h>
+#include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <QAbstractTextDocumentLayout>
@@ -15,6 +16,7 @@
 #include <QTextCharFormat>
 #include <QColor>
 #include <QFont>
+#include <QHash>
 #include <QMarginsF>
 #include <functional>
 #include <map>
@@ -262,11 +264,23 @@ public:
     ///        after a change of a note or of the context
     const FootnoteNumbers& footnoteNumbers() const;
 
-    /// @brief The colors the text of the notes is drawn in
+    /// @brief Ranges of the texts of the notes drawn marked, by the notes' ids (positions of
+    ///        noteText()): matches of the search, misspelled words, grammar issues
+    using NoteMarks = QHash<QString, std::vector<TextHighlight>>;
+
+    /// @brief The colors the text of the notes is drawn in, and what is marked in it
     struct NoteColors {
         QColor text;  ///< Of their text and numbers
         QColor line;  ///< Of the line above them
         QColor link;  ///< Of a link in them
+        QColor searchMatch;   ///< Under a match of the search
+        QColor currentMatch;  ///< Under the current match
+        QColor selection;     ///< Under the text selected
+        QColor spelling;      ///< Of the wave under a misspelled word
+        QColor grammar;       ///< Of the wave under a grammar issue
+        const NoteMarks* marks = nullptr;  ///< Of this text's notes; nullptr: none
+        /// The text of a note shown selected (its number is selected in the text)
+        std::optional<NoteRange> selected;
     };
 
     /// @brief Draw the notes under a block of the continuous views (its footnotes, under the
@@ -286,10 +300,23 @@ public:
     struct NoteArea {
         QString id;
         QRectF rect;
+        QString elementId;  ///< The text of an endnote of another text shown here; empty: this
+                            ///< one's note
+        size_t firstLine = 0;  ///< The line of the note's text at its top (the page view
+                               ///< shows a part of a note on a page)
     };
 
     /// @brief The note whose text is shown under a point (document coordinates)
     std::optional<NoteArea> noteAreaAt(const QPointF& point) const;
+
+    /// @brief The place in the text of a note of this text nearest to a point (document
+    ///        coordinates): the note's id and the position in its noteText(), length 0;
+    ///        std::nullopt: no text of one of its notes there
+    std::optional<NoteRange> notePositionAt(const QPointF& point) const;
+
+    /// @brief Where the start of a range of a note's text is shown: the rectangle of the range
+    ///        in its first line (document coordinates); std::nullopt: not laid out
+    std::optional<QRectF> noteRangeRect(const NoteRange& range) const;
 
     /// @brief Where the text of a note is shown, its first part (document coordinates);
     ///        std::nullopt: nowhere (a note waiting for the layout of its paragraph)
@@ -926,8 +953,21 @@ private:
     struct NoteBox;
 
     /// @brief The text of the note @p index of footnoteNumbers() laid out (cached by its id,
-    ///        laid out again when its text, number or the width changed)
+    ///        laid out again when its text, number or the width changed); an index past them
+    ///        is of the book's other endnotes (FootnoteContext::otherEndnotes)
     const NoteBox& noteBox(size_t index) const;
+
+    /// @brief The endnotes shown after the last paragraph (indices as noteBox() takes them):
+    ///        the text's own unless they are at the end of the book, among the book's other
+    ///        ones in reading order
+    std::vector<size_t> shownEndnotes() const;
+
+    /// @brief The id of the note @p index of noteBox() and its text (empty: this one's)
+    std::pair<QString, QString> noteKey(size_t index) const;
+
+    /// @brief The room a note's text takes under its block (the room its frame asks for, when
+    ///        it is more)
+    qreal noteRoom(size_t index) const;
 
     /// @brief The metrics of the style the notes are shown in (Footnote)
     const BlockMetrics& noteMetrics() const;
@@ -955,6 +995,19 @@ private:
 
     /// @brief The room the notes take under a block in the continuous views
     qreal askNotesBelow(const QTextBlock& block) const;
+
+    /// @brief The index of a note of this text in footnoteNumbers() (std::nullopt: none)
+    std::optional<size_t> noteIndexOf(const QString& id) const;
+
+    /// @brief The top of line @p line of the note @p index of noteBox() where it is shown
+    ///        (document coordinates); std::nullopt: not shown
+    std::optional<qreal> noteLineTop(size_t index, size_t line) const;
+
+    /// @brief Draw the marks of a note's text (NoteColors::marks, selected) in its lines from
+    ///        @p first to @p last - 1, @p shift down: the backgrounds under the text, or the
+    ///        waves over it
+    void drawNoteMarks(QPainter* painter, size_t note, size_t first, size_t last, qreal shift,
+                       const NoteColors& colors, bool waves) const;
 
     /// @brief Draw the lines [first, last) of a note's text, the top of the first at @p top
     void drawNoteLines(QPainter* painter, size_t note, size_t first, size_t last, qreal top,

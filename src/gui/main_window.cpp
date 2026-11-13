@@ -642,10 +642,25 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Insert > Footnote and Endnote: in the book's text with the keys, not in a read-only one
     // nor in a plain text file (it keeps no notes); the frame of a note's text
+    // the numbers of the notes of every open text in the book around it, and Insert >
+    // Footnote Layout...; a click on an endnote of another text at the end of the book
+    // opens that text, as from the Navigator
     m_footnoteCoordinator = new FootnoteCoordinator(
         m_dockCoordinator->centralTabs(),
-        [this]() { return m_editCoordinator->textWithKeys(); }, this);
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        this, this);
     m_footnoteCoordinator->connectCommands();
+    // A text opened, or the book's order of texts changed: other numbers
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::elementOpened, m_footnoteCoordinator,
+            [this]() { m_footnoteCoordinator->refreshSoon(); });
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::refreshNavigatorRequested,
+            m_footnoteCoordinator, [this]() { m_footnoteCoordinator->refreshSoon(); });
     const std::vector<std::string> noteCommands = {"insert.footnote", "insert.endnote"};
     m_editCoordinator->addTextCommands(noteCommands, [](const editor::BookEditor& text) {
         return !text.isReadOnly() && text.annotationsAllowed();

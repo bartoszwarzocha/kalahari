@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/text_statistics.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kalahari_text_document_layout.h"
@@ -659,6 +660,60 @@ TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open ed
     dialog.applyButton()->click();
     QCoreApplication::processEvents();
     CHECK(bookEditor->wordCount() == 2);
+
+    restore(before);
+}
+
+TEST_CASE("Settings dialog: the words of the notes counted or not, in the open editors too",
+          "[gui][settings][statistics][footnotes]") {
+    // Microsoft Word counts them when asked to; here they count unless the settings say not
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.wordCount.notes"});
+    settings.removeKey("editor.wordCount.notes");
+    CHECK(settings.get<bool>("editor.wordCount.notes"));
+    CHECK(core::wordCountRules().notesAreWords);
+    gui::EditorPanel panel;
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    bookEditor->fromKml(QStringLiteral(
+        "<kml><p>Two words<footnote id=\"f1\">and three more</footnote>.</p></kml>"));
+    REQUIRE(bookEditor->wordCount() == 5);
+
+    // The gear of Insert > Footnote Layout...: the cursor in the option, on Editor > General
+    gui::SettingsDialog dialog(nullptr);
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::WORD_COUNT_PAGE)));
+    QCheckBox* notes =
+        checkBoxOf(dialog, QStringLiteral("Count the words of footnotes and endnotes"));
+    REQUIRE(notes != nullptr);
+    CHECK(notes->isChecked());
+    dialog.show();
+    dialog.activateWindow();
+    QCoreApplication::processEvents();
+    CHECK(dialog.focusWidget() == notes);
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("General"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+    QScrollArea* area = nullptr;
+    for (QWidget* parent = notes->parentWidget(); parent != nullptr && area == nullptr;
+         parent = parent->parentWidget()) {
+        area = qobject_cast<QScrollArea*>(parent);
+    }
+    REQUIRE(area != nullptr);
+    CHECK(area->viewport()->rect().contains(notes->mapTo(area->viewport(), QPoint(0, 0))));
+
+    notes->setChecked(false);
+    dialog.applyButton()->click();
+    CHECK_FALSE(settings.get<bool>("editor.wordCount.notes"));
+    QCoreApplication::processEvents();
+    CHECK(bookEditor->wordCount() == 2);
+
+    notes->setChecked(true);
+    dialog.applyButton()->click();
+    QCoreApplication::processEvents();
+    CHECK(bookEditor->wordCount() == 5);
+    dialog.close();
 
     restore(before);
 }

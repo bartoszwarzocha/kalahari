@@ -12,11 +12,14 @@
 #pragma once
 
 // Phase 11.6: Removed text_buffer.h - using QTextDocument directly
+#include <kalahari/editor/text_footnotes.h>
 #include <QObject>
 #include <QRegularExpression>
 #include <QString>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <optional>
+#include <utility>
 #include <vector>
 
 class QTextBlock;
@@ -41,27 +44,48 @@ struct SearchOptions {
 // =============================================================================
 
 /// @brief Represents a single search match in the document
+///
+/// A match in the text of a note (a footnote, an endnote) is at the place of the note's
+/// number: start, paragraph and paragraphOffset are the number's, noteOffset is where it
+/// starts in the note's text (noteText()), length is its length there. In the order of the
+/// matches the note's text is at its number: after the text before the number, before the
+/// text after it.
 struct SearchMatch {
     size_t start = 0;           ///< Absolute character position (0-based)
     size_t length = 0;          ///< Match length in characters
     int paragraph = 0;          ///< Paragraph index containing the match
     int paragraphOffset = 0;    ///< Character offset within the paragraph
     QString matchedText;        ///< The actual matched text
+    QString noteId;             ///< The note in whose text it is; empty: in the text
+    int noteOffset = 0;         ///< Where it starts in the note's text
 
     /// @brief Check if match is valid
     /// @return true if match has non-zero length
     bool isValid() const { return length > 0; }
 
-    /// @brief Get end position (exclusive)
-    /// @return Absolute character position after the match
-    size_t end() const { return start + length; }
+    /// @brief Whether it is in the text of a note
+    bool inNote() const { return !noteId.isEmpty(); }
 
-    /// @brief Compare matches by position
-    bool operator<(const SearchMatch& other) const { return start < other.start; }
+    /// @brief Get end position (exclusive)
+    /// @return Absolute character position after the match (in the text: of a match in a
+    ///         note, after the note's number)
+    size_t end() const { return inNote() ? start + 1 : start + length; }
+
+    /// @brief Compare matches by position (a match in a note's text by its place there)
+    bool operator<(const SearchMatch& other) const {
+        if (start != other.start) {
+            return start < other.start;
+        }
+        if (inNote() != other.inNote()) {
+            return !inNote();  // a match on the number's character itself first
+        }
+        return noteOffset < other.noteOffset;
+    }
 
     /// @brief Equality comparison
     bool operator==(const SearchMatch& other) const {
-        return start == other.start && length == other.length;
+        return start == other.start && length == other.length && noteId == other.noteId &&
+               noteOffset == other.noteOffset;
     }
 };
 
@@ -187,7 +211,9 @@ public:
     /// here instead of from the first or the last match. The range follows later edits.
     /// @param start Absolute start of the selection, or the cursor position
     /// @param end Absolute end of the selection (equal to @p start without one)
-    void setOrigin(size_t start, size_t end);
+    /// @param note With a note's number selected (@p start, @p end): the range of the
+    ///        note's text the selection stands for (a match or a misspelled word in it)
+    void setOrigin(size_t start, size_t end, const std::optional<NoteRange>& note = {});
 
     // =========================================================================
     // Replace Operations
@@ -271,12 +297,17 @@ private:
     /// @return false if there is nothing to search for
     bool prepareSearch();
 
-    /// @brief Append the matches in the paragraphs from @p block to @p last
+    /// @brief Append the matches in the paragraphs from @p block to @p last, with those in
+    ///        the texts of their notes
     /// @param block First paragraph to search
     /// @param last Last paragraph to search
     /// @param found Receives the matches, in document order
     void searchBlocks(QTextBlock block, const QTextBlock& last,
                       std::vector<SearchMatch>& found) const;
+
+    /// @brief The matches in a line of text (a paragraph, or one of a note): their offsets
+    ///        and lengths, in order
+    std::vector<std::pair<qsizetype, qsizetype>> matchesIn(const QString& text) const;
 
     /// @brief Bring the matches up to date with an edit of the document
     ///
@@ -287,6 +318,15 @@ private:
     /// @brief Index of the first match starting at or after @p position
     /// @return The match count if there is none
     int firstMatchFrom(size_t position) const;
+
+    /// @brief Index of the first match at or after a place in the text of the note whose
+    ///        number is at @p position: @p noteOffset of the text of the note @p noteId
+    /// @return The match count if there is none
+    int firstMatchFrom(size_t position, const QString& noteId, int noteOffset) const;
+
+    /// @brief Index of the first match after the origin's end (@p fromEnd), else of the
+    ///        first one at or after its start
+    int firstMatchFromOrigin(bool fromEnd) const;
 
     /// @brief Index of the match that is exactly the origin's selection, or -1
     int originMatchIndex() const;
@@ -305,6 +345,7 @@ private:
     QMetaObject::Connection m_documentEdits;  ///< Notices edits the matches did not follow
     QMetaObject::Connection m_documentChange; ///< Follows the edits with the matches
     QTextCursor m_origin;                     ///< Where the search goes on from (setOrigin())
+    std::optional<NoteRange> m_originNote;    ///< The note's text the origin stands for
     QTextCursor m_replacementEnd;             ///< Where the last replaced text ends
     QString m_searchText;                     ///< Current search text
     QString m_replaceText;                    ///< Current replacement text

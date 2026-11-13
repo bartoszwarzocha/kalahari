@@ -227,7 +227,7 @@ std::optional<ChapterVersion> ChapterVersions::add(const QString& kml,
     if (about.origin == VersionOrigin::Restore && about.restored.isValid()) {
         version.restored = about.restored.toUTC();
     }
-    version.words = tallyWords(ChapterDocument::kmlToPlainText(kml));
+    version.words = ChapterDocument::kmlWordTally(kml);
 
     const QString path = QDir(m_folder).filePath(version.file);
     if (!writeWhole(path, kml.toUtf8())) {
@@ -365,6 +365,9 @@ ChapterVersions::Index ChapterVersions::read() const {
         }
         version.words.words = std::max(entry.value(QLatin1String("words")).toInt(), 0);
         version.words.dashes = std::max(entry.value(QLatin1String("dashes")).toInt(), 0);
+        version.words.noteWords = std::max(entry.value(QLatin1String("noteWords")).toInt(), 0);
+        version.words.noteDashes =
+            std::max(entry.value(QLatin1String("noteDashes")).toInt(), 0);
         index.versions << version;
     }
     sortNewestFirst(index.versions);
@@ -401,6 +404,10 @@ bool ChapterVersions::write(const Index& index) const {
         }
         entry.insert(QLatin1String("words"), version.words.words);
         entry.insert(QLatin1String("dashes"), version.words.dashes);
+        if (version.words.noteWords > 0 || version.words.noteDashes > 0) {
+            entry.insert(QLatin1String("noteWords"), version.words.noteWords);
+            entry.insert(QLatin1String("noteDashes"), version.words.noteDashes);
+        }
         versions.append(entry);
     }
     QJsonObject root;

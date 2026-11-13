@@ -78,7 +78,7 @@ WordTally ChapterDocument::wordTally() const
 {
     // The text of the KML, as the editor has it: the plain text of a file is only a copy,
     // which an older version of the program may have made in another way
-    return tallyWords(m_kml.isEmpty() ? m_plainText : kmlToPlainText(m_kml));
+    return m_kml.isEmpty() ? tallyWords(m_plainText) : kmlWordTally(m_kml);
 }
 
 int ChapterDocument::characterCount() const
@@ -103,7 +103,12 @@ void ChapterDocument::touch()
 
 void ChapterDocument::recalculateStatistics()
 {
-    const TextCounts counts = countText(m_plainText, wordCountRules());
+    const WordCountRules rules = wordCountRules();
+    TextCounts counts = countText(m_plainText, rules);
+    // The texts of the notes, which the plain text has not
+    for (const editor::Footnote& note : editor::notesOfKml(m_kml)) {
+        addNoteCounts(counts, editor::notePlainText(note.content), rules);
+    }
     m_wordCount = counts.words;
     m_characterCount = counts.nonSpaceCharacters;
     m_paragraphCount = counts.paragraphs;
@@ -566,6 +571,17 @@ QString ChapterDocument::kmlToPlainText(const QString& kml)
         }
     }
     return result;
+}
+
+WordTally ChapterDocument::kmlWordTally(const QString& kml)
+{
+    WordTally tally = tallyWords(kmlToPlainText(kml));
+    for (const editor::Footnote& note : editor::notesOfKml(kml)) {
+        const WordTally words = tallyWords(editor::notePlainText(note.content));
+        tally.noteWords += words.words;
+        tally.noteDashes += words.dashes;
+    }
+    return tally;
 }
 
 } // namespace core

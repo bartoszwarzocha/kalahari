@@ -1866,3 +1866,116 @@ TEST_CASE("Book project: the labels and numbering of a book's captions",
           QStringLiteral("books[0].captions.reference: must be \"number\", \"label\", \"caption\" or "
                          "\"position\""));
 }
+
+TEST_CASE("Book project: the numbering of a book's notes and the place of its endnotes",
+          "[core][bookproject][footnotes]") {
+    BookProject project = fullProject();
+    REQUIRE_FALSE(project.books.first().footnotes.has_value());
+
+    // A book without its own has no field: its file stays as it was
+    CHECK_FALSE(project.toJson().value(QStringLiteral("books")).toArray().at(0).toObject().contains(
+        QStringLiteral("footnotes")));
+
+    // The defaults: 1, 2, 3 and i, ii, iii anew in each chapter, the endnotes after each text
+    const BookFootnotes defaults;
+    CHECK(defaults.footnotes.format == QStringLiteral("1"));
+    CHECK(defaults.footnotes.perChapter);
+    CHECK(defaults.endnotes.format == QStringLiteral("i"));
+    CHECK(defaults.endnotes.perChapter);
+    CHECK_FALSE(defaults.endnotesAtBookEnd);
+
+    BookFootnotes footnotes;
+    footnotes.footnotes.format = QStringLiteral("*");
+    footnotes.endnotes.format = QStringLiteral("A");
+    footnotes.endnotes.perChapter = false;
+    footnotes.endnotesAtBookEnd = true;
+    project.books.first().footnotes = footnotes;
+    const QJsonObject json = project.toJson();
+    const QJsonObject saved = json.value(QStringLiteral("books"))
+                                  .toArray()
+                                  .at(0)
+                                  .toObject()
+                                  .value(QStringLiteral("footnotes"))
+                                  .toObject();
+    CHECK(saved == QJsonObject{{QStringLiteral("footnotes"),
+                                QJsonObject{{QStringLiteral("format"), QStringLiteral("*")},
+                                            {QStringLiteral("perChapter"), true}}},
+                               {QStringLiteral("endnotes"),
+                                QJsonObject{{QStringLiteral("format"), QStringLiteral("A")},
+                                            {QStringLiteral("perChapter"), false},
+                                            {QStringLiteral("place"), QStringLiteral("book")}}}});
+
+    // Read back unchanged, with the fields of a later version kept
+    QJsonObject withExtra = json;
+    QJsonArray books = json.value(QStringLiteral("books")).toArray();
+    QJsonObject book = books.at(0).toObject();
+    QJsonObject own = saved;
+    own.insert(QStringLiteral("separator"), QStringLiteral("short"));
+    QJsonObject endnotes = own.value(QStringLiteral("endnotes")).toObject();
+    endnotes.insert(QStringLiteral("heading"), QStringLiteral("Notes"));
+    own.insert(QStringLiteral("endnotes"), endnotes);
+    book.insert(QStringLiteral("footnotes"), own);
+    books[0] = book;
+    withExtra.insert(QStringLiteral("books"), books);
+    QStringList problems;
+    const std::optional<BookProject> read = BookProject::fromJson(withExtra, problems);
+    INFO(joined(problems));
+    REQUIRE(read.has_value());
+    REQUIRE(read->books.first().footnotes.has_value());
+    const BookFootnotes& back = *read->books.first().footnotes;
+    CHECK(back.footnotes.format == QStringLiteral("*"));
+    CHECK(back.endnotes.format == QStringLiteral("A"));
+    CHECK_FALSE(back.endnotes.perChapter);
+    CHECK(back.endnotesAtBookEnd);
+    CHECK(back.extra.value(QStringLiteral("separator")).toString() == QStringLiteral("short"));
+    CHECK(back.endnotes.extra == QJsonObject{{QStringLiteral("heading"), QStringLiteral("Notes")}});
+    CHECK(read->toJson() == withExtra);
+
+    // Fields left out keep the defaults
+    {
+        QJsonObject partial = json;
+        QJsonArray list = partial.value(QStringLiteral("books")).toArray();
+        QJsonObject first = list.at(0).toObject();
+        first.insert(QStringLiteral("footnotes"),
+                     QJsonObject{{QStringLiteral("endnotes"),
+                                  QJsonObject{{QStringLiteral("format"), QStringLiteral("I")}}}});
+        list[0] = first;
+        partial.insert(QStringLiteral("books"), list);
+        QStringList none;
+        const std::optional<BookProject> partialRead = BookProject::fromJson(partial, none);
+        REQUIRE(partialRead.has_value());
+        const BookFootnotes& notes = *partialRead->books.first().footnotes;
+        CHECK(notes.footnotes == defaults.footnotes);
+        CHECK(notes.endnotes.format == QStringLiteral("I"));
+        CHECK(notes.endnotes.perChapter);
+        CHECK_FALSE(notes.endnotesAtBookEnd);
+    }
+
+    // Problems
+    const auto noteProblems = [&json](const QJsonValue& value) {
+        QJsonObject broken = json;
+        QJsonArray list = broken.value(QStringLiteral("books")).toArray();
+        QJsonObject first = list.at(0).toObject();
+        first.insert(QStringLiteral("footnotes"), value);
+        list[0] = first;
+        broken.insert(QStringLiteral("books"), list);
+        QStringList found;
+        CHECK_FALSE(BookProject::fromJson(broken, found).has_value());
+        return found.join(QLatin1Char('\n'));
+    };
+    CHECK(noteProblems(12) == QStringLiteral("books[0].footnotes: must be an object"));
+    CHECK(noteProblems(QJsonObject{{QStringLiteral("footnotes"), 3}}) ==
+          QStringLiteral("books[0].footnotes.footnotes: must be an object"));
+    CHECK(noteProblems(QJsonObject{
+              {QStringLiteral("footnotes"),
+               QJsonObject{{QStringLiteral("format"), QStringLiteral("x")}}}}) ==
+          QStringLiteral(
+              "books[0].footnotes.footnotes.format: must be \"1\", \"a\", \"A\", \"i\", \"I\" or \"*\""));
+    CHECK(noteProblems(QJsonObject{
+              {QStringLiteral("endnotes"),
+               QJsonObject{{QStringLiteral("place"), QStringLiteral("part")}}}}) ==
+          QStringLiteral("books[0].footnotes.endnotes.place: must be \"chapter\" or \"book\""));
+    CHECK(noteProblems(QJsonObject{
+              {QStringLiteral("endnotes"), QJsonObject{{QStringLiteral("perChapter"), 1}}}}) ==
+          QStringLiteral("books[0].footnotes.endnotes.perChapter: must be true or false"));
+}

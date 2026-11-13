@@ -359,11 +359,15 @@ std::optional<SpellingPanelIssue> SpellingPanel::selectedIssue() const {
     return m_list->issues().at(static_cast<std::size_t>(index));
 }
 
-std::optional<SpellingPanelIssue> SpellingPanel::issueFrom(int position) const {
+std::optional<SpellingPanelIssue> SpellingPanel::issueFrom(int position, int noteStart) const {
     const std::vector<SpellingPanelIssue>& shown = m_list->issues();
     const auto found = std::find_if(shown.cbegin(), shown.cend(),
-                                    [position](const SpellingPanelIssue& issue) {
-                                        return issue.position >= position;
+                                    [position, noteStart](const SpellingPanelIssue& issue) {
+                                        if (noteStart < 0 || issue.position != position) {
+                                            return issue.position >= position;
+                                        }
+                                        return issue.issue.inNote() &&
+                                               issue.issue.start >= noteStart;
                                     });
     if (found == shown.cend()) {
         return std::nullopt;

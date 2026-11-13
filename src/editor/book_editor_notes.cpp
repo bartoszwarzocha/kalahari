@@ -15,9 +15,11 @@
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QTimer>
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -93,6 +95,15 @@ QString BookEditor::noteTitle(NoteKind kind, const QString& number)
                                      : tr("Footnote %1").arg(number);
 }
 
+std::optional<NoteRange> BookEditor::notePlaceAt(const QPointF& widgetPos) const
+{
+    const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
+    if (layout == nullptr || !m_renderPipeline) {
+        return std::nullopt;
+    }
+    return layout->notePositionAt(m_renderPipeline->widgetToDocument(widgetPos));
+}
+
 QString BookEditor::noteTextAt(const QPointF& widgetPos) const
 {
     const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
@@ -101,7 +112,67 @@ QString BookEditor::noteTextAt(const QPointF& widgetPos) const
     }
     const std::optional<KalahariTextDocumentLayout::NoteArea> area =
         layout->noteAreaAt(m_renderPipeline->widgetToDocument(widgetPos));
-    return area ? area->id : QString();
+    return area && area->elementId.isEmpty() ? area->id : QString();
+}
+
+std::optional<std::pair<QString, QString>> BookEditor::bookEndnoteAt(
+    const QPointF& widgetPos) const
+{
+    const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
+    if (layout == nullptr || !m_renderPipeline) {
+        return std::nullopt;
+    }
+    const std::optional<KalahariTextDocumentLayout::NoteArea> area =
+        layout->noteAreaAt(m_renderPipeline->widgetToDocument(widgetPos));
+    if (!area || area->elementId.isEmpty()) {
+        return std::nullopt;
+    }
+    return std::pair{area->elementId, area->id};
+}
+
+void BookEditor::setFootnoteContext(const FootnoteContext& context)
+{
+    if (context == m_footnoteContext) {
+        return;
+    }
+    m_footnoteContext = context;
+    if (KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get())) {
+        layout->setFootnoteContext(context);
+    }
+    update();  // the numbers, and the endnotes after the last paragraph
+}
+
+const FootnoteContext& BookEditor::footnoteContext() const
+{
+    return m_footnoteContext;
+}
+
+std::vector<Footnote> BookEditor::noteList() const
+{
+    std::vector<Footnote> notes;
+    if (const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get())) {
+        for (const NotePlace& place : layout->footnoteNumbers().notes()) {
+            notes.push_back(place.note);
+        }
+    }
+    return notes;
+}
+
+void BookEditor::checkNotesSoon()
+{
+    // Once after the edits of a step (an undo step of many changes is one check)
+    if (m_notesCheckPending) {
+        return;
+    }
+    m_notesCheckPending = true;
+    QTimer::singleShot(0, this, [this]() {
+        m_notesCheckPending = false;
+        std::vector<Footnote> notes = noteList();
+        if (notes != m_shownNotes) {
+            m_shownNotes = std::move(notes);
+            emit notesChanged();
+        }
+    });
 }
 
 void BookEditor::addNoteActions(QMenu& menu, const NotePlace& note)
@@ -177,7 +248,8 @@ std::optional<NotePlace> BookEditor::noteAt(const QPointF& widgetPos) const
     // Its text: under its paragraph, at the bottom of a page, after the last paragraph
     const std::optional<KalahariTextDocumentLayout::NoteArea> area = layout->noteAreaAt(point);
     if (area) {
-        return noteOf(area->id);
+        // Not of another text's endnote: the ids of texts may meet
+        return area->elementId.isEmpty() ? noteOf(area->id) : std::nullopt;
     }
 
     // Its number: the character under the point (the layout's exact hit)
@@ -217,14 +289,7 @@ bool BookEditor::setNoteContent(const QString& id, const QString& content, bool 
         document->appendUndoItem(new CallbackUndoItem(
             [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
     }
-    QTextCursor cursor(document);
-    cursor.setPosition(place->position);
-    cursor.setPosition(place->position + 1, QTextCursor::KeepAnchor);
-    QTextCharFormat format = cursor.charFormat();
-    Footnote note = place->note;
-    note.content = content;
-    setFootnote(format, note);
-    cursor.setCharFormat(format);
+    setNoteContentAt(*document, place->position, content);
     step.endEditBlock();
     if (m_insertedNote && m_insertedNote->id == id) {
         m_insertedNote.reset();  // written: no longer new, a change of it is a step of its own
@@ -388,7 +453,11 @@ void BookEditor::setNoteFrameRoom(const QString& id, qreal height)
 
 void BookEditor::scrollToNote(const QString& id)
 {
-    const QRectF note = noteRect(id);
+    scrollToShow(noteRect(id));
+}
+
+void BookEditor::scrollToShow(const QRectF& note)
+{
     if (note.isEmpty() || !m_viewportManager || height() <= 0) {
         return;
     }
@@ -406,6 +475,104 @@ void BookEditor::scrollToNote(const QString& id)
     }
     if (std::abs(delta) >= 1.0) {
         setScrollOffset(scrollOffset() + delta / m_viewportManager->viewScale());
+    }
+}
+
+bool BookEditor::goToNote(const QString& id)
+{
+    const std::optional<NotePlace> place = noteOf(id);
+    if (!place) {
+        return false;
+    }
+    clearSelection();
+    const CursorPosition after = absoluteToCursorPosition(m_textBuffer.get(), place->position + 1);
+    m_selectionAnchor = after;
+    setCursorPosition(after);
+    ensureCursorVisible();
+    update();
+    return true;
+}
+
+bool BookEditor::selectNoteRange(const NoteRange& range)
+{
+    const std::optional<NotePlace> place = noteOf(range.id);
+    if (!place) {
+        return false;
+    }
+    selectRange(calculateCursorPosition(place->position),
+                calculateCursorPosition(place->position + 1));
+    m_noteSelection = range;
+    syncSearchOrigin();
+
+    // The range in view, with the number when both fit
+    const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
+    if (layout != nullptr && m_renderPipeline) {
+        if (const std::optional<QRectF> rect = layout->noteRangeRect(range)) {
+            scrollToShow(QRectF(m_renderPipeline->documentToWidget(rect->topLeft()),
+                                m_renderPipeline->documentToWidget(rect->bottomRight())));
+        }
+    }
+    update();
+    return true;
+}
+
+bool BookEditor::isNoteNumberSelected(const QString& id) const
+{
+    if (!m_textBuffer || !hasSelection()) {
+        return false;
+    }
+    const SelectionRange range = m_selection.normalized();
+    if (range.start.paragraph != range.end.paragraph ||
+        range.end.offset != range.start.offset + 1) {
+        return false;
+    }
+    const std::optional<Footnote> note =
+        noteAtPosition(*m_textBuffer, calculateAbsolutePosition(range.start));
+    return note && note->id == id;
+}
+
+bool BookEditor::replaceInNote(const NoteRange& range, const QString& text)
+{
+    if (refusesChange() || !m_textBuffer) {
+        return false;
+    }
+    const std::optional<NotePlace> place = findNote(*m_textBuffer, range.id);
+    if (!place || range.start < 0 || range.length < 0 ||
+        range.start + range.length > noteText(place->note.content).size()) {
+        return false;
+    }
+    if (m_noteSelection && m_noteSelection->id == range.id) {
+        m_noteSelection.reset();  // its text changes
+    }
+    return setNoteContent(range.id, replacedNoteContent(place->note.content,
+                                                        {{range.start, range.length}}, text));
+}
+
+void BookEditor::updateNoteMarks()
+{
+    m_noteMarks.clear();
+    const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
+    if (layout == nullptr || layout->footnoteNumbers().notes().empty()) {
+        return;
+    }
+
+    // The misspelled words and grammar issues of their texts, gathered when they change
+    updateNoteIssueMarks();
+    m_noteMarks = m_noteIssueMarks;
+
+    // The matches of the search in their texts
+    if (m_searchEngine && m_searchEngine->isActive()) {
+        const std::vector<SearchMatch>& matches = m_searchEngine->matches();
+        const int current = m_searchEngine->currentMatchIndex();
+        for (size_t i = 0; i < matches.size(); ++i) {
+            const SearchMatch& match = matches[i];
+            if (match.inNote()) {
+                m_noteMarks[match.noteId].push_back(
+                    {match.noteOffset, static_cast<int>(match.length),
+                     static_cast<int>(i) == current ? HighlightKind::CurrentSearchMatch
+                                                    : HighlightKind::SearchMatch});
+            }
+        }
     }
 }
 

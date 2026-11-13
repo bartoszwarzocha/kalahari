@@ -26,6 +26,9 @@ struct KalahariTextDocumentLayout::NoteBox {
     struct Paragraph {
         std::unique_ptr<QTextLayout> layout;
         QList<QTextLayout::FormatRange> links;
+        int textStart = 0;  ///< Where the note's text starts in the layout's (after the number)
+        int noteStart = 0;  ///< Where the paragraph starts in the note's noteText()
+        int length = 0;     ///< Its characters in noteText()
     };
     std::vector<Paragraph> paragraphs;
 

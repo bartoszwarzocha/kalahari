@@ -57,9 +57,6 @@ namespace gui {
 
 namespace {
 
-/// @brief The setting of the rules of counting whose change counts the words of the book again
-constexpr const char* WORD_COUNT_RULES_KEY = "editor.wordCount.dashesAsWords";
-
 /// @brief @p number as the system writes numbers: 12 345 in Polish, 12,345 in English, as the
 ///        status bar and the counts of the editor write them
 QString numberText(int number) {
@@ -163,7 +160,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     // thread that changes them, the panel changes on its own
     m_settingsListener =
         core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
-            if (key == WORD_COUNT_RULES_KEY) {
+            if (core::isWordCountRulesKey(key)) {  // the words of the book counted again
                 QMetaObject::invokeMethod(this, "updateWordCounts", Qt::QueuedConnection);
             } else if (key == core::ChapterVersions::ENABLED_SETTING) {
                 QMetaObject::invokeMethod(this, "refreshVersions", Qt::QueuedConnection);

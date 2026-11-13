@@ -105,7 +105,7 @@ private:
 
     // What the writer does in the panel
     void selectInEditor(const SpellingPanelIssue& issue);
-    void selectFrom(int position);
+    void selectFrom(int position, int noteStart = -1);  // SpellingPanel::issueFrom()
     void onSuggestionChosen(const SpellingPanelIssue& issue, const QString& suggestion);
     void onIgnoreWord(const SpellingPanelIssue& issue, bool addToDictionary);
     void onIgnoreRule(const SpellingPanelIssue& issue);

@@ -27,6 +27,7 @@
 #include <QTextTable>
 #include <QTimer>
 #include <algorithm>
+#include <functional>
 #include <optional>
 #include <tuple>
 #include <utility>
@@ -544,11 +545,17 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
             event->accept();
             return;
         }
-        // A click on a note's text writes it in its frame
+        // A click on a note's text writes it in its frame; on an endnote of another text (at
+        // the end of the book), in that text
         if (const QString note = noteTextAt(event->position()); !note.isEmpty()) {
             if (!m_readOnly) {
                 emit noteEditRequested(note);
             }
+            event->accept();
+            return;
+        }
+        if (const auto endnote = bookEndnoteAt(event->position())) {
+            emit bookEndnoteOpenAsked(endnote->first, endnote->second);
             event->accept();
             return;
         }
@@ -1174,15 +1181,20 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
         }
     }
 
-    // On a note's number or its text: the cursor goes after the number, the menu is the note's
+    // On a note's number or its text: the cursor goes after the number, the menu is the note's;
+    // on a misspelled word or a grammar issue of its text, with what is offered for it
     if (event->reason() == QContextMenuEvent::Mouse) {
         if (const std::optional<NotePlace> note = noteAt(QPointF(event->pos()))) {
+            std::optional<NoteRange> place = notePlaceAt(QPointF(event->pos()));
+            if (place && place->id != note->note.id) {
+                place.reset();
+            }
             const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
             const CursorPosition after = calculateCursorPosition(note->position + 1);
             clearSelection();
             m_selectionAnchor = after;
             setCursorPosition(after);
-            showContextMenu(m_cursorPosition, event->globalPos(), false);
+            showContextMenu(m_cursorPosition, event->globalPos(), false, std::nullopt, place);
             return;
         }
     }
@@ -1210,7 +1222,9 @@ void BookEditor::showContextMenuAtCursor()
             menuPos = mapToGlobal(caret.bottomLeft().toPoint());
         }
     }
-    showContextMenu(m_cursorPosition, menuPos, false);
+    // A note's number selected for a range of its text (an issue gone to): the menu is for
+    // that range too
+    showContextMenu(m_cursorPosition, menuPos, false, std::nullopt, m_noteSelection);
 }
 
 bool BookEditor::showIssueMenu(const TextIssue& issue, const QPoint& globalPos)
@@ -1219,23 +1233,53 @@ bool BookEditor::showIssueMenu(const TextIssue& issue, const QPoint& globalPos)
         return false;
     }
     // Inside the issue: a word that ends where it starts is not taken for it
+    if (issue.inNote()) {
+        const std::optional<NotePlace> note = noteOf(issue.noteId);
+        if (!note) {
+            return false;
+        }
+        showContextMenu(calculateCursorPosition(note->position + 1), globalPos, false, issue.kind,
+                        NoteRange{issue.noteId, issue.start + (issue.length / 2), 0});
+        return true;
+    }
     showContextMenu({issue.paragraph, issue.start + issue.length / 2}, globalPos, false,
                     issue.kind);
     return true;
 }
 
 void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& globalPos,
-                                 bool fromMouse, std::optional<TextIssueKind> kind)
+                                 bool fromMouse, std::optional<TextIssueKind> kind,
+                                 const std::optional<NoteRange>& inNote)
 {
     // A misspelled word or a grammar issue: what to put in its place, on top of the usual
-    // menu (the spelling first, where both are)
-    const auto [word, startOffset, endOffset] =
-        kind != TextIssueKind::Grammar ? getMisspelledWordAt(pos.paragraph, pos.offset)
-                                       : std::tuple<QString, int, int>{QString(), 0, 0};
-    const std::optional<GrammarError> grammarError =
-        word.isEmpty() && kind != TextIssueKind::Spelling
-            ? getGrammarErrorAt(pos.paragraph, pos.offset)
-            : std::nullopt;
+    // menu (the spelling first, where both are); in a note's text, put in the note
+    const std::optional<NoteRange> notePlace =
+        inNote ? std::optional<NoteRange>(
+                     NoteRange{inNote->id, inNote->start + (inNote->length / 2), 0})
+               : std::nullopt;
+    const auto misspelled = [this, &pos, &notePlace, kind]() {
+        if (kind == TextIssueKind::Grammar) {
+            return std::tuple<QString, int, int>{QString(), 0, 0};
+        }
+        return notePlace ? getMisspelledNoteWordAt(*notePlace)
+                         : getMisspelledWordAt(pos.paragraph, pos.offset);
+    };
+    const auto [word, startOffset, endOffset] = misspelled();
+    std::optional<GrammarError> grammarError;
+    if (word.isEmpty() && kind != TextIssueKind::Spelling) {
+        grammarError = notePlace ? getNoteGrammarErrorAt(*notePlace)
+                                 : getGrammarErrorAt(pos.paragraph, pos.offset);
+    }
+    const auto replacing = [this, &pos, &notePlace](int start, int end) {
+        return notePlace ? std::function<void(const QString&)>(
+                               [this, id = notePlace->id, start, end](const QString& text) {
+                                   replaceInNote({id, start, end - start}, text);
+                               })
+                         : std::function<void(const QString&)>(
+                               [this, paragraph = pos.paragraph, start, end](const QString& text) {
+                                   replaceWord(paragraph, start, end, text);
+                               });
+    };
 
     // A right click outside the selection puts the cursor there, as a click does, so what
     // the menu does (pasting, adding an annotation) happens where the writer clicked
@@ -1252,9 +1296,11 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     QMenu menu(this);
     menu.setToolTipsVisible(true);
     if (!word.isEmpty()) {
-        addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
+        addSpellingActions(menu, word, replacing(startOffset, endOffset));
     } else if (grammarError.has_value()) {
-        addGrammarActions(menu, *grammarError, pos.paragraph);
+        addGrammarActions(menu, *grammarError,
+                          replacing(grammarError->startPos,
+                                    grammarError->startPos + grammarError->length));
     }
 
     // The note whose number is at the cursor: edit its text, make it the other kind, delete it

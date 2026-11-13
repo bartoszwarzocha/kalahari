@@ -521,6 +521,59 @@ BookCaptions readCaptions(const QJsonValue& value, const QString& field, QString
     return captions;
 }
 
+/// The number formats of a numbering of notes
+const QStringList& noteFormats() {
+    static const QStringList formats = {QStringLiteral("1"), QStringLiteral("a"),
+                                        QStringLiteral("A"), QStringLiteral("i"),
+                                        QStringLiteral("I"), QStringLiteral("*")};
+    return formats;
+}
+
+/// The numbering of a book's footnotes or endnotes; @p numbering has the defaults
+void readNoteNumbering(const QJsonValue& value, const QString& field, NoteNumbering& numbering,
+                       QStringList& problems) {
+    if (!value.isObject()) {
+        addProblem(problems, field, QStringLiteral("must be an object"));
+        return;
+    }
+    Fields fields(value.toObject(), field, problems);
+    if (const QString format = fields.string("format"); noteFormats().contains(format)) {
+        numbering.format = format;
+    } else if (!format.isEmpty()) {
+        fields.problem("format",
+                       QStringLiteral("must be \"1\", \"a\", \"A\", \"i\", \"I\" or \"*\""));
+    }
+    numbering.perChapter = fields.boolean("perChapter", numbering.perChapter);
+    numbering.extra = fields.rest();
+}
+
+/// The notes of a book: their numbering and the place of the endnotes
+BookFootnotes readFootnotes(const QJsonValue& value, const QString& field,
+                            QStringList& problems) {
+    BookFootnotes footnotes;
+    if (!value.isObject()) {
+        addProblem(problems, field, QStringLiteral("must be an object"));
+        return footnotes;
+    }
+    Fields fields(value.toObject(), field, problems);
+    if (const QJsonValue numbering = fields.take("footnotes"); !numbering.isUndefined()) {
+        readNoteNumbering(numbering, fields.path("footnotes"), footnotes.footnotes, problems);
+    }
+    if (const QJsonValue numbering = fields.take("endnotes"); !numbering.isUndefined()) {
+        readNoteNumbering(numbering, fields.path("endnotes"), footnotes.endnotes, problems);
+        // Where they are: a field of the endnotes, the rest of them saved back
+        const QJsonValue place = footnotes.endnotes.extra.take(QLatin1String("place"));
+        if (place == QJsonValue(QStringLiteral("book"))) {
+            footnotes.endnotesAtBookEnd = true;
+        } else if (!place.isUndefined() && place != QJsonValue(QStringLiteral("chapter"))) {
+            addProblem(problems, fields.path("endnotes") + QStringLiteral(".place"),
+                       QStringLiteral("must be \"chapter\" or \"book\""));
+        }
+    }
+    footnotes.extra = fields.rest();
+    return footnotes;
+}
+
 ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
                      QStringList& problems) {
     ProjectBook book;
@@ -576,6 +629,9 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     }
     if (const QJsonValue captions = fields.take("captions"); !captions.isUndefined()) {
         book.captions = readCaptions(captions, fields.path("captions"), problems);
+    }
+    if (const QJsonValue footnotes = fields.take("footnotes"); !footnotes.isUndefined()) {
+        book.footnotes = readFootnotes(footnotes, fields.path("footnotes"), problems);
     }
     book.extra = fields.rest();
     return book;
@@ -759,6 +815,23 @@ QJsonObject captionsToJson(const BookCaptions& captions) {
     return json;
 }
 
+QJsonObject noteNumberingToJson(const NoteNumbering& numbering) {
+    QJsonObject json = numbering.extra;
+    json.insert(QLatin1String("format"), numbering.format);
+    json.insert(QLatin1String("perChapter"), numbering.perChapter);
+    return json;
+}
+
+QJsonObject footnotesToJson(const BookFootnotes& footnotes) {
+    QJsonObject json = footnotes.extra;
+    json.insert(QLatin1String("footnotes"), noteNumberingToJson(footnotes.footnotes));
+    QJsonObject endnotes = noteNumberingToJson(footnotes.endnotes);
+    endnotes.insert(QLatin1String("place"), footnotes.endnotesAtBookEnd ? QStringLiteral("book")
+                                                                        : QStringLiteral("chapter"));
+    json.insert(QLatin1String("endnotes"), endnotes);
+    return json;
+}
+
 QJsonObject bookToJson(const ProjectBook& book) {
     QJsonObject json = book.extra;
     json.insert(QLatin1String("id"), book.id);
@@ -799,6 +872,11 @@ QJsonObject bookToJson(const ProjectBook& book) {
         json.insert(QLatin1String("captions"), captionsToJson(*book.captions));
     } else {
         json.remove(QLatin1String("captions"));
+    }
+    if (book.footnotes) {
+        json.insert(QLatin1String("footnotes"), footnotesToJson(*book.footnotes));
+    } else {
+        json.remove(QLatin1String("footnotes"));
     }
     return json;
 }

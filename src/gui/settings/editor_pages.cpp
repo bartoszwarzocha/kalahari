@@ -569,11 +569,16 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
 
     // The counts of the whole program: the status bar, the panels, Distraction-Free writing
     QFormLayout* wordCount = addGroup(tr("Word Count"));
+    wordCount->parentWidget()->setObjectName(QStringLiteral("wordCountGroup"));  // openPage()
     addCheckBox(wordCount, tr("Count standalone dashes as words"),
                 "editor.wordCount.dashesAsWords");
     addNote(wordCount, tr("A dash separated by spaces from the words around it, as at the start "
                           "of a line of dialogue. Microsoft Word counts it as a word, LibreOffice "
                           "does not."));
+    //: In Polish: Licz słowa w przypisach
+    addCheckBox(wordCount, tr("Count the words of footnotes and endnotes"),
+                "editor.wordCount.notes")
+        ->setObjectName(QStringLiteral("wordCountNotes"));  // SettingsDialog::openPage()
 
     pageLayout()->addStretch();
 }

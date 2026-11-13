@@ -110,14 +110,20 @@ void addCounts(core::TextCounts& total, const core::TextCounts& part) {
     total.nonSpaceCharacters += part.nonSpaceCharacters;
     total.paragraphs += part.paragraphs;
     total.dashes += part.dashes;
+    total.noteWords += part.noteWords;
+    total.noteDashes += part.noteDashes;
 }
 
-/// @brief The counts of a paragraph, counted when its cached counts are stale
+/// @brief The counts of a paragraph with the texts of its notes (core::addNoteCounts()),
+///        counted when its cached counts are stale
 const core::TextCounts& paragraphCounts(const QTextBlock& block,
                                         const core::WordCountRules& rules) {
     ParagraphData* data = ParagraphData::of(block);
     if (!data->countsValid) {
         data->counts = core::countText(block.text(), rules);
+        for (const NotePlace& place : notesIn(block)) {
+            core::addNoteCounts(data->counts, notePlainText(place.note.content), rules);
+        }
         data->countsValid = true;
     }
     return data->counts;
@@ -595,6 +601,7 @@ void BookEditor::paintEvent(QPaintEvent* event)
     // Single render call handles everything for all view modes
     const QScopedValueRollback<bool> paintingWholeView(m_paintingWholeView,
                                                        event->region().contains(rect()));
+    updateNoteMarks();
     m_renderPipeline->render(&painter, event->rect());
     paintColumnGuide(painter);
     paintImageSelection(painter);  // over the image, which covers the selection under the text
@@ -922,8 +929,17 @@ core::TextCounts BookEditor::selectionCounts() const
             addCounts(total, paragraphCounts(block, m_wordCountRules));
         } else if (end > start) {
             const QString text = block.text();
-            addCounts(total,
-                      core::countText(QStringView(text).mid(start, end - start), m_wordCountRules));
+            core::TextCounts part =
+                core::countText(QStringView(text).mid(start, end - start), m_wordCountRules);
+            // The notes whose numbers are selected
+            for (const NotePlace& place : notesIn(block)) {
+                const int offset = place.position - block.position();
+                if (offset >= start && offset < end) {
+                    core::addNoteCounts(part, notePlainText(place.note.content),
+                                        m_wordCountRules);
+                }
+            }
+            addCounts(total, part);
         }
     }
     return total;
@@ -1126,6 +1142,7 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
     layout->setMissingImageColor(m_appearance.colors.imageMissingColor(m_appearance.colorMode));
     layout->setCaptionContext(m_captionContext);  // the book around the text
+    layout->setFootnoteContext(m_footnoteContext);
 
     // The numbers on the margin go on from the lines above the view, estimated until the
     // background pass lays them out: the view shows the exact numbers then. Laying out the
@@ -1197,6 +1214,11 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
             &BookEditor::checkCaptionsSoon);
     checkCaptionsSoon();
+    // and of the notes
+    m_shownNotes.clear();
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
+            &BookEditor::checkNotesSoon);
+    checkNotesSoon();
 
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());

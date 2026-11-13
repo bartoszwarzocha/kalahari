@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Footnotes and endnotes: the book's numbering, the words, the search and the checking** -
+  2026-11-13. Insert > Footnote Layout... (its gear opens Settings > Editor > General) sets a
+  book's numbering of each kind of note: 1, a, A, i, I or *, †, ‡, §, anew in each text or
+  through the whole book in the order of the Navigator, and the endnotes at the end of each
+  text or of the book (the editor shows them after the book's last text, where a click on one
+  of another text opens that text at its number). The project file keeps it as `footnotes`;
+  a text outside a book is numbered 1, 2, 3 and i, ii, iii. The words of the notes count with
+  the text's, in the status bar, the statistics and the versions (Settings > Editor > General
+  > Count the words of footnotes and endnotes, on by default). Find and Replace go through the texts of
+  the notes: a match is shown selected in the note's text with its number selected in the
+  text, Find Next goes on from it, and Replace and Replace All change the note's text in its
+  formatting, as one step to undo. The spelling and the grammar check the texts of the notes,
+  a paragraph at a time: their waves are drawn in the notes, the context menu of a word of a
+  note's text offers what to put in its place, Next Spelling or Grammar Issue goes through
+  them, and the Spelling and Grammar panel lists them at their notes ("paragraph 3,
+  footnote 2").
 - **Footnotes and endnotes** - 2026-11-12. Insert > Footnote (Alt+Shift+F) and Endnote
   (Alt+Shift+E; Ctrl+Alt+Shift on macOS) put a note's number at the cursor, raised, and open a
   frame at the place of the note's text, in the colors of the paper. The text can have bold,

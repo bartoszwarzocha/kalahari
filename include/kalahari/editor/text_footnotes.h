@@ -26,7 +26,9 @@
 #include <QString>
 #include <QTextFormat>
 
+#include <cstddef>
 #include <optional>
+#include <utility>
 #include <vector>
 
 class QTextBlock;
@@ -77,15 +79,38 @@ enum class NoteNumberFormat {
     Symbols,     ///< *, †, ‡, §, then the same twice: **, ††
 };
 
-/// @brief What the numbers of the notes of a text depend on outside it
+/// @brief An endnote of another text of the book, shown after this one (the endnotes at the
+///        end of the book)
+struct BookEndnote {
+    QString elementId;  ///< Its text
+    QString id;         ///< Its id there
+    QString number;     ///< As it is numbered there
+    QString content;    ///< Its text: KML
+
+    bool operator==(const BookEndnote&) const = default;
+};
+
+/// @brief What the numbers and the endnotes of a text depend on outside it
 struct FootnoteContext {
     NoteNumberFormat footnoteFormat = NoteNumberFormat::Decimal;
     NoteNumberFormat endnoteFormat = NoteNumberFormat::LowerRoman;
-    int footnotesBefore = 0;  ///< The numbers the text goes on from (the notes of the texts
-    int endnotesBefore = 0;   ///< before it, when the book numbers them through)
+    int footnotesBefore = 0;  ///< The numbers the text goes on from (the notes before it in
+    int endnotesBefore = 0;   ///< its chapter, or in the book when it numbers them through)
+    /// Its own endnotes after its last paragraph; false: at the end of the book, after
+    /// another text
+    bool endnotesHere = true;
+    /// The endnotes of the book's other texts in reading order, shown with its own after its
+    /// last paragraph (the last chapter of a book whose endnotes are at its end)
+    std::vector<BookEndnote> otherEndnotes;
+    /// How many of otherEndnotes come before its own (the texts before it); the rest after
+    size_t otherEndnotesBefore = 0;
 
     bool operator==(const FootnoteContext&) const = default;
 };
+
+/// @brief The format of a number of a book's numbering of notes ("1", "a", "A", "i", "I",
+///        "*"); Decimal for one it does not know
+NoteNumberFormat noteNumberFormatOf(const QString& code);
 
 /// @brief The text of a number in a format: "3", "c", "C", "iii", "III", "‡"
 QString noteNumberText(int number, NoteNumberFormat format);
@@ -132,6 +157,14 @@ std::vector<NotePlace> notesIn(const QTextBlock& block);
 
 /// @brief The note with an id (std::nullopt: none)
 std::optional<NotePlace> findNote(const QTextDocument& document, const QString& id);
+
+/// @brief The note whose number is at a position of a document (std::nullopt: none)
+std::optional<Footnote> noteAtPosition(const QTextDocument& document, int position);
+
+/// @brief Give the note whose number is at a position of a document a new text: a change of
+///        the number's format, an edit of the document (in the undo step open, if any)
+/// @return false without a note there
+bool setNoteContentAt(QTextDocument& document, int position, const QString& content);
 
 /// @brief The ids of the notes of a document
 QSet<QString> noteIds(const QTextDocument& document);
@@ -193,6 +226,26 @@ QString notePlainText(const QString& content);
 /// @brief Whether a note's text has no character but spaces
 bool isEmptyNoteContent(const QString& content);
 
+/// @brief A note's text as it is searched and checked: its paragraphs one a line ('\n'), a
+///        line break QChar::LineSeparator; a position in it is one of the note's document
+///        (setNoteContent()), and of the note's text as the editor shows it
+QString noteText(const QString& content);
+
+/// @brief A range of the text of a note (positions of noteText())
+struct NoteRange {
+    QString id;  ///< The note's
+    int start = 0;
+    int length = 0;
+
+    bool operator==(const NoteRange&) const = default;
+};
+
+/// @brief A note's text with ranges of its noteText() replaced by @p text, each in the
+///        formatting of its first character
+/// @param ranges Their starts and lengths, in text order, none in another
+QString replacedNoteContent(const QString& content,
+                            const std::vector<std::pair<int, int>>& ranges, const QString& text);
+
 /// @brief A document of a note's text (the frame it is written in): its paragraphs with their
 ///        formatting; the document's own font stays
 void setNoteContent(QTextDocument& document, const QString& content);
@@ -221,5 +274,9 @@ bool isOldFootnote(const QXmlStreamAttributes& attributes);
 ///        without one), its kind and its text, the inside of the element as it is written; the
 ///        reader is left at the element's end
 Footnote readNoteElement(QXmlStreamReader& reader);
+
+/// @brief The notes of a text's KML, in text order, as the editor reads them (a note without
+///        an id, or with the id of one before it, gets an id of its own)
+std::vector<Footnote> notesOfKml(const QString& kml);
 
 }  // namespace kalahari::editor

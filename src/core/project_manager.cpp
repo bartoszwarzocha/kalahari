@@ -1861,6 +1861,33 @@ bool ProjectManager::setBookCaptions(const BookCaptions& captions) {
     return true;
 }
 
+std::optional<BookFootnotes> ProjectManager::bookFootnotes() const {
+    const ProjectBook* current = book();
+    return current != nullptr ? current->footnotes : std::nullopt;
+}
+
+bool ProjectManager::setBookFootnotes(const BookFootnotes& footnotes) {
+    ProjectBook* current = book();
+    if (!current) {
+        Logger::getInstance().warn("setBookFootnotes: No project is open");
+        return false;
+    }
+    if (refusesChange("setBookFootnotes")) {
+        return false;
+    }
+    if (current->footnotes == footnotes) {
+        return true;
+    }
+    const std::optional<BookFootnotes> previous = current->footnotes;
+    current->footnotes = footnotes;
+    if (!saveManifest()) {
+        current->footnotes = previous;
+        return false;
+    }
+    emit bookFootnotesChanged();
+    return true;
+}
+
 bool ProjectManager::setBookName(const QString& name) {
     ProjectBook* current = book();
     if (!current) {
@@ -3163,7 +3190,7 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
     // The words of the text the file has now: the text just set (its plain text is that of
     // its KML), or the text it had
     ElementState& state = m_elementStates[element.id];
-    state.words = kml ? tallyWords(chapter.plainText()) : chapter.wordTally();
+    state.words = kml ? ChapterDocument::kmlWordTally(*kml) : chapter.wordTally();
     if (kml) {
         state.editorWords.reset();  // the file has the text of the editor now
     }

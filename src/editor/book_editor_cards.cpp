@@ -41,13 +41,24 @@ KalahariTextDocumentLayout* layoutOf(const QTextDocument* document) {
                : nullptr;
 }
 
-/// @brief The colors the layout draws the notes in: the paper's text, line and links
-KalahariTextDocumentLayout::NoteColors noteColorsOf(const EditorAppearance& appearance) {
+/// @brief The colors the layout draws the notes in: the paper's text, line and links, and
+///        those of the marks of the text (@p view: the colors the view is drawn in)
+KalahariTextDocumentLayout::NoteColors noteColorsOf(
+    const EditorAppearance& appearance, const RenderColors& view,
+    const KalahariTextDocumentLayout::NoteMarks& marks,
+    const std::optional<NoteRange>& selected) {
     const EditorColorMode mode = appearance.colorMode;
     KalahariTextDocumentLayout::NoteColors colors;
     colors.text = appearance.colors.textColor(mode);
     colors.line = appearance.colors.noteLineColor(mode);
     colors.link = appearance.colors.linkColor(mode);
+    colors.searchMatch = view.searchHighlight;
+    colors.currentMatch = view.currentMatch;
+    colors.selection = view.selection;
+    colors.spelling = view.spellError;
+    colors.grammar = view.grammarWarning;
+    colors.marks = &marks;
+    colors.selected = selected;
     return colors;
 }
 
@@ -74,7 +85,10 @@ void BookEditor::setUpAnnotationCards()
             const QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(paragraph));
             const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
             if (layout != nullptr && layout->notesBelow(block.blockNumber()) > 0.0) {
-                layout->drawNotesBelow(painter, block, noteColorsOf(m_appearance));
+                layout->drawNotesBelow(painter, block,
+                                       noteColorsOf(m_appearance,
+                                                    m_renderPipeline->context().colors,
+                                                    m_noteMarks, m_noteSelection));
             }
             if (!m_annotationCards.isShown()) {
                 return;
@@ -87,7 +101,10 @@ void BookEditor::setUpAnnotationCards()
         // The footnotes at the bottom of each page, the endnotes on it (the page view)
         m_renderPipeline->setPageDecorator([this](QPainter* painter, int page) {
             if (const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get())) {
-                layout->drawPageNotes(painter, page, noteColorsOf(m_appearance));
+                layout->drawPageNotes(painter, page,
+                                      noteColorsOf(m_appearance,
+                                                   m_renderPipeline->context().colors,
+                                                   m_noteMarks, m_noteSelection));
             }
         });
     }

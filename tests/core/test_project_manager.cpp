@@ -2793,6 +2793,37 @@ TEST_CASE("ProjectManager keeps the captions of the book in the .klh file",
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager keeps the numbering of the book's notes in the .klh file",
+          "[project_manager][footnotes]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK_FALSE(pm.bookFootnotes().has_value());
+    CHECK_FALSE(pm.setBookFootnotes({}));  // no project
+    REQUIRE(pm.createProject(dir.path(), "Notes", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    CHECK_FALSE(pm.bookFootnotes().has_value());
+
+    BookFootnotes footnotes;
+    footnotes.footnotes.perChapter = false;
+    footnotes.endnotes.format = QStringLiteral("1");
+    footnotes.endnotesAtBookEnd = true;
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::bookFootnotesChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.setBookFootnotes(footnotes));
+    CHECK(changes == 1);
+    REQUIRE(pm.setBookFootnotes(footnotes));  // the same: nothing to tell
+    CHECK(changes == 1);
+    REQUIRE(pm.closeProject(false));
+    QObject::disconnect(connection);
+
+    // The .klh file keeps them
+    REQUIRE(pm.openProject(manifest));
+    REQUIRE(pm.bookFootnotes().has_value());
+    CHECK(*pm.bookFootnotes() == footnotes);
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps the notes of a chapter in its chapter file", "[project_manager]") {
     QTemporaryDir dir;
     auto& pm = projects();

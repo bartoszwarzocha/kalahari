@@ -607,8 +607,15 @@ the element, written at the place of the number.
   attributes. It has no images, annotations or notes of its own.
 - The `id` is unique in the text (`f` and six hexadecimal digits when the editor gives it). A
   note without one, or with the `id` of a note read before, gets a new one. The number is not
-  written: the notes of each kind are counted in the order of the text (1, 2, 3 for the
-  footnotes, i, ii, iii for the endnotes).
+  written: the notes of each kind are counted in the order of the text, by default anew in
+  each text (1, 2, 3 for the footnotes, i, ii, iii for the endnotes). A book keeps its own
+  numbering in the project file (`footnotes` of the book, Insert > Footnote Layout...): for
+  each kind the number (`1`, `a`, `A`, `i`, `I`, or `*` for *, †, ‡, §) and whether it starts
+  anew in each text or goes on through the whole book, in the order of the Navigator; the
+  endnotes are after the last paragraph of each text or of the book's last text.
+- Find and Replace go through the texts of the notes, a note at the place of its number, and
+  so do the spelling and the grammar check, a paragraph of a note at a time. The words of the
+  notes count with the text's (Settings > Editor > General, `editor.wordCount.notes`).
 - The number takes the formatting of its place: a note in bold text is written inside the
   `<b>`.
 - The old `<footnote>` on a range of the text, with a `number` attribute, is read as the text it

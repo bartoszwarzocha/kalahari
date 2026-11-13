@@ -607,7 +607,20 @@ void SpellingIssueCard::updateTexts() {
     m_kindLabel->setText(spelling ? tr("Spelling") : tr("Grammar"));
     //: The place of a misspelled word or a grammar issue on its card: the paragraph's number
     //: among those with text. In Polish: akapit %1
-    m_placeLabel->setText(tr("paragraph %1").arg(m_issue.number));
+    QString place = tr("paragraph %1").arg(m_issue.number);
+    if (!m_issue.noteNumber.isEmpty()) {
+        place = m_issue.endnote
+                    //: The place of an issue in the text of an endnote, on its card: the number
+                    //: of the paragraph with the note's number, the note's number. In Polish:
+                    //: akapit %1, przypis końcowy %2
+                    ? tr("paragraph %1, endnote %2")
+                          .arg(QString::number(m_issue.number), m_issue.noteNumber)
+                    //: The same in the text of a footnote. In Polish: akapit %1, przypis
+                    //: dolny %2
+                    : tr("paragraph %1, footnote %2")
+                          .arg(QString::number(m_issue.number), m_issue.noteNumber);
+    }
+    m_placeLabel->setText(place);
     setAccessibleName(QStringLiteral("%1, %2: %3")
                           .arg(m_kindLabel->text(), m_placeLabel->text(), inOneLine(issue.text)));
 
@@ -618,7 +631,8 @@ void SpellingIssueCard::updateTexts() {
     m_contextLabel->setWordWrap(m_expanded);
     if (m_expanded) {
         const IssueContext sentence =
-            sentenceContext(m_issue.paragraphText, issue.start, issue.length);
+            sentenceContext(m_issue.paragraphText, issue.start - m_issue.contextOffset,
+                            issue.length);
         m_contextLabel->setText(
             QStringLiteral("%1<span style=\"font-weight:600; color:%2\">%3</span>%4")
                 .arg(inOneLine(sentence.before).toHtmlEscaped(), m_colors.card.kindName.name(),
@@ -634,7 +648,8 @@ void SpellingIssueCard::updateShortContext() {
         return;
     }
     const editor::TextIssue& issue = m_issue.issue;
-    const IssueContext context = shortContext(m_issue.paragraphText, issue.start, issue.length);
+    const IssueContext context =
+        shortContext(m_issue.paragraphText, issue.start - m_issue.contextOffset, issue.length);
     QString before = inOneLine(context.before);
     QString word = inOneLine(issue.text);
     QString after = inOneLine(context.after);

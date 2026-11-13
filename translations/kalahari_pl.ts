@@ -599,6 +599,10 @@
         <translation>Przypis &amp;końcowy</translation>
     </message>
     <message>
+        <source>Footnote La&amp;yout...</source>
+        <translation>Usta&amp;wienia przypisów...</translation>
+    </message>
+    <message>
         <source>Add &amp;Annotation...</source>
         <translation>Dodaj &amp;uwagę...</translation>
     </message>
@@ -1040,7 +1044,7 @@
     </message>
     <message>
         <source>&amp;Quick Character</source>
-        <translation>Szybki &amp;wybór znaku</translation>
+        <translation>Szybki wy&amp;bór znaku</translation>
     </message>
     <message>
         <source>Annotation &amp;Cards Under Paragraphs</source>
@@ -6742,6 +6746,11 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
     <message>
         <source>A dash separated by spaces from the words around it, as at the start of a line of dialogue. Microsoft Word counts it as a word, LibreOffice does not.</source>
         <translation>Myślnik oddzielony spacjami od sąsiednich słów, na przykład na początku kwestii dialogowej. Microsoft Word liczy go jako słowo, LibreOffice – nie.</translation>
+    </message>
+    <message>
+        <source>Count the words of footnotes and endnotes</source>
+        <extracomment>In Polish: Licz słowa w przypisach</extracomment>
+        <translation>Licz słowa w przypisach</translation>
     </message>
     <message>
         <source>Smooth scrolling</source>
@@ -13123,6 +13132,16 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>akapit %1</translation>
     </message>
     <message>
+        <source>paragraph %1, endnote %2</source>
+        <extracomment>The place of an issue in the text of an endnote, on its card: the number of the paragraph with the note&apos;s number, the note&apos;s number. In Polish: akapit %1, przypis końcowy %2</extracomment>
+        <translation>akapit %1, przypis końcowy %2</translation>
+    </message>
+    <message>
+        <source>paragraph %1, footnote %2</source>
+        <extracomment>The same in the text of a footnote. In Polish: akapit %1, przypis dolny %2</extracomment>
+        <translation>akapit %1, przypis dolny %2</translation>
+    </message>
+    <message>
         <source>Ignore Word</source>
         <translation>Pomijaj to słowo</translation>
     </message>
@@ -14382,6 +14401,95 @@ Harmonogram projektu:
     <message>
         <source>The bullet: %1</source>
         <translation>Punktor: %1</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::FootnoteSettingsDialog</name>
+    <message>
+        <source>From 1 in each chapter</source>
+        <extracomment>The numbering of the notes. In Polish: W każdym rozdziale od 1</extracomment>
+        <translation>W każdym rozdziale od 1</translation>
+    </message>
+    <message>
+        <source>Continuous through the book</source>
+        <extracomment>In Polish: Ciągła w całej książce</extracomment>
+        <translation>Ciągła w całej książce</translation>
+    </message>
+    <message>
+        <source>Footnote Layout</source>
+        <extracomment>Insert &gt; Footnote Layout... In Polish: Ustawienia przypisów / Numeracja i miejsce przypisów w tej książce.</extracomment>
+        <translation>Ustawienia przypisów</translation>
+    </message>
+    <message>
+        <source>How this book numbers its notes and where its endnotes are.</source>
+        <translation>Numeracja i miejsce przypisów w tej książce.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>Editor Settings</source>
+        <extracomment>The tooltip of the gear of the window of the notes&apos; layout. In Polish: Ustawienia edytora</extracomment>
+        <translation>Ustawienia edytora</translation>
+    </message>
+    <message>
+        <source>Footnotes</source>
+        <extracomment>In Polish: Przypisy dolne</extracomment>
+        <translation>Przypisy dolne</translation>
+    </message>
+    <message>
+        <source>&amp;Format</source>
+        <extracomment>In Polish: &amp;Format</extracomment>
+        <translation>&amp;Format</translation>
+    </message>
+    <message>
+        <source>&amp;Numbering</source>
+        <extracomment>In Polish: &amp;Numeracja</extracomment>
+        <translation>&amp;Numeracja</translation>
+    </message>
+    <message>
+        <source>Endnotes</source>
+        <extracomment>In Polish: Przypisy końcowe</extracomment>
+        <translation>Przypisy końcowe</translation>
+    </message>
+    <message>
+        <source>End of the chapter</source>
+        <extracomment>The place of the endnotes. In Polish: Koniec rozdziału</extracomment>
+        <translation>Koniec rozdziału</translation>
+    </message>
+    <message>
+        <source>End of the book</source>
+        <extracomment>In Polish: Koniec książki</extracomment>
+        <translation>Koniec książki</translation>
+    </message>
+    <message>
+        <source>&amp;Place</source>
+        <extracomment>In Polish: &amp;Miejsce</extracomment>
+        <translation>&amp;Miejsce</translation>
+    </message>
+    <message>
+        <source>Fo&amp;rmat</source>
+        <extracomment>The second Format, of the endnotes. In Polish: Fo&amp;rmat</extracomment>
+        <translation>Fo&amp;rmat</translation>
+    </message>
+    <message>
+        <source>Nu&amp;mbering</source>
+        <extracomment>The second Numbering, of the endnotes. In Polish: Num&amp;eracja</extracomment>
+        <translation>Num&amp;eracja</translation>
+    </message>
+    <message>
+        <source>The editor shows the endnotes at the end of the book after the last chapter. The settings are saved in the book&apos;s file.</source>
+        <extracomment>In Polish: Przypisy końcowe z końca książki edytor pokazuje po ostatnim rozdziale. Ustawienia zapisują się w pliku książki.</extracomment>
+        <translation>Przypisy końcowe z końca książki edytor pokazuje po ostatnim rozdziale. Ustawienia zapisują się w pliku książki.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::FootnoteCoordinator</name>
+    <message>
+        <source>No book is open</source>
+        <extracomment>Why Insert &gt; Footnote Layout... is greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
     </message>
 </context>
 <context>
