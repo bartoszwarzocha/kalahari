@@ -19,6 +19,7 @@
 #include <QComboBox>
 #include <QDir>
 #include <QFile>
+#include <QFont>
 #include <QFileInfo>
 #include <QGroupBox>
 #include <QLabel>
@@ -276,6 +277,24 @@ public:
     RegisteredExporter& operator=(const RegisteredExporter&) = delete;
 
     std::shared_ptr<PdfExporter> exporter;
+};
+
+/// The font of the program of @p pixels while it lives: the window fits with the font of
+/// another system, whose letters are as high (Windows' Segoe UI has the lines of a 13 pixel
+/// font, macOS has 13 pixels)
+class AppFontOfPixels {
+public:
+    explicit AppFontOfPixels(int pixels) : m_font(QApplication::font()) {
+        QFont font = m_font;
+        font.setPixelSize(pixels);
+        QApplication::setFont(font);
+    }
+    ~AppFontOfPixels() { QApplication::setFont(m_font); }
+    AppFontOfPixels(const AppFontOfPixels&) = delete;
+    AppFontOfPixels& operator=(const AppFontOfPixels&) = delete;
+
+private:
+    QFont m_font;
 };
 
 /// The windows in Polish while it lives: the translation the program ships
@@ -592,6 +611,16 @@ TEST_CASE("Export Book: four tabs, the window whole on a small screen, the acces
     SECTION("With the result of the export, in Polish") {
         Polish polish;
         REQUIRE(polish.loaded());
+        checkResult();
+    }
+
+    // The width of the window follows the letters of the font, so its sentences take as many
+    // lines in any font; a font of higher lines makes it only as much higher
+    SECTION("In a font of 13 pixels, in Polish") {
+        AppFontOfPixels font(13);
+        Polish polish;
+        REQUIRE(polish.loaded());
+        check(editor::ExportFormat::Docx);
         checkResult();
     }
 }

@@ -51,7 +51,21 @@ constexpr int STATUS_ROLE = Qt::UserRole + 1;  ///< The status of a text of the 
 /// Rows the list of the texts shows at most (the others scroll in it): the window with the
 /// result of the export fits 1366x768 at 150%
 constexpr int LIST_ROWS = 5;
-constexpr int WIDTH_IN_CHARACTERS = 105;  ///< The width of the window: the remarks in fewer lines
+/// The width of the window in the letters of a text: the remarks in fewer lines
+constexpr int WIDTH_IN_LETTERS = 140;
+/// The widest the window starts, a wide font or not: with its frame it fits a screen of
+/// 1366x768 at 150% (911 pixels)
+constexpr int MAX_START_WIDTH = 880;
+
+/// The width of @p letters letters of a text in the font of @p metrics. Not
+/// averageCharWidth(): fonts give it differently (DejaVu Sans 6 pixels, Inter 8, for text
+/// that takes 5.8 and 5.5), and the window would wrap its sentences into more lines in one
+/// font than in another
+int widthOfLetters(const QFontMetrics& metrics, int letters) {
+    const QString text = QStringLiteral("the quick brown fox jumps over the lazy dog ");
+    return qRound(metrics.horizontalAdvance(text) * static_cast<qreal>(letters) /
+                  static_cast<qreal>(text.size()));
+}
 
 /// Tabs as high as their highest page at the width they have: a page of wrapped sentences
 /// asks for the lines its sentences take there, whichever page is in front. A plain
@@ -124,8 +138,9 @@ QLabel* newRemark(QWidget* parent, const QString& text) {
     return label;
 }
 
-/// Check box @p box with @p remark right under it, in line with its text
-QWidget* withRemark(QCheckBox* box, QLabel* remark) {
+/// Check box @p box with @p remark right under it, in line with its text; @p beside, when
+/// given, on the line of the box after it (an option of its own, which saves a line)
+QWidget* withRemark(QCheckBox* box, QLabel* remark, QWidget* beside = nullptr) {
     auto* option = new QWidget(box->parentWidget());
     auto* layout = new QVBoxLayout(option);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -136,7 +151,17 @@ QWidget* withRemark(QCheckBox* box, QLabel* remark) {
     remark->setContentsMargins(style->pixelMetric(QStyle::PM_IndicatorWidth, nullptr, box) +
                                    style->pixelMetric(QStyle::PM_CheckBoxLabelSpacing, nullptr, box),
                                0, 0, 0);
-    layout->addWidget(box);
+    if (beside != nullptr) {
+        beside->setParent(option);
+        auto* line = new QHBoxLayout();
+        line->setSpacing(box->fontMetrics().averageCharWidth() * 3);
+        line->addWidget(box);
+        line->addWidget(beside);
+        line->addStretch(1);
+        layout->addLayout(line);
+    } else {
+        layout->addWidget(box);
+    }
     layout->addWidget(remark);
     return option;
 }
@@ -167,8 +192,8 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     //: książkę
     setHeading(tr("Export Book"));
     setCompactHeading(true);
-    setMinimumWidth(
-        std::max(minimumWidth(), fontMetrics().averageCharWidth() * WIDTH_IN_CHARACTERS));
+    setMinimumWidth(std::max(
+        minimumWidth(), std::min(widthOfLetters(fontMetrics(), WIDTH_IN_LETTERS), MAX_START_WIDTH)));
     //: The tooltip of the gear of the window of the export. In Polish: Ustawienia stron
     //: i marginesów
     addSettingsButton(QString::fromLatin1(SettingsDialog::PAGES_PAGE),
@@ -359,6 +384,9 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     int wordRow = 0;
     //: In Polish: Każd&y tekst od nowej strony
     m_newPageBox = new QCheckBox(tr("Each text from a new &page"), m_wordLayout);
+    //: In Polish: Numery &stron na dole strony
+    m_pageNumbersBox = new QCheckBox(tr("Page numbers at the b&ottom of the page"), m_wordLayout);
+    // The page numbers beside a new page: the tab as high as the Texts tab
     wordLayout->addWidget(
         withRemark(m_newPageBox,
                    newRemark(m_wordLayout,
@@ -366,11 +394,9 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
                              //: lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego
                              //: właściwościach ustawiono lewą.
                              tr("With mirror margins a text starts on a right page, unless its "
-                                "properties say a left one."))),
+                                "properties say a left one.")),
+                   m_pageNumbersBox),
         wordRow++, 0, 1, 2);
-    //: In Polish: Numery &stron na dole strony
-    m_pageNumbersBox = new QCheckBox(tr("Page numbers at the b&ottom of the page"), m_wordLayout);
-    wordLayout->addWidget(m_pageNumbersBox, wordRow++, 0, 1, 2);
     look->addWidget(m_wordLayout, row++, 0, 1, 2);
 
     m_fontBox = new QComboBox(lookPage);
