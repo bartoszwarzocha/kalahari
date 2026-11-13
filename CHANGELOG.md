@@ -12,7 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Export of the book to Word (DOCX) and Markdown** - 2026-11-13. File > Export > DOCX... and
-  Markdown... open one window, "Export Book": the format (it can be changed there), the folder
+  Markdown... open one window, "Export Book", with four tabs that fit a screen of 1366x768 at
+  150% without scrolling (File, Texts, Layout, Annotations and Images; the progress and the
+  result under them): the format in a list (it can be changed there; the formats of the
+  exporters of plugins, `IExporter::getFormats()`, join the list, a format with options of its
+  own on a tab of its own, `IExporter::createOptionsPage()`), the folder
   (remembered; at first Export in the folder of the books) and the name, then what goes to the
   file – the whole book, the texts chosen in a list of the book's sections, parts and texts
   with their statuses (Check All, Uncheck All, Only Final), or the text in front, also a file

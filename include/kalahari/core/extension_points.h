@@ -97,14 +97,43 @@ public:
     virtual void onDeactivate() {}
 };
 
+/// @brief A format an exporter writes, as File > Export lists it
+struct ExportFormatInfo {
+    std::string id;         ///< Its identifier, which exportDocument() gets (e.g. "pdf")
+    std::string name;       ///< Its name in the list of the formats (e.g. "PDF document")
+    std::string extension;  ///< The extension of its files, without the dot (e.g. "pdf")
+};
+
 /// @brief Export plugin interface
 ///
 /// Plugins implementing this interface can export documents to various formats.
 /// Used for creating export functionality (DOCX, PDF, Markdown, etc.).
+///
+/// The window of File > Export lists the formats of getFormats() after the program's own
+/// (DOCX and Markdown); a format with options of its own gets a tab of the window from
+/// createOptionsPage(), shown while the format is chosen.
 class IExporter : public IPlugin {
 public:
     /// @brief Virtual destructor
     ~IExporter() override = default;
+
+    /// @brief The formats the exporter writes, for the list of the formats of File > Export
+    ///
+    /// @return The formats; the default, none, keeps the exporter out of the list
+    virtual std::vector<ExportFormatInfo> getFormats() const { return {}; }
+
+    /// @brief The options of @p format: a page that the window of the export shows as a tab of
+    /// its own while the format is chosen
+    ///
+    /// The window owns the page and deletes it when it closes; the exporter reads the options
+    /// from it in exportDocument(), which the window calls while it is open.
+    ///
+    /// @param format The id of one of the formats of getFormats()
+    /// @param parent The parent of the page
+    /// @return The page; the default, nullptr: the format has no options of its own
+    virtual QWidget* createOptionsPage(const std::string& /*format*/, QWidget* /*parent*/) {
+        return nullptr;
+    }
 
     /// @brief Export document to specific format
     ///

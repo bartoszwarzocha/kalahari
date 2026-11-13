@@ -4,6 +4,7 @@
 
 #include "kalahari/gui/book_export_coordinator.h"
 
+#include "kalahari/core/extension_points.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -102,8 +103,21 @@ void BookExportCoordinator::exportBook(editor::ExportFormat format) {
         [this, &logger](const QString& path, const dialogs::ExportBookDialog::Choice& choice,
                         const dialogs::ArchiveDialog::Progress& progress,
                         editor::ExportResult* result, editor::ExportProblem* problem) {
-            const editor::BookExport book = bookExport(choice);
             bool written = false;
+            if (const auto exporter = dialogs::ExportBookDialog::exporterOf(choice.formatId)) {
+                written = exportWithPlugin(*exporter, choice.formatId, path, progress, result,
+                                           problem);
+                if (written) {
+                    logger.info("Export: the plugin {} wrote {}", exporter->getPluginId(),
+                                path.toStdString());
+                } else {
+                    for (const QString& line : problem->lines) {
+                        logger.error("Export: {}", line.toStdString());
+                    }
+                }
+                return written;
+            }
+            const editor::BookExport book = bookExport(choice);
             if (choice.format == editor::ExportFormat::Docx) {
                 written = editor::exportDocx(book, path, progress, result, problem);
             } else {
@@ -343,6 +357,36 @@ editor::BookExport BookExportCoordinator::bookExport(
                                                     !item.footnotes.endnotesHere;
                                          });
     return book;
+}
+
+bool BookExportCoordinator::exportWithPlugin(core::IExporter& exporter, const QString& formatId,
+                                             const QString& path,
+                                             const dialogs::ArchiveDialog::Progress& progress,
+                                             editor::ExportResult* result,
+                                             editor::ExportProblem* problem) {
+    // The plugin writes the file as core::IExporter::exportDocument() says: the format and the
+    // path; it has no progress of its own
+    bool written = false;
+    try {
+        written = exporter.exportDocument(formatId.toStdString(), path.toStdString());
+    } catch (const std::exception& error) {
+        problem->lines << QStringLiteral("%1: %2").arg(
+            QString::fromStdString(exporter.getPluginId()), QString::fromUtf8(error.what()));
+    }
+    if (!written) {
+        problem->kind = editor::ExportProblem::Kind::Other;
+        if (problem->lines.isEmpty()) {
+            problem->lines << QStringLiteral("%1: the plugin did not write %2 in the format %3")
+                                  .arg(QString::fromStdString(exporter.getPluginId()), path,
+                                       formatId);
+        }
+        return false;
+    }
+    if (progress) {
+        progress(100);
+    }
+    result->file = path;
+    return true;
 }
 
 editor::ExportPage BookExportCoordinator::pageOfSettings() {

@@ -7,11 +7,13 @@
 #include "kalahari/editor/book_export.h"
 #include "kalahari/gui/dialogs/archive_dialogs.h"
 
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QStringList>
 
 #include <functional>
+#include <memory>
 
 class QCheckBox;
 class QComboBox;
@@ -20,10 +22,15 @@ class QLabel;
 class QLineEdit;
 class QPushButton;
 class QRadioButton;
+class QTabWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
 
 namespace kalahari {
+namespace core {
+class IExporter;
+} // namespace core
+
 namespace gui {
 namespace dialogs {
 
@@ -31,11 +38,15 @@ class RowList;
 
 /// @brief Export of the book to a Word document (DOCX) or to Markdown
 ///
-/// The command of the menu chooses the format; the window can change it, and with it the
-/// extension of the name and the options shown. The file goes to a folder that the program
-/// remembers, as the archives do. The window exports the whole book, the texts chosen in its
-/// list (variant A of the mockup: the list shows with "Chosen texts"), or the text in front,
-/// also a file outside the book; without a book only the text in front. The choices of the
+/// The options are on four tabs as high as the highest, so the window keeps its size and
+/// nothing in it scrolls: the file, the texts, the layout, and the annotations and the images.
+/// The progress and the result show under the tabs. The command of the menu chooses the
+/// format; the list of the formats can change it, and with it the extension of the name and
+/// the options shown. The list has the program's formats and those of the exporters of the
+/// plugins; a plugin's format with options of its own shows them on a tab of its own. The file goes to a folder that the program remembers, as the archives do. The window
+/// exports the whole book, the texts chosen in its list (which stays in its place and works
+/// with "Chosen texts"), or the text in front, also a file outside the book; without a book
+/// only the text in front. The choices of the
 /// window are kept in the settings (export.*) for the next export. The page comes from the
 /// settings of the pages (Settings > Editor > Pages and Margins, the gear of the window).
 class ExportBookDialog : public ArchiveDialog {
@@ -67,8 +78,21 @@ public:
         QString frontId;     ///< Its element; empty: a file outside the book
     };
 
+    /// @brief A format of the list of the formats
+    struct Format {
+        QString id;         ///< DOCX_ID, MARKDOWN_ID, or the id of a plugin's format
+        QString name;       ///< Its name in the list, with the extension of its files
+        QString extension;  ///< The extension of its files, with its dot
+    };
+
+    /// @brief The ids of the program's own formats
+    static constexpr const char* DOCX_ID = "docx";
+    static constexpr const char* MARKDOWN_ID = "markdown";
+
     /// @brief The choices of the window
     struct Choice {
+        QString formatId = QString::fromLatin1(DOCX_ID);  ///< The format of the list
+        /// The program's own format; DOCX also for the format of a plugin (see formatId)
         editor::ExportFormat format = editor::ExportFormat::Docx;
         Content content = Content::Book;
         QStringList chosen;         ///< Content::Chosen: the ids of the chosen texts
@@ -101,8 +125,19 @@ public:
     /// @brief The choices of the window now
     Choice choice() const;
 
-    /// @brief Choose the format, as its radio button does
+    /// @brief The formats the window lists: the program's own (DOCX, Markdown), then those of
+    /// the exporters of the plugins (core::IExporter::getFormats())
+    static QList<Format> formats();
+
+    /// @brief The exporter of a plugin that writes the format @p id; null for the program's
+    /// own formats and for an id no exporter has
+    static std::shared_ptr<core::IExporter> exporterOf(const QString& id);
+
+    /// @brief Choose one of the program's own formats, as the list of the formats does
     void setFormat(editor::ExportFormat format);
+
+    /// @brief Choose the format @p id of the list; an id the list does not have changes nothing
+    void setFormatId(const QString& id);
 
     /// @brief Choose what goes to the file, as its radio button does
     void setContent(Content content);
@@ -127,9 +162,14 @@ public:
     /// gets, or that the export replaces a file
     QString nameNote() const { return noteText(m_nameNote); }
 
-    /// @brief The radio buttons of the formats and of the content
-    QRadioButton* docxButton() const { return m_docxButton; }
-    QRadioButton* markdownButton() const { return m_markdownButton; }
+    /// @brief The list of the formats
+    QComboBox* formatBox() const { return m_formatBox; }
+
+    /// @brief The tab of the options of the format of a plugin, @p id; null for a format
+    /// without one
+    QWidget* formatPage(const QString& id) const { return m_formatPages.value(id); }
+
+    /// @brief The radio buttons of the content
     QRadioButton* bookButton() const { return m_bookButton; }
     QRadioButton* chosenButton() const { return m_chosenButton; }
     QRadioButton* frontButton() const { return m_frontButton; }
@@ -140,15 +180,19 @@ public:
     /// @brief The sentence under the list: how many texts are chosen
     QString chosenNote() const;
 
-    /// @brief Check every text of the list, none, or only the final ones, as the buttons under
+    /// @brief Check every text of the list, none, or only the final ones, as the buttons beside
     /// the list do
     void checkAll();
     void checkNone();
     void checkFinal();
 
-    /// @brief The group of the layout of a Word document, the group of the annotations and the
-    /// group of the images of a Markdown file; each shows only for its format
-    QGroupBox* layoutGroup() const { return m_layoutGroup; }
+    /// @brief The tabs of the window: the file, the texts, the layout, and the annotations and
+    /// the images
+    QTabWidget* tabs() const { return m_tabs; }
+
+    /// @brief The group of the annotations and the group of the images; each shows the option
+    /// of its format (the comments of Word, the copy of the images of Markdown) and for the
+    /// other format says what it does
     QGroupBox* notesGroup() const { return m_notesGroup; }
     QGroupBox* imagesGroup() const { return m_imagesGroup; }
 
@@ -231,8 +275,9 @@ private:
     bool m_nameTyped = false;  ///< The writer typed the name: it no longer follows the content
     int m_settingsListener = -1;
 
-    QRadioButton* m_docxButton = nullptr;
-    QRadioButton* m_markdownButton = nullptr;
+    QList<Format> m_formats;                ///< The formats of the list, in its order
+    QComboBox* m_formatBox = nullptr;
+    QHash<QString, QWidget*> m_formatPages;  ///< The tabs of the options of the plugins' formats
     QLineEdit* m_folderField = nullptr;
     QLineEdit* m_nameField = nullptr;
     FieldNote m_folderNote;
@@ -245,7 +290,8 @@ private:
     RowList* m_textList = nullptr;
     QLabel* m_chosenNote = nullptr;
 
-    QGroupBox* m_layoutGroup = nullptr;
+    QTabWidget* m_tabs = nullptr;
+    QWidget* m_extrasTab = nullptr;  ///< The tab of the annotations and the images
     QCheckBox* m_titlesBox = nullptr;
     QWidget* m_wordLayout = nullptr;
     QCheckBox* m_newPageBox = nullptr;
@@ -256,9 +302,13 @@ private:
 
     QGroupBox* m_notesGroup = nullptr;
     QCheckBox* m_commentsBox = nullptr;
+    QWidget* m_commentsOption = nullptr;  ///< The comments with their remark (Word)
+    QLabel* m_noCommentsNote = nullptr;   ///< Markdown has no comments
 
     QGroupBox* m_imagesGroup = nullptr;
     QCheckBox* m_copyImagesBox = nullptr;
+    QWidget* m_copyImagesOption = nullptr;  ///< The copy of the images with its remark (Markdown)
+    QLabel* m_imagesInFileNote = nullptr;   ///< A Word document has the images in itself
 };
 
 } // namespace dialogs

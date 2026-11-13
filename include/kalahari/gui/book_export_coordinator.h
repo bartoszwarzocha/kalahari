@@ -16,6 +16,10 @@
 class QTabWidget;
 class QWidget;
 
+namespace kalahari::core {
+class IExporter;
+}  // namespace kalahari::core
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -76,6 +80,14 @@ public:
 
     /// @brief The page of the settings of the pages (Settings > Editor > Pages and Margins)
     static editor::ExportPage pageOfSettings();
+
+    /// @brief Write @p path in the format @p formatId of a plugin's @p exporter, which reads
+    ///        its options from its tab of the window; false, with what went wrong in
+    ///        @p problem, when it cannot
+    static bool exportWithPlugin(core::IExporter& exporter, const QString& formatId,
+                                 const QString& path,
+                                 const dialogs::ArchiveDialog::Progress& progress,
+                                 editor::ExportResult* result, editor::ExportProblem* problem);
 
 private:
     /// @brief The open texts of the book, by their elements, as their editors have them

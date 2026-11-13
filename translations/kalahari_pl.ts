@@ -24390,26 +24390,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Ustawienia stron i marginesów</translation>
     </message>
     <message>
-        <source>File</source>
-        <extracomment>A group of the window: the format, the folder and the name of the file. In Polish: Plik</extracomment>
-        <translation>Plik</translation>
-    </message>
-    <message>
-        <source>&amp;Word document (DOCX)</source>
-        <extracomment>In Polish: &amp;Dokument Worda (DOCX)</extracomment>
-        <translation>&amp;Dokument Worda (DOCX)</translation>
-    </message>
-    <message>
-        <source>&amp;Markdown</source>
-        <extracomment>In Polish: &amp;Markdown</extracomment>
-        <translation>&amp;Markdown</translation>
-    </message>
-    <message>
-        <source>Format:</source>
-        <extracomment>In Polish: Format:</extracomment>
-        <translation>Format:</translation>
-    </message>
-    <message>
         <source>Folder:</source>
         <extracomment>In Polish: Folder:</extracomment>
         <translation>Folder:</translation>
@@ -24422,11 +24402,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>&amp;Name:</source>
         <extracomment>In Polish: &amp;Nazwa:</extracomment>
         <translation>&amp;Nazwa:</translation>
-    </message>
-    <message>
-        <source>Content</source>
-        <extracomment>A group of the window: what goes to the file. In Polish: Zawartość</extracomment>
-        <translation>Zawartość</translation>
     </message>
     <message numerus="yes">
         <source>Whole &amp;book (%n texts)</source>
@@ -24476,11 +24451,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Teksty trafią do pliku w kolejności Nawigatora, także z niezapisanymi zmianami.</translation>
     </message>
     <message>
-        <source>Layout</source>
-        <extracomment>A group of the window: how the texts look in the file. In Polish: Układ</extracomment>
-        <translation>Układ</translation>
-    </message>
-    <message>
         <source>Navigator titles of parts and chapters as &amp;headings</source>
         <extracomment>In Polish: &amp;Tytuły części i rozdziałów z Nawigatora jako nagłówki</extracomment>
         <translation>&amp;Tytuły części i rozdziałów z Nawigatora jako nagłówki</translation>
@@ -24527,7 +24497,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
     <message>
         <source>Annotations</source>
-        <extracomment>A group of the window: the annotations of the text. In Polish: Uwagi</extracomment>
+        <extracomment>A group of the window of the export: the annotations of the text. In Polish: Uwagi</extracomment>
         <translation>Uwagi</translation>
     </message>
     <message>
@@ -24542,7 +24512,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
     <message>
         <source>Images</source>
-        <extracomment>A group of the window: the images of a Markdown file. In Polish: Obrazy</extracomment>
+        <extracomment>A group of the window of the export: the images of the text. In Polish: Obrazy</extracomment>
         <translation>Obrazy</translation>
     </message>
     <message>
@@ -24552,7 +24522,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
     <message>
         <source>Markdown has no comments: the annotations stay only in the book.</source>
-        <extracomment>In the group of the images of a Markdown file. In Polish: Markdown nie ma komentarzy: uwagi zostają tylko w książce.</extracomment>
+        <extracomment>In the group of the annotations, for a Markdown file. In Polish: Markdown nie ma komentarzy: uwagi zostają tylko w książce.</extracomment>
         <translation>Markdown nie ma komentarzy: uwagi zostają tylko w książce.</translation>
     </message>
     <message>
@@ -24709,6 +24679,56 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>There is no room left on the disk. Free some space or choose another folder.</source>
         <extracomment>In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</extracomment>
         <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</translation>
+    </message>
+    <message>
+        <source>Fi&amp;le</source>
+        <extracomment>A tab of the window of the export: the format, the folder and the name of the file. In Polish: &amp;Plik</extracomment>
+        <translation>&amp;Plik</translation>
+    </message>
+    <message>
+        <source>&amp;Format:</source>
+        <extracomment>In Polish: &amp;Format:</extracomment>
+        <translation>&amp;Format:</translation>
+    </message>
+    <message>
+        <source>Text&amp;s</source>
+        <extracomment>A tab of the window of the export: what goes to the file. In Polish: T&amp;eksty</extracomment>
+        <translation>T&amp;eksty</translation>
+    </message>
+    <message>
+        <source>La&amp;yout</source>
+        <extracomment>A tab of the window of the export: how the texts look in the file. In Polish: U&amp;kład</extracomment>
+        <translation>U&amp;kład</translation>
+    </message>
+    <message>
+        <source>Annotations and Ima&amp;ges</source>
+        <extracomment>A tab of the window of the export: the annotations and the images. In Polish: Uwagi i o&amp;brazy</extracomment>
+        <translation>Uwagi i o&amp;brazy</translation>
+    </message>
+    <message>
+        <source>A Word document has the images in the file itself.</source>
+        <extracomment>In the group of the images, for a Word document. In Polish: Dokument Worda zawiera obrazy w samym pliku.</extracomment>
+        <translation>Dokument Worda zawiera obrazy w samym pliku.</translation>
+    </message>
+    <message>
+        <source>Word document (.docx)</source>
+        <extracomment>A format of the list of the window of the export. In Polish: Dokument Worda (.docx)</extracomment>
+        <translation>Dokument Worda (.docx)</translation>
+    </message>
+    <message>
+        <source>Markdown (.md)</source>
+        <extracomment>A format of the list of the window of the export. In Polish: Markdown (.md)</extracomment>
+        <translation>Markdown (.md)</translation>
+    </message>
+    <message>
+        <source>Saves the text &quot;%1&quot; in the format %2.</source>
+        <extracomment>The format of a plugin; %1: the title of the text, %2: the format with its extension. In Polish: Zapisuje tekst „%1” w formacie %2.</extracomment>
+        <translation>Zapisuje tekst „%1” w formacie %2.</translation>
+    </message>
+    <message>
+        <source>Saves the book &quot;%1&quot; in the format %2.</source>
+        <extracomment>The format of a plugin; %1: the title of the book, %2: the format with its extension. In Polish: Zapisuje książkę „%1” w formacie %2.</extracomment>
+        <translation>Zapisuje książkę „%1” w formacie %2.</translation>
     </message>
 </context>
 </TS>
