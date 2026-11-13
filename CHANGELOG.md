@@ -1318,6 +1318,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **"Above" and "below" of the cross-references in Polish** - 2026-11-13. A cross-reference
+  that shows where its caption is says "powyżej" and "poniżej" in the Polish program, not
+  "above" and "below": the translations now also read the texts of the captions in the
+  program's core.
 - **The words of headings and lists in a closed chapter** - 2026-10-26. The words of a chapter
   not open in the editor (the book, its sections and parts in the Properties panel, the
   preview of a file) count the text of its headings and list items too, as the editor counts

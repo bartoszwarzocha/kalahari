@@ -547,8 +547,12 @@ endif()
 
 # UI translations: lrelease compiles the .ts files into .qm files embedded under :/i18n.
 # After changing UI strings, refresh the .ts files with: cmake --build <dir> --target update_translations
+# lupdate reads the executable's sources and the core's that have texts the writer sees:
+# where a caption is ("above")
 qt_add_translations(kalahari
     TS_FILES ${CMAKE_SOURCE_DIR}/translations/kalahari_pl.ts
+    SOURCES ${KALAHARI_SOURCES}
+        editor/text_captions.cpp
     LUPDATE_OPTIONS -no-obsolete -locations none
 )
 

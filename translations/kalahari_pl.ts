@@ -20690,6 +20690,19 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
     </message>
 </context>
 <context>
+    <name>CaptionNumbers</name>
+    <message>
+        <source>above</source>
+        <extracomment>A cross-reference to a caption earlier in the book. In Polish: powyżej</extracomment>
+        <translation>powyżej</translation>
+    </message>
+    <message>
+        <source>below</source>
+        <extracomment>A cross-reference to a caption later in the book. In Polish: poniżej</extracomment>
+        <translation>poniżej</translation>
+    </message>
+</context>
+<context>
     <name>SessionSummary</name>
     <message>
         <source>Words per %1 min</source>
