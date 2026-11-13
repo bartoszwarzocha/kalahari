@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Find in Book** - 2026-11-13. Edit > Find in Book... (Ctrl+Shift+F) shows the Search panel
+  (F5), until now empty, with what is selected in the text, else what its find bar searches
+  for, with the find bar's options (Match Case, Whole Word, Regular Expression, with the same
+  keys). The panel searches all the texts of the book in the order of the Navigator, with the
+  texts of their footnotes and endnotes: the open ones as their editors have them, unsaved
+  changes too, the others without opening them, read again only when they change. It searches
+  a moment after the typing stops (at once on Enter or a change of an option), a few texts at
+  a time, so that the program never stops answering. The matches are in a tree, each text with
+  its count and under it its matches with the text around them, the match bold on the color
+  of the search's hits ("footnote 2:" before a match in a note); the line above says "12
+  matches in 4 texts", and the tree lists at most 5000. A click shows a match in its text,
+  opened if it is not, with the keys staying in the panel; Enter or a double click gives the
+  keys to the text; Up and Down show the matches of the open texts. The matches of an open
+  text follow its changes a moment later. Replace All in Book asks first, in the program's own
+  window, with the numbers of matches and texts: the open texts change in their editors, each
+  as one step to undo, the others in their files (one with changes not saved yet only in the
+  program), the formatting of the matches staying; each text is kept as a version first, as
+  before Replace All of the find bar, if the settings say so. The notice under the text says
+  how many matches changed, with Undo for the whole change until a text changes. Keys: Tab
+  through the field, the options, the replacement, Replace All in Book and the tree; Down from
+  the field to the first match; Esc back to the text. The panel's gear opens Settings >
+  Editor > Colors, with the color of the hits.
 - **Footnotes and endnotes: the book's numbering, the words, the search and the checking** -
   2026-11-13. Insert > Footnote Layout... (its gear opens Settings > Editor > General) sets a
   book's numbering of each kind of note: 1, a, A, i, I or *, †, ‡, §, anew in each text or

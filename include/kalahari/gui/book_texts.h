@@ -33,4 +33,14 @@ std::vector<BookTextElement> bookTextElements();
 /// @return Its KML when it changed (or was never read); std::nullopt when it is as it was
 std::optional<QString> savedTextIfChanged(const QString& elementId, QString& signature);
 
+/// @brief Before Replace All in a text of the book, the book keeps the text as it is as a
+///        version, if the settings say so (ChapterVersions)
+/// @param elementId The text's element
+/// @param kml The text before the replacement
+/// @param found What is replaced: @p count matches of it
+/// @param replacement What they become
+/// @param count How many are replaced
+void keepVersionBeforeReplaceAll(const QString& elementId, const QString& kml,
+                                 const QString& found, const QString& replacement, int count);
+
 }  // namespace kalahari::gui
