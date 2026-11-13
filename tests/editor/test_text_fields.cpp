@@ -102,7 +102,10 @@ TEST_CASE("Fields: the date in the language of the book", "[editor][fields]") {
     const QString en = QStringLiteral("en-US");
     CHECK(dateText(when, QStringLiteral("long"), en) == QStringLiteral("October 11, 2026"));
     CHECK(dateText(when, QStringLiteral("short"), en) == QStringLiteral("10/11/2026"));
-    CHECK(dateText(when, QStringLiteral("time"), en) == QStringLiteral("2:35 PM"));
+    // Since Qt 6.5 (CLDR 42) a narrow no-break space comes before PM in English
+    QString enTime = dateText(when, QStringLiteral("time"), en);
+    enTime.replace(QChar(0x202F), QLatin1Char(' '));
+    CHECK(enTime == QStringLiteral("2:35 PM"));
     CHECK(datePattern(QStringLiteral("short"), QStringLiteral("de")) ==
           QStringLiteral("dd.MM.yyyy"));
     CHECK(dateText(when, QStringLiteral("long"), QStringLiteral("de")) ==
