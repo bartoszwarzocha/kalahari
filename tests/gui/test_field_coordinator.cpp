@@ -16,9 +16,9 @@
 #include "kalahari/gui/settings_dialog.h"
 
 #include <QAbstractButton>
-#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QDate>
 #include <QFile>
 #include <QGroupBox>
@@ -521,7 +521,7 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
     CHECK(dates->item(0)->text() == QStringLiteral("11 października 2026"));
     CHECK(dates->item(2)->text() == QStringLiteral("niedziela, 11 października 2026"));
     CHECK(dates->item(5)->text() == QStringLiteral("11.10.2026, 14:35"));
-    CHECK(QApplication::focusWidget() == dates);
+    CHECK(dateDialog.focusWidget() == dates);  // also where the window is not active
     CHECK(test::textsOf(dateDialog).contains(QStringLiteral(
         "Alt+Shift+D i Alt+Shift+T wstawiają od razu datę i godzinę tekstem")));
     checkKeys(dateDialog);
@@ -540,7 +540,7 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
     CHECK(tabs->tabText(2) == QStringLiteral("&Strony"));
     CHECK(tabs->tabText(3) == QStringLiteral("&Data"));
     auto* list = shownList(fieldDialog);
-    CHECK(QApplication::focusWidget() == list);
+    CHECK(fieldDialog.focusWidget() == list);
     CHECK(list->item(0)->text() == QStringLiteral("Tytuł książki"));
     CHECK(only<QComboBox>(fieldDialog)->itemText(1) == QStringLiteral("WIELKIMI LITERAMI"));
     checkKeys(fieldDialog);
@@ -566,7 +566,7 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
     QKeyEvent nextTab(QEvent::KeyPress, Qt::Key_Tab, Qt::ControlModifier);
     QCoreApplication::sendEvent(shownList(fieldDialog), &nextTab);
     CHECK(tabs->currentIndex() == 1);
-    CHECK(QApplication::focusWidget() == shownList(fieldDialog));
+    CHECK(fieldDialog.focusWidget() == shownList(fieldDialog));
 
     // The gear: Settings > Editor > General, where the gray background is turned off
     QToolButton* gear = nullptr;
