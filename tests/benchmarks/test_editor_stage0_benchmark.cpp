@@ -24,17 +24,25 @@
 /// takes the same chapter with a table every 200 paragraphs and a long table in the middle:
 /// loading, the pages (the header rows repeated, a row higher than a page split), typing in a
 /// cell, and the commands of the Table menu.
+///
+/// The benchmark of notes ("[benchmark][footnotes]", results in footnotes_benchmark_results.md)
+/// takes the chapter with a footnote at the end of every 5th paragraph and an endnote of every
+/// 50th: loading, the footnotes under their paragraphs and at the bottom of the pages, typing
+/// before a note, a new note at the start (all the numbers after it change), copying all of it
+/// and pasting its HTML.
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/text_sorting.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/viewport_manager.h>
 #include "../editor/editor_test_utils.h"
@@ -240,6 +248,46 @@ QString withTables(const QString& kml, int longRows, int* tables) {
     result += QStringView(kml).mid(from);
     *tables = count;
     return result;
+}
+
+/// The chapter with a footnote at the end of every 5th paragraph and an endnote at the end of
+/// every 50th; @p notes gets their number
+QString withNotes(const QString& kml, int* notes) {
+    const QString end = QStringLiteral("</p>");
+    QString result;
+    result.reserve(kml.size() * 5 / 4);
+    qsizetype from = 0;
+    int paragraph = 0;
+    int count = 0;
+    for (qsizetype at = kml.indexOf(end); at >= 0; at = kml.indexOf(end, from)) {
+        result += QStringView(kml).mid(from, at - from);
+        ++paragraph;
+        if (paragraph % 50 == 0) {
+            result += QStringLiteral("<endnote id=\"e%1\">Przypis końcowy %1, ze źródłem i "
+                                     "rokiem wydania.</endnote>")
+                          .arg(count++);
+        } else if (paragraph % 5 == 0) {
+            result += QStringLiteral("<footnote id=\"f%1\">Przypis %1 objaśnia słowo z akapitu "
+                                     "i podaje <i>tytuł</i> dzieła, z którego pochodzi.</footnote>")
+                          .arg(count++);
+        }
+        result += end;
+        from = at + end.size();
+    }
+    result += QStringView(kml).mid(from);
+    *notes = count;
+    return result;
+}
+
+/// The first paragraph from the given one on with a note
+int paragraphWithNote(const BookEditor& editor, int from) {
+    for (QTextBlock block = editor.textDocument()->findBlockByNumber(from); block.isValid();
+         block = block.next()) {
+        if (hasNotes(block)) {
+            return block.blockNumber();
+        }
+    }
+    return from;
 }
 
 /// The first table with at least @p rows rows
@@ -822,4 +870,123 @@ TEST_CASE("Tables benchmark: the Table menu on a 150k-word chapter with tables",
                     timeMs([&] { CHECK(!editor.toKml().isEmpty()); }), QString()});
 
     report(rows, header, QStringLiteral("tables_benchmark_results.md"));
+}
+
+TEST_CASE("Notes benchmark: a 150k-word chapter with footnotes and endnotes",
+          "[.][benchmark][footnotes]") {
+    std::vector<BenchRow> rows;
+    QStringList header = reportHeader();
+
+    // -------------------------------------------------------------------------
+    // 1. Loading
+    // -------------------------------------------------------------------------
+    int notes = 0;
+    const QString kml = withNotes(generateKml(150000), &notes);
+    BookEditor editor;
+    resizeWidget(editor, QSize(1000, 800));
+    editor.setParagraphStyles(bookStyles());
+    const double loadMs = timeMs([&] { editor.fromKml(kml); });
+    const double firstPaintMs = timeMs([&] { paint(editor); });
+    KalahariTextDocumentLayout* layout = layoutOf(editor);
+    const double restMs = timeMs([&] { layout->layoutPendingBlocks(); });
+    header << QStringLiteral("Dokument: %1 słów, %2 akapitów, %3 przypisów: dolny na końcu co "
+                             "5. akapitu, końcowy co 50.")
+                  .arg(editor.wordCount())
+                  .arg(editor.paragraphCount())
+                  .arg(notes);
+    CHECK(notesIn(*editor.textDocument()).size() == static_cast<size_t>(notes));
+    rows.push_back({QStringLiteral("fromKml – 150k słów z przypisami"), loadMs,
+                    QStringLiteral("pierwszy paintEvent %1 ms; łamanie reszty w tle %2 ms")
+                        .arg(firstPaintMs, 0, 'f', 1)
+                        .arg(restMs, 0, 'f', 1)});
+
+    const QString typed = QStringLiteral("lorem ipsum dolor sit amet ").repeated(4).left(100);
+    const auto typeHundred = [&]() {
+        return timeMs([&] {
+            for (QChar c : typed) {
+                typeChar(editor, c);
+                paint(editor);
+            }
+        });
+    };
+    const auto beforeNote = [&](int paragraph) {
+        const int block = paragraphWithNote(editor, paragraph);
+        editor.clearSelection();
+        editor.setCursorPosition({block, 10});
+        paint(editor);
+    };
+
+    // -------------------------------------------------------------------------
+    // 2. Continuous: the footnotes under their paragraphs
+    // -------------------------------------------------------------------------
+    beforeNote(static_cast<int>(editor.paragraphCount() / 2));
+    rows.push_back({QStringLiteral("paintEvent – Continuous, przypisy pod akapitami (średnio z 10)"),
+                    timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0, QString()});
+    {
+        const double ms = typeHundred();
+        rows.push_back({QStringLiteral("Wpisanie 100 znaków w akapicie z przypisem – Continuous "
+                                       "(z paintEvent po każdym)"),
+                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+    }
+
+    // A new note at the start: the numbers of all the others change
+    editor.clearSelection();
+    editor.setCursorPosition({0, 3});
+    paint(editor);
+    QString added;
+    rows.push_back({QStringLiteral("Wstaw > Przypis dolny na początku + tekst + paintEvent"),
+                    timeMs([&] {
+                        added = editor.insertNote(NoteKind::Footnote);
+                        editor.setNoteContent(added, QStringLiteral("Nowy przypis."), true);
+                        paint(editor);
+                    }),
+                    QStringLiteral("numery %1 przypisów za nim się zmieniają").arg(notes)});
+    CHECK(editor.noteNumber(added) == QStringLiteral("1"));
+    rows.push_back({QStringLiteral("    cofnięcie (Ctrl+Z) + paintEvent"), timeMs([&] {
+                        editor.undo();
+                        paint(editor);
+                    }),
+                    QString()});
+    CHECK(notesIn(*editor.textDocument()).size() == static_cast<size_t>(notes));
+
+    // -------------------------------------------------------------------------
+    // 3. Page view: the footnotes at the bottom of the pages
+    // -------------------------------------------------------------------------
+    rows.push_back({QStringLiteral("Przełączenie na Page + pierwszy paintEvent (paginacja)"),
+                    timeMs([&] {
+                        editor.setViewMode(ViewMode::Page);
+                        paint(editor);
+                    }),
+                    QString()});
+    beforeNote(static_cast<int>(editor.paragraphCount() / 2));
+    rows.push_back({QStringLiteral("paintEvent – Page, przypisy u dołu stron (średnio z 10)"),
+                    timeMs([&] { for (int i = 0; i < 10; ++i) paint(editor); }) / 10.0, QString()});
+    {
+        const double ms = typeHundred();
+        rows.push_back({QStringLiteral("Wpisanie 100 znaków w akapicie z przypisem – Page (z "
+                                       "paintEvent po każdym)"),
+                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. The clipboard and saving
+    // -------------------------------------------------------------------------
+    editor.selectAll();
+    std::unique_ptr<QMimeData> copied;
+    rows.push_back({QStringLiteral("Kopiowanie całości (Ctrl+A, Ctrl+C)"),
+                    timeMs([&] { copied = editor.createMimeDataFromSelection(); }),
+                    QStringLiteral("dane dla schowka (KML, HTML z przypisami jak LibreOffice, tekst "
+                                   "z przypisami na końcu)")});
+    REQUIRE(copied);
+    QString pasted;
+    rows.push_back({QStringLiteral("Odczyt HTML całości z przypisami (wklejenie z innego programu)"),
+                    timeMs([&] { pasted = ClipboardHandler::htmlToKml(copied->html()); }),
+                    QStringLiteral("bez wstawienia do tekstu")});
+    CHECK(pasted.count(QStringLiteral("<footnote ")) + pasted.count(QStringLiteral("<endnote ")) ==
+          notes);
+    editor.clearSelection();
+    rows.push_back({QStringLiteral("toKml – cały rozdział z przypisami"),
+                    timeMs([&] { CHECK(!editor.toKml().isEmpty()); }), QString()});
+
+    report(rows, header, QStringLiteral("footnotes_benchmark_results.md"));
 }

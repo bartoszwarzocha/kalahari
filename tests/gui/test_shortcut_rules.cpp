@@ -188,7 +188,8 @@ TEST_CASE("Shortcut rules: the fixed keys say what they do", "[gui][shortcuts][r
     const KeyCheck escape = windows.check(keys(NONE, Qt::Key_Escape), "file.close");
     CHECK(escape.result == Result::Refused);
     CHECK(escape.reason ==
-          QStringLiteral("%1 closes the windows, the find bar and the annotation frame.")
+          QStringLiteral(
+              "%1 closes the windows, the find bar and the frames of the annotations and notes.")
                   .arg(ShortcutRules::keysText(keys(NONE, Qt::Key_Escape))) +
               fixed);
 

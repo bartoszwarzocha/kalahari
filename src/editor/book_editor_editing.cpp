@@ -11,6 +11,7 @@
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/image_store.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_images.h>
 #include <QAction>
@@ -1356,6 +1357,19 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
         marks.fields.insert(marks.fields.end(), std::make_move_iterator(texts.begin()),
                             std::make_move_iterator(texts.end()));
     }
+    // The notes with the numbers the editor shows
+    if (const auto* layout =
+            qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout())) {
+        const FootnoteNumbers& notes = layout->footnoteNumbers();
+        for (const auto& [rangeFrom, rangeTo] : ranges) {
+            for (size_t i = 0; i < notes.notes().size(); ++i) {
+                const int position = notes.notes()[i].position;
+                if (position >= rangeFrom && position < rangeTo) {
+                    marks.notes.push_back(notes.number(i));
+                }
+            }
+        }
+    }
     std::unique_ptr<QMimeData> mime = ClipboardHandler::mimeDataOf(kml, &marks, m_imageStore->folder());
 
     // An image alone also as a picture, for the programs that paste pictures
@@ -1486,6 +1500,7 @@ void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
     insertMimeData(cursor, *source, mode, pending);
     adoptPastedImages(*source, from, cursor);
     renewPastedCaptionIds(from, cursor.position());
+    renewPastedNoteIds(from, cursor.position());
     finishEdit(cursor);
     finishPasting();
 }
@@ -1558,6 +1573,7 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     cursor.endEditBlock();
     adoptPastedImages(*source, insertionStart, cursor);
     renewPastedCaptionIds(insertionStart, cursor.position());
+    renewPastedNoteIds(insertionStart, cursor.position());
 
     // The dropped text is selected, with the cursor at its end
     finishEdit(cursor);

@@ -26,9 +26,6 @@ enum KmlPropertyId {
     /// (see annotation.h)
     KmlPropAnnotations = QTextFormat::UserProperty + 100,
 
-    /// @brief Footnote reference
-    KmlPropFootnote = QTextFormat::UserProperty + 102,
-
     /// @brief Character reference (link to Character entity)
     KmlPropCharRef = QTextFormat::UserProperty + 103,
 
@@ -46,7 +43,7 @@ inline constexpr qreal MAX_LETTER_SPACING = 100.0;
 
 /// @brief Metadata tag definition
 struct MetadataTagDef {
-    QString tagName;              ///< Tag name in KML (e.g., "footnote", "charref")
+    QString tagName;              ///< Tag name in KML (e.g., "charref", "locref")
     KmlPropertyId propertyId;     ///< QTextFormat property ID
     QStringList knownAttributes;  ///< Known attributes for this tag
 };
@@ -95,7 +92,7 @@ QString formatToCloseTags(const QTextCharFormat& format);
 // =============================================================================
 
 /// @brief Check if tag is a known metadata tag
-/// @param tag The tag name (e.g., "footnote", "charref")
+/// @param tag The tag name (e.g., "charref", "locref")
 /// @return true if tag is a recognized metadata tag
 bool isMetadataTag(const QString& tag);
 

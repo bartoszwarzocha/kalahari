@@ -507,6 +507,27 @@ bool BookEditor::event(QEvent* event)
                                this);
             return true;
         }
+        // A note's number: its name and its text, as the frame shows them
+        if (noteTextAt(QPointF(help->pos())).isEmpty()) {
+            if (const std::optional<NotePlace> note = noteAt(QPointF(help->pos()))) {
+                QString content = notePlainText(note->note.content).trimmed();
+                if (content.size() > MARK_TOOLTIP_LENGTH) {
+                    content = content.left(MARK_TOOLTIP_LENGTH) + QStringLiteral("...");
+                }
+                //: The tooltip of a note's number without its text. In Polish: (bez treści)
+                const QString shown = content.isEmpty()
+                                          ? QStringLiteral("<i>%1</i>").arg(tr("(no text)"))
+                                          : content.toHtmlEscaped();
+                const QString title =
+                    noteTitle(note->note.kind, noteNumber(note->note.id)).toHtmlEscaped();
+                QToolTip::showText(help->globalPos(),
+                                   QStringLiteral(
+                                       "<p style='white-space:pre-wrap'><b>%1</b><br>%2</p>")
+                                       .arg(title, shown),
+                                   this);
+                return true;
+            }
+        }
         const std::optional<AnnotationMark> mark =
             m_renderPipeline->annotationMarkDetailsAt(QPointF(help->pos()));
         QString text = mark && !mark->text.trimmed().isEmpty() ? mark->text : QString();

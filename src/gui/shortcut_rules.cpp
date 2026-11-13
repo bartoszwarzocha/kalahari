@@ -327,7 +327,7 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
 
     // Esc closes what is open, wherever it is
     const QString escapeReason =
-        tr("%1 closes the windows, the find bar and the annotation frame.");
+        tr("%1 closes the windows, the find bar and the frames of the annotations and notes.");
 
     // The find bar (FindReplaceBar): on macOS Option with a letter types a character, so the
     // options there are Option+Cmd with the letter
@@ -361,13 +361,15 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
         {tr("Close the bar"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, escapeReason, {}});
     groups.push_back(std::move(find));
 
-    // The frame an annotation is written in (AnnotationFrame)
+    // The frames an annotation and a note are written in (AnnotationFrame, NoteFrame)
     FixedKeyGroup frame;
-    frame.title = tr("Fixed: the annotation frame");
+    //: In Polish: Stałe: ramki uwag i przypisów
+    frame.title = tr("Fixed: the annotation and note frames");
     // Insert > Page Break has Ctrl+Enter in the text, as in Word and LibreOffice: the frame
     // keeps it for its own text
     frame.rows.push_back({tr("Keep the text"), enterKeys(CTRL), NONE, {},
-                          tr("In the annotation frame %1 keeps the text."), "insert.pageBreak"});
+                          tr("In the annotation and note frames %1 keeps the text."),
+                          "insert.pageBreak"});
     frame.rows.push_back(
         {tr("Discard"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, escapeReason, {}});
     groups.push_back(std::move(frame));

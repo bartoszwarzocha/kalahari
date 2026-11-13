@@ -536,6 +536,17 @@ void checkTextMenus(bool shown, QStringList& problems) {
     collectProblems(linkMenu, QStringLiteral("Link"), {}, problems);
     CHECK(itemCount(linkMenu) == 6 + 4);
 
+    // A note's number: Edit, Convert and Delete on top of the usual menu
+    for (const QString& kind : {QStringLiteral("footnote"), QStringLiteral("endnote")}) {
+        editor.fromKml(QStringLiteral("<kml><p>The<%1 id=\"f1\">A note</%1> ").arg(kind) +
+                       sentence() + QStringLiteral("</p></kml>"));
+        const QRectF after = editor.placeRect(4, true);  // the number is the fourth character
+        QList<test::MenuItem> noteMenu = contextMenu(
+            &editor, &editor, QPoint(qRound(after.left()) - 2, qRound(after.center().y())));
+        collectProblems(noteMenu, QStringLiteral("Note"), {}, problems);
+        CHECK(itemCount(noteMenu) == 6 + 3);
+    }
+
     // An image, selected by the click: Image Properties..., Add Caption, Change Image...,
     // Original Size and Save as Image... (the windows the editor panel gives) on top of the
     // menu of selected text

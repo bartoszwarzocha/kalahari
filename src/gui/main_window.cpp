@@ -19,6 +19,7 @@
 #include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/caption_coordinator.h"
+#include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -360,9 +361,13 @@ MainWindow::MainWindow(QWidget* parent)
         statusBar(),
         [this]() { updateWindowTitle(); },
         [this]() {
-            // An annotation being written is kept before the documents are saved or closed
+            // An annotation or a note being written is kept before the documents are saved
+            // or closed
             if (m_annotationsCoordinator) {
                 m_annotationsCoordinator->finishWriting();
+            }
+            if (m_footnoteCoordinator) {
+                m_footnoteCoordinator->finishWriting();
             }
             return hasUnsavedChanges();
         },
@@ -634,6 +639,32 @@ MainWindow::MainWindow(QWidget* parent)
     }
     addTableCommands();
     addImageCommands();
+
+    // Insert > Footnote and Endnote: in the book's text with the keys, not in a read-only one
+    // nor in a plain text file (it keeps no notes); the frame of a note's text
+    m_footnoteCoordinator = new FootnoteCoordinator(
+        m_dockCoordinator->centralTabs(),
+        [this]() { return m_editCoordinator->textWithKeys(); }, this);
+    m_footnoteCoordinator->connectCommands();
+    const std::vector<std::string> noteCommands = {"insert.footnote", "insert.endnote"};
+    m_editCoordinator->addTextCommands(noteCommands, [](const editor::BookEditor& text) {
+        return !text.isReadOnly() && text.annotationsAllowed();
+    });
+    for (const std::string& id : noteCommands) {
+        if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+            command->disabledReason = [this]() {
+                const editor::BookEditor* text = m_editCoordinator->textWithKeys();
+                if (text != nullptr && text->isReadOnly()) {
+                    return readOnlyReason();
+                }
+                //: Why Insert > Footnote and Endnote are greyed out in a .txt file. In Polish:
+                //: Plik zwykłego tekstu nie przechowuje przypisów
+                return text != nullptr && !text->annotationsAllowed()
+                           ? tr("A plain text file keeps no notes")
+                           : QString();
+            };
+        }
+    }
     m_editCoordinator->updateStates();
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
@@ -895,17 +926,20 @@ void MainWindow::registerCommands() {
             if (m_documentCoordinator) m_documentCoordinator->onOpenStandaloneFile();
         });
     };
-    // An annotation being written is saved with the document
+    // An annotation or a note being written is saved with the document
     callbacks.onSaveDocument = [this]() {
         if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_footnoteCoordinator) m_footnoteCoordinator->finishWriting();
         if (m_documentCoordinator) m_documentCoordinator->onSaveDocument();
     };
     callbacks.onSaveAsDocument = [this]() {
         if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_footnoteCoordinator) m_footnoteCoordinator->finishWriting();
         if (m_documentCoordinator) m_documentCoordinator->onSaveAsDocument();
     };
     callbacks.onSaveAll = [this]() {
         if (m_annotationsCoordinator) m_annotationsCoordinator->finishWriting();
+        if (m_footnoteCoordinator) m_footnoteCoordinator->finishWriting();
         if (m_documentCoordinator) m_documentCoordinator->onSaveAll();
     };
     callbacks.onCloseDocument = [this]() { if (m_documentCoordinator) m_documentCoordinator->onCloseDocument(); };
@@ -2391,9 +2425,12 @@ void MainWindow::createDocks() {
         }
         EditorPanel* editor = qobject_cast<EditorPanel*>(widget);
 
-        // An annotation being written in this tab is kept first
+        // An annotation or a note being written in this tab is kept first
         if (editor && m_annotationsCoordinator) {
             m_annotationsCoordinator->finishWriting(editor->getBookEditor());
+        }
+        if (editor && m_footnoteCoordinator) {
+            m_footnoteCoordinator->finishWriting(editor->getBookEditor());
         }
 
         // Prompt to save if THIS tab has unsaved changes (Bug#2 fix).
@@ -2730,9 +2767,12 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     // + standalone tabs). Fixes Bug#3 - previously divergent OR of competing flags.
     auto& pm = core::ProjectManager::getInstance();
 
-    // An annotation being written is kept first
+    // An annotation or a note being written is kept first
     if (m_annotationsCoordinator) {
         m_annotationsCoordinator->finishWriting();
+    }
+    if (m_footnoteCoordinator) {
+        m_footnoteCoordinator->finishWriting();
     }
 
     if (hasUnsavedChanges()) {

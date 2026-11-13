@@ -1001,6 +1001,11 @@ void EditorRenderPipeline::setParagraphDecorator(ParagraphDecorator decorator) {
     markAllDirty();
 }
 
+void EditorRenderPipeline::setPageDecorator(PageDecorator decorator) {
+    m_pageDecorator = std::move(decorator);
+    markRepaintOnly();
+}
+
 void EditorRenderPipeline::setFragmentHighlight(
     const std::optional<FragmentHighlight>& highlight) {
     if (m_fragmentHighlight == highlight) {
@@ -1398,6 +1403,27 @@ void EditorRenderPipeline::renderParagraphDecoration(QPainter* painter, size_t i
     painter->setOpacity(dimmed ? DIMMED_MARK_OPACITY : 1.0);
     m_paragraphDecorator(painter, index);
     painter->restore();
+}
+
+void EditorRenderPipeline::renderPageDecorations(QPainter* painter, const QRect& clipRect) {
+    if (!m_pageDecorator || m_context.viewMode != ViewMode::Page) return;
+
+    // The pages whose sheets reach into the clip rect, each at the top left of its text area
+    const auto& computed = m_context.computed;
+    const double scale = computed.viewScale;
+    const int firstPage = pageAtDocumentY(widgetToDocument(QPointF(0.0, clipRect.top())).y());
+    const int lastPage =
+        pageAtDocumentY(widgetToDocument(QPointF(0.0, clipRect.bottom() + 1.0)).y());
+    for (int page = firstPage; page <= lastPage; ++page) {
+        painter->save();
+        painter->translate(computed.originX + pageShiftX(page) * scale,
+                           documentToWidget(QPointF(0.0, pageTextTop(page))).y());
+        if (scale != 1.0) {
+            painter->scale(scale, scale);
+        }
+        m_pageDecorator(painter, page);
+        painter->restore();
+    }
 }
 
 void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, double widgetY,
@@ -1932,6 +1958,7 @@ void EditorRenderPipeline::renderText(QPainter* painter, const QRect& clipRect) 
     if (!tables.empty()) {
         renderHeaderCopies(painter, tables, clipRect);
     }
+    renderPageDecorations(painter, clipRect);
 
     // The numbers on the left margin
     renderMarginNumbers(painter, clipRect);

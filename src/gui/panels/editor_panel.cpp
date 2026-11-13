@@ -493,6 +493,11 @@ void EditorPanel::applySettings() {
     fields.dark = themes.editorColor(dark.field, defaults.fields.dark);
     fields.brokenLight = themes.editorColor(light.brokenField, defaults.fields.brokenLight);
     fields.brokenDark = themes.editorColor(dark.brokenField, defaults.fields.brokenDark);
+    auto& footnotes = appearance.colors.footnotes;
+    footnotes.lineLight = themes.editorColor(light.noteLine, defaults.footnotes.lineLight);
+    footnotes.lineDark = themes.editorColor(dark.noteLine, defaults.footnotes.lineDark);
+    footnotes.frameLight = themes.editorColor(light.noteFrame, defaults.footnotes.frameLight);
+    footnotes.frameDark = themes.editorColor(dark.noteFrame, defaults.footnotes.frameDark);
     // Under the text on both papers: translucent, so the text stays readable
     appearance.colors.selection =
         editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),

@@ -1,0 +1,578 @@
+/// @file writing_frame.cpp
+/// @brief A frame over the editor a text is written in: an annotation's, a note's
+
+#include "kalahari/gui/panels/writing_frame.h"
+#include "kalahari/gui/command_registry.h"
+
+#include <QAbstractButton>
+#include <QAbstractTextDocumentLayout>
+#include <QApplication>
+#include <QEvent>
+#include <QFocusEvent>
+#include <QHBoxLayout>
+#include <QKeyEvent>
+#include <QKeySequence>
+#include <QLabel>
+#include <QScrollBar>
+#include <QTextCursor>
+#include <QTextDocument>
+#include <QTextEdit>
+#include <QTimer>
+#include <QToolButton>
+#include <QVBoxLayout>
+
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <utility>
+
+namespace kalahari::gui {
+
+namespace {
+
+constexpr int BAR_WIDTH = 4;  ///< The room on the left for the bar of an annotation's kind
+constexpr int MIN_WIDTH = 300;  ///< The narrowest frame (when the editor has room)
+constexpr qreal GAP = 4.0;      ///< Between the place and the frame
+constexpr qreal EDGE = 8.0;     ///< The least room between the frame and the editor's edges
+constexpr qreal LEAD = 16.0;    ///< The frame starts this far left of its place
+constexpr int MIN_LINES = 3;    ///< The text box is at least this many lines high...
+constexpr int MAX_LINES = 8;    ///< ...and at most this many (then it scrolls)
+
+/// @brief Ctrl+Enter (Cmd+Return on macOS): keep the text
+bool isSaveKey(const QKeyEvent* event) {
+    const bool enter = event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter;
+    return enter && (event->modifiers() & Qt::ControlModifier);
+}
+
+/// @brief Esc: drop the text
+bool isCancelKey(const QKeyEvent* event) {
+    return event->key() == Qt::Key_Escape && event->modifiers() == Qt::NoModifier;
+}
+
+/// @brief A shortcut of the window that works while the frame has the keys: saving, closing
+/// and quitting (what is written is kept before), with the program's keys for them
+bool reachesWindow(const QKeyEvent* event) {
+    for (const char* id : {"file.save", "file.saveAs", "file.close", "file.exit"}) {
+        if (WritingFrame::hasCommandKeys(event, id)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// @brief Tells of every mouse press of the program before it goes on, the second press of
+/// a double click too (installed on the application)
+class PressWatcher : public QObject {
+public:
+    using Handler = std::function<void(QObject* receiver)>;
+
+    PressWatcher(Handler handler, QObject* parent)
+        : QObject(parent)
+        , m_handler(std::move(handler)) {}
+
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::MouseButtonPress ||
+            event->type() == QEvent::MouseButtonDblClick) {
+            m_handler(watched);
+        }
+        return false;
+    }
+
+private:
+    Handler m_handler;
+};
+
+}  // namespace
+
+WritingFrame::WritingFrame(QWidget* editor, QTextEdit* textEdit, const QString& name)
+    : QFrame(editor)
+    , m_name(name)
+    , m_textEdit(textEdit)
+{
+    setObjectName(name);
+    setAttribute(Qt::WA_NoMousePropagation);  // a click on it does not move the editor's cursor
+    setFont(QApplication::font());            // not the font of the text under it
+    setCursor(Qt::ArrowCursor);
+    setFocusPolicy(Qt::ClickFocus);
+    setAutoFillBackground(false);
+
+    auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(BAR_WIDTH + 8, 6, 8, 8);
+    layout->setSpacing(4);
+
+    // Header: the title, the X in the corner
+    m_header = new QHBoxLayout();
+    m_header->setSpacing(8);
+    QFont titleFont = font();
+    titleFont.setPointSizeF(titleFont.pointSizeF() * 0.9);
+    titleFont.setBold(true);
+    m_titleLabel = new QLabel(this);
+    m_titleLabel->setObjectName(name + QStringLiteral("Kind"));
+    m_titleLabel->setFont(titleFont);
+    m_header->addWidget(m_titleLabel);
+
+    // The X drops the text for the mouse, as Esc does, like the X of a window; the keys have
+    // Esc and Ctrl+Enter
+    m_closeButton = new QToolButton(this);
+    m_closeButton->setObjectName(name + QStringLiteral("Close"));
+    m_closeButton->setText(QString(QChar(0x00D7)));  // the multiplication sign: an X
+    QFont closeFont = font();
+    closeFont.setPointSizeF(closeFont.pointSizeF() * 1.2);
+    m_closeButton->setFont(closeFont);
+    //: The X of the frame an annotation's or a note's text is written in. In Polish: Anuluj
+    //: (Esc)
+    m_closeButton->setToolTip(tr("Cancel (Esc)"));
+    //: In Polish: Anuluj
+    m_closeButton->setAccessibleName(tr("Cancel"));
+    m_closeButton->setFocusPolicy(Qt::NoFocus);
+    m_closeButton->setAutoRaise(true);
+    connect(m_closeButton, &QToolButton::clicked, this, &WritingFrame::requestCancel);
+    m_header->addWidget(m_closeButton);
+    layout->addLayout(m_header);
+
+    // Enter starts a new line; Tab goes to the frame's buttons
+    m_textEdit->setParent(this);
+    m_textEdit->setTabChangesFocus(true);
+    m_textEdit->setLineWrapMode(QTextEdit::WidgetWidth);
+    m_textEdit->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_textEdit->installEventFilter(this);
+    connect(m_textEdit->document()->documentLayout(),
+            &QAbstractTextDocumentLayout::documentSizeChanged, this, [this]() {
+                updateTextHeight();
+                schedulePlacement();
+            });
+    layout->addWidget(m_textEdit);
+    setFocusProxy(m_textEdit);
+
+    // What the keys do
+    m_footer = new QHBoxLayout();
+    m_footer->setSpacing(8);
+    QFont hintFont = font();
+    hintFont.setPointSizeF(hintFont.pointSizeF() * 0.9);
+    m_hintLabel = new QLabel(this);
+    m_hintLabel->setObjectName(name + QStringLiteral("Hint"));
+    m_hintLabel->setFont(hintFont);
+    m_footer->addWidget(m_hintLabel, 1);
+    layout->addLayout(m_footer);
+
+    // The frame follows its place as the editor changes
+    editor->installEventFilter(this);
+    updateTextHeight();
+
+    // While it is shown, a click anywhere else in the program closes it
+    m_pressWatcher = new PressWatcher([this](QObject* receiver) { onPress(receiver); }, this);
+}
+
+WritingFrame::~WritingFrame() {
+    stopWatching();  // nothing of the program reaches a frame being destroyed
+}
+
+QString WritingFrame::saveKeysText() {
+    return QKeySequence(Qt::CTRL | Qt::Key_Enter).toString(QKeySequence::NativeText);
+}
+
+void WritingFrame::setTitle(const QString& title) {
+    m_titleLabel->setText(title);
+    m_textEdit->setAccessibleName(title);
+}
+
+void WritingFrame::setColors(const AnnotationCardColors& colors) {
+    m_colors = colors;
+    updateStyle();  // also when they are the same: a new palette may have taken the old
+}
+
+void WritingFrame::setPlacement(PlacementProvider provider) {
+    m_placement = std::move(provider);
+    place();
+}
+
+void WritingFrame::place() {
+    m_placementPending = false;
+    const QWidget* editorWidget = parentWidget();
+    if (!m_placement || editorWidget == nullptr) {
+        return;
+    }
+    const QRectF area = QRectF(editorWidget->rect()).adjusted(EDGE, EDGE, -EDGE, -EDGE);
+    if (area.width() < 1.0 || area.height() < 1.0) {
+        return;
+    }
+    const Placement placement = m_placement();
+
+    // Over its card, as wide as it; the card makes room for the frame as high as it is, or
+    // the frame lies over it within the editor
+    if (!placement.card.isEmpty()) {
+        const int cardWidth = std::max(1, static_cast<int>(std::lround(placement.card.width())));
+        if (cardWidth != width()) {
+            resize(cardWidth, height());
+            updateTextHeight();
+        }
+        const int frameHeight = sizeHint().height();
+        qreal y = placement.card.top();
+        if (placement.cardMakesRoom) {
+            if (std::abs(placement.card.height() - frameHeight) >= 1.0) {
+                emit cardHeightNeeded(frameHeight);
+            }
+        } else {
+            y = std::clamp(y, area.top(), std::max(area.top(), area.bottom() - frameHeight));
+        }
+        setGeometry(static_cast<int>(std::lround(placement.card.left())),
+                    static_cast<int>(std::lround(y)), cardWidth, frameHeight);
+        return;
+    }
+
+    QRectF column = placement.column.intersected(area);
+    if (column.width() < 1.0) {
+        column = area;
+    }
+
+    // Two thirds of the column, however wide it is, at least MIN_WIDTH and within the editor;
+    // the text wraps anew
+    const int frameWidth =
+        std::min(std::max(static_cast<int>(std::lround(column.width() * 2.0 / 3.0)), MIN_WIDTH),
+                 static_cast<int>(area.width()));
+    if (frameWidth != width()) {
+        resize(frameWidth, height());
+        updateTextHeight();
+    }
+    const int frameHeight = sizeHint().height();
+
+    // Under the place; above it when there is no room below; over its line when there is
+    // room neither below nor above. A place out of view takes the frame along.
+    const QRectF place = placement.place;
+    qreal y = place.bottom() + GAP;
+    if (y + frameHeight > area.bottom()) {
+        const qreal above = place.top() - GAP - frameHeight;
+        const bool placeShown = place.bottom() >= area.top() && place.top() <= area.bottom();
+        if (above >= area.top()) {
+            y = above;
+        } else if (placeShown) {
+            y = std::max(area.top(), area.bottom() - frameHeight);
+        }
+    }
+
+    // From a little left of the place, within the column and the editor
+    qreal x = std::min(place.left() - LEAD, column.right() - frameWidth);
+    x = std::max(x, column.left());
+    x = std::clamp(x, area.left(), std::max(area.left(), area.right() - frameWidth));
+
+    setGeometry(static_cast<int>(std::lround(x)), static_cast<int>(std::lround(y)), frameWidth,
+                frameHeight);
+}
+
+void WritingFrame::startTyping() {
+    m_textEdit->setFocus(Qt::OtherFocusReason);
+    QTextCursor cursor = m_textEdit->textCursor();
+    cursor.movePosition(QTextCursor::End);
+    m_textEdit->setTextCursor(cursor);
+    m_textEdit->ensureCursorVisible();
+}
+
+void WritingFrame::addKeyWidget(QWidget* widget) {
+    if (widget != nullptr && !m_keyWidgets.contains(widget)) {
+        m_keyWidgets.append(widget);
+        widget->installEventFilter(this);
+    }
+}
+
+void WritingFrame::requestSave() {
+    if (canSave()) {
+        emit saveRequested();
+    }
+}
+
+void WritingFrame::requestCancel() {
+    m_closing = true;  // what was written is not kept afterwards
+    emit cancelRequested();
+}
+
+void WritingFrame::requestClose() {
+    if (!m_closing) {
+        m_closing = true;
+        emit closeRequested();
+    }
+}
+
+void WritingFrame::showOwnWindow(const std::function<void()>& show) {
+    // The window takes the keys: they do not leave the frame
+    const bool watching = m_watching;
+    stopWatching();
+    show();
+    if (watching && isVisible()) {
+        startWatching();
+        m_keysAway = false;
+        m_keysLeftByMouse = false;
+        m_textEdit->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+bool WritingFrame::hasCommandKeys(const QKeyEvent* event, const char* commandId) {
+    // As QKeyEvent::matches(): the keypad and the group switch make no difference
+    const Qt::KeyboardModifiers modifiers =
+        event->modifiers() & ~(Qt::KeypadModifier | Qt::GroupSwitchModifier);
+    const QKeyCombination keys(modifiers, static_cast<Qt::Key>(event->key()));
+    const Command* command = CommandRegistry::getInstance().getCommand(commandId);
+    return command != nullptr && !command->shortcut.isEmpty() &&
+           command->shortcut.toQKeySequence()[0] == keys;
+}
+
+bool WritingFrame::textKeyPressed(QKeyEvent* event) {
+    Q_UNUSED(event)
+    return false;
+}
+
+void WritingFrame::startWatching() {
+    if (m_watching) {
+        return;
+    }
+    m_watching = true;
+    qApp->installEventFilter(m_pressWatcher);
+    connect(qApp, &QApplication::focusChanged, this, &WritingFrame::onFocusChanged);
+}
+
+void WritingFrame::stopWatching() {
+    if (!m_watching) {
+        return;
+    }
+    m_watching = false;
+    qApp->removeEventFilter(m_pressWatcher);
+    disconnect(qApp, &QApplication::focusChanged, this, &WritingFrame::onFocusChanged);
+}
+
+void WritingFrame::onPress(QObject* receiver) {
+    if (!receiver->isWidgetType()) {
+        return;
+    }
+    const auto* widget = static_cast<const QWidget*>(receiver);
+
+    // Closed before the click goes on: the click acts on what the frame kept
+    if (leavesFrame(widget)) {
+        requestClose();
+        return;
+    }
+
+    // Qt gives the keys to the first widget under a click that takes them, before the click
+    // arrives: a click on the editor's scroll bars gives them to the editor. They come back
+    // to where they were in the frame (also while the window is not in front yet)
+    if (!isFrameWidget(widget) && !isFrameWidget(window()->focusWidget())) {
+        QWidget* keys = focusWidget();
+        if (keys == nullptr || !isAncestorOf(keys)) {
+            keys = m_textEdit;
+        }
+        keys->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+void WritingFrame::onFocusChanged(QWidget* old, QWidget* now) {
+    if (isFrameWidget(now)) {
+        m_keysAway = false;
+        m_keysLeftByMouse = false;
+        return;
+    }
+    if (old != nullptr ? !isFrameWidget(old) : !m_keysAway) {
+        return;  // the keys were not in the frame
+    }
+    const bool byMouse = std::exchange(m_keysLeftByMouse, false);
+
+    // No window of the program has the keys: another application is in front. The frame
+    // stays open; the keys come back to it with the program's window
+    if (now == nullptr) {
+        m_keysAway = true;
+        return;
+    }
+    m_keysAway = false;
+
+    // Taken by a click before it arrives: the click decides (see onPress). The wheel takes
+    // them to a field it turns, with no click to decide: looked at once the event is over
+    if (byMouse) {
+        QTimer::singleShot(0, this, &WritingFrame::checkKeys);
+        return;
+    }
+    if (leavesFrame(now)) {
+        requestClose();
+    }
+}
+
+void WritingFrame::checkKeys() {
+    const QWidget* keys = QApplication::focusWidget();
+    if (m_watching && keys != nullptr && leavesFrame(keys)) {
+        requestClose();
+    }
+}
+
+bool WritingFrame::isFrameWidget(const QWidget* widget) const {
+    return widget != nullptr && (widget == this || isAncestorOf(widget));
+}
+
+bool WritingFrame::leavesFrame(const QWidget* widget) const {
+    if (isFrameWidget(widget)) {
+        return false;
+    }
+
+    // A menu or a list over everything (the frame's own context menu among them) goes and
+    // gives the keys back; a tooltip goes at a click
+    const Qt::WindowType type = widget->window()->windowType();
+    if (type == Qt::Popup || type == Qt::ToolTip) {
+        return false;
+    }
+
+    // The editor's scroll bars only move the view: the frame goes along with its place
+    const QWidget* editorWidget = parentWidget();
+    return qobject_cast<const QScrollBar*>(widget) == nullptr || editorWidget == nullptr ||
+           !editorWidget->isAncestorOf(widget);
+}
+
+void WritingFrame::keyPressEvent(QKeyEvent* event) {
+    if (isCancelKey(event)) {
+        requestCancel();
+    } else if (isSaveKey(event)) {
+        requestSave();
+    }
+    event->accept();  // no key goes on to the editor under the frame
+}
+
+void WritingFrame::keyReleaseEvent(QKeyEvent* event) {
+    event->accept();
+}
+
+void WritingFrame::showEvent(QShowEvent* event) {
+    QFrame::showEvent(event);
+    startWatching();
+}
+
+void WritingFrame::hideEvent(QHideEvent* event) {
+    stopWatching();
+    QFrame::hideEvent(event);
+}
+
+bool WritingFrame::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == parentWidget()) {
+        if (event->type() == QEvent::Paint || event->type() == QEvent::Resize) {
+            schedulePlacement();
+        }
+        return false;
+    }
+    const bool inText = watched == m_textEdit;
+    if (!inText && !m_keyWidgets.contains(static_cast<QWidget*>(watched))) {
+        return false;
+    }
+
+    switch (event->type()) {
+    case QEvent::FocusOut:
+        // A click or the wheel taking the keys elsewhere (see onFocusChanged)
+        m_keysLeftByMouse = static_cast<QFocusEvent*>(event)->reason() == Qt::MouseFocusReason;
+        return false;
+    case QEvent::ShortcutOverride: {
+        // The keys stay in the frame: no shortcut of the window but saving, closing and
+        // quitting
+        auto* key = static_cast<QKeyEvent*>(event);
+        if (reachesWindow(key)) {
+            return false;
+        }
+        key->accept();
+        return true;
+    }
+    case QEvent::KeyPress: {
+        auto* key = static_cast<QKeyEvent*>(event);
+        if (isCancelKey(key)) {
+            requestCancel();
+            return true;
+        }
+        if (isSaveKey(key)) {
+            requestSave();
+            return true;
+        }
+        if (inText) {
+            return textKeyPressed(key);
+        }
+        // Enter on a button presses it
+        auto* button = qobject_cast<QAbstractButton*>(static_cast<QWidget*>(watched));
+        if (button != nullptr && key->modifiers() == Qt::NoModifier &&
+            (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter)) {
+            button->click();
+            return true;
+        }
+        return false;
+    }
+    default:
+        return false;
+    }
+}
+
+bool WritingFrame::focusNextPrevChild(bool next) {
+    // Tab and Shift+Tab go between the text and the frame's buttons, never out of the frame
+    QList<QWidget*> chain{m_textEdit};
+    for (QWidget* widget : std::as_const(m_keyWidgets)) {
+        if (widget->isEnabled() && widget->isVisibleTo(this)) {
+            chain.append(widget);
+        }
+    }
+    const Qt::FocusReason reason = next ? Qt::TabFocusReason : Qt::BacktabFocusReason;
+    const auto current = static_cast<int>(chain.indexOf(QApplication::focusWidget()));
+    const auto count = static_cast<int>(chain.size());
+    const int step = next ? 1 : -1;
+    const int target = current < 0 ? 0 : (current + step + count) % count;
+    chain.at(target)->setFocus(reason);
+    return true;
+}
+
+void WritingFrame::updateTextHeight() {
+    const QFontMetricsF metrics(m_textEdit->font());
+    const qreal margins = 2.0 * m_textEdit->document()->documentMargin();
+    const int frameHeight = 2 * m_textEdit->frameWidth();
+    const auto heightOf = [&](qreal content) {
+        return static_cast<int>(std::ceil(content + margins)) + frameHeight;
+    };
+    const int textHeight = heightOf(m_textEdit->document()->size().height() - margins);
+    m_textEdit->setFixedHeight(std::clamp(textHeight, heightOf(metrics.lineSpacing() * MIN_LINES),
+                                          heightOf(metrics.lineSpacing() * MAX_LINES)));
+}
+
+QString WritingFrame::styleSheetFor(const AnnotationCardColors& colors) const {
+    const QColor fieldBorder = mixedColor(colors.background, colors.secondary, 0.5);
+    const QColor hover = mixedColor(colors.background, colors.kind, 0.2);
+    const QColor disabled = mixedColor(colors.background, colors.secondary, 0.6);
+    return QStringLiteral("QLabel#%7Kind { color: %1; }"
+                          "QLabel#%7Hint { color: %2; }"
+                          "QLabel#%7Author { color: %3; }"
+                          "QTextEdit { color: %3; background: transparent;"
+                          " border: 1px solid %4; border-radius: 4px; }"
+                          "QTextEdit:focus { border: 1px solid %1; }"
+                          "QPushButton { color: %3; background: transparent;"
+                          " border: 1px solid %1; border-radius: 4px; padding: 3px 14px; }"
+                          "QPushButton:hover { background: %5; }"
+                          "QPushButton:focus { border: 2px solid %1; }"
+                          "QPushButton:disabled { color: %6; border-color: %6; }"
+                          "QToolButton#%7Close { color: %2; background:"
+                          " transparent; border: none; border-radius: 4px;"
+                          " padding: 0px 4px; }"
+                          "QToolButton#%7Close:hover { color: %3;"
+                          " background: %5; }")
+        .arg(colors.kindName.name(), colors.secondary.name(), colors.text.name(),
+             fieldBorder.name(), hover.name(), disabled.name(), m_name);
+}
+
+void WritingFrame::updateStyle() {
+    if (!m_colors.text.isValid()) {
+        return;
+    }
+
+    // The colors are set in a style sheet: they stay through every polish of the editor's
+    // style
+    setStyleSheet(styleSheetFor(m_colors));
+
+    // The placeholder is drawn in the palette's color
+    QPalette textPalette = m_textEdit->palette();
+    textPalette.setColor(QPalette::PlaceholderText, m_colors.secondary);
+    m_textEdit->setPalette(textPalette);
+    updateTextHeight();
+    update();
+}
+
+void WritingFrame::schedulePlacement() {
+    if (!m_placementPending && m_placement) {
+        m_placementPending = true;
+        QTimer::singleShot(0, this, &WritingFrame::place);
+    }
+}
+
+}  // namespace kalahari::gui

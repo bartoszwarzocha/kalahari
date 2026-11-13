@@ -2,6 +2,7 @@
 /// @brief Numbered captions, cross-references to them and the list of figures
 
 #include "kalahari/editor/text_captions.h"
+#include "kalahari/editor/text_footnotes.h"
 #include "kalahari/editor/kml_format_registry.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/text_images.h"
@@ -463,8 +464,10 @@ std::vector<CaptionEntry> captionEntriesOfKml(const QString& kml)
         reader.readNext();
         if (reader.isStartElement()) {
             const QStringView name = reader.name();
-            if (name == u"annotations" || name == u"img") {
-                // The writer's comments and the images are no part of a caption's text
+            if (name == u"annotations" || name == u"img" || name == u"endnote" ||
+                (name == u"footnote" && !isOldFootnote(reader.attributes()))) {
+                // The writer's comments, the images and the notes are no part of a caption's
+                // text
                 reader.skipCurrentElement();
             } else if (isParagraphElement(name)) {
                 finishParagraph();

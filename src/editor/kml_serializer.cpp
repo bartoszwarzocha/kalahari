@@ -11,6 +11,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_tables.h>
@@ -648,6 +649,8 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
         objectElement = captionNumberKml(*number);
     } else if (const std::optional<CrossReference> reference = crossReferenceOf(format)) {
         objectElement = crossReferenceKml(*reference);
+    } else if (const std::optional<Footnote> note = footnoteOf(format)) {
+        objectElement = noteKml(*note);
     }
     const auto textKml = [&objectElement](const QString& part) {
         QString kml = KmlFormatRegistry::escapeXml(
@@ -738,8 +741,7 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
 bool KmlSerializer::hasMetadata(const QTextCharFormat& format) const
 {
     // Check if any metadata property is set
-    return format.property(KmlPropFootnote).isValid() ||
-           format.property(KmlPropCharRef).isValid() ||
+    return format.property(KmlPropCharRef).isValid() ||
            format.property(KmlPropLocRef).isValid();
 }
 

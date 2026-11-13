@@ -9,6 +9,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <QDateTime>
 #include <QFont>
 #include <QTextBlock>
@@ -238,13 +239,42 @@ TEST_CASE("KML load: annotations and footnotes", "[editor][kml][load]") {
         CHECK(annotationsOf(loaded.formatAt(4)).isEmpty());
     }
 
-    SECTION("Footnote") {
+    SECTION("A footnote and an endnote: one character each, with the note's text inside") {
         Loaded loaded(QStringLiteral(
-            "<p>Text with<footnote id=\"f1\" number=\"1\">note</footnote> reference</p>"));
-        REQUIRE(loaded.text() == QStringLiteral("Text withnote reference"));
-        const QVariantMap metadata = loaded.formatAt(9).property(KmlPropFootnote).toMap();
-        CHECK(metadata.value(QStringLiteral("id")).toString() == QStringLiteral("f1"));
-        CHECK(metadata.value(QStringLiteral("number")).toInt() == 1);
+            "<p>Text<footnote id=\"f1\">A <i>note</i></footnote> and"
+            "<endnote id=\"e1\"><p>One</p><p>Two</p></endnote></p>"));
+        const QString object(QChar::ObjectReplacementCharacter);
+        REQUIRE(loaded.text() == QStringLiteral("Text") + object + QStringLiteral(" and") + object);
+        const std::optional<Footnote> footnote = footnoteOf(loaded.formatAt(4));
+        REQUIRE(footnote.has_value());
+        CHECK(footnote->id == QStringLiteral("f1"));
+        CHECK(footnote->kind == NoteKind::Footnote);
+        CHECK(footnote->content == QStringLiteral("A <i>note</i>"));
+        const std::optional<Footnote> endnote = footnoteOf(loaded.formatAt(9));
+        REQUIRE(endnote.has_value());
+        CHECK(endnote->kind == NoteKind::Endnote);
+        CHECK(notePlainText(endnote->content) == QStringLiteral("One\nTwo"));
+        CHECK_FALSE(footnoteOf(loaded.formatAt(5)).has_value());
+    }
+
+    SECTION("Notes without an id, or with the id of another, get their own") {
+        Loaded loaded(QStringLiteral(
+            "<p>A<footnote>One</footnote> b<footnote id=\"f1\">Two</footnote>"
+            " c<footnote id=\"f1\">Three</footnote></p>"));
+        const std::vector<NotePlace> notes = notesIn(*loaded.doc());
+        REQUIRE(notes.size() == 3);
+        CHECK_FALSE(notes[0].note.id.isEmpty());
+        CHECK(notes[1].note.id == QStringLiteral("f1"));
+        CHECK(notes[2].note.id != QStringLiteral("f1"));
+        CHECK(notes[0].note.id != notes[2].note.id);
+    }
+
+    SECTION("The old footnote on a range of the text keeps its text, without a mark") {
+        Loaded loaded(QStringLiteral(
+            "<p>Text with<footnote id=\"f1\" number=\"1\">note <b>here</b></footnote> reference</p>"));
+        REQUIRE(loaded.text() == QStringLiteral("Text withnote here reference"));
+        CHECK(notesIn(*loaded.doc()).empty());
+        CHECK(loaded.formatAt(14).fontWeight() == QFont::Bold);
     }
 
     SECTION("Annotations and formatting in one document") {

@@ -7,6 +7,7 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
@@ -18,6 +19,7 @@
 #include <QGuiApplication>
 #include <QHash>
 #include <QClipboard>
+#include <QSet>
 #include <QRegularExpression>
 #include <QTextBlock>
 #include <QTextCursor>
@@ -287,6 +289,347 @@ QString withMarks(const QString& html, bool styleSheets)
     }
     marked.insert(start + fragmentStart.size(), sheets + marks);
     return marked;
+}
+
+// =============================================================================
+// The notes of Word and LibreOffice
+// =============================================================================
+
+/// @brief The mark of a note's number in the HTML read (NOTE_MARK, the note's index,
+///        NOTE_MARK): Qt's reading keeps it as text, the KML gets the note in its place
+constexpr char16_t NOTE_MARK = 0xE000;
+
+/// @brief The end of the <div> whose start tag ends at @p from: after its end tag, with the
+///        <div> elements in it counted; the end of @p html without one
+qsizetype divEnd(const QString& html, qsizetype from)
+{
+    static const QRegularExpression tags(QStringLiteral("<(/?)div\\b[^>]*>"),
+                                         QRegularExpression::CaseInsensitiveOption);
+    int depth = 1;
+    for (auto it = tags.globalMatch(html, from); it.hasNext();) {
+        const QRegularExpressionMatch tag = it.next();
+        depth += tag.captured(1).isEmpty() ? 1 : -1;
+        if (depth == 0) {
+            return tag.capturedEnd();
+        }
+    }
+    return html.size();
+}
+
+/// @brief The end of the link whose start tag ends at @p from: after its end tag; -1 without
+///        one before the next link (a link holds no link)
+qsizetype linkEnd(const QString& html, qsizetype from)
+{
+    static const QRegularExpression tag(QStringLiteral("<(/?)a\\b[^>]*>"),
+                                        QRegularExpression::CaseInsensitiveOption);
+    const QRegularExpressionMatch match = tag.match(html, from);
+    return match.hasMatch() && !match.captured(1).isEmpty() ? match.capturedEnd() : -1;
+}
+
+/// @brief The link of a note's number: LibreOffice's (class sdfootnoteanc, sdendnoteanc in
+///        the text, sdfootnotesym, sdendnotesym in the note) and Word's (mso-footnote-id,
+///        mso-endnote-id); the key of its note in the first group (sdfootnote1, ftn1)
+const QRegularExpression& noteLinkPattern()
+{
+    static const QRegularExpression pattern(
+        QStringLiteral("<a\\b(?=[^>]*(?:\\bclass\\s*=\\s*[\"']?sd(?:foot|end)note(?:anc|sym)\\b|"
+                       "mso-(?:foot|end)note-id))[^>]*?(?:href\\s*=\\s*[\"']?#(sd(?:foot|end)"
+                       "note\\d+)(?:anc|sym)|mso-(?:foot|end)note-id\\s*:\\s*((?:ftn|edn)\\d+))"
+                       "[^>]*>"),
+        QRegularExpression::CaseInsensitiveOption);
+    return pattern;
+}
+
+/// @brief The note's key of a match of noteLinkPattern()
+QString noteKeyOf(const QRegularExpressionMatch& link)
+{
+    return (link.captured(1).isEmpty() ? link.captured(2) : link.captured(1)).toLower();
+}
+
+/// @brief The note pasted: its kind, its number as the other program showed it and its text
+struct PastedNote {
+    NoteKind kind = NoteKind::Footnote;
+    QString number;
+    QString content;  ///< KML of a note's text
+};
+
+/// @brief The text of a note of the HTML read: its paragraphs with their emphasis and links
+///        (in PasteMode::Text only its characters), without the link of its number and the
+///        spaces at the ends of the paragraphs
+QString pastedNoteContent(const QString& bodyHtml, PasteMode mode)
+{
+    QString body = bodyHtml;
+    const QRegularExpressionMatch link = noteLinkPattern().match(body);
+    const qsizetype linkStop = link.hasMatch() ? linkEnd(body, link.capturedEnd()) : -1;
+    if (linkStop >= 0) {
+        body.remove(link.capturedStart(), linkStop - link.capturedStart());
+    }
+    ResourcelessDocument document;
+    document.setUndoRedoEnabled(false);
+    document.setHtml(body);
+
+    // Its paragraphs without the empty ones before them and the spaces at their ends, with
+    // the emphasis and the links the program opens (a link's underline is its look); in Text
+    // only the characters
+    QTextDocument kept;
+    QTextCursor cursor(&kept);
+    bool started = false;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        const QString text = block.text();
+        qsizetype from = 0;
+        qsizetype to = text.size();
+        while (from < to && text.at(from) == u' ') {
+            ++from;
+        }
+        while (to > from && text.at(to - 1) == u' ') {
+            --to;
+        }
+        if (!started && from == to) {
+            continue;
+        }
+        if (started) {
+            cursor.insertBlock();
+        }
+        started = true;
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) {
+                continue;
+            }
+            const auto offset = static_cast<qsizetype>(fragment.position() - block.position());
+            const qsizetype start = std::max(offset, from);
+            const qsizetype end = std::min(offset + fragment.length(), to);
+            if (start >= end) {
+                continue;
+            }
+            QTextCharFormat format;
+            if (mode != PasteMode::Text) {
+                const QTextCharFormat source = fragment.charFormat();
+                format = noteFormatOf(source);
+                if (source.isAnchor()) {
+                    format.setFontUnderline(false);
+                    setLinkAddress(format, isOpenableLinkAddress(source.anchorHref())
+                                               ? source.anchorHref().trimmed()
+                                               : QString());
+                }
+            }
+            cursor.insertText(text.mid(start, end - start), format);
+        }
+    }
+    return noteContentOf(kept);
+}
+
+/// @brief The notes of HTML of Word or LibreOffice taken out of it: their texts (NOTE_MARK
+///        at the place of each number in @p html), in the order of the numbers
+///
+/// LibreOffice writes a note's number as a link to its text (<a class="sdfootnoteanc"
+/// href="#sdfootnote1sym">) and the text after the text, in a <div id="sdfootnote1">
+/// (sdendnote for an endnote) that starts with a link back to the number. Word writes the
+/// number as a link with the note's id in its style (mso-footnote-id:ftn1) and the texts in
+/// <div style="mso-element:footnote" id="ftn1">, in a list of them
+/// (mso-element:footnote-list); mso-endnote-id, edn1 and endnote for an endnote. Only the
+/// texts of the numbers found are taken: no text is lost, a number without its note's text
+/// (or without the end of its link) and a note's text without its number stay as they are.
+std::vector<PastedNote> takeHtmlNotes(QString& html, PasteMode mode)
+{
+    static const QRegularExpression bodyPattern(
+        QStringLiteral("<div\\b(?=[^>]*(?:\\bid\\s*=\\s*[\"']?(sd(?:foot|end)note\\d+)[\"'\\s>]|"
+                       "mso-element\\s*:\\s*(?:foot|end)note(?![-\\w])))[^>]*>"),
+        QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression wordId(
+        QStringLiteral("\\bid\\s*=\\s*[\"']?((?:ftn|edn)\\d+)\\b"),
+        QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression listPattern(
+        QStringLiteral("<div\\b[^>]*mso-element\\s*:\\s*(?:foot|end)note-list\\b[^>]*>"),
+        QRegularExpression::CaseInsensitiveOption);
+
+    // The texts of the notes, and Word's lists of them
+    struct Body {
+        QString key;
+        qsizetype start = 0;
+        qsizetype end = 0;
+        QString html;  ///< Inside its <div>
+    };
+    std::vector<Body> bodies;
+    QHash<QString, size_t> bodyOf;  // of each key
+    std::vector<std::pair<qsizetype, qsizetype>> notesParts;  // the bodies and the lists
+    for (auto it = bodyPattern.globalMatch(html); it.hasNext();) {
+        const QRegularExpressionMatch body = it.next();
+        QString key = body.captured(1).toLower();
+        if (key.isEmpty()) {
+            key = wordId.match(body.captured()).captured(1).toLower();
+        }
+        const qsizetype end = divEnd(html, body.capturedEnd());
+        if (key.isEmpty() || bodyOf.contains(key)) {
+            continue;
+        }
+        const qsizetype endTag =
+            std::max<qsizetype>(html.lastIndexOf(QLatin1Char('<'), end - 1), body.capturedEnd());
+        bodyOf.insert(key, bodies.size());
+        bodies.push_back({key, body.capturedStart(), end,
+                          html.mid(body.capturedEnd(), endTag - body.capturedEnd())});
+        notesParts.emplace_back(body.capturedStart(), end);
+    }
+    if (bodies.empty()) {
+        return {};
+    }
+    std::vector<std::pair<qsizetype, qsizetype>> lists;
+    for (auto it = listPattern.globalMatch(html); it.hasNext();) {
+        const QRegularExpressionMatch list = it.next();
+        lists.emplace_back(list.capturedStart(), divEnd(html, list.capturedEnd()));
+        notesParts.push_back(lists.back());
+    }
+    const auto inNotesPart = [&](qsizetype position) {
+        return std::any_of(notesParts.begin(), notesParts.end(), [position](const auto& part) {
+            return position >= part.first && position < part.second;
+        });
+    };
+
+    // The numbers: the links of the text to a note's text, each with its end
+    struct Number {
+        qsizetype start = 0;
+        qsizetype end = 0;
+        size_t body = 0;
+    };
+    std::vector<Number> numbers;
+    std::vector<bool> numbered(bodies.size(), false);
+    for (auto it = noteLinkPattern().globalMatch(html); it.hasNext();) {
+        const QRegularExpressionMatch link = it.next();
+        const auto body = bodyOf.constFind(noteKeyOf(link));
+        if (body == bodyOf.cend() || inNotesPart(link.capturedStart()) ||
+            (!numbers.empty() && link.capturedStart() < numbers.back().end)) {
+            continue;
+        }
+        const qsizetype end = linkEnd(html, link.capturedEnd());
+        if (end < 0 || std::any_of(notesParts.begin(), notesParts.end(), [&](const auto& part) {
+                return part.first >= link.capturedStart() && part.first < end;
+            })) {
+            continue;  // no end of it, or one after a note's text
+        }
+        numbers.push_back({link.capturedStart(), end, *body});
+        numbered[*body] = true;
+    }
+
+    // Taken out: the texts of the numbers found, and a list of Word's whose texts all are
+    std::vector<std::pair<qsizetype, qsizetype>> taken;
+    for (size_t i = 0; i < bodies.size(); ++i) {
+        if (numbered[i]) {
+            taken.emplace_back(bodies[i].start, bodies[i].end);
+        }
+    }
+    for (const auto& [start, end] : lists) {
+        bool whole = true;
+        for (size_t i = 0; i < bodies.size() && whole; ++i) {
+            whole = numbered[i] || bodies[i].start < start || bodies[i].start >= end;
+        }
+        if (whole) {
+            taken.emplace_back(start, end);
+        }
+    }
+    std::sort(taken.begin(), taken.end());
+
+    // The HTML without them, a mark in place of each number
+    static const QRegularExpression tag(QStringLiteral("<[^>]*>"));
+    std::vector<PastedNote> notes;
+    QString kept;
+    qsizetype copied = 0;
+    auto number = numbers.cbegin();
+    const auto keep = [&](qsizetype until) {
+        for (; number != numbers.cend() && number->start < until; ++number) {
+            if (number->start < copied) {
+                continue;
+            }
+            const Body& body = bodies[number->body];
+            const QString link = html.mid(number->start, number->end - number->start);
+            PastedNote note;
+            note.kind = body.key.contains(QLatin1String("end")) ||
+                                body.key.startsWith(QLatin1String("edn"))
+                            ? NoteKind::Endnote
+                            : NoteKind::Footnote;
+            note.number = QString(link)
+                              .remove(tag)
+                              .remove(QLatin1Char('['))
+                              .remove(QLatin1Char(']'))
+                              .simplified();
+            note.content = pastedNoteContent(body.html, mode);
+            kept += html.mid(copied, number->start - copied);
+            kept += QChar(NOTE_MARK) + QString::number(notes.size()) + QChar(NOTE_MARK);
+            notes.push_back(std::move(note));
+            copied = number->end;
+        }
+        kept += html.mid(copied, until - copied);
+        copied = until;
+    };
+    for (const auto& [start, end] : taken) {
+        if (start >= copied) {
+            keep(start);
+        }
+        copied = std::max(copied, end);
+    }
+    keep(html.size());
+    html = kept;
+    return notes;
+}
+
+/// @brief The KML of text pasted with the notes in their places: each mark of a number the
+///        note (in PasteMode::Text its number, and the notes' texts after the text, a paragraph
+///        each)
+QString withPastedNotes(const QString& kml, const std::vector<PastedNote>& notes, PasteMode mode)
+{
+    if (notes.empty()) {
+        return kml;
+    }
+    static const QRegularExpression mark(
+        QStringLiteral("\\x{E000}(\\d+)\\x{E000}"));
+    QSet<QString> ids;
+    QString result;
+    qsizetype copied = 0;
+    std::vector<size_t> placed;  // the notes whose numbers the text has
+    for (auto it = mark.globalMatch(kml); it.hasNext();) {
+        const QRegularExpressionMatch match = it.next();
+        bool ok = false;
+        const auto index = static_cast<size_t>(match.captured(1).toULongLong(&ok));
+        if (!ok || index >= notes.size()) {
+            continue;
+        }
+        result += kml.mid(copied, match.capturedStart() - copied);
+        const PastedNote& note = notes[index];
+        if (mode == PasteMode::Text) {
+            result += note.number.toHtmlEscaped();
+        } else {
+            const QString id = newFootnoteId(ids);
+            ids.insert(id);
+            result += noteKml(Footnote{id, note.kind, note.content});
+        }
+        placed.push_back(index);
+        copied = match.capturedEnd();
+    }
+    result += kml.mid(copied);
+    if (mode != PasteMode::Text) {
+        return result;
+    }
+
+    // The texts after the text, the footnotes first, each after its number
+    QString texts;
+    for (const NoteKind kind : {NoteKind::Footnote, NoteKind::Endnote}) {
+        for (const size_t index : placed) {
+            const PastedNote& note = notes[index];
+            if (note.kind != kind) {
+                continue;
+            }
+            const QStringList lines = notePlainText(note.content).split(QLatin1Char('\n'));
+            for (qsizetype line = 0; line < lines.size(); ++line) {
+                const QString text = line == 0 ? note.number + QLatin1Char(' ') + lines[line]
+                                               : lines[line];
+                texts += QStringLiteral("<p>") + text.toHtmlEscaped() + QStringLiteral("</p>");
+            }
+        }
+    }
+    const QString end = QStringLiteral("</kml>");
+    if (result.endsWith(end)) {
+        return result.left(result.size() - end.size()) + texts + end;
+    }
+    return QStringLiteral("<kml>") + texts + end;
 }
 
 /// @brief The family of a CSS font list that a computer can have: the first that is not a
@@ -1346,11 +1689,14 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
     const ListMarks& items = marks != nullptr ? *marks : counted;
     size_t itemIndex = 0;   // of the next <li>
     size_t fieldIndex = 0;  // of the next field or list of figures
+    size_t noteIndex = 0;   // of the next note
 
     // Plain HTML that other programs paste: paragraphs and headings with their alignment,
     // quotes, lines and page breaks, the basic formatting tags and the explicit inline
-    // styles. Metadata (annotation anchors, footnotes), text runs and unknown elements keep
-    // only their text; the annotations themselves stay out.
+    // styles. Metadata (annotation anchors, the old footnotes), text runs and unknown elements
+    // keep only their text; the annotations themselves stay out. A note is its number, a
+    // link to its text after the text, as LibreOffice writes it (Word and LibreOffice paste
+    // it as a note).
     struct OpenElement {
         bool written = false;    ///< The element wrote an HTML element to close
         bool paragraph = false;  ///< The element is a paragraph, a heading or a list item
@@ -1360,6 +1706,7 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
         bool row = false;        ///< A row of a table (its tr is written with its first cell)
         bool cell = false;       ///< A cell of a table
         bool table = false;      ///< A table
+        bool link = false;       ///< A link (a)
     };
     std::vector<OpenElement> open;
     bool emptyParagraph = false;
@@ -1378,6 +1725,16 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
         double rowHeight = 0.0;  ///< The least height of the row, in points
     };
     std::optional<OpenTable> table;
+
+    // The notes, for their texts after the text: the name of each (sdfootnote1, sdendnote1),
+    // its number and its text
+    struct WrittenNote {
+        QString name;
+        QString number;
+        QString content;
+    };
+    std::vector<WrittenNote> footnotes;
+    std::vector<WrittenNote> endnotes;
 
     QString html;
     QXmlStreamWriter writer(&html);
@@ -1439,6 +1796,46 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                     }
                     ++fieldIndex;
                     reader.skipCurrentElement();
+                    break;
+                }
+                if ((tag == QStringLiteral("footnote") && !isOldFootnote(reader.attributes())) ||
+                    tag == QStringLiteral("endnote")) {
+                    // A note: its number, a link to its text (not in a link of the text)
+                    const Footnote note = readNoteElement(reader);
+                    const bool endnote = note.kind == NoteKind::Endnote;
+                    std::vector<WrittenNote>& notes = endnote ? endnotes : footnotes;
+                    const QString kind =
+                        endnote ? QStringLiteral("sdendnote") : QStringLiteral("sdfootnote");
+                    const int count = static_cast<int>(notes.size()) + 1;
+                    WrittenNote written{kind + QString::number(count),
+                                        noteIndex < items.notes.size() ? items.notes[noteIndex]
+                                                                       : QString(),
+                                        note.content};
+                    ++noteIndex;
+                    if (written.number.isEmpty()) {
+                        const NoteNumberFormat numbering =
+                            endnote ? NoteNumberFormat::LowerRoman : NoteNumberFormat::Decimal;
+                        written.number = noteNumberText(count, numbering);
+                    }
+                    const bool inLink = std::any_of(open.begin(), open.end(),
+                                                    [](const OpenElement& e) { return e.link; });
+                    if (!inLink) {
+                        writer.writeStartElement(QStringLiteral("a"));
+                        writer.writeAttribute(QStringLiteral("class"),
+                                              kind + QStringLiteral("anc"));
+                        writer.writeAttribute(QStringLiteral("name"),
+                                              written.name + QStringLiteral("anc"));
+                        writer.writeAttribute(QStringLiteral("href"), QLatin1Char('#') +
+                                                                          written.name +
+                                                                          QStringLiteral("sym"));
+                    }
+                    writer.writeTextElement(QStringLiteral("sup"), written.number);
+                    if (!inLink) {
+                        writer.writeEndElement();  // a
+                    }
+                    notes.push_back(std::move(written));
+                    emptyParagraph = false;
+                    endsWithBreak = false;
                     break;
                 }
                 if (tag == QStringLiteral("br")) {
@@ -1748,6 +2145,7 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                         writer.writeStartElement(QStringLiteral("a"));
                         writer.writeAttribute(QStringLiteral("href"), address);
                         element.written = true;
+                        element.link = true;
                     }
                 } else if (KmlFormatRegistry::isFormattingTag(tag)) {
                     const QString name = KmlFormatRegistry::canonicalFormattingTag(tag);
@@ -1814,6 +2212,26 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
         }
     }
 
+    // The texts of the notes after the text, the footnotes first: each in a div of its name,
+    // after a link back to its number
+    for (const std::vector<WrittenNote>* notes : {&footnotes, &endnotes}) {
+        for (const WrittenNote& note : *notes) {
+            QString body = kmlToHtml(noteParagraphsKml(note.content), breakStyle);
+            const QString kind = note.name.left(note.name.indexOf(QLatin1String("note")) + 4);
+            const QString back =
+                QStringLiteral("<a class=\"%1sym\" name=\"%2sym\" href=\"#%2anc\">%3</a>")
+                    .arg(kind, note.name, note.number.toHtmlEscaped());
+            const qsizetype paragraph = body.indexOf(QLatin1String("<p"));
+            const qsizetype start = paragraph >= 0 ? body.indexOf(QLatin1Char('>'), paragraph) : -1;
+            if (start >= 0) {
+                body.insert(start + 1, back);
+            } else {
+                body.prepend(QStringLiteral("<p>") + back + QStringLiteral("</p>"));
+            }
+            html += QStringLiteral("<div id=\"") + note.name + QStringLiteral("\">") + body +
+                    QStringLiteral("</div>");
+        }
+    }
     return html;
 }
 
@@ -1825,16 +2243,19 @@ QString ClipboardHandler::htmlToKml(const QString& html, PasteMode mode)
 
     // Qt reads the HTML as a browser shows it, without what it refers to: a style sheet or
     // an image of a pasted page may be a file of the computer or of a network share
+    // The notes of Word and LibreOffice: their texts out of it, their numbers marked
+    QString source = html;
+    const std::vector<PastedNote> notes = takeHtmlNotes(source, mode);
     const ResourcelessDocument resources;
     const QTextDocumentFragment fragment =
-        QTextDocumentFragment::fromHtml(withMarks(html, mode == PasteMode::Source), &resources);
+        QTextDocumentFragment::fromHtml(withMarks(source, mode == PasteMode::Source), &resources);
     ResourcelessDocument document;
     document.setUndoRedoEnabled(false);
     QTextCursor(&document).insertFragment(fragment);
 
     PastedKml kml(mode);
     kml.addFrame(*document.rootFrame());
-    return kml.kml();
+    return withPastedNotes(kml.kml(), notes, mode);
 }
 
 QString ClipboardHandler::textToKml(const QString& text)
@@ -1939,7 +2360,10 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
     const ListMarks& items = marks != nullptr ? *marks : counted;
     size_t itemIndex = 0;   // of the next <li>
     size_t fieldIndex = 0;  // of the next field or list of figures
+    size_t noteIndex = 0;   // of the next note
     int listLevel = 0;      // the lists open
+    QStringList footnotes;  // the notes' texts after their numbers, for the end of the text
+    QStringList endnotes;
 
     QString text;
     QXmlStreamReader reader(KmlFormatRegistry::withRootElement(kml));
@@ -1980,6 +2404,24 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                     ++fieldIndex;
                     reader.skipCurrentElement();
                     --depth;
+                } else if ((tagName == QStringLiteral("footnote") &&
+                            !isOldFootnote(reader.attributes())) ||
+                           tagName == QStringLiteral("endnote")) {
+                    // A note: its number, its text at the end of the text
+                    const Footnote note = readNoteElement(reader);
+                    --depth;
+                    const bool endnote = note.kind == NoteKind::Endnote;
+                    QStringList& notes = endnote ? endnotes : footnotes;
+                    QString number =
+                        noteIndex < items.notes.size() ? items.notes[noteIndex] : QString();
+                    ++noteIndex;
+                    if (number.isEmpty()) {
+                        number = noteNumberText(static_cast<int>(notes.size()) + 1,
+                                                endnote ? NoteNumberFormat::LowerRoman
+                                                        : NoteNumberFormat::Decimal);
+                    }
+                    text += number;
+                    notes << number + QLatin1Char(' ') + notePlainText(note.content);
                 } else if (tagName == QStringLiteral("br")) {
                     text += tableDepth > 0 ? QLatin1Char(' ') : QLatin1Char('\n');
                 } else if (tagName == QStringLiteral("ol") || tagName == QStringLiteral("ul")) {
@@ -2091,6 +2533,11 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
         }
     }
 
+    // The texts of the notes after the text and an empty line, the footnotes first
+    const QStringList notes = footnotes + endnotes;
+    if (!notes.isEmpty()) {
+        text += QStringLiteral("\n\n") + notes.join(QLatin1Char('\n'));
+    }
     return text;
 }
 
@@ -2115,9 +2562,13 @@ ListMarks ClipboardHandler::listMarksOf(const QString& kml)
             result.numbers.push_back(index < numbers.size() ? numbers[index] : -1);
         }
     }
-    // The fields numbered in the text alone
+    // The fields and the notes numbered in the text alone
     result.fields = fieldTexts(document, CaptionNumbers(document, CaptionContext{}), 0,
                                document.characterCount());
+    const FootnoteNumbers notes(document, FootnoteContext{});
+    for (size_t i = 0; i < notes.notes().size(); ++i) {
+        result.notes.push_back(notes.number(i));
+    }
     return result;
 }
 

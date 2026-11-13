@@ -7,6 +7,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <QAbstractTextDocumentLayout>
@@ -19,6 +20,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -57,6 +59,13 @@ class ImageStore;
 ///   counted again, and a field or a list of figures that shows something else is laid
 ///   out again. A list of figures higher than a page's text starts a page and goes on to
 ///   the next ones, its rows never split.
+/// - Notes (text_footnotes.h): a note's number is a character sized and drawn as its number,
+///   raised; the numbers are counted with the fields. A note's text is laid out in the style
+///   Footnote: in the continuous views under its paragraph (the room under the block, above
+///   the cards of its annotations), the endnotes under the last paragraph; with page flow the
+///   footnotes at the bottom of the page of their numbers (the line with a number goes to the
+///   next page when the first line of its note does not fit with it; the rest of a long note
+///   goes on at the bottom of the next page) and the endnotes after the last line.
 /// - Page flow keeps the breaks of a paragraph: no single first or last line alone on a page
 ///   (widow control, on unless the paragraph turns it off), all its lines on one page, a
 ///   new page before it
@@ -239,6 +248,56 @@ public:
     /// @brief The rectangle of the list of figures at a position of a laid out block, in the
     ///        block's coordinates; std::nullopt: no list there, or its block is not laid out
     std::optional<QRectF> figureListRect(int position) const;
+
+    // ==========================================================================
+    // Notes
+    // ==========================================================================
+
+    /// @brief Set what the numbers of the notes depend on outside the text (text_footnotes.h);
+    ///        the laid out blocks whose notes show other numbers then are laid out again
+    void setFootnoteContext(const FootnoteContext& context);
+    const FootnoteContext& footnoteContext() const { return m_footnoteContext; }
+
+    /// @brief The numbers of the document's notes, counted again when they are asked for
+    ///        after a change of a note or of the context
+    const FootnoteNumbers& footnoteNumbers() const;
+
+    /// @brief The colors the text of the notes is drawn in
+    struct NoteColors {
+        QColor text;  ///< Of their text and numbers
+        QColor line;  ///< Of the line above them
+        QColor link;  ///< Of a link in them
+    };
+
+    /// @brief Draw the notes under a block of the continuous views (its footnotes, under the
+    ///        last block the endnotes too), in the block's coordinates (as its lines are placed)
+    void drawNotesBelow(QPainter* painter, const QTextBlock& block, const NoteColors& colors) const;
+
+    /// @brief The room the notes take under a block of the continuous views, the top of the
+    ///        room under it (spaceBelow()); 0: none, or with page flow
+    qreal notesBelow(int blockNumber) const;
+
+    /// @brief Draw the notes of a page (page flow): its footnotes at the bottom of its text
+    ///        area, the endnotes placed on it; the painter's origin at the top left of the
+    ///        page's text area
+    void drawPageNotes(QPainter* painter, int page, const NoteColors& colors) const;
+
+    /// @brief The text of a note as shown: its id and its rectangle (document coordinates)
+    struct NoteArea {
+        QString id;
+        QRectF rect;
+    };
+
+    /// @brief The note whose text is shown under a point (document coordinates)
+    std::optional<NoteArea> noteAreaAt(const QPointF& point) const;
+
+    /// @brief Where the text of a note is shown, its first part (document coordinates);
+    ///        std::nullopt: nowhere (a note waiting for the layout of its paragraph)
+    std::optional<QRectF> noteRect(const QString& id) const;
+
+    /// @brief The continuous views give a note at least @p height of room (a frame over it
+    ///        that the text below makes room for); 0: its own height
+    void setNoteRoom(const QString& id, qreal height);
 
     /// @brief Paragraph spacing at the current document font (whole pixels)
     qreal paragraphSpacing() const;
@@ -591,9 +650,10 @@ private:
     ///        blocks before it are as they were)
     void recountMarginsFrom(int blockNumber);
 
-    /// @brief The room the provider gives a block (0 without a provider, with page flow or
-    ///        in a cell of a table)
-    qreal askSpaceBelow(const QTextBlock& block) const;
+    /// @brief The room under a block: its notes' in the continuous views (askNotesBelow()),
+    ///        and the provider's (0 without a provider, with page flow or in a cell of a table)
+    /// @param notes Receives the part of the notes
+    qreal askSpaceBelow(const QTextBlock& block, qreal* notes = nullptr) const;
 
     /// @brief Height of a line's box: the line, or for the line of an empty paragraph
     ///        (@p empty) the line of its style's font, with its share of the line spacing
@@ -689,8 +749,11 @@ private:
     std::vector<std::pair<int, QString>> fieldSignatures() const;
 
     /// @brief Whether a change of the text touched a field: one removed ([from, from +
-    ///        charsRemoved) of the old text), or one in the changed blocks
-    bool touchesFields(int from, int charsRemoved, const QTextBlock& first,
+    ///        charsRemoved) of the old text), one in the changed blocks, or a note's number in
+    ///        them when it brought an object ([from, from + charsAdded) of the new text)
+    ///
+    /// Text typed next to a note's number changes no number: the notes only move.
+    bool touchesFields(int from, int charsRemoved, int charsAdded, const QTextBlock& first,
                        const QTextBlock& last) const;
 
     /// @brief After a change of the text that touched no field: the fields after it move
@@ -741,9 +804,16 @@ private:
 
     /// @brief Top of a line box of the given height in the page flow
     /// @param top Top the box would have without page breaks (document coordinates)
+    /// @param notes The room the footnotes of the line need with it on its page (the first
+    ///        line of its last note), without the line above the notes
     /// @return @p top, or the top of the next text area when the box starts between two
-    ///         areas, or would cross the end of its area below another line
-    qreal flowLineTop(qreal top, qreal height) const;
+    ///         areas, or would cross the end of its area (less the notes at its bottom) below
+    ///         another line; a text area made smaller by notes is left when the box does not
+    ///         fit in it
+    qreal flowLineTop(qreal top, qreal height, qreal notes = 0.0) const;
+
+    /// @brief The height of a page's text area the text takes: less its footnotes
+    qreal flowAreaHeight(qreal page) const;
 
     /// @brief Place a laid out block's lines in the page flow
     /// @param top Top of the block (document coordinates)
@@ -850,6 +920,85 @@ private:
     /// @brief Width reported for the document and its blocks
     qreal documentWidth() const;
 
+    // The notes (kalahari_text_document_layout_notes.cpp)
+
+    /// @brief A note's text laid out in the style Footnote, its number in front
+    struct NoteBox;
+
+    /// @brief The text of the note @p index of footnoteNumbers() laid out (cached by its id,
+    ///        laid out again when its text, number or the width changed)
+    const NoteBox& noteBox(size_t index) const;
+
+    /// @brief The metrics of the style the notes are shown in (Footnote)
+    const BlockMetrics& noteMetrics() const;
+
+    /// @brief A note's number in its line: as wide as the number in a smaller font, as high
+    ///        as the text around it (@p ascent and @p descent receive its parts)
+    qreal noteNumberWidth(int position, const QTextFormat& format, qreal* ascent,
+                          qreal* descent) const;
+
+    /// @brief Draw a note's number raised in its object's rectangle (@p ascent: of its line's
+    ///        text, < 0: of its font)
+    void drawNoteNumber(QPainter* painter, const QRectF& rect, qreal ascent, int position,
+                        const QTextFormat& format) const;
+
+    /// @brief The room of the line above the notes, and of the gap under them
+    qreal noteSeparatorRoom() const;
+    qreal noteBottomGap() const;
+
+    /// @brief The notes of footnoteNumbers() under a block in the continuous views (indices):
+    ///        its footnotes, a table's under its last block
+    std::vector<size_t> footnotesUnder(const QTextBlock& block) const;
+
+    /// @brief The notes of footnoteNumbers() of a kind among the characters [from, to)
+    std::vector<size_t> notesBetween(int from, int to, NoteKind kind) const;
+
+    /// @brief The room the notes take under a block in the continuous views
+    qreal askNotesBelow(const QTextBlock& block) const;
+
+    /// @brief Draw the lines [first, last) of a note's text, the top of the first at @p top
+    void drawNoteLines(QPainter* painter, size_t note, size_t first, size_t last, qreal top,
+                       const NoteColors& colors) const;
+
+    /// @brief Draw the line above notes at @p top: short, or as wide as the text above a
+    ///        note going on from the page before
+    void drawNoteSeparator(QPainter* painter, qreal top, bool continued,
+                           const NoteColors& colors) const;
+
+    /// @brief The page flow places the footnotes of a line whose box ends at @p bottom: on
+    ///        its page what fits, the rest at the bottom of the pages after it
+    void reserveNotes(qreal bottom, const std::vector<size_t>& notes) const;
+
+    /// @brief The room the footnotes of a line need on its page with it: those before its last
+    ///        whole, the first line of its last
+    qreal notesNeeded(const std::vector<size_t>& notes) const;
+
+    /// @brief The page flow places the endnotes after the last line, from @p top on
+    /// @return The bottom of their last line
+    qreal placeEndnotes(qreal top) const;
+
+    /// @brief The part of a note on a page (page flow)
+    struct PageNote {
+        size_t note = 0;     ///< Of footnoteNumbers()
+        size_t first = 0;    ///< Its lines [first, last)
+        size_t last = 0;
+        bool continued = false;  ///< It goes on from the page before
+    };
+
+    /// @brief The footnotes at the bottom of a page: the room they take (with the line above
+    ///        them) and their parts in order
+    struct PageNotes {
+        qreal reserved = 0.0;
+        std::vector<PageNote> parts;
+    };
+
+    /// @brief A line of an endnote on the pages, its top in the document
+    struct EndnoteLine {
+        size_t note = 0;
+        size_t line = 0;
+        qreal top = 0.0;
+    };
+
     /// @brief Number of a laid out block covering @p y (lays out blocks as needed)
     int laidOutBlockAtY(qreal y) const;
 
@@ -907,6 +1056,21 @@ private:
     // The list of figures as last placed (figureListPlacement())
     mutable std::unique_ptr<FigureListPlacement> m_figureList;
 
+    // The notes: what their numbers depend on outside the text, their numbers (counted with
+    // the fields), their texts laid out (by id), the room a frame over one of them takes
+    FootnoteContext m_footnoteContext;
+    mutable FootnoteNumbers m_footnoteNumbers;
+    mutable std::unordered_map<QString, std::unique_ptr<NoteBox>> m_noteBoxes;
+    std::map<QString, qreal> m_noteRooms;
+
+    // Page flow: the footnotes at the bottom of each page (by page, to the last page with
+    // any), the last page with any (-1: none), the endnotes' lines and the line above them
+    // (its top; < 0: none); placed again with the positions
+    mutable std::vector<PageNotes> m_pageNotes;
+    mutable int m_notesLastPage = -1;
+    mutable std::vector<EndnoteLine> m_endnoteLines;
+    mutable qreal m_endnotesTop = -1.0;
+
     // Per block, indexed by block number and kept in step with the document: height
     // (estimated while waiting for layout), text length in average characters (for
     // the estimates) and whether it waits for layout
@@ -919,6 +1083,10 @@ private:
     // document; not part of m_blockHeights, so a new room places no line again
     SpaceBelowProvider m_spaceBelowProvider;
     std::vector<qreal> m_blockSpaceBelow;
+
+    // The part of each block's room that its notes take (the continuous views), kept in step
+    // with m_blockSpaceBelow
+    std::vector<qreal> m_blockNotesBelow;
 
     // Width and font the laid out blocks follow; a change makes every block wait
     qreal m_layoutWidth = -1;
