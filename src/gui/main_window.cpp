@@ -20,6 +20,7 @@
 #include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/footnote_coordinator.h"
+#include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -681,6 +682,38 @@ MainWindow::MainWindow(QWidget* parent)
         }
     }
     m_editCoordinator->updateStates();
+
+    // Edit > Find in Book... and the Search panel: all the texts of the book; a match of a
+    // text not open opens it, as from the Navigator, and the bar under the text says how many
+    // matches Replace All in Book changed, with Undo
+    m_bookSearchCoordinator = new BookSearchCoordinator(
+        m_dockCoordinator->centralTabs(), m_dockCoordinator->searchPanel(),
+        [this]() {
+            QDockWidget* dock = m_dockCoordinator->searchDock();
+            dock->show();
+            dock->raise();
+            if (dock->isFloating()) {
+                dock->activateWindow();
+            }
+        },
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        [this](const QString& elementId) {
+            if (const core::ProjectElement* element =
+                    core::ProjectManager::getInstance().findElement(elementId)) {
+                m_navigatorCoordinator->onElementSelected(elementId, element->title);
+            }
+        },
+        [this](const QString& elementId) { return m_footnoteCoordinator->contextFor(elementId); },
+        [this](EditorPanel* editor, const QString& message, const QString& actionText,
+               const QString& actionToolTip, std::function<void()> action) {
+            m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
+                                              std::move(action));
+        },
+        statusBar(), this, this);
+    m_bookSearchCoordinator->connectCommands();
+    // Texts added, moved or removed: the matches in the book's order
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::refreshNavigatorRequested,
+            m_bookSearchCoordinator, [this]() { m_bookSearchCoordinator->searchAgain(); });
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
     // the object)

@@ -30,6 +30,12 @@
 /// 50th: loading, the footnotes under their paragraphs and at the bottom of the pages, typing
 /// before a note, a new note at the start (all the numbers after it change), copying all of it
 /// and pasting its HTML.
+///
+/// The benchmark of Find in Book ("[benchmark][search]", results in
+/// find_in_book_benchmark_results.md) takes the chapter with the same notes: reading it closed
+/// (its KML) and open (its editor's document) as the search reads it, the searches with each
+/// option, the lines around the matches the Search panel lists, and Replace All in Book in a
+/// closed chapter and in an open one, with its undo.
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_type_registry.h>
@@ -45,6 +51,7 @@
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/viewport_manager.h>
+#include <kalahari/gui/book_search_coordinator.h>
 #include "../editor/editor_test_utils.h"
 #include "test_document_generator.h"
 
@@ -80,6 +87,9 @@
 using namespace kalahari::editor;
 using namespace kalahari::test;
 using kalahari::benchmarks::TestDocumentGenerator;
+using kalahari::gui::BookSearchCoordinator;
+using kalahari::gui::SearchPanelHit;
+using kalahari::gui::shownSearchHit;
 
 namespace {
 
@@ -1042,4 +1052,112 @@ TEST_CASE("Notes benchmark: a 150k-word chapter with footnotes and endnotes",
                     timeMs([&] { CHECK(!editor.toKml().isEmpty()); }), QString()});
 
     report(rows, header, QStringLiteral("footnotes_benchmark_results.md"));
+}
+
+TEST_CASE("Find in Book benchmark: a 150k-word chapter with notes", "[.][benchmark][search]") {
+    std::vector<BenchRow> rows;
+    QStringList header = reportHeader();
+    int notes = 0;
+    const QString kml = withNotes(generateKml(150000), &notes);
+
+    // -------------------------------------------------------------------------
+    // 1. Reading the chapter: closed (its KML), open (its editor's document)
+    // -------------------------------------------------------------------------
+    std::vector<SearchableParagraph> closed;
+    const double closedMs = timeMs([&] { closed = searchableParagraphsOfKml(kml); });
+    rows.push_back({QStringLiteral("Odczyt zamkniętego rozdziału (KML → akapity do szukania)"),
+                    closedMs, QStringLiteral("%1 akapitów").arg(closed.size())});
+
+    BookEditor editor;
+    resizeWidget(editor, QSize(1000, 800));
+    editor.setParagraphStyles(bookStyles());
+    editor.fromKml(kml);
+    paint(editor);
+    layoutOf(editor)->layoutPendingBlocks();
+    header << QStringLiteral("Dokument: %1 słów, %2 akapitów, %3 przypisów: dolny na końcu co "
+                             "5. akapitu, końcowy co 50.")
+                  .arg(editor.wordCount())
+                  .arg(editor.paragraphCount())
+                  .arg(notes);
+    std::vector<SearchableParagraph> open;
+    const double openMs = timeMs([&] { open = searchableParagraphs(*editor.textDocument()); });
+    rows.push_back({QStringLiteral("Odczyt otwartego rozdziału (dokument edytora → akapity)"),
+                    openMs, QStringLiteral("po każdej zmianie tekstu, gdy panel ma wyniki")});
+    CHECK(open == closed);
+
+    // -------------------------------------------------------------------------
+    // 2. Searching the paragraphs read
+    // -------------------------------------------------------------------------
+    const auto searchRow = [&](const QString& operation, const QString& text,
+                               const SearchOptions& options) {
+        SearchEngine engine;
+        engine.setSearchText(text);
+        engine.setOptions(options);
+        std::vector<SearchMatch> matches;
+        const double ms = timeMs([&] { matches = engine.findIn(closed); });
+        rows.push_back({operation, ms, QStringLiteral("%1 trafień").arg(matches.size())});
+        return matches;
+    };
+    const std::vector<SearchMatch> shadows =
+        searchRow(QStringLiteral("Szukanie słowa „shadow”"), QStringLiteral("shadow"), {});
+    CHECK_FALSE(shadows.empty());
+    SearchOptions wholeWord;
+    wholeWord.wholeWord = true;
+    searchRow(QStringLiteral("Szukanie „light” – tylko całe wyrazy"), QStringLiteral("light"),
+              wholeWord);
+    SearchOptions regex;
+    regex.useRegex = true;
+    searchRow(QStringLiteral("Szukanie wyrażenia „\\b\\w+ness\\b”"), QStringLiteral("\\b\\w+ness\\b"),
+              regex);
+    const std::vector<SearchMatch> inNotes = searchRow(
+        QStringLiteral("Szukanie „tytuł” (tylko w przypisach dolnych)"), QStringLiteral("tytuł"), {});
+    CHECK(static_cast<qsizetype>(inNotes.size()) == kml.count(QStringLiteral("<footnote ")));
+    const std::vector<SearchMatch> common =
+        searchRow(QStringLiteral("Szukanie słowa „the” (najczęstszego)"), QStringLiteral("the"), {});
+    REQUIRE(common.size() >= static_cast<size_t>(BookSearchCoordinator::MAX_LISTED_MATCHES));
+
+    // The panel's list: the line around each of the first matches
+    QList<SearchPanelHit> hits;
+    rows.push_back({QStringLiteral("Fragmenty tekstu dla listy panelu (pierwsze %1 trafień)")
+                        .arg(BookSearchCoordinator::MAX_LISTED_MATCHES),
+                    timeMs([&] {
+                        for (int i = 0; i < BookSearchCoordinator::MAX_LISTED_MATCHES; ++i) {
+                            const SearchMatch& match = common[static_cast<size_t>(i)];
+                            hits.append(shownSearchHit(
+                                closed[static_cast<size_t>(match.paragraph)].text,
+                                match.paragraphOffset, static_cast<int>(match.length)));
+                        }
+                    }),
+                    QString()});
+    CHECK(hits.size() == BookSearchCoordinator::MAX_LISTED_MATCHES);
+
+    // -------------------------------------------------------------------------
+    // 3. Replace All in Book: a closed chapter (its KML), an open one (its editor)
+    // -------------------------------------------------------------------------
+    const QString kept = editor.toKml();
+    int replaced = 0;
+    QString changed;
+    rows.push_back({QStringLiteral("Zamiana „shadow” → „cień” w zamkniętym rozdziale (KML)"),
+                    timeMs([&] {
+                        changed = replacedInKml(kml, QStringLiteral("shadow"),
+                                                QStringLiteral("cień"), {}, &replaced);
+                    }),
+                    QStringLiteral("odczyt, zamiana i zapis KML")});
+    CHECK(replaced == static_cast<int>(shadows.size()));
+    rows.push_back({QStringLiteral("Zamiana „shadow” → „cień” w otwartym rozdziale + paintEvent"),
+                    timeMs([&] {
+                        replaced = editor.replaceAllInText(QStringLiteral("shadow"),
+                                                           QStringLiteral("cień"), {});
+                        paint(editor);
+                    }),
+                    QStringLiteral("jeden krok cofania")});
+    CHECK(replaced == static_cast<int>(shadows.size()));
+    rows.push_back({QStringLiteral("    cofnięcie (Ctrl+Z) + paintEvent"), timeMs([&] {
+                        editor.undo();
+                        paint(editor);
+                    }),
+                    QString()});
+    CHECK(editor.toKml() == kept);
+
+    report(rows, header, QStringLiteral("find_in_book_benchmark_results.md"));
 }

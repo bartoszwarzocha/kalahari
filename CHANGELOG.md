@@ -19,8 +19,8 @@ to build it on Windows, Linux and macOS.
 
 - **Editor**: a chapter of 150,000 words opens in a fraction of a second; the page view with
   the paper size, margins and page numbers, and the continuous view; typography, Find and
-  Replace, zoom, typewriter scrolling, the Focus and Distraction-Free modes and numbers on
-  the margin.
+  Replace in a text and in the whole book, zoom, typewriter scrolling, the Focus and
+  Distraction-Free modes and numbers on the margin.
 - **Formatting**: the paragraph styles of the book's type and the writer's own, the Font and
   Paragraph windows, lists, links, tables, images with numbered captions and
   cross-references, footnotes and endnotes, special and formatting characters, autocorrect,
@@ -48,7 +48,29 @@ to build it on Windows, Linux and macOS.
   that the tag is on main and is the version of the files, and makes a draft release with that
   summary; nothing is public until the draft is published. The steps are in
   `project_docs/06_roadmap.md`, section 5.2.
-
+- **Find in Book** - 2026-11-13. Edit > Find in Book... (Ctrl+Shift+F) shows the Search panel
+  (F5), until now empty, with what is selected in the text, else what its find bar searches
+  for, with the find bar's options (Match Case, Whole Word, Regular Expression, with the same
+  keys). The panel searches all the texts of the book in the order of the Navigator, with the
+  texts of their footnotes and endnotes: the open ones as their editors have them, unsaved
+  changes too, the others without opening them, read again only when they change. It searches
+  a moment after the typing stops (at once on Enter or a change of an option), a few texts at
+  a time, so that the program never stops answering. The matches are in a tree, each text with
+  its count and under it its matches with the text around them, the match bold on the color
+  of the search's hits ("footnote 2:" before a match in a note); the line above says "12
+  matches in 4 texts", and the tree lists at most 5000. A click shows a match in its text,
+  opened if it is not, with the keys staying in the panel; Enter or a double click gives the
+  keys to the text; Up and Down show the matches of the open texts. The matches of an open
+  text follow its changes a moment later. Replace All in Book asks first, in the program's own
+  window, with the numbers of matches and texts: the open texts change in their editors, each
+  as one step to undo, the others in their files (one with changes not saved yet only in the
+  program), the formatting of the matches staying; each text is kept as a version first, as
+  before Replace All of the find bar, if the settings say so. The notice under the text says
+  how many matches changed, with Undo for the whole change until a text changes. Keys: Tab
+  through the field, the options, the replacement, Replace All in Book and the tree; Down from
+  the field to the first match; Esc back to the text. The panel's gear opens Settings >
+  Editor > Colors, with the color of the hits. In a narrow panel the text of Replace All in
+  Book goes on in a second line, so the panel stays narrow on a small screen.
 - **Footnotes and endnotes: the book's numbering, the words, the search and the checking** -
   2026-11-13. Insert > Footnote Layout... (its gear opens Settings > Editor > General) sets a
   book's numbering of each kind of note: 1, a, A, i, I or *, †, ‡, §, anew in each text or

@@ -250,6 +250,7 @@ Each assistant has unique personality and communication style, helping you stay 
 - ✅ Editor rebuilt for speed: a chapter of 150,000 words opens in a fraction of a second
 - ✅ Page view (paper size, margins, page numbers) and continuous view, zoom, typewriter
   scrolling, Focus and Distraction-Free modes
+- ✅ Find and Replace in a text and in the whole book
 - ✅ Formatting: paragraph styles (the book type's and the writer's own), the Font and
   Paragraph windows, lists, links, tables, images with captions, footnotes and endnotes,
   special characters, autocorrect

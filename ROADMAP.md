@@ -84,7 +84,8 @@ the whole program on Windows and Linux. What each version brings is in `CHANGELO
 - [x] Full editor, parts 1–9 (plan of 2026-10-12): paragraph styles, headings, breaks and
       pasting from other programs; autocorrect and special characters; lists and the Font and
       Paragraph windows; links; tables; images with captions; footnotes and endnotes
-- [ ] Full editor, parts 10–12: Find in Book, splitting a chapter, fields and Go To
+- [x] Full editor, part 10: Find in Book, with Replace All in Book
+- [ ] Full editor, parts 11–12: splitting a chapter, fields and Go To
 - [ ] A window of its own for each book, and one book never open twice; the tabs of the
       texts already go to windows of their own
 
