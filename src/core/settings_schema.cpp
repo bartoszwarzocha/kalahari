@@ -236,6 +236,19 @@ std::map<std::string, json> buildDefaults() {
         {"project.lastFolders.addMaterial", ""},
         {"project.lastFolders.insertImage", ""},
         {"project.lastFolders.saveImage", ""},
+        {"project.lastFolders.exportBook", ""},
+        // File > Export > DOCX and Markdown: the writer's last choices of the window. What
+        // goes to the file: "book" (the whole book), "chosen" (the texts chosen in the window)
+        // or "front" (the text in front); the titles of the Navigator as headings; each text
+        // from a new page; page numbers; the font of the text (empty: the editor's); the
+        // annotations as Word's comments; the images copied next to a Markdown file
+        {"export.content", "book"},
+        {"export.titles", true},
+        {"export.newPage", true},
+        {"export.pageNumbers", true},
+        {"export.font", ""},
+        {"export.comments", false},
+        {"export.copyImages", true},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},

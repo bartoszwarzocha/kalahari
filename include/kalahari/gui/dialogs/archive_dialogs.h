@@ -47,8 +47,8 @@ class RowList;
 /// place of the hint the progress of the work, its result or what went wrong
 ///
 /// The accept button does the work. While it lasts, the fields and the buttons wait, and the
-/// window cannot be closed. A success shows the result with Show in Folder, and the accept
-/// button becomes Close. A failure shows what went wrong in the language of the program, with
+/// window cannot be closed. A success shows the result with Show in Folder (and Open File for a
+/// file the system opens), and the accept button becomes Close. A failure shows what went wrong in the language of the program, with
 /// Copy, and the fields can be changed for another try. The description of Kalahari and of its
 /// libraries, in English, goes only to the clipboard, with what the window says.
 class ArchiveDialog : public KalahariDialog {
@@ -85,6 +85,12 @@ public:
 
     /// @brief Show the result in the file manager of the system, as Show in Folder does
     void showResult();
+
+    /// @brief Open the result in the program the system gives it, as Open File does
+    void openResult();
+
+    /// @brief Open File, shown with the result of a work that wrote a file the system opens
+    QLabel* openLink() const { return m_openLink; }
 
     /// @brief Do the work of the window; when it is done, close the window
     void accept() override;
@@ -154,7 +160,8 @@ protected:
     Progress progress();
 
     /// @brief The work is done: the result, Show in Folder for @p path, and Close
-    void finishWork(const QString& text, const QString& path);
+    /// @param withOpenFile Open File too: @p path is a file the system opens (a document)
+    void finishWork(const QString& text, const QString& path, bool withOpenFile = false);
 
     /// @brief The work failed: sentence @p text, why it failed (@p reason), Copy, and the
     /// fields for another try; @p details, how it failed, go only to the clipboard
@@ -208,6 +215,7 @@ private:
     QLabel* m_resultText = nullptr;
     QLabel* m_reasonText = nullptr;
     QLabel* m_showLink = nullptr;
+    QLabel* m_openLink = nullptr;
     QPushButton* m_copyButton = nullptr;
     QString m_resultPath;
     bool m_failed = false;          ///< The result is a failure

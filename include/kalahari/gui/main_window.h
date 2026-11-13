@@ -68,6 +68,7 @@ class EditCoordinator;
 class SpecialCharacterCoordinator;
 class VersionsCoordinator;
 class StyleCoordinator;
+class BookExportCoordinator;
 class CaptionCoordinator;
 class FootnoteCoordinator;
 class ImageFilterCoordinator;
@@ -468,6 +469,9 @@ private:
 
     /// @brief Insert > Footnote and Endnote, and the frame of a note's text
     FootnoteCoordinator* m_footnoteCoordinator{nullptr};
+
+    /// @brief File > Export > DOCX and Markdown
+    BookExportCoordinator* m_bookExportCoordinator{nullptr};
 
     /// @brief Image > Filter > Same Filter for All Images...
     ImageFilterCoordinator* m_imageFilterCoordinator{nullptr};

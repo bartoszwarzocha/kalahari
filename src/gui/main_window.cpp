@@ -18,6 +18,7 @@
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/style_coordinator.h"
+#include "kalahari/gui/book_export_coordinator.h"
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/image_filter_coordinator.h"
@@ -681,6 +682,13 @@ MainWindow::MainWindow(QWidget* parent)
         }
     }
     m_editCoordinator->updateStates();
+
+    // File > Export > DOCX and Markdown: the book, some of its texts or the text in front, with
+    // the numbers of the captions and notes of the book
+    m_bookExportCoordinator = new BookExportCoordinator(
+        m_dockCoordinator->centralTabs(), [this]() { return getCurrentEditor(); },
+        m_captionCoordinator, m_footnoteCoordinator, this, this);
+    m_bookExportCoordinator->connectCommands();
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
     // the object)
@@ -2345,6 +2353,10 @@ void MainWindow::updateEditorActionStates() {
     utils::updateDocumentCommands(registry);
     // Save, Save As and Save All follow the tabs: a chapter, a file outside the book, none
     utils::updateSaveCommands(registry);
+    // The export works on the book or on the text in front
+    if (m_bookExportCoordinator != nullptr) {
+        m_bookExportCoordinator->updateCommands();
+    }
 
     // Sync the font family/size toolbar controls to the char format under the caret,
     // so they reflect the formatting at the cursor (updates on every cursor move /
@@ -2721,6 +2733,9 @@ void MainWindow::updateBookCommands() {
     }
     registry.updateActionState("book.properties");
     utils::updateOpenBookCommands(registry);
+    if (m_bookExportCoordinator != nullptr) {
+        m_bookExportCoordinator->updateCommands();
+    }
     // A book open read-only says so in the status bar, and in the title of the window
     updateReadOnlyStatus();
     // Save saves the open book also with no tab of it in front

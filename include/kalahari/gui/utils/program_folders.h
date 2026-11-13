@@ -35,6 +35,7 @@ public:
         AddMaterial,        ///< Add Element: the folder of the file of a new material
         InsertImage,        ///< Insert > Image..., Change Image...: the folder of the image
         SaveImage,          ///< Save as Image...: the folder an image is saved to
+        ExportBook,         ///< File > Export > DOCX, Markdown: the folder of the file
     };
 
     /// @brief Setting of the folder of the books; empty: defaultBooksFolder()
@@ -62,6 +63,10 @@ public:
 
     /// @brief The folder of the archives: the one of the settings, or the default one
     static QString archivesFolder();
+
+    /// @brief The folder the books are exported to (DOCX, Markdown) before an export
+    /// remembers one: Export in the folder of the books
+    static QString exportsFolder();
 
     /// @brief The folder of operation @p operation: the folder it used last while that folder
     /// exists, else the folder of the settings for it, which may not exist yet

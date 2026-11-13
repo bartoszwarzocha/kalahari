@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Export of the book to Word (DOCX) and Markdown** - 2026-11-13. File > Export > DOCX... and
+  Markdown... open one window, "Export Book": the format (it can be changed there), the folder
+  (remembered; at first Export in the folder of the books) and the name, then what goes to the
+  file – the whole book, the texts chosen in a list of the book's sections, parts and texts
+  with their statuses (Check All, Uncheck All, Only Final), or the text in front, also a file
+  outside the book – in the order of the Navigator, with the unsaved changes. A Word document
+  has the book's structure: the titles of the Navigator as headings (Part Title and Chapter
+  Title where the book type has them, else Heading 1; a text that starts with a heading keeps
+  its own, the title page, copyright page, dedication and motto get none), Word's own Heading
+  1–3 for the navigation pane and the table of contents, the book's other paragraph styles as
+  Word styles of the same names, Word's footnotes and endnotes, lists, tables, comments (an
+  option) and table of contents, the images as the editor shows them, each text from a new
+  page (a right one with mirror margins) and page numbers, on the page of Settings > Editor >
+  Pages and Margins (the gear of the window), in the editor's font or another. A Markdown file
+  is GitHub Flavored, with its images copied to a folder "<name> – images" next to it (an
+  option). The result shows Open File and Show in Folder; the window keeps its choices.
 - **Footnotes and endnotes: the book's numbering, the words, the search and the checking** -
   2026-11-13. Insert > Footnote Layout... (its gear opens Settings > Editor > General) sets a
   book's numbering of each kind of note: 1, a, A, i, I or *, †, ‡, §, anew in each text or
