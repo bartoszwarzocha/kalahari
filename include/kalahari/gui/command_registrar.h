@@ -49,7 +49,7 @@ enum class TableCommand {
 /// @brief The commands of the Image menu (the selected image of the text with the keys)
 enum class ImageCommand {
     Properties,       ///< Image Properties...: its window
-    AddCaption,       ///< Add Caption: a paragraph of the style Caption under it
+    AddCaption,       ///< Insert Caption...: the window of its caption
     AltText,          ///< Alternative Text...: the window on its page Description
     RotateRight,      ///< Rotate > Rotate Right 90°
     RotateLeft,       ///< Rotate > Rotate Left 90°
@@ -61,6 +61,7 @@ enum class ImageCommand {
     FilterSepia,      ///< Filter > Sepia
     FilterBlackWhite, ///< Filter > Black and White
     FilterWash,       ///< Filter > Washout
+    FilterAll,        ///< Filter > Same Filter for All Images...: its filter for the whole book
     ColorOptions,     ///< Filter > Colors and Brightness...: the window on its page Colors
     Crop,             ///< Crop: the marks of the crop on it in the text
     OriginalSize,     ///< Original Size

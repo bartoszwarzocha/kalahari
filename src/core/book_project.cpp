@@ -433,6 +433,94 @@ QList<ProjectElement> readElements(const QJsonArray& array, const QString& field
     return elements;
 }
 
+/// The number formats and separators of a numbering of captions
+const QStringList& captionFormats() {
+    static const QStringList formats = {QStringLiteral("1"), QStringLiteral("a"),
+                                        QStringLiteral("A"), QStringLiteral("i"),
+                                        QStringLiteral("I")};
+    return formats;
+}
+
+const QStringList& captionSeparatorNames() {
+    static const QStringList separators = {QStringLiteral("."), QStringLiteral("\u2013"),
+                                           QStringLiteral(":")};
+    return separators;
+}
+
+const QStringList& referenceNames() {
+    static const QStringList names = {QStringLiteral("number"), QStringLiteral("label"),
+                                      QStringLiteral("caption"), QStringLiteral("position")};
+    return names;
+}
+
+/// The captions of a book: its labels, the numbering of each and what a new cross-reference
+/// shows
+BookCaptions readCaptions(const QJsonValue& value, const QString& field, QStringList& problems) {
+    BookCaptions captions;
+    if (!value.isObject()) {
+        addProblem(problems, field, QStringLiteral("must be an object"));
+        return captions;
+    }
+    Fields fields(value.toObject(), field, problems);
+
+    const QJsonArray labels = fields.array("labels");
+    for (qsizetype i = 0; i < labels.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("labels")).arg(i);
+        const QString label = labels.at(i).isString() ? labels.at(i).toString().trimmed() : QString();
+        if (label.isEmpty()) {
+            addProblem(problems, path, QStringLiteral("must be a text that is not empty"));
+        } else if (captions.labels.contains(label)) {
+            addProblem(problems, path, QStringLiteral("'%1' is already in the list").arg(label));
+        } else {
+            captions.labels << label;
+        }
+    }
+
+    const QJsonArray numbering = fields.array("numbering");
+    for (qsizetype i = 0; i < numbering.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("numbering")).arg(i);
+        if (!numbering.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object"));
+            continue;
+        }
+        Fields entry(numbering.at(i).toObject(), path, problems);
+        CaptionLabelNumbering label;
+        label.label = entry.string("label", true).trimmed();
+        if (const QString format = entry.string("format"); captionFormats().contains(format)) {
+            label.format = format;
+        } else if (!format.isEmpty()) {
+            entry.problem("format", QStringLiteral("must be \"1\", \"a\", \"A\", \"i\" or \"I\""));
+        }
+        label.perChapter = entry.boolean("perChapter", false);
+        label.withChapter = entry.boolean("withChapter", false);
+        if (const QString separator = entry.string("separator");
+            captionSeparatorNames().contains(separator)) {
+            label.separator = separator;
+        } else if (!separator.isEmpty()) {
+            entry.problem("separator", QStringLiteral("must be \".\", \"\u2013\" or \":\""));
+        }
+        label.extra = entry.rest();
+        const bool known = std::any_of(captions.numbering.cbegin(), captions.numbering.cend(),
+                                       [&label](const CaptionLabelNumbering& other) {
+                                           return other.label == label.label;
+                                       });
+        if (known) {
+            entry.problem("label", QStringLiteral("'%1' already has its numbering").arg(label.label));
+        } else if (!label.label.isEmpty()) {
+            captions.numbering << label;
+        }
+    }
+
+    if (const QString reference = fields.string("reference"); referenceNames().contains(reference)) {
+        captions.reference = reference;
+    } else if (!reference.isEmpty()) {
+        fields.problem("reference",
+                       QStringLiteral("must be \"number\", \"label\", \"caption\" or \"position\""));
+    }
+    captions.extra = fields.rest();
+    return captions;
+}
+
 ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
                      QStringList& problems) {
     ProjectBook book;
@@ -485,6 +573,9 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
         book.files << readBookFile(files.at(i),
                                    QStringLiteral("%1[%2]").arg(fields.path("files")).arg(i),
                                    seen, problems);
+    }
+    if (const QJsonValue captions = fields.take("captions"); !captions.isUndefined()) {
+        book.captions = readCaptions(captions, fields.path("captions"), problems);
     }
     book.extra = fields.rest();
     return book;
@@ -650,6 +741,24 @@ QJsonArray elementsToJson(const QList<ProjectElement>& elements) {
     return array;
 }
 
+QJsonObject captionsToJson(const BookCaptions& captions) {
+    QJsonObject json = captions.extra;
+    json.insert(QLatin1String("labels"), QJsonArray::fromStringList(captions.labels));
+    QJsonArray numbering;
+    for (const CaptionLabelNumbering& label : captions.numbering) {
+        QJsonObject entry = label.extra;
+        entry.insert(QLatin1String("label"), label.label);
+        entry.insert(QLatin1String("format"), label.format);
+        entry.insert(QLatin1String("perChapter"), label.perChapter);
+        entry.insert(QLatin1String("withChapter"), label.withChapter);
+        entry.insert(QLatin1String("separator"), label.separator);
+        numbering.append(entry);
+    }
+    json.insert(QLatin1String("numbering"), numbering);
+    json.insert(QLatin1String("reference"), captions.reference);
+    return json;
+}
+
 QJsonObject bookToJson(const ProjectBook& book) {
     QJsonObject json = book.extra;
     json.insert(QLatin1String("id"), book.id);
@@ -685,6 +794,11 @@ QJsonObject bookToJson(const ProjectBook& book) {
         json.remove(QLatin1String("files"));
     } else {
         json.insert(QLatin1String("files"), files);
+    }
+    if (book.captions) {
+        json.insert(QLatin1String("captions"), captionsToJson(*book.captions));
+    } else {
+        json.remove(QLatin1String("captions"));
     }
     return json;
 }
@@ -937,6 +1051,17 @@ const QList<SectionNameSet>& ProjectBook::sectionNameSets() {
         };
     }();
     return sets;
+}
+
+CaptionLabelNumbering BookCaptions::numberingOf(const QString& label) const {
+    for (const CaptionLabelNumbering& numbered : numbering) {
+        if (numbered.label == label) {
+            return numbered;
+        }
+    }
+    CaptionLabelNumbering fallback;
+    fallback.label = label;
+    return fallback;
 }
 
 const SectionNameSet& ProjectBook::sectionNameSet() const {

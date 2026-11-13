@@ -63,7 +63,15 @@
 /// - A book has its data (title, author, language, genre), the name of its node ("name";
 ///   none: "Book" in the user's language), whether the Navigator shows its front, main and back
 ///   parts ("partsLayer"), the names of these parts ("sections"), the folder of its files, the
-///   elements of each part and its files outside its text ("files").
+///   elements of each part, its files outside its text ("files") and its captions
+///   ("captions").
+/// - "captions" has the labels of the book's captions in the order Insert Caption offers them
+///   ("labels"), how each label is numbered ("numbering": "label", "format" "1", "a", "A", "i"
+///   or "I", "perChapter", "withChapter", "separator" ".", "–" or ":") and what a new
+///   cross-reference shows ("reference": "number", "label", "caption" or "position"):
+///   { "labels": ["Rysunek", "Mapa"], "numbering": [{ "label": "Rysunek", "format": "1",
+///   "perChapter": true, "withChapter": true, "separator": "." }], "reference": "number" }.
+///   A book without its first caption has none: the Settings give them.
 /// - "sections" is the id of a set of names in the language of the book ("sections": Front
 ///   Section, Main Section, Back Section; "matter": Front Matter, Body, Back Matter;
 ///   "fragments"; "arc"), or the writer's own names:
@@ -212,6 +220,36 @@ struct BookSections {
     bool operator==(const BookSections&) const = default;
 };
 
+/// @brief How a book numbers the captions of one label (Insert Caption > Numbering...)
+struct CaptionLabelNumbering {
+    QString label;                             ///< The label: "Figure", "Map"
+    QString format = QStringLiteral("1");      ///< Of the number: "1", "a", "A", "i" or "I"
+    bool perChapter = false;                   ///< Anew in each chapter; false: through the book
+    bool withChapter = false;                  ///< With the chapter's number first (perChapter)
+    QString separator = QStringLiteral(".");   ///< After the chapter's number: ".", "–" or ":"
+    QJsonObject extra;                         ///< Fields this version does not know, saved back
+
+    bool operator==(const CaptionLabelNumbering&) const = default;
+};
+
+/// @brief The captions of a book: its labels, how it numbers each of them and what a new
+/// cross-reference shows
+///
+/// A book gets them from the Settings (Editor > Images, captions in new books) once it has
+/// its first caption; from then on they are its own and the Settings no longer change them.
+struct BookCaptions {
+    QStringList labels;                       ///< In the order Insert Caption offers them
+    QList<CaptionLabelNumbering> numbering;   ///< Of the labels, each label once
+    QString reference = QStringLiteral("number");  ///< What a new cross-reference shows:
+                                                   ///< "number", "label", "caption", "position"
+    QJsonObject extra;                        ///< Fields this version does not know, saved back
+
+    bool operator==(const BookCaptions&) const = default;
+
+    /// @brief The numbering of @p label; the default one (1, 2, 3 through the book) without one
+    CaptionLabelNumbering numberingOf(const QString& label) const;
+};
+
 /// @brief Book of a project: its data, settings and elements
 struct ProjectBook {
     static constexpr const char* CUSTOM_SECTIONS = "custom";  ///< Set of the writer's own names
@@ -237,6 +275,9 @@ struct ProjectBook {
     /// Files of the book outside its text, in the order they were added: empty text files
     /// that the writer keeps with the book. They have no kind and no status.
     QList<ProjectElement> files;
+    /// Its labels of captions and their numbering; none: the Settings' ones for new books,
+    /// until the book has its first caption
+    std::optional<BookCaptions> captions;
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;

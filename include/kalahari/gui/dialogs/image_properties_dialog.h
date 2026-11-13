@@ -1,6 +1,6 @@
 /// @file image_properties_dialog.h
-/// @brief Image > Image Properties...: the file, size, crop, border, colors and description
-///        of the selected image
+/// @brief Image > Image Properties...: the file, size, crop, border, colors, description and
+///        caption of the selected image
 
 #pragma once
 
@@ -12,6 +12,7 @@
 
 #include <array>
 #include <functional>
+#include <QStringList>
 
 class QAbstractButton;
 class QButtonGroup;
@@ -73,18 +74,28 @@ private:
 };
 
 /// @brief Image > Image Properties...: the look of the selected image in pages, chosen in a
-///        list on the left: Image (its file), Size and Rotation, Crop, Border, Colors and
-///        Description
+///        list on the left: Image (its file), Size and Rotation, Crop, Border, Colors,
+///        Description and Caption
 ///
 /// The window has the size of its largest page on every page. Each page has an access key
 /// (Alt with its letter), and Ctrl+Tab and Ctrl+Shift+Tab go to the next and the previous
-/// page. The changes are made with OK, as one step of Undo; the file stays as it is.
+/// page. The changes are made with OK, as one step of Undo; the file stays as it is. The gear
+/// opens Settings > Editor > Images.
 class ImagePropertiesDialog : public KalahariDialog {
     Q_OBJECT
 
 public:
     /// @brief The pages, in the order of the list
-    enum Page { ImagePage, SizePage, CropPage, BorderPage, ColorsPage, DescriptionPage, PageCount };
+    enum Page {
+        ImagePage,
+        SizePage,
+        CropPage,
+        BorderPage,
+        ColorsPage,
+        DescriptionPage,
+        CaptionPage,
+        PageCount
+    };
 
     /// @param data The image now (BookEditor::imagePropertiesData())
     /// @param automaticColor The color of the text, the color of an automatic border
@@ -111,6 +122,14 @@ public:
     /// @brief Whether the window closed with Crop in the Text
     [[nodiscard]] bool cropInTextAsked() const { return m_cropInTextAsked; }
 
+    /// @brief The labels the page Caption offers, and the number the image's caption would have
+    ///        with each ("3", "2.3"); without them the label of its caption alone
+    void setCaptionLabels(const QStringList& labels,
+                          std::function<QString(const QString& label)> numberOf);
+
+    /// @brief The labels of the page Caption, with those New Label... added
+    [[nodiscard]] QStringList captionLabels() const { return m_captionLabels; }
+
     /// @brief Show a page, as its item in the list does
     void showPage(Page page);
 
@@ -128,6 +147,7 @@ private:
     QWidget* createBorderPage();
     QWidget* createColorsPage();
     QWidget* createDescriptionPage();
+    QWidget* createCaptionPage();
 
     /// @brief The fields, the previews and the texts follow the image's properties
     void refresh();
@@ -136,6 +156,10 @@ private:
     void refreshCropPage();
     void refreshBorderPage();
     void refreshColorsPage();
+    void refreshCaptionPage();
+
+    /// @brief New Label... of the page Caption
+    void addCaptionLabel();
 
     /// @brief The image's size in points as it is set (before the layout fits it in the
     ///        line): its picture's width and height
@@ -174,7 +198,8 @@ private:
 
     QListWidget* m_pageList = nullptr;
     QStackedWidget* m_pages = nullptr;
-    std::array<ImagePreview*, 4> m_previews{};  ///< Of the pages Image, Crop, Border, Colors
+    std::array<ImagePreview*, 5> m_previews{};  ///< Of the pages Image, Crop, Border, Colors,
+                                                ///< Caption
 
     // Image
     QLabel* m_fileInfo = nullptr;
@@ -227,6 +252,20 @@ private:
     QLineEdit* m_alt = nullptr;
     QPlainTextEdit* m_description = nullptr;
     QCheckBox* m_decorative = nullptr;
+    // Caption
+    editor::ImageCaption m_caption;  ///< As the fields set it
+    QStringList m_captionLabels;
+    std::function<QString(const QString& label)> m_captionNumberOf;
+    QCheckBox* m_captionShown = nullptr;
+    QComboBox* m_captionLabel = nullptr;
+    QPushButton* m_newCaptionLabel = nullptr;
+    QLabel* m_captionNumber = nullptr;
+    QLineEdit* m_captionText = nullptr;
+    QRadioButton* m_captionBelow = nullptr;
+    QRadioButton* m_captionAbove = nullptr;
+    QCheckBox* m_captionUnnumbered = nullptr;
+    QLabel* m_captionPreviewAbove = nullptr;
+    QLabel* m_captionPreviewBelow = nullptr;
 };
 
 } // namespace dialogs

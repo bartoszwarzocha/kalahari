@@ -5,6 +5,7 @@
 #include <catch2/catch_approx.hpp>
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/annotations_coordinator.h"
+#include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -30,9 +31,12 @@
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QAbstractButton>
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QTranslator>
+
+#include <map>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -794,6 +798,91 @@ TEST_CASE("Settings dialog: Network > Materials chooses the downloads of the mat
     CHECK(alwaysAgain->isChecked());
 
     settings.set<std::string>(MaterialDownloader::SETTING, before);
+}
+
+TEST_CASE("Settings dialog: Editor > Images sets new images, their copies and the captions of "
+          "new books",
+          "[gui][settings][images]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<bool>(IMAGE_DOWNSCALE_KEY, false);
+    settings.set<int>(IMAGE_MAX_DPI_KEY, 300);
+    settings.set<int>(IMAGE_WIDTH_KEY, 0);
+    CHECK(settingsNewImageOptions().maxDpi == 0);
+
+    // The texts of the fields with access keys of a page: each key once, in English and in
+    // Polish
+    const auto sameKeys = [](const QWidget& page) {
+        std::map<QChar, QStringList> texts;
+        const auto add = [&texts](const QString& text) {
+            for (qsizetype i = 0; i + 1 < text.size(); ++i) {
+                if (text.at(i) == QLatin1Char('&') && text.at(i + 1) != QLatin1Char('&')) {
+                    texts[text.at(i + 1).toLower()] << text;
+                    return;
+                }
+                if (text.at(i) == QLatin1Char('&')) {
+                    ++i;
+                }
+            }
+        };
+        for (const QWidget* widget : page.findChildren<QWidget*>()) {
+            if (const auto* label = qobject_cast<const QLabel*>(widget); label && label->buddy()) {
+                add(label->text());
+            } else if (const auto* button = qobject_cast<const QAbstractButton*>(widget)) {
+                add(button->text());
+            }
+        }
+        QStringList same;
+        for (const auto& [key, each] : texts) {
+            if (each.size() > 1) {
+                same << each.join(QStringLiteral(" / "));
+            }
+        }
+        return same.join(QStringLiteral("; "));
+    };
+    {
+        const Polish polish;
+        REQUIRE(polish.loaded());
+        SettingsDialog dialog(nullptr);
+        openPage(dialog, QStringLiteral("Edytor"), QStringLiteral("Obrazy"));
+        auto* stack = dialog.findChild<QStackedWidget*>();
+        REQUIRE(stack != nullptr);
+        CHECK(sameKeys(*stack->currentWidget()).isEmpty());
+    }
+
+    SettingsDialog dialog(nullptr);
+    openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Images"));
+    auto* stack = dialog.findChild<QStackedWidget*>();
+    REQUIRE(stack != nullptr);
+    CHECK(sameKeys(*stack->currentWidget()).isEmpty());
+
+    // What the program cannot do yet is greyed
+    auto* layout = dialog.findChild<QComboBox*>(QStringLiteral("imageLayout"));
+    REQUIRE(layout != nullptr);
+    CHECK_FALSE(layout->isEnabled());
+
+    // A smaller copy above the resolution chosen: the resolution only with it
+    auto* downscale = dialog.findChild<QCheckBox*>(QStringLiteral("imageDownscale"));
+    auto* maxDpi = dialog.findChild<QSpinBox*>(QStringLiteral("imageMaxDpi"));
+    auto* width = dialog.findChild<QComboBox*>(QStringLiteral("imageWidth"));
+    REQUIRE(downscale != nullptr);
+    REQUIRE(maxDpi != nullptr);
+    REQUIRE(width != nullptr);
+    CHECK_FALSE(downscale->isChecked());
+    CHECK_FALSE(maxDpi->isEnabled());
+    downscale->setChecked(true);
+    CHECK(maxDpi->isEnabled());
+    maxDpi->setValue(200);
+    width->setCurrentIndex(width->findData(50));
+    applyButton(dialog)->click();
+    const kalahari::editor::BookEditor::NewImageOptions options = settingsNewImageOptions();
+    CHECK(options.maxDpi == 200);
+    CHECK(options.widthPercent == 50);
+    downscale->setChecked(false);
+    applyButton(dialog)->click();
+    CHECK(settingsNewImageOptions().maxDpi == 0);
+
+    settings.set<int>(IMAGE_WIDTH_KEY, 0);
+    settings.set<int>(IMAGE_MAX_DPI_KEY, 300);
 }
 
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {

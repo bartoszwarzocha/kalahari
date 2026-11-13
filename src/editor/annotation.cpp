@@ -4,6 +4,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 
@@ -464,6 +465,7 @@ QTextCharFormat insertionFormat(const QTextCursor& cursor) {
     QTextCharFormat format = cursor.charFormat();
     format.clearProperty(QTextFormat::ObjectType);  // text is never an object, nor an image
     clearImage(format);
+    clearField(format);  // nor a caption's number or a cross-reference
 
     // Inside a fragment: between two of its characters, in one paragraph
     AnnotationList inside;

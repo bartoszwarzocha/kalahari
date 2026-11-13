@@ -10,6 +10,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_images.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_tables.h>
@@ -491,6 +492,10 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
     for (const auto& [name, value] : paragraphFormatToKml(paragraphFormatOf(block.blockFormat()))) {
         attrs += QLatin1Char(' ') + name + QStringLiteral("=\"") + value + QLatin1Char('"');
     }
+    // A caption above its image
+    if (isCaptionAbove(block.blockFormat())) {
+        attrs += QStringLiteral(" caption=\"above\"");
+    }
     return attrs;
 }
 
@@ -635,14 +640,21 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     // Escape XML special characters in text content, a line break in the paragraph is the
     // element <br/>, an image the element <img/>; the annotations on places inside the run
     // go after their characters
-    const std::optional<ImageProperties> image = imageOf(format);
-    const QString imageElement = image ? imageKml(*image) : QString();
-    const auto textKml = [&imageElement](const QString& part) {
+    // An object of the line is its element: an image, a caption's number, a cross-reference
+    QString objectElement;
+    if (const std::optional<ImageProperties> image = imageOf(format)) {
+        objectElement = imageKml(*image);
+    } else if (const std::optional<CaptionNumberField> number = captionNumberOf(format)) {
+        objectElement = captionNumberKml(*number);
+    } else if (const std::optional<CrossReference> reference = crossReferenceOf(format)) {
+        objectElement = crossReferenceKml(*reference);
+    }
+    const auto textKml = [&objectElement](const QString& part) {
         QString kml = KmlFormatRegistry::escapeXml(
-            imageElement.isEmpty() ? QString(part).remove(QChar::ObjectReplacementCharacter) : part);
+            objectElement.isEmpty() ? QString(part).remove(QChar::ObjectReplacementCharacter) : part);
         kml.replace(QChar(QChar::LineSeparator), QStringLiteral("<br/>"));
-        if (!imageElement.isEmpty()) {
-            kml.replace(QChar(QChar::ObjectReplacementCharacter), imageElement);
+        if (!objectElement.isEmpty()) {
+            kml.replace(QChar(QChar::ObjectReplacementCharacter), objectElement);
         }
         return kml;
     };

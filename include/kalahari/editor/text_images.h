@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <kalahari/editor/text_captions.h>
 #include <QColor>
 #include <QSize>
 #include <QString>
@@ -221,6 +222,8 @@ struct ImagePropertiesData {
     double shownWidth = 0.0;  ///< Points: the width of its picture as it is shown now
     QString newFile;          ///< A file chosen in the window for the image to show; empty: none
     bool keepSizeAndCrop = true;  ///< With a new file: its width, height and crop stay
+    ImageCaption caption;     ///< Its caption (ImageCaption::shown false: none)
+    QString captionNumber;    ///< The number its caption has, or would get, in its label
 };
 
 /// @brief Whether the format is of an image's character
@@ -320,5 +323,22 @@ QString imageKml(const ImageProperties& image);
 ///        or a length of KML (cm, mm, in, pt, px, pc) in centimeters; one that is not known
 ///        gives the file's own
 ImageProperties imagePropertiesOfKml(const QXmlStreamAttributes& attributes);
+
+// =============================================================================
+// One filter for every image
+// =============================================================================
+
+/// @brief The image in a filter: its filter, and with Black and White its threshold
+ImageProperties withImageFilter(const ImageProperties& image, ImageFilter filter, int threshold);
+
+/// @brief The images of the document that another filter changes, in text order
+std::vector<int> imagesWithOtherFilter(const QTextDocument& document, ImageFilter filter,
+                                       int threshold);
+
+/// @brief The KML of a text with every image in a filter (withImageFilter()); an image the
+///        filter does not change keeps its element as it is
+/// @param count Gets how many images changed; may be nullptr
+QString withImageFilterKml(const QString& kml, ImageFilter filter, int threshold,
+                           int* count = nullptr);
 
 }  // namespace kalahari::editor

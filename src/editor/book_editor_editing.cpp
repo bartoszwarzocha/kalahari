@@ -636,6 +636,10 @@ bool BookEditor::deleteSelectedText()
     if (refusesChange()) {
         return false;
     }
+    // An image goes with its caption
+    if (const std::optional<int> image = selectedImage(); image && removeImageWithCaption(*image)) {
+        return true;
+    }
     return removeSelection(true);
 }
 
@@ -812,6 +816,11 @@ void BookEditor::deleteBackward()
     if (removeListMarkAtCursor()) {
         return;  // at the start of a list item its number goes, then the item leaves its list
     }
+    // An image right before the cursor goes with its caption
+    if (m_cursorPosition.offset > 0 &&
+        removeImageWithCaption(calculateAbsolutePosition(m_cursorPosition) - 1)) {
+        return;
+    }
 
     // If at start of document, nothing to delete
     if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
@@ -860,6 +869,11 @@ void BookEditor::deleteForward()
     }
 
     const int paraLen = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph).length();
+    // An image right after the cursor goes with its caption
+    if (m_cursorPosition.offset < paraLen &&
+        removeImageWithCaption(calculateAbsolutePosition(m_cursorPosition))) {
+        return;
+    }
     const bool atBlockEnd = (m_cursorPosition.offset >= paraLen);
     const bool hasNextBlock = (m_cursorPosition.paragraph + 1 < m_textBuffer->blockCount());
 
@@ -1335,6 +1349,13 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
             }
         }
     }
+    // The numbers and references as the editor shows them, with the whole book counted
+    const CaptionNumbers& numbers = captionNumbers();
+    for (const auto& [rangeFrom, rangeTo] : ranges) {
+        std::vector<QString> texts = fieldTexts(*m_textBuffer, numbers, rangeFrom, rangeTo);
+        marks.fields.insert(marks.fields.end(), std::make_move_iterator(texts.begin()),
+                            std::make_move_iterator(texts.end()));
+    }
     std::unique_ptr<QMimeData> mime = ClipboardHandler::mimeDataOf(kml, &marks, m_imageStore->folder());
 
     // An image alone also as a picture, for the programs that paste pictures
@@ -1464,6 +1485,7 @@ void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
     const int from = cursor.selectionStart();
     insertMimeData(cursor, *source, mode, pending);
     adoptPastedImages(*source, from, cursor);
+    renewPastedCaptionIds(from, cursor.position());
     finishEdit(cursor);
     finishPasting();
 }
@@ -1535,6 +1557,7 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     insertMimeData(cursor, *source, m_pasteMode);
     cursor.endEditBlock();
     adoptPastedImages(*source, insertionStart, cursor);
+    renewPastedCaptionIds(insertionStart, cursor.position());
 
     // The dropped text is selected, with the cursor at its end
     finishEdit(cursor);

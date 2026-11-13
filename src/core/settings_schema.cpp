@@ -262,6 +262,29 @@ std::map<std::string, json> buildDefaults() {
         // sizes and colors) or "text" (only the text)
         {"editor.paste.mode", "merge"},
         {"editor.images.keepSizeOnChange", true},
+        // New images (Settings > Editor > Images): in a paragraph of their own ("inline"),
+        // aligned "left", "center" or "right", as wide as their files and at most as the text
+        // (0) or a share of the text in percent, with a numbered caption of a label (empty: the
+        // first label of new books); copies of very large images made smaller above a number
+        // of dots per inch at their size in the text; the manuscript for a publisher with the
+        // images in the text ("inline") or markers in their places ("markers")
+        {"editor.images.layout", "inline"},
+        {"editor.images.alignment", "center"},
+        {"editor.images.width", 0},
+        {"editor.images.addCaption", true},
+        {"editor.images.captionLabel", ""},
+        {"editor.images.downscale", false},
+        {"editor.images.maxDpi", 300},
+        {"editor.images.manuscript", "inline"},
+        // The captions of new books: their labels (an empty list: Figure, Photo, Illustration,
+        // Map, Diagram in the user's language), the number format ("1", "a", "A", "i", "I"),
+        // numbered anew in each chapter after its number, and what a cross-reference shows
+        // ("number", "label", "caption", "position"). A book keeps its own from its first
+        // caption on.
+        {"editor.captions.labels", json::array()},
+        {"editor.captions.format", "1"},
+        {"editor.captions.withChapter", false},
+        {"editor.captions.reference", "number"},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},

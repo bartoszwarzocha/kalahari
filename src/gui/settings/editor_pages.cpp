@@ -611,6 +611,15 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
         //: The marks at the sides of an image being cropped in the text. In Polish:
         //: Znaczniki przycinania obrazu
         addThemeColor(form, tr("Crop marks of an image"), keys.imageCropMarks);
+        //: The dashed frame shown in the text for an image whose file is missing. In Polish:
+        //: Ramka obrazu bez pliku
+        addThemeColor(form, tr("Frame of an image without its file"), keys.imageMissing);
+        //: The gray background of a caption's number and of a cross-reference in the text. In
+        //: Polish: Pola (numery podpisów, odsyłacze)
+        addThemeColor(form, tr("Fields (caption numbers, cross-references)"), keys.field);
+        //: The background of a cross-reference whose caption was deleted. In Polish:
+        //: Odsyłacze do usuniętych podpisów
+        addThemeColor(form, tr("Cross-references to deleted captions"), keys.brokenField);
         addThemeColor(form, tr("Around the paper"), keys.desk);
         addRestoreColorsButton(form);
     };

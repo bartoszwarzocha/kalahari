@@ -27,6 +27,7 @@
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_images.h>
@@ -939,11 +940,19 @@ public:
     /// @brief Insert > Image...: copy a file into the folder of images and insert its image
     ///        at the cursor, replacing the selection, as one undo step
     ///
-    /// The image gets its file's own width (never wider than the line). Inserted into an
-    /// empty paragraph, the paragraph is centered. The image is selected.
+    /// The image gets its file's own width (never wider than the line), or the width of the
+    /// settings (NewImageOptions); a file with more dots per inch at that width than the
+    /// settings allow is copied smaller. The image goes in a paragraph of its own, aligned as
+    /// the settings say, and is selected.
     /// @return false when the file could not be copied or is not an image, without a folder
     ///         of images, or in a read-only text (changeRefused())
     bool insertImageFile(const QString& path);
+
+    /// @brief The width in pixels of the copy of a file inserted at the cursor now: fewer than
+    ///        the file's when it has more dots per inch at its width in the text than
+    ///        NewImageOptions::maxDpi; 0: the file as it is (no limit, a drawing, a file that
+    ///        is not an image, a text not laid out yet)
+    int newImageCopyWidth(const QString& path) const;
 
     /// @brief Insert a picture (pasted, a screenshot) saved as a PNG file in the folder of
     ///        images, as insertImageFile() inserts a file
@@ -988,6 +997,11 @@ public:
 
     /// @brief Image > Filter: the filter of the image at a position, as one undo step
     bool setImageFilter(int position, ImageFilter filter);
+
+    /// @brief Image > Filter > Same Filter for All Images...: every image of the text in a
+    ///        filter (with Black and White its threshold), as one undo step
+    /// @return How many images changed; 0 also in a read-only text
+    int setAllImagesFilter(ImageFilter filter, int threshold);
 
     /// @brief Ctrl+] and Ctrl+[: the image at a position larger or smaller by a part of its
     ///        width (IMAGE_KEY_RESIZE), in proportion, in its own unit and within its line,
@@ -1046,6 +1060,94 @@ public:
     ///         read-only text; true also when the image had these properties already (no
     ///         step of Undo then)
     bool setImagePropertiesData(const ImagePropertiesData& propertiesData);
+
+    /// @brief How a new image goes into the text (Settings > Editor > Images): in a paragraph
+    ///        of its own, never into a paragraph's text
+    struct NewImageOptions {
+        Qt::Alignment alignment = Qt::AlignHCenter;  ///< Of its paragraph
+        int widthPercent = 0;  ///< Of the width of its lines; 0: its file's own (at most theirs)
+        QString captionLabel;  ///< A numbered caption of this label under it; empty: none
+        /// The copy of a file with more dots per inch at the image's width in the text is made
+        /// smaller to these; 0: the copy is the file itself
+        int maxDpi = 0;
+        bool operator==(const NewImageOptions&) const = default;
+    };
+
+    /// @brief Set how a new image goes into the text
+    void setNewImageOptions(const NewImageOptions& options) { m_newImageOptions = options; }
+    const NewImageOptions& newImageOptions() const { return m_newImageOptions; }
+
+    // =========================================================================
+    // Captions, cross-references and the list of figures
+    // =========================================================================
+
+    /// @brief Set what the numbers of the captions depend on outside the text: the book around
+    ///        it (CaptionContext); the fields and the lists of figures that show something else
+    ///        then are drawn anew
+    void setCaptionContext(const CaptionContext& context);
+    const CaptionContext& captionContext() const;
+
+    /// @brief The numbers of the text's fields in the book around it
+    const CaptionNumbers& captionNumbers() const;
+
+    /// @brief The numbered captions of the text, in text order (captionsChanged())
+    std::vector<CaptionEntry> captionEntries() const;
+
+    /// @brief The image a caption command acts on: the selected one, the one just before the
+    ///        cursor, or the one whose caption the cursor is in; std::nullopt: none
+    std::optional<int> captionTargetImage() const;
+
+    /// @brief The caption of the image at a position (ImageCaption::shown false without one);
+    ///        std::nullopt: no image there
+    std::optional<ImageCaption> imageCaptionOf(int position) const;
+
+    /// @brief Insert Caption: give the image at a position this caption, as one undo step; a
+    ///        numbered caption keeps the id of its number (its cross-references stay) and its
+    ///        text keeps its formatting when it stays; the cursor goes to the caption's end
+    /// @return false without an image there, a caption to remove whose cross-references the
+    ///         confirmation keeps (setCaptionRemovalConfirmation()), or in a read-only text;
+    ///         true also when the caption was so already
+    bool setImageCaption(int position, const ImageCaption& caption);
+
+    /// @brief The number a caption of a label has, or would get, at the image at a position
+    ///        ("3", "2.3"): the hint of the windows
+    QString captionNumberAt(int position, const QString& label) const;
+
+    /// @brief Insert > Cross-Reference: a cross-reference at the cursor, in place of the
+    ///        selection, as one undo step
+    bool insertCrossReference(const CrossReference& reference);
+
+    /// @brief Insert > List of Figures: the captions of the book in a paragraph of its own at
+    ///        the cursor, after a heading @p title when the paragraph before it is not a heading
+    ///        (empty: none), as one undo step
+    bool insertFigureList(const QString& title);
+
+    /// @brief Go to the image of a numbered caption of the text (selected and in view; a
+    ///        caption without an image: its number)
+    bool goToCaption(const QString& id);
+
+    /// @brief Where Ctrl+click on a cross-reference or a row of a list of figures goes
+    struct CaptionLink {
+        QString captionId;  ///< The id of the caption's number
+        QString elementId;  ///< The text it is in; empty: this one
+        bool operator==(const CaptionLink&) const = default;
+    };
+
+    /// @brief Where Ctrl+click goes at a point of the widget; std::nullopt: no cross-reference
+    ///        that is a link there, nor a row of a list of figures
+    std::optional<CaptionLink> captionLinkAt(const QPointF& widgetPos) const;
+
+    /// @brief Asks before a numbered caption that cross-references may name goes (with its
+    ///        image, or taken off it); gets the ids of its numbers, true lets it go
+    using CaptionRemovalConfirmation = std::function<bool(const QStringList& ids)>;
+
+    /// @brief Set what asks before a numbered caption goes; none: it goes without asking
+    void setCaptionRemovalConfirmation(CaptionRemovalConfirmation confirm) {
+        m_confirmCaptionRemoval = std::move(confirm);
+    }
+
+    /// @brief The cross-references of the text that name a caption of these ids
+    int crossReferenceCount(const QSet<QString>& ids) const;
 
     // =========================================================================
     // Annotations: comments, TODOs and notes
@@ -1869,6 +1971,18 @@ signals:
     /// @param address The link's address; the program opens only some (isOpenableLinkAddress())
     void linkOpenAsked(const QString& address);
 
+    /// @brief The numbered captions of the text changed: one added, taken out or moved, of
+    ///        another label or with another text (captionEntries()); the book counts its
+    ///        numbers again
+    void captionsChanged();
+
+    /// @brief Ctrl+click on a cross-reference or a row of a list of figures naming a caption of
+    ///        another text: the application opens it and goes to the caption (goToCaption())
+    void captionOpenAsked(const QString& elementId, const QString& captionId);
+
+    /// @brief Insert Caption... of the context menu of an image: the window of Insert Caption
+    void imageCaptionAsked(int position);
+
     /// @brief Replace All of the Find/Replace bar is about to replace @p count matches of
     /// @p found with @p replacement; the text is still as it was (toKml())
     ///
@@ -2618,6 +2732,44 @@ private:
     /// start then, without a selection.
     QTextCursor selectionToReplace();
 
+    // --- Captions (book_editor_captions.cpp) ---
+
+    /// @brief Compare the captions with the ones announced, once the edits of a step are done
+    ///        (captionsChanged())
+    void checkCaptionsSoon();
+
+    /// @brief The format of the character at a position
+    QTextCharFormat captionNumberCharFormat(int position) const;
+
+    /// @brief Whether a caption's numbers may go: none, or the confirmation lets them
+    bool confirmCaptionRemoval(const QTextBlock& caption);
+
+    /// @brief A new empty caption's block next to an image's (before it when @p above), aligned
+    ///        as the image, the cursor in it
+    QTextBlock newCaptionBlock(QTextCursor& cursor, const QTextBlock& imageBlock, bool above);
+
+    /// @brief A new caption's block next to an image's (before it when @p above), the
+    ///        cursor in it
+    QTextBlock insertCaptionBlock(QTextCursor& cursor, const QTextBlock& imageBlock,
+                                  const QTextBlockFormat& format, const QTextCharFormat& charFormat,
+                                  bool above);
+
+    /// @brief Write a caption into its block: the text after its number when it changed, and
+    ///        the label and the number before it (a number keeps its id)
+    void writeCaption(QTextCursor& cursor, const QTextBlock& block, const ImageCaption& wanted,
+                      const ImageCaption& current);
+
+    /// @brief Delete or Backspace at an image with a caption: both go, as one undo step,
+    ///        after asking when cross-references may name the caption
+    /// @return false when the image has no caption (it goes as any character)
+    bool removeImageWithCaption(int position);
+
+    /// @brief Ctrl+click: go to the caption (of another text: captionOpenAsked())
+    void followCaptionLink(const CaptionLink& link);
+
+    /// @brief Pasted numbers whose ids the book has already get ids of their own
+    void renewPastedCaptionIds(int from, int to);
+
     // --- The Table menu (book_editor_table_commands.cpp) ---
 
     /// @brief Start an undo step of a change of a table: undone, it brings back the cursor
@@ -2988,6 +3140,12 @@ private:
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
     ParagraphStyleSet m_paragraphStyles;                    ///< The styles of the book
     std::shared_ptr<ImageStore> m_imageStore{std::make_shared<ImageStore>()};  ///< Of the images
+    NewImageOptions m_newImageOptions;  ///< How a new image goes into the text
+    CaptionContext m_captionContext;    ///< What the numbers depend on outside the text
+    CaptionRemovalConfirmation m_confirmCaptionRemoval;  ///< Asked before a caption goes
+    bool m_captionRemovalAsked = false;  ///< The writer was asked already (Image Properties)
+    std::vector<CaptionEntry> m_shownCaptions;  ///< As captionsChanged() last announced them
+    bool m_captionsCheckPending = false;        ///< The captions wait to be compared
     core::WordCountRules m_wordCountRules;                  ///< What the counts take for a word
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h

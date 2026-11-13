@@ -5,6 +5,7 @@
 
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/editor/kml_format_registry.h"
+#include "kalahari/editor/text_captions.h"
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/text_link.h"
 #include "kalahari/core/logger.h"
@@ -176,6 +177,7 @@ void KmlDocumentModel::clear()
     m_tables.clear();
     m_annotations.clear();
     m_anchoredIds.clear();
+    m_captionIds.clear();
     m_lastListId = 0;
     m_lastListDefinition = ListDefinition();
 }
@@ -281,6 +283,11 @@ ParagraphFormat KmlDocumentModel::paragraphOwnFormat(size_t index) const
         return {};
     }
     return m_paragraphs[index].format;
+}
+
+bool KmlDocumentModel::paragraphCaptionAbove(size_t index) const
+{
+    return index < m_paragraphs.size() && m_paragraphs[index].captionAbove;
 }
 
 std::optional<ListItem> KmlDocumentModel::paragraphList(size_t index) const
@@ -428,6 +435,16 @@ void KmlDocumentModel::appendImage(Paragraph& para, const ImageProperties& image
     para.formats.push_back(run);
 }
 
+void KmlDocumentModel::appendObject(Paragraph& para, const QTextCharFormat& format)
+{
+    FormatRun run;
+    run.start = static_cast<size_t>(para.text.size());
+    para.text += QChar(QChar::ObjectReplacementCharacter);
+    run.end = static_cast<size_t>(para.text.size());
+    run.format = format;
+    para.formats.push_back(run);
+}
+
 void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragraph& para)
 {
     const QString tag = reader.name().toString();
@@ -459,6 +476,8 @@ void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragra
     }
 
     para.format = paragraphFormatFromKml(attrs);
+    para.captionAbove =
+        attrs.value(QStringLiteral("caption")).toString().trimmed().toLower() == u"above";
 }
 
 void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph& para)
@@ -1022,6 +1041,31 @@ bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 const ImageProperties image = imagePropertiesOfKml(reader.attributes());
                 if (!image.source.isEmpty()) {
                     appendImage(para, image, currentFormat);
+                }
+                reader.skipCurrentElement();
+                reader.readNext();
+            } else if (tag == QStringLiteral("caption-number")) {
+                // The number of a caption; one without a label is nothing, one without an
+                // id gets one (cross-references cannot name it yet)
+                if (std::optional<CaptionNumberField> field =
+                        captionNumberOfKml(reader.attributes())) {
+                    if (field->id.isEmpty()) {
+                        field->id = newCaptionId(m_captionIds);
+                    }
+                    m_captionIds.insert(field->id);
+                    QTextCharFormat format = currentFormat;
+                    setCaptionNumber(format, *field);
+                    appendObject(para, format);
+                }
+                reader.skipCurrentElement();
+                reader.readNext();
+            } else if (tag == QStringLiteral("cross-reference")) {
+                // A cross-reference to a caption; one without a target is nothing
+                if (const std::optional<CrossReference> reference =
+                        crossReferenceOfKml(reader.attributes())) {
+                    QTextCharFormat format = currentFormat;
+                    setCrossReference(format, *reference);
+                    appendObject(para, format);
                 }
                 reader.skipCurrentElement();
                 reader.readNext();

@@ -66,11 +66,14 @@ public:
     std::optional<QSize> shownPixelSize(const ImageProperties& image) const;
 
     /// @brief Copy a file into the book's folder of images
+    /// @param maxWidth A copy of a picture wider than these pixels gets them, in proportion,
+    ///        in the file's format (a format the program cannot write, a drawing: the file as
+    ///        it is); 0: the file as it is
     /// @return The source of the copy ("images/map.png"): the file itself when it is there
     ///         already, a file of the same content when the folder has one, else a copy, its
     ///         name with a number when another file has its name; empty: it could not be
     ///         copied, or the store has no folder
-    QString addFile(const QString& path);
+    QString addFile(const QString& path, int maxWidth = 0);
 
     /// @brief Save a picture (pasted, a screenshot) in the book's folder of images as PNG
     /// @param baseName Its name without the extension; a taken one gets a number

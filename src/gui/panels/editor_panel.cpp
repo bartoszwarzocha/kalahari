@@ -34,6 +34,7 @@
 #include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/statistics_collector.h"
 #include "kalahari/editor/text_images.h"
+#include "kalahari/gui/caption_settings.h"
 #include "kalahari/editor/text_link.h"
 #include "kalahari/editor/word_repetitions.h"
 #include <QDesktopServices>
@@ -154,7 +155,8 @@ EditorPanel::EditorPanel(QWidget* parent)
          actions({"image.rotateRight", "image.rotateLeft", "image.flipHorizontal",
                   "image.flipVertical", nullptr, "image.rotateOptions"}),
          actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
-                  "image.filterBlackWhite", "image.filterWash", nullptr, "image.colorOptions"}),
+                  "image.filterBlackWhite", "image.filterWash", nullptr, "image.filterAll",
+                  "image.colorOptions"}),
          actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
 
     // Autocorrect puts in the quotation marks of the text's language, asked when they are
@@ -484,6 +486,13 @@ void EditorPanel::applySettings() {
     images.cropMarksLight =
         themes.editorColor(light.imageCropMarks, defaults.images.cropMarksLight);
     images.cropMarksDark = themes.editorColor(dark.imageCropMarks, defaults.images.cropMarksDark);
+    images.missingLight = themes.editorColor(light.imageMissing, defaults.images.missingLight);
+    images.missingDark = themes.editorColor(dark.imageMissing, defaults.images.missingDark);
+    auto& fields = appearance.colors.fields;
+    fields.light = themes.editorColor(light.field, defaults.fields.light);
+    fields.dark = themes.editorColor(dark.field, defaults.fields.dark);
+    fields.brokenLight = themes.editorColor(light.brokenField, defaults.fields.brokenLight);
+    fields.brokenDark = themes.editorColor(dark.brokenField, defaults.fields.brokenDark);
     // Under the text on both papers: translucent, so the text stays readable
     appearance.colors.selection =
         editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
@@ -665,6 +674,9 @@ void EditorPanel::applySettings() {
     // How text from other programs is pasted (Settings > Editor > General)
     m_bookEditor->setPasteMode(editor::ClipboardHandler::pasteModeFromId(
         QString::fromStdString(settings.get<std::string>(editor::PASTE_MODE_KEY))));
+
+    // How a new image goes into the text (Settings > Editor > Images)
+    m_bookEditor->setNewImageOptions(settingsNewImageOptions());
 
     // What the counts take for a word (a setting of the whole program)
     m_bookEditor->setWordCountRules(core::wordCountRules());
@@ -857,10 +869,21 @@ void EditorPanel::showImagePropertiesDialog(int position, int page) {
     if (m_bookEditor->isReadOnly() || !properties) {
         return;
     }
+    // A new caption gets the label of the captions of new images (else the book's first)
+    const core::BookCaptions captions = currentBookCaptions();
+    editor::ImagePropertiesData shown = *properties;
+    if (shown.caption.label.isEmpty()) {
+        const QString label = settingsNewImageOptions().captionLabel;
+        shown.caption.label = captions.labels.contains(label) ? label : captions.labels.value(0);
+    }
     // An automatic border has the color of the text, on the editor's paper
     const editor::EditorAppearance& appearance = m_bookEditor->appearance();
     dialogs::ImagePropertiesDialog dialog(
-        *properties, appearance.colors.textColor(appearance.colorMode), window());
+        shown, appearance.colors.textColor(appearance.colorMode), window());
+    // The editor is the panel's own, and the window is modal over it
+    dialog.setCaptionLabels(captions.labels, [this, position](const QString& label) {
+        return m_bookEditor->captionNumberAt(position, label);
+    });
     // Another picture needs the folder of images: a book saved
     if (m_bookEditor->canInsertImage()) {
         dialog.setFileChooser([&dialog]() {
@@ -877,6 +900,14 @@ void EditorPanel::showImagePropertiesDialog(int position, int page) {
         return;
     }
     const editor::ImagePropertiesData chosen = dialog.data();
+    // The labels New Label... added: the book keeps them
+    auto& projects = core::ProjectManager::getInstance();
+    if (dialog.captionLabels() != captions.labels && projects.isProjectOpen() &&
+        !projects.isReadOnly()) {
+        core::BookCaptions changed = captions;
+        changed.labels = dialog.captionLabels();
+        projects.setBookCaptions(changed);
+    }
     if (!m_bookEditor->setImagePropertiesData(chosen) && !chosen.newFile.isEmpty()) {
         warnImageNotInserted(window(), chosen.newFile);
         return;

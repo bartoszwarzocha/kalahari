@@ -445,6 +445,13 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // the workspaces of Xfce)
     REG_CMD_CB("insert.table", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble..."), "INSERT/Table...", 20, false, 1,
                callbacks.onInsertTable);
+    // The numbered captions: the caption of the image at the cursor (Ctrl+Shift+G, free in the
+    // program and in the systems; also with the cursor just after the image), a cross-reference
+    // to a caption and the list of figures. CaptionCoordinator gives them their callbacks.
+    REG_CMD_KEY("insert.caption", QT_TRANSLATE_NOOP("CommandRegistrar", "&Caption..."), "INSERT/Caption...", 22, false, 0,
+                KeyboardShortcut(Qt::Key_G, Qt::ControlModifier | Qt::ShiftModifier));
+    REG_CMD("insert.crossReference", QT_TRANSLATE_NOOP("CommandRegistrar", "Cross-&Reference..."), "INSERT/Cross-Reference...", 24, false, 0);
+    REG_CMD("insert.figureList", QT_TRANSLATE_NOOP("CommandRegistrar", "List of Fi&gures"), "INSERT/List of Figures", 26, false, 0);
     // A link: the window of its text and address, on a link of the text its editing (Ctrl+K,
     // as in Word and LibreOffice)
     REG_CMD_KEY_CB("insert.link", QT_TRANSLATE_NOOP("CommandRegistrar", "&Link..."), "INSERT/Link...", 30, true, 1,
@@ -503,9 +510,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
 
     // The objects of the text (editor/paragraph_styles.h): each a block of its own. Ctrl+Enter
     // as in Word and LibreOffice; the annotation frame keeps it for its text
-    REG_CMD_CB("insert.horizontalLine", QT_TRANSLATE_NOOP("CommandRegistrar", "&Horizontal Line"), "INSERT/Horizontal Line", 110, false, 0,
+    REG_CMD_CB("insert.horizontalLine", QT_TRANSLATE_NOOP("CommandRegistrar", "Hori&zontal Line"), "INSERT/Horizontal Line", 110, false, 0,
                callbacks.onInsertHorizontalLine);
-    REG_CMD_CB("insert.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "S&cene Break"), "INSERT/Scene Break", 120, false, 0,
+    REG_CMD_CB("insert.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Scene Brea&k"), "INSERT/Scene Break", 120, false, 0,
                callbacks.onInsertSceneBreak);
     REG_CMD_KEY_CB("insert.pageBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Break"), "INSERT/Page Break", 130, false, 0,
                    KeyboardShortcut(Qt::Key_Return, Qt::ControlModifier), callbacks.onInsertPageBreak);
@@ -756,7 +763,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     };
     REG_CMD_KEY_CB("image.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Image Prop&erties..."), "IMAGE/Image Properties...", 10, false, 0,
                    imagePropertiesShortcut, image(ImageCommand::Properties));
-    REG_CMD_CB("image.addCaption", QT_TRANSLATE_NOOP("CommandRegistrar", "Add Capt&ion"), "IMAGE/Add Caption", 20, false, 0,
+    REG_CMD_CB("image.addCaption", QT_TRANSLATE_NOOP("CommandRegistrar", "Insert Capt&ion..."), "IMAGE/Insert Caption...", 20, false, 0,
                image(ImageCommand::AddCaption));
     REG_CMD_CB("image.altText", QT_TRANSLATE_NOOP("CommandRegistrar", "A&lternative Text..."), "IMAGE/Alternative Text...", 30, true, 0,
                image(ImageCommand::AltText));
@@ -780,7 +787,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                image(ImageCommand::FilterBlackWhite));
     REG_CMD_CB("image.filterWash", QT_TRANSLATE_NOOP("CommandRegistrar", "&Washout"), "IMAGE/Filter/Washout", 54, true, 0,
                image(ImageCommand::FilterWash));
-    REG_CMD_CB("image.colorOptions", QT_TRANSLATE_NOOP("CommandRegistrar", "&Colors and Brightness..."), "IMAGE/Filter/Colors and Brightness...", 55, false, 0,
+    // The filter of the selected image for every image of the book (open texts and closed)
+    REG_CMD_CB("image.filterAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Same Filter for &All Images..."), "IMAGE/Filter/Same Filter for All Images...", 55, false, 0,
+               image(ImageCommand::FilterAll));
+    REG_CMD_CB("image.colorOptions", QT_TRANSLATE_NOOP("CommandRegistrar", "&Colors and Brightness..."), "IMAGE/Filter/Colors and Brightness...", 56, false, 0,
                image(ImageCommand::ColorOptions));
     REG_CMD_CB("image.crop", QT_TRANSLATE_NOOP("CommandRegistrar", "C&rop"), "IMAGE/Crop", 60, false, 0,
                image(ImageCommand::Crop));

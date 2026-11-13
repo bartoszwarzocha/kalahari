@@ -3,6 +3,7 @@
 ///        mirror, filter, the keys of its size) and cropping it in the text
 
 #include <kalahari/editor/book_editor.h>
+#include "book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
@@ -100,6 +101,43 @@ bool BookEditor::setImageFilter(int position, ImageFilter filter)
     }
     image->filter = filter;
     return setImageProperties(position, *image);
+}
+
+int BookEditor::setAllImagesFilter(ImageFilter filter, int threshold)
+{
+    if (!m_textBuffer) {
+        return 0;
+    }
+    QTextDocument* document = m_textBuffer.get();
+    const std::vector<int> images = imagesWithOtherFilter(*document, filter, threshold);
+    if (images.empty() || refusesChange()) {
+        return 0;
+    }
+
+    // One undo step; the cursor stays where it is
+    const StepCursor state{m_cursorPosition, m_selection};
+    QTextCursor cursor(document);
+    cursor.beginEditBlock();
+    document->appendUndoItem(new CallbackUndoItem([this, state] { m_stepCursor = state; }));
+    for (const int position : images) {
+        cursor.setPosition(position);
+        cursor.setPosition(position + 1, QTextCursor::KeepAnchor);
+        QTextCharFormat format = cursor.charFormat();
+        if (const std::optional<ImageProperties> image = imageOf(format)) {
+            setImage(format, normalizedImage(withImageFilter(*image, filter, threshold)));
+            cursor.setCharFormat(format);
+        }
+    }
+    document->appendUndoItem(new CallbackUndoItem([this, state] { m_stepCursor = state; }));
+    cursor.endEditBlock();
+    m_learnableChange.reset();
+
+    if (m_renderPipeline) {
+        m_renderPipeline->markAllDirty();
+    }
+    update();
+    emit contentChanged();
+    return static_cast<int>(images.size());
 }
 
 bool BookEditor::resizeImageByStep(int position, bool larger)

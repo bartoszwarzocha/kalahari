@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QImageIOHandler>
 #include <QImageReader>
+#include <QImageWriter>
 #include <QPainter>
 #include <QSvgRenderer>
 
@@ -24,6 +25,9 @@ constexpr int MAX_NUMBERED_NAMES = 10000;
 
 /// The most pixels of a side of a drawing (SVG) drawn whole for a cropped part of it
 constexpr int MAX_SHOWN_SVG_PIXELS = 4096;
+
+/// The quality of a JPEG copy made smaller (0-100): no loss the eye sees in print
+constexpr int SMALLER_JPEG_QUALITY = 92;
 
 /// Whether the file is an SVG drawing (drawn by QSvgRenderer, whatever plugins Qt has)
 bool isSvgFile(const QString& path)
@@ -46,6 +50,37 @@ QByteArray fileData(const QString& path)
         return QByteArray();
     }
     return file.readAll();
+}
+
+/// The bytes of a picture's file made @p maxWidth pixels wide, in its format and upright (its
+/// EXIF orientation done); empty: it is not wider, or the format cannot be written
+QByteArray smallerData(const QString& path, int maxWidth)
+{
+    if (maxWidth <= 0 || isSvgFile(path)) {
+        return QByteArray();
+    }
+    QImageReader reader(path);
+    reader.setAutoTransform(true);
+    const QByteArray format = reader.format();
+    if (format.isEmpty() || !QImageWriter::supportedImageFormats().contains(format) ||
+        (reader.supportsAnimation() && reader.imageCount() > 1)) {
+        return QByteArray();  // e.g. an animated GIF stays as it is
+    }
+    const QImage picture = reader.read();
+    if (picture.isNull() || picture.width() <= maxWidth) {
+        return QByteArray();
+    }
+    QByteArray data;
+    QBuffer buffer(&data);
+    buffer.open(QIODevice::WriteOnly);
+    QImageWriter writer(&buffer, format);
+    if (format == "jpeg" || format == "jpg") {
+        writer.setQuality(SMALLER_JPEG_QUALITY);
+    }
+    if (!writer.write(picture.scaledToWidth(maxWidth, Qt::SmoothTransformation))) {
+        return QByteArray();
+    }
+    return data;
 }
 
 }  // namespace
@@ -202,7 +237,7 @@ std::optional<QSize> ImageStore::shownPixelSize(const ImageProperties& image) co
     return file ? std::optional<QSize>(shownPixels(*file, image)) : std::nullopt;
 }
 
-QString ImageStore::addFile(const QString& path)
+QString ImageStore::addFile(const QString& path, int maxWidth)
 {
     if (m_folder.isEmpty()) {
         return QString();
@@ -217,7 +252,11 @@ QString ImageStore::addFile(const QString& path)
     if (folder.isDir() && file.absoluteDir().canonicalPath() == folder.canonicalFilePath()) {
         return QLatin1String(IMAGES_FOLDER) + QLatin1Char('/') + file.fileName();
     }
-    const QByteArray data = fileData(file.absoluteFilePath());
+    // A copy made smaller keeps the file's name
+    QByteArray data = smallerData(file.absoluteFilePath(), maxWidth);
+    if (data.isEmpty()) {
+        data = fileData(file.absoluteFilePath());
+    }
     if (data.isEmpty()) {
         return QString();
     }

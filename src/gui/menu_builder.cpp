@@ -48,7 +48,7 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Text Effects") return QObject::tr("&Text Effects");
     if (technicalName == "Change Case") return QObject::tr("&Change Case");
     if (technicalName == "Align Text") return QObject::tr("A&lign Text");
-    if (technicalName == "Formatting Character") return QObject::tr("Fo&rmatting Character");
+    if (technicalName == "Formatting Character") return QObject::tr("Formatting C&haracter");
     // The Table menu (the cell's context menu has the same keys)
     if (technicalName == "Insert") return QObject::tr("Inse&rt");
     if (technicalName == "Delete") return QObject::tr("D&elete");

@@ -69,6 +69,9 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     colors.tableLines = light ? tables.linesLight : tables.linesDark;
     colors.tableHeader = light ? tables.headerLight : tables.headerDark;
     colors.tableGridlines = light ? tables.gridlinesLight : tables.gridlinesDark;
+    const EditorColors::FieldColors& fields = appearance.colors.fields;
+    colors.field = light ? fields.light : fields.dark;
+    colors.brokenField = light ? fields.brokenLight : fields.brokenDark;
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
     colors.annotationComment = annotations.comment;
     colors.annotationTodo = annotations.todo;
@@ -366,11 +369,12 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         applyPageLayout();
     }
 
-    // How the scene breaks look
+    // How the scene breaks look, the frame of a missing image
     if (auto* layout = m_textBuffer ? qobject_cast<KalahariTextDocumentLayout*>(
                                           m_textBuffer->documentLayout())
                                     : nullptr) {
         layout->setSceneBreakLook(m_appearance.sceneBreakLook);
+        layout->setMissingImageColor(m_appearance.colors.imageMissingColor(m_appearance.colorMode));
     }
 
     // The cards of the annotations under the paragraphs: shown or not, their looks and colors
@@ -414,6 +418,11 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
         // Phase 15: granular setter for color change only
         if (m_renderPipeline) {
             m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, mode));
+        }
+        if (auto* layout = m_textBuffer ? qobject_cast<KalahariTextDocumentLayout*>(
+                                              m_textBuffer->documentLayout())
+                                        : nullptr) {
+            layout->setMissingImageColor(m_appearance.colors.imageMissingColor(mode));
         }
         updateAnnotationCards();  // in the colors of the paper
 
@@ -1094,6 +1103,8 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     layout->setParagraphStyles(m_paragraphStyles);  // the book's styles (setParagraphStyles())
     layout->setImageStore(m_imageStore);            // the files of the images (setImagesFolder())
     layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
+    layout->setMissingImageColor(m_appearance.colors.imageMissingColor(m_appearance.colorMode));
+    layout->setCaptionContext(m_captionContext);  // the book around the text
 
     // The numbers on the margin go on from the lines above the view, estimated until the
     // background pass lays them out: the view shows the exact numbers then. Laying out the
@@ -1159,6 +1170,12 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // From now on an edit can make the content differ from the saved one, or bring it back
     connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
             &BookEditor::checkModified);
+
+    // The book counts the numbers of the captions again when they change
+    m_shownCaptions.clear();
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
+            &BookEditor::checkCaptionsSoon);
+    checkCaptionsSoon();
 
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());

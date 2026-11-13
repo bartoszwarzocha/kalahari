@@ -6,6 +6,7 @@
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/render_context.h>
 #include <kalahari/editor/text_images.h>
 #include <QFileInfo>
 #include <QFontMetricsF>
@@ -42,26 +43,13 @@ constexpr qreal IMAGE_LABEL_PADDING = 4.0;
 /// The dashes of the outline of a resize's preview
 constexpr qreal IMAGE_PREVIEW_DASH = 3.0;
 
+/// Narrower lines (in points) are those of a text not laid out yet: a copy is not made
+/// smaller for them
+constexpr double MIN_LINE_POINTS_FOR_COPY = 72.0;
+
 /// Whether a corner is on the right of its image, and at its bottom
 bool isRightCorner(int corner) { return corner == 1 || corner == 3; }
 bool isBottomCorner(int corner) { return corner >= 2; }
-
-/// @brief The block after an image's block when it is its caption: in the style Caption
-QTextBlock captionBlockOf(const QTextBlock& imageBlock)
-{
-    const QTextBlock next = imageBlock.next();
-    if (!next.isValid() || tableOf(next) != tableOf(imageBlock) ||
-        paragraphStyleOf(next.blockFormat()) != QLatin1String(CAPTION_STYLE_ID)) {
-        return QTextBlock();
-    }
-    // In a table: in the same cell
-    if (const QTextTable* table = tableOf(imageBlock);
-        table != nullptr &&
-        table->cellAt(next.position()) != table->cellAt(imageBlock.position())) {
-        return QTextBlock();
-    }
-    return next;
-}
 
 }  // namespace
 
@@ -141,8 +129,33 @@ bool BookEditor::insertImageFile(const QString& path)
         return false;
     }
     ImageProperties image;
-    image.source = m_imageStore->addFile(path);
+    image.source = m_imageStore->addFile(path, newImageCopyWidth(path));
     return !image.source.isEmpty() && insertImage(image);
+}
+
+int BookEditor::newImageCopyWidth(const QString& path) const
+{
+    if (m_newImageOptions.maxDpi <= 0 || !m_textBuffer) {
+        return 0;
+    }
+    const std::optional<QSize> pixels = ImageStore::fileSize(path);
+    const auto* layout = qobject_cast<KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+    if (!pixels || pixels->width() <= 0 || layout == nullptr || layout->pixelsPerPoint() <= 0.0) {
+        return 0;
+    }
+    // The width the image gets in the lines at the cursor: the settings' share of them, else
+    // its file's own, at most theirs
+    const QTextBlock block = m_textBuffer->findBlockByNumber(m_cursorPosition.paragraph);
+    const double line = layout->imageLineWidth(block) / layout->pixelsPerPoint();
+    if (!block.isValid() || line < MIN_LINE_POINTS_FOR_COPY) {
+        return 0;  // not laid out yet: the copy is the file
+    }
+    const double natural = pixels->width() * POINTS_PER_INCH / IMAGE_PIXELS_PER_INCH;
+    const double shown = m_newImageOptions.widthPercent > 0
+                             ? line * std::min(m_newImageOptions.widthPercent, 100) / 100.0
+                             : std::min(natural, line);
+    const int wanted = static_cast<int>(std::ceil(shown * m_newImageOptions.maxDpi / POINTS_PER_INCH));
+    return wanted > 0 && wanted < pixels->width() ? wanted : 0;
 }
 
 bool BookEditor::insertPicture(const QImage& picture)
@@ -183,20 +196,56 @@ bool BookEditor::insertImage(const ImageProperties& image)
         leaveObject(cursor);  // never in the block of a line or a break
     }
 
-    // No formatting of its own: only the fragments of annotations and the link of its place
+    // In a paragraph of its own, aligned as the settings say: never in the text of a
+    // paragraph, nor between an image and its caption (at the start of a paragraph a new
+    // image goes before it, else after it, after the caption of an image)
+    if (const QTextBlock block = cursor.block(); block.length() > 1) {
+        QTextBlock first = block;
+        QTextBlock last = block;
+        QTextBlock imageBlock = imageBlockOfCaption(block);
+        if (!imageBlock.isValid() && hasImages(block)) {
+            imageBlock = block;
+        }
+        if (const QTextBlock caption = captionBlockOf(imageBlock); caption.isValid()) {
+            const bool above = caption.position() < imageBlock.position();
+            first = above ? caption : imageBlock;
+            last = above ? imageBlock : caption;
+        }
+        if (cursor.position() == first.position()) {
+            cursor.insertBlock(first.blockFormat(), first.charFormat());
+            cursor.movePosition(QTextCursor::PreviousBlock);
+            cursor.setBlockFormat(paragraphBlockFormat());
+            cursor.setBlockCharFormat(QTextCharFormat());
+        } else {
+            cursor.setPosition(last.position() + last.length() - 1);
+            cursor.insertBlock(paragraphBlockFormat(), QTextCharFormat());
+        }
+    }
+    QTextBlockFormat aligned;
+    aligned.setAlignment(m_newImageOptions.alignment);
+    cursor.mergeBlockFormat(aligned);
+
+    // No formatting of its own: only the fragments of annotations and the link of its place;
+    // the width of the settings unless it has one
     const QTextCharFormat place = insertionFormat(cursor);
-    QTextCharFormat format = imageCharFormat(image);
+    ImageProperties shown = image;
+    if (m_newImageOptions.widthPercent > 0 && shown.unit == ImageWidthUnit::Natural) {
+        shown.unit = ImageWidthUnit::Percent;
+        shown.width = m_newImageOptions.widthPercent;
+    }
+    QTextCharFormat format = imageCharFormat(normalizedImage(shown));
     setAnnotations(format, replacing ? fragments : annotationsOf(place));
     setLinkAddress(format, linkAddressOf(place));
-
-    // An image of its own paragraph stands in the middle
-    if (cursor.block().length() <= 1) {
-        QTextBlockFormat centered;
-        centered.setAlignment(Qt::AlignHCenter);
-        cursor.mergeBlockFormat(centered);
-    }
     const int position = cursor.position();
     cursor.insertText(QString(QChar::ObjectReplacementCharacter), format);
+
+    // A numbered caption under it, of the label of the settings
+    if (const QString label = normalizedLabel(m_newImageOptions.captionLabel); !label.isEmpty()) {
+        QTextCursor caption(document);
+        const QTextBlock captionBlock = newCaptionBlock(caption, cursor.block(), false);
+        writeCaption(caption, captionBlock, ImageCaption{true, true, label, QString(), false},
+                     ImageCaption{});
+    }
     const SelectionRange selected{absoluteToCursorPosition(document, position),
                                   absoluteToCursorPosition(document, position + 1)};
     document->appendUndoItem(new CallbackUndoItem(
@@ -442,6 +491,11 @@ std::optional<ImagePropertiesData> BookEditor::imagePropertiesData(int position)
         const qreal box = layout->imageSize(block, *image).width();
         propertiesData.shownWidth = (box - frame.left() - frame.right()) / layout->pixelsPerPoint();
     }
+    // Its caption, and the number it has or would get
+    propertiesData.caption = imageCaptionOf(position).value_or(ImageCaption{});
+    if (!propertiesData.caption.label.isEmpty()) {
+        propertiesData.captionNumber = captionNumberAt(position, propertiesData.caption.label);
+    }
     return propertiesData;
 }
 
@@ -470,8 +524,44 @@ bool BookEditor::setImagePropertiesData(const ImagePropertiesData& propertiesDat
             image.crop = ImageCrop{};
         }
     }
-    // Nothing changed: no step of Undo, and nothing went wrong
-    return normalizedImage(image) == *old || setImageProperties(propertiesData.position, image);
+    const int position = propertiesData.position;
+    const std::optional<ImageCaption> caption = imageCaptionOf(position);
+    ImageCaption wanted = propertiesData.caption;
+    if (caption && !wanted.shown && !caption->shown) {
+        wanted = *caption;  // none, and none wanted
+    }
+    const bool imageChanges = normalizedImage(image) != *old;
+    const bool captionChanges = caption && wanted != *caption;
+    if (!imageChanges && !captionChanges) {
+        return true;  // nothing changed: no step of Undo, and nothing went wrong
+    }
+
+    // Its number goes, and cross-references name it: asked first; kept, the caption stays
+    QTextDocument* document = m_textBuffer.get();
+    bool applyCaption = captionChanges;
+    if (captionChanges && caption->shown && caption->numbered && (!wanted.shown || !wanted.numbered)) {
+        const QTextBlock block = captionBlockOf(document->findBlock(position));
+        applyCaption = !block.isValid() || confirmCaptionRemoval(block);
+    }
+    if (!imageChanges && !applyCaption) {
+        return true;
+    }
+
+    // One step of Undo: the image, then its caption (which may move the image's place)
+    QTextCursor step(document);
+    step.beginEditBlock();
+    QTextCursor imagePlace(document);
+    imagePlace.setPosition(position);
+    bool done = !imageChanges || setImageProperties(position, image);
+    if (done && applyCaption) {
+        const QScopedValueRollback<bool> asked(m_captionRemovalAsked, true);
+        done = setImageCaption(position, wanted);
+    }
+    step.endEditBlock();
+    if (done) {
+        selectImage(imagePlace.position());
+    }
+    return done;
 }
 
 bool BookEditor::setImageLayoutWidth(int position, qreal width)
@@ -784,9 +874,17 @@ void BookEditor::addImageActions(QMenu& menu, int position)
             emit imagePropertiesAsked(position, 0);
         }));
     }
-    //: In Polish: &Dodaj podpis
-    disableWhileReadOnly(menu.addAction(tr("A&dd Caption"), this,
-                                        [this, position]() { addImageCaption(position); }));
+    // The window of the caption where the application gives it, else a caption at once
+    if (isSignalConnected(QMetaMethod::fromSignal(&BookEditor::imageCaptionAsked))) {
+        //: In Polish: Wstaw po&dpis...
+        disableWhileReadOnly(menu.addAction(tr("Insert Capt&ion..."), this, [this, position]() {
+            emit imageCaptionAsked(position);
+        }));
+    } else {
+        //: In Polish: &Dodaj podpis
+        disableWhileReadOnly(menu.addAction(tr("A&dd Caption"), this,
+                                            [this, position]() { addImageCaption(position); }));
+    }
     if (isSignalConnected(QMetaMethod::fromSignal(&BookEditor::imageFileAsked))) {
         //: In Polish: Z&mień obraz...
         QAction* change = menu.addAction(tr("C&hange Image..."), this,

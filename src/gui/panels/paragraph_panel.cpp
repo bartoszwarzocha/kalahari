@@ -496,6 +496,9 @@ void ParagraphPanel::showParagraph() {
         case editor::TextObject::PageBreak:
             m_kindLabel->setText(tr("Page Break"));
             break;
+        case editor::TextObject::FigureList:
+            m_kindLabel->setText(tr("List of Figures"));
+            break;
         case editor::TextObject::None:
             m_kindLabel->clear();
             break;

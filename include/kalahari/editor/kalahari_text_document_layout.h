@@ -6,11 +6,13 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <QAbstractTextDocumentLayout>
 #include <QTextBlock>
 #include <QTextCharFormat>
+#include <QColor>
 #include <QFont>
 #include <QMarginsF>
 #include <functional>
@@ -50,6 +52,11 @@ class ImageStore;
 /// - Objects of the text (a horizontal line, the scene and page breaks) are sized and
 ///   drawn here; after a page break the page flow goes on at the next page, and a heading
 ///   is moved to the page of the paragraph after it
+/// - Fields (text_captions.h): a caption's number and a cross-reference are characters
+///   sized and drawn as the text they show; after a change of a field the numbers are
+///   counted again, and a field or a list of figures that shows something else is laid
+///   out again. A list of figures higher than a page's text starts a page and goes on to
+///   the next ones, its rows never split.
 /// - Page flow keeps the breaks of a paragraph: no single first or last line alone on a page
 ///   (widow control, on unless the paragraph turns it off), all its lines on one page, a
 ///   new page before it
@@ -199,6 +206,39 @@ public:
     ///        coordinates (as its lines are placed); std::nullopt: no image there, or its
     ///        block is not laid out
     std::optional<QRectF> imageRect(int position) const;
+
+    /// @brief Set the color of the frame of an image whose file is missing (its dashed line
+    ///        and its picture of a broken image); not valid: the color of the text
+    void setMissingImageColor(const QColor& color);
+    const QColor& missingImageColor() const { return m_missingImageColor; }
+
+    // ==========================================================================
+    // Captions, cross-references and the list of figures
+    // ==========================================================================
+
+    /// @brief Set what the numbers of the fields depend on outside the text: the book around
+    ///        it (text_captions.h); the laid out fields and lists of figures that show
+    ///        something else then are laid out again
+    void setCaptionContext(const CaptionContext& context);
+    const CaptionContext& captionContext() const { return m_captionContext; }
+
+    /// @brief The numbers of the document's fields in the book around it, counted again when
+    ///        they are asked for after a change of a field or of the context
+    const CaptionNumbers& captionNumbers() const;
+
+    /// @brief Whether the document has a field (a caption's number, a cross-reference) or a
+    ///        list of figures
+    bool hasFields() const;
+
+    /// @brief The row of a list of figures under a point; std::nullopt: no row there, or the
+    ///        list's block is not laid out
+    /// @param position The list's character
+    /// @param point In the coordinates of the list's block (as its lines are placed)
+    std::optional<FigureListRow> figureListRowAt(int position, const QPointF& point) const;
+
+    /// @brief The rectangle of the list of figures at a position of a laid out block, in the
+    ///        block's coordinates; std::nullopt: no list there, or its block is not laid out
+    std::optional<QRectF> figureListRect(int position) const;
 
     /// @brief Paragraph spacing at the current document font (whole pixels)
     qreal paragraphSpacing() const;
@@ -620,6 +660,52 @@ private:
     /// @brief Height of an object's line box
     qreal objectHeight(TextObject object) const;
 
+    /// @brief The font of a field at a position: the document font, the style's and the
+    ///        field's own over it
+    QFont fieldFont(int position, const QTextFormat& format) const;
+
+    /// @brief The rows of the list of figures as its object places them (FigureListPlacement):
+    ///        placed again when the captions, the width, the font or the pages changed
+    struct FigureListPlacement;
+    const FigureListPlacement& figureListPlacement() const;
+
+    /// @brief The tops of the rows of the list of figures, from the top of its line
+    /// @param start The top of its line in the document, on the pages; < 0: without pages
+    std::vector<qreal> figureListTops(qreal start) const;
+
+    /// @brief The top of the line of the list of figures at a position, in the document, as
+    ///        the pages placed it; -1 without pages (or not placed yet)
+    qreal figureListStart(int position) const;
+
+    /// @brief Draw the list of figures at a position in its object's rectangle (on the pages
+    ///        its rows go on below it)
+    void drawFigureList(QPainter* painter, const QRectF& rect, int position) const;
+
+    /// @brief Count the fields and their numbers again, when a change or the context asks
+    void countFields() const;
+
+    /// @brief What each block with fields shows, by block number in order: the texts of its
+    ///        fields, the captions of a list of figures
+    std::vector<std::pair<int, QString>> fieldSignatures() const;
+
+    /// @brief Whether a change of the text touched a field: one removed ([from, from +
+    ///        charsRemoved) of the old text), or one in the changed blocks
+    bool touchesFields(int from, int charsRemoved, const QTextBlock& first,
+                       const QTextBlock& last) const;
+
+    /// @brief After a change of the text that touched no field: the fields after it move
+    /// @param blockDelta Change in the number of blocks
+    void shiftFields(int from, int charsRemoved, int charsAdded, int firstBlock, int oldLastBlock,
+                     int blockDelta);
+
+    /// @brief After a change of blocks [first, last] that touched a field, or of the context
+    ///        (first > last): the laid out blocks outside it whose fields show something else
+    ///        are laid out again
+    /// @param delta Change in the number of blocks
+    /// @param old What the blocks with fields showed before, by the old block numbers
+    void refreshFields(int first, int last, int delta,
+                       const std::vector<std::pair<int, QString>>& old);
+
     /// @brief Give a block's lines the fonts of its style, as formats of its layout
     void applyStyleFormats(const QTextBlock& block) const;
 
@@ -797,9 +883,29 @@ private:
     PageFlow m_pageFlow;
 
     // The files of the images; whether the document has shown an image (laid out again
-    // when the page's height changes)
+    // when the page's height changes); the color of the frame of a missing one
     std::shared_ptr<ImageStore> m_imageStore;
     mutable bool m_hasImages = false;
+    QColor m_missingImageColor;
+
+    // The fields: what their numbers depend on outside the text, their numbers (counted
+    // again when asked for after a change of a field), whether the document has a field or
+    // a list of figures, each of their characters in order and what each block with fields
+    // shows (by block number); the characters and blocks are kept in step with the text
+    struct FieldChar {
+        int position = 0;
+        int block = 0;
+        QTextCharFormat format;
+    };
+    CaptionContext m_captionContext;
+    mutable CaptionNumbers m_captionNumbers;
+    mutable bool m_captionNumbersDirty = true;
+    mutable bool m_hasFields = false;
+    mutable std::vector<FieldChar> m_fieldChars;
+    std::vector<std::pair<int, QString>> m_fieldSignatures;
+
+    // The list of figures as last placed (figureListPlacement())
+    mutable std::unique_ptr<FigureListPlacement> m_figureList;
 
     // Per block, indexed by block number and kept in step with the document: height
     // (estimated while waiting for layout), text length in average characters (for

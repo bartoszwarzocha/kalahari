@@ -6,6 +6,7 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
@@ -1343,7 +1344,8 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
     }
     const ListMarks counted = marks != nullptr ? ListMarks{} : listMarksOf(kml);
     const ListMarks& items = marks != nullptr ? *marks : counted;
-    size_t itemIndex = 0;  // of the next <li>
+    size_t itemIndex = 0;   // of the next <li>
+    size_t fieldIndex = 0;  // of the next field or list of figures
 
     // Plain HTML that other programs paste: paragraphs and headings with their alignment,
     // quotes, lines and page breaks, the basic formatting tags and the explicit inline
@@ -1427,6 +1429,18 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                     reader.skipCurrentElement();
                     break;
                 }
+                if (tag == QStringLiteral("caption-number") ||
+                    tag == QStringLiteral("cross-reference")) {
+                    // A field: the text the editor shows
+                    if (fieldIndex < items.fields.size() && !items.fields[fieldIndex].isEmpty()) {
+                        writer.writeCharacters(items.fields[fieldIndex]);
+                        emptyParagraph = false;
+                        endsWithBreak = false;
+                    }
+                    ++fieldIndex;
+                    reader.skipCurrentElement();
+                    break;
+                }
                 if (tag == QStringLiteral("br")) {
                     // A line break in the paragraph
                     writer.writeEmptyElement(QStringLiteral("br"));
@@ -1473,6 +1487,21 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                     if (tag == QStringLiteral("hr")) {
                         startElement(QStringLiteral("hr"), false, QString());
                         writer.writeEndElement();
+                        reader.skipCurrentElement();
+                        break;
+                    }
+                    if (tag == QStringLiteral("list-of-figures")) {
+                        // Its rows, a paragraph each
+                        if (fieldIndex < items.fields.size()) {
+                            for (const QString& row :
+                                 items.fields[fieldIndex].split(QLatin1Char('\n'))) {
+                                startElement(QStringLiteral("p"), false, QString());
+                                writer.writeCharacters(row.isEmpty() ? QString(QChar(QChar::Nbsp))
+                                                                     : row);
+                                writer.writeEndElement();
+                            }
+                        }
+                        ++fieldIndex;
                         reader.skipCurrentElement();
                         break;
                     }
@@ -1908,8 +1937,9 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
     }
     const ListMarks counted = marks != nullptr ? ListMarks{} : listMarksOf(kml);
     const ListMarks& items = marks != nullptr ? *marks : counted;
-    size_t itemIndex = 0;  // of the next <li>
-    int listLevel = 0;     // the lists open
+    size_t itemIndex = 0;   // of the next <li>
+    size_t fieldIndex = 0;  // of the next field or list of figures
+    int listLevel = 0;      // the lists open
 
     QString text;
     QXmlStreamReader reader(KmlFormatRegistry::withRootElement(kml));
@@ -1940,6 +1970,15 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                 const QString tagName = reader.name().toString();
                 if (tagName == QStringLiteral("annotations")) {
                     reader.skipCurrentElement();  // Not part of the text
+                    --depth;
+                } else if (tagName == QStringLiteral("caption-number") ||
+                           tagName == QStringLiteral("cross-reference")) {
+                    // A field: the text the editor shows
+                    if (fieldIndex < items.fields.size()) {
+                        text += items.fields[fieldIndex];
+                    }
+                    ++fieldIndex;
+                    reader.skipCurrentElement();
                     --depth;
                 } else if (tagName == QStringLiteral("br")) {
                     text += tableDepth > 0 ? QLatin1Char(' ') : QLatin1Char('\n');
@@ -2007,6 +2046,12 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                         text += sceneBreakText(breakStyle);
                     } else if (tagName == QStringLiteral("page-break")) {
                         text += QLatin1Char('\f');  // the page break of plain text
+                    } else if (tagName == QStringLiteral("list-of-figures")) {
+                        // Its rows, each on a line
+                        if (fieldIndex < items.fields.size()) {
+                            text += items.fields[fieldIndex];
+                        }
+                        ++fieldIndex;
                     } else if (tagName == QStringLiteral("table")) {
                         tableDepth = depth;
                         row = -1;
@@ -2070,6 +2115,9 @@ ListMarks ClipboardHandler::listMarksOf(const QString& kml)
             result.numbers.push_back(index < numbers.size() ? numbers[index] : -1);
         }
     }
+    // The fields numbered in the text alone
+    result.fields = fieldTexts(document, CaptionNumbers(document, CaptionContext{}), 0,
+                               document.characterCount());
     return result;
 }
 

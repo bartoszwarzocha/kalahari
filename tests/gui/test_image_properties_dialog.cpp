@@ -307,7 +307,8 @@ TEST_CASE("Image Properties window: its pages, their keys and one size on all of
     const QStringList pages = pageNames(dialog);
     CHECK(pages == QStringList{QStringLiteral("&Image"), QStringLiteral("&Size and Rotation"),
                                QStringLiteral("&Crop"), QStringLiteral("&Border"),
-                               QStringLiteral("C&olors"), QStringLiteral("&Description")});
+                               QStringLiteral("C&olors"), QStringLiteral("&Description"),
+                               QStringLiteral("Ca&ption")});
     // The list shows them without the "&"
     CHECK(dialog.pageList()->item(1)->text() == QStringLiteral("Size and Rotation"));
     CHECK(dialog.currentPage() == ImagePropertiesDialog::ImagePage);
@@ -353,7 +354,10 @@ TEST_CASE("Image Properties window: its pages, their keys and one size on all of
     CHECK(dialog.currentPage() == ImagePropertiesDialog::SizePage);
     dialog.showPage(ImagePropertiesDialog::ImagePage);
     press(dialog, QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_Tab));
-    CHECK(dialog.currentPage() == ImagePropertiesDialog::DescriptionPage);
+    CHECK(dialog.currentPage() == ImagePropertiesDialog::CaptionPage);
+    dialog.showPage(ImagePropertiesDialog::SizePage);
+    press(dialog, QKeySequence(QStringLiteral("Alt+P")));
+    CHECK(dialog.currentPage() == ImagePropertiesDialog::CaptionPage);
     checkFitsSmallScreen(dialog);
 }
 
@@ -711,7 +715,7 @@ TEST_CASE("Image Properties window: the border's line, width, color, room and sh
     auto* line = fieldOf<QComboBox>(page, QStringLiteral("&Line"));
     auto* width = fieldOf<QComboBox>(page, QStringLiteral("&Width"));
     auto* color = fieldOf<QPushButton>(page, QStringLiteral("Colo&r"));
-    auto* padding = fieldOf<LengthSpinBox>(page, QStringLiteral("S&pace inside"));
+    auto* padding = fieldOf<LengthSpinBox>(page, QStringLiteral("Space i&nside"));
     auto* shadow = buttonOf<QCheckBox>(page, QStringLiteral("S&hadow"));
     REQUIRE(line != nullptr);
     REQUIRE(width != nullptr);
@@ -784,7 +788,7 @@ TEST_CASE("Image Properties window: the filter's tiles and the sliders", "[gui][
     auto* brightness = fieldOf<QSlider>(page, QStringLiteral("B&rightness"));
     auto* contrast = fieldOf<QSlider>(page, QStringLiteral("Co&ntrast"));
     auto* threshold = fieldOf<QSlider>(page, QStringLiteral("&Threshold"));
-    auto* transparency = fieldOf<QSlider>(page, QStringLiteral("Trans&parency"));
+    auto* transparency = fieldOf<QSlider>(page, QStringLiteral("Transparenc&y"));
     auto* reset = buttonOf<QPushButton>(page, QStringLiteral("Reset to Origina&l"));
     REQUIRE(original != nullptr);
     REQUIRE(sepia != nullptr);
@@ -880,6 +884,141 @@ TEST_CASE("Image Properties window: the name, the alternative text and the descr
 }
 
 // =============================================================================
+// Caption
+// =============================================================================
+
+TEST_CASE("Image Properties window: the caption, its label and number, below or above",
+          "[gui][images][dialog][captions]") {
+    const Pictures pictures;
+    ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
+    given.caption.label = QStringLiteral("Figure");
+    given.captionNumber = QStringLiteral("3");
+    ImagePropertiesDialog dialog(given, QColor());
+    dialog.setCaptionLabels({QStringLiteral("Figure"), QStringLiteral("Map")},
+                            [](const QString& label) {
+                                return label == QLatin1String("Map") ? QStringLiteral("1")
+                                                                     : QStringLiteral("3");
+                            });
+    QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::CaptionPage);
+    auto* shown = buttonOf<QCheckBox>(page, QStringLiteral("S&how a caption"));
+    auto* label = fieldOf<QComboBox>(page, QStringLiteral("&Label"));
+    auto* text = fieldOf<QLineEdit>(page, QStringLiteral("&Text"));
+    auto* above = buttonOf<QRadioButton>(page, QStringLiteral("&Above the image"));
+    auto* below = buttonOf<QRadioButton>(page, QStringLiteral("B&elow the image"));
+    auto* unnumbered =
+        buttonOf<QCheckBox>(page, QStringLiteral("&Without a label and number – the text alone"));
+    REQUIRE(shown != nullptr);
+    REQUIRE(label != nullptr);
+    REQUIRE(text != nullptr);
+    REQUIRE(above != nullptr);
+    REQUIRE(below != nullptr);
+    REQUIRE(unnumbered != nullptr);
+    const auto shows = [&page](const QString& wanted) {
+        for (const QLabel* each : page.findChildren<QLabel*>()) {
+            if (each->text() == wanted) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // No caption yet: the fields wait for it
+    CHECK_FALSE(shown->isChecked());
+    CHECK_FALSE(label->isEnabled());
+    CHECK_FALSE(text->isEnabled());
+    CHECK_FALSE(dialog.data().caption.shown);
+
+    // Shown: the label of the image first, with the number the program gives
+    shown->setChecked(true);
+    CHECK(label->isEnabled());
+    CHECK(label->currentText() == QStringLiteral("Figure"));
+    CHECK(shows(QStringLiteral("the program gives the number: 3")));
+    CHECK(below->isChecked());
+    text->setText(QStringLiteral("The bridge "));
+    emit text->textEdited(text->text());
+    CHECK(dialog.data().caption ==
+          ImageCaption{true, true, QStringLiteral("Figure"), QStringLiteral("The bridge"), false});
+
+    // Another label: its number; above the image
+    label->setCurrentIndex(1);
+    CHECK(shows(QStringLiteral("the program gives the number: 1")));
+    above->setChecked(true);
+    CHECK(dialog.data().caption ==
+          ImageCaption{true, true, QStringLiteral("Map"), QStringLiteral("The bridge"), true});
+
+    // The text alone: without it, no caption
+    unnumbered->setChecked(true);
+    CHECK_FALSE(label->isEnabled());
+    CHECK_FALSE(shows(QStringLiteral("the program gives the number: 1")));
+    CHECK(dialog.data().caption.shown);
+    CHECK_FALSE(dialog.data().caption.numbered);
+    text->setText(QString());
+    emit text->textEdited(text->text());
+    CHECK_FALSE(dialog.data().caption.shown);
+
+    // New Label...: a label of its own, chosen
+    unnumbered->setChecked(false);
+    answerNext<gui::dialogs::TextInputDialog>([](gui::dialogs::TextInputDialog& input) {
+        input.field()->setText(QStringLiteral("Chart"));
+        input.acceptButton()->click();
+    });
+    buttonOf<QPushButton>(page, QStringLiteral("&New Label..."))->click();
+    CHECK(dialog.captionLabels() ==
+          QStringList{QStringLiteral("Figure"), QStringLiteral("Map"), QStringLiteral("Chart")});
+    CHECK(label->currentText() == QStringLiteral("Chart"));
+    CHECK(dialog.data().caption.label == QStringLiteral("Chart"));
+}
+
+TEST_CASE("Editor panel: Image Properties... gives the image its look and caption as one step",
+          "[gui][images][dialog][captions]") {
+    const Pictures pictures;
+    pictures.add(QStringLiteral("bridge.png"), {800, 400});
+    gui::EditorPanel panel;
+    panel.setImagesFolder(pictures.dir.path());
+    BookEditor& editor = *panel.getBookEditor();
+    const QString kml = QStringLiteral(
+        "<kml><p align=\"center\"><img src=\"images/bridge.png\"/></p><p>Text</p></kml>");
+    editor.fromKml(kml);
+
+    answerNext<ImagePropertiesDialog>([](ImagePropertiesDialog& dialog) {
+        QWidget& border = *dialog.pages()->widget(ImagePropertiesDialog::BorderPage);
+        fieldOf<QComboBox>(border, QStringLiteral("&Line"))->setCurrentIndex(1);
+        QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::CaptionPage);
+        buttonOf<QCheckBox>(page, QStringLiteral("S&how a caption"))->setChecked(true);
+        auto* text = fieldOf<QLineEdit>(page, QStringLiteral("&Text"));
+        text->setText(QStringLiteral("The bridge"));
+        emit text->textEdited(text->text());
+        dialog.acceptButton()->click();
+    });
+    panel.showImagePropertiesDialog(0, ImagePropertiesDialog::CaptionPage);
+    const std::optional<ImageCaption> caption = editor.imageCaptionOf(0);
+    REQUIRE(caption.has_value());
+    CHECK(caption->shown);
+    CHECK(caption->numbered);
+    CHECK(caption->text == QStringLiteral("The bridge"));
+    CHECK(editor.toKml().contains(QStringLiteral("border=\"solid\"")));
+    CHECK(editor.captionEntries().size() == 1);
+
+    // One step of Undo: the image as it was, without its caption
+    editor.undo();
+    CHECK(editor.toKml() == kml);
+    CHECK_FALSE(editor.canUndo());
+
+    // Only the caption taken away
+    editor.redo();
+    answerNext<ImagePropertiesDialog>([](ImagePropertiesDialog& dialog) {
+        QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::CaptionPage);
+        buttonOf<QCheckBox>(page, QStringLiteral("S&how a caption"))->setChecked(false);
+        dialog.acceptButton()->click();
+    });
+    panel.showImagePropertiesDialog(0, ImagePropertiesDialog::CaptionPage);
+    CHECK_FALSE(editor.imageCaptionOf(0)->shown);
+    CHECK(editor.captionEntries().empty());
+    editor.undo();
+    CHECK(editor.imageCaptionOf(0)->shown);
+}
+
+// =============================================================================
 // In Polish
 // =============================================================================
 
@@ -897,7 +1036,8 @@ TEST_CASE("Image Properties window in Polish: keys of its own, Latin letters, a 
     const QStringList pages = pageNames(dialog);
     CHECK(pages == QStringList{QStringLiteral("&Obraz"), QStringLiteral("&Rozmiar i obrót"),
                                QStringLiteral("&Przycięcie"), QStringLiteral("Obramo&wanie"),
-                               QStringLiteral("&Kolory"), QStringLiteral("Op&is")});
+                               QStringLiteral("&Kolory"), QStringLiteral("Op&is"),
+                               QStringLiteral("Po&dpis")});
     for (int page = 0; page < dialog.pages()->count(); ++page) {
         INFO("page " << page);
         CHECK(sameKeys(*dialog.pages()->widget(page), nullptr, pages).isEmpty());
@@ -913,6 +1053,8 @@ TEST_CASE("Image Properties window in Polish: keys of its own, Latin letters, a 
     }
     press(dialog, QKeySequence(QStringLiteral("Alt+W")));
     CHECK(dialog.currentPage() == ImagePropertiesDialog::BorderPage);
+    press(dialog, QKeySequence(QStringLiteral("Alt+D")));
+    CHECK(dialog.currentPage() == ImagePropertiesDialog::CaptionPage);
     checkFitsSmallScreen(dialog);
 }
 

@@ -11,6 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Images: numbered captions, cross-references and the list of figures** - 2026-11-12.
+  Insert > Caption... (Ctrl+Shift+G, also with the cursor just after the image), Image >
+  Insert Caption... and the context menu of an image give the image a caption: a paragraph in
+  the style Caption below or above it, "Figure 3. The bridge in 1931", whose label is text and
+  whose number is a field on a gray background that the program keeps current. Each label
+  (Figure, Photo, Illustration, Map, Diagram, or one of the writer's own) has its own
+  numbering, set per book in Insert Caption > Numbering...: 1, a, A, i or I, through the whole
+  book or anew in each chapter, with the chapter's number first if wanted ("2.3", with a
+  period, an en dash or a colon). A chapter is a text of the main kind in the main part, so
+  the title page and the back matter are not counted as chapters. A caption can also be its text
+  alone, without a label and number. Image Properties has a seventh page, Caption, with the
+  same choices, and a gear button for the image settings. Insert > Cross-Reference... puts
+  the number of a caption into the text: the number alone, the label and number, the whole
+  caption, or "above" or "below", as a link that Ctrl+click follows to the image if wanted;
+  it changes together with the caption, and one to a caption that is gone shows "?" on a
+  background of its own. Insert > List of Figures adds a heading and a block with the
+  captions of the whole book, kept current, without page numbers; Ctrl+click on a line goes
+  to its image. Removing an image removes its caption in the same step of Undo, after asking
+  in the program's own window when cross-references name it. A copied caption is a caption of
+  its own, and its cross-references stay with the original. The colors of the fields are set per paper in Settings > Editor > Colors. KML
+  keeps them as `<caption-number>`, `<cross-reference>`, `<list-of-figures/>` and
+  `caption="above"` (docs/kml_format.md).
+- **Images: the same filter for all images of the book** - 2026-11-12. Image > Filter > Same
+  Filter for All Images... gives every image of the book the filter of the selected one (with
+  its threshold for Black and White), after asking how many images it changes; brightness,
+  contrast and transparency of each image stay as they were. Each open text changes in one
+  step of its Undo, and the texts that are not open change in their files (saved at once,
+  unless they have changes not saved yet). The notice afterwards has Undo for the whole
+  change, as long as the texts have not changed since.
+- **Settings > Editor > Images** - 2026-11-12. A new page for new images: their alignment,
+  their width (as the original, at most the text's, or a share of the text) and a numbered
+  caption of a chosen label under each; the captions of new books: their labels (Add...,
+  Rename..., Remove), the number format, the chapter's number and what a new cross-reference
+  shows; and the copies of the files: copies of large images made smaller above a number of
+  dots per inch (300 by default) at their size in the text, in the file's format. The layout
+  of a new image and the manuscript for a publisher are greyed out until they work. The
+  windows Insert Caption and Image Properties open this page with their gear button.
+
 - **Images: the Image menu and Image Properties** - 2026-11-11. A new Image menu between Table
   and Tools, and the same commands in the context menu of an image, work on the selected image:
   Image Properties... (Alt+Enter; Cmd+Option+I on macOS, where Option+Return is a new
@@ -831,6 +869,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Images: a new image in a paragraph of its own, with a caption** - 2026-11-12. Insert >
+  Image... and a file dropped or pasted from a folder put the image in a paragraph of its own,
+  centered and with a numbered caption Figure under it, as Settings > Editor > Images says by
+  default; at the start of a paragraph it goes before it, else after it (after the caption of
+  an image there). Add Caption of the Image menu and the context menu is now Insert
+  Caption..., which also changes the caption an image has. In the English Insert menu the
+  access keys are Caption (C), Cross-Reference (R), List of Figures (G), Formatting Character
+  (H), Horizontal Line (Z) and Scene Break (K).
 - **About, New File, New Book, Customize Toolbars and the Icon Downloader in the program's
   own style** - 2026-10-19. These windows have the heading, colors and buttons of the
   program's other dialogs: the window's icon, its title and a sentence about what it does,
