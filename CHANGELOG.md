@@ -2486,11 +2486,14 @@ to build it on Windows, Linux and macOS.
 
 ### Fixed
 
-- **Tests: the system clipboard one test at a time** - 2026-11-13. Twelve test cases that
-  use the system clipboard were not tagged `[clipboard]`, so `ctest --parallel` ran them
-  beside the others that use it; on Windows and macOS there is one clipboard for the whole
-  computer, and a test could read what another had put there (a test of the Navigator
-  failed on Windows this way). They are tagged now and run one at a time with the others.
+- **Tests: the clipboard and the active window, shared by the tests run in parallel** -
+  2026-11-13. Twelve test cases that use the system clipboard were not tagged `[clipboard]`,
+  so `ctest --parallel` ran them beside the others that use it; on Windows and macOS there is
+  one clipboard for the whole computer, and a test could read what another had put there (a
+  test of the Navigator failed on Windows this way). They are tagged now and run one at a
+  time with the others. The test of the Footnote Layout window looked for the focus in the
+  active window, which on Windows can be another test's; it now looks in its own window, as
+  the tests of the other windows do.
 
 - **CHANGELOG: the history of 0.3.0-alpha and earlier** - 2026-11-13. The sections of
   0.3.0-alpha and 0.2.0-alpha and the history of the documentation, removed by mistake on
