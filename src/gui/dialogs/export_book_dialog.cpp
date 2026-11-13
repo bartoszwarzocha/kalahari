@@ -405,13 +405,12 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     }
 
     // The page follows the settings the gear opens
-    m_pageLabel->setText(pageText());
+    showPage();
     m_settingsListener =
         core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
             if (key.rfind("editor.page", 0) == 0 || key.rfind("editor.margins", 0) == 0 ||
                 key == "ui.lengthUnit") {
-                QMetaObject::invokeMethod(this, [this]() { m_pageLabel->setText(pageText()); },
-                                          Qt::QueuedConnection);
+                QMetaObject::invokeMethod(this, "showPage", Qt::QueuedConnection);
             }
         });
 
@@ -516,6 +515,11 @@ void ExportBookDialog::checkFinal()
                                    ? Qt::Checked
                                    : Qt::Unchecked);
     }
+}
+
+void ExportBookDialog::showPage()
+{
+    m_pageLabel->setText(pageText());
 }
 
 QString ExportBookDialog::pageText()

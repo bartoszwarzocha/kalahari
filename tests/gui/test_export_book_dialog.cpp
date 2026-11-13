@@ -27,6 +27,7 @@
 #include <QTreeWidget>
 
 #include <algorithm>
+#include <cstdio>
 #include <string>
 #include <utility>
 #include <vector>
@@ -58,15 +59,19 @@ public:
         }
     }
     ~SettingsKept() {
-        auto& settings = core::SettingsManager::getInstance();
-        for (const auto& [key, value] : m_strings) {
-            settings.set<std::string>(key, value);
-        }
-        for (const auto& [key, value] : m_flags) {
-            settings.set<bool>(key, value);
-        }
-        for (const auto& [key, value] : m_numbers) {
-            settings.set<double>(key, value);
+        try {
+            auto& settings = core::SettingsManager::getInstance();
+            for (const auto& [key, value] : m_strings) {
+                settings.set<std::string>(key, value);
+            }
+            for (const auto& [key, value] : m_flags) {
+                settings.set<bool>(key, value);
+            }
+            for (const auto& [key, value] : m_numbers) {
+                settings.set<double>(key, value);
+            }
+        } catch (...) {
+            std::fputs("SettingsKept: the settings of the test stay\n", stderr);
         }
     }
     SettingsKept(const SettingsKept&) = delete;

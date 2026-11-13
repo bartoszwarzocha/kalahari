@@ -312,10 +312,9 @@ void MarkdownWriter::addBlock(BlockKind kind, const QString& text, int listId, b
         closeCode();
     }
     if (!m_empty) {
-        if (kind == BlockKind::Code && m_inCode) {
-            m_out += QLatin1Char('\n');
-        } else if (kind == BlockKind::ListItem && m_last == BlockKind::ListItem && listId == m_lastListId &&
-                   !newList) {
+        const bool sameList = kind == BlockKind::ListItem && m_last == BlockKind::ListItem &&
+                              listId == m_lastListId && !newList;
+        if ((kind == BlockKind::Code && m_inCode) || sameList) {
             m_out += QLatin1Char('\n');
         } else if (kind == BlockKind::ListItem && m_last == BlockKind::ListItem) {
             m_out += QStringLiteral("\n\n<!-- -->\n\n");  // another list: not one with the one before

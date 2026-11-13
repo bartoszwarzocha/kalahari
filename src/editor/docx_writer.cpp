@@ -103,7 +103,7 @@ QString languageTag(const QString& code) {
 
 /// The value of an alignment of the properties: "left", "center", "right", "both"
 QString alignmentValue(Qt::Alignment alignment) {
-    const QString name = styleAlignmentName(alignment);
+    QString name = styleAlignmentName(alignment);
     if (name == QLatin1String("justify")) {
         return QStringLiteral("both");
     }

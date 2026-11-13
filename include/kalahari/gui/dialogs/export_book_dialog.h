@@ -176,6 +176,10 @@ protected:
     /// @brief Export the book
     void run() override;
 
+private slots:
+    /// @brief The page of the settings shown again (queued from the settings' listener)
+    void showPage();
+
 private:
     /// @brief Choose the folder in the system window
     void browse();
