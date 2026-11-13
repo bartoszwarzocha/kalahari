@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_type_package.h>
+#include <kalahari/core/unicode_paths.h>
 #include <kalahari/editor/book_export.h>
 
 #include <QColor>
@@ -145,7 +146,9 @@ BookExport sampleBook(const QString& folder) {
 QHash<QString, QByteArray> zipEntries(const QString& path) {
     QHash<QString, QByteArray> entries;
     int error = 0;
-    zip_t* archive = zip_open(QFile::encodeName(path).constData(), ZIP_RDONLY, &error);
+    // Not zip_open(): its narrow name is not Unicode on Windows, and the book's name has "ą"
+    zip_t* archive = kalahari::core::openZipFile(kalahari::core::pathOfText(path.toStdString()),
+                                                 ZIP_RDONLY, &error);
     REQUIRE(archive != nullptr);
     const zip_int64_t count = zip_get_num_entries(archive, 0);
     for (zip_int64_t i = 0; i < count; ++i) {
