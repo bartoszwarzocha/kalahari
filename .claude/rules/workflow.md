@@ -31,12 +31,22 @@ NEW FEATURE / CHANGE:
                    Workflow    → fan out when tasks are independent
   3. Review      → code-reviewer  AND/OR  /code-review   (bundled, multi-agent)
   4. Verify      → tester  +  /run   (launch the real app, not just tests)
-  5. Finish      → superpowers:finishing-a-development-branch  (merge / PR / cleanup)
+  5. SonarQube   → scripts\sonar_analysis.bat (Windows) / python scripts/sonar_analysis.py
+                   quality gate passed, no issues in the code the stage adds or changes
+  6. Finish      → superpowers:finishing-a-development-branch  (merge / PR / cleanup)
 
 BUG FIX:
   superpowers:systematic-debugging → superpowers:test-driven-development
-  → coder (fix) → tester + /run
+  → coder (fix) → tester + /run → SonarQube
 ```
+
+### SonarQube (user rule, 2026-11-13)
+Every stage ends with a SonarQube analysis; results: http://localhost:9000/dashboard?id=kalahari.
+All SonarQube rules are binding. The quality gate must pass and a stage may not leave issues in
+the code it adds or changes. Issues that existed before are removed by the cleanup plan; an issue
+is never marked as accepted or false positive without the user's consent. The analysis needs a
+finished build (compile_commands.json and Qt's generated files); `sonar-project.properties`
+defines what is analysed, and C++ goes through the sonar-cxx plugin and clang-tidy.
 
 ### When to reach for what
 - **plan mode** — any non-trivial change; approve scope before touching files.
@@ -49,4 +59,5 @@ BUG FIX:
 - **`/code-review`, `/simplify`, `/run`** — bundled native skills, complementary to the agents.
 
 **CRITICAL:** Never skip review + verification. Work is NOT complete until `code-reviewer`
-(or `/code-review`) passes AND the build/tests are green (`tester`, plus `/run` for UI changes).
+(or `/code-review`) passes AND the build/tests are green (`tester`, plus `/run` for UI changes)
+AND the SonarQube analysis of the stage passes (see above).
