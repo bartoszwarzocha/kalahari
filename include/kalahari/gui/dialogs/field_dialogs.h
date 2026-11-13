@@ -103,6 +103,9 @@ private:
     /// @brief The type of the field chosen
     [[nodiscard]] editor::FieldType chosenType() const;
 
+    /// @brief The hint under the preview of @p field: what changes it, and the gray background
+    [[nodiscard]] static QString hintText(const editor::TextField& field);
+
     Data m_data;
     QTabWidget* m_tabs = nullptr;
     std::vector<QListWidget*> m_lists;  ///< Of the tabs, in their order

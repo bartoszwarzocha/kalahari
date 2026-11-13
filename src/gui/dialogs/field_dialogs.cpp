@@ -13,6 +13,7 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QPalette>
+#include <QStringList>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -30,9 +31,6 @@ namespace {
 
 /// The width of the lists, in average characters
 constexpr int LIST_WIDTH_CHARS = 30;
-
-/// The lines of the hint of Insert > Field... (the window keeps its height for every field)
-constexpr int HINT_LINES = 3;
 
 /// The number the formats of the word count show
 constexpr int EXAMPLE_WORDS = 12345;
@@ -78,6 +76,56 @@ QLabel* hintLabel(const QString& text, QWidget* parent)
     hint->setForegroundRole(QPalette::PlaceholderText);
     return hint;
 }
+
+/// The hint of Insert > Field...: as high as the longest of its texts at the width it gets, so
+/// that the window keeps its height and nothing in it scrolls whichever field is chosen (a
+/// font with wider letters wraps a text into more lines)
+class FieldHint : public QLabel {
+public:
+    FieldHint(QStringList texts, QWidget* parent)
+        : QLabel(parent),
+          m_texts(std::move(texts))
+    {
+        setWordWrap(true);
+        setForegroundRole(QPalette::PlaceholderText);
+        setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        m_measure.setWordWrap(true);
+        m_measure.setAlignment(alignment());
+    }
+
+    // As wide as the widest of the texts wants: the window keeps its width too
+    QSize sizeHint() const override
+    {
+        QSize hint = QLabel::sizeHint();
+        for (const QString& text : m_texts) {
+            hint = hint.expandedTo(measured(text).sizeHint());
+        }
+        return hint;
+    }
+
+    int heightForWidth(int width) const override
+    {
+        int height = QLabel::heightForWidth(width);
+        for (const QString& text : m_texts) {
+            height = std::max(height, measured(text).heightForWidth(width));
+        }
+        return height;
+    }
+
+private:
+    /// A label of the same font with @p text, as this one would lay it out
+    const QLabel& measured(const QString& text) const
+    {
+        if (m_measure.font() != font()) {
+            m_measure.setFont(font());
+        }
+        m_measure.setText(text);
+        return m_measure;
+    }
+
+    QStringList m_texts;
+    mutable QLabel m_measure;  ///< Not shown: it only measures the texts
+};
 
 }  // namespace
 
@@ -287,9 +335,14 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
     details->addWidget(new QLabel(tr("In the text:"), m_details), 1, 0);
     details->addWidget(m_preview, 1, 1, Qt::AlignLeft);
 
-    m_hint = hintLabel(QString(), m_details);
-    m_hint->setMinimumHeight(m_hint->fontMetrics().lineSpacing() * HINT_LINES);
-    m_hint->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    QStringList hints;
+    for (const editor::FieldType type : editor::FIELD_TYPES) {
+        for (const QString& format : editor::fieldFormats(type)) {
+            hints << hintText(editor::TextField{type, format});
+        }
+    }
+    hints.removeDuplicates();
+    m_hint = new FieldHint(hints, m_details);
     details->addWidget(m_hint, 2, 0, 1, 2);
 
     m_tabs->setCurrentIndex(firstTab);
@@ -362,8 +415,13 @@ void FieldDialog::showPreview()
     m_preview->setText(m_data.shown ? m_data.shown(chosen)
                                     : editor::textFieldText(chosen, editor::FieldContext{},
                                                             editor::FieldCounts{}));
+    m_hint->setText(hintText(chosen));
+}
+
+QString FieldDialog::hintText(const editor::TextField& field)
+{
     QString hint;
-    switch (chosen.type) {
+    switch (field.type) {
         case editor::FieldType::BookTitle:
             //: In Polish: Tytuł zmienia się razem z właściwościami książki.
             hint = tr("The title changes together with the book's properties.");
@@ -388,8 +446,8 @@ void FieldDialog::showPreview()
             hint = tr("The count changes as you write, as the status bar's does.");
             break;
         case editor::FieldType::Date:
-            hint = chosen.format == QLatin1String("time") ||
-                           chosen.format == QLatin1String("date-time")
+            hint = field.format == QLatin1String("time") ||
+                           field.format == QLatin1String("date-time")
                        //: In Polish: Godzina otwarcia tekstu albo wysunięcia go na wierzch.
                        ? tr("The time the text was opened or brought to the front.")
                        //: In Polish: Dzisiejsza data: zmienia się, gdy tekst zostanie otwarty
@@ -398,8 +456,8 @@ void FieldDialog::showPreview()
             break;
     }
     //: In Polish: Szare tło pól można wyłączyć w Ustawieniach.
-    m_hint->setText(hint + QLatin1Char(' ') +
-                    tr("The gray background of the fields can be turned off in the Settings."));
+    return hint + QLatin1Char(' ') +
+           tr("The gray background of the fields can be turned off in the Settings.");
 }
 
 } // namespace dialogs

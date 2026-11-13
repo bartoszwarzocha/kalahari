@@ -554,6 +554,7 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
             shown->setCurrentRow(row);
             layOut(fieldDialog);
             INFO("tab " << tab << ", row " << row);
+            CHECK(fieldDialog.sizeHint().width() <= size.width() + 2);
             CHECK(fieldDialog.sizeHint().height() <= size.height() + 2);
             checkSmallScreen(fieldDialog);
         }
