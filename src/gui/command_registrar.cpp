@@ -359,7 +359,10 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find && Rep&lace..."), "EDIT/Find & Replace...", 140, false, 1,
                    replaceShortcut,
                    callbacks.onFindReplace);
-    REG_CMD("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in &Book..."), "EDIT/Find in Book...", 150, true, 1);
+    // Find in Book: the Search panel, in all the texts of the book (BookSearchCoordinator gives
+    // it its callback), with the key other editors give their search in all the files
+    REG_CMD_KEY("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in &Book..."), "EDIT/Find in Book...", 150, true, 0,
+                KeyboardShortcut(Qt::Key_F, Qt::ControlModifier | Qt::ShiftModifier));
 
     // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks
     REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt To Do"), "EDIT/Next To Do", 152, false, 0,

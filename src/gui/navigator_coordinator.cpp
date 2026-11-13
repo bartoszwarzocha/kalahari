@@ -4,6 +4,7 @@
 /// OpenSpec #00038 - Phase 6: Extract Navigator Handlers from MainWindow
 
 #include "kalahari/gui/navigator_coordinator.h"
+#include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/delete_dialogs.h"
@@ -55,32 +56,6 @@ namespace {
 /// How long after the last change in a chapter its words are counted for the counts of the
 /// book: often enough to follow the writing, not at each key
 constexpr int WORD_COUNT_DELAY_MS = 500;
-
-/// Before Replace All in chapter @p elementId, the book keeps the text of @p editor as it is
-/// as a version, if the settings say so: @p count matches of @p found are replaced with
-/// @p replacement
-void keepVersionBeforeReplaceAll(core::ProjectManager& book, const QString& elementId,
-                                 const editor::BookEditor& editor, const QString& found,
-                                 const QString& replacement, int count) {
-    auto& pm = book;
-    const auto& settings = core::SettingsManager::getInstance();
-    if (!pm.isProjectOpen() || pm.isReadOnly() ||
-        !settings.get<bool>(core::ChapterVersions::ENABLED_SETTING) ||
-        !settings.get<bool>(core::ChapterVersions::BEFORE_REPLACE_ALL_SETTING)) {
-        return;
-    }
-    const core::ProjectManager::VersionKept kept =
-        pm.keepVersion(elementId, editor.toKml(),
-                       {.origin = core::VersionOrigin::ReplaceAll,
-                        .found = found,
-                        .replacement = replacement,
-                        .replaced = count});
-    if (kept == core::ProjectManager::VersionKept::Failed) {
-        core::Logger::getInstance().warn(
-            "NavigatorCoordinator: No version of {} was kept before Replace All",
-            elementId.toStdString());
-    }
-}
 
 /// A section of the book as the Navigator names its item, with its icon
 struct SectionItem {
@@ -396,11 +371,12 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // Replace All can be undone in the editor only until the chapter is closed: the book
     // keeps the text before it as a version
     const editor::BookEditor* bookEditor = newEditor->getBookEditor();
-    connect(
-        bookEditor, &editor::BookEditor::aboutToReplaceAll, this,
-        [this, elementId, bookEditor](const QString& found, const QString& replacement, int count) {
-            keepVersionBeforeReplaceAll(m_book, elementId, *bookEditor, found, replacement, count);
-        });
+    connect(bookEditor, &editor::BookEditor::aboutToReplaceAll, this,
+            [this, elementId, bookEditor](const QString& found, const QString& replacement,
+                                          int count) {
+                keepVersionBeforeReplaceAll(m_book, elementId, bookEditor->toKml(), found,
+                                            replacement, count);
+            });
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
     if (m_statisticsCollector) {

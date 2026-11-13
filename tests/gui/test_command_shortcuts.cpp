@@ -98,6 +98,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
 #else
         {"edit.findReplace", QStringLiteral("Ctrl+H")},
 #endif
+        {"edit.findInBook", QStringLiteral("Ctrl+Shift+F")},  // the search in all the files
 #ifdef Q_OS_MACOS
         // Option+Cmd: Option+Down is the text's
         {"edit.nextTodo", QStringLiteral("Ctrl+Alt+Down")},

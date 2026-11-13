@@ -500,6 +500,11 @@ void DockCoordinator::createSearchDock() {
     m_searchDock->setWidget(scrollingPanel(m_searchPanel, m_searchDock));
     m_searchDock->setObjectName("SearchDock");
     setupDockTitleBar(m_searchDock, "view.search", QObject::tr("Search"));
+    // The colors of the hits, as the gear of the find bar
+    //: The gear of the Search panel: Settings > Editor > Colors. In Polish: Kolory znalezionych
+    //: wystąpień
+    addSettingsButton(m_searchDock, QString::fromLatin1(SettingsDialog::EDITOR_COLORS_PAGE),
+                      tr("Colors of the Search Hits"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
 
     logger.debug("DockCoordinator: Search dock created");
