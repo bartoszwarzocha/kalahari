@@ -24,6 +24,8 @@
 #include <QGroupBox>
 #include <QLabel>
 #include <QListWidget>
+#include <QKeyEvent>
+#include <QTabWidget>
 #include <QTextDocument>
 #include <QTimer>
 #include <QToolButton>
@@ -133,6 +135,33 @@ Widget* only(const QWidget& root) {
     return found.first();
 }
 
+/// The list of the tab Insert > Field... shows
+QListWidget* shownList(const QWidget& dialog) {
+    const QWidget* page = only<QTabWidget>(dialog)->currentWidget();
+    REQUIRE(page != nullptr);
+    auto* list = page->findChild<QListWidget*>();
+    REQUIRE(list != nullptr);
+    return list;
+}
+
+/// A field chosen in Insert > Field...: its tab shown, its row current
+void chooseField(const QWidget& dialog, FieldType type) {
+    QTabWidget* tabs = only<QTabWidget>(dialog);
+    bool found = false;
+    for (int tab = 0; tab < tabs->count() && !found; ++tab) {
+        auto* list = tabs->widget(tab)->findChild<QListWidget*>();
+        for (int row = 0; list != nullptr && row < list->count() && !found; ++row) {
+            if (list->item(row)->data(Qt::UserRole).toInt() == static_cast<int>(type)) {
+                tabs->setCurrentIndex(tab);
+                list->setCurrentRow(row);
+                found = true;
+            }
+        }
+    }
+    INFO("The field of type " << static_cast<int>(type));
+    REQUIRE(found);
+}
+
 /// The fields of an editor, in text order
 QList<TextField> fieldsOf(const editor::BookEditor& text) {
     QList<TextField> fields;
@@ -221,11 +250,23 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
     CHECK(answering<FieldDialog>(
         [&fields]() { fields.coordinator.insertField(); },
         [&preview, &hint](FieldDialog& dialog) {
-            auto* list = only<QListWidget>(dialog);
-            CHECK(list->currentRow() == 0);  // the book's title first
-            CHECK(list->count() == static_cast<int>(editor::FIELD_TYPES.size()));
-            CHECK(list->item(2)->text() == QStringLiteral("Chapter Title"));
-            list->setCurrentRow(rowOf(*list, static_cast<int>(FieldType::Page)));
+            // The fields in four tabs: the book, the text, the pages, the date
+            QTabWidget* tabs = only<QTabWidget>(dialog);
+            REQUIRE(tabs->count() == 4);
+            CHECK(tabs->tabText(0) == QStringLiteral("&Book"));
+            CHECK(tabs->tabText(3) == QStringLiteral("&Date"));
+            int fieldCount = 0;
+            for (int tab = 0; tab < tabs->count(); ++tab) {
+                fieldCount += tabs->widget(tab)->findChild<QListWidget*>()->count();
+            }
+            CHECK(fieldCount == static_cast<int>(editor::FIELD_TYPES.size()));
+            CHECK(tabs->currentIndex() == 0);
+            CHECK(shownList(dialog)->currentRow() == 0);  // the book's title first
+            CHECK(dialog.field().type == FieldType::BookTitle);
+            tabs->setCurrentIndex(1);
+            CHECK(shownList(dialog)->item(0)->text() == QStringLiteral("Chapter Title"));
+            CHECK(dialog.field().type == FieldType::TextTitle);
+            chooseField(dialog, FieldType::Page);
             auto* formats = only<QComboBox>(dialog);
             REQUIRE(formats->count() == 3);
             CHECK(formats->itemText(1) == QStringLiteral("i, ii, iii"));
@@ -251,11 +292,12 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
     CHECK(answering<FieldDialog>(
         [&]() { CHECK(fields.coordinator.editField(*text, position)); },
         [](FieldDialog& dialog) {
-            auto* list = only<QListWidget>(dialog);
-            CHECK(list->currentRow() == rowOf(*list, static_cast<int>(FieldType::Page)));
+            CHECK(only<QTabWidget>(dialog)->currentIndex() == 2);  // the pages
+            CHECK(shownList(dialog)->currentRow() ==
+                  rowOf(*shownList(dialog), static_cast<int>(FieldType::Page)));
             CHECK(only<QComboBox>(dialog)->currentIndex() == 1);
             CHECK(dialog.acceptButton()->text() == QStringLiteral("OK"));
-            list->setCurrentRow(rowOf(*list, static_cast<int>(FieldType::BookTitle)));
+            chooseField(dialog, FieldType::BookTitle);
             only<QComboBox>(dialog)->setCurrentIndex(1);  // in capitals
             dialog.acceptButton()->click();
         }));
@@ -491,21 +533,39 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
     FieldDialog fieldDialog(fieldData);
     layOut(fieldDialog);
     CHECK(fieldDialog.windowTitle() == QStringLiteral("Pole"));
-    auto* list = only<QListWidget>(fieldDialog);
+    QTabWidget* tabs = only<QTabWidget>(fieldDialog);
+    REQUIRE(tabs->count() == 4);
+    CHECK(tabs->tabText(0) == QStringLiteral("&Książka"));
+    CHECK(tabs->tabText(1) == QStringLiteral("&Tekst"));
+    CHECK(tabs->tabText(2) == QStringLiteral("&Strony"));
+    CHECK(tabs->tabText(3) == QStringLiteral("&Data"));
+    auto* list = shownList(fieldDialog);
     CHECK(QApplication::focusWidget() == list);
     CHECK(list->item(0)->text() == QStringLiteral("Tytuł książki"));
     CHECK(only<QComboBox>(fieldDialog)->itemText(1) == QStringLiteral("WIELKIMI LITERAMI"));
     checkKeys(fieldDialog);
 
-    // Every field: the window keeps its size, small enough
+    // Every field: the window keeps its size, small enough, nothing in it scrolls
     const QSize size = fieldDialog.sizeHint();
-    for (int row = 0; row < list->count(); ++row) {
-        list->setCurrentRow(row);
-        layOut(fieldDialog);
-        INFO(row);
-        CHECK(fieldDialog.sizeHint().height() <= size.height() + 2);
-        checkSmallScreen(fieldDialog);
+    for (int tab = 0; tab < tabs->count(); ++tab) {
+        tabs->setCurrentIndex(tab);
+        QListWidget* shown = shownList(fieldDialog);
+        for (int row = 0; row < shown->count(); ++row) {
+            shown->setCurrentRow(row);
+            layOut(fieldDialog);
+            INFO("tab " << tab << ", row " << row);
+            CHECK(fieldDialog.sizeHint().height() <= size.height() + 2);
+            checkSmallScreen(fieldDialog);
+        }
     }
+
+    // Ctrl+Tab shows the next tab, its list gets the keys
+    tabs->setCurrentIndex(0);
+    shownList(fieldDialog)->setFocus();
+    QKeyEvent nextTab(QEvent::KeyPress, Qt::Key_Tab, Qt::ControlModifier);
+    QCoreApplication::sendEvent(shownList(fieldDialog), &nextTab);
+    CHECK(tabs->currentIndex() == 1);
+    CHECK(QApplication::focusWidget() == shownList(fieldDialog));
 
     // The gear: Settings > Editor > General, where the gray background is turned off
     QToolButton* gear = nullptr;

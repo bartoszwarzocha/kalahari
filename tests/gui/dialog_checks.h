@@ -8,12 +8,15 @@
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 #include <QAbstractButton>
+#include <QAbstractScrollArea>
 #include <QCoreApplication>
 #include <QEvent>
 #include <QGroupBox>
 #include <QLabel>
+#include <QScrollBar>
 #include <QString>
 #include <QStringList>
+#include <QTabBar>
 #include <QTranslator>
 #include <QWidget>
 
@@ -37,7 +40,8 @@ inline QChar accessKey(const QString& text) {
     return QChar();
 }
 
-/// The texts with access keys of a window: of the labels with a field, the buttons, the groups
+/// The texts with access keys of a window: of the labels with a field, the buttons, the groups,
+/// the tabs
 inline QStringList keyTexts(const QWidget& root) {
     QStringList texts;
     for (const QWidget* widget : root.findChildren<QWidget*>()) {
@@ -47,6 +51,10 @@ inline QStringList keyTexts(const QWidget& root) {
             texts << button->text();
         } else if (const auto* group = qobject_cast<const QGroupBox*>(widget)) {
             texts << group->title();
+        } else if (const auto* tabs = qobject_cast<const QTabBar*>(widget)) {
+            for (int tab = 0; tab < tabs->count(); ++tab) {
+                texts << tabs->tabText(tab);
+            }
         }
     }
     return texts;
@@ -86,6 +94,14 @@ inline void checkSmallScreen(const QWidget& window) {
 #endif
     CHECK(window.sizeHint().width() <= 911);
     CHECK(window.sizeHint().height() <= MAX_HEIGHT);
+    // Nothing in it scrolls: what does not fit goes in tabs
+    for (const QAbstractScrollArea* area : window.findChildren<QAbstractScrollArea*>()) {
+        if (area->isVisible()) {
+            INFO(area->metaObject()->className() << " " << area->accessibleName().toStdString());
+            CHECK(area->verticalScrollBar()->maximum() == 0);
+            CHECK(area->horizontalScrollBar()->maximum() == 0);
+        }
+    }
 }
 
 /// The window in Polish while it lives: the translation the program ships
