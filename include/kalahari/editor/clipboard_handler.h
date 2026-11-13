@@ -9,6 +9,7 @@
 
 #include <kalahari/editor/editor_types.h>
 #include <QString>
+#include <QStringList>
 #include <QMimeData>
 #include <memory>
 #include <vector>
@@ -51,6 +52,36 @@ constexpr const char* PASTE_MODE_SOURCE = "source";
 constexpr const char* PASTE_MODE_TEXT = "text";
 
 // =============================================================================
+// Paste Special
+// =============================================================================
+
+/// @brief The forms Edit > Paste Special... pastes the clipboard in, in the order of its list
+///
+/// Each one reads another form of the clipboard's content: text copied in Kalahari also gives
+/// the other programs its HTML and its plain text, so it can come as text of another program
+/// (without its annotations and images) or as its text alone.
+enum class PasteForm {
+    Kalahari,  ///< Text copied in Kalahari as it was, with its annotations: its KML
+    Source,    ///< The HTML with the formatting of the source, as PasteMode::Source reads it
+    Merge,     ///< The HTML in the look of the book, as PasteMode::Merge reads it
+    Text,      ///< Only the text, with its paragraphs: PasteMode::Text
+    Image,     ///< The picture (a screenshot), or the files of pictures, as images
+};
+
+/// @brief Where the content of the clipboard comes from, as Edit > Paste Special... names it
+enum class ClipboardSource {
+    Nothing,      ///< Nothing to paste
+    Kalahari,     ///< Text copied in Kalahari
+    Word,         ///< The HTML of Microsoft Word
+    LibreOffice,  ///< The HTML of LibreOffice (or OpenOffice)
+    GoogleDocs,   ///< The HTML of Google Docs
+    Html,         ///< Other HTML: a web page, another program
+    Text,         ///< Text without formatting
+    Image,        ///< A picture without text (a screenshot)
+    ImageFiles,   ///< Files of pictures (copied in a folder)
+};
+
+// =============================================================================
 // List items for other programs
 // =============================================================================
 
@@ -61,9 +92,9 @@ struct ListMarks {
     std::vector<QString> marks;  ///< The number with its suffix, or the bullet; empty for an
                                  ///< item without one
     std::vector<int> numbers;    ///< The number (-1 for an item without one)
-    std::vector<QString> fields;  ///< The text of each <caption-number> and <cross-reference>,
-                                  ///< and of each <list-of-figures> (its rows, one a line),
-                                  ///< in the order of the elements
+    std::vector<QString> fields;  ///< The text of each <caption-number>, <cross-reference>
+                                  ///< and <field>, and of each <list-of-figures> (its rows, one
+                                  ///< a line), in the order of the elements
     std::vector<QString> notes;   ///< The number of each note (<footnote>, <endnote>), in the
                                   ///< order of the elements
 };
@@ -104,6 +135,15 @@ public:
     /// @brief Get paste content as plain text
     /// @return Plain text string, or empty if nothing to paste
     static QString pasteAsText();
+
+    /// @brief Where MIME data comes from: Kalahari (its KML), the program its HTML names
+    ///        (Word by its generator or its namespaces, LibreOffice by its generator, Google
+    ///        Docs by the mark of its fragment), other HTML, text, a picture, files of pictures
+    static ClipboardSource sourceOf(const QMimeData* data);
+
+    /// @brief The files of pictures among the addresses of MIME data (files copied or
+    ///        dragged from a folder), in their order
+    static QStringList pictureFilesOf(const QMimeData& data);
 
     // =========================================================================
     // Format Conversion

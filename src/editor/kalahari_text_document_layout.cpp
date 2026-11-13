@@ -150,6 +150,13 @@ constexpr int LAYOUT_OBJECTS[] = {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT,  P
                                   IMAGE_OBJECT,           FIGURE_LIST_OBJECT,  CAPTION_NUMBER_OBJECT,
                                   CROSS_REFERENCE_OBJECT, FOOTNOTE_OBJECT};
 
+/// The pages a page field measures the numbers of, the last ones of the text, for the widest
+/// (a text of more pages than this has numbers of the longest kind among them)
+constexpr int MAX_MEASURED_PAGES = 2000;
+
+/// The widest numbers of the pages kept (by format, font and pages)
+constexpr qsizetype MAX_WIDEST_PAGES = 64;
+
 /// What the signatures of the fields put between two fields of a block, and after the text
 /// of a cross-reference to a caption the book does not have
 constexpr QChar FIELD_SEPARATOR(0x1f);
@@ -174,17 +181,19 @@ bool isNumberedFormat(const QTextFormat& format) {
     return isFieldFormat(format) || isFootnoteFormat(format);
 }
 
-/// Whether a block holds a field, a note's number (unless @p withNotes is false) or a list of
-/// figures
-bool hasFieldsOrList(const QTextBlock& block, bool withNotes = true) {
+/// Whether a block holds a caption's number, a cross-reference or a list of figures, and
+/// (unless @p withObjects is false) a note's number or a field of text_fields.h: what they
+/// show does not follow the text of their paragraph
+bool hasFieldsOrList(const QTextBlock& block, bool withObjects = true) {
     for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
         const QTextFragment fragment = it.fragment();
         if (!fragment.isValid()) {
             continue;
         }
         const QTextCharFormat format = fragment.charFormat();
-        if (isFieldFormat(format) || textObjectOf(format) == TextObject::FigureList ||
-            (withNotes && isFootnoteFormat(format))) {
+        const bool object = isFootnoteFormat(format) || isTextFieldFormat(format);
+        if ((isFieldFormat(format) && !isTextFieldFormat(format)) ||
+            textObjectOf(format) == TextObject::FigureList || (withObjects && object)) {
             return true;
         }
     }
@@ -1235,6 +1244,13 @@ void KalahariTextDocumentLayout::reportDocumentSize() {
         m_lastReportedSize = size;
         emit documentSizeChanged(size);
     }
+    // The page fields count the pages again after the change, once the layout is done (the
+    // fields not counted yet may have one)
+    if (m_pageFlow.enabled && !m_pageFieldsQueued &&
+        (m_hasPageFields || m_captionNumbersDirty) && pageCount() != m_fieldPages) {
+        m_pageFieldsQueued = true;
+        QMetaObject::invokeMethod(this, "refreshPageFields", Qt::QueuedConnection);
+    }
 }
 
 void KalahariTextDocumentLayout::notifyGeometryChanged(int first, qreal bottom) {
@@ -1563,6 +1579,11 @@ bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block
     m_blockHeights[index] = height;
     m_blockExtents[index] = extent;
     m_blockFlowOffsets[index] = FLOW_UNPLACED;  // the new lines follow the block's top
+    if (m_pageFlow.enabled) {
+        // and go on the pages again, also when the block is as high as before (a line moved
+        // to the next page would stay at the end of its own)
+        m_positionsDirty = true;
+    }
     storeFlowEntries(number, block, lead);
     if (m_blockPending[index] != 0) {
         m_blockPending[index] = 0;
@@ -3088,6 +3109,135 @@ bool KalahariTextDocumentLayout::hasFields() const {
     return m_hasFields;
 }
 
+// =============================================================================
+// Fields of the book, the page, the words and the date
+// =============================================================================
+
+void KalahariTextDocumentLayout::setFieldContext(const FieldContext& context) {
+    if (context == m_fieldContext) {
+        return;
+    }
+    // Only the time (a text brought to the front): only the dates may show another text
+    FieldContext sameTime = context;
+    sameTime.now = m_fieldContext.now;
+    const bool onlyTime = sameTime == m_fieldContext;
+    const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
+    m_fieldContext = context;
+    if (!onlyTime) {
+        m_widestPages.clear();
+    }
+    if (m_fieldChars.empty() || (onlyTime && !hasTextField(FieldType::Date))) {
+        return;  // nothing laid out shows them: the fields get them when they are laid out
+    }
+    refreshFields(0, -1, 0, old);
+}
+
+void KalahariTextDocumentLayout::setFieldWords(int words) {
+    words = std::max(0, words);
+    if (words == m_fieldWords) {
+        return;
+    }
+    const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
+    m_fieldWords = words;
+    if (m_fieldChars.empty()) {
+        return;
+    }
+    refreshFields(0, -1, 0, old);
+}
+
+bool KalahariTextDocumentLayout::hasTextField(FieldType type) const {
+    captionNumbers();
+    return std::any_of(m_fieldChars.cbegin(), m_fieldChars.cend(), [type](const FieldChar& field) {
+        const std::optional<TextField> text = textFieldOf(field.format);
+        return text && text->type == type;
+    });
+}
+
+FieldText KalahariTextDocumentLayout::fieldText(int position, const QTextFormat& format) const {
+    const std::optional<TextField> field = textFieldOf(format);
+    if (!field) {
+        return captionNumbers().fieldText(position, format);
+    }
+    FieldCounts counts;
+    counts.words = m_fieldWords;
+    if (m_pageFlow.enabled) {
+        counts.pages = std::max(1, m_fieldPages);
+        if (field->type == FieldType::Page) {
+            counts.page = std::max(1, pageOfPosition(position));
+        }
+    }
+    return {textFieldText(*field, m_fieldContext, counts), false};
+}
+
+QString KalahariTextDocumentLayout::sizedFieldText(int position, const QTextFormat& format) const {
+    const std::optional<TextField> field = textFieldOf(format);
+    if (!field || field->type != FieldType::Page || !m_pageFlow.enabled) {
+        return fieldText(position, format).text;
+    }
+    // The widest of the numbers of the pages, in the field's font (in its format the numbers
+    // differ in length: "viii" and "ix")
+    const int pages = std::max(1, m_fieldPages);
+    const QFont font = fieldFont(position, format);
+    const QString key = font.key() + QLatin1Char('\x1f') + field->format + QLatin1Char('\x1f') +
+                        QString::number(pages);
+    if (const auto known = m_widestPages.constFind(key); known != m_widestPages.cend()) {
+        return *known;
+    }
+    const QFontMetricsF metrics(font);
+    QString widest;
+    qreal widestWidth = -1.0;
+    FieldCounts counts;
+    counts.pages = pages;
+    for (int page = std::max(1, pages - MAX_MEASURED_PAGES + 1); page <= pages; ++page) {
+        counts.page = page;
+        const QString text = textFieldText(*field, m_fieldContext, counts);
+        if (const qreal width = metrics.horizontalAdvance(text); width > widestWidth) {
+            widestWidth = width;
+            widest = text;
+        }
+    }
+    if (m_widestPages.size() >= MAX_WIDEST_PAGES) {
+        m_widestPages.clear();
+    }
+    m_widestPages.insert(key, widest);
+    return widest;
+}
+
+int KalahariTextDocumentLayout::pageOfPosition(int position) const {
+    if (!m_pageFlow.enabled || m_pageFlow.pitch <= 0.0) {
+        return 0;
+    }
+    updateBlockPositions();
+    const QTextBlock block = document()->findBlock(position);
+    const auto number = static_cast<size_t>(block.blockNumber());
+    if (!block.isValid() || number >= m_blockYPositions.size()) {
+        return 0;
+    }
+    // The middle of its line: the lines are in the text areas of the pages, i * pitch down
+    qreal y = m_blockYPositions[number];
+    if (const QTextLayout* layout = block.layout(); layout != nullptr && layout->lineCount() > 0) {
+        const QTextLine line = layout->lineForTextPosition(position - block.position());
+        const QTextLine shown = line.isValid() ? line : layout->lineAt(0);
+        y += shown.y() + shown.height() / 2.0;
+    }
+    return static_cast<int>(std::floor(std::max<qreal>(0.0, y) / m_pageFlow.pitch)) + 1;
+}
+
+void KalahariTextDocumentLayout::refreshPageFields() {
+    m_pageFieldsQueued = false;
+    const int pages = m_pageFlow.enabled ? pageCount() : 0;
+    if (pages == m_fieldPages) {
+        return;
+    }
+    const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
+    m_fieldPages = pages;
+    if (m_fieldChars.empty()) {
+        return;
+    }
+    // The pages field shows the new number, a page field may need the room of a longer one
+    refreshFields(0, -1, 0, old);
+}
+
 void KalahariTextDocumentLayout::countFields() const {
     m_captionNumbersDirty = false;
     m_fieldChars.clear();
@@ -3116,6 +3266,12 @@ void KalahariTextDocumentLayout::countFields() const {
                               [](const FieldChar& field) {
                                   return !isFootnoteFormat(field.format);
                               });
+    m_hasPageFields = std::any_of(m_fieldChars.cbegin(), m_fieldChars.cend(),
+                                  [](const FieldChar& field) {
+                                      const std::optional<TextField> text =
+                                          textFieldOf(field.format);
+                                      return text && isPageField(text->type);
+                                  });
     m_captionNumbers = CaptionNumbers(doc, m_captionContext);
     m_footnoteNumbers = FootnoteNumbers(doc, m_footnoteContext);
 }
@@ -3135,6 +3291,8 @@ std::vector<std::pair<int, QString>> KalahariTextDocumentLayout::fieldSignatures
                 listKnown = true;
             }
             shown = list;
+        } else if (isTextFieldFormat(field.format)) {
+            shown = sizedFieldText(field.position, field.format);
         } else {
             const FieldText text = numbers.fieldText(field.position, field.format);
             shown = text.text;
@@ -3160,8 +3318,9 @@ bool KalahariTextDocumentLayout::touchesFields(int from, int charsRemoved, int c
     if (removed != m_fieldChars.end() && removed->position < from + charsRemoved) {
         return true;
     }
-    // A field's text may follow its paragraph (a caption); a note's number changes only with
-    // a note brought (an object of the new text) or one removed
+    // A field's text may follow its paragraph (a caption); a note's number and a field of
+    // the book, the page or the date change only with one brought (an object of the new text)
+    // or one removed
     bool objectAdded = false;
     const QTextDocument* doc = document();
     for (int position = from; position < from + charsAdded && !objectAdded; ++position) {
@@ -3178,8 +3337,9 @@ bool KalahariTextDocumentLayout::touchesFields(int from, int charsRemoved, int c
 
 void KalahariTextDocumentLayout::shiftFields(int from, int charsRemoved, int charsAdded,
                                              int firstBlock, int oldLastBlock, int blockDelta) {
-    // The changed blocks hold no field (the change touched none), at most notes' numbers,
-    // which stay as they are: the fields and the notes after the change move with it
+    // The changed blocks hold no field (the change touched none), at most notes' numbers and
+    // fields of text_fields.h, which stay as they are: the fields and the notes after the
+    // change move with it
     const int end = from + charsRemoved;
     const int delta = charsAdded - charsRemoved;
     for (FieldChar& field : m_fieldChars) {
@@ -3477,7 +3637,7 @@ void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int 
     if (isFieldFormat(format)) {
         // As wide and as high as the text it shows, in the font of the text around it
         const QFont font = fieldFont(posInDocument, format);
-        QTextLayout text(captionNumbers().fieldText(posInDocument, format).text, font);
+        QTextLayout text(sizedFieldText(posInDocument, format), font);
         layOutUnwrapped(text);
         const QFontMetricsF metrics(font);
         item.setWidth(text.lineCount() > 0 ? text.lineAt(0).naturalTextWidth() : 0.0);
@@ -3522,7 +3682,7 @@ QSizeF KalahariTextDocumentLayout::intrinsicSize(QTextDocument* /*doc*/, int pos
     }
     if (isFieldFormat(format)) {
         const QFont font = fieldFont(posInDocument, format);
-        QTextLayout text(captionNumbers().fieldText(posInDocument, format).text, font);
+        QTextLayout text(sizedFieldText(posInDocument, format), font);
         layOutUnwrapped(text);
         return QSizeF(text.lineCount() > 0 ? text.lineAt(0).naturalTextWidth() : 0.0,
                       QFontMetricsF(font).height());
@@ -3559,9 +3719,10 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
     }
     if (isFieldFormat(format)) {
         // The text it shows on the baseline of its line, in the color of the text (the
-        // painter's pen); its background is the view's (the render pipeline's)
+        // painter's pen); its background is the view's (the render pipeline's). A page field
+        // shows the page it is on now, in the room of the widest number of the pages
         const QFont font = fieldFont(posInDocument, format);
-        QTextLayout text(captionNumbers().fieldText(posInDocument, format).text, font);
+        QTextLayout text(fieldText(posInDocument, format).text, font);
         layOutUnwrapped(text);
         if (text.lineCount() > 0) {
             const qreal ascent = item.isValid() ? item.ascent() : QFontMetricsF(font).ascent();

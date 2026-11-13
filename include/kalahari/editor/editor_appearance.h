@@ -506,6 +506,9 @@ public:
     SceneBreakLook sceneBreakLook{SceneBreakLook::Asterisks};  ///< How the scene breaks look
     bool showFormattingMarks{false};           ///< View > Show Formatting Marks
     MarginNumbers marginNumbers;               ///< View > Margin Numbering
+    /// The fields (the date, the book's title, a caption's number) on a gray background
+    /// (Settings > Editor > General); without it a broken cross-reference keeps its own
+    bool fieldShading{true};
 };
 
 }  // namespace kalahari::editor

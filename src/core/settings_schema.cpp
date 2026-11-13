@@ -369,6 +369,15 @@ std::map<std::string, json> buildDefaults() {
         // theme's colors of the papers
         {"editor.showFormattingMarks", false},
 
+        // Editor: the fields (the date, the book's title, the page, a caption's number) on a
+        // gray background (Settings > Editor > General)
+        {"editor.fieldShading", true},
+        // Insert > Date && Time...: the format chosen last (editor::fieldFormats() of the
+        // date: "long", "short", "full", "iso", "time", "date-time"), which Alt+Shift+D gives
+        // when it is a date alone, and Update Automatically (a field), as it was last
+        {"editor.fields.dateFormat", "long"},
+        {"editor.fields.dateAsField", false},
+
         // Editor: the working numbers on the left margin (View > Margin Numbering), only on the
         // screen: "none", "lines" (every line) or "paragraphs" (every paragraph with text). A
         // number every "interval" lines or paragraphs; with "restartEachPage" the lines are

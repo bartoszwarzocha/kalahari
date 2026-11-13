@@ -11,6 +11,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Paste Special and Go To** - 2026-11-13. Edit > Paste Special... (no keys: Ctrl+Shift+V
+  pastes the text only) says where the content of the clipboard comes from (Kalahari,
+  Microsoft Word, LibreOffice, Google Docs, a web page or another program, text, a picture,
+  files of pictures) and pastes it in the form chosen: the Kalahari format, with the
+  annotations, of text copied in Kalahari; its formatting kept or merged with the book's look,
+  the text only; a picture (a screenshot, the picture Word gives with its text) or files of
+  pictures as images. The forms the clipboard has not are greyed out, saying why, and the
+  hint says what the one chosen keeps; the one Paste would give is chosen first, and the gear
+  opens the Paste Command in Settings > Editor > General. Text copied in Kalahari pasted with
+  its formatting kept or merged comes as from another program, without its annotations and
+  images. Edit > Go To... (Ctrl+G) goes to a page (in the Page Layout view), a heading, a
+  footnote or an endnote (by the number it shows), an image, a table or an annotation of the
+  text: by its number, on or back from the cursor ("+2", "-1"), or Next and Previous; the
+  window stays open over the text and says where it went ("Heading 3 of 7") or why not. The
+  Edit menu has Go To... after Find in Book..., as the mockup of the menu, and Settings...
+  once: Preferences..., which opened the same window, is no more in it (the command stays for
+  the keys and the toolbars), so every item keeps a key of its own.
+- **Fields** - 2026-11-13. Insert > Field... inserts a value that changes by itself: the title
+  of the book, its author, the title of the text (named after its kind: "Chapter Title"), the
+  page number, the page count, the word count of the text and the date, each in its formats
+  (in capitals; 1, i, I; 12 345 or 12345; the date long, short, with the day of the week, ISO,
+  the time, the date with the time), with how it shows where it goes. A field shows on a gray
+  background, which Settings > Editor > General can turn off (the gear of the window opens
+  it); it follows the book's properties and the title of the text, the word count follows the
+  text when the typing pauses, the page fields show the page in the Page Layout view and `#`
+  in the continuous views (its tooltip says so), the date is that of when the text was opened.
+  Edit Field... of its context menu, or a double click, changes it, Convert to Text puts the
+  text it shows in its place, each one undo step; copied, it goes to other programs as its
+  text. Insert > Date & Time... inserts today's date or time in the book's language, as text
+  or, with Update Automatically, as a field; Alt+Shift+D and Alt+Shift+T insert the date (in
+  the format chosen last) and the time at once, as text (Settings > Keyboard Shortcuts lists
+  them under Insert). A plain text file keeps no fields, only the date as text. KML: `<field>`
+  (docs/kml_format.md). The window has the fields in four tabs (Book, Text, Pages, Date; Ctrl+Tab
+  or Alt with the tab's letter goes between them), with the format, how the field shows and its
+  hint under the list of the tab, so it fits a small screen without scrolling.
 - **Chapter Break** - 2026-11-13. Book > Chapter Break (named after the texts of the book:
   "Story Break" in a collection of stories) moves the text from the cursor, or from the start
   of the selection, to a new text right after the one it was in, in the same part, of the
@@ -1371,6 +1406,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A paragraph at the top of a page drawn at the bottom of the page before** - 2026-11-13. In
+  the Page Layout view a paragraph whose first line went on to the next page could be drawn
+  in the margin of the page before, and its page fields showed that page, after its list
+  number, a caption number or a page count in it changed: the paragraph is placed on the pages
+  again.
 - **"Above" and "below" of the cross-references in Polish** - 2026-11-13. A cross-reference
   that shows where its caption is says "powyżej" and "poniżej" in the Polish program, not
   "above" and "below": the translations now also read the texts of the captions in the

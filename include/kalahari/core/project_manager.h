@@ -1036,6 +1036,10 @@ signals:
 
     /// @brief The numbering of the book's notes changed (setBookFootnotes())
     void bookFootnotesChanged();
+
+    /// @brief Element @p elementId got another title (renameElement())
+    void elementRenamed(const QString& elementId);
+
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
     void versionsChanged(const QString& elementId);

@@ -28,8 +28,10 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_places.h>
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_issue.h>
@@ -601,6 +603,20 @@ public:
     /// As paste(), with text from other programs read as @p mode says. Without formatting
     /// (PasteMode::Text) text copied in Kalahari comes as its plain text too.
     void pasteAs(PasteMode mode);
+
+    /// @brief The forms Edit > Paste Special... can paste MIME data in here, in their order:
+    ///        the KML of text copied in Kalahari, the HTML (with the formatting of the source,
+    ///        merged) and the text, where it has text to insert, and a picture or files of
+    ///        pictures, where the text keeps images; none in a read-only text
+    std::vector<PasteForm> pasteFormsOf(const QMimeData* source) const;
+
+    /// @brief Edit > Paste Special...: insert MIME data in a form at the cursor, replacing
+    ///        the selection, as one undo step, as the paste of that form of it alone does;
+    ///        nothing in a form pasteFormsOf() does not give
+    void insertInForm(const QMimeData* source, PasteForm form);
+
+    /// @brief insertInForm() of the clipboard
+    void pasteInForm(PasteForm form);
 
     /// @brief Clipboard content of the selection: KML (native), HTML and plain text
     /// @return New MIME data, or nullptr without a selection
@@ -1271,6 +1287,48 @@ public:
     int crossReferenceCount(const QSet<QString>& ids) const;
 
     // =========================================================================
+    // Fields: the book's title, its author, the text's title, the page, the words, the date
+    // =========================================================================
+
+    /// @brief Set what the fields show of the book and the text (text_fields.h); the fields
+    ///        that show something else then are drawn anew. A context without a time gets the
+    ///        time it is set: the dates are those of when the text was opened or came to the
+    ///        front last
+    void setFieldContext(const FieldContext& context);
+    const FieldContext& fieldContext() const { return m_fieldContext; }
+
+    /// @brief Insert > Field..., Date && Time...: a field at the cursor, in place of the
+    ///        selection, as one undo step
+    /// @return false in a read-only text
+    bool insertField(const TextField& field);
+
+    /// @brief The field the field commands act on (of text_fields.h): the one selected alone,
+    ///        else the one just before the cursor, else the one just after it; std::nullopt:
+    ///        none
+    std::optional<int> fieldAtCursor() const;
+
+    /// @brief The field of text_fields.h at a position; std::nullopt: none there
+    std::optional<TextField> textFieldAt(int position) const;
+
+    /// @brief The text the field at a position shows, of any kind (a caption's number too);
+    ///        empty: no field there
+    QString fieldTextAt(int position) const;
+
+    /// @brief Edit Field: the field at a position shows something else or in another format,
+    ///        as one undo step
+    /// @return false without such a field there, in a read-only text, or when it is so already
+    bool setTextFieldAt(int position, const TextField& field);
+
+    /// @brief Convert to Text: the field at a position becomes the text it shows, in its
+    ///        formatting, as one undo step
+    /// @return false without a field of text_fields.h there or in a read-only text
+    bool convertFieldToText(int position);
+
+    /// @brief The field of any kind under a point of the widget (its character); std::nullopt:
+    ///        none there
+    std::optional<int> fieldAt(const QPointF& widgetPos) const;
+
+    // =========================================================================
     // Annotations: comments, TODOs and notes
     // =========================================================================
 
@@ -1823,6 +1881,28 @@ public:
     void previousPage();
 
     // =========================================================================
+    // Edit > Go To...
+    // =========================================================================
+
+    /// @brief Edit > Go To..., Go: the place of a kind with a number, or on or back from the
+    ///        place of the cursor (placeNumberOf())
+    ///
+    /// "5" is page 5, the fifth heading, image, table or annotation of the text, and the note
+    /// that shows 5 (a note's number also as it shows it: "iii", "*"). "+2" and "-1" count from
+    /// the place of the cursor: its page, or the last place at or before it. The place comes
+    /// into view: the cursor at a heading's paragraph or in a table's first cell, after a
+    /// note's number, an image or an annotation's fragment selected.
+    GoToOutcome goToPlace(PlaceKind kind, const QString& number);
+
+    /// @brief Edit > Go To..., Next and Previous: the place after or before the cursor (the
+    ///        next page, the page before), as goToPlace() goes to it
+    GoToOutcome goToAdjacentPlace(PlaceKind kind, bool next);
+
+    /// @brief The places of a kind, in text order: where Go To puts the cursor (where its
+    ///        selection starts); none for the pages
+    std::vector<int> placePositions(PlaceKind kind) const;
+
+    // =========================================================================
     // Appearance (Phase 5.1)
     // =========================================================================
 
@@ -2245,6 +2325,10 @@ signals:
     /// double click on its number, Edit Footnote in the menu
     void noteEditRequested(const QString& id);
 
+    /// @brief The writer asks for the window of the field at a position: Edit Field... in the
+    /// menu, a double click on it
+    void fieldEditRequested(int position);
+
     /// @brief The notes of the text changed: one added, taken out, moved, of the other kind or
     ///        with another text (noteList()); the book numbers them again
     void notesChanged();
@@ -2427,6 +2511,17 @@ private:
 
     /// @brief insertFromMimeData() with text from other programs read as @p mode says
     void insertMimeDataAs(const QMimeData* source, PasteMode mode);
+
+    /// @brief Go To: the place @p index of @p places (placePositions()), and the outcome
+    GoToOutcome goToPlaceAt(PlaceKind kind, const std::vector<int>& places, int index);
+
+    /// @brief The place of the cursor for Go To: where the selection starts, else the cursor
+    int placeOfCursor() const;
+
+    /// @brief How many of the places are before the cursor, which is the index of the next
+    ///        one: an image or an annotation the cursor is at but which is not selected is
+    ///        still ahead
+    int placesBeforeCursor(PlaceKind kind, const std::vector<int>& places) const;
 
     /// @brief Remove the selected text
     /// @param keepAnnotations true: its annotations stay on its place; false: they go with
@@ -2809,6 +2904,17 @@ private:
     /// @brief Add the items of a note to a context menu: Edit Footnote, Convert to Endnote (or
     ///        Footnote), Delete Footnote
     void addNoteActions(QMenu& menu, const NotePlace& note);
+
+    /// @brief The items of the context menu for a field of text_fields.h at a position: Edit
+    ///        Field..., Convert to Text
+    void addFieldActions(QMenu& menu, int position);
+
+    /// @brief The word count fields show the words of the text as they are now
+    void refreshFieldWords();
+
+    /// @brief The tooltip of the field of text_fields.h at a position: what it shows, and for
+    ///        the page in a view without pages where it is shown
+    QString fieldToolTip(int position) const;
 
     /// @brief The note whose text is at a point of the widget: its id; empty: none (or an
     ///        endnote of another text: bookEndnoteAt())
@@ -3304,6 +3410,16 @@ private:
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
 
+    /// @brief The place Go To went to last, with the cursor it left: while the cursor stays
+    ///        there, Next and Previous go on from it, also past places at the same position
+    struct LastPlace {
+        PlaceKind kind = PlaceKind::Page;
+        int index = -1;   ///< Of placePositions()
+        int cursor = -1;  ///< The cursor and the anchor of the selection it left
+        int anchor = -1;
+    };
+    LastPlace m_lastPlace;
+
     /// The levels of undo below the text as it is: one for each step undo() takes back
     int m_undoLevel = 0;
     /// The levels of undo that pasted or dropped text: undoing and redoing them is pasting too
@@ -3356,6 +3472,8 @@ private:
     std::shared_ptr<ImageStore> m_imageStore{std::make_shared<ImageStore>()};  ///< Of the images
     NewImageOptions m_newImageOptions;  ///< How a new image goes into the text
     CaptionContext m_captionContext;    ///< What the numbers depend on outside the text
+    FieldContext m_fieldContext;        ///< What the fields show of the book and the text
+    QTimer* m_fieldWordsTimer{nullptr};  ///< Counts the words for the fields when typing pauses
     CaptionRemovalConfirmation m_confirmCaptionRemoval;  ///< Asked before a caption goes
     bool m_captionRemovalAsked = false;  ///< The writer was asked already (Image Properties)
     std::vector<CaptionEntry> m_shownCaptions;  ///< As captionsChanged() last announced them

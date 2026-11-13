@@ -667,10 +667,11 @@ void ShortcutsPage::buildList() {
     groupFont.setBold(true);
 
     // The commands the menus show and the program runs (or keeps keys for, as F1 for the
-    // help to come), by their menu
+    // help to come), by their menu; a command of keys alone (Alt+Shift+D, the date at once)
+    // under the menu its path names
     std::map<std::string, std::vector<const Command*>> byMenu;
     for (const Command& command : commands) {
-        if (!command.showInMenu || command.menuPath.empty() || !command.isShortcutCustomizable) {
+        if (command.menuPath.empty() || !command.isShortcutCustomizable) {
             continue;
         }
         if (!command.canExecute() && defaultOf(command.id).isEmpty()) {

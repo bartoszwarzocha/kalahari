@@ -82,7 +82,7 @@ std::vector<TextHighlight> QTextDocumentSource::paragraphHighlights(size_t index
                 const int position = fragment.position() + i;
                 const bool broken =
                     layout != nullptr &&
-                    layout->captionNumbers().fieldText(position, fragment.charFormat()).broken;
+                    layout->fieldText(position, fragment.charFormat()).broken;
                 highlights.push_back({position - block.position(), 1,
                                       broken ? HighlightKind::BrokenField : HighlightKind::Field});
             }

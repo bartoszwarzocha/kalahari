@@ -420,6 +420,7 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
                        QString::fromLatin1(editor::PASTE_MODE_SOURCE));
     pasteMode->addItem(tr("Keep Text Only"), QString::fromLatin1(editor::PASTE_MODE_TEXT));
     addField(behavior, tr("Paste Command:"), pasteMode, editor::PASTE_MODE_KEY);
+    pasteMode->setObjectName(QStringLiteral("pasteMode"));  // SettingsDialog::openPage()
     QLabel* pasteNote = addNote(behavior, QString());
     // With the keys Paste has now (the user may change them)
     const auto showPasteKeys = [pasteNote]() {
@@ -440,6 +441,13 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     showPasteKeys();
     connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, pasteNote,
             showPasteKeys);
+    // The fields on a gray background, so that they stand out of the text (as in Word)
+    //: In Polish: Szare tło pól
+    QCheckBox* shading =
+        addCheckBox(behavior, tr("Gray background of fields"), "editor.fieldShading");
+    shading->setObjectName(QStringLiteral("fieldShading"));  // SettingsDialog::openPage()
+    shading->setToolTip(tr("The fields show values that change by themselves: the date, the "
+                        "book's title, the page number, the number of a caption."));
     // A chapter opens where its cursor was when it was closed last, or at its start
     auto* opensAt = new QComboBox();
     opensAt->addItem(tr("Where You Last Edited"),

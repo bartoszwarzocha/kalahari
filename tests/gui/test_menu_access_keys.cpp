@@ -556,6 +556,15 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(itemCount(noteMenu) == 6 + 3);
     }
 
+    // A field: Edit Field... and Convert to Text on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><p>The<field type=\"page\"/> ") + sentence() +
+                   QStringLiteral("</p></kml>"));
+    const QRectF afterField = editor.placeRect(4, true);  // the field is the fourth character
+    QList<test::MenuItem> fieldMenu = contextMenu(
+        &editor, &editor, QPoint(qRound(afterField.left()) - 2, qRound(afterField.center().y())));
+    collectProblems(fieldMenu, QStringLiteral("Field"), {}, problems);
+    CHECK(itemCount(fieldMenu) == 6 + 2);
+
     // An image, selected by the click: Image Properties..., Add Caption, Change Image...,
     // Original Size and Save as Image... (the windows the editor panel gives) on top of the
     // menu of selected text

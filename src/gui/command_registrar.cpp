@@ -14,6 +14,9 @@
 
 #include <QCoreApplication>
 
+#include <string>
+#include <tuple>
+
 namespace kalahari {
 namespace gui {
 
@@ -332,7 +335,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY_CB("edit.pasteTextOnly", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste Text Onl&y"), "EDIT/Paste Text Only", 56, false, 0,
                    KeyboardShortcut(Qt::Key_V, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onPasteTextOnly);
 
-    REG_CMD("edit.pasteSpecial", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste &Special..."), "EDIT/Paste Special...", 60, false, 1);
+    // The window of the forms of the clipboard's content (no keys: Ctrl+Shift+V pastes the text
+    // only, Ctrl+Alt+V of Word is AltGr+V)
+    REG_CMD_CB("edit.pasteSpecial", QT_TRANSLATE_NOOP("CommandRegistrar", "Paste &Special..."), "EDIT/Paste Special...", 60, false, 0,
+               callbacks.onPasteSpecial);
     // Delete: in the text and the fields the key deletes the selection itself (and the
     // character after the cursor without one); the command takes it elsewhere, greyed out
     REG_CMD_KEY_CB("edit.delete", QT_TRANSLATE_NOOP("CommandRegistrar", "&Delete"), "EDIT/Delete", 70, true, 0,
@@ -362,8 +368,12 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                    callbacks.onFindReplace);
     // Find in Book: the Search panel, in all the texts of the book (BookSearchCoordinator gives
     // it its callback), with the key other editors give their search in all the files
-    REG_CMD_KEY("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in &Book..."), "EDIT/Find in Book...", 150, true, 0,
+    REG_CMD_KEY("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in &Book..."), "EDIT/Find in Book...", 150, false, 0,
                 KeyboardShortcut(Qt::Key_F, Qt::ControlModifier | Qt::ShiftModifier));
+    // A page, a heading, a note, an image, a table or an annotation of the text, with Word's
+    // Ctrl+G (GoToCoordinator gives it its callback)
+    REG_CMD_KEY("edit.goTo", QT_TRANSLATE_NOOP("CommandRegistrar", "&Go To..."), "EDIT/Go To...", 151, true, 0,
+                KeyboardShortcut(Qt::Key_G, Qt::ControlModifier));
 
     // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks
     REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt To Do"), "EDIT/Next To Do", 152, false, 0,
@@ -371,11 +381,17 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY("edit.previousTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Previ&ous To Do"), "EDIT/Previous To Do", 154, true, 0,
                 previousTodoShortcut);
 
+    // Preferences... opens the window the Edit menu has as Settings..., the name the texts that
+    // point to it give it: the menu has it once, and the command stays for the keys and the
+    // toolbars the writer gave it
     REG_CMD_CB("edit.preferences", QT_TRANSLATE_NOOP("CommandRegistrar", "Pr&eferences..."), "EDIT/Preferences...", 160, false, 0,
                callbacks.onSettings);
+    if (Command* preferences = registry.getCommand("edit.preferences")) {
+        preferences->showInMenu = false;
+    }
 
     // OpenSpec #00037: edit.settings command (alias for Settings dialog, used in Quick Actions toolbar)
-    REG_CMD_TOOL_ICON("edit.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Settin&gs..."), "EDIT/Settings...", 165, false, 0,
+    REG_CMD_TOOL_ICON("edit.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "S&ettings..."), "EDIT/Settings...", 165, false, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onSettings);
@@ -521,8 +537,28 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // a word open it. Ctrl+Shift+W: the program has no other command on it
     REG_CMD_KEY_CB("insert.quickInsert", QT_TRANSLATE_NOOP("CommandRegistrar", "Q&uick Insert..."), "INSERT/Quick Insert...", 87, false, 0,
                    KeyboardShortcut(Qt::Key_W, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onQuickInsert);
-    REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time"), "INSERT/Date & Time", 90, false, 1);
-    REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 1);
+    // Today's date or time as text or as a field (FieldCoordinator gives the callbacks)
+    REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time..."), "INSERT/Date & Time...", 90, false, 0);
+    REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 0);
+    // The date (in the format chosen last) and the time at once, as text, as Word's
+    // Alt+Shift+D and Alt+Shift+T: no menu has them, Settings > Keyboard Shortcuts lists them
+    // under Insert
+    for (const auto& [id, text, key, order] :
+         {std::tuple{"insert.date", QT_TRANSLATE_NOOP("CommandRegistrar", "Today's Date as Text"), Qt::Key_D, 91},
+          std::tuple{"insert.time", QT_TRANSLATE_NOOP("CommandRegistrar", "Current Time as Text"), Qt::Key_T, 92}}) {
+        Command cmd;
+        cmd.id = id;
+        setTexts(cmd, text);
+        cmd.category = "INSERT";
+        cmd.menuPath = std::string("INSERT/") + text;
+        cmd.menuOrder = order;
+        cmd.phase = 0;
+        cmd.showInMenu = false;
+        cmd.showInToolbar = false;
+        cmd.shortcut = KeyboardShortcut(key, pasteModifiers);
+        registry.registerCommand(cmd);
+        count++;
+    }
 
     // The objects of the text (editor/paragraph_styles.h): each a block of its own. Ctrl+Enter
     // as in Word and LibreOffice; the annotation frame keeps it for its text

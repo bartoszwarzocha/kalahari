@@ -71,6 +71,8 @@ class StyleCoordinator;
 class CaptionCoordinator;
 class FootnoteCoordinator;
 class ChapterBreakCoordinator;
+class FieldCoordinator;
+class GoToCoordinator;
 class BookSearchCoordinator;
 class ImageFilterCoordinator;
 class SpellingCoordinator;
@@ -474,6 +476,10 @@ private:
     /// @brief Edit > Find in Book... and Replace All in Book, in the Search panel
     BookSearchCoordinator* m_bookSearchCoordinator{nullptr};
     ChapterBreakCoordinator* m_chapterBreakCoordinator{nullptr};
+    /// Insert > Date && Time..., Insert > Field... and what the fields of the texts show
+    FieldCoordinator* m_fieldCoordinator{nullptr};
+    /// Edit > Go To...
+    GoToCoordinator* m_goToCoordinator{nullptr};
 
     /// @brief Image > Filter > Same Filter for All Images...
     ImageFilterCoordinator* m_imageFilterCoordinator{nullptr};

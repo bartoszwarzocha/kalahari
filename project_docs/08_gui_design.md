@@ -1061,7 +1061,7 @@ struct ToolbarConfig {
 
 ### Customization UI
 
-**Access:** Tools → Customize Toolbars (Alt+Shift+T)
+**Access:** Tools → Customize Toolbars...
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -1553,11 +1553,17 @@ Rules for a new shortcut:
 | Edit > Cut | Ctrl+X |
 | Edit > Copy | Ctrl+C |
 | Edit > Paste | Ctrl+V |
+| Edit > Paste with Source Formatting | Alt+Shift+V (macOS: Cmd+Option+Shift+V) |
+| Edit > Paste and Merge Formatting | Alt+Shift+M (macOS: Cmd+Option+Shift+M) |
+| Edit > Paste Text Only | Ctrl+Shift+V |
+| Edit > Paste Special... | none (Ctrl+Shift+V is Paste Text Only) |
 | Edit > Select All | Ctrl+A |
 | Edit > Find... | Ctrl+F |
 | Edit > Find Next | F3 |
 | Edit > Find Previous | Shift+F3 |
-| Edit > Find & Replace... | Ctrl+H |
+| Edit > Find & Replace... | Ctrl+H (macOS: Cmd+Option+F) |
+| Edit > Find in Book... | Ctrl+Shift+F |
+| Edit > Go To... | Ctrl+G |
 | Edit > Next To Do | Alt+Down |
 | Edit > Previous To Do | Alt+Up |
 | Book > Add... | Ctrl+Shift+Enter |
@@ -1566,6 +1572,8 @@ Rules for a new shortcut:
 | Insert > Caption... | Ctrl+Shift+G (also with the cursor just after the image) |
 | Insert > Footnote | Alt+Shift+F (macOS: Cmd+Option+Shift+F) |
 | Insert > Endnote | Alt+Shift+E (macOS: Cmd+Option+Shift+E) |
+| Today's Date as Text (no menu; Insert in Settings > Keyboard Shortcuts) | Alt+Shift+D (macOS: Cmd+Option+Shift+D) |
+| Current Time as Text (no menu; Insert in Settings > Keyboard Shortcuts) | Alt+Shift+T (macOS: Cmd+Option+Shift+T) |
 | Format > Bold | Ctrl+B |
 | Format > Italic | Ctrl+I |
 | Format > Underline | Ctrl+U |
@@ -1822,7 +1830,7 @@ are added:
 
 ### Shortcut Customization
 
-**Access:** Settings > Keyboard Shortcuts (Edit > Preferences...); Help > Keyboard Shortcuts
+**Access:** Settings > Keyboard Shortcuts (Edit > Settings...); Help > Keyboard Shortcuts
 opens Settings on this page, with the cursor in its search, as the shortcuts editors of Visual
 Studio Code and Visual Studio. `src/gui/settings/shortcuts_page.cpp`.
 
