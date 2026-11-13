@@ -454,13 +454,13 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
 
     // The options of the formats of the plugins: a tab of each, shown while it is chosen
     for (const Format& each : std::as_const(m_formats)) {
-        const std::shared_ptr<core::IExporter> exporter = exporterOf(each.id);
-        if (!exporter) {
+        const std::shared_ptr<core::IExporter> plugin = exporterOf(each.id);
+        if (!plugin) {
             continue;
         }
         QWidget* page = nullptr;
         try {
-            page = exporter->createOptionsPage(each.id.toStdString(), m_tabs);
+            page = plugin->createOptionsPage(each.id.toStdString(), m_tabs);
         } catch (const std::exception& error) {
             core::Logger::getInstance().error("Export: the options of the format {}: {}",
                                               each.id.toStdString(), error.what());
