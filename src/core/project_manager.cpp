@@ -1811,6 +1811,7 @@ bool ProjectManager::renameElement(const QString& elementId, const QString& titl
         Logger::getInstance().warn("renameElement: The title of {} is not in its chapter file",
                                    elementId.toStdString());
     }
+    emit elementRenamed(elementId);
     return true;
 }
 

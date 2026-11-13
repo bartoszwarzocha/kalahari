@@ -40,7 +40,7 @@ std::optional<int> firstImageOf(const QTextDocument& document, const QTextBlock&
 
 /// The text of [from, to) of a block as it is shown: its fields as their text, without
 /// images and objects
-QString shownText(const QTextBlock& block, int from, int to, const CaptionNumbers& numbers)
+QString shownText(const QTextBlock& block, int from, int to, const FieldTextOf& fieldText)
 {
     QString text;
     for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
@@ -57,7 +57,7 @@ QString shownText(const QTextBlock& block, int from, int to, const CaptionNumber
         const QString part = fragment.text().mid(start - fragment.position(), end - start);
         if (isFieldFormat(format)) {
             for (int i = 0; i < part.size(); ++i) {
-                text += numbers.fieldText(start + i, format).text;
+                text += fieldText(start + i, format).text;
             }
         } else if (format.objectType() == QTextFormat::NoObject) {
             text += part;
@@ -214,9 +214,13 @@ std::optional<ImageCaption> BookEditor::imageCaptionOf(int position) const
     const CaptionParts parts = captionParts(block);
     caption.numbered = parts.numberAt >= 0;
     caption.label = parts.number.label;
-    caption.text = captionTextOf(shownText(block, parts.textAt,
-                                           block.position() + block.length() - 1,
-                                           captionNumbers()));
+    const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
+    const CaptionNumbers& numbers = captionNumbers();
+    caption.text = captionTextOf(shownText(
+        block, parts.textAt, block.position() + block.length() - 1,
+        [layout, &numbers](int at, const QTextFormat& format) {
+            return layout != nullptr ? layout->fieldText(at, format) : numbers.fieldText(at, format);
+        }));
     return caption;
 }
 

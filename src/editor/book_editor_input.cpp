@@ -875,6 +875,15 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
         return;
     }
 
+    // A double click on a field: its window, as in LibreOffice
+    if (const std::optional<int> field = fieldAt(event->position()); field && textFieldAt(*field)) {
+        if (!m_readOnly) {
+            emit fieldEditRequested(*field);
+        }
+        event->accept();
+        return;
+    }
+
     // A double click on a note's number writes its text in its frame (or on its text, which
     // the first click opened)
     if (const std::optional<NotePlace> note = noteAt(event->position())) {
@@ -1310,6 +1319,15 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
             menu.addSeparator();
         }
         addNoteActions(menu, *note);
+        menu.addSeparator();
+    }
+
+    // The field at the cursor: its window, or the text it shows in its place
+    if (const std::optional<int> field = fieldAtCursor()) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        addFieldActions(menu, *field);
         menu.addSeparator();
     }
 

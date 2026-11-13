@@ -223,8 +223,9 @@ signals:
     /// @note The Navigator's coordinator saves them, and refreshes the Navigator and the panel
     void requestSections(const kalahari::core::BookSections& sections);
 
-    /// @brief The title or the language of the book changed in the panel: the Navigator shows
-    /// the title, and the names of the sections in the language of the book
+    /// @brief The title, the author or the language of the book changed in the panel: the
+    /// Navigator shows the title, and the names of the sections in the language of the book;
+    /// the fields of the texts show them (FieldCoordinator)
     void bookChanged();
 
     /// @brief Emitted when the book's language is changed in the panel

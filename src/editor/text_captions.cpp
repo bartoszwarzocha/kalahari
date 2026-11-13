@@ -2,6 +2,7 @@
 /// @brief Numbered captions, cross-references to them and the list of figures
 
 #include "kalahari/editor/text_captions.h"
+#include "kalahari/editor/text_fields.h"
 #include "kalahari/editor/text_footnotes.h"
 #include "kalahari/editor/kml_format_registry.h"
 #include "kalahari/editor/paragraph_styles.h"
@@ -25,10 +26,12 @@ namespace kalahari::editor {
 
 namespace {
 
-/// The properties of the fields
-constexpr std::array<int, 5> FIELD_PROPERTIES = {
-    CAPTION_LABEL_PROPERTY, CAPTION_ID_PROPERTY, REFERENCE_TARGET_PROPERTY,
-    REFERENCE_SHOWS_PROPERTY, REFERENCE_PLAIN_PROPERTY};
+/// The properties of the fields: of the numbers, the cross-references and the fields of
+/// text_fields.h
+constexpr std::array<int, 7> FIELD_PROPERTIES = {
+    CAPTION_LABEL_PROPERTY,   CAPTION_ID_PROPERTY, REFERENCE_TARGET_PROPERTY,
+    REFERENCE_SHOWS_PROPERTY, REFERENCE_PLAIN_PROPERTY, FIELD_TYPE_PROPERTY,
+    FIELD_FORMAT_PROPERTY};
 
 /// The names of what a cross-reference shows, in the order of ReferenceShows
 constexpr std::array<const char*, 4> SHOWS_NAMES = {"number", "label", "caption", "position"};
@@ -230,7 +233,8 @@ void setCrossReference(QTextCharFormat& format, const CrossReference& reference)
 bool isFieldFormat(const QTextFormat& format)
 {
     const int type = format.objectType();
-    return type == CAPTION_NUMBER_OBJECT || type == CROSS_REFERENCE_OBJECT;
+    return type == CAPTION_NUMBER_OBJECT || type == CROSS_REFERENCE_OBJECT ||
+           type == TEXT_FIELD_OBJECT;
 }
 
 void clearField(QTextCharFormat& format)
@@ -648,6 +652,10 @@ FieldText CaptionNumbers::fieldText(int position, const QTextFormat& format) con
     if (const std::optional<CrossReference> reference = crossReferenceOf(format)) {
         return referenceText(*reference, position);
     }
+    if (const std::optional<TextField> field = textFieldOf(format)) {
+        // Without the book and the view: the editor's layout gives the values it has
+        return {textFieldText(*field, FieldContext{}, FieldCounts{}), false};
+    }
     return {};
 }
 
@@ -757,6 +765,17 @@ void CaptionNumbers::shift(int from, int delta)
 std::vector<QString> fieldTexts(const QTextDocument& document, const CaptionNumbers& numbers,
                                 int from, int to)
 {
+    return fieldTexts(
+        document, numbers,
+        [&numbers](int position, const QTextFormat& format) {
+            return numbers.fieldText(position, format);
+        },
+        from, to);
+}
+
+std::vector<QString> fieldTexts(const QTextDocument& document, const CaptionNumbers& numbers,
+                                const FieldTextOf& textOf, int from, int to)
+{
     std::vector<QString> texts;
     QString list;
     bool listKnown = false;
@@ -783,7 +802,7 @@ std::vector<QString> fieldTexts(const QTextDocument& document, const CaptionNumb
                     continue;
                 }
                 if (field) {
-                    texts.push_back(numbers.fieldText(position, format).text);
+                    texts.push_back(textOf(position, format).text);
                     continue;
                 }
                 if (!listKnown) {

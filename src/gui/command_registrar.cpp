@@ -14,6 +14,9 @@
 
 #include <QCoreApplication>
 
+#include <string>
+#include <tuple>
+
 namespace kalahari {
 namespace gui {
 
@@ -521,8 +524,28 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // a word open it. Ctrl+Shift+W: the program has no other command on it
     REG_CMD_KEY_CB("insert.quickInsert", QT_TRANSLATE_NOOP("CommandRegistrar", "Q&uick Insert..."), "INSERT/Quick Insert...", 87, false, 0,
                    KeyboardShortcut(Qt::Key_W, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onQuickInsert);
-    REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time"), "INSERT/Date & Time", 90, false, 1);
-    REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 1);
+    // Today's date or time as text or as a field (FieldCoordinator gives the callbacks)
+    REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time..."), "INSERT/Date & Time...", 90, false, 0);
+    REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 0);
+    // The date (in the format chosen last) and the time at once, as text, as Word's
+    // Alt+Shift+D and Alt+Shift+T: no menu has them, Settings > Keyboard Shortcuts lists them
+    // under Insert
+    for (const auto& [id, text, key, order] :
+         {std::tuple{"insert.date", QT_TRANSLATE_NOOP("CommandRegistrar", "Today's Date as Text"), Qt::Key_D, 91},
+          std::tuple{"insert.time", QT_TRANSLATE_NOOP("CommandRegistrar", "Current Time as Text"), Qt::Key_T, 92}}) {
+        Command cmd;
+        cmd.id = id;
+        setTexts(cmd, text);
+        cmd.category = "INSERT";
+        cmd.menuPath = std::string("INSERT/") + text;
+        cmd.menuOrder = order;
+        cmd.phase = 0;
+        cmd.showInMenu = false;
+        cmd.showInToolbar = false;
+        cmd.shortcut = KeyboardShortcut(key, pasteModifiers);
+        registry.registerCommand(cmd);
+        count++;
+    }
 
     // The objects of the text (editor/paragraph_styles.h): each a block of its own. Ctrl+Enter
     // as in Word and LibreOffice; the annotation frame keeps it for its text

@@ -623,6 +623,41 @@ the element, written at the place of the number.
 - Copied, pasted or moved, a note goes with its number; deleting the number deletes the note.
   A note pasted into a text that already has its `id` gets a new one.
 
+## Fields
+
+```xml
+<p><field type="title" format="upper"/> – <field type="book-title"/>, <field type="author"/></p>
+<p>Page <field type="page"/> of <field type="pages" format="i"/>, <field type="words"/> words,
+<field type="date" format="iso"/></p>
+```
+
+A **field** shows a value that changes by itself (Insert > Field..., and Insert > Date &
+Time... with Update Automatically). Like a caption's number it is one character of its
+paragraph, on the gray background of the fields, inside the formatting elements of its place;
+it has no text of its own in the file and adds nothing to the word and character counts.
+
+| `type` | What it shows | `format` (the first without it) |
+|--------|---------------|---------------------------------|
+| `book-title` | The title of the book (the Properties panel) | none, `upper` (in capitals) |
+| `author` | The author of the book | none, `upper` |
+| `title` | The title of the text it is in (its name in the Navigator; the name of a file outside the book) | none, `upper` |
+| `page` | The page it is on, from 1 in each text | `1`, `i`, `I` |
+| `pages` | The pages of the text | `1`, `i`, `I` |
+| `words` | The words of the text, as the status bar counts them | none (grouped in the book's language: `12 345`), `plain` (`12345`) |
+| `date` | Today's date or the time, in the book's language | `long` (`11 October 2026`), `short` (`11.10.2026` in Polish), `full` (with the day of the week), `iso` (`2026-10-11`), `time` (`14:35`), `date-time` (`11.10.2026, 14:35`) |
+
+- A field of an unknown `type` is left out; an unknown `format` is read as the type's first. The
+  editor writes the format only when it is not the type's first.
+- The page and the page count show in the Page Layout view; the continuous views show `#`. A
+  book's title or author it does not have yet shows its name in brackets (`[Book Title]`). A
+  text outside a book has no book's values, and its dates are in the program's language.
+- The date is that of when the text was opened or brought to the front: it changes when the
+  text is opened on another day. The word count follows the text when the typing pauses.
+- Edit Field... (the context menu of a field, a double click) changes it; Convert to Text puts
+  the text it shows in its place. A plain text file (`.txt`) keeps no fields; the date goes in
+  as text.
+- The gray background can be turned off (Settings > Editor > General, `editor.fieldShading`).
+
 ## The clipboard of other programs
 
 The clipboard gives other programs HTML and plain text of the copied KML, and HTML of other
@@ -643,7 +678,7 @@ tests in `tests/editor/test_clipboard_paste.cpp`, the notes in
 | `caps`, `spacing` | CSS `font-variant:small-caps` or `text-transform:uppercase`, `letter-spacing` in points | – |
 | `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
 | `<table>` | `<table>` as wide as the text with a thin grid (`border="1"`, `border-collapse:collapse`), the header row in a `<thead>` of `<th>` cells, `colspan` and `rowspan`, the widths of the columns on the cells of the first row | A line for each row, its cells separated by tabs (one also for a cell that a cell above spans into), the paragraphs of a cell by spaces |
-| `<caption-number>`, `<cross-reference>` | The text it shows | The text it shows |
+| `<caption-number>`, `<cross-reference>`, `<field>` | The text it shows | The text it shows |
 | `<footnote>`, `<endnote>` | The number as the editor shows it, raised, a link to the note's text after the text, as LibreOffice writes it: `<a class="sdfootnoteanc" name="sdfootnote1anc" href="#sdfootnote1sym"><sup>1</sup></a>` and `<div id="sdfootnote1"><p><a class="sdfootnotesym" name="sdfootnote1sym" href="#sdfootnote1anc">1</a>Its text</p></div>` (`sdendnote` for an endnote), the footnotes first | The number in the text; after the text and an empty line each note on a line after its number, the footnotes first |
 | `<list-of-figures/>` | A paragraph for each of its lines | Each of its lines on a line |
 | `<img>` | `<img>` with the address of its file (`file:`), its `alt` and its width as CSS `width` (`80%`, `4.5cm`); left out when the text has no folder or its `src` is not one of the book's files. An image copied alone is also on the clipboard as a picture | Left out |

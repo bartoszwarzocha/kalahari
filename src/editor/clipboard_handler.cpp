@@ -7,6 +7,7 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
@@ -1787,7 +1788,8 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                     break;
                 }
                 if (tag == QStringLiteral("caption-number") ||
-                    tag == QStringLiteral("cross-reference")) {
+                    tag == QStringLiteral("cross-reference") ||
+                    (tag == QStringLiteral("field") && textFieldOfKml(reader.attributes()))) {
                     // A field: the text the editor shows
                     if (fieldIndex < items.fields.size() && !items.fields[fieldIndex].isEmpty()) {
                         writer.writeCharacters(items.fields[fieldIndex]);
@@ -2396,7 +2398,9 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                     reader.skipCurrentElement();  // Not part of the text
                     --depth;
                 } else if (tagName == QStringLiteral("caption-number") ||
-                           tagName == QStringLiteral("cross-reference")) {
+                           tagName == QStringLiteral("cross-reference") ||
+                           (tagName == QStringLiteral("field") &&
+                            textFieldOfKml(reader.attributes()))) {
                     // A field: the text the editor shows
                     if (fieldIndex < items.fields.size()) {
                         text += items.fields[fieldIndex];

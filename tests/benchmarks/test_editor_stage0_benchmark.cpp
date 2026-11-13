@@ -41,6 +41,12 @@
 /// chapter_break_benchmark_results.md) splits the chapter with the same notes in the middle:
 /// in the editor (the text from the cursor as KML, taken away, and back with its undo), and as
 /// the whole command in a book, with its saving, the tab of the new text and Undo.
+///
+/// The benchmark of fields ("[benchmark][fields]", results in fields_benchmark_results.md)
+/// takes the chapter with the same notes and a field at the end of every 20th paragraph (the
+/// page, the page count, the date, the words, the book's title, in turn): loading, the book's
+/// values given, the text brought to the front, typing before a field, the word count after
+/// a pause, the page view with the numbers of the pages, copying it as text and saving it.
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_type_registry.h>
@@ -53,6 +59,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/text_sorting.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/viewport_manager.h>
@@ -296,6 +303,60 @@ QString withNotes(const QString& kml, int* notes) {
     result += QStringView(kml).mid(from);
     *notes = count;
     return result;
+}
+
+/// The chapter with a field at the end of every 20th paragraph: the page, the page count, the
+/// date, the words and the book's title, in turn; @p fields gets their number
+QString withFields(const QString& kml, int* fields) {
+    static const QStringList FIELDS = {
+        QStringLiteral(" (s. <field type=\"page\"/>)"),
+        QStringLiteral(" (z <field type=\"pages\"/>)"),
+        QStringLiteral(" <field type=\"date\" format=\"short\"/>"),
+        QStringLiteral(" (<field type=\"words\"/> słów)"),
+        QStringLiteral(" – <field type=\"book-title\"/>")};
+    const QString end = QStringLiteral("</p>");
+    QString result;
+    result.reserve(kml.size() * 21 / 20);
+    qsizetype from = 0;
+    int paragraph = 0;
+    int count = 0;
+    for (qsizetype at = kml.indexOf(end); at >= 0; at = kml.indexOf(end, from)) {
+        result += QStringView(kml).mid(from, at - from);
+        if (++paragraph % 20 == 0) {
+            result += FIELDS.at(count++ % FIELDS.size());
+        }
+        result += end;
+        from = at + end.size();
+    }
+    result += QStringView(kml).mid(from);
+    *fields = count;
+    return result;
+}
+
+/// The first paragraph from the given one on with a field
+int paragraphWithField(const BookEditor& editor, int from) {
+    for (QTextBlock block = editor.textDocument()->findBlockByNumber(from); block.isValid();
+         block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            if (textFieldOf(it.fragment().charFormat())) {
+                return block.blockNumber();
+            }
+        }
+    }
+    return from;
+}
+
+/// The position of the first field of @p type; -1: none
+int firstField(const BookEditor& editor, FieldType type) {
+    for (QTextBlock block = editor.textDocument()->begin(); block.isValid(); block = block.next()) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            if (const std::optional<TextField> field = textFieldOf(it.fragment().charFormat());
+                field && field->type == type) {
+                return it.fragment().position();
+            }
+        }
+    }
+    return -1;
 }
 
 /// The first paragraph from the given one on with a note
@@ -1244,4 +1305,153 @@ TEST_CASE("Chapter Break benchmark: a 150k-word chapter with notes split in the 
     CHECK(book.pm.findElement(added) == nullptr);
 
     report(rows, header, QStringLiteral("chapter_break_benchmark_results.md"));
+}
+
+TEST_CASE("Fields benchmark: a 150k-word chapter with notes and fields",
+          "[.][benchmark][fields]") {
+    std::vector<BenchRow> rows;
+    QStringList header = reportHeader();
+
+    // -------------------------------------------------------------------------
+    // 1. Loading and the book's values
+    // -------------------------------------------------------------------------
+    int notes = 0;
+    int fields = 0;
+    const QString kml = withFields(withNotes(generateKml(150000), &notes), &fields);
+    BookEditor editor;
+    resizeWidget(editor, QSize(1000, 800));
+    editor.setParagraphStyles(bookStyles());
+    const double loadMs = timeMs([&] { editor.fromKml(kml); });
+    const double firstPaintMs = timeMs([&] { paint(editor); });
+    KalahariTextDocumentLayout* layout = layoutOf(editor);
+    const double restMs = timeMs([&] { layout->layoutPendingBlocks(); });
+    header << QStringLiteral("Dokument: %1 słów, %2 akapitów, %3 przypisów, %4 pól (strona, "
+                             "liczba stron, data, liczba słów, tytuł książki) co 20. akapit")
+                  .arg(editor.wordCount())
+                  .arg(editor.paragraphCount())
+                  .arg(notes)
+                  .arg(fields);
+    rows.push_back({QStringLiteral("fromKml – 150k słów z przypisami i polami"), loadMs,
+                    QStringLiteral("pierwszy paintEvent %1 ms; łamanie reszty w tle %2 ms")
+                        .arg(firstPaintMs, 0, 'f', 1)
+                        .arg(restMs, 0, 'f', 1)});
+
+    FieldContext context;
+    context.bookTitle = QStringLiteral("Pustynia i puszcza");
+    context.author = QStringLiteral("Henryk Sienkiewicz");
+    context.textTitle = QStringLiteral("Rozdział pierwszy");
+    context.language = QStringLiteral("pl");
+    context.now = QDateTime::currentDateTime();
+    rows.push_back({QStringLiteral("Wartości książki dla pól (otwarcie tekstu) + paintEvent"),
+                    timeMs([&] {
+                        editor.setFieldContext(context);
+                        paint(editor);
+                    }),
+                    QStringLiteral("tytuł, autor i język: wszystkie pola od nowa")});
+    CHECK(editor.fieldTextAt(firstField(editor, FieldType::BookTitle)) == context.bookTitle);
+    context.now = context.now.addSecs(1);
+    rows.push_back({QStringLiteral("Tekst wysunięty na wierzch (inna godzina) + paintEvent"),
+                    timeMs([&] {
+                        editor.setFieldContext(context);
+                        paint(editor);
+                    }),
+                    QStringLiteral("tylko daty mogą się zmienić")});
+
+    const QString typed = QStringLiteral("lorem ipsum dolor sit amet ").repeated(4).left(100);
+    const auto typeHundred = [&]() {
+        return timeMs([&] {
+            for (QChar c : typed) {
+                typeChar(editor, c);
+                paint(editor);
+            }
+        });
+    };
+    const auto beforeField = [&](int paragraph) {
+        const int block = paragraphWithField(editor, paragraph);
+        editor.clearSelection();
+        editor.setCursorPosition({block, 10});
+        paint(editor);
+    };
+
+    // -------------------------------------------------------------------------
+    // 2. Continuous: typing beside a field, the word count after a pause
+    // -------------------------------------------------------------------------
+    beforeField(static_cast<int>(editor.paragraphCount() / 2));
+    {
+        const double ms = typeHundred();
+        rows.push_back({QStringLiteral("Wpisanie 100 znaków w akapicie z polem – Continuous (z "
+                                       "paintEvent po każdym)"),
+                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+    }
+    int words = 0;
+    rows.push_back({QStringLiteral("Liczba słów w polach po przerwie w pisaniu + paintEvent"),
+                    timeMs([&] {
+                        words = editor.textCounts().words;
+                        layout->setFieldWords(words);
+                        paint(editor);
+                    }),
+                    QStringLiteral("liczenie słów tekstu i odświeżenie %1 pól").arg(fields / 5)});
+    CHECK(layout->fieldWords() == words);
+
+    // -------------------------------------------------------------------------
+    // 3. Page view: the numbers of the pages
+    // -------------------------------------------------------------------------
+    rows.push_back({QStringLiteral("Przełączenie na Page + paintEvent"), timeMs([&] {
+                        editor.setViewMode(ViewMode::Page);
+                        paint(editor);
+                    }),
+                    QString()});
+    rows.push_back({QStringLiteral("    łamanie reszty stron w tle + numery stron w polach"),
+                    timeMs([&] {
+                        layout->layoutPendingBlocks();
+                        QCoreApplication::processEvents();  // the page count, queued
+                        paint(editor);
+                    }),
+                    QString()});
+    CHECK(editor.fieldTextAt(firstField(editor, FieldType::Pages)) ==
+          QString::number(editor.totalPages()));
+    beforeField(static_cast<int>(editor.paragraphCount() / 2));
+    {
+        const double ms = timeMs([&] {
+            for (QChar c : typed) {
+                typeChar(editor, c);
+                paint(editor);
+                QCoreApplication::processEvents();
+            }
+        });
+        rows.push_back({QStringLiteral("Wpisanie 100 znaków w akapicie z polem – Page (z "
+                                       "paintEvent po każdym)"),
+                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+    }
+    {
+        // For comparison: a paragraph without a field near it
+        int plain = static_cast<int>(editor.paragraphCount() / 2) + 3;
+        while (editor.textDocument()->findBlockByNumber(plain).length() < 20) {
+            ++plain;
+        }
+        editor.clearSelection();
+        editor.setCursorPosition({plain, 10});
+        paint(editor);
+        const double ms = typeHundred();
+        rows.push_back({QStringLiteral("    dla porównania: w akapicie bez pola – Page"), ms,
+                        QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. The clipboard and saving
+    // -------------------------------------------------------------------------
+    editor.selectAll();
+    std::unique_ptr<QMimeData> copied;
+    rows.push_back({QStringLiteral("Kopiowanie całości (Ctrl+A, Ctrl+C)"),
+                    timeMs([&] { copied = editor.createMimeDataFromSelection(); }),
+                    QStringLiteral("pola jako tekst, który pokazują")});
+    REQUIRE(copied);
+    CHECK(copied->text().contains(context.bookTitle));
+    editor.clearSelection();
+    QString saved;
+    rows.push_back({QStringLiteral("toKml – cały rozdział z polami"),
+                    timeMs([&] { saved = editor.toKml(); }), QString()});
+    CHECK(saved.count(QStringLiteral("<field ")) == fields);
+
+    report(rows, header, QStringLiteral("fields_benchmark_results.md"));
 }
