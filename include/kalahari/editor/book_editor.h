@@ -467,6 +467,24 @@ public:
     /// annotations of the deleted text stay on its place.
     bool deleteSelectedText();
 
+    /// @brief The text from @p at to its end as KML, with the annotations anchored in it and
+    ///        its notes (Book > Chapter Break: the text of the new chapter)
+    /// @return Empty when nothing follows @p at
+    [[nodiscard]] QString kmlFrom(const CursorPosition& at) const;
+
+    /// @brief Take the text from @p at to its end away, as one undo step, with the annotations
+    ///        anchored in it (Book > Chapter Break: they go with it to the new chapter)
+    ///
+    /// At the start of a paragraph after a paragraph of text the end of that paragraph goes
+    /// too, so that the text ends with it, not with an empty paragraph. The cursor ends at the
+    /// end of the text.
+    /// @return false in a read-only text, or when nothing follows @p at
+    bool removeTextFrom(const CursorPosition& at);
+
+    /// @brief Undo the last step, which took the text to another text (removeTextFrom()):
+    ///        the text comes back, and its words are not written (movingStarted())
+    void undoMovedText();
+
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.
@@ -2128,6 +2146,14 @@ signals:
     /// (text typed right after a paste may join its level, and goes and comes back with it)
     /// @param undoOrRedo A paste was undone or redone
     void pastingFinished(int level, bool undoOrRedo);
+
+    /// @brief Text is about to go to another text, or to come back from it (Book > Chapter
+    /// Break and its Undo): the change that follows is not writing (movingFinished() follows
+    /// it)
+    void movingStarted();
+
+    /// @brief The change movingStarted() announced is made (contentChanged() came before it)
+    void movingFinished();
 
     /// @brief Emitted when the content starts or stops differing from the saved content
     ///        (see isModified())

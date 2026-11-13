@@ -1330,6 +1330,10 @@
         <source>&amp;Markdown...</source>
         <translation>&amp;Markdown...</translation>
     </message>
+    <message>
+        <source>Chapter Brea&amp;k</source>
+        <translation>Pod&amp;ział rozdziału</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -1502,6 +1506,11 @@
         <comment>gender of the word file</comment>
         <extracomment>The grammatical gender of the word &quot;file&quot; in the translation, for the words that agree with it: one of the English words masculine, feminine, neuter or plural, not translated. In Polish: masculine</extracomment>
         <translation>masculine</translation>
+    </message>
+    <message>
+        <source>{Kind} Brea&amp;k</source>
+        <extracomment>Book &gt; Chapter Break named after the texts it splits, e.g. Story Break. In Polish: Pod&amp;ział {kind:genitive}</extracomment>
+        <translation>Pod&amp;ział {kind:genitive}</translation>
     </message>
 </context>
 <context>
@@ -10034,6 +10043,83 @@ Szczegóły są w dzienniku programu.</translation>
     <message>
         <source>Tabs in More Rows</source>
         <translation>Karty w kilku wierszach</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::ChapterBreakCoordinator</name>
+    <message>
+        <source>No book is open</source>
+        <extracomment>Why Book &gt; Chapter Break is greyed out. In Polish: Żadna książka nie jest otwarta</extracomment>
+        <translation>Żadna książka nie jest otwarta</translation>
+    </message>
+    <message>
+        <source>The cursor is not in a text of the book</source>
+        <extracomment>In Polish: Kursor nie jest w tekście książki</extracomment>
+        <translation>Kursor nie jest w tekście książki</translation>
+    </message>
+    <message>
+        <source>No {kind} can be added after this text</source>
+        <extracomment>Why Book &gt; Chapter Break is greyed out: the book has as many texts of the kind as it can have (a prologue). In Polish: Za tym tekstem nie można dodać {kind:genitive}</extracomment>
+        <translation>Za tym tekstem nie można dodać {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>The cursor is in a table, which cannot be split</source>
+        <extracomment>In Polish: Kursor jest w tabeli, a tabeli nie da się podzielić</extracomment>
+        <translation>Kursor jest w tabeli, a tabeli nie da się podzielić</translation>
+    </message>
+    <message>
+        <source>There is no text before the cursor</source>
+        <extracomment>In Polish: Przed kursorem nie ma tekstu</extracomment>
+        <translation>Przed kursorem nie ma tekstu</translation>
+    </message>
+    <message>
+        <source>There is no text after the cursor</source>
+        <extracomment>In Polish: Za kursorem nie ma tekstu</extracomment>
+        <translation>Za kursorem nie ma tekstu</translation>
+    </message>
+    <message>
+        <source>{Kind} Not Split</source>
+        <extracomment>The title of the warnings of Book &gt; Chapter Break. In Polish: Nie udało się podzielić {kind:genitive}</extracomment>
+        <translation>Nie udało się podzielić {kind:genitive}</translation>
+    </message>
+    <message>
+        <source>The changes of this text could not be saved to its file, so it was not split. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie udało się zapisać w pliku zmian w tym tekście, dlatego tekstu nie podzielono. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się zapisać w pliku zmian w tym tekście, dlatego tekstu nie podzielono. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>The new text could not be added to the book, so the text was not split. The program&apos;s log has the details.</source>
+        <extracomment>In Polish: Nie udało się dodać nowego tekstu do książki, dlatego tekstu nie podzielono. Szczegóły są w dzienniku programu.</extracomment>
+        <translation>Nie udało się dodać nowego tekstu do książki, dlatego tekstu nie podzielono. Szczegóły są w dzienniku programu.</translation>
+    </message>
+    <message>
+        <source>The text from the cursor went to &quot;%1&quot;, right after &quot;%2&quot;.</source>
+        <extracomment>In Polish: Tekst od kursora przeniesiono do „%1”, tuż za „%2”.</extracomment>
+        <translation>Tekst od kursora przeniesiono do „%1”, tuż za „%2”.</translation>
+    </message>
+    <message>
+        <source>&amp;Undo</source>
+        <extracomment>In Polish: &amp;Cofnij / Połącz teksty z powrotem</extracomment>
+        <translation>&amp;Cofnij</translation>
+    </message>
+    <message>
+        <source>Join the texts again</source>
+        <translation>Połącz teksty z powrotem</translation>
+    </message>
+    <message>
+        <source>This can no longer be undone: the texts changed since.</source>
+        <extracomment>In Polish: Tego nie da się już cofnąć: teksty zmieniły się od tamtej pory.</extracomment>
+        <translation>Tego nie da się już cofnąć: teksty zmieniły się od tamtej pory.</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <extracomment>In Polish: Nie udało się zapisać zmian.</extracomment>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is whole again.</source>
+        <extracomment>In Polish: „%1” znów jest w całości.</extracomment>
+        <translation>„%1” znów jest w całości.</translation>
     </message>
 </context>
 <context>

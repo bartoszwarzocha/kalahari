@@ -675,6 +675,62 @@ bool BookEditor::removeSelection(bool keepAnnotations)
     return true;
 }
 
+QString BookEditor::kmlFrom(const CursorPosition& at) const
+{
+    if (!m_textBuffer) {
+        return QString();
+    }
+    const int from = calculateAbsolutePosition(at);
+    const int to = m_textBuffer->characterCount() - 1;  // before the end of the last paragraph
+    return from < to ? KmlSerializer().toKml(m_textBuffer.get(), from, to) : QString();
+}
+
+bool BookEditor::removeTextFrom(const CursorPosition& at)
+{
+    if (refusesChange() || !m_textBuffer) {
+        return false;
+    }
+    ensureDocument();
+    int from = calculateAbsolutePosition(at);
+    const int to = m_textBuffer->characterCount() - 1;
+    if (from >= to) {
+        return false;
+    }
+
+    // At the start of a paragraph the end of a paragraph of text before it goes too: the text
+    // ends with that paragraph, in its format. Before a table, an object or in a cell an empty
+    // paragraph stays, as the document needs one there.
+    const QTextBlock block = m_textBuffer->findBlock(from);
+    const QTextBlock before = block.previous();
+    if (from == block.position() && before.isValid() && blockObject(before) == TextObject::None
+        && QTextCursor(before).currentTable() == nullptr
+        && QTextCursor(block).currentTable() == nullptr) {
+        from = before.position() + before.length() - 1;
+    }
+
+    // The text goes to another text: its words are not deleted
+    emit movingStarted();
+    QTextCursor cursor(m_textBuffer.get());
+    clearSelection();
+    removeKeepingTables(cursor, from, to, false);
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
+    ensureCursorVisible();
+    update();
+    emit contentChanged();
+    emit movingFinished();
+    emit cursorPositionChanged(m_cursorPosition);
+    return true;
+}
+
+void BookEditor::undoMovedText()
+{
+    // The text comes back from another text: its words are not written
+    emit movingStarted();
+    undo();
+    emit movingFinished();
+}
+
 void BookEditor::insertNewline()
 {
     if (refusesChange()) {

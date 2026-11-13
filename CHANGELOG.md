@@ -31,6 +31,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Pages and Margins (the gear of the window), in the editor's font or another. A Markdown file
   is GitHub Flavored, with its images copied to a folder "<name> – images" next to it (an
   option). The result shows Open File and Show in Folder; the window keeps its choices.
+- **Chapter Break** - 2026-11-13. Book > Chapter Break (named after the texts of the book:
+  "Story Break" in a collection of stories) moves the text from the cursor, or from the start
+  of the selection, to a new text right after the one it was in, in the same part, of the
+  same kind and status. The new text is named after a heading at its start (empty paragraphs before it skipped), else as
+  a new text of its kind ("Chapter 4"); it keeps the formatting, the footnotes and endnotes and
+  the annotations of the text moved. The changes of the text are saved first, the two texts at
+  once after the break, and the new text opens with the cursor at its start. The notice under
+  it says where the text went, with Undo: the new text goes from the book with its file and
+  the text is whole again, until either of them changes or closes. The words moved, and moved
+  back by Undo, are neither written nor deleted in the writing statistics and goals. The
+  command is greyed out, with the reason in its tooltip, without text before or after the
+  cursor, with the cursor in a table or outside the texts of the book (the Workshop too), in a
+  book or a text that cannot change, and for a kind the book cannot have one more of (a
+  prologue).
 - **Find in Book** - 2026-11-13. Edit > Find in Book... (Ctrl+Shift+F) shows the Search panel
   (F5), until now empty, with what is selected in the text, else what its find bar searches
   for, with the find bar's options (Match Case, Whole Word, Regular Expression, with the same
