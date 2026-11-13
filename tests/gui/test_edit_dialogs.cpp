@@ -15,7 +15,6 @@
 #include "kalahari/gui/go_to_coordinator.h"
 #include "kalahari/gui/settings_dialog.h"
 
-#include <QApplication>
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QImage>
@@ -136,7 +135,7 @@ TEST_CASE("Paste Special: the forms of the clipboard, the one Paste gives chosen
           QStringLiteral("The Kalahari format is there when the text was copied in Kalahari."));
     CHECK(forms->item(4)->toolTip() == QStringLiteral("The clipboard has no picture."));
     CHECK(dialog.form() == PasteForm::Merge);
-    CHECK(QApplication::focusWidget() == forms);
+    CHECK(dialog.focusWidget() == forms);  // also where the window is not active
     INFO(labelsOf(dialog));
     CHECK(test::textsOf(dialog).contains(QStringLiteral("Source: <b>Microsoft Word</b>")));
     CHECK(test::textsOf(dialog).contains(QStringLiteral(
@@ -237,7 +236,7 @@ TEST_CASE("Go To: the window goes to the place of the number, the next and the p
     CHECK(kinds->item(0)->toolTip() ==
           QStringLiteral("The pages show in the Page Layout view (View > View Mode)."));
     CHECK(dialog.kind() == PlaceKind::Heading);
-    CHECK(QApplication::focusWidget() == number);
+    CHECK(dialog.focusWidget() == number);  // also where the window is not active
     CHECK(test::textsOf(dialog).contains(QStringLiteral("Heading n&umber")));
 
     // A number, Enter
