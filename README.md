@@ -258,7 +258,7 @@ Each assistant has unique personality and communication style, helping you stay 
   Grammar panel
 - ✅ Annotations: comments, TODOs and notes, in a panel and as cards under the paragraphs
 - ✅ Book types and the new structure of a book; the Navigator with the book and the
-  Workshop; materials and the Cover; versions of the texts
+  Workshop; materials and the Cover; versions of the texts; Chapter Break
 - ✅ Writing statistics, goals, badges and challenges
 - ✅ The program's own dialogs that fit small screens, the new Settings window, keyboard
   shortcuts, the Polish translation

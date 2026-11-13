@@ -239,6 +239,7 @@ set(KALAHARI_SOURCES
     gui/footnote_coordinator.cpp  # FootnoteCoordinator - Insert > Footnote, Endnote and the frame of a note
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
     gui/book_search_coordinator.cpp  # BookSearchCoordinator - Find in Book and Replace All in Book
+    gui/chapter_break_coordinator.cpp  # ChapterBreakCoordinator - Book > Chapter Break with Undo
     gui/dialogs/style_dialog.cpp  # StyleDialog - New Style and Modify Style, in two variants
     gui/dialogs/manage_styles_dialog.cpp  # ManageStylesDialog - Format > Text Style > Manage Styles
     gui/widgets/style_tag_delegate.cpp  # The names of styles in a list, with "own" or "changed"
@@ -452,6 +453,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/chapter_break_coordinator.h  # ChapterBreakCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h

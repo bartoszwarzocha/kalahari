@@ -85,7 +85,8 @@ the whole program on Windows and Linux. What each version brings is in `CHANGELO
       pasting from other programs; autocorrect and special characters; lists and the Font and
       Paragraph windows; links; tables; images with captions; footnotes and endnotes
 - [x] Full editor, part 10: Find in Book, with Replace All in Book
-- [ ] Full editor, parts 11–12: splitting a chapter, fields and Go To
+- [x] Full editor, part 11: Chapter Break, the text from the cursor to a new text after it
+- [ ] Full editor, part 12: fields, the date, Paste Special and Go To
 - [ ] A window of its own for each book, and one book never open twice; the tabs of the
       texts already go to windows of their own
 
