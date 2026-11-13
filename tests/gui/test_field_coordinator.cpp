@@ -113,13 +113,16 @@ bool answering(const std::function<void()>& command, const std::function<void(Di
 
 /// The row of a list whose item has @p data
 int rowOf(const QListWidget& list, const QVariant& data) {
-    for (int row = 0; row < list.count(); ++row) {
+    int found = -1;
+    for (int row = 0; row < list.count() && found < 0; ++row) {
         if (list.item(row)->data(Qt::UserRole) == data) {
-            return row;
+            found = row;
         }
     }
-    FAIL("No such row");
-    return -1;
+    // A failed REQUIRE ends the test; nothing after it is unreachable for the compilers
+    INFO("The row of " << data.toString().toStdString());
+    REQUIRE(found >= 0);
+    return found;
 }
 
 /// The one widget of a type in a window

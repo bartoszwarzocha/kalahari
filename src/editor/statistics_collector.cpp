@@ -85,9 +85,13 @@ void StatisticsCollector::setBookEditor(BookEditor* editor)
                 this, &StatisticsCollector::onContentChanged);
         // The words pasted are kept apart from the words written
         connect(m_editor, &BookEditor::pastingStarted, this,
-                &StatisticsCollector::onPastingStarted);
+                &StatisticsCollector::countPendingChange);
         connect(m_editor, &BookEditor::pastingFinished, this,
                 &StatisticsCollector::onPastingFinished);
+        // Text moved to or from another text (Book > Chapter Break) is not written or deleted
+        connect(m_editor, &BookEditor::movingStarted, this,
+                &StatisticsCollector::countPendingChange);
+        connect(m_editor, &BookEditor::movingFinished, this, &StatisticsCollector::rebase);
         // A newly loaded text, or new rules of counting, are not words written or deleted; a
         // new text has no undo, and no pastes to undo
         connect(m_editor, &BookEditor::documentChanged, this, [this]() {
@@ -345,7 +349,7 @@ void StatisticsCollector::debouncedRecalculate()
     emit statisticsChanged(m_wordCount, m_characterCount, paragraphCount());
 }
 
-void StatisticsCollector::onPastingStarted()
+void StatisticsCollector::countPendingChange()
 {
     if (m_debounceTimer->isActive()) {
         m_debounceTimer->stop();

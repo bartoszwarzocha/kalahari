@@ -692,6 +692,8 @@ bool BookEditor::removeTextFrom(const CursorPosition& at)
         from = before.position() + before.length() - 1;
     }
 
+    // The text goes to another text: its words are not deleted
+    emit movingStarted();
     QTextCursor cursor(m_textBuffer.get());
     clearSelection();
     removeKeepingTables(cursor, from, to, false);
@@ -700,8 +702,17 @@ bool BookEditor::removeTextFrom(const CursorPosition& at)
     ensureCursorVisible();
     update();
     emit contentChanged();
+    emit movingFinished();
     emit cursorPositionChanged(m_cursorPosition);
     return true;
+}
+
+void BookEditor::undoMovedText()
+{
+    // The text comes back from another text: its words are not written
+    emit movingStarted();
+    undo();
+    emit movingFinished();
 }
 
 void BookEditor::insertNewline()
