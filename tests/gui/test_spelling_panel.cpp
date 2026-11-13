@@ -339,9 +339,12 @@ struct Desk {
     }
 
     /// Open a document with the paragraphs in a tab of its own, in front
-    editor::BookEditor* open(const QStringList& paragraphs) {
+    editor::BookEditor* open(const QStringList& paragraphs) { return openKml(kmlOf(paragraphs)); }
+
+    /// Open a document with a text in KML in a tab of its own, in front
+    editor::BookEditor* openKml(const QString& kml) {
         auto* document = new EditorPanel();
-        document->setContent(kmlOf(paragraphs));
+        document->setContent(kml);
         tabs->setCurrentIndex(tabs->addTab(document, QStringLiteral("Document")));
         return document->getBookEditor();
     }
@@ -1107,6 +1110,57 @@ TEST_CASE("Spelling panel: a fix chosen in the panel goes to the text, and the n
     CHECK_FALSE(desk.spelling->service()->isIgnored(QStringLiteral("errorz")));
     CHECK_FALSE(desk.spelling->service()->isInUserDictionary(QStringLiteral("errorz")));
     CHECK(desk.lists({QStringLiteral("spelling 2 errorz")}));
+}
+
+TEST_CASE("Spelling panel: the misspelled words of the notes' texts, at their notes",
+          "[gui][spelling-panel][coordinator][footnotes]") {
+    KeptSettings kept;
+    setDefaults();
+    REQUIRE(core::ProjectManager::getInstance().closeProject(false));
+    Commands commands;
+    Desk desk;
+    desk.openPanel();
+    editor::BookEditor* editor = desk.openKml(QStringLiteral(
+        "<kml><p>One mistakke<footnote id=\"f1\">A wrnog note, wrnog twice.</footnote> here.</p>"
+        "<p>Two<endnote id=\"e1\"><p>First</p><p>Secnod line</p></endnote>.</p></kml>"));
+    REQUIRE(desk.lists({QStringLiteral("spelling 1 mistakke"), QStringLiteral("spelling 1 wrnog"),
+                        QStringLiteral("spelling 1 wrnog"), QStringLiteral("spelling 2 Secnod")}));
+
+    // The card names the paragraph and the note
+    CHECK(says(*desk.panel, QStringLiteral("paragraph 1")));
+    CHECK(says(*desk.panel, QStringLiteral("paragraph 1, footnote 1")));
+    CHECK(says(*desk.panel, QStringLiteral("paragraph 2, endnote i")));
+
+    // Selected in the panel: in the text the note's number, its word shown selected
+    QWidget* list = desk.panel->list();
+    press(list, Qt::Key_Home);
+    press(list, Qt::Key_Down);
+    REQUIRE(editor->noteSelection().has_value());
+    CHECK(*editor->noteSelection() == editor::NoteRange{QStringLiteral("f1"), 2, 5});
+
+    // A fix chosen: put in the note, the same word further on selected next
+    const std::optional<SpellingPanelIssue> first = desk.panel->selectedIssue();
+    REQUIRE(first.has_value());
+    const QStringList suggestions = desk.panel->list()->suggestionsFor(*first);
+    REQUIRE_FALSE(suggestions.isEmpty());
+    press(list, Qt::Key_Return);
+    const std::optional<editor::NotePlace> note = editor->noteOf(QStringLiteral("f1"));
+    REQUIRE(note.has_value());
+    CHECK(note->note.content == QStringLiteral("A %1 note, wrnog twice.").arg(suggestions.first()));
+    REQUIRE(desk.panel->selectedIssue().has_value());
+    CHECK(desk.panel->selectedIssue()->issue.text == QStringLiteral("wrnog"));
+    const int second = static_cast<int>(suggestions.first().size()) + 9;
+    REQUIRE(editor->noteSelection().has_value());
+    CHECK(*editor->noteSelection() == editor::NoteRange{QStringLiteral("f1"), second, 5});
+
+    // Next Spelling or Grammar Issue from there: the endnote's word, selected in the panel
+    desk.activate();
+    editor->setFocus(Qt::OtherFocusReason);
+    Desk::nextIssue();
+    REQUIRE(editor->noteSelection().has_value());
+    CHECK(*editor->noteSelection() == editor::NoteRange{QStringLiteral("e1"), 6, 6});
+    REQUIRE(desk.panel->selectedIssue().has_value());
+    CHECK(desk.panel->selectedIssue()->issue.text == QStringLiteral("Secnod"));
 }
 
 TEST_CASE("Spelling panel: with the checking off it turns it on", "[gui][spelling-panel][coordinator]") {

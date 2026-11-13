@@ -191,6 +191,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/hyperlink_dialog.cpp       # Insert > Link...
     gui/dialogs/insert_table_dialog.cpp    # Insert > Table...
     gui/dialogs/caption_dialogs.cpp        # Insert Caption, Caption Numbering, Insert Cross-Reference
+    gui/dialogs/footnote_settings_dialog.cpp  # Insert > Footnote Layout...: the numbering of the notes
     gui/dialogs/table_dialogs.cpp          # The windows of the Table menu
     gui/dialogs/image_properties_dialog.cpp  # Image > Image Properties...
     gui/widgets/character_grid.cpp  # CharacterGrid - characters in cells, in the font of the text
@@ -233,6 +234,7 @@ set(KALAHARI_SOURCES
     gui/style_draft.cpp  # StyleDraft - a style as the window of a style changes it
     gui/style_coordinator.cpp  # StyleCoordinator - new, changed, deleted styles of the book
     gui/caption_settings.cpp  # The settings of new images and of the captions of new books
+    gui/book_texts.cpp  # The texts of the book in reading order, the saved text of one not open
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
     gui/footnote_coordinator.cpp  # FootnoteCoordinator - Insert > Footnote, Endnote and the frame of a note
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
@@ -430,6 +432,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/hyperlink_dialog.h  # Insert > Link... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/caption_dialogs.h  # The windows of captions, with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/footnote_settings_dialog.h  # Footnote Settings, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/table_dialogs.h  # The windows of the Table menu, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/image_properties_dialog.h  # Image Properties, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT

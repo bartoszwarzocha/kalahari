@@ -112,7 +112,8 @@ void SettingsDialog::createNavigationTree() {
     addPage(appearance, tr("Dashboard"), []() { return new DashboardPage(); });
 
     QTreeWidgetItem* editor = category(tr("Editor"));
-    addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
+    m_pageItems[WORD_COUNT_PAGE] =
+        addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
@@ -319,22 +320,31 @@ bool SettingsDialog::openPage(const QString& page) {
         if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
             shortcuts->setFocus(Qt::OtherFocusReason);
         }
-    } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE)) {
-        // The group far down the page in view, the cursor in its choice of the numbering
+    } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE) ||
+               page == QLatin1String(WORD_COUNT_PAGE)) {
+        // The group far down the page in view, the cursor in its choice (of the numbering),
+        // in the counting of the notes' words, else in its first field
         const auto built = m_builtPages.find(item->second);
         auto* scrollArea =
             built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
-        auto* group = scrollArea != nullptr
-            ? scrollArea->findChild<QWidget*>(QStringLiteral("marginNumbersGroup"))
-            : nullptr;
+        const QString name = page == QLatin1String(WORD_COUNT_PAGE)
+                                 ? QStringLiteral("wordCountGroup")
+                                 : QStringLiteral("marginNumbersGroup");
+        auto* group = scrollArea != nullptr ? scrollArea->findChild<QWidget*>(name) : nullptr;
         if (group != nullptr) {
             const QList<QRadioButton*> choices = group->findChildren<QRadioButton*>();
             const auto checked = std::find_if(choices.begin(), choices.end(),
                                               [](const QRadioButton* choice) {
                                                   return choice->isChecked();
                                               });
+            auto* notes = group->findChild<QWidget*>(QStringLiteral("wordCountNotes"));
             if (checked != choices.end()) {
                 (*checked)->setFocus(Qt::OtherFocusReason);
+            } else if (notes != nullptr) {
+                notes->setFocus(Qt::OtherFocusReason);
+            } else if (QWidget* first = group->nextInFocusChain();
+                       first != nullptr && group->isAncestorOf(first)) {
+                first->setFocus(Qt::OtherFocusReason);
             }
             // Once the dialog shows: the page has its size then
             QTimer::singleShot(0, scrollArea, [scrollArea, group]() {

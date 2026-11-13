@@ -110,6 +110,15 @@ TEST_CASE("Notes: the numbers in their formats", "[editor][footnotes]") {
     CHECK(noteNumberText(5, NoteNumberFormat::Symbols) == QStringLiteral("**"));
     CHECK(noteNumberText(10, NoteNumberFormat::Symbols) == QStringLiteral("†††"));
     CHECK(noteNumberText(0, NoteNumberFormat::Decimal).isEmpty());
+
+    // As the book names them (Insert > Footnote Layout...)
+    CHECK(noteNumberFormatOf(QStringLiteral("1")) == NoteNumberFormat::Decimal);
+    CHECK(noteNumberFormatOf(QStringLiteral("a")) == NoteNumberFormat::LowerAlpha);
+    CHECK(noteNumberFormatOf(QStringLiteral("A")) == NoteNumberFormat::UpperAlpha);
+    CHECK(noteNumberFormatOf(QStringLiteral("i")) == NoteNumberFormat::LowerRoman);
+    CHECK(noteNumberFormatOf(QStringLiteral("I")) == NoteNumberFormat::UpperRoman);
+    CHECK(noteNumberFormatOf(QStringLiteral("*")) == NoteNumberFormat::Symbols);
+    CHECK(noteNumberFormatOf(QStringLiteral("x")) == NoteNumberFormat::Decimal);
 }
 
 TEST_CASE("Notes: a note in a format", "[editor][footnotes]") {
@@ -317,6 +326,22 @@ TEST_CASE("Notes: KML of a note", "[editor][footnotes][kml]") {
         CHECK(at == QStringLiteral("footnote"));
     }
 
+    SECTION("The notes of a text's KML, as the editor reads them") {
+        const std::vector<Footnote> notes = notesOfKml(QStringLiteral(
+            "<kml><p>A<footnote id=\"f1\">One <b>b</b></footnote> old <footnote id=\"o1\" "
+            "number=\"1\">range</footnote><endnote id=\"f1\">Same id</endnote></p>"
+            "<annotations><annotation id=\"n1\"><footnote id=\"x\">no</footnote>"
+            "</annotation></annotations></kml>"));
+        REQUIRE(notes.size() == 2);
+        CHECK(notes[0] == Footnote{QStringLiteral("f1"), NoteKind::Footnote,
+                                   QStringLiteral("One <b>b</b>")});
+        CHECK(notes[1].kind == NoteKind::Endnote);
+        CHECK(notes[1].content == QStringLiteral("Same id"));
+        CHECK_FALSE(notes[1].id.isEmpty());
+        CHECK(notes[1].id != QStringLiteral("f1"));  // one of its own
+        CHECK(notesOfKml(QStringLiteral("<kml><p>None</p></kml>")).empty());
+    }
+
     SECTION("The old footnote is known by its number") {
         QXmlStreamReader reader(QStringLiteral("<footnote id=\"f1\" number=\"2\">x</footnote>"));
         reader.readNextStartElement();
@@ -336,15 +361,63 @@ TEST_CASE("Notes: KML of a note", "[editor][footnotes][kml]") {
         CHECK(editor.plainText() == QStringLiteral("A b\nNext"));
     }
 
-    SECTION("The chapter's text and word count leave the notes out") {
+    SECTION("The chapter's text leaves the notes out, its words count them") {
+        // A note's words are words of the text unless the settings leave them out (Settings >
+        // Editor > General > Word Count, as in Microsoft Word); its paragraphs are not
         const QString kml = QStringLiteral(
-            "<kml><p>Two words<footnote id=\"f1\">Not these three</footnote>.</p></kml>");
+            "<kml><p>Two words<footnote id=\"f1\">And these – three</footnote>.</p>"
+            "<p>Then<endnote id=\"e1\"><p>One</p><p>two</p></endnote></p></kml>");
         const kalahari::core::ChapterDocument chapter(kml);
-        CHECK(chapter.plainText() == QStringLiteral("Two words."));
-        CHECK(chapter.wordCount() == 2);
+        CHECK(chapter.plainText() == QStringLiteral("Two words.\nThen"));
+        CHECK(chapter.wordCount() == 8);
+        const kalahari::core::WordTally tally{3, 0, 5, 1};
+        CHECK(chapter.wordTally() == tally);
+        CHECK(kalahari::core::ChapterDocument::kmlWordTally(kml) == tally);
+        CHECK(tally.wordsUnder({}) == 8);
+        CHECK(tally.wordsUnder({.dashesAreWords = true}) == 9);
+        CHECK(tally.wordsUnder({.notesAreWords = false}) == 3);
+        CHECK(tally.wordsUnder({.dashesAreWords = true, .notesAreWords = false}) == 3);
+
         BookEditor editor;
         editor.fromKml(kml);
-        CHECK(editor.wordCount() == 2);
+        CHECK(editor.wordCount() == 8);
+        kalahari::core::TextCounts counts = editor.textCounts();
+        CHECK(counts.paragraphs == 2);
+        CHECK(counts.noteWords == 5);
+        CHECK(counts.noteDashes == 1);
+        CHECK(counts.nonSpaceCharacters == 13 + 14 + 6);
+        CHECK(kalahari::core::WordTally::of(counts, editor.wordCountRules()) == tally);
+
+        // The rules of the settings: the dashes, the notes left out
+        for (const kalahari::core::WordCountRules rules :
+             {kalahari::core::WordCountRules{.dashesAreWords = true},
+              kalahari::core::WordCountRules{.notesAreWords = false},
+              kalahari::core::WordCountRules{.dashesAreWords = true, .notesAreWords = false}}) {
+            editor.setWordCountRules(rules);
+            counts = editor.textCounts();
+            CHECK(counts.words == tally.wordsUnder(rules));
+            CHECK(counts.noteWords == (rules.dashesAreWords ? 6 : 5));
+            CHECK(counts.nonSpaceCharacters == (rules.notesAreWords ? 33 : 13));
+            CHECK(kalahari::core::WordTally::of(counts, rules) == tally);
+        }
+        editor.setWordCountRules({});
+
+        // The selection: a note's words with its number
+        editor.setSelection({{0, 0}, {0, 9}});  // "Two words"
+        CHECK(editor.selectionCounts().words == 2);
+        editor.setSelection({{0, 4}, {0, 10}});  // "words" and the number
+        CHECK(editor.selectionCounts().words == 4);
+        CHECK(editor.selectionCounts().noteWords == 3);
+        editor.setSelection({{0, 5}, {1, 1}});  // the end of the first paragraph, "T"
+        CHECK(editor.selectionCounts().words == 5);
+        editor.setSelection({{0, 0}, {1, 5}});  // all
+        CHECK(editor.selectionCounts().words == 8);
+
+        // A note's new text, counted at once; undone, the old one
+        REQUIRE(editor.setNoteContent(QStringLiteral("f1"), QStringLiteral("Only two")));
+        CHECK(editor.wordCount() == 7);
+        editor.undo();
+        CHECK(editor.wordCount() == 8);
     }
 }
 
@@ -794,8 +867,8 @@ TEST_CASE("Notes: a click on a note's text and a double click on its number open
 
 namespace {
 
-/// The notes of KML, as "kind:content" in text order
-QStringList notesOfKml(const QString& kml) {
+/// The notes of KML read by an editor, as "kind:content" in text order
+QStringList editorNotesOf(const QString& kml) {
     auto editor = editorWith(kml);
     QStringList notes;
     for (const NotePlace& place : notesIn(*editor->textDocument())) {
@@ -880,7 +953,7 @@ TEST_CASE("Notes: copied, other programs get the numbers and the notes after the
 
     // Pasted back from the HTML: the same notes
     const QString pasted = ClipboardHandler::htmlToKml(ClipboardHandler::kmlToHtml(kml));
-    CHECK(notesOfKml(pasted) == QStringList{QStringLiteral("f:Cold <b>rain</b>"),
+    CHECK(editorNotesOf(pasted) == QStringList{QStringLiteral("f:Cold <b>rain</b>"),
                                             QStringLiteral("e:End"),
                                             QStringLiteral("f:<p>One</p><p>Two</p>")});
     CHECK_FALSE(pasted.contains(QStringLiteral("sdfootnote")));
@@ -899,7 +972,7 @@ TEST_CASE("Notes: pasted from LibreOffice and Word, the notes stay notes",
           "[editor][footnotes][clipboard]") {
     SECTION("LibreOffice") {
         const QString kml = ClipboardHandler::htmlToKml(LIBREOFFICE_HTML);
-        CHECK(notesOfKml(kml) ==
+        CHECK(editorNotesOf(kml) ==
               QStringList{QStringLiteral("f:<p>Cold <b>rain</b>.</p><p>Second para.</p>"),
                           QStringLiteral("e:An endnote."), QStringLiteral("f:Second footnote.")});
         auto editor = editorWith(kml);
@@ -913,7 +986,7 @@ TEST_CASE("Notes: pasted from LibreOffice and Word, the notes stay notes",
 
     SECTION("Word: also its links in a note, and nothing of its lists of notes") {
         const QString kml = ClipboardHandler::htmlToKml(WORD_HTML, PasteMode::Source);
-        CHECK(notesOfKml(kml) ==
+        CHECK(editorNotesOf(kml) ==
               QStringList{QStringLiteral(
                               "f:Cold <i>rain</i>, <a href=\"https://example.com\">a link</a>."),
                           QStringLiteral("e:An endnote.")});
@@ -926,7 +999,7 @@ TEST_CASE("Notes: pasted from LibreOffice and Word, the notes stay notes",
 
     SECTION("Only the text: the numbers in the text, the notes' texts after it") {
         const QString kml = ClipboardHandler::htmlToKml(LIBREOFFICE_HTML, PasteMode::Text);
-        CHECK(notesOfKml(kml).isEmpty());
+        CHECK(editorNotesOf(kml).isEmpty());
         CHECK(ClipboardHandler::kmlToText(kml) ==
               QStringLiteral("Rain fell.1 Then it stopped.i\nNext paragraph.2\n1 Cold rain.\n"
                              "Second para.\n2 Second footnote.\ni An endnote."));
@@ -936,7 +1009,7 @@ TEST_CASE("Notes: pasted from LibreOffice and Word, the notes stay notes",
         const QString kml = ClipboardHandler::htmlToKml(QStringLiteral(
             "<p>Rain<a class=\"sdfootnoteanc\" name=\"sdfootnote1anc\" "
             "href=\"#sdfootnote1sym\"><sup>1</sup></a></p>"));
-        CHECK(notesOfKml(kml).isEmpty());
+        CHECK(editorNotesOf(kml).isEmpty());
         CHECK(ClipboardHandler::kmlToText(kml) == QStringLiteral("Rain1"));
     }
 
@@ -945,7 +1018,7 @@ TEST_CASE("Notes: pasted from LibreOffice and Word, the notes stay notes",
         QString kml = ClipboardHandler::htmlToKml(QStringLiteral(
             "<p>Rain fell.</p><div id=\"sdfootnote1\"><p><a class=\"sdfootnotesym\" "
             "name=\"sdfootnote1sym\" href=\"#sdfootnote1anc\">1</a>Cold rain.</p></div>"));
-        CHECK(notesOfKml(kml).isEmpty());
+        CHECK(editorNotesOf(kml).isEmpty());
         CHECK(ClipboardHandler::kmlToText(kml) == QStringLiteral("Rain fell.\n1Cold rain."));
 
         // A number's link without its end tag: the text after it stays, and so does the note's
@@ -954,7 +1027,7 @@ TEST_CASE("Notes: pasted from LibreOffice and Word, the notes stay notes",
             "href=\"#sdfootnote1sym\"><sup>1</sup> fell all day.</p><div id=\"sdfootnote1\"><p>"
             "<a class=\"sdfootnotesym\" name=\"sdfootnote1sym\" href=\"#sdfootnote1anc\">1</a>"
             "Cold rain.</p></div>"));
-        CHECK(notesOfKml(kml).isEmpty());
+        CHECK(editorNotesOf(kml).isEmpty());
         const QString text = ClipboardHandler::kmlToText(kml);
         CHECK(text.contains(QStringLiteral("fell all day.")));
         CHECK(text.contains(QStringLiteral("Cold rain.")));
@@ -967,7 +1040,7 @@ TEST_CASE("Notes: pasted from LibreOffice and Word, the notes stay notes",
             "href=\"#sdfootnote1anc\">1</a>Cold rain.</p></div>"
             "<div id=\"sdfootnote2\"><p><a class=\"sdfootnotesym\" name=\"sdfootnote2sym\" "
             "href=\"#sdfootnote2anc\">2</a>Kept text.</p></div>"));
-        CHECK(notesOfKml(kml) == QStringList{QStringLiteral("f:Cold rain.")});
+        CHECK(editorNotesOf(kml) == QStringList{QStringLiteral("f:Cold rain.")});
         CHECK(ClipboardHandler::kmlToText(kml).contains(QStringLiteral("2Kept text.")));
     }
 }

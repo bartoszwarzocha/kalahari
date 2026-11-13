@@ -416,8 +416,10 @@ std::map<std::string, json> buildDefaults() {
         {"editor.annotationCards.highlightFragment", true},
         {"editor.annotationCards.distractionFree", "show"},
 
-        // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
+        // Word count in the whole program: a dash standing alone (a dialogue dash) is a word;
+        // the words of the footnotes and endnotes count (as in Microsoft Word)
         {"editor.wordCount.dashesAsWords", false},
+        {"editor.wordCount.notes", true},
 
         // Editor: autocorrect, the changes of the text as it is typed (Settings > Editor >
         // Auto-correct): on or off as a whole (also Tools > Auto-correct as You Type), and

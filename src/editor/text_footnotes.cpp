@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <array>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -79,6 +80,19 @@ void collectNotes(const QTextBlock& block, std::vector<NotePlace>& notes) {
 }
 
 }  // namespace
+
+NoteNumberFormat noteNumberFormatOf(const QString& code) {
+    static constexpr std::array<std::pair<const char*, NoteNumberFormat>, 6> formats{{
+        {"1", NoteNumberFormat::Decimal},    {"a", NoteNumberFormat::LowerAlpha},
+        {"A", NoteNumberFormat::UpperAlpha}, {"i", NoteNumberFormat::LowerRoman},
+        {"I", NoteNumberFormat::UpperRoman}, {"*", NoteNumberFormat::Symbols}}};
+    for (const auto& [name, format] : formats) {
+        if (code == QLatin1String(name)) {
+            return format;
+        }
+    }
+    return NoteNumberFormat::Decimal;
+}
 
 QString noteNumberText(int number, NoteNumberFormat format) {
     if (number < 1) {
@@ -191,6 +205,30 @@ std::optional<NotePlace> findNote(const QTextDocument& document, const QString& 
     return std::nullopt;
 }
 
+std::optional<Footnote> noteAtPosition(const QTextDocument& document, int position) {
+    if (position < 0 || position >= document.characterCount() - 1) {
+        return std::nullopt;
+    }
+    QTextCursor cursor(const_cast<QTextDocument*>(&document));
+    cursor.setPosition(position + 1);  // the format of the character before it
+    return footnoteOf(cursor.charFormat());
+}
+
+bool setNoteContentAt(QTextDocument& document, int position, const QString& content) {
+    std::optional<Footnote> note = noteAtPosition(document, position);
+    if (!note) {
+        return false;
+    }
+    QTextCursor cursor(&document);
+    cursor.setPosition(position);
+    cursor.setPosition(position + 1, QTextCursor::KeepAnchor);
+    QTextCharFormat format = cursor.charFormat();
+    note->content = content;
+    setFootnote(format, *note);
+    cursor.setCharFormat(format);
+    return true;
+}
+
 QSet<QString> noteIds(const QTextDocument& document) {
     QSet<QString> ids;
     for (const NotePlace& place : notesIn(document)) {
@@ -299,6 +337,35 @@ QString notePlainText(const QString& content) {
 
 bool isEmptyNoteContent(const QString& content) {
     return notePlainText(content).trimmed().isEmpty();
+}
+
+QString noteText(const QString& content) {
+    QStringList lines;
+    for (const NoteParagraph& paragraph : noteParagraphs(content)) {
+        lines << QString(paragraph.text).remove(QChar::ObjectReplacementCharacter);
+    }
+    return lines.join(QLatin1Char('\n'));
+}
+
+QString replacedNoteContent(const QString& content,
+                            const std::vector<std::pair<int, int>>& ranges, const QString& text) {
+    QTextDocument document;
+    setNoteContent(document, content);
+    const int end = std::max(0, document.characterCount() - 1);
+    QTextCursor cursor(&document);
+    cursor.beginEditBlock();
+    for (auto range = ranges.rbegin(); range != ranges.rend(); ++range) {
+        const int from = std::clamp(range->first, 0, end);
+        const int to = std::clamp(range->first + range->second, from, end);
+        // The format of its first character: the cursor has the one before it
+        cursor.setPosition(to > from ? from + 1 : from);
+        const QTextCharFormat format = cursor.charFormat();
+        cursor.setPosition(from);
+        cursor.setPosition(to, QTextCursor::KeepAnchor);
+        cursor.insertText(text, format);
+    }
+    cursor.endEditBlock();
+    return noteContentOf(document);
 }
 
 QTextCharFormat noteFormatOf(const QTextCharFormat& format) {
@@ -434,6 +501,34 @@ Footnote readNoteElement(QXmlStreamReader& reader) {
         }
     }
     return note;
+}
+
+std::vector<Footnote> notesOfKml(const QString& kml) {
+    std::vector<Footnote> notes;
+    if (!kml.contains(QLatin1String("<footnote")) && !kml.contains(QLatin1String("<endnote"))) {
+        return notes;
+    }
+    QXmlStreamReader reader(kml);
+    QSet<QString> ids;
+    while (!reader.atEnd()) {
+        reader.readNext();
+        if (!reader.isStartElement()) {
+            continue;
+        }
+        const QStringView name = reader.name();
+        if (name == u"annotations") {
+            reader.skipCurrentElement();  // the writer's comments have no notes
+        } else if (name == u"endnote" ||
+                   (name == u"footnote" && !isOldFootnote(reader.attributes()))) {
+            Footnote note = readNoteElement(reader);
+            if (note.id.isEmpty() || ids.contains(note.id)) {
+                note.id = newFootnoteId(ids);
+            }
+            ids.insert(note.id);
+            notes.push_back(std::move(note));
+        }
+    }
+    return notes;
 }
 
 }  // namespace kalahari::editor

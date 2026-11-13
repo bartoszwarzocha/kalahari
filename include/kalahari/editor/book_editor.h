@@ -33,6 +33,7 @@
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_issue.h>
+#include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
@@ -46,6 +47,7 @@
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QElapsedTimer>
+#include <QHash>
 #include <QList>
 #include <QPointer>
 #include <QSet>
@@ -54,6 +56,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 class QAction;
@@ -936,6 +939,10 @@ public:
     /// @brief The note whose number or text is at a point of the widget (std::nullopt: none)
     std::optional<NotePlace> noteAt(const QPointF& widgetPos) const;
 
+    /// @brief The place of a note's text under a point of the widget, as a range of no length
+    ///        (std::nullopt: none there, or the text of another text's endnote)
+    std::optional<NoteRange> notePlaceAt(const QPointF& widgetPos) const;
+
     /// @brief Give a note the text written in its frame (KML of its paragraphs), as one undo
     ///        step
     /// @param joinInsertion true: the text joins the step of the note's insertion, when
@@ -966,6 +973,26 @@ public:
     ///        both fit
     void scrollToNote(const QString& id);
 
+    /// @brief The cursor after a note's number, in view (an endnote of another text clicked at
+    ///        the end of the book)
+    /// @return false without the note
+    bool goToNote(const QString& id);
+
+    /// @brief Select a range of a note's text: the note's number is selected in the text and
+    ///        the range shown selected in the note's text, scrolled into view (a match of the
+    ///        search, a misspelled word gone to); a selection other than the number takes it
+    ///        away
+    /// @return false without the note
+    bool selectNoteRange(const NoteRange& range);
+
+    /// @brief The range of a note's text shown selected (selectNoteRange()); std::nullopt: none
+    const std::optional<NoteRange>& noteSelection() const { return m_noteSelection; }
+
+    /// @brief Put @p text in the place of a range of a note's text (a word chosen for a
+    ///        misspelled one), in the formatting of its first character, as one undo step
+    /// @return false without the note or the range, or in a read-only text
+    bool replaceInNote(const NoteRange& range, const QString& text);
+
     /// @brief The font a note's text is written in, in its frame: the text's, as tall as the
     ///        editor shows it now
     QFont noteFrameFont() const;
@@ -973,6 +1000,17 @@ public:
     /// @brief The name of a note with its number, in its frame, its tooltip and its menu
     ///        ("Footnote 3", "Endnote ii")
     static QString noteTitle(NoteKind kind, const QString& number);
+
+    /// @brief What the numbers of the notes depend on outside the text: the book's numbering,
+    ///        the notes before it, the endnotes of the book after its last paragraph
+    ///        (FootnoteCoordinator)
+    void setFootnoteContext(const FootnoteContext& context);
+
+    /// @brief What setFootnoteContext() gave (by default: 1, 2, 3 and i, ii, iii from 1)
+    const FootnoteContext& footnoteContext() const;
+
+    /// @brief The notes of the text, in text order (notesChanged())
+    std::vector<Footnote> noteList() const;
 
     // =========================================================================
     // Images (text_images.h, image_store.h)
@@ -2161,6 +2199,14 @@ signals:
     /// double click on its number, Edit Footnote in the menu
     void noteEditRequested(const QString& id);
 
+    /// @brief The notes of the text changed: one added, taken out, moved, of the other kind or
+    ///        with another text (noteList()); the book numbers them again
+    void notesChanged();
+
+    /// @brief A click on an endnote of another text shown after the last paragraph (the
+    ///        endnotes at the end of the book): the application opens that text and the note
+    void bookEndnoteOpenAsked(const QString& elementId, const QString& id);
+
     /// @brief Emitted for Card Appearance and Colors... in the menu of a card
     void annotationCardSettingsRequested();
 
@@ -2718,8 +2764,17 @@ private:
     ///        Footnote), Delete Footnote
     void addNoteActions(QMenu& menu, const NotePlace& note);
 
-    /// @brief The note whose text is at a point of the widget: its id; empty: none
+    /// @brief The note whose text is at a point of the widget: its id; empty: none (or an
+    ///        endnote of another text: bookEndnoteAt())
     QString noteTextAt(const QPointF& widgetPos) const;
+
+    /// @brief The endnote of another text whose text is at a point of the widget: its text and
+    ///        its id there (std::nullopt: none)
+    std::optional<std::pair<QString, QString>> bookEndnoteAt(const QPointF& widgetPos) const;
+
+    /// @brief Compare the notes with the ones announced, once the edits of a step are done
+    ///        (notesChanged())
+    void checkNotesSoon();
 
     /// @brief Whether a position lies in the selection, its ends included
     bool isInSelection(const CursorPosition& position) const;
@@ -3150,6 +3205,31 @@ private:
         int undoSteps = 0;  ///< The document's undo steps right after the insertion
     };
     std::optional<InsertedNote> m_insertedNote;
+    FootnoteContext m_footnoteContext;   ///< What the numbers depend on outside the text
+    std::vector<Footnote> m_shownNotes;  ///< As notesChanged() last announced them
+    bool m_notesCheckPending = false;    ///< The notes wait to be compared
+    std::optional<NoteRange> m_noteSelection;  ///< selectNoteRange()
+    /// What the texts of the notes have marked as they are drawn, by the notes' ids (matches
+    /// of the search, misspelled words, grammar issues: updateNoteMarks())
+    QHash<QString, std::vector<TextHighlight>> m_noteMarks;
+    /// The misspelled words and grammar issues of the notes' texts, gathered again when they
+    /// change (noteIssuesChanged())
+    QHash<QString, std::vector<TextHighlight>> m_noteIssueMarks;
+    bool m_noteIssueMarksStale = true;
+
+    /// @brief Gather the marks of the notes' texts before the view is drawn
+    void updateNoteMarks();
+
+    /// @brief Gather the misspelled words and grammar issues of the notes' texts again
+    ///        (m_noteIssueMarks), when they changed
+    void updateNoteIssueMarks();
+
+    /// @brief Whether the selection is the number of a note alone
+    bool isNoteNumberSelected(const QString& id) const;
+
+    /// @brief Scroll a rectangle of the widget into view, the cursor's line kept in view when
+    ///        both fit (a note's text, a range of it)
+    void scrollToShow(const QRectF& rect);
     AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
     qreal m_cardWritingHeight = 0.0;    ///< The frame over a card: its height (editor pixels)
     QString m_pressedCard;              ///< The card the last press went to (a double click edits it)
@@ -3257,7 +3337,7 @@ private:
     ///        few milliseconds; another turn follows while any is due
     void runSpellCheck();
 
-    /// @brief Check a paragraph's spelling
+    /// @brief Check a paragraph's spelling, and the texts of its notes
     /// @return Whether its waves changed
     bool checkSpelling(const QTextBlock& block);
 
@@ -3309,8 +3389,19 @@ private:
     /// @brief Add an item to @p menu for each material @p mark names
     void addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark);
 
+    /// @param inNote A place of a note's text (its number at @p pos): the misspelled word or
+    ///        the grammar issue there
     void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse,
-                         std::optional<TextIssueKind> kind = std::nullopt);
+                         std::optional<TextIssueKind> kind = std::nullopt,
+                         const std::optional<NoteRange>& inNote = std::nullopt);
+
+    /// @brief The misspelled word at a place of a note's text (also right after it)
+    /// @return The word and its range in the note's text, or an empty word
+    std::tuple<QString, int, int> getMisspelledNoteWordAt(const NoteRange& place) const;
+
+    /// @brief The grammar issue at a place of a note's text (also right after it), its start
+    ///        in the note's text (std::nullopt: none)
+    std::optional<GrammarError> getNoteGrammarErrorAt(const NoteRange& place) const;
 
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
@@ -3320,8 +3411,9 @@ private:
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
     ///        put in its place, Ignore All, Add to Dictionary
-    void addSpellingActions(QMenu& menu, const QString& word, int paraIndex, int startOffset,
-                            int endOffset);
+    /// @param replace Puts a word chosen in its place
+    void addSpellingActions(QMenu& menu, const QString& word,
+                            const std::function<void(const QString&)>& replace);
 
     /// @brief Replace word in document
     /// @param paraIndex Paragraph index
@@ -3339,6 +3431,8 @@ private:
     struct GrammarRequest {
         QTextCursor place;  ///< At the paragraph, moved with the edits
         QString text;       ///< Its text as sent
+        QString noteId;     ///< A paragraph of a note's text: the note's (empty: its own text)
+        int noteLine{0};    ///< That paragraph, a line of the note's noteText()
     };
     std::map<quint64, GrammarRequest> m_grammarRequests;  ///< The requests not answered yet
     bool m_wholeTextGrammar{false};  ///< The whole text is checked (setWholeTextGrammar())
@@ -3364,6 +3458,8 @@ private:
         int paragraph{0};            ///< The paragraph it is at
         CursorPosition cursor;       ///< The cursor when it started: moved, the search ends
         SelectionRange selection;    ///< The selection when it started
+        std::optional<NoteRange> fromNote;  ///< The range of a note's text selected with its
+                                            ///< number when it started (an issue gone to)
     };
     IssueSearchState m_issueSearch;
 
@@ -3377,11 +3473,12 @@ private:
     void endIssueSearch(IssueSearch result);
 
     /// @brief Send a paragraph to the grammar check unless it is checked, being checked or
-    ///        empty
+    ///        empty; then the paragraphs of the texts of its notes, each on its own, the same
     /// @return false when no more paragraphs can be sent now
     bool sendGrammarCheck(int paragraph);
 
-    /// @brief Whether the grammar of a paragraph is known (checked, or nothing to check)
+    /// @brief Whether the grammar of a paragraph is known (checked, or nothing to check), the
+    ///        texts of its notes' too
     bool isGrammarKnown(const QTextBlock& block) const;
 
     /// @brief Send the paragraphs due after @p delayMs, unless they go sooner
@@ -3429,7 +3526,9 @@ private:
 
     /// @brief Put on the context menu what is offered for a grammar issue: what is
     ///        wrong, what to put in its place, Ignore This Rule
-    void addGrammarActions(QMenu& menu, const GrammarError& error, int paraIndex);
+    /// @param replace Puts a suggestion chosen in the issue's place
+    void addGrammarActions(QMenu& menu, const GrammarError& error,
+                           const std::function<void(const QString&)>& replace);
 
     // =========================================================================
     // Document, viewport and rendering

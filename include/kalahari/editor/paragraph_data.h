@@ -30,6 +30,33 @@ struct ParagraphCheck {
     }
 };
 
+/// @brief Results of a check of a paragraph of a note's text, kept with the paragraph that
+///        holds the note's number
+///
+/// As a ParagraphCheck, they apply while the note's paragraph has the text they were made
+/// for. A result is kept also without issues: the paragraph is known to be right.
+struct NoteCheck {
+    QString id;                         ///< The note's
+    int line = 0;                       ///< Its paragraph: a line of noteText()
+    QString text;                       ///< That paragraph's text the results are for
+    std::vector<TextHighlight> issues;  ///< Ranges found, offsets in that text
+    std::vector<GrammarError> errors;   ///< What each grammar issue is, in the order of issues
+    bool current = true;                ///< False: to be checked again (the checking changed)
+
+    bool operator==(const NoteCheck&) const = default;
+
+    /// @brief The result for paragraph @p line of a note with @p text (nullptr: none)
+    static const NoteCheck* find(const std::vector<NoteCheck>& checks, const QString& id,
+                                 int line, const QString& text) {
+        for (const NoteCheck& check : checks) {
+            if (check.line == line && check.id == id && check.text == text) {
+                return &check;
+            }
+        }
+        return nullptr;
+    }
+};
+
 /// @brief Data kept with a paragraph, as the user data of its block
 ///
 /// The document owns it. A block made by splitting a paragraph starts without data.
@@ -43,6 +70,14 @@ public:
 
     /// @brief What each grammar issue is, in the order of grammar.issues
     std::vector<GrammarError> grammarErrors;
+
+    /// @brief The misspelled words of the texts of its notes: each of their paragraphs, as
+    ///        checked with the paragraph (spelling.current covers them)
+    std::vector<NoteCheck> noteSpelling;
+
+    /// @brief The grammar issues of the texts of its notes: each of their paragraphs is sent
+    ///        on its own, as the paragraphs of the text are
+    std::vector<NoteCheck> noteGrammar;
 
     /// @brief Data of a block, or nullptr when it has none
     static ParagraphData* find(const QTextBlock& block) {

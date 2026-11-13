@@ -48,6 +48,9 @@ public:
     /// @brief The pages the dialog can be opened at (openPage())
     static constexpr const char* GENERAL_PAGE = "general";           ///< General
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
+    /// Editor > General, scrolled to its group Word Count, the cursor in its counting of the
+    /// notes' words (the gear of Insert > Footnote Layout...)
+    static constexpr const char* WORD_COUNT_PAGE = "editor.general.wordCount";
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
     /// Editor > Pages and Margins, scrolled to its group Margin Numbering, the cursor in it
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";

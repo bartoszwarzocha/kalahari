@@ -1640,6 +1640,9 @@ std::vector<EditorRenderPipeline::ParagraphHighlight> EditorRenderPipeline::visi
         const int currentIdx = m_searchEngine->currentMatchIndex();
         for (auto it = firstMatch; it != matches.end() && it->paragraph <= static_cast<int>(last);
              ++it) {
+            if (it->inNote()) {
+                continue;  // in the text of a note: drawn with it (BookEditor's note marks)
+            }
             // A match is within one paragraph, but may wrap onto the next line
             const HighlightKind kind = static_cast<int>(it - matches.begin()) == currentIdx
                                            ? HighlightKind::CurrentSearchMatch

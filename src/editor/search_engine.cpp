@@ -3,6 +3,8 @@
 
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/annotation.h>
+#include <kalahari/editor/text_footnotes.h>
+#include <QStringView>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QRegularExpression>
@@ -166,9 +168,7 @@ SearchMatch SearchEngine::nextMatch() {
 
     // After the current match, or else after the cursor (setOrigin())
     const int count = static_cast<int>(m_matches.size());
-    int index = m_currentMatchIndex >= 0
-                    ? m_currentMatchIndex + 1
-                    : firstMatchFrom(m_origin.isNull() ? 0 : static_cast<size_t>(m_origin.selectionEnd()));
+    int index = m_currentMatchIndex >= 0 ? m_currentMatchIndex + 1 : firstMatchFromOrigin(true);
     if (index >= count) {
         if (!m_options.wrapAround) {
             return SearchMatch{};  // No more matches
@@ -188,9 +188,8 @@ SearchMatch SearchEngine::previousMatch() {
     }
 
     // Before the current match, or else before the cursor (setOrigin())
-    int index = m_currentMatchIndex >= 0
-                    ? m_currentMatchIndex - 1
-                    : firstMatchFrom(m_origin.isNull() ? 0 : static_cast<size_t>(m_origin.selectionStart())) - 1;
+    int index =
+        m_currentMatchIndex >= 0 ? m_currentMatchIndex - 1 : firstMatchFromOrigin(false) - 1;
     if (index < 0) {
         if (!m_options.wrapAround) {
             return SearchMatch{};  // No more matches
@@ -220,10 +219,11 @@ bool SearchEngine::setCurrentMatchIndex(int index) {
     return true;
 }
 
-void SearchEngine::setOrigin(size_t start, size_t end) {
+void SearchEngine::setOrigin(size_t start, size_t end, const std::optional<NoteRange>& note) {
     if (!m_document) {
         return;
     }
+    m_originNote = note;
 
     // A cursor in the document, so the range moves with later edits
     const auto last = static_cast<size_t>(std::max(0, m_document->characterCount() - 1));
@@ -257,13 +257,27 @@ bool SearchEngine::replaceCurrent() {
     const SearchMatch match = m_matches[static_cast<size_t>(m_currentMatchIndex)];
 
     // A direct edit, recorded by the document's native undo as one step; the annotations
-    // of the replaced text stay
+    // of the replaced text stay. In a note's text: the note's new text, the cursor after its
+    // number
     QTextCursor cursor(m_document);
     cursor.beginEditBlock();
     emit replacementStepBegun();
-    cursor.setPosition(static_cast<int>(match.start));
-    cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
-    insertKeepingAnnotations(cursor, m_replaceText);
+    const auto position = static_cast<int>(match.start);
+    if (match.inNote()) {
+        if (const std::optional<Footnote> note = noteAtPosition(*m_document, position);
+            note && note->id == match.noteId) {
+            setNoteContentAt(*m_document, position,
+                             replacedNoteContent(note->content,
+                                                 {{match.noteOffset,
+                                                   static_cast<int>(match.length)}},
+                                                 m_replaceText));
+        }
+        cursor.setPosition(position + 1);
+    } else {
+        cursor.setPosition(position);
+        cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
+        insertKeepingAnnotations(cursor, m_replaceText);
+    }
     m_replacementEnd = cursor;
     emit replacementStepEnding();
     cursor.endEditBlock();
@@ -273,7 +287,10 @@ bool SearchEngine::replaceCurrent() {
     if (m_matchesDirty) {
         rebuildMatches();
     }
-    int index = firstMatchFrom(match.start + static_cast<size_t>(m_replaceText.length()));
+    int index = match.inNote()
+                    ? firstMatchFrom(match.start, match.noteId,
+                                     match.noteOffset + static_cast<int>(m_replaceText.length()))
+                    : firstMatchFrom(match.start + static_cast<size_t>(m_replaceText.length()));
     if (index >= static_cast<int>(m_matches.size())) {
         if (!m_options.wrapAround || m_matches.empty()) {
             m_currentMatchIndex = -1;
@@ -304,11 +321,26 @@ int SearchEngine::replaceAll() {
     m_replacementEnd = QTextCursor();
     cursor.beginEditBlock();
     emit replacementStepBegun();
-    for (auto it = m_matches.rbegin(); it != m_matches.rend(); ++it) {
+    for (auto it = m_matches.rbegin(); it != m_matches.rend();) {
         const SearchMatch& match = *it;
-        cursor.setPosition(static_cast<int>(match.start));
-        cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
-        insertKeepingAnnotations(cursor, m_replaceText);
+        const auto position = static_cast<int>(match.start);
+        if (match.inNote()) {
+            // The matches in a note's text: its new text at once
+            std::vector<std::pair<int, int>> ranges;
+            for (; it != m_matches.rend() && it->inNote() && it->start == match.start; ++it) {
+                ranges.emplace(ranges.begin(), it->noteOffset, static_cast<int>(it->length));
+            }
+            if (const std::optional<Footnote> note = noteAtPosition(*m_document, position)) {
+                setNoteContentAt(*m_document, position,
+                                 replacedNoteContent(note->content, ranges, m_replaceText));
+            }
+            cursor.setPosition(position + 1);
+        } else {
+            cursor.setPosition(position);
+            cursor.setPosition(static_cast<int>(match.end()), QTextCursor::KeepAnchor);
+            insertKeepingAnnotations(cursor, m_replaceText);
+            ++it;
+        }
         if (m_replacementEnd.isNull()) {
             // The end of the last replacement in the text, moved by those before it
             m_replacementEnd = QTextCursor(m_document);
@@ -403,54 +435,84 @@ bool SearchEngine::prepareSearch() {
 
 void SearchEngine::searchBlocks(QTextBlock block, const QTextBlock& last,
                                 std::vector<SearchMatch>& found) const {
-    const Qt::CaseSensitivity sensitivity =
-        m_options.caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
-
     // Paragraph by paragraph, as QTextDocument::find() searches: a match never spans two
     for (int number = block.blockNumber(); block.isValid(); block = block.next(), ++number) {
         const int position = block.position();
-        const QString original = block.text();
-        QString text = original;
-        text.replace(QChar::Nbsp, u' ');  // copies the text only if it has one
-
-        const auto add = [&](qsizetype offset, qsizetype length) {
+        const QString text = block.text();
+        const auto blockFirst = static_cast<std::ptrdiff_t>(found.size());
+        for (const auto& [offset, length] : matchesIn(text)) {
             SearchMatch match;
             match.start = static_cast<size_t>(position + offset);
             match.length = static_cast<size_t>(length);
             match.paragraph = number;
             match.paragraphOffset = static_cast<int>(offset);
-            match.matchedText = original.mid(offset, length);
+            match.matchedText = text.mid(offset, length);
             found.push_back(std::move(match));
-        };
+        }
 
-        if (m_options.useRegex) {
-            // An expression that can match nothing (x*, ^) finds only the text it does match
-            QRegularExpressionMatchIterator it = m_regex.globalMatch(text);
-            while (it.hasNext()) {
-                const QRegularExpressionMatch match = it.next();
-                const qsizetype length = match.capturedLength();
-                if (length > 0 &&
-                    (!m_options.wholeWord || isWholeWord(text, match.capturedStart(), length))) {
-                    add(match.capturedStart(), length);
+        // The texts of its notes, each at its number, a line of a note at a time
+        if (hasNotes(block)) {
+            const auto inText = static_cast<std::ptrdiff_t>(found.size());
+            for (const NotePlace& place : notesIn(block)) {
+                const QString note = noteText(place.note.content);
+                qsizetype lineStart = 0;
+                for (const QStringView line : QStringView(note).split(u'\n')) {
+                    for (const auto& [offset, length] : matchesIn(line.toString())) {
+                        SearchMatch match;
+                        match.start = static_cast<size_t>(place.position);
+                        match.length = static_cast<size_t>(length);
+                        match.paragraph = number;
+                        match.paragraphOffset = place.position - position;
+                        match.matchedText = line.mid(offset, length).toString();
+                        match.noteId = place.note.id;
+                        match.noteOffset = static_cast<int>(lineStart + offset);
+                        found.push_back(std::move(match));
+                    }
+                    lineStart += line.size() + 1;
                 }
             }
-        } else {
-            qsizetype from = 0;
-            qsizetype offset = 0;
-            while ((offset = text.indexOf(m_needle, from, sensitivity)) >= 0) {
-                if (m_options.wholeWord && !isWholeWord(text, offset, m_needle.size())) {
-                    from = offset + 1;  // a whole word can still start within this one
-                    continue;
-                }
-                add(offset, m_needle.size());
-                from = offset + m_needle.size();
-            }
+            // Those of the paragraph's text and those of its notes, each in order: in one
+            std::inplace_merge(found.begin() + blockFirst, found.begin() + inText, found.end());
         }
 
         if (block == last) {
             break;
         }
     }
+}
+
+std::vector<std::pair<qsizetype, qsizetype>> SearchEngine::matchesIn(
+    const QString& original) const {
+    std::vector<std::pair<qsizetype, qsizetype>> ranges;
+    QString text = original;
+    text.replace(QChar::Nbsp, u' ');  // copies the text only if it has one
+
+    if (m_options.useRegex) {
+        // An expression that can match nothing (x*, ^) finds only the text it does match
+        QRegularExpressionMatchIterator it = m_regex.globalMatch(text);
+        while (it.hasNext()) {
+            const QRegularExpressionMatch match = it.next();
+            const qsizetype length = match.capturedLength();
+            if (length > 0 &&
+                (!m_options.wholeWord || isWholeWord(text, match.capturedStart(), length))) {
+                ranges.emplace_back(match.capturedStart(), length);
+            }
+        }
+    } else {
+        const Qt::CaseSensitivity sensitivity =
+            m_options.caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+        qsizetype from = 0;
+        qsizetype offset = 0;
+        while ((offset = text.indexOf(m_needle, from, sensitivity)) >= 0) {
+            if (m_options.wholeWord && !isWholeWord(text, offset, m_needle.size())) {
+                from = offset + 1;  // a whole word can still start within this one
+                continue;
+            }
+            ranges.emplace_back(offset, m_needle.size());
+            from = offset + m_needle.size();
+        }
+    }
+    return ranges;
 }
 
 void SearchEngine::onContentsChange(int position, int charsRemoved, int charsAdded) {
@@ -524,16 +586,58 @@ int SearchEngine::firstMatchFrom(size_t position) const {
         m_matches.begin());
 }
 
+int SearchEngine::firstMatchFrom(size_t position, const QString& noteId, int noteOffset) const {
+    // After the matches on the number's character, those of the note before the offset
+    int index = firstMatchFrom(position);
+    const int count = static_cast<int>(m_matches.size());
+    while (index < count) {
+        const SearchMatch& match = m_matches[static_cast<size_t>(index)];
+        if (match.start != position ||
+            (match.noteId == noteId && match.noteOffset >= noteOffset)) {
+            break;
+        }
+        ++index;
+    }
+    return index;
+}
+
+int SearchEngine::firstMatchFromOrigin(bool fromEnd) const {
+    if (m_origin.isNull()) {
+        return 0;
+    }
+    const auto start = static_cast<size_t>(m_origin.selectionStart());
+    const auto end = static_cast<size_t>(m_origin.selectionEnd());
+    // A note's number selected for a range of its text: on from that range in the note
+    if (m_originNote && end == start + 1) {
+        return firstMatchFrom(start, m_originNote->id,
+                              m_originNote->start + (fromEnd ? m_originNote->length : 0));
+    }
+    return firstMatchFrom(fromEnd ? end : start);
+}
+
 int SearchEngine::originMatchIndex() const {
     if (m_origin.isNull() || !m_origin.hasSelection()) {
         return -1;
     }
     const auto start = static_cast<size_t>(m_origin.selectionStart());
     const auto end = static_cast<size_t>(m_origin.selectionEnd());
+    if (m_originNote && end == start + 1) {
+        // The match in the note's text the selected number stands for
+        const int index = firstMatchFrom(start, m_originNote->id, m_originNote->start);
+        if (index < static_cast<int>(m_matches.size())) {
+            const SearchMatch& match = m_matches[static_cast<size_t>(index)];
+            if (match.start == start && match.noteId == m_originNote->id &&
+                match.noteOffset == m_originNote->start &&
+                match.length == static_cast<size_t>(m_originNote->length)) {
+                return index;
+            }
+        }
+        return -1;
+    }
     const int index = firstMatchFrom(start);
     if (index < static_cast<int>(m_matches.size())) {
         const SearchMatch& match = m_matches[static_cast<size_t>(index)];
-        if (match.start == start && match.end() == end) {
+        if (!match.inNote() && match.start == start && match.end() == end) {
             return index;
         }
     }

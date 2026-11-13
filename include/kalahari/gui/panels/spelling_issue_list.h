@@ -31,6 +31,10 @@ struct SpellingPanelIssue {
     int position = 0;         ///< Its first character in the whole text
     int number = 0;           ///< Its paragraph among those with text, from 1 ("paragraph 3")
     QString paragraphText;    ///< The text of its paragraph, for the words around it
+    int contextOffset = 0;    ///< Where paragraphText starts in the text the issue's start
+                              ///< counts in (a paragraph of a note's text, in the note's)
+    QString noteNumber;       ///< In a note's text: the note's number ("paragraph 3, footnote 2")
+    bool endnote = false;     ///< In an endnote's text
 
     bool operator==(const SpellingPanelIssue& other) const = default;
 };

@@ -72,6 +72,11 @@ SearchEngine* BookEditor::searchEngine() const
 
 void BookEditor::syncSearchOrigin()
 {
+    // The text of a note shown selected while its number is selected
+    if (m_noteSelection && !isNoteNumberSelected(m_noteSelection->id)) {
+        m_noteSelection.reset();
+        update();
+    }
     if (!m_searchEngine || !m_textBuffer) {
         return;
     }
@@ -82,13 +87,25 @@ void BookEditor::syncSearchOrigin()
                                                 : SelectionRange{m_cursorPosition, m_cursorPosition};
     m_searchEngine->setOrigin(
         static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.start)),
-        static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.end)));
+        static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.end)),
+        m_noteSelection);
 }
 
 void BookEditor::takeSearchTextFromSelection()
 {
     // The search goes paragraph by paragraph: text across paragraphs would never be found.
-    // A line break would show in the field as a space, which it does not find.
+    // A line break would show in the field as a space, which it does not find. A note's
+    // number selected for a range of its text (a match): that text.
+    if (m_noteSelection) {
+        if (const std::optional<NotePlace> place = noteOf(m_noteSelection->id)) {
+            const QString text = noteText(place->note.content)
+                                     .mid(m_noteSelection->start, m_noteSelection->length);
+            if (!text.isEmpty() && !text.contains(QChar::LineSeparator)) {
+                m_findReplaceBar->setSearchText(text);
+            }
+        }
+        return;
+    }
     if (hasSelection() && m_selection.start.paragraph == m_selection.end.paragraph) {
         const QString text = selectedText();
         if (!text.contains(QChar::LineSeparator)) {
@@ -212,6 +229,12 @@ void BookEditor::hideFindReplace()
 
 void BookEditor::onNavigateToMatch(const SearchMatch& match)
 {
+    // In a note's text: the note's number selected, the match in its text
+    if (match.inNote()) {
+        selectNoteRange({match.noteId, match.noteOffset, static_cast<int>(match.length)});
+        return;
+    }
+
     // Move cursor to match position
     CursorPosition newPos{match.paragraph, match.paragraphOffset};
     setCursorPosition(newPos);

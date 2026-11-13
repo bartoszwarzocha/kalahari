@@ -9,6 +9,7 @@
 
 #include <QFontMetricsF>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPen>
 #include <QTextDocument>
 #include <QTextLine>
@@ -80,11 +81,16 @@ void KalahariTextDocumentLayout::setFootnoteContext(const FootnoteContext& conte
     if (context == m_footnoteContext) {
         return;
     }
+    const bool endnotesChanged =
+        context.endnotesHere != m_footnoteContext.endnotesHere ||
+        context.otherEndnotes != m_footnoteContext.otherEndnotes ||
+        context.otherEndnotesBefore != m_footnoteContext.otherEndnotesBefore;
     m_footnoteContext = context;
     m_captionNumbersDirty = true;
-    if (m_fieldChars.empty()) {
+    if (m_fieldChars.empty() && !endnotesChanged) {
         return;  // nothing in the text shows the numbers: they are counted when asked for
     }
+    // The numbers in the text and under the paragraphs, the book's endnotes after the last one
     const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
     refreshFields(0, -1, 0, old);
 }
@@ -158,17 +164,68 @@ qreal KalahariTextDocumentLayout::noteBottomGap() const {
     return std::round(noteMetrics().estimatedLineHeight * NOTE_BOTTOM_GAP_LINES);
 }
 
+std::vector<size_t> KalahariTextDocumentLayout::shownEndnotes() const {
+    const size_t own = footnoteNumbers().notes().size();
+    const size_t others = m_footnoteContext.otherEndnotes.size();
+    const size_t before = std::min(m_footnoteContext.otherEndnotesBefore, others);
+    std::vector<size_t> shown;
+    for (size_t i = 0; i < before; ++i) {
+        shown.push_back(own + i);
+    }
+    if (m_footnoteContext.endnotesHere) {
+        const std::vector<size_t> endnotes =
+            notesBetween(0, std::numeric_limits<int>::max(), NoteKind::Endnote);
+        shown.insert(shown.end(), endnotes.begin(), endnotes.end());
+    }
+    for (size_t i = before; i < others; ++i) {
+        shown.push_back(own + i);
+    }
+    return shown;
+}
+
+std::pair<QString, QString> KalahariTextDocumentLayout::noteKey(size_t index) const {
+    const std::vector<NotePlace>& notes = footnoteNumbers().notes();
+    if (index < notes.size()) {
+        return {notes[index].note.id, QString()};
+    }
+    const BookEndnote& other = m_footnoteContext.otherEndnotes.at(index - notes.size());
+    return {other.id, other.elementId};
+}
+
+qreal KalahariTextDocumentLayout::noteRoom(size_t index) const {
+    const NoteBox& box = noteBox(index);
+    const auto [id, elementId] = noteKey(index);
+    const auto own = elementId.isEmpty() ? m_noteRooms.find(id) : m_noteRooms.end();
+    return own != m_noteRooms.end() ? std::max(box.height, own->second) : box.height;
+}
+
 const KalahariTextDocumentLayout::NoteBox& KalahariTextDocumentLayout::noteBox(size_t index) const {
     const FootnoteNumbers& numbers = footnoteNumbers();
-    const Footnote& note = numbers.notes().at(index).note;
-    const QString& number = numbers.number(index);
+    const size_t own = numbers.notes().size();
+    // A note of this text, or an endnote of another one (its own key, ids of texts may meet)
+    QString key;
+    NoteKind kind = NoteKind::Endnote;
+    QString number;
+    QString content;
+    if (index < own) {
+        const Footnote& note = numbers.notes()[index].note;
+        key = note.id;
+        kind = note.kind;
+        number = numbers.number(index);
+        content = note.content;
+    } else {
+        const BookEndnote& other = m_footnoteContext.otherEndnotes.at(index - own);
+        key = other.elementId + QLatin1Char('\x1f') + other.id;
+        number = other.number;
+        content = other.content;
+    }
     const qreal documentWidth = document()->textWidth();
     const qreal width = documentWidth > 0 ? documentWidth : UNWRAPPED_NOTE_WIDTH;
-    const QString signature = (note.kind == NoteKind::Endnote ? QStringLiteral("e")
-                                                              : QStringLiteral("f")) +
+    const QString signature = (kind == NoteKind::Endnote ? QStringLiteral("e")
+                                                         : QStringLiteral("f")) +
                               number + QLatin1Char('\x1f') + QString::number(width) +
-                              QLatin1Char('\x1f') + note.content;
-    std::unique_ptr<NoteBox>& slot = m_noteBoxes[note.id];
+                              QLatin1Char('\x1f') + content;
+    std::unique_ptr<NoteBox>& slot = m_noteBoxes[key];
     if (slot && slot->signature == signature) {
         return *slot;
     }
@@ -188,8 +245,9 @@ const KalahariTextDocumentLayout::NoteBox& KalahariTextDocumentLayout::noteBox(s
     option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     option.setUseDesignMetrics(true);
 
-    const std::vector<NoteParagraph> paragraphs = noteParagraphs(note.content);
+    const std::vector<NoteParagraph> paragraphs = noteParagraphs(content);
     qreal y = 0.0;
+    int noteStart = 0;
     for (size_t p = 0; p < paragraphs.size(); ++p) {
         const NoteParagraph& paragraph = paragraphs[p];
         QString text;
@@ -216,6 +274,10 @@ const KalahariTextDocumentLayout::NoteBox& KalahariTextDocumentLayout::noteBox(s
             }
         }
         shownAt.back() = kept;
+        shown.textStart = offset;
+        shown.noteStart = noteStart;
+        shown.length = kept;
+        noteStart += kept + 1;  // the paragraph's end: '\n' in noteText()
         for (const FormatRun& run : paragraph.formats) {
             const size_t end = std::min(run.end, shownAt.size() - 1);
             const size_t start = std::min(run.start, end);
@@ -286,30 +348,25 @@ std::vector<size_t> KalahariTextDocumentLayout::footnotesUnder(const QTextBlock&
 }
 
 qreal KalahariTextDocumentLayout::askNotesBelow(const QTextBlock& block) const {
-    if (m_pageFlow.enabled || !block.isValid() || footnoteNumbers().notes().empty()) {
+    if (m_pageFlow.enabled || !block.isValid() ||
+        (footnoteNumbers().notes().empty() && m_footnoteContext.otherEndnotes.empty())) {
         return 0.0;
     }
-    const auto roomOf = [this](size_t index) {
-        const NoteBox& box = noteBox(index);
-        const auto own = m_noteRooms.find(footnoteNumbers().notes()[index].note.id);
-        return own != m_noteRooms.end() ? std::max(box.height, own->second) : box.height;
-    };
     qreal room = 0.0;
     const std::vector<size_t> footnotes = footnotesUnder(block);
     if (!footnotes.empty()) {
         room += noteSeparatorRoom() + noteBottomGap();
         for (const size_t index : footnotes) {
-            room += roomOf(index);
+            room += noteRoom(index);
         }
     }
     if (block == document()->lastBlock()) {
-        const std::vector<size_t> endnotes =
-            notesBetween(0, std::numeric_limits<int>::max(), NoteKind::Endnote);
+        const std::vector<size_t> endnotes = shownEndnotes();
         if (!endnotes.empty()) {
             room += std::round(noteMetrics().estimatedLineHeight * ENDNOTES_GAP_LINES) +
                     noteSeparatorRoom() + noteBottomGap();
             for (const size_t index : endnotes) {
-                room += roomOf(index);
+                room += noteRoom(index);
             }
         }
     }
@@ -381,6 +438,8 @@ void KalahariTextDocumentLayout::drawNoteLines(QPainter* painter, size_t note, s
     const QRectF clip(-UNWRAPPED_NOTE_WIDTH, top + 0.5, 3.0 * UNWRAPPED_NOTE_WIDTH,
                       std::max<qreal>(0.0, box.heightOf(first, last) - 1.0));
     painter->save();
+    painter->setClipRect(clip, Qt::IntersectClip);
+    drawNoteMarks(painter, note, first, last, shift, colors, false);
     painter->setPen(colors.text);
     for (size_t p = box.lines[first].paragraph; p <= box.lines[last - 1].paragraph; ++p) {
         const NoteBox::Paragraph& paragraph = box.paragraphs[p];
@@ -392,7 +451,110 @@ void KalahariTextDocumentLayout::drawNoteLines(QPainter* painter, size_t note, s
         }
         paragraph.layout->draw(painter, QPointF(0.0, shift), links, clip);
     }
+    drawNoteMarks(painter, note, first, last, shift, colors, true);
     painter->restore();
+}
+
+void KalahariTextDocumentLayout::drawNoteMarks(QPainter* painter, size_t note, size_t first,
+                                               size_t last, qreal shift,
+                                               const NoteColors& colors, bool waves) const {
+    // Only this text's notes have marks
+    const auto [id, elementId] = noteKey(note);
+    if (!elementId.isEmpty()) {
+        return;
+    }
+    // What is drawn: the backgrounds, the selection over them as in the text; or the waves
+    struct Mark {
+        int start = 0;
+        int length = 0;
+        QColor color;
+    };
+    std::vector<Mark> marks;
+    if (colors.marks != nullptr) {
+        if (const auto found = colors.marks->constFind(id); found != colors.marks->cend()) {
+            for (const TextHighlight& mark : *found) {
+                QColor color;
+                // The backgrounds of the matches under the text, the waves over it
+                switch (mark.kind) {
+                case HighlightKind::SearchMatch:
+                    color = waves ? QColor() : colors.searchMatch;
+                    break;
+                case HighlightKind::CurrentSearchMatch:
+                    color = waves ? QColor() : colors.currentMatch;
+                    break;
+                case HighlightKind::Spelling:
+                    color = waves ? colors.spelling : QColor();
+                    break;
+                case HighlightKind::Grammar:
+                    color = waves ? colors.grammar : QColor();
+                    break;
+                default:
+                    break;
+                }
+                if (color.isValid() && mark.length > 0) {
+                    marks.push_back({mark.start, mark.length, color});
+                }
+            }
+        }
+    }
+    if (!waves && colors.selected && colors.selected->id == id && colors.selection.isValid()) {
+        marks.push_back({colors.selected->start, colors.selected->length, colors.selection});
+    }
+    if (marks.empty()) {
+        return;
+    }
+
+    const NoteBox& box = noteBox(note);
+    const qreal amplitude = 1.5;
+    for (const Mark& mark : marks) {
+        // Line by line, in the lines drawn of the paragraphs it is in
+        size_t line = 0;
+        for (const NoteBox::Paragraph& paragraph : box.paragraphs) {
+            const int lines = paragraph.layout->lineCount();
+            const int from = std::max(mark.start, paragraph.noteStart) - paragraph.noteStart;
+            const int to = std::min(mark.start + mark.length,
+                                    paragraph.noteStart + paragraph.length) -
+                           paragraph.noteStart;
+            for (int k = 0; k < lines && from < to; ++k, ++line) {
+                if (line < first || line >= last) {
+                    continue;
+                }
+                const QTextLine textLine = paragraph.layout->lineAt(k);
+                const int lineStart = textLine.textStart();
+                const int lineEnd = lineStart + textLine.textLength();
+                const int start = std::max(paragraph.textStart + from, lineStart);
+                const int end = std::min(paragraph.textStart + to, lineEnd);
+                if (start >= end) {
+                    continue;
+                }
+                const qreal x1 = std::min(textLine.cursorToX(start), textLine.cursorToX(end));
+                const qreal x2 = std::max(textLine.cursorToX(start), textLine.cursorToX(end));
+                if (!waves) {
+                    painter->fillRect(QRectF(x1, textLine.y() + shift, x2 - x1,
+                                             textLine.height()),
+                                      mark.color);
+                    continue;
+                }
+                // A wave under the baseline, as under the text's words
+                const qreal y = textLine.y() + shift + textLine.ascent() + amplitude + 1.0;
+                QPainterPath path(QPointF(x1, y));
+                const int steps = static_cast<int>(std::ceil((x2 - x1) / (2.0 * amplitude)));
+                for (int i = 1; i <= steps; ++i) {
+                    path.lineTo(QPointF(std::min(x1 + i * 2.0 * amplitude, x2),
+                                        i % 2 == 1 ? y - amplitude : y + amplitude));
+                }
+                painter->save();
+                painter->setRenderHint(QPainter::Antialiasing);
+                painter->setPen(QPen(mark.color, 1.0));
+                painter->setBrush(Qt::NoBrush);
+                painter->drawPath(path);
+                painter->restore();
+            }
+            if (from >= to) {
+                line += static_cast<size_t>(lines);
+            }
+        }
+    }
 }
 
 void KalahariTextDocumentLayout::drawNotesBelow(QPainter* painter, const QTextBlock& block,
@@ -401,12 +563,6 @@ void KalahariTextDocumentLayout::drawNotesBelow(QPainter* painter, const QTextBl
     if (painter == nullptr || room <= 0.0) {
         return;
     }
-    const std::vector<NotePlace>& notes = footnoteNumbers().notes();
-    const auto roomOf = [this, &notes](size_t index) {
-        const NoteBox& box = noteBox(index);
-        const auto own = m_noteRooms.find(notes[index].note.id);
-        return own != m_noteRooms.end() ? std::max(box.height, own->second) : box.height;
-    };
     // Below the block's own height (a table's: its last row's), in the room under it
     qreal y = m_blockHeights[static_cast<size_t>(block.blockNumber())];
     const std::vector<size_t> footnotes = footnotesUnder(block);
@@ -415,20 +571,19 @@ void KalahariTextDocumentLayout::drawNotesBelow(QPainter* painter, const QTextBl
         y += noteSeparatorRoom();
         for (const size_t index : footnotes) {
             drawNoteLines(painter, index, 0, noteBox(index).lines.size(), y, colors);
-            y += roomOf(index);
+            y += noteRoom(index);
         }
         y += noteBottomGap();
     }
     if (block == document()->lastBlock()) {
-        const std::vector<size_t> endnotes =
-            notesBetween(0, std::numeric_limits<int>::max(), NoteKind::Endnote);
+        const std::vector<size_t> endnotes = shownEndnotes();
         if (!endnotes.empty()) {
             y += std::round(noteMetrics().estimatedLineHeight * ENDNOTES_GAP_LINES);
             drawNoteSeparator(painter, y, false, colors);
             y += noteSeparatorRoom();
             for (const size_t index : endnotes) {
                 drawNoteLines(painter, index, 0, noteBox(index).lines.size(), y, colors);
-                y += roomOf(index);
+                y += noteRoom(index);
             }
         }
     }
@@ -482,8 +637,7 @@ void KalahariTextDocumentLayout::drawPageNotes(QPainter* painter, int page,
 
 std::optional<KalahariTextDocumentLayout::NoteArea> KalahariTextDocumentLayout::noteAreaAt(
     const QPointF& point) const {
-    const std::vector<NotePlace>& notes = footnoteNumbers().notes();
-    if (notes.empty()) {
+    if (footnoteNumbers().notes().empty() && m_footnoteContext.otherEndnotes.empty()) {
         return std::nullopt;
     }
     const qreal documentWidth = document()->textWidth();
@@ -491,10 +645,11 @@ std::optional<KalahariTextDocumentLayout::NoteArea> KalahariTextDocumentLayout::
     if (point.x() < 0.0 || point.x() > width) {
         return std::nullopt;
     }
-    const auto hit = [&point, &notes, width](size_t index, qreal top,
-                                             qreal height) -> std::optional<NoteArea> {
+    const auto hit = [this, &point, width](size_t index, qreal top, qreal height,
+                                           size_t firstLine = 0) -> std::optional<NoteArea> {
         if (point.y() >= top && point.y() < top + height) {
-            return NoteArea{notes[index].note.id, QRectF(0.0, top, width, height)};
+            const auto [id, elementId] = noteKey(index);
+            return NoteArea{id, QRectF(0.0, top, width, height), elementId, firstLine};
         }
         return std::nullopt;
     };
@@ -513,7 +668,7 @@ std::optional<KalahariTextDocumentLayout::NoteArea> KalahariTextDocumentLayout::
             qreal y = pageTop + m_pageFlow.textHeight - onPage.reserved + noteSeparatorRoom();
             for (const PageNote& part : onPage.parts) {
                 const qreal height = noteBox(part.note).heightOf(part.first, part.last);
-                if (const std::optional<NoteArea> area = hit(part.note, y, height)) {
+                if (const std::optional<NoteArea> area = hit(part.note, y, height, part.first)) {
                     return area;
                 }
                 y += height;
@@ -521,7 +676,8 @@ std::optional<KalahariTextDocumentLayout::NoteArea> KalahariTextDocumentLayout::
         }
         for (const EndnoteLine& line : m_endnoteLines) {
             const qreal height = noteBox(line.note).advance(line.line);
-            if (const std::optional<NoteArea> area = hit(line.note, line.top, height)) {
+            if (const std::optional<NoteArea> area =
+                    hit(line.note, line.top, height, line.line)) {
                 return area;
             }
         }
@@ -534,35 +690,140 @@ std::optional<KalahariTextDocumentLayout::NoteArea> KalahariTextDocumentLayout::
     if (!block.isValid() || notesBelow(number) <= 0.0) {
         return std::nullopt;
     }
-    const auto roomOf = [this, &notes](size_t index) {
-        const NoteBox& box = noteBox(index);
-        const auto own = m_noteRooms.find(notes[index].note.id);
-        return own != m_noteRooms.end() ? std::max(box.height, own->second) : box.height;
-    };
     qreal y = blockY(number) + m_blockHeights[static_cast<size_t>(number)];
     const std::vector<size_t> footnotes = footnotesUnder(block);
     if (!footnotes.empty()) {
         y += noteSeparatorRoom();
         for (const size_t index : footnotes) {
-            if (const std::optional<NoteArea> area = hit(index, y, roomOf(index))) {
+            if (const std::optional<NoteArea> area = hit(index, y, noteRoom(index))) {
                 return area;
             }
-            y += roomOf(index);
+            y += noteRoom(index);
         }
         y += noteBottomGap();
     }
     if (block == document()->lastBlock()) {
         y += std::round(noteMetrics().estimatedLineHeight * ENDNOTES_GAP_LINES) +
              noteSeparatorRoom();
-        for (const size_t index :
-             notesBetween(0, std::numeric_limits<int>::max(), NoteKind::Endnote)) {
-            if (const std::optional<NoteArea> area = hit(index, y, roomOf(index))) {
+        for (const size_t index : shownEndnotes()) {
+            if (const std::optional<NoteArea> area = hit(index, y, noteRoom(index))) {
                 return area;
             }
-            y += roomOf(index);
+            y += noteRoom(index);
         }
     }
     return std::nullopt;
+}
+
+std::optional<NoteRange> KalahariTextDocumentLayout::notePositionAt(const QPointF& point) const {
+    const std::optional<NoteArea> area = noteAreaAt(point);
+    if (!area || !area->elementId.isEmpty()) {
+        return std::nullopt;
+    }
+    const std::optional<size_t> index = noteIndexOf(area->id);
+    if (!index) {
+        return std::nullopt;
+    }
+    const NoteBox& box = noteBox(*index);
+    if (box.lines.empty() || area->firstLine >= box.lines.size()) {
+        return NoteRange{area->id, 0, 0};
+    }
+
+    // The line under the point, the character nearest to it in that line
+    const qreal y = box.lines[area->firstLine].top + (point.y() - area->rect.top());
+    size_t line = area->firstLine;
+    while (line + 1 < box.lines.size() && box.lines[line + 1].top <= y) {
+        ++line;
+    }
+    const size_t paragraph = box.lines[line].paragraph;
+    size_t first = line;
+    while (first > 0 && box.lines[first - 1].paragraph == paragraph) {
+        --first;
+    }
+    const NoteBox::Paragraph& shown = box.paragraphs[paragraph];
+    const QTextLine textLine = shown.layout->lineAt(static_cast<int>(line - first));
+    const int cursor = textLine.isValid() ? textLine.xToCursor(point.x()) : shown.textStart;
+    const int offset = std::clamp(cursor - shown.textStart, 0, shown.length);
+    return NoteRange{area->id, shown.noteStart + offset, 0};
+}
+
+std::optional<QRectF> KalahariTextDocumentLayout::noteRangeRect(const NoteRange& range) const {
+    const std::optional<size_t> index = noteIndexOf(range.id);
+    if (!index) {
+        return std::nullopt;
+    }
+    const NoteBox& box = noteBox(*index);
+    size_t line = 0;
+    for (size_t p = 0; p < box.paragraphs.size(); ++p) {
+        const NoteBox::Paragraph& shown = box.paragraphs[p];
+        const bool last = p + 1 == box.paragraphs.size();
+        if (range.start > shown.noteStart + shown.length && !last) {
+            line += static_cast<size_t>(shown.layout->lineCount());
+            continue;
+        }
+        // Its line in the paragraph, and that line where the note is shown
+        const int start = shown.textStart + std::clamp(range.start - shown.noteStart, 0,
+                                                       shown.length);
+        const int end = shown.textStart + std::clamp(range.start + range.length -
+                                                         shown.noteStart,
+                                                     0, shown.length);
+        const QTextLine textLine = shown.layout->lineForTextPosition(start);
+        if (!textLine.isValid()) {
+            return std::nullopt;
+        }
+        line += static_cast<size_t>(textLine.lineNumber());
+        const std::optional<qreal> top = noteLineTop(*index, line);
+        if (!top || line >= box.lines.size()) {
+            return std::nullopt;
+        }
+        const qreal x1 = textLine.cursorToX(start);
+        const qreal x2 = textLine.cursorToX(
+            std::min(end, textLine.textStart() + textLine.textLength()));
+        return QRectF(std::min(x1, x2), *top, std::abs(x2 - x1), box.lines[line].height);
+    }
+    return std::nullopt;
+}
+
+std::optional<size_t> KalahariTextDocumentLayout::noteIndexOf(const QString& id) const {
+    const std::vector<NotePlace>& notes = footnoteNumbers().notes();
+    const auto found = std::find_if(notes.begin(), notes.end(),
+                                    [&id](const NotePlace& place) { return place.note.id == id; });
+    if (found == notes.end()) {
+        return std::nullopt;
+    }
+    return static_cast<size_t>(std::distance(notes.begin(), found));
+}
+
+std::optional<qreal> KalahariTextDocumentLayout::noteLineTop(size_t index, size_t line) const {
+    const NoteBox& box = noteBox(index);
+    if (line >= box.lines.size()) {
+        return std::nullopt;
+    }
+    if (m_pageFlow.enabled) {
+        updateBlockPositions();
+        for (size_t page = 0; page < m_pageNotes.size(); ++page) {
+            const PageNotes& onPage = m_pageNotes[page];
+            qreal y = static_cast<qreal>(page) * m_pageFlow.pitch + m_pageFlow.textHeight -
+                      onPage.reserved + noteSeparatorRoom();
+            for (const PageNote& part : onPage.parts) {
+                if (part.note == index && line >= part.first && line < part.last) {
+                    return y + box.lines[line].top - box.lines[part.first].top;
+                }
+                y += noteBox(part.note).heightOf(part.first, part.last);
+            }
+        }
+        for (const EndnoteLine& shown : m_endnoteLines) {
+            if (shown.note == index && shown.line == line) {
+                return shown.top;
+            }
+        }
+        return std::nullopt;
+    }
+    const std::optional<QRectF> rect = noteRect(noteKey(index).first);
+    if (!rect) {
+        return std::nullopt;
+    }
+    return rect->top() + box.lines[line].top;
 }
 
 std::optional<QRectF> KalahariTextDocumentLayout::noteRect(const QString& id) const {
@@ -620,29 +881,24 @@ std::optional<QRectF> KalahariTextDocumentLayout::noteRect(const QString& id) co
     if (!block.isValid() || notesBelow(number) <= 0.0) {
         return std::nullopt;
     }
-    const auto roomOf = [this, &notes](size_t note) {
-        const NoteBox& box = noteBox(note);
-        const auto own = m_noteRooms.find(notes[note].note.id);
-        return own != m_noteRooms.end() ? std::max(box.height, own->second) : box.height;
-    };
     qreal y = blockY(number) + m_blockHeights[static_cast<size_t>(number)];
     const std::vector<size_t> footnotes = footnotesUnder(block);
     if (!footnotes.empty()) {
         y += noteSeparatorRoom();
         for (const size_t note : footnotes) {
             if (note == index) {
-                return QRectF(0.0, y, width, roomOf(note));
+                return QRectF(0.0, y, width, noteRoom(note));
             }
-            y += roomOf(note);
+            y += noteRoom(note);
         }
         y += noteBottomGap();
     }
     y += std::round(noteMetrics().estimatedLineHeight * ENDNOTES_GAP_LINES) + noteSeparatorRoom();
-    for (const size_t note : notesBetween(0, std::numeric_limits<int>::max(), NoteKind::Endnote)) {
+    for (const size_t note : shownEndnotes()) {
         if (note == index) {
-            return QRectF(0.0, y, width, roomOf(note));
+            return QRectF(0.0, y, width, noteRoom(note));
         }
-        y += roomOf(note);
+        y += noteRoom(note);
     }
     return std::nullopt;
 }
@@ -721,8 +977,7 @@ void KalahariTextDocumentLayout::reserveNotes(qreal bottom,
 qreal KalahariTextDocumentLayout::placeEndnotes(qreal top) const {
     m_endnoteLines.clear();
     m_endnotesTop = -1.0;
-    const std::vector<size_t> endnotes =
-        notesBetween(0, std::numeric_limits<int>::max(), NoteKind::Endnote);
+    const std::vector<size_t> endnotes = shownEndnotes();
     if (endnotes.empty()) {
         return top;
     }

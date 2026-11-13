@@ -8,6 +8,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/caption_dialogs.h"
@@ -16,7 +17,6 @@
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/read_only_book.h"
 
-#include <QFileInfo>
 #include <QPointer>
 #include <QTabWidget>
 #include <QTextDocument>
@@ -36,18 +36,6 @@ constexpr int REFRESH_DELAY_MS = 300;
 constexpr const char* CAPTION_COMMAND = "insert.caption";
 constexpr const char* REFERENCE_COMMAND = "insert.crossReference";
 constexpr const char* FIGURE_LIST_COMMAND = "insert.figureList";
-
-/// The text elements of a list and the groups in it, in reading order
-void collectTexts(const QList<core::ProjectElement>& elements, core::BookPlace place,
-                  std::vector<std::pair<const core::ProjectElement*, core::BookPlace>>& texts) {
-    const auto& projects = core::ProjectManager::getInstance();
-    for (const core::ProjectElement& element : elements) {
-        if (!element.file.isEmpty() && projects.formOf(element) == core::ElementForm::Text) {
-            texts.emplace_back(&element, place);
-        }
-        collectTexts(element.elements, place, texts);
-    }
-}
 
 }  // namespace
 
@@ -145,44 +133,20 @@ QList<std::pair<QString, editor::BookEditor*>> CaptionCoordinator::openEditors()
 }
 
 const CaptionCoordinator::CachedText& CaptionCoordinator::savedText(const QString& elementId) const {
-    const auto& projects = core::ProjectManager::getInstance();
-    // The unsaved text the program keeps, else its file: read again only when it changed
-    const std::vector<QString> dirty = projects.getDirtyElements();
-    const bool unsaved = std::find(dirty.cbegin(), dirty.cend(), elementId) != dirty.cend();
-    QString signature;
-    QString kml;
-    if (unsaved) {
-        kml = projects.chapterText(elementId);
-        signature = QStringLiteral("text:%1:%2").arg(qHash(kml)).arg(kml.size());
-    } else if (const core::ProjectElement* element = projects.findElement(elementId)) {
-        const QFileInfo file(projects.filePathOf(*element));
-        signature = QStringLiteral("file:%1:%2")
-                        .arg(file.lastModified().toMSecsSinceEpoch())
-                        .arg(file.size());
-    }
     CachedText& cached = m_savedTexts[elementId];
-    if (cached.signature != signature || signature.isEmpty()) {
-        if (!unsaved) {
-            kml = projects.chapterText(elementId);
-        }
-        cached.signature = signature;
-        cached.entries = editor::captionEntriesOfKml(kml);
-        cached.references = editor::crossReferenceCountsOfKml(kml);
+    if (const std::optional<QString> kml = savedTextIfChanged(elementId, cached.signature)) {
+        cached.entries = editor::captionEntriesOfKml(*kml);
+        cached.references = editor::crossReferenceCountsOfKml(*kml);
     }
     return cached;
 }
 
 std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts() const {
     std::vector<BookText> texts;
-    auto& projects = core::ProjectManager::getInstance();
-    const core::ProjectBook* book = projects.isProjectOpen() ? projects.book() : nullptr;
-    if (book == nullptr) {
+    const std::vector<BookTextElement> elements = bookTextElements();
+    if (elements.empty()) {
         return texts;
     }
-    std::vector<std::pair<const core::ProjectElement*, core::BookPlace>> elements;
-    collectTexts(book->frontElements, core::BookPlace::Front, elements);
-    collectTexts(book->mainElements, core::BookPlace::Main, elements);
-    collectTexts(book->backElements, core::BookPlace::Back, elements);
 
     // The open texts as their editors have them
     QHash<QString, editor::BookEditor*> open;
@@ -191,15 +155,14 @@ std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts() const 
             open.insert(elementId, editor);
         }
     }
-    const core::KindRef mainKind = projects.mainTextKind();
     int chapter = 0;
     bool inBack = false;
-    for (const auto& [element, place] : elements) {
+    for (const auto& [element, place, isChapter] : elements) {
         BookText text;
         text.elementId = element->id;
         text.title = element->title;
         if (place == core::BookPlace::Main) {
-            if (mainKind && projects.kindOf(*element).kind == mainKind.kind) {
+            if (isChapter) {
                 ++chapter;
                 text.chapterStart = true;
             }

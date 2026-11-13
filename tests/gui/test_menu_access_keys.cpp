@@ -736,6 +736,39 @@ void checkTextMenus(bool shown, QStringList& problems) {
                     problems);
     CHECK(labelsOf(items).contains(none));
 
+    // A misspelled word of a note's text: its words and the note's items on top of the usual
+    // menu
+    for (const QString& kind : {QStringLiteral("footnote"), QStringLiteral("endnote")}) {
+        editor::BookEditor noted;
+        test::resizeWidget(noted, QSize(600, 400));
+        noted.fromKml(QStringLiteral("<kml><p>The<%1 id=\"f1\">A chaptre note</%1> one.</p>"
+                                     "</kml>")
+                          .arg(kind));
+        noted.setSpellCheckService(&spelling);
+        noted.show();
+        REQUIRE(checked(noted));
+        std::optional<QPoint> word;  // over "chaptre" (2 to 9 in the note's text)
+        const QRect note = noted.noteRect(QStringLiteral("f1")).toAlignedRect();
+        for (int y = note.top(); y <= note.bottom() && !word; y += 2) {
+            for (int x = note.left(); x <= note.right() && !word; x += 2) {
+                const std::optional<editor::NoteRange> place = noted.notePlaceAt(QPointF(x, y));
+                if (place && place->start > 2 && place->start < 9) {
+                    word = QPoint(x, y);
+                }
+            }
+        }
+        REQUIRE(word.has_value());
+        items = contextMenu(&noted, &noted, *word);
+        collectProblems(items, QStringLiteral("Misspelled word of a ") + kind,
+                        shown ? QStringList() : wordTexts, problems);
+        const QStringList labels = labelsOf(items);
+        CHECK(std::any_of(labels.cbegin(), labels.cend(), [](const QString& label) {
+            return withoutAccessKey(label) == QStringLiteral("Add to Dictionary") ||
+                   withoutAccessKey(label) == QStringLiteral("Dodaj do słownika");
+        }));
+        CHECK(itemCount(items) >= words.size() + 2 + 3);  // and the note's three
+    }
+
     // Every part at once: a misspelled word with an annotation, in a link, in a list item with
     // linked materials. Each item has a key of its own, the commands of the window keep theirs.
     // The word is one the dictionary has nothing like: in so long a menu the words for it

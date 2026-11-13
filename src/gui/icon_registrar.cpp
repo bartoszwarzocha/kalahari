@@ -105,6 +105,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.link", "resources/icons/twotone/link.svg", "Insert Link");
     iconRegistry.registerIcon("insert.footnote", "resources/icons/twotone/short_text.svg", "Insert Footnote");
     iconRegistry.registerIcon("insert.endnote", "resources/icons/twotone/notes.svg", "Insert Endnote");
+    iconRegistry.registerIcon("insert.footnoteSettings", "resources/icons/twotone/format_list_numbered.svg", "Footnote Layout");
     iconRegistry.registerIcon("insert.annotation", "resources/icons/twotone/edit_note.svg", "Add Annotation");
     iconRegistry.registerIcon("insert.comment", "resources/icons/twotone/add_comment.svg", "Add Comment");
     iconRegistry.registerIcon("insert.todo", "resources/icons/twotone/check_circle.svg", "Add To Do");

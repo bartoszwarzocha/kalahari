@@ -1826,7 +1826,8 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     m_notesLastPage = -1;
     m_endnoteLines.clear();
     m_endnotesTop = -1.0;
-    const bool withNotes = inStep && !footnoteNumbers().notes().empty();
+    const bool withNotes = inStep && (!footnoteNumbers().notes().empty() ||
+                                      !m_footnoteContext.otherEndnotes.empty());
     qreal lastSpacing = 0;
     QTextBlock block = document()->begin();
     for (size_t i = 0; i < count; ++i, block = block.next()) {
@@ -3250,7 +3251,7 @@ void KalahariTextDocumentLayout::refreshFields(int first, int last, int delta,
     }
     // The endnotes under the last block, as they are now; with page flow the notes at the
     // bottom of the pages are placed again with the positions
-    if (!m_footnoteNumbers.notes().empty() ||
+    if (!m_footnoteNumbers.notes().empty() || !m_footnoteContext.otherEndnotes.empty() ||
         (!m_blockNotesBelow.empty() && m_blockNotesBelow.back() > 0.0)) {
         updateSpaceBelow(document()->blockCount() - 1);
         if (m_pageFlow.enabled) {

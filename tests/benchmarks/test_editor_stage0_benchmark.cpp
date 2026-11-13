@@ -969,8 +969,61 @@ TEST_CASE("Notes benchmark: a 150k-word chapter with footnotes and endnotes",
     }
 
     // -------------------------------------------------------------------------
-    // 4. The clipboard and saving
+    // 4. The words and the search of the notes' texts (Page view)
     // -------------------------------------------------------------------------
+    {
+        kalahari::core::WordCountRules rules = editor.wordCountRules();
+        rules.notesAreWords = false;
+        size_t without = 0;
+        const double offMs = timeMs([&] {
+            editor.setWordCountRules(rules);
+            without = editor.wordCount();
+        });
+        rules.notesAreWords = true;
+        size_t with = 0;
+        const double onMs = timeMs([&] {
+            editor.setWordCountRules(rules);
+            with = editor.wordCount();
+        });
+        CHECK(with > without);
+        rows.push_back({QStringLiteral("Liczba słów po włączeniu „Licz słowa w przypisach”"), onMs,
+                        QStringLiteral("%1 słów, bez przypisów %2 (wyłączenie %3 ms)")
+                            .arg(with)
+                            .arg(without)
+                            .arg(offMs, 0, 'f', 1)});
+    }
+    {
+        // A word only the footnotes have: every match is in the text of a note
+        const QString word = QStringLiteral("objaśnia");
+        editor.showFind();  // creates the search engine, as Ctrl+F does
+        SearchEngine* search = editor.searchEngine();
+        search->setSearchText(word);
+        int matchCount = 0;
+        rows.push_back({QStringLiteral("Wyszukanie słowa z treści przypisów (lista trafień)"),
+                        timeMs([&] { matchCount = search->totalMatchCount(); }),
+                        QStringLiteral("%1 trafień w przypisach").arg(matchCount)});
+        CHECK(matchCount == static_cast<int>(kml.count(word)));
+        rows.push_back({QStringLiteral("paintEvent z wyróżnieniem trafień w przypisach (Page)"),
+                        timeMs([&] { paint(editor); }), QString()});
+        editor.clearSelection();
+        editor.setCursorPosition({0, 0});
+        const double nextMs = timeMs([&] {
+            for (int i = 0; i < 10; ++i) {
+                editor.findNext();
+                paint(editor);
+            }
+        });
+        CHECK(editor.noteSelection().has_value());
+        rows.push_back({QStringLiteral("Znajdź następny – 10 × w treści przypisów (z paintEvent)"),
+                        nextMs, QStringLiteral("%1 ms/krok").arg(nextMs / 10.0, 0, 'f', 2)});
+        editor.hideFindReplace();
+        paint(editor);
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. The clipboard and saving
+    // -------------------------------------------------------------------------
+    editor.clearSelection();
     editor.selectAll();
     std::unique_ptr<QMimeData> copied;
     rows.push_back({QStringLiteral("Kopiowanie całości (Ctrl+A, Ctrl+C)"),

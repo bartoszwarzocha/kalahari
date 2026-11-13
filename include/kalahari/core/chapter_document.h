@@ -105,12 +105,14 @@ public:
 
     /// @brief Get word count
     /// @return Number of words in plain text, as counted by core::countText() under the rules
-    ///         of the settings when the text was set: a file read keeps the number it was
-    ///         saved with, whatever the rules are now (wordTally() follows them)
+    ///         of the settings when the text was set, with the texts of the notes of the KML
+    ///         when the rules count them: a file read keeps the number it was saved with,
+    ///         whatever the rules are now (wordTally() follows them)
     int wordCount() const;
 
     /// @brief The words of the text under any rules of counting (core::tallyWords()),
-    ///        counted now, as the editor counts the text of the KML
+    ///        counted now, as the editor counts the text of the KML: with the texts of its
+    ///        footnotes and endnotes (kmlWordTally())
     WordTally wordTally() const;
 
     /// @brief Get character count
@@ -233,6 +235,11 @@ public:
     /// @return Text of the paragraphs, one per line, with entities decoded and the line
     ///         breaks in them as QChar::LineSeparator - the same text the editor shows
     static QString kmlToPlainText(const QString& kml);
+
+    /// @brief The words of a text's KML under any rules of counting, as the editor counts
+    ///        them: of its paragraphs (kmlToPlainText()) and of the texts of its footnotes and
+    ///        endnotes (WordTally::noteWords)
+    static WordTally kmlWordTally(const QString& kml);
 
 private:
     /// @brief Recalculate statistics from current content

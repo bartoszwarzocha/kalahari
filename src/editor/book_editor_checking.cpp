@@ -19,6 +19,7 @@
 #include <QTimer>
 #include <algorithm>
 #include <cstddef>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -208,6 +209,91 @@ void moveGrammarWaves(const QTextBlock& first, int offset, int charsRemoved,
     }
 }
 
+/// @brief A paragraph of a note's text, with the paragraph holding the note's number
+struct NoteLine {
+    QString id;      ///< The note's
+    int number = 0;  ///< Where the note's number is in the paragraph
+    int line = 0;    ///< The paragraph, in the note's text
+    int start = 0;   ///< Where it starts in the note's text (noteText())
+    QString text;    ///< Its text
+};
+
+/// @brief Add the paragraphs of a note's text
+/// @param number Where the note's number is in its paragraph
+void addNoteLines(const NotePlace& place, int number, std::vector<NoteLine>& lines) {
+    int start = 0;
+    int line = 0;
+    for (QString& text : noteText(place.note.content).split(QLatin1Char('\n'))) {
+        const int length = static_cast<int>(text.size());
+        lines.push_back({place.note.id, number, line++, start, std::move(text)});
+        start += length + 1;
+    }
+}
+
+/// @brief The paragraphs of the texts of the notes of a paragraph, in text order
+std::vector<NoteLine> noteLinesOf(const QTextBlock& block) {
+    std::vector<NoteLine> lines;
+    for (const NotePlace& place : notesIn(block)) {
+        addNoteLines(place, place.position - block.position(), lines);
+    }
+    return lines;
+}
+
+/// @brief Whether a paragraph's data holds a result of a check for every paragraph of the
+///        texts of its notes
+bool notesChecked(const std::vector<NoteCheck>& checks, const std::vector<NoteLine>& lines) {
+    return std::all_of(lines.begin(), lines.end(), [&checks](const NoteLine& line) {
+        return NoteCheck::find(checks, line.id, line.line, line.text) != nullptr;
+    });
+}
+
+/// @brief Whether the grammar of a paragraph of a note's text is known: checked, or nothing
+///        to check
+bool isNoteGrammarKnown(const ParagraphData* paragraphData, const NoteLine& line) {
+    if (line.text.trimmed().isEmpty()) {
+        return true;
+    }
+    const NoteCheck* check =
+        paragraphData != nullptr
+            ? NoteCheck::find(paragraphData->noteGrammar, line.id, line.line, line.text)
+            : nullptr;
+    return check != nullptr && check->current;
+}
+
+/// @brief Whether new results of the notes' texts change their waves
+bool noteWavesChanged(const std::vector<NoteCheck>& before, const std::vector<NoteCheck>& after) {
+    return std::any_of(after.begin(), after.end(), [&before](const NoteCheck& check) {
+        const NoteCheck* old = NoteCheck::find(before, check.id, check.line, check.text);
+        return old != nullptr ? old->issues != check.issues : !check.issues.empty();
+    });
+}
+
+/// @brief Check the spelling of the paragraphs of the texts of a paragraph's notes
+/// @param checks The paragraph's results (ParagraphData::noteSpelling): replaced by these
+/// @param keep Results still for a paragraph's text are kept, not made again
+/// @return Whether their waves changed
+bool checkNoteSpelling(SpellCheckService& service, const QTextBlock& block,
+                       std::vector<NoteCheck>& checks, bool keep) {
+    std::vector<NoteCheck> notes;
+    for (NoteLine& line : noteLinesOf(block)) {
+        if (const NoteCheck* known = NoteCheck::find(checks, line.id, line.line, line.text);
+            keep && known != nullptr) {
+            notes.push_back(*known);
+            continue;
+        }
+        NoteCheck& note = notes.emplace_back();
+        for (const SpellErrorInfo& error : service.checkParagraph(line.text)) {
+            note.issues.push_back({error.startPos, error.length, HighlightKind::Spelling});
+        }
+        note.id = std::move(line.id);
+        note.line = line.line;
+        note.text = std::move(line.text);
+    }
+    const bool changed = noteWavesChanged(checks, notes);
+    checks = std::move(notes);
+    return changed;
+}
+
 /// @brief Whether the sentence holding a place of a text is unfinished: no end of a
 ///        sentence follows it
 bool sentenceUnfinished(const QString& text, int from) {
@@ -221,12 +307,10 @@ bool sentenceUnfinished(const QString& text, int from) {
     return true;
 }
 
-/// @brief Keep the grammar issues found in a paragraph, but those that apply only to a
-///        finished sentence while their sentence is unfinished
-/// @return Whether its waves changed
-bool keepGrammarIssues(const QTextBlock& block, const QList<GrammarError>& errors) {
-    ParagraphData* paragraphData = ParagraphData::of(block);
-    const QString text = block.text();
+/// @brief The grammar issues found in a text, but those that apply only to a finished
+///        sentence while their sentence is unfinished: their waves, and what each is
+std::pair<std::vector<TextHighlight>, std::vector<GrammarError>> grammarIssuesOf(
+    const QString& text, const QList<GrammarError>& errors) {
     std::vector<TextHighlight> issues;
     std::vector<GrammarError> kept;
     for (const GrammarError& error : errors) {
@@ -237,6 +321,15 @@ bool keepGrammarIssues(const QTextBlock& block, const QList<GrammarError>& error
         issues.push_back({error.startPos, error.length, HighlightKind::Grammar});
         kept.push_back(error);
     }
+    return {std::move(issues), std::move(kept)};
+}
+
+/// @brief Keep the grammar issues found in a paragraph (grammarIssuesOf())
+/// @return Whether its waves changed
+bool keepGrammarIssues(const QTextBlock& block, const QList<GrammarError>& errors) {
+    ParagraphData* paragraphData = ParagraphData::of(block);
+    const QString text = block.text();
+    auto [issues, kept] = grammarIssuesOf(text, errors);
     const std::vector<TextHighlight>* before = paragraphData->grammar.issuesFor(text);
     const bool changed = before != nullptr ? *before != issues : !issues.empty();
     paragraphData->grammar.issues = std::move(issues);
@@ -244,6 +337,37 @@ bool keepGrammarIssues(const QTextBlock& block, const QList<GrammarError>& error
     paragraphData->grammar.current = true;
     paragraphData->grammarErrors = std::move(kept);
     return changed;
+}
+
+/// @brief Keep the grammar issues found in a paragraph of a note's text (grammarIssuesOf()),
+///        in place of the paragraph's results before
+/// @return Whether its waves changed
+bool keepNoteGrammarIssues(const QTextBlock& block, const NoteLine& line,
+                           const QList<GrammarError>& errors) {
+    std::vector<NoteCheck>& checks = ParagraphData::of(block)->noteGrammar;
+    NoteCheck check;
+    check.id = line.id;
+    check.line = line.line;
+    check.text = line.text;
+    std::tie(check.issues, check.errors) = grammarIssuesOf(line.text, errors);
+    const NoteCheck* before = NoteCheck::find(checks, line.id, line.line, line.text);
+    const bool changed = before != nullptr ? before->issues != check.issues
+                                           : !check.issues.empty();
+    std::erase_if(checks, [&line](const NoteCheck& old) {
+        return old.line == line.line && old.id == line.id;
+    });
+    checks.push_back(std::move(check));
+    return changed;
+}
+
+/// @brief The paragraph of a note's text a place of the text is in (nullptr: none)
+const NoteLine* noteLineAt(const std::vector<NoteLine>& lines, int position) {
+    for (const NoteLine& line : lines) {
+        if (position >= line.start && position <= line.start + line.text.size()) {
+            return &line;
+        }
+    }
+    return nullptr;
 }
 
 }  // anonymous namespace
@@ -321,6 +445,9 @@ BookEditor::IssueSearch BookEditor::goToNextIssue()
     m_issueSearch.paragraph = m_issueSearch.from.paragraph;
     m_issueSearch.cursor = m_cursorPosition;
     m_issueSearch.selection = m_selection;
+    if (m_issueSearch.afterSelection) {
+        m_issueSearch.fromNote = m_noteSelection;
+    }
     const IssueSearch result = continueIssueSearch();
     m_issueSearch.active = result == IssueSearch::Searching;
     return result;
@@ -331,9 +458,18 @@ BookEditor::IssueSearch BookEditor::continueIssueSearch()
     const bool spelling = m_spellCheckService != nullptr && m_spellCheckService->isActive();
     const bool afterSelection = m_issueSearch.afterSelection;
     const CursorPosition from = m_issueSearch.from;
-    const auto afterFrom = [afterSelection, &from](const TextHighlight& issue) {
-        return afterSelection ? issue.start > from.offset
-                              : issue.start + issue.length >= from.offset;
+
+    // An issue's place in the order of its paragraph: its start; one of a note's text right
+    // after the note's number, in the order of the note's text
+    using Place = std::pair<int, int>;
+    const auto ownPlace = [](int start) { return Place{2 * start, 0}; };
+    const auto notePlace = [](int number, int start) { return Place{(2 * number) + 1, start}; };
+    const Place fromPlace = m_issueSearch.fromNote
+                                ? notePlace(from.offset, m_issueSearch.fromNote->start)
+                                : ownPlace(from.offset);
+    struct Candidate {
+        Place place;
+        NoteRange range;  ///< Its id empty: in the paragraph's own text
     };
 
     // Round the text from the paragraph of the cursor back to it, checking the spelling of
@@ -371,33 +507,66 @@ BookEditor::IssueSearch BookEditor::continueIssueSearch()
         }
 
         // The first one wanted: the paragraph of the cursor after it first, before it when
-        // back at it; the misspelled words before the grammar issues at the same place
-        const TextHighlight* first = nullptr;
-        const auto consider = [&first, &afterFrom, visited,
-                               count](const std::vector<TextHighlight>& issues) {
+        // back at it; the misspelled words before the grammar issues at the same place. After
+        // the cursor: the issues it is in or right after, those of the notes whose numbers
+        // follow it
+        std::optional<Candidate> first;
+        const auto consider = [&first, visited, count](Candidate candidate, bool after) {
+            bool wanted = true;
+            if (visited == 0) {
+                wanted = after;
+            } else if (visited == count) {
+                wanted = !after;
+            }
+            if (wanted && (!first || candidate.place < first->place)) {
+                first = std::move(candidate);
+            }
+        };
+        const auto considerOwn = [&](const std::vector<TextHighlight>& issues) {
             for (const TextHighlight& issue : issues) {
-                bool wanted = true;
-                if (visited == 0) {
-                    wanted = afterFrom(issue);
-                } else if (visited == count) {
-                    wanted = !afterFrom(issue);
-                }
-                if (wanted && (first == nullptr || issue.start < first->start)) {
-                    first = &issue;
-                }
+                const Place place = ownPlace(issue.start);
+                consider({place, {QString(), issue.start, issue.length}},
+                         afterSelection ? place > fromPlace
+                                        : issue.start + issue.length >= from.offset);
+            }
+        };
+        const auto considerNote = [&](const NoteLine& line, const NoteCheck* check) {
+            if (check == nullptr) {
+                return;
+            }
+            for (const TextHighlight& issue : check->issues) {
+                const int start = line.start + issue.start;
+                const Place place = notePlace(line.number, start);
+                consider({place, {line.id, start, issue.length}},
+                         afterSelection ? place > fromPlace : line.number >= from.offset);
             }
         };
         if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
             if (spelling) {
-                consider(paragraphData->spelling.issues);
+                considerOwn(paragraphData->spelling.issues);
             }
             if (const auto* grammarIssues = paragraphData->grammar.issuesFor(block.text())) {
-                consider(*grammarIssues);
+                considerOwn(*grammarIssues);
+            }
+            if (!paragraphData->noteSpelling.empty() || !paragraphData->noteGrammar.empty()) {
+                for (const NoteLine& line : noteLinesOf(block)) {
+                    if (spelling) {
+                        considerNote(line, NoteCheck::find(paragraphData->noteSpelling, line.id,
+                                                           line.line, line.text));
+                    }
+                    considerNote(line, NoteCheck::find(paragraphData->noteGrammar, line.id,
+                                                       line.line, line.text));
+                }
             }
         }
-        if (first != nullptr) {
-            const int paragraph = block.blockNumber();
-            selectRange({paragraph, first->start}, {paragraph, first->start + first->length});
+        if (first) {
+            if (first->range.id.isEmpty()) {
+                const int paragraph = block.blockNumber();
+                const NoteRange& range = first->range;
+                selectRange({paragraph, range.start}, {paragraph, range.start + range.length});
+            } else {
+                selectNoteRange(first->range);
+            }
             return IssueSearch::Found;
         }
         block = block.next();
@@ -461,8 +630,10 @@ void BookEditor::clearSpelling()
     bool hadWaves = false;
     for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
         if (ParagraphData* paragraphData = ParagraphData::find(block)) {
-            hadWaves = hadWaves || !paragraphData->spelling.issues.empty();
+            hadWaves = hadWaves || !paragraphData->spelling.issues.empty() ||
+                       !paragraphData->noteSpelling.empty();
             paragraphData->spelling = ParagraphCheck{};
+            paragraphData->noteSpelling.clear();
         }
     }
     noteIssuesChanged();
@@ -561,10 +732,14 @@ void BookEditor::checkParagraphsAgain(const std::vector<QTextBlock>& blocks)
     for (const QTextBlock& block : blocks) {
         if (ParagraphData* paragraphData = ParagraphData::find(block)) {
             hadWaves = hadWaves || !paragraphData->spelling.issues.empty() ||
-                       !paragraphData->grammar.issues.empty();
+                       !paragraphData->grammar.issues.empty() ||
+                       !paragraphData->noteSpelling.empty() ||
+                       !paragraphData->noteGrammar.empty();
             paragraphData->spelling = ParagraphCheck{};
             paragraphData->grammar = ParagraphCheck{};
             paragraphData->grammarErrors.clear();
+            paragraphData->noteSpelling.clear();
+            paragraphData->noteGrammar.clear();
         }
     }
     noteIssuesChanged();
@@ -598,12 +773,18 @@ bool BookEditor::checkSpelling(const QTextBlock& block)
         issues.push_back({error.startPos, error.length, HighlightKind::Spelling});
     }
 
-    ParagraphCheck& check = ParagraphData::of(block)->spelling;
+    ParagraphData* paragraphData = ParagraphData::of(block);
+    ParagraphCheck& check = paragraphData->spelling;
     const std::vector<TextHighlight>* before = check.issuesFor(text);
-    const bool changed = before != nullptr ? *before != issues : !issues.empty();
+    bool changed = before != nullptr ? *before != issues : !issues.empty();
     check.issues = std::move(issues);
     check.text = check.issues.empty() ? QString() : text;
     check.current = true;
+
+    // The texts of its notes, a paragraph at a time, also in a paragraph not checked: they
+    // are written in their frame, so no word of them is being typed
+    changed = checkNoteSpelling(*m_spellCheckService, block, paragraphData->noteSpelling, false) ||
+              changed;
     noteIssuesChanged();  // one more paragraph checked, at least
     return changed;
 }
@@ -637,6 +818,17 @@ void BookEditor::adjustSpellingToEdit(int from, int charsRemoved, int charsAdded
                 } else {
                     check.issues.clear();
                     check.text.clear();
+                }
+            }
+            // A note given a new text (the format of its number changed): its paragraphs that
+            // changed are checked at once, so the words of the others keep their waves and
+            // the list of the issues goes on from them (a fix chosen)
+            if (!notesChecked(paragraphData->noteSpelling, noteLinesOf(block))) {
+                if (m_spellCheckService->isActive()) {
+                    checkNoteSpelling(*m_spellCheckService, block, paragraphData->noteSpelling,
+                                      true);
+                } else {
+                    check.current = false;
                 }
             }
         }
@@ -726,8 +918,39 @@ std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int
     return {QString(), 0, 0};
 }
 
-void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIndex,
-                                    int startOffset, int endOffset)
+std::tuple<QString, int, int> BookEditor::getMisspelledNoteWordAt(const NoteRange& place) const
+{
+    const std::optional<NotePlace> note = noteOf(place.id);
+    if (!note) {
+        return {};
+    }
+    const ParagraphData* paragraphData =
+        ParagraphData::find(m_textBuffer->findBlock(note->position));
+    if (paragraphData == nullptr || paragraphData->noteSpelling.empty()) {
+        return {QString(), 0, 0};
+    }
+    std::vector<NoteLine> lines;
+    addNoteLines(*note, 0, lines);
+    const NoteLine* line = noteLineAt(lines, place.start);
+    const NoteCheck* check =
+        line != nullptr
+            ? NoteCheck::find(paragraphData->noteSpelling, line->id, line->line, line->text)
+            : nullptr;
+    if (check == nullptr) {
+        return {QString(), 0, 0};
+    }
+    const int offset = place.start - line->start;
+    for (const TextHighlight& issue : check->issues) {
+        if (offset >= issue.start && offset <= issue.start + issue.length) {
+            const int start = line->start + issue.start;
+            return {line->text.mid(issue.start, issue.length), start, start + issue.length};
+        }
+    }
+    return {QString(), 0, 0};
+}
+
+void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
+                                    const std::function<void(const QString&)>& replace)
 {
     // The words to put in its place, in bold as in other word processors. They get free
     // access keys as the menu shows (gui::giveFreeAccessKeys()); the other items have their own
@@ -744,9 +967,7 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word, int paraIn
         action->setFont(bold);
         disableWhileReadOnly(action);  // a read-only text keeps its words
         connect(action, &QAction::triggered, this,
-                [this, paraIndex, startOffset, endOffset, suggestion]() {
-                    replaceWord(paraIndex, startOffset, endOffset, suggestion);
-                });
+                [replace, suggestion]() { replace(suggestion); });
     }
     menu.addSeparator();
 
@@ -838,6 +1059,9 @@ void BookEditor::requestGrammarCheck()
     for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
         if (ParagraphData* paragraphData = ParagraphData::find(block)) {
             paragraphData->grammar.current = false;
+            for (NoteCheck& note : paragraphData->noteGrammar) {
+                note.current = false;
+            }
         }
     }
     noteIssuesChanged();
@@ -941,32 +1165,62 @@ bool BookEditor::sendGrammarCheck(int paragraph)
     if (!block.isValid()) {
         return true;
     }
+    const auto beingChecked = [this, &block](const QString& noteId, int line) {
+        return std::any_of(m_grammarRequests.begin(), m_grammarRequests.end(),
+                           [&block, &noteId, line](const auto& request) {
+                               const GrammarRequest& sent = request.second;
+                               return sent.place.block() == block && sent.noteLine == line &&
+                                      sent.noteId == noteId;
+                           });
+    };
     const ParagraphData* paragraphData = ParagraphData::find(block);
-    const bool beingChecked = std::any_of(
-        m_grammarRequests.begin(), m_grammarRequests.end(),
-        [&block](const auto& request) { return request.second.place.block() == block; });
-    if ((paragraphData != nullptr && paragraphData->grammar.current) || beingChecked) {
-        return true;
+    if ((paragraphData == nullptr || !paragraphData->grammar.current) &&
+        !beingChecked(QString(), 0)) {
+        const QString text = block.text();
+        if (text.trimmed().isEmpty() || !isCheckedParagraph(block)) {
+            keepGrammarIssues(block, {});  // nothing to check
+            noteIssuesChanged();
+        } else {
+            const quint64 request = m_grammarCheckService->check(text);
+            if (request == 0) {
+                return false;
+            }
+            m_grammarRequests.emplace(request,
+                                      GrammarRequest{QTextCursor(block), text, QString(), 0});
+        }
     }
-    const QString text = block.text();
-    if (text.trimmed().isEmpty() || !isCheckedParagraph(block)) {
-        keepGrammarIssues(block, {});  // nothing to check
-        noteIssuesChanged();
-        return true;
+
+    // The texts of its notes, a paragraph at a time as those of the text; also in a paragraph
+    // not checked (Code), as their spelling
+    paragraphData = ParagraphData::find(block);
+    for (NoteLine& line : noteLinesOf(block)) {
+        if (isNoteGrammarKnown(paragraphData, line) || beingChecked(line.id, line.line)) {
+            continue;
+        }
+        if (m_grammarRequests.size() >= MAX_GRAMMAR_REQUESTS) {
+            return false;
+        }
+        const quint64 request = m_grammarCheckService->check(line.text);
+        if (request == 0) {
+            return false;
+        }
+        m_grammarRequests.emplace(request, GrammarRequest{QTextCursor(block), std::move(line.text),
+                                                          std::move(line.id), line.line});
     }
-    const quint64 request = m_grammarCheckService->check(text);
-    if (request == 0) {
-        return false;
-    }
-    m_grammarRequests.emplace(request, GrammarRequest{QTextCursor(block), text});
     return true;
 }
 
 bool BookEditor::isGrammarKnown(const QTextBlock& block) const
 {
     const ParagraphData* paragraphData = ParagraphData::find(block);
-    return (paragraphData != nullptr && paragraphData->grammar.current) ||
-           block.text().trimmed().isEmpty() || !isCheckedParagraph(block);
+    if ((paragraphData == nullptr || !paragraphData->grammar.current) &&
+        !block.text().trimmed().isEmpty() && isCheckedParagraph(block)) {
+        return false;
+    }
+    const std::vector<NoteLine> lines = noteLinesOf(block);
+    return std::all_of(lines.begin(), lines.end(), [paragraphData](const NoteLine& line) {
+        return isNoteGrammarKnown(paragraphData, line);
+    });
 }
 
 void BookEditor::onGrammarChecked(quint64 request, const QList<GrammarError>& errors)
@@ -978,13 +1232,29 @@ void BookEditor::onGrammarChecked(quint64 request, const QList<GrammarError>& er
     const GrammarRequest sent = std::move(found->second);
     m_grammarRequests.erase(found);
 
-    // The issues apply while the paragraph has the text sent
+    // The issues apply while the paragraph has the text sent; a paragraph of a note's text,
+    // while it has
     const QTextBlock block = sent.place.block();
-    if (block.isValid() && block.text() == sent.text) {
-        if (keepGrammarIssues(block, errors)) {
-            update();
+    if (!block.isValid()) {
+        // The paragraph is gone
+    } else if (sent.noteId.isEmpty()) {
+        if (block.text() == sent.text) {
+            if (keepGrammarIssues(block, errors)) {
+                update();
+            }
+            noteIssuesChanged();  // its grammar is known now
         }
-        noteIssuesChanged();  // its grammar is known now
+    } else {
+        const std::vector<NoteLine> lines = noteLinesOf(block);
+        const auto line = std::find_if(lines.begin(), lines.end(), [&sent](const NoteLine& at) {
+            return at.line == sent.noteLine && at.id == sent.noteId && at.text == sent.text;
+        });
+        if (line != lines.end()) {
+            if (keepNoteGrammarIssues(block, *line, errors)) {
+                update();
+            }
+            noteIssuesChanged();
+        }
     }
     resumeIssueSearch();
     scheduleGrammarCheck(0);
@@ -1015,7 +1285,25 @@ void BookEditor::onGrammarRuleIgnored(const QString& ruleId)
     bool changed = false;
     for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
         ParagraphData* paragraphData = ParagraphData::find(block);
-        if (paragraphData == nullptr || paragraphData->grammarErrors.empty()) {
+        if (paragraphData == nullptr) {
+            continue;
+        }
+        for (NoteCheck& note : paragraphData->noteGrammar) {
+            std::vector<TextHighlight> issues;
+            std::vector<GrammarError> kept;
+            for (std::size_t i = 0; i < note.errors.size() && i < note.issues.size(); ++i) {
+                if (note.errors[i].ruleId != ruleId) {
+                    issues.push_back(note.issues[i]);
+                    kept.push_back(note.errors[i]);
+                }
+            }
+            if (kept.size() != note.errors.size()) {
+                changed = true;
+                note.issues = std::move(issues);
+                note.errors = std::move(kept);
+            }
+        }
+        if (paragraphData->grammarErrors.empty()) {
             continue;
         }
         std::vector<TextHighlight> issues;
@@ -1098,6 +1386,17 @@ void BookEditor::adjustGrammarToEdit(int from, int charsRemoved, int charsAdded)
                     paragraphData->grammarErrors.clear();
                 }
             }
+            // The results of the notes' paragraphs whose text changed, or gone, go: the
+            // paragraphs are sent again (sendGrammarCheck())
+            if (!paragraphData->noteGrammar.empty()) {
+                const std::vector<NoteLine> lines = noteLinesOf(block);
+                std::erase_if(paragraphData->noteGrammar, [&lines](const NoteCheck& note) {
+                    return std::none_of(lines.begin(), lines.end(), [&note](const NoteLine& line) {
+                        return line.line == note.line && line.id == note.id &&
+                               line.text == note.text;
+                    });
+                });
+            }
         }
         if (block == last) {
             break;
@@ -1139,9 +1438,11 @@ void BookEditor::clearGrammar()
     bool hadWaves = false;
     for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
         if (ParagraphData* paragraphData = ParagraphData::find(block)) {
-            hadWaves = hadWaves || !paragraphData->grammar.issues.empty();
+            hadWaves = hadWaves || !paragraphData->grammar.issues.empty() ||
+                       !paragraphData->noteGrammar.empty();
             paragraphData->grammar = ParagraphCheck{};
             paragraphData->grammarErrors.clear();
+            paragraphData->noteGrammar.clear();
         }
     }
     noteIssuesChanged();
@@ -1177,7 +1478,48 @@ std::optional<GrammarError> BookEditor::getGrammarErrorAt(int paraIndex, int off
     return found;
 }
 
-void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int paraIndex)
+std::optional<GrammarError> BookEditor::getNoteGrammarErrorAt(const NoteRange& place) const
+{
+    const std::optional<NotePlace> note = noteOf(place.id);
+    if (!note) {
+        return {};
+    }
+    const ParagraphData* paragraphData =
+        ParagraphData::find(m_textBuffer->findBlock(note->position));
+    if (paragraphData == nullptr || paragraphData->noteGrammar.empty()) {
+        return std::nullopt;
+    }
+    std::vector<NoteLine> lines;
+    addNoteLines(*note, 0, lines);
+    const NoteLine* line = noteLineAt(lines, place.start);
+    const NoteCheck* check =
+        line != nullptr
+            ? NoteCheck::find(paragraphData->noteGrammar, line->id, line->line, line->text)
+            : nullptr;
+    if (check == nullptr) {
+        return std::nullopt;
+    }
+    // As in the text: the issue selected first, where they lie in one another
+    const int offset = place.start - line->start;
+    std::optional<GrammarError> found;
+    for (const GrammarError& error : check->errors) {
+        if (offset < error.startPos || offset > error.startPos + error.length) {
+            continue;
+        }
+        GrammarError inNote = error;
+        inNote.startPos += line->start;
+        if (m_noteSelection == NoteRange{place.id, inNote.startPos, inNote.length}) {
+            return inNote;
+        }
+        if (!found.has_value()) {
+            found = std::move(inNote);
+        }
+    }
+    return found;
+}
+
+void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error,
+                                   const std::function<void(const QString&)>& replace)
 {
     // What is wrong, whole, in lines as wide as the menu allows: read also from the
     // keyboard, which has no tool tip
@@ -1197,9 +1539,8 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error, int p
         bold.setBold(true);
         action->setFont(bold);
         disableWhileReadOnly(action);  // a read-only text keeps its words
-        connect(action, &QAction::triggered, this, [this, paraIndex, error, suggestion]() {
-            replaceWord(paraIndex, error.startPos, error.startPos + error.length, suggestion);
-        });
+        connect(action, &QAction::triggered, this,
+                [replace, suggestion]() { replace(suggestion); });
     }
     menu.addSeparator();
 
@@ -1229,7 +1570,8 @@ std::vector<TextIssue> BookEditor::textIssues() const
     for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
         const ParagraphData* paragraphData = ParagraphData::find(block);
         if (paragraphData == nullptr ||
-            (paragraphData->spelling.issues.empty() && paragraphData->grammar.issues.empty())) {
+            (paragraphData->spelling.issues.empty() && paragraphData->grammar.issues.empty() &&
+             paragraphData->noteSpelling.empty() && paragraphData->noteGrammar.empty())) {
             continue;
         }
 
@@ -1265,10 +1607,54 @@ std::vector<TextIssue> BookEditor::textIssues() const
             }
         }
 
+        // Those of the texts of its notes, their paragraphs one after another
+        if (!paragraphData->noteSpelling.empty() || !paragraphData->noteGrammar.empty()) {
+            for (const NoteLine& line : noteLinesOf(block)) {
+                const auto addInNote = [&](TextIssueKind kind,
+                                           const TextHighlight& range) -> TextIssue& {
+                    TextIssue& issue = issues.emplace_back();
+                    issue.kind = kind;
+                    issue.paragraph = paragraph;
+                    issue.start = line.start + range.start;
+                    issue.length = range.length;
+                    issue.text = line.text.mid(range.start, range.length);
+                    issue.noteId = line.id;
+                    issue.numberOffset = line.number;
+                    return issue;
+                };
+                if (const NoteCheck* words = NoteCheck::find(paragraphData->noteSpelling,
+                                                             line.id, line.line, line.text)) {
+                    for (const TextHighlight& word : words->issues) {
+                        addInNote(TextIssueKind::Spelling, word);
+                    }
+                }
+                if (const NoteCheck* grammar = NoteCheck::find(paragraphData->noteGrammar,
+                                                               line.id, line.line, line.text)) {
+                    const std::size_t count =
+                        std::min(grammar->issues.size(), grammar->errors.size());
+                    for (std::size_t i = 0; i < count; ++i) {
+                        const GrammarError& error = grammar->errors[i];
+                        TextIssue& issue = addInNote(TextIssueKind::Grammar, grammar->issues[i]);
+                        issue.message = error.message;
+                        issue.shortMessage = error.shortMessage;
+                        issue.ruleId = error.ruleId;
+                        issue.ruleDescription = error.ruleDescription;
+                        issue.suggestions = error.suggestions;
+                    }
+                }
+            }
+        }
+
         // In the order of the paragraph; at one place the word (put in first) before the
-        // grammar issue
+        // grammar issue; those of a note's text right after its number, in the note's order
+        const auto place = [](const TextIssue& issue) {
+            return issue.inNote() ? std::pair{(2 * issue.numberOffset) + 1, issue.start}
+                                  : std::pair{2 * issue.start, 0};
+        };
         std::stable_sort(issues.begin() + first, issues.end(),
-                         [](const TextIssue& a, const TextIssue& b) { return a.start < b.start; });
+                         [&place](const TextIssue& a, const TextIssue& b) {
+                             return place(a) < place(b);
+                         });
     }
     return issues;
 }
@@ -1287,7 +1673,7 @@ BookEditor::CheckProgress BookEditor::checkProgress() const
         ++progress.paragraphs;
         if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
             progress.spellingChecked += paragraphData->spelling.current ? 1 : 0;
-            progress.grammarChecked += paragraphData->grammar.current ? 1 : 0;
+            progress.grammarChecked += isGrammarKnown(block) ? 1 : 0;  // its notes' too
         }
     }
     return progress;
@@ -1298,6 +1684,9 @@ bool BookEditor::selectIssue(const TextIssue& issue)
     if (!isIssueAt(issue)) {
         return false;
     }
+    if (issue.inNote()) {
+        return selectNoteRange({issue.noteId, issue.start, issue.length});
+    }
     selectRange({issue.paragraph, issue.start}, {issue.paragraph, issue.start + issue.length});
     return true;
 }
@@ -1307,6 +1696,9 @@ bool BookEditor::replaceIssue(const TextIssue& issue, const QString& replacement
     if (refusesChange() || !isIssueAt(issue)) {
         return false;
     }
+    if (issue.inNote()) {
+        return replaceInNote({issue.noteId, issue.start, issue.length}, replacement);
+    }
     replaceWord(issue.paragraph, issue.start, issue.start + issue.length, replacement);
     return true;
 }
@@ -1315,6 +1707,12 @@ bool BookEditor::isIssueAt(const TextIssue& issue) const
 {
     if (!m_textBuffer || issue.length <= 0 || issue.start < 0) {
         return false;
+    }
+    if (issue.inNote()) {
+        const std::optional<NotePlace> note = noteOf(issue.noteId);
+        const QString text = note ? noteText(note->note.content) : QString();
+        return issue.start + issue.length <= text.size() &&
+               QStringView(text).mid(issue.start, issue.length) == issue.text;
     }
     const QTextBlock block = m_textBuffer->findBlockByNumber(issue.paragraph);
     return block.isValid() && issue.start + issue.length <= block.length() - 1 &&
@@ -1333,6 +1731,7 @@ void BookEditor::selectRange(const CursorPosition& start, const CursorPosition& 
 
 void BookEditor::noteIssuesChanged()
 {
+    m_noteIssueMarksStale = true;
     if (m_issuesTimer == nullptr) {
         m_issuesTimer = new QTimer(this);
         m_issuesTimer->setSingleShot(true);
@@ -1341,6 +1740,37 @@ void BookEditor::noteIssuesChanged()
     }
     if (!m_issuesTimer->isActive()) {
         m_issuesTimer->start();
+    }
+}
+
+void BookEditor::updateNoteIssueMarks()
+{
+    if (!m_noteIssueMarksStale) {
+        return;
+    }
+    m_noteIssueMarksStale = false;
+    m_noteIssueMarks.clear();
+    if (!m_textBuffer) {
+        return;
+    }
+    for (QTextBlock block = m_textBuffer->begin(); block.isValid(); block = block.next()) {
+        const ParagraphData* paragraphData = ParagraphData::find(block);
+        if (paragraphData == nullptr ||
+            (paragraphData->noteSpelling.empty() && paragraphData->noteGrammar.empty())) {
+            continue;
+        }
+        for (const NoteLine& line : noteLinesOf(block)) {
+            for (const std::vector<NoteCheck>* checks :
+                 {&paragraphData->noteSpelling, &paragraphData->noteGrammar}) {
+                if (const NoteCheck* check =
+                        NoteCheck::find(*checks, line.id, line.line, line.text)) {
+                    std::vector<TextHighlight>& marks = m_noteIssueMarks[line.id];
+                    for (const TextHighlight& issue : check->issues) {
+                        marks.push_back({line.start + issue.start, issue.length, issue.kind});
+                    }
+                }
+            }
+        }
     }
 }
 

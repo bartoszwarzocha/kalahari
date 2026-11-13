@@ -202,6 +202,35 @@ TEST_CASE("Versions keep their texts, newest first, with index.json listing them
     CHECK(versions.count() == 3);
 }
 
+TEST_CASE("A version keeps the words of its notes apart, in index.json too",
+          "[core][versions][footnotes]") {
+    QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    ChapterVersions versions(dir.path(), CHAPTER);
+    const QString noted = QStringLiteral(
+        "<kml><p>Burza<footnote id=\"f1\">Ta – z zachodu</footnote> minęła.</p></kml>");
+    const auto withNotes = versions.add(noted, {.origin = VersionOrigin::Manual}, at(9, 0));
+    const auto without = versions.add(kmlWith("Bez przypisów"), {.origin = VersionOrigin::Save},
+                                      at(10, 0));
+    REQUIRE(withNotes);
+    REQUIRE(without);
+    CHECK(withNotes->words == WordTally{2, 0, 3, 1});
+    CHECK(withNotes->words.wordsUnder({}) == 5);
+    CHECK(withNotes->words.wordsUnder({.notesAreWords = false}) == 2);
+    CHECK(without->words == WordTally{2, 0});
+
+    // Written only for a version with notes, read again as they were
+    const QJsonArray entries =
+        readJson(QDir(versions.folder()).filePath("index.json"))["versions"].toArray();
+    REQUIRE(entries.size() == 2);
+    CHECK_FALSE(entries.at(0).toObject().contains("noteWords"));
+    CHECK_FALSE(entries.at(0).toObject().contains("noteDashes"));
+    CHECK(entries.at(1).toObject()["noteWords"].toInt() == 3);
+    CHECK(entries.at(1).toObject()["noteDashes"].toInt() == 1);
+    const ChapterVersions read(dir.path(), CHAPTER);
+    CHECK(read.list() == QList<ChapterVersion>{*without, *withNotes});
+}
+
 TEST_CASE("Versions kept in the same second get files of their own", "[core][versions]") {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());

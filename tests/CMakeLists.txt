@@ -86,6 +86,7 @@ set(TEST_SOURCES
     editor/test_text_images.cpp                  # Images: KML, the store of files, layout, drawing, commands
     editor/test_text_captions.cpp                # Captions: numbers, cross-references, list of figures
     editor/test_text_footnotes.cpp               # Footnotes and endnotes: model, numbers, KML
+    editor/test_note_checking.cpp                # Notes: search, replace, spelling, grammar
     editor/test_image_look.cpp                   # Images: their look (turn, crop, filters, frame)
     editor/test_tables.cpp                       # Tables: the model, KML, the layout, the keys
     editor/test_table_commands.cpp              # The Table menu in the text
@@ -378,6 +379,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/book_styles.cpp             # The paragraph styles of the open book
     ${CMAKE_SOURCE_DIR}/src/gui/style_draft.cpp             # A style as the window of a style changes it
     ${CMAKE_SOURCE_DIR}/src/gui/caption_settings.cpp        # The settings of new images and captions
+    ${CMAKE_SOURCE_DIR}/src/gui/book_texts.cpp              # The texts of the book in reading order
     ${CMAKE_SOURCE_DIR}/src/gui/caption_coordinator.cpp     # The numbered captions of the book
     ${CMAKE_SOURCE_DIR}/src/gui/footnote_coordinator.cpp    # Insert > Footnote, Endnote and the frame of a note
     ${CMAKE_SOURCE_DIR}/src/gui/image_filter_coordinator.cpp  # One filter for every image of the book
@@ -451,6 +453,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/hyperlink_dialog.cpp  # Insert > Link...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/insert_table_dialog.cpp  # Insert > Table...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/caption_dialogs.cpp  # The windows of captions
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/footnote_settings_dialog.cpp  # Footnote Settings
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/table_dialogs.cpp  # The windows of the Table menu
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/image_properties_dialog.cpp  # Image > Image Properties...
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/character_grid.cpp           # Characters in cells, in the font of the text
@@ -599,6 +602,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/hyperlink_dialog.h  # Insert > Link... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/insert_table_dialog.h  # Insert > Table... with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/caption_dialogs.h  # The windows of captions, with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/footnote_settings_dialog.h  # Footnote Settings, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/table_dialogs.h  # The windows of the Table menu, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/image_properties_dialog.h  # Image Properties, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT

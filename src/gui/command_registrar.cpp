@@ -464,6 +464,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                 KeyboardShortcut(Qt::Key_F, pasteModifiers));
     REG_CMD_KEY("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Endnote"), "INSERT/Endnote", 50, false, 1,
                 KeyboardShortcut(Qt::Key_E, pasteModifiers));
+    // How the book numbers its notes and where its endnotes are (Polish: Ustawienia
+    // przypisów...; the other letters of both names are other items' keys)
+    REG_CMD("insert.footnoteSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Footnote La&yout..."), "INSERT/Footnote Layout...", 55, false, 1);
 
     // Annotations on the text; AnnotationsCoordinator gives them their callbacks. Add
     // Annotation opens a small menu of the kinds at the cursor. Not Ctrl+M (it minimizes

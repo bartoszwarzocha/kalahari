@@ -23,6 +23,14 @@ struct TextIssue {
     int length{0};     ///< Number of characters
     QString text;      ///< The text marked: the word, or the words of the issue
 
+    // An issue in the text of a note: start and length in the note's text (noteText()), the
+    // paragraph the one with the note's number
+    QString noteId;       ///< The note's (empty: the issue is in the paragraph's own text)
+    int numberOffset{0};  ///< Where the note's number is in the paragraph
+
+    /// @brief Whether it is in the text of a note
+    bool inNote() const { return !noteId.isEmpty(); }
+
     // A grammar issue's
     QString message;          ///< What is wrong
     QString shortMessage;     ///< What is wrong, in a few words (may be empty)

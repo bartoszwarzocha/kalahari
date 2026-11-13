@@ -570,6 +570,17 @@ public:
     ///         the book keeps its captions then
     bool setBookCaptions(const BookCaptions& captions);
 
+    /// @brief How the book numbers its notes and where its endnotes are
+    ///        (ProjectBook::footnotes); std::nullopt without a project or while the book has
+    ///        none of its own (the defaults)
+    std::optional<BookFootnotes> bookFootnotes() const;
+
+    /// @brief Give the book its numbering of notes and save the .klh file
+    ///        (bookFootnotesChanged())
+    /// @return false when no project is open, it is read-only or the file cannot be written;
+    ///         the book keeps its numbering then
+    bool setBookFootnotes(const BookFootnotes& footnotes);
+
     /// @brief Name the node of the book in the Navigator (ProjectBook::name) and save the .klh
     /// file; the name loses the spaces at its ends, and an empty one gives the node its
     /// default name back ("Book" in the user's language)
@@ -1022,6 +1033,9 @@ signals:
     void paragraphStylesChanged();
     /// @brief The labels and the numbering of the book's captions changed (setBookCaptions())
     void bookCaptionsChanged();
+
+    /// @brief The numbering of the book's notes changed (setBookFootnotes())
+    void bookFootnotesChanged();
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
     void versionsChanged(const QString& elementId);

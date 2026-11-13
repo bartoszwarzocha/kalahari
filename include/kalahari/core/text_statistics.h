@@ -5,6 +5,8 @@
 
 #include <QStringView>
 
+#include <string>
+
 namespace kalahari::core {
 
 /// @brief Word, character and paragraph counts of a piece of text
@@ -16,6 +18,11 @@ struct TextCounts {
     int dashes = 0;              ///< Dashes standing alone (WordCountRules::dashesAreWords),
                                  ///< whatever the rules; in words too when the rules make
                                  ///< them words
+    /// The words of the texts of the footnotes and endnotes (as the rules count dashes),
+    /// whatever WordCountRules::notesAreWords; in words, and their characters in the
+    /// characters, when the rules count them
+    int noteWords = 0;
+    int noteDashes = 0;  ///< Of those, the dashes standing alone, whatever the rules
 };
 
 /// @brief The reading speed of the reading times, in words a minute
@@ -27,6 +34,9 @@ struct WordCountRules {
     /// word (Microsoft Word counts it, LibreOffice does not)
     bool dashesAreWords = false;
 
+    /// The words of the footnotes and endnotes count, as in Microsoft Word (on by default)
+    bool notesAreWords = true;
+
     bool operator==(const WordCountRules&) const = default;
 };
 
@@ -35,15 +45,22 @@ struct WordCountRules {
 struct WordTally {
     int words = 0;   ///< Words under any rules: runs with a letter or a digit
     int dashes = 0;  ///< Dashes standing alone, words when the rules make them words
+    int noteWords = 0;   ///< The same of the texts of the footnotes and endnotes, words when
+    int noteDashes = 0;  ///< the rules count them
 
-    /// @brief The words under @p rules, as countText() counts them
+    /// @brief The words under @p rules, as countText() counts them (with the notes' words
+    ///        when the rules count them)
     int wordsUnder(const WordCountRules& rules) const {
-        return words + (rules.dashesAreWords ? dashes : 0);
+        const int notes = noteWords + (rules.dashesAreWords ? noteDashes : 0);
+        return words + (rules.dashesAreWords ? dashes : 0) + (rules.notesAreWords ? notes : 0);
     }
 
     /// @brief The tally of the text whose counts under @p rules are @p counts
     static WordTally of(const TextCounts& counts, const WordCountRules& rules) {
-        return {counts.words - (rules.dashesAreWords ? counts.dashes : 0), counts.dashes};
+        const int textWords = counts.words - (rules.notesAreWords ? counts.noteWords : 0);
+        return {textWords - (rules.dashesAreWords ? counts.dashes : 0), counts.dashes,
+                counts.noteWords - (rules.dashesAreWords ? counts.noteDashes : 0),
+                counts.noteDashes};
     }
 
     bool operator==(const WordTally&) const = default;
@@ -67,11 +84,20 @@ TextCounts countText(QStringView text, const WordCountRules& rules);
 /// @brief The words of @p text under any rules, as countText() counts them
 WordTally tallyWords(QStringView text);
 
+/// @brief Add the counts of the text of a note (a footnote or an endnote) to @p counts: in
+///        noteWords and noteDashes, and in the words and characters when @p rules count the
+///        notes' words; its paragraphs are not paragraphs of the text
+/// @param noteText The note's text: its paragraphs one per line
+void addNoteCounts(TextCounts& counts, QStringView noteText, const WordCountRules& rules);
+
 /// @brief The reading time of @p words words in minutes, at READING_WORDS_PER_MINUTE, a
 ///        minute begun being a minute (no words: no time)
 int readingMinutes(int words);
 
 /// @brief The rules of the settings (Settings > Editor > General > Word Count)
 WordCountRules wordCountRules();
+
+/// @brief The keys of the settings of wordCountRules(): a change of one counts again
+bool isWordCountRulesKey(const std::string& key);
 
 }  // namespace kalahari::core

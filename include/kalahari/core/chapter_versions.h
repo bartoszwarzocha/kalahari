@@ -6,7 +6,9 @@
 /// the file without ".kchapter": those of book/chapter_002.kchapter are in
 /// versions/book/chapter_002/. The folder has index.json, which lists them, and one .kml file
 /// with the text of each version, named after the time it was kept (the local time of the
-/// computer), and in index.json its words (WordTally: "dashes" are the dashes standing alone):
+/// computer), and in index.json its words (WordTally: "dashes" are the dashes standing alone;
+/// "noteWords" and "noteDashes" the same of the texts of its footnotes and endnotes, when it
+/// has any):
 /// @code{.json}
 /// {
 ///   "format": 1,
@@ -17,7 +19,7 @@
 ///       "dashes": 31 },
 ///     { "file": "2026-10-21_090512.kml", "created": "2026-10-21T07:05:12.918Z",
 ///       "origin": "replaceAll", "find": "Taun", "replace": "Tau", "replaced": 12,
-///       "words": 2455, "dashes": 30 }
+///       "words": 2455, "dashes": 30, "noteWords": 84, "noteDashes": 1 }
 ///   ]
 /// }
 /// @endcode

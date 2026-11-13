@@ -72,6 +72,12 @@
 ///   { "labels": ["Rysunek", "Mapa"], "numbering": [{ "label": "Rysunek", "format": "1",
 ///   "perChapter": true, "withChapter": true, "separator": "." }], "reference": "number" }.
 ///   A book without its first caption has none: the Settings give them.
+/// - "footnotes" has how the book numbers its footnotes and its endnotes ("format" "1", "a",
+///   "A", "i", "I" or "*", "perChapter") and where its endnotes are ("place": "chapter", after
+///   each text, or "book", at the end of the book): { "footnotes": { "format": "1",
+///   "perChapter": true }, "endnotes": { "format": "i", "perChapter": false, "place": "book" } }.
+///   A book without it numbers 1, 2, 3 and i, ii, iii anew in each chapter, the endnotes after
+///   each text.
 /// - "sections" is the id of a set of names in the language of the book ("sections": Front
 ///   Section, Main Section, Back Section; "matter": Front Matter, Body, Back Matter;
 ///   "fragments"; "arc"), or the writer's own names:
@@ -250,6 +256,28 @@ struct BookCaptions {
     CaptionLabelNumbering numberingOf(const QString& label) const;
 };
 
+/// @brief How a book numbers its footnotes or its endnotes (Insert > Footnote Layout...)
+struct NoteNumbering {
+    QString format;           ///< Of the number: "1", "a", "A", "i", "I" or "*" (*, †, ‡, §)
+    bool perChapter = true;   ///< Anew in each chapter; false: through the book
+    QJsonObject extra;        ///< Fields this version does not know, saved back
+
+    bool operator==(const NoteNumbering&) const = default;
+};
+
+/// @brief The notes of a book: how it numbers its footnotes and endnotes and where its
+///        endnotes are
+struct BookFootnotes {
+    NoteNumbering footnotes{QStringLiteral("1"), true, {}};
+    NoteNumbering endnotes{QStringLiteral("i"), true, {}};
+    /// The endnotes of every text at the end of the book (the editor shows them after the
+    /// last text); false: each text's after its last paragraph
+    bool endnotesAtBookEnd = false;
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    bool operator==(const BookFootnotes&) const = default;
+};
+
 /// @brief Book of a project: its data, settings and elements
 struct ProjectBook {
     static constexpr const char* CUSTOM_SECTIONS = "custom";  ///< Set of the writer's own names
@@ -278,6 +306,9 @@ struct ProjectBook {
     /// Its labels of captions and their numbering; none: the Settings' ones for new books,
     /// until the book has its first caption
     std::optional<BookCaptions> captions;
+    /// How it numbers its notes and where its endnotes are; none: 1, 2, 3 and i, ii, iii anew
+    /// in each chapter, the endnotes after each text
+    std::optional<BookFootnotes> footnotes;
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;
