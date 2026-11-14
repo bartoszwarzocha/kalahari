@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_text_issues.cpp
 /// @brief The misspelled words and grammar issues of a text as one list (the Spelling and
 ///        Grammar panel): in the order of the text, told when they change, selected and put

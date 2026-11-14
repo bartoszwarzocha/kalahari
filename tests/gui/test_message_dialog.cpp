@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_message_dialog.cpp
 /// @brief The program's own messages, questions, typed texts, progress and colors, in place of the system ones
 

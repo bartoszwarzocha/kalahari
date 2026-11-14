@@ -283,10 +283,15 @@ class ResultCache:
         if not file.exists():
             return None
         data = json.loads(file.read_text(encoding="utf-8"))
+        if data.get("returncode") not in (0, 1):
+            return None                      # a run that did not finish: analyse again
         return data["returncode"], data["stdout"], data["stderr"]
 
     def store(self, key: Optional[str], returncode: int, stdout: str, stderr: str) -> None:
-        if key is not None and returncode >= 0:
+        # Only finished runs: clang-tidy returns 0, or 1 when the file has compiler
+        # errors. Any other code means it did not run (a timeout, or Windows status
+        # 0xC0000142 "DLL init failed" when the session that started it has ended).
+        if key is not None and returncode in (0, 1):
             (self.folder / f"{key}.json").write_text(
                 json.dumps({"returncode": returncode, "stdout": stdout, "stderr": stderr}),
                 encoding="utf-8")

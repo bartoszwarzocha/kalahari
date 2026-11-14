@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file performance_benchmark.cpp
 /// @brief Implementation of performance benchmark framework
 ///

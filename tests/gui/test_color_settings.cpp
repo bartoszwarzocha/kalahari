@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_color_settings.cpp
 /// @brief The colors the writer can change in the Settings dialog: the waves under the
 ///        misspelled words and the grammar issues (and the frames of their cards in the Spelling

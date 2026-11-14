@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file tag_detector.cpp
 /// @brief Implementation of tag detection service (OpenSpec #00042 Task 7.10)
 

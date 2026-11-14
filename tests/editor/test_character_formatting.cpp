@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_character_formatting.cpp
 /// @brief Superscript, subscript, small and all capitals, Format > Font and the colors,
 ///        Change Case and Copy and Paste Formatting
