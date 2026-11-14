@@ -243,6 +243,9 @@ jobs:
     - name: clang-tidy on changed lines
       if: github.event_name == 'pull_request'
       run: |
+        # Hunks that add only // comments or blank lines (e.g. a licence header in every
+        # file) cannot get a finding, but would make clang-tidy analyse their whole files
         git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- '*.cpp' '*.h' \
+          | python3 .github/scripts/drop_comment_only_hunks.py \
           | clang-tidy-diff-18.py -p1 -path build -quiet -j 4
 
