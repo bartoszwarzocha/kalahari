@@ -18,6 +18,7 @@ class QWidget;
 
 namespace kalahari::core {
 class IExporter;
+class ProjectManager;
 }  // namespace kalahari::core
 
 namespace kalahari::editor {
@@ -27,6 +28,7 @@ class BookEditor;
 namespace kalahari::gui {
 
 class CaptionCoordinator;
+class CommandRegistry;
 class EditorPanel;
 class FootnoteCoordinator;
 
@@ -44,13 +46,16 @@ public:
     /// @brief The editor of the tab in front; nullptr: none
     using CurrentEditor = std::function<EditorPanel*()>;
 
+    /// @param book The book of the window
+    /// @param commands The commands of the window
     /// @param centralTabs The tabs of the book window (DocumentWindows gives all the texts)
     /// @param currentEditor The editor of the tab in front
     /// @param captions The numbers of the captions of the book
     /// @param footnotes The numbers of the notes of the book
     /// @param window Over which the window opens
     /// @param parent Parent object
-    BookExportCoordinator(QTabWidget* centralTabs, CurrentEditor currentEditor,
+    BookExportCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                          QTabWidget* centralTabs, CurrentEditor currentEditor,
                           const CaptionCoordinator* captions, const FootnoteCoordinator* footnotes,
                           QWidget* window, QObject* parent = nullptr);
 
@@ -93,6 +98,8 @@ private:
     /// @brief The open texts of the book, by their elements, as their editors have them
     QHash<QString, const editor::BookEditor*> openEditors() const;
 
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;   ///< The commands of its window
     QTabWidget* m_centralTabs;
     CurrentEditor m_currentEditor;
     const CaptionCoordinator* m_captions;

@@ -677,7 +677,8 @@ MainWindow::MainWindow(QWidget* parent)
     // File > Export > DOCX and Markdown: the book, some of its texts or the text in front, with
     // the numbers of the captions and notes of the book
     m_bookExportCoordinator = new BookExportCoordinator(
-        m_dockCoordinator->centralTabs(), [this]() { return getCurrentEditor(); },
+        book(), commands(), m_dockCoordinator->centralTabs(),
+        [this]() { return getCurrentEditor(); },
         m_captionCoordinator, m_footnoteCoordinator, this, this);
     m_bookExportCoordinator->connectCommands();
 
