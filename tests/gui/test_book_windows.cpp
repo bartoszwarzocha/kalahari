@@ -35,9 +35,11 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QPushButton>
+#include <QTabBar>
 #include <QTemporaryDir>
 #include <QTimer>
 
+#include <algorithm>
 #include <cstdio>
 #include <functional>
 #include <memory>
@@ -235,6 +237,39 @@ TEST_CASE("Book windows: each has its own book and commands; Window > New Window
     second->close();
     CHECK(waitFor([]() { return MainWindow::windows().size() == 1; }));
     CHECK(MainWindow::windows() == QList<MainWindow*>{first});
+}
+
+TEST_CASE("Book windows: the tab bars of the docked panels go after the parts of the window",
+          "[gui][windows][book-windows]") {
+    // Qt keeps the tab bars of the docked panels: a window that takes the layout of another
+    // one has one no longer used, which Qt 6.8 and later deletes with the layout of the
+    // window. Deleted with the parts of the window, it was deleted twice.
+    const Windows windows;
+    MainWindow* second = windows.first()->openNewWindow();
+    REQUIRE(MainWindow::windows().size() == 2);
+    CHECK(waitFor([second]() {
+        const auto bars = second->findChildren<QTabBar*>(Qt::FindDirectChildrenOnly);
+        return std::any_of(bars.cbegin(), bars.cend(), [](const QTabBar* bar) {
+            return bar->isHidden() && bar->count() == 0;
+        });
+    }));
+    const QList<QTabBar*> bars = second->findChildren<QTabBar*>(Qt::FindDirectChildrenOnly);
+    REQUIRE_FALSE(bars.isEmpty());
+
+    // Each one goes once the window is no longer a main window: with its layout or after it
+    int gone = 0;
+    int beforeLayout = 0;
+    for (QTabBar* bar : bars) {
+        QObject::connect(bar, &QObject::destroyed, bar, [second, &gone, &beforeLayout]() {
+            ++gone;
+            if (qobject_cast<QMainWindow*>(static_cast<QObject*>(second)) != nullptr) {
+                ++beforeLayout;
+            }
+        });
+    }
+    delete second;
+    CHECK(gone == bars.size());
+    CHECK(beforeLayout == 0);
 }
 
 TEST_CASE("Book windows: a second book in a new window, the same book never twice",

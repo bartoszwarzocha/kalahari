@@ -86,6 +86,7 @@
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
+#include <QTabBar>
 #include <QApplication>
 #include <QSettings>
 #include <QDockWidget>
@@ -1024,10 +1025,12 @@ MainWindow::~MainWindow() {
 
     // The parts of the window go while the book and the commands they use are still there (the
     // members go after this body, the children of a widget only after it is no longer a
-    // MainWindow). Its layout stays with it.
+    // MainWindow). Its layout stays with it, and so do the tab bars of the docked panels: Qt
+    // keeps them, and from Qt 6.8 its layout deletes the ones it no longer uses itself
     const auto nextPart = [this]() -> QObject* {
         for (QObject* child : children()) {
-            if (qobject_cast<QLayout*>(child) == nullptr) {
+            if (qobject_cast<QLayout*>(child) == nullptr &&
+                qobject_cast<QTabBar*>(child) == nullptr) {
                 return child;
             }
         }
