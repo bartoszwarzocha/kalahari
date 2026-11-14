@@ -320,6 +320,7 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     // WINDOW MENU ICONS (DocumentWindows)
     // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("window.new", "resources/icons/twotone/open_in_new.svg", "New Window");
     iconRegistry.registerIcon("window.moveTabToNewWindow", "resources/icons/twotone/move_to_end.svg", "Move Tab to New Window");
     iconRegistry.registerIcon("window.returnTab", "resources/icons/twotone/move_to_start.svg", "Return Tab to Book Window");
     iconRegistry.registerIcon("window.next", "resources/icons/twotone/navigate_next.svg", "Next Window");

@@ -75,6 +75,12 @@ bool isChapter(const EditorPanel& panel) {
     return !panel.property("elementId").toString().isEmpty();
 }
 
+/// @brief The spelling coordinators of the book windows open, in the order they were made
+QList<SpellingCoordinator*>& liveCoordinators() {
+    static QList<SpellingCoordinator*> coordinators;
+    return coordinators;
+}
+
 }  // namespace
 
 SpellingCoordinator::SpellingCoordinator(core::ProjectManager& book, CommandRegistry& commands,
@@ -88,9 +94,15 @@ SpellingCoordinator::SpellingCoordinator(core::ProjectManager& book, CommandRegi
       m_editorsTimer(new QTimer(this)),
       m_book(book),
       m_commands(commands) {
-    // The writer's own words are the same in every language
-    m_service->setUserDictionaryFile(userDictionaryFile());
+    // The writer's own words are the same in every language and in every book window: a word
+    // added in one window is known in the others at once
+    if (liveCoordinators().isEmpty()) {
+        m_service->setUserDictionaryFile(userDictionaryFile());
+    } else {
+        m_service->shareOwnWordsWith(*liveCoordinators().first()->m_service);
+    }
     m_otherService->shareOwnWordsWith(*m_service);
+    liveCoordinators().append(this);
     for (editor::SpellCheckService* service : {m_service, m_otherService}) {
         connect(service, &editor::SpellCheckService::dictionaryError, this,
                 [this](const QString& error) { showMessage(error, DICTIONARY_MESSAGE_MS); });
@@ -135,6 +147,7 @@ SpellingCoordinator::SpellingCoordinator(core::ProjectManager& book, CommandRegi
 }
 
 SpellingCoordinator::~SpellingCoordinator() {
+    liveCoordinators().removeAll(this);
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 
     // The commands outlive the coordinator

@@ -30,6 +30,7 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPushButton>
+#include <QSignalBlocker>
 #include <QStatusBar>
 #include <QTreeWidget>
 
@@ -538,9 +539,12 @@ TEST_CASE("Special characters: keys given to a character", "[gui][special-charac
               ->shortcut() == QKeySequence(Qt::ControlModifier | Qt::Key_F8));
     CHECK_FALSE(kalahari::test::commands().isCommandRegistered("insert.character.00AD"));
 
-    // At the next start the command comes back with its keys
+    // At the next start the command comes back with its keys (no window listens yet)
     kalahari::test::commands().unregisterCommand("insert.character.2192");
-    kalahari::test::commands().setCustomShortcuts(loadCustomShortcuts());
+    {
+        const QSignalBlocker atStart(&kalahari::test::commands());
+        kalahari::test::commands().setCustomShortcuts(loadCustomShortcuts());
+    }
     const std::vector<std::string> registered = registerCharacterCommands(
         kalahari::test::commands(), [](const QString&) {});
     CHECK(std::find(registered.begin(), registered.end(), "insert.character.2192") !=
@@ -548,6 +552,16 @@ TEST_CASE("Special characters: keys given to a character", "[gui][special-charac
     CHECK(kalahari::test::commands()
               .getAction(std::string("insert.character.2192"))
               ->shortcut() == keys.toQKeySequence());
+
+    // Keys given in another book window: this window gets the command too, with its keys
+    kalahari::test::commands().unregisterCommand("insert.character.2192");
+    textCommands.clear();
+    kalahari::test::commands().setCustomShortcuts(loadCustomShortcuts());
+    CHECK(textCommands == std::vector<std::string>{"insert.character.2192"});
+    action = kalahari::test::commands().getAction(std::string("insert.character.2192"));
+    REQUIRE(action != nullptr);
+    CHECK(action->shortcut() == keys.toQKeySequence());
+    CHECK(window.actions().contains(action));
 
     // Taken away
     coordinator.setCharacterKeys(U'→', KeyboardShortcut());

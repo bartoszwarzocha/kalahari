@@ -65,6 +65,20 @@ public:
     /// @brief The texts of the book window whose tabs are @p bookTabs (made at the first call)
     static DocumentWindows& of(QTabWidget& bookTabs);
 
+    ~DocumentWindows() override;
+
+    /// @brief The windows of the program: each book window, in the order they were made, then
+    /// its windows of their own
+    static QList<QWidget*> programWindows();
+
+    /// @brief The texts of the book window that has @p window (the book window or one of its
+    /// windows of their own); none: no window of the program
+    static DocumentWindows* ownerOf(const QWidget* window);
+
+    /// @brief Bring @p window, a window of the program, to the front with the keys in its text
+    /// in front
+    static void showWindow(QWidget* window);
+
     /// @brief The look of the windows of their own, from the settings
     static Look look();
 
@@ -137,8 +151,8 @@ public:
     /// @brief Move @p page back to the tabs of the book window
     void returnToBook(QWidget* page);
 
-    /// @brief Bring the next window of the book (+1) or the previous one (-1) to the front:
-    /// the book window, then its windows of their own
+    /// @brief Bring the next window of the program (+1) or the previous one (-1) to the front,
+    /// in the order of programWindows()
     void activateNextWindow(int step);
 
     // ------------------------------------------------------------------------
@@ -147,12 +161,14 @@ public:
 
     /// @brief Register the commands of the Window menu in @p registry; they work on the texts
     /// @p windows gives when they run (none: they do nothing)
+    /// @param newWindow What Window > New Window does; none: the menu has no New Window
     /// @return The number of commands registered
     static int registerCommands(CommandRegistry& registry,
-                                const std::function<DocumentWindows*()>& windows);
+                                const std::function<DocumentWindows*()>& windows,
+                                const std::function<void()>& newWindow = {});
 
-    /// @brief List the windows of the book in @p windowMenu each time it opens, before Window
-    /// Settings...
+    /// @brief List the windows of the program (programWindows()) in @p windowMenu each time it
+    /// opens, before Window Settings...
     void listWindowsIn(QMenu* windowMenu);
 
 signals:

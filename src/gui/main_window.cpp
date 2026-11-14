@@ -86,6 +86,7 @@
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
+#include <QTabBar>
 #include <QApplication>
 #include <QSettings>
 #include <QDockWidget>
@@ -174,6 +175,27 @@ std::optional<editor::ImageProperties> selectedImageOf(const editor::BookEditor&
                : std::nullopt;
 }
 
+/// The book windows of the program, in the order they were made
+QList<MainWindow*>& bookWindowList() {
+    static QList<MainWindow*> windows;
+    return windows;
+}
+
+/// The book window in front last (a window of its own of its tabs counts as it)
+QPointer<MainWindow>& lastFrontWindow() {
+    static QPointer<MainWindow> window;
+    return window;
+}
+
+/// File > Exit is closing every window: they asked about their changes together
+bool& closingAllWindows() {
+    static bool closing = false;
+    return closing;
+}
+
+/// How far a new window is from the window it came from, to the right and down
+constexpr int NEW_WINDOW_OFFSET = 32;
+
 /// The panel of a text, whose windows are its own: the one in front without one
 EditorPanel* panelOf(const editor::BookEditor& text, EditorPanel* inFront) {
     for (QWidget* widget = text.parentWidget(); widget != nullptr;
@@ -238,12 +260,19 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::enableDiagnosticMode);
     connect(m_settingsCoordinator, &SettingsCoordinator::disableDiagnosticModeRequested,
             this, &MainWindow::disableDiagnosticMode);
-    // The gear of a dialog opens the settings at the page of its settings, over the dialog
-    dialogs::KalahariDialog::setSettingsOpener([this](QWidget* dialog, const QString& page) {
-        if (m_settingsCoordinator) {
-            m_settingsCoordinator->openSettingsPage(page, dialog);
+    // The gear of a dialog opens the settings at the page of its settings, over the dialog,
+    // with the Settings of the book window the dialog is over
+    dialogs::KalahariDialog::setSettingsOpener([](QWidget* dialog, const QString& page) {
+        MainWindow* window = windowOf(dialog);
+        if (window == nullptr) {
+            window = frontWindow();
+        }
+        if (window != nullptr && window->m_settingsCoordinator != nullptr) {
+            window->m_settingsCoordinator->openSettingsPage(page, dialog);
         }
     });
+    // Restarting for another language closes every window, asking once
+    m_settingsCoordinator->setProgramCloser([this]() { return closeAllWindows(this); });
     logger.debug("MainWindow: SettingsCoordinator created");
 
     // Create NavigatorCoordinator after docks (needs DockCoordinator for panel/dock access)
@@ -897,12 +926,41 @@ MainWindow::MainWindow(QWidget* parent)
             this, &MainWindow::updateEditorActionStates);
     logger.debug("MainWindow: Action state debounce timer created (50ms)");
 
+    // The other book windows: a book open in one of them is not opened again, and another
+    // book can go to a new window
+    m_documentCoordinator->setOtherWindows(
+        {[this](const QString& manifest) {
+             MainWindow* other = windowOfBook(manifest);
+             if (other == nullptr || other == this) {
+                 return false;
+             }
+             DocumentWindows::showWindow(other);
+             other->m_documentCoordinator->showBookOpenHere();
+             return true;
+         },
+         [this](const QString& manifest) { openBookInNewWindow(manifest); }});
+
+    // One of the book windows of the program; the one in front is the one whose window, or
+    // a window of its own of its tabs, has the keys
+    bookWindowList().append(this);
+    if (lastFrontWindow().isNull()) {
+        lastFrontWindow() = this;
+    }
+    connect(qApp, &QApplication::focusChanged, this, [this](QWidget* /*old*/, QWidget* now) {
+        if (now != nullptr && windowOf(now) == this) {
+            lastFrontWindow() = this;
+        }
+    });
+
     logger.info("MainWindow initialized successfully");
 }
 
 MainWindow::~MainWindow() {
     auto& logger = core::Logger::getInstance();
     logger.debug("MainWindow destructor - disconnecting all signals");
+
+    // No longer one of the book windows of the program
+    bookWindowList().removeAll(this);
 
     // The book still open closes as when the program ends, while everything that follows it is
     // there: the texts, the panels, the statistics in its database
@@ -920,8 +978,10 @@ MainWindow::~MainWindow() {
     disconnect(&core::ThemeManager::getInstance(), nullptr, this, nullptr);
     disconnect(&core::ArtProvider::getInstance(), nullptr, this, nullptr);
     disconnect(&book(), nullptr, this, nullptr);
-    // The dialogs' gears open the settings of this window: without it, none
-    dialogs::KalahariDialog::setSettingsOpener(nullptr);
+    // The dialogs' gears open the settings of a book window: without one, none
+    if (bookWindowList().isEmpty()) {
+        dialogs::KalahariDialog::setSettingsOpener(nullptr);
+    }
 
     // Disconnect from coordinators (they may have timers or async operations)
     if (m_documentCoordinator) {
@@ -965,10 +1025,12 @@ MainWindow::~MainWindow() {
 
     // The parts of the window go while the book and the commands they use are still there (the
     // members go after this body, the children of a widget only after it is no longer a
-    // MainWindow). Its layout stays with it.
+    // MainWindow). Its layout stays with it, and so do the tab bars of the docked panels: Qt
+    // keeps them, and from Qt 6.8 its layout deletes the ones it no longer uses itself
     const auto nextPart = [this]() -> QObject* {
         for (QObject* child : children()) {
-            if (qobject_cast<QLayout*>(child) == nullptr) {
+            if (qobject_cast<QLayout*>(child) == nullptr &&
+                qobject_cast<QTabBar*>(child) == nullptr) {
                 return child;
             }
         }
@@ -1346,8 +1408,8 @@ void MainWindow::registerCommands() {
     int count = registerAllCommands(commands(), callbacks);
 
     // The Window menu: the texts in windows of their own (DocumentWindows, made with the tabs)
-    count += DocumentWindows::registerCommands(commands(),
-                                               [this]() { return m_documentWindows; });
+    count += DocumentWindows::registerCommands(
+        commands(), [this]() { return m_documentWindows; }, [this]() { openNewWindow(); });
 
     // The keys the user changed in Settings > Keyboard Shortcuts take the place of the
     // program's, in the menus and the toolbars built next
@@ -1674,7 +1736,10 @@ void MainWindow::createStatusBar() {
 void MainWindow::onExit() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Exit");
-    QApplication::quit();
+    // Every window closes, asking once about the changes of all of them
+    if (closeAllWindows(this)) {
+        QApplication::quit();
+    }
 }
 
 // The edit commands work on the element with the keys (EditCoordinator): where they cannot,
@@ -2877,14 +2942,10 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     auto& pm = book();
 
     // An annotation or a note being written is kept first
-    if (m_annotationsCoordinator) {
-        m_annotationsCoordinator->finishWriting();
-    }
-    if (m_footnoteCoordinator) {
-        m_footnoteCoordinator->finishWriting();
-    }
+    finishWriting();
 
-    if (hasUnsavedChanges()) {
+    // File > Exit asked about the changes of every window together
+    if (!closingAllWindows() && hasUnsavedChanges()) {
         const QStringList names = m_documentCoordinator
             ? m_documentCoordinator->unsavedDocumentNames() : QStringList();
         const QString filename = names.isEmpty() ? tr("Untitled") : names.join(QStringLiteral(", "));
@@ -2910,6 +2971,13 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     // The summary of the session of writing, when the settings say so
     if (m_writingStatsCoordinator) {
         m_writingStatsCoordinator->showSessionSummary();
+    }
+
+    // The last window ends the work: its book is the book of the last work, opened at the
+    // next start (File > Exit keeps the books of every window)
+    if (!closingAllWindows() && bookWindowList() == QList<MainWindow*>{this}) {
+        core::RecentBooksManager::getInstance().setOpenBooks(
+            pm.isProjectOpen() ? QStringList{pm.getManifestPath()} : QStringList());
     }
 
     // Phase F: Save Navigator expansion state before closing
@@ -3167,86 +3235,256 @@ void MainWindow::showEvent(QShowEvent* event) {
     QMainWindow::showEvent(event);
 
     if (m_firstShow) {
-        auto& logger = core::Logger::getInstance();
-        logger.debug("Restoring window perspective");
+        restoreLayout();
+        openAtStart();
+        m_firstShow = false;
+    }
+}
 
-        // OpenSpec #00037: Check if toolbar config needs reset BEFORE restoring state
-        // If reset needed, clear saved window state to prevent old toolbar layout from being restored
-        bool toolbarResetNeeded = ToolbarManager::needsConfigReset();
-        if (toolbarResetNeeded) {
-            logger.info("Toolbar config reset needed, clearing saved window state");
-            ToolbarManager::clearSavedWindowState();
-        }
+void MainWindow::restoreLayout() {
+    auto& logger = core::Logger::getInstance();
+    logger.debug("Restoring window perspective");
 
-        auto& settings = core::SettingsManager::getInstance();
-        restoreGeometry(settings.getBinary("window.geometry"));
-        // A size saved on a larger screen, or at a smaller scaling, would leave the window
-        // bigger than this screen
-        if (!isMaximized() && !isFullScreen()) {
-            utils::resizeWithinScreen(this, size());
-        }
+    // OpenSpec #00037: Check if toolbar config needs reset BEFORE restoring state
+    // If reset needed, clear saved window state to prevent old toolbar layout from being restored
+    bool toolbarResetNeeded = ToolbarManager::needsConfigReset();
+    if (toolbarResetNeeded) {
+        logger.info("Toolbar config reset needed, clearing saved window state");
+        ToolbarManager::clearSavedWindowState();
+    }
 
-        // Only restore window state if we haven't cleared it for toolbar reset
-        // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value
-        QByteArray windowState = settings.getBinary("window.state");
-        const bool savedLayout = !windowState.isEmpty() && !toolbarResetNeeded;
-        if (savedLayout) {
-            // Normal case: restore saved window state (includes toolbar positions)
-            restoreState(windowState);
-        } else if (const QScreen* screen = this->screen()) {
-            // No saved layout (the first start, or the toolbars were reset): a small screen
-            // gets a layout that leaves the text room
-            m_dockCoordinator->fitFirstLayout(screen->availableGeometry());
-        }
-        // A layout saved before the Statistics panel
-        m_dockCoordinator->placeStatisticsPanel(savedLayout);
+    // A new window takes the layout of the window it came from, a little lower and to the
+    // right; the first one the saved layout
+    auto& settings = core::SettingsManager::getInstance();
+    restoreGeometry(m_layoutFrom ? m_layoutFrom->geometry : settings.getBinary("window.geometry"));
+    if (m_layoutFrom && !isMaximized() && !isFullScreen()) {
+        move(pos() + QPoint(NEW_WINDOW_OFFSET, NEW_WINDOW_OFFSET));
+    }
+    // A size saved on a larger screen, or at a smaller scaling, would leave the window
+    // bigger than this screen
+    if (!isMaximized() && !isFullScreen()) {
+        utils::resizeWithinScreen(this, size());
+    }
 
-        // Task #00019: Restore toolbar state (visibility)
-        // This runs AFTER QMainWindow::restoreState() to ensure our visibility settings
-        // take precedence over Qt's saved state
-        if (m_toolbarManager) {
-            m_toolbarManager->restoreState();
-        }
+    // Only restore window state if we haven't cleared it for toolbar reset
+    // IMPORTANT: Read windowState AFTER clearSavedWindowState() to get fresh value
+    QByteArray windowState = m_layoutFrom ? m_layoutFrom->state : settings.getBinary("window.state");
+    const bool savedLayout = !windowState.isEmpty() && !toolbarResetNeeded;
+    if (savedLayout) {
+        // Normal case: restore saved window state (includes toolbar positions)
+        restoreState(windowState);
+    } else if (const QScreen* screen = this->screen()) {
+        // No saved layout (the first start, or the toolbars were reset): a small screen
+        // gets a layout that leaves the text room
+        m_dockCoordinator->fitFirstLayout(screen->availableGeometry());
+    }
+    // A layout saved before the Statistics panel
+    m_dockCoordinator->placeStatisticsPanel(savedLayout);
 
-        // A layout saved before the Paragraph and Styles panel, or with it in its other place
-        m_dockCoordinator->placeParagraphPanel(false);
+    // Task #00019: Restore toolbar state (visibility)
+    // This runs AFTER QMainWindow::restoreState() to ensure our visibility settings
+    // take precedence over Qt's saved state
+    if (m_toolbarManager) {
+        m_toolbarManager->restoreState();
+    }
 
-        // OpenSpec #00024: LogDock visibility is INDEPENDENT of saveState/restoreState
-        // It depends ONLY on diagnostic mode, not on saved window state
-        // Use setVisible() instead of show()/hide() for more reliable behavior
-        QDockWidget* logDock = m_dockCoordinator->logDock();
-        if (logDock) {
-            bool shouldShow = isDiagnosticMode() || isDevMode();
-            logDock->setVisible(shouldShow);
-            logger.info("LogDock: {} (diagnosticMode={}, devMode={})",
-                       shouldShow ? "shown" : "hidden", isDiagnosticMode(), isDevMode());
-        }
+    // A layout saved before the Paragraph and Styles panel, or with it in its other place
+    m_dockCoordinator->placeParagraphPanel(false);
 
-        logger.debug("Window perspective restored");
+    // OpenSpec #00024: LogDock visibility is INDEPENDENT of saveState/restoreState
+    // It depends ONLY on diagnostic mode, not on saved window state
+    // Use setVisible() instead of show()/hide() for more reliable behavior
+    QDockWidget* logDock = m_dockCoordinator->logDock();
+    if (logDock) {
+        bool shouldShow = isDiagnosticMode() || isDevMode();
+        logDock->setVisible(shouldShow);
+        logger.info("LogDock: {} (diagnosticMode={}, devMode={})",
+                   shouldShow ? "shown" : "hidden", isDiagnosticMode(), isDevMode());
+    }
 
-        // OpenSpec #00036: Auto-load last project if enabled
-        // OpenSpec #00038 Phase 7: Use DocumentCoordinator for file operations
-        auto& settingsManager = core::SettingsManager::getInstance();
-        bool autoLoad = settingsManager.get<bool>("startup.autoLoadLastProject", false);
-        if (!m_startupFile.isEmpty()) {
-            // The file of the command line takes the place of the last book
-            logger.info("Opening the file of the command line: {}", m_startupFile.toStdString());
-            QTimer::singleShot(100, this, [this, file = m_startupFile]() {
-                if (m_documentCoordinator) m_documentCoordinator->onOpenRecentFile(file);
+    logger.debug("Window perspective restored");
+}
+
+void MainWindow::openAtStart() {
+    if (!m_firstWindow) {
+        return;
+    }
+    auto& logger = core::Logger::getInstance();
+
+    // OpenSpec #00036: Auto-load last project if enabled
+    // OpenSpec #00038 Phase 7: Use DocumentCoordinator for file operations
+    auto& settingsManager = core::SettingsManager::getInstance();
+    bool autoLoad = settingsManager.get<bool>("startup.autoLoadLastProject", false);
+    if (!m_startupFile.isEmpty()) {
+        // The file of the command line takes the place of the last book
+        logger.info("Opening the file of the command line: {}", m_startupFile.toStdString());
+        QTimer::singleShot(100, this, [this, file = m_startupFile]() {
+            if (m_documentCoordinator) m_documentCoordinator->onOpenRecentFile(file);
+        });
+    } else if (autoLoad) {
+        // The books of the last work, or the book opened last (not one created or imported
+        // without opening since): the first one here, each other one in a window of its own,
+        // so that the one in front last comes to the front
+        const QStringList books = core::RecentBooksManager::getInstance().booksToOpenAtStart();
+        if (!books.isEmpty()) {
+            logger.info("Auto-loading the books of the last work: {}", books.size());
+            // Use QTimer::singleShot to defer opening after window is fully shown
+            QTimer::singleShot(100, this, [this, books]() {
+                if (m_documentCoordinator == nullptr) {
+                    return;
+                }
+                m_documentCoordinator->onOpenRecentFile(books.first());
+                for (qsizetype i = 1; i < books.size(); ++i) {
+                    openBookInNewWindow(books.at(i));
+                }
             });
-        } else if (autoLoad) {
-            // The book opened last, not one created or imported without opening since
-            const QString lastFile = core::RecentBooksManager::getInstance().lastOpenedBook();
-            if (!lastFile.isEmpty()) {
-                logger.info("Auto-loading last project: {}", lastFile.toStdString());
-                // Use QTimer::singleShot to defer opening after window is fully shown
-                QTimer::singleShot(100, this, [this, lastFile]() {
-                    if (m_documentCoordinator) m_documentCoordinator->onOpenRecentFile(lastFile);
-                });
+        }
+    }
+}
+
+// =============================================================================
+// The book windows of the program
+// =============================================================================
+
+QList<MainWindow*> MainWindow::windows() {
+    return bookWindowList();
+}
+
+MainWindow* MainWindow::windowOf(const QWidget* widget) {
+    const QList<MainWindow*>& windows = bookWindowList();
+    for (const QWidget* each = widget; each != nullptr; each = each->parentWidget()) {
+        for (MainWindow* window : windows) {
+            if (window == each) {
+                return window;
             }
         }
+    }
+    return nullptr;
+}
 
-        m_firstShow = false;
+MainWindow* MainWindow::windowOfBook(const QString& manifest) {
+    const QFileInfo wanted(manifest);
+    for (MainWindow* window : std::as_const(bookWindowList())) {
+        const core::ProjectManager& book = window->book();
+        if (book.isProjectOpen() && QFileInfo(book.getManifestPath()) == wanted) {
+            return window;
+        }
+    }
+    return nullptr;
+}
+
+MainWindow* MainWindow::frontWindow() {
+    if (MainWindow* active = windowOf(QApplication::activeWindow())) {
+        return active;
+    }
+    if (MainWindow* last = lastFrontWindow().data(); bookWindowList().contains(last)) {
+        return last;
+    }
+    return bookWindowList().isEmpty() ? nullptr : bookWindowList().last();
+}
+
+MainWindow* MainWindow::openNewWindow() {
+    auto& logger = core::Logger::getInstance();
+    logger.info("Action triggered: New Window");
+
+    auto* window = new MainWindow;
+    window->setAttribute(Qt::WA_DeleteOnClose);
+    // The modes of this window
+    if (isDiagnosticMode()) {
+        window->enableDiagnosticMode();
+    }
+    if (isDevMode()) {
+        window->enableDevMode();
+    }
+    // The panels and the bars of this window, as they are outside Distraction-Free and full
+    // screen; in them, the saved ones
+    if (!isDistractionFree() && !isFullScreen()) {
+        window->m_layoutFrom = Layout{saveGeometry(), saveState()};
+    }
+    window->show();
+    window->raise();
+    window->activateWindow();
+    lastFrontWindow() = window;
+    return window;
+}
+
+MainWindow* MainWindow::openBookInNewWindow(const QString& manifest) {
+    MainWindow* window = openNewWindow();
+    // Once it is shown, as from the recent books
+    QTimer::singleShot(0, window, [window, manifest]() {
+        if (window->m_documentCoordinator != nullptr) {
+            window->m_documentCoordinator->onOpenRecentFile(manifest);
+        }
+    });
+    return window;
+}
+
+bool MainWindow::closeAllWindows(MainWindow* asking) {
+    auto& logger = core::Logger::getInstance();
+    const QList<MainWindow*> windows = bookWindowList();
+
+    // The annotations and the notes being written are kept, then one question names what
+    // has unsaved changes in every window
+    QStringList names;
+    for (MainWindow* window : windows) {
+        window->finishWriting();
+        if (window->hasUnsavedChanges() && window->m_documentCoordinator != nullptr) {
+            names << window->m_documentCoordinator->unsavedDocumentNames();
+        }
+    }
+    names.removeDuplicates();
+    if (!names.isEmpty()) {
+        const auto reply = dialogs::MessageDialog::ask(
+            asking, tr("Unsaved Changes"),
+            tr("Do you want to save changes to %1?").arg(names.join(QStringLiteral(", "))),
+            tr("&Save"), tr("Do&n't Save"));
+        if (reply == dialogs::MessageDialog::Answer::Cancel) {
+            return false;
+        }
+        if (reply == dialogs::MessageDialog::Answer::Accept) {
+            // Whatever could not be saved (failed or cancelled) keeps every window open, the
+            // window with it in front
+            for (MainWindow* window : windows) {
+                if (window->hasUnsavedChanges() &&
+                    (window->m_documentCoordinator == nullptr ||
+                     !window->m_documentCoordinator->saveAllChanges())) {
+                    DocumentWindows::showWindow(window);
+                    return false;
+                }
+            }
+        }
+    }
+
+    // The books open now are the books of the next start, the one in front last
+    QList<MainWindow*> order = windows;
+    if (order.removeOne(asking)) {
+        order.append(asking);
+    }
+    QStringList books;
+    for (MainWindow* window : std::as_const(order)) {
+        if (window->book().isProjectOpen()) {
+            books << window->book().getManifestPath();
+        }
+    }
+    core::RecentBooksManager::getInstance().setOpenBooks(books);
+    logger.info("Closing every window of the program: {} books open", books.size());
+
+    // The window that asked closes last, so its layout is the one kept
+    closingAllWindows() = true;
+    bool closed = true;
+    for (MainWindow* window : std::as_const(order)) {
+        closed = window->close() && closed;
+    }
+    closingAllWindows() = false;
+    return closed;
+}
+
+void MainWindow::finishWriting() {
+    if (m_annotationsCoordinator) {
+        m_annotationsCoordinator->finishWriting();
+    }
+    if (m_footnoteCoordinator) {
+        m_footnoteCoordinator->finishWriting();
     }
 }
 

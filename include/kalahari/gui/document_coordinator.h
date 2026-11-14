@@ -133,6 +133,32 @@ public:
     [[nodiscard]] bool hasNotice(const EditorPanel* editor) const;
 
     // =========================================================================
+    // The other book windows of the program
+    // =========================================================================
+
+    /// @brief Where a book opened while another one is open in the window goes: "ask" (the
+    /// question Opening a Book), "new" (a new window) or "this" (in place of the open one)
+    static constexpr const char* OTHER_BOOK_KEY = "window.otherBook";
+
+    /// @brief The other book windows of the program, as the book window gives them
+    struct OtherWindows {
+        /// Bring the other window that has the book of @p manifest (its .klh file) open to the
+        /// front, saying so in its info bar; false: no other window has it open
+        std::function<bool(const QString& manifest)> showBook;
+        /// Open the book of @p manifest in a new window, laid out as this one
+        std::function<void(const QString& manifest)> openInNewWindow;
+    };
+
+    /// @brief Open the books in the other windows as @p windows gives them: without them a book
+    /// opens in this window, in place of the open one, and is never looked for elsewhere
+    void setOtherWindows(OtherWindows windows) { m_otherWindows = std::move(windows); }
+
+    /// @brief Say in the info bar that the open book is the one the writer wanted to open again
+    /// (from another window), whatever tab is in front, until the bar is closed, another notice
+    /// comes or the book closes
+    void showBookOpenHere();
+
+    // =========================================================================
     // Per-editor save state
     // =========================================================================
 
@@ -319,6 +345,33 @@ private:
     /// @return true when no book is open or the writer agreed; false: the command stops
     bool agreeToCloseBook(const QString& saveQuestion, const QString& closeQuestion);
 
+    /// @brief The title of the open book; without one, the name of its folder
+    [[nodiscard]] QString openBookTitle() const;
+
+    /// @brief Open the book of @p manifest (its .klh file) in this window or in another one:
+    /// the window that has it open comes to the front; with a book open here, the settings or
+    /// the writer say where it goes (placeForBook())
+    void openBook(const QString& manifest);
+
+    /// @brief Where a book goes while another one is open in the window
+    enum class Place {
+        NewWindow,        ///< A new window: the open book stays
+        ThisWindowAsked,  ///< In place of the open book, as the writer answered the question
+        ThisWindow,       ///< In place of the open book, as the settings say (or one window)
+        Cancel            ///< Nowhere
+    };
+
+    /// @brief Where the book named @p name goes while a book is open in the window: as the
+    /// settings say (OTHER_BOOK_KEY), or as the writer answers the question Opening a Book over
+    /// @p parent (none: the window); ThisWindow without other windows
+    Place placeForBook(const QString& name, QWidget* parent = nullptr);
+
+    /// @brief Before the open book closes for another one: asks about its unsaved changes, over
+    /// @p parent
+    /// @param saveQuestion The question; "%1" is the book's title
+    /// @return false: the writer cancelled, or the changes could not be saved (it is said)
+    bool saveBookBeforeClosing(QWidget* parent, const QString& saveQuestion);
+
     /// @brief What the writer chose to do with the open book when another book comes
     enum class OpenBookChoice {
         Close,     ///< The open book closes, with its changes saved or not, as the writer said
@@ -444,9 +497,10 @@ private:
     bool m_readOnlyBarDismissed{false};  ///< The writer closed the message of the book open
                                          ///< read-only; it shows again with the next book
 
-    /// @brief A notice under a text (showNotice())
+    /// @brief A notice under a text (showNotice()), or under any tab (showBookOpenHere())
     struct Notice {
-        EditorPanel* editor = nullptr;  ///< The tab of the text; null: no notice
+        EditorPanel* editor = nullptr;  ///< The tab of the text; null: none, or under any tab
+        bool anyTab = false;            ///< Under any tab, whatever is in front
         QString message;
         QString actionText;
         QString actionToolTip;
@@ -455,6 +509,7 @@ private:
         QMetaObject::Connection closed;   ///< So does closing its tab
     };
     Notice m_notice;
+    OtherWindows m_otherWindows;  ///< The other book windows (setOtherWindows()); none at first
     QStatusBar* m_statusBar;
 
     WindowTitleUpdater m_updateWindowTitle;

@@ -20,6 +20,7 @@
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/archive_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dialogs/open_book_dialog.h"
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -398,17 +399,18 @@ void DocumentCoordinator::onNewProject() {
     openFirstText();
 }
 
+QString DocumentCoordinator::openBookTitle() const {
+    const QString title = m_book.book() ? m_book.book()->title : QString();
+    return title.isEmpty() ? QFileInfo(m_book.getProjectPath()).fileName() : title;
+}
+
 bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
                                            const QString& closeQuestion) {
     auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         return true;
     }
-
-    QString bookName = pm.book() ? pm.book()->title : QString();
-    if (bookName.isEmpty()) {
-        bookName = QFileInfo(pm.getProjectPath()).fileName();
-    }
+    const QString bookName = openBookTitle();
 
     // The check keeps an annotation being written first. Files open outside the book stay
     // open with their changes, so only the changes of the book are asked about.
@@ -427,8 +429,12 @@ bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
         return true;  // Don't Save: the changes go with the book
     }
 
-    // Clean: plain confirmation to avoid an accidental project switch. ProjectManager closes
-    // the book, and its projectAboutToClose() prepares the services for that.
+    // Clean: plain confirmation to avoid an accidental project switch, unless the writer has
+    // just chosen it. ProjectManager closes the book, and its projectAboutToClose() prepares
+    // the services for that.
+    if (closeQuestion.isEmpty()) {
+        return true;
+    }
     return dialogs::MessageDialog::confirm(m_mainWindow, tr("Close Book?"),
                                            closeQuestion.arg(bookName), tr("&Close Book"));
 }
@@ -440,11 +446,7 @@ DocumentCoordinator::OpenBookChoice DocumentCoordinator::askAboutOpenBook(
     if (!pm.isProjectOpen()) {
         return OpenBookChoice::Close;
     }
-
-    QString bookName = pm.book() ? pm.book()->title : QString();
-    if (bookName.isEmpty()) {
-        bookName = QFileInfo(pm.getProjectPath()).fileName();
-    }
+    const QString bookName = openBookTitle();
 
     //: The heading of the question; %1: the title of the open book. In Polish: Zamknąć „%1”?
     const QString heading = tr("Close \"%1\"?").arg(bookName);
@@ -463,23 +465,116 @@ DocumentCoordinator::OpenBookChoice DocumentCoordinator::askAboutOpenBook(
             return OpenBookChoice::Cancel;
     }
 
+    return saveBookBeforeClosing(parent, saveQuestion) ? OpenBookChoice::Close
+                                                       : OpenBookChoice::Cancel;
+}
+
+bool DocumentCoordinator::saveBookBeforeClosing(QWidget* parent, const QString& saveQuestion) {
     // The open book closes: its changes are saved first, or not, as the writer says. The
     // standalone files stay open without the book, with their changes.
-    if (bookHasUnsavedChanges()) {
-        const auto reply = dialogs::MessageDialog::ask(parent, tr("Unsaved Changes"),
-                                                       saveQuestion.arg(bookName), tr("&Save"),
-                                                       tr("Do&n't Save"));
-        if (reply == dialogs::MessageDialog::Answer::Cancel) {
-            return OpenBookChoice::Cancel;
+    if (!m_book.isProjectOpen() || !bookHasUnsavedChanges()) {
+        return true;
+    }
+    const auto reply = dialogs::MessageDialog::ask(parent, tr("Unsaved Changes"),
+                                                   saveQuestion.arg(openBookTitle()),
+                                                   tr("&Save"), tr("Do&n't Save"));
+    if (reply == dialogs::MessageDialog::Answer::Cancel) {
+        return false;
+    }
+    if (reply == dialogs::MessageDialog::Answer::Accept && !saveBook()) {
+        dialogs::MessageDialog::warning(
+            parent, tr("Save Warning"),
+            tr("Some changes in the book could not be saved. Check the log for details."));
+        return false;  // a failed save stops the command
+    }
+    return true;
+}
+
+DocumentCoordinator::Place DocumentCoordinator::placeForBook(const QString& name,
+                                                             QWidget* parent) {
+    if (!m_otherWindows.openInNewWindow) {
+        return Place::ThisWindow;
+    }
+    auto& settings = core::SettingsManager::getInstance();
+    const std::string where = settings.get<std::string>(OTHER_BOOK_KEY, "ask");
+    if (where == "new") {
+        return Place::NewWindow;
+    }
+    if (where == "this") {
+        return Place::ThisWindow;
+    }
+    dialogs::OpenBookDialog question(openBookTitle(), name,
+                                     parent != nullptr ? parent : m_mainWindow);
+    question.exec();
+    const dialogs::OpenBookDialog::Choice choice = question.choice();
+    if (choice == dialogs::OpenBookDialog::Choice::Cancel) {
+        return Place::Cancel;
+    }
+    const bool newWindow = choice == dialogs::OpenBookDialog::Choice::NewWindow;
+    // Remembered: the next book goes there without the question
+    if (question.remembersChoice()) {
+        settings.set<std::string>(OTHER_BOOK_KEY, newWindow ? "new" : "this");
+    }
+    return newWindow ? Place::NewWindow : Place::ThisWindowAsked;
+}
+
+void DocumentCoordinator::openBook(const QString& manifest) {
+    auto& logger = core::Logger::getInstance();
+    auto& pm = m_book;
+
+    // The book of this window is not opened again. The MANIFEST (.klh) path is compared, not
+    // getProjectPath() (the project directory), which would never match the .klh file.
+    if (pm.isProjectOpen() && QFileInfo(pm.getManifestPath()) == QFileInfo(manifest)) {
+        logger.debug("Project is already open, ignoring: {}", manifest.toStdString());
+        return;
+    }
+    // Nor in another window: that window comes to the front, saying so
+    if (m_otherWindows.showBook && m_otherWindows.showBook(manifest)) {
+        logger.info("The book is open in another window: {}", manifest.toStdString());
+        return;
+    }
+
+    if (pm.isProjectOpen()) {
+        // A book that cannot be opened is reported before anything is done for it: before
+        // the open book is closed, or a window is made
+        if (reportOpenFailure(manifest)) {
+            return;
         }
-        if (reply == dialogs::MessageDialog::Answer::Accept && !saveBook()) {
-            dialogs::MessageDialog::warning(
-                parent, tr("Save Warning"),
-                tr("Some changes in the book could not be saved. Check the log for details."));
-            return OpenBookChoice::Cancel;  // a failed save stops the command
+        const Place place = placeForBook(QFileInfo(manifest).completeBaseName());
+        if (place == Place::Cancel) {
+            logger.debug("User cancelled opening new project");
+            return;
+        }
+        if (place == Place::NewWindow) {
+            logger.info("Opening the book in a new window: {}", manifest.toStdString());
+            m_otherWindows.openInNewWindow(manifest);
+            return;
+        }
+        // In place of the open book: its unsaved changes are handled before it closes, and
+        // the writer who has not just chosen it is asked whether to close it
+        if (!agreeToCloseBook(
+                tr("Do you want to save changes to '%1' before opening the selected book?"),
+                place == Place::ThisWindowAsked
+                    ? QString()
+                    : tr("Do you want to close '%1' and open the selected book?"))) {
+            logger.debug("User cancelled opening new project");
+            return;
         }
     }
-    return OpenBookChoice::Close;
+
+    QStringList problems;
+    if (pm.openProject(manifest, &problems)) {
+        // ProjectManager emits projectOpened, which triggers onProjectOpened(); the book is
+        // remembered as the one opened last
+        logger.info("Opened .klh file as project: {}", manifest.toStdString());
+        core::RecentBooksManager::getInstance().addRecentFile(manifest);
+        return;
+    }
+
+    // The book cannot be opened: the message says why. It stays in the recent books, as it
+    // may be readable later.
+    logger.error("Failed to open .klh file as project: {}", manifest.toStdString());
+    showOpenError(manifest, problems, pm.lastOpenFailure());
 }
 
 void DocumentCoordinator::showOpenError(const QString& path, const QStringList& problems,
@@ -711,39 +806,8 @@ void DocumentCoordinator::onOpenDocument() {
     ProgramFolders::remember(ProgramFolders::Operation::OpenBook,
                              QFileInfo(QFileInfo(filename).absolutePath()).absolutePath());
 
-    // Use ProjectManager to open the project
-    auto& pm = m_book;
-
-    // If a project is already open, ask user for confirmation before closing it
-    if (pm.isProjectOpen()) {
-        // If the chosen file IS the already-open project, just ignore — no close/reopen
-        // prompt. Compare against the MANIFEST (.klh) path, not getProjectPath() (the
-        // project directory), which would never match the chosen .klh file.
-        if (QFileInfo(pm.getManifestPath()) == QFileInfo(filename)) {
-            logger.debug("Project is already open, ignoring: {}", filename.toStdString());
-            return;
-        }
-    }
-    // A book that cannot be opened is reported before the open book is closed for it
-    if (reportOpenFailure(filename)) {
-        return;
-    }
-    if (!agreeToCloseBook(
-            tr("Do you want to save changes to '%1' before opening the selected book?"),
-            tr("Do you want to close '%1' and open the selected book?"))) {
-        logger.debug("User cancelled opening new project");
-        return;
-    }
-
-    QStringList problems;
-    if (!pm.openProject(filename, &problems)) {
-        showOpenError(filename, problems, pm.lastOpenFailure());
-        return;
-    }
-    // ProjectManager emits projectOpened, which triggers onProjectOpened()
-
-    // Add to recent files list
-    core::RecentBooksManager::getInstance().addRecentFile(filename);
+    // Here, in place of the open book, or in another window
+    openBook(filename);
 }
 
 void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
@@ -767,47 +831,9 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
         return;
     }
 
-    // A book: the files open outside a book stay open with their changes, and switching from
-    // an open project asks below, once, after checking that it is a different project
-    auto& pm = m_book;
-
-    // If a project is already open, check if it's the SAME project
-    if (pm.isProjectOpen()) {
-        // If trying to open the same project that's already open, just ignore.
-        // Compare against the MANIFEST (.klh) path: getProjectPath() is the project
-        // DIRECTORY, so comparing it to the clicked .klh file never matched and the
-        // "close & reopen?" prompt fired even for the already-open project.
-        if (QFileInfo(pm.getManifestPath()) == QFileInfo(filePath)) {
-            logger.debug("Project is already open, ignoring: {}", filePath.toStdString());
-            return;
-        }
-
-        // Different project: a book that cannot be opened is reported before the open
-        // book is closed for it, and unsaved changes are handled before closing
-        if (reportOpenFailure(filePath)) {
-            return;
-        }
-        if (!agreeToCloseBook(
-                tr("Do you want to save changes to '%1' before opening the selected book?"),
-                tr("Do you want to close '%1' and open the selected book?"))) {
-            logger.debug("User cancelled opening new project");
-            return;
-        }
-    }
-
-    QStringList problems;
-    if (pm.openProject(filePath, &problems)) {
-        // Successfully opened as project
-        logger.info("Opened .klh file as project: {}", filePath.toStdString());
-        // Add to recent files so it's remembered as last opened
-        core::RecentBooksManager::getInstance().addRecentFile(filePath);
-        return;
-    }
-
-    // The book cannot be opened: the message says why. It stays in the recent books,
-    // as it may be readable later.
-    logger.error("Failed to open .klh file as project: {}", filePath.toStdString());
-    showOpenError(filePath, problems, pm.lastOpenFailure());
+    // A book: the files open outside a book stay open with their changes. It opens here, in
+    // place of the open book, or in another window.
+    openBook(filePath);
 }
 
 void DocumentCoordinator::onSaveDocument() {
@@ -1386,12 +1412,26 @@ bool DocumentCoordinator::hasNotice(const EditorPanel* editor) const {
     return editor != nullptr && m_notice.editor == editor;
 }
 
+void DocumentCoordinator::showBookOpenHere() {
+    clearNotice();
+    if (!m_book.isProjectOpen()) {
+        return;
+    }
+    m_notice.anyTab = true;
+    //: The info bar of the window that has the book the writer wanted to open again, from
+    //: another window. %1: the title of the book. In Polish: Książka „%1” jest już otwarta –
+    //: w tym oknie.
+    m_notice.message = tr("The book \"%1\" is already open – in this window.").arg(openBookTitle());
+    updateStandaloneInfoBar();
+}
+
 void DocumentCoordinator::clearNotice() {
     disconnect(m_notice.changed);
     disconnect(m_notice.closed);
     m_notice.changed = QMetaObject::Connection();
     m_notice.closed = QMetaObject::Connection();
     m_notice.editor = nullptr;
+    m_notice.anyTab = false;
     m_notice.message.clear();
     m_notice.actionText.clear();
     m_notice.actionToolTip.clear();
@@ -1404,8 +1444,9 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
         editor != nullptr && editorKind(m_book, editor) == EditorKind::StandaloneFile;
     const auto& pm = m_book;
 
-    // A notice of what was just done to the text in front
-    if (m_infoBarAllowed && editor != nullptr && m_notice.editor == editor) {
+    // A notice of what was just done to the text in front, or to the window
+    if (m_infoBarAllowed &&
+        ((editor != nullptr && m_notice.editor == editor) || m_notice.anyTab)) {
         m_standaloneInfoBar->showNotice(m_notice.message, m_notice.actionText,
                                         m_notice.actionToolTip);
         m_standaloneInfoBar->show();
@@ -1858,10 +1899,13 @@ void DocumentCoordinator::onImportArchive() {
     // One window: the archive and its book, the folder, the progress and the result. The book
     // of the archive is not the open one: the window names its type and kinds after its copies
     // of the packages in the archive, and after the installed packages.
+    // A book opened in a new window is imported without opening in this one first
+    bool openInNewWindow = false;
+    QString imported;
     dialogs::ImportArchiveDialog dialog(
         pm.installedBookTypes(),
         ProgramFolders::startFolder(ProgramFolders::Operation::ImportDestination),
-        [&pm, &logger](const QString& archive, const QString& folder, bool open,
+        [&pm, &logger, &imported](const QString& archive, const QString& folder, bool open,
                        const dialogs::ArchiveDialog::Progress& progress,
                        core::ArchiveProblem* problem) {
             ProgramFolders::remember(ProgramFolders::Operation::ImportDestination, folder);
@@ -1880,11 +1924,32 @@ void DocumentCoordinator::onImportArchive() {
             }
             // Opened or not, the book is on the Dashboard and in Recent Books
             core::RecentBooksManager::getInstance().addRecentFile(manifest);
+            imported = manifest;
             logger.info("Project imported from: {}", archive.toStdString());
             return true;
         },
         m_mainWindow);
-    dialog.setOpeningQuestion([this, &dialog](const QString& title) {
+    dialog.setOpeningQuestion([this, &dialog, &openInNewWindow](const QString& title) {
+        // With other windows: in a new one, or in place of the open book, as the settings or
+        // the writer say; in place of it as the settings say, the question below
+        if (!m_book.isProjectOpen()) {
+            return dialogs::ImportArchiveDialog::Opening::Open;
+        }
+        const QString saveQuestion =
+            tr("Do you want to save changes to '%1' before importing the archive?");
+        switch (placeForBook(title, &dialog)) {
+            case Place::NewWindow:
+                openInNewWindow = true;
+                return dialogs::ImportArchiveDialog::Opening::DontOpen;
+            case Place::ThisWindowAsked:
+                return saveBookBeforeClosing(&dialog, saveQuestion)
+                           ? dialogs::ImportArchiveDialog::Opening::Open
+                           : dialogs::ImportArchiveDialog::Opening::Cancel;
+            case Place::Cancel:
+                return dialogs::ImportArchiveDialog::Opening::Cancel;
+            case Place::ThisWindow:
+                break;
+        }
         const OpenBookChoice choice = askAboutOpenBook(
             &dialog,
             //: %1: the title of the book in the archive. In Polish: Książka „%1” z archiwum może
@@ -1900,8 +1965,7 @@ void DocumentCoordinator::onImportArchive() {
             //: In Polish: Zamknij i otwórz zaimportowaną
             tr("Close and Open Imported"),
             //: In Polish: Importuj bez otwierania
-            tr("Import Without Opening"),
-            tr("Do you want to save changes to '%1' before importing the archive?"));
+            tr("Import Without Opening"), saveQuestion);
         switch (choice) {
             case OpenBookChoice::Close:
                 return dialogs::ImportArchiveDialog::Opening::Open;
@@ -1913,6 +1977,9 @@ void DocumentCoordinator::onImportArchive() {
         return dialogs::ImportArchiveDialog::Opening::Cancel;
     });
     dialog.exec();
+    if (openInNewWindow && !imported.isEmpty() && m_otherWindows.openInNewWindow) {
+        m_otherWindows.openInNewWindow(imported);
+    }
 }
 
 // =============================================================================
@@ -2123,6 +2190,10 @@ void DocumentCoordinator::onProjectClosed() {
     m_navigatorPanel->clearDocument();
     m_navigatorPanel->setReadOnly(false);
     m_readOnlyBarDismissed = false;
+    // What the info bar said of the book goes with it
+    if (m_notice.anyTab) {
+        clearNotice();
+    }
     relistStandaloneFiles();  // they stay open without the book
 
     // Reset window title
