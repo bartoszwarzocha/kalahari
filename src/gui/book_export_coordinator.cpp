@@ -52,11 +52,14 @@ bool isContentsKind(const QString& kindId) {
 
 }  // namespace
 
-BookExportCoordinator::BookExportCoordinator(QTabWidget* centralTabs, CurrentEditor currentEditor,
+BookExportCoordinator::BookExportCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                             QTabWidget* centralTabs, CurrentEditor currentEditor,
                                              const CaptionCoordinator* captions,
                                              const FootnoteCoordinator* footnotes, QWidget* window,
                                              QObject* parent)
     : QObject(parent),
+      m_book(book),
+      m_commands(commands),
       m_centralTabs(centralTabs),
       m_currentEditor(std::move(currentEditor)),
       m_captions(captions),
@@ -64,10 +67,9 @@ BookExportCoordinator::BookExportCoordinator(QTabWidget* centralTabs, CurrentEdi
       m_window(window) {}
 
 void BookExportCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
     for (const auto& [id, format] : {std::pair{DOCX_COMMAND, editor::ExportFormat::Docx},
                                      std::pair{MARKDOWN_COMMAND, editor::ExportFormat::Markdown}}) {
-        if (Command* command = registry.getCommand(id)) {
+        if (Command* command = m_commands.getCommand(id)) {
             command->execute = [this, format = format]() { exportBook(format); };
             command->isEnabled = [this]() { return whyNotExport().isEmpty(); };
             command->disabledReason = [this]() { return whyNotExport(); };
@@ -77,14 +79,13 @@ void BookExportCoordinator::connectCommands() {
 }
 
 void BookExportCoordinator::updateCommands() {
-    auto& registry = CommandRegistry::getInstance();
-    registry.updateActionState(DOCX_COMMAND);
-    registry.updateActionState(MARKDOWN_COMMAND);
+    m_commands.updateActionState(DOCX_COMMAND);
+    m_commands.updateActionState(MARKDOWN_COMMAND);
 }
 
 QString BookExportCoordinator::whyNotExport() const {
     const EditorPanel* front = m_currentEditor ? m_currentEditor() : nullptr;
-    if (core::ProjectManager::getInstance().isProjectOpen() ||
+    if (m_book.isProjectOpen() ||
         (front != nullptr && front->getBookEditor() != nullptr)) {
         return QString();
     }
@@ -139,7 +140,7 @@ void BookExportCoordinator::exportBook(editor::ExportFormat format) {
 
 dialogs::ExportBookDialog::Book BookExportCoordinator::dialogBook() const {
     dialogs::ExportBookDialog::Book book;
-    auto& projects = core::ProjectManager::getInstance();
+    core::ProjectManager& projects = m_book;
     const core::ProjectBook* projectBook = projects.isProjectOpen() ? projects.book() : nullptr;
     if (projectBook != nullptr) {
         book.title = projectBook->title.trimmed().isEmpty() ? tr("Book") : projectBook->title;
@@ -225,7 +226,7 @@ dialogs::ExportBookDialog::Book BookExportCoordinator::dialogBook() const {
 editor::BookExport BookExportCoordinator::bookExport(
     const dialogs::ExportBookDialog::Choice& choice) const {
     using Content = dialogs::ExportBookDialog::Content;
-    auto& projects = core::ProjectManager::getInstance();
+    core::ProjectManager& projects = m_book;
     const auto& settings = core::SettingsManager::getInstance();
     const core::ProjectBook* projectBook = projects.isProjectOpen() ? projects.book() : nullptr;
 
@@ -236,7 +237,7 @@ editor::BookExport BookExportCoordinator::bookExport(
         book.language = projectBook->language;
         book.imagesFolder = projects.imagesBaseFolder();
     }
-    book.styles = bookParagraphStyles();
+    book.styles = bookParagraphStyles(m_book);
     book.fontFamily = choice.fontFamily.isEmpty()
                           ? QString::fromStdString(settings.get<std::string>("editor.fontFamily"))
                           : choice.fontFamily;

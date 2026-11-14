@@ -755,7 +755,7 @@ TEST_CASE("Export Book: the book as the program has it, in reading order",
     // An unsaved change of the open text
     storm->setContent(QStringLiteral("<kml><p>Storm, not saved yet.</p></kml>"));
     BookExportCoordinator coordinator(
-        window.tabs,
+        pm, kalahari::test::commands(), window.tabs,
         [&window]() { return qobject_cast<gui::EditorPanel*>(window.tabs->currentWidget()); },
         nullptr,
         nullptr, &window.window);
@@ -823,7 +823,7 @@ TEST_CASE("Export Book: the book as the program has it, in reading order",
 }
 
 TEST_CASE("Export Book: the commands wait for a book or a text", "[gui][export]") {
-    BookExportCoordinator coordinator(nullptr, []() { return nullptr; }, nullptr, nullptr,
-                                      nullptr);
+    BookExportCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                      []() { return nullptr; }, nullptr, nullptr, nullptr);
     CHECK(coordinator.whyNotExport() == QStringLiteral("Open a book or a text to export"));
 }
