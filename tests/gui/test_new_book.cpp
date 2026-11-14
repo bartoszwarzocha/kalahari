@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_new_book.cpp
 /// @brief A new book: the palette of the kinds of a user project, the window of its kinds, and
 /// a new book created without opening while another book is open

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_page.h
 /// @brief The card of a material, short in the Properties panel and full on a tab of its own,
 /// and the materials of an element of the book

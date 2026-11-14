@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_command_shortcuts.cpp
 /// @brief The keyboard shortcuts of the application's commands
 

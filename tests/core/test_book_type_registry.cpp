@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_type_registry.cpp
 /// @brief Book type packages: the built-in Base and five types, and packages with problems
 

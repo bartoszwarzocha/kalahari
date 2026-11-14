@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_pages.cpp
 /// @brief Settings pages: Editor > General, Colors, Cursor, Pages and Margins
 ///

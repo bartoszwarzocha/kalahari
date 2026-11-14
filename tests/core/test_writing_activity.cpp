@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_writing_activity.cpp
 /// @brief The record of writing in 5-minute slots, and the recorder that collects it
 

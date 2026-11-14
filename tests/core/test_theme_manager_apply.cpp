@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_theme_manager_apply.cpp
 /// @brief ThemeManager::reloadTheme applies a theme with the user's stored colors
 /// and extra overrides in one pass (one themeChanged, colors visible in the palette);

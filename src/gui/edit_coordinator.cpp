@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file edit_coordinator.cpp
 /// @brief Implementation of EditCoordinator
 

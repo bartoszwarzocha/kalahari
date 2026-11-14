@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_central_tabs.cpp
 /// @brief The tabs in the middle of the window: Qt's one row by default; in more rows the
 /// tabs of Qt's tab bar wrapped to the width, following its changes, and a click, a close

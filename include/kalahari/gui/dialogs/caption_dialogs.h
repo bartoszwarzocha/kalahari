@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file caption_dialogs.h
 /// @brief The windows of the numbered captions: Insert Caption, Caption Numbering and Insert
 ///        Cross-Reference

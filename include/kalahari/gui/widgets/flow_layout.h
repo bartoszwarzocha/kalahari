@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file flow_layout.h
 /// @brief A row of items that goes on in the next line where the panel is too narrow
 

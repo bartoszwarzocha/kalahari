@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_document_commands.cpp
 /// @brief The commands that work on the document in front are greyed out without one, those of
 /// the open book without a book, Save All without a document; a greyed out command says why,

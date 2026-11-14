@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file cover_names.h
 /// @brief The materials of the cover in the program's words: the names of their parts, places,
 /// states and consents, their icons and the lengths of their texts

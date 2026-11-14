@@ -204,3 +204,6 @@ Clipboard_*.png
 .claude/compact-state.json
 .claude/session-state.json
 .claude/settings.local.json
+
+# SonarQube scanner working directory
+.scannerwork/

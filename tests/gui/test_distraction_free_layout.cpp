@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_distraction_free_layout.cpp
 /// @brief The main window's layout for Distraction-Free writing: the parts it hides and
 ///        brings back, Esc, the menu shortcuts while the menu bar is hidden, and the menus

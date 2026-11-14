@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_grammar.cpp
 /// @brief Grammar as you type in the editor: waves under the issues the writer's LanguageTool
 ///        server (a stand-in on localhost) finds in the paragraphs around the view, sent when

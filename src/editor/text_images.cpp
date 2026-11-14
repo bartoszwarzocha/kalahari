@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_images.cpp
 /// @brief Images in the text: a picture that is a character of its line
 

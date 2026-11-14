@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file deadline_dialog.h
 /// @brief The small window of Add Deadline and Change Deadline, on the tab Writing Goals and
 /// Deadlines

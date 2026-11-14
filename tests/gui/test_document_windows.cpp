@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_document_windows.cpp
 /// @brief The tabs of the texts in windows of their own: a text goes to one and back, the book
 /// window still finds it (Save All, the Navigator), closing the window returns its texts or

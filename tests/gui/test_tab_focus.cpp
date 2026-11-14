@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_tab_focus.cpp
 /// @brief The keys go to the page in front of the tabs, also when a tab closes or is clicked
 

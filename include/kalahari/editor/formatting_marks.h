@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file formatting_marks.h
 /// @brief The formatting marks of a paragraph (View > Show Formatting Marks): ¶ ¤ · ° → ↵ ¬
 ///

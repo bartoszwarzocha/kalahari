@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_annotation_cards.cpp
 /// @brief The cards of the annotations under their paragraphs: the second way of showing the
 ///        annotations in the continuous view (marks only without them, and in the page view)

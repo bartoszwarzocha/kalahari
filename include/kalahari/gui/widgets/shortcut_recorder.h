@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file shortcut_recorder.h
 /// @brief A field that shows keys and, when asked, records the next key press
 

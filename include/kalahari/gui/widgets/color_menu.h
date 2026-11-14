@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file color_menu.h
 /// @brief The submenus Format > Font Color and Highlight Color: the automatic color or none,
 ///        the palette of the color window, its recent colors and More Colors...

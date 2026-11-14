@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotation_entry.h
 /// @brief An annotation as the Annotations panel lists it, and what the panel shows
 

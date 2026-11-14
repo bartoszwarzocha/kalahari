@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file special_characters.cpp
 /// @brief The characters of Insert > Special Character...: their groups, their names in the
 ///        program's language and in English, and finding them by a name or a code

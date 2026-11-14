@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file main_window.h
 /// @brief Main application window (Qt6 QMainWindow subclass)
 ///

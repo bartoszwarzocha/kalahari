@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file quick_insert.h
 /// @brief Quick insert: what the list at the cursor offers and how the typed letters find it
 ///

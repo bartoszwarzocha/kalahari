@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file cover_plan.h
 /// @brief The plan of the cover: the cover unfolded (the flaps, the back, the spine, the
 /// front), with the design chosen behind it and the materials of the cover in their places

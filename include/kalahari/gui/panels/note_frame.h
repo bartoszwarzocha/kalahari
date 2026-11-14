@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file note_frame.h
 /// @brief The frame a note's text is written in, at the place of the note
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_type_package.cpp
 /// @brief Book type packages: reading booktype.json and the styles file
 

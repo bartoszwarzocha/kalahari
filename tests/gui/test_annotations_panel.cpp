@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_annotations_panel.cpp
 /// @brief The Annotations panel, the frame an annotation is written in, and the commands of
 /// the annotations

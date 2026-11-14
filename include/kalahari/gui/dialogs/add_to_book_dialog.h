@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file add_to_book_dialog.h
 /// @brief Add to Book: a file as a new text element, of the kind, with the title and at the
 /// place the writer chooses

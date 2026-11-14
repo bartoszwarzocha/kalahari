@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file move_element_dialog.cpp
 /// @brief Move: a new place in the book for an element, with the elements inside it
 

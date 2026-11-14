@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_notes.cpp
 /// @brief BookEditor: footnotes and endnotes - inserting them, their text, their place
 

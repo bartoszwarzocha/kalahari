@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_svg_converter.cpp
 /// @brief Unit tests for SvgConverter (Task #00020)
 ///

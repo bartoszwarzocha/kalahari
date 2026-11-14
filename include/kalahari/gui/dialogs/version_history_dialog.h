@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file version_history_dialog.h
 /// @brief The window of File > Version History...: the versions of a text, to read, compare,
 /// bring back or take a fragment from

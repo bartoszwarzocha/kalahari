@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file grammar_setup.h
 /// @brief Preparing grammar as you type: Java and LanguageTool downloaded, checked, unpacked
 ///        and started once

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file unicode_paths.h
 /// @brief Paths with any characters: as UTF-8 text, from UTF-8 text, and the ZIP archives in
 /// them

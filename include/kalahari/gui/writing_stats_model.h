@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_stats_model.h
 /// @brief What the statistics bar, the Statistics panel and the goals show: the record of
 /// writing counted by the writer's rules, with what the editor has not saved yet

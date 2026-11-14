@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage3.cpp
 /// @brief Editor Stage 3 (variant A): drag and drop of text, find and replace, cursor
 ///

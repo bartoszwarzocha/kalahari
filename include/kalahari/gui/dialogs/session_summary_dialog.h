@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file session_summary_dialog.h
 /// @brief The summary of the session of writing, when the book or the program closes: the
 /// words of today, a graph of the day, the time of writing, the goal and this session

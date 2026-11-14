@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_new_file.cpp
 /// @brief New File: an element of the open book or an empty text file in the New File window,
 /// or a file outside a book; Open File in the File menu and on the toolbars

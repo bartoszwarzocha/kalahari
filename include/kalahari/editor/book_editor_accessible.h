@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_accessible.h
 /// @brief Accessibility interface for BookEditor (OpenSpec #00042 Task 7.16)
 ///

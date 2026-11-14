@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file package_card.cpp
 /// @brief What a book keeps of each book type package it uses: the name, the version and the
 /// icons of the type and of its kinds

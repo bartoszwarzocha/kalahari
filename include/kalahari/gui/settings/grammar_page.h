@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file grammar_page.h
 /// @brief Settings > Editor > Grammar: grammar as you type, where the text is checked, the
 ///        preparation of LanguageTool and the rules ignored

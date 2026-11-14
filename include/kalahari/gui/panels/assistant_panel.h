@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file assistant_panel.h
 /// @brief Assistant panel placeholder (Qt6)
 ///

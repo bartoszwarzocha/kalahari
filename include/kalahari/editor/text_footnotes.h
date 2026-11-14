@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_footnotes.h
 /// @brief Footnotes and endnotes: a number in the text with the text of its note inside it
 ///

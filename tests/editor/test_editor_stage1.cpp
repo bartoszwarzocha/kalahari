@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage1.cpp
 /// @brief Editor Stage 1 (quick fixes): regression tests for the defects it fixed
 ///

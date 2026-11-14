@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file chapter_versions.h
 /// @brief Versions of the text of a chapter file: copies of its text that the writer keeps, or
 /// that the program keeps by itself, to read, compare and bring back later

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file style_coordinator.h
 /// @brief The paragraph styles of the book: new ones, changed, deleted and brought back as the
 ///        type has them, from Format > Text Style, the palette and Manage Styles

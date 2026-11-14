@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_spelling.cpp
 /// @brief Spelling as you type in the editor: waves under the misspelled words, checked in
 ///        short turns from the paragraphs in view, kept through the edits that leave their

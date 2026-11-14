@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file context_menu_reader.h
 /// @brief Reads the context menus a widget opens, as they are about to show
 

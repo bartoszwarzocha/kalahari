@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file section_words.h
 /// @brief How the program's sentences name the front, main and back part of a book
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file auto_correct_coordinator.h
 /// @brief Auto-correct as you type turned on and off as a whole: the command, its check mark
 ///        and its tooltip

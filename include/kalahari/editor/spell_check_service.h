@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spell_check_service.h
 /// @brief The spelling dictionary every editor checks its text with (Hunspell)
 

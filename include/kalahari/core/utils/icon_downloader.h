@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file icon_downloader.h
 /// @brief HTTP downloader for Material Design icons with automatic conversion
 ///

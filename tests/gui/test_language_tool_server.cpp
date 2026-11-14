@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_language_tool_server.cpp
 /// @brief The LanguageTool server on this computer: the one the program starts (with the
 ///        stand-in for Java) and the one started outside it (the stand-in for LanguageTool)

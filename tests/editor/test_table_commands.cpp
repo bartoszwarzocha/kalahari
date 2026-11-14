@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_table_commands.cpp
 /// @brief The Table menu in the text: the properties of tables in KML, the commands, sorting,
 ///        moving rows, the conversions, the properties of a table, the columns' edges, and

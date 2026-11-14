@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_writing_awards_tab.cpp
 /// @brief The badges and challenges in the window: what the tracker wins and says, the tab
 /// Challenges and Badges, Add Challenge, the view Achievements of the Statistics panel, the

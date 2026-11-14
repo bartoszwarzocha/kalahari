@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file grammar_components.h
 /// @brief What grammar as you type needs on this computer: Java and LanguageTool, where the
 ///        program puts them and what the ones found are

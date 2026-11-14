@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file panel_tabs.h
 /// @brief The tabs of the panels docked one over another: the program's own in place of Qt's
 

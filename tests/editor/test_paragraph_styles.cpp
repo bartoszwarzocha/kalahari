@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_paragraph_styles.cpp
 /// @brief Paragraph styles and the objects of the text (a horizontal line, the scene and page
 ///        breaks) as the writer edits them

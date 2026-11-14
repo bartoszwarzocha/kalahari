@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_grammar_setup.cpp
 /// @brief The preparation of grammar checking: Java and LanguageTool downloaded from sites on
 ///        localhost, checked, unpacked into a folder of the test and started once with the

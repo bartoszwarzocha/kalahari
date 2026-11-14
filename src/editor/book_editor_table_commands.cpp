@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_table_commands.cpp
 /// @brief BookEditor: the Table menu – rows, columns, cells, the header, sorting, moving,
 ///        turning text into a table and back, and the properties of a table

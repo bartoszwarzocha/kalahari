@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file search_engine.cpp
 /// @brief Search engine implementation for Find/Replace operations (OpenSpec #00044 Task 9.4)
 

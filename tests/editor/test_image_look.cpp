@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_image_look.cpp
 /// @brief The look of an image: its description, turn, mirror, crop, colors and frame, in
 ///        its format, in KML, as its picture is drawn and as the layout sizes it

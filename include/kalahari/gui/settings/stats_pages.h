@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file stats_pages.h
 /// @brief Settings > Statistics and Goals: Bar and Panel, Counting, Notifications and Colors
 ///

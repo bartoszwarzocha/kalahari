@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_wrapping_labels.cpp
 /// @brief Labels and buttons that wrap on a narrow panel instead of being cut off
 

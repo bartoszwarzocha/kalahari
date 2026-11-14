@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file delete_dialogs.cpp
 /// @brief The windows that delete an element from the book and that delete files: what goes,
 /// and where its files go

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file chapter_break_coordinator.h
 /// @brief Book > Chapter Break: the text from the cursor to a new text of the book right after
 ///        the text it was in, with Undo

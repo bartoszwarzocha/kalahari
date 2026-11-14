@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_file.h
 /// @brief The file of a material as the program shows it: its name, format, size and picture
 

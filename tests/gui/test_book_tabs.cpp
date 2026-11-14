@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_tabs.cpp
 /// @brief The tabs of the open book: one file is edited in one tab, Save As and Close Book
 /// with a book open, Save, Save As and Save All greyed out while they have nothing to save, the

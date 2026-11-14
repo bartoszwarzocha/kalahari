@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_coordinator.h
 /// @brief Spelling as you type: the dictionaries of the editors, their languages and the
 ///        commands

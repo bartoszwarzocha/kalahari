@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file challenge_dialog.h
 /// @brief The small window of Add Challenge: a goal of the writer's own for a time, e.g.
 /// 50,000 words in a month

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file special_character_choices.h
 /// @brief The writer's own characters of Insert > Special Character...: the favorites and the
 ///        ones inserted last, kept in the settings

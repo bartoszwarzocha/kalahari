@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file caps_lock.h
 /// @brief Caps Lock turned off by the program, where the system lets it: after autocorrect
 ///        changed a word typed with it on by mistake, as Word does

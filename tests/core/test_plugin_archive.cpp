@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_plugin_archive.cpp
 /// @brief A plugin archive is unpacked only into its own folder, and says why it was not
 ///

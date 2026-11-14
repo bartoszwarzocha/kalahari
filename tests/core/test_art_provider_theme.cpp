@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_art_provider_theme.cpp
 /// @brief Regression tests for the icon stack's theme-change ordering (BUG-1).
 ///

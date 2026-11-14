@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file style_resolver.h
 /// @brief Style resolver with inheritance support (OpenSpec #00042 Phase 6)
 ///

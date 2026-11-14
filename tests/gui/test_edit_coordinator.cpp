@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_edit_coordinator.cpp
 /// @brief Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys
 ///        (EditCoordinator)

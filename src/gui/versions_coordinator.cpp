@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file versions_coordinator.cpp
 /// @brief Save Version and Version History, and what the window of the versions chose
 

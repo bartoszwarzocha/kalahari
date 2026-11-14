@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file layout_notes_internal.h
 /// @brief KalahariTextDocumentLayout: a note's text laid out (inside the layout's sources)
 

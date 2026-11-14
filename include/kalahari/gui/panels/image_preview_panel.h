@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file image_preview_panel.h
 /// @brief The preview of the picture of a material, on a tab in the center of the window
 

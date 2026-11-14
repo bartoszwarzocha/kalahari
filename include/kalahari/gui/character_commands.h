@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file character_commands.h
 /// @brief The commands that insert a character with keys the writer gave it (Insert > Special
 ///        Character..., Assign Shortcut...)

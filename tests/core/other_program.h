@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file other_program.h
 /// @brief Another Kalahari program that runs, for the tests of a book that it has open
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_highlight.h
 /// @brief Highlighted ranges of a paragraph's text (search matches, checks, the word read aloud)
 

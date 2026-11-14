@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_formatting_characters.cpp
 /// @brief Insert > Formatting Character: the characters of the typesetting a keyboard does not
 ///        have, with the keys of Word

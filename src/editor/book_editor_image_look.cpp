@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_image_look.cpp
 /// @brief BookEditor: the commands of the Image menu that change the look of an image (turn,
 ///        mirror, filter, the keys of its size) and cropping it in the text

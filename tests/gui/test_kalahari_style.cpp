@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_kalahari_style.cpp
 /// @brief The program's style: a grey menu item the arrow keys rest on is highlighted, softer
 /// than an enabled one

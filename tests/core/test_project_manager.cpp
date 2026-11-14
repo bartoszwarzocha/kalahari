@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_project_manager.cpp
 /// @brief ProjectManager: creating, opening and saving book projects, their elements, the text
 /// and the data of their chapter files

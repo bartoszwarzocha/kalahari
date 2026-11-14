@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_read_only_text.cpp
 /// @brief A read-only text, a chapter of a book open read-only: it is read, selected, copied
 /// and searched, and nothing changes it

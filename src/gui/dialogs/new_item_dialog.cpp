@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file new_item_dialog.cpp
 /// @brief Implementation of NewItemDialog
 ///

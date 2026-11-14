@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file grammar_setup_dialog.h
 /// @brief The window of the preparation of grammar checking: what is downloaded, how it goes,
 ///        that it is ready, or why it stopped

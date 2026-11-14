@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_spelling_panel.cpp
 /// @brief The Spelling and Grammar panel: the cards and the words they show, the colors of the
 ///        kinds, the counts and filters, what the panel says without cards, its keys; and with

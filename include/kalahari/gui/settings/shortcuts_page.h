@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file shortcuts_page.h
 /// @brief Settings > Keyboard Shortcuts: the keys of the commands, changed and checked
 ///

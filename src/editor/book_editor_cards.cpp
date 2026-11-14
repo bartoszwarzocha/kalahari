@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_cards.cpp
 /// @brief BookEditor: the cards of the annotations under their paragraphs
 

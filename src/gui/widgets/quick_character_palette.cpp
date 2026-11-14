@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file quick_character_palette.cpp
 /// @brief Insert > Quick Character: the favorite characters and those used last at the cursor
 ///        of the text, and a search of all of them

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file log_panel_sink.h
 /// @brief Custom spdlog sink for LogPanel (Qt signal-based)
 ///

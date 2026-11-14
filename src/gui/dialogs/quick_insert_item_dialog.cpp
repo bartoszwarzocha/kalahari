@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file quick_insert_item_dialog.cpp
 /// @brief The window of a text fragment or a typographic character of quick insert
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_tables.cpp
 /// @brief Tables in the text: the model, KML, the layout of the cells, the keys, the clipboard
 

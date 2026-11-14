@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file font_dialog.h
 /// @brief Format > Font...: the font, style, size, colors, effects and letter spacing of the
 ///        selected text
