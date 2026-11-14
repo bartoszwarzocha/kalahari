@@ -18,9 +18,14 @@ Steps:
   4. run sonar-scanner in the repository root (what is analysed is defined in
      sonar-project.properties).
 
-clang-tidy runs with every check (--checks=*) by default. Which of them count
-is decided by the quality profile of the project in SonarQube: the plugin
-imports only the issues of rules that are active in that profile.
+clang-tidy runs with every check but one (DEFAULT_CHECKS) by default. Which of
+them count is decided by the quality profile of the project in SonarQube: the
+plugin imports only the issues of rules that are active in that profile.
+
+A file whose source, compile command and headers did not change since an earlier
+run takes its result from <build dir>/sonar/clang-tidy-cache (the headers come from
+Ninja's dependency log of the last build), so after a small change only the files
+it touches are analysed again.
 
 Requirements:
   - a finished build (scripts/build_windows.bat Debug or scripts/build_linux.sh):
@@ -37,7 +42,8 @@ Usage:
 
 Options:
     --build-dir DIR     build directory with compile_commands.json
-    --checks GLOBS      clang-tidy checks (default: *)
+    --checks GLOBS      clang-tidy checks (default: every check but one, see DEFAULT_CHECKS)
+    --no-cache          analyse every file again (by default unchanged files reuse their result)
     --jobs N            parallel clang-tidy processes (default: number of CPUs)
     --clang-tidy PATH   clang-tidy executable (default: from PATH or LLVM's folder)
     --scanner PATH      sonar-scanner executable (default: $SONAR_SCANNER or PATH)
@@ -48,6 +54,7 @@ Options:
 
 import argparse
 import concurrent.futures
+import hashlib
 import json
 import os
 import re
@@ -67,6 +74,11 @@ SOURCE_DIRS = ("src", "tests")
 # Headers whose diagnostics are reported (dependencies and generated code are not)
 HEADER_DIRS = ("include", "src", "tests")
 CLANG_TIDY_TIMEOUT_S = 1800
+# Every check except llvm-prefer-static-over-anonymous-namespace: it contradicts
+# misc-use-anonymous-namespace, and the project uses anonymous namespaces (decision of
+# 2026-11-14). sonar-cxx does not know that check (its findings land in the one rule
+# "Unknown Clang-Tidy rule"), so it cannot be turned off in the SonarQube profile.
+DEFAULT_CHECKS = "*,-llvm-prefer-static-over-anonymous-namespace"
 
 # "file:line:column: level: message [check]" - the file may start with a drive letter
 DIAGNOSTIC_LINE = re.compile(
@@ -179,37 +191,117 @@ def header_filter() -> str:
     return f"^{pattern}[/\\\\]({'|'.join(HEADER_DIRS)})[/\\\\].*"
 
 
-def unique_database(database: Path, target_dir: Path) -> Path:
+def unique_database(database: Path, target_dir: Path) -> Tuple[Path, Dict[str, dict]]:
     """Copy of the compilation database with one command per source file.
 
     clang-tidy runs every command it finds for a file; a file built by two targets
-    would be analysed twice for the same findings.
+    would be analysed twice for the same findings. Returns the folder of the copy and
+    its entries by normalized source path.
     """
     entries = json.loads(database.read_text(encoding="utf-8"))
-    seen = set()
-    unique = []
+    unique: Dict[str, dict] = {}
     for entry in entries:
         path = Path(entry["file"])
         if not path.is_absolute():
             path = Path(entry["directory"]) / path
-        key = normalized(path)
-        if key not in seen:
-            seen.add(key)
-            unique.append(entry)
+        unique.setdefault(normalized(path), entry)
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / "compile_commands.json"
-    target.write_text(json.dumps(unique, indent=1), encoding="utf-8")
-    return target_dir
+    target.write_text(json.dumps(list(unique.values()), indent=1), encoding="utf-8")
+    return target_dir, unique
+
+
+def ninja_dependencies(build_dir: Path, environment: Optional[Dict[str, str]]) -> Dict[str, List[str]]:
+    """Headers of every object file as Ninja recorded them during the last build.
+
+    Returns {normalized object path: [header paths]}; empty when Ninja is not available.
+    """
+    path = (environment or os.environ).get("PATH")
+    ninja = shutil.which("ninja", path=path)
+    if not ninja:
+        return {}
+    result = subprocess.run([ninja, "-C", str(build_dir), "-t", "deps"], capture_output=True,
+                            text=True, encoding="utf-8", errors="replace", env=environment,
+                            check=False)
+    dependencies: Dict[str, List[str]] = {}
+    current: Optional[List[str]] = None
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            current = None
+        elif not line.startswith((" ", "\t")) and ": #deps" in line:
+            output = line.split(": #deps", 1)[0]
+            current = [] if "(VALID)" in line else None
+            if current is not None:
+                dependencies[normalized(build_dir / output)] = current
+        elif current is not None:
+            header = line.strip()            # relative paths are relative to the build folder
+            current.append(header if os.path.isabs(header) else str(build_dir / header))
+    return dependencies
+
+
+class ResultCache:
+    """clang-tidy results of files whose source, headers and command did not change.
+
+    The key of a file covers the clang-tidy version and options, its compile command,
+    the content of the file and of every project header it includes (from Ninja's
+    dependency log) and the size and time of the headers outside the project.
+    """
+
+    def __init__(self, folder: Path, settings: List[str]):
+        self.folder = folder
+        self.settings = settings
+        self.content_hashes: Dict[str, str] = {}
+        folder.mkdir(parents=True, exist_ok=True)
+
+    def _file_signature(self, path: str) -> str:
+        key = normalized(Path(path))
+        if key.startswith(normalized(REPO_ROOT) + os.sep):
+            if key not in self.content_hashes:
+                try:
+                    self.content_hashes[key] = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+                except OSError:
+                    self.content_hashes[key] = "missing"
+            return f"{key}={self.content_hashes[key]}"
+        try:
+            info = os.stat(path)
+            return f"{key}={info.st_size}:{info.st_mtime_ns}"
+        except OSError:
+            return f"{key}=missing"
+
+    def key(self, unit: Path, entry: dict, headers: Optional[List[str]]) -> Optional[str]:
+        if headers is None:
+            return None                      # no dependency record: always run clang-tidy
+        parts = [*self.settings, entry.get("command") or json.dumps(entry.get("arguments")),
+                 self._file_signature(str(unit)),
+                 *sorted(self._file_signature(header) for header in headers)]
+        return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()
+
+    def load(self, key: Optional[str]) -> Optional[Tuple[int, str, str]]:
+        if key is None:
+            return None
+        file = self.folder / f"{key}.json"
+        if not file.exists():
+            return None
+        data = json.loads(file.read_text(encoding="utf-8"))
+        return data["returncode"], data["stdout"], data["stderr"]
+
+    def store(self, key: Optional[str], returncode: int, stdout: str, stderr: str) -> None:
+        if key is not None and returncode >= 0:
+            (self.folder / f"{key}.json").write_text(
+                json.dumps({"returncode": returncode, "stdout": stdout, "stderr": stderr}),
+                encoding="utf-8")
+
+
+def clang_tidy_extra_args() -> List[str]:
+    if os.name == "nt":
+        # The build treats compiler warnings as errors (/WX), here they are findings;
+        # MSVC precompiled headers cannot be read by clang (/Y- turns them off)
+        return ["--extra-arg=/WX-", "--extra-arg=/Y-"]
+    return ["--extra-arg=-Wno-error"]
 
 
 def run_clang_tidy(clang_tidy: str, database_dir: Path, unit: Path, checks: str,
                    environment: Optional[Dict[str, str]]) -> Tuple[Path, int, str, str]:
-    if os.name == "nt":
-        # The build treats compiler warnings as errors (/WX), here they are findings;
-        # MSVC precompiled headers cannot be read by clang (/Y- turns them off)
-        extra = ["--extra-arg=/WX-", "--extra-arg=/Y-"]
-    else:
-        extra = ["--extra-arg=-Wno-error"]
     command = [
         clang_tidy,
         "-p", str(database_dir),
@@ -217,7 +309,7 @@ def run_clang_tidy(clang_tidy: str, database_dir: Path, unit: Path, checks: str,
         "--warnings-as-errors=-*",           # report findings as warnings, not errors
         f"--header-filter={header_filter()}",
         "--quiet",
-        *extra,
+        *clang_tidy_extra_args(),
         str(unit),
     ]
     try:
@@ -264,31 +356,61 @@ def clang_tidy_step(args, build_dir: Path, report: Path) -> None:
     version = subprocess.run([clang_tidy, "--version"], capture_output=True, text=True,
                              check=False).stdout.strip().splitlines()
     environment = msvc_environment()
-    database_dir = unique_database(database, report.parent)
+    database_dir, entries = unique_database(database, report.parent)
     jobs = args.jobs or os.cpu_count() or 4
     print(f"[INFO] clang-tidy: {clang_tidy} ({' '.join(version[1:2]).strip()})")
     print(f"[INFO] {len(units)} translation units, checks: {args.checks}, jobs: {jobs}")
+
+    cache = None if args.no_cache else ResultCache(
+        report.parent / "clang-tidy-cache",
+        [" ".join(version), args.checks, header_filter(), *clang_tidy_extra_args()])
+    dependencies = ninja_dependencies(build_dir, environment) if cache else {}
+    if cache and not dependencies:
+        print("[WARNING] no Ninja dependency log - every file is analysed again")
+    cached: Dict[Path, Tuple[int, str, str]] = {}
+    keys: Dict[Path, Optional[str]] = {}
+    for unit in units:
+        if cache:
+            entry = entries[normalized(unit)]
+            output = entry.get("output")
+            headers = dependencies.get(normalized(Path(entry["directory"]) / output)) if output else None
+            keys[unit] = cache.key(unit, entry, headers)
+            hit = cache.load(keys[unit])
+            if hit:
+                cached[unit] = hit
+    to_run = [unit for unit in units if unit not in cached]
+    if cache:
+        print(f"[INFO] {len(cached)} files unchanged since an earlier run, {len(to_run)} to analyse")
 
     unique: Dict[tuple, str] = {}
     checks = Counter()
     failed_units: List[str] = []
     started = time.monotonic()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
-        futures = [pool.submit(run_clang_tidy, clang_tidy, database_dir, unit, args.checks,
-                               environment) for unit in units]
-        for done, future in enumerate(concurrent.futures.as_completed(futures), start=1):
-            unit, returncode, stdout, stderr = future.result()
-            for key, text, check in diagnostic_blocks(stdout):
-                if key not in unique:
-                    unique[key] = text
-                    checks[check or "(no check name)"] += 1
-            if returncode != 0:
-                first_error = next((line for line in (stderr + "\n" + stdout).splitlines()
-                                    if "error" in line.lower()), stderr.strip()[:200])
-                failed_units.append(f"{unit.relative_to(REPO_ROOT).as_posix()}: {first_error}")
-            if done % 25 == 0 or done == len(units):
-                minutes = (time.monotonic() - started) / 60
-                print(f"[INFO] {done}/{len(units)} files, {len(unique)} findings, {minutes:.1f} min")
+
+    def results():
+        for unit, (returncode, stdout, stderr) in cached.items():
+            yield unit, returncode, stdout, stderr
+        with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+            futures = [pool.submit(run_clang_tidy, clang_tidy, database_dir, unit, args.checks,
+                                   environment) for unit in to_run]
+            for future in concurrent.futures.as_completed(futures):
+                unit, returncode, stdout, stderr = future.result()
+                if cache:
+                    cache.store(keys[unit], returncode, stdout, stderr)
+                yield unit, returncode, stdout, stderr
+
+    for done, (unit, returncode, stdout, stderr) in enumerate(results(), start=1):
+        for key, text, check in diagnostic_blocks(stdout):
+            if key not in unique:
+                unique[key] = text
+                checks[check or "(no check name)"] += 1
+        if returncode != 0:
+            first_error = next((line for line in (stderr + "\n" + stdout).splitlines()
+                                if "error" in line.lower()), stderr.strip()[:200])
+            failed_units.append(f"{unit.relative_to(REPO_ROOT).as_posix()}: {first_error}")
+        if done % 25 == 0 or done == len(units):
+            minutes = (time.monotonic() - started) / 60
+            print(f"[INFO] {done}/{len(units)} files, {len(unique)} findings, {minutes:.1f} min")
 
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text("\n".join(unique.values()) + "\n", encoding="utf-8")
@@ -384,7 +506,7 @@ def main() -> None:
     sys.stdout.reconfigure(line_buffering=True)
     parser = argparse.ArgumentParser(description="SonarQube analysis of Kalahari")
     parser.add_argument("--build-dir", type=Path, default=default_build_dir())
-    parser.add_argument("--checks", default="*")
+    parser.add_argument("--checks", default=DEFAULT_CHECKS)
     parser.add_argument("--jobs", type=int, default=0)
     parser.add_argument("--only", help="regular expression for repository-relative file paths")
     parser.add_argument("--clang-tidy")
@@ -392,6 +514,7 @@ def main() -> None:
     parser.add_argument("--host")
     parser.add_argument("--coverage-report", help="SonarQube generic coverage report to import")
     parser.add_argument("--no-coverage", action="store_true")
+    parser.add_argument("--no-cache", action="store_true")
     parser.add_argument("--skip-clang-tidy", action="store_true")
     parser.add_argument("--skip-scan", action="store_true")
     args = parser.parse_args()
