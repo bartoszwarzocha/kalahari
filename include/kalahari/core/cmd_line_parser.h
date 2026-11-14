@@ -13,7 +13,8 @@
 /// - Cross-platform (Windows, Linux, macOS)
 /// - Extensible for future options (string, number, etc.)
 
-#pragma once
+#ifndef KALAHARI_CORE_CMD_LINE_PARSER_H
+#define KALAHARI_CORE_CMD_LINE_PARSER_H
 
 #include <QCommandLineParser>
 #include <QStringList>
@@ -21,8 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Command line parser for Kalahari application
 ///
@@ -108,13 +108,13 @@ public:
     bool parse();
 
     /// @brief --help was given: parse() returned false so that the caller shows the help
-    bool helpRequested() const { return m_helpRequested; }
+    [[nodiscard]] bool helpRequested() const { return m_helpRequested; }
 
     /// @brief The help of all switches and options, as --help shows it
-    QString helpText() const;
+    [[nodiscard]] QString helpText() const;
 
     /// @brief What is wrong with the command line after parse() failed
-    QString errorText() const;
+    [[nodiscard]] QString errorText() const;
 
     /// @brief Check if a switch was specified
     ///
@@ -123,7 +123,7 @@ public:
     ///
     /// @param name Switch name (short or long)
     /// @return true if switch was present, false otherwise
-    bool hasSwitch(const QString& name) const;
+    [[nodiscard]] bool hasSwitch(const QString& name) const;
 
     /// @brief Check if diagnostic mode was enabled via --diag flag
     ///
@@ -131,7 +131,7 @@ public:
     /// on the command line. Equivalent to hasSwitch("diag").
     ///
     /// @return true if --diag flag present, false otherwise
-    bool isDiagnosticMode() const;
+    [[nodiscard]] bool isDiagnosticMode() const;
 
     /// @brief Check if an option was specified
     ///
@@ -140,7 +140,7 @@ public:
     ///
     /// @param name Option name (short or long)
     /// @return true if option was present, false otherwise
-    bool hasOption(const QString& name) const;
+    [[nodiscard]] bool hasOption(const QString& name) const;
 
     /// @brief Get value of an option
     ///
@@ -149,7 +149,7 @@ public:
     ///
     /// @param name Option name (short or long)
     /// @return Option value or empty string
-    QString getOptionValue(const QString& name) const;
+    [[nodiscard]] QString getOptionValue(const QString& name) const;
 
     /// @brief Add an argument without a name, e.g. the book to open
     ///
@@ -160,7 +160,7 @@ public:
                                const QString& syntax = QString());
 
     /// @brief The arguments without a name, in their order; empty before parse()
-    QStringList positionalArguments() const;
+    [[nodiscard]] QStringList positionalArguments() const;
 
 private:
     /// @brief Initialize parser with default settings
@@ -199,5 +199,6 @@ private:
     std::vector<QString> m_options;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_CMD_LINE_PARSER_H

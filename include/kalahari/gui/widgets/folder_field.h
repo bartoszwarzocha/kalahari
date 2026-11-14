@@ -4,7 +4,8 @@
 /// @file folder_field.h
 /// @brief Field of a folder: its path, Browse... and Restore Default
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_FOLDER_FIELD_H
+#define KALAHARI_GUI_WIDGETS_FOLDER_FIELD_H
 
 #include <QString>
 #include <QWidget>
@@ -14,8 +15,7 @@ class QLineEdit;
 class QPushButton;
 class QTimer;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Field of a folder: the path, Browse... (the system window choosing a folder) and
 /// Restore Default, with a line under them that says why the program cannot use the folder,
@@ -83,5 +83,6 @@ private:
     QString m_chooseTitle;
 };
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_FOLDER_FIELD_H

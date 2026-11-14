@@ -8,8 +8,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/grammar_check_service.h>
-#include "editor_test_utils.h"
-#include "fake_language_tool.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/editor/fake_language_tool.h"
 
 #include <QChar>
 #include <QList>
@@ -46,7 +46,7 @@ public:
     }
 
     /// Whether a request was answered with its issues
-    bool answered(quint64 request) const { return checked.count(request) == 1; }
+    [[nodiscard]] bool answered(quint64 request) const { return checked.count(request) == 1; }
 
     std::map<quint64, QList<GrammarError>> checked;  ///< Issues, by request
     QList<quint64> notChecked;

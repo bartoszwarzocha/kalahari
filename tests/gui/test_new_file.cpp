@@ -22,8 +22,8 @@
 #include <kalahari/gui/widgets/element_place_picker.h>
 #include <kalahari/gui/widgets/fitting_scroll_area.h>
 
-#include "document_window.h"
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QAbstractButton>
 #include <QAction>
@@ -65,7 +65,7 @@
 #include <cstdio>
 #include <functional>
 #include <string>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 /// Qt's own way to press a key over the window's shortcuts, as the system delivers it (Qt
 /// Test presses keys with it; the program does not link Qt Test)

@@ -9,7 +9,8 @@
 ///
 /// OpenSpec #00041: SQLite Project Database
 
-#pragma once
+#ifndef KALAHARI_CORE_PROJECT_DATABASE_H
+#define KALAHARI_CORE_PROJECT_DATABASE_H
 
 #include "kalahari/core/database_types.h"
 #include "kalahari/core/writing_activity.h"
@@ -21,8 +22,7 @@
 #include <QDateTime>
 #include <functional>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief SQLite database wrapper for project data
 ///
@@ -54,7 +54,7 @@ public:
     void close();
 
     /// @brief Check if database is open
-    bool isOpen() const;
+    [[nodiscard]] bool isOpen() const;
 
     /// @brief Write what the database's write-ahead log holds to the database file, so that a
     /// copy of project.db alone has everything
@@ -62,21 +62,21 @@ public:
     bool checkpoint();
 
     /// @brief Get project path
-    QString projectPath() const { return m_projectPath; }
+    [[nodiscard]] QString projectPath() const { return m_projectPath; }
 
     // =========================================================================
     // Book Metadata
     // =========================================================================
 
-    QString getMetadata(const QString& key, const QString& defaultValue = {}) const;
+    [[nodiscard]] QString getMetadata(const QString& key, const QString& defaultValue = {}) const;
     void setMetadata(const QString& key, const QString& value);
 
     // =========================================================================
     // Chapters
     // =========================================================================
 
-    QList<ChapterInfo> getAllChapters() const;
-    ChapterInfo getChapter(const QString& id) const;
+    [[nodiscard]] QList<ChapterInfo> getAllChapters() const;
+    [[nodiscard]] ChapterInfo getChapter(const QString& id) const;
     void saveChapter(const ChapterInfo& chapter);
     void deleteChapter(const QString& id);
     void addChapterHistory(const QString& chapterId, const QString& action,
@@ -86,8 +86,8 @@ public:
     // Character Library
     // =========================================================================
 
-    QList<CharacterInfo> getAllCharacters() const;
-    CharacterInfo getCharacter(const QString& id) const;
+    [[nodiscard]] QList<CharacterInfo> getAllCharacters() const;
+    [[nodiscard]] CharacterInfo getCharacter(const QString& id) const;
     void saveCharacter(const CharacterInfo& character);
     void deleteCharacter(const QString& id);
 
@@ -95,8 +95,8 @@ public:
     // Location Library
     // =========================================================================
 
-    QList<LocationInfo> getAllLocations() const;
-    LocationInfo getLocation(const QString& id) const;
+    [[nodiscard]] QList<LocationInfo> getAllLocations() const;
+    [[nodiscard]] LocationInfo getLocation(const QString& id) const;
     void saveLocation(const LocationInfo& location);
     void deleteLocation(const QString& id);
 
@@ -104,8 +104,8 @@ public:
     // Item Library
     // =========================================================================
 
-    QList<ItemInfo> getAllItems() const;
-    ItemInfo getItem(const QString& id) const;
+    [[nodiscard]] QList<ItemInfo> getAllItems() const;
+    [[nodiscard]] ItemInfo getItem(const QString& id) const;
     void saveItem(const ItemInfo& item);
     void deleteItem(const QString& id);
 
@@ -114,8 +114,8 @@ public:
     // =========================================================================
 
     void recordSessionStats(const SessionStats& stats);
-    QList<SessionStats> getStatsBetween(const QDateTime& from, const QDateTime& to) const;
-    AggregatedStats getAggregatedStats() const;
+    [[nodiscard]] QList<SessionStats> getStatsBetween(const QDateTime& from, const QDateTime& to) const;
+    [[nodiscard]] AggregatedStats getAggregatedStats() const;
 
     // =========================================================================
     // Record of writing (the statistics and goals of writing)
@@ -126,17 +126,17 @@ public:
 
     /// @brief The record of writing of this book on the days of the calendar from @p from to
     /// @p to (both included)
-    QList<WritingActivity> writingActivity(const QDate& from, const QDate& to) const;
+    [[nodiscard]] QList<WritingActivity> writingActivity(const QDate& from, const QDate& to) const;
 
     // =========================================================================
     // Styles
     // =========================================================================
 
-    QList<ParagraphStyle> getParagraphStyles() const;
+    [[nodiscard]] QList<ParagraphStyle> getParagraphStyles() const;
     void saveParagraphStyle(const ParagraphStyle& style);
     void deleteParagraphStyle(const QString& id);
 
-    QList<CharacterStyle> getCharacterStyles() const;
+    [[nodiscard]] QList<CharacterStyle> getCharacterStyles() const;
     void saveCharacterStyle(const CharacterStyle& style);
     void deleteCharacterStyle(const QString& id);
 
@@ -144,7 +144,7 @@ public:
     // Settings
     // =========================================================================
 
-    QVariant getSetting(const QString& key, const QVariant& defaultValue = {}) const;
+    [[nodiscard]] QVariant getSetting(const QString& key, const QVariant& defaultValue = {}) const;
     void setSetting(const QString& key, const QVariant& value);
 
     // =========================================================================
@@ -152,7 +152,7 @@ public:
     // =========================================================================
 
     bool executeInTransaction(std::function<bool()> operation);
-    QString lastError() const { return m_lastError; }
+    [[nodiscard]] QString lastError() const { return m_lastError; }
 
 private:
     bool execSql(const QString& sql);
@@ -164,5 +164,6 @@ private:
     QString m_lastError;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_PROJECT_DATABASE_H

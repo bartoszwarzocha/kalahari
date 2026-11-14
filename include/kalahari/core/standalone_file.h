@@ -4,7 +4,8 @@
 /// @file standalone_file.h
 /// @brief Chapters and plain text files opened on their own, outside a book project
 
-#pragma once
+#ifndef KALAHARI_CORE_STANDALONE_FILE_H
+#define KALAHARI_CORE_STANDALONE_FILE_H
 
 #include <kalahari/core/text_file.h>
 #include <QString>
@@ -44,8 +45,8 @@ public:
 
     StandaloneFile() = default;
 
-    QString path() const { return m_path; }  ///< Path of the file
-    Type type() const { return m_type; }     ///< Kind of the file
+    [[nodiscard]] QString path() const { return m_path; }  ///< Path of the file
+    [[nodiscard]] Type type() const { return m_type; }     ///< Kind of the file
 
     /// @brief Write the editor's content to the file in its own format
     ///
@@ -72,3 +73,5 @@ private:
 };
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_STANDALONE_FILE_H

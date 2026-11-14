@@ -25,9 +25,7 @@
 
 #include <array>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -276,6 +274,4 @@ void UserProjectDialog::updateCount()
     acceptButton()->setToolTip(count > 0 ? QString() : tr("Check at least one kind."));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

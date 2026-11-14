@@ -22,8 +22,7 @@
 #include <QSpinBox>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 using json = nlohmann::json;
 
@@ -317,5 +316,4 @@ AdvancedLogPage::AdvancedLogPage(QWidget* parent)
     pageLayout()->addStretch();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

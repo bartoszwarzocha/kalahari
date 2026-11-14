@@ -14,8 +14,7 @@
 
 #include <cstdlib>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 const QStringList& LinkRoles::all() {
     static const QStringList roles{
@@ -78,5 +77,4 @@ int LinkRoles::paragraphOf(const QStringList& paragraphs, const ElementLink& lin
     return link.paragraph <= count ? link.paragraph : 0;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

@@ -21,7 +21,8 @@
 /// view shows them: the scroll position is drawn at the top inset (widget pixels) and
 /// document lengths are multiplied by the view scale (page mode zoom).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_VIEWPORT_MANAGER_H
+#define KALAHARI_EDITOR_VIEWPORT_MANAGER_H
 
 #include <QObject>
 #include <QSize>
@@ -80,7 +81,7 @@ public:
     void setDocument(QTextDocument* document);
 
     /// @brief Get the text document
-    QTextDocument* document() const { return m_document; }
+    [[nodiscard]] QTextDocument* document() const { return m_document; }
 
     // =========================================================================
     // Viewport Configuration
@@ -91,34 +92,34 @@ public:
     void setViewportSize(const QSize& size);
 
     /// @brief Get the viewport size
-    QSize viewportSize() const { return m_viewportSize; }
+    [[nodiscard]] QSize viewportSize() const { return m_viewportSize; }
 
     /// @brief Get the viewport width
-    int viewportWidth() const { return m_viewportSize.width(); }
+    [[nodiscard]] int viewportWidth() const { return m_viewportSize.width(); }
 
     /// @brief Get the viewport height
-    int viewportHeight() const { return m_viewportSize.height(); }
+    [[nodiscard]] int viewportHeight() const { return m_viewportSize.height(); }
 
     /// @brief Set the buffer size (paragraphs to pre-layout)
     /// @param paragraphs Number of paragraphs above/below viewport
     void setBufferSize(size_t paragraphs);
 
     /// @brief Get the buffer size
-    size_t bufferSize() const { return m_bufferSize; }
+    [[nodiscard]] size_t bufferSize() const { return m_bufferSize; }
 
     /// @brief Set top scroll padding (extra space at top for margins)
     /// @param padding Extra scroll space at top in pixels
     void setTopScrollPadding(double padding);
 
     /// @brief Get top scroll padding
-    double topScrollPadding() const { return m_topScrollPadding; }
+    [[nodiscard]] double topScrollPadding() const { return m_topScrollPadding; }
 
     /// @brief Set bottom scroll padding (allows scrolling past document end)
     /// @param padding Extra scroll space at bottom in pixels
     void setBottomScrollPadding(double padding);
 
     /// @brief Get bottom scroll padding
-    double bottomScrollPadding() const { return m_bottomScrollPadding; }
+    [[nodiscard]] double bottomScrollPadding() const { return m_bottomScrollPadding; }
 
     /// @brief Set how the view shows the document
     /// @param scale Widget pixels per document unit (page mode zoom; 1 otherwise)
@@ -126,13 +127,13 @@ public:
     void setViewGeometry(double scale, double topInset);
 
     /// @brief Widget pixels per document unit
-    double viewScale() const { return m_viewScale; }
+    [[nodiscard]] double viewScale() const { return m_viewScale; }
 
     /// @brief Widget y at which the scroll position is drawn
-    double viewTopInset() const { return m_viewTopInset; }
+    [[nodiscard]] double viewTopInset() const { return m_viewTopInset; }
 
     /// @brief Height of the view in document units
-    double visibleDocumentHeight() const;
+    [[nodiscard]] double visibleDocumentHeight() const;
 
     // =========================================================================
     // Scroll Position
@@ -143,7 +144,7 @@ public:
     void setScrollPosition(double y);
 
     /// @brief Get the scroll position
-    double scrollPosition() const { return m_scrollY; }
+    [[nodiscard]] double scrollPosition() const { return m_scrollY; }
 
     /// @brief Scroll by delta amount
     /// @param delta Pixels to scroll (+ve = down, -ve = up)
@@ -155,10 +156,10 @@ public:
     double scrollToMakeParagraphVisible(size_t index);
 
     /// @brief Get maximum scroll position
-    double maxScrollPosition() const;
+    [[nodiscard]] double maxScrollPosition() const;
 
     /// @brief Clamp scroll position to valid range
-    double clampScrollPosition(double y) const;
+    [[nodiscard]] double clampScrollPosition(double y) const;
 
     /// @brief Keep the text at the top of the viewport in place while blocks change
     ///        height without a content change (on by default)
@@ -167,39 +168,39 @@ public:
     void setScrollAnchoringEnabled(bool enabled);
 
     /// @brief Whether scroll anchoring is on
-    bool isScrollAnchoringEnabled() const { return m_anchoringEnabled; }
+    [[nodiscard]] bool isScrollAnchoringEnabled() const { return m_anchoringEnabled; }
 
     // =========================================================================
     // Visible Range
     // =========================================================================
 
     /// @brief Get first visible paragraph (in viewport)
-    size_t firstVisibleParagraph() const { return m_firstVisible; }
+    [[nodiscard]] size_t firstVisibleParagraph() const { return m_firstVisible; }
 
     /// @brief Get last visible paragraph (in viewport)
-    size_t lastVisibleParagraph() const { return m_lastVisible; }
+    [[nodiscard]] size_t lastVisibleParagraph() const { return m_lastVisible; }
 
     /// @brief Get visible range as pair
-    std::pair<size_t, size_t> visibleRange() const {
+    [[nodiscard]] std::pair<size_t, size_t> visibleRange() const {
         return {m_firstVisible, m_lastVisible};
     }
 
     /// @brief Get buffer start (first paragraph to pre-layout)
-    size_t bufferStart() const;
+    [[nodiscard]] size_t bufferStart() const;
 
     /// @brief Get buffer end (last paragraph to pre-layout)
-    size_t bufferEnd() const;
+    [[nodiscard]] size_t bufferEnd() const;
 
     /// @brief Get full range including buffer
-    std::pair<size_t, size_t> bufferedRange() const {
+    [[nodiscard]] std::pair<size_t, size_t> bufferedRange() const {
         return {bufferStart(), bufferEnd()};
     }
 
     /// @brief Check if paragraph is in visible range
-    bool isParagraphVisible(size_t index) const;
+    [[nodiscard]] bool isParagraphVisible(size_t index) const;
 
     /// @brief Check if paragraph is in buffered range
-    bool isParagraphInBuffer(size_t index) const;
+    [[nodiscard]] bool isParagraphInBuffer(size_t index) const;
 
     // =========================================================================
     // Scrollbar
@@ -207,37 +208,37 @@ public:
 
     /// @brief Get scrollbar position (0.0 to 1.0)
     /// @return Normalized scroll position
-    double scrollbarPosition() const;
+    [[nodiscard]] double scrollbarPosition() const;
 
     /// @brief Get scrollbar thumb size (0.0 to 1.0)
     /// @return Proportion of content visible
-    double scrollbarThumbSize() const;
+    [[nodiscard]] double scrollbarThumbSize() const;
 
     /// @brief Set scroll position from scrollbar (0.0 to 1.0)
     /// @param position Normalized position
     void setScrollbarPosition(double position);
 
     /// @brief Check if scrollbar is needed
-    bool isScrollbarNeeded() const;
+    [[nodiscard]] bool isScrollbarNeeded() const;
 
     // =========================================================================
     // Geometry Queries
     // =========================================================================
 
     /// @brief Get viewport rectangle in document coordinates
-    QRectF viewportRect() const;
+    [[nodiscard]] QRectF viewportRect() const;
 
     /// @brief Get total document height
-    double totalDocumentHeight() const;
+    [[nodiscard]] double totalDocumentHeight() const;
 
     /// @brief Find paragraph at Y coordinate
-    size_t paragraphAtY(double y) const;
+    [[nodiscard]] size_t paragraphAtY(double y) const;
 
     /// @brief Get Y position of paragraph
-    double paragraphY(size_t index) const;
+    [[nodiscard]] double paragraphY(size_t index) const;
 
     /// @brief Get height of paragraph
-    double paragraphHeight(size_t index) const;
+    [[nodiscard]] double paragraphHeight(size_t index) const;
 
 signals:
     /// @brief Emitted when viewport position or size changes
@@ -275,8 +276,8 @@ private slots:
 
     /// @brief Keep the anchored text in place after blocks changed height
     void onBlockGeometryChanged(int firstBlock);
-
 private:
+
     /// @brief Update visible range from current scroll position
     void updateVisibleRange();
 
@@ -284,7 +285,7 @@ private:
     void captureAnchor();
 
     /// @brief Scroll position that puts the anchored text back at the top
-    double anchoredPosition() const;
+    [[nodiscard]] double anchoredPosition() const;
 
     /// @brief Emit signals for range change
     void notifyRangeChanged();
@@ -316,3 +317,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_VIEWPORT_MANAGER_H

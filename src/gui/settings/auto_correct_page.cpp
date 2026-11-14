@@ -37,8 +37,7 @@
 #include <algorithm>
 #include <functional>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 using json = nlohmann::json;
 
@@ -859,5 +858,4 @@ void EditorAutoCorrectPage::syncReplacements()
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

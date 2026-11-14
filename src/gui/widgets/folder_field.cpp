@@ -21,8 +21,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -157,5 +156,4 @@ void FolderField::showState() {
     m_stateText->setVisible(!text.isEmpty());
 }
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui

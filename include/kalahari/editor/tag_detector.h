@@ -12,7 +12,8 @@
 ///
 /// The service uses the document observer pattern to stay synchronized with content changes.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TAG_DETECTOR_H
+#define KALAHARI_EDITOR_TAG_DETECTOR_H
 
 #include <QObject>
 #include <QString>
@@ -23,7 +24,7 @@
 // Forward declarations
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::editor {
 
@@ -116,7 +117,7 @@ public:
 
     /// @brief Get the currently set editor
     /// @return Current editor, or nullptr if none set
-    BookEditor* bookEditor() const { return m_editor; }
+    [[nodiscard]] BookEditor* bookEditor() const { return m_editor; }
 
     // =========================================================================
     // Scanning
@@ -144,26 +145,26 @@ public:
 
     /// @brief Get all detected tags
     /// @return List of all detected tags (sorted by paragraph, then position)
-    QList<DetectedTag> allTags() const;
+    [[nodiscard]] QList<DetectedTag> allTags() const;
 
     /// @brief Get tags of a specific type
     /// @param type The tag type to filter by
     /// @return List of tags matching the type
-    QList<DetectedTag> tagsOfType(TagType type) const;
+    [[nodiscard]] QList<DetectedTag> tagsOfType(TagType type) const;
 
     /// @brief Get tags in a specific paragraph
     /// @param index The paragraph index
     /// @return List of tags in that paragraph
-    QList<DetectedTag> tagsInParagraph(int index) const;
+    [[nodiscard]] QList<DetectedTag> tagsInParagraph(int index) const;
 
     /// @brief Get count of all tags
     /// @return Total number of detected tags
-    int tagCount() const { return m_tags.size(); }
+    [[nodiscard]] int tagCount() const { return m_tags.size(); }
 
     /// @brief Get count of tags of a specific type
     /// @param type The tag type to count
     /// @return Number of tags of that type
-    int tagCount(TagType type) const;
+    [[nodiscard]] int tagCount(TagType type) const;
 
     // =========================================================================
     // Appearance
@@ -206,8 +207,8 @@ private slots:
     /// @brief Handle paragraph removed signal from BookEditor
     /// @param paragraphIndex Index of the removed paragraph
     void onParagraphRemoved(int paragraphIndex);
-
 private:
+
 
     // =========================================================================
     // Internal Methods
@@ -226,7 +227,7 @@ private:
     /// @brief Calculate line number for a paragraph
     /// @param paragraphIndex The paragraph index
     /// @return 1-based line number
-    int calculateLineNumber(int paragraphIndex) const;
+    [[nodiscard]] int calculateLineNumber(int paragraphIndex) const;
 
     // =========================================================================
     // Members
@@ -243,3 +244,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TAG_DETECTOR_H

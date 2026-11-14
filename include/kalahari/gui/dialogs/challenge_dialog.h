@@ -5,7 +5,8 @@
 /// @brief The small window of Add Challenge: a goal of the writer's own for a time, e.g.
 /// 50,000 words in a month
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_CHALLENGE_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_CHALLENGE_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -18,9 +19,7 @@ class QDateEdit;
 class QLabel;
 class QSpinBox;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Add Challenge: what to reach (words, days in a row or writing days), how much of it
 /// and by which day
@@ -37,10 +36,10 @@ public:
     explicit ChallengeDialog(const QDate& today, QWidget* parent = nullptr);
 
     /// @brief The challenge of the fields (without its number)
-    core::WritingChallenge challenge() const;
+    [[nodiscard]] core::WritingChallenge challenge() const;
 
     /// @brief The last day of the challenge, as chosen
-    QDate endDay() const;
+    [[nodiscard]] QDate endDay() const;
 
 private:
     /// @brief The unit and the range of the target, as the kind needs them
@@ -59,6 +58,6 @@ private:
     core::ChallengeKind m_shownKind = core::ChallengeKind::Words;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_CHALLENGE_DIALOG_H

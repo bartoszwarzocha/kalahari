@@ -160,7 +160,7 @@ public:
     }
 
     /// Fields that nothing took
-    const QJsonObject& rest() const { return m_rest; }
+    [[nodiscard]] const QJsonObject& rest() const { return m_rest; }
 
 private:
     QJsonObject m_rest;

@@ -11,7 +11,8 @@
 ///
 /// OpenSpec #00031: Toolbar System
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_TOOLBAR_MANAGER_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_TOOLBAR_MANAGER_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -24,8 +25,7 @@
 #include <QString>
 #include <QStringList>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // Forward declaration
 class ToolbarManager;
@@ -42,7 +42,7 @@ namespace ToolbarConstants {
 
     /// @brief Prefix for plugin-created toolbars
     static const QString PLUGIN_TOOLBAR_PREFIX = "plugin_";
-}
+} // namespace ToolbarConstants
 
 /// @brief Visual Studio-style dialog for managing toolbar customization
 ///
@@ -213,22 +213,22 @@ private:
     /// @brief Get sanitized toolbar ID from display name
     /// @param name User-entered toolbar name
     /// @return Sanitized ID suitable for use as key
-    QString sanitizeToolbarName(const QString& name) const;
+    [[nodiscard]] QString sanitizeToolbarName(const QString& name) const;
 
     /// @brief Check if toolbar is a built-in toolbar
     /// @param toolbarId Toolbar ID to check
     /// @return true if built-in, false otherwise
-    bool isBuiltInToolbar(const QString& toolbarId) const;
+    [[nodiscard]] bool isBuiltInToolbar(const QString& toolbarId) const;
 
     /// @brief Check if toolbar is a plugin toolbar
     /// @param toolbarId Toolbar ID to check
     /// @return true if plugin toolbar, false otherwise
-    bool isPluginToolbar(const QString& toolbarId) const;
+    [[nodiscard]] bool isPluginToolbar(const QString& toolbarId) const;
 
     /// @brief Check if toolbar is a user-defined toolbar
     /// @param toolbarId Toolbar ID to check
     /// @return true if user toolbar, false otherwise
-    bool isUserToolbar(const QString& toolbarId) const;
+    [[nodiscard]] bool isUserToolbar(const QString& toolbarId) const;
 
     /// @brief Mark dialog as modified
     void setModified(bool modified);
@@ -238,46 +238,46 @@ private:
     // ========================================================================
 
     /// @brief Left panel - list of toolbars
-    QListWidget* m_toolbarList;
+    QListWidget* m_toolbarList{nullptr};
 
     /// @brief Center panel - category filter dropdown
-    QComboBox* m_categoryCombo;
+    QComboBox* m_categoryCombo{nullptr};
 
     /// @brief Center panel - search filter input
-    QLineEdit* m_searchFilter;
+    QLineEdit* m_searchFilter{nullptr};
 
     /// @brief Center panel - available commands tree
-    QTreeWidget* m_availableCommands;
+    QTreeWidget* m_availableCommands{nullptr};
 
     /// @brief Right panel - current toolbar commands
-    QListWidget* m_currentToolbar;
+    QListWidget* m_currentToolbar{nullptr};
 
     /// @brief Move command up button
-    QPushButton* m_moveUpBtn;
+    QPushButton* m_moveUpBtn{nullptr};
 
     /// @brief Move command down button
-    QPushButton* m_moveDownBtn;
+    QPushButton* m_moveDownBtn{nullptr};
 
     /// @brief Remove command button
-    QPushButton* m_removeBtn;
+    QPushButton* m_removeBtn{nullptr};
 
     /// @brief Add separator button
-    QPushButton* m_separatorBtn;
+    QPushButton* m_separatorBtn{nullptr};
 
     /// @brief Add command button (center panel)
-    QPushButton* m_addCommandBtn;
+    QPushButton* m_addCommandBtn{nullptr};
 
     /// @brief New toolbar button
-    QPushButton* m_newToolbarBtn;
+    QPushButton* m_newToolbarBtn{nullptr};
 
     /// @brief Delete toolbar button
-    QPushButton* m_deleteToolbarBtn;
+    QPushButton* m_deleteToolbarBtn{nullptr};
 
     /// @brief Rename toolbar button
-    QPushButton* m_renameToolbarBtn;
+    QPushButton* m_renameToolbarBtn{nullptr};
 
     /// @brief Reset to defaults button
-    QPushButton* m_resetBtn;
+    QPushButton* m_resetBtn{nullptr};
 
     // ========================================================================
     // State
@@ -296,7 +296,7 @@ private:
     QMap<QString, QString> m_toolbarNames;
 
     /// @brief Track modification state
-    bool m_modified;
+    bool m_modified{false};
 
     /// @brief Built-in toolbar IDs
     QStringList m_builtInToolbarIds;
@@ -306,5 +306,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_TOOLBAR_MANAGER_DIALOG_H

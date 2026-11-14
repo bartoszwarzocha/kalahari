@@ -5,8 +5,8 @@
 /// @brief The materials of the cover in the program: their names, the list grouped by kind with
 /// its plan, their states, the kinds hidden in the Navigator, the card and the settings
 
-#include "../editor/editor_test_utils.h"
-#include "document_window.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/settings_manager.h"
@@ -42,7 +42,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using core::CoverMaterial;

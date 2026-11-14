@@ -36,8 +36,7 @@
 #include <cmath>
 #include <memory>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 using json = nlohmann::json;
 
@@ -443,5 +442,4 @@ QPushButton* SettingsPage::addRestoreColorsButton(QFormLayout* form) {
     return button;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

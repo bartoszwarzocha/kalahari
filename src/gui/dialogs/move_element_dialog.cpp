@@ -17,9 +17,7 @@
 #include <optional>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -234,6 +232,4 @@ void MoveElementDialog::updateAcceptButton()
                                !(m_picker->place() == m_book.from));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

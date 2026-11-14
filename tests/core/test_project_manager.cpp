@@ -16,7 +16,7 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/editor/kml_document_model.h>
 
-#include "other_program.h"
+#include "kalahari_tests/core/other_program.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -38,7 +38,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::core;
 

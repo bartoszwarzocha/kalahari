@@ -5,7 +5,8 @@
 /// @brief The palette: the kinds of elements of all book types, which the writer chooses for a
 /// user project
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_KIND_PALETTE_H
+#define KALAHARI_GUI_WIDGETS_KIND_PALETTE_H
 
 #include "kalahari/core/book_type_registry.h"
 
@@ -56,7 +57,7 @@ public:
     void setGroupName(core::BookPlace place, const QString& name);
 
     /// @brief The name of the group of @p place
-    QString groupName(core::BookPlace place) const;
+    [[nodiscard]] QString groupName(core::BookPlace place) const;
 
     /// @brief Check the kinds of @p choice and only them, with "Create now" on the tiles of its
     ///        elements
@@ -64,7 +65,7 @@ public:
 
     /// @brief The checked kinds, in the order of the palette, and the elements of the tiles with
     ///        "Create now", in the order of the tiles
-    core::PaletteChoice choice() const;
+    [[nodiscard]] core::PaletteChoice choice() const;
 
     /// @brief Check every kind; "Create now" stays as it was
     void checkAll();
@@ -77,10 +78,10 @@ public:
     void uncheckAll();
 
     /// @brief The number of checked kinds
-    int checkedCount() const;
+    [[nodiscard]] int checkedCount() const;
 
     /// @brief The kinds of the tiles of the group of @p place, in their order
-    QList<core::KindRef> kindsIn(core::BookPlace place) const;
+    [[nodiscard]] QList<core::KindRef> kindsIn(core::BookPlace place) const;
 
     /// @brief Whether "Create now" can be checked on the tile of @p kind: the program can open
     ///        its elements, and it makes them without a file chosen (not a material)
@@ -116,3 +117,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_WIDGETS_KIND_PALETTE_H

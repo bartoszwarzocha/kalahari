@@ -20,7 +20,8 @@
 /// settings.save();  // Save to disk now
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_SETTINGS_MANAGER_H
+#define KALAHARI_CORE_SETTINGS_MANAGER_H
 
 #include <atomic>
 #include <string>
@@ -36,9 +37,7 @@
 #include <QPoint>
 #include <QTimer>
 
-
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Singleton settings manager with JSON persistence
 ///
@@ -440,5 +439,6 @@ void SettingsManager::set(const std::string& key, const T& value) {
     notifyChanged(key);
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_SETTINGS_MANAGER_H

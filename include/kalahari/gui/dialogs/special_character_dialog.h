@@ -5,7 +5,8 @@
 /// @brief Insert > Special Character...: the characters by group or in a list with their names,
 ///        found by a name or a code, inserted in the text at the cursor
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_SPECIAL_CHARACTER_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_SPECIAL_CHARACTER_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/special_characters.h"
@@ -35,9 +36,7 @@ class QTreeWidget;
 class QTreeWidgetItem;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Where the window inserts: the text at the cursor of the chapter in front
 struct CharacterTarget {
@@ -248,6 +247,6 @@ private:
     QLabel* m_whyNot = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_SPECIAL_CHARACTER_DIALOG_H

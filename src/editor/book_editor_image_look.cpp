@@ -6,7 +6,7 @@
 ///        mirror, filter, the keys of its size) and cropping it in the text
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>

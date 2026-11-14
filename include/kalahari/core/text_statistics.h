@@ -4,7 +4,8 @@
 /// @file text_statistics.h
 /// @brief Word and character counting shared by the whole application
 
-#pragma once
+#ifndef KALAHARI_CORE_TEXT_STATISTICS_H
+#define KALAHARI_CORE_TEXT_STATISTICS_H
 
 #include <QStringView>
 
@@ -53,7 +54,7 @@ struct WordTally {
 
     /// @brief The words under @p rules, as countText() counts them (with the notes' words
     ///        when the rules count them)
-    int wordsUnder(const WordCountRules& rules) const {
+    [[nodiscard]] int wordsUnder(const WordCountRules& rules) const {
         const int notes = noteWords + (rules.dashesAreWords ? noteDashes : 0);
         return words + (rules.dashesAreWords ? dashes : 0) + (rules.notesAreWords ? notes : 0);
     }
@@ -104,3 +105,5 @@ WordCountRules wordCountRules();
 bool isWordCountRulesKey(const std::string& key);
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_TEXT_STATISTICS_H

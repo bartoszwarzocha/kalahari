@@ -5,7 +5,8 @@
 /// @brief Sorting the rows of a table and paragraphs (Table > Sort): by text in the order of
 ///        a language, by numbers and by dates
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_SORTING_H
+#define KALAHARI_EDITOR_TEXT_SORTING_H
 
 #include <QDate>
 #include <QString>
@@ -53,3 +54,5 @@ std::optional<QDate> firstDateIn(const QString& text, const QLocale& locale);
 std::vector<int> sortedOrder(const std::vector<QStringList>& rows, const SortOptions& options);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_SORTING_H

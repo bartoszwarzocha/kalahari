@@ -30,9 +30,7 @@
 #include <functional>
 #include <iterator>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -481,6 +479,4 @@ QString DeleteFilesDialog::clipboardText() const
     return parts.join(QStringLiteral("\n\n"));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

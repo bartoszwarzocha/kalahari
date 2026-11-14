@@ -14,7 +14,7 @@
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/text_images.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QApplication>
 #include <QDir>
@@ -43,10 +43,11 @@ namespace {
 struct BookFolder {
     QTemporaryDir dir;
 
-    QString path() const { return dir.path(); }
+    [[nodiscard]] QString path() const { return dir.path(); }
 
     /// Save a picture of one color in the folder of images
-    QString addPicture(const QString& name, const QSize& size, const QColor& color) const {
+    // Not const: it writes a file into the folder
+    QString addPicture(const QString& name, const QSize& size, const QColor& color) {
         QDir(dir.path()).mkpath(QStringLiteral("images"));
         QImage picture(size, QImage::Format_RGB32);
         picture.fill(color);

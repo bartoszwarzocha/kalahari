@@ -5,7 +5,8 @@
 /// @brief Spelling as you type: the dictionaries of the editors, their languages and the
 ///        commands
 
-#pragma once
+#ifndef KALAHARI_GUI_SPELLING_COORDINATOR_H
+#define KALAHARI_GUI_SPELLING_COORDINATOR_H
 
 #include <QObject>
 #include <QString>
@@ -26,7 +27,7 @@ class CommandRegistry;
 namespace kalahari::editor {
 class BookEditor;
 class SpellCheckService;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -98,7 +99,7 @@ public:
 
     /// @brief The dictionary of the chapters of the book, and of every document when their
     ///        languages have the same dictionary; it keeps the writer's own words
-    editor::SpellCheckService* service() const { return m_service; }
+    [[nodiscard]] editor::SpellCheckService* service() const { return m_service; }
 
     /// @brief The language the chapters of the book open in @p book are checked in: the
     ///        setting, else the book's language, else the program's
@@ -111,7 +112,7 @@ public:
     /// @brief The file the writer's own words are kept in, next to the settings
     static QString userDictionaryFile();
 
-public slots:
+
     /// @brief Check with the dictionaries of the languages wanted now, or turn the checking
     ///        off as the setting says (after the settings or the book's language change)
     void updateDictionary();
@@ -135,7 +136,7 @@ private:
                        const QString& dictionary, QString& missingLanguage);
 
     /// @brief The editor of the document in front, or nullptr
-    editor::BookEditor* currentEditor() const;
+    [[nodiscard]] editor::BookEditor* currentEditor() const;
 
     /// @brief Turn the checking on or off (the command)
     void toggle();
@@ -166,3 +167,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_SPELLING_COORDINATOR_H

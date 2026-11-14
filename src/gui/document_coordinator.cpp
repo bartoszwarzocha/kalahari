@@ -55,8 +55,7 @@
 
 Q_DECLARE_METATYPE(kalahari::core::StandaloneFile)
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -2267,5 +2266,4 @@ void DocumentCoordinator::prepareForProjectClose() {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

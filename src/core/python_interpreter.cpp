@@ -37,8 +37,7 @@ constexpr const char* LINKED_PYTHON_VERSION =
 
 } // namespace
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // =============================================================================
 // Singleton instance
@@ -572,5 +571,4 @@ std::filesystem::path PythonInterpreter::detectPythonStdlib(const std::filesyste
 #endif
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

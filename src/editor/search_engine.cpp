@@ -8,7 +8,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/text_footnotes.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <QStringView>
 #include <QTextBlock>
 #include <QTextCursor>

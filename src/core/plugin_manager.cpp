@@ -25,8 +25,7 @@
 #include <unistd.h>   // readlink
 #endif
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 PluginManager& PluginManager::getInstance() {
     static PluginManager instance;
@@ -600,5 +599,4 @@ bool PluginManager::allowUnsignedPlugins() const {
     return SettingsManager::getInstance().get<bool>("plugins.allowUnsigned");
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

@@ -4,7 +4,8 @@
 /// @file context_menu_reader.h
 /// @brief Reads the context menus a widget opens, as they are about to show
 
-#pragma once
+#ifndef KALAHARI_TESTS_GUI_CONTEXT_MENU_READER_H
+#define KALAHARI_TESTS_GUI_CONTEXT_MENU_READER_H
 
 #include <QAction>
 #include <QChar>
@@ -142,3 +143,5 @@ private:
 };
 
 }  // namespace kalahari::test
+
+#endif  // KALAHARI_TESTS_GUI_CONTEXT_MENU_READER_H

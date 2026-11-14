@@ -12,8 +12,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 ToolButtonColumns::ToolButtonColumns(int iconSize, QWidget* parent)
     : QWidget(parent)
@@ -91,5 +90,4 @@ void ToolButtonColumns::arrange()
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

@@ -20,8 +20,7 @@
     #include <shlobj.h>  // SHGetFolderPath
 #endif
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 /// Version of the settings format written by createDefaults() (old files are not converted)
@@ -29,7 +28,7 @@ constexpr const char* CURRENT_SETTINGS_VERSION = "1.4";
 
 /// Changes made within this time after the first one are saved together
 constexpr int SAVE_DELAY_MS = 500;
-}
+} // namespace
 
 // =============================================================================
 // Singleton instance
@@ -623,5 +622,4 @@ void SettingsManager::warnMissingDefault(const std::string& key) const {
     Logger::getInstance().warn("SettingsManager: '{}' has no default in settings_schema", key);
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

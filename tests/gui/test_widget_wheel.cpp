@@ -5,7 +5,7 @@
 /// @brief The mouse wheel changes only the field with the focus, as on Windows
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/gui/widget_wheel.h"
 
 #include <QApplication>

@@ -6,7 +6,8 @@
 ///        palette, the characters they insert in the text in front, the keys of the characters
 ///        and the replacements of auto-correct the window adds
 
-#pragma once
+#ifndef KALAHARI_GUI_SPECIAL_CHARACTER_COORDINATOR_H
+#define KALAHARI_GUI_SPECIAL_CHARACTER_COORDINATOR_H
 
 #include "kalahari/gui/character_commands.h"
 #include "kalahari/gui/command.h"
@@ -29,7 +30,7 @@ class CommandRegistry;
 namespace kalahari {
 namespace editor {
 class BookEditor;
-}
+} // namespace editor
 namespace gui {
 
 class QuickCharacterPalette;
@@ -134,3 +135,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_SPECIAL_CHARACTER_COORDINATOR_H

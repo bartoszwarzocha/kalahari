@@ -9,7 +9,7 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/quick_insert.h>
 #include <kalahari/editor/quick_insert_controller.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QCoreApplication>
 #include <QKeyEvent>
@@ -80,7 +80,7 @@ struct Fixture {
         QCoreApplication::sendEvent(editor.get(), &event);
     }
 
-    QStringList shown() const { return namesOf(quick->list()->items()); }
+    [[nodiscard]] QStringList shown() const { return namesOf(quick->list()->items()); }
 };
 
 }  // namespace

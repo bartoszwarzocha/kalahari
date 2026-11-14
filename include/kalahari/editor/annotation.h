@@ -16,7 +16,8 @@
 /// its place. Only removing an annotation takes it off the text; cut and moved text takes
 /// its annotations along.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_ANNOTATION_H
+#define KALAHARI_EDITOR_ANNOTATION_H
 
 #include <QDateTime>
 #include <QHash>
@@ -210,7 +211,7 @@ AnnotationList removeForReplacement(QTextCursor& cursor);
 /// typing does. Next to an object the text goes into a new paragraph (leaveObject()). The
 /// mark of an object (U+FFFC) is left out of the text: there it would be an object without
 /// a kind.
-void insertKeepingAnnotations(QTextCursor& cursor, const QString& text,
+void insertKeepingAnnotations(QTextCursor& cursor, const QString& source,
                               const QTextCharFormat& typed = QTextCharFormat());
 
 /// @brief Start a new paragraph at the cursor, replacing its selection
@@ -253,3 +254,5 @@ void setKeepsAnnotations(QTextDocument& document, bool keeps);
 }  // namespace kalahari::editor
 
 Q_DECLARE_METATYPE(kalahari::editor::Annotation)
+
+#endif  // KALAHARI_EDITOR_ANNOTATION_H

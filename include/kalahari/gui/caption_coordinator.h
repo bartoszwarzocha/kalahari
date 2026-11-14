@@ -5,7 +5,8 @@
 /// @brief The numbered captions of the book: the numbers of every open text in the book around
 ///        it, Insert Caption, Insert Cross-Reference and Insert List of Figures
 
-#pragma once
+#ifndef KALAHARI_GUI_CAPTION_COORDINATOR_H
+#define KALAHARI_GUI_CAPTION_COORDINATOR_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/text_captions.h"
@@ -33,7 +34,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -188,3 +189,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_CAPTION_COORDINATOR_H

@@ -7,7 +7,8 @@
 /// OpenSpec #00038 - Phase 6: Extract Navigator Handlers from MainWindow
 /// This class manages navigator panel signals and coordinates UI responses.
 
-#pragma once
+#ifndef KALAHARI_GUI_NAVIGATOR_COORDINATOR_H
+#define KALAHARI_GUI_NAVIGATOR_COORDINATOR_H
 
 #include <QObject>
 #include <QString>
@@ -39,11 +40,11 @@ namespace kalahari {
 namespace core {
     struct ProjectElement;
     struct UnassignedFile;
-}
+} // namespace core
 
 namespace editor {
     class StatisticsCollector;
-}
+} // namespace editor
 
 namespace gui {
 
@@ -54,7 +55,7 @@ class MaterialCardPanel;
 
 namespace dialogs {
 class NewFileDialog;
-}
+} // namespace dialogs
 
 /// @brief Coordinates navigator panel interactions
 ///
@@ -169,7 +170,7 @@ public:
 
     /// @brief Get the current statistics collector
     /// @return Pointer to StatisticsCollector, or nullptr if not set
-    editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
+    [[nodiscard]] editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
 
     /// @brief What New File made with a book open
     struct NewFile {
@@ -184,7 +185,7 @@ public:
         QString title;  ///< Its title
     };
 
-public slots:
+
     /// @brief Handle element selection in navigator
     /// @param elementId Element ID of selected item
     /// @param elementTitle Display title of selected item
@@ -274,7 +275,7 @@ public slots:
     /// @brief Where Book > Add... adds: right after the element of the editor's tab in front,
     /// with its kind (in the Workshop, in the group of its kind); the whole book for any other
     /// tab and for the Dashboard
-    AddTarget addTargetHere() const;
+    [[nodiscard]] AddTarget addTargetHere() const;
 
     /// @brief Ask for a new name of the node of the book or of the Workshop and give it; saves
     /// the .klh file
@@ -321,7 +322,7 @@ public slots:
                                const QString& link);
 
     /// @brief The downloads for the materials with an address, for tests
-    MaterialDownloader* materialDownloader() const { return m_downloader; }
+    [[nodiscard]] MaterialDownloader* materialDownloader() const { return m_downloader; }
 
     /// @brief Show the preview of material @p elementId on a tab of its own beside the
     /// chapters, or bring its tab to the front
@@ -381,7 +382,7 @@ signals:
 private:
     /// @brief Get currently active EditorPanel tab
     /// @return Active EditorPanel or nullptr if not an editor tab
-    EditorPanel* getCurrentEditor() const;
+    [[nodiscard]] EditorPanel* getCurrentEditor() const;
 
     /// @brief The tab @p editor of element @p elementId and the Navigator show whether its
     /// text differs from the saved text; back to the saved text, it has no changes to keep
@@ -412,7 +413,7 @@ private:
 
     /// @brief The kind of materials @p kindId (core::MaterialKinds) of the open book; its first
     /// kind of materials when it has not that one or @p kindId is empty; none without any
-    core::KindRef materialKind(const QString& kindId) const;
+    [[nodiscard]] core::KindRef materialKind(const QString& kindId) const;
 
     /// @brief Download what material @p elementId needs from its address: the title of its
     /// page, or the copy of its picture; @p asked: the writer asked for it, so a failure is
@@ -427,7 +428,7 @@ private:
     void showDownloading(const QString& elementId);
 
     /// @brief The tabs of the cards of materials
-    QList<MaterialCardPanel*> materialCards() const;
+    [[nodiscard]] QList<MaterialCardPanel*> materialCards() const;
 
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
@@ -461,3 +462,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_NAVIGATOR_COORDINATOR_H

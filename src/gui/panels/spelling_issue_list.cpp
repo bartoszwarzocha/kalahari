@@ -143,19 +143,19 @@ public:
     }
 
     /// @brief The word in one line
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         return {besideWord() + wordWidth(), lineHeight() + 2 * paddingY()};
     }
 
     /// @brief Narrower than the word on a narrow card: the word then goes on in more lines
-    QSize minimumSizeHint() const override {
+    [[nodiscard]] QSize minimumSizeHint() const override {
         const QFontMetrics metrics(boldFont());
         return {besideWord() +
                     std::min(wordWidth(), metrics.horizontalAdvance(QStringLiteral("www"))),
                 lineHeight() + 2 * paddingY()};
     }
 
-    int heightForWidth(int width) const override {
+    [[nodiscard]] int heightForWidth(int width) const override {
         const auto lines = suggestionLines(text(), boldFont(), width - besideWord()).size();
         return static_cast<int>(std::max<qsizetype>(lines, 1)) * lineHeight() + 2 * paddingY();
     }
@@ -229,13 +229,13 @@ protected:
     }
 
 private:
-    QFont boldFont() const {
+    [[nodiscard]] QFont boldFont() const {
         QFont bold = font();
         bold.setBold(true);
         return bold;
     }
 
-    QFont keycapFont() const {
+    [[nodiscard]] QFont keycapFont() const {
         QFont small = font();
         small.setBold(true);
         if (small.pointSizeF() > 0) {
@@ -244,18 +244,18 @@ private:
         return small;
     }
 
-    QSize keycapSize() const {
+    [[nodiscard]] QSize keycapSize() const {
         const QFontMetrics metrics(keycapFont());
         const int height = metrics.height() + 2;
         return {std::max(height, metrics.horizontalAdvance(QStringLiteral("0")) + 8), height};
     }
 
-    int paddingX() const { return fontMetrics().averageCharWidth() + 3; }
-    int paddingY() const { return 3; }
-    int lineHeight() const { return QFontMetrics(boldFont()).height(); }
+    [[nodiscard]] int paddingX() const { return fontMetrics().averageCharWidth() + 3; }
+    [[nodiscard]] int paddingY() const { return 3; }
+    [[nodiscard]] int lineHeight() const { return QFontMetrics(boldFont()).height(); }
 
     /// @brief The width of the button beside its word: the margins and the number
-    int besideWord() const {
+    [[nodiscard]] int besideWord() const {
         int width = 2 * paddingX();
         if (m_number > 0) {
             width += keycapSize().width() + paddingX() / 2;
@@ -266,7 +266,7 @@ private:
     /// @brief The width of the word in one line, with the fraction of a pixel it takes and
     ///        what its last letter reaches past its advance (a width rounded down would put
     ///        the last letter in the next line), and a pixel to spare
-    int wordWidth() const {
+    [[nodiscard]] int wordWidth() const {
         const QString word = text();
         if (word.isEmpty()) {
             return 0;

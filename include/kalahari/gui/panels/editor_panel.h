@@ -7,7 +7,8 @@
 /// This file defines the EditorPanel class - a rich text editor panel
 /// using the custom BookEditor widget for KML document editing.
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_EDITOR_PANEL_H
+#define KALAHARI_GUI_PANELS_EDITOR_PANEL_H
 
 #include <QWidget>
 #include <QString>
@@ -23,7 +24,7 @@ class CommandRegistry;
 
 namespace kalahari::core {
 struct KindWords;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 class BookEditor;
@@ -31,10 +32,9 @@ class ParagraphStyleSet;
 class QuickInsertController;
 class StatisticsCollector;
 enum class LearnedException;
-}
+} // namespace kalahari::editor
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Editor panel with BookEditor integration
 ///
@@ -271,7 +271,7 @@ private:
     /// @note Safe to call from any thread
     void scheduleSettings();
 
-    editor::BookEditor* m_bookEditor;                     ///< The BookEditor widget
+    editor::BookEditor* m_bookEditor{nullptr};                     ///< The BookEditor widget
     editor::QuickInsertController* m_quickInsert{nullptr};  ///< Quick insert in the text
     int m_settingsListener{0};                            ///< SettingsManager::subscribe() id
     std::atomic<bool> m_settingsPending{false};           ///< scheduleSettings() waits for the
@@ -283,5 +283,6 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_EDITOR_PANEL_H

@@ -4,7 +4,8 @@
 /// @file language_names.h
 /// @brief The names of languages in the language of the user interface
 
-#pragma once
+#ifndef KALAHARI_GUI_UTILS_LANGUAGE_NAMES_H
+#define KALAHARI_GUI_UTILS_LANGUAGE_NAMES_H
 
 #include <QString>
 
@@ -21,3 +22,5 @@ namespace kalahari::gui::utils {
 QString languageName(const QString& language);
 
 }  // namespace kalahari::gui::utils
+
+#endif  // KALAHARI_GUI_UTILS_LANGUAGE_NAMES_H

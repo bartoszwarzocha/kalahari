@@ -32,8 +32,7 @@
 #include <cmath>
 #include <set>
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 namespace {
 
@@ -119,7 +118,7 @@ QString annotationElement(const Annotation& annotation)
 // =============================================================================
 
 KmlSerializer::KmlSerializer()
-    : m_indented(false)
+     
 {
 }
 
@@ -779,5 +778,4 @@ QString KmlSerializer::metadataToCloseTag(const QTextCharFormat& format) const
 
 // Note: escapeXml is now provided by KmlFormatRegistry::escapeXml()
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor

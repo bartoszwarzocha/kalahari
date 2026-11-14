@@ -34,7 +34,7 @@ namespace {
 struct LoadedKml {
     std::unique_ptr<BookEditor> editor;
 
-    QTextDocument* get() const { return editor->textDocument(); }
+    [[nodiscard]] QTextDocument* get() const { return editor->textDocument(); }
     QTextDocument* operator->() const { return get(); }
     bool operator!=(std::nullptr_t) const { return get() != nullptr; }
 };

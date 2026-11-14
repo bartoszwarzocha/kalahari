@@ -5,7 +5,8 @@
 /// @brief The panel Repetitions: the words of the text in front, or of the whole book, that
 ///        come back too close, and the words used most often
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_REPETITIONS_PANEL_H
+#define KALAHARI_GUI_PANELS_REPETITIONS_PANEL_H
 
 #include <QColor>
 #include <QList>
@@ -209,3 +210,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_REPETITIONS_PANEL_H

@@ -5,7 +5,7 @@
 /// @brief Unit tests for BookEditor (OpenSpec #00042 Phase 3.1-3.5)
 /// Phase 11: Rewritten for QTextDocument-based architecture
 
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>

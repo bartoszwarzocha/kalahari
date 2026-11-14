@@ -5,7 +5,8 @@
 /// @brief The list of the Spelling and Grammar panel: a card for each misspelled word and
 ///        grammar issue, made only for the cards in view
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_SPELLING_ISSUE_LIST_H
+#define KALAHARI_GUI_PANELS_SPELLING_ISSUE_LIST_H
 
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/gui/panels/annotation_colors.h>
@@ -99,26 +100,26 @@ public:
     void setIssue(const SpellingPanelIssue& issue);
 
     /// @brief The issue shown
-    const SpellingPanelIssue& issue() const { return m_issue; }
+    [[nodiscard]] const SpellingPanelIssue& issue() const { return m_issue; }
 
     /// @brief Unfold the card (see the class) or fold it
     void setExpanded(bool expanded);
 
     /// @brief Whether the card is unfolded
-    bool isExpanded() const { return m_expanded; }
+    [[nodiscard]] bool isExpanded() const { return m_expanded; }
 
     /// @brief The suggestions on its buttons, the likeliest first (none: "(No suggestions)")
     void setSuggestions(const QStringList& suggestions);
 
     /// @brief The suggestions on its buttons
-    QStringList suggestions() const;
+    [[nodiscard]] QStringList suggestions() const;
 
     /// @brief Selected: a stronger frame, numbered suggestions, and its buttons are reached
     ///        with Tab (those of the other cards only with the mouse)
     void setSelected(bool selected);
 
     /// @brief Whether it is selected
-    bool isSelected() const { return m_selected; }
+    [[nodiscard]] bool isSelected() const { return m_selected; }
 
     /// @brief Show whether the keys are in the list, where they act on the selected card
     void setListFocused(bool focused);
@@ -133,16 +134,16 @@ public:
     void setReadOnly(bool readOnly);
 
     /// @brief The buttons of the suggestions, in their order
-    QList<QAbstractButton*> suggestionButtons() const;
+    [[nodiscard]] QList<QAbstractButton*> suggestionButtons() const;
 
     /// @brief The buttons of the actions, in their order
-    QList<QAbstractButton*> actionButtons() const;
+    [[nodiscard]] QList<QAbstractButton*> actionButtons() const;
 
     /// @brief The buttons Tab goes through: the suggestions, then the actions
-    QList<QAbstractButton*> buttons() const;
+    [[nodiscard]] QList<QAbstractButton*> buttons() const;
 
     /// @brief The text of the line of the words around the issue (folded) or of its sentence
-    QString contextText() const;
+    [[nodiscard]] QString contextText() const;
 
 signals:
     /// @brief The card was clicked (not on a button)
@@ -228,29 +229,29 @@ public:
     void setIssues(std::vector<SpellingPanelIssue> issues);
 
     /// @brief The issues listed
-    const std::vector<SpellingPanelIssue>& issues() const { return m_issues; }
+    [[nodiscard]] const std::vector<SpellingPanelIssue>& issues() const { return m_issues; }
 
     /// @brief The number of the issues listed
-    int count() const { return static_cast<int>(m_issues.size()); }
+    [[nodiscard]] int count() const { return static_cast<int>(m_issues.size()); }
 
     /// @brief The index of the issue with a key (-1: none)
-    int indexOf(const QString& key) const;
+    [[nodiscard]] int indexOf(const QString& key) const;
 
     /// @brief Select the issue with a key (empty: none), without signals; its card is
     ///        scrolled into view
     void setSelectedKey(const QString& key);
 
     /// @brief The key of the selected issue (empty: none)
-    QString selectedKey() const { return m_selectedKey; }
+    [[nodiscard]] QString selectedKey() const { return m_selectedKey; }
 
     /// @brief The index of the selected issue (-1: none)
-    int selectedIndex() const;
+    [[nodiscard]] int selectedIndex() const;
 
     /// @brief Unfold every card (the buttons on each card), or only the selected one
     void setExpandedAll(bool all);
 
     /// @brief Whether every card is unfolded
-    bool isExpandedAll() const { return m_expandedAll; }
+    [[nodiscard]] bool isExpandedAll() const { return m_expandedAll; }
 
     /// @brief The text is only read: the cards grey out their suggestions
     void setReadOnly(bool readOnly);
@@ -274,21 +275,21 @@ public:
     void forgetSuggestions();
 
     /// @brief The card of an issue, when it is in view (nullptr: not made)
-    SpellingIssueCard* card(const QString& key) const;
+    [[nodiscard]] SpellingIssueCard* card(const QString& key) const;
 
     /// @brief The card of the selected issue (nullptr: none, or not made)
-    SpellingIssueCard* selectedCard() const;
+    [[nodiscard]] SpellingIssueCard* selectedCard() const;
 
     /// @brief The key of the issue whose card is at a point of the viewport (empty: none)
-    QString keyAt(const QPoint& viewportPoint) const;
+    [[nodiscard]] QString keyAt(const QPoint& viewportPoint) const;
 
     /// @brief The issue about a page (the height of the view) before or after the selected
     ///        one; the first or last issue at the ends
     /// @param pages -1: a page up, 1: a page down
-    int pageStepFrom(int index, int pages) const;
+    [[nodiscard]] int pageStepFrom(int index, int pages) const;
 
-    QSize sizeHint() const override;
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
 signals:
     /// @brief A card was clicked (not on a button)
@@ -322,13 +323,13 @@ private:
     void measureFolded();
 
     /// @brief Whether the card of an issue is unfolded
-    bool isExpanded(int index) const;
+    [[nodiscard]] bool isExpanded(int index) const;
 
     /// @brief The height of the card of an issue: measured, or estimated until it is made
-    int heightOf(int index) const;
+    [[nodiscard]] int heightOf(int index) const;
 
     /// @brief The issues whose cards are made: those in view, and the selected one
-    std::vector<int> indexesToShow() const;
+    [[nodiscard]] std::vector<int> indexesToShow() const;
 
     /// @brief The top of each card, the height of the whole list and the scroll bar
     void updatePositions();
@@ -347,7 +348,7 @@ private:
     void scrollToSelected();
 
     /// @brief The width of a card
-    int cardWidth() const;
+    [[nodiscard]] int cardWidth() const;
 
     std::vector<SpellingPanelIssue> m_issues;
     std::vector<int> m_tops;  ///< The top of each card; one more: the bottom of the list
@@ -373,3 +374,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_SPELLING_ISSUE_LIST_H

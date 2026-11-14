@@ -26,8 +26,7 @@
 #include <string>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -399,5 +398,4 @@ bool PanelTabs::eventFilter(QObject* watched, QEvent* event) {
     return QObject::eventFilter(watched, event);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

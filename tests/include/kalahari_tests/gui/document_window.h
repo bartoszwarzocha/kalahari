@@ -5,7 +5,8 @@
 /// @brief For the tests of the commands of the documents: the main window's tabs and panels
 /// with their coordinators, a book open until the test ends, and the windows the commands show
 
-#pragma once
+#ifndef KALAHARI_TESTS_GUI_DOCUMENT_WINDOW_H
+#define KALAHARI_TESTS_GUI_DOCUMENT_WINDOW_H
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/project_manager.h>
@@ -43,10 +44,9 @@
 
 #include <cstdio>
 #include <functional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
-namespace kalahari {
-namespace test {
+namespace kalahari::test {
 
 /// @brief The dialog shown now, if any
 inline QDialog* shownDialog() {
@@ -319,5 +319,6 @@ struct Window {
     }
 };
 
-} // namespace test
-} // namespace kalahari
+} // namespace kalahari::test
+
+#endif  // KALAHARI_TESTS_GUI_DOCUMENT_WINDOW_H

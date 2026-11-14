@@ -10,8 +10,7 @@
 #ifndef KALAHARI_GUI_ICON_REGISTRAR_H
 #define KALAHARI_GUI_ICON_REGISTRAR_H
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Register all application icons with IconRegistry.
 ///
@@ -37,7 +36,6 @@ namespace gui {
 /// @note This was extracted from MainWindow::registerCommands() in OpenSpec #00038.
 void registerAllIcons();
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
 
 #endif // KALAHARI_GUI_ICON_REGISTRAR_H

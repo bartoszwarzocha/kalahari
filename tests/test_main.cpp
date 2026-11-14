@@ -23,7 +23,7 @@
 #include <unistd.h>   // getpid
 #endif
 
-#include "test_support/reset_singletons.h"
+#include "kalahari_tests/test_support/reset_singletons.h"
 
 #include <QApplication>
 

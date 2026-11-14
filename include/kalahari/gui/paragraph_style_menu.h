@@ -4,7 +4,8 @@
 /// @file paragraph_style_menu.h
 /// @brief Format > Text Style: the paragraph styles of the text in front
 
-#pragma once
+#ifndef KALAHARI_GUI_PARAGRAPH_STYLE_MENU_H
+#define KALAHARI_GUI_PARAGRAPH_STYLE_MENU_H
 
 #include <QList>
 #include <QObject>
@@ -22,7 +23,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -69,3 +70,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PARAGRAPH_STYLE_MENU_H

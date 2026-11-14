@@ -4,7 +4,8 @@
 /// @file icon_downloader_dialog.h
 /// @brief Icon Downloader Dialog - GUI for downloading SVG icons from URL
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_ICON_DOWNLOADER_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_ICON_DOWNLOADER_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -23,7 +24,7 @@ namespace kalahari {
 namespace core {
     class IconDownloader;
     class SvgConverter;
-}
+} // namespace core
 
 namespace gui {
 
@@ -54,8 +55,8 @@ private slots:
 
     /// @brief Handle download progress
     void onDownloadProgress(int current, int total, const QString& url);
-
 private:
+
     /// @brief Setup UI widgets
     void setupUi();
 
@@ -63,7 +64,7 @@ private:
     bool validateInput();
 
     /// @brief Get selected themes
-    QStringList getSelectedThemes() const;
+    [[nodiscard]] QStringList getSelectedThemes() const;
 
     /// @brief Update preview with downloaded SVG
     void updatePreview(const QString& svgData);
@@ -78,28 +79,30 @@ private:
     void checkDownloadComplete();
 
     // UI Widgets
-    QLineEdit* m_iconNameEdit;
-    QCheckBox* m_twotoneCheckBox;
-    QCheckBox* m_roundedCheckBox;
-    QCheckBox* m_outlinedCheckBox;
-    QLineEdit* m_sourceUrlEdit;
+    QLineEdit* m_iconNameEdit{nullptr};
+    QCheckBox* m_twotoneCheckBox{nullptr};
+    QCheckBox* m_roundedCheckBox{nullptr};
+    QCheckBox* m_outlinedCheckBox{nullptr};
+    QLineEdit* m_sourceUrlEdit{nullptr};
     QComboBox* m_themeCombo;
-    QProgressBar* m_progressBar;
-    QLabel* m_statusLabel;
-    QTextEdit* m_errorDisplay;
-    QSvgWidget* m_previewWidget;
+    QProgressBar* m_progressBar{nullptr};
+    QLabel* m_statusLabel{nullptr};
+    QTextEdit* m_errorDisplay{nullptr};
+    QSvgWidget* m_previewWidget{nullptr};
 
     // Core components
-    core::IconDownloader* m_downloader;
-    core::SvgConverter* m_converter;
+    core::IconDownloader* m_downloader{nullptr};
+    core::SvgConverter* m_converter{nullptr};
 
     // State
     QString m_currentIconName;
-    int m_totalDownloads;
-    int m_completedDownloads;
-    int m_failedDownloads;
-    bool m_isDownloading;
+    int m_totalDownloads{0};
+    int m_completedDownloads{0};
+    int m_failedDownloads{0};
+    bool m_isDownloading{false};
 };
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_DIALOGS_ICON_DOWNLOADER_DIALOG_H

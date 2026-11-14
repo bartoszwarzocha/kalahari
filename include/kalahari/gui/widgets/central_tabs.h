@@ -4,7 +4,8 @@
 /// @file central_tabs.h
 /// @brief The tabs in the middle of the window: Qt's one row, or as many rows as the width needs
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_CENTRAL_TABS_H
+#define KALAHARI_GUI_WIDGETS_CENTRAL_TABS_H
 
 #include "kalahari/gui/widgets/panel_tab_bar.h"
 
@@ -13,8 +14,7 @@
 class QAction;
 class QToolButton;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class CentralTabBar;
 
@@ -68,5 +68,6 @@ private:
     QToolButton* m_rowsButton;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_CENTRAL_TABS_H

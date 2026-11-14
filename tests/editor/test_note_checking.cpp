@@ -16,8 +16,8 @@
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/gui/utils/access_keys.h>
-#include "editor_test_utils.h"
-#include "fake_language_tool.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/editor/fake_language_tool.h"
 
 #include <QAction>
 #include <QApplication>

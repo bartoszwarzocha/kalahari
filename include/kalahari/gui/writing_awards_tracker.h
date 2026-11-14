@@ -10,7 +10,8 @@
 /// journal, the book's in the book) and says what was won or reached, once. The messages are
 /// shown by WritingStatsCoordinator, as the settings say.
 
-#pragma once
+#ifndef KALAHARI_GUI_WRITING_AWARDS_TRACKER_H
+#define KALAHARI_GUI_WRITING_AWARDS_TRACKER_H
 
 #include <kalahari/core/writing_awards.h>
 #include <kalahari/core/writing_goals.h>
@@ -57,38 +58,38 @@ public:
     void countIfNeeded();
 
     /// @brief They were counted at least once
-    bool counted() const { return m_counted; }
+    [[nodiscard]] bool counted() const { return m_counted; }
 
     /// @brief How far each kind of badges is, as last counted (BADGE_KINDS order)
-    const QList<core::BadgeProgress>& progress() const { return m_progress; }
+    [[nodiscard]] const QList<core::BadgeProgress>& progress() const { return m_progress; }
 
     /// @brief How far @p kind is
-    core::BadgeProgress progressOf(core::BadgeKind kind) const;
+    [[nodiscard]] core::BadgeProgress progressOf(core::BadgeKind kind) const;
 
     /// @brief The badges won that the tab shows: the writer's, of this month and of the open
     /// book since it started over
-    QList<core::EarnedBadge> shownBadges() const;
+    [[nodiscard]] QList<core::EarnedBadge> shownBadges() const;
 
     /// @brief The badge @p level of @p kind is won (in the scope the tab shows)
-    std::optional<core::EarnedBadge> earned(core::BadgeKind kind, int level) const;
+    [[nodiscard]] std::optional<core::EarnedBadge> earned(core::BadgeKind kind, int level) const;
 
     /// @brief The badge won last, of all the badges shown; none when none
-    std::optional<core::EarnedBadge> lastBadge() const;
+    [[nodiscard]] std::optional<core::EarnedBadge> lastBadge() const;
 
     /// @brief The months in which the badge @p level of a kind of the month was won
-    int monthsWon(core::BadgeKind kind, int level) const;
+    [[nodiscard]] int monthsWon(core::BadgeKind kind, int level) const;
 
     /// @brief The badges of the open book (empty without one)
-    const core::BookBadges& bookBadges() const { return m_bookBadges; }
+    [[nodiscard]] const core::BookBadges& bookBadges() const { return m_bookBadges; }
 
     /// @brief The badges of the book count again from today; those won stay in its history
     void startBookOver();
 
     /// @brief The writer's challenges
-    const QList<core::WritingChallenge>& challenges() const { return m_challenges; }
+    [[nodiscard]] const QList<core::WritingChallenge>& challenges() const { return m_challenges; }
 
     /// @brief How far @p challenge is today
-    core::ChallengeProgress challengeProgress(const core::WritingChallenge& challenge) const;
+    [[nodiscard]] core::ChallengeProgress challengeProgress(const core::WritingChallenge& challenge) const;
 
     /// @brief Set a new challenge; it turns the challenges on (the setting stats.challenges)
     /// @return Its number; 0 when it cannot be kept
@@ -127,7 +128,7 @@ private:
     void readKept();
 
     /// @brief What the badges are counted from now
-    core::AwardsInput input() const;
+    [[nodiscard]] core::AwardsInput input() const;
 
     /// @brief Keep the goals of today in the journal when they changed
     void keepDayGoals(const core::AwardsInput& input);
@@ -157,3 +158,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WRITING_AWARDS_TRACKER_H

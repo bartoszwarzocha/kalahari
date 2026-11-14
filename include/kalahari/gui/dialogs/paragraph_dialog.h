@@ -5,7 +5,8 @@
 /// @brief Format > Paragraph...: the alignment, indents, spacing, line spacing and the breaks
 ///        of lines and pages of the selected paragraphs
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_PARAGRAPH_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_PARAGRAPH_DIALOG_H
 
 #include "kalahari/editor/paragraph_format.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -23,8 +24,7 @@ class QLabel;
 class QPaintEvent;
 class QTabWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class LengthSpinBox;
 
@@ -43,7 +43,7 @@ public:
     /// @brief The lines of the paragraph as drawn, in the widget (for tests)
     [[nodiscard]] QList<QRectF> paragraphLines() const;
 
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -159,5 +159,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_PARAGRAPH_DIALOG_H

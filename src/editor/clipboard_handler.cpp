@@ -15,7 +15,7 @@
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_tables.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <QColor>
 #include <QDir>
 #include <QFont>
@@ -816,7 +816,7 @@ struct PastedText {
     }
 
     /// @brief The characters [from, to) of the text, with their formats
-    PastedText mid(qsizetype from, qsizetype to) const
+    [[nodiscard]] PastedText mid(qsizetype from, qsizetype to) const
     {
         PastedText part;
         part.text = text.mid(from, to - from);
@@ -826,7 +826,7 @@ struct PastedText {
 
     /// @brief Whether a browser shows anything of the text: a character other than a
     ///        space, which HTML leaves out where nothing else shows
-    bool shows() const
+    [[nodiscard]] bool shows() const
     {
         return std::any_of(text.cbegin(), text.cend(), [](QChar ch) { return ch != u' '; });
     }
@@ -913,7 +913,7 @@ public:
     }
 
     /// @brief The KML; empty without paragraphs and tables
-    QString kml() const
+    [[nodiscard]] QString kml() const
     {
         const QString elements = body();
         return elements.isEmpty() ? QString()
@@ -922,7 +922,7 @@ public:
 
     /// @brief The elements of the KML, without its root element; empty without paragraphs
     ///        and tables
-    QString body() const
+    [[nodiscard]] QString body() const
     {
         if (m_items.empty()) {
             return QString();
@@ -1017,7 +1017,7 @@ private:
         QString content;               ///< The KML of a table, written whole
     };
 
-    bool keepsStructure() const { return m_mode != PasteMode::Text; }
+    [[nodiscard]] bool keepsStructure() const { return m_mode != PasteMode::Text; }
 
     /// @brief Add the paragraphs and tables from an iterator of a frame or a cell
     void addContent(QTextFrame::iterator it)
@@ -1346,7 +1346,7 @@ private:
 
     /// @brief The text of a block with the formats the mode keeps; a list item starts with
     ///        its number or bullet
-    PastedText textOf(const QTextBlock& block, bool heading) const
+    [[nodiscard]] PastedText textOf(const QTextBlock& block, bool heading) const
     {
         PastedText text;
         if (QTextList* list = block.textList(); list != nullptr && !keepsStructure()) {
@@ -1431,7 +1431,7 @@ private:
 
     /// @brief The format the mode keeps of a fragment's format
     /// @param heading The fragment is in a heading, whose own bold is the look of a heading
-    QTextCharFormat keptFormat(const QTextCharFormat& source, bool heading) const
+    [[nodiscard]] QTextCharFormat keptFormat(const QTextCharFormat& source, bool heading) const
     {
         QTextCharFormat format;
         if (m_mode == PasteMode::Text) {
@@ -1501,7 +1501,7 @@ private:
     /// @brief The align attribute the mode keeps: Merge only center and right, as the book's
     ///        paragraphs are justified (left in the last line), but not the centering of a th
     ///        cell of the header row (Qt::AlignCenter), which is its look, as its bold
-    QString alignmentAttribute(const QTextBlockFormat& format) const
+    [[nodiscard]] QString alignmentAttribute(const QTextBlockFormat& format) const
     {
         const Qt::Alignment own = ownAlignment(format);
         if (!keepsStructure()) {

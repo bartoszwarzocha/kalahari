@@ -4,7 +4,8 @@
 /// @file annotation_entry.h
 /// @brief An annotation as the Annotations panel lists it, and what the panel shows
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_ANNOTATION_ENTRY_H
+#define KALAHARI_GUI_PANELS_ANNOTATION_ENTRY_H
 
 #include <kalahari/editor/annotation.h>
 
@@ -32,7 +33,7 @@ struct AnnotationEntry {
     bool operator==(const AnnotationEntry& other) const = default;
 
     /// @brief What tells it from every other entry (see annotationKey())
-    QString key() const { return annotationKey(elementId, annotation.id); }
+    [[nodiscard]] QString key() const { return annotationKey(elementId, annotation.id); }
 };
 
 /// @brief Which annotations the panel lists
@@ -88,3 +89,5 @@ bool matches(const AnnotationEntry& entry, const AnnotationFilter& filter, const
 void sortEntries(std::vector<AnnotationEntry>& entries, AnnotationSort sort);
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_ANNOTATION_ENTRY_H

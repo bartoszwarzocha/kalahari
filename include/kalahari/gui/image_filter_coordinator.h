@@ -5,7 +5,8 @@
 /// @brief Image > Filter > Same Filter for All Images...: the filter of one image for every
 ///        image of the book, with Undo
 
-#pragma once
+#ifndef KALAHARI_GUI_IMAGE_FILTER_COORDINATOR_H
+#define KALAHARI_GUI_IMAGE_FILTER_COORDINATOR_H
 
 #include "kalahari/editor/text_images.h"
 
@@ -27,7 +28,7 @@ class ProjectManager;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -114,7 +115,7 @@ private:
     [[nodiscard]] EditorPanel* panelOf(const editor::BookEditor& text) const;
 
     /// @brief The window that asks first
-    bool confirm(int count, const QString& filterName) const;
+    [[nodiscard]] bool confirm(int count, const QString& filterName) const;
 
     void forgetUndo();
     void say(const QString& message) const;
@@ -130,3 +131,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_IMAGE_FILTER_COORDINATOR_H

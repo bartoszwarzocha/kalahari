@@ -15,8 +15,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // ============================================================================
 // SectionsComboBox
@@ -150,5 +149,4 @@ QLineEdit* SectionNamesEdit::firstField() const {
     return m_fields.front();
 }
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui

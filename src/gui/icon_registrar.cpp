@@ -11,8 +11,7 @@
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/logger.h"
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 void registerAllIcons() {
     auto& logger = core::Logger::getInstance();
@@ -530,5 +529,4 @@ void registerAllIcons() {
     logger.debug("Registered {} icons with IconRegistry", 189);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

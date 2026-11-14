@@ -5,7 +5,8 @@
 /// @brief Preparing grammar as you type: Java and LanguageTool downloaded, checked, unpacked
 ///        and started once
 
-#pragma once
+#ifndef KALAHARI_GUI_GRAMMAR_SETUP_H
+#define KALAHARI_GUI_GRAMMAR_SETUP_H
 
 #include "kalahari/gui/grammar_components.h"
 
@@ -25,7 +26,7 @@ class QThread;
 
 namespace kalahari::editor {
 class GrammarCheckService;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -124,32 +125,32 @@ public:
     /// @brief Break off: the files downloaded whole stay for the next time
     void cancel();
 
-    State state() const { return m_state; }
-    bool isRunning() const { return m_state == State::Running; }
+    [[nodiscard]] State state() const { return m_state; }
+    [[nodiscard]] bool isRunning() const { return m_state == State::Running; }
 
     /// @brief The step being done, or the one that failed
-    Step step() const { return m_step; }
+    [[nodiscard]] Step step() const { return m_step; }
 
     /// @brief Why the preparation stopped (State::Failed)
-    Failure failure() const { return m_failure; }
+    [[nodiscard]] Failure failure() const { return m_failure; }
 
     /// @brief Whether a step is done (also one not needed: it was done before)
-    bool isDone(Step step) const;
+    [[nodiscard]] bool isDone(Step step) const;
 
     /// @brief How much of a file is downloaded (Step::Java, Step::LanguageTool; bytes)
-    qint64 received(Step step) const;
+    [[nodiscard]] qint64 received(Step step) const;
 
     /// @brief How big a file is (bytes; for Java an estimate until the service tells)
-    qint64 total(Step step) const;
+    [[nodiscard]] qint64 total(Step step) const;
 
     /// @brief How much of both downloads is done, 0 to 100
-    int percent() const;
+    [[nodiscard]] int percent() const;
 
     /// @brief What went wrong, as the system or the program said it (State::Failed)
-    QString errorText() const { return m_errorText; }
+    [[nodiscard]] QString errorText() const { return m_errorText; }
 
     /// @brief The address of the file that failed (empty when no file failed)
-    QUrl errorUrl() const { return m_errorUrl; }
+    [[nodiscard]] QUrl errorUrl() const { return m_errorUrl; }
 
 signals:
     /// @brief A step or a download went on
@@ -237,3 +238,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_GRAMMAR_SETUP_H

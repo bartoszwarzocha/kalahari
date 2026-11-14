@@ -16,8 +16,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 HeightForWidthScrollArea::HeightForWidthScrollArea(QWidget* content, int minimumLines,
                                                    QWidget* parent)
@@ -67,5 +66,4 @@ bool HeightForWidthScrollArea::eventFilter(QObject* watched, QEvent* event) {
     return QScrollArea::eventFilter(watched, event);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

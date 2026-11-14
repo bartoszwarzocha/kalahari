@@ -17,7 +17,8 @@
 /// and gives every item of every menu an access key (giveFreeAccessKeys()). macOS keeps the
 /// keys of its own fields.
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGET_KEYS_H
+#define KALAHARI_GUI_WIDGET_KEYS_H
 
 #include "kalahari/gui/shortcut_rules.h"
 
@@ -31,8 +32,7 @@ class QKeyEvent;
 class QMenu;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A filter of the application that gives Qt's widgets the keys of Windows
 ///
@@ -96,5 +96,6 @@ private:
 /// @brief Give the application's widgets the keys of Windows (on Windows and Linux)
 void installWidgetKeys(QApplication& app);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGET_KEYS_H

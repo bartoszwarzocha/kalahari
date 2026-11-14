@@ -5,7 +5,7 @@
 /// @brief BookEditor: numbered captions of images, cross-references and the list of figures
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>

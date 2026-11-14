@@ -9,13 +9,13 @@
 /// Settings > General > Units (ui.lengthUnit). One inch is 25.4 mm, 72 points and
 /// 96 pixels (the CSS convention, also the size of a pixel at 100% zoom on Windows).
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_LENGTH_SPIN_BOX_H
+#define KALAHARI_GUI_WIDGETS_LENGTH_SPIN_BOX_H
 
 #include <QDoubleSpinBox>
 #include <QString>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Units a length can be shown in
 enum class LengthUnit { Pixels, Millimeters, Centimeters, Inches, Points };
@@ -81,5 +81,6 @@ private:
     bool m_updating = false;  ///< The value is being set by the program, not the user
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_LENGTH_SPIN_BOX_H

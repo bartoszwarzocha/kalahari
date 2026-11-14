@@ -5,7 +5,8 @@
 /// @brief Insert > Quick Character: the favorite characters and those used last at the cursor
 ///        of the text, and a search of all of them
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_QUICK_CHARACTER_PALETTE_H
+#define KALAHARI_GUI_WIDGETS_QUICK_CHARACTER_PALETTE_H
 
 #include "kalahari/gui/special_characters.h"
 #include "kalahari/gui/widgets/character_grid.h"
@@ -26,8 +27,7 @@ class QLineEdit;
 class QPushButton;
 class QShowEvent;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A small window under the cursor of the text, for a character without leaving the
 ///        keyboard
@@ -145,5 +145,6 @@ private:
     QPushButton* m_allButton = nullptr;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_QUICK_CHARACTER_PALETTE_H

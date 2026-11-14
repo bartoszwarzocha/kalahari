@@ -10,8 +10,7 @@
 #include <QFocusEvent>
 #include <QKeyEvent>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 ShortcutRecorder::ShortcutRecorder(QWidget* parent)
     : QLineEdit(parent)
@@ -149,5 +148,4 @@ void ShortcutRecorder::showModifiers(Qt::KeyboardModifiers modifiers) {
     setText(withKey.chopped(key.size()) + QStringLiteral("…"));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

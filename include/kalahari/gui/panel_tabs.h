@@ -4,7 +4,8 @@
 /// @file panel_tabs.h
 /// @brief The tabs of the panels docked one over another: the program's own in place of Qt's
 
-#pragma once
+#ifndef KALAHARI_GUI_PANEL_TABS_H
+#define KALAHARI_GUI_PANEL_TABS_H
 
 #include "kalahari/gui/widgets/panel_tab_bar.h"
 
@@ -26,8 +27,7 @@ namespace kalahari::gui {
 class CommandRegistry;
 }  // namespace kalahari::gui
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The tabs of the panels docked one over another in a main window
 ///
@@ -94,7 +94,7 @@ public:
     /// @brief The side of the panels the settings put the tabs on
     [[nodiscard]] static PanelTabBar::Side sideSetting();
 
-public slots:
+
     /// @brief Bring the tabs up to date with the window's layout now (they follow it by
     ///        themselves a moment after it changes)
     void refresh();
@@ -152,5 +152,6 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANEL_TABS_H

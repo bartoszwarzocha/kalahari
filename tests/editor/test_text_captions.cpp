@@ -13,7 +13,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QDir>
 #include <QImage>
@@ -42,7 +42,7 @@ struct BookFolder {
         }
     }
 
-    QString path() const { return dir.path(); }
+    [[nodiscard]] QString path() const { return dir.path(); }
 };
 
 std::unique_ptr<BookEditor> editorWith(const QString& kml, const QString& folder = QString()) {

@@ -10,7 +10,8 @@
 /// system; a key some desktops take for themselves only brings a warning. The fixed keys
 /// and the system's are also shown at the end of the list of the shortcuts.
 
-#pragma once
+#ifndef KALAHARI_GUI_SHORTCUT_RULES_H
+#define KALAHARI_GUI_SHORTCUT_RULES_H
 
 #include <QCoreApplication>
 #include <QKeyCombination>
@@ -26,7 +27,7 @@ class QKeyEvent;
 namespace kalahari {
 namespace editor {
 enum class TextKeyAction;
-}
+} // namespace editor
 
 namespace gui {
 
@@ -53,11 +54,11 @@ struct FixedKeys {
     QString reason;                                 ///< Why a command cannot have them
                                                     ///< (%1: the keys)
     std::string allowedFor;                         ///< The one command that may have them
-    QString summary = {};                           ///< The keys as the list shows them, when
+    QString summary;                           ///< The keys as the list shows them, when
                                                     ///< a list of them all would not do
-    QStringList keyReasons = {};                    ///< Why, key by key, in the order of keys
+    QStringList keyReasons;                    ///< Why, key by key, in the order of keys
                                                     ///< (in place of reason)
-    QString brief = {};                             ///< Why, in a few words, for a summary
+    QString brief;                             ///< Why, in a few words, for a summary
 
     /// @brief Whether the keys are among these
     [[nodiscard]] bool covers(QKeyCombination pressed) const;
@@ -87,7 +88,7 @@ struct KeyCheck {
     };
     Result result = Result::Allowed;
     QString reason;      ///< Why (Warning, Refused)
-    QString brief = {};  ///< Why, in a few words, for a summary (Refused)
+    QString brief;  ///< Why, in a few words, for a summary (Refused)
 };
 
 /// @brief The rules of the keys of the commands on one system
@@ -107,7 +108,7 @@ public:
     /// @brief Whether a command may have the keys
     /// @param keys The keys (keypad or not makes no difference)
     /// @param commandId The command (only Exit may have the key that closes the window)
-    [[nodiscard]] KeyCheck check(QKeyCombination keys, const std::string& commandId) const;
+    [[nodiscard]] KeyCheck check(QKeyCombination pressed, const std::string& commandId) const;
 
     /// @brief Keys as the system writes them (on macOS with the symbols of the keys)
     ///
@@ -124,14 +125,14 @@ public:
     [[nodiscard]] static QKeyCombination keysOf(const QKeyEvent* event);
 
 private:
-    std::vector<FixedKeyGroup> textGroups() const;
-    FixedKeyGroup systemGroup() const;
+    [[nodiscard]] std::vector<FixedKeyGroup> textGroups() const;
+    [[nodiscard]] FixedKeyGroup systemGroup() const;
 
     /// @brief Why the keys type text, or empty when they do not
-    QString typingReason(QKeyCombination keys) const;
+    [[nodiscard]] QString typingReason(QKeyCombination keys) const;
 
     /// @brief A warning about keys some desktops take, or empty
-    QString desktopWarning(QKeyCombination keys) const;
+    [[nodiscard]] QString desktopWarning(QKeyCombination keys) const;
 
     /// @brief Why a key of the text is fixed: what it does there
     static QString textKeyReason(QKeyCombination keys, editor::TextKeyAction action,
@@ -145,3 +146,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_SHORTCUT_RULES_H

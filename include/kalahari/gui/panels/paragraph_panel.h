@@ -5,7 +5,8 @@
 /// @brief The Paragraph and Styles panel: the paragraph at the cursor of the text in front,
 /// the buttons of its formatting and the palette of the book's styles
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_PARAGRAPH_PANEL_H
+#define KALAHARI_GUI_PANELS_PARAGRAPH_PANEL_H
 
 #include <QPointer>
 #include <QWidget>
@@ -26,10 +27,9 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class StyleCoordinator;
 
@@ -60,20 +60,20 @@ public:
     void setEditor(editor::BookEditor* editor);
 
     /// @brief The text the panel follows (nullptr without one)
-    editor::BookEditor* editor() const;
+    [[nodiscard]] editor::BookEditor* editor() const;
 
     /// @brief Give the band the button that folds the panel to the band (in the Properties
     ///        panel) or not
     void setFoldable(bool foldable);
 
     /// @brief Whether only the band shows
-    bool isFolded() const { return m_folded; }
+    [[nodiscard]] bool isFolded() const { return m_folded; }
 
     /// @brief Show only the band, or all of the panel
     void setFolded(bool folded);
 
     /// @brief Whether the palette shows the styles in their look, not by their names only
-    bool showsPreview() const;
+    [[nodiscard]] bool showsPreview() const;
 
     /// @brief Show the styles in their look, or by their names (remembered for both places of
     ///        the panel: panels.stylePreview)
@@ -89,17 +89,17 @@ public:
 
     /// @brief The style the buttons and the menu of the palette act on: the one chosen in the
     ///        list, else the style of the paragraph at the cursor; empty without a text
-    QString paletteStyle() const;
+    [[nodiscard]] QString paletteStyle() const;
 
     /// @brief Fill @p menu with the commands of the style chosen (the menu of the palette)
     void fillStyleMenu(QMenu& menu);
 
     /// @brief The buttons of the palette: New Style..., Modify Style..., Delete Style and
     ///        Manage Styles... for the style chosen
-    QAction* newStyleAction() const { return m_newStyleAction; }
-    QAction* modifyStyleAction() const { return m_modifyStyleAction; }
-    QAction* deleteStyleAction() const { return m_deleteStyleAction; }
-    QAction* manageStylesAction() const { return m_manageStylesAction; }
+    [[nodiscard]] QAction* newStyleAction() const { return m_newStyleAction; }
+    [[nodiscard]] QAction* modifyStyleAction() const { return m_modifyStyleAction; }
+    [[nodiscard]] QAction* deleteStyleAction() const { return m_deleteStyleAction; }
+    [[nodiscard]] QAction* manageStylesAction() const { return m_manageStylesAction; }
 
 signals:
     /// @brief The writer folded the panel to its band, or unfolded it (setFolded())
@@ -156,11 +156,11 @@ private:
     void showStyleMenu(const QPoint& pos);
 
     /// @brief The name of style @p id in the text followed
-    QString styleName(const QString& id) const;
+    [[nodiscard]] QString styleName(const QString& id) const;
 
     /// @brief Whether paragraphs of the text followed have style @p id, which the book does
     ///        not have (pasted from another book)
-    bool isMissing(const QString& id) const;
+    [[nodiscard]] bool isMissing(const QString& id) const;
 
     /// @brief The icons of the buttons in the size of the toolbars
     void applyIconSize();
@@ -194,5 +194,6 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_PARAGRAPH_PANEL_H

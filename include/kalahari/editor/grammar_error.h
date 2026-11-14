@@ -4,7 +4,8 @@
 /// @file grammar_error.h
 /// @brief An issue of grammar, style or punctuation found by LanguageTool
 
-#pragma once
+#ifndef KALAHARI_EDITOR_GRAMMAR_ERROR_H
+#define KALAHARI_EDITOR_GRAMMAR_ERROR_H
 
 #include <QString>
 #include <QStringList>
@@ -45,3 +46,5 @@ struct GrammarError {
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_GRAMMAR_ERROR_H

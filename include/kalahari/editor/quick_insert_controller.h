@@ -10,7 +10,8 @@
 /// Enter or Tab inserts it in place of the character and the letters (one undo step), Esc
 /// closes the list and leaves the text as typed; a space or a punctuation mark closes it too.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_QUICK_INSERT_CONTROLLER_H
+#define KALAHARI_EDITOR_QUICK_INSERT_CONTROLLER_H
 
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/quick_insert.h>
@@ -46,10 +47,10 @@ public:
     void setItems(const QList<QuickInsertItem>& items, const QString& typed);
 
     /// @brief The items shown
-    const QList<QuickInsertItem>& items() const { return m_items; }
+    [[nodiscard]] const QList<QuickInsertItem>& items() const { return m_items; }
 
     /// @brief The index of the item chosen in items(), or -1 without items
-    int current() const { return m_current; }
+    [[nodiscard]] int current() const { return m_current; }
 
     /// @brief Choose the item @p index of items() (wrapping around at the ends with move())
     void setCurrent(int index);
@@ -59,7 +60,7 @@ public:
     void move(int steps);
 
     /// @brief How many items a page of the list shows (Page Up, Page Down)
-    int pageSize() const;
+    [[nodiscard]] int pageSize() const;
 
 signals:
     /// @brief An item was clicked: it is to be inserted
@@ -92,16 +93,16 @@ public:
     /// @brief The characters that open the list when typed at the start of a word ("@#");
     ///        empty: none (the command still opens it)
     void setTriggers(const QString& triggers);
-    QString triggers() const { return m_triggers; }
+    [[nodiscard]] QString triggers() const { return m_triggers; }
 
     /// @brief Open the list at the cursor with all the items (Insert > Quick Insert...)
     void openAtCursor();
 
     /// @brief Whether the list is open
-    bool isOpen() const { return m_open; }
+    [[nodiscard]] bool isOpen() const { return m_open; }
 
     /// @brief The list (hidden while it is closed)
-    QuickInsertList* list() const { return m_list; }
+    [[nodiscard]] QuickInsertList* list() const { return m_list; }
 
     /// @brief Insert the item chosen in place of the character and the letters typed after it
     /// @return Whether an item was inserted
@@ -134,3 +135,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_QUICK_INSERT_CONTROLLER_H

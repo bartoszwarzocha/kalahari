@@ -5,7 +5,8 @@
 /// @brief What grammar as you type needs on this computer: Java and LanguageTool, where the
 ///        program puts them and what the ones found are
 
-#pragma once
+#ifndef KALAHARI_GUI_GRAMMAR_COMPONENTS_H
+#define KALAHARI_GUI_GRAMMAR_COMPONENTS_H
 
 #include <QByteArray>
 #include <QString>
@@ -151,3 +152,5 @@ public:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_GRAMMAR_COMPONENTS_H

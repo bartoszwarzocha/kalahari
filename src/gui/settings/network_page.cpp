@@ -20,8 +20,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -104,5 +103,4 @@ NetworkMaterialsPage::NetworkMaterialsPage(QWidget* parent)
     pageLayout()->addStretch();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

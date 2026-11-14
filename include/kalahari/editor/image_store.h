@@ -11,7 +11,8 @@
 /// where a name taken by another file gets a number ("map-2.png") and a file with the same
 /// content is used again.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_IMAGE_STORE_H
+#define KALAHARI_EDITOR_IMAGE_STORE_H
 
 #include <QCache>
 #include <QHash>
@@ -101,3 +102,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_IMAGE_STORE_H

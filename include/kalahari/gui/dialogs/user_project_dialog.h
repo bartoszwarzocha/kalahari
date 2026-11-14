@@ -4,7 +4,8 @@
 /// @file user_project_dialog.h
 /// @brief The second step of a new user project: the kinds of elements of the book
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_USER_PROJECT_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_USER_PROJECT_DIALOG_H
 
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -17,8 +18,7 @@
 class QLabel;
 class QPushButton;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class KindPalette;
 
@@ -75,27 +75,27 @@ public:
     /// @brief The kinds of the book and its elements: the palette's after Create Book, the
     /// first ones after Skip
     /// @note Only valid after the window is accepted
-    core::PaletteChoice choice() const { return m_choice; }
+    [[nodiscard]] core::PaletteChoice choice() const { return m_choice; }
 
     /// @brief Whether the new book opens: false when the writer chose to create it without
     /// opening, and the open book stays open
     /// @note Only valid after the window is accepted
-    bool opens() const { return m_opens; }
+    [[nodiscard]] bool opens() const { return m_opens; }
 
     /// @brief The choice the palette starts with, which Skip makes: the kinds of the base
     /// package, with an element of its main text kind in the main section
-    core::PaletteChoice firstChoice() const { return m_firstChoice; }
+    [[nodiscard]] core::PaletteChoice firstChoice() const { return m_firstChoice; }
 
     /// @brief The palette
-    KindPalette* palette() const { return m_palette; }
+    [[nodiscard]] KindPalette* palette() const { return m_palette; }
 
     /// @brief The button that creates the book as the palette was at first
-    QPushButton* skipButton() const { return m_skipButton; }
+    [[nodiscard]] QPushButton* skipButton() const { return m_skipButton; }
 
     /// @brief The button that returns to the New Book window
-    QPushButton* backButton() const { return m_backButton; }
+    [[nodiscard]] QPushButton* backButton() const { return m_backButton; }
 
-public slots:
+
     /// @brief Create Book or Skip: asks about the open book, then closes the window; Cancel
     /// of the question keeps it open
     void accept() override;
@@ -118,5 +118,6 @@ private:
 };
 
 } // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIALOGS_USER_PROJECT_DIALOG_H

@@ -4,7 +4,8 @@
 /// @file editor_test_utils.h
 /// @brief Helpers shared by the editor tests and the editor benchmark
 
-#pragma once
+#ifndef KALAHARI_TESTS_EDITOR_EDITOR_TEST_UTILS_H
+#define KALAHARI_TESTS_EDITOR_EDITOR_TEST_UTILS_H
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/book_editor.h>
@@ -130,11 +131,11 @@ public:
     PopupMenuKey(const PopupMenuKey&) = delete;
     PopupMenuKey& operator=(const PopupMenuKey&) = delete;
 
-    int menusShown() const { return m_menusShown; }
+    [[nodiscard]] [[nodiscard]] [[nodiscard]] int menusShown() const { return m_menusShown; }
     /// The first menu took the key ahead of the program's shortcuts
-    bool keyTaken() const { return m_keyTaken; }
+    [[nodiscard]] [[nodiscard]] [[nodiscard]] bool keyTaken() const { return m_keyTaken; }
     /// The first menu was still open after the key
-    bool stayedOpen() const { return m_stayedOpen; }
+    [[nodiscard]] [[nodiscard]] [[nodiscard]] bool stayedOpen() const { return m_stayedOpen; }
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
@@ -219,7 +220,7 @@ public:
     LaidOutBlockCounter(const LaidOutBlockCounter&) = delete;
     LaidOutBlockCounter& operator=(const LaidOutBlockCounter&) = delete;
 
-    int count() const { return m_count; }
+    [[nodiscard]] [[nodiscard]] [[nodiscard]] int count() const { return m_count; }
 
 private:
     QMetaObject::Connection m_connection;
@@ -227,3 +228,5 @@ private:
 };
 
 }  // namespace kalahari::test
+
+#endif  // KALAHARI_TESTS_EDITOR_EDITOR_TEST_UTILS_H

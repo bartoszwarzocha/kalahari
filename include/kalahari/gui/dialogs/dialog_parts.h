@@ -5,7 +5,8 @@
 /// @brief Parts that the program's own dialogs share: a list as high as its rows, a note with
 /// an icon, and the Copy button
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_DIALOG_PARTS_H
+#define KALAHARI_GUI_DIALOGS_DIALOG_PARTS_H
 
 #include <QSize>
 #include <QString>
@@ -17,9 +18,7 @@ class QLabel;
 class QPushButton;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief A list of a dialog, as high as its rows up to MAXIMUM_ROWS; the other rows scroll,
 /// and on a small screen the list keeps MINIMUM_ROWS
@@ -34,14 +33,14 @@ public:
     void setRows(int rows);
 
     /// @brief As high as its rows, up to MAXIMUM_ROWS
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
     /// @brief As high as its rows, up to MINIMUM_ROWS
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
 private:
     /// @brief The height of @p rows rows, with the frame
-    int heightFor(int rows) const;
+    [[nodiscard]] int heightFor(int rows) const;
 
     int m_rows = 0;
 };
@@ -68,6 +67,6 @@ void setNoteIcon(QLabel* icon, const QString& iconId);
 /// says so for a while
 void setUpCopyButton(QPushButton* button, const std::function<QString()>& text);
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_DIALOG_PARTS_H

@@ -8,7 +8,7 @@
 ///        open texts and the saved ones, with Undo
 
 #include <catch2/catch_test_macros.hpp>
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_captions.h"
@@ -25,7 +25,7 @@
 
 #include <algorithm>
 #include <functional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::CaptionCoordinator;

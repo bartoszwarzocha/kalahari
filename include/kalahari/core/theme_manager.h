@@ -4,7 +4,8 @@
 /// @file theme_manager.h
 /// @brief Theme management system for Kalahari
 
-#pragma once
+#ifndef KALAHARI_CORE_THEME_MANAGER_H
+#define KALAHARI_CORE_THEME_MANAGER_H
 
 #include "kalahari/core/theme.h"
 #include <QObject>
@@ -18,8 +19,7 @@
 #include <set>
 #include <string>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Manages application themes (load, switch, persist)
 ///
@@ -189,5 +189,6 @@ private:
     std::optional<nlohmann::json> loadThemeFile(const QString& themeName);
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_THEME_MANAGER_H

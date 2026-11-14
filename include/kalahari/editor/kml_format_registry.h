@@ -7,7 +7,8 @@
 /// Provides centralized definitions for KML tag to QTextCharFormat mappings,
 /// used by both the KML reader (KmlDocumentModel) and KmlSerializer to ensure consistency.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_KML_FORMAT_REGISTRY_H
+#define KALAHARI_EDITOR_KML_FORMAT_REGISTRY_H
 
 #include <QString>
 #include <QStringList>
@@ -16,8 +17,7 @@
 #include <QVector>
 #include <QXmlStreamAttributes>
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 /// @brief Custom property IDs for KML metadata in QTextCharFormat
 ///
@@ -181,5 +181,6 @@ QString unescapeXml(const QString& text);
 
 } // namespace KmlFormatRegistry
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_KML_FORMAT_REGISTRY_H

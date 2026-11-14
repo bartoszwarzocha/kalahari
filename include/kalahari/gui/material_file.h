@@ -4,15 +4,15 @@
 /// @file material_file.h
 /// @brief The file of a material as the program shows it: its name, format, size and picture
 
-#pragma once
+#ifndef KALAHARI_GUI_MATERIAL_FILE_H
+#define KALAHARI_GUI_MATERIAL_FILE_H
 
 #include <QCoreApplication>
 #include <QImage>
 #include <QSize>
 #include <QString>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief What the program knows of the file of a material: its name, format and size, and
 /// whether it is a picture the program can show
@@ -42,11 +42,11 @@ public:
 
     /// @brief One line about the file: "mapa.png · PNG · 1600 × 1000 px · 245 KB"; the parts
     /// it does not have are left out
-    QString summary() const;
+    [[nodiscard]] QString summary() const;
 
     /// @brief Why the program does not show the picture, in a sentence; empty when it shows it
     /// or the file is no picture
-    QString problem() const;
+    [[nodiscard]] QString problem() const;
 };
 
 /// @brief Picture @p path turned by @p rotation degrees clockwise (0, 90, 180 or 270), at most
@@ -55,5 +55,6 @@ public:
 QImage readPicture(const QString& path, int rotation = 0, const QSize& bounds = QSize(),
                    QString* error = nullptr);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_MATERIAL_FILE_H

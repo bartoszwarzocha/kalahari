@@ -46,8 +46,7 @@
 #include <string>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -997,5 +996,4 @@ void EditorGrammarPage::reloadPrepared() {
     updateCard();
 }
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui

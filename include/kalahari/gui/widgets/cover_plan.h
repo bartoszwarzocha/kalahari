@@ -5,7 +5,8 @@
 /// @brief The plan of the cover: the cover unfolded (the flaps, the back, the spine, the
 /// front), with the design chosen behind it and the materials of the cover in their places
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_COVER_PLAN_H
+#define KALAHARI_GUI_WIDGETS_COVER_PLAN_H
 
 #include <QFrame>
 #include <QHash>
@@ -19,8 +20,7 @@ class QHBoxLayout;
 class QLabel;
 class QVBoxLayout;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class FlowLayout;
 
@@ -45,9 +45,9 @@ class CoverPlanCard : public QFrame {
 public:
     CoverPlanCard(const CoverPlanItem& item, bool narrow, QWidget* parent = nullptr);
 
-    QString id() const { return m_id; }
+    [[nodiscard]] QString id() const { return m_id; }
     void setCurrent(bool current);
-    bool isCurrent() const { return m_current; }
+    [[nodiscard]] bool isCurrent() const { return m_current; }
 
 signals:
     void clicked(const QString& id);
@@ -87,7 +87,7 @@ public:
     void setItems(const QList<CoverPlanItem>& items);
 
     /// @brief The material chosen; empty: none
-    QString current() const { return m_current; }
+    [[nodiscard]] QString current() const { return m_current; }
 
     /// @brief Choose @p id on the plan, without currentChanged()
     void setCurrent(const QString& id);
@@ -96,19 +96,19 @@ public:
     void focusCurrent();
 
     /// @brief Whether the plan has a card of @p id
-    bool hasCard(const QString& id) const { return m_cards.contains(id); }
+    [[nodiscard]] bool hasCard(const QString& id) const { return m_cards.contains(id); }
 
     /// @brief The place whose column shows @p id; empty: under the plan, without a place
-    QString columnOf(const QString& id) const { return m_columnOf.value(id); }
+    [[nodiscard]] QString columnOf(const QString& id) const { return m_columnOf.value(id); }
 
     /// @brief The design behind the plan; empty: none
-    QString designShown() const { return m_design; }
+    [[nodiscard]] QString designShown() const { return m_design; }
 
     /// @brief The box that shows the flaps
-    QCheckBox* flapsBox() const { return m_flaps; }
+    [[nodiscard]] QCheckBox* flapsBox() const { return m_flaps; }
 
     /// @brief The box that shows the materials rejected
-    QCheckBox* rejectedBox() const { return m_rejected; }
+    [[nodiscard]] QCheckBox* rejectedBox() const { return m_rejected; }
 
 signals:
     /// @brief The writer chose @p id on the plan
@@ -151,5 +151,6 @@ private:
                                             ///< without a place, in the order of the keys
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_COVER_PLAN_H

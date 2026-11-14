@@ -38,8 +38,7 @@
 #include <algorithm>
 #include <array>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -1677,5 +1676,4 @@ void ToolbarManager::syncFontWidgetsToEditor(EditorPanel* editor) {
     m_fontWidgetsSyncing = false;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

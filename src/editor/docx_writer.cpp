@@ -12,7 +12,7 @@
 /// the program's language. The lists are Word's lists, the notes Word's footnotes and
 /// endnotes, the annotations, when the export takes them, Word's comments.
 
-#include "book_export_internal.h"
+#include "kalahari/editor/detail/book_export_internal.h"
 
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kml_format_registry.h>
@@ -295,7 +295,7 @@ struct ParagraphProperties {
     }
 
     /// @brief The elements inside <w:pPr>, in the order of the schema
-    QString xml() const {
+    [[nodiscard]] QString xml() const {
         QString result;
         if (!style.isEmpty()) result += valueElement("pStyle", style);
         if (keepNext) result += flagElement("keepNext", *keepNext);
@@ -417,7 +417,7 @@ struct Relationships {
         return id;
     }
 
-    QString xml() const {
+    [[nodiscard]] QString xml() const {
         return XML_HEAD +
                QStringLiteral("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">") +
                entries.join(QString()) + QStringLiteral("</Relationships>");

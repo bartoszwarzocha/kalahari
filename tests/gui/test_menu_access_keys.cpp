@@ -15,8 +15,8 @@
 /// name of each kind of the installed book types.
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
-#include "context_menu_reader.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/project_manager.h"
@@ -83,7 +83,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;

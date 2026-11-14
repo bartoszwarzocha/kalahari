@@ -13,8 +13,7 @@
 
 #include <QCoreApplication>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -132,5 +131,4 @@ QString linkDetails(const core::ElementLink& link) {
     return parts.join(QStringLiteral(" · "));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

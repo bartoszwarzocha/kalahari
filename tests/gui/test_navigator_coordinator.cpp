@@ -33,7 +33,7 @@
 #include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/gui/utils/file_location.h>
 
-#include "context_menu_reader.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
 
 #include <QAbstractButton>
 #include <QAction>
@@ -82,7 +82,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -154,10 +154,10 @@ Answer acceptWith(const QString& text) {
 
 /// @brief What the writer chooses in the Add Element window
 struct AddChoice {
-    QString kind = {};   ///< The id of the kind of the tile ("prologue"); empty: the first one
-    QString title = {};  ///< The title; empty: the one the window proposes
-    std::optional<core::ElementPlace> place = {};  ///< The place; none: the one proposed
-    QString status = {};  ///< "draft", "revision" or "final"; empty: the one proposed
+    QString kind;   ///< The id of the kind of the tile ("prologue"); empty: the first one
+    QString title;  ///< The title; empty: the one the window proposes
+    std::optional<core::ElementPlace> place;  ///< The place; none: the one proposed
+    QString status;  ///< "draft", "revision" or "final"; empty: the one proposed
     bool take = true;  ///< A new group takes the elements that close the main section
 };
 
@@ -458,14 +458,14 @@ struct OpenNovel {
     OpenNovel& operator=(const OpenNovel&) = delete;
 
     /// The book as ProjectManager has it
-    const core::ProjectBook& book() const {
+    [[nodiscard]] const core::ProjectBook& book() const {
         const core::ProjectBook* open = pm.book();
         REQUIRE(open != nullptr);
         return *open;
     }
 
     /// The project as its .klh file has it
-    core::BookProject savedProject() const {
+    [[nodiscard]] core::BookProject savedProject() const {
         QStringList problems;
         const std::optional<core::BookProject> saved = core::BookProject::load(
             QDir(dir.path()).filePath(QStringLiteral("Navigator Test.klh")), problems);
@@ -474,7 +474,7 @@ struct OpenNovel {
     }
 
     /// The book as its .klh file has it
-    core::ProjectBook savedBook() const {
+    [[nodiscard]] core::ProjectBook savedBook() const {
         const core::BookProject saved = savedProject();
         REQUIRE(saved.books.size() == 1);
         return saved.books.first();
@@ -566,7 +566,7 @@ struct Navigator {
     }
 
     /// The item of element @p id in the tree
-    QTreeWidgetItem* item(const QString& id) const {
+    [[nodiscard]] QTreeWidgetItem* item(const QString& id) const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         for (QTreeWidgetItemIterator it(tree); *it; ++it) {
@@ -578,7 +578,7 @@ struct Navigator {
     }
 
     /// The element of the current item of the tree; empty: none or not an element
-    QString current() const {
+    [[nodiscard]] QString current() const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         return tree->currentItem() ? tree->currentItem()->data(0, Qt::UserRole).toString()
@@ -586,7 +586,7 @@ struct Navigator {
     }
 
     /// The texts of the items under the item of element @p id
-    std::string itemsIn(const QString& id) const {
+    [[nodiscard]] std::string itemsIn(const QString& id) const {
         const QTreeWidgetItem* parent = item(id);
         REQUIRE(parent != nullptr);
         QStringList texts;
@@ -597,7 +597,7 @@ struct Navigator {
     }
 
     /// The item of section @p type ("section_body"); nullptr: none
-    QTreeWidgetItem* section(const QString& type) const {
+    [[nodiscard]] QTreeWidgetItem* section(const QString& type) const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         for (QTreeWidgetItemIterator it(tree); *it; ++it) {
@@ -609,7 +609,7 @@ struct Navigator {
     }
 
     /// The item of the project, with the book and the Workshop under it
-    QTreeWidgetItem* projectItem() const {
+    [[nodiscard]] QTreeWidgetItem* projectItem() const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         REQUIRE(tree->topLevelItemCount() > 0);
@@ -617,14 +617,14 @@ struct Navigator {
     }
 
     /// The item of the book
-    QTreeWidgetItem* bookItem() const {
+    [[nodiscard]] QTreeWidgetItem* bookItem() const {
         QTreeWidgetItem* book = section(QStringLiteral("book"));
         REQUIRE(book != nullptr);
         return book;
     }
 
     /// The texts of the items under the item of the book
-    std::string itemsInBook() const {
+    [[nodiscard]] std::string itemsInBook() const {
         const QTreeWidgetItem* book = bookItem();
         QStringList texts;
         for (int i = 0; i < book->childCount(); ++i) {
@@ -726,7 +726,7 @@ struct Navigator {
     }
 
     /// The "+" button of the Navigator's bar
-    QToolButton* addButton() const {
+    [[nodiscard]] QToolButton* addButton() const {
         QToolButton* plus = nullptr;
         for (QToolButton* button : panel->findChildren<QToolButton*>()) {
             if (button->toolTip().startsWith(QStringLiteral("Add... ("))) {
@@ -746,7 +746,7 @@ struct Navigator {
     }
 
     /// The texts of the items in section @p type ("section_body")
-    std::string itemsInSection(const QString& type) const {
+    [[nodiscard]] std::string itemsInSection(const QString& type) const {
         auto* tree = panel->findChild<QTreeWidget*>();
         REQUIRE(tree != nullptr);
         const QTreeWidgetItem* section = nullptr;

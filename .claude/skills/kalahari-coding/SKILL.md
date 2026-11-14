@@ -204,7 +204,7 @@ a window get them as the first parameters of their constructors (`core::ProjectM
 `CommandRegistry& commands`, members `m_book`, `m_commands`). The installed book types are
 shared: `core::ProjectManager::installedBookTypes()`. The user's keys go to every window:
 `applyCustomShortcuts()`. In the tests: `kalahari::test::book()`, `kalahari::test::commands()`
-(`tests/test_support/window_parts.h`).
+(`tests/include/kalahari_tests/test_support/window_parts.h`).
 
 ## 11. Code Intelligence & Docs
 

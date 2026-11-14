@@ -24,7 +24,8 @@
 /// </kml>
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_EDITOR_KML_SERIALIZER_H
+#define KALAHARI_EDITOR_KML_SERIALIZER_H
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId and format functions
@@ -39,8 +40,7 @@ class QTextDocument;
 class QTextBlock;
 class QTextTable;
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 /// @brief Serializer for converting QTextDocument to KML format
 ///
@@ -96,13 +96,13 @@ public:
     ///        (a hundred percent together) and the header rows among them
     /// @param cells The cells, no merged cell crossing their edges (wholeCells())
     /// @return KML markup string; empty without a table
-    QString toKml(const TableCellRange& cells) const;
+    [[nodiscard]] QString toKml(const TableCellRange& cells) const;
 
     /// @brief Serialize a single block (paragraph) to KML
     /// @param block The text block to serialize
     /// @return KML paragraph content (without <p> wrapper), with the anchors of its
     ///         annotations but not the annotations themselves
-    QString blockToKml(const QTextBlock& block) const;
+    [[nodiscard]] QString blockToKml(const QTextBlock& block) const;
 
     // =========================================================================
     // Options
@@ -114,7 +114,7 @@ public:
 
     /// @brief Check if indented output is enabled
     /// @return true if indented output is enabled
-    bool isIndented() const;
+    [[nodiscard]] bool isIndented() const;
 
 private:
     // =========================================================================
@@ -125,7 +125,7 @@ private:
     ///        formatting (indents, spacing, line spacing, breaks)
     /// @param block The text block
     /// @return Attribute string (e.g., " align=\"center\"")
-    QString serializeBlockAttributes(const QTextBlock& block) const;
+    [[nodiscard]] QString serializeBlockAttributes(const QTextBlock& block) const;
 
     /// @brief Serialize the paragraphs from the one holding @p from to the one holding
     ///        @p to, each cut to the range [from, to)
@@ -172,24 +172,24 @@ private:
     /// @brief Build inline style attributes string from character format
     /// @param format The character format to extract style from
     /// @return Attribute string (e.g., " font=\"Arial\" size=\"14\"")
-    QString buildInlineStyleAttributes(const QTextCharFormat& format) const;
+    [[nodiscard]] QString buildInlineStyleAttributes(const QTextCharFormat& format) const;
 
     // Note: formatToOpenTags and formatToCloseTags are now provided by KmlFormatRegistry
 
     /// @brief Check if format has metadata properties
     /// @param format The character format to check
     /// @return true if format contains any metadata property
-    bool hasMetadata(const QTextCharFormat& format) const;
+    [[nodiscard]] bool hasMetadata(const QTextCharFormat& format) const;
 
     /// @brief Generate metadata opening tag with attributes
     /// @param format The character format containing metadata
     /// @return Opening metadata tag (e.g., "<comment id=\"c1\">")
-    QString metadataToOpenTag(const QTextCharFormat& format) const;
+    [[nodiscard]] QString metadataToOpenTag(const QTextCharFormat& format) const;
 
     /// @brief Generate metadata closing tag
     /// @param format The character format containing metadata
     /// @return Closing metadata tag (e.g., "</comment>")
-    QString metadataToCloseTag(const QTextCharFormat& format) const;
+    [[nodiscard]] QString metadataToCloseTag(const QTextCharFormat& format) const;
 
     // Note: escapeXml is now provided by KmlFormatRegistry::escapeXml()
 
@@ -197,8 +197,9 @@ private:
     // Members
     // =========================================================================
 
-    bool m_indented;  ///< Whether to produce indented (pretty-printed) output
+    bool m_indented{false};  ///< Whether to produce indented (pretty-printed) output
 };
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_KML_SERIALIZER_H

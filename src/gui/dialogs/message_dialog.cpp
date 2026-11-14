@@ -20,9 +20,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -279,6 +277,4 @@ void TextInputDialog::updateAcceptButton()
     acceptButton()->setEnabled(!text().isEmpty());
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

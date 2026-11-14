@@ -7,12 +7,12 @@
 /// OpenSpec #00026: KalahariStyle reads icon sizes from ArtProvider and
 /// forces style refresh when sizes change via resourcesChanged() signal.
 
-#pragma once
+#ifndef KALAHARI_GUI_KALAHARI_STYLE_H
+#define KALAHARI_GUI_KALAHARI_STYLE_H
 
 #include <QProxyStyle>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Custom style that reads icon sizes from ArtProvider
 ///
@@ -82,5 +82,6 @@ private slots:
     void onResourcesChanged();
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_KALAHARI_STYLE_H

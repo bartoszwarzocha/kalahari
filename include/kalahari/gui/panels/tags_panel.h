@@ -12,7 +12,8 @@
 ///
 /// The panel connects to TagDetector to stay synchronized with the document.
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_TAGS_PANEL_H
+#define KALAHARI_GUI_PANELS_TAGS_PANEL_H
 
 #include <QWidget>
 #include <QString>
@@ -28,10 +29,9 @@ class TagDetector;
 class BookEditor;
 enum class TagType;
 struct DetectedTag;
-}
+} // namespace kalahari::editor
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Panel for displaying and navigating document tags
 ///
@@ -63,7 +63,7 @@ public:
 
     /// @brief Get the current BookEditor
     /// @return Current BookEditor, or nullptr if none set
-    editor::BookEditor* editor() const { return m_editor; }
+    [[nodiscard]] editor::BookEditor* editor() const { return m_editor; }
 
     /// @brief Set the TagDetector to use
     /// @param detector TagDetector instance (nullptr to disconnect)
@@ -74,9 +74,9 @@ public:
 
     /// @brief Get the current TagDetector
     /// @return Current TagDetector, or nullptr if none set
-    editor::TagDetector* tagDetector() const { return m_detector; }
+    [[nodiscard]] editor::TagDetector* tagDetector() const { return m_detector; }
 
-public slots:
+
     /// @brief Refresh the tags list from the detector
     ///
     /// Re-reads all tags and updates the tree.
@@ -145,28 +145,29 @@ private:
     /// @brief Get display text for a tag
     /// @param tag The tag
     /// @return Formatted display string
-    QString formatTagDisplay(const editor::DetectedTag& tag) const;
+    [[nodiscard]] QString formatTagDisplay(const editor::DetectedTag& tag) const;
 
     /// @brief Check if a tag type passes the current filter
     /// @param type The tag type to check
     /// @return true if the tag should be shown
-    bool passesFilter(editor::TagType type) const;
+    [[nodiscard]] bool passesFilter(editor::TagType type) const;
 
-    QTreeWidget* m_tagsTree;           ///< Tree widget showing tags
-    QComboBox* m_filterCombo;          ///< Filter combo box
-    QLabel* m_emptyLabel;              ///< Label shown when no tags
-    QLabel* m_countLabel;              ///< Label showing total count
+    QTreeWidget* m_tagsTree{nullptr};           ///< Tree widget showing tags
+    QComboBox* m_filterCombo{nullptr};          ///< Filter combo box
+    QLabel* m_emptyLabel{nullptr};              ///< Label shown when no tags
+    QLabel* m_countLabel{nullptr};              ///< Label showing total count
 
-    editor::BookEditor* m_editor;      ///< Current BookEditor (not owned)
-    editor::TagDetector* m_detector;   ///< Current TagDetector (not owned)
-    bool m_ownsDetector;               ///< Whether we created the detector
+    editor::BookEditor* m_editor{nullptr};      ///< Current BookEditor (not owned)
+    editor::TagDetector* m_detector{nullptr};   ///< Current TagDetector (not owned)
+    bool m_ownsDetector{false};               ///< Whether we created the detector
 
     /// @brief Map from TagType to its tree item
     QMap<int, QTreeWidgetItem*> m_typeGroupItems;
 
     /// @brief Current filter (-1 = all, 0-4 = specific type)
-    int m_currentFilter;
+    int m_currentFilter{-1};
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_TAGS_PANEL_H

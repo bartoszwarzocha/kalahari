@@ -13,8 +13,7 @@
 #include <array>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -128,5 +127,4 @@ std::vector<std::string> registerCharacterCommands(CommandRegistry& registry,
     return registered;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

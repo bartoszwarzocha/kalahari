@@ -5,16 +5,15 @@
 /// @brief Insert > Footnote Layout...: how the book numbers its notes and where its
 ///        endnotes are
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_FOOTNOTE_SETTINGS_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_FOOTNOTE_SETTINGS_DIALOG_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 class QComboBox;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Insert > Footnote Layout...: the numbering of the book's footnotes and endnotes
 ///        and the place of its endnotes
@@ -47,6 +46,6 @@ private:
     QComboBox* m_endnoteNumbering = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_FOOTNOTE_SETTINGS_DIALOG_H

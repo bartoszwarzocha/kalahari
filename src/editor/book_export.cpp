@@ -5,9 +5,9 @@
 /// @brief What the writers of DOCX and Markdown share: the texts read as the editor reads
 ///        them, the pieces of their paragraphs, the kinds of the styles and the pictures
 
-#include "book_export_internal.h"
+#include "kalahari/editor/detail/book_export_internal.h"
 
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/text_link.h>

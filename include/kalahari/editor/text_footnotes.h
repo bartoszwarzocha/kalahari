@@ -21,7 +21,8 @@
 /// The old <footnote> on a range of the text (with a "number" attribute) is read as the text it
 /// held, without a mark.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_FOOTNOTES_H
+#define KALAHARI_EDITOR_TEXT_FOOTNOTES_H
 
 #include <kalahari/editor/format_run.h>
 
@@ -181,19 +182,19 @@ public:
     FootnoteNumbers(const QTextDocument& document, const FootnoteContext& context);
 
     /// @brief The notes, in text order
-    const std::vector<NotePlace>& notes() const { return m_notes; }
+    [[nodiscard]] const std::vector<NotePlace>& notes() const { return m_notes; }
 
     /// @brief The number the note at a position shows (empty: no note there)
-    QString numberAt(int position) const;
+    [[nodiscard]] QString numberAt(int position) const;
 
     /// @brief The number of the note @p index of notes()
-    const QString& number(size_t index) const { return m_numbers.at(index); }
+    [[nodiscard]] const QString& number(size_t index) const { return m_numbers.at(index); }
 
     /// @brief The number of the note with an id (empty: none)
-    QString numberOf(const QString& id) const;
+    [[nodiscard]] QString numberOf(const QString& id) const;
 
     /// @brief The note at a position (nullptr: none)
-    const NotePlace* noteAt(int position) const;
+    [[nodiscard]] const NotePlace* noteAt(int position) const;
 
     /// @brief The document's characters from @p from on moved by @p delta (a change of the
     ///        text without a note: the numbers stay, their places move)
@@ -283,3 +284,5 @@ Footnote readNoteElement(QXmlStreamReader& reader);
 std::vector<Footnote> notesOfKml(const QString& kml);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_FOOTNOTES_H

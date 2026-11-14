@@ -5,7 +5,7 @@
 /// @brief BookEditor: footnotes and endnotes - inserting them, their text, their place
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/editor_render_pipeline.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>

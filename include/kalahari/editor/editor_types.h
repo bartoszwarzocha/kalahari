@@ -7,7 +7,8 @@
 /// This header provides forward declarations and basic types used throughout
 /// the custom text editor implementation.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_EDITOR_TYPES_H
+#define KALAHARI_EDITOR_EDITOR_TYPES_H
 
 #include <QString>
 #include <QStringList>
@@ -55,17 +56,17 @@ struct SelectionRange {
     CursorPosition end;
 
     /// @brief Check if selection is empty (start == end)
-    bool isEmpty() const {
+    [[nodiscard]] bool isEmpty() const {
         return start == end;
     }
 
     /// @brief Check if selection spans multiple paragraphs
-    bool isMultiParagraph() const {
+    [[nodiscard]] bool isMultiParagraph() const {
         return start.paragraph != end.paragraph;
     }
 
     /// @brief Normalize range so start <= end
-    SelectionRange normalized() const {
+    [[nodiscard]] SelectionRange normalized() const {
         if (start <= end) {
             return *this;
         }
@@ -162,3 +163,5 @@ inline Qt::Alignment effectiveAlignment(Qt::Alignment own) {
 }
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_EDITOR_TYPES_H

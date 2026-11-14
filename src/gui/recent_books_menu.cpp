@@ -13,8 +13,7 @@
 #include <QAction>
 #include <QFileInfo>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 RecentBooksMenu::RecentBooksMenu(CommandRegistry& commands, QWidget* parent)
     : QMenu(MenuBuilder::menuText("Recent Books"), parent)
@@ -75,5 +74,4 @@ void RecentBooksMenu::rebuild() {
     });
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

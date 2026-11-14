@@ -6,7 +6,7 @@
 /// or without it, the window of Version History, restoring a version and inserting a fragment
 /// of it, the Navigator, the Properties panel and Settings > Editor > Versions
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
@@ -30,7 +30,7 @@
 #include <kalahari/gui/version_texts.h>
 #include <kalahari/gui/versions_coordinator.h>
 #include <kalahari/gui/widgets/standalone_info_bar.h>
-#include "context_menu_reader.h"
+#include "kalahari_tests/gui/context_menu_reader.h"
 
 #include <QAction>
 #include <QApplication>
@@ -59,7 +59,7 @@
 
 #include <cstdio>
 #include <functional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::VersionHistoryDialog;

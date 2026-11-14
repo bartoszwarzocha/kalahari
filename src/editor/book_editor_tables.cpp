@@ -5,7 +5,7 @@
 /// @brief BookEditor: tables, the keys in them and at their edges
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_tables.h>

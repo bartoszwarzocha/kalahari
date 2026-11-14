@@ -6,7 +6,7 @@
 ///
 /// OpenSpec #00043 Phase 10 - Performance Benchmark Infrastructure
 
-#include "performance_benchmark.h"
+#include "kalahari_tests/benchmarks/performance_benchmark.h"
 
 #include <iostream>
 #include <iomanip>

@@ -57,7 +57,7 @@ public:
         }
     }
 
-    QString path() const { return QString::fromStdString(m_path.string()); }
+    [[nodiscard]] QString path() const { return QString::fromStdString(m_path.string()); }
 
 private:
     fs::path m_path;

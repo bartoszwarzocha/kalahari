@@ -9,8 +9,8 @@
 ///        panel, which stays open
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
-#include "../editor/fake_language_tool.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/editor/fake_language_tool.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -63,7 +63,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -364,7 +364,7 @@ struct Desk {
     }
 
     /// Run the event loop until the panel lists these issues
-    bool lists(const QStringList& issues) const {
+    [[nodiscard]] bool lists(const QStringList& issues) const {
         const SpellingPanel* shown = panel;
         return waitUntil([shown, &issues]() { return listed(*shown) == issues; },
                          DICTIONARY_WAIT_MS);

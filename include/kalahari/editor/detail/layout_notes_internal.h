@@ -4,7 +4,8 @@
 /// @file layout_notes_internal.h
 /// @brief KalahariTextDocumentLayout: a note's text laid out (inside the layout's sources)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_DETAIL_LAYOUT_NOTES_INTERNAL_H
+#define KALAHARI_EDITOR_DETAIL_LAYOUT_NOTES_INTERNAL_H
 
 #include <kalahari/editor/kalahari_text_document_layout.h>
 
@@ -47,13 +48,13 @@ struct KalahariTextDocumentLayout::NoteBox {
     qreal height = 0.0;
 
     /// From the top of line @p line to the top of the next one (to the end of the last)
-    qreal advance(size_t line) const {
+    [[nodiscard]] qreal advance(size_t line) const {
         return line + 1 < lines.size() ? lines[line + 1].top - lines[line].top
                                        : lines[line].height;
     }
 
     /// From the top of line @p first to the bottom of line @p last - 1
-    qreal heightOf(size_t first, size_t last) const {
+    [[nodiscard]] qreal heightOf(size_t first, size_t last) const {
         return last > first && last <= lines.size()
                    ? lines[last - 1].top + lines[last - 1].height - lines[first].top
                    : 0.0;
@@ -61,3 +62,5 @@ struct KalahariTextDocumentLayout::NoteBox {
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_DETAIL_LAYOUT_NOTES_INTERNAL_H

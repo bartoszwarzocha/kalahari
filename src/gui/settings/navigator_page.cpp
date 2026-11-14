@@ -55,8 +55,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -614,5 +613,4 @@ NavigatorPage::NavigatorPage(const core::ProjectManager& book, QWidget* parent)
     pageLayout()->addStretch();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

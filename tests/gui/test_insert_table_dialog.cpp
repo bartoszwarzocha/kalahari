@@ -6,12 +6,12 @@
 ///        in the text
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/dialogs/insert_table_dialog.h"
 #include "kalahari/gui/panels/editor_panel.h"
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -20,7 +20,7 @@
 #include <QSpinBox>
 #include <QTimer>
 #include <QToolButton>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::editor;

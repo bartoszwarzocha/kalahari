@@ -5,7 +5,8 @@
 /// @brief Auto-correct as you type turned on and off as a whole: the command, its check mark
 ///        and its tooltip
 
-#pragma once
+#ifndef KALAHARI_GUI_AUTO_CORRECT_COORDINATOR_H
+#define KALAHARI_GUI_AUTO_CORRECT_COORDINATOR_H
 
 #include <QObject>
 #include <QString>
@@ -59,11 +60,13 @@ public:
 private slots:
     /// @brief Give the command the tooltip of the settings as they are now
     void updateToolTip();
-
 private:
+
     QStatusBar* m_statusBar;
     int m_settingsListener = 0;  ///< The subscription to the settings
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_AUTO_CORRECT_COORDINATOR_H

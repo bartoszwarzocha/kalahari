@@ -29,8 +29,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -793,5 +792,4 @@ QString MaterialList::copyTextOf(const core::ProjectManager& book, const QString
     return element->title;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

@@ -15,9 +15,7 @@
 #include <QXmlStreamAttributes>
 #include <algorithm>
 
-namespace kalahari {
-namespace editor {
-namespace KmlFormatRegistry {
+namespace kalahari::editor::KmlFormatRegistry {
 
 // =============================================================================
 // Static Data
@@ -431,6 +429,4 @@ QString unescapeXml(const QString& text)
     return result;
 }
 
-} // namespace KmlFormatRegistry
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor::KmlFormatRegistry

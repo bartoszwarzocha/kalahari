@@ -4,7 +4,8 @@
 /// @file annotation_card.h
 /// @brief A card of the Annotations panel: one comment, to-do or note
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_ANNOTATION_CARD_H
+#define KALAHARI_GUI_PANELS_ANNOTATION_CARD_H
 
 #include <kalahari/gui/panels/annotation_colors.h>
 #include <kalahari/gui/panels/annotation_entry.h>
@@ -40,7 +41,7 @@ public:
     static QString kindTitle(editor::AnnotationKind kind, bool done = false);
 
     /// @brief The annotation it shows
-    const AnnotationEntry& entry() const { return m_entry; }
+    [[nodiscard]] const AnnotationEntry& entry() const { return m_entry; }
 
     /// @brief Show an annotation
     void setEntry(const AnnotationEntry& entry);
@@ -49,33 +50,33 @@ public:
     void setColors(const AnnotationCardColors& colors);
 
     /// @brief The colors it is shown in
-    const AnnotationCardColors& colors() const { return m_colors; }
+    [[nodiscard]] const AnnotationCardColors& colors() const { return m_colors; }
 
     /// @brief The color its text is shown in (dimmed for a done one)
-    QColor textColor() const;
+    [[nodiscard]] QColor textColor() const;
 
     /// @brief Mark the card as the selected one (an outline)
     void setSelected(bool selected);
 
     /// @brief Whether it is the selected card
-    bool isSelected() const { return m_selected; }
+    [[nodiscard]] bool isSelected() const { return m_selected; }
 
     /// @brief Whether the keys are in the list of cards: the selected card's outline is in
     /// the highlight color then, and a quiet one otherwise
     void setListFocused(bool focused);
 
     /// @brief Whether the keys are in the list of cards
-    bool isListFocused() const { return m_listFocused; }
+    [[nodiscard]] bool isListFocused() const { return m_listFocused; }
 
     /// @brief Let the annotation be changed, or only read (an annotation of a book open
     /// read-only): its check box and the items of its menu greyed out, saying why
     void setReadOnly(bool readOnly);
 
     /// @brief Whether the annotation is only read (setReadOnly())
-    bool isReadOnly() const { return m_readOnly; }
+    [[nodiscard]] bool isReadOnly() const { return m_readOnly; }
 
     /// @brief The text as shown
-    QString text() const;
+    [[nodiscard]] QString text() const;
 
     /// @brief Show the card's menu under its menu button (also asked for with the keys)
     void showMenu();
@@ -132,3 +133,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_ANNOTATION_CARD_H

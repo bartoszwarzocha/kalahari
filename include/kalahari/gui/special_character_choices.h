@@ -5,12 +5,12 @@
 /// @brief The writer's own characters of Insert > Special Character...: the favorites and the
 ///        ones inserted last, kept in the settings
 
-#pragma once
+#ifndef KALAHARI_GUI_SPECIAL_CHARACTER_CHOICES_H
+#define KALAHARI_GUI_SPECIAL_CHARACTER_CHOICES_H
 
 #include <QList>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The setting with the favorite characters, in their order (texts of one character)
 inline constexpr const char* FAVORITE_CHARACTERS_SETTING = "specialCharacters.favorites";
@@ -42,5 +42,6 @@ void setFavoriteCharacter(char32_t code, bool favorite);
 /// @brief A character was inserted: the first of those inserted last
 void addRecentCharacter(char32_t code);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_SPECIAL_CHARACTER_CHOICES_H

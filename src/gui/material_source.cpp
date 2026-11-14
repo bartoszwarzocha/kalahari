@@ -12,8 +12,7 @@
 #include <QLocale>
 #include <QMimeData>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -153,5 +152,4 @@ QString IncomingMaterials::pictureFileName(const QDateTime& time) {
     return QStringLiteral("clipboard_%1.png").arg(time.toString(QStringLiteral("yyyyMMdd_HHmmss")));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

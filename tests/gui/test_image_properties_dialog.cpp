@@ -14,7 +14,7 @@
 #include "kalahari/gui/widgets/color_menu.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 
 #include <QAbstractButton>
 #include <QApplication>
@@ -42,7 +42,7 @@
 #include <QTranslator>
 
 #include <map>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::editor;
@@ -240,8 +240,8 @@ QImage halves(const QSize& size)
 struct Pictures {
     QTemporaryDir dir;
 
-    /// The path of a new picture in images/
-    QString add(const QString& name, const QSize& size) const
+    /// The path of a new picture in images/ (not const: it writes the file)
+    QString add(const QString& name, const QSize& size)
     {
         QDir(dir.path()).mkpath(QStringLiteral("images"));
         const QString path = dir.path() + QStringLiteral("/images/") + name;
@@ -301,7 +301,7 @@ void answerNext(const std::function<void(Dialog&)>& answer)
 
 TEST_CASE("Image Properties window: its pages, their keys and one size on all of them",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     const ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
     ImagePropertiesDialog dialog(given, QColor(Qt::black));
     dialog.show();
@@ -403,7 +403,7 @@ TEST_CASE("Image Properties window: a missing file", "[gui][images][dialog]") {
 // =============================================================================
 
 TEST_CASE("Image Properties window: Change Image... and Save as Image...", "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     const QString bridge = pictures.add(QStringLiteral("bridge.png"), {800, 400});
     const QString tower = pictures.add(QStringLiteral("tower.png"), {300, 600});
     ImagePropertiesData given = dataOf(bridge);
@@ -469,7 +469,7 @@ TEST_CASE("Image Properties window: Change Image... and Save as Image...", "[gui
 
 TEST_CASE("Image Properties window: the width in percent of the text, of the original, or a length",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesDialog dialog(dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400})), QColor());
     QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::SizePage);
     auto* unit = namedWidget<QComboBox>(page, QStringLiteral("Unit of the width"));
@@ -525,7 +525,7 @@ TEST_CASE("Image Properties window: the width in percent of the text, of the ori
 
 TEST_CASE("Image Properties window: an own height, and the proportions kept",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
     given.image.unit = ImageWidthUnit::Centimeters;
     given.image.width = 10.0;
@@ -583,7 +583,7 @@ TEST_CASE("Image Properties window: an own height, and the proportions kept",
 }
 
 TEST_CASE("Image Properties window: the angle and the mirror", "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesDialog dialog(dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400})), QColor());
     QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::SizePage);
     auto* angle = fieldOf<QComboBox>(page, QStringLiteral("&Angle"));
@@ -618,7 +618,7 @@ TEST_CASE("Image Properties window: the angle and the mirror", "[gui][images][di
 
 TEST_CASE("Image Properties window: the crop of the sides as they are shown",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
     given.image.unit = ImageWidthUnit::Centimeters;
     given.image.width = 10.0;
@@ -712,7 +712,7 @@ TEST_CASE("Image Properties window: the crop of the sides as they are shown",
 
 TEST_CASE("Image Properties window: the border's line, width, color, room and shadow",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesDialog dialog(dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400})),
                                  QColor(Qt::darkGreen));
     QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::BorderPage);
@@ -764,7 +764,7 @@ TEST_CASE("Image Properties window: the border's line, width, color, room and sh
 
 TEST_CASE("Image Properties window: a border's width not in the list is added to it",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
     given.image.borderLine = ImageBorderLine::Solid;
     given.image.borderWidth = 2.0;
@@ -783,7 +783,7 @@ TEST_CASE("Image Properties window: a border's width not in the list is added to
 // =============================================================================
 
 TEST_CASE("Image Properties window: the filter's tiles and the sliders", "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesDialog dialog(dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400})), QColor());
     QWidget& page = *dialog.pages()->widget(ImagePropertiesDialog::ColorsPage);
     auto* original = buttonOf<QToolButton>(page, QStringLiteral("Origin&al"));
@@ -850,7 +850,7 @@ TEST_CASE("Image Properties window: the filter's tiles and the sliders", "[gui][
 
 TEST_CASE("Image Properties window: the name, the alternative text and the description",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
     given.image.name = QStringLiteral("Bridge");
     ImagePropertiesDialog dialog(given, QColor());
@@ -893,7 +893,7 @@ TEST_CASE("Image Properties window: the name, the alternative text and the descr
 
 TEST_CASE("Image Properties window: the caption, its label and number, below or above",
           "[gui][images][dialog][captions]") {
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesData given = dataOf(pictures.add(QStringLiteral("bridge.png"), {800, 400}));
     given.caption.label = QStringLiteral("Figure");
     given.captionNumber = QStringLiteral("3");
@@ -975,7 +975,7 @@ TEST_CASE("Image Properties window: the caption, its label and number, below or 
 
 TEST_CASE("Editor panel: Image Properties... gives the image its look and caption as one step",
           "[gui][images][dialog][captions]") {
-    const Pictures pictures;
+    Pictures pictures;
     pictures.add(QStringLiteral("bridge.png"), {800, 400});
     gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     panel.setImagesFolder(pictures.dir.path());
@@ -1030,7 +1030,7 @@ TEST_CASE("Image Properties window in Polish: keys of its own, Latin letters, a 
           "[gui][images][dialog]") {
     const Polish polish;
     REQUIRE(polish.loaded());
-    const Pictures pictures;
+    Pictures pictures;
     ImagePropertiesDialog dialog(dataOf(pictures.add(QStringLiteral("most.png"), {800, 400})), QColor());
     dialog.setFileChooser([]() { return QString(); });
     dialog.setImageSaver([]() {});
@@ -1068,7 +1068,7 @@ TEST_CASE("Image Properties window in Polish: keys of its own, Latin letters, a 
 
 TEST_CASE("Editor panel: Image Properties... gives the image its look as one step of Undo",
           "[gui][images][dialog]") {
-    const Pictures pictures;
+    Pictures pictures;
     pictures.add(QStringLiteral("bridge.png"), {800, 400});
     gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     panel.setImagesFolder(pictures.dir.path());

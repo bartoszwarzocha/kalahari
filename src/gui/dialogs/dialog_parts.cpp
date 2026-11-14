@@ -21,9 +21,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -105,6 +103,4 @@ void setUpCopyButton(QPushButton* button, const std::function<QString()>& text) 
     });
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

@@ -12,8 +12,7 @@
 #include <QCoreApplication>
 #include <QStringList>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -68,5 +67,4 @@ QString readOnlyBookMessage(const core::ProjectManager& pm) {
         .arg(names.join(QStringLiteral(", ")));
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

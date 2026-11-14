@@ -15,8 +15,7 @@
 #include <QFileInfo>
 #include <fstream>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // ============================================================================
 // Helper Functions
@@ -462,5 +461,4 @@ static std::string base64EncodeInternal(const std::vector<uint8_t>& data) {
     return result;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

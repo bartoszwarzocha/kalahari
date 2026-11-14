@@ -12,9 +12,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 ProgressDialog::ProgressDialog(const QString& title, const QString& text, QWidget* parent)
     : KalahariDialog(parent)
@@ -80,6 +78,4 @@ void ProgressDialog::reject()
     KalahariDialog::reject();
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

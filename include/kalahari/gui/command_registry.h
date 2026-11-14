@@ -29,7 +29,8 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_GUI_COMMAND_REGISTRY_H
+#define KALAHARI_GUI_COMMAND_REGISTRY_H
 
 #include "kalahari/gui/command.h"
 #include <QObject>
@@ -45,8 +46,7 @@
 
 class QAction;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // ============================================================================
 // Command Execution Types
@@ -347,5 +347,6 @@ private:
     mutable std::mutex m_mutex;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_COMMAND_REGISTRY_H

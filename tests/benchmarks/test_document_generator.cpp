@@ -6,7 +6,7 @@
 ///
 /// OpenSpec #00043 Phase 10 - Performance Benchmark Infrastructure
 
-#include "test_document_generator.h"
+#include "kalahari_tests/benchmarks/test_document_generator.h"
 
 #include <QFile>
 #include <QTextStream>

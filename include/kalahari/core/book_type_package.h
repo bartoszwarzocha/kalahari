@@ -89,7 +89,8 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_BOOK_TYPE_PACKAGE_H
+#define KALAHARI_CORE_BOOK_TYPE_PACKAGE_H
 
 #include <kalahari/core/kind_words.h>
 
@@ -109,9 +110,9 @@ struct LocalizedText {
 
     /// @brief Text in @p language: its exact code ("pl_PL"), then the language alone ("pl"),
     /// then English
-    QString text(const QString& language) const;
+    [[nodiscard]] QString text(const QString& language) const;
 
-    bool isEmpty() const { return values.isEmpty(); }
+    [[nodiscard]] bool isEmpty() const { return values.isEmpty(); }
 };
 
 /// @brief Place of an element in a book project
@@ -172,7 +173,7 @@ struct KindReference {
     static std::optional<KindReference> parse(const QString& text);
 
     /// @brief "kalahari.nonfiction:bibliography", or the kind id alone without a package
-    QString toString() const;
+    [[nodiscard]] QString toString() const;
 
     bool operator==(const KindReference&) const = default;
 };
@@ -203,18 +204,18 @@ struct ElementKind {
     bool retired = false;                ///< A kind of earlier versions, offered nowhere
 
     /// @brief Whether its elements are materials: a window kind with MATERIAL_EDITOR
-    bool isMaterial() const {
+    [[nodiscard]] bool isMaterial() const {
         return form == ElementForm::Window && editor == QLatin1String(MATERIAL_EDITOR);
     }
 
     /// @brief Whether an element of this kind can be in @p place, outside groups
-    bool allows(BookPlace place) const;
+    [[nodiscard]] bool allows(BookPlace place) const;
 
     /// @brief Whether an element of this kind can be inside a group of kind @p groupKindId
-    bool allowsInside(const QString& groupKindId) const;
+    [[nodiscard]] bool allowsInside(const QString& groupKindId) const;
 
     /// @brief Default title of the @p number-th element of this kind in @p language
-    QString defaultTitle(const QString& language, int number) const;
+    [[nodiscard]] QString defaultTitle(const QString& language, int number) const;
 
     /// @brief Forms of the name in @p language for the program's sentences
     ///
@@ -222,7 +223,7 @@ struct ElementKind {
     /// "pl"). The singular and the plural that "words" does not give are the name and the
     /// plural name with a small first letter ("Story" -> "story", but "TV episode" stays as
     /// it is); a package without the gender of the name gives a masculine one.
-    KindWords wordsIn(const QString& language) const;
+    [[nodiscard]] KindWords wordsIn(const QString& language) const;
 };
 
 /// @brief Paragraph style of a package (a row of the paragraph_styles table of project.db)
@@ -276,14 +277,14 @@ struct BookTypePackage {
     QString directory;                ///< Absolute path of the package folder
 
     /// @brief Kind defined by this package (not by the packages it uses), or nullptr
-    const ElementKind* ownKind(const QString& kindId) const;
+    [[nodiscard]] const ElementKind* ownKind(const QString& kindId) const;
 
     /// @brief Kinds offered in @p place
-    const QStringList& kindsIn(BookPlace place) const;
+    [[nodiscard]] const QStringList& kindsIn(BookPlace place) const;
 
     /// @brief Ids of the packages this package needs: those it uses, then those whose kinds
     /// it names in its lists, "primary" and "start", each once
-    QStringList requiredPackages() const;
+    [[nodiscard]] QStringList requiredPackages() const;
 
     /// @brief Read the package in folder @p directory
     /// @param problems Gets one line per problem: "<field>: <what is wrong>"
@@ -295,3 +296,5 @@ struct BookTypePackage {
 };
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_BOOK_TYPE_PACKAGE_H

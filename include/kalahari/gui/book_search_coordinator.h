@@ -5,7 +5,8 @@
 /// @brief Edit > Find in Book...: the search in all the texts of the book in the Search panel,
 ///        and Replace All in Book with Undo
 
-#pragma once
+#ifndef KALAHARI_GUI_BOOK_SEARCH_COORDINATOR_H
+#define KALAHARI_GUI_BOOK_SEARCH_COORDINATOR_H
 
 #include "kalahari/editor/search_engine.h"
 #include "kalahari/editor/text_footnotes.h"
@@ -30,11 +31,11 @@ class QWidget;
 
 namespace kalahari::core {
 class ProjectManager;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -298,3 +299,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_BOOK_SEARCH_COORDINATOR_H

@@ -14,8 +14,7 @@
 
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -100,5 +99,4 @@ void addRecentCharacter(char32_t code)
     setCharacters(RECENT_CHARACTERS_SETTING, recent);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

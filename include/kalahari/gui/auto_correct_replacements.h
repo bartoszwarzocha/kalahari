@@ -5,7 +5,8 @@
 /// @brief The replacement table of auto-correct in the settings: the pairs of a typed word and
 ///        its replacement, each one on or off
 
-#pragma once
+#ifndef KALAHARI_GUI_AUTO_CORRECT_REPLACEMENTS_H
+#define KALAHARI_GUI_AUTO_CORRECT_REPLACEMENTS_H
 
 #include <QString>
 #include <QStringList>
@@ -14,8 +15,7 @@
 
 #include <vector>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The setting with the replacement table
 inline constexpr const char* REPLACEMENTS_SETTING = "editor.autoCorrect.replacements";
@@ -37,7 +37,7 @@ struct ReplacementEntry {
 [[nodiscard]] std::vector<ReplacementEntry> defaultReplacementEntries();
 
 /// @brief The pairs of a value of the setting, as replacementEntries() gives them
-[[nodiscard]] std::vector<ReplacementEntry> replacementEntriesOf(const nlohmann::json& value);
+[[nodiscard]] std::vector<ReplacementEntry> replacementEntriesOf(const nlohmann::json& pairs);
 
 /// @brief The value of the setting with the pairs
 [[nodiscard]] nlohmann::json replacementsValue(const std::vector<ReplacementEntry>& entries);
@@ -54,5 +54,6 @@ void addReplacement(const QString& from, const QString& to);
 ///        nothing while auto-correct is off
 [[nodiscard]] QStringList autoCorrectSources(const QString& text);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_AUTO_CORRECT_REPLACEMENTS_H

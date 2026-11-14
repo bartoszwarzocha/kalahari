@@ -4,7 +4,8 @@
 /// @file paragraph_marks_coordinator.h
 /// @brief The paperclips beside the paragraphs of the chapters that materials are linked with
 
-#pragma once
+#ifndef KALAHARI_GUI_PARAGRAPH_MARKS_COORDINATOR_H
+#define KALAHARI_GUI_PARAGRAPH_MARKS_COORDINATOR_H
 
 #include <kalahari/editor/editor_types.h>
 
@@ -23,7 +24,7 @@ class ProjectManager;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -80,3 +81,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PARAGRAPH_MARKS_COORDINATOR_H

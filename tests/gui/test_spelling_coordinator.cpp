@@ -9,8 +9,8 @@
 ///        words
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
-#include "../editor/fake_language_tool.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/editor/fake_language_tool.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/project_manager.h"
@@ -48,7 +48,7 @@
 #include <cstdio>
 #include <string>
 #include <utility>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;

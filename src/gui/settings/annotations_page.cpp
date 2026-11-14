@@ -26,8 +26,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -243,5 +242,4 @@ void AnnotationsPage::addCardSettings()
              "editor.annotationCards.distractionFree");
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

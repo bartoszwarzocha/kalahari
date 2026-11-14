@@ -8,10 +8,10 @@
 /// Sub-Project C — WS4.1. Used by the Catch2 event listener in test_main.cpp so
 /// test ordering never leaks singleton state.
 
-#pragma once
+#ifndef KALAHARI_TESTS_TEST_SUPPORT_RESET_SINGLETONS_H
+#define KALAHARI_TESTS_TEST_SUPPORT_RESET_SINGLETONS_H
 
-namespace kalahari {
-namespace test {
+namespace kalahari::test {
 
 /// @brief Reset all process-global singletons to a known baseline.
 ///
@@ -23,5 +23,6 @@ namespace test {
 /// intentionally left untouched (append-only, harmless between tests).
 void resetSingletons();
 
-} // namespace test
-} // namespace kalahari
+} // namespace kalahari::test
+
+#endif  // KALAHARI_TESTS_TEST_SUPPORT_RESET_SINGLETONS_H

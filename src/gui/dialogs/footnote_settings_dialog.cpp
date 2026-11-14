@@ -18,9 +18,7 @@
 #include <algorithm>
 #include <array>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -151,6 +149,4 @@ QString FootnoteSettingsDialog::formatSample(const QString& format)
     return numbers.join(QStringLiteral(", "));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

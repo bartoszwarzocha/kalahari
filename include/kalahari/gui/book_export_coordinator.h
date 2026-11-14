@@ -5,7 +5,8 @@
 /// @brief File > Export > DOCX and Markdown: the window of the export, and the book as the
 ///        program has it (the open texts with their unsaved changes) for the file
 
-#pragma once
+#ifndef KALAHARI_GUI_BOOK_EXPORT_COORDINATOR_H
+#define KALAHARI_GUI_BOOK_EXPORT_COORDINATOR_H
 
 #include "kalahari/editor/book_export.h"
 #include "kalahari/gui/dialogs/export_book_dialog.h"
@@ -26,7 +27,7 @@ class ProjectManager;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -74,17 +75,17 @@ public:
     void updateCommands();
 
     /// @brief Why the commands are greyed out; empty when they work
-    QString whyNotExport() const;
+    [[nodiscard]] QString whyNotExport() const;
 
     /// @brief Open the window of the export, with @p format chosen
     void exportBook(editor::ExportFormat format);
 
     /// @brief What the window says about the book and the text in front
-    dialogs::ExportBookDialog::Book dialogBook() const;
+    [[nodiscard]] dialogs::ExportBookDialog::Book dialogBook() const;
 
     /// @brief The export of @p choice: the texts of the book as the program has them, the
     ///        styles, the page and the options
-    editor::BookExport bookExport(const dialogs::ExportBookDialog::Choice& choice) const;
+    [[nodiscard]] editor::BookExport bookExport(const dialogs::ExportBookDialog::Choice& choice) const;
 
     /// @brief The page of the settings of the pages (Settings > Editor > Pages and Margins)
     static editor::ExportPage pageOfSettings();
@@ -99,7 +100,7 @@ public:
 
 private:
     /// @brief The open texts of the book, by their elements, as their editors have them
-    QHash<QString, const editor::BookEditor*> openEditors() const;
+    [[nodiscard]] QHash<QString, const editor::BookEditor*> openEditors() const;
 
     core::ProjectManager& m_book;  ///< The book of its window
     CommandRegistry& m_commands;   ///< The commands of its window
@@ -111,3 +112,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_BOOK_EXPORT_COORDINATOR_H

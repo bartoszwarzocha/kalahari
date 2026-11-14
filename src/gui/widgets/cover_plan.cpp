@@ -32,8 +32,7 @@
 #include <array>
 #include <cstdlib>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -635,5 +634,4 @@ void CoverPlan::changeEvent(QEvent* event) {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

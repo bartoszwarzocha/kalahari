@@ -11,7 +11,7 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/core/chapter_document.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QFont>
 #include <QFontMetricsF>

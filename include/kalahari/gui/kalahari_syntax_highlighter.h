@@ -7,13 +7,13 @@
 /// Placeholder for Phase 1 implementation. Currently does no highlighting.
 /// Phase 1 will add Markdown syntax support, bold/italic detection, etc.
 
-#pragma once
+#ifndef KALAHARI_GUI_KALAHARI_SYNTAX_HIGHLIGHTER_H
+#define KALAHARI_GUI_KALAHARI_SYNTAX_HIGHLIGHTER_H
 
 #include <QSyntaxHighlighter>
 #include <QTextDocument>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Syntax highlighter for Kalahari text editor
 ///
@@ -49,5 +49,6 @@ protected:
     void highlightBlock(const QString& text) override;
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_KALAHARI_SYNTAX_HIGHLIGHTER_H

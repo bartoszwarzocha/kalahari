@@ -8,7 +8,7 @@
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/text_tables.h>
-#include "layout_notes_internal.h"
+#include "kalahari/editor/detail/layout_notes_internal.h"
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QFontInfo>

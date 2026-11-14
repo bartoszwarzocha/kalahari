@@ -16,8 +16,8 @@
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_issue.h>
 #include <kalahari/gui/panels/annotation_colors.h>
-#include "editor_test_utils.h"
-#include "fake_language_tool.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/editor/fake_language_tool.h"
 
 #include <QFile>
 #include <QImage>

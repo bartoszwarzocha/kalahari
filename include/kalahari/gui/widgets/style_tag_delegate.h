@@ -5,7 +5,8 @@
 /// @brief The names of paragraph styles in a list, with a tag after a name: "own", "changed",
 ///        "not in this book"
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_STYLE_TAG_DELEGATE_H
+#define KALAHARI_GUI_WIDGETS_STYLE_TAG_DELEGATE_H
 
 #include "kalahari/editor/paragraph_styles.h"
 
@@ -46,7 +47,7 @@ public:
 
     void paint(QPainter* painter, const QStyleOptionViewItem& option,
                const QModelIndex& index) const override;
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override;
 
 private:
     /// @brief The font of a tag: the list's, a little smaller
@@ -57,3 +58,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_STYLE_TAG_DELEGATE_H

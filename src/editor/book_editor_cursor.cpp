@@ -5,7 +5,7 @@
 /// @brief BookEditor: the cursor, its movement (Page Up/Down included) and the selection
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+#include "kalahari/editor/detail/book_editor_internal.h"
 #include <QAbstractTextDocumentLayout>
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>

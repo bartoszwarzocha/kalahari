@@ -43,9 +43,7 @@
 #include <algorithm>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -1287,6 +1285,4 @@ QString ImportArchiveDialog::bookTitle() const
     return core::ProjectManager::archiveProjectName(m_archive);
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

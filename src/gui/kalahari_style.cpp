@@ -17,8 +17,7 @@
 #include <QStyleOption>
 #include <QWidget>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -206,5 +205,4 @@ void KalahariStyle::onResourcesChanged() {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

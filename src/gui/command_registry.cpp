@@ -11,8 +11,7 @@
 #include <algorithm>
 #include <set>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // ============================================================================
 // Construction
@@ -521,5 +520,4 @@ void CommandRegistry::finishShortcutChanges(const std::vector<ShortcutChange>& c
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

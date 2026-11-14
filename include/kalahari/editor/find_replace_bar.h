@@ -12,7 +12,8 @@
 /// - Replace input with Replace/Replace All buttons
 /// - Keyboard shortcuts for all operations
 
-#pragma once
+#ifndef KALAHARI_EDITOR_FIND_REPLACE_BAR_H
+#define KALAHARI_EDITOR_FIND_REPLACE_BAR_H
 
 #include <QKeyCombination>
 #include <QList>
@@ -87,14 +88,14 @@ public:
 
     /// @brief Get the current search text
     /// @return Current search text
-    QString searchText() const;
+    [[nodiscard]] QString searchText() const;
 
     /// @brief Focus the search input field
     void focusSearchInput();
 
     /// @brief Check if replace mode is active
     /// @return true if replace section is visible
-    bool isReplaceMode() const;
+    [[nodiscard]] bool isReplaceMode() const;
 
     /// @brief The keys that turn the options on and off, in the bar and in the text under it:
     ///        Alt+C (match case), Alt+W (whole words) and Alt+R (regular expression)
@@ -174,8 +175,8 @@ private slots:
 
     /// @brief Close the bar
     void onClose();
-
 private:
+
     /// @brief Setup UI components
     void setupUi();
 
@@ -206,7 +207,7 @@ private:
 
     /// @brief The buttons Enter presses when they have the keys, as Space does: all but
     ///        the options, which are check boxes
-    QList<QAbstractButton*> enterButtons() const;
+    [[nodiscard]] QList<QAbstractButton*> enterButtons() const;
 
     // =========================================================================
     // UI Components - Row 1 (Find)
@@ -249,3 +250,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_FIND_REPLACE_BAR_H

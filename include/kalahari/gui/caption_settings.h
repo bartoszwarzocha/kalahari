@@ -5,7 +5,8 @@
 /// @brief The settings of new images and of the captions of new books (Settings > Editor >
 ///        Images), and the book's captions as the editor numbers them
 
-#pragma once
+#ifndef KALAHARI_GUI_CAPTION_SETTINGS_H
+#define KALAHARI_GUI_CAPTION_SETTINGS_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/book_editor.h"
@@ -16,7 +17,7 @@
 
 namespace kalahari::core {
 class ProjectManager;
-}
+} // namespace kalahari::core
 
 namespace kalahari::gui {
 
@@ -98,3 +99,5 @@ editor::ReferenceShows referenceShowsOf(const core::BookCaptions& captions);
 editor::BookEditor::NewImageOptions settingsNewImageOptions();
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_CAPTION_SETTINGS_H

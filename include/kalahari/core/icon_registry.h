@@ -15,7 +15,8 @@
 ///
 /// Ported from wxWidgets IconRegistry and extended for Qt6 + TwoTone support.
 
-#pragma once
+#ifndef KALAHARI_CORE_ICON_REGISTRY_H
+#define KALAHARI_CORE_ICON_REGISTRY_H
 
 #include <QColor>
 #include <QIcon>
@@ -27,10 +28,9 @@
 #include <optional>
 
 // Forward declaration to avoid circular dependency
-namespace kalahari { namespace core { struct Theme; } }
+namespace kalahari::core { struct Theme; } 
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // ============================================================================
 // IconDescriptor - Icon with Customization Options
@@ -45,12 +45,12 @@ struct IconDescriptor {
     QString label;                                ///< Human-readable label ("Save File")
 
     /// @brief Get effective SVG path (user override or default)
-    QString getEffectiveSVGPath() const {
+    [[nodiscard]] QString getEffectiveSVGPath() const {
         return userSVGPath.has_value() ? *userSVGPath : defaultSVGPath;
     }
 
     /// @brief Check if icon has user customization (SVG or colors)
-    bool isCustomized() const {
+    [[nodiscard]] bool isCustomized() const {
         return userSVGPath.has_value() || primaryOverride.has_value() || secondaryOverride.has_value();
     }
 };
@@ -253,7 +253,7 @@ public:
     /// @brief Save customizations to settings
     void saveToSettings();
 
-public slots:
+
     /// @brief Slot called when ThemeManager emits themeChanged signal
     /// Updates icon colors from theme and clears the cache
     /// @param theme New active theme
@@ -342,5 +342,6 @@ private:
     mutable std::map<QString, QIcon> m_iconCache;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_ICON_REGISTRY_H

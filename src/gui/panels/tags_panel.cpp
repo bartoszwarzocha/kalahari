@@ -16,8 +16,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Custom role for storing paragraph index in tree items
 static constexpr int ParagraphIndexRole = Qt::UserRole + 1;
@@ -33,14 +32,7 @@ static constexpr int IsGroupRole = Qt::UserRole + 4;
 
 TagsPanel::TagsPanel(QWidget* parent)
     : QWidget(parent)
-    , m_tagsTree(nullptr)
-    , m_filterCombo(nullptr)
-    , m_emptyLabel(nullptr)
-    , m_countLabel(nullptr)
-    , m_editor(nullptr)
-    , m_detector(nullptr)
-    , m_ownsDetector(false)
-    , m_currentFilter(-1)
+     
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("TagsPanel constructor called");
@@ -396,5 +388,4 @@ void TagsPanel::onTagsChanged()
     refresh();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

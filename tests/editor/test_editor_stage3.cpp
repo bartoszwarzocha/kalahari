@@ -17,7 +17,7 @@
 #include <kalahari/editor/render_context.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/find_replace_bar.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
@@ -732,7 +732,7 @@ public:
     }
 
     /// What was noted: when, and the paragraph numbers
-    const QStringList& found() const { return m_found; }
+    [[nodiscard]] const QStringList& found() const { return m_found; }
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {

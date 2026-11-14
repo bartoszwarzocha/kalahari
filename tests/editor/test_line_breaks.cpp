@@ -20,7 +20,7 @@
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/tag_detector.h>
 #include <kalahari/editor/text_keys.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QCoreApplication>
 #include <QKeyEvent>

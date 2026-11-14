@@ -5,7 +5,8 @@
 /// @brief Where a material comes from: a file, a web page, a picture on the web or none, and
 /// what comes to the Navigator from outside the program
 
-#pragma once
+#ifndef KALAHARI_GUI_MATERIAL_SOURCE_H
+#define KALAHARI_GUI_MATERIAL_SOURCE_H
 
 #include "kalahari/core/book_project.h"
 
@@ -19,8 +20,7 @@
 
 class QMimeData;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Where a material comes from, as the program shows and opens it
 enum class MaterialSource {
@@ -59,7 +59,7 @@ public:
     QString text;           ///< A text that is no file and no address
 
     /// @brief Whether it gives materials: files, addresses or a picture
-    bool hasMaterials() const {
+    [[nodiscard]] bool hasMaterials() const {
         return !files.isEmpty() || !addresses.isEmpty() || !picture.isNull();
     }
 
@@ -77,5 +77,6 @@ public:
     static QString pictureFileName(const QDateTime& time);
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_MATERIAL_SOURCE_H

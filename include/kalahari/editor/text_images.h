@@ -19,7 +19,8 @@
 /// KML writes an image as <img src="images/map.png" alt="Map" width="60%"/> in its
 /// paragraph (docs/kml_format.md).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_IMAGES_H
+#define KALAHARI_EDITOR_TEXT_IMAGES_H
 
 #include <kalahari/editor/text_captions.h>
 #include <QColor>
@@ -171,7 +172,7 @@ struct ImageCrop {
     double right = 0.0;
     double bottom = 0.0;
 
-    bool isEmpty() const { return left <= 0.0 && top <= 0.0 && right <= 0.0 && bottom <= 0.0; }
+    [[nodiscard]] bool isEmpty() const { return left <= 0.0 && top <= 0.0 && right <= 0.0 && bottom <= 0.0; }
     bool operator==(const ImageCrop&) const = default;
 };
 
@@ -206,10 +207,10 @@ struct ImageProperties {
 
     /// @brief Whether the picture is drawn as the file has it: not cropped, turned, mirrored
     ///        or recolored
-    bool hasPlainPicture() const;
+    [[nodiscard]] bool hasPlainPicture() const;
 
     /// @brief Whether the image has a border or a shadow around its picture
-    bool hasFrame() const { return borderLine != ImageBorderLine::None || shadow; }
+    [[nodiscard]] bool hasFrame() const { return borderLine != ImageBorderLine::None || shadow; }
 
     bool operator==(const ImageProperties&) const = default;
 };
@@ -345,3 +346,5 @@ QString withImageFilterKml(const QString& kml, ImageFilter filter, int threshold
                            int* count = nullptr);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_IMAGES_H

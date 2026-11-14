@@ -4,7 +4,8 @@
 /// @file manage_styles_dialog.h
 /// @brief Format > Text Style > Manage Styles...: all the paragraph styles of the book
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_MANAGE_STYLES_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_MANAGE_STYLES_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/style_coordinator.h"
@@ -18,7 +19,7 @@ class QPushButton;
 
 namespace kalahari::gui {
 class WrappingLabel;
-}
+} // namespace kalahari::gui
 
 namespace kalahari::gui::dialogs {
 
@@ -61,7 +62,7 @@ public:
     [[nodiscard]] QPushButton* deleteButton() const { return m_deleteButton; }
     [[nodiscard]] QPushButton* resetButton() const { return m_resetButton; }
 
-public slots:
+
     /// @brief New...: a new style based on the one selected
     void newStyle();
 
@@ -108,3 +109,5 @@ private:
 };
 
 }  // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_MANAGE_STYLES_DIALOG_H

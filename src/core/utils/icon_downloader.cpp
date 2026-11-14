@@ -19,7 +19,7 @@ namespace {
     QString message(const char* source) {
         return QCoreApplication::translate("kalahari::core::IconDownloader", source);
     }
-}
+} // namespace
 
 // ============================================================================
 // IconDownloader Implementation

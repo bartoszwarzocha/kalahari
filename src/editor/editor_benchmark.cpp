@@ -17,8 +17,7 @@
 #include <algorithm>
 #include <numeric>
 
-namespace kalahari {
-namespace editor {
+namespace kalahari::editor {
 
 // =============================================================================
 // BenchmarkResult
@@ -526,5 +525,4 @@ void EditorBenchmark::restoreEditor()
     m_editor->setCursorPosition({0, 0});
 }
 
-} // namespace editor
-} // namespace kalahari
+} // namespace kalahari::editor

@@ -5,7 +5,8 @@
 /// @brief The windows of the numbered captions: Insert Caption, Caption Numbering and Insert
 ///        Cross-Reference
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_CAPTION_DIALOGS_H
+#define KALAHARI_GUI_DIALOGS_CAPTION_DIALOGS_H
 
 #include "kalahari/editor/text_captions.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -26,9 +27,7 @@ class QListWidget;
 class QPushButton;
 class QRadioButton;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Insert > Caption... (Ctrl+Shift+G): the caption of an image
 ///
@@ -175,6 +174,6 @@ private:
     QCheckBox* m_link = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_CAPTION_DIALOGS_H

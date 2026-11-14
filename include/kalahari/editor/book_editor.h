@@ -15,7 +15,8 @@
 /// - Handle scrollbar and mouse wheel scrolling with smooth animation
 /// - Cursor position tracking and blinking cursor rendering
 
-#pragma once
+#ifndef KALAHARI_EDITOR_BOOK_EDITOR_H
+#define KALAHARI_EDITOR_BOOK_EDITOR_H
 
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/auto_correct.h>
@@ -2411,8 +2412,8 @@ private slots:
 
     /// @brief Handle cursor blink timer timeout
     void onCursorBlinkTimeout();
-
 private:
+
     /// @brief Setup internal components
     void setupComponents();
 
@@ -3158,17 +3159,20 @@ private:
     ///        parts in which it differs from the place's
     QTextCharFormat pendingFor(const QTextCharFormat& wanted) const;
 
-    QScrollBar* m_verticalScrollBar;                        ///< Vertical scrollbar
+    QScrollBar* m_verticalScrollBar{nullptr};                        ///< Vertical scrollbar
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
     int m_lastCurrentPage = -1;                             ///< Page number last emitted
     int m_lastTotalPages = -1;                              ///< Page count last emitted
-    QVariantAnimation* m_scrollAnimation;                   ///< Smooth scroll animation
+    QVariantAnimation* m_scrollAnimation{nullptr};                   ///< Smooth scroll animation
     bool m_pointerMovesCursor = false;                      ///< A mouse or drop event moves the cursor
                                                             ///< (typewriter scrolling leaves the view)
 
-    bool m_smoothScrollingEnabled;                          ///< Enable smooth scrolling
-    int m_smoothScrollDuration;                             ///< Smooth scroll animation duration (ms)
-    bool m_updatingScrollBar;                               ///< Flag to prevent scroll signal loops
+    static constexpr int DEFAULT_SMOOTH_SCROLL_DURATION = 150;     ///< Default smooth scroll duration (ms)
+    static constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;      ///< Default cursor blink interval (ms)
+
+    bool m_smoothScrollingEnabled{false};                          ///< Enable smooth scrolling
+    int m_smoothScrollDuration{DEFAULT_SMOOTH_SCROLL_DURATION};    ///< Smooth scroll animation duration (ms)
+    bool m_updatingScrollBar{false};                               ///< Flag to prevent scroll signal loops
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
     bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
                                                             ///< for the first paint
@@ -3178,14 +3182,14 @@ private:
 
     // Cursor state (Phase 3.4 + 3.5)
     CursorPosition m_cursorPosition;                        ///< Current cursor position
-    QTimer* m_cursorBlinkTimer;                             ///< Timer for cursor blinking
-    bool m_cursorVisible;                                   ///< Current blink state (visible/hidden)
-    bool m_cursorBlinkingEnabled;                           ///< Enable cursor blinking
-    int m_cursorBlinkInterval;                              ///< Blink interval in milliseconds
+    QTimer* m_cursorBlinkTimer{nullptr};                             ///< Timer for cursor blinking
+    bool m_cursorVisible{true};                                   ///< Current blink state (visible/hidden)
+    bool m_cursorBlinkingEnabled{true};                           ///< Enable cursor blinking
+    int m_cursorBlinkInterval{DEFAULT_CURSOR_BLINK_INTERVAL};     ///< Blink interval in milliseconds
 
     // Cursor navigation state (Phase 3.6/3.7/3.8)
-    qreal m_preferredCursorX;                               ///< Preferred X position for vertical movement
-    bool m_preferredCursorXValid;                           ///< Is m_preferredCursorX valid?
+    qreal m_preferredCursorX{0.0};                               ///< Preferred X position for vertical movement
+    bool m_preferredCursorXValid{false};                           ///< Is m_preferredCursorX valid?
     CursorPosition m_preferredCursorXPosition;              ///< Cursor position the last vertical move gave
                                                             ///< (m_preferredCursorX holds only there)
 
@@ -3208,11 +3212,11 @@ private:
     // Selection state (Phase 3.10)
     SelectionRange m_selection;                             ///< Current selection range
     CursorPosition m_selectionAnchor;                       ///< Anchor point for selection
-    bool m_isDragging;                                      ///< Is mouse drag selection in progress?
+    bool m_isDragging{false};                                      ///< Is mouse drag selection in progress?
 
     // Click tracking for double/triple click (Phase 3.11)
-    QTimer* m_clickTimer;                                   ///< Timer for click counting
-    int m_clickCount;                                       ///< Number of consecutive clicks
+    QTimer* m_clickTimer{nullptr};                                   ///< Timer for click counting
+    int m_clickCount{0};                                       ///< Number of consecutive clicks
     QPointF m_lastClickPos;                                 ///< Position of last click
     static constexpr int MULTI_CLICK_INTERVAL = 400;        ///< Max interval between clicks (ms)
     static constexpr qreal MULTI_CLICK_DISTANCE = 5.0;      ///< Max distance for multi-click
@@ -3278,7 +3282,7 @@ private:
 
     /// @brief Scroll a rectangle of the widget into view, the cursor's line kept in view when
     ///        both fit (a note's text, a range of it)
-    void scrollToShow(const QRectF& rect);
+    void scrollToShow(const QRectF& note);
     AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
     qreal m_cardWritingHeight = 0.0;    ///< The frame over a card: its height (editor pixels)
     QString m_pressedCard;              ///< The card the last press went to (a double click edits it)
@@ -3290,7 +3294,7 @@ private:
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
     CursorPosition m_preeditStart;                          ///< Start position of preedit text
-    bool m_hasComposition;                                  ///< Is composition in progress?
+    bool m_hasComposition{false};                                  ///< Is composition in progress?
 
     // Undo/Redo: QTextDocument's native undo is the single source of truth
     // (text AND formatting) — see undo()/redo(). No separate QUndoStack.
@@ -3721,3 +3725,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_BOOK_EDITOR_H

@@ -28,9 +28,7 @@
 #include <algorithm>
 #include <array>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 using editor::ListDefinition;
 using editor::ListKind;
@@ -101,7 +99,7 @@ public:
 
     [[nodiscard]] const ListLevel& level() const { return m_level; }
 
-    QSize sizeHint() const override
+    [[nodiscard]] QSize sizeHint() const override
     {
         const int line = fontMetrics().height();
         return {qRound(line * 5.6), qRound(line * 3.8)};
@@ -629,6 +627,4 @@ void NumberingValueDialog::setValue(int value)
     m_value->setValue(value);
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

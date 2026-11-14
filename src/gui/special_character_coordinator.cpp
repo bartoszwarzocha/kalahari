@@ -28,8 +28,7 @@
 
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -334,5 +333,4 @@ void SpecialCharacterCoordinator::showMessage(const QString& message)
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

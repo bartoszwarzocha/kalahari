@@ -336,7 +336,7 @@ public:
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         const QVariant count = index.data(COUNT_ROLE);
         if (count.isValid()) {
@@ -386,7 +386,7 @@ public:
     std::function<bool()> takesMaterials;
     std::function<bool(const QTreeWidgetItem* item)> linksMaterials;
 
-    bool canPasteHere() const override {
+    [[nodiscard]] bool canPasteHere() const override {
         const QMimeData* mime = QGuiApplication::clipboard()->mimeData();
         return takesMaterials && takesMaterials() && mime != nullptr &&
                (mime->hasUrls() || mime->hasImage() || mime->hasText());
@@ -447,7 +447,7 @@ protected:
 
     /// The dragged nodes also give their links, which the links of a material take
     /// (NavigatorPanel::LINKS_MIME_TYPE)
-    QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
+    [[nodiscard]] QMimeData* mimeData(const QList<QTreeWidgetItem*>& items) const override {
         QMimeData* mime = QTreeWidget::mimeData(items);
         QStringList links;
         for (const QTreeWidgetItem* item : items) {
@@ -551,7 +551,7 @@ private:
 
     /// The new place of the dragged element when it is dropped at @p pos; none when it cannot
     /// go there or stays where it is
-    std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
+    [[nodiscard]] std::optional<kalahari::core::ElementPlace> dropPlace(const QPoint& pos) const {
         using Spot = kalahari::gui::NavigatorPanel::DropSpot;
         Spot spot = Spot::On;
         switch (dropIndicatorPosition()) {
@@ -585,25 +585,12 @@ private:
 
 } // anonymous namespace
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
-    , m_treeWidget(nullptr)
-    , m_otherFilesItem(nullptr)
-    , m_typeFilter(nullptr)
-    , m_currentFilterType(FilterType::All)
-    , m_searchEdit(nullptr)
-    , m_clearButton(nullptr)
-    , m_expandAllButton(nullptr)
-    , m_collapseAllButton(nullptr)
-    , m_filterDebounceTimer(nullptr)
-    , m_contextMenuItem(nullptr)
-    , m_highlightedItem(nullptr)
-    , m_highlightColor()
-    , m_currentIconSize(0)
-    , m_book(book)
+    , 
+     m_book(book)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel constructor called");
@@ -3602,5 +3589,4 @@ void NavigatorPanel::setFileModified(const QString& path, bool isModified) {
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

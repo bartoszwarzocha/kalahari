@@ -32,15 +32,13 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 SettingsDialog::SettingsDialog(const core::ProjectManager& book, CommandRegistry& commands,
                                QWidget* parent, bool diagnosticMode,
                                editor::SpellCheckService* spelling, GrammarCoordinator* grammar)
     : KalahariDialog(parent),
-      m_navTree(nullptr),
-      m_pageStack(nullptr),
+      
       m_diagnosticMode(diagnosticMode),
       m_spelling(spelling),
       m_grammar(grammar),
@@ -496,5 +494,4 @@ void SettingsDialog::accept() {
     KalahariDialog::accept();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

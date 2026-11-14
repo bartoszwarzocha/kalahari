@@ -4,7 +4,8 @@
 /// @file style_draft.h
 /// @brief A paragraph style of the book as the window of a style changes it
 
-#pragma once
+#ifndef KALAHARI_GUI_STYLE_DRAFT_H
+#define KALAHARI_GUI_STYLE_DRAFT_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
@@ -165,3 +166,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_STYLE_DRAFT_H

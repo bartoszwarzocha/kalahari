@@ -13,7 +13,7 @@
 #include <QTreeWidgetItem>
 
 #include <optional>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using Spot = gui::NavigatorPanel::DropSpot;

@@ -5,7 +5,8 @@
 /// @brief The statistics bar above the tabs of the texts: the graph of today's writing, or one
 /// line
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_WRITING_STATS_BAR_H
+#define KALAHARI_GUI_WIDGETS_WRITING_STATS_BAR_H
 
 #include <kalahari/gui/widgets/stats_painter.h>
 #include <kalahari/gui/writing_stats_model.h>
@@ -63,49 +64,49 @@ public:
     void refresh();
 
     /// @brief The bar is folded to one line (stats.bar.mode is "line")
-    bool isFolded() const { return m_folded; }
+    [[nodiscard]] bool isFolded() const { return m_folded; }
 
     /// @brief What the mini graph shows (stats.bar.miniGraph)
-    MiniGraph miniGraph() const { return m_miniGraph; }
+    [[nodiscard]] MiniGraph miniGraph() const { return m_miniGraph; }
 
     /// @brief How the graph shows the day (stats.bar.graphMode)
-    GraphMode graphMode() const { return m_graphMode; }
+    [[nodiscard]] GraphMode graphMode() const { return m_graphMode; }
 
     /// @brief The texts of the bar, as they are shown now (for the tests and the readers of
     /// the screen): words and the pace of work, time, days in a row
-    QStringList texts() const;
+    [[nodiscard]] QStringList texts() const;
 
     /// @brief What the texts mean, with the numbers of now: the tooltip of the texts
-    QString textsToolTip() const;
+    [[nodiscard]] QString textsToolTip() const;
 
     /// @brief The minutes of the day at the left and the right edges of the data of the graph
     /// (now in the middle: before the start and after the end of the day too)
-    std::pair<double, double> shownMinutes() const { return {m_fromMinute, m_toMinute}; }
+    [[nodiscard]] std::pair<double, double> shownMinutes() const { return {m_fromMinute, m_toMinute}; }
 
     /// @brief Now, in minutes from the start of the writing day
-    qint64 nowMinute() const { return m_nowMinute; }
+    [[nodiscard]] qint64 nowMinute() const { return m_nowMinute; }
 
     /// @brief The x of @p minute of the day on the graph
-    double xOfMinute(double minute) const;
+    [[nodiscard]] double xOfMinute(double minute) const;
 
     /// @brief The rectangle of the data of the graph, without the texts and the buttons
-    QRectF plotRect() const { return m_plot; }
+    [[nodiscard]] QRectF plotRect() const { return m_plot; }
 
     /// @brief The rectangle of the texts on the graph
-    QRectF textsRect() const { return m_textsRect; }
+    [[nodiscard]] QRectF textsRect() const { return m_textsRect; }
 
     /// @brief The button that folds and unfolds the bar
-    QToolButton* foldButton() const { return m_fold; }
+    [[nodiscard]] QToolButton* foldButton() const { return m_fold; }
 
     /// @brief The button of the mini graph of the line
-    QToolButton* miniGraphButton() const { return m_mini; }
+    [[nodiscard]] QToolButton* miniGraphButton() const { return m_mini; }
 
     /// @brief The button that puts now in the middle of the graph, and back (checked: now in
     /// the middle)
-    QToolButton* graphModeButton() const { return m_graphModeButton; }
+    [[nodiscard]] QToolButton* graphModeButton() const { return m_graphModeButton; }
 
-    QSize sizeHint() const override;
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
 signals:
     /// @brief The button of the goals was clicked
@@ -136,7 +137,7 @@ private:
         stats_painter::Glyph glyph = stats_painter::Glyph::Clock;
         QColor glyphColor;
 
-        QString plain() const;
+        [[nodiscard]] QString plain() const;
     };
 
     /// @brief The settings of the bar
@@ -153,18 +154,18 @@ private:
     /// @brief Draw a text with its mark, from @p x on the line of @p baseline
     /// @return The x after it
     double drawText(QPainter& painter, const Text& text, double x, double baseline) const;
-    double textWidth(const Text& text) const;
-    QFont smallFont(bool bold = false) const;
+    [[nodiscard]] double textWidth(const Text& text) const;
+    [[nodiscard]] QFont smallFont(bool bold = false) const;
     /// @brief The height of a row of the texts on the graph
-    int rowHeight() const;
+    [[nodiscard]] int rowHeight() const;
     /// @brief The height the graph needs: the settings, the buttons and the texts
-    int graphHeight() const;
+    [[nodiscard]] int graphHeight() const;
     /// @brief The piece under @p x on the graph; -1 outside
-    int pieceAt(double x) const;
-    QString pieceToolTip(int piece) const;
-    QString miniGraphText() const;
+    [[nodiscard]] int pieceAt(double x) const;
+    [[nodiscard]] QString pieceToolTip(int piece) const;
+    [[nodiscard]] QString miniGraphText() const;
     /// @brief The texts in the order the line shows them, or the rows of the graph
-    QList<const Text*> lineParts() const;
+    [[nodiscard]] QList<const Text*> lineParts() const;
     void cycleMiniGraph();
 
     // Plain, cleared when the statistics go: clang-tidy's analyzer reports a QPointer as a use
@@ -221,3 +222,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_WRITING_STATS_BAR_H

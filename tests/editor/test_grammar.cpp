@@ -12,8 +12,8 @@
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_source_adapter.h>
 #include <kalahari/gui/utils/access_keys.h>
-#include "editor_test_utils.h"
-#include "fake_language_tool.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/editor/fake_language_tool.h"
 
 #include <QAction>
 #include <QApplication>

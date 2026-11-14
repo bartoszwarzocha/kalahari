@@ -17,8 +17,7 @@
 
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Qt's tab bar of CentralTabs, with the tabs in more rows over it
 ///
@@ -260,5 +259,4 @@ PanelTabBar::Rows CentralTabs::rowsSetting() {
                : PanelTabBar::Rows::Single;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

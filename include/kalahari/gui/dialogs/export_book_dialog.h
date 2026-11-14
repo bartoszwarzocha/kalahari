@@ -5,7 +5,8 @@
 /// @brief File > Export > DOCX and Markdown: the file, the texts of the book and how they look
 /// in it, and the progress and the result of the export in one window
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_EXPORT_BOOK_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_EXPORT_BOOK_DIALOG_H
 
 #include "kalahari/editor/book_export.h"
 #include "kalahari/gui/dialogs/archive_dialogs.h"
@@ -34,8 +35,7 @@ namespace core {
 class IExporter;
 } // namespace core
 
-namespace gui {
-namespace dialogs {
+namespace gui::dialogs {
 
 class RowList;
 
@@ -126,7 +126,7 @@ public:
     ~ExportBookDialog() override;
 
     /// @brief The choices of the window now
-    Choice choice() const;
+    [[nodiscard]] Choice choice() const;
 
     /// @brief The formats the window lists: the program's own (DOCX, Markdown), then those of
     /// the exporters of the plugins (core::IExporter::getFormats())
@@ -146,42 +146,42 @@ public:
     void setContent(Content content);
 
     /// @brief The folder of the file
-    QString folder() const { return m_folder; }
+    [[nodiscard]] QString folder() const { return m_folder; }
 
     /// @brief Set the folder of the file, as Browse... does
     void setFolder(const QString& folder);
 
     /// @brief The field of the name of the file
-    QLineEdit* nameField() const { return m_nameField; }
+    [[nodiscard]] QLineEdit* nameField() const { return m_nameField; }
 
     /// @brief The path of the file: the folder and the name with the extension of the format;
     /// empty while the file cannot be written there
-    QString filePath() const;
+    [[nodiscard]] QString filePath() const;
 
     /// @brief The line under the folder: why the program cannot use it, or that it creates it
-    QString folderNote() const { return noteText(m_folderNote); }
+    [[nodiscard]] QString folderNote() const { return noteText(m_folderNote); }
 
     /// @brief The line under the name: why it cannot be the name of the file, the name the file
     /// gets, or that the export replaces a file
-    QString nameNote() const { return noteText(m_nameNote); }
+    [[nodiscard]] QString nameNote() const { return noteText(m_nameNote); }
 
     /// @brief The list of the formats
-    QComboBox* formatBox() const { return m_formatBox; }
+    [[nodiscard]] QComboBox* formatBox() const { return m_formatBox; }
 
     /// @brief The tab of the options of the format of a plugin, @p id; null for a format
     /// without one
-    QWidget* formatPage(const QString& id) const { return m_formatPages.value(id); }
+    [[nodiscard]] QWidget* formatPage(const QString& id) const { return m_formatPages.value(id); }
 
     /// @brief The radio buttons of the content
-    QRadioButton* bookButton() const { return m_bookButton; }
-    QRadioButton* chosenButton() const { return m_chosenButton; }
-    QRadioButton* frontButton() const { return m_frontButton; }
+    [[nodiscard]] QRadioButton* bookButton() const { return m_bookButton; }
+    [[nodiscard]] QRadioButton* chosenButton() const { return m_chosenButton; }
+    [[nodiscard]] QRadioButton* frontButton() const { return m_frontButton; }
 
     /// @brief The list of the texts of the book, with their check boxes
-    QTreeWidget* textList() const;
+    [[nodiscard]] QTreeWidget* textList() const;
 
     /// @brief The sentence under the list: how many texts are chosen
-    QString chosenNote() const;
+    [[nodiscard]] QString chosenNote() const;
 
     /// @brief Check every text of the list, none, or only the final ones, as the buttons beside
     /// the list do
@@ -191,33 +191,33 @@ public:
 
     /// @brief The tabs of the window: the file, the texts, the layout, and the annotations and
     /// the images
-    QTabWidget* tabs() const { return m_tabs; }
+    [[nodiscard]] QTabWidget* tabs() const { return m_tabs; }
 
     /// @brief The group of the annotations and the group of the images; each shows the option
     /// of its format (the comments of Word, the copy of the images of Markdown) and for the
     /// other format says what it does
-    QGroupBox* notesGroup() const { return m_notesGroup; }
-    QGroupBox* imagesGroup() const { return m_imagesGroup; }
+    [[nodiscard]] QGroupBox* notesGroup() const { return m_notesGroup; }
+    [[nodiscard]] QGroupBox* imagesGroup() const { return m_imagesGroup; }
 
     /// @brief The check boxes of the options
-    QCheckBox* titlesBox() const { return m_titlesBox; }
-    QCheckBox* newPageBox() const { return m_newPageBox; }
-    QCheckBox* pageNumbersBox() const { return m_pageNumbersBox; }
-    QCheckBox* commentsBox() const { return m_commentsBox; }
-    QCheckBox* copyImagesBox() const { return m_copyImagesBox; }
+    [[nodiscard]] QCheckBox* titlesBox() const { return m_titlesBox; }
+    [[nodiscard]] QCheckBox* newPageBox() const { return m_newPageBox; }
+    [[nodiscard]] QCheckBox* pageNumbersBox() const { return m_pageNumbersBox; }
+    [[nodiscard]] QCheckBox* commentsBox() const { return m_commentsBox; }
+    [[nodiscard]] QCheckBox* copyImagesBox() const { return m_copyImagesBox; }
 
     /// @brief The choice of the font of the text
-    QComboBox* fontBox() const { return m_fontBox; }
+    [[nodiscard]] QComboBox* fontBox() const { return m_fontBox; }
 
     /// @brief The page of the settings, as the window says it: "A5, mirror margins: inner 3 cm,
     /// outer 2 cm"
     static QString pageText();
 
     /// @brief The page as the window shows it now
-    QString shownPageText() const;
+    [[nodiscard]] QString shownPageText() const;
 
     /// @brief The name of the folder of the images of a Markdown file: "<name> – images"
-    QString imagesFolderName() const;
+    [[nodiscard]] QString imagesFolderName() const;
 
 protected:
     /// @brief Export the book
@@ -246,31 +246,31 @@ private:
     void textChanged(QTreeWidgetItem* item);
 
     /// @brief The texts of the list (its leaves), in reading order
-    QList<QTreeWidgetItem*> leaves() const;
+    [[nodiscard]] QList<QTreeWidgetItem*> leaves() const;
 
     /// @brief Keep the choices of the window for the next export
     void rememberChoices() const;
 
     /// @brief The file name: the name with the extension of the format; empty when the name
     /// is empty
-    QString fileName() const;
+    [[nodiscard]] QString fileName() const;
 
     /// @brief The extension of the format, with its dot
-    QString extension() const;
+    [[nodiscard]] QString extension() const;
 
     /// @brief The name without the extension of either format
-    QString baseName() const;
+    [[nodiscard]] QString baseName() const;
 
     /// @brief The name the file gets for the content: the title of the book or of the text in
     /// front
-    QString suggestedName() const;
+    [[nodiscard]] QString suggestedName() const;
 
     /// @brief Why the name cannot be the name of a file; empty when it can
-    QString nameProblem() const;
+    [[nodiscard]] QString nameProblem() const;
 
     /// @brief Why the file could not be written, as the window says it; empty for a cause the
     /// window does not name
-    QString reasonOf(const editor::ExportProblem& problem) const;
+    [[nodiscard]] QString reasonOf(const editor::ExportProblem& problem) const;
 
     Book m_book;
     Exporter m_exporter;
@@ -314,6 +314,8 @@ private:
     QLabel* m_imagesInFileNote = nullptr;   ///< A Word document has the images in itself
 };
 
-} // namespace dialogs
-} // namespace gui
+} // namespace gui::dialogs
+
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_DIALOGS_EXPORT_BOOK_DIALOG_H

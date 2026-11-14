@@ -17,8 +17,7 @@
 class QStatusBar;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 class CommandRegistry;
 
@@ -103,7 +102,6 @@ void updateSaveCommands(CommandRegistry& registry);
 void explainGreyedKeys(CommandRegistry& registry, QWidget* window, QStatusBar* statusBar);
 
 } // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
 
 #endif // KALAHARI_GUI_UTILS_DOCUMENT_COMMANDS_H

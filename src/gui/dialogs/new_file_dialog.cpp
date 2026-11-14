@@ -68,9 +68,7 @@
 #include <optional>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -349,7 +347,7 @@ public:
     }
 
     /// The width of the name of a part of the book: the whole row of the tiles
-    int headingWidth() const
+    [[nodiscard]] int headingWidth() const
     {
         // The rows of an icon view leave room for the vertical scroll bar, also when it is
         // hidden
@@ -458,7 +456,7 @@ public:
         painter->restore();
     }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
     {
         if (!index.data(HEADING_ROLE).toBool()) {
             return QStyledItemDelegate::sizeHint(option, index);
@@ -2498,6 +2496,4 @@ void NewFileDialog::updateCreateButton()
                                (!entry->placeNote.isEmpty() || !m_picker->places().isEmpty()));
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

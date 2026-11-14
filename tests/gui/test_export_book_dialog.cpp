@@ -6,7 +6,7 @@
 ///        as the program has it (the open texts with their unsaved changes)
 
 #include <catch2/catch_test_macros.hpp>
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/settings_manager.h"
@@ -236,11 +236,11 @@ QString keyProblems(const ExportBookDialog& dialog) {
 /// An exporter of a plugin: a PDF format with a tab of options, and a format without one
 class PdfExporter : public core::IExporter {
 public:
-    std::string getPluginId() const override { return "test.pdf-exporter"; }
-    std::string getVersion() const override { return "1.0.0"; }
+    [[nodiscard]] std::string getPluginId() const override { return "test.pdf-exporter"; }
+    [[nodiscard]] std::string getVersion() const override { return "1.0.0"; }
     void onInit() override {}
     void onActivate() override {}
-    std::vector<core::ExportFormatInfo> getFormats() const override {
+    [[nodiscard]] std::vector<core::ExportFormatInfo> getFormats() const override {
         return {{"pdf", "PDF document", "pdf"}, {"txt", "Plain text", "txt"},
                 {"docx", "Another Word", "docx"}, {"", "No id", "x"}};
     }

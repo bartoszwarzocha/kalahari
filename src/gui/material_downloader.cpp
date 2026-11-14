@@ -23,8 +23,7 @@
 
 #include <memory>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -212,5 +211,4 @@ QString MaterialDownloader::pictureSuffix(const QByteArray& data) {
     return format == QLatin1String("jpeg") ? QStringLiteral("jpg") : format;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

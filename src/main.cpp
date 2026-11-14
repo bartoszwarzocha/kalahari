@@ -55,13 +55,13 @@ class DownloadHelper : public QObject {
 
 public:
     DownloadHelper(QObject* parent = nullptr)
-        : QObject(parent), downloadSuccess(false) {}
+        : QObject(parent) {}
 
-    bool downloadSuccess;
+    bool downloadSuccess{false};
     QString downloadedSvg;
     QString expectedTheme;
 
-public slots:
+
     void onComplete(const QString& theme, const QString& svgData) {
         if (theme == expectedTheme) {
             downloadedSvg = svgData;

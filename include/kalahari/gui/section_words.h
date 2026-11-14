@@ -4,7 +4,8 @@
 /// @file section_words.h
 /// @brief How the program's sentences name the front, main and back part of a book
 
-#pragma once
+#ifndef KALAHARI_GUI_SECTION_WORDS_H
+#define KALAHARI_GUI_SECTION_WORDS_H
 
 #include "kalahari/core/book_type_package.h"
 
@@ -52,3 +53,5 @@ public:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_SECTION_WORDS_H

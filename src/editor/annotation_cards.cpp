@@ -93,12 +93,12 @@ struct Metrics {
     QFont link;      ///< "Show all"
     qreal em = 1.0;  ///< The text's size: every length is in ems of it
 
-    qreal lineHeight() const { return LINE_HEIGHT * em; }
-    qreal headerHeight() const {
+    [[nodiscard]] qreal lineHeight() const { return LINE_HEIGHT * em; }
+    [[nodiscard]] qreal headerHeight() const {
         return std::max(HEADER * em, QFontMetricsF(small).height());
     }
-    qreal lineCardHeight() const { return (2.0 * LINE_PAD + LINE_FONT * LINE_HEIGHT) * em; }
-    qreal linkHeight() const { return LINK_FONT * LINE_HEIGHT * em; }
+    [[nodiscard]] qreal lineCardHeight() const { return (2.0 * LINE_PAD + LINE_FONT * LINE_HEIGHT) * em; }
+    [[nodiscard]] qreal linkHeight() const { return LINK_FONT * LINE_HEIGHT * em; }
 };
 
 Metrics metricsOf(const QFont& cardFont) {

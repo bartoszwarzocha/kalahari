@@ -5,7 +5,8 @@
 /// @brief The Spelling and Grammar panel: the issues of the text in front, what the writer
 ///        does with them, and when the panel shows
 
-#pragma once
+#ifndef KALAHARI_GUI_SPELLING_PANEL_COORDINATOR_H
+#define KALAHARI_GUI_SPELLING_PANEL_COORDINATOR_H
 
 #include <kalahari/gui/panels/spelling_issue_list.h>
 
@@ -91,8 +92,8 @@ public:
 private slots:
     /// @brief The settings of the panel or of the checking changed (called by name, queued)
     void onSettingsChanged();
-
 private:
+
     // The text in front
     editor::BookEditor* currentEditor() const;
     void onCurrentTabChanged();
@@ -154,3 +155,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_SPELLING_PANEL_COORDINATOR_H

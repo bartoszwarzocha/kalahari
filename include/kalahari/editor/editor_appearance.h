@@ -12,7 +12,8 @@
 /// Philosophy: "Pisarz, szklanka whisky, zanurzenie w procesie twórczym"
 /// The visual environment should support deep focus and creative flow.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_EDITOR_APPEARANCE_H
+#define KALAHARI_EDITOR_EDITOR_APPEARANCE_H
 
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/paragraph_styles.h>
@@ -129,26 +130,26 @@ struct EditorColors {
     } focus;
 
     /// @brief Get background color for current mode
-    QColor background(EditorColorMode mode) const {
+    [[nodiscard]] QColor background(EditorColorMode mode) const {
         return mode == EditorColorMode::Light
             ? continuous.backgroundLight
             : continuous.backgroundDark;
     }
 
     /// @brief Get text color for current mode
-    QColor textColor(EditorColorMode mode) const {
+    [[nodiscard]] QColor textColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light
             ? continuous.textLight
             : continuous.textDark;
     }
 
     /// @brief The color around the paper of a mode
-    QColor desk(EditorColorMode mode) const {
+    [[nodiscard]] QColor desk(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? continuous.deskLight : continuous.deskDark;
     }
 
     /// @brief Get inactive text color for Focus mode
-    QColor focusInactiveColor(EditorColorMode mode) const {
+    [[nodiscard]] QColor focusInactiveColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light
             ? focus.inactiveLight
             : focus.inactiveDark;
@@ -161,7 +162,7 @@ struct EditorColors {
     } formattingMarks;
 
     /// @brief The formatting marks' color on the paper of a mode
-    QColor formattingMarksColor(EditorColorMode mode) const {
+    [[nodiscard]] QColor formattingMarksColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? formattingMarks.light : formattingMarks.dark;
     }
 
@@ -172,7 +173,7 @@ struct EditorColors {
     } links;
 
     /// @brief The links' color on the paper of a mode
-    QColor linkColor(EditorColorMode mode) const {
+    [[nodiscard]] QColor linkColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? links.light : links.dark;
     }
 
@@ -197,12 +198,12 @@ struct EditorColors {
     } images;
 
     /// @brief The color of the marks of an image being cropped, on the paper of a mode
-    QColor imageCropMarksColor(EditorColorMode mode) const {
+    [[nodiscard]] QColor imageCropMarksColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? images.cropMarksLight : images.cropMarksDark;
     }
 
     /// @brief The color of the frame of an image whose file is missing, on the paper of a mode
-    QColor imageMissingColor(EditorColorMode mode) const {
+    [[nodiscard]] QColor imageMissingColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? images.missingLight : images.missingDark;
     }
 
@@ -224,12 +225,12 @@ struct EditorColors {
     } footnotes;
 
     /// @brief The color of the line above the notes, on the paper of a mode
-    QColor noteLineColor(EditorColorMode mode) const {
+    [[nodiscard]] QColor noteLineColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? footnotes.lineLight : footnotes.lineDark;
     }
 
     /// @brief The color of the frame a note's text is written in, on the paper of a mode
-    QColor noteFrameColor(EditorColorMode mode) const {
+    [[nodiscard]] QColor noteFrameColor(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? footnotes.frameLight : footnotes.frameDark;
     }
 
@@ -244,7 +245,7 @@ struct EditorColors {
     AnnotationColors annotationsDark;   ///< On the dark paper
 
     /// @brief The marks' colors on the paper of a mode
-    const AnnotationColors& annotations(EditorColorMode mode) const {
+    [[nodiscard]] const AnnotationColors& annotations(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? annotationsLight : annotationsDark;
     }
 
@@ -259,7 +260,7 @@ struct EditorColors {
     IssueColors issuesDark;   ///< On the dark paper
 
     /// @brief The waves' colors on the paper of a mode
-    const IssueColors& issues(EditorColorMode mode) const {
+    [[nodiscard]] const IssueColors& issues(EditorColorMode mode) const {
         return mode == EditorColorMode::Light ? issuesLight : issuesDark;
     }
 };
@@ -325,7 +326,7 @@ struct PageLayout {
     bool showPageNumbers{true};                ///< Page numbers at the bottom of the pages
 
     /// @brief Page dimensions in millimetres
-    QSizeF pageSizeMm() const;
+    [[nodiscard]] QSizeF pageSizeMm() const;
 
     /// @brief Page size from its id ("A4", "A5", "B5", "6x9", "Letter", "Legal", "Custom");
     ///        A4 for an unknown id
@@ -512,3 +513,5 @@ public:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_EDITOR_APPEARANCE_H

@@ -5,7 +5,8 @@
 /// @brief The lists of the materials of the Workshop on their tabs: the kinds of the Materials,
 /// the columns of each kind and what a material shows in them
 
-#pragma once
+#ifndef KALAHARI_GUI_MATERIAL_LIST_H
+#define KALAHARI_GUI_MATERIAL_LIST_H
 
 #include <QCoreApplication>
 #include <QHash>
@@ -18,8 +19,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief A column of a list of materials
 struct MaterialColumn {
@@ -202,5 +202,6 @@ public:
     static QString copyTextOf(const core::ProjectManager& book, const QString& elementId);
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_MATERIAL_LIST_H

@@ -16,7 +16,7 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/spell_check_service.h>
 #include <kalahari/editor/text_source_adapter.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QHelpEvent>
 #include <QImage>

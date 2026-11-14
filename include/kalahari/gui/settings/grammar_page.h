@@ -7,7 +7,8 @@
 ///
 /// The coordinator of the grammar (GrammarCoordinator) follows the settings by itself.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_GRAMMAR_PAGE_H
+#define KALAHARI_GUI_SETTINGS_GRAMMAR_PAGE_H
 
 #include "kalahari/gui/grammar_components.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -36,7 +37,7 @@ class ProjectManager;
 namespace kalahari {
 namespace editor {
 class GrammarCheckService;
-}
+} // namespace editor
 namespace gui {
 
 class GrammarCoordinator;
@@ -115,8 +116,8 @@ private slots:
     /// @brief The writer chose the server in the internet: ask whether to send the text
     ///        (called by name, queued after the click)
     void askForRemote();
-
 private:
+
     /// @brief The group of the checking: the switch, the card and where to check
     void createChecking();
 
@@ -173,7 +174,7 @@ private:
     GrammarComponents::LanguageToolInfo languageToolInfo(const QString& folder);
 
     /// @brief Whether the settings of the server on this computer differ from those applied
-    bool serverSettingsChanged() const;
+    [[nodiscard]] bool serverSettingsChanged() const;
 
     GrammarCoordinator* m_grammar;
     Card m_card{Card::NotPrepared};
@@ -239,3 +240,5 @@ private:
 
 }  // namespace gui
 }  // namespace kalahari
+
+#endif  // KALAHARI_GUI_SETTINGS_GRAMMAR_PAGE_H

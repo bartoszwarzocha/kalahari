@@ -15,8 +15,7 @@
 #include <cctype>
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 // ============================================================================
 // IconSet Implementation
@@ -316,5 +315,4 @@ QAction* Command::toQAction(QObject* parent) const {
     return action;
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

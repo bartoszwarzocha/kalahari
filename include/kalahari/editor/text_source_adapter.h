@@ -7,7 +7,8 @@
 /// ITextSource is the interface through which the render pipeline reads the text and its
 /// layout; QTextDocumentSource implements it for the editor's QTextDocument.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_SOURCE_ADAPTER_H
+#define KALAHARI_EDITOR_TEXT_SOURCE_ADAPTER_H
 
 #include <QString>
 #include <QTextBlock>
@@ -90,43 +91,43 @@ public:
 
     /// @brief Get number of paragraphs/blocks
     /// @return Paragraph count
-    virtual size_t paragraphCount() const = 0;
+    [[nodiscard]] virtual size_t paragraphCount() const = 0;
 
     /// @brief Get plain text of a paragraph
     /// @param index Paragraph index (0-based)
     /// @return Plain text content, or empty if index out of range
-    virtual QString paragraphText(size_t index) const = 0;
+    [[nodiscard]] virtual QString paragraphText(size_t index) const = 0;
 
     /// @brief Get character count in paragraph
     /// @param index Paragraph index (0-based)
     /// @return Number of characters
-    virtual size_t paragraphLength(size_t index) const = 0;
+    [[nodiscard]] virtual size_t paragraphLength(size_t index) const = 0;
 
     /// @brief Get full document plain text
     /// @return All paragraphs joined with newlines
-    virtual QString plainText() const = 0;
+    [[nodiscard]] virtual QString plainText() const = 0;
 
     /// @brief Get total character count
     /// @return Total characters in document
-    virtual size_t characterCount() const = 0;
+    [[nodiscard]] virtual size_t characterCount() const = 0;
 
     /// @brief Highlighted ranges of a paragraph: the results of the checks made for its
     ///        current text
     /// @param index Paragraph index (0-based)
     /// @note Sources without checks have none
-    virtual std::vector<TextHighlight> paragraphHighlights(size_t /*index*/) const { return {}; }
+    [[nodiscard]] virtual std::vector<TextHighlight> paragraphHighlights(size_t /*index*/) const { return {}; }
 
     /// @brief The marks of the annotations of a paragraph (see annotationMarksIn())
     /// @param index Paragraph index (0-based)
     /// @note Sources without annotations have none
-    virtual std::vector<AnnotationMark> paragraphAnnotationMarks(size_t /*index*/) const {
+    [[nodiscard]] virtual std::vector<AnnotationMark> paragraphAnnotationMarks(size_t /*index*/) const {
         return {};
     }
 
     /// @brief The formatting marks of a paragraph (see formattingMarksOf())
     /// @param index Paragraph index (0-based)
     /// @note Sources without them have none
-    virtual std::vector<FormattingMark> paragraphFormattingMarks(size_t /*index*/) const {
+    [[nodiscard]] virtual std::vector<FormattingMark> paragraphFormattingMarks(size_t /*index*/) const {
         return {};
     }
 
@@ -134,7 +135,7 @@ public:
     ///        (character_format.h)
     /// @param index Paragraph index (0-based)
     /// @note Sources without formats have none
-    virtual std::vector<ColoredText> paragraphColors(size_t /*index*/) const { return {}; }
+    [[nodiscard]] virtual std::vector<ColoredText> paragraphColors(size_t /*index*/) const { return {}; }
 
     /// @brief Draw the number or bullet of a list item in the paragraph's coordinates (its
     ///        top left at the painter's origin), in the painter's pen unless it has a color
@@ -149,12 +150,12 @@ public:
     /// @brief Get QTextLayout for paragraph (may create lazily)
     /// @param index Paragraph index (0-based)
     /// @return QTextLayout pointer, or nullptr if not available
-    virtual QTextLayout* layout(size_t index) const = 0;
+    [[nodiscard]] virtual QTextLayout* layout(size_t index) const = 0;
 
     /// @brief Check if paragraph has a valid layout
     /// @param index Paragraph index (0-based)
     /// @return true if layout exists and is valid
-    virtual bool hasLayout(size_t index) const = 0;
+    [[nodiscard]] virtual bool hasLayout(size_t index) const = 0;
 
     /// @brief Ensure paragraphs in range have layouts (for lazy sources)
     /// @param first First paragraph index
@@ -168,41 +169,41 @@ public:
     /// @brief Get Y position of paragraph in document coordinates
     /// @param index Paragraph index (0-based)
     /// @return Y coordinate (cumulative height of previous paragraphs)
-    virtual double paragraphY(size_t index) const = 0;
+    [[nodiscard]] virtual double paragraphY(size_t index) const = 0;
 
     /// @brief Get height of paragraph
     /// @param index Paragraph index (0-based)
     /// @return Height in pixels (estimated if not layouted)
-    virtual double paragraphHeight(size_t index) const = 0;
+    [[nodiscard]] virtual double paragraphHeight(size_t index) const = 0;
 
     /// @brief Get total document height
     /// @return Total height in pixels
-    virtual double totalHeight() const = 0;
+    [[nodiscard]] virtual double totalHeight() const = 0;
 
     /// @brief Find paragraph at Y position
     /// @param y Y coordinate in document coordinates
     /// @return Paragraph index, or paragraphCount() if beyond end; in a row of a table, its
     ///         last paragraph (it has the row's height)
-    virtual size_t paragraphAtY(double y) const = 0;
+    [[nodiscard]] virtual size_t paragraphAtY(double y) const = 0;
 
     /// @brief The first paragraph at Y position: in a row of a table, its first paragraph
-    virtual size_t firstParagraphAtY(double y) const { return paragraphAtY(y); }
+    [[nodiscard]] virtual size_t firstParagraphAtY(double y) const { return paragraphAtY(y); }
 
     /// @brief Paragraph under a point (document coordinates): in a row of a table, the
     ///        paragraph of the cell under it
-    virtual size_t paragraphAt(const QPointF& point) const { return paragraphAtY(point.y()); }
+    [[nodiscard]] virtual size_t paragraphAt(const QPointF& point) const { return paragraphAtY(point.y()); }
 
     /// @brief The tables with a paragraph among [first, last], as their grids are drawn
-    virtual std::vector<TableGrid> tablesIn(size_t /*first*/, size_t /*last*/) const { return {}; }
+    [[nodiscard]] virtual std::vector<TableGrid> tablesIn(size_t /*first*/, size_t /*last*/) const { return {}; }
 
     /// @brief The cells a selection selects whole; nothing for a selection of text
-    virtual std::optional<TableCellSelection> cellSelection(const SelectionRange& /*selection*/) const {
+    [[nodiscard]] virtual std::optional<TableCellSelection> cellSelection(const SelectionRange& /*selection*/) const {
         return std::nullopt;
     }
 
     /// @brief A point (document coordinates) in a copy of a table's header moved to the same
     ///        place of the header itself; another point as it is
-    virtual QPointF fromRepeatedHeader(const QPointF& point) const { return point; }
+    [[nodiscard]] virtual QPointF fromRepeatedHeader(const QPointF& point) const { return point; }
 
     // =========================================================================
     // Configuration
@@ -214,7 +215,7 @@ public:
 
     /// @brief Get current text width
     /// @return Width in pixels
-    virtual double textWidth() const = 0;
+    [[nodiscard]] virtual double textWidth() const = 0;
 
     /// @brief Set font for layout
     /// @param font Font to use
@@ -222,7 +223,7 @@ public:
 
     /// @brief Get current font
     /// @return Current font
-    virtual QFont font() const = 0;
+    [[nodiscard]] virtual QFont font() const = 0;
 
     /// @brief Set the view typography (line and paragraph spacing, first-line indent)
     /// @note Sources without typography support ignore it
@@ -232,30 +233,30 @@ public:
     ///        spacing (the line spacing of the paragraph's style), for selection and hit tests
     ///
     /// Consecutive boxes of a paragraph touch. Paragraph coordinates.
-    virtual QRectF lineBox(size_t /*index*/, const QTextLine& line) const {
+    [[nodiscard]] virtual QRectF lineBox(size_t /*index*/, const QTextLine& line) const {
         return QRectF(line.x(), line.y(), line.width(), line.height());
     }
 
     /// @brief Space the layout leaves below every paragraph (current font, pixels)
-    virtual double paragraphSpacing() const { return 0.0; }
+    [[nodiscard]] virtual double paragraphSpacing() const { return 0.0; }
 
     /// @brief Set the page flow (page mode: lines only within the pages' text areas)
     /// @note Sources without page support ignore it and keep a single page
     virtual void setPageFlow(const PageFlow& /*flow*/) {}
 
     /// @brief Number of pages the text fills (1 without page flow)
-    virtual int pageCount() const { return 1; }
+    [[nodiscard]] virtual int pageCount() const { return 1; }
 
     /// @brief What the numbers on the margin count before a paragraph (see MarginCounts)
     /// @param index Paragraph index; paragraphCount(): the whole text
     /// @note Sources without the count take every paragraph for one line with text
-    virtual MarginCounts marginCountsBefore(size_t index) const {
+    [[nodiscard]] virtual MarginCounts marginCountsBefore(size_t index) const {
         return MarginCounts{static_cast<int>(index), static_cast<int>(index)};
     }
 
     /// @brief Whether the numbers on the margin count a paragraph as one: a paragraph with
     ///        text, not a heading, not an object and not in a table
-    virtual bool isNumberedParagraph(size_t /*index*/) const { return true; }
+    [[nodiscard]] virtual bool isNumberedParagraph(size_t /*index*/) const { return true; }
 };
 
 // =============================================================================
@@ -276,57 +277,59 @@ public:
     ~QTextDocumentSource() override = default;
 
     // ITextSource interface
-    size_t paragraphCount() const override;
-    QString paragraphText(size_t index) const override;
-    size_t paragraphLength(size_t index) const override;
-    QString plainText() const override;
-    size_t characterCount() const override;
-    std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
-    std::vector<AnnotationMark> paragraphAnnotationMarks(size_t index) const override;
-    std::vector<FormattingMark> paragraphFormattingMarks(size_t index) const override;
-    std::vector<ColoredText> paragraphColors(size_t index) const override;
+    [[nodiscard]] size_t paragraphCount() const override;
+    [[nodiscard]] QString paragraphText(size_t index) const override;
+    [[nodiscard]] size_t paragraphLength(size_t index) const override;
+    [[nodiscard]] QString plainText() const override;
+    [[nodiscard]] size_t characterCount() const override;
+    [[nodiscard]] std::vector<TextHighlight> paragraphHighlights(size_t index) const override;
+    [[nodiscard]] std::vector<AnnotationMark> paragraphAnnotationMarks(size_t index) const override;
+    [[nodiscard]] std::vector<FormattingMark> paragraphFormattingMarks(size_t index) const override;
+    [[nodiscard]] std::vector<ColoredText> paragraphColors(size_t index) const override;
     void drawListMarker(QPainter* painter, size_t index) const override;
 
-    QTextLayout* layout(size_t index) const override;
-    bool hasLayout(size_t index) const override;
+    [[nodiscard]] QTextLayout* layout(size_t index) const override;
+    [[nodiscard]] bool hasLayout(size_t index) const override;
     void ensureLayouted(size_t first, size_t last) override;
 
-    double paragraphY(size_t index) const override;
-    double paragraphHeight(size_t index) const override;
-    double totalHeight() const override;
-    size_t paragraphAtY(double y) const override;
-    size_t firstParagraphAtY(double y) const override;
-    size_t paragraphAt(const QPointF& point) const override;
-    std::vector<TableGrid> tablesIn(size_t first, size_t last) const override;
-    std::optional<TableCellSelection> cellSelection(const SelectionRange& selection) const override;
-    QPointF fromRepeatedHeader(const QPointF& point) const override;
+    [[nodiscard]] double paragraphY(size_t index) const override;
+    [[nodiscard]] double paragraphHeight(size_t index) const override;
+    [[nodiscard]] double totalHeight() const override;
+    [[nodiscard]] size_t paragraphAtY(double y) const override;
+    [[nodiscard]] size_t firstParagraphAtY(double y) const override;
+    [[nodiscard]] size_t paragraphAt(const QPointF& point) const override;
+    [[nodiscard]] std::vector<TableGrid> tablesIn(size_t first, size_t last) const override;
+    [[nodiscard]] std::optional<TableCellSelection> cellSelection(const SelectionRange& selection) const override;
+    [[nodiscard]] QPointF fromRepeatedHeader(const QPointF& point) const override;
 
     void setTextWidth(double width) override;
-    double textWidth() const override;
+    [[nodiscard]] double textWidth() const override;
     void setFont(const QFont& font) override;
-    QFont font() const override;
+    [[nodiscard]] QFont font() const override;
     void setTypography(const LayoutTypography& typography) override;
-    QRectF lineBox(size_t index, const QTextLine& line) const override;
-    double paragraphSpacing() const override;
+    [[nodiscard]] QRectF lineBox(size_t index, const QTextLine& line) const override;
+    [[nodiscard]] double paragraphSpacing() const override;
     void setPageFlow(const PageFlow& flow) override;
-    int pageCount() const override;
-    MarginCounts marginCountsBefore(size_t index) const override;
-    bool isNumberedParagraph(size_t index) const override;
+    [[nodiscard]] int pageCount() const override;
+    [[nodiscard]] MarginCounts marginCountsBefore(size_t index) const override;
+    [[nodiscard]] bool isNumberedParagraph(size_t index) const override;
 
     /// @brief Get underlying QTextDocument
     /// @return Pointer to wrapped document
-    QTextDocument* document() const { return m_document; }
+    [[nodiscard]] QTextDocument* document() const { return m_document; }
 
     /// @brief Get block by index
     /// @param index Block index (0-based)
     /// @return QTextBlock (may be invalid if index out of range)
-    QTextBlock blockAt(size_t index) const;
+    [[nodiscard]] QTextBlock blockAt(size_t index) const;
 
 private:
     /// @brief The document's layout, when it is the editor's own layout
-    KalahariTextDocumentLayout* kalahariLayout() const;
+    [[nodiscard]] KalahariTextDocumentLayout* kalahariLayout() const;
 
     QTextDocument* m_document;
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_SOURCE_ADAPTER_H

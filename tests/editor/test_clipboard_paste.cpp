@@ -15,7 +15,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/gui/panels/editor_panel.h>
 #include <kalahari/gui/settings_dialog.h>
-#include "editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 
 #include <QClipboard>
 #include <QComboBox>
@@ -30,7 +30,7 @@
 #include <QXmlStreamReader>
 #include <memory>
 #include <string>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari::editor;
 using namespace kalahari::test;

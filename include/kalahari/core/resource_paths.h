@@ -21,13 +21,13 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_RESOURCE_PATHS_H
+#define KALAHARI_CORE_RESOURCE_PATHS_H
 
 #include <QString>
 #include <QStringList>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Platform-aware resource path resolver singleton
 ///
@@ -54,41 +54,41 @@ public:
     /// @brief Get the base resources directory
     /// @return Absolute path to the resources directory (first valid path found, cached)
     /// @note Returns empty string if no valid resources directory was found
-    QString getResourcesDir() const;
+    [[nodiscard]] QString getResourcesDir() const;
 
     /// @brief Get path to a specific icon file
     /// @param iconTheme Icon theme name (e.g., "twotone", "filled", "outlined", "rounded")
     /// @param iconName Icon file name with extension (e.g., "save.svg", "file_new.svg")
     /// @return Absolute path to the icon file, or empty string if resources not found
     /// @note Does not check if the icon file actually exists
-    QString getIconPath(const QString& iconTheme, const QString& iconName) const;
+    [[nodiscard]] QString getIconPath(const QString& iconTheme, const QString& iconName) const;
 
     /// @brief Get path to a theme JSON file
     /// @param themeName Theme name without extension (e.g., "Dark", "Light", "Savanna")
     /// @return Absolute path to the theme JSON file, or empty string if resources not found
     /// @note Does not check if the theme file actually exists
-    QString getThemePath(const QString& themeName) const;
+    [[nodiscard]] QString getThemePath(const QString& themeName) const;
 
     /// @brief Get path to the themes directory
     /// @return Absolute path to <resources>/themes, or empty string if resources not found
-    QString getThemesDir() const;
+    [[nodiscard]] QString getThemesDir() const;
 
     /// @brief Get path to the icons directory
     /// @return Absolute path to <resources>/icons, or empty string if resources not found
-    QString getIconsDir() const;
+    [[nodiscard]] QString getIconsDir() const;
 
     /// @brief Get path to the folder of the built-in book type packages
     /// @return Absolute path to <resources>/booktypes, or empty string if resources not found
-    QString getBookTypesDir() const;
+    [[nodiscard]] QString getBookTypesDir() const;
 
     /// @brief Check if resources were found during initialization
     /// @return true if a valid resources directory was found, false otherwise
-    bool resourcesFound() const;
+    [[nodiscard]] bool resourcesFound() const;
 
     /// @brief Get all search paths that were checked during initialization
     /// @return List of all paths that were searched, in order of priority
     /// @note Useful for debugging resource loading issues
-    QStringList getSearchPaths() const;
+    [[nodiscard]] QStringList getSearchPaths() const;
 
 private:
     /// @brief Private constructor (singleton pattern)
@@ -99,7 +99,7 @@ private:
 
     /// @brief Find the first valid resources directory from search paths
     /// @return Absolute path to valid resources directory, or empty string if none found
-    QString findResourcesDir() const;
+    [[nodiscard]] QString findResourcesDir() const;
 
     /// @brief All paths to search for resources (platform-specific)
     QStringList m_searchPaths;
@@ -108,5 +108,6 @@ private:
     QString m_foundResourcesDir;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_RESOURCE_PATHS_H

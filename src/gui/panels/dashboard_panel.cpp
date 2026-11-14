@@ -46,8 +46,7 @@
 #include <QToolButton>
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -142,32 +141,8 @@ private:
 
 DashboardPanel::DashboardPanel(CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
-    , m_scrollArea(nullptr)
-    , m_contentWidget(nullptr)
-    , m_mainLayout(nullptr)
-    , m_logoLabel(nullptr)
-    , m_titleLabel(nullptr)
-    , m_taglineLabel(nullptr)
-    , m_shortcutsFrame(nullptr)
-    , m_shortcutsTitleLabel(nullptr)
-    , m_columnsWidget(nullptr)
-    , m_newsColumn(nullptr)
-    , m_recentFilesColumn(nullptr)
-    , m_columnDivider(nullptr)
-    , m_newsIcon(nullptr)
-    , m_newsTitle(nullptr)
-    , m_filesIcon(nullptr)
-    , m_filesTitle(nullptr)
-    , m_newsListLayout(nullptr)
-    , m_filesListLayout(nullptr)
-    , m_newsListWidget(nullptr)
-    , m_filesListWidget(nullptr)
-    , m_autoLoadCheckbox(nullptr)
-    , m_singleColumnMode(false)
-    , m_columnsGridLayout(nullptr)
-    , m_showNews(true)
-    , m_showRecentFiles(true)
-    , m_commands(commands)
+    , 
+     m_commands(commands)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel constructor called");
@@ -1317,5 +1292,4 @@ int DashboardPanel::getIconSize() const
     return std::clamp(iconSize, 24, 64);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

@@ -13,7 +13,8 @@
 /// makes each change an undo step of its own, so undoing right after it brings back what
 /// was typed.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_AUTO_CORRECT_H
+#define KALAHARI_EDITOR_AUTO_CORRECT_H
 
 #include <kalahari/editor/paragraph_styles.h>
 
@@ -125,7 +126,7 @@ struct AutoCorrection {
     QString text;
 
     LearnedException learns = LearnedException::None;  ///< The list undoing it adds to
-    QString exception{};  ///< What that list gets: the abbreviation with its period ("godz."),
+    QString exception;  ///< What that list gets: the abbreviation with its period ("godz."),
                           ///< or the word as typed ("PCs")
     bool capsLock = false;  ///< The word was typed with Caps Lock on by mistake
 
@@ -224,3 +225,5 @@ QString abbreviationsLanguage(const QString& language,
 TextObject paragraphObjectShortcut(const QString& paragraph, const AutoCorrectOptions& options);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_AUTO_CORRECT_H

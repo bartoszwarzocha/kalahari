@@ -16,7 +16,8 @@
 /// font of Normal the caller chooses (the editor's by default). docs/kml_format.md lists what
 /// each element of the text becomes in each format.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_BOOK_EXPORT_H
+#define KALAHARI_EDITOR_BOOK_EXPORT_H
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/paragraph_styles.h>
@@ -52,10 +53,10 @@ struct ExportPage {
     bool pageNumbers = true;  ///< Numbers at the bottom of the pages
 
     /// @brief The width of the text between the margins, in points
-    double textWidthPoints() const;
+    [[nodiscard]] double textWidthPoints() const;
 
     /// @brief The height of the text between the margins, in points
-    double textHeightPoints() const;
+    [[nodiscard]] double textHeightPoints() const;
 };
 
 /// @brief What an item of the export is
@@ -144,3 +145,5 @@ bool exportMarkdown(const BookExport& book, const QString& path, const QString& 
                     ExportProblem* problem);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_BOOK_EXPORT_H

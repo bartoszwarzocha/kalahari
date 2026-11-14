@@ -6,7 +6,8 @@
 /// Statistics panel and the messages: a round badge with the mark of its kind, in the color of
 /// its level when won and in grey, dashed, when not yet
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_BADGE_PAINTER_H
+#define KALAHARI_GUI_WIDGETS_BADGE_PAINTER_H
 
 #include <kalahari/core/writing_awards.h>
 
@@ -78,3 +79,5 @@ QString challengeState(const core::WritingChallenge& challenge,
 }  // namespace badge_painter
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_BADGE_PAINTER_H

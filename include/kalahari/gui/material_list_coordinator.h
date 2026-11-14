@@ -4,7 +4,8 @@
 /// @file material_list_coordinator.h
 /// @brief The lists of the kinds of materials on their tabs in the middle of the window
 
-#pragma once
+#ifndef KALAHARI_GUI_MATERIAL_LIST_COORDINATOR_H
+#define KALAHARI_GUI_MATERIAL_LIST_COORDINATOR_H
 
 #include <QList>
 #include <QObject>
@@ -67,12 +68,12 @@ public:
     MaterialListPanel* openList(const QString& list, bool keys);
 
     /// @brief The lists open on the tabs, in the order of the tabs
-    QList<MaterialListPanel*> lists() const;
+    [[nodiscard]] QList<MaterialListPanel*> lists() const;
 
     /// @brief The list on the tab in front; none when another tab is in front
-    MaterialListPanel* currentList() const;
+    [[nodiscard]] MaterialListPanel* currentList() const;
 
-public slots:
+
     /// @brief Fill the lists again from the open book: the one in front at once, the others
     /// when they come to the front
     void refresh();
@@ -96,8 +97,8 @@ private slots:
     /// @brief The kinds hidden (MaterialList::HIDDEN_SETTING) changed: the Navigator and the
     /// lists are built again
     void onHiddenSettingChanged();
-
 private:
+
     void refreshNow();
     void connectList(MaterialListPanel* panel);
     void updateTab(MaterialListPanel* panel);
@@ -112,7 +113,7 @@ private:
     /// @brief Give material @p elementId of the cover the state @p state
     void setCoverState(const QString& elementId, const QString& state);
     void showInFolder(const QString& elementId);
-    QWidget* window() const;
+    [[nodiscard]] QWidget* window() const;
 
     QTabWidget* m_centralTabs;
     NavigatorCoordinator* m_navigator;
@@ -124,3 +125,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_MATERIAL_LIST_COORDINATOR_H

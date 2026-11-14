@@ -4,7 +4,8 @@
 /// @file text_issue.h
 /// @brief A misspelled word or a grammar issue of a text, as its wave marks it
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_ISSUE_H
+#define KALAHARI_EDITOR_TEXT_ISSUE_H
 
 #include <QString>
 #include <QStringList>
@@ -32,7 +33,7 @@ struct TextIssue {
     int numberOffset{0};  ///< Where the note's number is in the paragraph
 
     /// @brief Whether it is in the text of a note
-    bool inNote() const { return !noteId.isEmpty(); }
+    [[nodiscard]] bool inNote() const { return !noteId.isEmpty(); }
 
     // A grammar issue's
     QString message;          ///< What is wrong
@@ -56,3 +57,5 @@ inline std::string issueColorKey(TextIssueKind kind) {
 }
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_ISSUE_H

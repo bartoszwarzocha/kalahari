@@ -4,7 +4,8 @@
 /// @file spell_check_service.h
 /// @brief The spelling dictionary every editor checks its text with (Hunspell)
 
-#pragma once
+#ifndef KALAHARI_EDITOR_SPELL_CHECK_SERVICE_H
+#define KALAHARI_EDITOR_SPELL_CHECK_SERVICE_H
 
 #include <QList>
 #include <QObject>
@@ -98,7 +99,7 @@ public:
     void loadDictionaryInBackground(const QString& dictionary);
 
     /// @brief Whether a dictionary is being loaded in the background
-    bool isLoading() const;
+    [[nodiscard]] bool isLoading() const;
 
     /// @brief Stop checking with the dictionary: nothing is reported until one is loaded
     ///
@@ -112,10 +113,10 @@ public:
     void releaseDictionary();
 
     /// @brief The dictionary loaded (pl_PL, en_US), or empty without one
-    QString currentDictionary() const;
+    [[nodiscard]] QString currentDictionary() const;
 
     /// @brief Whether a dictionary is loaded
-    bool isDictionaryLoaded() const;
+    [[nodiscard]] bool isDictionaryLoaded() const;
 
     // =========================================================================
     // Checking
@@ -125,15 +126,15 @@ public:
     void setEnabled(bool enabled);
 
     /// @brief Whether the checking is on
-    bool isEnabled() const;
+    [[nodiscard]] bool isEnabled() const;
 
     /// @brief Whether words are checked: the checking is on and a dictionary is loaded
-    bool isActive() const;
+    [[nodiscard]] bool isActive() const;
 
     /// @brief Whether a word is right
     ///
     /// Without a dictionary, every word is.
-    bool isCorrect(const QString& word) const;
+    [[nodiscard]] bool isCorrect(const QString& word) const;
 
     /// @brief Words to put in place of a misspelled one, the likeliest first
     ///
@@ -142,15 +143,15 @@ public:
     /// the writer's own words close to the word are among the dictionary's suggestions.
     /// Takes up to a few tenths of a second for a long word, so it is asked only when the
     /// writer wants them.
-    QStringList suggestions(const QString& word, int maxSuggestions = 5) const;
+    [[nodiscard]] QStringList suggestions(const QString& word, int maxSuggestions = 5) const;
 
     /// @brief The base forms of a word as the dictionary gives them ("powiedziała" ->
     ///        "powiedzieć"; "była" -> "była", "były", "być"), for the repetitions of words
     ///        (chooseBaseForm()); empty without a dictionary or for a word it does not know
-    QStringList stems(const QString& word) const;
+    [[nodiscard]] QStringList stems(const QString& word) const;
 
     /// @brief The misspelled words of a text (one paragraph), in their order
-    QList<SpellErrorInfo> checkParagraph(const QString& text) const;
+    [[nodiscard]] QList<SpellErrorInfo> checkParagraph(const QString& text) const;
 
     // =========================================================================
     // The writer's own words
@@ -169,7 +170,7 @@ public:
     void setUserDictionaryFile(const QString& path);
 
     /// @brief The file the user dictionary is kept in (empty: none)
-    QString userDictionaryFile() const;
+    [[nodiscard]] QString userDictionaryFile() const;
 
     /// @brief Add a word to the user dictionary (saved at once)
     void addToUserDictionary(const QString& word);
@@ -181,16 +182,16 @@ public:
     void setUserDictionaryWords(const QStringList& words);
 
     /// @brief Whether the user dictionary has the word, as it is written
-    bool isInUserDictionary(const QString& word) const;
+    [[nodiscard]] bool isInUserDictionary(const QString& word) const;
 
     /// @brief The words of the user dictionary, sorted
-    QStringList userDictionaryWords() const;
+    [[nodiscard]] QStringList userDictionaryWords() const;
 
     /// @brief Take a word for right until the application closes (Ignore All)
     void ignoreWord(const QString& word);
 
     /// @brief Whether the word is ignored, as it is written
-    bool isIgnored(const QString& word) const;
+    [[nodiscard]] bool isIgnored(const QString& word) const;
 
 signals:
     /// @brief What is right changed: another dictionary, the writer's own words, or the
@@ -206,8 +207,8 @@ signals:
 private slots:
     /// @brief The dictionary loaded in the background is ready
     void onLoaderFinished();
-
 private:
+
     struct OwnWords;  ///< The writer's own words, shared by services (shareOwnWordsWith())
 
     /// @brief Load the dictionary wanted in the background, unless it is loaded or loading
@@ -231,16 +232,16 @@ private:
     void emitOwnWordsChanged();
 
     /// @brief Whether a word (or a part of a hyphenated one) is right
-    bool isWordCorrect(const QString& word) const;
+    [[nodiscard]] bool isWordCorrect(const QString& word) const;
 
     /// @brief Whether a word is one of the writer's own words
-    bool isOwnWord(const QString& word) const;
+    [[nodiscard]] bool isOwnWord(const QString& word) const;
 
     /// @brief A word as the dictionary takes it (in its encoding)
-    std::string toDictionary(const QString& word) const;
+    [[nodiscard]] std::string toDictionary(const QString& word) const;
 
     /// @brief A word of the dictionary
-    QString fromDictionary(const std::string& word) const;
+    [[nodiscard]] QString fromDictionary(const std::string& word) const;
 
     /// @brief Save the user dictionary to its file
     void saveUserDictionary() const;
@@ -267,3 +268,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_SPELL_CHECK_SERVICE_H

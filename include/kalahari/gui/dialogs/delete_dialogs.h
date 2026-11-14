@@ -5,7 +5,8 @@
 /// @brief The windows that delete an element from the book and that delete files: what goes,
 /// and where its files go
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_DELETE_DIALOGS_H
+#define KALAHARI_GUI_DIALOGS_DELETE_DIALOGS_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
@@ -29,8 +30,7 @@ namespace core {
 struct UnassignedFile;
 } // namespace core
 
-namespace gui {
-namespace dialogs {
+namespace gui::dialogs {
 
 /// @brief The name of the system's Trash in the program's sentences: "Recycle Bin" on Windows,
 /// "Trash" on other systems ("{bin}" in core/kind_words.h)
@@ -71,41 +71,41 @@ public:
                          QWidget* parent = nullptr);
 
     /// @brief Whether the files go too ("Also delete the files" is checked)
-    bool deleteFiles() const;
+    [[nodiscard]] bool deleteFiles() const;
 
     /// @brief The text Copy puts on the clipboard: what the window says and lists
-    QString clipboardText() const;
+    [[nodiscard]] QString clipboardText() const;
 
     /// @brief "Also delete the files"; hidden when the elements have no files
-    QCheckBox* deleteFilesBox() const { return m_deleteFilesBox; }
+    [[nodiscard]] QCheckBox* deleteFilesBox() const { return m_deleteFilesBox; }
 
     /// @brief The list of what goes from the book
-    QTreeWidget* list() const { return m_list; }
+    [[nodiscard]] QTreeWidget* list() const { return m_list; }
 
     /// @brief What the window says about the files: where they stay, or where they go when
     /// "Also delete the files" is checked
-    QLabel* filesNote() const { return deleteFiles() ? m_goText : m_stayText; }
+    [[nodiscard]] QLabel* filesNote() const { return deleteFiles() ? m_goText : m_stayText; }
 
     /// @brief The folder of the files that stay
-    QLineEdit* folderField() const { return m_folderField; }
+    [[nodiscard]] QLineEdit* folderField() const { return m_folderField; }
 
     /// @brief Opens the folder of the files in the file manager of the system
-    QPushButton* showInFolderButton() const { return m_showInFolderButton; }
+    [[nodiscard]] QPushButton* showInFolderButton() const { return m_showInFolderButton; }
 
     /// @brief Copies what the window says to the clipboard
-    QPushButton* copyButton() const { return m_copyButton; }
+    [[nodiscard]] QPushButton* copyButton() const { return m_copyButton; }
 
 private:
     /// @brief What the window says about the files, for the state of "Also delete the files"
     void updateFilesNote();
 
     /// @brief What the window says about the files when they stay (@p stay) or go
-    QString filesText(bool stay) const;
+    [[nodiscard]] QString filesText(bool stay) const;
 
     /// @brief @p text with the names of the kinds in it: of the element ("{kind}"), of the
     /// elements inside it ("{child}"), of the elements whose files these are ("{owner}") and
     /// of the Trash ("{bin}")
-    QString named(const QString& text) const;
+    [[nodiscard]] QString named(const QString& text) const;
 
     Content m_content;
     const core::BookTypeRegistry* m_registry = nullptr;
@@ -140,16 +140,16 @@ public:
                       bool trash, QWidget* parent = nullptr);
 
     /// @brief The text Copy puts on the clipboard: what the window says and lists
-    QString clipboardText() const;
+    [[nodiscard]] QString clipboardText() const;
 
     /// @brief The list of the files
-    QTreeWidget* list() const { return m_list; }
+    [[nodiscard]] QTreeWidget* list() const { return m_list; }
 
     /// @brief What the window says about where the files go
-    QLabel* filesNote() const { return m_noteText; }
+    [[nodiscard]] QLabel* filesNote() const { return m_noteText; }
 
     /// @brief Copies what the window says to the clipboard
-    QPushButton* copyButton() const { return m_copyButton; }
+    [[nodiscard]] QPushButton* copyButton() const { return m_copyButton; }
 
 private:
     QString m_title;
@@ -158,6 +158,8 @@ private:
     QPushButton* m_copyButton = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
+} // namespace gui::dialogs
+
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_DIALOGS_DELETE_DIALOGS_H

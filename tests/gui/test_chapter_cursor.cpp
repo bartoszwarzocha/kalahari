@@ -6,7 +6,7 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/core/project_database.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_types.h"

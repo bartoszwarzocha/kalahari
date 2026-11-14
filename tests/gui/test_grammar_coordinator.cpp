@@ -9,9 +9,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "../editor/editor_test_utils.h"
-#include "../editor/fake_language_tool.h"
-#include "grammar_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/editor/fake_language_tool.h"
+#include "kalahari_tests/gui/grammar_test_utils.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
@@ -62,7 +62,7 @@
 #include <functional>
 #include <string>
 #include <utility>
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -124,15 +124,15 @@ public:
         add(QStringLiteral("empty/notes.txt"), "notes");
     }
 
-    QString java() const { return path(QStringLiteral("jdk-21/bin/") + javaProgramName()); }
-    QString oldJava() const { return path(QStringLiteral("jdk-11/bin/") + javaProgramName()); }
-    QString languageTool() const { return path(QStringLiteral("LanguageTool-6.6")); }
-    QString emptyFolder() const { return path(QStringLiteral("empty")); }
-    QString notJava() const { return path(QStringLiteral("empty/notes.txt")); }
-    QString missing(const QString& name) const { return path(QStringLiteral("missing/") + name); }
+    [[nodiscard]] QString java() const { return path(QStringLiteral("jdk-21/bin/") + javaProgramName()); }
+    [[nodiscard]] QString oldJava() const { return path(QStringLiteral("jdk-11/bin/") + javaProgramName()); }
+    [[nodiscard]] QString languageTool() const { return path(QStringLiteral("LanguageTool-6.6")); }
+    [[nodiscard]] QString emptyFolder() const { return path(QStringLiteral("empty")); }
+    [[nodiscard]] QString notJava() const { return path(QStringLiteral("empty/notes.txt")); }
+    [[nodiscard]] QString missing(const QString& name) const { return path(QStringLiteral("missing/") + name); }
 
 private:
-    QString path(const QString& name) const {
+    [[nodiscard]] QString path(const QString& name) const {
         return QDir::toNativeSeparators(QDir(m_dir.path()).filePath(name));
     }
 
@@ -167,7 +167,7 @@ public:
     ModalAnswer& operator=(const ModalAnswer&) = delete;
 
     /// Whether the window was shown
-    bool shown() const { return m_shown; }
+    [[nodiscard]] bool shown() const { return m_shown; }
 
 private:
     std::function<void(Window*)> m_action;

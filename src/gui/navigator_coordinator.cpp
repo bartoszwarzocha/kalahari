@@ -51,8 +51,7 @@
 #include <optional>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -2017,5 +2016,4 @@ void NavigatorCoordinator::onRequestRenameSection(const QString& sectionType) {
     emit documentModified();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

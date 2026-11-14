@@ -16,7 +16,8 @@
 /// compiled in or the platform doesn't support TTS, the service degrades
 /// gracefully and reports unavailability.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_TO_SPEECH_SERVICE_H
+#define KALAHARI_EDITOR_TEXT_TO_SPEECH_SERVICE_H
 
 #include <QObject>
 #include <QString>
@@ -88,11 +89,11 @@ public:
 
     /// @brief Check if TTS is available on this system
     /// @return true if TTS engine is ready
-    bool isAvailable() const;
+    [[nodiscard]] bool isAvailable() const;
 
     /// @brief Get error message if not available
     /// @return Error message or empty string if available
-    QString errorMessage() const;
+    [[nodiscard]] QString errorMessage() const;
 
     // =========================================================================
     // Voice Selection
@@ -100,12 +101,12 @@ public:
 
     /// @brief Get list of available voices
     /// @return List of voice information structs
-    QList<VoiceInfo> availableVoices() const;
+    [[nodiscard]] QList<VoiceInfo> availableVoices() const;
 
     /// @brief Get voices for specific language
     /// @param language Language code (e.g., "en", "pl", "en-US")
     /// @return List of voices matching the language
-    QList<VoiceInfo> voicesForLanguage(const QString& language) const;
+    [[nodiscard]] QList<VoiceInfo> voicesForLanguage(const QString& language) const;
 
     /// @brief Set current voice by ID
     /// @param voiceId Voice identifier from VoiceInfo::id
@@ -113,7 +114,7 @@ public:
 
     /// @brief Get current voice
     /// @return Current voice information
-    VoiceInfo currentVoice() const;
+    [[nodiscard]] VoiceInfo currentVoice() const;
 
     // =========================================================================
     // Playback Control
@@ -134,7 +135,7 @@ public:
 
     /// @brief Get current playback state
     /// @return Current TTS state
-    TtsState state() const;
+    [[nodiscard]] TtsState state() const;
 
     // =========================================================================
     // Settings
@@ -146,7 +147,7 @@ public:
 
     /// @brief Get current speech rate
     /// @return Rate from -1.0 to 1.0
-    double rate() const;
+    [[nodiscard]] double rate() const;
 
     /// @brief Set pitch
     /// @param pitch Pitch from -1.0 (lowest) to 1.0 (highest), 0.0 = normal
@@ -154,7 +155,7 @@ public:
 
     /// @brief Get current pitch
     /// @return Pitch from -1.0 to 1.0
-    double pitch() const;
+    [[nodiscard]] double pitch() const;
 
     /// @brief Set volume
     /// @param volume Volume from 0.0 (mute) to 1.0 (full)
@@ -162,7 +163,7 @@ public:
 
     /// @brief Get current volume
     /// @return Volume from 0.0 to 1.0
-    double volume() const;
+    [[nodiscard]] double volume() const;
 
 signals:
     /// @brief Emitted when playback state changes
@@ -188,8 +189,8 @@ private slots:
     /// @brief Handle TTS engine state change
     /// @param state New state as int (platform-specific)
     void onEngineStateChanged(int state);
-
 private:
+
     /// @brief Initialize TTS engine
     void initializeTts();
 
@@ -243,3 +244,5 @@ private:
 };
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_TO_SPEECH_SERVICE_H

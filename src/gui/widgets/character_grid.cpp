@@ -16,8 +16,7 @@
 
 #include <cmath>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -86,7 +85,7 @@ public:
 
     void setCellSize(const QSize& size) { m_cell = size; }
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
     {
         return m_cell.isValid() ? m_cell : QStyledItemDelegate::sizeHint(option, index);
     }
@@ -148,8 +147,7 @@ CharacterGrid::CharacterGrid(int columns, int rows, QWidget* parent)
     : QListWidget(parent)
     , m_columns(columns)
     , m_rows(rows)
-    , m_minimumColumns(1)
-    , m_minimumRows(1)
+     
 {
     const bool oneRow = rows == 1;
     setViewMode(QListView::IconMode);
@@ -262,5 +260,4 @@ QSize CharacterGrid::minimumSizeHint() const
             m_minimumRows * m_cell.height() + frame};
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

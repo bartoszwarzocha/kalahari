@@ -26,9 +26,7 @@
 #include <functional>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -263,6 +261,4 @@ void AddToBookDialog::updateAcceptButton()
     acceptButton()->setEnabled(!title().isEmpty() && kind() && !m_picker->places().isEmpty());
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

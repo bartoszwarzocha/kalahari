@@ -15,7 +15,8 @@
 ///
 /// OpenSpec #00026: Centralized Icon Management System
 
-#pragma once
+#ifndef KALAHARI_CORE_ART_PROVIDER_H
+#define KALAHARI_CORE_ART_PROVIDER_H
 
 #include <QAction>
 #include <QColor>
@@ -25,8 +26,7 @@
 #include <QString>
 #include <QSet>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 struct PackageCard;
 
@@ -154,7 +154,7 @@ public:
     /// - screenplay, script, play → template.screenplay
     /// - poetry, poems, verse → template.poetry
     /// - (unknown) → template.novel (default fallback)
-    QString getGenreIconId(const QString& genre) const;
+    [[nodiscard]] QString getGenreIconId(const QString& genre) const;
 
     /// @brief Register a custom genre-to-icon mapping (for plugins)
     /// @param genre Genre string (will be normalized to lowercase)
@@ -169,7 +169,7 @@ public:
 
     /// @brief Get all registered genre mappings (for debugging/UI)
     /// @return Map of genre → iconId (includes both built-in and custom)
-    QMap<QString, QString> getGenreMappings() const;
+    [[nodiscard]] QMap<QString, QString> getGenreMappings() const;
 
     /// @brief Get HiDPI-aware pixmap for preview (Settings Dialog)
     /// @param cmdId Command ID
@@ -187,23 +187,23 @@ public:
     // ========================================================================
 
     /// @brief Get current icon theme (twotone/filled/outlined/rounded)
-    QString getIconTheme() const;
+    [[nodiscard]] QString getIconTheme() const;
 
     /// @brief Get current primary icon color
-    QColor getPrimaryColor() const;
+    [[nodiscard]] QColor getPrimaryColor() const;
 
     /// @brief Get current secondary icon color
-    QColor getSecondaryColor() const;
+    [[nodiscard]] QColor getSecondaryColor() const;
 
     /// @brief Get current theme name (Light/Dark/Custom)
-    QString getThemeName() const;
+    [[nodiscard]] QString getThemeName() const;
 
     // ========================================================================
     // Size Configuration
     // ========================================================================
 
     /// @brief Get icon size for context
-    int getIconSize(IconContext context) const;
+    [[nodiscard]] int getIconSize(IconContext context) const;
 
     /// @brief Set icon size for context
     /// @note Emits resourcesChanged() signal
@@ -239,7 +239,7 @@ public:
     void endBatchUpdate();
 
     /// @brief Check if batch mode is active
-    bool isBatchMode() const { return m_batchMode; }
+    [[nodiscard]] bool isBatchMode() const { return m_batchMode; }
 
 signals:
     /// @brief Emitted when any visual resource changes
@@ -284,5 +284,6 @@ private:
     void emitResourcesChanged();
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_ART_PROVIDER_H

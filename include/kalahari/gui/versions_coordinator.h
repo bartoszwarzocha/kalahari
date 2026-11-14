@@ -5,7 +5,8 @@
 /// @brief The versions of the texts of the book: File > Save Version and File > Version
 /// History, from the text in front, the Navigator and the Properties panel
 
-#pragma once
+#ifndef KALAHARI_GUI_VERSIONS_COORDINATOR_H
+#define KALAHARI_GUI_VERSIONS_COORDINATOR_H
 
 #include <kalahari/core/chapter_versions.h>
 
@@ -120,10 +121,10 @@ public:
 
 private:
     /// @brief The tab in front, when it has an editor
-    EditorPanel* currentPanel() const;
+    [[nodiscard]] EditorPanel* currentPanel() const;
 
     /// @brief The tab of element @p elementId, if it is open (empty: the tab in front)
-    EditorPanel* openPanel(const QString& elementId) const;
+    [[nodiscard]] EditorPanel* openPanel(const QString& elementId) const;
 
     /// @brief The tab of element @p elementId in front, the text opened when it is not
     /// (empty: the tab in front)
@@ -143,11 +144,11 @@ private:
     /// @brief Show @p message in the status bar for a while
     void say(const QString& message) const;
 
-private slots:
+
     /// @brief Enable the commands for the tab in front
     void updateCommandStates() const;
-
 private:
+
     QTabWidget* m_centralTabs;
     ChapterOpener m_openChapter;
     NoticeShower m_showNotice;
@@ -159,3 +160,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_VERSIONS_COORDINATOR_H

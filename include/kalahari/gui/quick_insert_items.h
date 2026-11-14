@@ -6,7 +6,8 @@
 ///        text fragments and the typographic characters, as Settings > Editor > Quick Insert
 ///        chooses for @ and #
 
-#pragma once
+#ifndef KALAHARI_GUI_QUICK_INSERT_ITEMS_H
+#define KALAHARI_GUI_QUICK_INSERT_ITEMS_H
 
 #include <kalahari/editor/quick_insert.h>
 
@@ -78,3 +79,5 @@ QString quickInsertTriggers();
 QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger);
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_QUICK_INSERT_ITEMS_H

@@ -11,7 +11,8 @@
 /// OpenSpec #00033 Phase F: Added "Other Files" section for standalone files.
 /// OpenSpec #00034 Phase F: Added expansion state persistence between sessions.
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_NAVIGATOR_PANEL_H
+#define KALAHARI_GUI_PANELS_NAVIGATOR_PANEL_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/add_target.h"
@@ -48,7 +49,7 @@ namespace core {
     struct UnassignedFile;
     class BookTypeRegistry;
     enum class IconContext;
-}
+} // namespace core
 
 namespace gui {
 
@@ -145,7 +146,7 @@ public:
     /// @brief The icon of @p element of the book open in @p book: of its kind, as the program
     /// has it or, for a kind the program does not have, as the book's card of its package shows
     /// it (core::ProjectManager::packageCard()); else of its form
-    static QIcon iconOf(const core::ProjectManager& book, const core::ProjectElement& element,
+    static QIcon iconOf(const core::ProjectManager& pm, const core::ProjectElement& element,
                         core::IconContext context);
 
     /// @brief Show the book as one open read-only (core::ProjectManager::isReadOnly()), or as
@@ -157,7 +158,7 @@ public:
     void setReadOnly(bool readOnly);
 
     /// @brief Whether it shows the book as one open read-only (setReadOnly())
-    bool isReadOnly() const { return m_readOnly; }
+    [[nodiscard]] bool isReadOnly() const { return m_readOnly; }
 
     /// @brief ArtProvider id of the icon of the elements of @p kind: its own, or that of its
     /// form; that of a text without a kind
@@ -215,7 +216,7 @@ public:
     static bool isWorkshopItem(const QTreeWidgetItem* item);
 
     /// @brief Whether @p item is a material of the Workshop of the book open in @p book
-    static bool isMaterialItem(const core::ProjectManager& book, const QTreeWidgetItem* item);
+    static bool isMaterialItem(const core::ProjectManager& pm, const QTreeWidgetItem* item);
 
     /// @brief The format of the dragged nodes of the tree that a material can be linked with:
     /// their links, one in a line (linkOf())
@@ -241,10 +242,10 @@ public:
     void onSettingsChanged();
 
     /// @brief The tree of the project
-    QTreeWidget* tree() const { return m_treeWidget; }
+    [[nodiscard]] QTreeWidget* tree() const { return m_treeWidget; }
 
     /// @brief The "+" button of the bar: Add... on the current node
-    QToolButton* addButton() const { return m_addButton; }
+    [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
 
     /// @brief Where an element is dropped, as the line or the frame of the tree shows it
     enum class DropSpot {
@@ -297,7 +298,7 @@ public:
 
     /// @brief Check if there are any standalone files
     /// @return True if there are standalone files
-    bool hasStandaloneFiles() const;
+    [[nodiscard]] bool hasStandaloneFiles() const;
 
     /// @brief Save expansion state for a project (OpenSpec #00034 Phase F)
     /// @param projectId Unique identifier for the project (e.g., manifest path hash)
@@ -312,7 +313,7 @@ public:
 
     /// @brief Get IDs of all expanded items
     /// @return Item IDs, "type:<elementType>:<text>" for sections without IDs
-    QStringList expandedItemIds() const;
+    [[nodiscard]] QStringList expandedItemIds() const;
 
     /// @brief Expand exactly the given items and collapse all others
     /// @param ids Item IDs as returned by expandedItemIds()
@@ -566,7 +567,7 @@ private:
     QString versionsElementOf(const QTreeWidgetItem* item) const;
 
     /// @brief Why the command of @p item cannot change the book; empty when it can
-    QString changeRefusal() const;
+    [[nodiscard]] QString changeRefusal() const;
 
     /// @brief The "+" button can add on the current node
     void updateAddButton();
@@ -591,7 +592,7 @@ private:
     /// @brief Get icon ID for item type
     /// @param elementType Type string stored in Qt::UserRole + 1
     /// @return Icon ID for ArtProvider (e.g., "common.folder", "template.chapter")
-    QString getIconIdForType(const QString& elementType) const;
+    [[nodiscard]] QString getIconIdForType(const QString& elementType) const;
 
     /// @brief The icon @p iconId of @p item: from the book's card of the package of its kind
     /// when the program does not have the kind; grey for the files that are not in the book,
@@ -619,7 +620,7 @@ private:
     /// @brief Get icon ID for file based on extension
     /// @param path File path
     /// @return Icon ID for ArtProvider
-    QString getIconIdForFile(const QString& path) const;
+    [[nodiscard]] QString getIconIdForFile(const QString& path) const;
 
     /// @brief Ensure "Files Outside the Book" exists, after the project
     void ensureOtherFilesSection();
@@ -651,7 +652,7 @@ private:
     /// @brief Find tree item by element ID (OpenSpec #00034 Phase C)
     /// @param elementId Element ID to find
     /// @return Tree item or nullptr if not found
-    QTreeWidgetItem* findItemByElementId(const QString& elementId) const;
+    [[nodiscard]] QTreeWidgetItem* findItemByElementId(const QString& elementId) const;
 
     /// @brief Recursive helper for findItemByElementId (OpenSpec #00034 Phase C)
     /// @param parent Parent item to search
@@ -681,7 +682,7 @@ private:
     /// @param text Item text; not compared for the items the tree has one of: the document,
     ///        its sections and "Other Files", whose names change
     /// @return Tree item or nullptr if not found
-    QTreeWidgetItem* findItemByTypeAndText(const QString& elementType, const QString& text) const;
+    [[nodiscard]] QTreeWidgetItem* findItemByTypeAndText(const QString& elementType, const QString& text) const;
 
     /// @brief Recursive helper for findItemByTypeAndText (OpenSpec #00034 Phase F)
     QTreeWidgetItem* findItemByTypeAndTextRecursive(QTreeWidgetItem* parent,
@@ -697,8 +698,8 @@ private:
         OtherFiles    ///< Show items in "Other Files" section
     };
 
-    QTreeWidget* m_treeWidget;
-    QTreeWidgetItem* m_otherFilesItem;  ///< "Other Files" section (always at bottom)
+    QTreeWidget* m_treeWidget{nullptr};
+    QTreeWidgetItem* m_otherFilesItem{nullptr};  ///< "Other Files" section (always at bottom)
     QMap<QString, QTreeWidgetItem*> m_standaloneFiles;  ///< path -> tree item
     /// Key -> name of the new files that have no file yet (addNewFile())
     QHash<QString, QString> m_newFileNames;
@@ -710,24 +711,24 @@ private:
     QString m_projectFolder;                      ///< The files are relative to it
 
     // Search/filter components
-    QComboBox* m_typeFilter;             ///< Type filter combo box
-    FilterType m_currentFilterType;      ///< Current type filter
-    QLineEdit* m_searchEdit;             ///< Filter input field
-    QToolButton* m_clearButton;          ///< Clear filter button
+    QComboBox* m_typeFilter{nullptr};             ///< Type filter combo box
+    FilterType m_currentFilterType{FilterType::All};      ///< Current type filter
+    QLineEdit* m_searchEdit{nullptr};             ///< Filter input field
+    QToolButton* m_clearButton{nullptr};          ///< Clear filter button
     QToolButton* m_addButton = nullptr;  ///< Add... on the current node
-    QToolButton* m_expandAllButton;      ///< Expand all tree items button
-    QToolButton* m_collapseAllButton;    ///< Collapse all tree items button
-    QTimer* m_filterDebounceTimer;       ///< Debounce timer for filter (300ms)
+    QToolButton* m_expandAllButton{nullptr};      ///< Expand all tree items button
+    QToolButton* m_collapseAllButton{nullptr};    ///< Collapse all tree items button
+    QTimer* m_filterDebounceTimer{nullptr};       ///< Debounce timer for filter (300ms)
 
     // Context menu
-    QTreeWidgetItem* m_contextMenuItem;  ///< Item for current context menu (temporary)
+    QTreeWidgetItem* m_contextMenuItem{nullptr};  ///< Item for current context menu (temporary)
 
     // Editor synchronization (OpenSpec #00034 Phase C)
-    QTreeWidgetItem* m_highlightedItem;  ///< Currently highlighted item (nullptr if none)
+    QTreeWidgetItem* m_highlightedItem{nullptr};  ///< Currently highlighted item (nullptr if none)
     QColor m_highlightColor;             ///< Theme-aware highlight color (with alpha)
 
     // Icon size tracking for dynamic updates
-    int m_currentIconSize;               ///< Current icon size (to detect changes)
+    int m_currentIconSize{0};               ///< Current icon size (to detect changes)
 
     bool m_readOnly = false;             ///< The book is open read-only (setReadOnly())
 
@@ -739,3 +740,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_PANELS_NAVIGATOR_PANEL_H

@@ -34,9 +34,7 @@
 #include <string>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -71,7 +69,7 @@ class CharacterList : public QTreeWidget {
 public:
     using QTreeWidget::QTreeWidget;
 
-    QSize sizeHint() const override
+    [[nodiscard]] QSize sizeHint() const override
     {
         const QSize hint = QTreeWidget::sizeHint();
         const int row = sizeHintForRow(0) > 0 ? sizeHintForRow(0) : fontMetrics().height() + 8;
@@ -974,6 +972,4 @@ bool SpecialCharacterDialog::eventFilter(QObject* watched, QEvent* event)
     return KalahariDialog::eventFilter(watched, event);
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

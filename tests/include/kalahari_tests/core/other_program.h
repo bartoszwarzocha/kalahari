@@ -4,7 +4,8 @@
 /// @file other_program.h
 /// @brief Another Kalahari program that runs, for the tests of a book that it has open
 
-#pragma once
+#ifndef KALAHARI_TESTS_CORE_OTHER_PROGRAM_H
+#define KALAHARI_TESTS_CORE_OTHER_PROGRAM_H
 
 #include <kalahari/core/project_lock.h>
 
@@ -13,8 +14,7 @@
 #include <QProcess>
 #include <QStringList>
 
-namespace kalahari {
-namespace test {
+namespace kalahari::test {
 
 /// @brief Another Kalahari program that runs until stop() or the end of the object: a copy of
 /// the test program, which waits for a key before its tests, so it runs none
@@ -31,7 +31,7 @@ public:
     OtherProgram& operator=(const OtherProgram&) = delete;
 
     /// @brief Its PID; 0 when it does not run
-    qint64 pid() const { return m_process.processId(); }
+    [[nodiscard]] [[nodiscard]] qint64 pid() const { return m_process.processId(); }
 
     /// @brief End it at once, as a program that crashes
     void stop() {
@@ -53,5 +53,6 @@ inline bool lockBook(const QString& folder, qint64 pid) {
            lock.write(QByteArray::number(pid)) > 0;
 }
 
-} // namespace test
-} // namespace kalahari
+} // namespace kalahari::test
+
+#endif  // KALAHARI_TESTS_CORE_OTHER_PROGRAM_H

@@ -10,7 +10,8 @@
 /// (one undo step) of it. The text moves with its formats: the paragraphs' styles and their
 /// own formatting, the formatting of the characters, links and the anchors of annotations.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TABLE_EDITING_H
+#define KALAHARI_EDITOR_TABLE_EDITING_H
 
 #include <kalahari/editor/text_tables.h>
 
@@ -69,7 +70,7 @@ struct CopiedParagraph {
     std::vector<CopiedRun> runs;
 
     /// @brief Its text
-    QString text() const;
+    [[nodiscard]] QString text() const;
 };
 
 /// @brief The paragraphs of positions [from, to) of the document: their parts in the range
@@ -224,3 +225,5 @@ QTextTable* textToTable(QTextCursor& cursor, int first, int last, QChar separato
 int tableToText(QTextCursor& cursor, QTextTable& table, QChar separator);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TABLE_EDITING_H

@@ -11,8 +11,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 // ============================================================================
 // Singleton Instance
@@ -503,5 +502,4 @@ void ArtProvider::refreshAction(QAction* action) {
     Logger::getInstance().debug("ArtProvider: Refreshed action '{}'", cmdId.toStdString());
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

@@ -5,7 +5,8 @@
 /// @brief The small window of Save Version (Alt+Shift+S), with the description of the new
 /// version, and of Change Description in the window of the versions
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_VERSION_NAME_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_VERSION_NAME_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -15,9 +16,7 @@
 
 class QLineEdit;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief The description of a version: of a new one, or a new description of one kept
 ///
@@ -43,7 +42,7 @@ public:
                       QWidget* parent = nullptr);
 
     /// @brief The description, without spaces around it; empty: none
-    QString name() const;
+    [[nodiscard]] QString name() const;
 
 private:
     /// @brief The field of the description, starting with @p name, and @p hintText under it
@@ -52,6 +51,6 @@ private:
     QLineEdit* m_nameEdit = nullptr;
 };
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_VERSION_NAME_DIALOG_H

@@ -8,8 +8,7 @@
 #include <algorithm>
 #include <regex>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 PluginManifest PluginManifest::fromJson(const json& j) {
     PluginManifest manifest;
@@ -78,5 +77,4 @@ bool PluginManifest::requiresPermission(const std::string& permission) const {
            != permissions.end();
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

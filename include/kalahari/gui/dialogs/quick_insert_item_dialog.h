@@ -5,7 +5,8 @@
 /// @brief The window of a text fragment or a typographic character of quick insert (Settings >
 ///        Editor > Quick Insert: Add..., Edit...)
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_QUICK_INSERT_ITEM_DIALOG_H
+#define KALAHARI_GUI_DIALOGS_QUICK_INSERT_ITEM_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
@@ -15,9 +16,7 @@ class QComboBox;
 class QLineEdit;
 class QPlainTextEdit;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief The name, the text and the kind of a fragment or a character of quick insert
 ///
@@ -44,6 +43,6 @@ private:
     QComboBox* m_kind = nullptr;
 };
 
-}  // namespace dialogs
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_QUICK_INSERT_ITEM_DIALOG_H

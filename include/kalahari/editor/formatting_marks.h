@@ -7,7 +7,8 @@
 /// The view draws the marks over the text, in a color of their own; they take no room, so
 /// the lines break as without them, as on paper. Print and export never show them.
 
-#pragma once
+#ifndef KALAHARI_EDITOR_FORMATTING_MARKS_H
+#define KALAHARI_EDITOR_FORMATTING_MARKS_H
 
 #include <QChar>
 #include <QFont>
@@ -62,3 +63,5 @@ struct FormattingMark {
 std::vector<FormattingMark> formattingMarksOf(const QTextBlock& block);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_FORMATTING_MARKS_H

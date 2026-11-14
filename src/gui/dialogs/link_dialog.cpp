@@ -35,9 +35,7 @@
 #include <iterator>
 #include <numeric>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -87,16 +85,16 @@ class LinkTree : public QTreeWidget {
 public:
     using QTreeWidget::QTreeWidget;
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         return {QTreeWidget::sizeHint().width(), heightFor(TREE_ROWS)};
     }
 
-    QSize minimumSizeHint() const override {
+    [[nodiscard]] QSize minimumSizeHint() const override {
         return {QTreeWidget::minimumSizeHint().width(), heightFor(MINIMUM_TREE_ROWS)};
     }
 
 private:
-    int heightFor(int rows) const {
+    [[nodiscard]] int heightFor(int rows) const {
         const int row = std::max(fontMetrics().height() + 6, iconSize().height() + 4);
         return rows * row + 2 * frameWidth();
     }
@@ -690,6 +688,4 @@ std::optional<QList<core::ElementLink>> chooseLinks(const core::ProjectManager& 
     return links;
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::dialogs

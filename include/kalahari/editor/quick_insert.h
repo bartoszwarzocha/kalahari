@@ -10,7 +10,8 @@
 /// letters typed after it narrow the list, and the item chosen takes the place of the
 /// character and the letters (QuickInsertController).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_QUICK_INSERT_H
+#define KALAHARI_EDITOR_QUICK_INSERT_H
 
 #include <QChar>
 #include <QList>
@@ -64,3 +65,5 @@ QList<QuickInsertItem> matchQuickInsert(const QList<QuickInsertItem>& items, con
 bool isEnclosingPair(const QString& text);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_QUICK_INSERT_H

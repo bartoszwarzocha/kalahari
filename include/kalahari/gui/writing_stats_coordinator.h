@@ -6,7 +6,8 @@
 /// tabs of the texts, its commands, the badges and challenges, the messages at the bottom and
 /// the record of the open book
 
-#pragma once
+#ifndef KALAHARI_GUI_WRITING_STATS_COORDINATOR_H
+#define KALAHARI_GUI_WRITING_STATS_COORDINATOR_H
 
 #include <QDateTime>
 #include <QObject>
@@ -89,16 +90,16 @@ public:
     int addChallenge();
 
     /// @brief The model of the statistics
-    WritingStatsModel* model() const { return m_model; }
+    [[nodiscard]] WritingStatsModel* model() const { return m_model; }
 
     /// @brief The badges and the challenges
-    WritingAwardsTracker* tracker() const { return m_tracker; }
+    [[nodiscard]] WritingAwardsTracker* tracker() const { return m_tracker; }
 
     /// @brief The statistics bar
-    WritingStatsBar* bar() const { return m_bar; }
+    [[nodiscard]] WritingStatsBar* bar() const { return m_bar; }
 
     /// @brief The bar of the messages at the bottom of the middle of the window
-    InfoBar* messageBar() const { return m_messageBar; }
+    [[nodiscard]] InfoBar* messageBar() const { return m_messageBar; }
 
     /// @brief Say @p message in the bar at the bottom, with the others of the same moment
     void showMessage(const QString& message);
@@ -109,7 +110,7 @@ public:
 
     /// @brief The time of writing and the days in a row in the status bar; nullptr before
     /// attachStatusBar()
-    StatusBarWriting* statusBarWriting() const { return m_statusBarWriting; }
+    [[nodiscard]] StatusBarWriting* statusBarWriting() const { return m_statusBarWriting; }
 
     /// @brief The window over which the summary of the session shows; without one it does not
     void setSummaryWindow(QWidget* window);
@@ -125,8 +126,8 @@ private slots:
     /// @brief Show or hide the bar as the setting says (called by name from the listener of
     /// the settings)
     void applyBarVisibility();
-
 private:
+
     /// @brief A book was opened: its record, its goals and the collector of its editors
     void onProjectOpened();
     /// @brief The book is closing: the summary of the session, then the record goes on in the
@@ -158,3 +159,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WRITING_STATS_COORDINATOR_H

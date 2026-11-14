@@ -27,8 +27,7 @@
 #include <algorithm>
 #include <array>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -123,10 +122,10 @@ public:
         updateIcon();
     }
 
-    const core::KindRef& kind() const { return m_kind; }
-    core::BookPlace place() const { return m_place; }
-    QCheckBox* checkBox() const { return m_check; }
-    QCheckBox* nowBox() const { return m_now; }
+    [[nodiscard]] const core::KindRef& kind() const { return m_kind; }
+    [[nodiscard]] core::BookPlace place() const { return m_place; }
+    [[nodiscard]] QCheckBox* checkBox() const { return m_check; }
+    [[nodiscard]] QCheckBox* nowBox() const { return m_now; }
 
     /// @brief Show the kind checked or not: the box, the background and "Create now", which
     ///        an unchecked kind loses
@@ -140,7 +139,7 @@ public:
     }
 
     /// @brief Whether an element of the kind is made with the book in the place of the tile
-    bool createsNow() const {
+    [[nodiscard]] bool createsNow() const {
         return m_check->isChecked() && m_now->isEnabled() && m_now->isChecked();
     }
 
@@ -454,5 +453,4 @@ void KindPalette::sizeTiles()
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

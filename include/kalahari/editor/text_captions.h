@@ -26,7 +26,8 @@
 /// <cross-reference to="c4f1a2" show="label"/> and the list as <list-of-figures/>
 /// (docs/kml_format.md).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_CAPTIONS_H
+#define KALAHARI_EDITOR_TEXT_CAPTIONS_H
 
 #include <kalahari/editor/text_lists.h>
 
@@ -279,7 +280,7 @@ struct CaptionContext {
     QHash<QString, int> counted;
 
     /// @brief The numbering of a label
-    CaptionNumbering numberingOf(const QString& label) const;
+    [[nodiscard]] CaptionNumbering numberingOf(const QString& label) const;
 
     bool operator==(const CaptionContext&) const = default;
 };
@@ -312,21 +313,21 @@ public:
     CaptionNumbers(const QTextDocument& document, const CaptionContext& context);
 
     /// @brief The captions of the document, each with its number, in text order
-    const std::vector<BookCaption>& own() const { return m_own; }
+    [[nodiscard]] const std::vector<BookCaption>& own() const { return m_own; }
 
     /// @brief The captions of the book, in its order: of the texts before, the document's own,
     ///        of the texts after
-    std::vector<BookCaption> book() const;
+    [[nodiscard]] std::vector<BookCaption> book() const;
 
     /// @brief The caption whose number has the id: the document's own first, then the book's;
     ///        nullptr: none
-    const BookCaption* find(const QString& id) const;
+    [[nodiscard]] const BookCaption* find(const QString& id) const;
 
     /// @brief The text of the field at a position of the document with this format
-    FieldText fieldText(int position, const QTextFormat& format) const;
+    [[nodiscard]] FieldText fieldText(int position, const QTextFormat& format) const;
 
     /// @brief The text a cross-reference at a position of the document shows
-    FieldText referenceText(const CrossReference& reference, int position) const;
+    [[nodiscard]] FieldText referenceText(const CrossReference& reference, int position) const;
 
     /// @brief The text of a caption's paragraph, with its numbers and cross-references
     /// @param numberStart Gets where the caption's number starts in it (-1: nowhere); may be
@@ -336,7 +337,7 @@ public:
                         int* numberLength = nullptr) const;
 
     /// @brief The lines of the list of figures: the captions of the book
-    std::vector<FigureListRow> figureList() const;
+    [[nodiscard]] std::vector<FigureListRow> figureList() const;
 
     /// @brief The document's characters from @p from on moved by @p delta (a change of the
     ///        text without a field: the numbers stay, their places move)
@@ -378,3 +379,5 @@ std::optional<CaptionNumberField> captionNumberOfKml(const QXmlStreamAttributes&
 std::optional<CrossReference> crossReferenceOfKml(const QXmlStreamAttributes& attributes);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_CAPTIONS_H

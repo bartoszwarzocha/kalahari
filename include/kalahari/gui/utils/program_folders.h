@@ -4,15 +4,15 @@
 /// @file program_folders.h
 /// @brief The folders of the program and the folders the windows choosing files start in
 
-#pragma once
+#ifndef KALAHARI_GUI_UTILS_PROGRAM_FOLDERS_H
+#define KALAHARI_GUI_UTILS_PROGRAM_FOLDERS_H
 
 #include <QCoreApplication>
 #include <QString>
 
 #include <string>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief Where the program keeps books and archives, and where the windows that choose files
 /// and folders start
@@ -104,5 +104,6 @@ public:
     static bool samePath(const QString& first, const QString& second);
 };
 
-}  // namespace gui
-}  // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_UTILS_PROGRAM_FOLDERS_H

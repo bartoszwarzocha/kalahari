@@ -4,7 +4,8 @@
 /// @file annotations_panel.h
 /// @brief The Annotations panel: the comments, to-dos and notes of a chapter or the book
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_ANNOTATIONS_PANEL_H
+#define KALAHARI_GUI_PANELS_ANNOTATIONS_PANEL_H
 
 #include <kalahari/core/kind_words.h>
 #include <kalahari/gui/panels/annotation_colors.h>
@@ -35,7 +36,7 @@ class CommandRegistry;
 
 namespace kalahari::core {
 struct Theme;
-}
+} // namespace kalahari::core
 
 namespace kalahari::gui {
 
@@ -72,13 +73,13 @@ public:
     void setEntries(const std::vector<AnnotationEntry>& entries);
 
     /// @brief The annotations it was given
-    const std::vector<AnnotationEntry>& entries() const { return m_entries; }
+    [[nodiscard]] const std::vector<AnnotationEntry>& entries() const { return m_entries; }
 
     /// @brief The annotations it shows, in their order
-    std::vector<AnnotationEntry> shownEntries() const;
+    [[nodiscard]] std::vector<AnnotationEntry> shownEntries() const;
 
     /// @brief Whose annotations it lists
-    AnnotationScope scope() const { return m_scope; }
+    [[nodiscard]] AnnotationScope scope() const { return m_scope; }
 
     /// @brief List the annotations of the chapter in front or of the book
     void setScope(AnnotationScope scope);
@@ -100,7 +101,7 @@ public:
     void setReadOnly(bool readOnly);
 
     /// @brief Whether the annotations it lists are only read (setReadOnly())
-    bool isReadOnly() const { return m_readOnly; }
+    [[nodiscard]] bool isReadOnly() const { return m_readOnly; }
 
     /// @brief The names of what the panel lists, in the program's language: the button of the
     /// text in front and what the empty panel says ("Story", "This story has no annotations")
@@ -113,13 +114,13 @@ public:
                       const std::optional<core::KindWords>& bookTexts, bool bookOpen);
 
     /// @brief The filters in use
-    const AnnotationFilter& filter() const { return m_filter; }
+    [[nodiscard]] const AnnotationFilter& filter() const { return m_filter; }
 
     /// @brief Use other filters (also the search text and the kind buttons follow)
     void setFilter(const AnnotationFilter& filter);
 
     /// @brief The order in use
-    AnnotationSort sort() const { return m_sort; }
+    [[nodiscard]] AnnotationSort sort() const { return m_sort; }
 
     /// @brief Use another order
     void setSort(AnnotationSort sort);
@@ -134,10 +135,10 @@ public:
     void revealAnnotation(const QString& key);
 
     /// @brief The key of the selected card (empty: none)
-    QString selectedKey() const { return m_selectedKey; }
+    [[nodiscard]] QString selectedKey() const { return m_selectedKey; }
 
     /// @brief The card of an annotation (nullptr: not shown)
-    AnnotationCard* card(const QString& key) const;
+    [[nodiscard]] AnnotationCard* card(const QString& key) const;
 
     /// @brief Give the keys to the list of cards
     /// @param preferredKey The card to select when it is shown; else the selected card stays,
@@ -145,13 +146,13 @@ public:
     void focusList(const QString& preferredKey = QString());
 
     /// @brief Whether the keys are in the panel
-    bool hasFocusInside() const;
+    [[nodiscard]] bool hasFocusInside() const;
 
     /// @brief Take colors from a theme: the kinds' colors, the cards and the controls
     void applyTheme(const core::Theme& theme);
 
     /// @brief The colors of the cards of a kind, on the current theme
-    const AnnotationCardColors& cardColors(editor::AnnotationKind kind) const;
+    [[nodiscard]] const AnnotationCardColors& cardColors(editor::AnnotationKind kind) const;
 
 signals:
     /// @brief A card was clicked or selected with the keys: go to the annotation's place
@@ -259,3 +260,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_ANNOTATIONS_PANEL_H

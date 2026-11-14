@@ -32,8 +32,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -779,5 +778,4 @@ void ParagraphPanel::giveStyle(const QString& id) {
     refresh();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

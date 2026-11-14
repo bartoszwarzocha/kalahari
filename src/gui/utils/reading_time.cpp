@@ -10,9 +10,7 @@
 #include <QCoreApplication>
 #include <QLocale>
 
-namespace kalahari {
-namespace gui {
-namespace utils {
+namespace kalahari::gui::utils {
 
 QString readingTimeText(int words) {
     constexpr int MINUTES_PER_HOUR = 60;
@@ -32,6 +30,4 @@ QString readingTimeText(int words) {
         .arg(locale.toString(hours), locale.toString(rest));
 }
 
-} // namespace utils
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui::utils

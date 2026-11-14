@@ -9,15 +9,14 @@
 /// callers do not repeat defaults. Per-theme colors (themes.<name>.*,
 /// icons.themes.<name>.*) are not listed: their defaults come from the theme files.
 
-#pragma once
+#ifndef KALAHARI_CORE_SETTINGS_SCHEMA_H
+#define KALAHARI_CORE_SETTINGS_SCHEMA_H
 
 #include <map>
 #include <string>
 #include <nlohmann/json.hpp>
 
-namespace kalahari {
-namespace core {
-namespace settings_schema {
+namespace kalahari::core::settings_schema {
 
 /// @brief Default value of a setting
 /// @param key Setting key; '.' and '/' both separate levels ("icons.sizes.menu")
@@ -31,6 +30,6 @@ const std::map<std::string, nlohmann::json>& defaults();
 /// @param key Setting key; '.' and '/' both separate levels
 bool requiresRestart(const std::string& key);
 
-} // namespace settings_schema
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core::settings_schema
+
+#endif  // KALAHARI_CORE_SETTINGS_SCHEMA_H

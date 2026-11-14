@@ -61,9 +61,9 @@
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/gui/book_search_coordinator.h>
 #include <kalahari/gui/chapter_break_coordinator.h>
-#include "../editor/editor_test_utils.h"
-#include "../gui/document_window.h"
-#include "test_document_generator.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
+#include "kalahari_tests/gui/document_window.h"
+#include "kalahari_tests/benchmarks/test_document_generator.h"
 
 #include <QCoreApplication>
 #include <QElapsedTimer>

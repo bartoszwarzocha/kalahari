@@ -12,8 +12,7 @@
 #include <QMimeType>
 #include <QSet>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -131,5 +130,4 @@ bool MaterialKinds::isPictureAddress(const QUrl& url) {
     return !last.contains(QLatin1Char(':')) && isPictureName(last);
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

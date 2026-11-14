@@ -21,8 +21,7 @@
 #include <numeric>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -922,5 +921,4 @@ void PanelTabBar::focusOutEvent(QFocusEvent* event) {
     update();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

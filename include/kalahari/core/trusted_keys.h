@@ -19,7 +19,8 @@
 /// }
 /// @endcode
 
-#pragma once
+#ifndef KALAHARI_CORE_TRUSTED_KEYS_H
+#define KALAHARI_CORE_TRUSTED_KEYS_H
 
 #include <string>
 #include <vector>
@@ -27,8 +28,7 @@
 #include <optional>
 #include <mutex>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief Trust level for plugin publishers.
 enum class TrustLevel {
@@ -143,5 +143,6 @@ private:
     mutable std::mutex m_mutex;
 };
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_TRUSTED_KEYS_H

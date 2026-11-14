@@ -43,8 +43,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -792,8 +791,8 @@ DetachedWindow::DetachedWindow(DocumentWindows& owner, QMainWindow& bookWindow)
       m_bookWindow(bookWindow),
       m_tabs(new QTabWidget(this)),
       m_pageLabel(new QLabel(this)),
-      m_zoomLabel(new QLabel(this)),
-      m_statistics(nullptr) {
+      m_zoomLabel(new QLabel(this))
+      {
     setAttribute(Qt::WA_DeleteOnClose);
     setAttribute(Qt::WA_QuitOnClose, false);  // the program ends with the book window
     setObjectName(QStringLiteral("detachedWindow"));
@@ -1026,5 +1025,4 @@ void DetachedWindow::closeEvent(QCloseEvent* event) {
     event->accept();
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

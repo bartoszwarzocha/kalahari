@@ -10,7 +10,8 @@
 /// keys, and SettingsCoordinator refreshes the parts of the window they affect. The
 /// editors and most panels follow the settings by themselves.
 
-#pragma once
+#ifndef KALAHARI_GUI_SETTINGS_DIALOG_H
+#define KALAHARI_GUI_SETTINGS_DIALOG_H
 
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
@@ -36,7 +37,7 @@ class CommandRegistry;
 namespace kalahari {
 namespace editor {
 class SpellCheckService;
-}
+} // namespace editor
 namespace gui {
 
 class GrammarCoordinator;
@@ -117,7 +118,7 @@ public:
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
 
-public slots:
+
     /// @brief OK: write the changed settings, then close; a value that cannot be written
     /// keeps the dialog open on its page
     void accept() override;
@@ -165,8 +166,8 @@ private:
 
     void onApply();
 
-    QTreeWidget* m_navTree;
-    QStackedWidget* m_pageStack;
+    QTreeWidget* m_navTree{nullptr};
+    QStackedWidget* m_pageStack{nullptr};
     bool m_diagnosticMode;
     editor::SpellCheckService* m_spelling;  ///< The dictionary of the editors (not owned)
     GrammarCoordinator* m_grammar;          ///< The grammar of the editors (not owned)
@@ -185,3 +186,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_SETTINGS_DIALOG_H

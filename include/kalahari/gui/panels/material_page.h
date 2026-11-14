@@ -5,7 +5,8 @@
 /// @brief The card of a material, short in the Properties panel and full on a tab of its own,
 /// and the materials of an element of the book
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_MATERIAL_PAGE_H
+#define KALAHARI_GUI_PANELS_MATERIAL_PAGE_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/gui/material_source.h"
@@ -37,8 +38,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The card of a material: short in the Properties panel, what the writer checks and
 /// changes while writing; full on a tab beside the chapters (MaterialCardPanel), the place to
@@ -98,13 +98,13 @@ public:
     ~MaterialPage() override;
 
     /// @brief Whether it is the full card
-    bool isFull() const { return m_full; }
+    [[nodiscard]] bool isFull() const { return m_full; }
 
     /// @brief Show material @p elementId of the open book
     void showMaterial(const QString& elementId);
 
     /// @brief The material it shows
-    QString elementId() const { return m_elementId; }
+    [[nodiscard]] QString elementId() const { return m_elementId; }
 
     /// @brief Show the material again as the book has it; the field with the keys keeps what
     /// is typed in it
@@ -113,17 +113,17 @@ public:
     /// @brief Give the keys to the title
     void focusFirstField();
 
-    QToolButton* thumbnail() const { return m_thumbnail; }
-    QLabel* thumbnailProblem() const { return m_thumbnailProblem; }
-    QLabel* fileLabel() const { return m_fileLabel; }
-    QPushButton* previewButton() const { return m_previewButton; }
-    QPushButton* systemButton() const { return m_systemButton; }
-    QPushButton* browserButton() const { return m_browserButton; }
-    QPushButton* copyAddressButton() const { return m_copyAddressButton; }
-    QPushButton* saveCopyButton() const { return m_saveCopyButton; }
-    QLineEdit* titleEdit() const { return m_titleEdit; }
-    QLabel* pathLabel() const { return m_pathLabel; }
-    QLabel* addressLabel() const { return m_addressLabel; }
+    [[nodiscard]] QToolButton* thumbnail() const { return m_thumbnail; }
+    [[nodiscard]] QLabel* thumbnailProblem() const { return m_thumbnailProblem; }
+    [[nodiscard]] QLabel* fileLabel() const { return m_fileLabel; }
+    [[nodiscard]] QPushButton* previewButton() const { return m_previewButton; }
+    [[nodiscard]] QPushButton* systemButton() const { return m_systemButton; }
+    [[nodiscard]] QPushButton* browserButton() const { return m_browserButton; }
+    [[nodiscard]] QPushButton* copyAddressButton() const { return m_copyAddressButton; }
+    [[nodiscard]] QPushButton* saveCopyButton() const { return m_saveCopyButton; }
+    [[nodiscard]] QLineEdit* titleEdit() const { return m_titleEdit; }
+    [[nodiscard]] QLabel* pathLabel() const { return m_pathLabel; }
+    [[nodiscard]] QLabel* addressLabel() const { return m_addressLabel; }
 
     /// @brief Something for material @p elementId is being downloaded from its address, or no
     /// longer: Save Copy of its card waits for it
@@ -131,40 +131,40 @@ public:
 
     /// @brief Give the keys to the description
     void focusDescription();
-    QPlainTextEdit* descriptionEdit() const { return m_descriptionEdit; }
-    QTableWidget* fieldsTable() const { return m_fieldsTable; }
-    QToolButton* addFieldButton() const { return m_addFieldButton; }
-    QToolButton* removeFieldButton() const { return m_removeFieldButton; }
-    QTreeWidget* linksList() const { return m_linksList; }
-    QToolButton* addLinkButton() const { return m_addLinkButton; }
-    QToolButton* removeLinkButton() const { return m_removeLinkButton; }
+    [[nodiscard]] QPlainTextEdit* descriptionEdit() const { return m_descriptionEdit; }
+    [[nodiscard]] QTableWidget* fieldsTable() const { return m_fieldsTable; }
+    [[nodiscard]] QToolButton* addFieldButton() const { return m_addFieldButton; }
+    [[nodiscard]] QToolButton* removeFieldButton() const { return m_removeFieldButton; }
+    [[nodiscard]] QTreeWidget* linksList() const { return m_linksList; }
+    [[nodiscard]] QToolButton* addLinkButton() const { return m_addLinkButton; }
+    [[nodiscard]] QToolButton* removeLinkButton() const { return m_removeLinkButton; }
 
     /// @brief The group of the description, named Text for a text of the cover
-    QGroupBox* descriptionGroup() const { return m_descriptionGroup; }
+    [[nodiscard]] QGroupBox* descriptionGroup() const { return m_descriptionGroup; }
     /// @brief The characters and words of a text of the cover
-    QLabel* countsLabel() const { return m_countsLabel; }
+    [[nodiscard]] QLabel* countsLabel() const { return m_countsLabel; }
     /// @brief The target of a text of the cover, or how much it is past it
-    QLabel* targetLabel() const { return m_targetLabel; }
+    [[nodiscard]] QLabel* targetLabel() const { return m_targetLabel; }
     /// @brief The length of a text of the cover against its target
-    QProgressBar* targetBar() const { return m_targetBar; }
+    [[nodiscard]] QProgressBar* targetBar() const { return m_targetBar; }
     /// @brief The own target of a text of the cover; nullptr on the short card
-    QSpinBox* targetSpin() const { return m_targetSpin; }
+    [[nodiscard]] QSpinBox* targetSpin() const { return m_targetSpin; }
     /// @brief How the cover prints an opinion; nullptr on the short card
-    QLabel* printedLabel() const { return m_printedLabel; }
+    [[nodiscard]] QLabel* printedLabel() const { return m_printedLabel; }
     /// @brief The data of a material of the cover; hidden for other materials
-    QGroupBox* coverGroup() const { return m_coverGroup; }
-    QComboBox* coverPartBox() const { return m_coverPartBox; }
-    QComboBox* coverPlaceBox() const { return m_coverPlaceBox; }
-    QComboBox* coverStateBox() const { return m_coverStateBox; }
-    QComboBox* coverConsentBox() const { return m_coverConsentBox; }
-    QLineEdit* coverAuthorEdit() const { return m_coverAuthorEdit; }
-    QLineEdit* coverRoleEdit() const { return m_coverRoleEdit; }
-    QLineEdit* coverSourceEdit() const { return m_coverSourceEdit; }
-    QLineEdit* coverDateEdit() const { return m_coverDateEdit; }
-    QLineEdit* coverLicenseEdit() const { return m_coverLicenseEdit; }
-    QLineEdit* coverAboutEdit() const { return m_coverAboutEdit; }
+    [[nodiscard]] QGroupBox* coverGroup() const { return m_coverGroup; }
+    [[nodiscard]] QComboBox* coverPartBox() const { return m_coverPartBox; }
+    [[nodiscard]] QComboBox* coverPlaceBox() const { return m_coverPlaceBox; }
+    [[nodiscard]] QComboBox* coverStateBox() const { return m_coverStateBox; }
+    [[nodiscard]] QComboBox* coverConsentBox() const { return m_coverConsentBox; }
+    [[nodiscard]] QLineEdit* coverAuthorEdit() const { return m_coverAuthorEdit; }
+    [[nodiscard]] QLineEdit* coverRoleEdit() const { return m_coverRoleEdit; }
+    [[nodiscard]] QLineEdit* coverSourceEdit() const { return m_coverSourceEdit; }
+    [[nodiscard]] QLineEdit* coverDateEdit() const { return m_coverDateEdit; }
+    [[nodiscard]] QLineEdit* coverLicenseEdit() const { return m_coverLicenseEdit; }
+    [[nodiscard]] QLineEdit* coverAboutEdit() const { return m_coverAboutEdit; }
 
-public slots:
+
     /// @brief Add a field at the end, with the keys in its name
     void addField();
 
@@ -236,7 +236,7 @@ private:
     void saveLinks(const QList<core::ElementLink>& links);
 
     /// @brief The fields that the table shows
-    QList<core::ElementField> tableFields() const;
+    [[nodiscard]] QList<core::ElementField> tableFields() const;
 
     /// @brief The buttons follow the rows and a book open read-only
     void updateButtons();
@@ -350,10 +350,10 @@ public:
                                QWidget* parent = nullptr);
 
     /// @brief The material it shows
-    QString elementId() const;
+    [[nodiscard]] QString elementId() const;
 
     /// @brief The card
-    MaterialPage* page() const { return m_page; }
+    [[nodiscard]] MaterialPage* page() const { return m_page; }
 
     /// @brief Show the material again as the book has it, and its icon in "tabIconId"
     void refresh();
@@ -385,14 +385,14 @@ public:
     void refresh();
 
     /// @brief The element or section it shows the materials of
-    QString link() const { return m_link; }
+    [[nodiscard]] QString link() const { return m_link; }
 
-    QListWidget* list() const { return m_list; }
-    QToolButton* addButton() const { return m_addButton; }
-    QToolButton* removeButton() const { return m_removeButton; }
-    QLabel* emptyLabel() const { return m_emptyLabel; }
+    [[nodiscard]] QListWidget* list() const { return m_list; }
+    [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
+    [[nodiscard]] QToolButton* removeButton() const { return m_removeButton; }
+    [[nodiscard]] QLabel* emptyLabel() const { return m_emptyLabel; }
 
-public slots:
+
     /// @brief Open Link with the materials of the Workshop and link what is checked there
     void editMaterials();
 
@@ -420,5 +420,6 @@ private:
     core::ProjectManager& m_book;  ///< The book of its window
 };
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_MATERIAL_PAGE_H

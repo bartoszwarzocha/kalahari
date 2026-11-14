@@ -5,7 +5,8 @@
 /// @brief What the statistics bar, the Statistics panel and the goals show: the record of
 /// writing counted by the writer's rules, with what the editor has not saved yet
 
-#pragma once
+#ifndef KALAHARI_GUI_WRITING_STATS_MODEL_H
+#define KALAHARI_GUI_WRITING_STATS_MODEL_H
 
 #include <kalahari/core/writing_activity.h>
 #include <kalahari/core/writing_goals.h>
@@ -22,11 +23,11 @@ class QTimer;
 
 namespace kalahari::core {
 class ProjectDatabase;
-}
+} // namespace kalahari::core
 
 namespace kalahari::editor {
 class StatisticsCollector;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -37,7 +38,7 @@ struct DayPiece {
     qint64 activeMs = 0;
 
     /// @brief The words that count toward the goals under @p counting
-    int counted(core::GoalCounting counting) const {
+    [[nodiscard]] int counted(core::GoalCounting counting) const {
         return counting == core::GoalCounting::Net ? written - deleted : written;
     }
 };
@@ -74,7 +75,7 @@ public:
     void setCollector(editor::StatisticsCollector* collector);
 
     /// @brief The collector it follows
-    editor::StatisticsCollector* collector() const;
+    [[nodiscard]] editor::StatisticsCollector* collector() const;
 
     /// @brief The open book: its database and its id (nullptr: no book); its record is read
     /// and its goals with it
@@ -83,60 +84,60 @@ public:
     void setBook(core::ProjectDatabase* database, const QString& bookId, bool readOnly = false);
 
     /// @brief A book is open
-    bool hasBook() const { return m_database != nullptr; }
+    [[nodiscard]] bool hasBook() const { return m_database != nullptr; }
 
     /// @brief The open book is open read-only: its goals and badges do not change
-    bool isBookReadOnly() const { return m_database != nullptr && m_bookReadOnly; }
+    [[nodiscard]] bool isBookReadOnly() const { return m_database != nullptr && m_bookReadOnly; }
 
     /// @brief The database of the open book; nullptr without one
-    core::ProjectDatabase* database() const { return m_database; }
+    [[nodiscard]] core::ProjectDatabase* database() const { return m_database; }
 
     /// @brief The id of the open book; empty without one
-    const QString& bookId() const { return m_bookId; }
+    [[nodiscard]] const QString& bookId() const { return m_bookId; }
 
     /// @brief How the words of the open book are counted now (the coordinator gives it)
     void setBookWordsSource(std::function<int()> source);
 
     /// @brief The words of the open book now; 0 without one
-    int bookWords() const;
+    [[nodiscard]] int bookWords() const;
 
     /// @brief The words the open book had when today's writing day started, as the record of
     /// today says: what the deadline counts from
-    int bookWordsAtStartOfToday() const;
+    [[nodiscard]] int bookWordsAtStartOfToday() const;
 
     /// @brief The goals of the open book; empty without one
-    const core::BookGoals& goals() const { return m_goals; }
+    [[nodiscard]] const core::BookGoals& goals() const { return m_goals; }
 
     /// @brief Keep new goals of the open book in its project.db
     /// @return false without a book or when they cannot be written
     bool setGoals(const core::BookGoals& goals);
 
     /// @brief The writer's rules (Settings > Statistics and Goals)
-    const core::WritingRules& rules() const { return m_rules; }
+    [[nodiscard]] const core::WritingRules& rules() const { return m_rules; }
 
-public slots:
+
     /// @brief Take the rules of the settings again (called by name when they change)
     void reloadRules();
-
 public:
+
     /// @brief The record the daily and weekly goals count, with what is not saved yet: of all
     /// the books or of the open one
-    core::WritingStatistics goalStatistics() const;
+    [[nodiscard]] core::WritingStatistics goalStatistics() const;
 
     /// @brief The record of the open book, with what is not saved yet
-    core::WritingStatistics bookStatistics() const;
+    [[nodiscard]] core::WritingStatistics bookStatistics() const;
 
     /// @brief The record of the journal, with what is not saved yet
-    core::WritingStatistics journalStatistics() const;
+    [[nodiscard]] core::WritingStatistics journalStatistics() const;
 
     /// @brief Now; the tests set their own clock
-    QDateTime now() const;
+    [[nodiscard]] QDateTime now() const;
 
     /// @brief A clock of the tests; empty: the real one
     void setClock(std::function<QDateTime()> clock);
 
     /// @brief The writing day of now
-    QDate today() const;
+    [[nodiscard]] QDate today() const;
 
     /// @brief The pieces of @p minutes of a writing day of @p statistics, from its start (the
     /// end of the day of the rules); a multiple of ACTIVITY_SLOT_MINUTES that divides a day
@@ -155,11 +156,11 @@ public:
 
     /// @brief The minutes of the clock from the start of writing day @p day to @p when, as
     /// the slots of the record count them; may be outside 0 to 1440
-    qint64 minutesIntoDay(const QDate& day, const QDateTime& when) const;
+    [[nodiscard]] qint64 minutesIntoDay(const QDate& day, const QDateTime& when) const;
 
     /// @brief The words of the daily goal today: the daily goal of the rules, or what the
     /// deadline of the book needs when its goals say so
-    int dailyGoalToday() const;
+    [[nodiscard]] int dailyGoalToday() const;
 
 signals:
     /// @brief The numbers changed: something was written, saved or the time went on
@@ -194,3 +195,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WRITING_STATS_MODEL_H

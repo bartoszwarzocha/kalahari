@@ -5,7 +5,7 @@
 /// @brief The keys go to the page in front of the tabs, also when a tab closes or is clicked
 
 #include <catch2/catch_test_macros.hpp>
-#include "../editor/editor_test_utils.h"
+#include "kalahari_tests/editor/editor_test_utils.h"
 #include "kalahari/gui/utils/tab_focus.h"
 
 #include <QApplication>

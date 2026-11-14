@@ -23,7 +23,8 @@
 /// A book that cannot be converted so, e.g. with a file outside its folder or two elements
 /// with one id, is not converted.
 
-#pragma once
+#ifndef KALAHARI_CORE_OLD_BOOK_CONVERSION_H
+#define KALAHARI_CORE_OLD_BOOK_CONVERSION_H
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_registry.h>
@@ -53,3 +54,5 @@ struct OldBookConversion {
 };
 
 }  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_OLD_BOOK_CONVERSION_H

@@ -24,8 +24,7 @@
 #include <algorithm>
 #include <functional>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -43,7 +42,7 @@ public:
     using QTreeWidget::QTreeWidget;
 
     /// Height of a row, before the list has rows to measure
-    int rowHeight() const { return qMax(fontMetrics().height() + 6, iconSize().height() + 4); }
+    [[nodiscard]] int rowHeight() const { return qMax(fontMetrics().height() + 6, iconSize().height() + 4); }
 
     /// Rows the list shows when there is room for them
     void setRows(int rows) {
@@ -51,7 +50,7 @@ public:
         updateGeometry();
     }
 
-    QSize sizeHint() const override {
+    [[nodiscard]] QSize sizeHint() const override {
         return {QTreeWidget::sizeHint().width(), rowHeight() * m_rows + 2 * frameWidth()};
     }
 
@@ -662,5 +661,4 @@ void ElementPlacePicker::onItemClicked(QTreeWidgetItem* item)
     }
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

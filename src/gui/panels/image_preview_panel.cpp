@@ -30,8 +30,7 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
 
@@ -372,5 +371,4 @@ bool ImagePreviewPanel::eventFilter(QObject* watched, QEvent* event) {
     return QWidget::eventFilter(watched, event);
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

@@ -26,50 +26,50 @@ using namespace kalahari::core;
 class TestPlugin : public IPlugin {
 public:
     TestPlugin(const std::string& id = "test-plugin", const std::string& version = "1.0.0")
-        : m_id(id), m_version(version), m_init_called(false), m_activate_called(false) {}
+        : m_id(id), m_version(version) {}
 
-    std::string getPluginId() const override { return m_id; }
-    std::string getVersion() const override { return m_version; }
+    [[nodiscard]] std::string getPluginId() const override { return m_id; }
+    [[nodiscard]] std::string getVersion() const override { return m_version; }
     void onInit() override { m_init_called = true; }
     void onActivate() override { m_activate_called = true; }
 
-    bool wasInitCalled() const { return m_init_called; }
-    bool wasActivateCalled() const { return m_activate_called; }
+    [[nodiscard]] bool wasInitCalled() const { return m_init_called; }
+    [[nodiscard]] bool wasActivateCalled() const { return m_activate_called; }
 
 private:
     std::string m_id;
     std::string m_version;
-    bool m_init_called;
-    bool m_activate_called;
+    bool m_init_called{false};
+    bool m_activate_called{false};
 };
 
 class TestExporter : public IExporter {
 public:
     TestExporter(const std::string& id = "test-exporter")
-        : m_id(id), m_init_called(false) {}
+        : m_id(id) {}
 
-    std::string getPluginId() const override { return m_id; }
-    std::string getVersion() const override { return "1.0.0"; }
+    [[nodiscard]] std::string getPluginId() const override { return m_id; }
+    [[nodiscard]] std::string getVersion() const override { return "1.0.0"; }
     void onInit() override { m_init_called = true; }
     void onActivate() override {}
     bool exportDocument(const std::string& format, const std::string& /* filepath */) override {
         return format == "pdf" || format == "docx";
     }
 
-    bool wasInitCalled() const { return m_init_called; }
+    [[nodiscard]] bool wasInitCalled() const { return m_init_called; }
 
 private:
     std::string m_id;
-    bool m_init_called;
+    bool m_init_called{false};
 };
 
 class TestAssistant : public IAssistant {
 public:
     TestAssistant(const std::string& id = "test-assistant")
-        : m_id(id), m_message_count(0) {}
+        : m_id(id) {}
 
-    std::string getPluginId() const override { return m_id; }
-    std::string getVersion() const override { return "1.0.0"; }
+    [[nodiscard]] std::string getPluginId() const override { return m_id; }
+    [[nodiscard]] std::string getVersion() const override { return "1.0.0"; }
     void onInit() override {}
     void onActivate() override {}
     void showMessage(const std::string& /* message */, const std::string& /* type */ = "info") override {
@@ -77,11 +77,11 @@ public:
     }
     void onGoalReached() override {}
 
-    int getMessageCount() const { return m_message_count; }
+    [[nodiscard]] int getMessageCount() const { return m_message_count; }
 
 private:
     std::string m_id;
-    int m_message_count;
+    int m_message_count{0};
 };
 
 // =============================================================================

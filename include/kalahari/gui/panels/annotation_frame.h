@@ -4,7 +4,8 @@
 /// @file annotation_frame.h
 /// @brief The frame an annotation's text is written in, at its place in the text
 
-#pragma once
+#ifndef KALAHARI_GUI_PANELS_ANNOTATION_FRAME_H
+#define KALAHARI_GUI_PANELS_ANNOTATION_FRAME_H
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/gui/panels/writing_frame.h>
@@ -38,16 +39,16 @@ public:
     void setAuthor(const QString& author);
 
     /// @brief Who the annotation is by, as set
-    const QString& author() const { return m_author; }
+    [[nodiscard]] const QString& author() const { return m_author; }
 
     /// @brief The text to start with (an annotation edited again)
     void setText(const QString& text);
 
     /// @brief The text as written
-    QString text() const;
+    [[nodiscard]] QString text() const;
 
     /// @brief Whether the text can be kept (it is not empty)
-    bool canSave() const override;
+    [[nodiscard]] bool canSave() const override;
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -63,3 +64,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_ANNOTATION_FRAME_H

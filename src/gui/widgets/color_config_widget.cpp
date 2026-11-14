@@ -12,15 +12,12 @@
 #include <QLabel>
 #include <QPushButton>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 ColorConfigWidget::ColorConfigWidget(const QString& label, QWidget* parent)
     : QWidget(parent)
-    , m_label(nullptr)
-    , m_colorButton(nullptr)
-    , m_hexLabel(nullptr)
-    , m_color(Qt::black)
+    , 
+     m_color(Qt::black)
 {
     // Create horizontal layout with 40/60 split for label/controls
     QHBoxLayout* layout = new QHBoxLayout(this);
@@ -101,5 +98,4 @@ void ColorConfigWidget::updateColorDisplay() {
     m_hexLabel->setText(m_color.name().toUpper());
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui

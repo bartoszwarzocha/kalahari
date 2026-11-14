@@ -7,7 +7,8 @@
 /// The menus of the diagnostic and the dev mode (DiagnosticController) are filled here, so
 /// that the tests check their access keys without the tools they run.
 
-#pragma once
+#ifndef KALAHARI_GUI_DIAGNOSTIC_MENUS_H
+#define KALAHARI_GUI_DIAGNOSTIC_MENUS_H
 
 #include <QString>
 
@@ -16,8 +17,7 @@
 class QMenu;
 class QObject;
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief What an item of a developer menu runs
 enum class DiagnosticTool {
@@ -66,5 +66,6 @@ void fillDiagnosticsMenu(QMenu* menu, bool debugTools, QObject* receiver,
 /// @param run Runs the tool of a chosen item
 void fillDevToolsMenu(QMenu* menu, QObject* receiver, const DiagnosticToolRunner& run);
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_DIAGNOSTIC_MENUS_H

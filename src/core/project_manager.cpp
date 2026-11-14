@@ -36,8 +36,7 @@
 
 #include <zip.h>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 namespace {
 
@@ -413,8 +412,7 @@ bool writeWhole(const QString& path, const QByteArray& data) {
 
 ProjectManager::ProjectManager(QObject* parent)
     : QObject(parent)
-    , m_workMode(WorkMode::NoDocument)
-    , m_isDirty(false)
+     
 {
     Logger::getInstance().info("ProjectManager initialized");
 }
@@ -3760,5 +3758,4 @@ QString ProjectManager::archiveProjectName(const QString& archivePath) {
     return name.isEmpty() ? QStringLiteral("project") : name;
 }
 
-} // namespace core
-} // namespace kalahari
+} // namespace kalahari::core

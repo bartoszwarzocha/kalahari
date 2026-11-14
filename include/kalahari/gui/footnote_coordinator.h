@@ -5,7 +5,8 @@
 /// @brief Insert > Footnote and Endnote, the frame a note's text is written in, and the
 ///        numbers of the notes of every open text in the book around it
 
-#pragma once
+#ifndef KALAHARI_GUI_FOOTNOTE_COORDINATOR_H
+#define KALAHARI_GUI_FOOTNOTE_COORDINATOR_H
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/editor/text_footnotes.h"
@@ -33,7 +34,7 @@ class CommandRegistry;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+} // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -215,3 +216,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_FOOTNOTE_COORDINATOR_H

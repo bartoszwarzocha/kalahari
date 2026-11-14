@@ -10,12 +10,11 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 AssistantPanel::AssistantPanel(QWidget* parent)
     : QWidget(parent)
-    , m_placeholderLabel(nullptr)
+     
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("AssistantPanel constructor called");
@@ -34,5 +33,4 @@ AssistantPanel::AssistantPanel(QWidget* parent)
     logger.debug("AssistantPanel initialized");
 }
 
-} // namespace gui
-} // namespace kalahari
+} // namespace kalahari::gui
