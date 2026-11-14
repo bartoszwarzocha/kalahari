@@ -423,16 +423,8 @@
         <translation>&amp;Archiwum projektu...</translation>
     </message>
     <message>
-        <source>&amp;DOCX</source>
-        <translation>&amp;DOCX</translation>
-    </message>
-    <message>
         <source>&amp;PDF</source>
         <translation>&amp;PDF</translation>
-    </message>
-    <message>
-        <source>&amp;Markdown</source>
-        <translation>&amp;Markdown</translation>
     </message>
     <message>
         <source>&amp;EPUB</source>
@@ -1331,6 +1323,14 @@
         <translation>Ten sam filtr dla wszystkic&amp;h obrazów...</translation>
     </message>
     <message>
+        <source>&amp;DOCX...</source>
+        <translation>&amp;DOCX...</translation>
+    </message>
+    <message>
+        <source>&amp;Markdown...</source>
+        <translation>&amp;Markdown...</translation>
+    </message>
+    <message>
         <source>Chapter Brea&amp;k</source>
         <translation>Pod&amp;ział rozdziału</translation>
     </message>
@@ -1883,6 +1883,11 @@
     <message>
         <source>Kalahari cannot save files in this folder.</source>
         <translation>Kalahari nie może zapisywać plików w tym folderze.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <extracomment>The folder of the exported books (DOCX, Markdown) in the folder of the books. In Polish: Eksport</extracomment>
+        <translation>Eksport</translation>
     </message>
 </context>
 <context>
@@ -14549,6 +14554,21 @@ Harmonogram projektu:
         <extracomment>Under what went wrong when the program does not know its cause. In Polish: Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</extracomment>
         <translation>Opis techniczny błędu skopiujesz przyciskiem „Kopiuj”.</translation>
     </message>
+    <message>
+        <source>Open File</source>
+        <extracomment>A link under the result of an export: opens the file in its program. In Polish: Otwórz plik</extracomment>
+        <translation>Otwórz plik</translation>
+    </message>
+    <message>
+        <source>Open the file in the program the system gives it</source>
+        <translation>Otwórz plik w programie, który przypisał mu system</translation>
+    </message>
+    <message>
+        <source>The system could not open the file:
+%1</source>
+        <translation>System nie otworzył pliku:
+%1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::BulletsNumberingDialog</name>
@@ -24631,6 +24651,382 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>“%1” is not counted any more. The skipped words are in Settings &gt; Editor &gt; Repetitions</source>
         <extracomment>Skip This Word on a card of the panel Repetitions. In Polish: „%1” nie jest już liczone. Pomijane słowa są w Ustawieniach &gt; Edytor &gt; Powtórzenia</extracomment>
         <translation>„%1” nie jest już liczone. Pomijane słowa są w Ustawieniach &gt; Edytor &gt; Powtórzenia</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BookExportCoordinator</name>
+    <message>
+        <source>Open a book or a text to export</source>
+        <extracomment>The tooltip of File &gt; Export &gt; DOCX and Markdown while they are greyed out. In Polish: Otwórz książkę albo tekst, który chcesz wyeksportować</extracomment>
+        <translation>Otwórz książkę albo tekst, który chcesz wyeksportować</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>To do</source>
+        <extracomment>The word before the text of a to-do in a comment of Word. In Polish: Do zrobienia</extracomment>
+        <translation>Do zrobienia</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>The word before the text of a note in a comment of Word. In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ExportBookDialog</name>
+    <message>
+        <source>Export Book</source>
+        <extracomment>The title of the window of File &gt; Export &gt; DOCX and Markdown. In Polish: Eksportuj książkę</extracomment>
+        <translation>Eksportuj książkę</translation>
+    </message>
+    <message>
+        <source>Page and Margin Settings</source>
+        <extracomment>The tooltip of the gear of the window of the export. In Polish: Ustawienia stron i marginesów</extracomment>
+        <translation>Ustawienia stron i marginesów</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <extracomment>In Polish: Folder:</extracomment>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>&amp;Name:</source>
+        <extracomment>In Polish: &amp;Nazwa:</extracomment>
+        <translation>&amp;Nazwa:</translation>
+    </message>
+    <message numerus="yes">
+        <source>Whole &amp;book (%n texts)</source>
+        <extracomment>%n: how many texts the book has. In Polish: &amp;Cała książka (%n tekst / teksty / tekstów)</extracomment>
+        <translation>
+            <numerusform>&amp;Cała książka (%n tekst)</numerusform>
+            <numerusform>&amp;Cała książka (%n teksty)</numerusform>
+            <numerusform>&amp;Cała książka (%n tekstów)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>&amp;Chosen texts</source>
+        <extracomment>In Polish: &amp;Wybrane teksty</extracomment>
+        <translation>&amp;Wybrane teksty</translation>
+    </message>
+    <message>
+        <source>&amp;Text in front: &quot;%1&quot;</source>
+        <extracomment>%1: the title of the text of the tab in front. In Polish: Tekst na wie&amp;rzchu: „%1”</extracomment>
+        <translation>Tekst na wie&amp;rzchu: „%1”</translation>
+    </message>
+    <message>
+        <source>Texts of the book</source>
+        <extracomment>The name of the list of the texts for screen readers. In Polish: Teksty książki</extracomment>
+        <translation>Teksty książki</translation>
+    </message>
+    <message>
+        <source>Check &amp;All</source>
+        <extracomment>Checks every text of the list. In Polish: &amp;Zaznacz wszystkie</extracomment>
+        <translation>&amp;Zaznacz wszystkie</translation>
+    </message>
+    <message>
+        <source>&amp;Uncheck All</source>
+        <extracomment>Unchecks every text of the list. In Polish: &amp;Odznacz wszystkie</extracomment>
+        <translation>&amp;Odznacz wszystkie</translation>
+    </message>
+    <message>
+        <source>Only &amp;Final</source>
+        <extracomment>Checks only the final texts of the list. In Polish: Tylko &amp;gotowe</extracomment>
+        <translation>Tylko &amp;gotowe</translation>
+    </message>
+    <message>
+        <source>The text goes to the file also with its unsaved changes.</source>
+        <translation>Tekst trafi do pliku także z niezapisanymi zmianami.</translation>
+    </message>
+    <message>
+        <source>The texts go to the file in the order of the Navigator, also with their unsaved changes.</source>
+        <translation>Teksty trafią do pliku w kolejności Nawigatora, także z niezapisanymi zmianami.</translation>
+    </message>
+    <message>
+        <source>Navigator titles of parts and chapters as &amp;headings</source>
+        <extracomment>In Polish: &amp;Tytuły części i rozdziałów z Nawigatora jako nagłówki</extracomment>
+        <translation>&amp;Tytuły części i rozdziałów z Nawigatora jako nagłówki</translation>
+    </message>
+    <message>
+        <source>A text that starts with a heading keeps its own. The title page, the copyright page, the dedication and the motto get no title.</source>
+        <extracomment>Under the titles as headings. In Polish: Tekst, który zaczyna się od nagłówka, zostaje z własnym. Strona tytułowa, strona redakcyjna, dedykacja i motto nie dostają tytułu.</extracomment>
+        <translation>Tekst, który zaczyna się od nagłówka, zostaje z własnym. Strona tytułowa, strona redakcyjna, dedykacja i motto nie dostają tytułu.</translation>
+    </message>
+    <message>
+        <source>Each text from a new &amp;page</source>
+        <extracomment>In Polish: Każd&amp;y tekst od nowej strony</extracomment>
+        <translation>Każd&amp;y tekst od nowej strony</translation>
+    </message>
+    <message>
+        <source>With mirror margins a text starts on a right page, unless its properties say a left one.</source>
+        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego właściwościach ustawiono lewą.</extracomment>
+        <translation>Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego właściwościach ustawiono lewą.</translation>
+    </message>
+    <message>
+        <source>Page numbers at the b&amp;ottom of the page</source>
+        <extracomment>In Polish: Numery &amp;stron na dole strony</extracomment>
+        <translation>Numery &amp;stron na dole strony</translation>
+    </message>
+    <message>
+        <source>%1 (editor font)</source>
+        <extracomment>The first font of the export: the font of the editor; %1: its name. In Polish: %1 (czcionka edytora)</extracomment>
+        <translation>%1 (czcionka edytora)</translation>
+    </message>
+    <message>
+        <source>Font of the te&amp;xt:</source>
+        <extracomment>In Polish: Czcionk&amp;a tekstu:</extracomment>
+        <translation>Czcionk&amp;a tekstu:</translation>
+    </message>
+    <message>
+        <source>Page:</source>
+        <extracomment>In Polish: Strona:</extracomment>
+        <translation>Strona:</translation>
+    </message>
+    <message>
+        <source>The size of the page and the margins come from Settings › Editor › Pages and Margins (the gear in the heading of the window). The sizes of the letters, the spacing and the indents come from the styles of the book.</source>
+        <extracomment>Under the page of the export. In Polish: Rozmiar strony i marginesy pochodzą z Ustawień › Edytor › Strony i marginesy (zębatka w nagłówku okna). Rozmiary liter, odstępy i wcięcia – ze stylów książki.</extracomment>
+        <translation>Rozmiar strony i marginesy pochodzą z Ustawień › Edytor › Strony i marginesy (zębatka w nagłówku okna). Rozmiary liter, odstępy i wcięcia – ze stylów książki.</translation>
+    </message>
+    <message>
+        <source>Annotations</source>
+        <extracomment>A group of the window of the export: the annotations of the text. In Polish: Uwagi</extracomment>
+        <translation>Uwagi</translation>
+    </message>
+    <message>
+        <source>Annotations as Word comm&amp;ents</source>
+        <extracomment>In Polish: &amp;Uwagi jako komentarze Worda</extracomment>
+        <translation>&amp;Uwagi jako komentarze Worda</translation>
+    </message>
+    <message>
+        <source>The comments, to-dos and notes of the text, with their authors and dates. Without this option the file has no annotations.</source>
+        <extracomment>Under the annotations as comments. In Polish: Komentarze, zadania i notatki z tekstu, z autorem i datą. Bez tej opcji plik nie zawiera uwag.</extracomment>
+        <translation>Komentarze, zadania i notatki z tekstu, z autorem i datą. Bez tej opcji plik nie zawiera uwag.</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>A group of the window of the export: the images of the text. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Without this option the links to the images name the files in the folder of the book.</source>
+        <extracomment>Under the copy of the images. In Polish: Bez tej opcji odnośniki do obrazów wskazują pliki w folderze książki.</extracomment>
+        <translation>Bez tej opcji odnośniki do obrazów wskazują pliki w folderze książki.</translation>
+    </message>
+    <message>
+        <source>Markdown has no comments: the annotations stay only in the book.</source>
+        <extracomment>In the group of the annotations, for a Markdown file. In Polish: Markdown nie ma komentarzy: uwagi zostają tylko w książce.</extracomment>
+        <translation>Markdown nie ma komentarzy: uwagi zostają tylko w książce.</translation>
+    </message>
+    <message>
+        <source>The progress and the result will show here.</source>
+        <extracomment>In Polish: Postęp i wynik pokażą się tutaj.</extracomment>
+        <translation>Postęp i wynik pokażą się tutaj.</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <extracomment>The button that writes the file. In Polish: Eksportuj</extracomment>
+        <translation>Eksportuj</translation>
+    </message>
+    <message>
+        <source>6 x 9 in</source>
+        <extracomment>A size of the page. In Polish: 6 x 9 cali</extracomment>
+        <translation>6 x 9 cali</translation>
+    </message>
+    <message>
+        <source>Letter</source>
+        <extracomment>A size of the page (8.5 x 11 in). In Polish: Letter</extracomment>
+        <translation>Letter</translation>
+    </message>
+    <message>
+        <source>Legal</source>
+        <extracomment>A size of the page (8.5 x 14 in). In Polish: Legal</extracomment>
+        <translation>Legal</translation>
+    </message>
+    <message>
+        <source>%1, mirror margins: inner %2, outer %3</source>
+        <extracomment>The page of the export; %1: its size, %2 and %3: the margins. In Polish: %1, marginesy lustrzane: wewnętrzny %2, zewnętrzny %3</extracomment>
+        <translation>%1, marginesy lustrzane: wewnętrzny %2, zewnętrzny %3</translation>
+    </message>
+    <message>
+        <source>%1, margins: left %2, right %3, top %4, bottom %5</source>
+        <extracomment>The page of the export; %1: its size, %2-%5: the margins. In Polish: %1, marginesy: lewy %2, prawy %3, górny %4, dolny %5</extracomment>
+        <translation>%1, marginesy: lewy %2, prawy %3, górny %4, dolny %5</translation>
+    </message>
+    <message>
+        <source>images</source>
+        <extracomment>The last word of the name of the folder of the images of a Markdown file (&quot;Book – images&quot;). In Polish: obrazy</extracomment>
+        <translation>obrazy</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot create the folder %1.</source>
+        <extracomment>%1: the folder of the file. In Polish: Kalahari nie może utworzyć folderu %1.</extracomment>
+        <translation>Kalahari nie może utworzyć folderu %1.</translation>
+    </message>
+    <message>
+        <source>Saved the file %1.</source>
+        <extracomment>%1: the path of the file. In Polish: Zapisano plik %1.</extracomment>
+        <translation>Zapisano plik %1.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The images (%n) are in the folder &quot;%1&quot;.</source>
+        <extracomment>After the file of a Markdown export; %1: the name of the folder. In Polish: Obrazy (%n) są w folderze „%1”.</extracomment>
+        <translation>
+            <numerusform>Obraz (%n) jest w folderze „%1”.</numerusform>
+            <numerusform>Obrazy (%n) są w folderze „%1”.</numerusform>
+            <numerusform>Obrazy (%n) są w folderze „%1”.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>The files of %n images were not found: the file does not have them.</source>
+        <extracomment>After the file of an export. In Polish: Brak plików %n obrazów – nie ma ich w wyeksportowanym pliku.</extracomment>
+        <translation>
+            <numerusform>Brak pliku jednego obrazu – nie ma go w wyeksportowanym pliku.</numerusform>
+            <numerusform>Brak plików %n obrazów – nie ma ich w wyeksportowanym pliku.</numerusform>
+            <numerusform>Brak plików %n obrazów – nie ma ich w wyeksportowanym pliku.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The file could not be saved.</source>
+        <extracomment>In Polish: Nie udało się zapisać pliku.</extracomment>
+        <translation>Nie udało się zapisać pliku.</translation>
+    </message>
+    <message>
+        <source>Folder of the Export</source>
+        <extracomment>The title of the system window that chooses the folder of the exported file. In Polish: Folder eksportu</extracomment>
+        <translation>Folder eksportu</translation>
+    </message>
+    <message>
+        <source>Saves the text &quot;%1&quot; as a Word document.</source>
+        <extracomment>%1: the title of the text. In Polish: Zapisuje tekst „%1” jako dokument Worda.</extracomment>
+        <translation>Zapisuje tekst „%1” jako dokument Worda.</translation>
+    </message>
+    <message>
+        <source>Saves the text &quot;%1&quot; as a Markdown file.</source>
+        <translation>Zapisuje tekst „%1” jako plik Markdown.</translation>
+    </message>
+    <message>
+        <source>Saves the book &quot;%1&quot; as a Word document.</source>
+        <extracomment>%1: the title of the book. In Polish: Zapisuje książkę „%1” jako dokument Worda.</extracomment>
+        <translation>Zapisuje książkę „%1” jako dokument Worda.</translation>
+    </message>
+    <message>
+        <source>Saves the book &quot;%1&quot; as a Markdown file.</source>
+        <translation>Zapisuje książkę „%1” jako plik Markdown.</translation>
+    </message>
+    <message>
+        <source>Kalahari creates this folder during the export.</source>
+        <extracomment>Under a folder that does not exist yet. In Polish: Kalahari utworzy ten folder podczas eksportu.</extracomment>
+        <translation>Kalahari utworzy ten folder podczas eksportu.</translation>
+    </message>
+    <message>
+        <source>The folder has a folder named &quot;%1&quot;. Choose another name.</source>
+        <extracomment>%1: the name of the file. In Polish: W tym folderze jest folder „%1”. Wybierz inną nazwę.</extracomment>
+        <translation>W tym folderze jest folder „%1”. Wybierz inną nazwę.</translation>
+    </message>
+    <message>
+        <source>The folder already has the file &quot;%1&quot;. The export replaces it.</source>
+        <extracomment>%1: the name of the file. In Polish: W tym folderze jest już plik „%1”. Eksport go zastąpi.</extracomment>
+        <translation>W tym folderze jest już plik „%1”. Eksport go zastąpi.</translation>
+    </message>
+    <message>
+        <source>The file gets the name &quot;%1&quot;.</source>
+        <extracomment>%1: the name with its extension. In Polish: Plik dostanie nazwę „%1”.</extracomment>
+        <translation>Plik dostanie nazwę „%1”.</translation>
+    </message>
+    <message>
+        <source>Copy the &amp;images to the folder &quot;%1&quot; next to the file</source>
+        <extracomment>%1: the name of the folder of the images. In Polish: Skopiuj obrazy do &amp;folderu „%1” obok pliku</extracomment>
+        <translation>Skopiuj obrazy do &amp;folderu „%1” obok pliku</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 of %n texts chosen.</source>
+        <extracomment>Under the list of the texts; %1: how many are checked, %n: how many there are. In Polish: Wybrano %1 z %n tekstu / tekstów.</extracomment>
+        <translation>
+            <numerusform>Wybrano %1 z %n tekstu.</numerusform>
+            <numerusform>Wybrano %1 z %n tekstów.</numerusform>
+            <numerusform>Wybrano %1 z %n tekstów.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <extracomment>The name of the exported file of a book without a title. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Type the name of the file.</source>
+        <extracomment>Under an empty name of the file. In Polish: Wpisz nazwę pliku.</extracomment>
+        <translation>Wpisz nazwę pliku.</translation>
+    </message>
+    <message>
+        <source>A name cannot have the characters %1.</source>
+        <extracomment>%1: the characters, with spaces between them. In Polish: Nazwa nie może zawierać znaków %1.</extracomment>
+        <translation>Nazwa nie może zawierać znaków %1.</translation>
+    </message>
+    <message>
+        <source>Kalahari cannot write the file in the folder %1. If the file is open in another program, close it, or choose another folder.</source>
+        <extracomment>%1: the folder of the file. In Polish: Kalahari nie może zapisać pliku w folderze %1. Jeśli plik jest otwarty w innym programie, zamknij go albo wybierz inny folder.</extracomment>
+        <translation>Kalahari nie może zapisać pliku w folderze %1. Jeśli plik jest otwarty w innym programie, zamknij go albo wybierz inny folder.</translation>
+    </message>
+    <message>
+        <source>There is no room left on the disk. Free some space or choose another folder.</source>
+        <extracomment>In Polish: Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</extracomment>
+        <translation>Na dysku zabrakło miejsca. Zwolnij miejsce albo wybierz inny folder.</translation>
+    </message>
+    <message>
+        <source>Fi&amp;le</source>
+        <extracomment>A tab of the window of the export: the format, the folder and the name of the file. In Polish: &amp;Plik</extracomment>
+        <translation>&amp;Plik</translation>
+    </message>
+    <message>
+        <source>&amp;Format:</source>
+        <extracomment>In Polish: &amp;Format:</extracomment>
+        <translation>&amp;Format:</translation>
+    </message>
+    <message>
+        <source>Text&amp;s</source>
+        <extracomment>A tab of the window of the export: what goes to the file. In Polish: T&amp;eksty</extracomment>
+        <translation>T&amp;eksty</translation>
+    </message>
+    <message>
+        <source>La&amp;yout</source>
+        <extracomment>A tab of the window of the export: how the texts look in the file. In Polish: U&amp;kład</extracomment>
+        <translation>U&amp;kład</translation>
+    </message>
+    <message>
+        <source>Annotations and Ima&amp;ges</source>
+        <extracomment>A tab of the window of the export: the annotations and the images. In Polish: Uwagi i o&amp;brazy</extracomment>
+        <translation>Uwagi i o&amp;brazy</translation>
+    </message>
+    <message>
+        <source>A Word document has the images in the file itself.</source>
+        <extracomment>In the group of the images, for a Word document. In Polish: Dokument Worda zawiera obrazy w samym pliku.</extracomment>
+        <translation>Dokument Worda zawiera obrazy w samym pliku.</translation>
+    </message>
+    <message>
+        <source>Word document (.docx)</source>
+        <extracomment>A format of the list of the window of the export. In Polish: Dokument Worda (.docx)</extracomment>
+        <translation>Dokument Worda (.docx)</translation>
+    </message>
+    <message>
+        <source>Markdown (.md)</source>
+        <extracomment>A format of the list of the window of the export. In Polish: Markdown (.md)</extracomment>
+        <translation>Markdown (.md)</translation>
+    </message>
+    <message>
+        <source>Saves the text &quot;%1&quot; in the format %2.</source>
+        <extracomment>The format of a plugin; %1: the title of the text, %2: the format with its extension. In Polish: Zapisuje tekst „%1” w formacie %2.</extracomment>
+        <translation>Zapisuje tekst „%1” w formacie %2.</translation>
+    </message>
+    <message>
+        <source>Saves the book &quot;%1&quot; in the format %2.</source>
+        <extracomment>The format of a plugin; %1: the title of the book, %2: the format with its extension. In Polish: Zapisuje książkę „%1” w formacie %2.</extracomment>
+        <translation>Zapisuje książkę „%1” w formacie %2.</translation>
     </message>
 </context>
 </TS>

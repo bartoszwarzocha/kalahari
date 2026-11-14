@@ -473,7 +473,8 @@ comes back as a break where that format tells it apart from the end of a paragra
 | Plain text files (`.txt`) | A line end | As the plain text of the clipboard |
 | Grammar check (LanguageTool) | A line end | – |
 
-Export and import of other formats are not written yet; they are to keep a line break so:
+File > Export > DOCX and Markdown write a line break as the table says (see Export to DOCX and
+Markdown below); the other exports and the imports are not written yet and are to keep it so:
 
 | Format | Export | Import |
 |--------|--------|--------|
@@ -484,6 +485,37 @@ Export and import of other formats are not written yet; they are to keep a line 
 | InDesign ICML | The character U+2028 (a forced line break) | – |
 | LaTeX | `\\` at the end of the line | – |
 | Scrivener (RTF) | – | `\line` |
+
+## Export to DOCX and Markdown
+
+File > Export > DOCX and Markdown write the whole book, the texts chosen in the window, or the
+text in front (also a file outside the book), in the order of the Navigator, the open texts with
+their unsaved changes. Each text is read as the editor reads it, so lists, captions and notes have
+the numbers the editor shows, in the book around them. The window keeps its choices in the
+settings `export.*`; the page comes from Settings > Editor > Pages and Margins.
+
+| KML | DOCX (WordprocessingML) | Markdown (GitHub Flavored) |
+|-----|-------------------------|----------------------------|
+| A title of the Navigator (option) | A paragraph in the style of the title: `part_title` for a part, `chapter_title` for a text, `heading_1` where the book has none; a text that starts with a heading keeps its own, and the title page, copyright page, dedication and motto get none | `#` |
+| `heading_1`–`heading_3` and the styles based on them | Word's built-in Heading 1–3 (`Heading1`, `outlineLvl`), so Word's navigation pane and table of contents show them | `#`, `##`, `###` |
+| `normal`, `quote`, `caption`, `footnote` | Word's built-in Normal, Quote, Caption and Footnote Text, with the values of the book's styles | A paragraph; a quote as `>` |
+| Any other paragraph style | A style of the same name (id in PascalCase), based on its base style, with its next style | A paragraph; `code` as a fenced block |
+| A paragraph's own formatting | `w:pPr`: alignment, indents, spacing, line spacing, keep with next, keep lines together, page break before, widow control | – |
+| `<b>`, `<i>`, `<s>`, `<u>`, `<sub>`, `<sup>` | `w:b`, `w:i`, `w:strike`, `w:u`, `w:vertAlign` | `**`, `*`, `~~`, `<u>`, `<sub>`, `<sup>` (the spaces at the ends stay outside) |
+| Font, size, color, background, small capitals, letter spacing | `w:rFonts`, `w:sz`, `w:color`, `w:shd`, `w:smallCaps`, `w:spacing` | – |
+| `<a href>` | A hyperlink (web and e-mail addresses) | `[text](address)` |
+| A scene break | A centered paragraph with the symbol of Settings, a short line, or an empty paragraph | The same symbol (escaped); a short line as `---`, an empty line as `&nbsp;` |
+| A horizontal line | A paragraph with a bottom border | `---` |
+| A page break | The next paragraph starts a page (`w:pageBreakBefore`) | – |
+| A list | Word's numbering (`numbering.xml`): the level formats and bullets, the indents, an item's own number (`w:startOverride`) | `1.` and `-`, the levels indented; an item of its own number starts another list (`<!-- -->`) |
+| A table | `w:tbl`: its width and its columns' widths, merged cells (`w:gridSpan`, `w:vMerge`), header rows repeated (`w:tblHeader`), borders, cell backgrounds, row heights | A pipe table; a merged cell's text in its first column |
+| An image | An inline picture: the file as it is when the editor shows it so, else drawn with its crop, turn, mirror, filter, border and shadow (PNG, or JPEG for a photo); its alternative text, or decorative | `![alt](path)`, the files copied to "<name> – images" next to the file, or linked in the book's folder |
+| A caption's number, a cross-reference, the list of figures | The text the editor shows; a cross-reference and a row of the list link to the caption (a bookmark) | The text the editor shows |
+| A footnote, an endnote | Word's footnotes and endnotes, in the book's number formats, numbered anew in each text or through the book; endnotes after each text or at the end of the book | `[^label]`, the notes at the end of the file |
+| An annotation (option) | A Word comment with its author and date (a to-do done: resolved, `w15:done`); a to-do or a note starts with its kind | – |
+| The table of contents (an element of the book) | Word's TOC field (`TOC \o "1-3" \h \z \u`), filled with the headings; Word updates it when the file opens (`w:updateFields`) | A list of the headings with links to them |
+| The book's title, author and language | `docProps/core.xml` and the language of the text | – |
+| Each text (option) | A section of its own from a new page (a right page with mirror margins, unless the text starts on a left one) with the page size, margins and page numbers of the settings | – |
 
 ## Inline formatting
 

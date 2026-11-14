@@ -117,7 +117,7 @@ Design of the text styles: `docs/superpowers/specs/2026-04-10-text-styling-syste
       user-defined styles stored in the project
 - [ ] Statistics bar and weekly statistics panel
 - [ ] Named perspectives (Writer, Editor, Researcher, Planner), save and manage dialogs
-- [ ] Export: DOCX and Markdown
+- [x] Export: DOCX and Markdown (File > Export: the whole book, chosen texts or the text in front)
 - [ ] Review of the default toolbar layout
 
 ---

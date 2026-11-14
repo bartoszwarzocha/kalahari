@@ -40,6 +40,8 @@ const char* lastFolderSetting(Operation operation) {
         return "project.lastFolders.insertImage";
     case Operation::SaveImage:
         return "project.lastFolders.saveImage";
+    case Operation::ExportBook:
+        return "project.lastFolders.exportBook";
     }
     return "";
 }
@@ -61,6 +63,8 @@ QString settingsFolderOf(Operation operation) {
     case Operation::ExportArchive:
     case Operation::ImportArchive:
         return ProgramFolders::archivesFolder();
+    case Operation::ExportBook:
+        return ProgramFolders::exportsFolder();
     case Operation::OpenFile:
     case Operation::AddMaterial:
     case Operation::InsertImage:
@@ -109,6 +113,12 @@ QString ProgramFolders::archivesFolder() {
     return settingFolder(ARCHIVES_SETTING, defaultArchivesFolder());
 }
 
+QString ProgramFolders::exportsFolder() {
+    //: The folder of the exported books (DOCX, Markdown) in the folder of the books. In
+    //: Polish: Eksport
+    return QDir(booksFolder()).filePath(tr("Export"));
+}
+
 QString ProgramFolders::startFolder(Operation operation) {
     QString last = settingFolder(lastFolderSetting(operation), QString());
     if (!last.isEmpty() && QFileInfo(last).isDir()) {
@@ -137,7 +147,8 @@ void ProgramFolders::remember(Operation operation, const QString& folder) {
 void ProgramFolders::forgetFolders(const std::string& settingKey) {
     std::vector<Operation> operations;
     if (settingKey == BOOKS_SETTING) {
-        operations = {Operation::NewBook, Operation::OpenBook, Operation::ImportDestination};
+        operations = {Operation::NewBook, Operation::OpenBook, Operation::ImportDestination,
+                      Operation::ExportBook};
     } else if (settingKey == ARCHIVES_SETTING) {
         operations = {Operation::ExportArchive, Operation::ImportArchive};
     }

@@ -68,6 +68,7 @@ class EditCoordinator;
 class SpecialCharacterCoordinator;
 class VersionsCoordinator;
 class StyleCoordinator;
+class BookExportCoordinator;
 class CaptionCoordinator;
 class FootnoteCoordinator;
 class ChapterBreakCoordinator;
@@ -470,6 +471,9 @@ private:
 
     /// @brief Insert > Footnote and Endnote, and the frame of a note's text
     FootnoteCoordinator* m_footnoteCoordinator{nullptr};
+
+    /// @brief File > Export > DOCX and Markdown
+    BookExportCoordinator* m_bookExportCoordinator{nullptr};
 
     /// @brief Edit > Find in Book... and Replace All in Book, in the Search panel
     BookSearchCoordinator* m_bookSearchCoordinator{nullptr};
