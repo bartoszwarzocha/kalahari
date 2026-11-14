@@ -18,6 +18,9 @@ REM environment. The token is never printed or written anywhere.
 REM =============================================================================
 
 setlocal
+REM SHIFT below moves %0 too, so the script's own folder and name are kept here
+set "SCRIPT_DIR=%~dp0"
+set "SCRIPT_NAME=%~nx0"
 set "PROJECT_ROOT=%~dp0.."
 cd /d "%PROJECT_ROOT%"
 set "EXIT_CODE=0"
@@ -67,13 +70,13 @@ if errorlevel 1 (
 
 REM --- Build (the analysis needs compile_commands.json and Qt's generated files) ---
 if "%RUN_BUILD%"=="1" (
-    call "%~dp0build_windows.bat" Debug
+    call "%SCRIPT_DIR%build_windows.bat" Debug
     if errorlevel 1 goto fail
     cd /d "%PROJECT_ROOT%"
 )
 
 REM --- clang-tidy and scan ---------------------------------------------------------
-python "%~dp0sonar_analysis.py" %ANALYSIS_ARGS%
+python "%SCRIPT_DIR%sonar_analysis.py" %ANALYSIS_ARGS%
 if errorlevel 1 goto fail
 goto end
 
@@ -84,5 +87,6 @@ echo [ERROR] SonarQube analysis failed.
 
 :end
 REM Keep the window open when the script was started by a double-click
-echo %cmdcmdline% | find /i "%~nx0" >nul && pause
+REM (full path: a shell may put another "find" or "findstr" first on PATH)
+echo %cmdcmdline% | "%SystemRoot%\System32\findstr.exe" /i /c:"%SCRIPT_NAME%" >nul && pause
 endlocal & exit /b %EXIT_CODE%

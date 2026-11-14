@@ -218,7 +218,7 @@ def run_clang_tidy(clang_tidy: str, database_dir: Path, unit: Path, checks: str,
     ]
     try:
         result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8",
-                                errors="replace", env=environment, cwd=build_dir,
+                                errors="replace", env=environment, cwd=database_dir,
                                 timeout=CLANG_TIDY_TIMEOUT_S, check=False)
         return unit, result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -328,6 +328,8 @@ def scan_step(args, build_dir: Path, report: Path) -> None:
 
 
 def main() -> None:
+    # Progress lines must show up at once also when the output goes to a log file
+    sys.stdout.reconfigure(line_buffering=True)
     parser = argparse.ArgumentParser(description="SonarQube analysis of Kalahari")
     parser.add_argument("--build-dir", type=Path, default=default_build_dir())
     parser.add_argument("--checks", default="*")
