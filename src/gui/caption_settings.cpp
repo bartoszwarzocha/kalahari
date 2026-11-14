@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file caption_settings.cpp
 /// @brief The settings of new images and of the captions of new books
 

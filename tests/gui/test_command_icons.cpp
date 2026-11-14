@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_command_icons.cpp
 /// @brief Every command in a menu has an icon, and every submenu, in the icon colors
 

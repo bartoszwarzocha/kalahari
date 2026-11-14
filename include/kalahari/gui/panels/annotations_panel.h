@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotations_panel.h
 /// @brief The Annotations panel: the comments, to-dos and notes of a chapter or the book
 

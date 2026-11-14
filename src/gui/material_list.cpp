@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list.cpp
 /// @brief The lists of the materials of the Workshop on their tabs
 

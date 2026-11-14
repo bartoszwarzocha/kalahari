@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file panel_tab_bar.h
 /// @brief The tabs of panels docked one over another, and of the middle of the window in more
 /// rows: icons, names or both, in one row or in as many rows as the width needs

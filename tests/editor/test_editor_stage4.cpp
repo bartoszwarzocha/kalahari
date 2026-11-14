@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage4.cpp
 /// @brief Editor stage 4: page mode (page flow in the layout, pages in the view), zoom
 ///        and typewriter scrolling

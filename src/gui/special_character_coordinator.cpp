@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file special_character_coordinator.cpp
 /// @brief Insert > Special Character... and Insert > Quick Character: the window and the
 ///        palette, the characters they insert in the text in front, the keys of the characters

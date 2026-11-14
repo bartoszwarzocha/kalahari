@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_spell_check_service.cpp
 /// @brief The spelling dictionary: loading (also in the background, also for two services
 ///        at a time), what is checked and the writer's own words (also shared)

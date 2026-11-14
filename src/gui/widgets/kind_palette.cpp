@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kind_palette.cpp
 /// @brief The palette: the kinds of elements of all book types, which the writer chooses for a
 /// user project

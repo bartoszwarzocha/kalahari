@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_panel_widths.cpp
 /// @brief The side panels fit a narrow dock, and their muted texts can be read
 ///

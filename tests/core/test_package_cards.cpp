@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_package_cards.cpp
 /// @brief Cards of the book type packages in the folder of a book: a new book gets them, a
 /// newer installed package refreshes them, an archive takes them along, and a book whose

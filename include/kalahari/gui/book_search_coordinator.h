@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_search_coordinator.h
 /// @brief Edit > Find in Book...: the search in all the texts of the book in the Search panel,
 ///        and Replace All in Book with Undo

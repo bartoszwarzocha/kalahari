@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_paragraph_panel.cpp
 /// @brief The Paragraph and Styles panel: the band of the paragraph at the cursor, the
 ///        buttons of its formatting and the palette of the styles of the book

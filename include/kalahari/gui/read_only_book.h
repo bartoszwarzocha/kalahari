@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file read_only_book.h
 /// @brief What the program says of a book open read-only, as the program does not have all the
 /// book types the book uses (core::ProjectManager::isReadOnly())

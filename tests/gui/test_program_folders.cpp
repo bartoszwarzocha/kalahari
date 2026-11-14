@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_program_folders.cpp
 /// @brief The folders of the program: the folders of the books, the archives and the backups,
 /// the folders the windows choosing files start in, and the Folders page of the Settings

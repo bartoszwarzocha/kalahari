@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_material_list.cpp
 /// @brief The lists of the kinds of materials on their tabs: the columns, the rows, the search,
 /// the filters, the tiles, the keys, and the Navigator that opens them

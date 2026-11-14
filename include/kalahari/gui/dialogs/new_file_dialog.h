@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file new_file_dialog.h
 /// @brief New File: a new element of the open book, of the kind, with the title and at the
 /// place the writer chooses, or an empty text file, outside the book or with it; and Add

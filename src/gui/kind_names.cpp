@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kind_names.cpp
 /// @brief The names of kinds of elements in the program's sentences, in the program's language
 

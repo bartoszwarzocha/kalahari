@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file archive_dialogs.h
 /// @brief Export Project Archive and Import Project Archive: each in one window, from the
 /// choice of the archive to the result of the work

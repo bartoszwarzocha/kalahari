@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_insert_table_dialog.cpp
 /// @brief Insert > Table...: the window of the new table and the table the editor panel puts
 ///        in the text

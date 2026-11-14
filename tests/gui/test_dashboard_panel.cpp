@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_dashboard_panel.cpp
 /// @brief The Dashboard on a small screen: its parts go one under another and its texts
 ///        wrap, so that nothing is cut off

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list.h
 /// @brief The lists of the materials of the Workshop on their tabs: the kinds of the Materials,
 /// the columns of each kind and what a material shows in them

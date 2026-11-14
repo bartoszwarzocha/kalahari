@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file project_lock.h
 /// @brief Project lock mechanism to prevent concurrent access
 ///

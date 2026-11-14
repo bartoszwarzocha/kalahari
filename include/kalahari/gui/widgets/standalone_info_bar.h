@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file standalone_info_bar.h
 /// @brief Info bar widget for standalone files (not part of the book), for a book open
 /// read-only, and for a notice of what was just done to a text

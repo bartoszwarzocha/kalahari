@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_link.h
 /// @brief Links in the text: text whose characters carry the address of a web page
 ///

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_cover_list.cpp
 /// @brief The materials of the cover in the program: their names, the list grouped by kind with
 /// its plan, their states, the kinds hidden in the Navigator, the card and the settings

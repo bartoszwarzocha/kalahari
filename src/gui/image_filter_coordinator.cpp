@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file image_filter_coordinator.cpp
 /// @brief Image > Filter > Same Filter for All Images...: the filter of one image for every
 ///        image of the book, with Undo

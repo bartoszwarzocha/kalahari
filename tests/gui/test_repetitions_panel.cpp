@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_repetitions_panel.cpp
 /// @brief The Repetitions panel: its cards and words, what it says without them, its keys; with
 ///        the texts: the words counted, marked and framed in the text, gone to from the panel,

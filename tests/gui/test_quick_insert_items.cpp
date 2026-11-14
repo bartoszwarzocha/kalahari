@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_quick_insert_items.cpp
 /// @brief Quick insert in the program: the cards of the Workshop, the fragments and the
 ///        characters of the settings, the page Settings > Editor > Quick Insert and its window

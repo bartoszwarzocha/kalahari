@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file find_replace_bar.h
 /// @brief Inline find/replace bar widget (OpenSpec #00044 Task 9.6)
 ///

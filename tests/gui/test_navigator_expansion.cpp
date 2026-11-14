@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_navigator_expansion.cpp
 /// @brief Navigator tree expansion state survives closing and reopening a book; the
 ///        elements' status shows in the program's language

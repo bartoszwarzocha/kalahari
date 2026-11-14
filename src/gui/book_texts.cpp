@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_texts.cpp
 /// @brief The texts of the open book in reading order, and the saved text of one not open
 

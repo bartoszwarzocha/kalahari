@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_export.cpp
 /// @brief What the writers of DOCX and Markdown share: the texts read as the editor reads
 ///        them, the pieces of their paragraphs, the kinds of the styles and the pictures

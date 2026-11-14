@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_style_dialogs.cpp
 /// @brief New Style and Modify Style in both of their variants, Format > Font and Format >
 ///        Paragraph for a style, and Manage Styles

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file caption_coordinator.cpp
 /// @brief The numbered captions of the book: the numbers of every open text in the book around
 ///        it, Insert Caption, Insert Cross-Reference and Insert List of Figures

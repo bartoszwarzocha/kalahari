@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file insert_table_dialog.h
 /// @brief Insert > Table...: the columns and rows of a new table
 

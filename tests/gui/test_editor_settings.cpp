@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_settings.cpp
 /// @brief The editors follow the editor settings, wherever they are changed; the Settings
 ///        dialog greys out the editor options the editor does not use yet

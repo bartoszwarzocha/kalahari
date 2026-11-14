@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_search.cpp
 /// @brief Find in Book: the texts of the book searched as the editor would search them, open
 ///        or not, with the texts of their notes; the matches in the Search panel, going to them,

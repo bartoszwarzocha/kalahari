@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_style_coordinator.cpp
 /// @brief The paragraph styles of the book changed from Format > Text Style: a new style, a
 ///        style of the type changed and reset, a deleted style whose paragraphs go to its base

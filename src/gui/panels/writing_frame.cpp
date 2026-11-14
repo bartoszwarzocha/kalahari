@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_frame.cpp
 /// @brief A frame over the editor a text is written in: an annotation's, a note's
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage0_benchmark.cpp
 /// @brief Editor benchmark on a ~150k-word document (written in Stage 0, kept up to date)
 ///

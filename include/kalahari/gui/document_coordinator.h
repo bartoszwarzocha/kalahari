@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file document_coordinator.h
 /// @brief Document lifecycle and file operations coordination for MainWindow
 ///

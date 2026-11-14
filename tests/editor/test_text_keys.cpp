@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_text_keys.cpp
 /// @brief The keys of the text: the tables of Windows and Linux and of macOS, and what each
 ///        key does in the editor

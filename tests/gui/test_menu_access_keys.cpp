@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_menu_access_keys.cpp
 /// @brief The access keys of the menus, in English and in Polish
 ///

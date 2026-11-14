@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file grammar_coordinator.h
 /// @brief Grammar as you type: where the text is checked (LanguageTool on this computer or a
 ///        server in the internet), the preparation of LanguageTool, the language and the

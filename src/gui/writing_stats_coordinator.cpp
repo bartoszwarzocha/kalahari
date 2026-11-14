@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_stats_coordinator.cpp
 /// @brief The statistics and goals of writing in the main window
 

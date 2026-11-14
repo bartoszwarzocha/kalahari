@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotations_coordinator.cpp
 /// @brief The writer's annotations: the commands for them, the frame their text is written
 /// in and the Annotations panel

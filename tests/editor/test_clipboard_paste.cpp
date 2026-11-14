@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_clipboard_paste.cpp
 /// @brief Text of other programs pasted in the three paste modes, and the HTML and plain text
 ///        the other programs get of Kalahari's text

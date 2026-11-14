@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file stats_painter.h
 /// @brief The colors and the drawing that the statistics bar, the Statistics panel and the
 /// goals share: graphs on a fine grid, thin lines with a translucent fill, as in the Task

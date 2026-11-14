@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_source.cpp
 /// @brief Where a material comes from, and what comes to the Navigator from outside the program
 

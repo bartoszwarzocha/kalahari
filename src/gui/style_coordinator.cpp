@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file style_coordinator.cpp
 /// @brief New, changed and deleted paragraph styles of the book, and the undo of the last change
 

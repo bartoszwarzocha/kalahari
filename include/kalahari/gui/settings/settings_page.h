@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file settings_page.h
 /// @brief Base class of the Settings dialog pages: controls bound to setting keys
 ///

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_table_dialogs.cpp
 /// @brief The windows of the Table menu: Split Cells..., Sort..., Text to Table..., Table to
 ///        Text... and Table Properties..., and the editor panel that shows them

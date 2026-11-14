@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_document_model.cpp
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting
 ///

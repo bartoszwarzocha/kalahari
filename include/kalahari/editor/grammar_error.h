@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file grammar_error.h
 /// @brief An issue of grammar, style or punctuation found by LanguageTool
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file trusted_keys.h
 /// @brief Manages trusted publisher keys for plugin verification
 ///

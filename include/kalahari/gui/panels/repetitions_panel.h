@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file repetitions_panel.h
 /// @brief The panel Repetitions: the words of the text in front, or of the whole book, that
 ///        come back too close, and the words used most often

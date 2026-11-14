@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_view_modes.cpp
 /// @brief Unit tests for EditorAppearance and the view modes of BookEditor
 

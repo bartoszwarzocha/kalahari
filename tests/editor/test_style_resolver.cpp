@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_style_resolver.cpp
 /// @brief Unit tests for StyleResolver (Sub-Project C WS4.4)
 ///

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_kind_names.cpp
 /// @brief The names of kinds in the texts of menu commands, and of types and kinds that the
 /// program does not have

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_views_toolbar.cpp
 /// @brief The Views toolbar: the view modes, the switches, the paper, the text frame border,
 ///        the formatting marks, the margin numbering and the zoom of the View menu

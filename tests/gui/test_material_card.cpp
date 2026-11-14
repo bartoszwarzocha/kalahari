@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_material_card.cpp
 /// @brief The card of a material in the Properties panel, its preview tab and Link
 

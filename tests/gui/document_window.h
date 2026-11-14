@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file document_window.h
 /// @brief For the tests of the commands of the documents: the main window's tabs and panels
 /// with their coordinators, a book open until the test ends, and the windows the commands show

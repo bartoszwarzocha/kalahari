@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file menu_builder.cpp
 /// @brief MenuBuilder implementation with hierarchical menu support (Task #00016)
 ///

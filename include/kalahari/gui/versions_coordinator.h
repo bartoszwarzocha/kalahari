@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file versions_coordinator.h
 /// @brief The versions of the texts of the book: File > Save Version and File > Version
 /// History, from the text in front, the Navigator and the Properties panel

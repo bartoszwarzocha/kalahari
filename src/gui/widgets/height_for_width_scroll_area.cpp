@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file height_for_width_scroll_area.cpp
 /// @brief A scroll area as high as its content needs at its width, which scrolls only in a
 ///        panel too low for it

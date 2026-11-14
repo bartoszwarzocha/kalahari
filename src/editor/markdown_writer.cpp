@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file markdown_writer.cpp
 /// @brief Export of a book to Markdown (GitHub Flavored Markdown)
 ///

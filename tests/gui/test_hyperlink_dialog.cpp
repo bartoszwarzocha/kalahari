@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_hyperlink_dialog.cpp
 /// @brief Insert > Link... (Ctrl+K): the window, its gear and what the editor gets from it,
 ///        and the links the editor panel opens

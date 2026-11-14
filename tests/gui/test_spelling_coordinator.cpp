@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_spelling_coordinator.cpp
 /// @brief Spelling as you type in the window: the dictionary follows the settings and the
 ///        book, the editors of the documents check with it (a document outside the book in

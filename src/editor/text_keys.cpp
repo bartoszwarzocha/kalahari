@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_keys.cpp
 /// @brief The keys of the text on Windows and Linux, and on macOS
 

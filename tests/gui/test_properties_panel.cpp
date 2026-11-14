@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_properties_panel.cpp
 /// @brief The Properties panel: the counts of the editor in front
 

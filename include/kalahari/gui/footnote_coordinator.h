@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file footnote_coordinator.h
 /// @brief Insert > Footnote and Endnote, the frame a note's text is written in, and the
 ///        numbers of the notes of every open text in the book around it

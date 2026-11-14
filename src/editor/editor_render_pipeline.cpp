@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_render_pipeline.cpp
 /// @brief Implementation of unified rendering pipeline (OpenSpec #00043 Phase 12.1)
 

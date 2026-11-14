@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file python_interpreter.cpp
 /// @brief Implementation of PythonInterpreter
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_shortcut_rules.cpp
 /// @brief Which keys a command can have: the keys of the text, of the bars and of the system
 

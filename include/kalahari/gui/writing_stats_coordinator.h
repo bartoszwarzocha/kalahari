@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_stats_coordinator.h
 /// @brief The statistics and goals of writing in the main window: the statistics bar above the
 /// tabs of the texts, its commands, the badges and challenges, the messages at the bottom and

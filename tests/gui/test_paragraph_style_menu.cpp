@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_paragraph_style_menu.cpp
 /// @brief Format > Text Style: the styles every book has, with their keys, and the other
 ///        styles of the text in front after Code, one checked at a time

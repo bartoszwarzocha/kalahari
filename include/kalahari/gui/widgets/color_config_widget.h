@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file color_config_widget.h
 /// @brief Reusable color configuration widget for settings panels
 

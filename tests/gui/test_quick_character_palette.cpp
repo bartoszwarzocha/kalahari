@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_quick_character_palette.cpp
 /// @brief Insert > Quick Character: the favorites and the characters used last at the cursor,
 ///        the search, the keys of the palette and its place on the screen

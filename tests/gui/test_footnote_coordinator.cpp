@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_footnote_coordinator.cpp
 /// @brief Notes: the frame their text is written in, Insert > Footnote and Endnote, editing a
 ///        note again, Esc, and the text kept when the frame is left

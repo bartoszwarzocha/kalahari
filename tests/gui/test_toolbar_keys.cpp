@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_toolbar_keys.cpp
 /// @brief After a command given in a toolbar the keys go back where they were (ToolbarKeys);
 ///        the font and the size typed in its fields go on the text at Enter

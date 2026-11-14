@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_types.h
 /// @brief Common types for Kalahari text editor module (OpenSpec #00042)
 ///

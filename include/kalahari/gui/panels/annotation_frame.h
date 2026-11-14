@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotation_frame.h
 /// @brief The frame an annotation's text is written in, at its place in the text
 

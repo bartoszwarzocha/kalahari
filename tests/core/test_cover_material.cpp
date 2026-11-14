@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_cover_material.cpp
 /// @brief The materials of the cover: their data in the book file, their parts and places,
 /// and the lengths of their texts

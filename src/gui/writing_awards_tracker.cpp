@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_awards_tracker.cpp
 /// @brief The badges and challenges of the writer as the writing goes on
 

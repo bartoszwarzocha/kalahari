@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_recent_book_cards.cpp
 /// @brief The cards of the recent books on the Dashboard show the data of each book
 

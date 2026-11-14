@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file chapter_cursor.cpp
 /// @brief A chapter opens where its cursor was when it was closed last
 

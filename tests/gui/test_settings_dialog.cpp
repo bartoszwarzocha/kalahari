@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_settings_dialog.cpp
 /// @brief The settings dialog: lazily built pages, their layout and what Apply writes
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file document_windows.h
 /// @brief The texts of the book window in its tabs and in the windows of their own the tabs are
 /// moved to

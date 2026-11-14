@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_export.cpp
 /// @brief Export of a book to DOCX and Markdown: the parts of the Word document, its styles,
 ///        lists, notes, comments, tables and images, and the Markdown file with its images

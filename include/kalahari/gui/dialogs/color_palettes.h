@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file color_palettes.h
 /// @brief The palettes of the color window: ten families of named colors in six shades
 

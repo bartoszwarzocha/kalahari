@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kalahari_text_document_layout.cpp
 /// @brief Custom QAbstractTextDocumentLayout implementation (OpenSpec #00043)
 

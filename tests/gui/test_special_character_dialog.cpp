@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_special_character_dialog.cpp
 /// @brief Insert > Special Character...: the window in its two views, the favorites and the
 ///        characters used last, the keys of a character and a replacement of auto-correct

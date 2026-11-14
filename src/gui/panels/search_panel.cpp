@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file search_panel.cpp
 /// @brief The Search panel: Find in Book, the matches in all the texts of the book grouped by
 ///        text, and Replace All in Book

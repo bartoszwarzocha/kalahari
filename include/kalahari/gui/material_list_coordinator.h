@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list_coordinator.h
 /// @brief The lists of the kinds of materials on their tabs in the middle of the window
 

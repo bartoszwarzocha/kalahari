@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_versions.cpp
 /// @brief The versions of the texts as the writer uses them: Save Version with its small window
 /// or without it, the window of Version History, restoring a version and inserting a fragment
