@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file table_editing.cpp
 /// @brief Changes of tables (the Table menu): rows, columns, cells, widths, moving, sorting
 ///        and turning text into a table and back

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file path_label.h
 /// @brief A label with a file path, which wraps where its line ends, whatever the path's names
 

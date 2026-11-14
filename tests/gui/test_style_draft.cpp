@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_style_draft.cpp
 /// @brief A paragraph style as the window of a style changes it: what it sets itself, what it
 ///        takes from its base style, the sentence of what it is, and the entry the book keeps

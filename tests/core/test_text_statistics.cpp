@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_text_statistics.cpp
 /// @brief Unit tests for countText() - the application's single word count definition
 

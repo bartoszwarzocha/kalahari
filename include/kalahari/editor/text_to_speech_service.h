@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_to_speech_service.h
 /// @brief Text-to-Speech service for reading documents aloud (OpenSpec #00042 Phase 6.21-6.24)
 ///

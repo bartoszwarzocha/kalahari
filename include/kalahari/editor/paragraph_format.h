@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file paragraph_format.h
 /// @brief A paragraph's own formatting (Format > Paragraph): its indents, spacing, line
 ///        spacing and the breaks of lines and pages, over what its style gives it

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file properties_panel.h
 /// @brief Contextual properties panel for project and chapter properties (Qt6)
 ///

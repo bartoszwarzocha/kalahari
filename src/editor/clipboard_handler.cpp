@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file clipboard_handler.cpp
 /// @brief Clipboard operations implementation (OpenSpec #00042 Phase 4.13-4.16)
 

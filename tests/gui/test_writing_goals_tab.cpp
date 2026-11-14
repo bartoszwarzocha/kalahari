@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_writing_goals_tab.cpp
 /// @brief The tab Writing Goals and Deadlines: the writer's goals in the settings, the goals of
 /// the book in the book, at once, and the window of a deadline

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_own_windows.cpp
 /// @brief The program shows only its own windows: no window of the system but those that
 /// choose a file or a folder, and every dialog on the common base (KalahariDialog), also

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file length_spin_box.h
 /// @brief A spin box for a length, shown in the unit the user chose
 ///

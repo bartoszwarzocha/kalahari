@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_text_links.cpp
 /// @brief Links in the text: KML, Insert > Link, typing next to a link, the context menu,
 ///        Ctrl+click, the clipboard, the look and autocorrect of typed addresses

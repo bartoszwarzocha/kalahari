@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file export_book_dialog.cpp
 /// @brief File > Export > DOCX and Markdown: the file, the texts of the book and how they look
 /// in it, and the progress and the result of the export in one window

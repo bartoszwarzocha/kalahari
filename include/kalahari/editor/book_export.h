@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_export.h
 /// @brief Export of a book to a Word document (DOCX) and to Markdown (GitHub Flavored)
 ///

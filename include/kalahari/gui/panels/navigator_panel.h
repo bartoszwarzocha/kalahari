@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file navigator_panel.h
 /// @brief Navigator panel for project structure navigation (Qt6)
 ///

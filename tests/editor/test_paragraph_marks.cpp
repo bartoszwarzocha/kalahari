@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_paragraph_marks.cpp
 /// @brief The marks beside the paragraphs (the paperclips of the materials linked with them):
 ///        in the left margin in the color of the text, with their paragraphs as the text is

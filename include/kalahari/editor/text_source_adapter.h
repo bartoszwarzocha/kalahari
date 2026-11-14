@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_source_adapter.h
 /// @brief Abstract text source interface for EditorRenderPipeline (OpenSpec #00043 Phase 12.1)
 ///

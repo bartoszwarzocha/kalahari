@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_keys.h
 /// @brief The keys of the text: what each key does in the editor, on each system
 ///

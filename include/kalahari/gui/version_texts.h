@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file version_texts.h
 /// @brief What the program says of a version of a text (core::ChapterVersion): when it was
 /// kept, where it comes from, its words and its icon, alike in the window of the versions, the

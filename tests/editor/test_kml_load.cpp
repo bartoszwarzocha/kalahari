@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_kml_load.cpp
 /// @brief KML reading through the path a chapter takes when it is opened
 ///

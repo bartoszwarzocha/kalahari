@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file paragraph_panel.h
 /// @brief The Paragraph and Styles panel: the paragraph at the cursor of the text in front,
 /// the buttons of its formatting and the palette of the book's styles

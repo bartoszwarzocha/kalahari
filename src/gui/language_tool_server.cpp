@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file language_tool_server.cpp
 /// @brief The LanguageTool server on this computer: one the program starts and closes, or one
 ///        started outside it

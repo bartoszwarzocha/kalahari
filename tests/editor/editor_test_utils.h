@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_test_utils.h
 /// @brief Helpers shared by the editor tests and the editor benchmark
 

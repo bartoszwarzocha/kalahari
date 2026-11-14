@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_save_all.cpp
 /// @brief "Save All" saves the book and every open file outside it; closing the book asks only
 /// about the changes of the book; a book of a newer version of Kalahari has its own window, and

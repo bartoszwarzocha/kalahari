@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_format_registry.cpp
 /// @brief KML Format Registry implementation (OpenSpec #00043)
 ///

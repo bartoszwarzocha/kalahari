@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_buffer_commands.cpp
 /// @brief Unit tests for the cursor position helpers of buffer_commands.h
 

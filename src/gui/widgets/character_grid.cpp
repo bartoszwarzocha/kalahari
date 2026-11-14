@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file character_grid.cpp
 /// @brief The characters of Insert > Special Character... and of the quick palette in cells,
 ///        in the font of the text they go into

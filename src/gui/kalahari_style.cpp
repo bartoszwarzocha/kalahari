@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kalahari_style.cpp
 /// @brief Implementation of KalahariStyle for dynamic icon sizing, grey menu items under the
 /// keys, tooltips and check boxes

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_read_only_book.cpp
 /// @brief A book whose type the program does not have, or not whole, open read-only in the
 /// window: the bar at the bottom says why and exports its archive, its chapters are read and

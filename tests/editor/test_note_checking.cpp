@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_note_checking.cpp
 /// @brief The texts of the notes in the tools of the text: the search and the replacement,
 ///        the spelling and the grammar (a LanguageTool stand-in on localhost)

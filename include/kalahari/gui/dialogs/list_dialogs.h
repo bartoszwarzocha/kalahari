@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file list_dialogs.h
 /// @brief The windows of the lists: Format > Bullets and Numbering... and Set Numbering
 ///        Value... of the context menu of a list item

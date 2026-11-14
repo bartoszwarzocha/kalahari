@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kalahari_dialog.cpp
 /// @brief The base of the program's own dialogs: one look for all of them
 

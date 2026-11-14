@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file cover_plan.cpp
 /// @brief The plan of the cover: the cover unfolded with the materials in their places
 

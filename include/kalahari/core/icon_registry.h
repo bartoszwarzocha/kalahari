@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file icon_registry.h
 /// @brief Central icon management system with runtime theming and customization
 ///

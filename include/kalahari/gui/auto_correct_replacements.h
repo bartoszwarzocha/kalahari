@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file auto_correct_replacements.h
 /// @brief The replacement table of auto-correct in the settings: the pairs of a typed word and
 ///        its replacement, each one on or off

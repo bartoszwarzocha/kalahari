@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_auto_correct_settings.cpp
 /// @brief Settings > Editor > Auto-correct and the editors: what is changed as the text is
 ///        typed, in the quotation marks of the text's language, and Ctrl+Z right after a

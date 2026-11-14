@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file badge_painter.h
 /// @brief The look of the badges and their texts, shared by the tab Challenges and Badges, the
 /// Statistics panel and the messages: a round badge with the mark of its kind, in the color of

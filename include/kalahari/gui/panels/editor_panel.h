@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_panel.h
 /// @brief Editor panel with BookEditor integration (OpenSpec #00042 Phase 7.1)
 ///

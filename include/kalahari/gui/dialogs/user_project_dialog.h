@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file user_project_dialog.h
 /// @brief The second step of a new user project: the kinds of elements of the book
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file split_editor_panel.h
 /// @brief SplitEditorPanel - Container for split view editing (OpenSpec #00042)
 ///

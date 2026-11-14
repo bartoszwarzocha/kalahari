@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file character_dialogs.cpp
 /// @brief The small windows of Insert > Special Character...: the keys of a character, and a
 ///        replacement of auto-correct that gives a character

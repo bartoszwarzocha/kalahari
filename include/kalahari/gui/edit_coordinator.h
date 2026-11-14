@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file edit_coordinator.h
 /// @brief Undo, Redo, Cut, Copy, Paste, Delete and Select All work on the element with the
 ///        keys; the commands of the book's text work only there

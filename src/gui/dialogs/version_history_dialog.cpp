@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file version_history_dialog.cpp
 /// @brief The window of the versions of a text: read, compare, bring back, take a fragment
 

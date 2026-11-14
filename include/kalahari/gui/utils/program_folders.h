@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file program_folders.h
 /// @brief The folders of the program and the folders the windows choosing files start in
 

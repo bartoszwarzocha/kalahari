@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file main.cpp
 /// @brief Kalahari Writer's IDE - Main entry point (Qt6)
 ///

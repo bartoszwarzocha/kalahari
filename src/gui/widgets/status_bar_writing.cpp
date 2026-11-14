@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file status_bar_writing.cpp
 /// @brief The time of writing today and the days in a row, in the status bar
 

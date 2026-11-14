@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_type_registry.cpp
 /// @brief Book type packages loaded from folders, and what a book of each type offers
 

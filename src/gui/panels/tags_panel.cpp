@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file tags_panel.cpp
 /// @brief Implementation of Tags panel (OpenSpec #00042 Task 7.10)
 

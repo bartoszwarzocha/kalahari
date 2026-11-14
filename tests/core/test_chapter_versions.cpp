@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_chapter_versions.cpp
 /// @brief Versions of the texts of the chapter files: where they are kept, their list, their
 /// texts, and what goes when versions are deleted

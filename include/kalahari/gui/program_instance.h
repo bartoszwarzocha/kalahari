@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file program_instance.h
 /// @brief One program for the writer: a later start hands its request to the program that
 /// runs, and ends

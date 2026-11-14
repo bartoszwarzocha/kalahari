@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_file_trash.cpp
 /// @brief Files to the Trash of the system, and the Trash of a test in its place
 

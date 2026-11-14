@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file paragraph_styles.h
 /// @brief The paragraph styles of a book and the objects of its text (a horizontal line, the
 ///        scene and page breaks)

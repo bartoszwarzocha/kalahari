@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_dock_layout.cpp
 /// @brief The panels of the main window: the Annotations panel is on top of the panels on the
 /// right by default, choosing an element in the Navigator does not cover it, the Paragraph and

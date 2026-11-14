@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_panel_coordinator.h
 /// @brief The Spelling and Grammar panel: the issues of the text in front, what the writer
 ///        does with them, and when the panel shows

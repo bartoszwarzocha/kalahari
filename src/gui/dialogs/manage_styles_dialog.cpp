@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file manage_styles_dialog.cpp
 /// @brief Format > Text Style > Manage Styles...
 

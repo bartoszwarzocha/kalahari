@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_editor_integration.cpp
 /// @brief Integration tests for BookEditor (OpenSpec #00042 Task 7.18)
 /// Phase 11: Rewritten for QTextDocument-based architecture

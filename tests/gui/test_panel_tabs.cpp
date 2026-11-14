@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_panel_tabs.cpp
 /// @brief The tabs of the panels docked one over another: icons alone by default with the
 /// names in the tooltips, names that wrap into more rows or shorten in one row, a click or

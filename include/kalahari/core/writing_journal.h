@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_journal.h
 /// @brief The places that keep the record of writing: the table of a database, and the
 /// writer's journal of all the books

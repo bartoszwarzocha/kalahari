@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_awards.h
 /// @brief The badges of writing and the writer's challenges: what each badge counts, how far
 /// the writer is, and how far a challenge is

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_sorting.h
 /// @brief Sorting the rows of a table and paragraphs (Table > Sort): by text in the order of
 ///        a language, by numbers and by dates

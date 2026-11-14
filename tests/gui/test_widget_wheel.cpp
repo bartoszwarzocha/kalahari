@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_widget_wheel.cpp
 /// @brief The mouse wheel changes only the field with the focus, as on Windows
 

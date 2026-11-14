@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file grammar_test_utils.h
 /// @brief What the tests of the grammar preparation need: the sites of Java and LanguageTool
 ///        on localhost, their files, a folder of the downloads of their own, the settings

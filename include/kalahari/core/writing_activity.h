@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_activity.h
 /// @brief The record of writing: the words written, deleted and pasted, and the time of
 /// writing, in each 5-minute slot of a day, in each text of each book

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file segmented_layout.cpp
 /// @brief Joined buttons of a choice: in a row, or one under another on a narrow panel
 

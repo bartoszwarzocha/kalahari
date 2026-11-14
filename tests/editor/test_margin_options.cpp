@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_margin_options.cpp
 /// @brief Editor options of the margins: mirror margins, the numbers of the lines and the
 ///        paragraphs on the margin

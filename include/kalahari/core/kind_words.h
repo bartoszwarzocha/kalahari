@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kind_words.h
 /// @brief How the program's sentences name kinds of elements: the forms of their names
 ///

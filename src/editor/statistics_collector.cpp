@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file statistics_collector.cpp
 /// @brief Real-time document statistics collection implementation (OpenSpec #00042 Phase 6)
 

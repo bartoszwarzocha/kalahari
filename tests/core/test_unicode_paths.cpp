@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_unicode_paths.cpp
 /// @brief Paths with characters outside the code page of the system: the settings, the log,
 /// the plugins and the archives work in a folder of any name

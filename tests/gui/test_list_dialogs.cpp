@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_list_dialogs.cpp
 /// @brief Format > Bullets and Numbering... and Set Numbering Value...: the windows, their
 ///        fields and what the editor gets from them

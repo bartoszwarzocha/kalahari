@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file project_manager.h
 /// @brief The book project open in the program: its .klh file, its files and their state
 ///

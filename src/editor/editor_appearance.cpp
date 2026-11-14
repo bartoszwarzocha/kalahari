@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_appearance.cpp
 /// @brief Visual appearance configuration implementation (OpenSpec #00042 Phase 5)
 

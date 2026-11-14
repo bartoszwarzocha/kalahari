@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_captions.h
 /// @brief Numbered captions, cross-references to them and the list of figures
 ///

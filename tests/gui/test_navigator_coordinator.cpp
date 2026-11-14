@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_navigator_coordinator.cpp
 /// @brief The Navigator's commands on the open book project: adding, renaming, moving and
 /// deleting elements, which ProjectManager saves at once, and the files that no element has

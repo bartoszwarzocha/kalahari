@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list_panel.cpp
 /// @brief The list of a kind of materials of the Workshop on a tab in the middle of the window
 

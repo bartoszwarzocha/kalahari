@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file add_target.h
 /// @brief Where the Add Element window adds a new element: the node of the Navigator or the
 /// element in the editor it was opened on

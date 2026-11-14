@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_diff.cpp
 /// @brief Differences between two texts, paragraph by paragraph and word by word
 

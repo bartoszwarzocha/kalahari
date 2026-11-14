@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_kml_document_model.cpp
 /// @brief Unit tests for KmlDocumentModel, the KML reader
 ///

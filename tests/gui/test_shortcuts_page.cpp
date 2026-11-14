@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_shortcuts_page.cpp
 /// @brief Settings > Keyboard Shortcuts: the list, the checks, the search, the files
 

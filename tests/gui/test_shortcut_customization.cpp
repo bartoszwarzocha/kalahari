@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_shortcut_customization.cpp
 /// @brief The user's keys of the commands: in the registry, in the settings and in the files
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file diagnostic_menus.cpp
 /// @brief The items of the Diagnostics and Dev Tools menus
 

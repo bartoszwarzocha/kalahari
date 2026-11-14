@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file version_name_dialog.h
 /// @brief The small window of Save Version (Alt+Shift+S), with the description of the new
 /// version, and of Change Description in the window of the versions

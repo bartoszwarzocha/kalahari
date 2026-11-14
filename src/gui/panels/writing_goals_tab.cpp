@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_goals_tab.cpp
 /// @brief The tab Writing Goals and Deadlines
 

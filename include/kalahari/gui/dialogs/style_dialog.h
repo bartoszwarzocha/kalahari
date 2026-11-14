@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file style_dialog.h
 /// @brief New Style... and Modify Style...: the window of a paragraph style of the book, on
 ///        tabs or short with a wide preview

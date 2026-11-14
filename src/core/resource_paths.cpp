@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file resource_paths.cpp
 /// @brief Implementation of ResourcePaths singleton
 

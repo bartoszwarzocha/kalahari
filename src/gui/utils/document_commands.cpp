@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file document_commands.cpp
 /// @brief Implementation of the commands that work on the document in front, those of the
 /// open book, and Save with Save As and Save All

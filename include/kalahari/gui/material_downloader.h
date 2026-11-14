@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_downloader.h
 /// @brief What the program takes from the web for a material with an address: the title of
 /// its page, or the copy of its picture

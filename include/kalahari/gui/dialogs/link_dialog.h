@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file link_dialog.h
 /// @brief Link: what a material is about, or the materials of an element of the book
 

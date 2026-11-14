@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file fake_language_tool.h
 /// @brief A LanguageTool server stand-in on localhost for the grammar tests
 ///

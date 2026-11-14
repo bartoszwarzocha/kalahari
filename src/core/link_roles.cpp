@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file link_roles.cpp
 /// @brief How a material is linked with an element: the roles of links, and the paragraph a
 /// link names

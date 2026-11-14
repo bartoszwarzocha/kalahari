@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file quick_insert_items.h
 /// @brief What the list of quick insert offers: the cards of the book's Workshop, the writer's
 ///        text fragments and the typographic characters, as Settings > Editor > Quick Insert

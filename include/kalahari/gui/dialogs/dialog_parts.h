@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dialog_parts.h
 /// @brief Parts that the program's own dialogs share: a list as high as its rows, a note with
 /// an icon, and the Copy button

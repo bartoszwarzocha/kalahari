@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_chapter_break.cpp
 /// @brief Book > Chapter Break: the text from the cursor goes to a new text of the book right
 ///        after the text it was in, with its notes and annotations, both saved; the title of

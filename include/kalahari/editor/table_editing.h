@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file table_editing.h
 /// @brief Changes of tables (the Table menu): rows and columns, merging and splitting cells,
 ///        the widths of columns, the header rows, moving and sorting rows, and turning
