@@ -16,9 +16,7 @@ Steps:
   3. take the line coverage of the analysed commit from its CI run (artifact
      "coverage-report" of .github/workflows/ci-linux.yml, downloaded with gh);
   4. run sonar-scanner in the repository root (what is analysed is defined in
-     sonar-project.properties). On Windows the C++ parser of the plugin gets a
-     copy of the compilation database with the include folders and macros of
-     MSVC spelled out (<build dir>/sonar/compile_commands_cxx.json).
+     sonar-project.properties).
 
 clang-tidy runs with every check (--checks=*) by default. Which of them count
 is decided by the quality profile of the project in SonarQube: the plugin
@@ -310,112 +308,6 @@ def clang_tidy_step(args, build_dir: Path, report: Path) -> None:
               "(see units_with_errors in clang-tidy-summary.json)")
 
 
-def split_command(command: str) -> List[str]:
-    """Split a Windows command line: spaces separate arguments outside double quotes."""
-    arguments, current, quoted = [], "", False
-    for char in command:
-        if char == '"':
-            quoted = not quoted
-        elif char.isspace() and not quoted:
-            if current:
-                arguments.append(current)
-            current = ""
-        else:
-            current += char
-    if current:
-        arguments.append(current)
-    return arguments
-
-
-def msvc_flags(arguments: List[str]) -> Tuple[List[str], Dict[str, str]]:
-    """Include folders and macros of one MSVC compile command (-I, /I, -external:I, -D, /D)."""
-    includes: List[str] = []
-    defines: Dict[str, str] = {}
-    include_flags = ("-external:I", "/external:I", "-I", "/I")
-    pending = None
-    for argument in arguments:
-        if pending == "include":
-            includes.append(argument)
-            pending = None
-            continue
-        if pending == "define":
-            name, _, value = argument.partition("=")
-            defines[name] = value if value else "1"
-            pending = None
-            continue
-        flag = next((f for f in include_flags if argument.startswith(f)), None)
-        if flag:
-            value = argument[len(flag):]
-            if value:
-                includes.append(value)
-            else:
-                pending = "include"
-        elif argument.startswith(("-D", "/D")):
-            value = argument[2:]
-            if value:
-                name, _, macro = value.partition("=")
-                defines[name] = macro if macro else "1"
-            else:
-                pending = "define"
-    return includes, defines
-
-
-def compiler_macros(arguments: List[str], environment: Optional[Dict[str, str]],
-                    work_dir: Path) -> Dict[str, str]:
-    """Macros MSVC defines by itself, as clang-cl reports them for the same options."""
-    clang_cl = Path(find_clang_tidy(None)).with_name("clang-cl.exe")
-    if not clang_cl.exists():
-        print("[WARNING] clang-cl.exe not found - the C++ parser gets no compiler macros")
-        return {}
-    options = [a for a in arguments if a.startswith(("/std:", "-std:", "/Zc:", "-Zc:", "/EH",
-                                                     "-EH", "/MD", "-MD", "/MT", "-MT", "/GR",
-                                                     "/permissive", "/utf-8"))]
-    empty = work_dir / "empty.cpp"
-    empty.write_text("", encoding="utf-8")
-    result = subprocess.run([str(clang_cl), "/nologo", "/TP", *options, "/E", "/clang:-dM",
-                             str(empty)], capture_output=True, text=True, env=environment,
-                            check=False)
-    macros = {}
-    for line in result.stdout.splitlines():
-        parts = line.split(" ", 2)
-        if len(parts) >= 2 and parts[0] == "#define" and "(" not in parts[1]:
-            macros[parts[1]] = parts[2] if len(parts) == 3 else ""
-    return macros
-
-
-def parser_database(database: Path, target_dir: Path) -> Path:
-    """Compilation database for the C++ parser of sonar-cxx (Windows builds).
-
-    The plugin reads only -I, -isystem and -D from compile commands, so the include
-    folders of dependencies (MSVC -external:I), MSVC's /D macros, the system headers
-    and the compiler's own macros would be missing and its parser would skip code. It
-    also accepts entries that give "includes" and "defines" directly: this copy has them.
-    """
-    environment = msvc_environment()
-    entries = json.loads(database.read_text(encoding="utf-8"))
-    system_includes = [p for p in ((environment or os.environ).get("INCLUDE", "")).split(";") if p]
-    first = next((e for e in entries if e.get("command")), None)
-    macros = compiler_macros(split_command(first["command"]), environment, target_dir) if first else {}
-    seen = set()
-    converted = []
-    for entry in entries:
-        path = Path(entry["file"])
-        if not path.is_absolute():
-            path = Path(entry["directory"]) / path
-        if normalized(path) in seen or not entry.get("command"):
-            continue
-        seen.add(normalized(path))
-        includes, defines = msvc_flags(split_command(entry["command"]))
-        converted.append({"directory": entry["directory"], "file": entry["file"],
-                          "includes": includes + system_includes,
-                          "defines": {**macros, **defines}})
-    target = target_dir / "compile_commands_cxx.json"
-    target.write_text(json.dumps(converted), encoding="utf-8")
-    print(f"[OK] C++ parser database: {len(converted)} files, {len(macros)} compiler macros, "
-          f"{len(system_includes)} system include folders")
-    return target
-
-
 def ci_coverage_report(target_dir: Path) -> Optional[Path]:
     """Line coverage of the analysed commit from the CI job "Sanitizers, Coverage & clang-tidy".
 
@@ -465,8 +357,6 @@ def scan_step(args, build_dir: Path, report: Path) -> None:
     scanner = find_scanner(args.scanner)
     host = args.host or os.environ.get("SONAR_HOST_URL") or DEFAULT_HOST
     database = build_dir / "compile_commands.json"
-    if os.name == "nt":
-        database = parser_database(database, report.parent)
     command = [
         scanner,
         f"-Dsonar.host.url={host}",
