@@ -223,6 +223,10 @@ jobs:
         gcovr --root . build --filter 'src/' --exclude-throw-branches \
           --txt-summary --txt build/coverage.txt \
           --html-details build/coverage/index.html
+        # The same measurement for SonarQube (generic coverage format, paths relative to the
+        # repository root), headers included; scripts/sonar_analysis.py downloads it
+        gcovr --root . build --filter 'src/' --filter 'include/' --exclude-throw-branches \
+          --sonarqube build/coverage/sonarqube.xml
         echo '### Line coverage (files compiled into tests)' >> "$GITHUB_STEP_SUMMARY"
         echo '```' >> "$GITHUB_STEP_SUMMARY"
         tail -n 4 build/coverage.txt >> "$GITHUB_STEP_SUMMARY"
