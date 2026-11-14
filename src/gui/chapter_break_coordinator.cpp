@@ -98,12 +98,16 @@ QString chapterBreakTitle(const QTextDocument& document, int from) {
     return QString();
 }
 
-ChapterBreakCoordinator::ChapterBreakCoordinator(QTabWidget* centralTabs,
+ChapterBreakCoordinator::ChapterBreakCoordinator(core::ProjectManager& book,
+                                                 CommandRegistry& commands,
+                                                 QTabWidget* centralTabs,
                                                  NavigatorCoordinator* navigator,
                                                  TextWithKeys textWithKeys,
                                                  NoticeShower showNotice, QStatusBar* statusBar,
                                                  QWidget* window, QObject* parent)
     : QObject(parent),
+      m_book(book),
+      m_commands(commands),
       m_centralTabs(centralTabs),
       m_navigator(navigator),
       m_textWithKeys(std::move(textWithKeys)),
@@ -111,7 +115,7 @@ ChapterBreakCoordinator::ChapterBreakCoordinator(QTabWidget* centralTabs,
       m_statusBar(statusBar),
       m_window(window) {
     // Another book, or none: the last break was in the old one
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this,
             &ChapterBreakCoordinator::forgetUndo);
     connect(&projects, &core::ProjectManager::projectClosed, this,
@@ -119,7 +123,7 @@ ChapterBreakCoordinator::ChapterBreakCoordinator(QTabWidget* centralTabs,
 }
 
 void ChapterBreakCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(COMMAND)) {
         command->execute = [this]() { breakText(m_textWithKeys ? m_textWithKeys() : nullptr); };
         command->disabledReason = [this]() {
@@ -133,7 +137,7 @@ void ChapterBreakCoordinator::connectCommands() {
 // =============================================================================
 
 QString ChapterBreakCoordinator::whyNotBreak(const editor::BookEditor* text) const {
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     if (!projects.isProjectOpen()) {
         //: Why Book > Chapter Break is greyed out. In Polish: Żadna książka nie jest otwarta
         return tr("No book is open");
@@ -156,7 +160,8 @@ QString ChapterBreakCoordinator::whyNotBreak(const editor::BookEditor* text) con
     }
     const core::KindRef kind = projects.kindOf(*element);
     if (!kind || !projects.newPlaceAfter(elementId, kind)) {
-        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+        const QHash<QString, core::KindWords> nouns{
+            {QStringLiteral("kind"), wordsOf(m_book, *element)}};
         //: Why Book > Chapter Break is greyed out: the book has as many texts of the kind as it
         //: can have (a prologue). In Polish: Za tym tekstem nie można dodać {kind:genitive}
         return core::fillWords(tr("No {kind} can be added after this text"), nouns);
@@ -180,7 +185,7 @@ QString ChapterBreakCoordinator::whyNotBreak(const editor::BookEditor* text) con
 
 QString ChapterBreakCoordinator::breakText(editor::BookEditor* text) {
     auto& logger = core::Logger::getInstance();
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     // whyNotBreak() also says why without a text or its document
     if (const QString why = whyNotBreak(text);
         !why.isEmpty() || text == nullptr || text->textDocument() == nullptr) {
@@ -192,7 +197,7 @@ QString ChapterBreakCoordinator::breakText(editor::BookEditor* text) {
     // A copy: the project changes
     const core::ProjectElement element = *projects.findElement(elementId);
     const core::KindRef kind = projects.kindOf(element);
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(element)}};
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(m_book, element)}};
     //: The title of the warnings of Book > Chapter Break. In Polish: Nie udało się podzielić
     //: {kind:genitive}
     const QString notSplit = core::fillWords(tr("{Kind} Not Split"), nouns);
@@ -278,7 +283,7 @@ QString ChapterBreakCoordinator::breakText(editor::BookEditor* text) {
 // =============================================================================
 
 bool ChapterBreakCoordinator::canUndo() const {
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     return m_undo && projects.isProjectOpen() && !projects.isReadOnly() &&
            projects.findElement(m_undo->addedId) != nullptr &&
            projects.findElement(m_undo->elementId) != nullptr &&
@@ -287,7 +292,7 @@ bool ChapterBreakCoordinator::canUndo() const {
 }
 
 bool ChapterBreakCoordinator::undo() {
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const std::optional<Step> step = canUndo() ? m_undo : std::nullopt;
     forgetUndo();
     if (!step) {

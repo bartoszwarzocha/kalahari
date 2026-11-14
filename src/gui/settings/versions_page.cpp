@@ -49,8 +49,9 @@ QWidget* sentenceRow(std::initializer_list<QWidget*> widgets) {
 
 }  // namespace
 
-EditorVersionsPage::EditorVersionsPage(QWidget* parent)
+EditorVersionsPage::EditorVersionsPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
 {
     using core::ChapterVersions;
 
@@ -76,8 +77,8 @@ EditorVersionsPage::EditorVersionsPage(QWidget* parent)
     QLabel* askNote = addNote(saving, QString());
     alignWithText(askNote, ask);
     // With the keys Save Version has now (the user may change them)
-    const auto showAskNote = [ask, askNote]() {
-        const QString keys = saveVersionKeys();
+    const auto showAskNote = [this, ask, askNote]() {
+        const QString keys = saveVersionKeys(m_commands);
         askNote->setText(
             ask->isChecked()
                 //: %1: the keys of File > Save Version (Alt+Shift+S). In Polish: %1 otwiera małe
@@ -92,7 +93,7 @@ EditorVersionsPage::EditorVersionsPage(QWidget* parent)
                       .arg(keys));
     };
     connect(ask, &QCheckBox::toggled, this, showAskNote);
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, askNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, askNote,
             showAskNote);
     whenLoaded(showAskNote);
 

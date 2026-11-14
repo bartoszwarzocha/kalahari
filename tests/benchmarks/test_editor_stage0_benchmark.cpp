@@ -1231,7 +1231,8 @@ TEST_CASE("Chapter Break benchmark: a 150k-word chapter with notes split in the 
     window.navigator.onElementSelected(book.chapterId, QStringLiteral("The Storm"));
     BookEditor* text = window.editor(window.tabs->currentIndex())->getBookEditor();
     text->setCursorPosition(middle);
-    ChapterBreakCoordinator coordinator(window.tabs, &window.navigator, {}, {},
+    ChapterBreakCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(),
+                                        window.tabs, &window.navigator, {}, {},
                                         &window.statusBar, &window.window);
     QString added;
     rows.push_back({QStringLiteral("Książka > Podział rozdziału – całość"),

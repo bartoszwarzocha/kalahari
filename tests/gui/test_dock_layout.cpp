@@ -55,6 +55,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -128,10 +129,10 @@ struct OpenBook {
 
     OpenBook() {
         REQUIRE(dir.isValid());
-        REQUIRE(core::ProjectManager::getInstance().createProject(dir.path(), "Panels",
+        REQUIRE(test::book().createProject(dir.path(), "Panels",
                                                                   "Author", "en", true));
     }
-    ~OpenBook() { core::ProjectManager::getInstance().closeProject(false); }
+    ~OpenBook() { test::book().closeProject(false); }
 
     OpenBook(const OpenBook&) = delete;
     OpenBook& operator=(const OpenBook&) = delete;
@@ -146,12 +147,13 @@ struct Panels {
     DockCoordinator* docks = nullptr;  // owned by the window, as in MainWindow
 
     Panels() {
-        registerAllCommands(CommandCallbacks{});
-        docks = new DockCoordinator(&window, &window);
+        registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+        docks = new DockCoordinator(kalahari::test::book(), kalahari::test::commands(), &window,
+                                    &window);
         docks->createDocks();
-        auto* navigator =
-            new NavigatorCoordinator(docks->navigatorPanel(), docks->propertiesPanel(),
-                                     docks->centralTabs(), &statusBar, &window);
+        auto* navigator = new NavigatorCoordinator(
+            kalahari::test::book(), kalahari::test::commands(), docks->navigatorPanel(),
+            docks->propertiesPanel(), docks->centralTabs(), &statusBar, &window);
         QObject::connect(docks, &DockCoordinator::navigatorRequestProperties, navigator,
                          &NavigatorCoordinator::onRequestProperties);
         QObject::connect(docks, &DockCoordinator::navigatorRequestSectionProperties, navigator,
@@ -240,7 +242,7 @@ TEST_CASE("Panels: the Spelling and Grammar panel opens as the tab after the Ann
     CHECK(panels.onTop(annotations));
 
     // View > Panels > Spelling and Grammar
-    CommandRegistry::getInstance().executeCommand("view.spelling");
+    kalahari::test::commands().executeCommand("view.spelling");
     QApplication::processEvents();
     CHECK(spelling->isVisible());
     CHECK(panels.onTop(spelling));
@@ -269,7 +271,7 @@ TEST_CASE("Panels: the Repetitions panel opens as a tab after the Annotations ta
         QApplication::processEvents();
     }
     SECTION("after Reset Layout") {
-        CommandRegistry::getInstance().executeCommand("view.repetitionsPanel");
+        kalahari::test::commands().executeCommand("view.repetitionsPanel");
         QApplication::processEvents();
         panels.docks->resetLayout(false, false);
         panels.docks->showRightPanels();  // hidden by Reset Layout on a small screen
@@ -282,7 +284,7 @@ TEST_CASE("Panels: the Repetitions panel opens as a tab after the Annotations ta
     CHECK(panels.onTop(annotations));
 
     // View > Panels > Repetitions
-    CommandRegistry::getInstance().executeCommand("view.repetitionsPanel");
+    kalahari::test::commands().executeCommand("view.repetitionsPanel");
     QApplication::processEvents();
     CHECK(repetitions->isVisible());
     CHECK(panels.docks->viewRepetitionsAction()->isChecked());
@@ -337,7 +339,7 @@ TEST_CASE("Panels: a layout saved before the Paragraph and Styles panel shows it
     CHECK(panels.onTop(panels.docks->annotationsDock()));
 
     // Its button brings it on top
-    CommandRegistry::getInstance().executeCommand("view.paragraph");
+    kalahari::test::commands().executeCommand("view.paragraph");
     QApplication::processEvents();
     CHECK(panels.onTop(paragraph));
 }
@@ -395,7 +397,7 @@ TEST_CASE("Panels: a layout saved before the Statistics panel shows it as the ri
 TEST_CASE("Panels: the button of a panel shows it, brings it on top, closes it",
           "[gui][panels][styles]") {
     Panels panels;
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     QDockWidget* paragraph = panels.docks->paragraphDock();
     QAction* button = panels.docks->viewParagraphAction();
     const auto click = [&registry]() {
@@ -440,7 +442,7 @@ TEST_CASE("Panels: Paragraph and Styles at the bottom of the Properties panel",
         }
     } placeBack;
     Panels panels;
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     QDockWidget* properties = panels.docks->propertiesDock();
     ParagraphPanel* lower = panels.docks->propertiesParagraphPanel();
     QAction* button = panels.docks->viewParagraphAction();
@@ -495,7 +497,7 @@ TEST_CASE("Panels: Paragraph and Styles at the bottom of the Properties panel",
 TEST_CASE("Panels: the Paragraph and Styles panel follows the text in front",
           "[gui][panels][styles]") {
     Panels panels;
-    auto* chapter = new EditorPanel();
+    auto* chapter = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     panels.docks->centralTabs()->addTab(chapter, QStringLiteral("Chapter 1"));
     panels.docks->setParagraphEditor(chapter->getBookEditor());
     CHECK(panels.docks->paragraphPanel()->editor() == chapter->getBookEditor());
@@ -509,7 +511,7 @@ TEST_CASE("Panels: Reset Layout closes the Spelling and Grammar panel",
           "[gui][panels][spelling-panel]") {
     Panels panels;
     QDockWidget* spelling = panels.docks->spellingDock();
-    CommandRegistry::getInstance().executeCommand("view.spelling");
+    kalahari::test::commands().executeCommand("view.spelling");
     QApplication::processEvents();
     REQUIRE(panels.onTop(spelling));
 
@@ -519,7 +521,7 @@ TEST_CASE("Panels: Reset Layout closes the Spelling and Grammar panel",
     CHECK(spelling->isHidden());
     CHECK(panels.onTop(panels.docks->annotationsDock()));
 
-    CommandRegistry::getInstance().executeCommand("view.spelling");
+    kalahari::test::commands().executeCommand("view.spelling");
     QApplication::processEvents();
     CHECK(panels.onTop(spelling));
     CHECK(tabIndex(panels.window, spelling) ==
@@ -678,14 +680,14 @@ TEST_CASE("Panels: every panel and the text fit a small screen side by side", "[
         menus->addMenu(QString::fromLatin1(title));
     }
     panels.window.setMenuBar(menus);
-    ToolbarManager toolbars(&panels.window);
-    toolbars.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager toolbars(kalahari::test::commands(), &panels.window);
+    toolbars.createToolbars(kalahari::test::commands());
     panels.window.statusBar()->showMessage(QStringLiteral("Words: 0"));
 
     panels.docks->logDock()->show();
     panels.docks->standaloneInfoBar()->show();
     panels.docks->showLayoutNotice();
-    auto* chapter = new EditorPanel();
+    auto* chapter = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     panels.docks->centralTabs()->addTab(chapter, QStringLiteral("Chapter 1"));
     panels.docks->centralTabs()->setCurrentWidget(chapter);
     QApplication::processEvents();
@@ -732,7 +734,7 @@ TEST_CASE("Panels: choosing an element in the Navigator keeps the panel on top",
     OpenBook book;
     Panels panels;
     NavigatorPanel* navigator = panels.docks->navigatorPanel();
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = test::book();
     REQUIRE(projects.project() != nullptr);
     navigator->loadProject(*projects.project(), projects.bookTypes());
     auto* tree = navigator->findChild<QTreeWidget*>();
@@ -777,7 +779,7 @@ TEST_CASE("Panels: the panels on the right can be made narrow", "[gui][panels]")
     registerAllIcons();  // the buttons of the Paragraph and Styles panel show their icons
     Panels panels;
     // The Paragraph and Styles panel with all its rows: it follows a text
-    auto* chapter = new EditorPanel();
+    auto* chapter = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     panels.docks->centralTabs()->addTab(chapter, QStringLiteral("Chapter 1"));
     panels.docks->setParagraphEditor(chapter->getBookEditor());
     QDockWidget* annotations = panels.docks->annotationsDock();
@@ -854,8 +856,8 @@ TEST_CASE("Reset Layout: the toolbars dock at the top again, in their rows, show
     // Reset Layout put the panels back, and a floating toolbar stayed where it was
     Panels panels;
     panels.window.setCentralWidget(new QLabel(QStringLiteral("text")));
-    ToolbarManager toolbars(&panels.window);
-    toolbars.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager toolbars(kalahari::test::commands(), &panels.window);
+    toolbars.createToolbars(kalahari::test::commands());
     const QString mine =
         toolbars.createUserToolbar(QStringLiteral("Mine"), {QStringLiteral("file.save")});
     QApplication::processEvents();

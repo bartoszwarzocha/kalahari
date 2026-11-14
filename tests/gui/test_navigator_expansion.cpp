@@ -13,6 +13,7 @@
 #include <QTreeWidgetItem>
 
 #include <utility>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -82,7 +83,7 @@ TEST_CASE("Navigator restores collapsed items expanded by default", "[gui][navig
     const core::BookProject project = makeProject();
     const QString projectId = "test_navigator_expansion_project";
 
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(project, registry());
@@ -109,7 +110,7 @@ TEST_CASE("Navigator restores a fully collapsed tree", "[gui][navigator]") {
     const core::BookProject project = makeProject();
     const QString projectId = "test_navigator_expansion_collapsed";
 
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(project, registry());
@@ -128,7 +129,7 @@ TEST_CASE("Navigator restores a fully collapsed tree", "[gui][navigator]") {
 
 TEST_CASE("Navigator opens the book and the Workshop for a state saved before they had nodes",
           "[gui][navigator]") {
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(makeProject(), registry());
@@ -154,7 +155,7 @@ TEST_CASE("Navigator opens the book and the Workshop for a state saved before th
 }
 
 TEST_CASE("Navigator keeps defaults when no state was saved", "[gui][navigator]") {
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(makeProject(), registry());
@@ -213,7 +214,7 @@ TEST_CASE("Navigator shows the elements' status in the program's language", "[gu
         ~RemoveTranslator() { QCoreApplication::removeTranslator(translator); }
     } removeTranslator{&translator};
 
-    gui::NavigatorPanel panel;
+    gui::NavigatorPanel panel(kalahari::test::book());
     auto* tree = panel.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     panel.loadProject(project, registry());

@@ -44,35 +44,37 @@ editor::CursorPosition placeOf(const QTextDocument& document, int position) {
 }
 
 /// The words of the kind of element @p elementId ("chapter")
-core::KindWords kindWordsOf(const QString& elementId) {
+core::KindWords kindWordsOf(const core::ProjectManager& book, const QString& elementId) {
     const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(elementId);
-    return element != nullptr ? wordsOf(*element) : mainWords();
+        book.findElement(elementId);
+    return element != nullptr ? wordsOf(book, *element) : mainWords(book);
 }
 
 /// The title of element @p elementId
-QString titleOf(const QString& elementId) {
+QString titleOf(const core::ProjectManager& book, const QString& elementId) {
     const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(elementId);
+        book.findElement(elementId);
     return element != nullptr ? element->title : QString();
 }
 
 }  // namespace
 
-VersionsCoordinator::VersionsCoordinator(QTabWidget* centralTabs, ChapterOpener openChapter,
+VersionsCoordinator::VersionsCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                         QTabWidget* centralTabs, ChapterOpener openChapter,
                                          NoticeShower showNotice, QStatusBar* statusBar,
                                          QWidget* window, QObject* parent)
-    : QObject(parent)
-    , m_centralTabs(centralTabs)
-    , m_openChapter(std::move(openChapter))
-    , m_showNotice(std::move(showNotice))
-    , m_statusBar(statusBar)
-    , m_window(window)
-{
+    : QObject(parent),
+      m_centralTabs(centralTabs),
+      m_openChapter(std::move(openChapter)),
+      m_showNotice(std::move(showNotice)),
+      m_statusBar(statusBar),
+      m_window(window),
+      m_book(book),
+      m_commands(commands) {
     // The commands follow the text in front and the open book
     connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
             &VersionsCoordinator::updateCommandStates);
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this,
             &VersionsCoordinator::updateCommandStates);
     connect(&projects, &core::ProjectManager::projectClosed, this,
@@ -92,7 +94,7 @@ VersionsCoordinator::~VersionsCoordinator() {
 }
 
 void VersionsCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     const auto connectCommand = [&registry](const char* id, std::function<void()> execute,
                                             std::function<QString()> whyNot) {
         if (Command* command = registry.getCommand(id)) {
@@ -132,8 +134,8 @@ bool VersionsCoordinator::saveVersion(const QString& elementId, QWidget* parent)
 
 bool VersionsCoordinator::saveVersionOf(EditorPanel* panel, QWidget* parent) {
     const QString elementId = elementIdOf(panel);
-    const core::KindWords kind = kindWordsOf(elementId);
-    const QString title = titleOf(elementId);
+    const core::KindWords kind = kindWordsOf(m_book, elementId);
+    const QString title = titleOf(m_book, elementId);
 
     // The small window of its description, unless the writer wants none
     const bool ask = core::SettingsManager::getInstance().get<bool>(
@@ -148,7 +150,7 @@ bool VersionsCoordinator::saveVersionOf(EditorPanel* panel, QWidget* parent) {
     }
 
     core::ChapterVersion version;
-    const core::ProjectManager::VersionKept kept = core::ProjectManager::getInstance().keepVersion(
+    const core::ProjectManager::VersionKept kept = m_book.keepVersion(
         elementId, panel->getBookEditor()->toKml(),
         {.origin = core::VersionOrigin::Manual, .name = name}, &version);
     if (kept != core::ProjectManager::VersionKept::Added) {
@@ -186,21 +188,21 @@ bool VersionsCoordinator::showHistory(const QString& elementId) {
         return false;
     }
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const QString id = elementIdOf(panel);
     editor::BookEditor* editor = panel->getBookEditor();
     dialogs::VersionHistoryDialog::Text text;
     text.elementId = id;
-    text.title = titleOf(id);
+    text.title = titleOf(m_book, id);
     text.bookTitle = pm.book() != nullptr ? pm.book()->title : QString();
-    text.kind = kindWordsOf(id);
+    text.kind = kindWordsOf(m_book, id);
     text.kml = editor->toKml();
     text.editor = editor;
     text.readOnly = pm.isReadOnly();
     text.whyNotSave = whyNot(panel, true);
 
     // Saved from the window, a version is the text in its editor, as Save Version keeps it
-    dialogs::VersionHistoryDialog dialog(
+    dialogs::VersionHistoryDialog dialog(m_book, m_commands,
         text,
         [this, id](QWidget* parent) {
             if (EditorPanel* open = openPanel(id)) {
@@ -231,7 +233,7 @@ bool VersionsCoordinator::showHistory(const QString& elementId) {
 bool VersionsCoordinator::restoreVersion(EditorPanel* editor, const core::ChapterVersion& version,
                                          const QString& kml) {
     editor::BookEditor* text = editor != nullptr ? editor->getBookEditor() : nullptr;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (text == nullptr || text->isReadOnly() || pm.isReadOnly()) {
         return false;
     }
@@ -355,7 +357,7 @@ QString VersionsCoordinator::elementIdOf(const EditorPanel* panel) {
 }
 
 QString VersionsCoordinator::whyNot(const EditorPanel* panel, bool saving) const {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     // With where to turn them on, whatever is in front
     if (saving && !versionsEnabled()) {
         return versionsOffReason();
@@ -397,7 +399,7 @@ void VersionsCoordinator::say(const QString& message) const {
 }
 
 void VersionsCoordinator::updateCommandStates() const {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     registry.updateActionState(SAVE_COMMAND);
     registry.updateActionState(HISTORY_COMMAND);
 }

@@ -18,6 +18,10 @@ class QStatusBar;
 class QTabWidget;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -52,14 +56,16 @@ public:
     /// @brief Answers whether to change @p count images to @p filterName (the window asks)
     using Confirmer = std::function<bool(int count, const QString& filterName)>;
 
+    /// @param book The book of its window
     /// @param centralTabs The tabs of the book window (DocumentWindows gives all the texts)
     /// @param showNotice Says under the text how many images changed, with Undo (none: the
     ///        status bar says it, without Undo)
     /// @param statusBar Where short messages go (may be null)
     /// @param window Over which the window asking opens
     /// @param parent Parent object
-    ImageFilterCoordinator(QTabWidget* centralTabs, NoticeShower showNotice, QStatusBar* statusBar,
-                           QWidget* window, QObject* parent = nullptr);
+    ImageFilterCoordinator(core::ProjectManager& book, QTabWidget* centralTabs,
+                           NoticeShower showNotice, QStatusBar* statusBar, QWidget* window,
+                           QObject* parent = nullptr);
 
     ImageFilterCoordinator(const ImageFilterCoordinator&) = delete;
     ImageFilterCoordinator& operator=(const ImageFilterCoordinator&) = delete;
@@ -117,6 +123,7 @@ private:
     Confirmer m_confirm;
     std::optional<Step> m_undo;
     QList<QMetaObject::Connection> m_undoWatch;
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 }  // namespace kalahari::gui

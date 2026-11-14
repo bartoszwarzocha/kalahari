@@ -365,7 +365,9 @@ private:
 /// whole tree when it links them with none.
 class NavigatorTree : public QTreeWidget, public kalahari::gui::PasteTarget {
 public:
-    using QTreeWidget::QTreeWidget;
+    /// @param book The book the tree shows
+    NavigatorTree(const kalahari::core::ProjectManager& book, QWidget* parent)
+        : QTreeWidget(parent), m_book(book) {}
 
     /// Called after a drop with the dragged element and its new place
     std::function<void(const QString& elementId, const kalahari::core::ElementPlace& place)>
@@ -446,7 +448,7 @@ protected:
         QMimeData* mime = QTreeWidget::mimeData(items);
         QStringList links;
         for (const QTreeWidgetItem* item : items) {
-            const QString link = kalahari::gui::NavigatorPanel::linkOf(item);
+            const QString link = kalahari::gui::NavigatorPanel::linkOf(m_book, item);
             if (!link.isEmpty()) {
                 links << link;
             }
@@ -540,7 +542,7 @@ private:
     /// The link new materials get from node @p item; empty when it gives none
     QString linkOf(const QTreeWidgetItem* item) const {
         return item && linksMaterials && linksMaterials(item)
-                   ? kalahari::gui::NavigatorPanel::linkOf(item)
+                   ? kalahari::gui::NavigatorPanel::linkOf(m_book, item)
                    : QString();
     }
 
@@ -561,7 +563,7 @@ private:
         case OnViewport:  // Beside the items
             return std::nullopt;
         }
-        const auto& pm = kalahari::core::ProjectManager::getInstance();
+        const auto& pm = m_book;
         const kalahari::core::BookProject* project = pm.project();
         if (!project) {
             return std::nullopt;
@@ -571,6 +573,7 @@ private:
                                                           spot);
     }
 
+    const kalahari::core::ProjectManager& m_book;  ///< The book the tree shows
     QBasicTimer m_openTimer;  ///< Opens the item under the dragged element
     QPoint m_openPos;         ///< Where the dragged element is in the viewport
     bool m_outsideDrop = false;            ///< Files or addresses are dragged over the tree
@@ -582,7 +585,7 @@ private:
 namespace kalahari {
 namespace gui {
 
-NavigatorPanel::NavigatorPanel(QWidget* parent)
+NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
     , m_treeWidget(nullptr)
     , m_otherFilesItem(nullptr)
@@ -597,6 +600,7 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     , m_highlightedItem(nullptr)
     , m_highlightColor()
     , m_currentIconSize(0)
+    , m_book(book)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel constructor called");
@@ -688,7 +692,7 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     connect(m_clearButton, &QToolButton::clicked, this, &NavigatorPanel::clearFilter);
 
     // Create tree widget
-    auto* tree = new NavigatorTree(this);
+    auto* tree = new NavigatorTree(m_book, this);
     tree->setItemDelegate(new CountDelegate(tree));
     tree->onMove = [this](const QString& elementId, const core::ElementPlace& place) {
         core::Logger::getInstance().info("NavigatorPanel: Element {} dragged to place {} of {}",
@@ -701,11 +705,11 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
     // Files, web addresses and pictures from outside the program are new materials, linked
     // with the node of the book they were dropped or pasted on (QUICK_MATERIALS_SETTING)
     tree->takesMaterials = [this]() {
-        return !m_readOnly && core::ProjectManager::getInstance().isProjectOpen();
+        return !m_readOnly && m_book.isProjectOpen();
     };
-    tree->linksMaterials = [](const QTreeWidgetItem* item) {
+    tree->linksMaterials = [this](const QTreeWidgetItem* item) {
         return quickMaterials() == QLatin1String("link") && !isWorkshopItem(item) &&
-               !NavigatorPanel::linkOf(item).isEmpty();
+               !NavigatorPanel::linkOf(m_book, item).isEmpty();
     };
     tree->onMaterials = [this](const IncomingMaterials& incoming, const QString& link) {
         emit requestAddMaterials(incoming, link);
@@ -773,7 +777,7 @@ NavigatorPanel::NavigatorPanel(QWidget* parent)
                     return;
                 }
                 // The card of a material is in the Properties panel: it comes to the front
-                if (requestPropertiesOf(item) && isMaterialItem(item)) {
+                if (requestPropertiesOf(item) && isMaterialItem(m_book, item)) {
                     emit requestPropertiesPanel();
                 }
             });
@@ -1212,9 +1216,9 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
     return formIconId(core::BookProject::formOf(registry, element));
 }
 
-QIcon NavigatorPanel::iconOf(const core::BookTypeRegistry& registry,
-                             const core::ProjectElement& element, core::IconContext context) {
-    const core::ProjectManager& pm = core::ProjectManager::getInstance();
+QIcon NavigatorPanel::iconOf(const core::ProjectManager& pm, const core::ProjectElement& element,
+                             core::IconContext context) {
+    const core::BookTypeRegistry& registry = pm.bookTypes();
     const core::PackageCard* card = element.hasKind() && !core::BookProject::kindOf(registry, element)
                                         ? pm.packageCard(element.kind.packageId)
                                         : nullptr;
@@ -1232,7 +1236,7 @@ QString NavigatorPanel::iconIdOf(const core::KindRef& kind) {
 void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
                                      const QList<core::ProjectElement>& elements,
                                      const core::BookTypeRegistry& registry, bool workshop) {
-    const core::ProjectManager& pm = core::ProjectManager::getInstance();
+    const core::ProjectManager& pm = m_book;
 
     for (const core::ProjectElement& element : elements) {
         const core::ElementForm form = core::BookProject::formOf(registry, element);
@@ -1284,7 +1288,7 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
 void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
                                       const core::BookProject& project,
                                       const core::BookTypeRegistry& registry) {
-    const core::ProjectManager& pm = core::ProjectManager::getInstance();
+    const core::ProjectManager& pm = m_book;
     const QString language = programLanguage();
 
     // A group for each kind of the Workshop, in the order of the book's type; then the kinds
@@ -1435,16 +1439,15 @@ bool NavigatorPanel::isWorkshopItem(const QTreeWidgetItem* item) {
     return item && item->data(0, WORKSHOP_ROLE).toBool();
 }
 
-bool NavigatorPanel::isMaterialItem(const QTreeWidgetItem* item) {
+bool NavigatorPanel::isMaterialItem(const core::ProjectManager& pm, const QTreeWidgetItem* item) {
     if (!isWorkshopItem(item) || typeOf(item) != QLatin1String("window_element")) {
         return false;
     }
-    const auto& pm = core::ProjectManager::getInstance();
     const core::ProjectElement* element = pm.findElement(item->data(0, Qt::UserRole).toString());
     return element && pm.isMaterial(*element);
 }
 
-QString NavigatorPanel::linkOf(const QTreeWidgetItem* item) {
+QString NavigatorPanel::linkOf(const core::ProjectManager& book, const QTreeWidgetItem* item) {
     if (!item) {
         return {};
     }
@@ -1453,7 +1456,7 @@ QString NavigatorPanel::linkOf(const QTreeWidgetItem* item) {
         return item->data(0, Qt::UserRole).toString();
     }
     const std::optional<core::BookPlace> section = sectionPlaceOf(type);
-    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const core::BookProject* project = book.project();
     return section && project ? project->sectionLink(*section) : QString();
 }
 
@@ -1590,7 +1593,7 @@ QIcon NavigatorPanel::itemIcon(const QTreeWidgetItem* item, const QString& iconI
     // The icon of a kind the program does not have is on the book's card of its package
     const QString package = item->data(0, CARD_ROLE).toString();
     const core::PackageCard* card =
-        package.isEmpty() ? nullptr : core::ProjectManager::getInstance().packageCard(package);
+        package.isEmpty() ? nullptr : m_book.packageCard(package);
     QIcon icon =
         core::ArtProvider::getInstance().getPackageIcon(iconId, card, core::IconContext::TreeView);
     // Grey: the files that are not in the book, and the whole book while it is read-only
@@ -1953,7 +1956,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
     // The commands that change the book: greyed out in a book open read-only, saying why
     QList<QAction*> changing;
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const bool projectOpen = pm.isProjectOpen();
 
     // Move to any place of the book the element's kind can have, in the Move dialog; or within
@@ -2065,7 +2068,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             //: the book. In Polish: W tej książce nie ma innego miejsca na {kind:accusative}.
             const QString why =
                 core::fillWords(tr("The book has no other place for the {kind}."),
-                                {{QStringLiteral("kind"), wordsOf(*element)}});
+                                {{QStringLiteral("kind"), wordsOf(m_book, *element)}});
             for (QAction* action : {moveToAction, moveToStartAction, moveUpAction, moveDownAction,
                                     moveToEndAction}) {
                 action->setToolTip(why);
@@ -2684,7 +2687,8 @@ void NavigatorPanel::onCurrentItemChanged(QTreeWidgetItem* current, QTreeWidgetI
 
     // As a click; a material chosen with the keys brings its card to the front, one chosen
     // by the program (a book opened, an element shown) does not
-    if (requestPropertiesOf(current) && isMaterialItem(current) && m_treeWidget->hasFocus()) {
+    if (requestPropertiesOf(current) && isMaterialItem(m_book, current) &&
+        m_treeWidget->hasFocus()) {
         emit requestPropertiesPanel();
     }
 }
@@ -2753,7 +2757,7 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
     if (elementType == "text_element" || elementType == "book_file") {
         emit elementSelected(elementId, item->data(0, TITLE_ROLE).toString());
     } else if (elementType == "window_element" && isWorkshopItem(item)) {
-        const auto& pm = core::ProjectManager::getInstance();
+        const auto& pm = m_book;
         const core::ProjectElement* element = pm.findElement(elementId);
         const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
         if (kind && kind.kind->isMaterial()) {
@@ -2804,7 +2808,7 @@ AddChooser NavigatorPanel::addChooser() {
 }
 
 std::optional<AddTarget> NavigatorPanel::addTargetOf(const QTreeWidgetItem* item) const {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::BookProject* project = pm.project();
     if (!project) {
         return std::nullopt;
@@ -2882,7 +2886,7 @@ QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) c
     if (!target || settings.get<std::string>(ADD_COMMANDS_SETTING, "named") == "single") {
         return kinds;
     }
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::BookProject* project = pm.project();
 
     // A kind the program can add, below its limit there
@@ -2994,7 +2998,7 @@ void NavigatorPanel::deleteItem(const QTreeWidgetItem* item) {
 }
 
 QString NavigatorPanel::changeRefusal() const {
-    if (!core::ProjectManager::getInstance().isProjectOpen()) {
+    if (!m_book.isProjectOpen()) {
         return tr("No book is open");
     }
     return m_readOnly ? readOnlyReason() : QString();
@@ -3069,7 +3073,7 @@ QString NavigatorPanel::versionsElementOf(const QTreeWidgetItem* item) const {
         return QString();
     }
     const QString elementId = item->data(0, Qt::UserRole).toString();
-    return core::ProjectManager::getInstance().versionsOf(elementId) ? elementId : QString();
+    return m_book.versionsOf(elementId) ? elementId : QString();
 }
 
 // =============================================================================
@@ -3092,7 +3096,7 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
     }
 
     // Get element from ProjectManager and update display text
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element) {
         logger.warn("NavigatorPanel: Element not found in ProjectManager: {}", elementId.toStdString());
@@ -3115,7 +3119,7 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
 }
 
 void NavigatorPanel::placeInWorkshopGroup(QTreeWidgetItem* item) {
-    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const core::BookProject* project = m_book.project();
     QTreeWidgetItem* group = item->parent();
     if (!project || !group) {
         return;
@@ -3370,7 +3374,7 @@ void NavigatorPanel::revealElement(const QString& elementId) {
     // A material its kind does not show: its kind, and its card in the Properties panel
     bool material = false;
     if (!item) {
-        const auto& pm = core::ProjectManager::getInstance();
+        const auto& pm = m_book;
         const core::ProjectElement* element = pm.findElement(elementId);
         const core::KindRef kind = element ? pm.kindOf(*element) : core::KindRef{};
         const QString list = kind ? kind.reference() : QString();
@@ -3524,7 +3528,7 @@ void NavigatorPanel::onContextMenuSetStatus(QAction* action) {
                  elementId.toStdString(), newStatus.toStdString());
 
     // ProjectManager saves the project at once
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.setStatus(elementId, newStatus)) {
         dialogs::MessageDialog::warning(this, tr("Status Change Failed"),
                                         tr("Failed to save changes."));

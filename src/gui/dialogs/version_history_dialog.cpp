@@ -181,11 +181,13 @@ QString markedText(const QString& text, const QColor& color, bool struckOut) {
 
 }  // namespace
 
-VersionHistoryDialog::VersionHistoryDialog(Text text, SaveVersion saveVersion, QWidget* parent)
-    : KalahariDialog(parent)
-    , m_text(std::move(text))
-    , m_saveVersion(std::move(saveVersion))
-{
+VersionHistoryDialog::VersionHistoryDialog(core::ProjectManager& book, CommandRegistry& commands,
+                                           Text text, SaveVersion saveVersion, QWidget* parent)
+    : KalahariDialog(parent),
+      m_text(std::move(text)),
+      m_saveVersion(std::move(saveVersion)),
+      m_book(book),
+      m_commands(commands) {
     auto& art = core::ArtProvider::getInstance();
 
     //: The window of File > Version History... In Polish: Historia wersji
@@ -367,7 +369,7 @@ VersionHistoryDialog::VersionHistoryDialog(Text text, SaveVersion saveVersion, Q
     connect(previousKey, &QShortcut::activated, this, [this]() { goToChange(false); });
 
     // Another change of the versions (Save keeps one on saving) shows in the list
-    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::versionsChanged, this,
+    connect(&m_book, &core::ProjectManager::versionsChanged, this,
             [this](const QString& elementId) {
                 if (elementId == m_text.elementId) {
                     reload();
@@ -459,7 +461,7 @@ void VersionHistoryDialog::setUpPreview() {
 
 void VersionHistoryDialog::reload(const QString& versionFile) {
     const std::optional<core::ChapterVersions> versions =
-        core::ProjectManager::getInstance().versionsOf(m_text.elementId);
+        m_book.versionsOf(m_text.elementId);
     m_versions = versions ? versions->list() : QList<core::ChapterVersion>();
     // A version deleted or renamed has another text in the list; one kept again has its file
     QHash<QString, QString> kept;
@@ -580,7 +582,7 @@ void VersionHistoryDialog::showSelected() {
                                    "current text as a version with the button under the list, "
                                    "or with %1 in the editor."),
                                 nouns)
-                    .arg(saveVersionKeys()));
+                    .arg(saveVersionKeys(m_commands)));
         } else {
             //: In Polish: Brak wersji zapisanych przez Ciebie. Wersje zapisane samoczynnie są
             //: ukryte.
@@ -696,7 +698,7 @@ std::optional<QString> VersionHistoryDialog::versionKml(const core::ChapterVersi
         return *cached;
     }
     const std::optional<core::ChapterVersions> versions =
-        core::ProjectManager::getInstance().versionsOf(m_text.elementId);
+        m_book.versionsOf(m_text.elementId);
     std::optional<QString> kml = versions ? versions->text(version.file) : std::nullopt;
     if (kml) {
         m_kml.insert(version.file, *kml);
@@ -812,7 +814,7 @@ void VersionHistoryDialog::renameSelected() {
     if (dialog.exec() != QDialog::Accepted || dialog.name() == version->name.trimmed()) {
         return;
     }
-    if (!core::ProjectManager::getInstance().renameVersion(m_text.elementId, version->file,
+    if (!m_book.renameVersion(m_text.elementId, version->file,
                                                            dialog.name())) {
         //: In Polish: Nie można zmienić opisu
         MessageDialog::error(this, tr("Description Not Changed"),
@@ -838,7 +840,7 @@ void VersionHistoryDialog::deleteSelected() {
                                 MessageDialog::DefaultButton::Cancel)) {
         return;
     }
-    if (!core::ProjectManager::getInstance().removeVersion(m_text.elementId, version->file)) {
+    if (!m_book.removeVersion(m_text.elementId, version->file)) {
         //: In Polish: Nie usunięto wersji
         MessageDialog::error(this, tr("Version Not Deleted"),
                              //: In Polish: Nie można zapisać listy wersji na dysku.

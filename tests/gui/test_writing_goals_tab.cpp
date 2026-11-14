@@ -40,6 +40,7 @@
 #include <QTreeWidget>
 
 #include <functional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::WritingGoalsTab;
@@ -432,21 +433,23 @@ TEST_CASE("Writing goals: Tools > Writing Goals and Deadlines opens one tab in t
 {
     QStatusBar statusBar;
     QMainWindow window;
-    gui::registerAllCommands(gui::CommandCallbacks{});
-    auto* docks = new gui::DockCoordinator(&window, &window);
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
+    auto* docks = new gui::DockCoordinator(kalahari::test::book(), kalahari::test::commands(),
+                                           &window, &window);
     docks->createDocks();
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
     QString opened;
     gui::WritingStatsCoordinator coordinator(
-        docks, nullptr, [&opened](const QString& page) { opened = page; }, nullptr,
+        kalahari::test::book(), kalahari::test::commands(), docks, nullptr,
+        [&opened](const QString& page) { opened = page; }, nullptr,
         dir.filePath(QStringLiteral("journal.db")));
     coordinator.connectCommands();
     window.show();
 
     QTabWidget* tabs = docks->centralTabs();
     const int before = tabs->count();
-    auto& registry = gui::CommandRegistry::getInstance();
+    auto& registry = test::commands();
     REQUIRE(registry.executeCommand("tools.writingGoals") == gui::CommandExecutionResult::Success);
     REQUIRE(tabs->count() == before + 1);
     auto* tab = qobject_cast<WritingGoalsTab*>(tabs->currentWidget());

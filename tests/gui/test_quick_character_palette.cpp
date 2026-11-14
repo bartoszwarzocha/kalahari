@@ -21,6 +21,7 @@
 #include <QStatusBar>
 
 #include <memory>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -212,8 +213,8 @@ TEST_CASE("Quick character palette: under the cursor, within the screen",
 
 TEST_CASE("Quick character palette: Insert > Quick Character in the text in front",
           "[gui][special-characters][palette][editor]") {
-    registerAllCommands(CommandCallbacks{});
-    const Command* command = CommandRegistry::getInstance().getCommand("insert.quickCharacter");
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    const Command* command = kalahari::test::commands().getCommand("insert.quickCharacter");
     REQUIRE(command != nullptr);
     CHECK(command->shortcut ==
           KeyboardShortcut(Qt::Key_I, Qt::ControlModifier | Qt::ShiftModifier));
@@ -224,11 +225,11 @@ TEST_CASE("Quick character palette: Insert > Quick Character in the text in fron
     window.show();
     text->fromKml(test::kmlOf({QStringLiteral("Ala")}));
     text->setCursorPosition({0, 3});
-    SpecialCharacterCoordinator coordinator(
-        &window, window.statusBar(), [text]() { return text; }, {}, {});
+    SpecialCharacterCoordinator coordinator(kalahari::test::commands(), &window, window.statusBar(),
+                                            [text]() { return text; }, {}, {});
     coordinator.connectCommands();
 
-    CommandRegistry::getInstance().getCommand("insert.quickCharacter")->execute();
+    kalahari::test::commands().getCommand("insert.quickCharacter")->execute();
     QuickCharacterPalette* palette = coordinator.quickPalette();
     REQUIRE(palette != nullptr);
     CHECK(palette->isVisible());

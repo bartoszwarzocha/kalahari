@@ -69,7 +69,7 @@ BookEditor* openText(Window& window, const QString& id) {
 
 /// Open a text of the book in its tab
 BookEditor* open(Window& window, const QString& id) {
-    const core::ProjectElement* element = core::ProjectManager::getInstance().findElement(id);
+    const core::ProjectElement* element = test::book().findElement(id);
     REQUIRE(element != nullptr);
     window.navigator.onElementSelected(id, element->title);
     BookEditor* text = openText(window, id);
@@ -144,7 +144,8 @@ struct Break {
 
     explicit Break(Window& window)
         : coordinator(
-              window.tabs, &window.navigator, [this]() { return keys; },
+              test::book(), test::commands(), window.tabs, &window.navigator,
+              [this]() { return keys; },
               [this](gui::EditorPanel*, const QString& message, const QString& actionText,
                      const QString&, const std::function<void()>& action) {
                   notices.append(message + QLatin1Char('|') + actionText);
@@ -287,8 +288,9 @@ TEST_CASE("Chapter Break: in a paragraph, at a selection, and after the last tex
 
 TEST_CASE("Chapter Break: when the text cannot be split, the reason", "[gui][chapterbreak]") {
     SECTION("no book") {
-        REQUIRE_FALSE(core::ProjectManager::getInstance().isProjectOpen());
-        ChapterBreakCoordinator coordinator(nullptr, nullptr, {}, {}, nullptr, nullptr);
+        REQUIRE_FALSE(test::book().isProjectOpen());
+        ChapterBreakCoordinator coordinator(test::book(), test::commands(), nullptr, nullptr, {}, {},
+                                            nullptr, nullptr);
         CHECK(coordinator.whyNotBreak(nullptr) == QStringLiteral("No book is open"));
     }
 

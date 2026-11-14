@@ -5,7 +5,8 @@
 /// - Centralized command registration (core + plugins)
 /// - Command lookup by ID or category
 /// - Unified execution path (menu, toolbar, keyboard shortcuts)
-/// - Thread-safe singleton pattern (Meyers)
+/// - One registry per book window (MainWindow::commands()), whose menus, toolbars and keys run
+///   that window's commands
 ///
 /// Example usage:
 /// @code
@@ -14,10 +15,11 @@
 /// cmd.id = "file.save";
 /// cmd.label = "Save";
 /// cmd.execute = []() { /* save logic */ };
-/// CommandRegistry::getInstance().registerCommand(cmd);
+/// CommandRegistry registry;
+/// registry.registerCommand(cmd);
 ///
 /// // Execute command
-/// if (auto* cmd = CommandRegistry::getInstance().getCommand("file.save")) {
+/// if (auto* cmd = registry.getCommand("file.save")) {
 ///     if (cmd->canExecute() && cmd->checkEnabled()) {
 ///         cmd->execute();
 ///     }
@@ -62,13 +64,15 @@ enum class CommandExecutionResult {
 using CommandErrorHandler = std::function<void(const std::string& commandId, const std::string& errorMessage)>;
 
 // ============================================================================
-// CommandRegistry - Central Command Management (Singleton)
+// CommandRegistry - Central Command Management (one per book window)
 // ============================================================================
 
 /// @brief Central command registry for unified command execution
 ///
-/// Singleton managing all command registrations, lookups, and queries.
-/// Uses Meyers singleton pattern for thread-safe initialization (C++11+).
+/// Command registrations, lookups, and queries of one book window: each window has its own
+/// (MainWindow::commands()), so the actions of its menus and toolbars run its commands, with
+/// the state of its texts. The keys the user gives (setCustomShortcuts()) are given to the
+/// registry of each window.
 ///
 /// Architecture:
 /// - Storage: std::unordered_map<std::string, Command>
@@ -76,7 +80,6 @@ using CommandErrorHandler = std::function<void(const std::string& commandId, con
 /// - Execution: Menu/toolbar/keyboard all route through getCommand() + execute()
 ///
 /// Thread-safety:
-/// - Singleton initialization is thread-safe (C++11 guarantee)
 /// - All methods are protected by mutex for thread-safe access
 /// - Command execution can happen from any thread (callbacks handle threading)
 ///
@@ -96,9 +99,15 @@ public:
     /// @brief The keys of the commands, by command id
     using ShortcutMap = std::map<std::string, KeyboardShortcut>;
 
-    /// @brief Get singleton instance (thread-safe, C++11+)
-    /// @return Reference to the single CommandRegistry instance
-    static CommandRegistry& getInstance();
+    /// @brief No commands at first
+    explicit CommandRegistry(QObject* parent = nullptr);
+
+    /// @brief Deletes the actions of its commands
+    ~CommandRegistry() override;
+
+    /// @brief The registries there are now, one for each book window, in the order they were
+    ///        made; the user's keys of the commands are given to all of them
+    [[nodiscard]] static QList<CommandRegistry*> registries();
 
     // ========================================================================
     // Registration (called at startup or plugin load)
@@ -287,9 +296,6 @@ signals:
     void shortcutsChanged();
 
 private:
-    // Singleton pattern (Meyers)
-    CommandRegistry();
-    ~CommandRegistry() override;
     CommandRegistry(const CommandRegistry&) = delete;
     CommandRegistry& operator=(const CommandRegistry&) = delete;
 

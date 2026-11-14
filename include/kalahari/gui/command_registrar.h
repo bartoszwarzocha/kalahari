@@ -21,6 +21,8 @@ enum class CaseChange;  // editor/character_format.h
 
 namespace gui {
 
+class CommandRegistry;
+
 /// @brief The commands of the Table menu (the table of the cursor in the text with the keys)
 enum class TableCommand {
     InsertTable,         ///< Insert Table...: the window of a new table
@@ -245,14 +247,15 @@ struct CommandCallbacks {
 /// - View menu commands
 /// - Help menu commands
 ///
-/// Call once during application startup, before creating menus and toolbars.
+/// Call once for each book window, before creating its menus and toolbars.
 ///
+/// @param registry The commands of the window
 /// @param callbacks Struct containing callbacks to MainWindow methods
 /// @return Number of commands registered
 ///
 /// @note This was extracted from MainWindow::registerCommands() in OpenSpec #00038.
 /// @note Icon registration is handled separately by registerAllIcons().
-int registerAllCommands(const CommandCallbacks& callbacks);
+int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callbacks);
 
 } // namespace gui
 } // namespace kalahari

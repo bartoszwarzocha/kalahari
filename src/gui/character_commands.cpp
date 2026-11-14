@@ -73,9 +73,9 @@ bool isCharacterCommand(const std::string& id)
     return id.compare(0, prefix.size(), prefix) == 0 && characterOfCommand(id).has_value();
 }
 
-bool registerCharacterCommand(char32_t code, const InsertCharacters& insert)
+bool registerCharacterCommand(CommandRegistry& registry, char32_t code,
+                              const InsertCharacters& insert)
 {
-    CommandRegistry& registry = CommandRegistry::getInstance();
     const std::string id = characterCommandId(code);
     if (!isCharacterCommand(id) || registry.isCommandRegistered(id)) {
         return false;
@@ -108,16 +108,17 @@ bool registerCharacterCommand(char32_t code, const InsertCharacters& insert)
     return true;
 }
 
-std::vector<std::string> registerCharacterCommands(const InsertCharacters& insert)
+std::vector<std::string> registerCharacterCommands(CommandRegistry& registry,
+                                                   const InsertCharacters& insert)
 {
     std::vector<std::string> registered;
-    for (const auto& [id, keys] : CommandRegistry::getInstance().customShortcuts()) {
+    for (const auto& [id, keys] : registry.customShortcuts()) {
         const std::optional<char32_t> code =
             isCharacterCommand(id) ? characterOfCommand(id) : std::nullopt;
         if (keys.isEmpty() || !code.has_value()) {
             continue;
         }
-        if (registerCharacterCommand(*code, insert)) {
+        if (registerCharacterCommand(registry, *code, insert)) {
             registered.push_back(id);
         }
     }

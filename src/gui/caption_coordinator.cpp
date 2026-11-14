@@ -39,19 +39,21 @@ constexpr const char* FIGURE_LIST_COMMAND = "insert.figureList";
 
 }  // namespace
 
-CaptionCoordinator::CaptionCoordinator(QTabWidget* centralTabs, ChapterOpener openChapter,
+CaptionCoordinator::CaptionCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                       QTabWidget* centralTabs, ChapterOpener openChapter,
                                        QWidget* window, QObject* parent)
     : QObject(parent),
       m_centralTabs(centralTabs),
       m_openChapter(std::move(openChapter)),
-      m_window(window)
-{
+      m_window(window),
+      m_book(book),
+      m_commands(commands) {
     m_refreshTimer.setSingleShot(true);
     m_refreshTimer.setInterval(REFRESH_DELAY_MS);
     connect(&m_refreshTimer, &QTimer::timeout, this, &CaptionCoordinator::refresh);
 
     // Another book: nothing kept of the texts of the last one
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this, [this]() {
         m_savedTexts.clear();
         refreshSoon();
@@ -66,7 +68,7 @@ CaptionCoordinator::CaptionCoordinator(QTabWidget* centralTabs, ChapterOpener op
     if (m_centralTabs != nullptr) {
         const auto textsChanged = [this]() {
             refreshSoon();
-            auto& registry = CommandRegistry::getInstance();
+            auto& registry = m_commands;
             for (const char* id : {CAPTION_COMMAND, REFERENCE_COMMAND, FIGURE_LIST_COMMAND}) {
                 registry.updateActionState(id);
             }
@@ -88,7 +90,7 @@ CaptionCoordinator::CaptionCoordinator(QTabWidget* centralTabs, ChapterOpener op
 }
 
 void CaptionCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     const auto connectCommand = [this, &registry](const char* id, std::function<void()> execute) {
         if (Command* command = registry.getCommand(id)) {
             command->execute = std::move(execute);
@@ -107,11 +109,11 @@ void CaptionCoordinator::connectCommands() {
 // =============================================================================
 
 core::BookCaptions CaptionCoordinator::captions() const {
-    return currentBookCaptions();
+    return currentBookCaptions(m_book);
 }
 
 bool CaptionCoordinator::setCaptions(const core::BookCaptions& captions) {
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     if (!projects.isProjectOpen()) {
         return false;
     }
@@ -134,7 +136,8 @@ QList<std::pair<QString, editor::BookEditor*>> CaptionCoordinator::openEditors()
 
 const CaptionCoordinator::CachedText& CaptionCoordinator::savedText(const QString& elementId) const {
     CachedText& cached = m_savedTexts[elementId];
-    if (const std::optional<QString> kml = savedTextIfChanged(elementId, cached.signature)) {
+    if (const std::optional<QString> kml =
+            savedTextIfChanged(m_book, elementId, cached.signature)) {
         cached.entries = editor::captionEntriesOfKml(*kml);
         cached.references = editor::crossReferenceCountsOfKml(*kml);
     }
@@ -143,7 +146,7 @@ const CaptionCoordinator::CachedText& CaptionCoordinator::savedText(const QStrin
 
 std::vector<CaptionCoordinator::BookText> CaptionCoordinator::bookTexts() const {
     std::vector<BookText> texts;
-    const std::vector<BookTextElement> elements = bookTextElements();
+    const std::vector<BookTextElement> elements = bookTextElements(m_book);
     if (elements.empty()) {
         return texts;
     }
@@ -312,7 +315,7 @@ void CaptionCoordinator::attachEditors() {
 }
 
 void CaptionCoordinator::keepCaptionsOnce() {
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     if (!projects.isProjectOpen() || projects.isReadOnly() || projects.bookCaptions()) {
         return;
     }
@@ -427,7 +430,7 @@ bool CaptionCoordinator::editCaption(editor::BookEditor& editor, int position) {
     data.numberingOf = [this](const QString& label) {
         return numberingOf(captions().numberingOf(label));
     };
-    if (core::ProjectManager::getInstance().isProjectOpen()) {
+    if (m_book.isProjectOpen()) {
         data.editNumbering = [this](const QString& label, QWidget* parent) {
             return editNumbering(label, parent);
         };
@@ -439,10 +442,10 @@ bool CaptionCoordinator::editCaption(editor::BookEditor& editor, int position) {
     }
 
     // The labels the window added or took away, and the book keeps its own from now on
-    if (core::ProjectManager::getInstance().isProjectOpen()) {
+    if (m_book.isProjectOpen()) {
         core::BookCaptions changed = captions();
         changed.labels = dialog.labels();
-        if (changed != bookCaptions || !core::ProjectManager::getInstance().bookCaptions()) {
+        if (changed != bookCaptions || !m_book.bookCaptions()) {
             setCaptions(changed);
         }
     }
@@ -469,7 +472,7 @@ bool CaptionCoordinator::editNumbering(const QString& label, QWidget* parent) {
     if (!found) {
         bookCaptions.numbering << numbering;
     }
-    if (!core::ProjectManager::getInstance().isProjectOpen()) {
+    if (!m_book.isProjectOpen()) {
         return false;  // a file outside a book: the Settings number it
     }
     const bool kept = setCaptions(bookCaptions);

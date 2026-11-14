@@ -22,6 +22,13 @@ class QStatusBar;
 class QTabWidget;
 class QTimer;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 struct CursorPosition;
@@ -63,6 +70,8 @@ public:
     using ChapterOpener = std::function<void(const QString& elementId)>;
 
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param panel The panel Repetitions
     /// @param dock The panel's dock
     /// @param centralTabs The tabs of the documents of the book window (DocumentWindows: with
@@ -72,7 +81,8 @@ public:
     /// @param openChapter Opens a chapter whose card the writer goes to
     /// @param statusBar Where the commands say what they found (may be null)
     /// @param parent Parent object
-    RepetitionsCoordinator(RepetitionsPanel* panel, QDockWidget* dock, QTabWidget* centralTabs,
+    RepetitionsCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                           RepetitionsPanel* panel, QDockWidget* dock, QTabWidget* centralTabs,
                            SpellingCoordinator* spelling, ChapterOpener openChapter,
                            QStatusBar* statusBar, QObject* parent = nullptr);
 
@@ -188,6 +198,8 @@ private:
     QString m_baseFormsDictionary;
     int m_settingsListener{0};
     std::atomic<bool> m_settingsPending{false};  ///< onSettingsChanged() is queued
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

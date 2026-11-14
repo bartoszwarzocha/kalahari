@@ -140,21 +140,25 @@ bool isOpenKey(const QKeyEvent* key) {
 /// The names of the fields: the names of the fields of the book suggested as they are typed
 class FieldDelegate : public QStyledItemDelegate {
 public:
-    using QStyledItemDelegate::QStyledItemDelegate;
+    /// @param book The book whose names of fields it suggests
+    FieldDelegate(const core::ProjectManager& book, QObject* parent)
+        : QStyledItemDelegate(parent), m_book(book) {}
 
     QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option,
                           const QModelIndex& index) const override {
         QWidget* editor = QStyledItemDelegate::createEditor(parent, option, index);
         auto* line = qobject_cast<QLineEdit*>(editor);
         if (line != nullptr && index.column() == 0) {
-            auto* completer =
-                new QCompleter(core::ProjectManager::getInstance().fieldNames(), line);
+            auto* completer = new QCompleter(m_book.fieldNames(), line);
             completer->setCaseSensitivity(Qt::CaseInsensitive);
             completer->setFilterMode(Qt::MatchStartsWith);
             line->setCompleter(completer);
         }
         return editor;
     }
+
+private:
+    const core::ProjectManager& m_book;
 };
 
 /// The links of a material: a node of the Navigator dropped on it is linked
@@ -225,7 +229,8 @@ void cutOffChildren(QWidget* widget) {
 // MaterialPage
 // =============================================================================
 
-MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full(full) {
+MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool full)
+    : QWidget(parent), m_full(full), m_book(book) {
     setObjectName(full ? QStringLiteral("materialFullCard") : QStringLiteral("materialPage"));
 
     // The picture or the source, the file and the ways of opening it; the title, the file and
@@ -439,7 +444,7 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
     m_fieldsTable->setEditTriggers(QAbstractItemView::DoubleClicked |
                                    QAbstractItemView::EditKeyPressed |
                                    QAbstractItemView::AnyKeyPressed);
-    m_fieldsTable->setItemDelegate(new FieldDelegate(m_fieldsTable));
+    m_fieldsTable->setItemDelegate(new FieldDelegate(m_book, m_fieldsTable));
     m_fieldsTable->setWordWrap(false);
     m_fieldsTable->installEventFilter(this);
     fieldsLayout->addWidget(m_fieldsTable);
@@ -555,10 +560,10 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &MaterialPage::refresh);
     // The links changed elsewhere, or their paragraphs moved when a chapter was saved
-    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::linksChanged, this,
+    connect(&m_book, &core::ProjectManager::linksChanged, this,
             [this]() {
                 if (const core::ProjectElement* element =
-                        core::ProjectManager::getInstance().findElement(m_elementId)) {
+                        m_book.findElement(m_elementId)) {
                     fillLinks(*element);
                 }
             });
@@ -578,8 +583,7 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
                             return;
                         }
                         if (const core::ProjectElement* element =
-                                core::ProjectManager::getInstance().findElement(
-                                    page->m_elementId)) {
+                                page->m_book.findElement(page->m_elementId)) {
                             page->showCover(*element);
                         }
                     },
@@ -596,7 +600,7 @@ MaterialPage::MaterialPage(QWidget* parent, bool full) : QWidget(parent), m_full
                         return;
                     }
                     if (const core::ProjectElement* element =
-                            core::ProjectManager::getInstance().findElement(page->m_elementId)) {
+                            page->m_book.findElement(page->m_elementId)) {
                         page->fillLinks(*element);
                     }
                 },
@@ -615,17 +619,18 @@ void MaterialPage::showMaterial(const QString& elementId) {
 }
 
 void MaterialPage::refresh() {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(m_elementId);
     if (element == nullptr) {
         return;
     }
     m_updating = true;
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+    const QHash<QString, core::KindWords> nouns{
+        {QStringLiteral("kind"), wordsOf(m_book, *element)}};
     //: In Polish: Informacje o {kind:locative}
     m_infoGroup->setTitle(core::fillWords(tr("{Kind} Information"), nouns));
 
-    m_cover = CoverNames::isCoverMaterial(*element);
+    m_cover = CoverNames::isCoverMaterial(m_book, *element);
     showSource(*element);
 
     if (!m_titleEdit->hasFocus()) {
@@ -651,7 +656,7 @@ void MaterialPage::refresh() {
 }
 
 void MaterialPage::showSource(const core::ProjectElement& element) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     m_source = materialSourceOf(element);
     m_url = element.url;
     m_path = pm.filePathOf(element);
@@ -817,7 +822,7 @@ QString MaterialPage::updateThumbnail() {
         // kind or of its source
         const int iconSize =
             core::ArtProvider::getInstance().getIconSize(core::IconContext::Dialog);
-        shown = linkIcon(m_elementId, core::IconContext::Dialog).pixmap(iconSize * 2);
+        shown = linkIcon(m_book, m_elementId, core::IconContext::Dialog).pixmap(iconSize * 2);
     }
     m_thumbnail->setIcon(QIcon(shown));
     m_thumbnail->setIconSize(shown.size());
@@ -856,7 +861,7 @@ void MaterialPage::fillLinks(const core::ProjectElement& element) {
                                    : QString();
     m_linksList->clear();
     const QColor grey = palette().color(QPalette::PlaceholderText);
-    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const core::BookProject* project = m_book.project();
     bool details = false;  // Whether a row has the role or the paragraph under its title
     for (const core::ElementLink& link : element.links) {
         // A link that names nothing of the book any more is not shown
@@ -864,11 +869,11 @@ void MaterialPage::fillLinks(const core::ProjectElement& element) {
             continue;
         }
         auto* item = new QTreeWidgetItem(m_linksList);
-        const QString title = linkTitle(link.to);
+        const QString title = linkTitle(m_book, link.to);
         const QString how = linkDetails(link);
         item->setText(0, how.isEmpty() ? title : title + QLatin1Char('\n') + how);
-        item->setIcon(0, linkIcon(link.to, core::IconContext::TreeView));
-        item->setText(1, linkPlace(link.to));
+        item->setIcon(0, linkIcon(m_book, link.to, core::IconContext::TreeView));
+        item->setText(1, linkPlace(m_book, link.to));
         item->setForeground(1, grey);
         item->setData(0, LINK_ROLE, link.to);
         //: The tooltip of a link with a note: %1 the title and the role, %2 the note. In
@@ -891,7 +896,7 @@ void MaterialPage::fillLinks(const core::ProjectElement& element) {
 }
 
 void MaterialPage::updateButtons() {
-    const bool readOnly = core::ProjectManager::getInstance().isReadOnly();
+    const bool readOnly = m_book.isReadOnly();
     m_addFieldButton->setEnabled(!readOnly);
     m_removeFieldButton->setEnabled(!readOnly && m_fieldsTable->currentRow() >= 0 &&
                                     m_fieldsTable->rowCount() > 0);
@@ -903,7 +908,7 @@ void MaterialPage::saveTitle() {
     if (m_updating || m_elementId.isEmpty()) {
         return;
     }
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(m_elementId);
     if (element == nullptr || pm.isReadOnly()) {
         return;
@@ -927,7 +932,7 @@ void MaterialPage::saveDescription() {
     if (m_updating || m_elementId.isEmpty()) {
         return;
     }
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(m_elementId);
     if (element == nullptr || pm.isReadOnly() ||
         element->description == m_descriptionEdit->toPlainText()) {
@@ -956,7 +961,7 @@ QList<core::ElementField> MaterialPage::tableFields() const {
 }
 
 void MaterialPage::saveFields() {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (m_elementId.isEmpty() || pm.isReadOnly()) {
         return;
     }
@@ -977,7 +982,7 @@ void MaterialPage::saveFields() {
 }
 
 void MaterialPage::addField() {
-    if (m_elementId.isEmpty() || core::ProjectManager::getInstance().isReadOnly()) {
+    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
         return;
     }
     const bool wasUpdating = m_updating;
@@ -1003,7 +1008,7 @@ void MaterialPage::addField() {
 void MaterialPage::removeField() {
     const int row = m_fieldsTable->currentRow();
     if (row < 0 || row >= m_fieldsTable->rowCount() ||
-        core::ProjectManager::getInstance().isReadOnly()) {
+        m_book.isReadOnly()) {
         return;
     }
     const QTableWidgetItem* name = m_fieldsTable->item(row, 0);
@@ -1035,19 +1040,19 @@ void MaterialPage::removeField() {
 }
 
 void MaterialPage::editLinks() {
-    if (m_elementId.isEmpty() || core::ProjectManager::getInstance().isReadOnly()) {
+    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
         return;
     }
     const QTreeWidgetItem* item = m_linksList->currentItem();
     if (const std::optional<QList<core::ElementLink>> links = dialogs::chooseLinks(
-            m_elementId, item != nullptr ? item->data(0, LINK_ROLE).toString() : QString(),
+            m_book, m_elementId, item != nullptr ? item->data(0, LINK_ROLE).toString() : QString(),
             window())) {
         saveLinks(*links);
     }
 }
 
 void MaterialPage::addLinks(const QStringList& links) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(m_elementId);
     if (element == nullptr) {
         return;
@@ -1062,7 +1067,7 @@ void MaterialPage::addLinks(const QStringList& links) {
 void MaterialPage::removeLink() {
     const QTreeWidgetItem* item = m_linksList->currentItem();
     const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(m_elementId);
+        m_book.findElement(m_elementId);
     if (item == nullptr || element == nullptr) {
         return;
     }
@@ -1080,7 +1085,7 @@ void MaterialPage::removeLink() {
 }
 
 void MaterialPage::saveLinks(const QList<core::ElementLink>& links) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (m_elementId.isEmpty() || pm.isReadOnly()) {
         return;
     }
@@ -1164,7 +1169,7 @@ QGroupBox* MaterialPage::createCoverGroup() {
 
 void MaterialPage::showCover(const core::ProjectElement& element) {
     using core::CoverMaterial;
-    m_cover = CoverNames::isCoverMaterial(element);
+    m_cover = CoverNames::isCoverMaterial(m_book, element);
     m_coverData = m_cover ? element.cover : core::CoverData{};
     const QString& part = m_coverData.part;
     const bool text = m_cover && CoverMaterial::isText(part);
@@ -1273,7 +1278,7 @@ void MaterialPage::showCover(const core::ProjectElement& element) {
         caption->setText(reference ? tr("&Author or source:") : tr("&Author:"));
     }
 
-    const bool readOnly = core::ProjectManager::getInstance().isReadOnly();
+    const bool readOnly = m_book.isReadOnly();
     for (QComboBox* combo :
          {m_coverPartBox, m_coverPlaceBox, m_coverStateBox, m_coverConsentBox}) {
         combo->setEnabled(!readOnly);
@@ -1356,7 +1361,7 @@ void MaterialPage::saveCover(const std::function<void(core::CoverData&)>& change
     if (m_updating || m_elementId.isEmpty() || !m_cover) {
         return;
     }
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(m_elementId);
     if (element == nullptr || pm.isReadOnly()) {
         return;
@@ -1405,7 +1410,7 @@ void MaterialPage::saveState() {
     if (m_updating || m_elementId.isEmpty() || !m_cover) {
         return;
     }
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(m_elementId);
     const QString state = m_coverStateBox->currentData().toString();
     if (element == nullptr || pm.isReadOnly() || element->cover.state == state) {
@@ -1487,8 +1492,9 @@ bool MaterialPage::eventFilter(QObject* watched, QEvent* event) {
 // MaterialCardPanel
 // =============================================================================
 
-MaterialCardPanel::MaterialCardPanel(const QString& elementId, QWidget* parent)
-    : QScrollArea(parent) {
+MaterialCardPanel::MaterialCardPanel(core::ProjectManager& book, const QString& elementId,
+                                     QWidget* parent)
+    : QScrollArea(parent), m_book(book) {
     setObjectName(QStringLiteral("materialCardPanel"));
     setWidgetResizable(true);
     setFrameShape(QFrame::NoFrame);
@@ -1496,7 +1502,7 @@ MaterialCardPanel::MaterialCardPanel(const QString& elementId, QWidget* parent)
     auto* content = new QWidget(this);
     auto* row = new QHBoxLayout(content);
     row->setContentsMargins(16, 16, 16, 16);
-    m_page = new MaterialPage(content, true);
+    m_page = new MaterialPage(m_book, content, true);
     row->addWidget(m_page);
     setWidget(content);
     setFocusProxy(m_page->titleEdit());
@@ -1510,7 +1516,7 @@ QString MaterialCardPanel::elementId() const {
 }
 
 void MaterialCardPanel::refresh() {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId());
     if (element == nullptr) {
         return;
@@ -1523,7 +1529,8 @@ void MaterialCardPanel::refresh() {
 // LinkedMaterialsBox
 // =============================================================================
 
-LinkedMaterialsBox::LinkedMaterialsBox(QWidget* parent) : QGroupBox(parent) {
+LinkedMaterialsBox::LinkedMaterialsBox(core::ProjectManager& book, QWidget* parent)
+    : QGroupBox(parent), m_book(book) {
     setObjectName(QStringLiteral("linkedMaterials"));
     //: The materials linked with a chapter, in its page of the Properties panel. In Polish:
     //: Materiały
@@ -1561,7 +1568,7 @@ LinkedMaterialsBox::LinkedMaterialsBox(QWidget* parent) : QGroupBox(parent) {
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &LinkedMaterialsBox::refresh);
     // The links changed elsewhere, or their paragraphs moved when a chapter was saved
-    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::linksChanged, this,
+    connect(&m_book, &core::ProjectManager::linksChanged, this,
             [this]() {
                 if (!m_link.isEmpty()) {
                     refresh();
@@ -1597,7 +1604,7 @@ void LinkedMaterialsBox::showLinked(const QString& link, const QString& emptyTex
 }
 
 void LinkedMaterialsBox::refresh() {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const QString current =
         m_list->currentItem() ? m_list->currentItem()->data(LINK_ROLE).toString() : QString();
     m_list->clear();
@@ -1605,7 +1612,7 @@ void LinkedMaterialsBox::refresh() {
         QImage picture = readPicture(pm.filePathOf(*material), material->rotation,
                                      QSize(MATERIAL_ICON, MATERIAL_ICON));
         const QIcon icon = picture.isNull()
-                               ? linkIcon(material->id, core::IconContext::Dialog)
+                               ? linkIcon(m_book, material->id, core::IconContext::Dialog)
                                : QIcon(QPixmap::fromImage(picture));
         // The title, and under it the role and the paragraph of the link, else the first
         // field: "Scale: 1 : 50 000"
@@ -1644,17 +1651,17 @@ void LinkedMaterialsBox::refresh() {
 }
 
 void LinkedMaterialsBox::updateButtons() {
-    const bool readOnly = core::ProjectManager::getInstance().isReadOnly();
+    const bool readOnly = m_book.isReadOnly();
     m_addButton->setEnabled(!readOnly && !m_link.isEmpty());
     m_removeButton->setEnabled(!readOnly && m_list->currentItem() != nullptr);
 }
 
 void LinkedMaterialsBox::editMaterials() {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (m_link.isEmpty() || pm.isReadOnly()) {
         return;
     }
-    dialogs::LinkDialog dialog(dialogs::LinkDialog::Mode::Materials, m_link, window());
+    dialogs::LinkDialog dialog(m_book, dialogs::LinkDialog::Mode::Materials, m_link, window());
     if (const QListWidgetItem* item = m_list->currentItem()) {
         dialog.setCurrentLink(item->data(LINK_ROLE).toString());
     }
@@ -1705,7 +1712,7 @@ void LinkedMaterialsBox::editMaterials() {
 }
 
 void LinkedMaterialsBox::removeMaterial() {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const QListWidgetItem* item = m_list->currentItem();
     if (item == nullptr || pm.isReadOnly()) {
         return;

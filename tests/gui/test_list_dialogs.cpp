@@ -26,6 +26,7 @@
 #include <QTimer>
 
 #include <optional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::editor;
@@ -294,7 +295,7 @@ TEST_CASE("Special Character window: choosing a bullet", "[gui][lists][dialog]")
 }
 
 TEST_CASE("Editor panel: the list windows change the list at the cursor", "[gui][lists][dialog]") {
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     BookEditor* editor = panel.getBookEditor();
     editor->fromKml(QStringLiteral("<kml><ol><li>One</li><li>Two</li></ol></kml>"));
     editor->setCursorPosition({1, 0});

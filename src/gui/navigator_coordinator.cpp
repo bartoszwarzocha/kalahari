@@ -94,9 +94,9 @@ QString pathLines(const QStringList& paths) {
 }
 
 /// Absolute path of @p file, relative to the folder of the open project
-QString projectFilePath(const QString& file) {
+QString projectFilePath(const core::ProjectManager& book, const QString& file) {
     return QDir::cleanPath(
-        QDir(core::ProjectManager::getInstance().getProjectPath()).filePath(file));
+        QDir(book.getProjectPath()).filePath(file));
 }
 
 /// How long the status bar says what the quick ways added
@@ -122,8 +122,8 @@ core::KindRef oneKindOf(const QList<core::KindRef>& kinds) {
 }
 
 /// The name of @p link, an element or a section of the book, as the Navigator shows it
-QString linkName(const QString& link) {
-    const auto& pm = core::ProjectManager::getInstance();
+QString linkName(const core::ProjectManager& book, const QString& link) {
+    const auto& pm = book;
     if (const core::ProjectElement* element = pm.findElement(link)) {
         return element->title;
     }
@@ -135,19 +135,20 @@ QString linkName(const QString& link) {
 
 }  // namespace
 
-NavigatorCoordinator::NavigatorCoordinator(NavigatorPanel* navigatorPanel,
-                                             PropertiesPanel* propertiesPanel,
-                                             QTabWidget* centralTabs,
-                                             QStatusBar* statusBar,
-                                             QObject* parent)
-    : QObject(parent)
-    , m_navigatorPanel(navigatorPanel)
-    , m_propertiesPanel(propertiesPanel)
-    , m_centralTabs(centralTabs)
-    , m_statusBar(statusBar)
-    , m_wordCountTimer(new QTimer(this))
-    , m_downloader(new MaterialDownloader(this))
-{
+NavigatorCoordinator::NavigatorCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                           NavigatorPanel* navigatorPanel,
+                                           PropertiesPanel* propertiesPanel,
+                                           QTabWidget* centralTabs, QStatusBar* statusBar,
+                                           QObject* parent)
+    : QObject(parent),
+      m_navigatorPanel(navigatorPanel),
+      m_propertiesPanel(propertiesPanel),
+      m_centralTabs(centralTabs),
+      m_statusBar(statusBar),
+      m_wordCountTimer(new QTimer(this)),
+      m_downloader(new MaterialDownloader(this)),
+      m_book(book),
+      m_commands(commands) {
     // The counts of the book follow the text being written, without counting at each key
     m_wordCountTimer->setSingleShot(true);
     m_wordCountTimer->setInterval(WORD_COUNT_DELAY_MS);
@@ -178,7 +179,7 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
 
     // Forget the unsaved text ProjectManager keeps (single source of truth), with its words
-    core::ProjectManager::getInstance().discardChapterContent(elementId);
+    m_book.discardChapterContent(elementId);
 
     // Clear the display cache
     m_dirtyChapters[elementId] = false;
@@ -195,7 +196,7 @@ void NavigatorCoordinator::discardChapterChanges(const QString& elementId) {
 }
 
 void NavigatorCoordinator::countWords() {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const QSet<QString> changed = std::exchange(m_uncountedChapters, {});
     if (!pm.isProjectOpen() || changed.isEmpty()) {
         return;
@@ -228,7 +229,7 @@ EditorPanel* NavigatorCoordinator::getCurrentEditor() const {
 }
 
 void NavigatorCoordinator::refreshNavigator() {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (const core::BookProject* project = pm.project()) {
         // Rebuilding the tree resets expansion to defaults, so keep the user's state
         const QStringList expandedIds = m_navigatorPanel->expandedItemIds();
@@ -242,7 +243,7 @@ void NavigatorCoordinator::refreshNavigator() {
 
 void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
     const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(elementId);
+        m_book.findElement(elementId);
     if (!element) {
         return;
     }
@@ -258,7 +259,7 @@ void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
 
 void NavigatorCoordinator::refreshFirstPage(const QString& elementId) {
     const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(elementId);
+        m_book.findElement(elementId);
     if (!element) {
         return;
     }
@@ -284,7 +285,7 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
                 elementTitle.toStdString(), elementId.toStdString());
 
     // Check if project is loaded via ProjectManager
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         logger.debug("No project loaded - ignoring Navigator selection");
         m_statusBar->showMessage(tr("No book loaded"), 2000);
@@ -319,7 +320,7 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
 
     // Create new editor tab with the element's icon, as in the navigator
     logElapsed("Before new EditorPanel");
-    EditorPanel* newEditor = new EditorPanel(m_centralTabs);
+    EditorPanel* newEditor = new EditorPanel(m_book, m_commands, m_centralTabs);
     logElapsed("After new EditorPanel");
     // A chapter of a book open read-only is read, copied and searched only; before the tab
     // comes, as the commands follow the tab in front
@@ -362,7 +363,7 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
             });
     // The words of the book follow the text, before it is saved
     connect(newEditor, &EditorPanel::contentChanged, this, [this, elementId]() {
-        if (core::ProjectManager::getInstance().isProjectOpen()) {
+        if (m_book.isProjectOpen()) {
             m_uncountedChapters.insert(elementId);
             m_wordCountTimer->start();
         }
@@ -371,10 +372,10 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     // keeps the text before it as a version
     const editor::BookEditor* bookEditor = newEditor->getBookEditor();
     connect(bookEditor, &editor::BookEditor::aboutToReplaceAll, this,
-            [elementId, bookEditor](const QString& found, const QString& replacement,
-                                    int count) {
-                keepVersionBeforeReplaceAll(elementId, bookEditor->toKml(), found, replacement,
-                                            count);
+            [this, elementId, bookEditor](const QString& found, const QString& replacement,
+                                          int count) {
+                keepVersionBeforeReplaceAll(m_book, elementId, bookEditor->toKml(), found,
+                                            replacement, count);
             });
 
     // Connect to statistics collector if available (OpenSpec #00042 Task 7.7)
@@ -392,14 +393,14 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
     m_statusBar->showMessage(tr("Opened: %1").arg(elementTitle), 2000);
 
     if (!complete) {
-        const core::KindWords kind = element ? wordsOf(*element) : mainWords();
+        const core::KindWords kind = element ? wordsOf(m_book, *element) : mainWords(m_book);
         EditorPanel::warnDamagedChapter(m_centralTabs->window(), elementTitle, &kind);
     }
 }
 
 void NavigatorCoordinator::onRequestRename(const QString& elementId, const QString& currentTitle) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: Rename requested but no project open");
@@ -454,7 +455,7 @@ void NavigatorCoordinator::onRequestRename(const QString& elementId, const QStri
 
 void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
 
     if (!pm.isProjectOpen()) {
@@ -497,7 +498,7 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
             QString question;
             if (unsaved.size() == 1) {
                 const QHash<QString, core::KindWords> nouns{
-                    {QStringLiteral("kind"), wordsOf(*unsaved.first())}};
+                    {QStringLiteral("kind"), wordsOf(m_book, *unsaved.first())}};
                 //: In Polish: Zmian w {kind:locative} „%1” nie udało się zapisać w pliku.
                 //: Mimo to usunąć {kind:m=go|f=ją|n=je|p=je} z książki? Plik zachowa tekst
                 //: zapisany wcześniej.
@@ -546,7 +547,7 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
     refreshNavigator();
     m_propertiesPanel->refresh();  // a deleted element leaves the panel to the book
 
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(element)}};
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(m_book, element)}};
     //: In Polish: Usunięto {kind:accusative} z książki: %1
     m_statusBar->showMessage(
         core::fillWords(tr("{Kind} deleted from the book: %1"), nouns).arg(element.title), 2000);
@@ -555,7 +556,7 @@ void NavigatorCoordinator::onRequestDelete(const QString& elementId) {
 
 QList<const core::ProjectElement*> NavigatorCoordinator::saveTextsOf(
     const core::ProjectElement& element) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     QList<const core::ProjectElement*> unsaved;
 
     // A text with a file gets the changes of its open tab; a part or a window element has no
@@ -658,7 +659,7 @@ QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool tra
     }
 
     // The versions of the texts go as their files went; those of a file that stays stay
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const QStringList versionsStay =
         pm.deleteVersionsOf(trashed, true) + pm.deleteVersionsOf(deletedForGood, false);
     if (!versionsStay.isEmpty()) {
@@ -684,13 +685,13 @@ QStringList NavigatorCoordinator::deleteFiles(const QStringList& files, bool tra
 }
 
 void NavigatorCoordinator::onRequestPreviewUnassigned(const QString& file) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
     if (!pm.isProjectOpen()) {
         return;
     }
 
-    const QString path = projectFilePath(file);
+    const QString path = projectFilePath(m_book, file);
     const std::optional<core::ChapterDocument> chapter = core::ChapterDocument::load(path);
     if (!chapter) {
         dialogs::MessageDialog::warning(
@@ -715,14 +716,14 @@ void NavigatorCoordinator::onRequestPreviewUnassigned(const QString& file) {
 
 void NavigatorCoordinator::onRequestAddUnassigned(const QString& file) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
     if (!pm.isProjectOpen()) {
         return;
     }
 
     // The element takes the title, the status and the notes of the file
-    const QString path = projectFilePath(file);
+    const QString path = projectFilePath(m_book, file);
     const std::optional<core::ChapterDocument> chapter = core::ChapterDocument::load(path);
     if (!chapter) {
         dialogs::MessageDialog::warning(
@@ -731,7 +732,7 @@ void NavigatorCoordinator::onRequestAddUnassigned(const QString& file) {
         refreshNavigator();
         return;
     }
-    const dialogs::AddToBookDialog::Book book = dialogs::AddToBookDialog::openBook(path);
+    const dialogs::AddToBookDialog::Book book = dialogs::AddToBookDialog::openBook(m_book, path);
     if (book.choices.isEmpty()) {
         dialogs::MessageDialog::warning(window, tr("Add to Book"),
                                         tr("No element of this book can have a text."));
@@ -770,7 +771,7 @@ void NavigatorCoordinator::onRequestAddUnassigned(const QString& file) {
 }
 
 void NavigatorCoordinator::onRequestDeleteUnassigned(const QString& file) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         return;
     }
@@ -780,7 +781,7 @@ void NavigatorCoordinator::onRequestDeleteUnassigned(const QString& file) {
 }
 
 void NavigatorCoordinator::onRequestDeleteAllUnassigned() {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (pm.isProjectOpen()) {
         deleteUnassigned(pm.unassignedFiles());
     }
@@ -793,10 +794,10 @@ void NavigatorCoordinator::deleteUnassigned(const QList<core::UnassignedFile>& f
         return;
     }
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     QStringList paths;
     for (const core::UnassignedFile& file : files) {
-        paths << projectFilePath(file.file);
+        paths << projectFilePath(m_book, file.file);
     }
     const bool trash = std::all_of(paths.cbegin(), paths.cend(), [](const QString& path) {
         return core::canMoveToTrash(path);
@@ -858,7 +859,7 @@ void NavigatorCoordinator::closeTabsOf(const core::ProjectElement& element) {
 
 void NavigatorCoordinator::showChapterModified(const QString& elementId, EditorPanel* editor,
                                               bool modified) {
-    if (!core::ProjectManager::getInstance().isProjectOpen()
+    if (!m_book.isProjectOpen()
         || modified == m_dirtyChapters.value(elementId, false)) {
         return;  // shown already, e.g. by the save that made the text the saved text
     }
@@ -884,7 +885,7 @@ void NavigatorCoordinator::showChapterModified(const QString& elementId, EditorP
 
 void NavigatorCoordinator::onRequestMove(const QString& elementId, int direction) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::BookProject* project = pm.project();
     if (!project) {
@@ -923,7 +924,7 @@ void NavigatorCoordinator::onRequestMove(const QString& elementId, int direction
 
 void NavigatorCoordinator::onRequestProperties(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: Properties requested but no project open");
@@ -943,7 +944,7 @@ void NavigatorCoordinator::onRequestProperties(const QString& elementId) {
 
 void NavigatorCoordinator::onRequestSectionProperties(const QString& sectionType) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: Section properties requested but no project open");
@@ -956,7 +957,7 @@ void NavigatorCoordinator::onRequestSectionProperties(const QString& sectionType
 
 void NavigatorCoordinator::onRequestPartProperties(const QString& partId) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: Part properties requested but no project open");
@@ -969,7 +970,7 @@ void NavigatorCoordinator::onRequestPartProperties(const QString& partId) {
 
 void NavigatorCoordinator::onElementMoved(const QString& elementId, int index) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // ProjectManager saves the project at once
     if (pm.moveElement(elementId, index)) {
@@ -987,13 +988,14 @@ void NavigatorCoordinator::onElementMoved(const QString& elementId, int index) {
 
 void NavigatorCoordinator::onRequestMoveTo(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         logger.warn("NavigatorCoordinator: Move requested but no project open");
         return;
     }
 
-    const dialogs::MoveElementDialog::Book book = dialogs::MoveElementDialog::openBook(elementId);
+    const dialogs::MoveElementDialog::Book book =
+        dialogs::MoveElementDialog::openBook(m_book, elementId);
     if (book.sections.isEmpty()) {
         logger.warn("NavigatorCoordinator: Element not found for move: {}",
                     elementId.toStdString());
@@ -1014,7 +1016,7 @@ void NavigatorCoordinator::onElementMovedTo(const QString& elementId,
 void NavigatorCoordinator::moveElementTo(const QString& elementId,
                                          const core::ElementPlace& place) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element) {
         logger.warn("NavigatorCoordinator: Element not found for move: {}",
@@ -1023,7 +1025,8 @@ void NavigatorCoordinator::moveElementTo(const QString& elementId,
         return;
     }
     const QString title = element->title;
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+    const QHash<QString, core::KindWords> nouns{
+        {QStringLiteral("kind"), wordsOf(m_book, *element)}};
 
     // ProjectManager saves the project at once
     if (!pm.moveElementTo(elementId, place)) {
@@ -1058,7 +1061,7 @@ void NavigatorCoordinator::onRequestAdd(const AddTarget& target) {
 bool NavigatorCoordinator::addWithWindow(
     const AddTarget& target, const std::function<void(dialogs::NewFileDialog&)>& prepare) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
 
     if (!pm.isProjectOpen() || pm.isReadOnly()) {
@@ -1069,7 +1072,7 @@ bool NavigatorCoordinator::addWithWindow(
     // The window starts at the place it was opened on; without a choice at its top it offers
     // the kinds of that place only
     const dialogs::NewFileDialog::Book book =
-        dialogs::NewFileDialog::forAdding(target, NavigatorPanel::addChooser());
+        dialogs::NewFileDialog::forAdding(m_book, target, NavigatorPanel::addChooser());
     if (book.kinds.isEmpty()) {
         logger.warn("NavigatorCoordinator: Nothing can be added there");
         return false;
@@ -1163,7 +1166,7 @@ void NavigatorCoordinator::onRequestAddHere() {
 }
 
 void NavigatorCoordinator::onRequestNewChapter() {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::BookProject* project = pm.project();
     if (!project) {
         core::Logger::getInstance().warn(
@@ -1189,7 +1192,7 @@ void NavigatorCoordinator::onRequestNewChapter() {
 }
 
 AddTarget NavigatorCoordinator::addTargetHere() const {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::BookProject* project = pm.project();
     AddTarget target;  // The whole book
     const EditorPanel* editor = getCurrentEditor();
@@ -1218,7 +1221,7 @@ AddTarget NavigatorCoordinator::addTargetHere() const {
 }
 
 void NavigatorCoordinator::showAdded(const QString& elementId, const QString& title) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // The new element is shown, also inside a collapsed part
     refreshNavigator();
@@ -1239,7 +1242,7 @@ void NavigatorCoordinator::showAdded(const QString& elementId, const QString& ti
 
 void NavigatorCoordinator::onRequestRenameNode(const QString& itemType) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::BookProject* project = pm.project();
     const core::ProjectBook* book = pm.book();
@@ -1283,7 +1286,7 @@ void NavigatorCoordinator::onRequestRenameNode(const QString& itemType) {
 
 void NavigatorCoordinator::onRequestWorkshopGrouped(bool grouped) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::BookProject* project = pm.project();
     if (!project) {
@@ -1315,7 +1318,7 @@ void NavigatorCoordinator::onRequestWorkshopGrouped(bool grouped) {
 }
 
 void NavigatorCoordinator::onRequestOpenMaterial(const QString& elementId) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element) {
         core::Logger::getInstance().warn("NavigatorCoordinator: No material to open: {}",
@@ -1353,7 +1356,7 @@ void NavigatorCoordinator::onRequestOpenMaterial(const QString& elementId) {
 
 void NavigatorCoordinator::onRequestOpenMaterialCard(const QString& elementId,
                                                      bool description) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element || !pm.isMaterial(*element)) {
         return;
@@ -1365,7 +1368,7 @@ void NavigatorCoordinator::onRequestOpenMaterialCard(const QString& elementId,
         }
     }
     if (!card) {
-        card = new MaterialCardPanel(elementId, m_centralTabs);
+        card = new MaterialCardPanel(m_book, elementId, m_centralTabs);
         MaterialPage* page = card->page();
         connect(page, &MaterialPage::requestPreview, this,
                 &NavigatorCoordinator::onRequestPreview);
@@ -1394,13 +1397,14 @@ void NavigatorCoordinator::onRequestOpenMaterialCard(const QString& elementId,
 }
 
 void NavigatorCoordinator::onRequestOpenInBrowser(const QString& elementId) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element || element->url.isEmpty()) {
         return;
     }
     if (!openInBrowser(QUrl(element->url))) {
-        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+        const QHash<QString, core::KindWords> nouns{
+            {QStringLiteral("kind"), wordsOf(m_book, *element)}};
         dialogs::MessageDialog::warning(
             qobject_cast<QWidget*>(parent()), core::fillWords(tr("Open {Kind} Failed"), nouns),
             //: %1: the web address. In Polish: System nie otworzył adresu:\n%1
@@ -1417,7 +1421,7 @@ void NavigatorCoordinator::onRequestSaveCopy(const QString& elementId) {
 }
 
 void NavigatorCoordinator::download(const QString& elementId, bool asked) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element || element->url.isEmpty() || m_downloader->isFetching(elementId)) {
         return;
@@ -1441,7 +1445,7 @@ void NavigatorCoordinator::download(const QString& elementId, bool asked) {
 }
 
 void NavigatorCoordinator::onDownloadFinished(const MaterialDownloader::Result& result) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
     const bool asked = m_askedDownloads.remove(result.elementId);
     showDownloading(result.elementId);
@@ -1547,7 +1551,7 @@ QList<MaterialCardPanel*> NavigatorCoordinator::materialCards() const {
 }
 
 core::KindRef NavigatorCoordinator::materialKind(const QString& kindId) const {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::BookProject* project = pm.project();
     if (!project) {
         return {};
@@ -1570,7 +1574,7 @@ core::KindRef NavigatorCoordinator::materialKind(const QString& kindId) const {
 void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incoming,
                                                  const QString& link) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
     if (!pm.isProjectOpen() || pm.isReadOnly() || !materialKind(QString())) {
         logger.warn("NavigatorCoordinator: No materials can be added now");
@@ -1706,7 +1710,7 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         }
         const core::KindRef kind = oneKindOf(addedKinds);
         const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
-        const QString linked = links.isEmpty() ? QString() : linkName(links.constFirst());
+        const QString linked = links.isEmpty() ? QString() : linkName(m_book, links.constFirst());
         // The group they went to: that of their kind, or Materials for several kinds
         //: The node of the Navigator with the materials of several kinds added at once. In
         //: Polish: Materiały
@@ -1754,7 +1758,7 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
 }
 
 void NavigatorCoordinator::onRequestPreview(const QString& elementId) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element) {
         return;
@@ -1767,7 +1771,7 @@ void NavigatorCoordinator::onRequestPreview(const QString& elementId) {
             return;
         }
     }
-    auto* preview = new ImagePreviewPanel(elementId, m_centralTabs);
+    auto* preview = new ImagePreviewPanel(m_book, elementId, m_centralTabs);
     connect(preview, &ImagePreviewPanel::openWithSystemRequested, this,
             &NavigatorCoordinator::onRequestOpenWithSystem);
     // The card and the materials of a chapter show the picture turned as the preview does
@@ -1782,7 +1786,7 @@ void NavigatorCoordinator::onRequestPreview(const QString& elementId) {
 }
 
 void NavigatorCoordinator::onRequestOpenLink(const QString& link) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::BookProject* project = pm.project();
     if (!project) {
         return;
@@ -1807,7 +1811,7 @@ void NavigatorCoordinator::onRequestOpenLink(const QString& link) {
 }
 
 void NavigatorCoordinator::onRequestOpenWithSystem(const QString& elementId) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (!element) {
         core::Logger::getInstance().warn("NavigatorCoordinator: No material to open: {}",
@@ -1817,7 +1821,8 @@ void NavigatorCoordinator::onRequestOpenWithSystem(const QString& elementId) {
 
     const QString path = pm.filePathOf(*element);
     if (!openWithSystem(path)) {
-        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+        const QHash<QString, core::KindWords> nouns{
+            {QStringLiteral("kind"), wordsOf(m_book, *element)}};
         //: In Polish: Nie udało się otworzyć {kind:genitive}
         const QString heading = core::fillWords(tr("Open {Kind} Failed"), nouns);
         //: %1: the file. In Polish: System nie otworzył pliku:\n%1
@@ -1831,7 +1836,7 @@ void NavigatorCoordinator::onRequestOpenWithSystem(const QString& elementId) {
 
 NavigatorCoordinator::NewFile NavigatorCoordinator::onRequestNewFile(const QString& untitled) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     auto* window = qobject_cast<QWidget*>(parent());
 
     if (!pm.isProjectOpen()) {
@@ -1840,8 +1845,8 @@ NavigatorCoordinator::NewFile NavigatorCoordinator::onRequestNewFile(const QStri
     }
 
     // The writer chooses the kind, the title and the place, or an empty text file
-    dialogs::NewFileDialog dialog(dialogs::NewFileDialog::openBook(untitled), pm.bookTypes(),
-                                  window);
+    dialogs::NewFileDialog dialog(dialogs::NewFileDialog::openBook(m_book, untitled),
+                                  pm.bookTypes(), window);
     if (dialog.exec() != QDialog::Accepted) {
         return {};
     }
@@ -1900,7 +1905,7 @@ NavigatorCoordinator::NewFile NavigatorCoordinator::onRequestNewFile(const QStri
 }
 
 void NavigatorCoordinator::onRequestShowSections(bool shown) {
-    const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    const core::ProjectBook* book = m_book.book();
     if (!book) {
         core::Logger::getInstance().warn(
             "NavigatorCoordinator: Show sections requested but no project open");
@@ -1915,7 +1920,7 @@ void NavigatorCoordinator::onRequestShowSections(bool shown) {
 
 void NavigatorCoordinator::onRequestSections(const core::BookSections& sections) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectBook* book = pm.book();
     if (!book) {
@@ -1966,7 +1971,7 @@ void NavigatorCoordinator::onRequestSections(const core::BookSections& sections)
 
 void NavigatorCoordinator::onRequestRenameSection(const QString& sectionType) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectBook* book = pm.book();
     const SectionItem* section = sectionItem(sectionType);

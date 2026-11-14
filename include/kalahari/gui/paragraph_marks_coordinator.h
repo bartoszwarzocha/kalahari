@@ -14,6 +14,10 @@
 class QTabWidget;
 class QTimer;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari::editor {
 class BookEditor;
 }
@@ -38,11 +42,12 @@ public:
     using MaterialShower = std::function<void(const QString& materialId)>;
 
     /// @brief Constructor
+    /// @param book The book of its window
     /// @param centralTabs The tabs of the documents
     /// @param showMaterial What a chosen material does
     /// @param parent Parent object
-    ParagraphMarksCoordinator(QTabWidget* centralTabs, MaterialShower showMaterial,
-                              QObject* parent = nullptr);
+    ParagraphMarksCoordinator(core::ProjectManager& book, QTabWidget* centralTabs,
+                              MaterialShower showMaterial, QObject* parent = nullptr);
 
     /// @brief Destructor
     ~ParagraphMarksCoordinator() override;
@@ -50,10 +55,11 @@ public:
     ParagraphMarksCoordinator(const ParagraphMarksCoordinator&) = delete;
     ParagraphMarksCoordinator& operator=(const ParagraphMarksCoordinator&) = delete;
 
-    /// @brief The paperclips of chapter @p elementId in @p editor: one for each paragraph
-    /// that materials are linked with, naming them in the order of the Workshop; none when
-    /// links name no paragraphs (the setting)
-    static QList<editor::ParagraphMark> marksOf(const QString& elementId,
+    /// @brief The paperclips of chapter @p elementId of @p book in @p editor: one for each
+    /// paragraph that materials are linked with, naming them in the order of the Workshop;
+    /// none when links name no paragraphs (the setting)
+    static QList<editor::ParagraphMark> marksOf(const core::ProjectManager& book,
+                                                const QString& elementId,
                                                 const editor::BookEditor& editor);
 
     /// @brief Give every open chapter its paperclips again
@@ -67,6 +73,7 @@ private:
     MaterialShower m_showMaterial;  ///< What a chosen material does
     QTimer* m_refreshTimer;         ///< refresh() once for many changes
     int m_settingsListener = 0;     ///< core::SettingsManager::subscribe() id
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 }  // namespace kalahari::gui

@@ -31,6 +31,7 @@
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::MaterialList;
@@ -45,13 +46,13 @@ QString listOf(const char* kindId) {
 
 /// Kind @p kindId of the base package
 core::KindRef baseKind(const char* kindId) {
-    return core::ProjectManager::getInstance().bookTypes().findKind(
+    return test::book().bookTypes().findKind(
         QStringLiteral("kalahari.base"), QString::fromLatin1(kindId));
 }
 
 /// A quote of the open book: @p words, linked with @p links
 QString addQuote(const QString& title, const QString& words, const QStringList& links = {}) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     core::NewMaterial quote;
     quote.title = title;
     quote.links = links;
@@ -68,7 +69,7 @@ QString addPicture(const QString& dir, const QString& name, const QSize& size,
     image.fill(Qt::darkGreen);
     const QString path = QDir(dir).filePath(name);
     REQUIRE(image.save(path, "PNG"));
-    const QString id = core::ProjectManager::getInstance().addMaterial(
+    const QString id = test::book().addMaterial(
         path, baseKind(core::MaterialKinds::PICTURE), title);
     REQUIRE_FALSE(id.isEmpty());
     return id;
@@ -76,7 +77,8 @@ QString addPicture(const QString& dir, const QString& name, const QSize& size,
 
 /// The texts of column @p columnId of the rows @p panel shows, in their order
 QStringList columnTexts(const MaterialListPanel& panel, const char* columnId) {
-    const QList<gui::MaterialColumn> columns = MaterialList::columnsOf(panel.list());
+    const QList<gui::MaterialColumn> columns =
+        MaterialList::columnsOf(kalahari::test::book(), panel.list());
     int column = -1;
     for (int i = 0; i < columns.size(); ++i) {
         if (columns.at(i).id == QLatin1String(columnId)) {
@@ -139,7 +141,8 @@ QTreeWidgetItem* kindItem(const QTreeWidget* tree, const char* kindId) {
 /// them
 struct ListWindow {
     test::Window window;
-    gui::MaterialListCoordinator lists{window.tabs, &window.navigator, &window.statusBar,
+    gui::MaterialListCoordinator lists{kalahari::test::book(), window.tabs, &window.navigator,
+                                       &window.statusBar,
                                        [this](bool keys) { propertiesShown << keys; }};
     QList<bool> propertiesShown;  ///< Each time the Properties panel came to the front
 
@@ -177,7 +180,7 @@ TEST_CASE("Materials list: the lists of a book, their names, columns and sorting
     auto& pm = novel.pm;
 
     // The working notes and the kinds of materials, as the Navigator has them in Materials
-    const QStringList kinds = MaterialList::kinds();
+    const QStringList kinds = MaterialList::kinds(kalahari::test::book());
     CHECK(kinds.contains(listOf(core::MaterialKinds::WORK_NOTE)));
     CHECK(kinds.contains(listOf(core::MaterialKinds::QUOTE)));
     CHECK(kinds.contains(listOf(core::MaterialKinds::PICTURE)));
@@ -196,13 +199,15 @@ TEST_CASE("Materials list: the lists of a book, their names, columns and sorting
     CHECK_FALSE(MaterialList::hasTiles(QString()));
 
     // Each list has the columns of its kind; some are hidden at first
-    CHECK(MaterialList::shownColumns(listOf(core::MaterialKinds::QUOTE)) ==
+    CHECK(MaterialList::shownColumns(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE)) ==
           QStringList{"quote", "links"});
-    CHECK(MaterialList::shownColumns(QString()) ==
+    CHECK(MaterialList::shownColumns(kalahari::test::book(), QString()) ==
           QStringList{"type", "title", "details", "links"});
-    CHECK(MaterialList::shownColumns(listOf(core::MaterialKinds::PICTURE)) ==
-          QStringList{"thumbnail", "title", "format", "dimensions", "origin", "links"});
-    CHECK(MaterialList::shownColumns(listOf(core::MaterialKinds::WORK_NOTE)) ==
+    CHECK(
+        MaterialList::shownColumns(kalahari::test::book(), listOf(core::MaterialKinds::PICTURE)) ==
+        QStringList{"thumbnail", "title", "format", "dimensions", "origin", "links"});
+    CHECK(MaterialList::shownColumns(kalahari::test::book(),
+                                     listOf(core::MaterialKinds::WORK_NOTE)) ==
           QStringList{"title", "words", "status", "modified", "links"});
     CHECK(MaterialList::firstSortOf(listOf(core::MaterialKinds::QUOTE)) == QStringLiteral("quote"));
     CHECK(MaterialList::firstSortOf(QString()) == QStringLiteral("type"));
@@ -214,7 +219,7 @@ TEST_CASE("Materials list: the lists of a book, their names, columns and sorting
     REQUIRE(pm.setFields(quote, {core::ElementField{QStringLiteral("Author"),
                                                     QStringLiteral("T. Lawrence"), {}}}));
     const QList<gui::MaterialColumn> columns =
-        MaterialList::columnsOf(listOf(core::MaterialKinds::QUOTE));
+        MaterialList::columnsOf(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE));
     REQUIRE_FALSE(columns.isEmpty());
     CHECK(columns.last().id == QStringLiteral("field:Author"));
     CHECK(columns.last().title == QStringLiteral("Author"));
@@ -223,13 +228,14 @@ TEST_CASE("Materials list: the lists of a book, their names, columns and sorting
     // The writer's columns, in the writer's order, are kept for the list
     MaterialList::setShownColumns(listOf(core::MaterialKinds::QUOTE),
                                   {"title", "quote", "field:Author", "nothing"});
-    CHECK(MaterialList::shownColumns(listOf(core::MaterialKinds::QUOTE)) ==
+    CHECK(MaterialList::shownColumns(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE)) ==
           QStringList{"title", "quote", "field:Author"});
-    CHECK(MaterialList::shownColumns(QString()) ==
+    CHECK(MaterialList::shownColumns(kalahari::test::book(), QString()) ==
           QStringList{"type", "title", "details", "links"});
 
     // Copy gives the words of a quote; a document kind by its format
-    CHECK(MaterialList::copyTextOf(quote) == QStringLiteral("The sand is warm."));
+    CHECK(MaterialList::copyTextOf(kalahari::test::book(), quote) ==
+          QStringLiteral("The sand is warm."));
     CHECK(MaterialList::documentKindOf(QStringLiteral("PDF")) == QStringLiteral("PDF"));
     CHECK(MaterialList::documentKindOf(QStringLiteral("XLSX")) ==
           QStringLiteral("spreadsheet"));
@@ -246,7 +252,7 @@ TEST_CASE("Materials list: the rows, the search, the filters and the sorting",
     const QString camel =
         addQuote(QStringLiteral("Camel"), QStringLiteral("A camel kneels"), {chapter});
 
-    MaterialListPanel panel(listOf(core::MaterialKinds::QUOTE));
+    MaterialListPanel panel(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE));
     panel.resize(900, 500);
     QSortFilterProxyModel* rows = panel.rows();
     REQUIRE(rows->rowCount() == 3);
@@ -315,7 +321,7 @@ TEST_CASE("Materials list: the rows, the search, the filters and the sorting",
     // A column hidden and shown again; one column always stays
     panel.showColumn(QString::fromLatin1(MaterialList::TITLE), true);
     CHECK(panel.shownColumns() == QStringList{"quote", "links", "title"});
-    CHECK(MaterialList::shownColumns(listOf(core::MaterialKinds::QUOTE)) ==
+    CHECK(MaterialList::shownColumns(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE)) ==
           QStringList{"quote", "links", "title"});
     panel.showColumn(QString::fromLatin1(MaterialList::LINKS), false);
     panel.showColumn(QString::fromLatin1(MaterialList::TITLE), false);
@@ -342,7 +348,7 @@ TEST_CASE("Materials list: the keys, the commands and the menu of a row", "[gui]
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Rain"));
     const QString sand = addQuote(QStringLiteral("Sand"), QStringLiteral("Sand everywhere"));
-    MaterialListPanel panel(listOf(core::MaterialKinds::QUOTE));
+    MaterialListPanel panel(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE));
     QTableView* table = panel.table();
 
     // What the list asks for
@@ -443,7 +449,7 @@ TEST_CASE("Materials list: the pictures as a table with thumbnails or as tiles",
     const QString map = addPicture(files.path(), QStringLiteral("map.png"), QSize(80, 40),
                                    QStringLiteral("Map"));
 
-    MaterialListPanel panel(listOf(core::MaterialKinds::PICTURE));
+    MaterialListPanel panel(kalahari::test::book(), listOf(core::MaterialKinds::PICTURE));
     QSortFilterProxyModel* rows = panel.rows();
     REQUIRE(rows->rowCount() == 1);
     // The thumbnail first, then the format and the size of the picture
@@ -466,14 +472,14 @@ TEST_CASE("Materials list: the pictures as a table with thumbnails or as tiles",
                     .data(MaterialListPanel::TILE_ROLE)
                     .value<QPixmap>()
                     .isNull());
-    MaterialListPanel again(listOf(core::MaterialKinds::PICTURE));
+    MaterialListPanel again(kalahari::test::book(), listOf(core::MaterialKinds::PICTURE));
     CHECK(again.view() == again.tiles());
     again.showTiles(false);
     CHECK(again.view() == again.table());
     CHECK_FALSE(MaterialList::tilesShown(listOf(core::MaterialKinds::PICTURE)));
 
     // A list without tiles has no such buttons
-    MaterialListPanel quotes(listOf(core::MaterialKinds::QUOTE));
+    MaterialListPanel quotes(kalahari::test::book(), listOf(core::MaterialKinds::QUOTE));
     auto* quoteTiles = quotes.findChild<QToolButton*>(QStringLiteral("materialListTiles"));
     REQUIRE(quoteTiles != nullptr);
     CHECK(quoteTiles->isHidden());
@@ -491,7 +497,7 @@ TEST_CASE("Materials list: All Materials has the working notes and the materials
     REQUIRE_FALSE(note.isEmpty());
     addQuote(QStringLiteral("Sand"), QStringLiteral("Sand everywhere"));
 
-    MaterialListPanel panel{QString::fromLatin1(MaterialList::ALL)};
+    MaterialListPanel panel{kalahari::test::book(), QString::fromLatin1(MaterialList::ALL)};
     REQUIRE(panel.rows()->rowCount() == 2);
     // By kind at first: the quotes, then the working notes
     CHECK(columnTexts(panel, MaterialList::TYPE) == QStringList{"Quotes", "Working notes"});

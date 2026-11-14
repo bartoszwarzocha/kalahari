@@ -53,20 +53,19 @@ void addParts(const QList<core::ProjectElement>& elements, int depth,
     }
 }
 
-/// @brief The title of the open book; empty without one
-QString bookTitle()
+/// @brief The title of the book open in @p projects; empty without one
+QString bookTitle(const core::ProjectManager& projects)
 {
-    const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    const core::ProjectBook* book = projects.book();
     return book != nullptr ? book->title : QString();
 }
 
-/// @brief The open book, as the badges need it: its chapters, those final, and the words of
-/// its parts
-WritingAwardsTracker::BookSource awardsSource()
+/// @brief The book open in @p projects, as the badges need it: its chapters, those final, and
+/// the words of its parts
+WritingAwardsTracker::BookSource awardsSource(core::ProjectManager& projects)
 {
     WritingAwardsTracker::BookSource source;
-    source.chapters = []() -> std::pair<int, int> {
-        auto& projects = core::ProjectManager::getInstance();
+    source.chapters = [&projects]() -> std::pair<int, int> {
         const core::ProjectBook* book = projects.book();
         if (book == nullptr) {
             return {0, 0};
@@ -75,33 +74,31 @@ WritingAwardsTracker::BookSource awardsSource()
         const auto found = statistics.statuses.find(QStringLiteral("final"));
         return {found != statistics.statuses.end() ? found->second : 0, statistics.elements};
     };
-    source.words = [](const QString& elementId) {
-        auto& projects = core::ProjectManager::getInstance();
+    source.words = [&projects](const QString& elementId) {
         const core::ProjectElement* element = projects.findElement(elementId);
         return element != nullptr ? projects.statisticsOf({*element}).words : 0;
     };
     return source;
 }
 
-/// @brief The open book, as the tab of the goals needs it
-WritingGoalsTab::BookSource bookSource()
+/// @brief The book open in @p projects, as the tab of the goals needs it
+WritingGoalsTab::BookSource bookSource(core::ProjectManager& projects)
 {
     WritingGoalsTab::BookSource source;
-    source.title = []() {
-        const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    source.title = [&projects]() {
+        const core::ProjectBook* book = projects.book();
         return book != nullptr ? book->title : QString();
     };
-    source.parts = []() {
+    source.parts = [&projects]() {
         QList<dialogs::BookPart> parts;
-        if (const core::ProjectBook* book = core::ProjectManager::getInstance().book()) {
+        if (const core::ProjectBook* book = projects.book()) {
             addParts(book->frontElements, 0, parts);
             addParts(book->mainElements, 0, parts);
             addParts(book->backElements, 0, parts);
         }
         return parts;
     };
-    source.words = [](const QString& elementId) {
-        auto& projects = core::ProjectManager::getInstance();
+    source.words = [&projects](const QString& elementId) {
         const core::ProjectElement* element = projects.findElement(elementId);
         return element != nullptr ? projects.statisticsOf({*element}).words : 0;
     };
@@ -110,25 +107,26 @@ WritingGoalsTab::BookSource bookSource()
 
 }  // namespace
 
-WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
+WritingStatsCoordinator::WritingStatsCoordinator(core::ProjectManager& book,
+                                                 CommandRegistry& commands, DockCoordinator* docks,
                                                  DocumentCoordinator* documents,
                                                  std::function<void(const QString&)> openSettings,
                                                  QObject* parent, const QString& journalPath)
-    : QObject(parent)
-    , m_docks(docks)
-    , m_documents(documents)
-    , m_openSettings(std::move(openSettings))
-    , m_model(new WritingStatsModel(this))
-{
+    : QObject(parent),
+      m_docks(docks),
+      m_documents(documents),
+      m_openSettings(std::move(openSettings)),
+      m_model(new WritingStatsModel(this)),
+      m_book(book),
+      m_commands(commands) {
     m_model->openJournal(journalPath.isEmpty() ? core::WritingJournal::defaultPath()
                                                : journalPath);
-    m_model->setBookWordsSource([]() {
-        auto& projects = core::ProjectManager::getInstance();
-        const core::ProjectBook* book = projects.book();
-        return book != nullptr ? projects.statisticsOf(book->mainElements).words : 0;
+    m_model->setBookWordsSource([this]() {
+        const core::ProjectBook* openBook = m_book.book();
+        return openBook != nullptr ? m_book.statisticsOf(openBook->mainElements).words : 0;
     });
     m_tracker = new WritingAwardsTracker(m_model, this);
-    m_tracker->setBookSource(awardsSource());
+    m_tracker->setBookSource(awardsSource(m_book));
     m_sessionStart = m_model->now();
 
     // The bar on top of the middle of the window, above the tabs of the texts
@@ -140,8 +138,8 @@ WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
                                          : nullptr) {
         layout->insertWidget(0, m_bar);
     }
-    connect(m_bar, &WritingStatsBar::goalsRequested, this, []() {
-        CommandRegistry::getInstance().executeCommand("tools.writingGoals");
+    connect(m_bar, &WritingStatsBar::goalsRequested, this, [this]() {
+        m_commands.executeCommand("tools.writingGoals");
     });
     connect(m_bar, &WritingStatsBar::settingsRequested, this, [this]() {
         if (m_openSettings) {
@@ -177,24 +175,24 @@ WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
     if (WritingStatsPanel* panel = m_docks != nullptr ? m_docks->statisticsPanel() : nullptr) {
         panel->setModel(m_model);
         panel->setTitleSources(
-            [](const QString& elementId) {
+            [this](const QString& elementId) {
                 const core::ProjectElement* element =
-                    core::ProjectManager::getInstance().findElement(elementId);
+                    m_book.findElement(elementId);
                 return element != nullptr ? element->title : QString();
             },
-            []() {
-                const core::ProjectBook* book = core::ProjectManager::getInstance().book();
-                return book != nullptr ? book->title : QString();
+            [this]() {
+                const core::ProjectBook* openBook = m_book.book();
+                return openBook != nullptr ? openBook->title : QString();
             });
-        connect(panel, &WritingStatsPanel::goalsRequested, this, []() {
-            CommandRegistry::getInstance().executeCommand("tools.writingGoals");
+        connect(panel, &WritingStatsPanel::goalsRequested, this, [this]() {
+            m_commands.executeCommand("tools.writingGoals");
         });
         panel->setAwardsTracker(m_tracker);
-        connect(panel, &WritingStatsPanel::awardsRequested, this, []() {
-            CommandRegistry::getInstance().executeCommand("tools.challenges");
+        connect(panel, &WritingStatsPanel::awardsRequested, this, [this]() {
+            m_commands.executeCommand("tools.challenges");
         });
-        connect(panel, &WritingStatsPanel::addChallengeRequested, this, []() {
-            CommandRegistry::getInstance().executeCommand("tools.addChallenge");
+        connect(panel, &WritingStatsPanel::addChallengeRequested, this, [this]() {
+            m_commands.executeCommand("tools.addChallenge");
         });
     }
     // The bar's button opens the panel, brings it on top or closes it, as View > Panels does
@@ -213,7 +211,7 @@ WritingStatsCoordinator::WritingStatsCoordinator(DockCoordinator* docks,
         });
 
     // After the documents, which make the collector of the book's editors when it opens
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this,
             &WritingStatsCoordinator::onProjectOpened, Qt::QueuedConnection);
     connect(&projects, &core::ProjectManager::projectAboutToClose, this,
@@ -238,7 +236,7 @@ WritingStatsCoordinator::~WritingStatsCoordinator()
 
 void WritingStatsCoordinator::connectCommands()
 {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand("view.showStatsBar")) {
         command->execute = [this]() { toggleBar(); };
         command->isEnabled = []() { return true; };
@@ -288,7 +286,7 @@ WritingGoalsTab* WritingStatsCoordinator::openGoals()
     }
     if (tab == nullptr) {
         tab = new WritingGoalsTab(m_model, tabs);
-        tab->setBookSource(bookSource());
+        tab->setBookSource(bookSource(m_book));
         // DockCoordinator::refreshTabIcons() gives the tab the icon of another theme
         tab->setProperty("tabIconId", QString::fromLatin1(WritingGoalsTab::ICON_ID));
         connect(tab, &WritingGoalsTab::settingsRequested, this, [this]() {
@@ -319,7 +317,7 @@ WritingAwardsTab* WritingStatsCoordinator::openAwards()
     }
     if (tab == nullptr) {
         tab = new WritingAwardsTab(m_tracker, m_model, tabs);
-        tab->setBookTitleSource(&bookTitle);
+        tab->setBookTitleSource([this]() { return bookTitle(m_book); });
         // DockCoordinator::refreshTabIcons() gives the tab the icon of another theme
         tab->setProperty("tabIconId", QString::fromLatin1(WritingAwardsTab::ICON_ID));
         connect(tab, &WritingAwardsTab::addChallengeRequested, this,
@@ -513,7 +511,7 @@ void WritingStatsCoordinator::showSessionSummary()
         m_documents->statisticsCollector()->flush();
     }
     const dialogs::SessionSummary summary =
-        dialogs::SessionSummary::of(*m_model, m_sessionStart, bookTitle());
+        dialogs::SessionSummary::of(*m_model, m_sessionStart, bookTitle(m_book));
     if (!summary.writtenSince) {
         return;
     }
@@ -540,7 +538,7 @@ void WritingStatsCoordinator::applyBarVisibility()
 
 void WritingStatsCoordinator::onProjectOpened()
 {
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     if (!projects.isProjectOpen()) {
         return;
     }

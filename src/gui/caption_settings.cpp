@@ -65,8 +65,8 @@ core::BookCaptions settingsBookCaptions() {
     return captions;
 }
 
-core::BookCaptions currentBookCaptions() {
-    if (const std::optional<core::BookCaptions> own = core::ProjectManager::getInstance().bookCaptions()) {
+core::BookCaptions currentBookCaptions(const core::ProjectManager& book) {
+    if (const std::optional<core::BookCaptions> own = book.bookCaptions()) {
         return *own;
     }
     return settingsBookCaptions();

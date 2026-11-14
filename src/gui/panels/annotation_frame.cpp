@@ -23,8 +23,8 @@ constexpr double BORDER_SHARE = 0.55;
 
 }  // namespace
 
-AnnotationFrame::AnnotationFrame(QWidget* editor)
-    : WritingFrame(editor, new QTextEdit(), QStringLiteral("annotationFrame"))
+AnnotationFrame::AnnotationFrame(CommandRegistry& commands, QWidget* editor)
+    : WritingFrame(commands, editor, new QTextEdit(), QStringLiteral("annotationFrame"))
 {
     // Who the annotation is by, on the right of the header; its room stays when no one is
     // shown: the X stays in the corner

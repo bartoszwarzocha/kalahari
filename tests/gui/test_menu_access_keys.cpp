@@ -80,6 +80,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -236,13 +237,13 @@ public:
         }
         recent.addRecentFile(bookPath(QStringLiteral("Tom & Jerry")));
 
-        registerAllCommands(CommandCallbacks{});
-        CommandRegistry& registry = CommandRegistry::getInstance();
+        registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+        CommandRegistry& registry = kalahari::test::commands();
         // Window, as MainWindow registers it
         DocumentWindows::registerCommands(registry, []() -> DocumentWindows* { return nullptr; });
         m_builder.buildMenuBar(registry, &m_window);
         QMenu* fileMenu = m_builder.getMenu("FILE");
-        auto* recentBooks = new RecentBooksMenu(fileMenu);
+        auto* recentBooks = new RecentBooksMenu(kalahari::test::commands(), fileMenu);
         recentBooks->insertInto(fileMenu);
 
         // Format > Font Color and Highlight Color, with their submenus as the window gives
@@ -254,7 +255,7 @@ public:
                 ->setMenu(new ColorMenu(kind, {}, &m_window));
         }
 
-        m_toolbars = std::make_unique<ToolbarManager>(&m_window);
+        m_toolbars = std::make_unique<ToolbarManager>(kalahari::test::commands(), &m_window);
         m_toolbars->createToolbars(registry);
         m_toolbars->createViewMenuActions(m_builder.getMenu("VIEW"));
         m_userToolbar = m_toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
@@ -305,9 +306,9 @@ void checkEveryMenu() {
     // open book ("&New Story...", "Story Brea&k"): with the name of each kind of the installed
     // types, they keep their keys
     QMenu* bookMenu = menus.menu("BOOK");
-    QAction* newText = CommandRegistry::getInstance().getAction(QStringLiteral("book.newChapter"));
+    QAction* newText = kalahari::test::commands().getAction(QStringLiteral("book.newChapter"));
     QAction* textBreak =
-        CommandRegistry::getInstance().getAction(QStringLiteral("book.chapterBreak"));
+        kalahari::test::commands().getAction(QStringLiteral("book.chapterBreak"));
     REQUIRE(bookMenu != nullptr);
     REQUIRE(newText != nullptr);
     REQUIRE(textBreak != nullptr);
@@ -501,7 +502,7 @@ private:
 /// a dictionary; that of a grammar issue. @p shown: as Windows and Linux show them, where the
 /// words have keys too
 void checkTextMenus(bool shown, QStringList& problems) {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     editor::BookEditor editor;
     test::resizeWidget(editor, QSize(600, 400));
     editor.fromKml(test::kmlOf({sentence()}));
@@ -848,7 +849,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
 void checkNavigatorMenus(QStringList& problems) {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
-    core::ProjectManager& pm = core::ProjectManager::getInstance();
+    core::ProjectManager& pm = test::book();
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     // A novel starts with a title page and Chapter 1
     REQUIRE(pm.createProject(dir.path(), QStringLiteral("Book"), QStringLiteral("Author"),
@@ -900,9 +901,14 @@ void checkNavigatorMenus(QStringList& problems) {
 
     QWidget window;
     window.setAttribute(Qt::WA_DontShowOnScreen);
-    auto* panel = new NavigatorPanel(&window);
-    NavigatorCoordinator coordinator{panel, new PropertiesPanel(&window),
-                                     new QTabWidget(&window), new QStatusBar(&window), &window};
+    auto* panel = new NavigatorPanel(kalahari::test::book(), &window);
+    NavigatorCoordinator coordinator{kalahari::test::book(),
+                                     kalahari::test::commands(),
+                                     panel,
+                                     new PropertiesPanel(kalahari::test::book(), &window),
+                                     new QTabWidget(&window),
+                                     new QStatusBar(&window),
+                                     &window};
     panel->resize(400, 900);
     window.resize(400, 900);
     window.show();
@@ -957,10 +963,11 @@ struct WindowPanels {
 
     WindowPanels() {
         window.setAttribute(Qt::WA_DontShowOnScreen);
-        docks = new DockCoordinator(&window, &window);
+        docks = new DockCoordinator(kalahari::test::book(), kalahari::test::commands(), &window,
+                                    &window);
         docks->createDocks();
-        toolbars = std::make_unique<ToolbarManager>(&window);
-        toolbars->createToolbars(CommandRegistry::getInstance());
+        toolbars = std::make_unique<ToolbarManager>(kalahari::test::commands(), &window);
+        toolbars->createToolbars(kalahari::test::commands());
         userToolbar = toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
         window.resize(1200, 800);
         window.show();
@@ -1036,7 +1043,7 @@ void checkContextMenus(bool shown) {
     if (shown) {
         filter.emplace();
     }
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
 
     QStringList problems;
     checkTextMenus(shown, problems);
@@ -1132,7 +1139,7 @@ TEST_CASE("Menu access keys: the fields have those of Windows", "[gui][menus][ke
 
 TEST_CASE("Menu access keys: the menu of the panels' titles names them with keys",
           "[gui][menus][keys]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     WindowPanels panels;
     const std::unique_ptr<QMenu> qtMenu(panels.window.createPopupMenu());
     REQUIRE(qtMenu != nullptr);
@@ -1186,15 +1193,15 @@ TEST_CASE("Menu access keys: the copy of a menu leaves its hidden items out",
 
 TEST_CASE("Menu access keys: lists and toolbar buttons show the names without them",
           "[gui][menus][keys]") {
-    registerAllCommands(CommandCallbacks{});
-    const Command* saveAs = CommandRegistry::getInstance().getCommand("file.saveAs");
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    const Command* saveAs = kalahari::test::commands().getCommand("file.saveAs");
     REQUIRE(saveAs != nullptr);
     CHECK(saveAs->actionText() == QStringLiteral("Save &As..."));
     CHECK(saveAs->label == "Save As...");
     CHECK(saveAs->tooltip == "Save As...");
 
     // An ampersand of the name stays one
-    const Command* replace = CommandRegistry::getInstance().getCommand("edit.findReplace");
+    const Command* replace = kalahari::test::commands().getCommand("edit.findReplace");
     REQUIRE(replace != nullptr);
     CHECK(replace->actionText() == QStringLiteral("Find && Rep&lace..."));
     CHECK(replace->label == "Find & Replace...");
@@ -1247,10 +1254,10 @@ TEST_CASE("Menu access keys: a name the user gave gets a key no other item has",
 
 TEST_CASE("Menu access keys: the names of the user's toolbars share the free keys",
           "[gui][menus][keys]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     QMainWindow window;
-    ToolbarManager toolbars(&window);
-    toolbars.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager toolbars(kalahari::test::commands(), &window);
+    toolbars.createToolbars(kalahari::test::commands());
 
     // "Big X-ray" comes first and wants X, the only free key of "Boxes": it takes another one
     toolbars.createUserToolbar(QStringLiteral("Big X-ray"));

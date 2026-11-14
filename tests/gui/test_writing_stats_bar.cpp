@@ -21,6 +21,7 @@
 
 #include <cmath>
 #include <utility>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::WritingStatsBar;
@@ -290,7 +291,8 @@ TEST_CASE("Statistics bar: View > Show Statistics Bar turns it on and off", "[gu
 {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
-    gui::WritingStatsCoordinator coordinator(nullptr, nullptr, nullptr, nullptr,
+    gui::WritingStatsCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(),
+                                             nullptr, nullptr, nullptr, nullptr,
                                              dir.filePath(QStringLiteral("journal.db")));
     REQUIRE(coordinator.bar() != nullptr);
     CHECK(coordinator.model()->journal().isOpen());
@@ -316,15 +318,16 @@ TEST_CASE("Statistics bar: View > Show Statistics Bar turns it on and off", "[gu
 TEST_CASE("Statistics bar: the settings of the statistics from their command",
           "[gui][statistics]")
 {
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
     QString opened;
     gui::WritingStatsCoordinator coordinator(
-        nullptr, nullptr, [&opened](const QString& page) { opened = page; }, nullptr,
+        kalahari::test::book(), kalahari::test::commands(), nullptr, nullptr,
+        [&opened](const QString& page) { opened = page; }, nullptr,
         dir.filePath(QStringLiteral("journal.db")));
     coordinator.connectCommands();
-    CHECK(gui::CommandRegistry::getInstance().executeCommand("tools.statsSettings") ==
+    CHECK(test::commands().executeCommand("tools.statsSettings") ==
           gui::CommandExecutionResult::Success);
     CHECK(opened == QString::fromLatin1(gui::WritingStatsCoordinator::SETTINGS_PAGE));
     coordinator.bar()->hide();

@@ -44,25 +44,27 @@ int countOf(const std::vector<editor::Footnote>& notes, editor::NoteKind kind) {
 
 }  // namespace
 
-FootnoteCoordinator::FootnoteCoordinator(QTabWidget* centralTabs, TextWithKeys textWithKeys,
+FootnoteCoordinator::FootnoteCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                         QTabWidget* centralTabs, TextWithKeys textWithKeys,
                                          ChapterOpener openChapter, QWidget* window,
                                          QObject* parent)
     : QObject(parent),
       m_centralTabs(centralTabs),
       m_textWithKeys(std::move(textWithKeys)),
       m_openChapter(std::move(openChapter)),
-      m_window(window)
-{
+      m_window(window),
+      m_book(book),
+      m_commands(commands) {
     m_refreshTimer.setSingleShot(true);
     m_refreshTimer.setInterval(REFRESH_DELAY_MS);
     connect(&m_refreshTimer, &QTimer::timeout, this, &FootnoteCoordinator::refresh);
 
     // Another book: nothing kept of the texts of the last one; its settings
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const auto bookChanged = [this]() {
         m_savedTexts.clear();
         refreshSoon();
-        CommandRegistry::getInstance().updateActionState(SETTINGS_COMMAND);
+        m_commands.updateActionState(SETTINGS_COMMAND);
     };
     connect(&projects, &core::ProjectManager::projectOpened, this, bookChanged);
     connect(&projects, &core::ProjectManager::projectClosed, this, bookChanged);
@@ -83,7 +85,7 @@ FootnoteCoordinator::FootnoteCoordinator(QTabWidget* centralTabs, TextWithKeys t
 }
 
 void FootnoteCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(FOOTNOTE_COMMAND)) {
         command->execute = [this]() { insertNote(editor::NoteKind::Footnote); };
     }
@@ -104,14 +106,14 @@ void FootnoteCoordinator::connectCommands() {
 // =============================================================================
 
 core::BookFootnotes FootnoteCoordinator::footnotes() const {
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     const std::optional<core::BookFootnotes> own =
         projects.isProjectOpen() ? projects.bookFootnotes() : std::nullopt;
     return own.value_or(core::BookFootnotes{});
 }
 
 bool FootnoteCoordinator::setFootnotes(const core::BookFootnotes& footnotes) {
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     if (!projects.isProjectOpen() || projects.isReadOnly()) {
         return false;
     }
@@ -135,7 +137,8 @@ QList<std::pair<QString, editor::BookEditor*>> FootnoteCoordinator::openEditors(
 const FootnoteCoordinator::CachedText& FootnoteCoordinator::savedText(
     const QString& elementId) const {
     CachedText& cached = m_savedTexts[elementId];
-    if (const std::optional<QString> kml = savedTextIfChanged(elementId, cached.signature)) {
+    if (const std::optional<QString> kml =
+            savedTextIfChanged(m_book, elementId, cached.signature)) {
         cached.notes = editor::notesOfKml(*kml);
     }
     return cached;
@@ -143,7 +146,7 @@ const FootnoteCoordinator::CachedText& FootnoteCoordinator::savedText(
 
 std::vector<FootnoteCoordinator::BookText> FootnoteCoordinator::bookTexts() const {
     std::vector<BookText> texts;
-    const std::vector<BookTextElement> elements = bookTextElements();
+    const std::vector<BookTextElement> elements = bookTextElements(m_book);
     if (elements.empty()) {
         return texts;
     }
@@ -284,7 +287,7 @@ bool FootnoteCoordinator::editSettings() {
 }
 
 QString FootnoteCoordinator::whyNotEditSettings() const {
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     if (!projects.isProjectOpen()) {
         //: Why Insert > Footnote Layout... is greyed out.
         //: In Polish: Żadna książka nie jest otwarta
@@ -388,7 +391,7 @@ void FootnoteCoordinator::openFrame(const Writing& writing) {
         return;
     }
     m_writing = writing;
-    auto* frame = new NoteFrame(editor);
+    auto* frame = new NoteFrame(m_commands, editor);
     m_frame = frame;
     frame->setNote(place->note.kind, editor->noteNumber(writing.id));
     frame->setContent(place->note.content);

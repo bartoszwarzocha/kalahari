@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QLocale>
 #include <QStringList>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -41,7 +42,7 @@ void waitForPanel() {
 TEST_CASE("Properties panel: the counts of the editor in front, as the status bar gives them",
           "[gui][statistics]") {
     // The editor first: the panel goes before it
-    gui::EditorPanel editorPanel;
+    gui::EditorPanel editorPanel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = editorPanel.getBookEditor();
     // An empty paragraph in the middle and one at the end, as a text file's last line end
     // leaves it
@@ -49,7 +50,7 @@ TEST_CASE("Properties panel: the counts of the editor in front, as the status ba
                                      QStringLiteral("Four"), QString()}));
     REQUIRE(bookEditor->paragraphCount() == 4);
 
-    gui::PropertiesPanel panel;
+    gui::PropertiesPanel panel(kalahari::test::book());
     panel.setActiveEditor(&editorPanel);
     REQUIRE(showsLabel(panel, "editorWordCount"));
     CHECK(labelText(panel, "editorWordCount") == QStringLiteral("4"));

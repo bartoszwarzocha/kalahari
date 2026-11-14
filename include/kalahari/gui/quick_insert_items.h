@@ -17,6 +17,7 @@
 namespace kalahari::core {
 struct BookProject;
 class BookTypeRegistry;
+class ProjectManager;
 }  // namespace kalahari::core
 
 namespace kalahari::gui {
@@ -70,7 +71,7 @@ QList<editor::QuickInsertItem> cardItems(const core::BookProject& project,
 QString quickInsertTriggers();
 
 /// @brief The items of the list opened by @p trigger ('@', '#'; QChar(): all of them, for
-///        Insert > Quick Insert...), with the cards of the book open
-QList<editor::QuickInsertItem> quickInsertItems(QChar trigger);
+///        Insert > Quick Insert...), with the cards of the book open in @p book
+QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger);
 
 }  // namespace kalahari::gui

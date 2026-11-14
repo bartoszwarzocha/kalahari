@@ -1,7 +1,8 @@
 /// @file project_manager.h
 /// @brief The book project open in the program: its .klh file, its files and their state
 ///
-/// ProjectManager is a singleton that creates, opens, saves and closes book projects. The
+/// ProjectManager creates, opens, saves and closes a book project: each book window has one
+/// (gui::MainWindow::book()), so each window has a book of its own. The
 /// project is a BookProject (book_project.h): the .klh file with the type, the books and the
 /// Workshop. The text of each element is in a chapter file of its own (.kchapter) in the
 /// book's folder; the program keeps the text of open chapters, their word counts and notes
@@ -9,7 +10,7 @@
 ///
 /// @example
 /// @code
-/// auto& pm = ProjectManager::getInstance();
+/// ProjectManager pm;
 ///
 /// // Create a new novel and open it
 /// pm.createProject("E:/Books", "My Novel", "John Doe", "en", true, "kalahari.novel");
@@ -135,7 +136,11 @@ struct NewMaterial {
     CoverData cover;     ///< Of a material of the cover: what it is and where it goes
 };
 
-/// @brief Singleton manager of the book project open in the program
+/// @brief The book project open in a book window
+///
+/// Each book window has its own (gui::MainWindow::book()); the objects of the window are given
+/// it. The packages of book types and kinds installed with the program are the same for all of
+/// them (installedBookTypes()), so a kind (KindRef) of one book window is valid in another.
 ///
 /// Signals:
 /// - projectOpened: Emitted when project is successfully opened (also a new one)
@@ -147,9 +152,13 @@ class ProjectManager : public QObject {
     Q_OBJECT
 
 public:
-    /// @brief Get singleton instance
-    /// @return Reference to the singleton ProjectManager
-    static ProjectManager& getInstance();
+    /// @brief No book is open in it at first
+    explicit ProjectManager(QObject* parent = nullptr);
+
+    /// @brief Saves the .klh file when it has unsaved changes and lets the book go (its lock and
+    /// its database); the owner closes the book first (closeProject()), while the objects that
+    /// follow its signals are still there
+    ~ProjectManager() override;
 
     /// @brief Package whose kinds a user project has when the writer skips the palette
     static constexpr const char* BASE_PACKAGE = "kalahari.base";
@@ -360,16 +369,16 @@ public:
 
     /// @brief Packages of book types and kinds installed with the program
     ///
-    /// The built-in packages of the resources folder, loaded the first time they are needed.
-    /// The New Book window, the palette, new books and the open book take their types and
-    /// kinds from here.
-    const BookTypeRegistry& installedBookTypes() const;
+    /// The built-in packages of the resources folder, loaded the first time they are needed,
+    /// the same for every book window. The New Book window, the palette, new books and the open
+    /// books take their types and kinds from here.
+    static const BookTypeRegistry& installedBookTypes();
 
-    /// @brief Load the packages in @p folders instead of the built-in ones
+    /// @brief Load the packages in @p folders instead of the built-in ones, for every book window
     ///
-    /// Kinds of the packages loaded before (KindRef) are no longer valid. Whether the open book
+    /// Kinds of the packages loaded before (KindRef) are no longer valid. Whether an open book
     /// is read-only is decided when it opens.
-    void loadBookTypes(const QStringList& folders);
+    static void loadBookTypes(const QStringList& folders);
 
     /// @brief Kind of @p element; none when its package is not installed
     KindRef kindOf(const ProjectElement& element) const;
@@ -1052,12 +1061,6 @@ private:
         QString notes;         ///< Notes of the chapter file
     };
 
-    /// @brief Private constructor (singleton)
-    ProjectManager();
-
-    /// @brief Private destructor
-    ~ProjectManager();
-
     /// @brief Set work mode and emit signal
     /// @param mode New work mode
     void setWorkMode(WorkMode mode);
@@ -1137,8 +1140,6 @@ private:
     bool m_isDirty;                               ///< The .klh file has unsaved changes
     OpenFailure m_lastOpenFailure = OpenFailure::None;  ///< Of the last openProject()
 
-    mutable BookTypeRegistry m_bookTypes;         ///< Installed packages of book types and kinds
-    mutable bool m_bookTypesLoaded = false;       ///< m_bookTypes was loaded
     QStringList m_missingPackages;                ///< Of the open book: it is read-only
     QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
 

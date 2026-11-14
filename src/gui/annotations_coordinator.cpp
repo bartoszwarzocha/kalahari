@@ -101,16 +101,19 @@ void placeCursor(editor::BookEditor& editor, int position) {
 
 }  // namespace
 
-AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWidget* dock,
-                                               QTabWidget* centralTabs, ChapterOpener openChapter,
-                                               QStatusBar* statusBar, QObject* parent)
-    : QObject(parent)
-    , m_panel(panel)
-    , m_dock(dock)
-    , m_centralTabs(centralTabs)
-    , m_openChapter(std::move(openChapter))
-    , m_statusBar(statusBar)
-{
+AnnotationsCoordinator::AnnotationsCoordinator(core::ProjectManager& book,
+                                               CommandRegistry& commands, AnnotationsPanel* panel,
+                                               QDockWidget* dock, QTabWidget* centralTabs,
+                                               ChapterOpener openChapter, QStatusBar* statusBar,
+                                               QObject* parent)
+    : QObject(parent),
+      m_panel(panel),
+      m_dock(dock),
+      m_centralTabs(centralTabs),
+      m_openChapter(std::move(openChapter)),
+      m_statusBar(statusBar),
+      m_book(book),
+      m_commands(commands) {
     m_refreshTimer = new QTimer(this);
     m_refreshTimer->setSingleShot(true);
     m_refreshTimer->setInterval(REFRESH_DELAY_MS);
@@ -120,7 +123,7 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
             &AnnotationsCoordinator::onCurrentTabChanged);
 
     // Another book: other chapters, other files
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const auto bookChanged = [this]() {
         m_fileCache.clear();
         updateCommandStates();
@@ -154,14 +157,14 @@ AnnotationsCoordinator::AnnotationsCoordinator(AnnotationsPanel* panel, QDockWid
 }
 
 AnnotationsCoordinator::~AnnotationsCoordinator() {
-    disconnect(&core::ProjectManager::getInstance(), nullptr, this, nullptr);
+    disconnect(&m_book, nullptr, this, nullptr);
     if (m_frame != nullptr) {
         m_frame->disconnect(this);  // the frame goes with its editor
     }
 }
 
 void AnnotationsCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     const auto connectCommand = [&registry](const std::string& id, std::function<void()> execute,
                                             std::function<bool()> enabled,
                                             std::function<QString()> whyNot = {}) {
@@ -398,7 +401,7 @@ bool AnnotationsCoordinator::goToTodo(bool next) {
 
 bool AnnotationsCoordinator::goToTodoInOtherChapter(bool next) {
     const QString currentId = elementIdOf(currentEditorPanel());
-    if (currentId.isEmpty() || !core::ProjectManager::getInstance().isProjectOpen()) {
+    if (currentId.isEmpty() || !m_book.isProjectOpen()) {
         return false;  // a document outside the book
     }
     const std::vector<ChapterAnnotations> chapters = bookAnnotations();
@@ -466,7 +469,7 @@ void AnnotationsCoordinator::togglePanelFocus() {
 void AnnotationsCoordinator::refresh() {
     m_refreshTimer->stop();
 
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const bool bookOpen = projects.isProjectOpen();
     EditorPanel* current = currentEditorPanel();
     const editor::BookEditor* editor = current != nullptr ? current->getBookEditor() : nullptr;
@@ -484,7 +487,7 @@ void AnnotationsCoordinator::refresh() {
     std::optional<core::KindWords> inFront;
     if (const core::ProjectElement* element =
             bookOpen ? projects.findElement(elementIdOf(current)) : nullptr) {
-        inFront = wordsOf(*element);
+        inFront = wordsOf(m_book, *element);
     }
     std::optional<core::KindWords> bookTexts;
     if (const core::KindRef mainKind = projects.mainTextKind()) {
@@ -549,7 +552,7 @@ QString AnnotationsCoordinator::titleOf(const EditorPanel* panel) const {
     const QString elementId = elementIdOf(panel);
     if (!elementId.isEmpty()) {
         if (const core::ProjectElement* element =
-                core::ProjectManager::getInstance().findElement(elementId)) {
+                m_book.findElement(elementId)) {
             return element->title;
         }
     }
@@ -595,7 +598,7 @@ editor::BookEditor* AnnotationsCoordinator::editorFor(const QString& elementId) 
 
 std::vector<AnnotationsCoordinator::ChapterAnnotations> AnnotationsCoordinator::bookAnnotations() {
     std::vector<ChapterAnnotations> chapters;
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const core::BookProject* project = projects.project();
     if (project == nullptr) {
         return chapters;
@@ -618,7 +621,7 @@ editor::AnnotationList AnnotationsCoordinator::chapterAnnotations(const QString&
 }
 
 editor::AnnotationList AnnotationsCoordinator::fileAnnotations(const QString& elementId) {
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const core::ProjectElement* element = projects.findElement(elementId);
     if (element == nullptr || projects.formOf(*element) != core::ElementForm::Text) {
         return {};
@@ -680,7 +683,7 @@ void AnnotationsCoordinator::onCurrentTabChanged() {
         panel->installEventFilter(this);
         followFileType(panel);
 
-        auto& registry = CommandRegistry::getInstance();
+        auto& registry = m_commands;
         editor->setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                        registry.getAction(QStringLiteral("insert.todo")),
                                        registry.getAction(QStringLiteral("insert.note"))});
@@ -726,7 +729,7 @@ void AnnotationsCoordinator::scheduleRefresh() {
 }
 
 void AnnotationsCoordinator::updateCommandStates() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const char* id : COMMANDS) {
         registry.updateActionState(id);
     }
@@ -797,7 +800,7 @@ void AnnotationsCoordinator::onMarkClicked(const QString& annotationId) {
 
 void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& text) {
     m_writing = writing;
-    auto* frame = new AnnotationFrame(writing.editor);
+    auto* frame = new AnnotationFrame(m_commands, writing.editor);
     m_frame = frame;
     frame->setKind(writing.kind);
     frame->setAuthor(writing.author);

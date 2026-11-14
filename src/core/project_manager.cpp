@@ -405,20 +405,11 @@ bool writeWhole(const QString& path, const QByteArray& data) {
 }  // namespace
 
 // =============================================================================
-// Singleton Instance
-// =============================================================================
-
-ProjectManager& ProjectManager::getInstance() {
-    static ProjectManager instance;
-    return instance;
-}
-
-// =============================================================================
 // Constructor / Destructor
 // =============================================================================
 
-ProjectManager::ProjectManager()
-    : QObject(nullptr)
+ProjectManager::ProjectManager(QObject* parent)
+    : QObject(parent)
     , m_workMode(WorkMode::NoDocument)
     , m_isDirty(false)
 {
@@ -1197,21 +1188,39 @@ const BookTypeRegistry& ProjectManager::bookTypes() const {
     return installedBookTypes();
 }
 
-const BookTypeRegistry& ProjectManager::installedBookTypes() const {
-    if (!m_bookTypesLoaded) {
-        m_bookTypesLoaded = true;
+namespace {
+
+/// The packages of book types and kinds installed with the program, the same for every book
+/// window
+BookTypeRegistry& installedRegistry() {
+    static BookTypeRegistry registry;
+    return registry;
+}
+
+/// Whether installedRegistry() was loaded
+bool& installedLoaded() {
+    static bool loaded = false;
+    return loaded;
+}
+
+}  // namespace
+
+const BookTypeRegistry& ProjectManager::installedBookTypes() {
+    BookTypeRegistry& registry = installedRegistry();
+    if (!installedLoaded()) {
+        installedLoaded() = true;
         const QString folder = ResourcePaths::getInstance().getBookTypesDir();
         if (folder.isEmpty()) {
             Logger::getInstance().warn("Book types: the resources folder was not found");
         }
-        m_bookTypes.load(folder.isEmpty() ? QStringList{} : QStringList{folder});
+        registry.load(folder.isEmpty() ? QStringList{} : QStringList{folder});
     }
-    return m_bookTypes;
+    return registry;
 }
 
 void ProjectManager::loadBookTypes(const QStringList& folders) {
-    m_bookTypes.load(folders);
-    m_bookTypesLoaded = true;
+    installedRegistry().load(folders);
+    installedLoaded() = true;
 }
 
 KindRef ProjectManager::kindOf(const ProjectElement& element) const {

@@ -59,6 +59,7 @@
 #include <functional>
 #include <string>
 #include <utility>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -247,7 +248,8 @@ TEST_CASE("Grammar coordinator: what grammar as you type can do, from the settin
     // What the settings say
     KeptGrammarSettings kept;
     setLocal();
-    GrammarCoordinator coordinator(nullptr, nullptr);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   nullptr);
     CHECK(coordinator.readiness() == Readiness::NotPrepared);
     CHECK_FALSE(coordinator.isChecking());
     settings().set<std::string>(GrammarCoordinator::JAVA_KEY, java.toStdString());
@@ -272,7 +274,8 @@ TEST_CASE("Grammar coordinator: on a server in the internet, with the account an
     settings().set<std::string>(GrammarCoordinator::USERNAME_KEY, "writer@example.com");
     settings().set<std::string>(GrammarCoordinator::API_KEY_KEY, "key-1");
 
-    GrammarCoordinator coordinator(nullptr, nullptr);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   nullptr);
     editor::GrammarCheckService* service = coordinator.service();
     CHECK(coordinator.readiness() == Readiness::Remote);
     CHECK(coordinator.isChecking());
@@ -317,10 +320,11 @@ TEST_CASE("Grammar coordinator: on this computer nothing is checked or started b
     setLocal();
 
     QTabWidget tabs;
-    auto* panel = new EditorPanel();
+    auto* panel = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     panel->setContent(kmlOf({QStringLiteral("One is a apple.")}));
     tabs.addTab(panel, QStringLiteral("One"));
-    GrammarCoordinator coordinator(&tabs, nullptr);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), &tabs,
+                                   nullptr);
     CHECK(panel->getBookEditor()->grammarCheckService() == coordinator.service());
     CHECK(coordinator.readiness() == Readiness::NotPrepared);
     CHECK_FALSE(coordinator.isChecking());
@@ -353,7 +357,8 @@ TEST_CASE("Grammar coordinator: the editors of the documents check on LanguageTo
 
     QTabWidget tabs;
     QStatusBar statusBar;
-    GrammarCoordinator coordinator(&tabs, &statusBar);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), &tabs,
+                                   &statusBar);
     const editor::GrammarCheckService* service = coordinator.service();
     const LanguageToolServer* server = coordinator.server();
     CHECK(coordinator.isChecking());
@@ -364,7 +369,7 @@ TEST_CASE("Grammar coordinator: the editors of the documents check on LanguageTo
     CHECK_FALSE(service->isConfigured());
 
     // A document opened: the server is started and the editor checks on it
-    auto* panel = new EditorPanel();
+    auto* panel = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     panel->setContent(kmlOf({QStringLiteral("One is a apple.")}));
     tabs.setCurrentIndex(tabs.addTab(panel, QStringLiteral("One")));
     CHECK(panel->getBookEditor()->grammarCheckService() == service);
@@ -397,7 +402,8 @@ TEST_CASE("Grammar coordinator: a rule ignored in an editor is kept in the setti
           "[gui][grammar]") {
     KeptGrammarSettings kept;
     setLocal();
-    GrammarCoordinator coordinator(nullptr, nullptr);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   nullptr);
     editor::GrammarCheckService* service = coordinator.service();
 
     service->ignoreRule(QStringLiteral("EN_A_VS_AN"), QStringLiteral("Use of 'a' vs. 'an'"));
@@ -416,7 +422,7 @@ TEST_CASE("Grammar coordinator: a rule ignored in an editor is kept in the setti
 
     // After a restart the rules the settings keep are ignored
     GrammarCoordinator::setIgnoredRules({{QStringLiteral("COMMA_RULE"), QString()}});
-    GrammarCoordinator again(nullptr, nullptr);
+    GrammarCoordinator again(kalahari::test::book(), kalahari::test::commands(), nullptr, nullptr);
     CHECK(again.service()->isRuleIgnored(QStringLiteral("COMMA_RULE")));
 }
 
@@ -427,11 +433,12 @@ TEST_CASE("Grammar coordinator: Check Grammar as You Type turns the checking on 
     TemporaryGrammarFolder folder;
     setLocal();
 
-    registerAllCommands(CommandCallbacks{});
-    auto& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    auto& registry = kalahari::test::commands();
     QStatusBar statusBar;
     {
-        GrammarCoordinator coordinator(nullptr, &statusBar);
+        GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                       &statusBar);
         coordinator.connectCommands();
         const editor::GrammarCheckService* service = coordinator.service();
         QAction* action = registry.getAction(std::string("tools.grammar"));
@@ -448,7 +455,7 @@ TEST_CASE("Grammar coordinator: Check Grammar as You Type turns the checking on 
         {
             registerAllIcons();
             QMainWindow window;
-            ToolbarManager manager(&window);
+            ToolbarManager manager(kalahari::test::commands(), &window);
             manager.createToolbars(registry);
             const QToolBar* tools = manager.getToolbar("tools");
             REQUIRE(tools != nullptr);
@@ -542,7 +549,8 @@ TEST_CASE("Grammar coordinator: the status bar says when the text is not checked
                                     GrammarCoordinator::REMOTE_MODE);
         settings().set<std::string>(GrammarCoordinator::SERVER_KEY,
                                     languageTool.url().toStdString());
-        GrammarCoordinator coordinator(nullptr, &statusBar);
+        GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                       &statusBar);
         languageTool.setFailure(500, "Internal error.");
         REQUIRE(coordinator.service()->check(QStringLiteral("A text.")) != 0);
         const QString message =
@@ -557,7 +565,8 @@ TEST_CASE("Grammar coordinator: the status bar says when the text is not checked
                                     GrammarCoordinator::REMOTE_MODE);
         settings().set<std::string>(GrammarCoordinator::SERVER_KEY,
                                     languageTool.url().toStdString());
-        GrammarCoordinator coordinator(nullptr, &statusBar);
+        GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                       &statusBar);
         languageTool.setFailure(429, "Too many requests.");
         REQUIRE(coordinator.service()->check(QStringLiteral("A text.")) != 0);
         const QString message =
@@ -570,7 +579,8 @@ TEST_CASE("Grammar coordinator: the status bar says when the text is not checked
     SECTION("LanguageTool on this computer that does not check it") {
         settings().set<bool>(GrammarCoordinator::EXTERNAL_KEY, true);
         settings().set<int>(GrammarCoordinator::PORT_KEY, languageTool.port());
-        GrammarCoordinator coordinator(nullptr, &statusBar);
+        GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                       &statusBar);
         coordinator.server()->start();
         REQUIRE(waitUntil([&coordinator]() { return coordinator.service()->isActive(); },
                           ANSWER_MS));
@@ -589,7 +599,8 @@ TEST_CASE("Grammar coordinator: the status bar says when the text is not checked
                                     installed.languageTool().toStdString());
         settings().set<int>(GrammarCoordinator::PORT_KEY, freePort());
         ScopedEnvironment fail("KALAHARI_FAKE_JAVA_FAIL", "1");
-        GrammarCoordinator coordinator(nullptr, &statusBar);
+        GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                       &statusBar);
         coordinator.server()->start();
         const QString message =
             QStringLiteral("Grammar is not checked: LanguageTool did not start. Details: Edit > "
@@ -615,7 +626,8 @@ TEST_CASE("Grammar coordinator: the status bar says when the text is not checked
                                  messages.append(message);
                              }
                          });
-        GrammarCoordinator coordinator(nullptr, &statusBar);
+        GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                       &statusBar);
         const LanguageToolServer* server = coordinator.server();
         coordinator.server()->start();
         const QString restarting =
@@ -646,13 +658,14 @@ TEST_CASE("Grammar coordinator: the preparation in the background, the settings 
     site.add(languageToolFileName(), languageTool);
 
     QStatusBar statusBar;
-    GrammarCoordinator coordinator(nullptr, &statusBar);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   &statusBar);
     GrammarSetup* setup = coordinator.setup();
     setup->setJavaDownload(downloadOf(site, javaFileName(), java));
     setup->setLanguageToolDownload(downloadOf(site, languageToolFileName(), languageTool));
     setup->setLanguage(QStringLiteral("en_US"));
 
-    EditorGrammarPage page(&coordinator);
+    EditorGrammarPage page(kalahari::test::book(), &coordinator);
     page.load();
     page.advancedToggle()->setChecked(true);
     CHECK(page.card() == EditorGrammarPage::Card::NotPrepared);
@@ -749,7 +762,8 @@ TEST_CASE("Grammar coordinator: a preparation that failed in the background is t
     site.setStatus(javaFileName(), 503);
 
     QStatusBar statusBar;
-    GrammarCoordinator coordinator(nullptr, &statusBar);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   &statusBar);
     GrammarSetup* setup = coordinator.setup();
     setup->setJavaDownload(downloadOf(site, javaFileName(), java));
     setup->start();
@@ -794,8 +808,9 @@ TEST_CASE("Grammar settings: the card says what grammar as you type can do",
     REQUIRE(archive.open(QIODevice::WriteOnly));
     archive.close();
 
-    GrammarCoordinator coordinator(nullptr, nullptr);
-    EditorGrammarPage page(&coordinator);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   nullptr);
+    EditorGrammarPage page(kalahari::test::book(), &coordinator);
     page.load();
     CHECK_FALSE(page.isChanged());
 
@@ -879,8 +894,9 @@ TEST_CASE("Grammar settings: with both files downloaded nothing is left to downl
         archive.close();
     }
 
-    GrammarCoordinator coordinator(nullptr, nullptr);
-    EditorGrammarPage page(&coordinator);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   nullptr);
+    EditorGrammarPage page(kalahari::test::book(), &coordinator);
     page.load();
     CHECK(page.card() == EditorGrammarPage::Card::NotPrepared);
     CHECK(shows(page, QStringLiteral(
@@ -900,8 +916,9 @@ TEST_CASE("Grammar settings: Prepare Grammar Checking... shows the preparation",
     KeptGrammarSettings kept;
     TemporaryGrammarFolder folder;
     setLocal();
-    GrammarCoordinator coordinator(nullptr, nullptr);
-    EditorGrammarPage page(&coordinator);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   nullptr);
+    EditorGrammarPage page(kalahari::test::book(), &coordinator);
     page.load();
     REQUIRE(page.prepareButton()->isVisibleTo(&page));
 
@@ -919,7 +936,7 @@ TEST_CASE("Grammar settings: Prepare Grammar Checking... shows the preparation",
     CHECK_FALSE(coordinator.setup()->isRunning());
 
     // Without the grammar of the editors there is nothing to prepare
-    EditorGrammarPage alone;
+    EditorGrammarPage alone(kalahari::test::book());
     alone.load();
     CHECK(alone.card() == EditorGrammarPage::Card::NotPrepared);
     CHECK_FALSE(alone.prepareButton()->isVisibleTo(&alone));
@@ -931,7 +948,7 @@ TEST_CASE("Grammar settings: the text goes to a server in the internet only afte
     KeptGrammarSettings kept;
     TemporaryGrammarFolder folder;
     setLocal(false);
-    EditorGrammarPage page;
+    EditorGrammarPage page(kalahari::test::book());
     page.load();
     REQUIRE(page.localButton()->isChecked());
     REQUIRE_FALSE(page.enabledBox()->isChecked());
@@ -973,7 +990,7 @@ TEST_CASE("Grammar settings: the text goes to a server in the internet only afte
     CHECK(KeptGrammarSettings::settings().get<bool>(GrammarCoordinator::ENABLED_KEY, false));
 
     // Agreed before: not asked again
-    EditorGrammarPage again;
+    EditorGrammarPage again(kalahari::test::book());
     again.load();
     REQUIRE(again.remoteButton()->isChecked());
     ModalAnswer<MessageDialog> none([](MessageDialog* dialog) { dialog->cancelButton()->click(); });
@@ -990,7 +1007,7 @@ TEST_CASE("Grammar settings: the server in the internet, the account and the che
     TemporaryGrammarFolder folder;
     FakeLanguageTool languageTool;
     setLocal();
-    EditorGrammarPage page;
+    EditorGrammarPage page(kalahari::test::book());
     page.load();
     page.setRemoteWithoutAsking(true);
 
@@ -1060,7 +1077,7 @@ TEST_CASE("Grammar settings: the ignored rules, restored one by one or all",
     GrammarCoordinator::setIgnoredRules(
         {{QStringLiteral("EN_A_VS_AN"), QStringLiteral("Use of 'a' vs. 'an'")},
          {QStringLiteral("COMMA_RULE"), QString()}});
-    EditorGrammarPage page;
+    EditorGrammarPage page(kalahari::test::book());
     page.load();
 
     // By what they look for; a rule without it by its name
@@ -1100,7 +1117,7 @@ TEST_CASE("Grammar settings: the advanced settings for LanguageTool installed by
     TemporaryGrammarFolder folder;
     InstalledComponents installed;
     setLocal();
-    EditorGrammarPage page;
+    EditorGrammarPage page(kalahari::test::book());
     page.load();
 
     // Hidden until opened
@@ -1159,9 +1176,10 @@ TEST_CASE("Grammar settings: the state of LanguageTool on this computer, checked
     setLocal(false);
     settings().set<bool>(GrammarCoordinator::EXTERNAL_KEY, true);
     settings().set<int>(GrammarCoordinator::PORT_KEY, languageTool.port());
-    GrammarCoordinator coordinator(nullptr, nullptr);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   nullptr);
     coordinator.server()->setStartTimeout(1500);
-    EditorGrammarPage page(&coordinator);
+    EditorGrammarPage page(kalahari::test::book(), &coordinator);
     page.load();
     page.advancedToggle()->setChecked(true);
     CHECK(page.serverState()->text() == QStringLiteral("The server does not run."));
@@ -1207,8 +1225,10 @@ TEST_CASE("Grammar settings: the page is under Editor, after Spelling",
     KeptGrammarSettings kept;
     TemporaryGrammarFolder folder;
     setLocal();
-    GrammarCoordinator coordinator(nullptr, nullptr);
-    SettingsDialog dialog(nullptr, false, nullptr, &coordinator);
+    GrammarCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), nullptr,
+                                   nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr, false,
+                          nullptr, &coordinator);
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     QStringList editorPages;

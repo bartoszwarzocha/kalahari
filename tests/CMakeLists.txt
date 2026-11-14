@@ -4,6 +4,7 @@
 set(TEST_SOURCES
     test_main.cpp
     test_support/reset_singletons.cpp  # Sub-Project C WS4.1: singleton reset hook
+    test_support/window_parts.cpp      # The book and the commands of the window of the tests
     core/test_settings_manager.cpp
     core/test_cmd_line_parser.cpp
     core/test_svg_converter.cpp
@@ -674,6 +675,7 @@ set_target_properties(kalahari-tests PROPERTIES
 target_include_directories(kalahari-tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}  # test_support/
 )
 
 # Source tree, for tests that read files of the repository (the example project)

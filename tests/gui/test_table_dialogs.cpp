@@ -28,6 +28,7 @@
 #include <QTranslator>
 
 #include <map>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::editor;
@@ -760,7 +761,7 @@ TEST_CASE("Table dialogs in Polish: keys of their own, Latin letters, a small sc
 // =============================================================================
 
 TEST_CASE("Editor panel: the windows of the Table menu change the text", "[gui][tables][dialog]") {
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
 
     SECTION("Text to Table... and back") {
         BookEditor& editor = editorOf(

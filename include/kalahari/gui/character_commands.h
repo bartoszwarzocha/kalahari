@@ -14,6 +14,8 @@
 namespace kalahari {
 namespace gui {
 
+class CommandRegistry;
+
 /// @brief The start of the ids of the commands of the characters: "insert.character.2014"
 inline constexpr const char* CHARACTER_COMMAND_PREFIX = "insert.character.";
 
@@ -31,19 +33,22 @@ using InsertCharacters = std::function<void(const QString& characters)>;
 ///        ("insert.character.2014")
 [[nodiscard]] bool isCharacterCommand(const std::string& id);
 
-/// @brief Register the command of a character outside the menus, unless it is registered
+/// @brief Register the command of a character outside the menus in @p registry, unless it is
+///        registered
 ///
 /// Its label is the name of the character with the character ("Em dash (—)"): Settings >
 /// Keyboard Shortcuts lists it so, in the group of the characters.
 /// @param code The character (not one of Insert > Formatting Character, which has its command)
 /// @param insert Inserts it
 /// @return Whether it was registered now
-bool registerCharacterCommand(char32_t code, const InsertCharacters& insert);
+bool registerCharacterCommand(CommandRegistry& registry, char32_t code,
+                              const InsertCharacters& insert);
 
-/// @brief Register the commands of the characters the writer's keys in the settings name (at
-///        startup, after the user's keys are given to the registry)
+/// @brief Register in @p registry the commands of the characters the writer's keys in the
+///        settings name (at startup, after the user's keys are given to the registry)
 /// @return The ids of those registered now
-std::vector<std::string> registerCharacterCommands(const InsertCharacters& insert);
+std::vector<std::string> registerCharacterCommands(CommandRegistry& registry,
+                                                   const InsertCharacters& insert);
 
 } // namespace gui
 } // namespace kalahari

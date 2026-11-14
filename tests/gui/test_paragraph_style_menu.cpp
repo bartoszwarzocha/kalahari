@@ -22,6 +22,7 @@
 
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -68,8 +69,8 @@ TEST_CASE("Text Style menu: the styles every book has, with their keys",
     QStringList chosen;
     CommandCallbacks callbacks;
     callbacks.onParagraphStyle = [&chosen](const QString& styleId) { chosen.append(styleId); };
-    registerAllCommands(callbacks);
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), callbacks);
+    CommandRegistry& registry = kalahari::test::commands();
 
     // Each fixed command puts the paragraphs in its style
     for (const StyleCommand& command : styleCommands()) {
@@ -113,8 +114,8 @@ TEST_CASE("Text Style menu: the styles every book has, with their keys",
 }
 
 TEST_CASE("Text Style menu: the keys of the new commands", "[gui][shortcuts]") {
-    registerAllCommands(CommandCallbacks{});
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    CommandRegistry& registry = kalahari::test::commands();
     const auto shortcutsOf = [&registry](const char* id) {
         return registry.getAction(QString::fromLatin1(id))->shortcuts();
     };
@@ -142,8 +143,8 @@ TEST_CASE("Text Style menu: the keys of the new commands", "[gui][shortcuts]") {
 TEST_CASE("Text Style menu: the other styles of the text come after Code", "[gui][styles]") {
     CommandCallbacks callbacks;
     callbacks.onParagraphStyle = [](const QString&) {};
-    registerAllCommands(callbacks);
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), callbacks);
+    CommandRegistry& registry = kalahari::test::commands();
 
     // The window's menus, as MainWindow makes them
     QMainWindow window;
@@ -170,7 +171,8 @@ TEST_CASE("Text Style menu: the other styles of the text come after Code", "[gui
     book.setParagraphStyles(bookStyles());
     book.fromKml(QStringLiteral("<kml><p>Text</p><p style=\"caption\">Picture</p><hr/></kml>"));
     editor::BookEditor* inFront = nullptr;
-    ParagraphStyleMenu styles(menu, [&inFront]() { return inFront; }, nullptr);
+    ParagraphStyleMenu styles(
+        kalahari::test::commands(), menu, [&inFront]() { return inFront; }, nullptr);
 
     // No text in front: the fixed styles only
     styles.rebuild();

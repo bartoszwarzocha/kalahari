@@ -138,8 +138,9 @@ QString menuTextOf(const ToolbarManager::ToolbarConfig& config) {
 
 }  // namespace
 
-ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
+ToolbarManager::ToolbarManager(CommandRegistry& commands, QMainWindow* mainWindow)
     : m_mainWindow(mainWindow)
+    , m_commands(commands)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("ToolbarManager: Constructor called");
@@ -148,12 +149,12 @@ ToolbarManager::ToolbarManager(QMainWindow* mainWindow)
 
     // OpenSpec #00031: Initialize default configs for reset functionality
     for (const auto& [id, config] : m_configs) {
-        QStringList commands;
+        QStringList toolbarCommands;
         for (const auto& cmdId : config.commandIds) {
-            commands << QString::fromStdString(cmdId);
+            toolbarCommands << QString::fromStdString(cmdId);
         }
-        m_defaultConfigs[QString::fromStdString(id)] = commands;
-        m_toolbarCommands[QString::fromStdString(id)] = commands;
+        m_defaultConfigs[QString::fromStdString(id)] = toolbarCommands;
+        m_toolbarCommands[QString::fromStdString(id)] = toolbarCommands;
     }
 
     // Load user configurations (may override defaults)
@@ -953,7 +954,7 @@ void ToolbarManager::rebuildToolbar(const QString& toolbarId) {
     toolbar->clear();
 
     const QStringList& commands = m_toolbarCommands[toolbarId];
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
 
     // Add actions and widgets using shared helper method
     for (const QString& cmdId : shownItems(toolbarId, commands)) {

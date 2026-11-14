@@ -34,6 +34,7 @@ class QToolButton;
 namespace kalahari {
 
 namespace core {
+    class ProjectManager;
     struct Theme;  // Forward declaration for Theme (Task #00023)
 }
 
@@ -109,8 +110,16 @@ public:
     /// @param parent Parent widget (nullptr for top-level window)
     explicit MainWindow(QWidget* parent = nullptr);
 
-    /// @brief Destructor - disconnects signals before children are destroyed
+    /// @brief Destructor - disconnects signals, then destroys the parts of the window before its
+    ///        book and its commands, which they use
     ~MainWindow() override;
+
+    /// @brief The book of this window, open in it or not: each window has its own, and the
+    ///        objects of the window are given it
+    [[nodiscard]] core::ProjectManager& book() const { return *m_book; }
+
+    /// @brief The commands of this window: its menus, toolbars and keys run them, on its texts
+    [[nodiscard]] CommandRegistry& commands() const { return *m_commands; }
 
     /// @brief Enable diagnostic mode (show Diagnostics menu)
     /// @note Delegates to DiagnosticController (OpenSpec #00038)
@@ -398,6 +407,10 @@ private slots:
     // NOTE: All dev tools slots (onDevTools*) moved to DiagnosticController (OpenSpec #00038)
 
 private:
+    // The book and the commands of the window: made first, destroyed after its parts
+    std::unique_ptr<core::ProjectManager> m_book;
+    std::unique_ptr<CommandRegistry> m_commands;
+
     // Actions removed - now managed by CommandRegistry
     // All actions are dynamically created from Command structs
 

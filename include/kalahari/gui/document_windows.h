@@ -68,6 +68,13 @@ public:
     /// @brief The look of the windows of their own, from the settings
     static Look look();
 
+    /// @brief The commands of the book window: the Window menu follows the page in front, and
+    /// the windows of their own made from now on have their keys (none at first)
+    void setCommands(CommandRegistry& commands) { m_commands = &commands; }
+
+    /// @brief The commands of the book window (setCommands()); none: not given
+    [[nodiscard]] CommandRegistry* commands() const { return m_commands; }
+
     /// @brief What closing a window of its own does, from the settings
     static Closing closing();
 
@@ -202,6 +209,7 @@ private:
 
     QTabWidget* m_bookTabs;
     QTabWidget* m_frontTabs;               ///< Its window may be gone: see frontTabs()
+    CommandRegistry* m_commands = nullptr;  ///< Of the book window (setCommands())
     const QWidget* m_frontPage = nullptr;  ///< The page frontChanged() named last, to compare
     bool m_frontSaid = false;              ///< frontChanged() was emitted
 

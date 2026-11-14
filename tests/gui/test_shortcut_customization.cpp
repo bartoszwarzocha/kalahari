@@ -17,6 +17,7 @@
 #include <QStringList>
 
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 using ShortcutMap = CommandRegistry::ShortcutMap;
@@ -35,14 +36,14 @@ void registerCommand(const std::string& id, const KeyboardShortcut& keys) {
     command.menuPath = "FILE/" + id;
     command.shortcut = keys;
     command.execute = []() {};
-    CommandRegistry::getInstance().registerCommand(command);
+    kalahari::test::commands().registerCommand(command);
 }
 
 /// Counts the changes of the keys while it lives (the registry outlives the test)
 class ChangeCounter {
 public:
     ChangeCounter()
-        : m_connection(QObject::connect(&CommandRegistry::getInstance(),
+        : m_connection(QObject::connect(&kalahari::test::commands(),
                                         &CommandRegistry::shortcutsChanged,
                                         [this]() { ++m_count; }))
     {
@@ -59,7 +60,7 @@ private:
 };
 
 KeyboardShortcut keysOf(const std::string& id) {
-    const Command* command = CommandRegistry::getInstance().getCommand(id);
+    const Command* command = kalahari::test::commands().getCommand(id);
     REQUIRE(command != nullptr);
     return command->shortcut;
 }
@@ -104,7 +105,7 @@ TEST_CASE("Custom shortcuts: the user's keys take the place of the program's",
 
 TEST_CASE("Custom shortcuts: the commands and their actions get the user's keys",
           "[gui][shortcuts][custom]") {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     registerCommand("test.a", ctrl(Qt::Key_1));
     registerCommand("test.b", ctrl(Qt::Key_2));
     QAction* actionA = registry.getAction(std::string("test.a"));
@@ -133,7 +134,7 @@ TEST_CASE("Custom shortcuts: the commands and their actions get the user's keys"
 
 TEST_CASE("Custom shortcuts: a command registered later gets the user's keys",
           "[gui][shortcuts][custom]") {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     registerCommand("test.a", ctrl(Qt::Key_1));
     QAction* actionA = registry.getAction(std::string("test.a"));
     REQUIRE(actionA != nullptr);
@@ -223,16 +224,16 @@ TEST_CASE("Custom shortcuts: Help > Keyboard Shortcuts opens them", "[gui][short
     bool opened = false;
     CommandCallbacks callbacks;
     callbacks.onKeyboardShortcuts = [&opened]() { opened = true; };
-    registerAllCommands(callbacks);
-    CHECK(CommandRegistry::getInstance().executeCommand("help.shortcuts") ==
+    registerAllCommands(kalahari::test::commands(), callbacks);
+    CHECK(kalahari::test::commands().executeCommand("help.shortcuts") ==
           CommandExecutionResult::Success);
     CHECK(opened);
 }
 
 TEST_CASE("Custom shortcuts: the texts that name the keys follow them",
           "[gui][shortcuts][custom]") {
-    registerAllCommands(CommandCallbacks{});
-    auto& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    auto& registry = kalahari::test::commands();
     const auto textsOf = [](const QWidget& widget) {
         QStringList texts;
         for (const QLabel* label : widget.findChildren<QLabel*>()) {
@@ -244,8 +245,8 @@ TEST_CASE("Custom shortcuts: the texts that name the keys follow them",
         return keys.toQKeySequence().toString(QKeySequence::NativeText);
     };
 
-    DashboardPanel dashboard;
-    EditorGeneralPage editorPage;
+    DashboardPanel dashboard(kalahari::test::commands());
+    EditorGeneralPage editorPage(kalahari::test::commands());
     const KeyboardShortcut newBook = keysOf("file.new.project");
     const KeyboardShortcut typewriter = keysOf("view.typewriter");
     REQUIRE_FALSE(newBook.isEmpty());

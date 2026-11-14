@@ -25,8 +25,9 @@ class NoteFrame : public WritingFrame {
 
 public:
     /// @brief Constructor
+    /// @param commands The commands of its window, whose keys it knows
     /// @param editor The editor it lies over (its parent)
-    explicit NoteFrame(QWidget* editor);
+    NoteFrame(CommandRegistry& commands, QWidget* editor);
 
     /// @brief The note it is for: its kind and its number ("Footnote 3")
     void setNote(editor::NoteKind kind, const QString& number);

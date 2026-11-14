@@ -37,6 +37,7 @@
 
 #include <functional>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::StyleCoordinator;
@@ -416,7 +417,8 @@ TEST_CASE("Style window: fits a small screen in both variants", "[gui][styles][d
 TEST_CASE("Manage Styles: the styles of the type and the book's own", "[gui][styles][dialogs]") {
     test::OpenNovel book(QStringLiteral("Styles"));
     test::Window window;
-    StyleCoordinator styles(window.tabs, {}, &window.statusBar, &window.window);
+    StyleCoordinator styles(kalahari::test::book(), kalahari::test::commands(), window.tabs, {},
+                            &window.statusBar, &window.window);
     StyleDraft draft = StyleDraft::newStyle(styles.styles(), QStringLiteral("quote"), {},
                                             QStringLiteral("Memory"));
     const QString memory = styles.saveDraft(draft);
@@ -459,8 +461,8 @@ TEST_CASE("Manage Styles: the styles of the type and the book's own", "[gui][sty
     CHECK(rowOf(*list, QStringLiteral("Memory")) > 0);
 
     // A style of the type changed in the book: tagged, and reset
-    StyleDraft quote = StyleDraft::existing(styles.styles(), gui::bookTypeStyles(),
-                                            QStringLiteral("quote"));
+    StyleDraft quote = StyleDraft::existing(
+        styles.styles(), gui::bookTypeStyles(kalahari::test::book()), QStringLiteral("quote"));
     quote.setValue(QStringLiteral("italic"), false);
     REQUIRE(styles.saveDraft(quote) == QStringLiteral("quote"));
     dialog.selectStyle(QStringLiteral("quote"));
@@ -495,7 +497,8 @@ TEST_CASE("Paragraph and Styles: the palette tags the styles and changes the one
     KeptVariant::set("tabs");
     test::OpenNovel book(QStringLiteral("Styles"));
     test::Window window;
-    StyleCoordinator styles(window.tabs, {}, &window.statusBar, &window.window);
+    StyleCoordinator styles(kalahari::test::book(), kalahari::test::commands(), window.tabs, {},
+                            &window.statusBar, &window.window);
     StyleDraft draft = StyleDraft::newStyle(styles.styles(), QStringLiteral("quote"), {},
                                             QStringLiteral("Memory"));
     const QString memory = styles.saveDraft(draft);
@@ -506,7 +509,7 @@ TEST_CASE("Paragraph and Styles: the palette tags the styles and changes the one
     text->setCursorPosition({1, 0});
 
     // Without the styles of the book: no buttons, and the menu only gives the style
-    gui::ParagraphPanel panel;
+    gui::ParagraphPanel panel(kalahari::test::commands());
     panel.setEditor(text);
     auto* bar = panel.findChild<QToolBar*>(QStringLiteral("paragraphStyleBar"));
     auto* list = panel.findChild<QListWidget*>(QStringLiteral("paragraphStyleList"));
@@ -624,7 +627,8 @@ TEST_CASE("Paragraph and Styles: a style the book does not have is made for its 
     KeptVariant::set("tabs");
     test::OpenNovel book(QStringLiteral("Styles"));
     test::Window window;
-    StyleCoordinator styles(window.tabs, {}, &window.statusBar, &window.window);
+    StyleCoordinator styles(kalahari::test::book(), kalahari::test::commands(), window.tabs, {},
+                            &window.statusBar, &window.window);
     window.navigator.onElementSelected(book.chapterId, QStringLiteral("The Storm"));
     editor::BookEditor* text = window.editor(window.tabs->currentIndex())->getBookEditor();
     // As pasted from another book: the paragraph keeps the id of its style
@@ -632,7 +636,7 @@ TEST_CASE("Paragraph and Styles: a style the book does not have is made for its 
         QStringLiteral("<kml><p>One.</p><p style=\"inner_voice\">Two.</p></kml>"));
     text->setCursorPosition({1, 0});
 
-    gui::ParagraphPanel panel;
+    gui::ParagraphPanel panel(kalahari::test::commands());
     panel.setEditor(text);
     panel.setStyleCoordinator(&styles);
     auto* list = panel.findChild<QListWidget*>(QStringLiteral("paragraphStyleList"));

@@ -13,6 +13,8 @@
 namespace kalahari {
 namespace core {
 
+class ProjectManager;
+
 /// @brief Manager for recent books list
 ///
 /// Singleton class that maintains a list of recently opened .klh files.
@@ -34,6 +36,10 @@ public:
     /// @brief Get singleton instance
     /// @return Reference to the singleton instance
     static RecentBooksManager& getInstance();
+
+    /// @brief Every book @p book opens, or creates and opens, goes to the top of the list and is
+    /// the book opened at startup; each book window gives its book
+    void follow(const ProjectManager& book);
 
     /// @brief Add a file to the recent list
     /// @param filePath Full path to the .klh file

@@ -33,6 +33,10 @@ class QToolButton;
 class QTimer;
 class QComboBox;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace core {
     struct BookProject;
@@ -99,8 +103,9 @@ class NavigatorPanel : public QWidget {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
     /// @param parent Parent widget
-    explicit NavigatorPanel(QWidget* parent = nullptr);
+    explicit NavigatorPanel(core::ProjectManager& book, QWidget* parent = nullptr);
 
     /// @brief Highlight element in tree by ID (OpenSpec #00034 Phase C)
     /// @param elementId Element ID to highlight
@@ -134,11 +139,11 @@ public:
                             const core::ProjectElement& element,
                             const core::PackageCard* card = nullptr);
 
-    /// @brief The icon of @p element of the open book: of its kind, as the program has it or,
-    /// for a kind the program does not have, as the book's card of its package shows it
-    /// (core::ProjectManager::packageCard()); else of its form
-    static QIcon iconOf(const core::BookTypeRegistry& registry,
-                        const core::ProjectElement& element, core::IconContext context);
+    /// @brief The icon of @p element of the book open in @p book: of its kind, as the program
+    /// has it or, for a kind the program does not have, as the book's card of its package shows
+    /// it (core::ProjectManager::packageCard()); else of its form
+    static QIcon iconOf(const core::ProjectManager& book, const core::ProjectElement& element,
+                        core::IconContext context);
 
     /// @brief Show the book as one open read-only (core::ProjectManager::isReadOnly()), or as
     /// one that can be changed
@@ -206,17 +211,17 @@ public:
     /// @brief Whether @p item is an element of the Workshop
     static bool isWorkshopItem(const QTreeWidgetItem* item);
 
-    /// @brief Whether @p item is a material of the Workshop
-    static bool isMaterialItem(const QTreeWidgetItem* item);
+    /// @brief Whether @p item is a material of the Workshop of the book open in @p book
+    static bool isMaterialItem(const core::ProjectManager& book, const QTreeWidgetItem* item);
 
     /// @brief The format of the dragged nodes of the tree that a material can be linked with:
     /// their links, one in a line (linkOf())
     static constexpr const char* LINKS_MIME_TYPE = "application/x-kalahari-links";
 
     /// @brief The link of the node of @p item (core::ProjectElement::links): the id of an
-    /// element of the book or of the Workshop, or the section of the open book
+    /// element of the book or of the Workshop, or the section of the book open in @p book
     /// (core::BookProject::sectionLink()); empty for another node
-    static QString linkOf(const QTreeWidgetItem* item);
+    static QString linkOf(const core::ProjectManager& book, const QTreeWidgetItem* item);
 
     /// @brief The links of the nodes of the tree in @p data (LINKS_MIME_TYPE); empty for other
     /// data
@@ -726,6 +731,7 @@ private:
     // Modified state tracking (OpenSpec #00042 Phase 7.5)
     QSet<QString> m_modifiedElements;    ///< Set of element IDs with unsaved changes
     QSet<QString> m_modifiedFiles;       ///< Paths of the files outside the book with changes
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

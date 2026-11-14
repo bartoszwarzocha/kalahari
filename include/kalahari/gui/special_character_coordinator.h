@@ -19,6 +19,10 @@
 class QStatusBar;
 class QWidget;
 
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari {
 namespace editor {
 class BookEditor;
@@ -48,6 +52,7 @@ public:
     ///        open read-only (EditCoordinator::addTextCommands())
     using TextCommands = std::function<void(const std::vector<std::string>& ids)>;
 
+    /// @param commands The commands of its window
     /// @param window The main window: the window of the characters stays in front of it, and
     ///        it gets the actions of the commands of the characters (their keys work there)
     /// @param statusBar Where it says what it did (may be null)
@@ -56,7 +61,7 @@ public:
     ///        characters)
     /// @param textCommands Makes the commands of the characters commands of the text
     /// @param parent Parent object
-    SpecialCharacterCoordinator(QWidget* window, QStatusBar* statusBar,
+    SpecialCharacterCoordinator(CommandRegistry& commands, QWidget* window, QStatusBar* statusBar,
                                 EditorInFront editorInFront, InsertCharacters insertWithKeys,
                                 TextCommands textCommands, QObject* parent = nullptr);
 
@@ -90,7 +95,7 @@ public:
     void setCharacterKeys(char32_t code, const KeyboardShortcut& keys);
 
     /// @brief The keys of a character as the system writes them; empty: none
-    [[nodiscard]] static QString keysOf(char32_t code);
+    [[nodiscard]] QString keysOf(char32_t code) const;
 
     /// @brief Why the window cannot insert now; empty: it can
     [[nodiscard]] QString whyNotInsertable() const;
@@ -121,6 +126,7 @@ private:
     QWidget* m_lastEditor = nullptr;  ///< The text the window inserted in last (null: gone)
     QMetaObject::Connection m_lastEditorGone;
     QMetaObject::Connection m_focusConnection;
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

@@ -2,6 +2,7 @@
 /// @brief Implementation of the test-only singleton reset helper (WS4.1).
 
 #include "reset_singletons.h"
+#include "window_parts.h"
 
 #include <kalahari/core/art_provider.h>
 #include <kalahari/core/icon_registry.h>
@@ -17,7 +18,7 @@ void resetSingletons() {
     // Order: configuration first, then derived visual state.
     core::SettingsManager::getInstance().resetToDefaults();
     core::TrustedKeys::getInstance().clear();
-    gui::CommandRegistry::getInstance().clear();
+    commands().clear();  // the commands of the window of the tests
 
     // IconRegistry: compose the public reset paths (there is no single reset()).
     // Each of resetTheme(), resetAllCustomizations() and resetSizes() clears the

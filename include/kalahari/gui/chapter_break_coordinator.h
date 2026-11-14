@@ -17,12 +17,17 @@ class QTabWidget;
 class QTextDocument;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}
+
 namespace kalahari::editor {
 class BookEditor;
 }
 
 namespace kalahari::gui {
 
+class CommandRegistry;
 class EditorPanel;
 class NavigatorCoordinator;
 
@@ -60,6 +65,8 @@ public:
     /// @brief The text that has the keys (none: the keys are elsewhere)
     using TextWithKeys = std::function<editor::BookEditor*()>;
 
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the book window (DocumentWindows gives all the texts)
     /// @param navigator Saves the texts, shows the new one and closes its tabs again
     /// @param textWithKeys The text that has the keys
@@ -68,7 +75,8 @@ public:
     /// @param statusBar Where short messages go (may be null)
     /// @param window Over which the warnings open
     /// @param parent Parent object
-    ChapterBreakCoordinator(QTabWidget* centralTabs, NavigatorCoordinator* navigator,
+    ChapterBreakCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                            QTabWidget* centralTabs, NavigatorCoordinator* navigator,
                             TextWithKeys textWithKeys, NoticeShower showNotice,
                             QStatusBar* statusBar, QWidget* window, QObject* parent = nullptr);
     ChapterBreakCoordinator(const ChapterBreakCoordinator&) = delete;
@@ -122,6 +130,8 @@ private:
     /// @brief Short message in the status bar
     void say(const QString& message) const;
 
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;   ///< The commands of its window
     QTabWidget* m_centralTabs = nullptr;
     NavigatorCoordinator* m_navigator = nullptr;
     TextWithKeys m_textWithKeys;

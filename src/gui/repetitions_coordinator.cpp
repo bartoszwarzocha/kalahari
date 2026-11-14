@@ -67,19 +67,21 @@ bool isWatchedSetting(const std::string& key) {
 
 }  // namespace
 
-RepetitionsCoordinator::RepetitionsCoordinator(RepetitionsPanel* panel, QDockWidget* dock,
-                                               QTabWidget* centralTabs,
+RepetitionsCoordinator::RepetitionsCoordinator(core::ProjectManager& book,
+                                               CommandRegistry& commands, RepetitionsPanel* panel,
+                                               QDockWidget* dock, QTabWidget* centralTabs,
                                                SpellingCoordinator* spelling,
                                                ChapterOpener openChapter, QStatusBar* statusBar,
                                                QObject* parent)
-    : QObject(parent)
-    , m_panel(panel)
-    , m_dock(dock)
-    , m_centralTabs(centralTabs)
-    , m_spelling(spelling)
-    , m_openChapter(std::move(openChapter))
-    , m_statusBar(statusBar)
-{
+    : QObject(parent),
+      m_panel(panel),
+      m_dock(dock),
+      m_centralTabs(centralTabs),
+      m_spelling(spelling),
+      m_openChapter(std::move(openChapter)),
+      m_statusBar(statusBar),
+      m_book(book),
+      m_commands(commands) {
     // The text in front is counted again a moment after the writing stops
     m_countTimer = new QTimer(this);
     m_countTimer->setSingleShot(true);
@@ -112,9 +114,9 @@ RepetitionsCoordinator::RepetitionsCoordinator(RepetitionsPanel* panel, QDockWid
     });
 
     // The whole book can be counted while a book is open
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const auto updateBook = [this]() {
-        const bool open = core::ProjectManager::getInstance().project() != nullptr;
+        const bool open = m_book.project() != nullptr;
         m_panel->setBookAvailable(open);
         if (!open && m_panel->scope() == RepetitionsPanel::Scope::Book) {
             m_panel->setScope(RepetitionsPanel::Scope::Chapter);
@@ -144,7 +146,7 @@ RepetitionsCoordinator::~RepetitionsCoordinator() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 
     // The commands outlive the coordinator
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const char* id : {PANEL_COMMAND, NEXT_COMMAND, MARKS_COMMAND}) {
         if (Command* command = registry.getCommand(id)) {
             command->execute = nullptr;
@@ -155,7 +157,7 @@ RepetitionsCoordinator::~RepetitionsCoordinator() {
 }
 
 void RepetitionsCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(PANEL_COMMAND)) {
         command->execute = [this]() { showPanel(); };
         registry.updateActionState(PANEL_COMMAND);
@@ -179,7 +181,7 @@ void RepetitionsCoordinator::connectCommands() {
     // Checked while the repetitions are marked, also after the Settings dialog changes it
     utils::followSetting(registry.getAction(std::string(MARKS_COMMAND)), HIGHLIGHT_KEY);
     connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
-            []() { CommandRegistry::getInstance().updateActionState(NEXT_COMMAND); });
+            [this]() { m_commands.updateActionState(NEXT_COMMAND); });
 }
 
 // =============================================================================
@@ -346,7 +348,7 @@ QString RepetitionsCoordinator::titleOf(const EditorPanel* panel) const {
     const QString elementId = elementIdOf(panel);
     if (!elementId.isEmpty()) {
         if (const core::ProjectElement* element =
-                core::ProjectManager::getInstance().findElement(elementId)) {
+                m_book.findElement(elementId)) {
             return element->title;
         }
     }
@@ -395,7 +397,7 @@ QStringList RepetitionsCoordinator::paragraphsOf(const editor::BookEditor& edito
 
 QList<RepetitionsCoordinator::Text> RepetitionsCoordinator::bookTexts() const {
     QList<Text> texts;
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const core::BookProject* project = projects.project();
     if (project == nullptr) {
         return texts;
@@ -456,7 +458,8 @@ editor::RepetitionAnalysis RepetitionsCoordinator::analyze(const QList<Text>& te
     }
     // The language of the dictionary: its very common words
     const QString dictionary = service != nullptr ? service->currentDictionary() : QString();
-    const QString language = !dictionary.isEmpty() ? dictionary : SpellingCoordinator::wantedLanguage();
+    const QString language =
+        !dictionary.isEmpty() ? dictionary : SpellingCoordinator::wantedLanguage(m_book);
     return editor::analyzeRepetitions(
         paragraphs, options(language),
         [this, service](const QString& word) { return baseFormOf(word, service); });
@@ -515,7 +518,7 @@ void RepetitionsCoordinator::countBook() {
         m_analysis = {};
         //: The panel Repetitions, the whole book, without texts. In Polish: Książka nie ma
         //: jeszcze tekstu.
-        m_panel->setMessage(core::ProjectManager::getInstance().project() != nullptr
+        m_panel->setMessage(m_book.project() != nullptr
                                 ? tr("The book has no text yet.")
                                 : tr("No book is open."));
         updateMarks();

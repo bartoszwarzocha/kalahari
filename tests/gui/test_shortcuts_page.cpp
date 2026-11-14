@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <sstream>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -76,7 +77,7 @@ void addCommand(const std::string& id, const std::string& label, const std::stri
     if (runs) {
         command.execute = []() {};
     }
-    CommandRegistry::getInstance().registerCommand(command);
+    kalahari::test::commands().registerCommand(command);
 }
 
 /// A few commands of every kind: in submenus, without keys, not available yet
@@ -93,7 +94,7 @@ void registerCommands() {
     addCommand("help.manual", "Kalahari Help", "HELP/Kalahari Help", 10, shortcut(Qt::Key_F1),
                false);
     // As the program says when the help comes; the others are "in preparation"
-    CommandRegistry::getInstance().getCommand("help.manual")->unavailableNote =
+    kalahari::test::commands().getCommand("help.manual")->unavailableNote =
         "not available yet";
     addCommand("help.tips", "Tips", "HELP/Tips", 15, shortcut(Qt::Key_F12, SHIFT), false);
     addCommand("help.future", "Future", "HELP/Future", 20, KeyboardShortcut(), false);
@@ -242,7 +243,7 @@ private:
 TEST_CASE("Shortcuts page: the commands as the menus show them, then the fixed keys",
           "[gui][shortcuts][page]") {
     registerCommands();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     QTreeWidget* list = listOf(page);
 
@@ -289,7 +290,7 @@ TEST_CASE("Shortcuts page: the commands as the menus show them, then the fixed k
 TEST_CASE("Shortcuts page: new keys stay on the page until Apply", "[gui][shortcuts][page]") {
     registerCommands();
     auto& settings = kalahari::core::SettingsManager::getInstance();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     CHECK_FALSE(page.isChanged());
 
@@ -314,14 +315,14 @@ TEST_CASE("Shortcuts page: new keys stay on the page until Apply", "[gui][shortc
           native(newKeys) + QStringLiteral(", changed"));
 
     // The command keeps its keys until Apply
-    CHECK(CommandRegistry::getInstance().getCommand("file.close")->shortcut ==
+    CHECK(kalahari::test::commands().getCommand("file.close")->shortcut ==
           shortcut(Qt::Key_F4, CTRL));
     CHECK(page.apply() == std::vector<std::string>{SHORTCUTS_SETTING});
     CHECK(settings.get<nlohmann::json>(SHORTCUTS_SETTING) ==
           nlohmann::json({{"file.close", "Ctrl+Shift+K"}}));
     // What the program does after Apply (SettingsCoordinator)
-    CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
-    CHECK(CommandRegistry::getInstance().getCommand("file.close")->shortcut == newKeys);
+    kalahari::test::commands().setCustomShortcuts(loadCustomShortcuts());
+    CHECK(kalahari::test::commands().getCommand("file.close")->shortcut == newKeys);
 
     // The default keys again are no change of the command
     page.assignKeys(QKeyCombination(CTRL, Qt::Key_F4));
@@ -337,7 +338,7 @@ TEST_CASE("Shortcuts page: new keys stay on the page until Apply", "[gui][shortc
 TEST_CASE("Shortcuts page: keys of another command are taken only when the user says so",
           "[gui][shortcuts][page]") {
     registerCommands();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     auto* accept = child<QPushButton>(page, QStringLiteral("shortcutMessageAccept"));
     auto* cancel = child<QPushButton>(page, QStringLiteral("shortcutMessageCancel"));
@@ -373,7 +374,7 @@ TEST_CASE("Shortcuts page: keys of another command are taken only when the user 
 TEST_CASE("Shortcuts page: keys no command can have are refused with the reason",
           "[gui][shortcuts][page]") {
     registerCommands();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     REQUIRE(page.selectCommand("file.close"));
 
@@ -415,7 +416,7 @@ TEST_CASE("Shortcuts page: keys no command can have are refused with the reason"
 
 TEST_CASE("Shortcuts page: remove, restore the default, restore all", "[gui][shortcuts][page]") {
     registerCommands();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     QPushButton* remove = button(page, QStringLiteral("&Remove"));
     QPushButton* restore = button(page, QStringLiteral("Restore &Default"));
@@ -467,7 +468,7 @@ TEST_CASE("Shortcuts page: remove, restore the default, restore all", "[gui][sho
 
 TEST_CASE("Shortcuts page: what the selected row is and does", "[gui][shortcuts][page]") {
     registerCommands();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     QTreeWidget* list = listOf(page);
     auto* title = child<QLabel>(page, QStringLiteral("shortcutTitle"));
@@ -544,7 +545,7 @@ TEST_CASE("Shortcuts page: what the selected row is and does", "[gui][shortcuts]
 TEST_CASE("Shortcuts page: the search finds commands by name and by keys",
           "[gui][shortcuts][page]") {
     registerCommands();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     QTreeWidget* list = listOf(page);
     auto* search = child<ShortcutRecorder>(page, QStringLiteral("shortcutsSearch"));
@@ -606,7 +607,7 @@ TEST_CASE("Shortcuts page: the search finds the other forms of the words",
     // A name with keys in it, as "Desktop keys (Ctrl+Alt)" of the Linux desktop
     addCommand("edit.altKeys", "Klawisze (Ctrl+Alt)", "EDIT/Klawisze (Ctrl+Alt)", 2,
                KeyboardShortcut());
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     QTreeWidget* list = listOf(page);
     auto* search = child<ShortcutRecorder>(page, QStringLiteral("shortcutsSearch"));
@@ -654,7 +655,7 @@ TEST_CASE("Shortcuts page: the search finds the other forms of the words",
 TEST_CASE("Shortcuts page: written keys find those keys, not longer ones",
           "[gui][shortcuts][page]") {
     registerCommands();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     QTreeWidget* list = listOf(page);
     auto* search = child<ShortcutRecorder>(page, QStringLiteral("shortcutsSearch"));
@@ -718,7 +719,7 @@ TEST_CASE("Shortcuts page: written keys find those keys, not longer ones",
 
 TEST_CASE("Shortcuts page: the search by keys", "[gui][shortcuts][page]") {
     registerCommands();
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     QTreeWidget* list = listOf(page);
     auto* search = child<ShortcutRecorder>(page, QStringLiteral("shortcutsSearch"));
@@ -775,7 +776,7 @@ TEST_CASE("Shortcuts page: the search by keys", "[gui][shortcuts][page]") {
 TEST_CASE("Shortcuts page: opened from the Help menu, its search has the cursor",
           "[gui][shortcuts][page]") {
     registerCommands();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.showShortcutsPage();
     auto* stack = dialog.findChild<QStackedWidget*>();
     REQUIRE(stack != nullptr);
@@ -794,7 +795,7 @@ TEST_CASE("Shortcuts page: opened from the Help menu, its search has the cursor"
 TEST_CASE("Shortcuts page: the keys of the list do not close the window",
           "[gui][shortcuts][page]") {
     registerCommands();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.showShortcutsPage();
     auto* stack = dialog.findChild<QStackedWidget*>();
     REQUIRE(stack != nullptr);
@@ -878,7 +879,7 @@ TEST_CASE("Shortcuts page: export and import", "[gui][shortcuts][page]") {
     REQUIRE(directory.isValid());
 
     // Nothing changed: no file to export
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     button(page, QStringLiteral("&Export..."))->click();
     CHECK(messageOf(page) == QStringLiteral("There are no changed shortcuts: the file would be "
@@ -902,7 +903,7 @@ TEST_CASE("Shortcuts page: export and import", "[gui][shortcuts][page]") {
           nlohmann::json({{"file.close", "Ctrl+Shift+K"}, {"view.focus", ""}}));
 
     // Another computer: the file in place of the changes there
-    ShortcutsPage other;
+    ShortcutsPage other(kalahari::test::commands());
     other.load();
     REQUIRE(other.selectCommand("file.save"));
     other.assignKeys(QKeyCombination(CTRL | SHIFT, Qt::Key_J));
@@ -951,7 +952,7 @@ TEST_CASE("Shortcuts page: export and import", "[gui][shortcuts][page]") {
 
 TEST_CASE("Shortcuts page: fits a small screen", "[gui][shortcuts][page]") {
     registerCommands();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.showShortcutsPage();
     dialog.show();
 
@@ -1011,7 +1012,7 @@ TEST_CASE("Shortcuts page: a message under the keys is in sight on a small scree
     // scroll bar takes the room of the options beside the search
     for (const int height : {417, 436, 400}) {
         INFO("height " << height);
-        SettingsDialog dialog(nullptr);
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         dialog.resize(820, height);
         dialog.showShortcutsPage();
         dialog.show();
@@ -1036,7 +1037,7 @@ TEST_CASE("Shortcuts page: a message under the keys is in sight on a small scree
 TEST_CASE("Shortcuts page: a message that makes the page scroll is in sight and moves nothing",
           "[gui][shortcuts][page]") {
     registerCommands();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(600, 700);
     dialog.showShortcutsPage();
     dialog.show();
@@ -1098,7 +1099,7 @@ TEST_CASE("Shortcuts page: a message that makes the page scroll is in sight and 
 
 TEST_CASE("Shortcuts page: the fields show their longest texts whole", "[gui][shortcuts][page]") {
     registerCommands();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(840, 700);
     dialog.showShortcutsPage();
     dialog.show();
@@ -1116,7 +1117,7 @@ TEST_CASE("Shortcuts page: the fields show their longest texts whole", "[gui][sh
     int widest = std::max(
         metrics.horizontalAdvance(QStringLiteral("Press the new shortcut... (Esc – cancel)")),
         metrics.horizontalAdvance(QStringLiteral("No shortcut")));
-    for (const auto& [id, keys] : CommandRegistry::getInstance().defaultShortcuts()) {
+    for (const auto& [id, keys] : kalahari::test::commands().defaultShortcuts()) {
         widest = std::max(widest, metrics.horizontalAdvance(native(keys)));
     }
     // Both prompts of the search. They show while the field is empty, and then QLineEdit
@@ -1144,7 +1145,7 @@ TEST_CASE("Shortcuts page: the fields show their longest texts whole", "[gui][sh
 TEST_CASE("Shortcuts page: the selected command stays in sight when the list gets lower",
           "[gui][shortcuts][page]") {
     registerCommands();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(840, 460);
     dialog.showShortcutsPage();
     dialog.show();
@@ -1188,7 +1189,7 @@ TEST_CASE("Shortcuts page: the selected command stays in sight when its rows get
     // does not lie over the rows (it does on macOS), take the rows' room too, and the list
     // keeps its height.
     registerCommands();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(840, 460);
     dialog.showShortcutsPage();
     dialog.show();
@@ -1227,7 +1228,7 @@ TEST_CASE("Shortcuts page: the selected command stays in sight when the search i
           "[gui][shortcuts][page]") {
     // Regression: the list showed its top again, the command the search found under its edge
     registerCommands();
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(840, 460);
     dialog.showShortcutsPage();
     dialog.show();
@@ -1254,7 +1255,7 @@ TEST_CASE("Shortcuts page: the muted and the changed texts can be read in every 
     registerCommands();
     auto& themes = kalahari::core::ThemeManager::getInstance();
     const ThemeRestorer restorer;
-    ShortcutsPage page;
+    ShortcutsPage page(kalahari::test::commands());
     page.load();
     QTreeWidget* list = listOf(page);
     auto* info = child<QLabel>(page, QStringLiteral("shortcutInfo"));

@@ -12,6 +12,13 @@
 #include <memory>
 
 namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
+namespace kalahari::core {
 struct KindWords;
 }
 
@@ -37,8 +44,11 @@ class EditorPanel : public QWidget {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param parent Parent widget
-    explicit EditorPanel(QWidget* parent = nullptr);
+    explicit EditorPanel(core::ProjectManager& book, CommandRegistry& commands,
+                         QWidget* parent = nullptr);
 
     /// @brief Destructor
     ~EditorPanel() override;
@@ -266,6 +276,8 @@ private:
 
     /// @brief Statistics collector for tracking writing stats (OpenSpec #00042 Task 7.7)
     editor::StatisticsCollector* m_statisticsCollector{nullptr};
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

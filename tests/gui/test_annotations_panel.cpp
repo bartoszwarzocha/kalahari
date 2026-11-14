@@ -55,6 +55,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -179,16 +180,17 @@ void secondClick(QWidget* widget, const QPointF& pos) {
 struct Desk {
     QTabWidget tabs;
     EditorPanel* document;
-    AnnotationsPanel panel;
+    AnnotationsPanel panel{kalahari::test::commands()};
     std::unique_ptr<AnnotationsCoordinator> coordinator;
 
     explicit Desk(const QString& kml)
-        : document(new EditorPanel()) {
+        : document(new EditorPanel(kalahari::test::book(), kalahari::test::commands())) {
         document->setContent(kml);
         tabs.addTab(document, QStringLiteral("Notes"));
         panel.show();  // the panel lists the annotations while it can be seen
-        coordinator =
-            std::make_unique<AnnotationsCoordinator>(&panel, nullptr, &tabs, nullptr, nullptr);
+        coordinator = std::make_unique<AnnotationsCoordinator>(kalahari::test::book(),
+                                                               kalahari::test::commands(), &panel,
+                                                               nullptr, &tabs, nullptr, nullptr);
     }
 
     editor::BookEditor& editor() { return *document->getBookEditor(); }
@@ -400,7 +402,7 @@ TEST_CASE("Annotations panel: its texts are readable in the light and the dark t
     for (const QString& name : {QStringLiteral("Light"), QStringLiteral("Dark")}) {
         INFO(name.toStdString());
         const core::Theme theme = themeNamed(name);
-        AnnotationsPanel panel;
+        AnnotationsPanel panel(kalahari::test::commands());
         panel.applyTheme(theme);
 
         // Colors written in: none of the palette of the theme before stays
@@ -436,7 +438,7 @@ TEST_CASE("Annotations panel: its texts are readable in the light and the dark t
 
 TEST_CASE("Annotations panel: cards of the annotations that pass the filters",
           "[gui][annotations]") {
-    AnnotationsPanel panel;
+    AnnotationsPanel panel(kalahari::test::commands());
     AnnotationEntry comment =
         entryOf(QStringLiteral("c"), AnnotationKind::Comment, QStringLiteral("Too long"), 0, 0);
     AnnotationEntry done =
@@ -489,30 +491,30 @@ TEST_CASE("Annotations panel: the hint of a chapter without annotations has the 
                                   core::Gender::Masculine};
 
     SECTION("The command's keys") {
-        registerAllCommands(CommandCallbacks{});
-        AnnotationsPanel panel;
+        registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+        AnnotationsPanel panel(kalahari::test::commands());
         panel.setDocumentAvailable(true);
         panel.setKindNames(chapter, std::nullopt, true);
         panel.setEntries({});
-        const Command* add = CommandRegistry::getInstance().getCommand("insert.annotation");
+        const Command* add = kalahari::test::commands().getCommand("insert.annotation");
         REQUIRE(add != nullptr);
         const QString keys = add->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
         CHECK(hintOf(panel).contains(QStringLiteral(" with %1 or ").arg(keys)));
 
         // The keys the user gives the command (Settings > Keyboard Shortcuts)
         const KeyboardShortcut userKeys(Qt::Key_F12, Qt::ControlModifier);
-        CommandRegistry::getInstance().setCustomShortcuts({{"insert.annotation", userKeys}});
+        kalahari::test::commands().setCustomShortcuts({{"insert.annotation", userKeys}});
         CHECK(hintOf(panel).contains(
             QStringLiteral(" with %1 or ")
                 .arg(userKeys.toQKeySequence().toString(QKeySequence::NativeText))));
-        CommandRegistry::getInstance().setCustomShortcuts(
+        kalahari::test::commands().setCustomShortcuts(
             {{"insert.annotation", KeyboardShortcut()}});
         CHECK(hintOf(panel).endsWith(QStringLiteral("or a note from the context menu.")));
     }
 
     SECTION("No keys, no mention of them") {
-        CommandRegistry::getInstance().clear();  // the singletons are reset once per test case
-        AnnotationsPanel panel;
+        kalahari::test::commands().clear();  // the singletons are reset once per test case
+        AnnotationsPanel panel(kalahari::test::commands());
         panel.setDocumentAvailable(true);
         panel.setKindNames(chapter, std::nullopt, true);
         panel.setEntries({});
@@ -565,7 +567,7 @@ TEST_CASE("Annotations panel: a card shows who made the annotation", "[gui][anno
 
 TEST_CASE("Annotations panel: an annotation the filters hide is shown when it is gone to",
           "[gui][annotations]") {
-    AnnotationsPanel panel;
+    AnnotationsPanel panel(kalahari::test::commands());
     AnnotationEntry done =
         entryOf(QStringLiteral("t"), AnnotationKind::Todo, QStringLiteral("Check"), 0, 0);
     done.annotation.done = true;
@@ -585,7 +587,7 @@ TEST_CASE("Annotations panel: an annotation the filters hide is shown when it is
 }
 
 TEST_CASE("Annotations panel: the keys of the list", "[gui][annotations]") {
-    AnnotationsPanel panel;
+    AnnotationsPanel panel(kalahari::test::commands());
     std::vector<AnnotationEntry> entries = {
         entryOf(QStringLiteral("a"), AnnotationKind::Comment, QStringLiteral("One"), 0, 0),
         entryOf(QStringLiteral("b"), AnnotationKind::Todo, QStringLiteral("Two"), 0, 1),
@@ -679,7 +681,7 @@ TEST_CASE("Annotations panel: the keys of the list", "[gui][annotations]") {
 
 TEST_CASE("Annotations panel: the keys go to the list with a card selected",
           "[gui][annotations]") {
-    AnnotationsPanel panel;
+    AnnotationsPanel panel(kalahari::test::commands());
     const std::vector<AnnotationEntry> entries = {
         entryOf(QStringLiteral("a"), AnnotationKind::Comment, QStringLiteral("One"), 0, 0),
         entryOf(QStringLiteral("b"), AnnotationKind::Note, QStringLiteral("Two"), 0, 1)};
@@ -695,7 +697,7 @@ TEST_CASE("Annotations panel: the keys go to the list with a card selected",
 }
 
 TEST_CASE("Annotations panel: the to-do buttons follow their commands", "[gui][annotations]") {
-    AnnotationsPanel panel;
+    AnnotationsPanel panel(kalahari::test::commands());
     QAction previous(QStringLiteral("Previous To Do"));
     QAction next(QStringLiteral("Next To Do"));
     int triggered = 0;
@@ -724,7 +726,7 @@ TEST_CASE("Annotations frame: Enter starts a new line, Ctrl+Enter and Save keep 
           "[gui][annotations]") {
     QWidget editor;
     editor.resize(800, 600);
-    auto* frame = new AnnotationFrame(&editor);
+    auto* frame = new AnnotationFrame(kalahari::test::commands(), &editor);
     frame->setKind(AnnotationKind::Todo);
     auto* text = frame->findChild<QTextEdit*>();
     auto* save = frame->findChild<QPushButton*>();
@@ -770,10 +772,11 @@ TEST_CASE("Annotations frame: Enter starts a new line, Ctrl+Enter and Save keep 
 
 TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting go through",
           "[gui][annotations]") {
-    registerAllCommands(CommandCallbacks{});  // the window's commands and their keys
+    registerAllCommands(kalahari::test::commands(),
+                        CommandCallbacks{});  // the window's commands and their keys
     QWidget editor;
     editor.resize(800, 600);
-    auto* frame = new AnnotationFrame(&editor);
+    auto* frame = new AnnotationFrame(kalahari::test::commands(), &editor);
     frame->setText(QStringLiteral("Note"));
     auto* text = frame->findChild<QTextEdit*>();
     auto* save = frame->findChild<QPushButton*>();
@@ -792,7 +795,7 @@ TEST_CASE("Annotations frame: the keys stay in it; saving, closing and quitting 
     CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_S, Qt::ControlModifier));
     CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_S, Qt::ControlModifier | Qt::ShiftModifier));
     CHECK_FALSE(keepsFromShortcuts(text, Qt::Key_F4, Qt::ControlModifier));
-    const Command* exitCommand = CommandRegistry::getInstance().getCommand("file.exit");
+    const Command* exitCommand = kalahari::test::commands().getCommand("file.exit");
     REQUIRE(exitCommand != nullptr);
     const QKeyCombination exitKeys = exitCommand->shortcut.toQKeySequence()[0];
     CHECK_FALSE(keepsFromShortcuts(text, exitKeys.key(), exitKeys.keyboardModifiers()));
@@ -819,7 +822,7 @@ TEST_CASE("Annotations frame: a click anywhere else in the program closes it, th
     toolButton->setGeometry(820, 60, 30, 30);
     PressCounter counter;
     editor->installEventFilter(&counter);
-    auto* frame = new AnnotationFrame(editor);
+    auto* frame = new AnnotationFrame(kalahari::test::commands(), editor);
     frame->setGeometry(100, 100, 400, 160);
     frame->setText(QStringLiteral("Note"));
     window.show();  // the frame watches the program while it is shown
@@ -901,7 +904,7 @@ TEST_CASE("Annotations frame: under its place within the text column, above it w
           "[gui][annotations]") {
     QWidget editor;
     editor.resize(800, 600);
-    auto* frame = new AnnotationFrame(&editor);
+    auto* frame = new AnnotationFrame(kalahari::test::commands(), &editor);
     AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 600, 600),
                                          QRectF()};
     frame->setPlacement([&placement]() { return placement; });
@@ -933,7 +936,7 @@ TEST_CASE("Annotations frame: two thirds of the text column, however wide it is"
           "[gui][annotations]") {
     QWidget editor;
     editor.resize(1900, 600);
-    AnnotationFrame frame(&editor);
+    AnnotationFrame frame(kalahari::test::commands(), &editor);
     AnnotationFrame::Placement placement{QRectF(200, 100, 1, 20), QRectF(100, 0, 1500, 600),
                                          QRectF()};
     frame.setPlacement([&placement]() { return placement; });
@@ -953,7 +956,7 @@ TEST_CASE("Annotations frame: who the annotation is by, on the right of its head
     QWidget editor;
     editor.resize(800, 600);
     editor.show();
-    auto* frame = new AnnotationFrame(&editor);
+    auto* frame = new AnnotationFrame(kalahari::test::commands(), &editor);
     frame->setKind(AnnotationKind::Note);
     auto* author = frame->findChild<QLabel*>(QStringLiteral("annotationFrameAuthor"));
     auto* kind = frame->findChild<QLabel*>(QStringLiteral("annotationFrameKind"));
@@ -1112,7 +1115,7 @@ TEST_CASE("Annotations: what was written is kept before the document is saved or
     SECTION("only the frame over the editor asked for") {
         REQUIRE(desk.coordinator->addAnnotation(AnnotationKind::Note));
         desk.frameText()->setPlainText(QStringLiteral("Remember"));
-        const EditorPanel other;
+        const EditorPanel other(kalahari::test::book(), kalahari::test::commands());
         desk.coordinator->finishWriting(other.getBookEditor());
         CHECK(desk.coordinator->isWriting());
         desk.coordinator->finishWriting(&desk.editor());
@@ -1303,7 +1306,7 @@ TEST_CASE("Annotations: the next and previous to-do, with their cards selected",
 TEST_CASE("Annotations: the tab of a chapter behind comes to the front for its annotation",
           "[gui][annotations]") {
     Desk desk(test::kmlOf({QStringLiteral("One two")}));
-    auto* chapter = new EditorPanel();
+    auto* chapter = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     chapter->setContent(kmlWith(record(QStringLiteral("t1"), QStringLiteral("todo"), QStringLiteral("Fix")),
                                 {QStringLiteral("Three <anchor ref=\"t1\">four</anchor>")}));
     chapter->setProperty("elementId", QStringLiteral("ch-2"));
@@ -1340,10 +1343,10 @@ TEST_CASE("Annotations: the tab of a chapter behind comes to the front for its a
 }
 
 TEST_CASE("Annotations: the commands work on the document in front", "[gui][annotations]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     Desk desk(test::kmlOf({QStringLiteral("One two")}));
     desk.coordinator->connectCommands();
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     QAction* addNote = registry.getAction(QStringLiteral("insert.note"));
     QAction* nextTodo = registry.getAction(QStringLiteral("edit.nextTodo"));
     REQUIRE(addNote != nullptr);
@@ -1366,10 +1369,10 @@ TEST_CASE("Annotations: the commands work on the document in front", "[gui][anno
 }
 
 TEST_CASE("Annotations: a plain text file takes none; the panel says why", "[gui][annotations]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     Desk desk(test::kmlOf({QStringLiteral("One two")}));
     desk.coordinator->connectCommands();
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     const auto enabled = [&registry](const char* id) {
         QAction* action = registry.getAction(QString::fromLatin1(id));
         REQUIRE(action != nullptr);
@@ -1407,7 +1410,7 @@ TEST_CASE("Annotations: a plain text file takes none; the panel says why", "[gui
 
 TEST_CASE("Annotations: those of a book open read-only are read, and their places shown",
           "[gui][annotations][readonly]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     Desk desk(kmlWith(record(QStringLiteral("c1"), QStringLiteral("comment"), QStringLiteral("Why?")) +
                           record(QStringLiteral("t1"), QStringLiteral("todo"), QStringLiteral("Fix")),
                       {QStringLiteral("<anchor ref=\"c1\">One</anchor> two"),
@@ -1422,7 +1425,7 @@ TEST_CASE("Annotations: those of a book open read-only are read, and their place
     REQUIRE(desk.panel.isReadOnly());
     const QString kml = desk.editor().toKml();
     const QString why = QStringLiteral("The book is open read-only");
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
 
     // None is added: the commands are greyed out, saying why
     for (const char* id : {"insert.annotation", "insert.comment", "insert.todo", "insert.note"}) {
@@ -1498,17 +1501,18 @@ TEST_CASE("Annotations: F9 goes to the panel and back to the text", "[gui][annot
     QMainWindow window;
     auto* tabs = new QTabWidget();
     window.setCentralWidget(tabs);
-    auto* document = new EditorPanel();
+    auto* document = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     document->setContent(
         kmlWith(record(QStringLiteral("c1"), QStringLiteral("comment"), QStringLiteral("A")) +
                     record(QStringLiteral("n1"), QStringLiteral("note"), QStringLiteral("B")),
                 {QStringLiteral("One <anchor ref=\"c1\">two</anchor> three <anchor ref=\"n1\">four</anchor>")}));
     tabs->addTab(document, QStringLiteral("Notes"));
     auto* dock = new QDockWidget(QStringLiteral("Annotations"), &window);
-    auto* panel = new AnnotationsPanel();
+    auto* panel = new AnnotationsPanel(kalahari::test::commands());
     dock->setWidget(panel);
     window.addDockWidget(Qt::RightDockWidgetArea, dock);
-    AnnotationsCoordinator coordinator(panel, dock, tabs, nullptr, nullptr);
+    AnnotationsCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), panel,
+                                       dock, tabs, nullptr, nullptr);
     window.show();
     window.activateWindow();
     REQUIRE(test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
@@ -1554,14 +1558,15 @@ TEST_CASE("Annotations: the keys going elsewhere in the program close the frame,
     QMainWindow window;
     auto* tabs = new QTabWidget();
     window.setCentralWidget(tabs);
-    auto* document = new EditorPanel();
+    auto* document = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
     document->setContent(test::kmlOf({QStringLiteral("One two three")}));
     tabs->addTab(document, QStringLiteral("Notes"));
     auto* dock = new QDockWidget(QStringLiteral("Annotations"), &window);
-    auto* panel = new AnnotationsPanel();
+    auto* panel = new AnnotationsPanel(kalahari::test::commands());
     dock->setWidget(panel);
     window.addDockWidget(Qt::RightDockWidgetArea, dock);
-    AnnotationsCoordinator coordinator(panel, dock, tabs, nullptr, nullptr);
+    AnnotationsCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), panel,
+                                       dock, tabs, nullptr, nullptr);
     window.show();
     window.activateWindow();
     REQUIRE(test::waitUntil([&window] { return QApplication::activeWindow() == &window; }));
@@ -1726,7 +1731,7 @@ TEST_CASE("Annotations: the frame shows who the annotation is by", "[gui][annota
 TEST_CASE("Annotations: a narrow panel puts its buttons in more rows", "[gui][annotations]") {
     // Regression: the rows of buttons made the panel as wide as all of them side by side, so
     // on a small screen (1366x768 at 150%: 911 pixels) the window reached beyond the screen
-    AnnotationsPanel panel;
+    AnnotationsPanel panel(kalahari::test::commands());
     QLayout* layout = panel.layout();
     REQUIRE(layout != nullptr);
     REQUIRE(layout->hasHeightForWidth());

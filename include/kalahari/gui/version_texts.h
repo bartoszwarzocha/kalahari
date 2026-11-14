@@ -14,6 +14,8 @@
 namespace kalahari {
 namespace gui {
 
+class CommandRegistry;
+
 /// @brief When a version was kept, in the local time: "today, 14:52", "yesterday, 22:14",
 /// "18.10.2026, 20:40"
 /// @param created When it was kept
@@ -37,9 +39,9 @@ QString versionWords(const core::ChapterVersion& version);
 /// @brief @p words words: "2 486 words"
 QString wordCountText(int words);
 
-/// @brief The keys of File > Save Version as the writer sees them ("Alt+Shift+S"); without
-/// keys, where the command is: "File > Save Version"
-QString saveVersionKeys();
+/// @brief The keys of File > Save Version of @p commands as the writer sees them
+/// ("Alt+Shift+S"); without keys, where the command is: "File > Save Version"
+QString saveVersionKeys(const CommandRegistry& commands);
 
 /// @brief Whether the program keeps new versions (Settings > Editor > Versions > Create
 /// Versions of the Texts); the versions kept can be read and restored either way

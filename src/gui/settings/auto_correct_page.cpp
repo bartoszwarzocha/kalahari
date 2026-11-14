@@ -55,9 +55,9 @@ constexpr int PREVIOUS_TEXT_ROLE = Qt::UserRole;
 /// @brief The rows of the replacement table and of the lists of exceptions shown at least
 constexpr int LIST_ROWS = 6;
 
-/// @brief The keys of Edit > Undo as the system writes them; empty: none
-QString undoKeys() {
-    const Command* command = CommandRegistry::getInstance().getCommand("edit.undo");
+/// @brief The keys of Edit > Undo of @p commands as the system writes them; empty: none
+QString undoKeys(const CommandRegistry& commands) {
+    const Command* command = commands.getCommand("edit.undo");
     return command != nullptr && !command->shortcut.isEmpty()
                ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
                : QString();
@@ -241,8 +241,9 @@ private:
 
 }  // namespace
 
-EditorAutoCorrectPage::EditorAutoCorrectPage(QWidget* parent)
+EditorAutoCorrectPage::EditorAutoCorrectPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
 {
     // Short check boxes, one below another, and the details in notes that wrap: the page fits
     // a narrow window, as the other pages do, without scrolling sideways
@@ -361,8 +362,8 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
 
     // With the keys Undo has now (the user may change them)
     QLabel* undoNote = addNote(layout, QString());
-    const auto showUndoKeys = [undoNote]() {
-        const QString keys = undoKeys();
+    const auto showUndoKeys = [this, undoNote]() {
+        const QString keys = undoKeys(m_commands);
         //: %1 is the keys of Edit > Undo, as Ctrl+Z
         const QString undo =
             !keys.isEmpty()
@@ -372,7 +373,7 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
                           tr("In a paragraph of the Code style auto-correct changes nothing."));
     };
     showUndoKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, undoNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, undoNote,
             showUndoKeys);
     layout->addStretch(1);
     return tab;
@@ -476,8 +477,8 @@ QWidget* EditorAutoCorrectPage::createCapitalsTab()
     QLabel* undoNote = addNote(learnNote, QString());
     alignWithText(undoNote, learn);
     grid->addLayout(learnNote, 4, 0, 1, 2);
-    const auto showUndoKeys = [undoNote]() {
-        const QString keys = undoKeys();
+    const auto showUndoKeys = [this, undoNote]() {
+        const QString keys = undoKeys(m_commands);
         //: %1 is the keys of Edit > Undo, as Ctrl+Z
         undoNote->setText(
             !keys.isEmpty()
@@ -488,7 +489,7 @@ QWidget* EditorAutoCorrectPage::createCapitalsTab()
                      "abbreviation or the word to its list."));
     };
     showUndoKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, undoNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, undoNote,
             showUndoKeys);
     return tab;
 }

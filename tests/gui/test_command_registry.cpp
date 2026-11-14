@@ -23,6 +23,7 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QStatusBar>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -47,8 +48,8 @@ static Command createTestCommand(const std::string& id, const std::string& categ
 
 TEST_CASE("CommandRegistry singleton pattern", "[gui][command][registry][singleton]") {
     SECTION("getInstance returns same instance") {
-        CommandRegistry& instance1 = CommandRegistry::getInstance();
-        CommandRegistry& instance2 = CommandRegistry::getInstance();
+        CommandRegistry& instance1 = kalahari::test::commands();
+        CommandRegistry& instance2 = kalahari::test::commands();
 
         REQUIRE(&instance1 == &instance2);
     }
@@ -59,7 +60,7 @@ TEST_CASE("CommandRegistry singleton pattern", "[gui][command][registry][singlet
 // =============================================================================
 
 TEST_CASE("CommandRegistry registration", "[gui][command][registry][registration]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear(); // Start with clean state
 
     SECTION("registerCommand adds command to registry") {
@@ -105,7 +106,7 @@ TEST_CASE("CommandRegistry registration", "[gui][command][registry][registration
 // =============================================================================
 
 TEST_CASE("CommandRegistry unregistration", "[gui][command][registry][unregistration]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("unregisterCommand removes command from registry") {
@@ -134,7 +135,7 @@ TEST_CASE("CommandRegistry unregistration", "[gui][command][registry][unregistra
 // =============================================================================
 
 TEST_CASE("CommandRegistry command retrieval", "[gui][command][registry][query]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("getCommand returns valid pointer for existing command") {
@@ -171,7 +172,7 @@ TEST_CASE("CommandRegistry command retrieval", "[gui][command][registry][query]"
 }
 
 TEST_CASE("CommandRegistry category filtering", "[gui][command][registry][category]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("getCommandsByCategory returns commands in category") {
@@ -202,7 +203,7 @@ TEST_CASE("CommandRegistry category filtering", "[gui][command][registry][catego
 }
 
 TEST_CASE("CommandRegistry all commands retrieval", "[gui][command][registry][all]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("getAllCommands returns all registered commands") {
@@ -223,7 +224,7 @@ TEST_CASE("CommandRegistry all commands retrieval", "[gui][command][registry][al
 }
 
 TEST_CASE("CommandRegistry category listing", "[gui][command][registry][categories]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("getCategories returns unique sorted categories") {
@@ -256,7 +257,7 @@ TEST_CASE("CommandRegistry category listing", "[gui][command][registry][categori
 // =============================================================================
 
 TEST_CASE("CommandRegistry utility methods", "[gui][command][registry][utility]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("getCommandCount returns correct count") {
@@ -295,7 +296,7 @@ TEST_CASE("CommandRegistry utility methods", "[gui][command][registry][utility]"
 // =============================================================================
 
 TEST_CASE("CommandRegistry disables actions of unimplemented commands", "[gui][command][registry][action]") {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("command with execute callback has enabled action") {
@@ -378,7 +379,7 @@ TEST_CASE("CommandRegistry disables actions of unimplemented commands", "[gui][c
 
 TEST_CASE("A grey menu item of a command in preparation describes it on the status bar",
           "[gui][command][registry][action]") {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     registry.clear();
     Command cmd = createTestCommand("test.inPreparation");
     cmd.execute = nullptr;

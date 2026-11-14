@@ -36,6 +36,7 @@
 #include <QVariantMap>
 
 #include <string>
+#include "test_support/window_parts.h"
 
 using kalahari::core::ArtProvider;
 using kalahari::core::IconRegistry;
@@ -106,7 +107,7 @@ TEST_CASE("CommandRegistry actions keep ArtProvider's icon-refresh data",
           "[core][art_provider][theme][regression]") {
     // resetSingletons() runs CommandRegistry::clear() before every test case, so
     // this registration does not leak into other tests.
-    auto& registry = kalahari::gui::CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
 
     kalahari::gui::Command cmd;
     cmd.id = "test.regression.themedAction";

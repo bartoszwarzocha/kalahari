@@ -40,6 +40,7 @@
 #include <set>
 
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -264,11 +265,11 @@ TEST_CASE("Dashboard: the content in the middle, three quarters of a wide panel"
 TEST_CASE("Dashboard: nothing is cut off on a small screen", "[gui][dashboard]") {
     // The user's report: at 125% with the side panels open the title and the third shortcut
     // were cut off at the right
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     RecentBookGuard recentBook;
 
     SECTION("in the program's texts") {
-        DashboardPanel dashboard;
+        DashboardPanel dashboard(kalahari::test::commands());
         showOffScreen(dashboard);
         for (const QSize size : {AT_125_PANELS_CLOSED, AT_125_PANELS_OPEN, AT_150_PANELS_CLOSED,
                                  AT_150_PANELS_OPEN, QSize(600, 457)}) {
@@ -281,7 +282,7 @@ TEST_CASE("Dashboard: nothing is cut off on a small screen", "[gui][dashboard]")
         // A folder named with a long number, which has no place to end a line in it
         RecentBookGuard longPath(
             QStringLiteral("6e1ac65f-8806-5aba-876d-5f142cdd2d6b/Przykladowa powiesc.klh"));
-        DashboardPanel dashboard;
+        DashboardPanel dashboard(kalahari::test::commands());
         showOffScreen(dashboard);
         for (const QSize size : {AT_125_PANELS_OPEN, AT_150_PANELS_OPEN}) {
             INFO("panel " << size.width() << "x" << size.height());
@@ -294,7 +295,7 @@ TEST_CASE("Dashboard: nothing is cut off on a small screen", "[gui][dashboard]")
         LongerTexts longerTexts;
         QCoreApplication::installTranslator(&longerTexts);
         {
-            DashboardPanel dashboard;
+            DashboardPanel dashboard(kalahari::test::commands());
             showOffScreen(dashboard);
             for (const QSize size : {AT_125_PANELS_OPEN, AT_150_PANELS_OPEN}) {
                 INFO("panel " << size.width() << "x" << size.height());
@@ -324,10 +325,10 @@ TEST_CASE("Dashboard: the checkbox keeps its size where the style puts margins a
             return type == CT_CheckBox ? contents + QSize(5, 4) : contents;
         }
     };
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     RecentBookGuard recentBook;
     MarginsAroundCheckBox style;
-    DashboardPanel dashboard;
+    DashboardPanel dashboard(kalahari::test::commands());
     auto* checkBox = dashboard.findChild<QCheckBox*>();
     REQUIRE(checkBox != nullptr);
     checkBox->setStyle(&style);
@@ -340,8 +341,8 @@ TEST_CASE("Dashboard: the checkbox keeps its size where the style puts margins a
 }
 
 TEST_CASE("Dashboard: a panel narrower than a word scrolls sideways", "[gui][dashboard]") {
-    registerAllCommands(CommandCallbacks{});
-    DashboardPanel dashboard;
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    DashboardPanel dashboard(kalahari::test::commands());
     showOffScreen(dashboard);
     dashboard.resize(120, 360);
     settle();
@@ -414,8 +415,8 @@ TEST_CASE("Dashboard: the shortcuts in a row, in two columns, or each command un
 }
 
 TEST_CASE("Dashboard: the shortcuts one under another on a narrow panel", "[gui][dashboard]") {
-    registerAllCommands(CommandCallbacks{});
-    DashboardPanel dashboard;
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    DashboardPanel dashboard(kalahari::test::commands());
     showOffScreen(dashboard);
     auto* frame = dashboard.findChild<QFrame*>(QStringLiteral("shortcutsFrame"));
     REQUIRE(frame != nullptr);
@@ -497,8 +498,8 @@ TEST_CASE("Dashboard: the shortcuts one under another on a narrow panel", "[gui]
 
 TEST_CASE("Dashboard: the logo beside the title, above it on a narrow panel",
           "[gui][dashboard]") {
-    registerAllCommands(CommandCallbacks{});
-    DashboardPanel dashboard;
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    DashboardPanel dashboard(kalahari::test::commands());
     showOffScreen(dashboard);
     QLabel* title = labelWith(dashboard, QStringLiteral("Welcome to Kalahari"));
     QLabel* tagline = labelWith(dashboard, QStringLiteral("A Comprehensive Writer's IDE"));
@@ -541,7 +542,7 @@ TEST_CASE("Dashboard: the logo beside the title, above it on a narrow panel",
 }
 
 TEST_CASE("Dashboard: a narrow card puts the book's icon above its texts", "[gui][dashboard]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     // A book's path with short names, and one with a long name, which has no place to end a
     // line in it (the path wraps inside it, so it does not keep the card wide)
     const QString path = GENERATE(
@@ -549,7 +550,7 @@ TEST_CASE("Dashboard: a narrow card puts the book's icon above its texts", "[gui
         QStringLiteral("6e1ac65f-8806-5aba-876d-5f142cdd2d6b/Przykladowa powiesc.klh"));
     INFO("path " << path.toStdString());
     RecentBookGuard recentBook(path);
-    DashboardPanel dashboard;
+    DashboardPanel dashboard(kalahari::test::commands());
     showOffScreen(dashboard);
     QLabel* bookTitle = labelWith(dashboard, QStringLiteral("Przykladowa powiesc"));
     auto* icon = dashboard.findChild<QFrame*>(QStringLiteral("fileIconFrame"));
@@ -609,7 +610,7 @@ TEST_CASE("Dashboard: the text of the auto-load checkbox changes it", "[gui][das
     const bool saved = settings.get<bool>("startup.autoLoadLastProject");
     settings.set("startup.autoLoadLastProject", false);
     {
-        DashboardPanel dashboard;
+        DashboardPanel dashboard(kalahari::test::commands());
         showOffScreen(dashboard);
         auto* checkBox = dashboard.findChild<QCheckBox*>();
         REQUIRE(checkBox != nullptr);
@@ -633,14 +634,14 @@ TEST_CASE("Dashboard: the auto-load checkbox follows the Settings window", "[gui
     // Dashboard until the program started again
     auto& settings = core::SettingsManager::getInstance();
     settings.set("startup.autoLoadLastProject", false);
-    DashboardPanel dashboard;
+    DashboardPanel dashboard(kalahari::test::commands());
     showOffScreen(dashboard);
     auto* onDashboard = dashboard.findChild<QCheckBox*>();
     REQUIRE(onDashboard != nullptr);
     REQUIRE_FALSE(onDashboard->isChecked());
 
     // The Settings window opens on its General page, with the same option
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QCheckBox* inSettings = nullptr;
     for (QCheckBox* box : dialog.findChildren<QCheckBox*>()) {
         if (box->text() == QStringLiteral("Open last book on startup")) {
@@ -762,11 +763,11 @@ TEST_CASE("Dashboard: its icons keep no color of another theme after the colors 
     REQUIRE(themes.reloadTheme(QStringLiteral("Dark")));
     registerAllIcons();
     const RecentBookGuard book;
-    DashboardPanel dashboard;
+    DashboardPanel dashboard(kalahari::test::commands());
     auto* bookIcon = dashboard.findChild<QLabel*>(QStringLiteral("cardBookIcon"));
     REQUIRE(bookIcon != nullptr);
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openSettingsPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
     openSettingsPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Icons"));
     choose(dialog, QStringLiteral("Light"));
@@ -818,7 +819,7 @@ TEST_CASE("Dashboard: the theme page has no colors of its own for the Dashboard 
           "[gui][dashboard][theme]") {
     // Its icons take the icon colors; the fields of the Dashboard colors, and of the icon of a
     // news column that the Dashboard does not have, changed nothing that one could see
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openSettingsPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
     QStringList fields;
     for (const ColorConfigWidget* widget : dialog.findChildren<ColorConfigWidget*>()) {

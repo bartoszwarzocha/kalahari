@@ -92,15 +92,17 @@ bool isInFolder(const QString& path, const QString& folder) {
 
 }  // namespace
 
-GrammarCoordinator::GrammarCoordinator(QTabWidget* centralTabs, QStatusBar* statusBar,
+GrammarCoordinator::GrammarCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                       QTabWidget* centralTabs, QStatusBar* statusBar,
                                        QObject* parent)
-    : QObject(parent)
-    , m_centralTabs(centralTabs)
-    , m_statusBar(statusBar)
-    , m_service(new editor::GrammarCheckService(this))
-    , m_server(new LanguageToolServer(this))
-    , m_setup(new GrammarSetup(m_server, this))
-{
+    : QObject(parent),
+      m_centralTabs(centralTabs),
+      m_statusBar(statusBar),
+      m_service(new editor::GrammarCheckService(this)),
+      m_server(new LanguageToolServer(this)),
+      m_setup(new GrammarSetup(m_server, this)),
+      m_book(book),
+      m_commands(commands) {
     connect(m_service, &editor::GrammarCheckService::serverError, this,
             &GrammarCoordinator::onServerError);
 
@@ -146,7 +148,7 @@ GrammarCoordinator::GrammarCoordinator(QTabWidget* centralTabs, QStatusBar* stat
     }
 
     // Another book can be in another language
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this,
             &GrammarCoordinator::updateChecking);
     connect(&projects, &core::ProjectManager::projectClosed, this,
@@ -170,7 +172,7 @@ GrammarCoordinator::~GrammarCoordinator() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 
     // The command outlives the coordinator
-    if (Command* command = CommandRegistry::getInstance().getCommand(COMMAND_ID)) {
+    if (Command* command = m_commands.getCommand(COMMAND_ID)) {
         command->execute = nullptr;
         command->isEnabled = nullptr;
         command->isChecked = nullptr;
@@ -179,7 +181,7 @@ GrammarCoordinator::~GrammarCoordinator() {
 }
 
 void GrammarCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(COMMAND_ID)) {
         command->execute = [this]() { toggle(); };
         // Checked while the grammar is checked: on, and something to check it on
@@ -290,7 +292,7 @@ void GrammarCoordinator::setIgnoredRules(const QMap<QString, QString>& rules) {
 
 void GrammarCoordinator::updateChecking() {
     auto& settings = core::SettingsManager::getInstance();
-    m_service->setLanguage(SpellingCoordinator::wantedLanguage());
+    m_service->setLanguage(SpellingCoordinator::wantedLanguage(m_book));
     m_service->setIgnoredRules(ignoredRules());
 
     const Readiness ready = readiness();
@@ -324,7 +326,7 @@ void GrammarCoordinator::updateChecking() {
     m_service->setEnabled(enabled && (ready == Readiness::Ready || ready == Readiness::Remote));
 
     startServerWhenNeeded();
-    CommandRegistry::getInstance().updateActionState(COMMAND_ID);
+    m_commands.updateActionState(COMMAND_ID);
     emit problemChanged();
 }
 
@@ -432,7 +434,7 @@ void GrammarCoordinator::toggle() {
     const bool checking = isChecking();
     if (!checking && (ready == Readiness::NotPrepared || ready == Readiness::Missing)) {
         // Not checked until something is prepared: the check mark stays off
-        CommandRegistry::getInstance().updateActionState(COMMAND_ID);
+        m_commands.updateActionState(COMMAND_ID);
         askToPrepare();
         return;
     }
@@ -481,7 +483,7 @@ void GrammarCoordinator::showSetup(QWidget* parent) {
         return;
     }
     if (!m_setup->isRunning()) {
-        m_setup->setLanguage(SpellingCoordinator::wantedLanguage());
+        m_setup->setLanguage(SpellingCoordinator::wantedLanguage(m_book));
     }
 
     // The window shows the progress or the failure: not the status bar meanwhile

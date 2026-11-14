@@ -159,10 +159,10 @@ struct Search {
 
     explicit Search(Window& window)
         : coordinator(
-              window.tabs, &panel, []() {}, [this]() { return keys; },
+              test::book(), test::commands(), window.tabs, &panel, []() {},
+              [this]() { return keys; },
               [&window](const QString& id) {
-                  const core::ProjectElement* element =
-                      core::ProjectManager::getInstance().findElement(id);
+                  const core::ProjectElement* element = test::book().findElement(id);
                   window.navigator.onElementSelected(id, element != nullptr ? element->title
                                                                             : QString());
               },

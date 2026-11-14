@@ -46,9 +46,9 @@ int indexOf(const QList<NewElementChoice>& choices,
 
 } // anonymous namespace
 
-AddToBookDialog::Book AddToBookDialog::openBook(const QString& path) {
+AddToBookDialog::Book AddToBookDialog::openBook(const core::ProjectManager& pm,
+                                                const QString& path) {
     Book book;
-    const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
     if (!project || !projectBook) {

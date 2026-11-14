@@ -26,16 +26,17 @@
 namespace kalahari {
 namespace gui {
 
-SettingsCoordinator::SettingsCoordinator(QMainWindow* mainWindow,
-                                          DockCoordinator* dockCoordinator,
-                                          QStatusBar* statusBar,
-                                          QObject* parent)
-    : QObject(parent)
-    , m_mainWindow(mainWindow)
-    , m_dockCoordinator(dockCoordinator)
-    , m_statusBar(statusBar)
-    , m_diagnosticModeGetter([]() { return false; })
-{
+SettingsCoordinator::SettingsCoordinator(const core::ProjectManager& book,
+                                         CommandRegistry& commands, QMainWindow* mainWindow,
+                                         DockCoordinator* dockCoordinator, QStatusBar* statusBar,
+                                         QObject* parent)
+    : QObject(parent),
+      m_mainWindow(mainWindow),
+      m_dockCoordinator(dockCoordinator),
+      m_statusBar(statusBar),
+      m_diagnosticModeGetter([]() { return false; }),
+      m_commands(commands),
+      m_book(book) {
     auto& logger = core::Logger::getInstance();
     logger.debug("SettingsCoordinator: Created");
 }
@@ -71,7 +72,8 @@ void SettingsCoordinator::openSettingsPage(const QString& page, QWidget* parent)
 void SettingsCoordinator::runSettingsDialog(const QString& page, QWidget* parent) {
     auto& logger = core::Logger::getInstance();
 
-    SettingsDialog dialog(parent != nullptr ? parent : m_mainWindow, m_diagnosticModeGetter(),
+    SettingsDialog dialog(m_book, m_commands, parent != nullptr ? parent : m_mainWindow,
+                          m_diagnosticModeGetter(),
                           m_spellCheckService, m_grammarCoordinator);
     if (!page.isEmpty()) {
         dialog.openPage(page);
@@ -138,10 +140,10 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
         m_languageChanged = true;
     }
 
-    // The keys of the commands: the menus, the toolbars and the texts that show them follow
-    // CommandRegistry::shortcutsChanged()
+    // The keys of the commands, those of every window: the menus, the toolbars and the texts
+    // that show them follow CommandRegistry::shortcutsChanged()
     if (changed(QString::fromLatin1(SHORTCUTS_SETTING))) {
-        CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
+        applyCustomShortcuts();
         logger.info("SettingsCoordinator: Keyboard shortcuts updated");
     }
 

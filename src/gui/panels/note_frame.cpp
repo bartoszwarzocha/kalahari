@@ -153,8 +153,8 @@ void setLinkOn(const QTextCursor& range, const QString& address) {
 
 }  // namespace
 
-NoteFrame::NoteFrame(QWidget* editor)
-    : WritingFrame(editor, new NoteTextEdit(), QStringLiteral("noteFrame"))
+NoteFrame::NoteFrame(CommandRegistry& commands, QWidget* editor)
+    : WritingFrame(commands, editor, new NoteTextEdit(), QStringLiteral("noteFrame"))
 {
     // As in the mockup: the title, then the X in the corner; the text without a box of its own
     if (auto* frameLayout = qobject_cast<QVBoxLayout*>(layout())) {

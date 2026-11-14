@@ -72,9 +72,9 @@ enum class EditorKind {
     Opening          ///< A tab before it knows what it shows: nothing to save
 };
 
-EditorKind editorKind(const EditorPanel* editor) {
+EditorKind editorKind(const core::ProjectManager& book, const EditorPanel* editor) {
     if (!editor->property("elementId").toString().isEmpty()
-        && core::ProjectManager::getInstance().isProjectOpen()) {
+        && book.isProjectOpen()) {
         return EditorKind::ProjectChapter;
     }
     if (editor->property("isStandaloneFile").toBool()) {
@@ -109,29 +109,25 @@ QString standaloneIconId(const QString& path) {
 
 }  // anonymous namespace
 
-DocumentCoordinator::DocumentCoordinator(QMainWindow* mainWindow,
-                                           QTabWidget* centralTabs,
-                                           NavigatorPanel* navigatorPanel,
-                                           PropertiesPanel* propertiesPanel,
-                                           DashboardPanel* dashboardPanel,
-                                           NavigatorCoordinator* navigatorCoordinator,
-                                           StandaloneInfoBar* standaloneInfoBar,
-                                           QStatusBar* statusBar,
-                                           WindowTitleUpdater updateTitle,
-                                           HasUnsavedChangesGetter hasUnsavedChanges,
-                                           QObject* parent)
-    : QObject(parent)
-    , m_mainWindow(mainWindow)
-    , m_centralTabs(centralTabs)
-    , m_navigatorPanel(navigatorPanel)
-    , m_propertiesPanel(propertiesPanel)
-    , m_dashboardPanel(dashboardPanel)
-    , m_navigatorCoordinator(navigatorCoordinator)
-    , m_standaloneInfoBar(standaloneInfoBar)
-    , m_statusBar(statusBar)
-    , m_updateWindowTitle(std::move(updateTitle))
-    , m_hasUnsavedChanges(std::move(hasUnsavedChanges))
-{
+DocumentCoordinator::DocumentCoordinator(
+    core::ProjectManager& book, CommandRegistry& commands, QMainWindow* mainWindow,
+    QTabWidget* centralTabs, NavigatorPanel* navigatorPanel, PropertiesPanel* propertiesPanel,
+    DashboardPanel* dashboardPanel, NavigatorCoordinator* navigatorCoordinator,
+    StandaloneInfoBar* standaloneInfoBar, QStatusBar* statusBar, WindowTitleUpdater updateTitle,
+    HasUnsavedChangesGetter hasUnsavedChanges, QObject* parent)
+    : QObject(parent),
+      m_mainWindow(mainWindow),
+      m_centralTabs(centralTabs),
+      m_navigatorPanel(navigatorPanel),
+      m_propertiesPanel(propertiesPanel),
+      m_dashboardPanel(dashboardPanel),
+      m_navigatorCoordinator(navigatorCoordinator),
+      m_standaloneInfoBar(standaloneInfoBar),
+      m_statusBar(statusBar),
+      m_updateWindowTitle(std::move(updateTitle)),
+      m_hasUnsavedChanges(std::move(hasUnsavedChanges)),
+      m_book(book),
+      m_commands(commands) {
     // Files opened outside the project: the info bar shows the file of the current tab,
     // and the navigator's "Other Files" open, add and drop them
     connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged,
@@ -196,7 +192,7 @@ void DocumentCoordinator::onNewDocument() {
     // With a book open, the new file is an element of the book, of the kind and at the place
     // the writer chooses in the New File window, or an empty text file, with the book or
     // outside it. A book open read-only takes none: the file is outside it, as without a book
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     if (projects.isProjectOpen() && !projects.isReadOnly()) {
         if (m_navigatorCoordinator) {
             using Made = NavigatorCoordinator::NewFile::Made;
@@ -219,7 +215,7 @@ void DocumentCoordinator::onNewDocument() {
 
 void DocumentCoordinator::openNewFile(const QString& title) {
     auto& logger = core::Logger::getInstance();
-    auto* newEditor = new EditorPanel(m_mainWindow);
+    auto* newEditor = new EditorPanel(m_book, m_commands, m_mainWindow);
     // What the tab shows before it comes: the tab in front decides what Save and Save As do
     newEditor->setProperty("standaloneFile", QVariant::fromValue(core::StandaloneFile()));
     newEditor->setProperty("standaloneFilePath", QString());
@@ -252,7 +248,7 @@ void DocumentCoordinator::openNewFile(const QString& title) {
 void DocumentCoordinator::onNewProject() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: New Project (OpenSpec #00033)");
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // When a book is open, the window that creates the new book asks whether the new book
     // takes its place or is created without opening; Cancel returns to that window
@@ -404,7 +400,7 @@ void DocumentCoordinator::onNewProject() {
 
 bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
                                            const QString& closeQuestion) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         return true;
     }
@@ -440,7 +436,7 @@ bool DocumentCoordinator::agreeToCloseBook(const QString& saveQuestion,
 DocumentCoordinator::OpenBookChoice DocumentCoordinator::askAboutOpenBook(
     QWidget* parent, const QString& description, const QString& note, const QString& closeText,
     const QString& keepText, const QString& saveQuestion) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         return OpenBookChoice::Close;
     }
@@ -623,7 +619,7 @@ void DocumentCoordinator::offerConversion(const QString& path) {
     QString copyPath;
     QStringList otherFiles;
     QStringList problems;
-    if (!core::ProjectManager::getInstance().convertOlderBook(path, &copyPath, &otherFiles,
+    if (!m_book.convertOlderBook(path, &copyPath, &otherFiles,
                                                               &problems)) {
         dialogs::MessageDialog::error(
             //: In Polish: Nie przeniesiono książki
@@ -669,7 +665,7 @@ bool DocumentCoordinator::reportOpenFailure(const QString& path) {
 }
 
 void DocumentCoordinator::openFirstText() {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectBook* book = pm.book();
     if (!book || !m_navigatorCoordinator) {
         return;
@@ -716,7 +712,7 @@ void DocumentCoordinator::onOpenDocument() {
                              QFileInfo(QFileInfo(filename).absolutePath()).absolutePath());
 
     // Use ProjectManager to open the project
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // If a project is already open, ask user for confirmation before closing it
     if (pm.isProjectOpen()) {
@@ -773,7 +769,7 @@ void DocumentCoordinator::onOpenRecentFile(const QString& filePath) {
 
     // A book: the files open outside a book stay open with their changes, and switching from
     // an open project asks below, once, after checking that it is a different project
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // If a project is already open, check if it's the SAME project
     if (pm.isProjectOpen()) {
@@ -820,13 +816,13 @@ void DocumentCoordinator::onSaveDocument() {
 
     // A file opened outside the project is saved on its own, also with a project open
     EditorPanel* editor = getCurrentEditor();
-    if (editor && editorKind(editor) == EditorKind::StandaloneFile) {
+    if (editor && editorKind(m_book, editor) == EditorKind::StandaloneFile) {
         saveEditor(editor);
         return;
     }
 
     // Check if we're in project mode - delegate to Save All for project saves
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (pm.isProjectOpen()) {
         // In project mode, Ctrl+S saves the manifest (including metadata like notes)
         // and any dirty chapter content
@@ -856,8 +852,8 @@ void DocumentCoordinator::onSaveAsDocument() {
 
 QString DocumentCoordinator::whyNotSave() const {
     const EditorPanel* editor = getCurrentEditor();
-    if ((editor && editorKind(editor) == EditorKind::StandaloneFile)
-        || core::ProjectManager::getInstance().isProjectOpen()) {
+    if ((editor && editorKind(m_book, editor) == EditorKind::StandaloneFile)
+        || m_book.isProjectOpen()) {
         return QString();
     }
     return tr("No document to save");
@@ -866,19 +862,19 @@ QString DocumentCoordinator::whyNotSave() const {
 QString DocumentCoordinator::whyNotSaveAs() const {
     // Get current editor (returns nullptr if Dashboard is active)
     const EditorPanel* editor = getCurrentEditor();
-    if (!editor || editorKind(editor) == EditorKind::Opening) {
+    if (!editor || editorKind(m_book, editor) == EditorKind::Opening) {
         return tr("No document to save");
     }
-    if (editorKind(editor) == EditorKind::StandaloneFile) {
+    if (editorKind(m_book, editor) == EditorKind::StandaloneFile) {
         return QString();
     }
 
     // A chapter of the book has its file in the book: Save writes it with the book
     const QString elementId = editor->property("elementId").toString();
     const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(elementId);
+        m_book.findElement(elementId);
     const QHash<QString, core::KindWords> nouns{
-        {QStringLiteral("kind"), element ? wordsOf(*element) : mainWords()}};
+        {QStringLiteral("kind"), element ? wordsOf(m_book, *element) : mainWords(m_book)}};
     //: %1: the title of the element. In Polish: {Kind} „%1” {kind:s=zapisuje|p=zapisują} się
     //: razem z książką: użyj polecenia „Zapisz”.
     return core::fillWords(tr("{Kind} \"%1\" {kind:s=is|p=are} saved with the book: use Save."),
@@ -888,12 +884,12 @@ QString DocumentCoordinator::whyNotSaveAs() const {
 
 QString DocumentCoordinator::whyNotSaveAll() const {
     // The book, and the files outside it also in the tabs behind the one in front
-    if (core::ProjectManager::getInstance().isProjectOpen()) {
+    if (m_book.isProjectOpen()) {
         return QString();
     }
     for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
         const auto* editor = qobject_cast<const EditorPanel*>(page);
-        if (editor && editorKind(editor) == EditorKind::StandaloneFile) {
+        if (editor && editorKind(m_book, editor) == EditorKind::StandaloneFile) {
             return QString();
         }
     }
@@ -908,7 +904,7 @@ bool DocumentCoordinator::isEditorDirty(const EditorPanel* editor) const {
     if (!editor) {
         return false;
     }
-    switch (editorKind(editor)) {
+    switch (editorKind(m_book, editor)) {
     case EditorKind::ProjectChapter:
     case EditorKind::StandaloneFile:
         // Its text differs from the saved text: typed and deleted again, it does not
@@ -923,7 +919,7 @@ bool DocumentCoordinator::saveEditor(EditorPanel* editor) {
     if (!editor) {
         return true;
     }
-    switch (editorKind(editor)) {
+    switch (editorKind(m_book, editor)) {
     case EditorKind::ProjectChapter:
         // Chapters are saved with the project; onSaveBook() clears a chapter's flag only
         // once its content is written
@@ -944,7 +940,7 @@ void DocumentCoordinator::discardEditorChanges(EditorPanel* editor) {
     if (!editor) {
         return;
     }
-    switch (editorKind(editor)) {
+    switch (editorKind(m_book, editor)) {
     case EditorKind::ProjectChapter:
         if (m_navigatorCoordinator) {
             m_navigatorCoordinator->discardChapterChanges(editor->property("elementId").toString());
@@ -961,7 +957,7 @@ void DocumentCoordinator::discardEditorChanges(EditorPanel* editor) {
 }
 
 bool DocumentCoordinator::saveAllChanges() {
-    if (core::ProjectManager::getInstance().isProjectOpen()) {
+    if (m_book.isProjectOpen()) {
         // Every dirty chapter and the project structure, in one save
         onSaveBook();
     }
@@ -972,7 +968,7 @@ bool DocumentCoordinator::saveAllChanges() {
         if (!editor || !isEditorDirty(editor)) {
             continue;
         }
-        if (editorKind(editor) == EditorKind::ProjectChapter) {
+        if (editorKind(m_book, editor) == EditorKind::ProjectChapter) {
             return false;  // onSaveBook() above could not write it, and said so
         }
         if (!saveEditor(editor)) {
@@ -986,14 +982,15 @@ QStringList DocumentCoordinator::unsavedDocumentNames() const {
     QStringList names;
 
     // Chapters and structure are saved together, as the book
-    const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    const core::ProjectBook* book = m_book.book();
     if (book && bookHasUnsavedChanges()) {
         names << book->title;
     }
 
     for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
         auto* editor = qobject_cast<EditorPanel*>(page);
-        if (editor && editorKind(editor) != EditorKind::ProjectChapter && isEditorDirty(editor)) {
+        if (editor && editorKind(m_book, editor) != EditorKind::ProjectChapter &&
+            isEditorDirty(editor)) {
             QString name = DocumentWindows::tabText(page);
             if (name.startsWith(QLatin1Char('*'))) {
                 name.remove(0, 1);
@@ -1019,8 +1016,8 @@ void DocumentCoordinator::onSaveAll() {
     // The editor of @p page when it is a file outside the book with unsaved changes
     const auto unsavedFile = [this](QWidget* page) -> EditorPanel* {
         auto* editor = qobject_cast<EditorPanel*>(page);
-        const bool unsaved =
-            editor && editorKind(editor) != EditorKind::ProjectChapter && isEditorDirty(editor);
+        const bool unsaved = editor && editorKind(m_book, editor) != EditorKind::ProjectChapter &&
+                             isEditorDirty(editor);
         return unsaved ? editor : nullptr;
     };
 
@@ -1057,7 +1054,7 @@ void DocumentCoordinator::onSaveBook() {
     auto& logger = core::Logger::getInstance();
     logger.info("Saving the book");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         logger.debug("No project open - nothing to save");
         m_statusBar->showMessage(tr("No project open"), 2000);
@@ -1072,14 +1069,15 @@ void DocumentCoordinator::onSaveBook() {
 }
 
 bool DocumentCoordinator::bookHasUnsavedChanges() const {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         return false;
     }
     // The texts of its open elements that differ from their saved texts, and its data
     for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
         const auto* editor = qobject_cast<const EditorPanel*>(page);
-        if (editor && editorKind(editor) == EditorKind::ProjectChapter && isEditorDirty(editor)) {
+        if (editor && editorKind(m_book, editor) == EditorKind::ProjectChapter &&
+            isEditorDirty(editor)) {
             return true;
         }
     }
@@ -1088,13 +1086,14 @@ bool DocumentCoordinator::bookHasUnsavedChanges() const {
 
 bool DocumentCoordinator::saveBook() {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // First, give ProjectManager the texts of the chapters whose tabs have changes
     QList<EditorPanel*> changed;
     for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
         auto* editor = qobject_cast<EditorPanel*>(page);
-        if (editor && editorKind(editor) == EditorKind::ProjectChapter && isEditorDirty(editor)) {
+        if (editor && editorKind(m_book, editor) == EditorKind::ProjectChapter &&
+            isEditorDirty(editor)) {
             const QString elemId = editor->property("elementId").toString();
             pm.setChapterContent(elemId, editor->getContent());
             changed.append(editor);
@@ -1137,7 +1136,7 @@ void DocumentCoordinator::onCloseDocument() {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Close Book");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         //: In Polish: Żadna książka nie jest otwarta
         m_statusBar->showMessage(tr("No book is open"), 2000);
@@ -1217,12 +1216,13 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     }
 
     // The file of an element of the open book opens as that element, in its tab
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (const core::ProjectElement* element = pm.elementWithFile(path);
         element && m_navigatorCoordinator && pm.formOf(*element) == core::ElementForm::Text) {
         const QString elementId = element->id;
         const QString title = element->title;
-        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+        const QHash<QString, core::KindWords> nouns{
+            {QStringLiteral("kind"), wordsOf(m_book, *element)}};
         m_navigatorCoordinator->onElementSelected(elementId, title);
         m_navigatorPanel->revealElement(elementId);
         //: %1: the title of the element. In Polish: Ten plik należy do otwartej książki:
@@ -1273,7 +1273,7 @@ void DocumentCoordinator::openStandaloneFile(const QString& path) {
     }
 
     // Create new editor tab with icon based on file type
-    EditorPanel* newEditor = new EditorPanel(m_mainWindow);
+    EditorPanel* newEditor = new EditorPanel(m_book, m_commands, m_mainWindow);
     QString tabTitle = fileInfo.fileName();
 
     // Store file for this tab, before the tab comes: the tab in front decides what Save and
@@ -1400,8 +1400,9 @@ void DocumentCoordinator::clearNotice() {
 
 void DocumentCoordinator::updateStandaloneInfoBar() {
     EditorPanel* editor = getCurrentEditor();
-    const bool fileInFront = editor != nullptr && editorKind(editor) == EditorKind::StandaloneFile;
-    const auto& pm = core::ProjectManager::getInstance();
+    const bool fileInFront =
+        editor != nullptr && editorKind(m_book, editor) == EditorKind::StandaloneFile;
+    const auto& pm = m_book;
 
     // A notice of what was just done to the text in front
     if (m_infoBarAllowed && editor != nullptr && m_notice.editor == editor) {
@@ -1414,7 +1415,7 @@ void DocumentCoordinator::updateStandaloneInfoBar() {
     // A book open read-only says why under every tab but a file outside it, which says what
     // the file is: also under the Dashboard and without a tab
     if (m_infoBarAllowed && !fileInFront && !m_readOnlyBarDismissed) {
-        const QString readOnly = readOnlyBookMessage();
+        const QString readOnly = readOnlyBookMessage(m_book);
         if (!readOnly.isEmpty()) {
             m_standaloneInfoBar->showReadOnlyBook(readOnly);
             m_standaloneInfoBar->show();
@@ -1453,7 +1454,7 @@ void DocumentCoordinator::relistStandaloneFiles() {
     }
     for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
         const auto* editor = qobject_cast<EditorPanel*>(page);
-        if (editor && editorKind(editor) == EditorKind::StandaloneFile &&
+        if (editor && editorKind(m_book, editor) == EditorKind::StandaloneFile &&
             editor->property("standaloneFilePath").toString().isEmpty()) {
             m_navigatorPanel->addNewFile(editor->property("newFileKey").toString(),
                                          editor->property("newFileName").toString());
@@ -1608,8 +1609,9 @@ bool DocumentCoordinator::saveStandaloneFileAs(EditorPanel* editor) {
 
     // One file is edited in one tab: a file of the open book in the tab of its element
     if (const core::ProjectElement* element =
-            core::ProjectManager::getInstance().elementWithFile(path)) {
-        const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+            m_book.elementWithFile(path)) {
+        const QHash<QString, core::KindWords> nouns{
+            {QStringLiteral("kind"), wordsOf(m_book, *element)}};
         dialogs::MessageDialog::warning(
             m_mainWindow, tr("Save Error"),
             element->hasKind()
@@ -1642,12 +1644,12 @@ void DocumentCoordinator::onAddToProject() {
     // Save As keep a file of its own, in the folder the writer chooses.
     const QString path = m_standaloneInfoBar->filePath();
     EditorPanel* editor = getCurrentEditor();
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     if (pm.isProjectOpen() && pm.isReadOnly()) {
         m_statusBar->showMessage(readOnlyReason(), EXPLANATION_MS);
         return;
     }
-    if (path.isEmpty() && editor && editorKind(editor) == EditorKind::StandaloneFile
+    if (path.isEmpty() && editor && editorKind(m_book, editor) == EditorKind::StandaloneFile
         && pm.isProjectOpen()) {
         addNewFileToProject(editor);
         return;
@@ -1658,11 +1660,12 @@ void DocumentCoordinator::onAddToProject() {
 void DocumentCoordinator::addNewFileToProject(EditorPanel* editor) {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Add to Book, a new file");
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // The main text kind of the book, at the place of its kind and with the title of a new
     // element of it, as the Add to Book window proposes them
-    const dialogs::AddToBookDialog::Book book = dialogs::AddToBookDialog::openBook(QString());
+    const dialogs::AddToBookDialog::Book book =
+        dialogs::AddToBookDialog::openBook(m_book, QString());
     if (book.choices.isEmpty()) {
         dialogs::MessageDialog::warning(m_mainWindow, tr("Add to Book"),
                                         tr("No element of this book can have a text."));
@@ -1705,7 +1708,7 @@ void DocumentCoordinator::addToProject(const QString& filePath) {
     auto& logger = core::Logger::getInstance();
     logger.info("Action triggered: Add to Book");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // A book must be open
     if (!pm.isProjectOpen()) {
@@ -1751,7 +1754,8 @@ void DocumentCoordinator::addToProject(const QString& filePath) {
             file.status = chapter->status();
         }
     }
-    const dialogs::AddToBookDialog::Book book = dialogs::AddToBookDialog::openBook(filePath);
+    const dialogs::AddToBookDialog::Book book =
+        dialogs::AddToBookDialog::openBook(m_book, filePath);
     if (book.choices.isEmpty()) {
         dialogs::MessageDialog::warning(m_mainWindow, tr("Add to Book"),
                                         tr("No element of this book can have a text."));
@@ -1813,7 +1817,7 @@ void DocumentCoordinator::removeStandaloneFile(const QString& path) {
 
 void DocumentCoordinator::onExportArchive() {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         dialogs::MessageDialog::information(m_mainWindow, tr("No Book Open"),
@@ -1822,7 +1826,7 @@ void DocumentCoordinator::onExportArchive() {
     }
 
     // One window: the archive, the files that are not ready, the progress and the result
-    dialogs::ExportArchiveDialog::Book book = dialogs::ExportArchiveDialog::openBook();
+    dialogs::ExportArchiveDialog::Book book = dialogs::ExportArchiveDialog::openBook(m_book);
     book.unsavedChanges = bookHasUnsavedChanges();
     dialogs::ExportArchiveDialog dialog(
         book, ProgramFolders::startFolder(ProgramFolders::Operation::ExportArchive),
@@ -1849,7 +1853,7 @@ void DocumentCoordinator::onExportArchive() {
 
 void DocumentCoordinator::onImportArchive() {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // One window: the archive and its book, the folder, the progress and the result. The book
     // of the archive is not the open one: the window names its type and kinds after its copies
@@ -1917,7 +1921,7 @@ void DocumentCoordinator::onImportArchive() {
 
 void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::BookProject* project = pm.project();
 
     if (!project) {
@@ -1996,7 +2000,7 @@ void DocumentCoordinator::onProjectOpened(const QString& projectPath) {
 }
 
 void DocumentCoordinator::adoptBookFiles() {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!m_navigatorCoordinator) {
         return;
     }
@@ -2006,7 +2010,7 @@ void DocumentCoordinator::adoptBookFiles() {
     QList<EditorPanel*> files;
     for (QWidget* page : texts.pages()) {
         auto* file = qobject_cast<EditorPanel*>(page);
-        if (file && editorKind(file) == EditorKind::StandaloneFile) {
+        if (file && editorKind(m_book, file) == EditorKind::StandaloneFile) {
             files << file;
         }
     }
@@ -2145,7 +2149,7 @@ void DocumentCoordinator::prepareForProjectClose() {
     // closeProject() clears the path before it emits projectClosed, so this
     // cannot wait for onProjectClosed().
     // =========================================================================
-    const QString projectPath = core::ProjectManager::getInstance().getProjectPath();
+    const QString projectPath = m_book.getProjectPath();
     if (!projectPath.isEmpty() && m_navigatorPanel) {
         QFileInfo pathInfo(projectPath);
         QString projectId = pathInfo.absoluteFilePath()

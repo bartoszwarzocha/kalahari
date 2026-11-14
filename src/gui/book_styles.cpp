@@ -8,29 +8,29 @@
 namespace kalahari::gui {
 
 QList<core::PackageParagraphStyle> baseStyles() {
-    return core::ProjectManager::getInstance().bookTypes().paragraphStyles(
+    return core::ProjectManager::installedBookTypes().paragraphStyles(
         QString::fromLatin1(core::ProjectManager::BASE_PACKAGE));
 }
 
-QList<core::PackageParagraphStyle> bookTypeStyles() {
-    const auto& projects = core::ProjectManager::getInstance();
-    const core::BookProject* book = projects.project();
+QList<core::PackageParagraphStyle> bookTypeStyles(const core::ProjectManager& book) {
+    const core::BookProject* project = book.project();
     QList<core::PackageParagraphStyle> styles;
-    if (book != nullptr && book->type.has_value()) {
-        styles = projects.bookTypes().paragraphStyles(book->type->id);
+    if (project != nullptr && project->type.has_value()) {
+        styles = book.bookTypes().paragraphStyles(project->type->id);
     }
     // A type the program does not have gives none: the styles every book has
     return styles.isEmpty() ? baseStyles() : styles;
 }
 
-editor::ParagraphStyleSet bookParagraphStyles() {
-    const core::BookProject* book = core::ProjectManager::getInstance().project();
-    return bookParagraphStyles(book != nullptr ? book->paragraphStyles
-                                               : QList<core::BookParagraphStyle>());
+editor::ParagraphStyleSet bookParagraphStyles(const core::ProjectManager& book) {
+    const core::BookProject* project = book.project();
+    return bookParagraphStyles(book, project != nullptr ? project->paragraphStyles
+                                                        : QList<core::BookParagraphStyle>());
 }
 
-editor::ParagraphStyleSet bookParagraphStyles(const QList<core::BookParagraphStyle>& entries) {
-    return editor::ParagraphStyleSet::forBook(bookTypeStyles(), entries, programLanguage());
+editor::ParagraphStyleSet bookParagraphStyles(const core::ProjectManager& book,
+                                              const QList<core::BookParagraphStyle>& entries) {
+    return editor::ParagraphStyleSet::forBook(bookTypeStyles(book), entries, programLanguage());
 }
 
 }  // namespace kalahari::gui

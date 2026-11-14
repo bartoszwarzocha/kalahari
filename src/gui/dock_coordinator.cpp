@@ -118,10 +118,9 @@ protected:
 
 } // anonymous namespace
 
-DockCoordinator::DockCoordinator(QMainWindow* mainWindow, QObject* parent)
-    : QObject(parent)
-    , m_mainWindow(mainWindow)
-{
+DockCoordinator::DockCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                 QMainWindow* mainWindow, QObject* parent)
+    : QObject(parent), m_mainWindow(mainWindow), m_book(book), m_commands(commands) {
     auto& logger = core::Logger::getInstance();
     logger.debug("DockCoordinator created");
 }
@@ -187,7 +186,7 @@ void DockCoordinator::createDocks() {
 
     // The tabs of the panels docked one over another: the program's own, with the icons of
     // View > Panels, as the settings say
-    m_panelTabs = new PanelTabs(m_mainWindow, this);
+    m_panelTabs = new PanelTabs(m_commands, m_mainWindow, this);
     m_panelTabs->addPanel(m_navigatorDock, "view.navigator");
     m_panelTabs->addPanel(m_propertiesDock, "view.properties");
     m_panelTabs->addPanel(m_paragraphDock, "view.paragraph");
@@ -236,6 +235,8 @@ void DockCoordinator::createCentralWidget() {
     m_centralTabs->setDocumentMode(true);
     centralTabs->applySettings();
     centralLayout->addWidget(m_centralTabs, 1);  // Stretch factor 1 to fill space
+    // The texts of the tabs, also in the windows of their own, with the commands of the window
+    DocumentWindows::of(*m_centralTabs).setCommands(m_commands);
 
     // Create standalone info bar at BOTTOM (hidden by default)
     m_standaloneInfoBar = new StandaloneInfoBar(m_centralWrapper);
@@ -252,8 +253,10 @@ void DockCoordinator::createCentralWidget() {
 
     m_mainWindow->setCentralWidget(m_centralWrapper);
 
-    // Add Dashboard as first tab (default at startup, closable)
-    m_dashboardPanel = new DashboardPanel(m_mainWindow);
+    // Add Dashboard as first tab (default at startup, closable). clang-analyzer takes the
+    // shared reference count of the QPointer for a use after free.
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+    m_dashboardPanel = new DashboardPanel(m_commands, m_mainWindow);
     auto& artProvider = core::ArtProvider::getInstance();
     QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
     int dashboardIndex = m_centralTabs->addTab(m_dashboardPanel, dashboardIcon, QObject::tr("Dashboard"));
@@ -292,7 +295,7 @@ void DockCoordinator::createCentralWidget() {
 void DockCoordinator::createNavigatorDock() {
     auto& logger = core::Logger::getInstance();
 
-    m_navigatorPanel = new NavigatorPanel(m_mainWindow);
+    m_navigatorPanel = new NavigatorPanel(m_book, m_mainWindow);
     m_navigatorDock = new QDockWidget(QObject::tr("Navigator"), m_mainWindow);
     m_navigatorDock->setWidget(m_navigatorPanel);
     m_navigatorDock->setObjectName("NavigatorDock");  // Required for saveState!
@@ -338,7 +341,7 @@ void DockCoordinator::createNavigatorDock() {
 void DockCoordinator::createPropertiesDock() {
     auto& logger = core::Logger::getInstance();
 
-    m_propertiesPanel = new PropertiesPanel(m_mainWindow);
+    m_propertiesPanel = new PropertiesPanel(m_book, m_mainWindow);
     m_propertiesDock = new QDockWidget(QObject::tr("Properties"), m_mainWindow);
     m_propertiesDock->setObjectName("PropertiesDock");
 
@@ -348,7 +351,7 @@ void DockCoordinator::createPropertiesDock() {
     m_propertiesSplitter->setObjectName(QStringLiteral("propertiesSplitter"));
     m_propertiesSplitter->setChildrenCollapsible(false);
     m_propertiesSplitter->addWidget(scrollingPanel(m_propertiesPanel, m_propertiesDock));
-    m_propertiesParagraph = new ParagraphPanel(m_mainWindow);
+    m_propertiesParagraph = new ParagraphPanel(m_commands, m_mainWindow);
     m_propertiesParagraph->setObjectName(QStringLiteral("propertiesParagraphPanel"));
     m_propertiesParagraph->setFoldable(true);
     m_propertiesParagraph->setFolded(
@@ -386,7 +389,7 @@ void DockCoordinator::createPropertiesDock() {
 }
 
 void DockCoordinator::createParagraphDock() {
-    m_paragraphPanel = new ParagraphPanel(m_mainWindow);
+    m_paragraphPanel = new ParagraphPanel(m_commands, m_mainWindow);
     m_paragraphDock = new QDockWidget(tr("Paragraph and Styles"), m_mainWindow);
     m_paragraphDock->setWidget(scrollingPanel(m_paragraphPanel, m_paragraphDock));
     m_paragraphDock->setObjectName("ParagraphDock");
@@ -525,7 +528,7 @@ void DockCoordinator::createAssistantDock() {
 void DockCoordinator::createAnnotationsDock() {
     auto& logger = core::Logger::getInstance();
 
-    m_annotationsPanel = new AnnotationsPanel(m_mainWindow);
+    m_annotationsPanel = new AnnotationsPanel(m_commands, m_mainWindow);
     m_annotationsDock = new QDockWidget(QObject::tr("Annotations"), m_mainWindow);
     m_annotationsDock->setWidget(scrollingPanel(m_annotationsPanel, m_annotationsDock));
     m_annotationsDock->setObjectName("AnnotationsDock");
@@ -727,7 +730,7 @@ void DockCoordinator::refreshTabIcons() {
         const QString package = page->property("tabIconPackage").toString();
         const core::PackageCard* card =
             package.isEmpty() ? nullptr
-                              : core::ProjectManager::getInstance().packageCard(package);
+                              : m_book.packageCard(package);
         if (!iconId.isEmpty()) {
             DocumentWindows::setTabIcon(page, artProvider.getPackageIcon(iconId, card));
         }
@@ -778,7 +781,7 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.statistics", m_statisticsDock);
 
     // Paragraph and Styles: a panel of its own or the lower part of Properties
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand("view.paragraph")) {
         command->execute = [this]() { toggleParagraph(); };
         command->isChecked = [this]() { return isParagraphOpen(); };
@@ -808,7 +811,7 @@ void DockCoordinator::setupViewMenuActions() {
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     Command* cmd = registry.getCommand(cmdId);
     if (cmd) {
         // The command opens a closed panel on top, brings one under another tab on top and
@@ -827,7 +830,7 @@ void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget*
 
 QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidget* dock) {
     auto& logger = core::Logger::getInstance();
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
 
     // Get action from CommandRegistry (single source of truth)
     // Action is already configured with icon, shortcut, checkable state from command

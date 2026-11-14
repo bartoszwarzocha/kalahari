@@ -77,15 +77,17 @@ bool isChapter(const EditorPanel& panel) {
 
 }  // namespace
 
-SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* statusBar,
+SpellingCoordinator::SpellingCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                         QTabWidget* centralTabs, QStatusBar* statusBar,
                                          QObject* parent)
-    : QObject(parent)
-    , m_centralTabs(centralTabs)
-    , m_statusBar(statusBar)
-    , m_service(new editor::SpellCheckService(this))
-    , m_otherService(new editor::SpellCheckService(this))
-    , m_editorsTimer(new QTimer(this))
-{
+    : QObject(parent),
+      m_centralTabs(centralTabs),
+      m_statusBar(statusBar),
+      m_service(new editor::SpellCheckService(this)),
+      m_otherService(new editor::SpellCheckService(this)),
+      m_editorsTimer(new QTimer(this)),
+      m_book(book),
+      m_commands(commands) {
     // The writer's own words are the same in every language
     m_service->setUserDictionaryFile(userDictionaryFile());
     m_otherService->shareOwnWordsWith(*m_service);
@@ -109,12 +111,12 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
         connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
                 [this]() {
             m_editorsTimer->start();
-            CommandRegistry::getInstance().updateActionState(NEXT_COMMAND_ID);
+            m_commands.updateActionState(NEXT_COMMAND_ID);
         });
     }
 
     // Another book can be in another language
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this,
             &SpellingCoordinator::updateDictionary);
     connect(&projects, &core::ProjectManager::projectClosed, this,
@@ -136,7 +138,7 @@ SpellingCoordinator::~SpellingCoordinator() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 
     // The commands outlive the coordinator
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const char* id : {COMMAND_ID, NEXT_COMMAND_ID}) {
         if (Command* command = registry.getCommand(id)) {
             command->execute = nullptr;
@@ -146,7 +148,7 @@ SpellingCoordinator::~SpellingCoordinator() {
 }
 
 void SpellingCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(COMMAND_ID)) {
         command->execute = [this]() { toggle(); };
         registry.updateActionState(COMMAND_ID);
@@ -262,15 +264,14 @@ QString SpellingCoordinator::problem(const editor::BookEditor* editor) const {
         .arg(utils::languageName(missing));
 }
 
-QString SpellingCoordinator::wantedLanguage() {
+QString SpellingCoordinator::wantedLanguage(const core::ProjectManager& book) {
     QString language = chosenLanguage();
     if (!language.isEmpty()) {
         return language;
     }
 
-    const auto& projects = core::ProjectManager::getInstance();
-    if (const core::ProjectBook* book = projects.isProjectOpen() ? projects.book() : nullptr) {
-        QString bookLanguage = book->language.trimmed();
+    if (const core::ProjectBook* open = book.isProjectOpen() ? book.book() : nullptr) {
+        QString bookLanguage = open->language.trimmed();
         if (!bookLanguage.isEmpty()) {
             return bookLanguage;
         }
@@ -294,7 +295,7 @@ void SpellingCoordinator::updateDictionary() {
     m_service->setEnabled(enabled);
     m_otherService->setEnabled(enabled);
     if (enabled) {
-        const QString language = wantedLanguage();
+        const QString language = wantedLanguage(m_book);
         const QString dictionary = editor::SpellCheckService::dictionaryFor(language);
         useDictionary(*m_service, language, dictionary, m_missingLanguage);
 

@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using editor::NoteKind;
@@ -116,10 +117,11 @@ QStringList notesOf(const editor::BookEditor& text) {
 
 TEST_CASE("Notes: the frame keeps a note's formatting, its links and its paragraphs",
           "[gui][footnotes]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});  // the keys of Bold, Italic, Underline
+    gui::registerAllCommands(kalahari::test::commands(),
+                             gui::CommandCallbacks{});  // the keys of Bold, Italic, Underline
     QWidget editor;
     editor.resize(800, 600);
-    auto* frame = new NoteFrame(&editor);
+    auto* frame = new NoteFrame(kalahari::test::commands(), &editor);
     frame->setNote(NoteKind::Footnote, QStringLiteral("3"));
     CHECK(frame->findChild<QLabel*>(QStringLiteral("noteFrameKind"))->text() ==
           QStringLiteral("Footnote 3"));
@@ -153,7 +155,7 @@ TEST_CASE("Notes: the frame keeps a note's formatting, its links and its paragra
 
     // The keys the user gives Bold (Settings > Keyboard Shortcuts) make it bold in the frame
     // too; its old keys do nothing there
-    CommandRegistry::getInstance().setCustomShortcuts(
+    kalahari::test::commands().setCustomShortcuts(
         {{"format.bold", KeyboardShortcut(Qt::Key_F12, Qt::ControlModifier)}});
     frame->setContent(QStringLiteral("Plain"));
     all.select(QTextCursor::Document);
@@ -162,7 +164,7 @@ TEST_CASE("Notes: the frame keeps a note's formatting, its links and its paragra
     CHECK(frame->content() == QStringLiteral("Plain"));
     press(text, Qt::Key_F12, Qt::ControlModifier);
     CHECK(frame->content() == QStringLiteral("<b>Plain</b>"));
-    CommandRegistry::getInstance().setCustomShortcuts({});
+    kalahari::test::commands().setCustomShortcuts({});
 
     // Pasted: only what a note keeps, no picture, no color, no font
     frame->setContent(QString());
@@ -193,7 +195,8 @@ TEST_CASE("Notes: Insert > Footnote, the text kept with Ctrl+Enter as one undo s
     REQUIRE(text != nullptr);
     text->fromKml(QStringLiteral("<kml><p>Rain fell.</p><p>Then it stopped.</p></kml>"));
     text->setCursorPosition({0, 4});
-    FootnoteCoordinator coordinator(window.tabs, [text]() { return text; });
+    FootnoteCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), window.tabs,
+                                    [text]() { return text; });
     coordinator.connectCommands();
 
     // A new note: its number in the text, its frame open with the keys
@@ -323,7 +326,7 @@ struct Notes {
 
     explicit Notes(Window& window)
         : coordinator(
-              window.tabs,
+              kalahari::test::book(), kalahari::test::commands(), window.tabs,
               [&window]() -> editor::BookEditor* {
                   gui::EditorPanel* panel = window.editor(window.tabs->currentIndex());
                   return panel != nullptr ? panel->getBookEditor() : nullptr;
