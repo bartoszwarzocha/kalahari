@@ -16,6 +16,7 @@
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
 #include <QAction>
 #include <QClipboard>

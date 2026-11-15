@@ -27,7 +27,7 @@ class ProjectManager;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+}  // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -53,10 +53,13 @@ public:
     /// @brief The book's text the commands act on (the text with the keys); null: none
     using TextWithKeys = std::function<editor::BookEditor*()>;
 
-    /// @brief The commands this coordinator gives callbacks
+    /// @brief The commands this coordinator gives callbacks: Insert > Date && Time...
     static constexpr const char* DATE_TIME_COMMAND = "insert.dateTime";
+    /// @brief Insert > Field...
     static constexpr const char* FIELD_COMMAND = "insert.field";
+    /// @brief The date at once, as text (Alt+Shift+D)
     static constexpr const char* DATE_COMMAND = "insert.date";
+    /// @brief The time at once, as text (Alt+Shift+T)
     static constexpr const char* TIME_COMMAND = "insert.time";
 
     /// @brief The setting of the format of the date chosen last (Insert > Date && Time...)
@@ -74,8 +77,11 @@ public:
                      QTabWidget* centralTabs, TextWithKeys textWithKeys, QWidget* window,
                      QObject* parent = nullptr);
 
+    ~FieldCoordinator() override = default;
     FieldCoordinator(const FieldCoordinator&) = delete;
     FieldCoordinator& operator=(const FieldCoordinator&) = delete;
+    FieldCoordinator(FieldCoordinator&&) = delete;
+    FieldCoordinator& operator=(FieldCoordinator&&) = delete;
 
     /// @brief Give the commands their callbacks; the window gets the keys of the date and the
     ///        time, which no menu has

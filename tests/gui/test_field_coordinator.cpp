@@ -5,18 +5,24 @@
 /// @brief The fields of the open texts: what they show of the book, Insert > Date && Time...,
 ///        Insert > Field..., the date and the time at once, Edit Field... and their windows
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+
 #include "dialog_checks.h"
 #include "document_window.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/text_fields.h"
+#include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/field_dialogs.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/field_coordinator.h"
 #include "kalahari/gui/settings/shortcuts_page.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "test_support/window_parts.h"
 
 #include <QAbstractButton>
 #include <QCheckBox>
@@ -39,12 +45,13 @@
 #include <functional>
 #include <map>
 #include <optional>
-#include "test_support/window_parts.h"
+#include <string>
+#include <utility>
 
-using namespace kalahari;
+namespace kalahari {
+
 using editor::FieldType;
 using editor::TextField;
-using gui::CommandRegistry;
 using gui::FieldCoordinator;
 using gui::dialogs::DateTimeDialog;
 using gui::dialogs::FieldDialog;
@@ -85,11 +92,14 @@ public:
             settings.set<bool>(FieldCoordinator::DATE_AS_FIELD_KEY, m_asField);
         } catch (...) {
             // A destructor may not throw: the later tests then find the date's settings changed
-            std::fputs("DateSettings: the settings of the date were not restored\n", stderr);
+            static_cast<void>(
+                std::fputs("DateSettings: the settings of the date were not restored\n", stderr));
         }
     }
     DateSettings(const DateSettings&) = delete;
     DateSettings& operator=(const DateSettings&) = delete;
+    DateSettings(DateSettings&&) = delete;
+    DateSettings& operator=(DateSettings&&) = delete;
 
 private:
     std::string m_format;
@@ -151,7 +161,7 @@ QListWidget* shownList(const QWidget& dialog) {
 
 /// A field chosen in Insert > Field...: its tab shown, its row current
 void chooseField(const QWidget& dialog, FieldType type) {
-    QTabWidget* tabs = only<QTabWidget>(dialog);
+    auto* tabs = only<QTabWidget>(dialog);
     bool found = false;
     for (int tab = 0; tab < tabs->count() && !found; ++tab) {
         auto* list = tabs->widget(tab)->findChild<QListWidget*>();
@@ -241,13 +251,13 @@ TEST_CASE("Fields: the open texts show the book's title, author, language and th
 TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... changes it",
           "[gui][fields]") {
     gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
-    OpenNovel book(QStringLiteral("The Desert"));
+    const OpenNovel book(QStringLiteral("The Desert"));
     Window window;
     Fields fields(window);
     window.writeChapter(book.chapterId, QStringLiteral("Page "));
     editor::BookEditor* text = window.editor(window.tabs->currentIndex())->getBookEditor();
     fields.keys = text;
-    text->setCursorPosition(editor::CursorPosition{0, 5});
+    text->setCursorPosition(editor::CursorPosition{.paragraph = 0, .offset = 5});
 
     // The page number, in Roman numerals; the window shows how it looks where it goes
     QString preview;
@@ -256,7 +266,7 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
         [&fields]() { fields.coordinator.insertField(); },
         [&preview, &hint](FieldDialog& dialog) {
             // The fields in four tabs: the book, the text, the pages, the date
-            QTabWidget* tabs = only<QTabWidget>(dialog);
+            auto* tabs = only<QTabWidget>(dialog);
             REQUIRE(tabs->count() == 4);
             CHECK(tabs->tabText(0) == QStringLiteral("&Book"));
             CHECK(tabs->tabText(3) == QStringLiteral("&Date"));
@@ -264,7 +274,7 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
             for (const QListWidget* list : tabs->findChildren<QListWidget*>()) {
                 fieldCount += list->count();
             }
-            CHECK(fieldCount == static_cast<int>(editor::FIELD_TYPES.size()));
+            CHECK(std::cmp_equal(fieldCount, editor::FIELD_TYPES.size()));
             CHECK(tabs->currentIndex() == 0);
             CHECK(shownList(dialog)->currentRow() == 0);  // the book's title first
             CHECK(dialog.field().type == FieldType::BookTitle);
@@ -288,7 +298,8 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
     CHECK(preview == QStringLiteral("i"));
     CHECK(hint.contains(QStringLiteral("Page Layout view")));
     REQUIRE(fieldsOf(*text).size() == 1);
-    CHECK(fieldsOf(*text).first() == TextField{FieldType::Page, QStringLiteral("i")});
+    CHECK(fieldsOf(*text).first() ==
+          TextField{.type = FieldType::Page, .format = QStringLiteral("i")});
     CHECK(shownText(*text) == QStringLiteral("Page #"));  // the Continuous view
 
     // Edit Field... (a double click, the context menu): the window opens on it, OK changes it
@@ -306,7 +317,8 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
             only<QComboBox>(dialog)->setCurrentIndex(1);  // in capitals
             dialog.acceptButton()->click();
         }));
-    CHECK(fieldsOf(*text).first() == TextField{FieldType::BookTitle, QStringLiteral("upper")});
+    CHECK(fieldsOf(*text).first() ==
+          TextField{.type = FieldType::BookTitle, .format = QStringLiteral("upper")});
     CHECK(shownText(*text) == QStringLiteral("Page THE DESERT"));
 
     // The same field again: nothing changes; Cancel: nothing either
@@ -343,13 +355,13 @@ TEST_CASE("Fields: Insert > Date && Time... as text or as a field, and the date 
     auto& settings = core::SettingsManager::getInstance();
     settings.set<std::string>(FieldCoordinator::DATE_FORMAT_KEY, "long");
     settings.set<bool>(FieldCoordinator::DATE_AS_FIELD_KEY, false);
-    OpenNovel book(QStringLiteral("The Desert"));
+    const OpenNovel book(QStringLiteral("The Desert"));
     Window window;
     Fields fields(window);
     window.writeChapter(book.chapterId, QStringLiteral("x"));
     editor::BookEditor* text = window.editor(window.tabs->currentIndex())->getBookEditor();
     fields.keys = text;
-    text->setCursorPosition(editor::CursorPosition{0, 1});
+    text->setCursorPosition(editor::CursorPosition{.paragraph = 0, .offset = 1});
 
     // The keys, which no menu has, as the window says
     const gui::Command* date = kalahari::test::commands().getCommand("insert.date");
@@ -431,7 +443,8 @@ TEST_CASE("Fields: Insert > Date && Time... as text or as a field, and the date 
             dialog.acceptButton()->click();
         }));
     REQUIRE(fieldsOf(*text).size() == 1);
-    CHECK(fieldsOf(*text).first() == TextField{FieldType::Date, QStringLiteral("iso")});
+    CHECK(fieldsOf(*text).first() ==
+          TextField{.type = FieldType::Date, .format = QStringLiteral("iso")});
     CHECK(shownText(*text) == today);
     CHECK(settings.get<bool>(FieldCoordinator::DATE_AS_FIELD_KEY, false));
 
@@ -479,7 +492,7 @@ TEST_CASE("Fields: the formats of the windows", "[gui][fields]") {
 
     // The window shows the field as the text will, on the background of the fields
     FieldDialog::Data data;
-    data.field = TextField{FieldType::Words, QStringLiteral("plain")};
+    data.field = TextField{.type = FieldType::Words, .format = QStringLiteral("plain")};
     data.now = when;
     data.language = QStringLiteral("en-US");
     data.shown = [](const TextField& field) {
@@ -490,7 +503,7 @@ TEST_CASE("Fields: the formats of the windows", "[gui][fields]") {
         return editor::textFieldText(field, context, counts);
     };
     data.background = QColor(QStringLiteral("#dddddd"));
-    FieldDialog dialog(data);
+    const FieldDialog dialog(data);
     QLabel* preview = nullptr;
     for (QLabel* label : dialog.findChildren<QLabel*>()) {
         if (label->text() == QStringLiteral("4321")) {
@@ -502,7 +515,7 @@ TEST_CASE("Fields: the formats of the windows", "[gui][fields]") {
     CHECK(preview->palette().color(QPalette::Window) == data.background);
     only<QComboBox>(dialog)->setCurrentIndex(0);
     CHECK(preview->text() == QStringLiteral("4,321"));
-    CHECK(dialog.field() == TextField{FieldType::Words, QString()});
+    CHECK(dialog.field() == TextField{.type = FieldType::Words, .format = QString()});
 }
 
 TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
@@ -538,7 +551,7 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
     FieldDialog fieldDialog(fieldData);
     layOut(fieldDialog);
     CHECK(fieldDialog.windowTitle() == QStringLiteral("Pole"));
-    QTabWidget* tabs = only<QTabWidget>(fieldDialog);
+    auto* tabs = only<QTabWidget>(fieldDialog);
     REQUIRE(tabs->count() == 4);
     CHECK(tabs->tabText(0) == QStringLiteral("&Książka"));
     CHECK(tabs->tabText(1) == QStringLiteral("&Tekst"));
@@ -588,3 +601,5 @@ TEST_CASE("Fields: the windows in Polish, their keys, the gear, a small screen",
     gear->click();
     CHECK(openedPage == QString::fromLatin1(gui::SettingsDialog::FIELDS_PAGE));
 }
+
+}  // namespace kalahari

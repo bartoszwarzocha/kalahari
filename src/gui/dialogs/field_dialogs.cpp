@@ -6,11 +6,13 @@
 
 #include "kalahari/gui/dialogs/field_dialogs.h"
 
+#include "kalahari/editor/text_fields.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/settings_dialog.h"
 
 #include <QCheckBox>
-#include <QCoreApplication>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -23,12 +25,11 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <utility>
 #include <vector>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -49,14 +50,14 @@ public:
         setMinimumHeight(linesHeight());
     }
 
-    QSize sizeHint() const override
+    [[nodiscard]] QSize sizeHint() const override
     {
-        return {fontMetrics().averageCharWidth() * LIST_WIDTH_CHARS + 2 * frameWidth(),
+        return {(fontMetrics().averageCharWidth() * LIST_WIDTH_CHARS) + (2 * frameWidth()),
                 linesHeight()};
     }
 
     // Also as low as its lines when it has fewer than a list's own least height
-    QSize minimumSizeHint() const override
+    [[nodiscard]] QSize minimumSizeHint() const override
     {
         return {QListWidget::minimumSizeHint().width(), linesHeight()};
     }
@@ -64,8 +65,8 @@ public:
 private:
     [[nodiscard]] int linesHeight() const
     {
-        return sizeHintForRow(0) > 0 ? sizeHintForRow(0) * m_lines + 2 * frameWidth()
-                                     : fontMetrics().lineSpacing() * m_lines + 2 * frameWidth();
+        const int line = sizeHintForRow(0) > 0 ? sizeHintForRow(0) : fontMetrics().lineSpacing();
+        return (line * m_lines) + (2 * frameWidth());
     }
 
     int m_lines;
@@ -130,6 +131,42 @@ private:
     mutable QLabel m_measure;  ///< Not shown: it only measures the texts
 };
 
+/// The text of a format of the fields of the titles and the author
+QString titleFormatText(const QString& format)
+{
+    return format == QLatin1String("upper")
+               //: A format of the fields of the titles and the author. In Polish:
+               //: WIELKIMI LITERAMI
+               ? QCoreApplication::translate("kalahari::gui::dialogs::FieldDialog", "IN CAPITALS")
+               //: In Polish: Jak we właściwościach
+               : QCoreApplication::translate("kalahari::gui::dialogs::FieldDialog",
+                                             "As in the Properties");
+}
+
+/// The text of a format of the fields of the page and the pages: "i, ii, iii"
+QString pageFormatText(const QString& format)
+{
+    if (format == QLatin1String("i")) {
+        return QStringLiteral("i, ii, iii");
+    }
+    if (format == QLatin1String("I")) {
+        return QStringLiteral("I, II, III");
+    }
+    return QStringLiteral("1, 2, 3");
+}
+
+/// The text of a format of the field of the words, as the field writes the words: "12 345" in
+/// Polish, "12,345" in English
+QString wordsFormatText(const QString& format, const QString& language)
+{
+    editor::FieldContext context;
+    context.language = language;
+    editor::FieldCounts counts;
+    counts.words = EXAMPLE_WORDS;
+    return editor::textFieldText({.type = editor::FieldType::Words, .format = format}, context,
+                                 counts);
+}
+
 }  // namespace
 
 QString fieldFormatText(editor::FieldType type, const QString& format, const QDateTime& now,
@@ -139,31 +176,12 @@ QString fieldFormatText(editor::FieldType type, const QString& format, const QDa
         case editor::FieldType::BookTitle:
         case editor::FieldType::Author:
         case editor::FieldType::TextTitle:
-            return format == QLatin1String("upper")
-                       //: A format of the fields of the titles and the author. In Polish:
-                       //: WIELKIMI LITERAMI
-                       ? QCoreApplication::translate("kalahari::gui::dialogs::FieldDialog",
-                                                     "IN CAPITALS")
-                       //: In Polish: Jak we właściwościach
-                       : QCoreApplication::translate("kalahari::gui::dialogs::FieldDialog",
-                                                     "As in the Properties");
+            return titleFormatText(format);
         case editor::FieldType::Page:
         case editor::FieldType::Pages:
-            if (format == QLatin1String("i")) {
-                return QStringLiteral("i, ii, iii");
-            }
-            if (format == QLatin1String("I")) {
-                return QStringLiteral("I, II, III");
-            }
-            return QStringLiteral("1, 2, 3");
-        case editor::FieldType::Words: {
-            // As the field writes the words: "12 345" in Polish, "12,345" in English
-            editor::FieldContext context;
-            context.language = language;
-            editor::FieldCounts counts;
-            counts.words = EXAMPLE_WORDS;
-            return editor::textFieldText({type, format}, context, counts);
-        }
+            return pageFormatText(format);
+        case editor::FieldType::Words:
+            return wordsFormatText(format, language);
         case editor::FieldType::Date:
             return editor::dateText(now, format, language);
     }
@@ -259,6 +277,23 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
     //: The tooltip of the gear of Insert > Field.... In Polish: Ustawienia pól
     addSettingsButton(QString::fromLatin1(SettingsDialog::FIELDS_PAGE), tr("Field Settings"));
 
+    const int firstTab = addTabs();
+    contentLayout()->addWidget(m_tabs);
+    addDetails();
+
+    m_tabs->setCurrentIndex(firstTab);
+    showTab(firstTab);
+    showFormats(m_data.field.format);
+    connect(m_tabs, &QTabWidget::currentChanged, this, [this](int tab) {
+        showTab(tab);
+        showFormats(QString());
+    });
+    connect(m_formats, &QComboBox::currentIndexChanged, this, &FieldDialog::showPreview);
+    m_lists.at(static_cast<size_t>(firstTab))->setFocus();
+}
+
+int FieldDialog::addTabs()
+{
     // The fields in tabs, by what they show: the book, the text, the pages, the date
     const std::array<std::pair<QString, std::vector<editor::FieldType>>, 4> tabs{{
         //: A tab of Insert > Field...: the book's title and author. In Polish: &Książka
@@ -280,22 +315,9 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
         auto* page = new QWidget(m_tabs);
         auto* pageLayout = new QVBoxLayout(page);
         pageLayout->setSpacing(contentLayout()->spacing());
-        auto* list = new LinesList(static_cast<int>(lines), page);
-        //: The list of the fields of a tab of Insert > Field.... In Polish: Pola
-        list->setAccessibleName(tr("Fields"));
-        for (const editor::FieldType type : types) {
-            const auto index = static_cast<size_t>(type);
-            const QString name = m_data.names.at(index).isEmpty() ? editor::fieldTypeTitle(type)
-                                                                  : m_data.names.at(index);
-            auto* item = new QListWidgetItem(name, list);
-            item->setData(Qt::UserRole, static_cast<int>(type));
-            if (type == m_data.field.type) {
-                list->setCurrentItem(item);
-                firstTab = static_cast<int>(m_lists.size());
-            }
-        }
-        if (list->currentRow() < 0) {
-            list->setCurrentRow(0);
+        QListWidget* const list = fieldList(types, static_cast<int>(lines), page);
+        if (std::ranges::find(types, m_data.field.type) != types.end()) {
+            firstTab = static_cast<int>(m_lists.size());
         }
         pageLayout->addWidget(list);
         m_tabs->addTab(page, title);
@@ -303,8 +325,32 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
         connect(list, &QListWidget::currentRowChanged, this, [this]() { showFormats(QString()); });
         connect(list, &QListWidget::itemActivated, this, [this]() { accept(); });
     }
-    contentLayout()->addWidget(m_tabs);
+    return firstTab;
+}
 
+QListWidget* FieldDialog::fieldList(const std::vector<editor::FieldType>& types, int lines,
+                                    QWidget* page) const
+{
+    auto* list = new LinesList(lines, page);
+    //: The list of the fields of a tab of Insert > Field.... In Polish: Pola
+    list->setAccessibleName(tr("Fields"));
+    for (const editor::FieldType type : types) {
+        const QString& name = m_data.names.at(static_cast<size_t>(type));
+        auto* item =
+            new QListWidgetItem(name.isEmpty() ? editor::fieldTypeTitle(type) : name, list);
+        item->setData(Qt::UserRole, static_cast<int>(type));
+        if (type == m_data.field.type) {
+            list->setCurrentItem(item);
+        }
+    }
+    if (list->currentRow() < 0) {
+        list->setCurrentRow(0);
+    }
+    return list;
+}
+
+void FieldDialog::addDetails()
+{
     // The format, how the field looks and the hint: in the tab shown, under its list, the
     // names of the format and the look on their left
     m_details = new QWidget(this);
@@ -319,21 +365,10 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
     details->addWidget(formatLabel, 0, 0);
     details->addWidget(m_formats, 0, 1);
 
-    // As in the text: on the gray background of the fields, in the color of the text
     m_preview = new QLabel(m_details);
     m_preview->setTextFormat(Qt::PlainText);
     m_preview->setMargin(fontMetrics().averageCharWidth() / 2);
-    if (m_data.background.isValid() || m_data.text.isValid()) {
-        QPalette palette = m_preview->palette();
-        if (m_data.background.isValid()) {
-            palette.setColor(QPalette::Window, m_data.background);
-            m_preview->setAutoFillBackground(true);
-        }
-        if (m_data.text.isValid()) {
-            palette.setColor(QPalette::WindowText, m_data.text);
-        }
-        m_preview->setPalette(palette);
-    }
+    colorPreview();
     //: How the field shows in the text. In Polish: W tekście:
     details->addWidget(new QLabel(tr("In the text:"), m_details), 1, 0);
     details->addWidget(m_preview, 1, 1, Qt::AlignLeft);
@@ -341,22 +376,29 @@ FieldDialog::FieldDialog(Data shown, QWidget* parent)
     QStringList hints;
     for (const editor::FieldType type : editor::FIELD_TYPES) {
         for (const QString& format : editor::fieldFormats(type)) {
-            hints << hintText(editor::TextField{type, format});
+            hints << hintText({.type = type, .format = format});
         }
     }
     hints.removeDuplicates();
     m_hint = new FieldHint(hints, m_details);
     details->addWidget(m_hint, 2, 0, 1, 2);
+}
 
-    m_tabs->setCurrentIndex(firstTab);
-    showTab(firstTab);
-    showFormats(m_data.field.format);
-    connect(m_tabs, &QTabWidget::currentChanged, this, [this](int tab) {
-        showTab(tab);
-        showFormats(QString());
-    });
-    connect(m_formats, &QComboBox::currentIndexChanged, this, &FieldDialog::showPreview);
-    m_lists.at(static_cast<size_t>(firstTab))->setFocus();
+void FieldDialog::colorPreview()
+{
+    // As in the text: on the gray background of the fields, in the color of the text
+    if (!m_data.background.isValid() && !m_data.text.isValid()) {
+        return;
+    }
+    QPalette palette = m_preview->palette();
+    if (m_data.background.isValid()) {
+        palette.setColor(QPalette::Window, m_data.background);
+        m_preview->setAutoFillBackground(true);
+    }
+    if (m_data.text.isValid()) {
+        palette.setColor(QPalette::WindowText, m_data.text);
+    }
+    m_preview->setPalette(palette);
 }
 
 void FieldDialog::showTab(int tab)
@@ -364,9 +406,9 @@ void FieldDialog::showTab(int tab)
     if (tab < 0 || static_cast<size_t>(tab) >= m_lists.size()) {
         return;
     }
-    QWidget* page = m_tabs->widget(tab);
-    if (QWidget* was = m_details->parentWidget(); was != page && was != nullptr) {
-        if (QLayout* layout = was->layout()) {
+    QWidget* const page = m_tabs->widget(tab);
+    if (QWidget* const was = m_details->parentWidget(); was != page && was != nullptr) {
+        if (QLayout* const layout = was->layout()) {
             layout->removeWidget(m_details);
         }
     }
@@ -463,6 +505,4 @@ QString FieldDialog::hintText(const editor::TextField& field)
            tr("The gray background of the fields can be turned off in the Settings.");
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+}  // namespace kalahari::gui::dialogs

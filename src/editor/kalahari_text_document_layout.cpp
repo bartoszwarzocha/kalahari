@@ -7,6 +7,10 @@
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
 #include "layout_notes_internal.h"
 #include <QElapsedTimer>
@@ -27,6 +31,9 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -3150,7 +3157,7 @@ void KalahariTextDocumentLayout::setFieldWords(int words) {
 
 bool KalahariTextDocumentLayout::hasTextField(FieldType type) const {
     captionNumbers();
-    return std::any_of(m_fieldChars.cbegin(), m_fieldChars.cend(), [type](const FieldChar& field) {
+    return std::ranges::any_of(m_fieldChars, [type](const FieldChar& field) {
         const std::optional<TextField> text = textFieldOf(field.format);
         return text && text->type == type;
     });
@@ -3169,7 +3176,7 @@ FieldText KalahariTextDocumentLayout::fieldText(int position, const QTextFormat&
             counts.page = std::max(1, pageOfPosition(position));
         }
     }
-    return {textFieldText(*field, m_fieldContext, counts), false};
+    return {.text = textFieldText(*field, m_fieldContext, counts), .broken = false};
 }
 
 QString KalahariTextDocumentLayout::sizedFieldText(int position, const QTextFormat& format) const {
@@ -3221,7 +3228,7 @@ int KalahariTextDocumentLayout::pageOfPosition(int position) const {
     if (const QTextLayout* layout = block.layout(); layout != nullptr && layout->lineCount() > 0) {
         const QTextLine line = layout->lineForTextPosition(position - block.position());
         const QTextLine shown = line.isValid() ? line : layout->lineAt(0);
-        y += shown.y() + shown.height() / 2.0;
+        y += shown.y() + (shown.height() / 2);
     }
     return static_cast<int>(std::floor(std::max<qreal>(0.0, y) / m_pageFlow.pitch)) + 1;
 }
@@ -3269,12 +3276,10 @@ void KalahariTextDocumentLayout::countFields() const {
                               [](const FieldChar& field) {
                                   return !isFootnoteFormat(field.format);
                               });
-    m_hasPageFields = std::any_of(m_fieldChars.cbegin(), m_fieldChars.cend(),
-                                  [](const FieldChar& field) {
-                                      const std::optional<TextField> text =
-                                          textFieldOf(field.format);
-                                      return text && isPageField(text->type);
-                                  });
+    m_hasPageFields = std::ranges::any_of(m_fieldChars, [](const FieldChar& field) {
+        const std::optional<TextField> text = textFieldOf(field.format);
+        return text && isPageField(text->type);
+    });
     m_captionNumbers = CaptionNumbers(doc, m_captionContext);
     m_footnoteNumbers = FootnoteNumbers(doc, m_footnoteContext);
 }

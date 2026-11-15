@@ -9,6 +9,7 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
 #include <QScopedValueRollback>
 #include <QTextBlock>

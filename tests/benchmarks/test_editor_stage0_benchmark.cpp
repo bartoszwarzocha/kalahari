@@ -86,6 +86,7 @@
 #include <QWheelEvent>
 
 #include <functional>
+#include <optional>
 #include <vector>
 
 #if defined(Q_OS_WIN)
@@ -1335,8 +1336,9 @@ TEST_CASE("Fields benchmark: a 150k-word chapter with notes and fields",
                   .arg(editor.paragraphCount())
                   .arg(notes)
                   .arg(fields);
-    rows.push_back({QStringLiteral("fromKml – 150k słów z przypisami i polami"), loadMs,
-                    QStringLiteral("pierwszy paintEvent %1 ms; łamanie reszty w tle %2 ms")
+    rows.push_back({.operation = QStringLiteral("fromKml – 150k słów z przypisami i polami"),
+                    .ms = loadMs,
+                    .note = QStringLiteral("pierwszy paintEvent %1 ms; łamanie reszty w tle %2 ms")
                         .arg(firstPaintMs, 0, 'f', 1)
                         .arg(restMs, 0, 'f', 1)});
 
@@ -1346,25 +1348,27 @@ TEST_CASE("Fields benchmark: a 150k-word chapter with notes and fields",
     context.textTitle = QStringLiteral("Rozdział pierwszy");
     context.language = QStringLiteral("pl");
     context.now = QDateTime::currentDateTime();
-    rows.push_back({QStringLiteral("Wartości książki dla pól (otwarcie tekstu) + paintEvent"),
-                    timeMs([&] {
+    rows.push_back({.operation =
+                        QStringLiteral("Wartości książki dla pól (otwarcie tekstu) + paintEvent"),
+                    .ms = timeMs([&] {
                         editor.setFieldContext(context);
                         paint(editor);
                     }),
-                    QStringLiteral("tytuł, autor i język: wszystkie pola od nowa")});
+                    .note = QStringLiteral("tytuł, autor i język: wszystkie pola od nowa")});
     CHECK(editor.fieldTextAt(firstField(editor, FieldType::BookTitle)) == context.bookTitle);
     context.now = context.now.addSecs(1);
-    rows.push_back({QStringLiteral("Tekst wysunięty na wierzch (inna godzina) + paintEvent"),
-                    timeMs([&] {
+    rows.push_back({.operation =
+                        QStringLiteral("Tekst wysunięty na wierzch (inna godzina) + paintEvent"),
+                    .ms = timeMs([&] {
                         editor.setFieldContext(context);
                         paint(editor);
                     }),
-                    QStringLiteral("tylko daty mogą się zmienić")});
+                    .note = QStringLiteral("tylko daty mogą się zmienić")});
 
     const QString typed = QStringLiteral("lorem ipsum dolor sit amet ").repeated(4).left(100);
     const auto typeHundred = [&]() {
         return timeMs([&] {
-            for (QChar c : typed) {
+            for (const QChar c : typed) {
                 typeChar(editor, c);
                 paint(editor);
             }
@@ -1373,7 +1377,7 @@ TEST_CASE("Fields benchmark: a 150k-word chapter with notes and fields",
     const auto beforeField = [&](int paragraph) {
         const int block = paragraphWithField(editor, paragraph);
         editor.clearSelection();
-        editor.setCursorPosition({block, 10});
+        editor.setCursorPosition({.paragraph = block, .offset = 10});
         paint(editor);
     };
 
@@ -1383,49 +1387,55 @@ TEST_CASE("Fields benchmark: a 150k-word chapter with notes and fields",
     beforeField(static_cast<int>(editor.paragraphCount() / 2));
     {
         const double ms = typeHundred();
-        rows.push_back({QStringLiteral("Wpisanie 100 znaków w akapicie z polem – Continuous (z "
-                                       "paintEvent po każdym)"),
-                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+        rows.push_back({.operation = QStringLiteral("Wpisanie 100 znaków w akapicie z polem – "
+                                                    "Continuous (z paintEvent po każdym)"),
+                        .ms = ms,
+                        .note = QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
     }
     int words = 0;
-    rows.push_back({QStringLiteral("Liczba słów w polach po przerwie w pisaniu + paintEvent"),
-                    timeMs([&] {
+    rows.push_back({.operation =
+                        QStringLiteral("Liczba słów w polach po przerwie w pisaniu + paintEvent"),
+                    .ms = timeMs([&] {
                         words = editor.textCounts().words;
                         layout->setFieldWords(words);
                         paint(editor);
                     }),
-                    QStringLiteral("liczenie słów tekstu i odświeżenie %1 pól").arg(fields / 5)});
+                    .note = QStringLiteral("liczenie słów tekstu i odświeżenie %1 pól")
+                                .arg(fields / 5)});
     CHECK(layout->fieldWords() == words);
 
     // -------------------------------------------------------------------------
     // 3. Page view: the numbers of the pages
     // -------------------------------------------------------------------------
-    rows.push_back({QStringLiteral("Przełączenie na Page + paintEvent"), timeMs([&] {
+    rows.push_back({.operation = QStringLiteral("Przełączenie na Page + paintEvent"),
+                    .ms = timeMs([&] {
                         editor.setViewMode(ViewMode::Page);
                         paint(editor);
                     }),
-                    QString()});
-    rows.push_back({QStringLiteral("    łamanie reszty stron w tle + numery stron w polach"),
-                    timeMs([&] {
+                    .note = QString()});
+    rows.push_back({.operation =
+                        QStringLiteral("    łamanie reszty stron w tle + numery stron w polach"),
+                    .ms = timeMs([&] {
                         layout->layoutPendingBlocks();
                         QCoreApplication::processEvents();  // the page count, queued
                         paint(editor);
                     }),
-                    QString()});
+                    .note = QString()});
     CHECK(editor.fieldTextAt(firstField(editor, FieldType::Pages)) ==
           QString::number(editor.totalPages()));
     beforeField(static_cast<int>(editor.paragraphCount() / 2));
     {
         const double ms = timeMs([&] {
-            for (QChar c : typed) {
+            for (const QChar c : typed) {
                 typeChar(editor, c);
                 paint(editor);
                 QCoreApplication::processEvents();
             }
         });
-        rows.push_back({QStringLiteral("Wpisanie 100 znaków w akapicie z polem – Page (z "
-                                       "paintEvent po każdym)"),
-                        ms, QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+        rows.push_back({.operation = QStringLiteral("Wpisanie 100 znaków w akapicie z polem – Page "
+                                                    "(z paintEvent po każdym)"),
+                        .ms = ms,
+                        .note = QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
     }
     {
         // For comparison: a paragraph without a field near it
@@ -1434,11 +1444,13 @@ TEST_CASE("Fields benchmark: a 150k-word chapter with notes and fields",
             ++plain;
         }
         editor.clearSelection();
-        editor.setCursorPosition({plain, 10});
+        editor.setCursorPosition({.paragraph = plain, .offset = 10});
         paint(editor);
         const double ms = typeHundred();
-        rows.push_back({QStringLiteral("    dla porównania: w akapicie bez pola – Page"), ms,
-                        QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
+        rows.push_back({.operation =
+                            QStringLiteral("    dla porównania: w akapicie bez pola – Page"),
+                        .ms = ms,
+                        .note = QStringLiteral("%1 ms/znak").arg(ms / 100.0, 0, 'f', 2)});
     }
 
     // -------------------------------------------------------------------------
@@ -1446,15 +1458,15 @@ TEST_CASE("Fields benchmark: a 150k-word chapter with notes and fields",
     // -------------------------------------------------------------------------
     editor.selectAll();
     std::unique_ptr<QMimeData> copied;
-    rows.push_back({QStringLiteral("Kopiowanie całości (Ctrl+A, Ctrl+C)"),
-                    timeMs([&] { copied = editor.createMimeDataFromSelection(); }),
-                    QStringLiteral("pola jako tekst, który pokazują")});
+    rows.push_back({.operation = QStringLiteral("Kopiowanie całości (Ctrl+A, Ctrl+C)"),
+                    .ms = timeMs([&] { copied = editor.createMimeDataFromSelection(); }),
+                    .note = QStringLiteral("pola jako tekst, który pokazują")});
     REQUIRE(copied);
     CHECK(copied->text().contains(context.bookTitle));
     editor.clearSelection();
     QString saved;
-    rows.push_back({QStringLiteral("toKml – cały rozdział z polami"),
-                    timeMs([&] { saved = editor.toKml(); }), QString()});
+    rows.push_back({.operation = QStringLiteral("toKml – cały rozdział z polami"),
+                    .ms = timeMs([&] { saved = editor.toKml(); }), .note = QString()});
     CHECK(saved.count(QStringLiteral("<field ")) == fields);
 
     report(rows, header, QStringLiteral("fields_benchmark_results.md"));
