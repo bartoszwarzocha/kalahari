@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file field_dialogs.h
 /// @brief The windows of the fields: Insert > Date && Time... and Insert > Field...
 
