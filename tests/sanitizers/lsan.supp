@@ -7,3 +7,6 @@ leak:pybind11::detail::get_internals
 leak:pybind11::detail::get_local_internals
 # libproxy (Qt's system proxy lookup on Linux) keeps its factory state until exit.
 leak:px_proxy_factory_new
+# Qt PDF 6.4 (Ubuntu's, in the Sanitizers job) keeps the state of a load that fails, as
+# of a damaged file, after QPdfDocument::close() and its destruction (1296 bytes a load).
+leak:QPdfDocumentPrivate::load
