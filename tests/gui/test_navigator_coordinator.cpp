@@ -861,11 +861,11 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
 
     // The Workshop has the groups of the kinds the program makes, also empty: the cards of
     // the characters, the locations and the items, then the working notes and the kinds of
-    // materials, in Materials
+    // materials, in Materials, after the list Sources
     CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
           "Characters, Locations, Items, Materials");
     CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
-          "Working notes, Cover, Quotes, Web pages, Pictures, Documents, Publications, "
+          "Sources, Working notes, Cover, Quotes, Web pages, Pictures, Documents, Publications, "
           "Recordings, Other files");
 
     // A working note has no status; it opens in the editor

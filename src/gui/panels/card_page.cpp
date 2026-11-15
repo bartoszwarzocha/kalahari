@@ -21,9 +21,9 @@
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/utils/program_folders.h"
-#include "kalahari/gui/widgets/list_parts.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/gui/widgets/palette_edit.h"
 
@@ -198,7 +198,7 @@ void showValue(QWidget* editor, const core::CardField* field, const QString& val
 /// Whether @p event opens the menu of the portrait: Enter, or the menu key (a right click)
 bool opensMenu(const QEvent* event) {
     return (event->type() == QEvent::KeyPress &&
-            list_parts::isOpenKey(static_cast<const QKeyEvent*>(event))) ||
+            card::isOpenKey(static_cast<const QKeyEvent*>(event))) ||
            event->type() == QEvent::ContextMenu;
 }
 
@@ -309,7 +309,7 @@ void CardPage::createFullLayout() {
     barLayout->setContentsMargins(BAR_MARGIN * 2, BAR_MARGIN, BAR_MARGIN * 2, BAR_MARGIN);
     barLayout->addStretch(1);
     barLayout->addWidget(m_settingsButton);
-    list_parts::keepIcon(m_settingsButton, QStringLiteral("dock.settings"),
+    card::keepIcon(m_settingsButton, QStringLiteral("dock.settings"),
                          core::IconContext::Toolbar);
     layout->addWidget(bar);
     auto* line = new QFrame(this);
@@ -420,7 +420,7 @@ void CardPage::createShortLayout() {
     // The gear at the title of the group
     m_settingsButton->setParent(m_infoGroup);
     m_settingsButton->setFixedSize(TITLE_BUTTON, TITLE_BUTTON);
-    list_parts::keepIcon(m_settingsButton, QStringLiteral("dock.settings"),
+    card::keepIcon(m_settingsButton, QStringLiteral("dock.settings"),
                          core::IconContext::Menu);
     m_infoGroup->installEventFilter(this);
 
@@ -455,7 +455,7 @@ void CardPage::createShortLayout() {
     //: panel, which opens its full card. In Polish: Otwórz kartę
     m_openButton = new QPushButton(tr("Open Card"), this);
     m_openButton->setObjectName(QStringLiteral("cardOpenButton"));
-    list_parts::keepIcon(m_openButton, QStringLiteral("file.open"), core::IconContext::Button);
+    card::keepIcon(m_openButton, QStringLiteral("file.open"), core::IconContext::Button);
     //: In Polish: Otwórz pełną kartę obok rozdziałów
     m_openButton->setToolTip(tr("Open the full card beside the chapters"));
     connect(m_openButton, &QPushButton::clicked, this,
@@ -516,7 +516,7 @@ void CardPage::showHeader(const core::ProjectElement& element) {
     //: The group of the short card of a character, a location or an item in the Properties
     //: panel. In Polish: Informacje o {kind:locative}
     m_infoGroup->setTitle(core::fillWords(tr("{Kind} Information"), nouns));
-    list_parts::placeAtTitle(m_infoGroup, m_settingsButton);
+    card::placeAtTitle(m_infoGroup, m_settingsButton);
 }
 
 void CardPage::showKindIcon(const core::ProjectElement& element) {
@@ -1044,7 +1044,7 @@ bool CardPage::eventFilter(QObject* watched, QEvent* event) {
         return true;
     }
     if (watched == m_infoGroup && event->type() == QEvent::Resize) {
-        list_parts::placeAtTitle(m_infoGroup, m_settingsButton);
+        card::placeAtTitle(m_infoGroup, m_settingsButton);
     } else if (event->type() == QEvent::FocusOut) {
         saveFocused(watched);
     } else if (event->type() == QEvent::FocusIn) {

@@ -258,6 +258,12 @@ signals:
     /// @brief Open material @p elementId as the settings say
     void requestOpenMaterial(const QString& elementId);
 
+    /// @brief Open the full card of material @p elementId: the source of a quote
+    void requestOpenMaterialCard(const QString& elementId);
+
+    /// @brief Open the settings of the sources (the gear of the entry of a source)
+    void requestSourceSettings();
+
     /// @brief Open what link @p link of a material names: an element, or the section in the
     /// Navigator
     void requestOpenLink(const QString& link);
@@ -378,6 +384,9 @@ private:
     /// @brief Fill the Sections field and the own names of the sections of book @p book
     void populateBookSections(const core::ProjectBook& book);
 
+    /// @brief Fill the style of the bibliography of the book: its own, or that of the Settings
+    void populateBibliographyStyle();
+
     /// @brief Show the row of own names when the Sections field says own names
     void showSectionNamesRow();
 
@@ -417,6 +426,7 @@ private:
     QLineEdit* m_projectTitleEdit;
     QLineEdit* m_projectAuthorEdit;
     QComboBox* m_projectLanguageCombo;
+    QComboBox* m_projectBibliographyCombo = nullptr;  ///< Its own style, or the Settings' one
     QLineEdit* m_projectGenreEdit;
     QFormLayout* m_projectInfoLayout;          ///< Rows of the book's information
     SectionsComboBox* m_projectSectionsCombo;  ///< The sections of the book, or none

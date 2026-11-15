@@ -9,7 +9,7 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
-#include "kalahari/gui/widgets/list_parts.h"
+#include "kalahari/gui/panels/card_parts.h"
 
 #include <QAbstractItemDelegate>
 #include <QCompleter>
@@ -71,12 +71,12 @@ OwnFieldsBox::OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix
     layout->setContentsMargins(MARGIN, TOP_MARGIN, MARGIN, MARGIN);
     layout->setSpacing(4);
     //: In Polish: Dodaj pole (Insert)
-    m_addButton = list_parts::listButton(this, "common.add", tr("Add Field (Insert)"),
+    m_addButton = card::listButton(this, "common.add", tr("Add Field (Insert)"),
                                          namePrefix + QStringLiteral("AddField"));
     //: In Polish: Usuń pole (Delete)
-    m_removeButton = list_parts::listButton(this, "common.remove", tr("Delete Field (Delete)"),
+    m_removeButton = card::listButton(this, "common.remove", tr("Delete Field (Delete)"),
                                             namePrefix + QStringLiteral("RemoveField"));
-    layout->addLayout(list_parts::buttonRow(m_addButton, m_removeButton));
+    layout->addLayout(card::buttonRow(m_addButton, m_removeButton));
     // The keys go through the buttons, then the table, as they stand
     setTabOrder(m_addButton, m_removeButton);
     setTabOrder(m_removeButton, m_table);
@@ -98,7 +98,7 @@ OwnFieldsBox::OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix
     m_table->installEventFilter(this);
     layout->addWidget(m_table);
     //: In Polish: Brak pól. „+” albo Insert dodaje pole.
-    m_emptyLabel = list_parts::hintLabel(this, tr("No fields. \"+\" or Insert adds a field."),
+    m_emptyLabel = card::hintLabel(this, tr("No fields. \"+\" or Insert adds a field."),
                                          namePrefix + QStringLiteral("NoFields"));
     layout->addWidget(m_emptyLabel);
     if (stretch) {
@@ -169,7 +169,7 @@ void OwnFieldsBox::showFields(const QString& elementId, const QList<core::Elemen
 void OwnFieldsBox::fitTable() {
     const int rowHeight = m_table->verticalHeader()->defaultSectionSize();
     const int header = m_table->horizontalHeader()->sizeHint().height();
-    m_table->setFixedHeight(list_parts::listHeight(m_table, m_table->rowCount(), rowHeight,
+    m_table->setFixedHeight(card::listHeight(m_table, m_table->rowCount(), rowHeight,
                                                    header));
     m_table->setVisible(m_table->rowCount() > 0);
     m_emptyLabel->setVisible(m_table->rowCount() == 0);
@@ -275,8 +275,8 @@ bool OwnFieldsBox::eventFilter(QObject* watched, QEvent* event) {
     if (watched == m_table &&
         (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress)) {
         const auto* key = static_cast<QKeyEvent*>(event);
-        const bool insert = list_parts::isListKey(key, Qt::Key_Insert);
-        const bool remove = list_parts::isListKey(key, Qt::Key_Delete);
+        const bool insert = card::isListKey(key, Qt::Key_Insert);
+        const bool remove = card::isListKey(key, Qt::Key_Delete);
         if (insert || remove) {
             if (event->type() == QEvent::ShortcutOverride) {
                 event->accept();

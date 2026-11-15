@@ -950,9 +950,9 @@ void checkNavigatorMenus(QStringList& problems) {
                         QStringLiteral("section_backmatter"), QStringLiteral("text_element"),
                         QStringLiteral("group_element"), QStringLiteral("window_element"),
                         QStringLiteral("workshop"), QStringLiteral("workshop_group"),
-                        QStringLiteral("workshop_shelf"), QStringLiteral("unassigned_files"),
-                        QStringLiteral("unassigned_file"), QStringLiteral("other_files"),
-                        QStringLiteral("standalone_file")});
+                        QStringLiteral("workshop_shelf"), QStringLiteral("workshop_view"),
+                        QStringLiteral("unassigned_files"), QStringLiteral("unassigned_file"),
+                        QStringLiteral("other_files"), QStringLiteral("standalone_file")});
 
     // Without sections the book's item adds the elements, also of the front and back matter
     REQUIRE(pm.setSections({false, QString(), {}}));

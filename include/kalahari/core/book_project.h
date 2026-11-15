@@ -100,7 +100,10 @@
 ///   saved once, with the element that has it; an element deleted from the project leaves the
 ///   links. "view" has how its picture is shown: "rotation", 0, 90, 180 or 270 degrees
 ///   clockwise. A material of the cover has what it is and where it goes in "cover"
-///   (CoverData). A card (a character, a location, an item: a text element of a kind of
+///   (CoverData). A material that is a source has its bibliographic description in "source"
+///   (SourceDescription), a material with a file its bookmarks ("bookmarks": a page and a
+///   note each) and the page shown last ("lastPage"), a quote its source and page in "quote"
+///   (QuoteSource). A card (a character, a location, an item: a text element of a kind of
 ///   cards) has its short description ("In short") as its description and in "card" the
 ///   values of the fields of its kind, its color and its portraits, pictures of the materials
 ///   (CardData); its text is its long description. None of these: the element has none.
@@ -120,6 +123,7 @@
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/card_data.h>
 #include <kalahari/core/cover_material.h>
+#include <kalahari/core/source_description.h>
 #include <QByteArray>
 #include <QDateTime>
 #include <QJsonObject>
@@ -189,6 +193,12 @@ struct ProjectElement {
     CardData card;                   ///< Of a card (a character, a location, an item): the
                                      ///< values of its fields, its color and its portraits;
                                      ///< empty: none
+    SourceDescription source;        ///< Of a material that is a source: its bibliographic
+                                     ///< description; empty: none
+    QList<PageBookmark> bookmarks;   ///< Places in its file, by page, in the writer's order
+    int lastPage = 0;                ///< Page of its file shown last, from 1; 0: none
+    QuoteSource quote;               ///< Of a quote: the source and the page it comes from;
+                                     ///< empty: not said
     QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
@@ -323,6 +333,8 @@ struct ProjectBook {
     /// How it numbers its notes and where its endnotes are; none: 1, 2, 3 and i, ii, iii anew
     /// in each chapter, the endnotes after each text
     std::optional<BookFootnotes> footnotes;
+    /// The style of its bibliography (Bibliography::PN_ISO_690...); empty: the Settings' one
+    QString bibliographyStyle;
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;

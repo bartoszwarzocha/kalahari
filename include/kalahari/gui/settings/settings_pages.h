@@ -434,7 +434,8 @@ private:
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
 /// what the top of the Add Element window chooses from, what the Materials show and where a
-/// list of materials opens, how a material opens, and whether its links name paragraphs; the
+/// list of materials opens, what a material dropped gives, and whether its links name
+/// paragraphs; the
 /// kinds of materials the Navigator shows (MaterialList::HIDDEN_SETTING) and how the texts of
 /// the cover are counted, with the targets of their kinds (core::CoverMaterial)
 class NavigatorPage : public SettingsPage {
@@ -452,10 +453,6 @@ private:
     QRadioButton* m_treeExpand = nullptr;  ///< The kinds have their materials under them
     QRadioButton* m_tabsOwn = nullptr;     ///< A kind clicked opens its list on a tab of its own
     QRadioButton* m_tabsOne = nullptr;     ///< The one tab of the lists shows the kind clicked
-    QRadioButton* m_openCard = nullptr;    ///< A material opens on a tab of the program
-    QRadioButton* m_openSystem = nullptr;  ///< A material opens in the system program
-    QRadioButton* m_pagesBrowser = nullptr;  ///< A page opens in the browser
-    QRadioButton* m_pagesCard = nullptr;     ///< A page opens on the card of its material
     QRadioButton* m_quickLink = nullptr;    ///< Dropped or pasted: at once, linked with the node
     QRadioButton* m_quickAdd = nullptr;     ///< At once, without links
     QRadioButton* m_quickWindow = nullptr;  ///< In the Add Element window
@@ -485,6 +482,52 @@ public:
 private:
     PaletteEdit* m_palette = nullptr;
     QPushButton* m_restorePalette = nullptr;
+};
+
+/// @brief Materials: how a picture, a page or a picture on the web and a PDF file open
+/// (NavigatorPanel::OPEN_MATERIALS_SETTING, NavigatorPanel::OPEN_PAGES_SETTING,
+/// PdfFiles::OPEN_SETTING); the preview of PDF files: the layout of the pages, their look in a
+/// dark theme, the zoom and the side panel it opens with and whether it opens at the page shown
+/// last (PdfFiles); the sources: the style of the bibliography of a book without its own
+/// (core::Bibliography::STYLE_SETTING) and the form of a reference in the text
+/// (core::Bibliography::REFERENCE_SETTING)
+class MaterialsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    /// @brief The page with the settings as they are
+    explicit MaterialsPage(QWidget* parent = nullptr);
+
+signals:
+    /// @brief Show: the page Editor > Colors, with the colors of the preview of PDF files
+    void colorsPageAsked();
+
+private:
+    /// @brief One choice of a setting: its value, its button and the note under it
+    struct Choice {
+        const char* value = nullptr;     ///< The value of the setting it chooses
+        QRadioButton* button = nullptr;  ///< Its button
+        QString note;                    ///< Empty: none
+    };
+
+    /// @brief A row @p label of @p form with the choices of setting @p key, bound to it; the
+    /// first one is chosen when the setting has none of their values
+    void addChoices(QFormLayout* form, const QString& label, const char* key,
+                    const QList<Choice>& choices);
+
+    /// @brief The group Opening
+    void addOpening();
+
+    /// @brief The group PDF Preview
+    void addPdfPreview();
+
+    /// @brief The group Sources
+    void addSources();
+
+    QRadioButton* m_openPdfPreview = nullptr;  ///< A PDF file opens on a preview tab
+    QComboBox* m_pdfZoom = nullptr;            ///< The zoom the preview opens with
+    QComboBox* m_pdfSide = nullptr;            ///< The side panel it opens with
+    QComboBox* m_style = nullptr;      ///< PN-ISO 690, APA...
+    QComboBox* m_reference = nullptr;  ///< (Wiśniewska 2011, s. 45)...
 };
 
 /// @brief Network > Materials: whether the program downloads the title of the page or the copy

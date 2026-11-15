@@ -315,7 +315,8 @@ TEST_CASE("Built-in book types: kinds in each place, main kind and start", "[cor
                   "part, chapter, conclusion",
                   "annex, endnotes, bibliography, glossary, index, illustrations, "
                   "acknowledgments, about_author, toc",
-                  "source, timeline, mindmap, work_note, cover, quote, web_page, picture, document, publication, recording, other_file"});
+                  "timeline, mindmap, work_note, cover, quote, web_page, picture, document, "
+                  "publication, recording, other_file"});
         CHECK(primary("kalahari.nonfiction") == "chapter");
         CHECK(start("kalahari.nonfiction") ==
               "title_page/front, introduction/front, chapter/main");
@@ -433,11 +434,14 @@ TEST_CASE("Built-in book types: the palette offers every kind of every package b
     CHECK(qualified.size() == kindCount);
     for (const char* kind : {"kalahari.base/chapter", "kalahari.base/quote",
                              "kalahari.novel/prologue", "kalahari.screenplay/act",
-                             "kalahari.poetry/poem", "kalahari.nonfiction/source"}) {
+                             "kalahari.poetry/poem", "kalahari.nonfiction/bibliography"}) {
         INFO(kind);
         CHECK(qualified.contains(QString::fromLatin1(kind)));
     }
+    // The kinds of earlier versions: a material is of a kind of its own, a source a material
+    // with a bibliographic description
     CHECK_FALSE(qualified.contains(QStringLiteral("kalahari.base/material")));
+    CHECK_FALSE(qualified.contains(QStringLiteral("kalahari.nonfiction/source")));
     // A package's kinds in the order of its lists
     CHECK(qualified.indexOf(QStringLiteral("kalahari.base/title_page")) <
           qualified.indexOf(QStringLiteral("kalahari.base/chapter")));
@@ -499,7 +503,7 @@ TEST_CASE("Built-in book types: groups of the Workshop and the parts layer",
           "work_note/resources, cover/resources, " +
               materials);
     CHECK(groups("kalahari.nonfiction") ==
-          "source/libraries, timeline, mindmap, work_note/resources, cover/resources, " +
+          "timeline, mindmap, work_note/resources, cover/resources, " +
               materials);
     // The cover only on request (Book Properties)
     CHECK(groups("kalahari.screenplay") ==

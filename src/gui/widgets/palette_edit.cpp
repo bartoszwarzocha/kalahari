@@ -8,8 +8,8 @@
 
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/gui/dialogs/color_dialog.h"
+#include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/widgets/flow_layout.h"
-#include "kalahari/gui/widgets/list_parts.h"
 
 #include <QEvent>
 #include <QIcon>
@@ -45,22 +45,22 @@ enum class PaletteKey {
 
 /// What @p key does, on a swatch when @p onSwatch, else on "+"
 PaletteKey keyOf(const QKeyEvent* key, bool onSwatch) {
-    if (list_parts::isListKey(key, Qt::Key_Insert)) {
+    if (card::isListKey(key, Qt::Key_Insert)) {
         return PaletteKey::Add;
     }
     if (!onSwatch) {
         return PaletteKey::None;
     }
-    if (list_parts::isListKey(key, Qt::Key_Delete)) {
+    if (card::isListKey(key, Qt::Key_Delete)) {
         return PaletteKey::Remove;
     }
-    if (list_parts::isOpenKey(key)) {
+    if (card::isOpenKey(key)) {
         return PaletteKey::Change;
     }
-    if (list_parts::isListKey(key, Qt::Key_Left)) {
+    if (card::isListKey(key, Qt::Key_Left)) {
         return PaletteKey::Previous;
     }
-    return list_parts::isListKey(key, Qt::Key_Right) ? PaletteKey::Next : PaletteKey::None;
+    return card::isListKey(key, Qt::Key_Right) ? PaletteKey::Next : PaletteKey::None;
 }
 
 }  // namespace
@@ -72,7 +72,7 @@ PaletteEdit::PaletteEdit(QString description, QWidget* parent)
     m_layout->setContentsMargins(0, 0, 0, 0);
     //: The button after the swatches of a palette in the Settings. In Polish: Dodaj kolor...
     //: (Insert)
-    m_addButton = list_parts::listButton(this, "common.add", tr("Add Color... (Insert)"),
+    m_addButton = card::listButton(this, "common.add", tr("Add Color... (Insert)"),
                                          QStringLiteral("paletteAddColor"));
     m_addButton->installEventFilter(this);
     connect(m_addButton, &QToolButton::clicked, this, &PaletteEdit::addColor);

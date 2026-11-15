@@ -14,8 +14,11 @@
 #include "kalahari/gui/link_names.h"
 #include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/panels/navigator_panel.h"
-#include "kalahari/gui/widgets/list_parts.h"
+#include "kalahari/gui/panels/source_boxes.h"
+#include "kalahari/gui/pdf_files.h"
+#include "kalahari/gui/source_names.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/link_roles.h"
@@ -72,16 +75,20 @@ constexpr int LINK_ROLE = Qt::UserRole;
 /// Size of the pictures of the materials of an element
 constexpr int MATERIAL_ICON = 40;
 
+/// Space between the groups of the card
+constexpr int GROUP_SPACING = 11;
+
 /// Size the picture of the card is read at, before it is fitted to the panel
 const QSize THUMBNAIL_BOUNDS(960, 2 * MaterialPage::MAXIMUM_THUMBNAIL_HEIGHT);
 
-using list_parts::buttonRow;
-using list_parts::hintLabel;
-using list_parts::isListKey;
-using list_parts::isOpenKey;
-using list_parts::keepIcon;
-using list_parts::listButton;
-using list_parts::listHeight;
+using card::buttonRow;
+using card::cutOffChildren;
+using card::hintLabel;
+using card::isListKey;
+using card::isOpenKey;
+using card::keepIcon;
+using card::listButton;
+using card::listHeight;
 
 /// The links of a material: a node of the Navigator dropped on it is linked
 class LinkList : public QTreeWidget {
@@ -137,11 +144,16 @@ private:
     }
 };
 
-/// Nothing of the children of @p widget reaches it any more. QWidget's destructor deletes them
-/// after the class of @p widget is gone, and a field with the keys finishes its editing then.
-void cutOffChildren(QWidget* widget) {
-    for (QObject* child : widget->findChildren<QObject*>()) {
-        child->disconnect(widget);
+/// Show @p box with @p element when @p shown, hide it otherwise; @p box may be null (a group
+/// only the full card has)
+template <typename Box>
+void showBoxIf(Box* box, bool shown, const core::ProjectElement& element) {
+    if (box == nullptr) {
+        return;
+    }
+    box->setVisible(shown);
+    if (shown) {
+        box->showMaterial(element);
     }
 }
 
@@ -259,6 +271,13 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     infoLayout->addLayout(m_form);
     connect(m_titleEdit, &QLineEdit::editingFinished, this, &MaterialPage::saveTitle);
 
+    // A material that can be a source: on the full card its bibliographic description and its
+    // entry in the bibliography above its description
+    if (full) {
+        m_sourceBox = new SourceDescriptionBox(m_book, this);
+        m_entryBox = new BibliographyEntryBox(m_book, this);
+    }
+
     // The description, saved when the field loses the keys
     //: The description of a material in the Properties panel. In Polish: Opis
     m_descriptionGroup = new QGroupBox(tr("Description"), this);
@@ -335,8 +354,22 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     m_counter->hide();
     connect(m_descriptionEdit, &QPlainTextEdit::textChanged, this, &MaterialPage::updateCounter);
 
+    // A quote: where it comes from, under its words; on the short card the entry of a source
+    // in the bibliography of the book
+    m_quoteBox = new QuoteSourceBox(m_book, this);
+    if (!full) {
+        m_entryBox = new BibliographyEntryBox(m_book, this, true);
+    }
+
     // The data of a material of the cover, between its text and its own fields
     createCoverGroup();
+
+    // The bookmarks of a PDF, and on the full card the quotes from a source
+    m_bookmarksBox = new BookmarksBox(m_book, this);
+    if (full) {
+        m_quotesBox = new SourceQuotesBox(m_book, this);
+    }
+    connectSourceParts();
 
     // The writer's own fields
     //: In Polish: Własne pola materiału
@@ -389,26 +422,42 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     connect(m_linksList, &QTreeWidget::currentItemChanged, this, &MaterialPage::updateButtons);
 
     if (full) {
-        // The description beside the own fields, the links under them
+        // The description of a source, its entry, the description and where a quote comes
+        // from beside the data of the cover, the bookmarks, the quotes and the own fields; the
+        // links under them
         auto* grid = new QGridLayout(this);
         grid->setContentsMargins(0, 0, 0, 0);
-        grid->setSpacing(11);
+        grid->setSpacing(GROUP_SPACING);
         grid->addWidget(m_infoGroup, 0, 0, 1, 2);
-        grid->addWidget(descriptionGroup, 1, 0, 2, 1);
-        grid->addWidget(m_coverGroup, 1, 1);
-        grid->addWidget(m_fieldsBox, 2, 1);
-        grid->addWidget(linksGroup, 3, 0, 1, 2);
+        auto* left = new QVBoxLayout();
+        left->setSpacing(GROUP_SPACING);
+        left->addWidget(m_sourceBox);
+        left->addWidget(m_entryBox);
+        left->addWidget(descriptionGroup, 1);
+        left->addWidget(m_quoteBox);
+        auto* right = new QVBoxLayout();
+        right->setSpacing(GROUP_SPACING);
+        right->addWidget(m_coverGroup);
+        right->addWidget(m_bookmarksBox);
+        right->addWidget(m_quotesBox);
+        right->addWidget(m_fieldsBox, 1);
+        grid->addLayout(left, 1, 0);
+        grid->addLayout(right, 1, 1);
+        grid->addWidget(linksGroup, 2, 0, 1, 2);
         grid->setColumnStretch(0, 3);
         grid->setColumnStretch(1, 2);
-        grid->setRowStretch(2, 1);
-        grid->setRowStretch(4, 1);
+        grid->setRowStretch(1, 1);
+        grid->setRowStretch(3, 1);
     } else {
         auto* layout = new QVBoxLayout(this);
         layout->setContentsMargins(0, 0, 0, 0);
-        layout->setSpacing(11);
+        layout->setSpacing(GROUP_SPACING);
         layout->addWidget(m_infoGroup);
         layout->addWidget(descriptionGroup);
+        layout->addWidget(m_quoteBox);
+        layout->addWidget(m_entryBox);
         layout->addWidget(m_coverGroup);
+        layout->addWidget(m_bookmarksBox);
         layout->addWidget(m_fieldsBox);
         layout->addWidget(linksGroup);
         layout->addStretch(1);
@@ -443,6 +492,18 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
                         if (const core::ProjectElement* element =
                                 page->m_book.findElement(page->m_elementId)) {
                             page->showCover(*element);
+                        }
+                    },
+                    Qt::QueuedConnection);
+                return;
+            }
+            // The style of the bibliography and the form of the references of the Settings
+            if (key.starts_with("materials.sources.")) {
+                QMetaObject::invokeMethod(
+                    page,
+                    [page]() {
+                        if (page != nullptr) {
+                            page->refresh();
                         }
                     },
                     Qt::QueuedConnection);
@@ -500,6 +561,7 @@ void MaterialPage::refresh() {
     m_fieldsBox->showFields(m_elementId, element->fields);
     fillLinks(*element);
     showCover(*element);
+    showSourceParts(*element);
 
     const bool readOnly = pm.isReadOnly();
     m_titleEdit->setReadOnly(readOnly);
@@ -571,9 +633,21 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
     const bool fromWeb = m_source == MaterialSource::Page || m_source == MaterialSource::WebPicture;
     m_previewButton->setVisible(fromFile || (m_source == MaterialSource::WebPicture && hasFile));
     m_previewButton->setEnabled(m_picture);
-    //: The tooltip of Preview for a file that is no picture. In Polish: Program pokazuje
-    //: tylko obrazy
-    const QString onlyPictures = tr("The program shows only pictures");
+    QString onlyPictures;
+    if (file.pdf) {
+        //: The tooltip of Preview for a PDF file in a program without the Qt PDF module. In
+        //: Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy
+        onlyPictures = tr("This version of the program has no preview of PDF files; the "
+                          "system program opens them");
+    } else if (PdfFiles::previewAvailable()) {
+        //: The tooltip of Preview for a file that is no picture nor PDF. In Polish: Program
+        //: pokazuje tylko obrazy i pliki PDF
+        onlyPictures = tr("The program shows only pictures and PDF files");
+    } else {
+        //: The tooltip of Preview for a file that is no picture. In Polish: Program pokazuje
+        //: tylko obrazy
+        onlyPictures = tr("The program shows only pictures");
+    }
     //: In Polish: Otwórz podgląd
     m_previewButton->setToolTip(m_picture           ? tr("Open the Preview")
                                 : problem.isEmpty() ? onlyPictures
@@ -603,6 +677,57 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
     m_addressLabel->setText(m_url);
     m_addressLabel->setToolTip(m_url);
     m_form->setRowVisible(m_addressLabel, fromWeb);
+}
+
+void MaterialPage::connectSourceParts() {
+    const auto changedHere = [this](const QString& elementId) { emit changed(elementId); };
+    const auto messageHere = [this](const QString& text) { emit message(text); };
+    if (m_sourceBox != nullptr) {
+        connect(m_sourceBox, &SourceDescriptionBox::changed, this, changedHere);
+        connect(m_sourceBox, &SourceDescriptionBox::message, this, messageHere);
+    }
+    connect(m_entryBox, &BibliographyEntryBox::changed, this, changedHere);
+    connect(m_entryBox, &BibliographyEntryBox::message, this, messageHere);
+    connect(m_entryBox, &BibliographyEntryBox::requestSettings, this,
+            &MaterialPage::requestSourceSettings);
+    connect(m_bookmarksBox, &BookmarksBox::changed, this, changedHere);
+    connect(m_bookmarksBox, &BookmarksBox::requestShowPage, this,
+            &MaterialPage::requestShowPage);
+    connect(m_quoteBox, &QuoteSourceBox::changed, this, changedHere);
+    // The source of a quote opens on its card, or at the page of the quote in its preview
+    connect(m_quoteBox, &QuoteSourceBox::requestOpenSource, this,
+            [this](const QString& sourceId, const QString& page) {
+                if (page.isEmpty()) {
+                    emit requestOpenCard(sourceId);
+                } else {
+                    emit requestShowPage(sourceId, page);
+                }
+            });
+    if (m_quotesBox != nullptr) {
+        connect(m_quotesBox, &SourceQuotesBox::requestNewQuote, this,
+                &MaterialPage::requestNewQuote);
+        connect(m_quotesBox, &SourceQuotesBox::requestOpenQuote, this,
+                &MaterialPage::requestOpenCard);
+    }
+}
+
+void MaterialPage::showSourceParts(const core::ProjectElement& element) {
+    // A material that can be a source: its description on the full card; its entry there,
+    // and on the short card once it is a source; the quotes from it once it is one or has some
+    const bool describable = SourceNames::canDescribe(m_book, element);
+    const bool source = describable && !element.source.isEmpty();
+    showBoxIf(m_sourceBox, describable, element);
+    showBoxIf(m_entryBox, m_full ? describable : source, element);
+    showBoxIf(m_quotesBox,
+              m_quotesBox != nullptr && (source || !m_book.quotesOf(element.id).isEmpty()),
+              element);
+    // The bookmarks of a PDF, or of a file that has some
+    const bool pdf =
+        QFileInfo(element.file).suffix().compare(QLatin1String("pdf"), Qt::CaseInsensitive) == 0;
+    showBoxIf(m_bookmarksBox, !element.bookmarks.isEmpty() || (!element.file.isEmpty() && pdf),
+              element);
+    // A quote: where it comes from, under its words
+    showBoxIf(m_quoteBox, SourceNames::isQuote(m_book, element), element);
 }
 
 void MaterialPage::setDownloading(const QString& elementId, bool downloading) {
@@ -942,6 +1067,14 @@ void MaterialPage::showCover(const core::ProjectElement& element) {
         m_descriptionEdit->setAccessibleName(tr("Text of the cover material"));
         //: In Polish: Wpisz treść...
         m_descriptionEdit->setPlaceholderText(tr("Enter the text..."));
+    } else if (SourceNames::isQuote(m_book, element)) {
+        // The description of a quote is its words
+        //: The words of a quote, in the field of the description of its card. In Polish: Cytat
+        m_descriptionGroup->setTitle(tr("Quote"));
+        //: In Polish: Słowa cytatu
+        m_descriptionEdit->setAccessibleName(tr("Words of the quote"));
+        //: In Polish: Wpisz albo wklej słowa cytatu...
+        m_descriptionEdit->setPlaceholderText(tr("Type or paste the words of the quote..."));
     } else {
         m_descriptionGroup->setTitle(tr("Description"));
         m_descriptionEdit->setAccessibleName(tr("Description of the material"));
