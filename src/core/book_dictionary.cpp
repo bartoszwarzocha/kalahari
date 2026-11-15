@@ -21,7 +21,6 @@
 #include <array>
 #include <cstddef>
 #include <functional>
-#include <iterator>
 #include <utility>
 
 namespace kalahari::core {
@@ -248,9 +247,12 @@ QString kindName(NameKind kind) {
 /// The kind of a name in the file (a character when it is none)
 NameKind kindOfName(const QString& name) {
     const auto& names = kindNames();
-    const auto* const found = std::find(names.begin(), names.end(), name);
-    return found == names.end() ? NameKind::Character
-                                : static_cast<NameKind>(std::distance(names.begin(), found));
+    for (std::size_t i = 0; i < names.size(); ++i) {
+        if (names.at(i) == name) {
+            return static_cast<NameKind>(i);
+        }
+    }
+    return NameKind::Character;
 }
 
 /// The texts of a JSON array
