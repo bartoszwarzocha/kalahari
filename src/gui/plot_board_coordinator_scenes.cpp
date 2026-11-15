@@ -135,13 +135,6 @@ std::optional<core::ScenePlot> PlotBoardCoordinator::scenePlotOf(const QString& 
     return scenes.at(scene).plot;
 }
 
-void PlotBoardCoordinator::sceneInEditor() {
-    //: Under the plot board after a scene was to be moved to another text. In Polish: Scenę
-    //: do innego tekstu przenosi się w edytorze: wytnij ją tam i wklej w tamtym tekście.
-    say(tr("A scene moves to another text in the editor: cut it there and paste it in the other "
-           "text."));
-}
-
 void PlotBoardCoordinator::addSceneAt(const QString& textId, int at, const QString& message) {
     const std::optional<core::SceneText> text = sceneTextOf(textId);
     if (!text) {

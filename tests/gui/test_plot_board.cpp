@@ -321,11 +321,9 @@ struct StormBoard {
     }
 };
 
-/// What is said under the board when a scene was to go to another text
-const QString& toAnotherText() {
-    static const QString TEXT = QStringLiteral(
-        "A scene moves to another text in the editor: cut it there and paste it in the other "
-        "text.");
+/// What is said under the board after "Night" of "The Storm" moved to "The Calm"
+const QString& nightToCalm() {
+    static const QString TEXT = QStringLiteral("\"Night\" moved to \"The Calm\".");
     return TEXT;
 }
 
@@ -747,11 +745,14 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
         press(board, Qt::Key_Down);
         CHECK(board->currentCard() == night);
         CHECK(board->spokenText(night).startsWith(QStringLiteral("Scene 2: Night. Draft.")));
-        // A scene moves to another text in the editor
+        // Ctrl with the arrows across the texts moves a scene to the text beside
         press(board, Qt::Key_Right, Qt::ControlModifier);
-        CHECK(panel->message() == toAnotherText());
+        CHECK(panel->message() == nightToCalm());
         CHECK(boardOfBook() == "Chapter 1, The Storm | Part One: The Calm");
+        CHECK(scenes.words() == "2 1");
+        press(board, Qt::Key_Z, Qt::ControlModifier);
         CHECK(scenes.words() == "2 3 1");
+        REQUIRE(board->setCurrentCard(night));
 
         // Scenes off: the scene chosen gives its place to its text
         settings.set<bool>(PlotBoard::SCENES_SETTING, false);
@@ -957,9 +958,11 @@ TEST_CASE("Plot board: the scenes of a text moved, added and deleted on the boar
         emit panel->dropBesideRequested(s.night, s.last, true);
         CHECK(s.words() == "2 3 1");
         CHECK(board->currentCard() == s.last);
-        // Beside a scene of another text, in the editor
-        emit panel->dropBesideRequested(s.night, calm, false);
-        CHECK(panel->message() == toAnotherText());
+        // On the card of another text: to that text
+        emit panel->dropBesideRequested(s.night, calm, true);
+        CHECK(panel->message() == nightToCalm());
+        CHECK(s.words() == "2 1");
+        press(board, Qt::Key_Z, Qt::ControlModifier);
         CHECK(s.words() == "2 3 1");
 
         // In the drawer of a grid the scenes move left and right, up and down to other texts
@@ -970,8 +973,8 @@ TEST_CASE("Plot board: the scenes of a text moved, added and deleted on the boar
         press(board, Qt::Key_Left, Qt::ControlModifier);
         CHECK(s.words() == "3 2 1");
         press(board, Qt::Key_Down, Qt::ControlModifier);
-        CHECK(panel->message() == toAnotherText());
-        CHECK(s.words() == "3 2 1");
+        CHECK(panel->message() == nightToCalm());
+        CHECK(s.words() == "2 1");
     }
 
     SECTION("Insert adds a scene after the scene and edits its card, Alt+Insert one at the end") {
@@ -1066,13 +1069,13 @@ TEST_CASE("Plot board: the scenes of a text moved, added and deleted on the boar
         press(board, Qt::Key_V, Qt::ControlModifier);
         CHECK(s.words() == "2 3 1");
         CHECK(board->currentCard() == s.first);
-        // After another text: in the editor
+        // After the card of another text: to that text
         REQUIRE(board->setCurrentCard(s.night));
         press(board, Qt::Key_X, Qt::ControlModifier);
         REQUIRE(board->setCurrentCard(calm));
         press(board, Qt::Key_V, Qt::ControlModifier);
-        CHECK(panel->message() == toAnotherText());
-        CHECK(s.words() == "2 3 1");
+        CHECK(panel->message() == nightToCalm());
+        CHECK(s.words() == "2 1");
     }
 
     SECTION("a scene of an open text moves in its editor, to be saved with the text") {
@@ -1431,5 +1434,189 @@ TEST_CASE("Plot board: the scenes in the plans of the texts on the board",
         CHECK(model->setData(model->index(row, Model::PLACE_COLUMN),
                              QVariant(QStringLiteral("The well")), Qt::EditRole));
         CHECK(plan().at(0).plot.place == QStringLiteral("The well"));
+    }
+}
+
+namespace {
+
+/// "The Storm" with a note on "Night", its second scene
+constexpr const char* ANNOTATED_STORM =
+    "<kml><annotations><annotation id=\"n1\" kind=\"note\">Rain</annotation></annotations>"
+    "<p>One two</p><scene-break title=\"Night\"/><p><anchor ref=\"n1\">Three</anchor> four "
+    "five</p><scene-break/><p>Six</p></kml>";
+
+/// "The Calm" with two scenes, the second "Dawn"
+constexpr const char* CALM_SCENES =
+    "<kml><p>Calm</p><scene-break title=\"Dawn\"/><p>Seven eight</p></kml>";
+
+/// Whether text @p kml has the note on "Night"
+bool hasNote(const QString& kml) {
+    return kml.contains(QStringLiteral("<annotation id=\"n1\""));
+}
+
+}  // namespace
+
+TEST_CASE("Plot board: a scene of a text moved to another text with its annotations",
+          "[gui][plotboard][scenes]") {
+    gui::registerAllIcons();
+    StormBoard s;
+    auto& pm = s.pm;
+    auto& settings = core::SettingsManager::getInstance();
+    const QString& storm = s.storm;
+    const QString& calm = s.book.calm;
+    gui::PlotBoardPanel* panel = s.panel;
+    gui::PlotBoardView* board = s.board;
+    pm.setChapterContent(storm, QString::fromLatin1(ANNOTATED_STORM));
+    REQUIRE(pm.saveChapterContent(storm));
+    pm.setChapterContent(calm, QString::fromLatin1(CALM_SCENES));
+    REQUIRE(pm.saveChapterContent(calm));
+    // The board fills itself again a moment later
+    s.boards.refresh();
+    QCoreApplication::processEvents();
+    const auto calmWords = [&pm, &calm]() { return wordsOf(pm.scenesOf(calm)); };
+    const auto planOfText = [&pm](const QString& textId) {
+        return aftersOf(pm.findElement(textId)->plot.planned);
+    };
+    REQUIRE(s.words() == "2 3 1");
+    REQUIRE(calmWords() == "1 2");
+
+    SECTION("Ctrl with the arrows across the texts moves it with its note, Ctrl+Z both back") {
+        REQUIRE(board->setCurrentCard(s.night));
+        press(board, Qt::Key_Right, Qt::ControlModifier);
+        CHECK(panel->message() == nightToCalm());
+        CHECK(s.words() == "2 1");
+        CHECK(calmWords() == "3 1 2");
+        CHECK(pm.findElement(calm)->plot.opening.title == QStringLiteral("Night"));
+        CHECK(pm.scenesOf(calm).at(1).plot.title.isEmpty());
+        CHECK(hasNote(pm.chapterText(calm)));
+        CHECK_FALSE(hasNote(pm.chapterText(storm)));
+        CHECK(board->currentCard() == PlotBoard::sceneId(calm, 0));
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(panel->message() == QStringLiteral("Undone: moving \"Night\"."));
+        CHECK(s.words() == "2 3 1");
+        CHECK(calmWords() == "1 2");
+        CHECK(hasNote(pm.chapterText(storm)));
+        CHECK_FALSE(hasNote(pm.chapterText(calm)));
+        press(board, Qt::Key_Y, Qt::ControlModifier);
+        CHECK(calmWords() == "3 1 2");
+
+        // And back, to the end of the text before
+        REQUIRE(board->setCurrentCard(PlotBoard::sceneId(calm, 0)));
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        CHECK(s.words() == "2 1 3");
+        CHECK(calmWords() == "1 2");
+        CHECK(pm.findElement(calm)->plot.opening.title.isEmpty());
+        CHECK(pm.scenesOf(storm).at(2).plot.title == QStringLiteral("Night"));
+        CHECK(hasNote(pm.chapterText(storm)));
+        CHECK(board->currentCard() == PlotBoard::sceneId(storm, 2));
+    }
+
+    SECTION("dropped beside a scene or on the card of another text, or pasted after it") {
+        // Before "Dawn"
+        emit panel->dropBesideRequested(s.night, PlotBoard::sceneId(calm, 1), false);
+        CHECK(s.words() == "2 1");
+        CHECK(calmWords() == "1 3 2");
+        CHECK(pm.scenesOf(calm).at(1).plot.title == QStringLiteral("Night"));
+        CHECK(board->currentCard() == PlotBoard::sceneId(calm, 1));
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+        CHECK(calmWords() == "1 2");
+
+        // Ctrl+X, and Ctrl+V after "Dawn": at the end
+        REQUIRE(board->setCurrentCard(s.night));
+        press(board, Qt::Key_X, Qt::ControlModifier);
+        REQUIRE(board->setCurrentCard(PlotBoard::sceneId(calm, 1)));
+        press(board, Qt::Key_V, Qt::ControlModifier);
+        CHECK(calmWords() == "1 2 3");
+        CHECK(board->markedCard().isEmpty());
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(calmWords() == "1 2");
+
+        // A scene goes beside a scene or on a text, not in a part
+        emit panel->dropInPartRequested(s.night, s.book.part);
+        CHECK(panel->message() == QStringLiteral("\"Night\" cannot be there."));
+        CHECK(s.words() == "2 3 1");
+    }
+
+    SECTION("to an empty text it takes the place of its empty scene; the only scene stays") {
+        // "Chapter 1" before "The Storm" has no words
+        REQUIRE(board->setCurrentCard(s.first));
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        CHECK(s.words() == "3 1");
+        CHECK(wordsOf(pm.scenesOf(s.book.first)) == "2");
+        CHECK(pm.findElement(storm)->plot.opening.title == QStringLiteral("Night"));
+        CHECK(board->currentCard() == s.book.first);
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+        CHECK(wordsOf(pm.scenesOf(s.book.first)) == "0");
+
+        // The only scene of a text, shown beside its plan
+        settings.set<std::string>(PlotBoard::SCENES_VARIANT_SETTING, PlotBoard::SCENES_BOTH);
+        pm.setChapterContent(calm, QStringLiteral("<kml><p>Calm</p></kml>"));
+        REQUIRE(pm.saveChapterContent(calm));
+        setPlan(pm, calm, planOf({1}));
+        s.boards.refresh();
+        QCoreApplication::processEvents();
+        REQUIRE(board->setCurrentCard(PlotBoard::sceneId(calm, 0)));
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        CHECK(panel->message() ==
+              QStringLiteral("\"The Calm, Scene 1\" is the only scene of its text."));
+        CHECK(s.words() == "2 3 1");
+    }
+
+    SECTION("the scenes in the plans keep their places among the scenes of the texts") {
+        setPlan(pm, storm, planOf({2}));
+        setPlan(pm, calm, planOf({1}));
+        // The plans not shown: the scenes after the place move with it
+        press(board, Qt::Key_Down);
+        press(board, Qt::Key_Down);
+        REQUIRE(board->currentCard() == s.night);
+        press(board, Qt::Key_Right, Qt::ControlModifier);
+        CHECK(planOfText(storm) == "1");
+        CHECK(planOfText(calm) == "2");
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(planOfText(storm) == "2");
+        CHECK(planOfText(calm) == "1");
+
+        // Shown: before or after a scene in the plan
+        settings.set<std::string>(PlotBoard::SCENES_VARIANT_SETTING, PlotBoard::SCENES_BOTH);
+        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();
+        emit panel->dropBesideRequested(s.night, PlotBoard::plannedId(calm, 0), false);
+        CHECK(shownKinds(*board, calm) ==
+              "Scene 1, Scene 2 Night, In the Plan P0, Scene 3 Dawn");
+        CHECK(planOfText(calm) == "2");
+        CHECK(planOfText(storm) == "1");
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        emit panel->dropBesideRequested(s.night, PlotBoard::plannedId(calm, 0), true);
+        CHECK(shownKinds(*board, calm) ==
+              "Scene 1, In the Plan P0, Scene 2 Night, Scene 3 Dawn");
+        CHECK(planOfText(calm) == "1");
+    }
+
+    SECTION("an open text changes in its editor, the other in its file, one Ctrl+Z undoes both") {
+        press(board, Qt::Key_Return);
+        auto* text = qobject_cast<gui::EditorPanel*>(s.window.tabs->currentWidget());
+        REQUIRE(text != nullptr);
+        const editor::BookEditor* editor = text->getBookEditor();
+        REQUIRE(editor != nullptr);
+        REQUIRE(s.boards.openBoard(QString(), true) == panel);
+        const QByteArray saved = s.book.novel.chapterFile();
+        const auto edited = [editor]() {
+            return wordsOf(core::ChapterDocument::kmlScenes(editor->toKml()));
+        };
+
+        REQUIRE(board->setCurrentCard(s.night));
+        press(board, Qt::Key_Right, Qt::ControlModifier);
+        CHECK(edited() == "2 1");
+        CHECK(editor->isModified());
+        CHECK_FALSE(hasNote(editor->toKml()));
+        CHECK(s.book.novel.chapterFile() == saved);
+        CHECK(calmWords() == "3 1 2");
+        CHECK(hasNote(pm.chapterText(calm)));
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(edited() == "2 3 1");
+        CHECK(hasNote(editor->toKml()));
+        CHECK(calmWords() == "1 2");
     }
 }

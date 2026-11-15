@@ -42,6 +42,7 @@ set(KALAHARI_CORE_SOURCES
     core/extension_points.cpp
     core/event_bus.cpp
     core/chapter_document.cpp
+    core/chapter_scenes.cpp     # The scenes of a text: what their breaks say, moved, added, deleted
     core/chapter_versions.cpp   # Versions of the texts of the chapter files
     core/text_diff.cpp          # Differences between two texts, word by word
     core/text_statistics.cpp    # Word/character counting shared by the whole application

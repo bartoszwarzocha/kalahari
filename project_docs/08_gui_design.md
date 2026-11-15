@@ -1638,7 +1638,8 @@ may have them too.
   under its card in Columns, and in a drawer under its row in Grid, which Space opens and
   closes; the arrows go to them, Enter opens the text at the scene, F2, the state and the
   color change the scene; Ctrl with Up and Down in Columns, with Left and Right in the drawer
-  – move the scene among the scenes of its text (Ctrl+X and Ctrl+V, the mouse too), Insert –
+  – move the scene among the scenes of its text, with the other arrows to the text beside, with
+  its annotations (Ctrl+X and Ctrl+V, the mouse too), Insert –
   a new scene after it, Alt+Insert – a new scene at the end of the text (also on the card of
   a text), Delete – delete it with its text or its break only. With the scenes in the plan
   (Settings > Plot Board, the default), Insert and Alt+Insert add a scene in the plan, Enter on

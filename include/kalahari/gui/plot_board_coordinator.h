@@ -63,7 +63,8 @@ struct PlotCardEdit;
 /// A scene moves among the scenes of its text, a new one comes after a scene or at the end of
 /// a text, and one is deleted with its text or with its break only: the text changes at once,
 /// in its editor when it is open (one step of its Ctrl+Z), and one Ctrl+Z on the board undoes
-/// it. A scene moves to another text in the editor: its annotations and notes go with it.
+/// it. A scene moves to another text with its notes and the annotations anchored in it
+/// (core::ChapterDocument::withSceneMovedTo()): both texts change, and one Ctrl+Z undoes both.
 ///
 /// The scenes in the plans of the texts (core::PlannedScene, PlotBoard::SCENES_VARIANT_SETTING)
 /// are in the .klh file: they are added, edited, moved (also to another text) and deleted
@@ -171,11 +172,12 @@ private:
     void undo();
     void redo();
     void showProperties(const QString& cardId, bool keys);
-    /// @brief Move scene @p cardId dropped before or after scene @p anchorId of its text
+    /// @brief Move scene @p cardId dropped before or after scene @p anchorId, or first among
+    /// the scenes of text @p anchorId
     void dropSceneBeside(const QString& cardId, const QString& anchorId, bool after);
-    /// @brief Move scene @p scene of text @p textId, marked (@p marked), after card @p afterId
-    void pasteScene(const QString& marked, const QString& textId, int scene,
-                    const QString& afterId);
+    /// @brief Move the scene marked (@p marked) after card @p afterId: after a scene, or first
+    /// among the scenes of a text
+    void pasteScene(const QString& marked, const QString& afterId);
 
     /// @name The scenes of the texts
     /// @{
@@ -193,8 +195,6 @@ private:
     /// nullopt: the text has no such scene
     [[nodiscard]] std::optional<core::ScenePlot> scenePlotOf(const QString& textId,
                                                              int scene) const;
-    /// @brief Tell the writer that a scene moves to another text in the editor
-    void sceneInEditor();
     /// @brief Move the scene of text @p textId at @p slot to place @p to of the scenes the board
     /// shows (without it): a scene of the text moves in its text, and the scenes in the plan
     /// keep their places among the others
@@ -263,7 +263,7 @@ private:
     [[nodiscard]] editor::BookEditor* editorOf(const QString& elementId) const;
     /// @}
 
-    /// @name The scenes in the plans of the texts
+    /// @name The scenes in the plans of the texts, and the scenes moved to other texts
     /// @{
     /// @brief Write scene @p index of the plan of text @p textId: a scene break with what it
     /// says at its place in the text; the text opens there
@@ -281,11 +281,18 @@ private:
     /// @brief Move scene @p index of the plan of text @p textId to the plan of text @p targetId,
     /// at place @p at of the scenes the board shows there
     void movePlanned(const QString& textId, int index, const QString& targetId, int at);
-    /// @brief Move scene @p index of the plan of text @p textId to the text before
-    /// (@p direction less than 0: at its end) or after (at its start)
-    void movePlannedToText(const QString& textId, int index, int direction);
-    /// @brief Move the scene in the plan marked (@p marked) after card @p afterId
-    void pastePlanned(const QString& marked, const QString& afterId);
+    /// @brief Move scene @p scene of text @p textId to text @p targetId, at place @p at of the
+    /// scenes the board shows there, with its text, what it says and its annotations; in an
+    /// empty text in place of its empty scene
+    void moveSceneToText(const QString& textId, int scene, const QString& targetId, int at);
+    /// @brief Move the scene of text @p textId at @p slot to text @p targetId, at place @p at of
+    /// the scenes the board shows there
+    void moveSlotToText(const QString& textId, const PlotBoard::SceneSlot& slot,
+                        const QString& targetId, int at);
+    /// @brief Move the scene of text @p textId at @p slot to the text before (@p direction
+    /// less than 0: at its end) or after (at its start)
+    void moveToTextBeside(const QString& textId, const PlotBoard::SceneSlot& slot,
+                          int direction);
     /// @brief The text of the board before (@p direction less than 0) or after text @p textId;
     /// empty: none
     [[nodiscard]] QString textBeside(const QString& textId, int direction) const;

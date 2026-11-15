@@ -150,6 +150,24 @@ QFont fontOf(bool bold, bool italic) {
     return font;
 }
 
+/// @brief The color of the cell of @p card in @p column: muted for a field without a name and
+/// for the state of a scene in the plan; none: the color of the table
+QVariant foregroundOf(const PlotCard& card, int column) {
+    if (isUnnamed(card, column) || (card.planned && column == Model::STATUS_COLUMN)) {
+        return QPalette().brush(QPalette::PlaceholderText);
+    }
+    return {};
+}
+
+/// @brief The font of the cell of @p card in @p column: italics for a field without a name and
+/// for a scene in the plan among the scenes of the text; none: the font of the table
+QVariant cellFontOf(const PlotCard& card, int column) {
+    if (isUnnamed(card, column) || isPlanBesideText(card)) {
+        return fontOf(false, true);
+    }
+    return {};
+}
+
 }  // namespace
 
 // =============================================================================
@@ -295,12 +313,9 @@ QVariant PlotOutlineModel::cardData(const PlotCard& card, int column, int role) 
     case Qt::ToolTipRole:
         return toolTipOf(card, column);
     case Qt::ForegroundRole:
-        return isUnnamed(card, column) || (card.planned && column == STATUS_COLUMN)
-                   ? QVariant(QPalette().brush(QPalette::PlaceholderText))
-                   : QVariant();
+        return foregroundOf(card, column);
     case Qt::FontRole:
-        return isUnnamed(card, column) || isPlanBesideText(card) ? QVariant(fontOf(false, true))
-                                                                 : QVariant();
+        return cellFontOf(card, column);
     default:
         break;
     }

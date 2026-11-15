@@ -86,12 +86,9 @@ break only (Keep the Text: its text joins the scene before it). One undo step on
   scene.
 - **An open text** changes in its editor (`BookEditor::replaceWithKml()`, one step of its Ctrl+Z), to
   be saved with it; a text changed in the editor since is not undone on the board.
-- **To another text** a scene moves in the editor for now: the board says so (Ctrl with the arrows
-  across the texts, the mouse, Ctrl+V after another text). The annotations of a scene are kept with
-  its text, and a move across two texts, one open and one closed, needs one undo step of both; that
-  comes with 2c.
+- **To another text** a scene moved in the editor at first; the board moves it since 2c-2 (below).
 
-### 2c – scenes in the plan (done; a scene of a text moved to another text: next)
+### 2c – scenes in the plan (done, with 2c-2: a scene of a text moved to another text)
 
 Variant C (default): planned scenes beside the scenes of the text, with a dashed frame, in the `.klh`
 file; Enter on a planned scene ("Write the Scene") puts a scene break with its fields at its place in
@@ -122,8 +119,16 @@ in Settings > Plot Board (`plotBoard.scenes`).
   the Plan", in italics in C), edited in its cells.
 - **Settings > Plot Board**: the scenes (`plotBoard.scenes`: `both`, `text`, `plan`) and the colors of
   the cards of the theme (the states, the scenes in the plan, the own colors).
-- **Next (2c-2)**: a scene of a text moved to another text with its annotations, one undo step across
-  an open and a closed text.
+- **2c-2, a scene of a text moved to another text** (done): Ctrl with the arrows across the texts
+  (to the end of the text before, to the start of the text after), dropped on a scene of another
+  text (before or after it) or on the card of a text (first among its scenes), Ctrl+V after it.
+  `ChapterDocument::withSceneMovedTo()` gives both texts: the scene with its text and what it says,
+  and the annotations anchored in it moved from the `<annotations>` section of one to that of the
+  other (one anchored also in what stays, or with an id the other text has, goes as a copy with a
+  new id). Into an empty text the scene takes the place of its empty scene; the only scene of a
+  text stays. The scenes in the plans of both texts keep their places among the scenes of the
+  texts. One step of Ctrl+Z on the board changes both texts back, each in its editor when it is
+  open, else in its file.
 
 ## Stage 3 – settings and the other panels
 

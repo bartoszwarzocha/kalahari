@@ -89,10 +89,8 @@ void PlotBoardCoordinator::moveToText(const QString& cardId, int direction) {
     if (m_book.isReadOnly()) {
         return;
     }
-    if (const auto planned = PlotBoard::plannedOf(cardId)) {
-        movePlannedToText(planned->first, planned->second, direction);
-    } else if (PlotBoard::sceneOf(cardId)) {
-        sceneInEditor();
+    if (const PlotBoard::SceneSlot slot = PlotBoard::slotOf(cardId); slot.index >= 0) {
+        moveToTextBeside(PlotBoard::textOf(cardId), slot, direction);
     }
 }
 
@@ -130,13 +128,7 @@ void PlotBoardCoordinator::dropSceneBeside(const QString& cardId, const QString&
     const qsizetype anchor = order.indexOf(PlotBoard::slotOf(anchorId));
     const qsizetype at = anchor < 0 ? 0 : anchor + (after ? 1 : 0);
     if (anchorText != textId) {
-        // A scene in the plan goes to the plan of the other text; a scene of a text, in the
-        // editor
-        if (slot.planned) {
-            movePlanned(textId, slot.index, anchorText, static_cast<int>(at));
-        } else {
-            sceneInEditor();
-        }
+        moveSlotToText(textId, slot, anchorText, static_cast<int>(at));
         return;
     }
     // Among the scenes of its text: the place in the list without it
@@ -148,12 +140,11 @@ void PlotBoardCoordinator::dropInPart(const QString& elementId, const QString& p
     if (m_book.isReadOnly()) {
         return;
     }
-    if (PlotBoard::textOf(elementId) != elementId) {
-        sceneInEditor();
-        return;
-    }
+    // A scene goes beside a scene or a text, not in a part
     const std::optional<core::ElementPlace> place =
-        PlotBoard::placeInPart(m_book, elementId, partId, false);
+        PlotBoard::textOf(elementId) == elementId
+            ? PlotBoard::placeInPart(m_book, elementId, partId, false)
+            : std::nullopt;
     if (!place) {
         say(tr("\"%1\" cannot be there.").arg(titleOf(elementId)));
         return;
@@ -287,12 +278,8 @@ void PlotBoardCoordinator::paste(const QString& afterId) {
     if (m_panel != nullptr) {
         m_panel->setMarkedCard(QString());
     }
-    if (PlotBoard::plannedOf(marked)) {
-        pastePlanned(marked, afterId);
-        return;
-    }
-    if (const auto markedScene = PlotBoard::sceneOf(marked)) {
-        pasteScene(marked, markedScene->first, markedScene->second, afterId);
+    if (PlotBoard::slotOf(marked).index >= 0) {
+        pasteScene(marked, afterId);
         return;
     }
     // After a scene: after its text
@@ -306,18 +293,24 @@ void PlotBoardCoordinator::paste(const QString& afterId) {
     dropBeside(marked, textId, true);
 }
 
-void PlotBoardCoordinator::pasteScene(const QString& marked, const QString& textId, int scene,
-                                      const QString& afterId) {
-    // A scene: after a scene of its text, or first after the card of its text
-    if (afterId == textId) {
-        placeScene(textId, PlotBoard::SceneSlot{.planned = false, .index = scene}, 0);
-    } else if (afterId == marked) {
+void PlotBoardCoordinator::pasteScene(const QString& marked, const QString& afterId) {
+    const QString textId = PlotBoard::textOf(marked);
+    const PlotBoard::SceneSlot slot = PlotBoard::slotOf(marked);
+    const QString afterText = PlotBoard::textOf(afterId);
+    const std::optional<ScenesState> there = scenesStateOf(afterText);
+    if (afterId == marked || !there) {
         say(QString());
-    } else if (PlotBoard::textOf(afterId) == textId) {
-        dropBeside(marked, afterId, true);
-    } else {
-        sceneInEditor();
+        return;
     }
+    // After a scene, or first after the card of a text
+    const QList<PlotBoard::SceneSlot> order = orderOf(*there);
+    const qsizetype anchor = order.indexOf(PlotBoard::slotOf(afterId));
+    if (afterText != textId) {
+        moveSlotToText(textId, slot, afterText, static_cast<int>(anchor + 1));
+        return;
+    }
+    const qsizetype from = order.indexOf(slot);
+    placeScene(afterText, slot, static_cast<int>(anchor >= from ? anchor : anchor + 1));
 }
 
 }  // namespace kalahari::gui

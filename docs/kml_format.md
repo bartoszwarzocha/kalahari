@@ -638,6 +638,11 @@ Copied text carries the annotations anchored in it: the KML on the clipboard has
 fragment of that annotation, which it then simply joins. The HTML and the plain text on the
 clipboard, for other programs, have no annotations.
 
+A scene moved to another text on the plot board takes the annotations anchored in it from the
+`<annotations>` section of its text to that of the other text (a section is made, or left out
+once it has no annotations); one anchored also in the text the scene leaves, or with an `id` the
+other text has, goes as a copy with a new `id`.
+
 ## Footnotes and endnotes
 
 A note is its number in the text: one character of its paragraph, with the note's text inside

@@ -482,7 +482,7 @@ PlotBoardView::DropTarget PlotBoardView::besideCard(const CardPlace& place, bool
 PlotBoardView::DropTarget PlotBoardView::dropTargetAt(const QPoint& pos,
                                                       const QString& dragged) const {
     if (isScene(dragged)) {
-        return sceneDropTargetAt(pos, dragged, textOfCard(dragged));
+        return sceneDropTargetAt(pos, dragged);
     }
     // Before or after the card under the mouse, or the nearest card of its row
     if (const CardPlace* place = cardNear(pos, false)) {
@@ -495,18 +495,23 @@ PlotBoardView::DropTarget PlotBoardView::dropTargetAt(const QPoint& pos,
 }
 
 PlotBoardView::DropTarget PlotBoardView::sceneDropTargetAt(const QPoint& pos,
-                                                           const QString& dragged,
-                                                           const QString& textId) const {
-    // Before or after a scene of the same text: in columns above or below it, in a drawer on
-    // its left or right
-    const CardPlace* place = cardNear(pos, true);
-    if (place == nullptr || place->id == dragged || textOfCard(place->id) != textId) {
-        return {};
+                                                           const QString& dragged) const {
+    // Before or after a scene, of its text or another: in columns above or below it, in a
+    // drawer on its left or right
+    if (const CardPlace* place = cardNear(pos, true)) {
+        if (place->id == dragged) {
+            return {};
+        }
+        if (m_arrangement == Arrangement::Columns) {
+            return besideCard(*place, pos.y() > place->rect.center().y(), true);
+        }
+        return besideCard(*place, pos.x() > place->rect.center().x(), false);
     }
-    if (m_arrangement == Arrangement::Columns) {
-        return besideCard(*place, pos.y() > place->rect.center().y(), true);
+    // On the card of a text: first among its scenes
+    if (const CardPlace* text = cardNear(pos, false)) {
+        return besideCard(*text, true, true);
     }
-    return besideCard(*place, pos.x() > place->rect.center().x(), false);
+    return {};
 }
 
 bool PlotBoardView::dropsInPart(const BandPlace& band, const QPoint& pos) const {

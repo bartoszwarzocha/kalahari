@@ -10598,11 +10598,6 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>Scena zmieniła się w edytorze: tablica tego nie cofnie.</translation>
     </message>
     <message>
-        <source>A scene moves to another text in the editor: cut it there and paste it in the other text.</source>
-        <extracomment>Under the plot board after a scene was to be moved to another text. In Polish: Scenę do innego tekstu przenosi się w edytorze: wytnij ją tam i wklej w tamtym tekście.</extracomment>
-        <translation>Scenę do innego tekstu przenosi się w edytorze: wytnij ją tam i wklej w tamtym tekście.</translation>
-    </message>
-    <message>
         <source>Added a scene after &quot;%1&quot;.</source>
         <extracomment>Under the plot board after Insert on a scene; %1 the scene. In Polish: Dodano scenę za „%1”.</extracomment>
         <translation>Dodano scenę za „%1”.</translation>
@@ -10722,18 +10717,23 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
     </message>
     <message>
         <source>&quot;%1&quot; moved to &quot;%2&quot;.</source>
-        <extracomment>Under the plot board after a scene in the plan moved to another text; %1 the scene, %2 the title of the text. In Polish: „%1” przeniesiono do „%2”.</extracomment>
+        <extracomment>Under the plot board after a scene moved to another text; %1 the scene, %2 the title of the text. In Polish: „%1” przeniesiono do „%2”.</extracomment>
         <translation>„%1” przeniesiono do „%2”.</translation>
     </message>
     <message>
         <source>&quot;%1&quot; is in the first text of the board.</source>
-        <extracomment>Under the plot board: a scene in the plan of the first text moved back; %1 the scene. In Polish: „%1” jest w pierwszym tekście tablicy.</extracomment>
+        <extracomment>Under the plot board: a scene of the first text moved back; %1 the scene. In Polish: „%1” jest w pierwszym tekście tablicy.</extracomment>
         <translation>„%1” jest w pierwszym tekście tablicy.</translation>
     </message>
     <message>
         <source>&quot;%1&quot; is in the last text of the board.</source>
         <extracomment>In Polish: „%1” jest w ostatnim tekście tablicy.</extracomment>
         <translation>„%1” jest w ostatnim tekście tablicy.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the only scene of its text.</source>
+        <extracomment>Under the plot board: the only scene of a text was to move to another text; %1 the scene. In Polish: „%1” to jedyna scena tekstu.</extracomment>
+        <translation>„%1” to jedyna scena tekstu.</translation>
     </message>
 </context>
 <context>

@@ -39,8 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of the text (a text without breaks gets its second scene), Delete asks whether to delete the
   scene with its text or its break only (its text joins the scene before it). The new scene's
   card is edited at once; Ctrl+Z undoes each of these. An open text takes the change in its
-  editor, as one step of its own Ctrl+Z. A scene moves to another text in the editor, with Cut
-  and Paste.
+  editor, as one step of its own Ctrl+Z.
 - **Scenes in the plan on the plot board** - 2026-11-15. Beside the scenes of a text the board
   shows the scenes planned for it, not written yet, in a dashed frame ("In the Plan"): Insert
   adds one after a scene, Alt+Insert one at the end of the text, F2 edits it, Ctrl with the
@@ -50,6 +49,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   outline has a row of each. The plan is kept in the `.klh` file (`"plot"` / `"planned"`).
   Settings > Plot Board (new) chooses the scenes: of the texts and in their plans (the
   default), of the texts only, or in the plans only, and the colors of the cards.
+- **A scene moved to another text on the plot board** - 2026-11-15. Ctrl with the arrows
+  across the texts (Left and Right in Columns, Up and Down in the drawer of Grid) moves a scene
+  to the end of the text before or the start of the text after; dropped on a scene of another
+  text or on its card, or pasted with Ctrl+V after it, the scene goes there. It takes its text,
+  what it says and the annotations anchored in it along (one anchored also in the text it
+  leaves goes as a copy); into an empty text it comes in place of its empty scene. One Ctrl+Z
+  undoes it in both texts, also when one of them is open in the editor.
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

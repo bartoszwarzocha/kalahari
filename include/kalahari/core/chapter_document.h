@@ -71,6 +71,14 @@ struct SceneText {
     bool operator==(const SceneText&) const = default;
 };
 
+/// @brief Two texts after a scene of one of them moved to the other
+struct SceneMove {
+    SceneText from;  ///< The text the scene left
+    SceneText to;    ///< The text it went to
+
+    bool operator==(const SceneMove&) const = default;
+};
+
 /// @brief Chapter document with JSON+KML storage
 ///
 /// Provides rich metadata, statistics auto-calculation, and disaster
@@ -279,12 +287,21 @@ public:
     /// A scene goes with its text and what it says: the first scene of the text has no break,
     /// and what it says is SceneText::opening, so what comes first takes its break off and
     /// gives what it says to opening, and what was first gets a break. The annotations of the
-    /// text and the headings at its start stay at its start.
+    /// text and the headings at its start stay at its start; a scene moved to another text
+    /// takes the annotations anchored in it along.
     /// @return nullopt for a KML that cannot be read, and for a scene the text does not have
     /// @{
 
     /// @brief @p text with scene @p from at place @p to of its scenes without it (from 0)
     static std::optional<SceneText> withSceneMoved(const SceneText& text, int from, int to);
+
+    /// @brief Scene @p scene of @p from moved to place @p at of the scenes of @p to (0: the
+    ///        first, the number of its scenes: the last), with its text, what it says and the
+    ///        annotations anchored in it; an annotation anchored also in what stays of @p from
+    ///        goes as a copy with a new id
+    /// @return nullopt also for @p from of one scene
+    static std::optional<SceneMove> withSceneMovedTo(const SceneText& from, int scene,
+                                                     const SceneText& to, int at);
 
     /// @brief @p text with a new scene with an empty paragraph at place @p at of its scenes
     ///        (0: the first, the number of its scenes: the last), saying @p plot

@@ -2,8 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file plot_board_coordinator_plan.cpp
-/// @brief The scenes the plot board shows moved among the scenes of their text, and the scenes
-/// in the plans of the texts: written, edited, added, moved and deleted
+/// @brief The scenes the plot board shows moved among the scenes of their text and to other
+/// texts, and the scenes in the plans of the texts: written, edited, added, moved and deleted
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/chapter_document.h"
@@ -81,6 +81,63 @@ QString endOfTextMessage(const QString& name, bool first) {
                ? PlotBoardCoordinator::tr("\"%1\" is the first scene of its text.").arg(name)
                //: In Polish: „%1” to ostatnia scena tekstu.
                : PlotBoardCoordinator::tr("\"%1\" is the last scene of its text.").arg(name);
+}
+
+/// @brief Plan @p plan of a text without its scene @p scene: the scenes in the plan keep their
+/// places among the scenes of the text
+QList<core::PlannedScene> planWithout(QList<core::PlannedScene> plan, int scene) {
+    for (core::PlannedScene& planned : plan) {
+        if (planned.after > scene) {
+            --planned.after;
+        }
+    }
+    return plan;
+}
+
+/// @brief Plan @p plan of a text with a new scene of the text at place @p at of @p order (the
+/// scenes the board shows of the text), place @p place among the scenes of the text
+QList<core::PlannedScene> planWithWritten(QList<SceneSlot> order,
+                                          QList<core::PlannedScene> plan, qsizetype at,
+                                          int place) {
+    if (std::ranges::any_of(order, &SceneSlot::planned)) {
+        // The scenes in the plan the board shows keep their places among the others
+        order.insert(at, SceneSlot{.planned = false, .index = place});
+        return PlotBoard::planInOrder(order, plan);
+    }
+    for (core::PlannedScene& planned : plan) {
+        if (planned.after >= place) {
+            ++planned.after;
+        }
+    }
+    return plan;
+}
+
+/// @brief Scene @p scene of @p from moved to place @p place of the scenes of @p to; to an
+/// empty text, in place of its empty scene
+std::optional<core::SceneMove> sceneMoved(const core::SceneText& from, int scene,
+                                          const core::SceneText& to, int place) {
+    if (!isEmptyText(to)) {
+        return core::ChapterDocument::withSceneMovedTo(from, scene, to, place);
+    }
+    std::optional<core::SceneMove> moved =
+        core::ChapterDocument::withSceneMovedTo(from, scene, to, 0);
+    if (!moved) {
+        return std::nullopt;
+    }
+    const std::optional<core::SceneText> alone =
+        core::ChapterDocument::withoutScene(moved->to, 1, false);
+    if (!alone) {
+        return std::nullopt;
+    }
+    moved->to = *alone;
+    return moved;
+}
+
+/// @brief What the board says after scene @p name moved to the text titled @p title
+QString movedToMessage(const QString& name, const QString& title) {
+    //: Under the plot board after a scene moved to another text; %1 the scene, %2 the title
+    //: of the text. In Polish: „%1” przeniesiono do „%2”.
+    return PlotBoardCoordinator::tr(R"("%1" moved to "%2".)").arg(name, title);
 }
 
 }  // namespace
@@ -263,49 +320,69 @@ void PlotBoardCoordinator::movePlanned(const QString& textId, int index,
     changeScenes({ScenesChange{.textId = textId, .before = *from, .wanted = fromWanted},
                   ScenesChange{.textId = targetId, .before = *to, .wanted = toWanted}},
                  PlotBoard::plannedId(targetId, placed),
-                 //: Under the plot board after a scene in the plan moved to another text; %1
-                 //: the scene, %2 the title of the text. In Polish: „%1” przeniesiono do
-                 //: „%2”.
-                 tr(R"("%1" moved to "%2".)").arg(name, textTitleOf(targetId)),
+                 movedToMessage(name, textTitleOf(targetId)),
                  tr("moving \"%1\"").arg(name));
 }
 
-void PlotBoardCoordinator::movePlannedToText(const QString& textId, int index, int direction) {
+void PlotBoardCoordinator::moveSceneToText(const QString& textId, int scene,
+                                           const QString& targetId, int at) {
+    const std::optional<ScenesState> from = scenesStateOf(textId);
+    const std::optional<ScenesState> to = scenesStateOf(targetId);
+    if (!from || !to || targetId == textId) {
+        return;
+    }
+    const QString name = titleOf(PlotBoard::sceneId(textId, scene));
+    if (sceneCount(textId) < 2) {
+        //: Under the plot board: the only scene of a text was to move to another text; %1 the
+        //: scene. In Polish: „%1” to jedyna scena tekstu.
+        say(tr("\"%1\" is the only scene of its text.").arg(name));
+        return;
+    }
+    const QList<SceneSlot> order = orderOf(*to);
+    const qsizetype slot = std::clamp<qsizetype>(at, 0, order.size());
+    const bool empty = isEmptyText(to->text);
+    const int place = empty ? 0 : writtenBefore(order, slot);
+    const std::optional<core::SceneMove> moved = sceneMoved(from->text, scene, to->text, place);
+    if (!moved) {
+        notSaved();
+        return;
+    }
+    const ScenesState fromWanted{.text = moved->from, .plan = planWithout(from->plan, scene)};
+    const ScenesState toWanted{
+        .text = moved->to,
+        .plan = empty ? to->plan : planWithWritten(order, to->plan, slot, place)};
+    changeScenes({ScenesChange{.textId = textId, .before = *from, .wanted = fromWanted},
+                  ScenesChange{.textId = targetId, .before = *to, .wanted = toWanted}},
+                 PlotBoard::sceneId(targetId, place), movedToMessage(name, textTitleOf(targetId)),
+                 tr("moving \"%1\"").arg(name));
+}
+
+void PlotBoardCoordinator::moveSlotToText(const QString& textId, const SceneSlot& slot,
+                                          const QString& targetId, int at) {
+    if (slot.planned) {
+        movePlanned(textId, slot.index, targetId, at);
+    } else {
+        moveSceneToText(textId, slot.index, targetId, at);
+    }
+}
+
+void PlotBoardCoordinator::moveToTextBeside(const QString& textId, const SceneSlot& slot,
+                                            int direction) {
     const QString target = textBeside(textId, direction);
     const std::optional<ScenesState> there = scenesStateOf(target);
     if (!there) {
-        const QString name = titleOf(PlotBoard::plannedId(textId, index));
+        const QString name = titleOf(PlotBoard::slotId(textId, slot));
         say(direction < 0
-                //: Under the plot board: a scene in the plan of the first text moved back; %1
-                //: the scene. In Polish: „%1” jest w pierwszym tekście tablicy.
+                //: Under the plot board: a scene of the first text moved back; %1 the scene. In
+                //: Polish: „%1” jest w pierwszym tekście tablicy.
                 ? tr("\"%1\" is in the first text of the board.").arg(name)
                 //: In Polish: „%1” jest w ostatnim tekście tablicy.
                 : tr("\"%1\" is in the last text of the board.").arg(name));
         return;
     }
     // To the end of the text before it, to the start of the text after it
-    movePlanned(textId, index, target,
-                direction < 0 ? static_cast<int>(orderOf(*there).size()) : 0);
-}
-
-void PlotBoardCoordinator::pastePlanned(const QString& marked, const QString& afterId) {
-    const auto planned = PlotBoard::plannedOf(marked);
-    const QString afterText = PlotBoard::textOf(afterId);
-    const std::optional<ScenesState> there = scenesStateOf(afterText);
-    if (!planned || afterId == marked || !there) {
-        say(QString());
-        return;
-    }
-    // After a scene, or first after the card of a text
-    const SceneSlot slot{.planned = true, .index = planned->second};
-    const QList<SceneSlot> order = orderOf(*there);
-    const qsizetype anchor = order.indexOf(PlotBoard::slotOf(afterId));
-    if (afterText != planned->first) {
-        movePlanned(planned->first, planned->second, afterText, static_cast<int>(anchor + 1));
-        return;
-    }
-    const qsizetype from = order.indexOf(slot);
-    placeScene(afterText, slot, static_cast<int>(anchor >= from ? anchor : anchor + 1));
+    moveSlotToText(textId, slot, target,
+                   direction < 0 ? static_cast<int>(orderOf(*there).size()) : 0);
 }
 
 QString PlotBoardCoordinator::textBeside(const QString& textId, int direction) const {

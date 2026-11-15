@@ -22,6 +22,7 @@
 #include <QTemporaryDir>
 #include <QFile>
 #include <QJsonDocument>
+#include <QRegularExpression>
 #include <QThread>
 
 #include <filesystem>
@@ -980,5 +981,112 @@ TEST_CASE("ChapterDocument: the scenes of a text moved, added and deleted",
             ChapterDocument::withoutScene(SceneText{QStringLiteral("<kml><p>a</p></kml>"), {}}, 0,
                                           false)
                 .has_value());
+    }
+}
+
+TEST_CASE("ChapterDocument: a scene moved to another text takes its annotations along",
+          "[core][chapter_document][scenes]") {
+    ScenePlot evening;
+    evening.title = QStringLiteral("Evening");
+    ScenePlot night;
+    night.title = QStringLiteral("Night");
+    const SceneText from{
+        .kml = QStringLiteral(
+            "<kml><annotations><annotation id=\"a1\" kind=\"note\">N</annotation>"
+            "<annotation id=\"a2\" kind=\"comment\" author=\"Ola\">C</annotation>"
+            "<annotation id=\"a3\" kind=\"todo\">T</annotation></annotations>"
+            "<p><anchor ref=\"a1\">One</anchor></p><scene-break title=\"Night\"/>"
+            "<p><anchor ref=\"a2\">Two</anchor> <anchor ref=\"a3\"/>x</p></kml>"),
+        .opening = evening};
+    const SceneText to{.kml = QStringLiteral("<kml><h1>Rain</h1><p>Three</p></kml>"),
+                       .opening = {}};
+
+    SECTION("at the end of the other text, with the annotations anchored in it") {
+        const std::optional<SceneMove> moved = ChapterDocument::withSceneMovedTo(from, 1, to, 1);
+        REQUIRE(moved.has_value());
+        CHECK(moved->from.kml.toStdString() ==
+              "<kml><annotations><annotation id=\"a1\" kind=\"note\">N</annotation>"
+              "</annotations><p><anchor ref=\"a1\">One</anchor></p></kml>");
+        CHECK(moved->from.opening == evening);
+        CHECK(moved->to.kml.toStdString() ==
+              "<kml><annotations><annotation id=\"a2\" kind=\"comment\" author=\"Ola\">C"
+              "</annotation><annotation id=\"a3\" kind=\"todo\">T</annotation></annotations>"
+              "<h1>Rain</h1><p>Three</p><scene-break title=\"Night\"/>"
+              "<p><anchor ref=\"a2\">Two</anchor> <anchor ref=\"a3\"/>x</p></kml>");
+        CHECK(moved->to.opening == ScenePlot{});
+    }
+
+    SECTION("first in the other text: what it says is the opening, the first scene a break") {
+        const std::optional<SceneMove> moved = ChapterDocument::withSceneMovedTo(from, 1, to, 0);
+        REQUIRE(moved.has_value());
+        CHECK(moved->to.kml.endsWith(
+            QStringLiteral("<h1>Rain</h1><p><anchor ref=\"a2\">Two</anchor> <anchor ref=\"a3\"/>"
+                           "x</p><scene-break/><p>Three</p></kml>")));
+        CHECK(moved->to.opening == night);
+
+        // The first scene of a text moved: the next one is its first, the last one has none
+        const std::optional<SceneMove> first = ChapterDocument::withSceneMovedTo(from, 0, to, 1);
+        REQUIRE(first.has_value());
+        CHECK(first->from.kml.toStdString() ==
+              "<kml><annotations><annotation id=\"a2\" kind=\"comment\" author=\"Ola\">C"
+              "</annotation><annotation id=\"a3\" kind=\"todo\">T</annotation></annotations>"
+              "<p><anchor ref=\"a2\">Two</anchor> <anchor ref=\"a3\"/>x</p></kml>");
+        CHECK(first->from.opening == night);
+        CHECK(first->to.kml.toStdString() ==
+              "<kml><annotations><annotation id=\"a1\" kind=\"note\">N</annotation>"
+              "</annotations><h1>Rain</h1><p>Three</p><scene-break title=\"Evening\"/>"
+              "<p><anchor ref=\"a1\">One</anchor></p></kml>");
+        const SceneText noAnnotations{
+            .kml = QStringLiteral("<kml><p>a</p><scene-break/><p>b</p></kml>"), .opening = {}};
+        const std::optional<SceneMove> plain =
+            ChapterDocument::withSceneMovedTo(noAnnotations, 1, to, 1);
+        REQUIRE(plain.has_value());
+        CHECK(plain->from.kml.toStdString() == "<kml><p>a</p></kml>");
+        CHECK(plain->to.kml.toStdString() ==
+              "<kml><h1>Rain</h1><p>Three</p><scene-break/><p>b</p></kml>");
+    }
+
+    SECTION("an annotation anchored also in what stays goes as a copy with a new id") {
+        const SceneText both{
+            .kml = QStringLiteral("<kml><annotations><annotation id='a1' kind='note'>N"
+                                  "</annotation></annotations><p><anchor ref='a1'>One</anchor>"
+                                  "</p><scene-break/><p><anchor ref='a1'>Two</anchor></p></kml>"),
+            .opening = {}};
+        const std::optional<SceneMove> moved = ChapterDocument::withSceneMovedTo(both, 1, to, 1);
+        REQUIRE(moved.has_value());
+        CHECK(moved->from.kml.toStdString() ==
+              "<kml><annotations><annotation id='a1' kind='note'>N</annotation></annotations>"
+              "<p><anchor ref='a1'>One</anchor></p></kml>");
+        static const QRegularExpression ANCHOR(QStringLiteral(R"re(<anchor ref="([^"]+)">Two<)re"));
+        const QRegularExpressionMatch anchor = ANCHOR.match(moved->to.kml);
+        REQUIRE(anchor.hasMatch());
+        const QString id = anchor.captured(1);
+        CHECK(id != QStringLiteral("a1"));
+        CHECK(moved->to.kml.contains(
+            QStringLiteral("<annotation id=\"%1\" kind='note'>N</annotation>").arg(id)));
+
+        // The other text has the id already: a copy too
+        const SceneText taken{
+            .kml = QStringLiteral("<kml><annotations><annotation id=\"a2\" kind=\"note\">Mine"
+                                  "</annotation></annotations><p><anchor ref=\"a2\">Three"
+                                  "</anchor></p></kml>"),
+            .opening = {}};
+        const std::optional<SceneMove> copied =
+            ChapterDocument::withSceneMovedTo(from, 1, taken, 1);
+        REQUIRE(copied.has_value());
+        CHECK(copied->to.kml.contains(QStringLiteral("<anchor ref=\"a2\">Three</anchor>")));
+        CHECK_FALSE(copied->to.kml.contains(QStringLiteral("<anchor ref=\"a2\">Two</anchor>")));
+        CHECK(copied->to.kml.contains(QStringLiteral("<anchor ref=\"a3\"/>")));
+        CHECK(copied->to.kml.count(QStringLiteral("<annotation ")) == 3);
+    }
+
+    SECTION("no such scene or place, a text of one scene, a KML that cannot be read") {
+        CHECK_FALSE(ChapterDocument::withSceneMovedTo(from, 2, to, 0).has_value());
+        CHECK_FALSE(ChapterDocument::withSceneMovedTo(from, 1, to, 2).has_value());
+        CHECK_FALSE(ChapterDocument::withSceneMovedTo(from, -1, to, 0).has_value());
+        CHECK_FALSE(ChapterDocument::withSceneMovedTo(to, 0, from, 0).has_value());
+        CHECK_FALSE(ChapterDocument::withSceneMovedTo(
+                        from, 1, SceneText{QStringLiteral("<kml><p>a</kml>"), {}}, 0)
+                        .has_value());
     }
 }

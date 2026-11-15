@@ -220,6 +220,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/trusted_keys.cpp
     ${CMAKE_SOURCE_DIR}/src/core/python_interpreter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/chapter_scenes.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_versions.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_diff.cpp
     ${CMAKE_SOURCE_DIR}/src/core/text_statistics.cpp

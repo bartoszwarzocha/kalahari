@@ -437,6 +437,7 @@ private:
 class PlotBoardPage : public SettingsPage {
     Q_OBJECT
 public:
+    /// @brief The page with its fields bound to their settings
     explicit PlotBoardPage(QWidget* parent = nullptr);
 };
 

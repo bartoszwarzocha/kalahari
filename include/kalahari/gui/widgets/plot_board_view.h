@@ -55,7 +55,8 @@ struct PlotCardEdit {
 ///
 /// A card dragged with the mouse goes before or after the card it is dropped on, or into the
 /// empty part or at the start of the part whose title it is dropped on; a scene goes before or
-/// after another scene of its text. On a scene the keys move, add and delete scenes of its
+/// after another scene, of its text or another, or first among the scenes of the text whose
+/// card it is dropped on. On a scene the keys move, add and delete scenes of its
 /// text: Ctrl with the arrows along the scenes moves it among them, with the other arrows to
 /// the text beside (moveToTextRequested()), Insert adds a scene after it, Delete deletes it.
 class PlotBoardView : public QAbstractScrollArea {
@@ -330,9 +331,9 @@ private:
     /// @brief Before or after @p place: on its left or right, or above or below (@p vertical)
     [[nodiscard]] static DropTarget besideCard(const CardPlace& place, bool after, bool vertical);
     [[nodiscard]] DropTarget dropTargetAt(const QPoint& pos, const QString& dragged) const;
-    /// @brief Where scene @p dragged of text @p textId goes: beside another scene of its text
-    [[nodiscard]] DropTarget sceneDropTargetAt(const QPoint& pos, const QString& dragged,
-                                               const QString& textId) const;
+    /// @brief Where scene @p dragged goes: beside another scene, or first among the scenes of
+    /// the text whose card it is on (the marker under the card)
+    [[nodiscard]] DropTarget sceneDropTargetAt(const QPoint& pos, const QString& dragged) const;
     /// @brief Where a text dropped on a part or beyond the last card of a band goes
     [[nodiscard]] DropTarget bandDropTargetAt(const QPoint& pos, const QString& dragged) const;
     /// @brief Scroll the board while a card is dragged near its edges
