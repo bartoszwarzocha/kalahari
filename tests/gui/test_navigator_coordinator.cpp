@@ -859,9 +859,11 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     }
     TestFileChooser chooser(picture);
 
-    // The Workshop has the groups of the kinds the program makes, also empty: the working
-    // notes and the kinds of materials, in Materials
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
+    // The Workshop has the groups of the kinds the program makes, also empty: the cards of
+    // the characters, the locations and the items, then the working notes and the kinds of
+    // materials, in Materials
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
+          "Characters, Locations, Items, Materials");
     CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
           "Working notes, Cover, Quotes, Web pages, Pictures, Documents, Publications, "
           "Recordings, Other files");
@@ -1111,16 +1113,18 @@ TEST_CASE("Navigator commands: the book and the Workshop are named and the Works
     CHECK(novel.savedProject().workshop.name.isEmpty());
     CHECK(workshopItem()->text(0) == QStringLiteral("Workshop"));
 
-    // Grouped or not, the working notes and the materials are in Materials
+    // Grouped or not, the working notes and the materials are in Materials; grouped, the
+    // cards are in Libraries
     navigator.coordinator.onRequestWorkshopGrouped(true);
     CHECK(pm.project()->workshop.grouped);
     CHECK(novel.savedProject().workshop.grouped);
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Libraries, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop grouped"));
     navigator.coordinator.onRequestWorkshopGrouped(false);
     CHECK_FALSE(pm.project()->workshop.grouped);
     CHECK_FALSE(novel.savedProject().workshop.grouped);
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
+          "Characters, Locations, Items, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop not grouped"));
 }
 
@@ -1255,10 +1259,11 @@ TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add...
     CHECK(navigator.addCommandsOf(navigator.item(chapter)) ==
           QStringList{"Add...", "Add Chapter..."});
     CHECK(navigator.addCommandsOf(navigator.item(dedication)) == QStringList{"Add..."});
-    // The Workshop and Materials leave the many kinds of materials to the window; a group
-    // of a kind of materials names its kind
+    // The Workshop and Materials leave the many kinds of materials to the window, the
+    // Workshop names the cards; a group of a kind of materials names its kind
     CHECK(navigator.addCommandsOf(navigator.section(QStringLiteral("workshop"))) ==
-          QStringList{"Add...", "Add Working note..."});
+          QStringList{"Add...", "Add Character...", "Add Location...", "Add Item...",
+                      "Add Working note..."});
     CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:materials"))) ==
           QStringList{"Add...", "Add Working note..."});
     CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:kalahari.base:quote"))) ==

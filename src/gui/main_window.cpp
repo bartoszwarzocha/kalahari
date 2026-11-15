@@ -607,6 +607,7 @@ MainWindow::MainWindow(QWidget* parent)
                         QString::fromLatin1(SettingsDialog::VERSIONS_PAGE));
                 }
             });
+    connectCards();
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
@@ -2562,6 +2563,28 @@ void MainWindow::onAbout() {
 }
 
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
+
+void MainWindow::connectCards() {
+    PropertiesPanel* properties = m_dockCoordinator->propertiesPanel();
+    connect(properties, &PropertiesPanel::requestOpenCard, this,
+            [this](const QString& elementId) {
+                if (const core::ProjectElement* element = book().findElement(elementId);
+                    element != nullptr) {
+                    m_navigatorCoordinator->onElementSelected(elementId, element->title);
+                }
+            });
+    const auto openCardSettings = [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::CARDS_PAGE));
+        }
+    };
+    connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
+            openCardSettings);
+    connect(properties, &PropertiesPanel::cardMaterialAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::refreshNavigator);
+}
 
 void MainWindow::createDocks() {
     auto& logger = core::Logger::getInstance();

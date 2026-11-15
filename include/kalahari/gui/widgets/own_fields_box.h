@@ -5,7 +5,8 @@
 /// @brief The writer's own fields of an element of the Workshop: of a material, of a card of a
 /// character, a location or an item
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_OWN_FIELDS_BOX_H
+#define KALAHARI_GUI_WIDGETS_OWN_FIELDS_BOX_H
 
 #include "kalahari/core/book_project.h"
 
@@ -21,8 +22,7 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 /// @brief The group "Own Fields": a name and a value each, in the writer's order
 ///
@@ -44,16 +44,19 @@ public:
     OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix, const QString& tableName,
                  bool stretch, QWidget* parent = nullptr);
 
-    /// @brief Show the fields of element @p elementId; the cell being edited keeps what is
-    /// typed in it only when nothing changed
+    /// @brief Show the fields of element @p elementId; when they are those it shows or saved
+    /// last, the cell being edited keeps what is typed in it
     void showFields(const QString& elementId, const QList<core::ElementField>& fields);
 
     /// @brief The buttons follow the rows and a book open read-only
     void updateButtons();
 
-    QTableWidget* table() const { return m_table; }
-    QToolButton* addButton() const { return m_addButton; }
-    QToolButton* removeButton() const { return m_removeButton; }
+    /// @brief The table of the fields: a name and a value in each row
+    [[nodiscard]] QTableWidget* table() const { return m_table; }
+    /// @brief "+": a new field
+    [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
+    /// @brief "-": the current field goes
+    [[nodiscard]] QToolButton* removeButton() const { return m_removeButton; }
 
 public slots:
     /// @brief Add a field at the end, with the keys in its name
@@ -67,21 +70,27 @@ signals:
     void changed(const QString& elementId);
 
 protected:
+    /// @brief The keys of the table: Insert, Delete, Tab from a name to its value
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     /// @brief Save the fields of the table, in its order
     void saveFields();
 
+    /// @brief The current row goes when it has neither a name nor a value: a new field left
+    /// as it was added
+    void dropEmptyRow();
+
     /// @brief The fields that the table shows
-    QList<core::ElementField> tableFields() const;
+    [[nodiscard]] QList<core::ElementField> tableFields() const;
 
     /// @brief The table as high as its rows, or the sentence without rows
     void fitTable();
 
     core::ProjectManager& m_book;
     QString m_elementId;
-    QList<core::ElementField> m_fields;  ///< The fields as saved, with what the table hides
+    QList<core::ElementField> m_fields;  ///< The fields of the rows, with what the table hides
+    QList<core::ElementField> m_saved;   ///< The fields of the book, as shown or saved last
     bool m_updating = false;             ///< The table is being filled: no saving
     QTableWidget* m_table = nullptr;
     QLabel* m_emptyLabel = nullptr;
@@ -89,5 +98,6 @@ private:
     QToolButton* m_removeButton = nullptr;
 };
 
-}  // namespace gui
-}  // namespace kalahari
+}  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_OWN_FIELDS_BOX_H

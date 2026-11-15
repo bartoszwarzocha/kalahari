@@ -18,6 +18,7 @@
 #include "kalahari/gui/material_source.h"
 
 #include <QWidget>
+#include <QColor>
 #include <QHash>
 #include <QIcon>
 #include <QMap>
@@ -217,6 +218,10 @@ public:
     /// @brief Whether @p item is a material of the Workshop of the book open in @p book
     static bool isMaterialItem(const core::ProjectManager& book, const QTreeWidgetItem* item);
 
+    /// @brief The color of the dot of a card at the right of @p item; invalid when it shows
+    /// none (another element, or the setting core::CardColors::NAVIGATOR_DOT_SETTING)
+    [[nodiscard]] static QColor cardColorOf(const QTreeWidgetItem* item);
+
     /// @brief The format of the dragged nodes of the tree that a material can be linked with:
     /// their links, one in a line (linkOf())
     static constexpr const char* LINKS_MIME_TYPE = "application/x-kalahari-links";
@@ -237,7 +242,8 @@ public:
     std::optional<AddTarget> addTargetOf(const QTreeWidgetItem* item) const;
 
     /// @brief New settings: the "+" button follows what the Add Element window can be opened
-    /// on (addChooser())
+    /// on (addChooser()), and the cards show their colors or not
+    /// (core::CardColors::NAVIGATOR_DOT_SETTING)
     void onSettingsChanged();
 
     /// @brief The tree of the project
@@ -670,6 +676,10 @@ private:
     /// @param ids List of item IDs to expand
     /// @note Handles both regular IDs and "type:<elementType>:<text>" format
     void expandItemsById(const QStringList& ids);
+
+    /// @brief The dot of the color of card @p element at the right of @p item, while the
+    /// setting shows it; none for another element
+    static void showCardColor(QTreeWidgetItem* item, const core::ProjectElement& element);
 
     /// @brief Move @p item of a group of the Workshop to the place of its title among the
     /// others; the tree keeps its current item, the items open under it and its scroll, and

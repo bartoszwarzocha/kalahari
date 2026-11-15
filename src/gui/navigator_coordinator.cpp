@@ -19,6 +19,8 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/card_page.h"
+#include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/kind_names.h"
@@ -321,14 +323,15 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         // Still create tab but with empty content
     }
 
-    // Create new editor tab with the element's icon, as in the navigator
+    // Create new editor tab with the element's icon, as in the navigator; a character, a
+    // location or an item has its full card, with its text beside its data
     logElapsed("Before new EditorPanel");
-    EditorPanel* newEditor = new EditorPanel(m_book, m_commands, m_centralTabs);
+    const core::ProjectElement* element = pm.findElement(elementId);
+    EditorPanel* newEditor = createEditorPanel(element, elementId);
     logElapsed("After new EditorPanel");
     // A chapter of a book open read-only is read, copied and searched only; before the tab
     // comes, as the commands follow the tab in front
     newEditor->getBookEditor()->setReadOnly(pm.isReadOnly());
-    const core::ProjectElement* element = pm.findElement(elementId);
     // The margins of its pages: its first page is a right one unless it says otherwise
     newEditor->setFirstPageLeft(element != nullptr && element->firstPageLeft);
     // A kind the program does not have: its icon on the book's card of its package
@@ -399,6 +402,29 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         const core::KindWords kind = element ? wordsOf(m_book, *element) : mainWords(m_book);
         EditorPanel::warnDamagedChapter(m_centralTabs->window(), elementTitle, &kind);
     }
+}
+
+EditorPanel* NavigatorCoordinator::createEditorPanel(const core::ProjectElement* element,
+                                                     const QString& elementId) {
+    if (element != nullptr && m_book.isCard(*element)) {
+        return createCardPanel(elementId);
+    }
+    return new EditorPanel(m_book, m_commands, m_centralTabs);
+}
+
+CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
+    auto* panel = new CardPanel(m_book, m_commands, elementId, m_centralTabs);
+    const CardPage* page = panel->page();
+    // A new name on the card: its tab, the Navigator and the short card show it
+    connect(page, &CardPage::titleChanged, this, [this](const QString& cardId) {
+        refreshTabTitle(cardId);
+        m_navigatorPanel->refreshItem(cardId);
+    });
+    // A portrait from a file is a new material of the Workshop
+    connect(page, &CardPage::materialAdded, this, &NavigatorCoordinator::refreshNavigator);
+    connect(page, &CardPage::requestSettings, this,
+            &NavigatorCoordinator::cardSettingsRequested);
+    return panel;
 }
 
 void NavigatorCoordinator::onRequestRename(const QString& elementId, const QString& currentTitle) {

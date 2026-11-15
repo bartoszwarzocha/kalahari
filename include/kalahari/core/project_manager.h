@@ -719,13 +719,14 @@ public:
     /// kind of materials (ElementKind::isMaterial())
     bool isMaterial(const ProjectElement& element) const;
 
-    /// @brief Give element @p elementId the description @p description and save the .klh file
+    /// @brief Give element @p elementId the description @p description and save the .klh file;
+    /// for a card, its short description, cardChanged() tells of a change
     /// @return false when the project has no such element or the file cannot be written; the
     ///         element keeps its description then
     bool setDescription(const QString& elementId, const QString& description);
 
     /// @brief Give element @p elementId the writer's own fields @p fields, in this order, and
-    /// save the .klh file
+    /// save the .klh file; for a card, cardChanged() tells of a change
     /// @return false when the project has no such element or the file cannot be written; the
     ///         element keeps its fields then
     bool setFields(const QString& elementId, const QList<ElementField>& fields);
@@ -781,7 +782,7 @@ public:
 
     /// @brief Whether @p element is a card: a text element of a kind of cards
     /// (ElementKind::isCard())
-    bool isCard(const ProjectElement& element) const;
+    [[nodiscard]] bool isCard(const ProjectElement& element) const;
 
     /// @brief Give card @p elementId the data @p card (the values of its fields, its color and
     /// its portraits) and save the .klh file; cardChanged() tells of a change
@@ -795,7 +796,16 @@ public:
 
     /// @brief The color of a new card: the next of the palette of the Settings
     /// (CardColors::next()) after the colors of the cards of the project
-    QString newCardColor() const;
+    [[nodiscard]] QString newCardColor() const;
+
+    /// @brief The titles of the cards of kind @p kindId of package @p packageId, each once and
+    /// sorted, without card @p exceptId: what a field of the type "card" suggests
+    [[nodiscard]] QStringList cardTitles(const QString& packageId, const QString& kindId,
+                                         const QString& exceptId = QString()) const;
+
+    /// @brief The materials of the Workshop whose file is a picture (MaterialKinds::
+    /// isPictureName()), in the order of the Workshop: what a card can have as its portrait
+    [[nodiscard]] QList<const ProjectElement*> pictureMaterials() const;
 
     // =========================================================================
     // Paragraph Styles of the Books
@@ -1074,8 +1084,9 @@ signals:
     /// @brief Element @p elementId got another title (renameElement())
     void elementRenamed(const QString& elementId);
 
-    /// @brief What card @p elementId has beside its text changed: the values of its fields,
-    /// its color or its portraits (setCard(), or a picture of a portrait deleted)
+    /// @brief What card @p elementId has beside its text changed: its short description
+    /// (setDescription()), the values of its fields, its color or its portraits (setCard(), or
+    /// a picture of a portrait deleted)
     void cardChanged(const QString& elementId);
 
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the

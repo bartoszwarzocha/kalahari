@@ -166,6 +166,7 @@ set(TEST_SOURCES
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
+    gui/test_card_page.cpp                       # The cards of characters, locations and items
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
@@ -331,6 +332,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/cards_page.cpp  # Settings > Cards
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
@@ -491,6 +493,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_page.cpp             # The card of a material in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/list_parts.cpp               # The parts of the lists of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/own_fields_box.cpp           # The writer's own fields of an element
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/card_page.cpp                 # The card of a character, a location, an item
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/card_panel.cpp                # The full card on a tab
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/palette_edit.cpp             # A palette of colors to change
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
@@ -646,6 +651,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT

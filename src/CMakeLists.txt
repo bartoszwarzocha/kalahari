@@ -280,6 +280,7 @@ set(KALAHARI_SOURCES
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
+    gui/settings/cards_page.cpp  # Settings > Cards
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
@@ -337,6 +338,9 @@ set(KALAHARI_SOURCES
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/widgets/list_parts.cpp    # The buttons, sentences, heights and keys of the lists of the cards
     gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
+    gui/widgets/palette_edit.cpp  # PaletteEdit - a palette of colors to change in the Settings
+    gui/panels/card_page.cpp      # CardPage - the card of a character, a location or an item
+    gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
     gui/panels/paragraph_panel.cpp
@@ -536,6 +540,9 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT

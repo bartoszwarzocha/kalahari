@@ -23,6 +23,7 @@
 #include "kalahari/gui/utils/file_location.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/card_data.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/package_card.h"
@@ -82,6 +83,9 @@ constexpr int WORKSHOP_ROLE = Qt::UserRole + 6;
 /// The number of the elements of the Materials of the Workshop, and of each of its groups,
 /// which the tree shows at the right of the name
 constexpr int COUNT_ROLE = Qt::UserRole + 7;
+/// The color of a card (core::CardData::color) as a dot at the right of its row, while the
+/// setting core::CardColors::NAVIGATOR_DOT_SETTING shows it
+constexpr int COLOR_ROLE = Qt::UserRole + 8;
 /// Room between the name of a node and its number, in multiples of the width of a space
 constexpr int COUNT_GAP = 3;
 /// Room between the number of a node and the right edge of the tree, in multiples of the width
@@ -295,8 +299,16 @@ std::optional<kalahari::core::ElementPlace> placeBeyondList(
     return std::nullopt;
 }
 
-/// Draws the number of a node that has one (COUNT_ROLE) at the right of the row, grey, and
-/// shortens the name to leave room for it
+/// The colors of a row in state @p state: of a disabled, an active or an inactive one
+QPalette::ColorGroup colorGroupOf(QStyle::State state) {
+    if (!state.testFlag(QStyle::State_Enabled)) {
+        return QPalette::Disabled;
+    }
+    return state.testFlag(QStyle::State_Active) ? QPalette::Active : QPalette::Inactive;
+}
+
+/// Draws at the right of the row the number of a node that has one (COUNT_ROLE), grey, or the
+/// color of a card (COLOR_ROLE) as a dot, and shortens the name to leave room for it
 class CountDelegate : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
@@ -304,7 +316,8 @@ public:
     void paint(QPainter* painter, const QStyleOptionViewItem& option,
                const QModelIndex& index) const override {
         const QVariant count = index.data(COUNT_ROLE);
-        if (!count.isValid()) {
+        const auto color = index.data(COLOR_ROLE).value<QColor>();
+        if (!count.isValid() && !color.isValid()) {
             QStyledItemDelegate::paint(painter, option, index);
             return;
         }
@@ -312,42 +325,55 @@ public:
         initStyleOption(&item, index);
         const QWidget* widget = option.widget;
         QStyle* style = widget ? widget->style() : QApplication::style();
-        const QString number = QLocale().toString(count.toInt());
-        const int room = item.fontMetrics.horizontalAdvance(number) + gap(item.fontMetrics) +
-                         margin(item.fontMetrics);
+        const QString number = count.isValid() ? QLocale().toString(count.toInt()) : QString();
         const QRect textRect = style->subElementRect(QStyle::SE_ItemViewItemText, &item, widget);
-        item.text = item.fontMetrics.elidedText(item.text, item.textElideMode,
-                                                std::max(0, textRect.width() - room));
+        item.text = item.fontMetrics.elidedText(
+            item.text, item.textElideMode,
+            std::max(0, textRect.width() - room(item.fontMetrics, number, color)));
         style->drawControl(QStyle::CE_ItemViewItem, &item, painter, widget);
 
-        // On the selected row in the color of its text, elsewhere grey
-        const bool selected = (option.state & QStyle::State_Selected) != 0;
-        const QPalette::ColorGroup group = (option.state & QStyle::State_Enabled) == 0
-                                               ? QPalette::Disabled
-                                           : (option.state & QStyle::State_Active) != 0
-                                               ? QPalette::Active
-                                               : QPalette::Inactive;
         painter->save();
-        painter->setFont(item.font);
-        painter->setPen(option.palette.color(
-            group, selected ? QPalette::HighlightedText : QPalette::PlaceholderText));
-        painter->drawText(textRect.adjusted(0, 0, -margin(item.fontMetrics), 0),
-                          Qt::AlignRight | Qt::AlignVCenter, number);
+        const QRect right = textRect.adjusted(0, 0, -margin(item.fontMetrics), 0);
+        if (color.isValid()) {
+            // A dot of the color, with a rim that keeps a light or dark one on any row
+            const int size = dotSize(item.fontMetrics);
+            const QRectF dot(right.right() - size + 1, right.center().y() - size / 2.0 + 1,
+                             size, size);
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->setPen(QPen(option.palette.color(QPalette::Mid), 1.0));
+            painter->setBrush(color);
+            painter->drawEllipse(dot);
+        } else {
+            // On the selected row in the color of its text, elsewhere grey
+            const bool selected = option.state.testFlag(QStyle::State_Selected);
+            painter->setFont(item.font);
+            painter->setPen(
+                option.palette.color(colorGroupOf(option.state),
+                                     selected ? QPalette::HighlightedText : QPalette::PlaceholderText));
+            painter->drawText(right, Qt::AlignRight | Qt::AlignVCenter, number);
+        }
         painter->restore();
     }
 
     QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         const QVariant count = index.data(COUNT_ROLE);
-        if (count.isValid()) {
-            const QString number = QLocale().toString(count.toInt());
-            size.rwidth() += option.fontMetrics.horizontalAdvance(number) +
-                             gap(option.fontMetrics) + margin(option.fontMetrics);
+        const auto color = index.data(COLOR_ROLE).value<QColor>();
+        if (count.isValid() || color.isValid()) {
+            const QString number =
+                count.isValid() ? QLocale().toString(count.toInt()) : QString();
+            size.rwidth() += room(option.fontMetrics, number, color);
         }
         return size;
     }
 
 private:
+    /// The room at the right of the name: for the number or the dot, the gap and the margin
+    static int room(const QFontMetrics& metrics, const QString& number, const QColor& color) {
+        const int mark = color.isValid() ? dotSize(metrics) : metrics.horizontalAdvance(number);
+        return mark + gap(metrics) + margin(metrics);
+    }
+
     static int gap(const QFontMetrics& metrics) {
         return COUNT_GAP * metrics.horizontalAdvance(QLatin1Char(' '));
     }
@@ -355,6 +381,9 @@ private:
     static int margin(const QFontMetrics& metrics) {
         return COUNT_MARGIN * metrics.horizontalAdvance(QLatin1Char(' '));
     }
+
+    /// The dot of a card: half the height of a letter
+    static int dotSize(const QFontMetrics& metrics) { return std::max(4, metrics.height() / 2); }
 };
 
 /// Tree of the Navigator. An element is dragged to any place of the book its kind can have
@@ -607,6 +636,9 @@ NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel constructor called");
+
+    // A card shows its color wherever it was changed
+    connect(&m_book, &core::ProjectManager::cardChanged, this, &NavigatorPanel::refreshItem);
 
     auto& artProvider = core::ArtProvider::getInstance();
 
@@ -1278,6 +1310,7 @@ void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
         if (cardKind) {
             item->setData(0, CARD_ROLE, element.kind.packageId);
         }
+        showCardColor(item, element);
         item->setIcon(0, itemIcon(item, iconId));
         item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
 
@@ -1448,6 +1481,10 @@ bool NavigatorPanel::isMaterialItem(const core::ProjectManager& pm, const QTreeW
     }
     const core::ProjectElement* element = pm.findElement(item->data(0, Qt::UserRole).toString());
     return element && pm.isMaterial(*element);
+}
+
+QColor NavigatorPanel::cardColorOf(const QTreeWidgetItem* item) {
+    return item != nullptr ? item->data(0, COLOR_ROLE).value<QColor>() : QColor();
 }
 
 QString NavigatorPanel::linkOf(const core::ProjectManager& book, const QTreeWidgetItem* item) {
@@ -3009,6 +3046,25 @@ QString NavigatorPanel::changeRefusal() const {
 
 void NavigatorPanel::onSettingsChanged() {
     updateAddButton();
+    // The dots of the colors of the cards, shown or not
+    for (QTreeWidgetItemIterator it(m_treeWidget); *it != nullptr; ++it) {
+        const QString elementId = (*it)->data(0, Qt::UserRole).toString();
+        if (const core::ProjectElement* element =
+                isElementType(typeOf(*it)) ? m_book.findElement(elementId) : nullptr) {
+            showCardColor(*it, *element);
+        }
+    }
+}
+
+void NavigatorPanel::showCardColor(QTreeWidgetItem* item, const core::ProjectElement& element) {
+    const bool shown = core::SettingsManager::getInstance().get<bool>(
+        core::CardColors::NAVIGATOR_DOT_SETTING, true);
+    const QColor color(element.card.color);
+    if (shown && color.isValid()) {
+        item->setData(0, COLOR_ROLE, color);
+    } else {
+        item->setData(0, COLOR_ROLE, QVariant());
+    }
 }
 
 void NavigatorPanel::updateAddButton() {
@@ -3114,6 +3170,7 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
                                          !isWorkshopItem(item),
                                      m_modifiedElements.contains(elementId)));
     item->setData(0, TITLE_ROLE, element->title);
+    showCardColor(item, *element);
     if (item->parent() && typeOf(item->parent()) == QLatin1String("workshop_group")) {
         placeInWorkshopGroup(item);
     }

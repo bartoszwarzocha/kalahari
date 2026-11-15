@@ -6,6 +6,7 @@
 /// and the data of their chapter files
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/file_trash.h>

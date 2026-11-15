@@ -11348,6 +11348,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <extracomment>Settings &gt; Editor &gt; Images: new images, the captions of new books. In Polish: Obrazy</extracomment>
         <translation>Obrazy</translation>
     </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>Settings &gt; Cards: the cards of characters, locations and items. In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SettingsPage</name>
@@ -20058,39 +20063,9 @@ In Polish: Otwórz podgląd</extracomment>
         <translation>Wpisz opis...</translation>
     </message>
     <message>
-        <source>Own Fields</source>
-        <extracomment>The writer&apos;s own fields of a material: a name and a value each. In Polish: Własne pola</extracomment>
-        <translation>Własne pola</translation>
-    </message>
-    <message>
-        <source>Add Field (Insert)</source>
-        <extracomment>In Polish: Dodaj pole (Insert)</extracomment>
-        <translation>Dodaj pole (Insert)</translation>
-    </message>
-    <message>
-        <source>Delete Field (Delete)</source>
-        <extracomment>In Polish: Usuń pole (Delete)</extracomment>
-        <translation>Usuń pole (Delete)</translation>
-    </message>
-    <message>
-        <source>Name</source>
-        <extracomment>The columns of the own fields of a material. In Polish: Nazwa</extracomment>
-        <translation>Nazwa</translation>
-    </message>
-    <message>
-        <source>Value</source>
-        <extracomment>In Polish: Wartość</extracomment>
-        <translation>Wartość</translation>
-    </message>
-    <message>
         <source>Own fields of the material</source>
         <extracomment>In Polish: Własne pola materiału</extracomment>
         <translation>Własne pola materiału</translation>
-    </message>
-    <message>
-        <source>No fields. &quot;+&quot; or Insert adds a field.</source>
-        <extracomment>In Polish: Brak pól. „+” albo Insert dodaje pole.</extracomment>
-        <translation>Brak pól. „+” albo Insert dodaje pole.</translation>
     </message>
     <message>
         <source>Links</source>
@@ -20139,26 +20114,6 @@ In Polish: Otwórz podgląd</extracomment>
         <source>Description Not Saved</source>
         <extracomment>In Polish: Nie zapisano opisu</extracomment>
         <translation>Nie zapisano opisu</translation>
-    </message>
-    <message>
-        <source>Fields Not Saved</source>
-        <extracomment>In Polish: Nie zapisano pól</extracomment>
-        <translation>Nie zapisano pól</translation>
-    </message>
-    <message>
-        <source>Delete the field &quot;%1&quot; with its value?</source>
-        <extracomment>%1: the name of the field. In Polish: Usunąć pole „%1” razem z jego wartością?</extracomment>
-        <translation>Usunąć pole „%1” razem z jego wartością?</translation>
-    </message>
-    <message>
-        <source>Delete Field</source>
-        <extracomment>In Polish: Usuń pole</extracomment>
-        <translation>Usuń pole</translation>
-    </message>
-    <message>
-        <source>&amp;Delete</source>
-        <extracomment>In Polish: &amp;Usuń</extracomment>
-        <translation>&amp;Usuń</translation>
     </message>
     <message>
         <source>Links Not Saved</source>
@@ -25397,6 +25352,293 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Saves the book &quot;%1&quot; in the format %2.</source>
         <extracomment>The format of a plugin; %1: the title of the book, %2: the format with its extension. In Polish: Zapisuje książkę „%1” w formacie %2.</extracomment>
         <translation>Zapisuje książkę „%1” w formacie %2.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardPage</name>
+    <message>
+        <source>Card Settings</source>
+        <extracomment>The gear of a card of a character, a location or an item: Settings &gt; Cards. In Polish: Ustawienia kart</extracomment>
+        <translation>Ustawienia kart</translation>
+    </message>
+    <message>
+        <source>Portrait</source>
+        <extracomment>The portrait of a card of a character, a location or an item. In Polish: Portret</extracomment>
+        <translation>Portret</translation>
+    </message>
+    <message>
+        <source>Change the Portrait</source>
+        <extracomment>The tooltip of the portrait of a card. In Polish: Zmień portret</extracomment>
+        <translation>Zmień portret</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The name of a character, a location or an item on its card. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>In Short</source>
+        <extracomment>The short description of a card, for screen readers. In Polish: W skrócie</extracomment>
+        <translation>W skrócie</translation>
+    </message>
+    <message>
+        <source>Who or what it is, in a sentence or two...</source>
+        <extracomment>In Polish: Kim lub czym jest – w jednym lub dwóch zdaniach...</extracomment>
+        <translation>Kim lub czym jest – w jednym lub dwóch zdaniach...</translation>
+    </message>
+    <message>
+        <source>Card color:</source>
+        <extracomment>The color of a card of a character, a location or an item, which the Navigator shows beside its name. In Polish: Kolor karty:</extracomment>
+        <translation>Kolor karty:</translation>
+    </message>
+    <message>
+        <source>Change the Card Color...</source>
+        <extracomment>In Polish: Zmień kolor karty...</extracomment>
+        <translation>Zmień kolor karty...</translation>
+    </message>
+    <message>
+        <source>Card color</source>
+        <extracomment>In Polish: Kolor karty</extracomment>
+        <translation>Kolor karty</translation>
+    </message>
+    <message>
+        <source>In short:</source>
+        <extracomment>The caption of the short description of a card: who the character is, what the location is. In Polish: W skrócie:</extracomment>
+        <translation>W skrócie:</translation>
+    </message>
+    <message>
+        <source>Data</source>
+        <extracomment>The group of the fields of a card of a character, a location or an item. In Polish: Dane</extracomment>
+        <translation>Dane</translation>
+    </message>
+    <message>
+        <source>Own fields of the card</source>
+        <extracomment>In Polish: Własne pola karty</extracomment>
+        <translation>Własne pola karty</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>The long description of a card of a character, a location or an item: the text of the card. In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>Open Card</source>
+        <extracomment>The button of the short card of a character, a location or an item in the Properties panel, which opens its full card. In Polish: Otwórz kartę</extracomment>
+        <translation>Otwórz kartę</translation>
+    </message>
+    <message>
+        <source>Open the full card beside the chapters</source>
+        <extracomment>In Polish: Otwórz pełną kartę obok rozdziałów</extracomment>
+        <translation>Otwórz pełną kartę obok rozdziałów</translation>
+    </message>
+    <message>
+        <source>{Kind} Information</source>
+        <extracomment>The group of the short card of a character, a location or an item in the Properties panel. In Polish: Informacje o {kind:locative}</extracomment>
+        <translation>Informacje o {kind:locative}</translation>
+    </message>
+    <message>
+        <source>%1:</source>
+        <extracomment>The caption of a field of a card: %1 its name (&quot;Age&quot;). In Polish: %1:</extracomment>
+        <translation>%1:</translation>
+    </message>
+    <message>
+        <source>Type or choose a card...</source>
+        <extracomment>A field of a card that names another card (the owner of an item, the location a location lies in), when it is empty. In Polish: Wpisz albo wybierz kartę...</extracomment>
+        <translation>Wpisz albo wybierz kartę...</translation>
+    </message>
+    <message>
+        <source>Picture from the &amp;Materials</source>
+        <extracomment>The submenu of the portrait of a card with the pictures of the materials of the book. In Polish: Obraz z &amp;materiałów</extracomment>
+        <translation>Obraz z &amp;materiałów</translation>
+    </message>
+    <message>
+        <source>Picture from a &amp;File...</source>
+        <extracomment>In Polish: Obraz z &amp;pliku...</extracomment>
+        <translation>Obraz z &amp;pliku...</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Portrait</source>
+        <extracomment>Takes the portrait off the card; its picture stays in the materials. In Polish: &amp;Usuń portret</extracomment>
+        <translation>&amp;Usuń portret</translation>
+    </message>
+    <message>
+        <source>Choose the Picture of the Portrait</source>
+        <extracomment>The system window choosing the picture of the portrait of a card. In Polish: Wybierz obraz portretu</extracomment>
+        <translation>Wybierz obraz portretu</translation>
+    </message>
+    <message>
+        <source>Images</source>
+        <extracomment>The pictures of the window choosing a portrait. In Polish: Obrazy</extracomment>
+        <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>Portrait Not Changed</source>
+        <extracomment>In Polish: Nie zmieniono portretu</extracomment>
+        <translation>Nie zmieniono portretu</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Portrait Not Added</source>
+        <extracomment>In Polish: Nie dodano portretu</extracomment>
+        <translation>Nie dodano portretu</translation>
+    </message>
+    <message>
+        <source>The file &quot;%1&quot; is not a picture Kalahari can show.</source>
+        <extracomment>%1: the name of the file. In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</extracomment>
+        <translation>Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać.</translation>
+    </message>
+    <message>
+        <source>The picture could not be copied into the materials of the book.</source>
+        <extracomment>In Polish: Nie udało się skopiować obrazu do materiałów książki.</extracomment>
+        <translation>Nie udało się skopiować obrazu do materiałów książki.</translation>
+    </message>
+    <message>
+        <source>The color of the card &quot;%1&quot;</source>
+        <extracomment>What the color window chooses: %1 the name of a card. In Polish: Kolor karty „%1”</extracomment>
+        <translation>Kolor karty „%1”</translation>
+    </message>
+    <message>
+        <source>Card Not Saved</source>
+        <extracomment>In Polish: Nie zapisano karty</extracomment>
+        <translation>Nie zapisano karty</translation>
+    </message>
+    <message>
+        <source>Rename Failed</source>
+        <extracomment>In Polish: Nie udało się zmienić nazwy</extracomment>
+        <translation>Nie udało się zmienić nazwy</translation>
+    </message>
+    <message>
+        <source>Description Not Saved</source>
+        <extracomment>In Polish: Nie zapisano opisu</extracomment>
+        <translation>Nie zapisano opisu</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <extracomment>The kind of a card under its name, with the value of the field beside it: &quot;Character · main&quot;. In Polish: %1 · %2</extracomment>
+        <translation>%1 · %2</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardPanel</name>
+    <message>
+        <source>Description of the card</source>
+        <extracomment>The editor of the long description of a card, for screen readers. In Polish: Opis karty</extracomment>
+        <translation>Opis karty</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardsPage</name>
+    <message>
+        <source>Colors</source>
+        <extracomment>Settings &gt; Cards: the group of the colors of the cards of characters, locations and items. In Polish: Kolory</extracomment>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Color dots of the cards in the Navigator</source>
+        <extracomment>The dot of the color of a card beside its name in the Navigator. In Polish: Kropki kolorów kart w Nawigatorze</extracomment>
+        <translation>Kropki kolorów kart w Nawigatorze</translation>
+    </message>
+    <message>
+        <source>A color of the palette of new cards</source>
+        <extracomment>What the color window chooses from the palette of the cards. In Polish: Kolor palety nowych kart</extracomment>
+        <translation>Kolor palety nowych kart</translation>
+    </message>
+    <message>
+        <source>Restore Defaults</source>
+        <extracomment>In Polish: Przywróć domyślne</extracomment>
+        <translation>Przywróć domyślne</translation>
+    </message>
+    <message>
+        <source>Palette of new cards:</source>
+        <extracomment>The palette that new cards of characters, locations and items take their colors from. In Polish: Paleta nowych kart:</extracomment>
+        <translation>Paleta nowych kart:</translation>
+    </message>
+    <message>
+        <source>A new card gets the color of the palette that the fewest cards of the book have. A click on a swatch changes the color, Delete takes it out, &quot;+&quot; or Insert adds one. The color of one card is changed on its full card.</source>
+        <extracomment>In Polish: Nowa karta dostaje ten kolor palety, który ma najmniej kart książki. Kliknięcie próbki zmienia kolor, Delete go usuwa, a „+” albo Insert dodaje nowy. Kolor jednej karty zmienia się na jej pełnej karcie.</extracomment>
+        <translation>Nowa karta dostaje ten kolor palety, który ma najmniej kart książki. Kliknięcie próbki zmienia kolor, Delete go usuwa, a „+” albo Insert dodaje nowy. Kolor jednej karty zmienia się na jej pełnej karcie.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::OwnFieldsBox</name>
+    <message>
+        <source>Own Fields</source>
+        <extracomment>The writer&apos;s own fields of an element of the Workshop (a material, a card of a character): a name and a value each. In Polish: Własne pola</extracomment>
+        <translation>Własne pola</translation>
+    </message>
+    <message>
+        <source>Add Field (Insert)</source>
+        <extracomment>In Polish: Dodaj pole (Insert)</extracomment>
+        <translation>Dodaj pole (Insert)</translation>
+    </message>
+    <message>
+        <source>Delete Field (Delete)</source>
+        <extracomment>In Polish: Usuń pole (Delete)</extracomment>
+        <translation>Usuń pole (Delete)</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the own fields. In Polish: Nazwa</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Value</source>
+        <extracomment>In Polish: Wartość</extracomment>
+        <translation>Wartość</translation>
+    </message>
+    <message>
+        <source>No fields. &quot;+&quot; or Insert adds a field.</source>
+        <extracomment>In Polish: Brak pól. „+” albo Insert dodaje pole.</extracomment>
+        <translation>Brak pól. „+” albo Insert dodaje pole.</translation>
+    </message>
+    <message>
+        <source>Fields Not Saved</source>
+        <extracomment>In Polish: Nie zapisano pól</extracomment>
+        <translation>Nie zapisano pól</translation>
+    </message>
+    <message>
+        <source>Failed to save changes.</source>
+        <translation>Nie udało się zapisać zmian.</translation>
+    </message>
+    <message>
+        <source>Delete the field &quot;%1&quot; with its value?</source>
+        <extracomment>%1: the name of the field. In Polish: Usunąć pole „%1” razem z jego wartością?</extracomment>
+        <translation>Usunąć pole „%1” razem z jego wartością?</translation>
+    </message>
+    <message>
+        <source>Delete Field</source>
+        <extracomment>In Polish: Usuń pole</extracomment>
+        <translation>Usuń pole</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PaletteEdit</name>
+    <message>
+        <source>Add Color... (Insert)</source>
+        <extracomment>The button after the swatches of a palette in the Settings. In Polish: Dodaj kolor... (Insert)</extracomment>
+        <translation>Dodaj kolor... (Insert)</translation>
+    </message>
+    <message>
+        <source>Color %1: %2</source>
+        <extracomment>A swatch of a palette in the Settings: %1 its number, %2 its color, &quot;#C0504D&quot;. In Polish: Kolor %1: %2</extracomment>
+        <translation>Kolor %1: %2</translation>
+    </message>
+    <message>
+        <source>Color %1: %2. A click changes it, Delete takes it out.</source>
+        <extracomment>The tooltip of a swatch of a palette in the Settings: %1 its number, %2 its color. In Polish: Kolor %1: %2. Kliknięcie go zmienia, Delete usuwa.</extracomment>
+        <translation>Kolor %1: %2. Kliknięcie go zmienia, Delete usuwa.</translation>
     </message>
 </context>
 </TS>

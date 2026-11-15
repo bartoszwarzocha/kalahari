@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
+  characters, locations and items, added from the Book menu, the Navigator ("Add Character...",
+  "Add Location...", "Add Item...") or Add Element, in the groups Characters, Locations and Items
+  of the Navigator, each with a dot of its color beside its name (Settings > Cards can turn the
+  dots off). Properties shows the short card: the portrait, the name, the field of the subtitle
+  (the role of a character), In Short, the fields of the kind shown there and Open Card. The full
+  card opens on a tab: the name with the kind and its role, the color, In Short, the fields of
+  the kind (a field naming another card suggests the cards of its kind), Own Fields and the
+  description in two columns, edited as any text of the book. The portrait is a picture among
+  the materials of the book or from a file (it becomes a material of the Workshop); a card
+  without one shows its initials in its color. A new card takes the next color of the palette
+  of Settings > Cards, which also has the dots of the Navigator; the gear of the cards opens it.
+  The library of characters and locations of the old model in project.db is gone: the cards of
+  the Workshop take its place.
 - **Fields** - 2026-11-13. Insert > Field... inserts a value that changes by itself: the title
   of the book, its author, the title of the text (named after its kind: "Chapter Title"), the
   page number, the page count, the word count of the text and the date, each in its formats

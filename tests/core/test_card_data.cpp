@@ -5,9 +5,13 @@
 /// @brief The cards of the Workshop (characters, locations, items): the fields of their kinds,
 /// their data in the book file, their colors, and their changes in an open book
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/book_type_package.h>
+#include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/material_kinds.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
 
@@ -20,10 +24,28 @@
 #include <QJsonDocument>
 #include <QTemporaryDir>
 
+#include <cstdio>
+#include <optional>
 #include <string>
 #include <vector>
 
-using namespace kalahari::core;
+using kalahari::core::BookPlace;
+using kalahari::core::BookProject;
+using kalahari::core::BookTypeRegistry;
+using kalahari::core::CardColors;
+using kalahari::core::CardData;
+using kalahari::core::CardField;
+using kalahari::core::CardFieldChoice;
+using kalahari::core::CardFieldType;
+using kalahari::core::CardPortrait;
+using kalahari::core::ElementField;
+using kalahari::core::ElementForm;
+using kalahari::core::KindRef;
+using kalahari::core::MaterialKinds;
+using kalahari::core::ProjectElement;
+using kalahari::core::ProjectManager;
+using kalahari::core::SettingsManager;
+using kalahari::core::WorkshopGroup;
 
 namespace {
 
@@ -81,10 +103,20 @@ public:
               CardColors::PALETTE_SETTING)) {
         SettingsManager::getInstance().set(CardColors::PALETTE_SETTING, palette);
     }
-    ~ChangedPalette() { SettingsManager::getInstance().set(CardColors::PALETTE_SETTING, m_before); }
+    ~ChangedPalette() {
+        try {
+            SettingsManager::getInstance().set(CardColors::PALETTE_SETTING, m_before);
+        } catch (...) {
+            // A destructor may not throw: the later tests then find the palette of this one
+            static_cast<void>(
+                std::fputs("ChangedPalette: the palette of the test stays\n", stderr));
+        }
+    }
 
     ChangedPalette(const ChangedPalette&) = delete;
     ChangedPalette& operator=(const ChangedPalette&) = delete;
+    ChangedPalette(ChangedPalette&&) = delete;
+    ChangedPalette& operator=(ChangedPalette&&) = delete;
 
 private:
     std::vector<std::string> m_before;
@@ -312,9 +344,9 @@ TEST_CASE("Cards: the color of a new card", "[core][cards]") {
 
 TEST_CASE("Cards: adding a card, its fields, color and portraits in an open book",
           "[core][cards][project_manager]") {
-    QTemporaryDir dir;
+    const QTemporaryDir dir;
     auto& pm = kalahari::test::book();
-    pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    ProjectManager::loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     REQUIRE(pm.bookTypes().problems().isEmpty());
     REQUIRE(pm.createProject(dir.path(), "Cards", "Anna", "pl", true, "kalahari.novel"));
     const ChangedPalette changed({"#111111", "#222222"});
@@ -342,15 +374,29 @@ TEST_CASE("Cards: adding a card, its fields, color and portraits in an open book
     CHECK(pm.findElement(warsaw)->card.color == QStringLiteral("#222222"));
     CHECK(pm.newCardColor() == QStringLiteral("#111111"));
 
-    // Its short description is the description of the element
-    REQUIRE(pm.setDescription(anna, QStringLiteral("Kartografka z Warszawy.")));
-    CHECK(pm.findElement(anna)->description == QStringLiteral("Kartografka z Warszawy."));
-
-    // The values of its fields, each saved at once, and told of
     QStringList changes;
     const QObject listener;  // the connection goes with it, also when a check stops the test
     QObject::connect(&pm, &ProjectManager::cardChanged, &listener,
                      [&changes](const QString& elementId) { changes << elementId; });
+
+    // Its short description is the description of the element
+    REQUIRE(pm.setDescription(anna, QStringLiteral("Kartografka z Warszawy.")));
+    CHECK(pm.findElement(anna)->description == QStringLiteral("Kartografka z Warszawy."));
+    CHECK(changes == QStringList{anna});
+    REQUIRE(pm.setDescription(anna, QStringLiteral("Kartografka z Warszawy.")));
+    CHECK(changes.size() == 1);  // nothing changed
+    changes.clear();
+
+    // So are its own fields
+    const QList<ElementField> fields{
+        ElementField{QStringLiteral("Eyes"), QStringLiteral("grey"), {}}};
+    REQUIRE(pm.setFields(anna, fields));
+    CHECK(changes == QStringList{anna});
+    REQUIRE(pm.setFields(anna, fields));
+    CHECK(changes.size() == 1);  // nothing changed
+    changes.clear();
+
+    // The values of its fields, each saved at once, and told of
     REQUIRE(pm.setCardValue(anna, QStringLiteral("role"), QStringLiteral("main")));
     REQUIRE(pm.setCardValue(anna, QStringLiteral("age"), QStringLiteral("29")));
     CHECK(changes.count() == 2);
@@ -402,6 +448,75 @@ TEST_CASE("Cards: adding a card, its fields, color and portraits in an open book
     CHECK(pm.findElement(anna)->card.portraits.isEmpty());
     CHECK(changes == QStringList{anna});
     CHECK(pm.findElement(anna)->card.color == QStringLiteral("#abcdef"));
+
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("Cards: the names that a field of a card suggests, and the pictures of a portrait",
+          "[core][cards][project_manager]") {
+    const QTemporaryDir dir;
+    auto& pm = kalahari::test::book();
+    ProjectManager::loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+
+    // Without a book: none
+    REQUIRE_FALSE(pm.isProjectOpen());
+    CHECK(pm.cardTitles(QStringLiteral("kalahari.base"), QStringLiteral("character")).isEmpty());
+    CHECK(pm.pictureMaterials().isEmpty());
+
+    REQUIRE(pm.createProject(dir.path(), "Cards", "Anna", "pl", true, "kalahari.novel"));
+    const KindRef character = pm.bookTypes().findKind(QStringLiteral("kalahari.base"),
+                                                      QStringLiteral("character"));
+    const KindRef location = pm.bookTypes().findKind(QStringLiteral("kalahari.base"),
+                                                     QStringLiteral("location"));
+    REQUIRE(character);
+    REQUIRE(location);
+
+    // The cards of the kind, each name once, sorted without regard to case, the spaces
+    // around them left out
+    const QString zofia = pm.addElement(character, "Zofia", BookPlace::Workshop);
+    const QString anna = pm.addElement(character, " anna ", BookPlace::Workshop);
+    const QString bolek = pm.addElement(character, "Bolek", BookPlace::Workshop);
+    const QString again = pm.addElement(character, "Bolek", BookPlace::Workshop);
+    const QString warsaw = pm.addElement(location, "Warszawa", BookPlace::Workshop);
+    for (const QString& id : {zofia, anna, bolek, again, warsaw}) {
+        REQUIRE_FALSE(id.isEmpty());
+    }
+    CHECK(pm.cardTitles(QStringLiteral("kalahari.base"), QStringLiteral("character")) ==
+          QStringList{QStringLiteral("anna"), QStringLiteral("Bolek"), QStringLiteral("Zofia")});
+    // Without the card that asks
+    CHECK(pm.cardTitles(QStringLiteral("kalahari.base"), QStringLiteral("character"), zofia) ==
+          QStringList{QStringLiteral("anna"), QStringLiteral("Bolek")});
+    // Another card of the same name keeps it
+    CHECK(pm.cardTitles(QStringLiteral("kalahari.base"), QStringLiteral("character"), bolek) ==
+          QStringList{QStringLiteral("anna"), QStringLiteral("Bolek"), QStringLiteral("Zofia")});
+    CHECK(pm.cardTitles(QStringLiteral("kalahari.base"), QStringLiteral("location")) ==
+          QStringList{QStringLiteral("Warszawa")});
+    CHECK(pm.cardTitles(QStringLiteral("kalahari.base"), QStringLiteral("item")).isEmpty());
+    CHECK(pm.cardTitles(QStringLiteral("other.package"), QStringLiteral("character")).isEmpty());
+
+    // The materials whose file is a picture, in the order of the Workshop
+    const auto material = [&pm, &dir](const QString& name, const QString& title) {
+        const QString path = QDir(dir.path()).filePath(name);
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::WriteOnly));
+        file.write("data");
+        file.close();
+        const QString id = pm.addMaterial(
+            path, pm.bookTypes().findKind(QStringLiteral("kalahari.base"),
+                                          MaterialKinds::ofFile(path)),
+            title);
+        REQUIRE_FALSE(id.isEmpty());
+        return id;
+    };
+    CHECK(pm.pictureMaterials().isEmpty());
+    const QString map = material(QStringLiteral("map.png"), QStringLiteral("Map"));
+    material(QStringLiteral("notes.pdf"), QStringLiteral("Notes"));
+    const QString face = material(QStringLiteral("face.JPG"), QStringLiteral("Face"));
+    QStringList pictures;
+    for (const ProjectElement* picture : pm.pictureMaterials()) {
+        pictures << picture->id;
+    }
+    CHECK(pictures == QStringList{map, face});
 
     REQUIRE(pm.closeProject(false));
 }

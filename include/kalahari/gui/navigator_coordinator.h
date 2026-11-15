@@ -49,6 +49,7 @@ namespace gui {
 
 class NavigatorPanel;
 class PropertiesPanel;
+class CardPanel;
 class EditorPanel;
 class MaterialCardPanel;
 
@@ -373,6 +374,9 @@ signals:
     /// lists of the materials show it
     void materialChanged(const QString& elementId);
 
+    /// @brief The gear of a full card of a character, a location or an item: Settings > Cards
+    void cardSettingsRequested();
+
     /// @brief Emitted when chapter dirty state changes (OpenSpec #00042 Phase 7.5)
     /// @param elementId Element ID of the chapter
     /// @param isDirty True if chapter has unsaved changes
@@ -428,6 +432,14 @@ private:
 
     /// @brief The tabs of the cards of materials
     QList<MaterialCardPanel*> materialCards() const;
+
+    /// @brief The tab of element @p element (@p elementId): the full card of a character, a
+    /// location or an item, the editor of a text otherwise
+    EditorPanel* createEditorPanel(const core::ProjectElement* element, const QString& elementId);
+
+    /// @brief The full card of character, location or item @p elementId, for its tab: its
+    /// name shows on the tab and in the Navigator, its gear opens Settings > Cards
+    CardPanel* createCardPanel(const QString& elementId);
 
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;

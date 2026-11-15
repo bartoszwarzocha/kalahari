@@ -227,7 +227,7 @@ struct CardField {
                                      ///< "Character · main"
 
     /// @brief The choice with id @p choiceId; nullptr when it has none
-    const CardFieldChoice* choice(const QString& choiceId) const;
+    [[nodiscard]] const CardFieldChoice* choice(const QString& choiceId) const;
 
     /// @brief Name of the type in packages: "text", "longText", "choice" or "card"
     static QString typeName(CardFieldType type);
@@ -274,16 +274,16 @@ struct ElementKind {
     }
 
     /// @brief Whether its elements are cards: a text kind with CARD_EDITOR
-    bool isCard() const {
+    [[nodiscard]] bool isCard() const {
         return form == ElementForm::Text && editor == QLatin1String(CARD_EDITOR);
     }
 
     /// @brief Its field with id @p fieldId; nullptr when it has none
-    const CardField* field(const QString& fieldId) const;
+    [[nodiscard]] const CardField* field(const QString& fieldId) const;
 
     /// @brief The field whose value stands beside the kind under the card's name; nullptr
     /// when it has none
-    const CardField* subtitleField() const;
+    [[nodiscard]] const CardField* subtitleField() const;
 
     /// @brief Whether an element of this kind can be in @p place, outside groups
     bool allows(BookPlace place) const;

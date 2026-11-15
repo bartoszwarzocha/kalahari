@@ -5,6 +5,7 @@
 /// @brief Book project as its .klh file saves it
 
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/logger.h>
 #include <QFile>
 #include <QFileInfo>

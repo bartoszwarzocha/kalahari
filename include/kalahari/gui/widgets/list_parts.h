@@ -6,7 +6,8 @@
 /// characters, locations and items): their "+" and "-" buttons, their grey sentences, their
 /// heights and their keys
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_LIST_PARTS_H
+#define KALAHARI_GUI_WIDGETS_LIST_PARTS_H
 
 #include "kalahari/core/art_provider.h"
 
@@ -14,15 +15,14 @@
 
 class QAbstractButton;
 class QAbstractItemView;
+class QGroupBox;
 class QHBoxLayout;
 class QKeyEvent;
 class QLabel;
 class QToolButton;
 class QWidget;
 
-namespace kalahari {
-namespace gui {
-namespace list_parts {
+namespace kalahari::gui::list_parts {
 
 /// @brief Rows of a list shown at least and at most; the others scroll
 constexpr int MINIMUM_ROWS = 2;
@@ -53,6 +53,11 @@ bool isListKey(const QKeyEvent* key, int which);
 /// also on macOS, where a list edits it
 bool isOpenKey(const QKeyEvent* key);
 
-}  // namespace list_parts
-}  // namespace gui
-}  // namespace kalahari
+/// @brief Put @p button, a child of @p group, at the right end of the line of its title, in
+/// its middle (at the left end from right to left): the gear that opens the settings of the
+/// group. Called again whenever the group changes its size.
+void placeAtTitle(QGroupBox* group, QWidget* button);
+
+}  // namespace kalahari::gui::list_parts
+
+#endif  // KALAHARI_GUI_WIDGETS_LIST_PARTS_H

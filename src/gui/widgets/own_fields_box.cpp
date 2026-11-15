@@ -6,6 +6,7 @@
 
 #include "kalahari/gui/widgets/own_fields_box.h"
 
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/widgets/list_parts.h"
@@ -24,10 +25,14 @@
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
+namespace kalahari::gui {
 
 namespace {
+
+/// Room around the table and its buttons, at the sides and below
+constexpr int MARGIN = 11;
+/// Room above them, under the title of the group
+constexpr int TOP_MARGIN = 6;
 
 /// The names of the fields: the names of the fields of the book suggested as they are typed
 class FieldDelegate : public QStyledItemDelegate {
@@ -59,9 +64,11 @@ OwnFieldsBox::OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix
                            const QString& tableName, bool stretch, QWidget* parent)
     //: The writer's own fields of an element of the Workshop (a material, a card of a
     //: character): a name and a value each. In Polish: Własne pola
-    : QGroupBox(tr("Own Fields"), parent), m_book(book) {
+    : QGroupBox(tr("Own Fields"), parent),
+      m_book(book),
+      m_table(new QTableWidget(0, 2, this)) {
     auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(11, 6, 11, 11);
+    layout->setContentsMargins(MARGIN, TOP_MARGIN, MARGIN, MARGIN);
     layout->setSpacing(4);
     //: In Polish: Dodaj pole (Insert)
     m_addButton = list_parts::listButton(this, "common.add", tr("Add Field (Insert)"),
@@ -70,7 +77,9 @@ OwnFieldsBox::OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix
     m_removeButton = list_parts::listButton(this, "common.remove", tr("Delete Field (Delete)"),
                                             namePrefix + QStringLiteral("RemoveField"));
     layout->addLayout(list_parts::buttonRow(m_addButton, m_removeButton));
-    m_table = new QTableWidget(0, 2, this);
+    // The keys go through the buttons, then the table, as they stand
+    setTabOrder(m_addButton, m_removeButton);
+    setTabOrder(m_removeButton, m_table);
     m_table->setObjectName(namePrefix + QStringLiteral("FieldsTable"));
     //: The columns of the own fields. In Polish: Nazwa
     m_table->setHorizontalHeaderLabels({tr("Name"),
@@ -106,42 +115,49 @@ OwnFieldsBox::OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix
     // A new field left without a name and a value goes
     connect(m_table->itemDelegate(), &QAbstractItemDelegate::closeEditor, this,
             [this](const QWidget*, QAbstractItemDelegate::EndEditHint hint) {
-                if (hint == QAbstractItemDelegate::EditNextItem ||
-                    hint == QAbstractItemDelegate::EditPreviousItem) {
-                    return;
-                }
-                const int row = m_table->currentRow();
-                if (row < 0 || row >= m_table->rowCount()) {
-                    return;
-                }
-                const QTableWidgetItem* name = m_table->item(row, 0);
-                const QTableWidgetItem* value = m_table->item(row, 1);
-                if ((name == nullptr || name->text().trimmed().isEmpty()) &&
-                    (value == nullptr || value->text().isEmpty())) {
-                    m_table->removeRow(row);
-                    if (row < m_fields.size()) {
-                        m_fields.removeAt(row);
-                    }
-                    saveFields();
+                if (hint != QAbstractItemDelegate::EditNextItem &&
+                    hint != QAbstractItemDelegate::EditPreviousItem) {
+                    dropEmptyRow();
                 }
             });
     fitTable();
 }
 
-void OwnFieldsBox::showFields(const QString& elementId, const QList<core::ElementField>& fields) {
-    m_elementId = elementId;
-    m_fields = fields;
-    const bool wasUpdating = m_updating;
-    m_updating = true;
-    m_table->setRowCount(0);
-    for (const core::ElementField& field : fields) {
-        const int row = m_table->rowCount();
-        m_table->insertRow(row);
-        m_table->setItem(row, 0, new QTableWidgetItem(field.name));
-        m_table->setItem(row, 1, new QTableWidgetItem(field.value));
+void OwnFieldsBox::dropEmptyRow() {
+    const int row = m_table->currentRow();
+    if (row < 0 || row >= m_table->rowCount()) {
+        return;
     }
-    m_updating = wasUpdating;
-    fitTable();
+    const QTableWidgetItem* name = m_table->item(row, 0);
+    const QTableWidgetItem* value = m_table->item(row, 1);
+    const bool noName = name == nullptr || name->text().trimmed().isEmpty();
+    if (noName && (value == nullptr || value->text().isEmpty())) {
+        m_table->removeRow(row);
+        if (row < m_fields.size()) {
+            m_fields.removeAt(row);
+        }
+        saveFields();
+    }
+}
+
+void OwnFieldsBox::showFields(const QString& elementId, const QList<core::ElementField>& fields) {
+    // The fields it shows: the cell being edited keeps what is typed in it
+    if (elementId != m_elementId || fields != m_saved) {
+        m_elementId = elementId;
+        m_fields = fields;
+        m_saved = fields;
+        const bool wasUpdating = m_updating;
+        m_updating = true;
+        m_table->setRowCount(0);
+        for (const core::ElementField& field : fields) {
+            const int row = m_table->rowCount();
+            m_table->insertRow(row);
+            m_table->setItem(row, 0, new QTableWidgetItem(field.name));
+            m_table->setItem(row, 1, new QTableWidgetItem(field.value));
+        }
+        m_updating = wasUpdating;
+        fitTable();
+    }
     const bool readOnly = m_book.isReadOnly();
     m_table->setEditTriggers(readOnly ? QAbstractItemView::NoEditTriggers
                                       : QAbstractItemView::DoubleClicked |
@@ -172,8 +188,8 @@ QList<core::ElementField> OwnFieldsBox::tableFields() const {
         core::ElementField field = row < m_fields.size() ? m_fields.at(row) : core::ElementField{};
         const QTableWidgetItem* name = m_table->item(row, 0);
         const QTableWidgetItem* value = m_table->item(row, 1);
-        field.name = name ? name->text().trimmed() : QString();
-        field.value = value ? value->text() : QString();
+        field.name = name != nullptr ? name->text().trimmed() : QString();
+        field.value = value != nullptr ? value->text() : QString();
         fields << field;
     }
     return fields;
@@ -195,6 +211,7 @@ void OwnFieldsBox::saveFields() {
                                         tr("Failed to save changes."));
         return;
     }
+    m_saved = fields;
     m_fields = tableFields();
     updateButtons();
     emit changed(m_elementId);
@@ -274,5 +291,4 @@ bool OwnFieldsBox::eventFilter(QObject* watched, QEvent* event) {
     return QGroupBox::eventFilter(watched, event);
 }
 
-}  // namespace gui
-}  // namespace kalahari
+}  // namespace kalahari::gui

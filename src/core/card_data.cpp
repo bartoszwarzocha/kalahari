@@ -11,12 +11,13 @@
 
 #include <QColor>
 
+#include <nlohmann/json_fwd.hpp>
+
 #include <algorithm>
 #include <string>
 #include <vector>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 bool CardData::isEmpty() const {
     return values.isEmpty() && color.isEmpty() && portraits.isEmpty() && extra.isEmpty();
@@ -70,5 +71,4 @@ QString CardColors::next(const QStringList& palette, const QStringList& used) {
     return best;
 }
 
-}  // namespace core
-}  // namespace kalahari
+}  // namespace kalahari::core

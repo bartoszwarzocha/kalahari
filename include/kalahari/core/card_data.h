@@ -5,7 +5,8 @@
 /// @brief What a card of the Workshop (a character, a location, an item) has beside its text:
 /// the values of its fields, its color and its portraits
 
-#pragma once
+#ifndef KALAHARI_CORE_CARD_DATA_H
+#define KALAHARI_CORE_CARD_DATA_H
 
 #include <QJsonObject>
 #include <QList>
@@ -13,8 +14,7 @@
 #include <QString>
 #include <QStringList>
 
-namespace kalahari {
-namespace core {
+namespace kalahari::core {
 
 /// @brief A portrait of a card: a picture among the materials of the book, with its label
 struct CardPortrait {
@@ -22,6 +22,7 @@ struct CardPortrait {
     QString label;      ///< The writer's label, "youth"; empty: none
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
+    /// @brief Whether it is the same portrait, with the same label and fields
     bool operator==(const CardPortrait&) const = default;
 };
 
@@ -43,17 +44,18 @@ struct CardData {
     QJsonObject extra;              ///< Fields this version does not know, saved back
 
     /// @brief Whether it says nothing
-    bool isEmpty() const;
+    [[nodiscard]] bool isEmpty() const;
 
     /// @brief Value of field @p fieldId; empty when it has none
-    QString value(const QString& fieldId) const { return values.value(fieldId); }
+    [[nodiscard]] QString value(const QString& fieldId) const { return values.value(fieldId); }
 
     /// @brief Id of the material of the portrait shown on the card; empty when it has none
-    QString portraitImage() const;
+    [[nodiscard]] QString portraitImage() const;
 
     /// @brief Whether a portrait shows the picture of material @p elementId
-    bool hasPortrait(const QString& elementId) const;
+    [[nodiscard]] bool hasPortrait(const QString& elementId) const;
 
+    /// @brief Whether it says the same: the values, the color, the portraits and the fields
     bool operator==(const CardData&) const = default;
 };
 
@@ -67,15 +69,16 @@ struct CardColors {
     static constexpr const char* NAVIGATOR_DOT_SETTING = "cards.navigatorColorDot";
 
     /// @brief The palette of the program, which the setting starts with
-    static QStringList defaultPalette();
+    [[nodiscard]] static QStringList defaultPalette();
 
     /// @brief The palette of the setting; the program's when the setting has no color
-    static QStringList palette();
+    [[nodiscard]] static QStringList palette();
 
     /// @brief The color of a new card: the first color of @p palette that the fewest of
     /// @p used have; empty when the palette is empty
-    static QString next(const QStringList& palette, const QStringList& used);
+    [[nodiscard]] static QString next(const QStringList& palette, const QStringList& used);
 };
 
-}  // namespace core
-}  // namespace kalahari
+}  // namespace kalahari::core
+
+#endif  // KALAHARI_CORE_CARD_DATA_H

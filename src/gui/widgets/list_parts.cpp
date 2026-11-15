@@ -6,19 +6,21 @@
 
 #include "kalahari/gui/widgets/list_parts.h"
 
+#include "kalahari/core/art_provider.h"
+
 #include <QAbstractButton>
 #include <QAbstractItemView>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QStyle>
+#include <QStyleOptionGroupBox>
 #include <QToolButton>
 
 #include <algorithm>
 
-namespace kalahari {
-namespace gui {
-namespace list_parts {
+namespace kalahari::gui::list_parts {
 
 void keepIcon(QAbstractButton* button, const QString& iconId, core::IconContext context) {
     auto& art = core::ArtProvider::getInstance();
@@ -72,6 +74,24 @@ bool isOpenKey(const QKeyEvent* key) {
     return isListKey(key, Qt::Key_Return) || isListKey(key, Qt::Key_Enter);
 }
 
-}  // namespace list_parts
-}  // namespace gui
-}  // namespace kalahari
+void placeAtTitle(QGroupBox* group, QWidget* button) {
+    QStyleOptionGroupBox option;
+    option.initFrom(group);
+    option.text = group->title();
+    option.textAlignment = group->alignment();
+    option.subControls = QStyle::SC_GroupBoxFrame | QStyle::SC_GroupBoxLabel;
+    option.lineWidth = 1;
+    const QStyle* style = group->style();
+    const QRect label =
+        style->subControlRect(QStyle::CC_GroupBox, &option, QStyle::SC_GroupBoxLabel, group);
+    const QRect frame =
+        style->subControlRect(QStyle::CC_GroupBox, &option, QStyle::SC_GroupBoxFrame, group);
+    const QSize size = button->size();
+    const QRect place(QPoint(frame.right() + 1 - size.width(),
+                             std::max(0, label.center().y() + 1 - (size.height() / 2))),
+                      size);
+    button->move(QStyle::visualRect(group->layoutDirection(), group->rect(), place).topLeft());
+    button->raise();
+}
+
+}  // namespace kalahari::gui::list_parts

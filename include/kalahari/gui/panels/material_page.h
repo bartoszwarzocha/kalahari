@@ -134,9 +134,9 @@ public:
     /// @brief Give the keys to the description
     void focusDescription();
     QPlainTextEdit* descriptionEdit() const { return m_descriptionEdit; }
-    QTableWidget* fieldsTable() const;
-    QToolButton* addFieldButton() const;
-    QToolButton* removeFieldButton() const;
+    [[nodiscard]] QTableWidget* fieldsTable() const;
+    [[nodiscard]] QToolButton* addFieldButton() const;
+    [[nodiscard]] QToolButton* removeFieldButton() const;
     QTreeWidget* linksList() const { return m_linksList; }
     QToolButton* addLinkButton() const { return m_addLinkButton; }
     QToolButton* removeLinkButton() const { return m_removeLinkButton; }

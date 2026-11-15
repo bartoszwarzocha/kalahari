@@ -6,6 +6,8 @@
 
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
+#include <kalahari/core/book_project.h>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/link_roles.h>
 #include <kalahari/core/logger.h>
@@ -2463,14 +2465,29 @@ bool ProjectManager::changeDetails(const char* what, const QString& elementId,
 }
 
 bool ProjectManager::setDescription(const QString& elementId, const QString& description) {
-    return changeDetails("setDescription", elementId, [&description](ProjectElement& element) {
-        element.description = description;
-    });
+    const ProjectElement* element = findElement(elementId);
+    // The short description of a card is shown with its data
+    const bool card = element != nullptr && isCard(*element) && element->description != description;
+    const bool saved =
+        changeDetails("setDescription", elementId, [&description](ProjectElement& each) {
+            each.description = description;
+        });
+    if (saved && card) {
+        emit cardChanged(elementId);
+    }
+    return saved;
 }
 
 bool ProjectManager::setFields(const QString& elementId, const QList<ElementField>& fields) {
-    return changeDetails("setFields", elementId,
-                         [&fields](ProjectElement& element) { element.fields = fields; });
+    const ProjectElement* element = findElement(elementId);
+    // The own fields of a card are shown with its data
+    const bool card = element != nullptr && isCard(*element) && element->fields != fields;
+    const bool saved = changeDetails(
+        "setFields", elementId, [&fields](ProjectElement& each) { each.fields = fields; });
+    if (saved && card) {
+        emit cardChanged(elementId);
+    }
+    return saved;
 }
 
 bool ProjectManager::setLinks(const QString& elementId, const QList<ElementLink>& links) {
@@ -2593,6 +2610,51 @@ bool ProjectManager::setCardValue(const QString& elementId, const QString& field
 QString ProjectManager::newCardColor() const {
     return CardColors::next(CardColors::palette(),
                             m_project ? cardColorsOf(*m_project) : QStringList());
+}
+
+namespace {
+
+/// Whether @p kind is the kind of cards @p kindId of package @p packageId
+bool isCardKind(const KindRef& kind, const QString& packageId, const QString& kindId) {
+    return kind && kind.kind->isCard() && kind.kind->id == kindId && kind.package != nullptr &&
+           kind.package->id == packageId;
+}
+
+}  // namespace
+
+QStringList ProjectManager::cardTitles(const QString& packageId, const QString& kindId,
+                                       const QString& exceptId) const {
+    QStringList titles;
+    if (!m_project) {
+        return titles;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        const QString title = element->title.trimmed();
+        if (element->id != exceptId && !title.isEmpty() && !titles.contains(title) &&
+            isCardKind(kindOf(*element), packageId, kindId)) {
+            titles << title;
+        }
+    }
+    titles.sort(Qt::CaseInsensitive);
+    return titles;
+}
+
+QList<const ProjectElement*> ProjectManager::pictureMaterials() const {
+    QList<const ProjectElement*> pictures;
+    if (!m_project) {
+        return pictures;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        if (isMaterial(*element) && !element->file.isEmpty() &&
+            MaterialKinds::isPictureName(element->file)) {
+            pictures << element;
+        }
+    }
+    return pictures;
 }
 
 bool ProjectManager::setCoverState(const QString& elementId, const QString& state,

@@ -327,6 +327,60 @@ void readShown(const QJsonValue& value, const QString& field, CardField& cardFie
     }
 }
 
+/// The type of a field of the cards: "text" when it says none
+void readFieldType(const QJsonValue& value, const QString& field, CardField& cardField,
+                   QStringList& problems) {
+    const auto type = value.isUndefined() ? std::optional<CardFieldType>(CardFieldType::Text)
+                                          : CardField::typeFromName(value.toString());
+    if (type) {
+        cardField.type = *type;
+        return;
+    }
+    addProblem(problems, field,
+               QStringLiteral("must be \"text\", \"longText\", \"choice\" or \"card\""));
+}
+
+/// Whether a field of the cards is the subtitle of the card: true or false
+void readSubtitle(const QJsonValue& value, const QString& field, CardField& cardField,
+                  QStringList& problems) {
+    if (!value.isUndefined() && !value.isBool()) {
+        addProblem(problems, field, QStringLiteral("must be true or false"));
+    }
+    cardField.subtitle = value.toBool();
+}
+
+/// The values to choose from, which only a field of the type "choice" has
+void readFieldChoices(const QJsonValue& value, const QString& field, CardField& cardField,
+                      QStringList& problems) {
+    if (cardField.type == CardFieldType::Choice) {
+        cardField.choices = readChoices(value, field, problems);
+    } else if (!value.isUndefined()) {
+        addProblem(problems, field,
+                   QStringLiteral("only a field of the type \"choice\" has values to choose "
+                                  "from"));
+    }
+}
+
+/// The kind of the cards that a field of the type "card" names, which only such a field has
+void readCardKind(const QJsonValue& value, const QString& field, CardField& cardField,
+                  QStringList& problems) {
+    if (cardField.type != CardFieldType::Card) {
+        if (!value.isUndefined()) {
+            addProblem(problems, field,
+                       QStringLiteral("only a field of the type \"card\" names a kind of "
+                                      "cards"));
+        }
+        return;
+    }
+    if (!value.isString() || !isIdentifier(value.toString())) {
+        addProblem(problems, field,
+                   QStringLiteral("a field of the type \"card\" needs the id of the kind of the "
+                                  "cards it names, e.g. \"location\""));
+        return;
+    }
+    cardField.cardKind = value.toString();
+}
+
 /// A field of the cards of a kind
 std::optional<CardField> readCardField(const QJsonValue& value, const QString& field,
                                        QStringList& problems) {
@@ -347,47 +401,16 @@ std::optional<CardField> readCardField(const QJsonValue& value, const QString& f
     cardField.name =
         readText(object.value(QStringLiteral("name")), field + QStringLiteral(".name"), true,
                  problems);
-    const QJsonValue type = object.value(QStringLiteral("type"));
-    const auto readType = type.isUndefined() ? std::optional<CardFieldType>(CardFieldType::Text)
-                                             : CardField::typeFromName(type.toString());
-    if (!readType) {
-        addProblem(problems, field + QStringLiteral(".type"),
-                   QStringLiteral("must be \"text\", \"longText\", \"choice\" or \"card\""));
-    } else {
-        cardField.type = *readType;
-    }
+    readFieldType(object.value(QStringLiteral("type")), field + QStringLiteral(".type"),
+                  cardField, problems);
     readShown(object.value(QStringLiteral("show")), field + QStringLiteral(".show"), cardField,
               problems);
-
-    const QJsonValue subtitle = object.value(QStringLiteral("subtitle"));
-    if (!subtitle.isUndefined() && !subtitle.isBool()) {
-        addProblem(problems, field + QStringLiteral(".subtitle"),
-                   QStringLiteral("must be true or false"));
-    }
-    cardField.subtitle = subtitle.toBool();
-
-    const QJsonValue choices = object.value(QStringLiteral("choices"));
-    if (cardField.type == CardFieldType::Choice) {
-        cardField.choices = readChoices(choices, field + QStringLiteral(".choices"), problems);
-    } else if (!choices.isUndefined()) {
-        addProblem(problems, field + QStringLiteral(".choices"),
-                   QStringLiteral("only a field of the type \"choice\" has values to choose "
-                                  "from"));
-    }
-
-    const QJsonValue card = object.value(QStringLiteral("card"));
-    if (cardField.type == CardFieldType::Card) {
-        if (!card.isString() || !isIdentifier(card.toString())) {
-            addProblem(problems, field + QStringLiteral(".card"),
-                       QStringLiteral("a field of the type \"card\" needs the id of the kind "
-                                      "of the cards it names, e.g. \"location\""));
-        } else {
-            cardField.cardKind = card.toString();
-        }
-    } else if (!card.isUndefined()) {
-        addProblem(problems, field + QStringLiteral(".card"),
-                   QStringLiteral("only a field of the type \"card\" names a kind of cards"));
-    }
+    readSubtitle(object.value(QStringLiteral("subtitle")), field + QStringLiteral(".subtitle"),
+                 cardField, problems);
+    readFieldChoices(object.value(QStringLiteral("choices")), field + QStringLiteral(".choices"),
+                     cardField, problems);
+    readCardKind(object.value(QStringLiteral("card")), field + QStringLiteral(".card"), cardField,
+                 problems);
     return cardField;
 }
 
