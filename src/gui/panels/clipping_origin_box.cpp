@@ -103,8 +103,8 @@ void ClippingOriginBox::showClipping(const QString& elementId) {
         return;
     }
     m_clippingId = elementId;
-    const core::ClippingData& data = element->clipping;
-    const ClippingFrom from = ClippingTexts::fromOf(m_book, data);
+    const core::ClippingData& clipping = element->clipping;
+    const ClippingFrom from = ClippingTexts::fromOf(m_book, clipping);
     if (from.live) {
         m_from->setText(QStringLiteral("<a href=\"%1\">%2</a>")
                             .arg(QString::fromLatin1(ORIGIN_LINK), from.title.toHtmlEscaped()));
@@ -113,12 +113,12 @@ void ClippingOriginBox::showClipping(const QString& elementId) {
         m_from->setText(
             (from.title.isEmpty() ? tr("added by hand") : from.title).toHtmlEscaped());
     }
-    const QString place = ClippingTexts::placeText(data.origin);
+    const QString place = ClippingTexts::placeText(clipping.origin);
     m_place->setText(place);
     m_layout->setRowVisible(m_place, !place.isEmpty());
-    m_cut->setText(data.origin.cut.isValid() ? versionTime(data.origin.cut) : QString());
-    m_layout->setRowVisible(m_cut, data.origin.cut.isValid());
-    const QString inserted = ClippingTexts::insertedText(data);
+    m_cut->setText(clipping.origin.cut.isValid() ? versionTime(clipping.origin.cut) : QString());
+    m_layout->setRowVisible(m_cut, clipping.origin.cut.isValid());
+    const QString inserted = ClippingTexts::insertedText(clipping);
     //: A clipping never inserted into a text. In Polish: nie
     m_inserted->setText(inserted.isEmpty() ? tr("no") : inserted);
     m_layout->setRowVisible(m_inserted, keepsInserted() || !inserted.isEmpty());
