@@ -46,7 +46,11 @@ class BookDictionaryPanel : public QWidget {
 
 public:
     /// @brief The parts of the dictionary, in the order of the tabs
-    enum class Part { Names, Rules, Words };
+    enum class Part {
+        Names,  ///< The names: of the characters, places, items and other things
+        Rules,  ///< The spelling rules of the author
+        Words   ///< The words right in this book only
+    };
 
     /// @brief How many parts there are
     static constexpr int PART_COUNT = 3;

@@ -116,33 +116,46 @@ QString modelLabel(const QString& model) {
     static const std::array<Model, 13> models = {{
         //: A model of declension: its sample word, then the words that decline like it. In
         //: Polish: Jan – męskie na spółgłoskę
-        {"jan", QT_TRANSLATE_NOOP("NameLabels", "Jan – a man's name ending in a consonant")},
+        {.id = "jan",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Jan – a man's name ending in a consonant")},
         //: In Polish: Marek – męskie z opadającym e (Marka)
-        {"marek", QT_TRANSLATE_NOOP("NameLabels", "Marek – a man's name whose e drops (Marka)")},
+        {.id = "marek",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Marek – a man's name whose e drops (Marka)")},
         //: In Polish: Kuba – męskie na -a lub -o
-        {"kuba", QT_TRANSLATE_NOOP("NameLabels", "Kuba – a man's name ending in -a or -o")},
+        {.id = "kuba",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Kuba – a man's name ending in -a or -o")},
         //: In Polish: Kowalski – przymiotnikowe męskie (-ski, -cki, -y)
-        {"kowalski",
-         QT_TRANSLATE_NOOP("NameLabels", "Kowalski – a masculine adjective (-ski, -cki, -y)")},
+        {.id = "kowalski",
+         .label = QT_TRANSLATE_NOOP("NameLabels",
+                                    "Kowalski – a masculine adjective (-ski, -cki, -y)")},
         //: In Polish: Anna – żeńskie na -a
-        {"anna", QT_TRANSLATE_NOOP("NameLabels", "Anna – a feminine noun ending in -a")},
+        {.id = "anna",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Anna – a feminine noun ending in -a")},
         //: In Polish: Kowalska – przymiotnikowe żeńskie (-ska, -cka, -owa)
-        {"kowalska",
-         QT_TRANSLATE_NOOP("NameLabels", "Kowalska – a feminine adjective (-ska, -cka, -owa)")},
+        {.id = "kowalska",
+         .label = QT_TRANSLATE_NOOP("NameLabels",
+                                    "Kowalska – a feminine adjective (-ska, -cka, -owa)")},
         //: In Polish: Gdańsk – męskie nieżywotne, dopełniacz na -a
-        {"gdansk", QT_TRANSLATE_NOOP("NameLabels", "Gdańsk – a masculine thing, genitive -a")},
+        {.id = "gdansk",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Gdańsk – a masculine thing, genitive -a")},
         //: In Polish: Londyn – męskie nieżywotne, dopełniacz na -u
-        {"londyn", QT_TRANSLATE_NOOP("NameLabels", "Londyn – a masculine thing, genitive -u")},
+        {.id = "londyn",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Londyn – a masculine thing, genitive -u")},
         //: In Polish: Gniezno – nijakie na -o
-        {"gniezno", QT_TRANSLATE_NOOP("NameLabels", "Gniezno – a neuter noun ending in -o")},
+        {.id = "gniezno",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Gniezno – a neuter noun ending in -o")},
         //: In Polish: Opole – nijakie na -e
-        {"opole", QT_TRANSLATE_NOOP("NameLabels", "Opole – a neuter noun ending in -e")},
+        {.id = "opole",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Opole – a neuter noun ending in -e")},
         //: In Polish: Zakopane – przymiotnikowe nijakie
-        {"zakopane", QT_TRANSLATE_NOOP("NameLabels", "Zakopane – a neuter adjective")},
+        {.id = "zakopane",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Zakopane – a neuter adjective")},
         //: An English name: its plural with -s. In Polish: Regularna – liczba mnoga z -s
-        {"regular", QT_TRANSLATE_NOOP("NameLabels", "Regular – the plural with -s")},
+        {.id = "regular",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Regular – the plural with -s")},
         //: A word of a name that has the same form in every case. In Polish: Nie odmienia się
-        {"none", QT_TRANSLATE_NOOP("NameLabels", "Does not change")},
+        {.id = "none",
+         .label = QT_TRANSLATE_NOOP("NameLabels", "Does not change")},
     }};
     for (const Model& entry : models) {
         if (model == QLatin1String(entry.id)) {

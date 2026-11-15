@@ -322,7 +322,7 @@ TEST_CASE("Name window: models, forms, kind, plural and Quick Insert", "[gui][di
     anna.id = QStringLiteral("n1");
     const NameDialog dialog(anna, polish, {});
     auto* unchanged = child<QCheckBox>(dialog, "nameUnchanged");
-    NameFormsTable* forms = dialog.formsTable();
+    const NameFormsTable* forms = dialog.formsTable();
     CHECK(dialog.acceptButton()->text() == QStringLiteral("Save"));
     CHECK(dialog.name() == anna);
 

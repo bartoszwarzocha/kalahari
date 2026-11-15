@@ -653,7 +653,7 @@ TEST_CASE("Book dictionary: its page on a tab, and Book > Book Dictionary...",
         // The page on its tab, one for the book; it follows the dictionary
         const OpenBook open;
         command->execute();
-        BookDictionaryPanel* panel = coordinator.panel();
+        const BookDictionaryPanel* panel = coordinator.panel();
         REQUIRE(panel != nullptr);
         CHECK(tabs.count() == 1);
         CHECK(tabs.tabText(0) == QStringLiteral("Book Dictionary"));
