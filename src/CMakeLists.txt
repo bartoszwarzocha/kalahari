@@ -56,6 +56,9 @@ set(KALAHARI_CORE_SOURCES
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
+    core/affix_expander.cpp     # The forms a Hunspell dictionary gives its words
+    core/name_declension.cpp    # The forms of names in the grammatical cases
+    core/book_dictionary.cpp    # The dictionary of a book: names, rules of spelling, words
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/link_roles.cpp         # The roles of links, and the paragraph a link names

@@ -25,6 +25,9 @@ set(TEST_SOURCES
     core/test_project_database.cpp  # OpenSpec #00041: SQLite Project Database
     core/test_book_type_registry.cpp  # Book type packages and their registry
     core/test_kind_words.cpp          # Names of kinds in sentences, and the markers of translations
+    core/test_affix_expander.cpp      # The forms a Hunspell dictionary gives its words
+    core/test_name_declension.cpp     # The forms of names in the grammatical cases
+    core/test_book_dictionary.cpp     # The dictionary of a book: names, rules of spelling, words
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
@@ -233,6 +236,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/affix_expander.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/name_declension.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book_dictionary.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
     ${CMAKE_SOURCE_DIR}/src/core/link_roles.cpp
