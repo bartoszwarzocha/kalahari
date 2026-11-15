@@ -372,15 +372,15 @@ void CardPage::createFullLayout() {
     // The data beside the long description
     auto* columns = new QHBoxLayout();
     columns->setSpacing(SPACING);
-    auto* data = new QWidget(content);
-    data->setMinimumWidth(DATA_MINIMUM_WIDTH);
-    data->setMaximumWidth(DATA_MAXIMUM_WIDTH);
-    auto* dataLayout = new QVBoxLayout(data);
+    auto* dataColumn = new QWidget(content);
+    dataColumn->setMinimumWidth(DATA_MINIMUM_WIDTH);
+    dataColumn->setMaximumWidth(DATA_MAXIMUM_WIDTH);
+    auto* dataLayout = new QVBoxLayout(dataColumn);
     dataLayout->setContentsMargins(0, 0, 0, 0);
     dataLayout->setSpacing(SPACING);
     //: The group of the fields of a card of a character, a location or an item. In Polish:
     //: Dane
-    auto* fieldsGroup = new QGroupBox(tr("Data"), data);
+    auto* fieldsGroup = new QGroupBox(tr("Data"), dataColumn);
     fieldsGroup->setObjectName(QStringLiteral("cardDataGroup"));
     auto* fieldsLayout = new QVBoxLayout(fieldsGroup);
     fieldsLayout->setContentsMargins(SPACING, SPACING, SPACING, SPACING);
@@ -389,10 +389,10 @@ void CardPage::createFullLayout() {
     dataLayout->addWidget(fieldsGroup);
     //: In Polish: Własne pola karty
     m_ownFields = new OwnFieldsBox(m_book, QStringLiteral("card"), tr("Own fields of the card"),
-                                   false, data);
+                                   false, dataColumn);
     dataLayout->addWidget(m_ownFields);
     dataLayout->addStretch(1);
-    columns->addWidget(data);
+    columns->addWidget(dataColumn);
     //: The long description of a card of a character, a location or an item: the text of the
     //: card. In Polish: Opis
     m_descriptionGroup = new QGroupBox(tr("Description"), content);
