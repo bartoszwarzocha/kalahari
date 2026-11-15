@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dialog_checks.h
 /// @brief What the tests check of the program's windows: their access keys, their size on a
 ///        small screen, their texts in Polish, the gear

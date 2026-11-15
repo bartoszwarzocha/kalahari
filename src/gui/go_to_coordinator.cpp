@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file go_to_coordinator.cpp
 /// @brief Edit > Go To...: the window of the places of the text
 
@@ -14,10 +17,12 @@
 
 namespace kalahari::gui {
 
-GoToCoordinator::GoToCoordinator(TextWithKeys textWithKeys, QWidget* window, QObject* parent)
+GoToCoordinator::GoToCoordinator(CommandRegistry& commands, TextWithKeys textWithKeys,
+                                 QWidget* window, QObject* parent)
     : QObject(parent),
       m_textWithKeys(std::move(textWithKeys)),
-      m_window(window)
+      m_window(window),
+      m_commands(commands)
 {
     // The text with the keys, also when the keys go to the window
     if (auto* app = qobject_cast<QApplication*>(QCoreApplication::instance())) {
@@ -32,10 +37,9 @@ GoToCoordinator::GoToCoordinator(TextWithKeys textWithKeys, QWidget* window, QOb
 
 void GoToCoordinator::connectCommands()
 {
-    auto& registry = CommandRegistry::getInstance();
-    if (Command* command = registry.getCommand(COMMAND)) {
+    if (Command* command = m_commands.getCommand(COMMAND)) {
         command->execute = [this]() { open(); };
-        registry.updateActionState(COMMAND);
+        m_commands.updateActionState(COMMAND);
     }
 }
 

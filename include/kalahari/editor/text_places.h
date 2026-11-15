@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_places.h
 /// @brief The places of a text Edit > Go To... goes to: the pages, the headings, the notes, the
 ///        images, the tables and the annotations

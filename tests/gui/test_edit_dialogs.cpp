@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_edit_dialogs.cpp
 /// @brief The windows of the Edit menu: Paste Special... and Go To..., and their commands
 
@@ -28,6 +31,7 @@
 
 #include <memory>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using editor::ClipboardSource;
@@ -187,9 +191,9 @@ TEST_CASE("Paste Special: Edit > Paste Special... pastes in the form chosen",
     const PasteModeKept kept;
     core::SettingsManager::getInstance().set<std::string>(editor::PASTE_MODE_KEY,
                                                           editor::PASTE_MODE_TEXT);
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     const gui::Command* command =
-        gui::CommandRegistry::getInstance().getCommand("edit.pasteSpecial");
+        kalahari::test::commands().getCommand("edit.pasteSpecial");
     REQUIRE(command != nullptr);
     CHECK(command->phase == 0);
     CHECK(command->shortcut.isEmpty());
@@ -330,8 +334,8 @@ TEST_CASE("Go To: the sentences of the outcomes", "[gui][goto][dialog]") {
 
 TEST_CASE("Go To: Edit > Go To... opens one window over the text that had the keys last",
           "[gui][goto]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});
-    auto& registry = gui::CommandRegistry::getInstance();
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
+    auto& registry = kalahari::test::commands();
     const gui::Command* command = registry.getCommand(gui::GoToCoordinator::COMMAND);
     REQUIRE(command != nullptr);
     CHECK(command->shortcut.toQKeySequence() == QKeySequence(Qt::ControlModifier | Qt::Key_G));
@@ -355,7 +359,8 @@ TEST_CASE("Go To: Edit > Go To... opens one window over the text that had the ke
     QWidget window;
     auto text = editorWith(QStringLiteral("<kml><h1>One</h1><p>a</p><h1>Two</h1></kml>"));
     editor::BookEditor* keys = text.get();
-    gui::GoToCoordinator coordinator([&keys]() { return keys; }, &window);
+    gui::GoToCoordinator coordinator(kalahari::test::commands(), [&keys]() { return keys; },
+                                     &window);
     coordinator.connectCommands();
     registry.executeCommand(gui::GoToCoordinator::COMMAND);
     GoToDialog* dialog = coordinator.dialog();

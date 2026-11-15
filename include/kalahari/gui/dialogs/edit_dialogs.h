@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file edit_dialogs.h
 /// @brief The windows of the Edit menu: Paste Special... and Go To...
 

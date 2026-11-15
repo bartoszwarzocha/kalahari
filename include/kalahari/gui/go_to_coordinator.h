@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file go_to_coordinator.h
 /// @brief Edit > Go To...: the window of the places of the text, over the text that had the
 ///        keys last
@@ -16,6 +19,8 @@ class BookEditor;
 }
 
 namespace kalahari::gui {
+
+class CommandRegistry;
 
 namespace dialogs {
 class GoToDialog;
@@ -36,10 +41,12 @@ public:
     /// @brief The command this coordinator gives its callback
     static constexpr const char* COMMAND = "edit.goTo";
 
+    /// @param commands The commands of its window
     /// @param textWithKeys The text with the keys
     /// @param window Over which the window opens
     /// @param parent Parent object
-    GoToCoordinator(TextWithKeys textWithKeys, QWidget* window, QObject* parent = nullptr);
+    GoToCoordinator(CommandRegistry& commands, TextWithKeys textWithKeys, QWidget* window,
+                    QObject* parent = nullptr);
 
     GoToCoordinator(const GoToCoordinator&) = delete;
     GoToCoordinator& operator=(const GoToCoordinator&) = delete;
@@ -66,6 +73,7 @@ private:
     dialogs::GoToDialog* m_dialog = nullptr;
     editor::BookEditor* m_lastText = nullptr;
     QMetaObject::Connection m_lastTextGone;
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

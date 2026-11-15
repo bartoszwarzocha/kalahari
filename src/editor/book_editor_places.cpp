@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_places.cpp
 /// @brief BookEditor: Edit > Go To..., the pages, the headings, the notes, the images, the
 ///        tables and the annotations of the text

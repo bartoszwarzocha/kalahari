@@ -791,7 +791,7 @@ MainWindow::MainWindow(QWidget* parent)
     // Edit > Go To...: in the book's text with the keys, also a read-only one; the window
     // stays open over the text that had the keys last
     m_goToCoordinator = new GoToCoordinator(
-        [this]() { return m_editCoordinator->textWithKeys(); }, this, this);
+        *m_commands, [this]() { return m_editCoordinator->textWithKeys(); }, this, this);
     m_goToCoordinator->connectCommands();
     m_editCoordinator->addTextCommands({GoToCoordinator::COMMAND},
                                        [](const editor::BookEditor&) { return true; });

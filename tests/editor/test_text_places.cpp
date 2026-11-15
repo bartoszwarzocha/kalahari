@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_text_places.cpp
 /// @brief Edit > Go To... in the editor: the places of a text, by number, on or back, the next
 ///        and the previous one
