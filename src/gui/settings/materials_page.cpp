@@ -21,6 +21,7 @@
 
 #include "kalahari/core/bibliography.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/source_catalogs.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -274,9 +275,22 @@ void MaterialsPage::addPdfPreview() {
     QCheckBox* lastPage =
         addCheckBox(pdf, tr("Open at the page shown last"), PdfFiles::LAST_PAGE_SETTING);
     lastPage->setObjectName(QStringLiteral("materialsPdfLastPage"));
+    //: In Polish: Zakreślenia na stronach, zapisane w książce
+    QCheckBox* highlights = addCheckBox(pdf, tr("Highlights on the pages, kept in the book"),
+                                        PdfFiles::HIGHLIGHTS_SETTING);
+    highlights->setObjectName(QStringLiteral("materialsPdfHighlights"));
+    //: In Polish: Polecenie „Zakreśl” w menu i na pasku zaznaczenia oznacza tekst kolorem, a
+    //: panel boczny pokazuje zakreślenia z notatkami obok zakładek. Plik PDF zostaje bez zmian.
+    addNote(pdf, tr("Highlight in the menu and on the bar of a selection marks the text with a "
+                    "color, and the side panel lists the highlights with their notes next to the "
+                    "bookmarks. The PDF file stays as it is."));
 
-    // The colors of the preview are those of the editor, on another page
-    auto* colors = new QHBoxLayout();
+    // The colors of the preview are those of the editor, on another page. The row is a widget
+    // of its own, so that the form gives the wrapped text the height it needs
+    addGap(pdf);
+    auto* colorsRow = new QWidget();
+    auto* colors = new QHBoxLayout(colorsRow);
+    colors->setContentsMargins(0, 0, 0, 0);
     //: In Polish: Kolory tła wokół stron, zaznaczenia i wyników szukania są na stronie
     //: Edytor > Kolory, osobno w każdym motywie.
     auto* colorsText = new QLabel(tr("The colors around the pages, of the selection and of the "
@@ -288,7 +302,7 @@ void MaterialsPage::addPdfPreview() {
     auto* showColors = new QPushButton(tr("Sh&ow"));
     showColors->setObjectName(QStringLiteral("materialsShowEditorColors"));
     colors->addWidget(showColors);
-    pdf->addRow(colors);
+    pdf->addRow(colorsRow);
     connect(showColors, &QPushButton::clicked, this, &MaterialsPage::colorsPageAsked);
 }
 
@@ -330,6 +344,37 @@ void MaterialsPage::addSources() {
     //: dodaje go do skopiowanego tekstu.
     addNote(sources, tr("The card of a quote shows the reference, and Copy with Reference in "
                         "the preview of a PDF file adds it to the text copied."));
+    addGap(sources);
+    addLookup(sources);
+}
+
+void MaterialsPage::addLookup(QFormLayout* sources) {
+    using core::SourceCatalogs;
+    //: In Polish: Uzupełniaj opisy z sieci na podstawie ISBN i DOI
+    QCheckBox* lookup =
+        addCheckBox(sources, tr("Fill in descriptions from the web by ISBN and DOI"),
+                    SourceCatalogs::LOOKUP_SETTING);
+    lookup->setObjectName(QStringLiteral("materialsSourcesLookup"));
+
+    auto* catalog = narrowComboBox();
+    catalog->setObjectName(QStringLiteral("materialsSourcesIsbnCatalog"));
+    for (const QString& each : SourceCatalogs::isbnCatalogs()) {
+        const QString name = SourceCatalogs::catalogName(each);
+        //: %1: the name of a catalog. In Polish: %1 (zalecany)
+        const QString recommended = tr("%1 (recommended)", "catalog").arg(name);
+        catalog->addItem(each == QLatin1String(SourceCatalogs::GOOGLE_BOOKS) ? recommended : name,
+                         each);
+    }
+    //: The catalog on the web an ISBN goes to. In Polish: Katalog dla ISBN:
+    addField(sources, tr("ISBN catalog:"), catalog, SourceCatalogs::ISBN_CATALOG_SETTING);
+    //: In Polish: Wysyła tylko numer i tylko na Twoje polecenie: ISBN do wybranego katalogu,
+    //: DOI do doi.org. Bez tej opcji karta źródła nie ma przycisku „Opis z sieci (ISBN, DOI)...”.
+    addNote(sources, tr("Sends only the number, and only when you ask: an ISBN to the catalog "
+                        "chosen, a DOI to doi.org. Without this option the card of a source has "
+                        "no From the Web by ISBN or DOI... button."));
+    // The catalog matters only with the lookup
+    catalog->setEnabled(lookup->isChecked());
+    connect(lookup, &QCheckBox::toggled, catalog, &QWidget::setEnabled);
 }
 
 }  // namespace kalahari::gui

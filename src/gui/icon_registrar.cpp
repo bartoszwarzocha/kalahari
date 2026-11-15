@@ -465,6 +465,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("pdf.results", "resources/icons/twotone/search.svg", "Search Results");
     iconRegistry.registerIcon("pdf.quote", "resources/icons/twotone/format_quote.svg", "Create Quote");
     iconRegistry.registerIcon("pdf.card", "resources/icons/twotone/edit.svg", "Material Card");
+    iconRegistry.registerIcon("pdf.highlight", "resources/icons/twotone/border_color.svg", "Highlight");
     iconRegistry.registerIcon("common.sort", "resources/icons/twotone/sort.svg", "Sort");
     iconRegistry.registerIcon("common.filterList", "resources/icons/twotone/filter_list.svg", "Filter");
     iconRegistry.registerIcon("common.lock", "resources/icons/twotone/lock.svg", "Lock");

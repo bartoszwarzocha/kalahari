@@ -2608,6 +2608,12 @@ bool ProjectManager::setBookmarks(const QString& elementId,
                          [&bookmarks](ProjectElement& each) { each.bookmarks = bookmarks; });
 }
 
+bool ProjectManager::setHighlights(const QString& elementId,
+                                   const QList<PdfHighlight>& highlights) {
+    return changeDetails("setHighlights", elementId,
+                         [&highlights](ProjectElement& each) { each.highlights = highlights; });
+}
+
 bool ProjectManager::setLastPage(const QString& elementId, int page) {
     if (page < 0) {
         Logger::getInstance().warn("setLastPage: {} is below 0", page);

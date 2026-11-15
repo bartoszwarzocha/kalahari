@@ -12,6 +12,8 @@
 #include <QFileInfo>
 #include <QMimeDatabase>
 #include <QMimeType>
+#include <QPainter>
+#include <QPointF>
 
 #ifdef KALAHARI_HAS_PDF
 #include "kalahari/gui/panels/pdf_preview_panel.h"
@@ -50,6 +52,10 @@ bool PdfFiles::opensInPreview() {
     return previewAvailable() && choice(OPEN_SETTING, PREVIEW, {PREVIEW, SYSTEM}) == PREVIEW;
 }
 
+bool PdfFiles::highlightsOn() {
+    return core::SettingsManager::getInstance().get<bool>(HIGHLIGHTS_SETTING, false);
+}
+
 QString PdfFiles::choice(const char* key, const char* fallback,
                          std::initializer_list<const char*> values) {
     const auto value =
@@ -60,6 +66,19 @@ QString PdfFiles::choice(const char* key, const char* fallback,
         }
     }
     return QString::fromLatin1(fallback);
+}
+
+QImage PdfFiles::onPaper(const QImage& page) {
+    if (page.isNull() || !page.hasAlphaChannel()) {
+        return page;
+    }
+    QImage paper(page.size(), QImage::Format_ARGB32_Premultiplied);
+    paper.setDevicePixelRatio(page.devicePixelRatio());
+    // The paper of a PDF is white, as the PDF format says, whatever the theme
+    paper.fill(Qt::white);
+    QPainter painter(&paper);
+    painter.drawImage(QPointF(0, 0), page);
+    return paper;
 }
 
 QImage PdfFiles::firstPage(const QString& path, const QSize& bounds, QString* error) {
@@ -80,11 +99,11 @@ QImage PdfFiles::firstPage(const QString& path, const QSize& bounds, QString* er
     const QSize size = bounds.isValid() ? points.scaled(QSizeF(bounds), Qt::KeepAspectRatio)
                                               .toSize()
                                         : points.toSize();
-    QImage page = document.render(0, size.expandedTo(QSize(1, 1)));
+    const QImage page = document.render(0, size.expandedTo(QSize(1, 1)));
     if (page.isNull() && error != nullptr) {
         *error = loadProblem(static_cast<int>(QPdfDocument::Error::Unknown));
     }
-    return page;
+    return onPaper(page);
 #else
     Q_UNUSED(path)
     Q_UNUSED(bounds)

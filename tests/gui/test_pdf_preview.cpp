@@ -3,7 +3,8 @@
 
 /// @file test_pdf_preview.cpp
 /// @brief The preview of a PDF file: its pages, its side panel, the search and the selection;
-/// a quote and a bookmark from it, the PDF file on the card of its material, and how it opens
+/// a quote, a bookmark and a highlight from it, the PDF file on the card of its material, and
+/// how it opens
 
 #include "document_window.h"
 
@@ -12,6 +13,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/source_description.h"
 #include "kalahari/gui/copy_target.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dialogs/new_quote_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_file.h"
@@ -23,6 +25,7 @@
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/utils/file_location.h"
+#include "kalahari/gui/widgets/color_menu.h"
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -30,10 +33,13 @@
 #include <QAction>
 #include <QBuffer>
 #include <QClipboard>
+#include <QColor>
 #include <QComboBox>
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QGuiApplication>
+#include <QImage>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPageSize>
@@ -172,6 +178,7 @@ bool waitFor(const std::function<bool()>& done) {
 struct UsualPdfSettings {
     std::map<std::string, std::string> saved;
     bool lastPage = true;
+    bool highlights = false;
 
     UsualPdfSettings() {
         auto& settings = core::SettingsManager::getInstance();
@@ -185,6 +192,8 @@ struct UsualPdfSettings {
         }
         lastPage = settings.get<bool>(PdfFiles::LAST_PAGE_SETTING, true);
         settings.set<bool>(PdfFiles::LAST_PAGE_SETTING, true);
+        highlights = settings.get<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
+        settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
     }
     ~UsualPdfSettings() {
         try {
@@ -193,6 +202,7 @@ struct UsualPdfSettings {
                 settings.set<std::string>(key, value);
             }
             settings.set<bool>(PdfFiles::LAST_PAGE_SETTING, lastPage);
+            settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, highlights);
         } catch (...) {
             // A destructor may not throw: the later tests then find the settings of this one
             static_cast<void>(
@@ -259,6 +269,13 @@ TEST_CASE("PDF preview: the pages of the file, the page shown and its number",
     CHECK(preview.pageCountLabel()->text().contains(QStringLiteral("3")));
     CHECK(preview.pageStatus() == QStringLiteral("Page 1 of 3"));
     CHECK(preview.pageLabel(1) == QStringLiteral("2"));
+
+    // The file leaves the paper to the program: the pages are white, also the first one alone
+    const QImage first =
+        PdfFiles::firstPage(novel.pm.filePathOf(*novel.pm.findElement(id)), QSize(100, 100));
+    REQUIRE_FALSE(first.isNull());
+    CHECK(first.pixelColor(1, 1) == QColor(Qt::white));
+    CHECK(view->grab(view->pageRect(0)).toImage().pixelColor(4, 4) == QColor(Qt::white));
 
     // To a page by its number, also of a range of pages; a page the file has not stays
     int changes = 0;
@@ -530,6 +547,110 @@ TEST_CASE("PDF preview: the bookmarks of the material, at the page shown and of 
     REQUIRE(pm.setBookmarks(id, {pm.findElement(id)->bookmarks.first(), other}));
     preview.refresh();
     CHECK(preview.bookmarksList()->topLevelItemCount() == 2);
+}
+
+TEST_CASE("PDF preview: the highlights of the material, in colors and with notes, when the "
+          "Settings allow them",
+          "[gui][materials][pdf][highlights]") {
+    gui::registerAllIcons();
+    const UsualPdfSettings usual;
+    auto& settings = core::SettingsManager::getInstance();
+    test::OpenNovel novel(QStringLiteral("Dunes"));
+    auto& pm = novel.pm;
+    const QString id = addPublication(pm, QStringLiteral("Atlas"), pdfFile());
+
+    PdfPreviewPanel preview(pm, id);
+    preview.resize(800, 600);
+    PdfPagesView* view = preview.view();
+    QTreeWidget* list = preview.highlightsList();
+    int changed = 0;
+    QObject::connect(&preview, &gui::PreviewPanel::materialChanged, &preview,
+                     [&changed](const QString&) { ++changed; });
+
+    // Without the option: no tab, no command, nothing highlighted
+    CHECK_FALSE(preview.sidePanel()->isTabVisible(PdfPreviewPanel::HighlightsTab));
+    CHECK_FALSE(preview.highlightAction()->isVisible());
+    selectProverb(view);
+    preview.highlight();
+    CHECK(pm.findElement(id)->highlights.isEmpty());
+
+    settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, true);
+    REQUIRE(waitFor([&preview]() {
+        return preview.sidePanel()->isTabVisible(PdfPreviewPanel::HighlightsTab);
+    }));
+    CHECK(preview.highlightAction()->isVisible());
+    CHECK(list->topLevelItemCount() == 0);
+
+    // The selection highlighted in the first highlight color: its page, text and places
+    selectProverb(view);
+    REQUIRE(view->hasSelection());
+    CHECK(preview.highlightAction()->isEnabled());
+    preview.highlight();
+    REQUIRE(pm.findElement(id)->highlights.size() == 1);
+    const core::PdfHighlight first = pm.findElement(id)->highlights.first();
+    CHECK(first.page == 2);
+    CHECK(first.text == proverb());
+    CHECK(first.color == preview.newHighlightColors()->lastColor().name().toUpper());
+    REQUIRE_FALSE(first.areas.isEmpty());
+    CHECK(changed == 1);
+    CHECK_FALSE(view->hasSelection());
+    REQUIRE(view->highlights().size() == 1);
+    CHECK(view->highlights().first().page == 1);
+    CHECK(view->highlights().first().color.name().toUpper() == first.color);
+    // One band a line
+    CHECK(first.areas.size() == 1);
+    REQUIRE(list->topLevelItemCount() == 1);
+    CHECK(list->topLevelItem(0)->text(0) == QStringLiteral("2"));
+    CHECK(list->topLevelItem(0)->text(1) == proverb());
+    CHECK(list->currentItem() == list->topLevelItem(0));
+
+    // The same text again in another color: the highlight gets the color
+    selectProverb(view);
+    preview.highlightIn(QColor(QStringLiteral("#00ff00")));
+    REQUIRE(pm.findElement(id)->highlights.size() == 1);
+    CHECK(pm.findElement(id)->highlights.first().color == QStringLiteral("#00FF00"));
+
+    // On the page: the highlight under the mouse
+    const QRect page = view->pageRect(1);
+    REQUIRE_FALSE(page.isEmpty());
+    const double scale = page.width() / view->document()->pagePointSize(1).width();
+    const QPointF middle = first.areas.first().center() * scale;
+    CHECK(view->highlightAt(page.topLeft() + middle.toPoint()) == 0);
+    CHECK(view->highlightAt(page.topLeft() + QPoint(2, 2)) == -1);
+
+    // Its note and its color in the side panel; Enter goes to its text
+    list->topLevelItem(0)->setText(2, QStringLiteral("Camels"));
+    CHECK(pm.findElement(id)->highlights.first().note == QStringLiteral("Camels"));
+    list->setCurrentItem(list->topLevelItem(0));
+    CHECK(preview.highlightColorButton()->isEnabled());
+    preview.setHighlightColor(QColor(QStringLiteral("#ff8800")));
+    CHECK(pm.findElement(id)->highlights.first().color == QStringLiteral("#FF8800"));
+    view->setCurrentPage(0);
+    emit list->itemActivated(list->topLevelItem(0), 0);
+    CHECK(view->currentPage() == 1);
+
+    // The option taken back hides the highlights; the book keeps them
+    settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
+    REQUIRE(waitFor([&preview]() {
+        return !preview.sidePanel()->isTabVisible(PdfPreviewPanel::HighlightsTab);
+    }));
+    CHECK(view->highlights().isEmpty());
+    CHECK(pm.findElement(id)->highlights.size() == 1);
+    settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, true);
+    REQUIRE(waitFor([view]() { return view->highlights().size() == 1; }));
+
+    // Taken away with Delete, after the question for its note
+    list->setCurrentItem(list->topLevelItem(0));
+    QStringList said;
+    using Answer = gui::dialogs::MessageDialog::Answer;
+    QKeyEvent remove(QEvent::KeyPress, Qt::Key_Delete, Qt::NoModifier);
+    CHECK(test::answering([&]() { QCoreApplication::sendEvent(list, &remove); }, Answer::Cancel,
+                          said) == 1);
+    CHECK(pm.findElement(id)->highlights.size() == 1);
+    CHECK(test::accepting([&preview]() { preview.removeHighlight(); }) == 1);
+    CHECK(pm.findElement(id)->highlights.isEmpty());
+    CHECK(view->highlights().isEmpty());
+    CHECK(list->topLevelItemCount() == 0);
 }
 
 TEST_CASE("PDF preview: it opens at the page shown last, which it keeps",

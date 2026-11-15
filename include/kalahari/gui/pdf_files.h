@@ -82,6 +82,10 @@ public:
     /// @brief Whether a preview opens at the page shown last (a bool, true at first)
     static constexpr const char* LAST_PAGE_SETTING = "materials.pdf.openAtLastPage";
 
+    /// @brief Whether text on the pages can be highlighted, the highlights kept in the book (a
+    /// bool, false at first): the PDF file stays as it is
+    static constexpr const char* HIGHLIGHTS_SETTING = "materials.pdf.highlights";
+
     /// @brief Whether the program shows PDF files: it was built with the Qt PDF module
     [[nodiscard]] static bool previewAvailable();
 
@@ -92,13 +96,20 @@ public:
     /// say so
     [[nodiscard]] static bool opensInPreview();
 
+    /// @brief Whether the preview highlights text: the settings say so (HIGHLIGHTS_SETTING)
+    [[nodiscard]] static bool highlightsOn();
+
     /// @brief The value of setting @p key of the preview; @p fallback when it is not one of
     /// @p values
     [[nodiscard]] static QString choice(const char* key, const char* fallback,
                                         std::initializer_list<const char*> values);
 
-    /// @brief The first page of PDF @p path, at most @p bounds large; a null image without
-    /// the Qt PDF module or when the file cannot be read, and then why in @p error
+    /// @brief Page @p page as Qt PDF draws it, on white paper: most files leave the paper to
+    /// the program that shows them, and Qt PDF draws it transparent
+    [[nodiscard]] static QImage onPaper(const QImage& page);
+
+    /// @brief The first page of PDF @p path, at most @p bounds large, on white paper; a null
+    /// image without the Qt PDF module or when the file cannot be read, and then why in @p error
     [[nodiscard]] static QImage firstPage(const QString& path, const QSize& bounds,
                                           QString* error = nullptr);
 
