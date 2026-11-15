@@ -111,8 +111,8 @@ wyłączona lokalnie i w CI: jej kompilacja trwa godziny i zajmuje dziesiątki G
 - Zakreślenia w PDF zapisywane w książce (domyślnie wyłączone): kolor i notatka, w panelu bocznym obok
   zakładek; plik PDF zostaje bez zmian.
 
-Stan: zrobiony (gałąź `claude/project-thread-zsum8e`, po etapach 1 i 2). Opcja „Uzupełniaj opisy z sieci
-na podstawie ISBN i DOI” jest w Ustawieniach › Materiały › Źródła razem z wyborem katalogu dla ISBN
+Stan: zrobiony (gałąź `claude/project-thread-zsum8e`, po etapach 1 i 2). Opcja „Opisy z sieci na podstawie
+ISBN i DOI” jest w Ustawieniach › Materiały › Źródła razem z wyborem katalogu dla ISBN
 (Google Books – zalecany – albo Open Library); DOI zawsze trafia do doi.org. Przycisk „Opis z sieci
 (ISBN, DOI)...” na karcie otwiera okno z numerem z karty; znaleziony opis zastępuje te pola, które ma,
 a pozostałe zostają. Odpowiedź jest ograniczona rozmiarem i czasem, Esc przerywa wyszukiwanie. Opcja

@@ -25888,9 +25888,9 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Polecenie „Zakreśl” w menu i na pasku zaznaczenia oznacza tekst kolorem, a panel boczny pokazuje zakreślenia z notatkami obok zakładek. Plik PDF zostaje bez zmian.</translation>
     </message>
     <message>
-        <source>Fill in descriptions from the web by ISBN and DOI</source>
-        <extracomment>In Polish: Uzupełniaj opisy z sieci na podstawie ISBN i DOI</extracomment>
-        <translation>Uzupełniaj opisy z sieci na podstawie ISBN i DOI</translation>
+        <source>Descriptions from the web by ISBN and DOI</source>
+        <extracomment>In Polish: Opisy z sieci na podstawie ISBN i DOI</extracomment>
+        <translation>Opisy z sieci na podstawie ISBN i DOI</translation>
     </message>
     <message>
         <source>ISBN catalog:</source>

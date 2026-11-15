@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **The description of a source from the web by its ISBN or DOI** - 2026-11-15. An option,
-  off at first (Settings > Materials > Sources > Fill in descriptions from the web by ISBN
-  and DOI), gives the card of a source the button From the Web by ISBN or DOI...: Look Up
+  off at first (Settings > Materials > Sources > Descriptions from the web by ISBN and
+  DOI), gives the card of a source the button From the Web by ISBN or DOI...: Look Up
   sends only the number of the card, or the one typed, an ISBN to the catalog chosen
   (Google Books, recommended, or Open Library) and a DOI to doi.org, and the description
   found takes the place of the fields it has; the others stay as they were. A wrong number,

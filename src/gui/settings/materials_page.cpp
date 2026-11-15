@@ -350,10 +350,9 @@ void MaterialsPage::addSources() {
 
 void MaterialsPage::addLookup(QFormLayout* sources) {
     using core::SourceCatalogs;
-    //: In Polish: Uzupełniaj opisy z sieci na podstawie ISBN i DOI
-    QCheckBox* lookup =
-        addCheckBox(sources, tr("Fill in descriptions from the web by ISBN and DOI"),
-                    SourceCatalogs::LOOKUP_SETTING);
+    //: In Polish: Opisy z sieci na podstawie ISBN i DOI
+    QCheckBox* lookup = addCheckBox(sources, tr("Descriptions from the web by ISBN and DOI"),
+                                    SourceCatalogs::LOOKUP_SETTING);
     lookup->setObjectName(QStringLiteral("materialsSourcesLookup"));
 
     auto* catalog = narrowComboBox();
