@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_text_fields.cpp
 /// @brief The fields of the book's title, its author, the text's title, the page, the words and
 ///        the date: values, formats, KML, the layout, editing and the clipboard

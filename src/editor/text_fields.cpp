@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_fields.cpp
 /// @brief The fields of a text: the book's title, its author, the text's title, the page and the
 ///        pages, the text's words and the date

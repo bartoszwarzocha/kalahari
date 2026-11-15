@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_fields.cpp
 /// @brief BookEditor: the fields of the book's title, its author, the text's title, the page,
 ///        the words and the date

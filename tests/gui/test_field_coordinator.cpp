@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_field_coordinator.cpp
 /// @brief The fields of the open texts: what they show of the book, Insert > Date && Time...,
 ///        Insert > Field..., the date and the time at once, Edit Field... and their windows
