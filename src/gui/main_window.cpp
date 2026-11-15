@@ -820,7 +820,9 @@ MainWindow::MainWindow(QWidget* parent)
     // Edit > Go To...: in the book's text with the keys, also a read-only one; the window
     // stays open over the text that had the keys last
     m_goToCoordinator = new GoToCoordinator(
-        *m_commands, [this]() { return m_editCoordinator->textWithKeys(); }, this, this);
+        *m_commands,
+        [this]() { return m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr; }, this,
+        this);
     m_goToCoordinator->connectCommands();
     m_editCoordinator->addTextCommands({GoToCoordinator::COMMAND},
                                        [](const editor::BookEditor&) { return true; });
@@ -1064,7 +1066,11 @@ MainWindow::~MainWindow() {
     if (m_annotationsCoordinator) {
         disconnect(m_annotationsCoordinator, nullptr, this, nullptr);
     }
-    // The edit commands stop following the keys before the widgets go
+    // The edit commands and Go To stop following the keys before the widgets go: Go To asks
+    // the edit commands for the text with the keys whenever the keys move, as they do when the
+    // widget that has them goes
+    delete m_goToCoordinator;
+    m_goToCoordinator = nullptr;
     delete m_editCoordinator;
     m_editCoordinator = nullptr;
     // The Spelling and Grammar panel stops following the text and the checking before they go
