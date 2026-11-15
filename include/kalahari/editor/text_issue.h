@@ -15,7 +15,9 @@ namespace kalahari::editor {
 /// @brief What found an issue of a text
 enum class TextIssueKind {
     Spelling,  ///< The dictionary does not know the word (SpellCheckService)
-    Grammar    ///< Grammar, style or punctuation (GrammarCheckService)
+    Grammar,   ///< Grammar, style or punctuation (GrammarCheckService)
+    BookRule   ///< A spelling rule of the book's dictionary (core::BookDictionary): the place
+               ///< is written otherwise than the author wants
 };
 
 /// @brief A misspelled word or a grammar issue of a text (BookEditor::textIssues())
@@ -34,7 +36,8 @@ struct TextIssue {
     /// @brief Whether it is in the text of a note
     bool inNote() const { return !noteId.isEmpty(); }
 
-    // A grammar issue's
+    // A grammar issue's; of a place breaking a rule of the book: the rule's id, its note as
+    // the description, and its right form as the suggestion
     QString message;          ///< What is wrong
     QString shortMessage;     ///< What is wrong, in a few words (may be empty)
     QString ruleId;           ///< The rule that found it
@@ -48,11 +51,16 @@ struct TextIssue {
 
 /// @brief The theme's editor color of a kind (the "editor" section of a theme file)
 ///
-/// As for the annotations (annotationColorKey()), one color for each kind: "spelling" or
-/// "grammar", of its waves and of the frames of its cards in the panel.
+/// As for the annotations (annotationColorKey()), one color for each kind: "spelling",
+/// "grammar" or "bookRule", of its waves and of the frames of its cards in the panel.
 /// @param kind The kind
 inline std::string issueColorKey(TextIssueKind kind) {
-    return kind == TextIssueKind::Spelling ? "spelling" : "grammar";
+    switch (kind) {
+        case TextIssueKind::Spelling: return "spelling";
+        case TextIssueKind::Grammar: return "grammar";
+        case TextIssueKind::BookRule: return "bookRule";
+    }
+    return "spelling";
 }
 
 }  // namespace kalahari::editor

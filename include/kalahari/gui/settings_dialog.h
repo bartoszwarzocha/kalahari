@@ -124,6 +124,10 @@ public:
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
 
+    /// @brief Whether the dialog was closed with Open Book Dictionary (Editor > Spelling): the
+    ///        window shows the book's dictionary
+    [[nodiscard]] bool isBookDictionaryAsked() const { return m_bookDictionaryAsked; }
+
 public slots:
     /// @brief OK: write the changed settings, then close; a value that cannot be written
     /// keeps the dialog open on its page
@@ -188,6 +192,7 @@ private:
     std::vector<QTreeWidgetItem*> m_plannedItems;  ///< Pages of options not available yet
     CommandRegistry& m_commands;  ///< The commands of its window
     const core::ProjectManager& m_book;  ///< The book of its window
+    bool m_bookDictionaryAsked = false;  ///< Closed with Open Book Dictionary
 };
 
 } // namespace gui

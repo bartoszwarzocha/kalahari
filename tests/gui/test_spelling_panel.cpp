@@ -11,6 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "../editor/fake_language_tool.h"
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -48,6 +49,7 @@
 #include <QStatusBar>
 #include <QTabBar>
 #include <QTabWidget>
+#include <QTemporaryDir>
 #include <QTextBlock>
 #include <QTextDocument>
 #include <QToolButton>
@@ -125,7 +127,7 @@ private:
         "editor.grammarCheck.serverUrl",  "editor.grammarCheck.username",
         "editor.grammarCheck.apiKey",     "editor.grammarCheck.ignoredRules",
         "spellingPanel.fixButtons",       "spellingPanel.nextIssue",
-        "spellingPanel.grammarScope"};
+        "spellingPanel.grammarScope",     "bookDictionary.panelAddsTo"};
     std::map<std::string, nlohmann::json> m_values;
 };
 
@@ -195,16 +197,18 @@ QStringList keysOf(const std::vector<SpellingPanelIssue>& issues) {
     return keys;
 }
 
-/// The issues listed by a panel: "spelling 2 errorz" (the kind, the paragraph, the text)
+/// The issues listed by a panel: "spelling 2 errorz" (the kind, the paragraph, the text; the
+/// kind "rule" is a departure from a rule of the book)
 QStringList listed(const SpellingPanel& panel) {
     QStringList list;
     for (const SpellingPanelIssue& issue : panel.shownIssues()) {
-        list.append(QStringLiteral("%1 %2 %3")
-                        .arg(issue.issue.kind == TextIssueKind::Spelling
-                                 ? QStringLiteral("spelling")
-                                 : QStringLiteral("grammar"))
-                        .arg(issue.number)
-                        .arg(issue.issue.text));
+        QString kind = QStringLiteral("grammar");
+        if (issue.issue.kind == TextIssueKind::Spelling) {
+            kind = QStringLiteral("spelling");
+        } else if (issue.issue.kind == TextIssueKind::BookRule) {
+            kind = QStringLiteral("rule");
+        }
+        list.append(QStringLiteral("%1 %2 %3").arg(kind).arg(issue.number).arg(issue.issue.text));
     }
     return list;
 }
@@ -348,10 +352,15 @@ struct Desk {
     /// Open a document with the paragraphs in a tab of its own, in front
     editor::BookEditor* open(const QStringList& paragraphs) { return openKml(kmlOf(paragraphs)); }
 
-    /// Open a document with a text in KML in a tab of its own, in front
-    editor::BookEditor* openKml(const QString& kml) {
+    /// Open a document with a text in KML in a tab of its own, in front; with
+    /// @p elementId, as a chapter of the book
+    [[nodiscard]] editor::BookEditor* openKml(const QString& kml,
+                                              const QString& elementId = {}) const {
         auto* document = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
         document->setContent(kml);
+        if (!elementId.isEmpty()) {
+            document->setProperty("elementId", elementId);
+        }
         tabs->setCurrentIndex(tabs->addTab(document, QStringLiteral("Document")));
         return document->getBookEditor();
     }
@@ -502,20 +511,20 @@ TEST_CASE("Spelling panel: a card unfolded shows the suggestions and the actions
     CHECK(says(card, QStringLiteral("paragraph 1")));
     CHECK(buttonTexts(card.buttons(), card).isEmpty());
 
-    // Unfolded: its sentence, the suggestions, Ignore Word and Add to Dictionary
+    // Unfolded: its sentence, the suggestions, Ignore Word and Add to Your Words
     card.setExpanded(true);
     CHECK(card.contextText() == QStringLiteral("One two three four mistakke five."));
     CHECK(buttonTexts(card.suggestionButtons(), card) ==
           QStringList{QStringLiteral("mistake"), QStringLiteral("mistakes")});
     CHECK(buttonTexts(card.actionButtons(), card) ==
-          QStringList{QStringLiteral("Ignore Word"), QStringLiteral("Add to Dictionary")});
+          QStringList{QStringLiteral("Ignore Word"), QStringLiteral("Add to Your Words")});
 
     // Its buttons are reached with Tab only while it is selected
     CHECK(card.suggestionButtons().first()->focusPolicy() == Qt::NoFocus);
     card.setSelected(true);
     CHECK(card.suggestionButtons().first()->focusPolicy() == Qt::StrongFocus);
 
-    // A text only read: the suggestions, Ignore Word and Add to Dictionary greyed out, saying
+    // A text only read: the suggestions, Ignore Word and Add to Your Words greyed out, saying
     // why
     card.setReadOnly(true);
     REQUIRE(card.buttons().size() == 4);
@@ -736,6 +745,121 @@ TEST_CASE("Spelling panel: only the cards in view are made, and the selected one
 // =============================================================================
 // The panel
 // =============================================================================
+
+TEST_CASE("Spelling panel: the cards of the book's dictionary", "[gui][spelling-panel][dictionary]") {
+    const std::vector<SpellingPanelIssue> issues = sampleIssues();
+    SpellingIssueCard card;
+    card.resize(360, 240);
+    card.show();
+    card.setExpanded(true);
+
+    SECTION("a place breaking a rule of the book: the rule, its form and Ignore Word") {
+        SpellingPanelIssue rule = spellingIssue(0, QStringLiteral("Send an email now."),
+                                                QStringLiteral("email"), 0);
+        rule.issue.kind = TextIssueKind::BookRule;
+        rule.issue.message = QStringLiteral("Write \u201ce-mail\u201d: As the publisher writes it.");
+        rule.issue.suggestions = {QStringLiteral("e-mail")};
+        card.setIssue(rule);
+        card.setSuggestions(rule.issue.suggestions);
+        CHECK(says(card, QStringLiteral("Book rule")));
+        CHECK(says(card, rule.issue.message));
+        CHECK(buttonTexts(card.suggestionButtons(), card) == QStringList{QStringLiteral("e-mail")});
+        CHECK(buttonTexts(card.actionButtons(), card) == QStringList{QStringLiteral("Ignore Word")});
+        int ignored = 0;
+        QObject::connect(&card, &SpellingIssueCard::ignoreWordClicked,
+                         [&ignored]() { ++ignored; });
+        card.actionButtons().first()->click();
+        CHECK(ignored == 1);
+
+        // In a chapter: Edit Rule... opens the window of the rule
+        card.setAddPlaces({.bookDictionary = true, .bookFirst = true});
+        CHECK(buttonTexts(card.actionButtons(), card) ==
+              QStringList{QStringLiteral("Ignore Word"), QStringLiteral("Edit Rule...")});
+        int edited = 0;
+        QObject::connect(&card, &SpellingIssueCard::editRuleClicked, [&edited]() { ++edited; });
+        card.actionButtons().at(1)->click();
+        CHECK(edited == 1);
+
+        // Its suggestion is its own, not one of the dictionary's
+        SpellingIssueList list;
+        list.setSuggestionProvider(
+            [](const SpellingPanelIssue&) { return QStringList{QStringLiteral("wrong")}; });
+        CHECK(list.suggestionsFor(rule) == QStringList{QStringLiteral("e-mail")});
+        CHECK(list.suggestionsFor(issues.at(0)) == QStringList{QStringLiteral("wrong")});
+    }
+
+    SECTION("a misspelled word of a chapter: the book's dictionary on the button, the writer's "
+            "words on the menu of its arrow, or the other way") {
+        card.setIssue(issues.at(0));
+        QList<bool> added;
+        QObject::connect(&card, &SpellingIssueCard::addToDictionaryClicked,
+                         [&added](bool toBook) { added.append(toBook); });
+        CHECK(buttonTexts(card.actionButtons(), card) ==
+              QStringList{QStringLiteral("Ignore Word"), QStringLiteral("Add to Your Words")});
+
+        card.setAddPlaces({.bookDictionary = true, .bookFirst = true});
+        const QList<QAbstractButton*> buttons = card.actionButtons();
+        REQUIRE(buttons.size() == 3);
+        CHECK(buttons.at(1)->text() == QStringLiteral("Add to Book Dictionary"));
+        CHECK(buttons.at(2)->accessibleName() == QStringLiteral("Other places to add the word"));
+        buttons.at(1)->click();
+        QStringList texts = kalahari::test::runPopupMenu(
+            [&buttons]() { buttons.at(2)->click(); },
+            QStringLiteral("Add to Your Words (All Books)"));
+        CHECK(texts == QStringList{QStringLiteral("Add to Your Words (All Books)"),
+                                   QStringLiteral("Add Name...")});
+        CHECK(added == QList<bool>{true, false});
+
+        // The word as a name of the book: the window of a new name
+        int names = 0;
+        QObject::connect(&card, &SpellingIssueCard::addNameClicked, [&names]() { ++names; });
+        kalahari::test::runPopupMenu([&buttons]() { buttons.at(2)->click(); },
+                                     QStringLiteral("Add Name..."));
+        CHECK(names == 1);
+        CHECK(added == QList<bool>{true, false});
+
+        added.clear();
+        card.setAddPlaces({.bookDictionary = true, .bookFirst = false});
+        CHECK(card.actionButtons().at(1)->text() == QStringLiteral("Add to Your Words"));
+        card.actionButtons().at(1)->click();
+        texts = kalahari::test::runPopupMenu([&card]() { card.actionButtons().at(2)->click(); },
+                                             QStringLiteral("Add to Book Dictionary"));
+        CHECK(texts == QStringList{QStringLiteral("Add to Book Dictionary"),
+                                   QStringLiteral("Add Name...")});
+        CHECK(added == QList<bool>{false, true});
+    }
+}
+
+TEST_CASE("Spelling panel: the button of the rules of the book, while they are checked",
+          "[gui][spelling-panel][dictionary]") {
+    SpellingPanel panel;
+    panel.resize(320, 480);
+    panel.show();
+    panel.setContent(SpellingPanel::Content::Issues);
+    std::vector<SpellingPanelIssue> issues = sampleIssues();
+    SpellingPanelIssue rule = spellingIssue(3, QStringLiteral("Send an email now."),
+                                            QStringLiteral("email"), 70);
+    rule.issue.kind = TextIssueKind::BookRule;
+    rule.key = QStringLiteral("R::email#0");
+    issues.push_back(rule);
+    panel.setIssues(issues);
+    QToolButton* rules = panel.kindButton(TextIssueKind::BookRule);
+
+    // Not checked (a file outside the book): no button, no card of it
+    CHECK_FALSE(panel.isKindChecked(TextIssueKind::BookRule));
+    CHECK_FALSE(rules->isVisibleTo(&panel));
+    CHECK(panel.shownIssues().size() == 3);
+
+    // Checked: counted and listed, and a filter
+    panel.setKindChecked(TextIssueKind::BookRule, true);
+    CHECK(rules->isVisibleTo(&panel));
+    CHECK(rules->text() == QStringLiteral("Rules 1"));
+    CHECK(panel.shownIssues().size() == 4);
+    CHECK(panel.kindButton(TextIssueKind::Spelling)->text() == QStringLiteral("Spelling 2"));
+    rules->click();
+    CHECK_FALSE(panel.isKindShown(TextIssueKind::BookRule));
+    CHECK(panel.shownIssues().size() == 3);
+}
 
 TEST_CASE("Spelling panel: the buttons of the kinds count the issues and show or hide them",
           "[gui][spelling-panel]") {
@@ -1113,10 +1237,92 @@ TEST_CASE("Spelling panel: a fix chosen in the panel goes to the text, and the n
     }
     const QString key = desk.panel->selectedKey();
     emit desk.panel->list()->ignoreWordClicked(key);
-    emit desk.panel->list()->addToDictionaryClicked(key);
+    emit desk.panel->list()->addToDictionaryClicked(key, false);
     CHECK_FALSE(desk.spelling->service()->isIgnored(QStringLiteral("errorz")));
     CHECK_FALSE(desk.spelling->service()->isInUserDictionary(QStringLiteral("errorz")));
     CHECK(desk.lists({QStringLiteral("spelling 2 errorz")}));
+}
+
+TEST_CASE("Spelling panel: in a chapter, the departures from the rules of the book with the "
+          "misspelled words, a word added to the book's dictionary",
+          "[gui][spelling-panel][coordinator][dictionary]") {
+    const KeptSettings kept;
+    setDefaults();
+    auto& projects = test::book();
+    REQUIRE(projects.closeProject(false));
+    const QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    REQUIRE(projects.createProject(folder.path(), QStringLiteral("Dictionary Test"),
+                                   QStringLiteral("Author"), QStringLiteral("en"), true));
+    core::SpellingRule rule;
+    rule.right = QStringLiteral("e-mail");
+    rule.wrong = {QStringLiteral("email")};
+    rule.allForms = false;
+    REQUIRE(projects.changeBookDictionary(
+        [&rule](core::BookDictionary& dictionary) { dictionary.putRule(rule); }));
+    const Commands commands;
+    {
+        Desk desk;
+        desk.openPanel();
+        REQUIRE(desk.openKml(kmlOf({QStringLiteral("Kirran wrote an email."),
+                                    QStringLiteral("Vael answered.")}),
+                             QStringLiteral("chapter-1")) != nullptr);
+        REQUIRE(desk.lists({QStringLiteral("spelling 1 Kirran"), QStringLiteral("rule 1 email"),
+                            QStringLiteral("spelling 2 Vael")}));
+        const QToolButton* rules = desk.panel->kindButton(TextIssueKind::BookRule);
+        CHECK(desk.panel->isKindChecked(TextIssueKind::BookRule));
+        CHECK(rules->isVisibleTo(desk.panel));
+        CHECK(rules->text() == QStringLiteral("Rules 1"));
+
+        // The button adds the word to the book's dictionary: right in the chapters from now
+        // on, and the issue after it is selected
+        desk.panel->selectIssue(desk.panel->shownIssues().at(0).key);
+        const SpellingIssueCard* card = desk.panel->list()->selectedCard();
+        REQUIRE(card != nullptr);
+        REQUIRE(card->actionButtons().size() == 3);
+        REQUIRE(card->actionButtons().at(1)->text() == QStringLiteral("Add to Book Dictionary"));
+        card->actionButtons().at(1)->click();
+        CHECK(projects.bookDictionary().hasWord(QStringLiteral("Kirran")));
+        CHECK_FALSE(desk.spelling->service()->isInUserDictionary(QStringLiteral("Kirran")));
+        CHECK(desk.lists({QStringLiteral("rule 1 email"), QStringLiteral("spelling 2 Vael")}));
+        REQUIRE(desk.panel->selectedIssue().has_value());
+        CHECK(desk.panel->selectedIssue()->issue.text == QStringLiteral("email"));
+
+        // With the writer's words first in Settings, the book's dictionary is on the arrow's
+        // menu
+        settings().set<std::string>("bookDictionary.panelAddsTo", "user");
+        desk.panel->selectIssue(desk.panel->shownIssues().at(1).key);
+        card = desk.panel->list()->selectedCard();
+        REQUIRE(card != nullptr);
+        CHECK(waitUntil([&desk]() {
+            const SpellingIssueCard* selected = desk.panel->list()->selectedCard();
+            return selected != nullptr &&
+                   selected->actionButtons().at(1)->text() == QStringLiteral("Add to Your Words");
+        }));
+        emit desk.panel->list()->addToDictionaryClicked(desk.panel->selectedKey(), true);
+        CHECK(projects.bookDictionary().hasWord(QStringLiteral("Vael")));
+        CHECK(desk.lists({QStringLiteral("rule 1 email")}));
+
+        // The window of a new name with the word, and the window of the rule
+        QStringList names;
+        QStringList rulesEdited;
+        QObject::connect(desk.coordinator.get(), &SpellingPanelCoordinator::addNameAsked,
+                         [&names](const QString& text) { names.append(text); });
+        QObject::connect(desk.coordinator.get(), &SpellingPanelCoordinator::editRuleAsked,
+                         [&rulesEdited](const QString& ruleId) { rulesEdited.append(ruleId); });
+        const QString ruleKey = desk.panel->shownIssues().at(0).key;
+        emit desk.panel->list()->addNameClicked(ruleKey);
+        emit desk.panel->list()->editRuleClicked(ruleKey);
+        CHECK(names == QStringList{QStringLiteral("email")});
+        CHECK(rulesEdited == QStringList{projects.bookDictionary().rules().front().id});
+
+        // A file outside the book: no rules, no book's dictionary
+        desk.open({QStringLiteral("Kirran wrote an email.")});
+        CHECK(desk.lists({QStringLiteral("spelling 1 Kirran")}));
+        CHECK_FALSE(desk.panel->isKindChecked(TextIssueKind::BookRule));
+        CHECK_FALSE(rules->isVisibleTo(desk.panel));
+    }
+    REQUIRE(projects.closeProject(false));
 }
 
 TEST_CASE("Spelling panel: the misspelled words of the notes' texts, at their notes",

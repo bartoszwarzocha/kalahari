@@ -278,8 +278,10 @@ TEST_CASE("Book commands: Close Book and the export of the archive greyed out wi
         *callback = none;
     }
     registerAllCommands(kalahari::test::commands(), callbacks);
+    // Book > Book Dictionary... gets its callback from BookDictionaryCoordinator
+    registry.getCommand("book.dictionary")->execute = none;
     CHECK(utils::openBookCommands() ==
-          std::vector<std::string>{"file.close", "file.export.archive"});
+          std::vector<std::string>{"file.close", "file.export.archive", "book.dictionary"});
 
     bool hasBook = false;
     utils::bindToOpenBook(registry, [&hasBook]() { return hasBook; });

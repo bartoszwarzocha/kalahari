@@ -11,6 +11,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "../editor/fake_language_tool.h"
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/icon_registry.h"
 #include "kalahari/core/project_manager.h"
@@ -107,6 +108,19 @@ QStringList wavyWords(const editor::BookEditor& bookEditor, int paragraph) {
     for (const editor::TextHighlight& highlight :
          editor::QTextDocumentSource(bookEditor.textDocument()).paragraphHighlights(paragraph)) {
         if (highlight.kind == editor::HighlightKind::Spelling) {
+            words.append(text.mid(highlight.start, highlight.length));
+        }
+    }
+    return words;
+}
+
+/// The texts with a wave of a rule of the book in a paragraph, in their order
+QStringList ruleWaves(const editor::BookEditor& bookEditor, int paragraph) {
+    const QString text = bookEditor.textDocument()->findBlockByNumber(paragraph).text();
+    QStringList words;
+    for (const editor::TextHighlight& highlight :
+         editor::QTextDocumentSource(bookEditor.textDocument()).paragraphHighlights(paragraph)) {
+        if (highlight.kind == editor::HighlightKind::BookRule) {
             words.append(text.mid(highlight.start, highlight.length));
         }
     }
@@ -413,6 +427,88 @@ TEST_CASE("Spelling coordinator: a document outside the book is checked in the d
     registry.clear();
 }
 
+TEST_CASE("Spelling coordinator: the chapters are checked with the book's dictionary",
+          "[gui][spelling][dictionary]") {
+    const KeptSpellingSettings kept;
+    auto& settings = KeptSpellingSettings::settings();
+    settings.set<bool>(ENABLED_KEY, true);
+    settings.set<std::string>(LANGUAGE_KEY, "");
+    settings.setLanguage("en");
+    auto& projects = test::book();
+    REQUIRE(projects.closeProject(false));
+
+    QStatusBar statusBar;
+    QTabWidget tabs;
+    tabs.resize(700, 500);
+    tabs.show();
+    {
+        SpellingCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), &tabs,
+                                        &statusBar);
+        const QTemporaryDir folder;
+        REQUIRE(folder.isValid());
+        REQUIRE(projects.createProject(folder.path(), QStringLiteral("Dictionary Test"),
+                                       QStringLiteral("Author"), QStringLiteral("en"), true));
+        REQUIRE(checksWith(coordinator, QStringLiteral("en_US")));
+        const QString text = QStringLiteral("Kirran wrote an email.");
+
+        // A chapter, and a file opened from the disk
+        auto* chapter = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
+        chapter->setContent(kmlOf({text}));
+        tabs.setCurrentIndex(tabs.addTab(chapter, QStringLiteral("Chapter")));
+        chapter->setProperty("elementId", QStringLiteral("chapter-1"));
+        editor::BookEditor* chapterEditor = chapter->getBookEditor();
+        CHECK(waitUntil([chapterEditor]() {
+            return wavyWords(*chapterEditor, 0).contains(QStringLiteral("Kirran"));
+        }));
+        CHECK(chapterEditor->bookDictionary() == &projects.bookDictionary());
+        CHECK(chapterEditor->isBookDictionaryEditable());
+
+        auto* file = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
+        file->setContent(kmlOf({text}));
+        tabs.setCurrentIndex(tabs.addTab(file, QStringLiteral("note.txt")));
+        file->setProperty("isStandaloneFile", true);
+        const editor::BookEditor* fileEditor = file->getBookEditor();
+        CHECK(waitUntil([fileEditor]() {
+            return wavyWords(*fileEditor, 0).contains(QStringLiteral("Kirran"));
+        }));
+        CHECK(fileEditor->bookDictionary() == nullptr);
+        tabs.setCurrentIndex(0);
+
+        // A word added from the menu of its wave: right in the chapters only
+        emit chapterEditor->addToBookDictionaryAsked(QStringLiteral("Kirran"));
+        CHECK(projects.bookDictionary().hasWord(QStringLiteral("Kirran")));
+        CHECK(waitUntil([chapterEditor]() {
+            return !wavyWords(*chapterEditor, 0).contains(QStringLiteral("Kirran"));
+        }));
+        tabs.setCurrentIndex(1);
+        CHECK(wavyWords(*fileEditor, 0).contains(QStringLiteral("Kirran")));
+        tabs.setCurrentIndex(0);
+
+        // A rule: its places are marked in the chapters; removed from the menu of a wave, they
+        // are not
+        core::SpellingRule rule;
+        rule.right = QStringLiteral("e-mail");
+        rule.wrong = {QStringLiteral("email")};
+        rule.allForms = false;
+        REQUIRE(projects.changeBookDictionary(
+            [&rule](core::BookDictionary& dictionary) { dictionary.putRule(rule); }));
+        CHECK(waitUntil([chapterEditor]() {
+            return ruleWaves(*chapterEditor, 0) == QStringList{QStringLiteral("email")};
+        }));
+        CHECK(ruleWaves(*fileEditor, 0).isEmpty());
+        const QString ruleId = projects.bookDictionary().rules().front().id;
+        emit chapterEditor->removeBookRuleAsked(ruleId);
+        CHECK(projects.bookDictionary().rules().isEmpty());
+        CHECK(waitUntil([chapterEditor]() { return ruleWaves(*chapterEditor, 0).isEmpty(); }));
+
+        // Without a book: nothing to change, and the status bar says so
+        REQUIRE(projects.closeProject(false));
+        CHECK_FALSE(coordinator.addToBookDictionary(QStringLiteral("Vael")));
+        CHECK(statusBar.currentMessage() == QStringLiteral("The book's dictionary cannot be saved"));
+        CHECK(chapterEditor->bookDictionary() == nullptr);
+    }
+}
+
 TEST_CASE("Spelling coordinator: Check Spelling as You Type turns the checking on and off",
           "[gui][spelling][command]") {
     KeptSpellingSettings kept;
@@ -491,7 +587,7 @@ TEST_CASE("Spelling coordinator: Next Spelling or Grammar Issue selects the next
         QStringList texts = kalahari::test::runPopupMenu([action]() { action->trigger(); });
         CHECK(bookEditor->selectedText() == QStringLiteral("mistakke"));
         CHECK(texts.contains(QStringLiteral("mistake")));
-        CHECK(texts.contains(QStringLiteral("Add t&o Dictionary")));
+        CHECK(texts.contains(QStringLiteral("Add to Your &Words (All Books)")));
 
         // The next one, and a word chosen from the menu
         texts = kalahari::test::runPopupMenu([action]() { action->trigger(); },

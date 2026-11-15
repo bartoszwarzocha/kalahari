@@ -97,6 +97,9 @@ constexpr int COUNT_MARGIN = 4;
 constexpr int AUTO_EXPAND_DELAY = 700;
 /// The id of a group of the Workshop starts with it: "workshop:kalahari.base:work_note"
 const QString WORKSHOP_ID_PREFIX = QStringLiteral("workshop:");
+
+/// The type of the node of the book's dictionary at the top of the Workshop
+constexpr const char* BOOK_DICTIONARY_TYPE = "book_dictionary";
 /// In a list of open items, the tree has the book and the Workshop as nodes of their own; a
 /// list without it (saved before them) opens them
 const QString WORKSHOP_LAYOUT = QStringLiteral("layout:workshop");
@@ -815,9 +818,8 @@ NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
                            elementType.toStdString(),
                            elementId.toStdString());
 
-                // Materials and its kinds show their lists on tabs
-                if (const std::optional<QString> list = materialListOf(item)) {
-                    emit requestOpenMaterialList(*list, false);
+                // The book's dictionary, Materials and its kinds show their pages on tabs
+                if (requestPageOf(item, false)) {
                     return;
                 }
                 // The card of a material is in the Properties panel: it comes to the front
@@ -965,6 +967,7 @@ void NavigatorPanel::loadProject(const core::BookProject& project,
     workshopItem->setIcon(0, artProvider.getIcon(getIconIdForType(QStringLiteral("workshop")),
                                                  core::IconContext::TreeView));
     workshopItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    addDictionaryItem(workshopItem);
     addWorkshopItems(workshopItem, project, registry);
     workshopItem->setExpanded(true);
 
@@ -2957,9 +2960,8 @@ void NavigatorPanel::onItemActivated(QTreeWidgetItem* item, int column) {
         return;
     }
 
-    // Materials and its kinds show their lists on tabs
-    if (const std::optional<QString> list = materialListOf(item)) {
-        emit requestOpenMaterialList(*list, true);
+    // The book's dictionary, Materials and its kinds show their pages on tabs
+    if (requestPageOf(item, true)) {
         return;
     }
 
@@ -3016,6 +3018,31 @@ std::optional<QString> NavigatorPanel::materialListOf(const QTreeWidgetItem* ite
         return item->data(0, KIND_ROLE).toString();
     }
     return std::nullopt;
+}
+
+bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
+    if (item != nullptr && typeOf(item) == QLatin1String(BOOK_DICTIONARY_TYPE)) {
+        emit requestOpenBookDictionary(keys);
+        return true;
+    }
+    if (const std::optional<QString> list = materialListOf(item)) {
+        emit requestOpenMaterialList(*list, keys);
+        return true;
+    }
+    return false;
+}
+
+void NavigatorPanel::addDictionaryItem(QTreeWidgetItem* workshopItem) {
+    auto* item = new QTreeWidgetItem(workshopItem);
+    //: The node at the top of the Workshop in the Navigator that shows the book's dictionary
+    //: (its names, spelling rules and words) on a tab. In Polish: Słownik książki
+    item->setText(0, tr("Book Dictionary"));
+    item->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + QStringLiteral("dictionary"));
+    item->setData(0, Qt::UserRole + 1, QString::fromLatin1(BOOK_DICTIONARY_TYPE));
+    const QString iconId = QStringLiteral("book.dictionary");
+    item->setData(0, ICON_ROLE, iconId);
+    item->setIcon(0, itemIcon(item, iconId));
+    item->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
 }
 
 AddChooser NavigatorPanel::addChooser() {

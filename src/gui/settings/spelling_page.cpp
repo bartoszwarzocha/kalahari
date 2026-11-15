@@ -12,6 +12,8 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/editor/text_issue.h"
+#include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/spelling_panel_coordinator.h"
 #include "kalahari/gui/utils/language_names.h"
 
 #include <QCheckBox>
@@ -106,7 +108,8 @@ bool canAdd(const QListWidget* list, const QString& word) {
 
 }  // namespace
 
-EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWidget* parent)
+EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, bool bookOpen,
+                                       QWidget* parent)
     : SettingsPage(parent)
 {
     QFormLayout* checking = addGroup(tr("Spelling as You Type"));
@@ -146,11 +149,16 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     // The waves under the misspelled words and the frames of their cards in the panel
     QFormLayout* colors = addGroup(tr("Colors"));
     addNote(colors, tr("The color of the wavy line under a misspelled word and of the frames of "
-                       "its cards in the Spelling and Grammar panel. Each theme has its own "
-                       "colors: these are the colors of the current theme."));
+                       "its cards in the Spelling and Grammar panel; below it, the same for a "
+                       "word written otherwise than a spelling rule of the book's dictionary "
+                       "wants. Each theme has its own colors: these are the colors of the "
+                       "current theme."));
     addIssueColor(colors, editor::TextIssueKind::Spelling);
+    addIssueColor(colors, editor::TextIssueKind::BookRule);
     addOptimizeColorsCheckBox(colors);
     addRestoreColorsButton(colors);
+
+    addBookDictionaryGroup(bookOpen);
 
     // The panel of the misspelled words and the grammar issues
     QFormLayout* panel = addGroup(tr("Spelling and Grammar Panel"));
@@ -199,9 +207,10 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     row->addWidget(m_add);
     row->addWidget(m_remove);
     own->addRow(row);
-    addNote(own, tr("Words that are right whatever the dictionary says; \"Add to Dictionary\" in "
-                    "the context menu of a misspelled word puts it here. A word in lower case is "
-                    "right also with capital letters."));
+    addNote(own, tr("Words that are right whatever the dictionary says, in every book; \"Add to "
+                    "Your Words\" in the context menu of a misspelled word puts it here. The "
+                    "words right in one book only belong to its dictionary. A word in lower case "
+                    "is right also with capital letters."));
 
     connect(m_add, &QPushButton::clicked, this, &EditorSpellingPage::addWord);
     connect(m_remove, &QPushButton::clicked, this, &EditorSpellingPage::removeWords);
@@ -222,6 +231,38 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     };
     bindCustom(std::move(words));
     whenLoaded([this]() { updateButtons(); });
+}
+
+void EditorSpellingPage::addBookDictionaryGroup(bool bookOpen) {
+    QFormLayout* group = addGroup(tr("Book Dictionary"));
+    QCheckBox* marked = addCheckBox(group, tr("Mark departures from the book's spelling rules"),
+                                    SpellingCoordinator::MARK_RULES_KEY);
+    marked->setObjectName(QStringLiteral("bookDictionaryMarkRules"));
+    auto* addsTo = new QComboBox();
+    addsTo->setObjectName(QStringLiteral("bookDictionaryPanelAddsTo"));
+    addsTo->addItem(tr("The book's dictionary"), QStringLiteral("book"));
+    addsTo->addItem(tr("Your words (all books)"), QStringLiteral("user"));
+    //: Where Add of a misspelled word's card in the Spelling and Grammar panel puts the word.
+    //: In Polish: Panel dodaje słowo do:
+    addField(group, tr("The panel adds a word to:"), addsTo, SpellingPanelCoordinator::ADD_TO_KEY);
+
+    auto* open = new QPushButton(tr("Open Book Dictionary"));
+    open->setObjectName(QStringLiteral("openBookDictionary"));
+    open->setEnabled(bookOpen);
+    if (!bookOpen) {
+        //: Why Open Book Dictionary in the settings is grey. In Polish: Najpierw otwórz
+        //: książkę: każda ma własny słownik
+        open->setToolTip(tr("Open a book first: each book has its own dictionary"));
+    }
+    connect(open, &QPushButton::clicked, this, &EditorSpellingPage::bookDictionaryAsked);
+    auto* row = new QHBoxLayout();
+    row->addWidget(open);
+    row->addStretch(1);
+    group->addRow(row);
+    addNote(group, tr("The book's dictionary is kept in the folder of the book and has three "
+                      "parts: the names with their forms, the spelling rules and the words of "
+                      "this book. The context menu of a misspelled word always has both places: "
+                      "the book's dictionary and your words."));
 }
 
 bool EditorSpellingPage::eventFilter(QObject* watched, QEvent* event) {

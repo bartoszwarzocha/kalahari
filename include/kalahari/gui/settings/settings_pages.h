@@ -201,14 +201,24 @@ class EditorSpellingPage : public SettingsPage {
 public:
     /// @param spelling The dictionary of the editors: the page lists its own words and
     ///        changes them when applied (none: the page does not list them)
+    /// @param bookOpen Whether a book is open: Open Book Dictionary is enabled
     explicit EditorSpellingPage(editor::SpellCheckService* spelling = nullptr,
-                                QWidget* parent = nullptr);
+                                bool bookOpen = false, QWidget* parent = nullptr);
+
+signals:
+    /// @brief Open Book Dictionary was clicked: the settings are applied and the book's
+    ///        dictionary shows on its tab
+    void bookDictionaryAsked();
 
 protected:
     /// @brief Enter in the field of a new word adds it, and does not close the dialog
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    /// @brief The group Book Dictionary: the departures from its rules marked, where the
+    ///        panel adds a word, and Open Book Dictionary
+    void addBookDictionaryGroup(bool bookOpen);
+
     /// @brief Add the word of the field to the list
     void addWord();
 
