@@ -7,7 +7,6 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include "dialog_checks.h"
 #include "document_window.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
@@ -21,6 +20,7 @@
 #include "kalahari/gui/dialogs/edit_dialogs.h"
 #include "kalahari/gui/go_to_coordinator.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari_tests/gui/dialog_checks.h"
 #include "test_support/window_parts.h"
 
 #include <QClipboard>

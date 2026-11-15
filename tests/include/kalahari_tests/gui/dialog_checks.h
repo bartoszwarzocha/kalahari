@@ -5,7 +5,8 @@
 /// @brief What the tests check of the program's windows: their access keys, their size on a
 ///        small screen, their texts in Polish, the gear
 
-#pragma once
+#ifndef KALAHARI_TESTS_GUI_DIALOG_CHECKS_H
+#define KALAHARI_TESTS_GUI_DIALOG_CHECKS_H
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -145,5 +146,6 @@ public:
     SettingsOpener& operator=(SettingsOpener&&) = delete;
 };
 
-
 }  // namespace kalahari::test
+
+#endif  // KALAHARI_TESTS_GUI_DIALOG_CHECKS_H
