@@ -2609,6 +2609,20 @@ void MainWindow::connectCards() {
             openCardSettings);
     connect(properties, &PropertiesPanel::cardMaterialAdded, m_navigatorCoordinator,
             &NavigatorCoordinator::refreshNavigator);
+    // The other card of a relation, and a card made with a relation
+    connect(properties, &PropertiesPanel::requestSelectCard, m_dockCoordinator->navigatorPanel(),
+            &NavigatorPanel::revealElement);
+    connect(properties, &PropertiesPanel::cardAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::refreshNavigator);
+    // What is dropped on a card: its materials; Find in Book of the full card
+    connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
+            &NavigatorCoordinator::onRequestAddMaterials);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::findInBookRequested, this,
+            [this](const QString& text) {
+                if (m_bookSearchCoordinator != nullptr) {
+                    m_bookSearchCoordinator->findInBook(text);
+                }
+            });
 }
 
 void MainWindow::createDocks() {

@@ -407,6 +407,28 @@ TEST_CASE("Find in Book: the line around a match in the Search panel", "[gui][se
 // The book
 // =============================================================================
 
+TEST_CASE("Find in Book: the name of a card, as whole words in any letters",
+          "[gui][search][book]") {
+    SearchedBook book;
+    Window window;
+    Search search(window);
+    search.panel.setOptions({.caseSensitive = true, .useRegex = true});
+
+    search.coordinator.findInBook(QStringLiteral(" Storm "));
+    search.coordinator.finishSearch();
+    CHECK(search.panel.searchText() == QStringLiteral("Storm"));
+    CHECK(search.panel.options().wholeWord);
+    CHECK_FALSE(search.panel.options().caseSensitive);
+    CHECK_FALSE(search.panel.options().useRegex);
+    CHECK(search.foundTexts() == QStringList{QStringLiteral("Foreword 1"),
+                                             QStringLiteral("The Storm 3"),
+                                             QStringLiteral("The Calm 1")});
+
+    // No name, no search
+    search.coordinator.findInBook(QStringLiteral("  "));
+    CHECK(search.panel.searchText() == QStringLiteral("Storm"));
+}
+
 TEST_CASE("Find in Book: all the texts of the book, open or not, in the order of the book",
           "[gui][search][book]") {
     SearchedBook book;

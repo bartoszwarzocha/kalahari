@@ -239,6 +239,21 @@ void BookSearchCoordinator::findInBook() {
     search();
 }
 
+void BookSearchCoordinator::findInBook(const QString& text) {
+    if (m_panel == nullptr || text.trimmed().isEmpty()) {
+        return;
+    }
+    if (m_showPanel) {
+        m_showPanel();
+    }
+    m_panel->setSearchText(text.trimmed());
+    editor::SearchOptions options;
+    options.wholeWord = true;
+    m_panel->setOptions(options);
+    m_panel->focusSearchField();
+    search();
+}
+
 void BookSearchCoordinator::search() {
     m_sliceTimer.stop();
     m_refreshTimer.stop();

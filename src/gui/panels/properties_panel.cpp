@@ -813,6 +813,10 @@ QWidget* PropertiesPanel::createCardPage() {
     connect(m_cardPage, &CardPage::requestOpenCard, this, &PropertiesPanel::requestOpenCard);
     connect(m_cardPage, &CardPage::requestSettings, this, &PropertiesPanel::requestCardSettings);
     connect(m_cardPage, &CardPage::materialAdded, this, &PropertiesPanel::cardMaterialAdded);
+    connect(m_cardPage, &CardPage::requestSelectCard, this, &PropertiesPanel::requestSelectCard);
+    connect(m_cardPage, &CardPage::cardAdded, this, &PropertiesPanel::cardAdded);
+    connect(m_cardPage, &CardPage::requestAddMaterials, this,
+            &PropertiesPanel::requestAddCardMaterials);
     // The Navigator and the tab of the full card show the new name
     connect(m_cardPage, &CardPage::titleChanged, this, &PropertiesPanel::chapterStatusChanged);
     scrollArea->setWidget(scrollContent);

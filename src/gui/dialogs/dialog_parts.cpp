@@ -2,8 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file dialog_parts.cpp
-/// @brief Parts that the program's own dialogs share: a list as high as its rows, a note with
-/// an icon, and the Copy button
+/// @brief Parts that the program's own dialogs share: a list as high as its rows, the keys of
+/// a list with a filter, a note with an icon, and the Copy button
 
 #include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/core/art_provider.h"
@@ -14,7 +14,9 @@
 #include <QCoreApplication>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QKeyEvent>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QTimer>
 #include <QWidget>
@@ -51,6 +53,37 @@ int RowList::heightFor(int rows) const {
     const int rowHeight =
         qMax(measured, qMax(fontMetrics().height() + 6, iconSize().height() + 4));
     return rowHeight * rows + 2 * frameWidth();
+}
+
+bool takeFilterKeys(const QObject* watched, const QEvent* event, QLineEdit* filter,
+                    QAbstractItemView* list) {
+    if (event->type() != QEvent::KeyPress) {
+        return false;
+    }
+    const auto* key = static_cast<const QKeyEvent*>(event);
+    const Qt::KeyboardModifiers modifiers = key->modifiers() & ~Qt::KeypadModifier;
+    if (watched == list) {
+        if (key->key() == Qt::Key_Backspace && modifiers == Qt::NoModifier) {
+            filter->backspace();
+            return true;
+        }
+        const QString text = key->text();
+        const bool letter = !text.isEmpty() && text.at(0).isPrint() && !text.at(0).isSpace() &&
+                            (modifiers & ~Qt::ShiftModifier) == Qt::NoModifier;
+        if (letter) {
+            filter->insert(text);
+        }
+        return letter;
+    }
+    const bool choosing = key->key() == Qt::Key_Down || key->key() == Qt::Key_Up ||
+                          key->key() == Qt::Key_PageDown || key->key() == Qt::Key_PageUp;
+    if (watched != filter || modifiers != Qt::NoModifier || !choosing) {
+        return false;
+    }
+    list->setFocus(Qt::OtherFocusReason);
+    QKeyEvent copy(QEvent::KeyPress, key->key(), key->modifiers());
+    QCoreApplication::sendEvent(list, &copy);
+    return true;
 }
 
 RowList* newRowList(QWidget* parent, const QString& accessibleName) {

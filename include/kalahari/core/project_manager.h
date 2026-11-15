@@ -47,6 +47,7 @@
 #include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_relations.h"
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/package_card.h"
 // OpenSpec #00041: SQLite Project Database
@@ -739,7 +740,8 @@ public:
     ///
     /// A link names an element of the project or a section of its book
     /// (BookProject::sectionLink()); a link that names nothing of the project, or the element
-    /// itself, is left out, and each one is kept once (the first).
+    /// itself, is left out, and each one is kept once (the first). A card keeps one link with
+    /// another card for each relation (CardRelations), as its role.
     /// @return false when the project has no such element or the file cannot be written; the
     ///         element keeps its links then
     bool setLinks(const QString& elementId, const QList<ElementLink>& links);
@@ -749,7 +751,8 @@ public:
     bool setLinks(const QString& elementId, const QStringList& targets);
 
     /// @brief A new link of element @p elementId with @p target: with the role that the kind
-    /// of a material suggests (LinkRoles::suggestedFor()), else without a role
+    /// of a material suggests (LinkRoles::suggestedFor()), or of a card in a chapter
+    /// (LinkRoles::suggestedForCard()), else without a role
     ElementLink newLink(const QString& elementId, const QString& target) const;
 
     /// @brief The paragraphs of the text of text element @p elementId, one per entry, as the
@@ -810,6 +813,44 @@ public:
     /// @brief The materials of the Workshop whose file is a picture (MaterialKinds::
     /// isPictureName()), in the order of the Workshop: what a card can have as its portrait
     [[nodiscard]] QList<const ProjectElement*> pictureMaterials() const;
+
+    /// @brief The relations between the cards of the open book
+    [[nodiscard]] CardRelations cardRelations() const { return CardRelations(*this); }
+
+    /// @brief Give card @p cardId relation @p relationId with card @p otherId and the note
+    /// @p note, and save the .klh file (card_links::addRelation()); both cards tell of the
+    /// change (cardChanged())
+    /// @return false when one of them is no card, the relation is not one between their kinds
+    ///         (CardRelations::between()) or the file cannot be written
+    bool addRelation(const QString& cardId, const QString& otherId, const QString& relationId,
+                     const QString& note);
+
+    /// @brief Take relation @p relation (CardRelations::of()) out of the links of its card and
+    /// save the .klh file
+    bool removeRelation(const ShownRelation& relation);
+
+    /// @brief Put relation @p relationId with card @p otherId and the note @p note in place of
+    /// relation @p relation of card @p cardId, in one save
+    bool replaceRelation(const QString& cardId, const ShownRelation& relation,
+                         const QString& otherId, const QString& relationId, const QString& note);
+
+    /// @brief The id of the relation of the writer named @p name, of a card of kind @p kind
+    /// with a card of kind @p otherKind, whose inverse is named @p inverseName (the same name:
+    /// the same both ways): one the Workshop has, or a new one with its inverse, saved
+    /// @return Empty when a name is empty or the file cannot be written
+    QString ownRelation(const QString& kind, const QString& otherKind, const QString& name,
+                        const QString& inverseName);
+
+    /// @brief The text of field @p fieldId of card @p cardId: the title of the card that a field
+    /// with a relation names (CardRelations::fieldCard()), else the value of the field
+    [[nodiscard]] QString cardFieldText(const QString& cardId, const QString& fieldId) const;
+
+    /// @brief Give field @p fieldId of card @p cardId the text @p text and save the .klh file
+    ///
+    /// A field with a relation (CardField::relation) whose text is the title of a card of its
+    /// kind names that card by the relation, in place of the card it named; another text is its
+    /// value, as setCardValue() saves it.
+    bool setCardFieldText(const QString& cardId, const QString& fieldId, const QString& text);
 
     // =========================================================================
     // Sources, Bookmarks and Quotes
@@ -1193,6 +1234,16 @@ private:
     ///         element stays as it was then
     bool changeDetails(const char* what, const QString& elementId,
                        const std::function<void(ProjectElement&)>& change);
+
+    /// @brief Change the open project with @p change and save the .klh file; @p what names the
+    /// change in the log
+    /// @return false when no project is open, the book is open read-only or the file cannot be
+    ///         written; the project stays as it was then
+    bool changeProject(const char* what, const std::function<void(BookProject&)>& change);
+
+    /// @brief Cards @p cardIds tell of a change of their relations (cardChanged()), and the
+    /// links changed (linksChanged())
+    void relationsChanged(const QStringList& cardIds);
 
     /// @brief Words of text element @p elementId under @p rules, as wordCount() gives them
     int wordsUnder(const QString& elementId, const WordCountRules& rules) const;

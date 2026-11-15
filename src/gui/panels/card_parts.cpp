@@ -8,6 +8,11 @@
 #include "kalahari/gui/panels/card_parts.h"
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/project_manager.h"
+#include "kalahari/gui/kind_names.h"
 
 #include <QAbstractButton>
 #include <QAbstractItemView>
@@ -177,6 +182,16 @@ void placeAtTitle(QGroupBox* group, QWidget* button) {
                       size);
     button->move(QStyle::visualRect(group->layoutDirection(), group->rect(), place).topLeft());
     button->raise();
+}
+
+QString subtitleValue(const core::ProjectManager& book, const core::ProjectElement& card) {
+    const core::KindRef kind = book.kindOf(card);
+    const core::CardField* field = kind ? kind.kind->subtitleField() : nullptr;
+    const QString value = field != nullptr ? card.card.value(field->id) : QString();
+    const core::CardFieldChoice* choice =
+        field != nullptr && field->type == core::CardFieldType::Choice ? field->choice(value)
+                                                                       : nullptr;
+    return choice != nullptr ? choice->name.text(programLanguage()) : value;
 }
 
 }  // namespace kalahari::gui::card

@@ -395,6 +395,8 @@ signals:
 
     /// @brief The gear of a full card of a character, a location or an item: Settings > Cards
     void cardSettingsRequested();
+    /// @brief Find in Book of a full card: the texts of the book searched for @p text, its name
+    void findInBookRequested(const QString& text);
     /// @brief The gear of the entry of a source on a card, or of the preview of a PDF file:
     /// open Settings > Materials
     void sourceSettingsRequested();

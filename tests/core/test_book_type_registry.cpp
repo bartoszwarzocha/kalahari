@@ -5,8 +5,10 @@
 /// @brief Book type packages: the built-in Base and five types, and packages with problems
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_type_package.h>
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/icon_registry.h>
+#include <kalahari/core/link_roles.h>
 #include <kalahari/gui/icon_registrar.h>
 #include <QDir>
 #include <QFile>
@@ -180,6 +182,18 @@ void setAt(QJsonObject& object, const QString& path, const QJsonValue& value) {
     setAt(child, path.mid(dot + 1), value);
     object.insert(path.left(dot), child);
 }
+
+/// The fields of the test kind of cards "person": a gender, a woman or a man
+constexpr const char* PERSON_FIELDS =
+    R"([{ "id": "gender", "type": "choice", "name": { "en": "Gender" },
+          "choices": [ { "id": "woman", "name": { "en": "Woman" } },
+                       { "id": "man", "name": { "en": "Man" } } ] }])";
+
+/// The test kind of cards "place", without a gender
+constexpr const char* PLACE_KIND =
+    R"({ "form": "text", "editor": "card", "places": ["workshop"],
+         "name": { "en": "Place" }, "plural": { "en": "Places" },
+         "fields": [ { "id": "climate", "name": { "en": "Climate" } } ] })";
 
 /// A folder of package folders
 class PackageFolder {
@@ -659,7 +673,105 @@ TEST_CASE("Built-in book types: every text is in Polish and English", "[core][bo
         for (const PackageCharacterStyle& style : package->characterStyles) {
             check(style.name, package->id + QStringLiteral(" style ") + style.id);
         }
+        for (const CardRelation& relation : package->relations) {
+            const QString where = package->id + QStringLiteral(" relation ") + relation.id;
+            check(relation.name, where);
+            for (const LocalizedText* text : {&relation.group, &relation.choice}) {
+                if (!text->isEmpty()) {
+                    check(*text, where);
+                }
+            }
+            for (auto form = relation.forms.cbegin(); form != relation.forms.cend(); ++form) {
+                check(*form, where + QLatin1Char(' ') + form.key());
+            }
+        }
     }
+}
+
+TEST_CASE("Built-in book types: the relations between the cards of the Base",
+          "[core][booktypes][cards]") {
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+    const BookTypePackage* base = registry.package(QStringLiteral("kalahari.base"));
+    REQUIRE(base != nullptr);
+    CHECK(base->relations.size() == 37);
+    const auto relationOf = [base](const char* id) {
+        const CardRelation* relation = base->relation(QString::fromLatin1(id));
+        INFO(id);
+        REQUIRE(relation != nullptr);
+        return relation;
+    };
+    const QString pl = QStringLiteral("pl");
+
+    // Of the family: a brother or a sister by the gender of the other card
+    const CardRelation* sibling = relationOf("sibling");
+    CHECK(sibling->inverse == QStringLiteral("sibling"));
+    CHECK(sibling->group.text(pl) == QStringLiteral("rodzina"));
+    CHECK(sibling->choiceText(pl) == QStringLiteral("rodzeństwo"));
+    CHECK(sibling->nameFor(QStringLiteral("man"), pl) == QStringLiteral("brat"));
+    CHECK(sibling->nameFor(QStringLiteral("woman"), pl) == QStringLiteral("siostra"));
+    CHECK(sibling->nameFor(QStringLiteral("unknown"), pl) == QStringLiteral("rodzeństwo"));
+    CHECK(relationOf("parent")->inverse == QStringLiteral("child"));
+    CHECK(relationOf("child")->nameFor(QStringLiteral("woman"), pl) == QStringLiteral("córka"));
+    CHECK(relationOf("mentor")->inverse == QStringLiteral("student"));
+
+    // Between a character and a location, and between locations
+    CHECK(relationOf("lives_in")->otherKind.toString() == QStringLiteral("location"));
+    CHECK(relationOf("lives_in")->inverse == QStringLiteral("resident"));
+    CHECK(relationOf("part_of")->inverse == QStringLiteral("contains"));
+    CHECK(relationOf("neighbor")->inverse == QStringLiteral("neighbor"));
+    CHECK(relationOf("owner")->nameFor(QStringLiteral("woman"), pl) ==
+          QStringLiteral("właścicielka"));
+
+    // The fields of the type "card" name their cards by relations
+    const auto relationOfField = [base](const char* kindId, const char* fieldId) {
+        const ElementKind* kind = base->ownKind(QString::fromLatin1(kindId));
+        REQUIRE(kind != nullptr);
+        const CardField* field = kind->field(QString::fromLatin1(fieldId));
+        REQUIRE(field != nullptr);
+        return field->relation;
+    };
+    CHECK(relationOfField("character", "origin") == QStringLiteral("origin"));
+    CHECK(relationOfField("location", "parent") == QStringLiteral("part_of"));
+    CHECK(relationOfField("location", "ruler") == QStringLiteral("ruler"));
+    CHECK(relationOfField("item", "owner") == QStringLiteral("owner"));
+    CHECK(relationOfField("item", "place") == QStringLiteral("kept_in"));
+    CHECK(relationOfField("character", "age").isEmpty());
+}
+
+TEST_CASE("Built-in book types: the roles of the cards of the Base in the chapters",
+          "[core][booktypes][cards]") {
+    BookTypeRegistry registry;
+    loadBuiltIn(registry);
+    const BookTypePackage* base = registry.package(QStringLiteral("kalahari.base"));
+    REQUIRE(base != nullptr);
+    const auto kindOf = [base](const char* id) {
+        const ElementKind* kind = base->ownKind(QString::fromLatin1(id));
+        REQUIRE(kind != nullptr);
+        return kind;
+    };
+    // A character tells a chapter, appears in it or is mentioned; a location is where it takes
+    // place; an item appears or is mentioned
+    CHECK(LinkRoles::ofCard(*kindOf("character")) ==
+          QStringList{QStringLiteral("pov"), QStringLiteral("appears"),
+                      QStringLiteral("mentioned")});
+    CHECK(LinkRoles::ofCard(*kindOf("location")) ==
+          QStringList{QStringLiteral("setting"), QStringLiteral("mentioned")});
+    CHECK(LinkRoles::ofCard(*kindOf("item")) ==
+          QStringList{QStringLiteral("appears"), QStringLiteral("mentioned")});
+    CHECK(LinkRoles::suggestedForCard(*kindOf("character")) == QStringLiteral("appears"));
+    CHECK(LinkRoles::suggestedForCard(*kindOf("location")) == QStringLiteral("setting"));
+
+    // A kind of cards without its roles: those of every card
+    ElementKind other;
+    other.form = ElementForm::Text;
+    other.editor = QString::fromLatin1(ElementKind::CARD_EDITOR);
+    CHECK(LinkRoles::ofCard(other) ==
+          QStringList{QStringLiteral("appears"), QStringLiteral("mentioned")});
+    CHECK(LinkRoles::suggestedForCard(other) == QStringLiteral("appears"));
+    CHECK(LinkRoles::ofCards() ==
+          QStringList{QStringLiteral("pov"), QStringLiteral("appears"),
+                      QStringLiteral("mentioned"), QStringLiteral("setting")});
 }
 
 TEST_CASE("Built-in book types: every icon is an icon of the program", "[core][booktypes]") {
@@ -961,6 +1073,17 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
             fields + " }";
         return QJsonValue(jsonOf(kind.constData()));
     };
+    // Kinds of cards "person", whose fields are @p fields (JSON), and "place", with the
+    // relations @p relations (JSON) between them
+    const auto relationsOf = [cardKind](const char* relations,
+                                        const char* fields = PERSON_FIELDS) {
+        return [cardKind, relations, fields](QJsonObject& type) {
+            setAt(type, QStringLiteral("kinds.person"), cardKind(fields));
+            setAt(type, QStringLiteral("kinds.place"), jsonOf(PLACE_KIND));
+            type.insert(QStringLiteral("relations"),
+                        QJsonDocument::fromJson(QByteArray(relations)).array());
+        };
+    };
 
     const std::vector<Broken> cases = {
         {"a newer format", set("format", 2), "format: must be 1"},
@@ -1069,6 +1192,40 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
         {"fields of a kind that has no cards", set("kinds.prologue.fields", QJsonArray()),
          "kinds.prologue.fields: only a kind of cards (a text kind with the editor \"card\") "
          "has fields"},
+        {"roles in the chapters of a kind that has no cards",
+         set("kinds.prologue.chapterRoles", list({"appears"})),
+         "kinds.prologue.chapterRoles: only a kind of cards (a text kind with the editor "
+         "\"card\") has roles in the chapters"},
+        {"a role in the chapters the program does not know",
+         [cardKind](QJsonObject& type) {
+             QJsonObject person = cardKind("[]").toObject();
+             person.insert(QStringLiteral("chapterRoles"), QJsonArray{QStringLiteral("hero")});
+             setAt(type, QStringLiteral("kinds.person"), person);
+         },
+         "kinds.person.chapterRoles: 'hero' is not a chapter role"},
+        {"a role in the chapters listed twice",
+         [cardKind](QJsonObject& type) {
+             QJsonObject person = cardKind("[]").toObject();
+             person.insert(QStringLiteral("chapterRoles"),
+                           QJsonArray{QStringLiteral("pov"), QStringLiteral("pov")});
+             setAt(type, QStringLiteral("kinds.person"), person);
+         },
+         "kinds.person.chapterRoles: 'pov' is listed twice"},
+        {"no roles in the chapters",
+         [cardKind](QJsonObject& type) {
+             QJsonObject person = cardKind("[]").toObject();
+             person.insert(QStringLiteral("chapterRoles"), QJsonArray());
+             setAt(type, QStringLiteral("kinds.person"), person);
+         },
+         "kinds.person.chapterRoles: needs a role at least; without it, a card appears or is "
+         "mentioned"},
+        {"roles in the chapters that are not a list",
+         [cardKind](QJsonObject& type) {
+             QJsonObject person = cardKind("[]").toObject();
+             person.insert(QStringLiteral("chapterRoles"), QStringLiteral("pov"));
+             setAt(type, QStringLiteral("kinds.person"), person);
+         },
+         "kinds.person.chapterRoles: must be a list of chapter roles"},
         {"fields that are not a list", set("kinds.person", cardKind(R"("role")")),
          "kinds.person.fields: must be a list of fields"},
         {"a field without an id",
@@ -1128,6 +1285,92 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
          set("kinds.person",
              cardKind(R"([{ "id": "age", "name": { "en": "Age" }, "subtitle": "yes" }])")),
          "kinds.person.fields[0].subtitle: must be true or false"},
+        {"relations that are not a list", set("relations", "friend"),
+         "relations: must be a list of relations"},
+        {"a relation that is not an object", relationsOf(R"(["friend"])"),
+         "relations[0]: must be an object"},
+        {"a relation without an id",
+         relationsOf(R"([{ "kind": "person", "other": "person", "name": { "en": "Friend" } }])"),
+         "relations[0].id: must be an id"},
+        {"a relation twice",
+         relationsOf(R"([{ "id": "friend", "kind": "person", "other": "person",
+                           "name": { "en": "Friend" } },
+                         { "id": "friend", "kind": "person", "other": "person",
+                           "name": { "en": "Pal" } }])"),
+         "relations[1].id: 'friend' is listed twice"},
+        {"a relation without a name",
+         relationsOf(R"([{ "id": "friend", "kind": "person", "other": "person" }])"),
+         "relations[0].name: is missing"},
+        {"a misspelt key of a relation",
+         relationsOf(R"([{ "id": "friend", "kind": "person", "other": "person",
+                           "name": { "en": "Friend" }, "invrse": "friend" }])"),
+         "relations[0]: unknown key 'invrse'"},
+        {"a relation without the kind of its card",
+         relationsOf(R"([{ "id": "friend", "other": "person", "name": { "en": "Friend" } }])"),
+         "relations[0].kind: must be the id of a kind of cards"},
+        {"a relation of a kind that is no kind of cards",
+         relationsOf(R"([{ "id": "friend", "kind": "prologue", "other": "person",
+                           "name": { "en": "Friend" } }])"),
+         "relations[0]: 'prologue' is no kind of cards of the package"},
+        {"an inverse the package does not have",
+         relationsOf(R"([{ "id": "parent", "kind": "person", "other": "person",
+                           "inverse": "child", "name": { "en": "Parent" } }])"),
+         "relations[0].inverse: 'child' is no relation of the package"},
+        {"an inverse that does not name the relation back",
+         relationsOf(R"([{ "id": "parent", "kind": "person", "other": "person",
+                           "inverse": "child", "name": { "en": "Parent" } },
+                         { "id": "child", "kind": "person", "other": "person",
+                           "name": { "en": "Child" } }])"),
+         "relations[0].inverse: 'child' must be the relation between the same kinds the other "
+         "way round, with 'parent' as its inverse"},
+        {"an inverse between the same kinds the same way",
+         relationsOf(R"([{ "id": "lives_in", "kind": "person", "other": "place",
+                           "inverse": "resident", "name": { "en": "Home" } },
+                         { "id": "resident", "kind": "person", "other": "place",
+                           "inverse": "lives_in", "name": { "en": "Lives here" } }])"),
+         "relations[0].inverse: 'resident' must be the relation between the same kinds the "
+         "other way round, with 'lives_in' as its inverse"},
+        {"names by gender that are not an object",
+         relationsOf(R"([{ "id": "sibling", "kind": "person", "other": "person",
+                           "name": { "en": "Sibling" }, "forms": "sister" }])"),
+         "relations[0].forms: must be names by the gender of the other card"},
+        {"a name for a gender that is not an id",
+         relationsOf(R"([{ "id": "sibling", "kind": "person", "other": "person",
+                           "name": { "en": "Sibling" },
+                           "forms": { "Woman": { "en": "Sister" } } }])"),
+         "relations[0].forms.Woman: must be the id of a value of the field \"gender\""},
+        {"a name for a gender the other kind does not have",
+         relationsOf(R"([{ "id": "sibling", "kind": "person", "other": "person",
+                           "name": { "en": "Sibling" },
+                           "forms": { "girl": { "en": "Sister" } } }])"),
+         "relations[0].forms.girl: 'girl' is no value of the field \"gender\" of kind 'person'"},
+        {"names by gender for a kind without a gender",
+         relationsOf(R"([{ "id": "road", "kind": "place", "other": "place",
+                           "name": { "en": "Road to" },
+                           "forms": { "woman": { "en": "Road to" } } }])"),
+         "relations[0].forms.woman: 'woman' is no value of the field \"gender\" of kind "
+         "'place'"},
+        {"a relation of a field of text",
+         relationsOf(R"([{ "id": "friend", "kind": "person", "other": "person",
+                           "name": { "en": "Friend" } }])",
+                     R"([{ "id": "pal", "name": { "en": "Pal" }, "relation": "friend" }])"),
+         "kinds.person.fields[0].relation: only a field of the type \"card\" makes a relation"},
+        {"a relation of a field that is not an id",
+         relationsOf("[]", R"([{ "id": "home", "type": "card", "card": "place",
+                                 "name": { "en": "Home" }, "relation": 5 }])"),
+         "kinds.person.fields[0].relation: must be the id of a relation of the package"},
+        {"a relation of a field between other kinds",
+         relationsOf(R"([{ "id": "friend", "kind": "person", "other": "person",
+                           "name": { "en": "Friend" } }])",
+                     R"([{ "id": "home", "type": "card", "card": "place",
+                           "name": { "en": "Home" }, "relation": "friend" }])"),
+         "kinds.person.fields[0].relation: 'friend' must be a relation of the package between "
+         "the kinds 'person' and 'place'"},
+        {"a relation of a field that the package does not have",
+         relationsOf("[]", R"([{ "id": "home", "type": "card", "card": "place",
+                                 "name": { "en": "Home" }, "relation": "lives_in" }])"),
+         "kinds.person.fields[0].relation: 'lives_in' must be a relation of the package between "
+         "the kinds 'person' and 'place'"},
         {"a text kind made by a tool", set("kinds.prologue.generated", true),
          "kinds.prologue.generated: only a window kind can be made by a tool"},
         {"settings of a text kind", set("kinds.prologue.settings", QJsonObject()),
@@ -1209,6 +1452,80 @@ TEST_CASE("Book type packages: a type with a problem is not loaded", "[core][boo
         CHECK(registry.package(QStringLiteral("test.base")) != nullptr);
         CHECK(hasProblem(registry, QStringLiteral("test.type"), QString::fromUtf8(broken.problem)));
     }
+}
+
+TEST_CASE("Book type packages: relations between the cards of a type",
+          "[core][booktypes][cards]") {
+    PackageFolder folder;
+    QJsonObject type = testType();
+    setAt(type, QStringLiteral("kinds.person"), jsonOf(R"({
+        "form": "text", "editor": "card", "places": ["workshop"],
+        "name": { "en": "Person" }, "plural": { "en": "People" },
+        "fields": [
+          { "id": "gender", "type": "choice", "name": { "en": "Gender" },
+            "choices": [ { "id": "woman", "name": { "en": "Woman" } },
+                         { "id": "man", "name": { "en": "Man" } } ] },
+          { "id": "home", "type": "card", "card": "place", "relation": "lives_in",
+            "name": { "en": "Home" } } ] })"));
+    setAt(type, QStringLiteral("kinds.place"), jsonOf(PLACE_KIND));
+    type.insert(QStringLiteral("workshop"), QJsonArray{QStringLiteral("note"),
+                                                       QStringLiteral("person"),
+                                                       QStringLiteral("place")});
+    type.insert(QStringLiteral("relations"), QJsonDocument::fromJson(R"([
+        { "id": "sibling", "kind": "person", "other": "person", "group": { "en": "family" },
+          "choice": { "en": "siblings" }, "name": { "en": "sibling", "pl": "rodzeństwo" },
+          "forms": { "woman": { "en": "sister", "pl": "siostra" },
+                     "man": { "en": "brother" } } },
+        { "id": "lives_in", "kind": "person", "other": "place", "inverse": "resident",
+          "name": { "en": "home" } },
+        { "id": "resident", "kind": "test.type:place", "other": "person",
+          "inverse": "lives_in", "name": { "en": "lives here" } } ])")
+                                                 .array());
+    folder.writeTestPackages(type);
+
+    BookTypeRegistry registry;
+    registry.load({folder.path()});
+    INFO(problemsOf(registry));
+    REQUIRE(registry.problems().isEmpty());
+    const BookTypePackage* package = registry.package(QStringLiteral("test.type"));
+    REQUIRE(package != nullptr);
+    CHECK(package->relations.size() == 3);
+    CHECK(package->relation(QStringLiteral("enemy")) == nullptr);
+
+    // Without an inverse, the same both ways
+    const CardRelation* sibling = package->relation(QStringLiteral("sibling"));
+    REQUIRE(sibling != nullptr);
+    CHECK(sibling->inverse == QStringLiteral("sibling"));
+    CHECK(sibling->kind.toString() == QStringLiteral("person"));
+    CHECK(sibling->otherKind.toString() == QStringLiteral("person"));
+    CHECK(sibling->group.text(QStringLiteral("en")) == QStringLiteral("family"));
+    CHECK(sibling->choiceText(QStringLiteral("en")) == QStringLiteral("siblings"));
+    // Named by the gender of the other card, in English where the language has no name
+    CHECK(sibling->nameFor(QStringLiteral("woman"), QStringLiteral("pl")) ==
+          QStringLiteral("siostra"));
+    CHECK(sibling->nameFor(QStringLiteral("man"), QStringLiteral("pl")) ==
+          QStringLiteral("brother"));
+    CHECK(sibling->nameFor(QString(), QStringLiteral("pl")) == QStringLiteral("rodzeństwo"));
+    CHECK(sibling->nameFor(QStringLiteral("other"), QStringLiteral("en")) ==
+          QStringLiteral("sibling"));
+
+    // Without a text for the window Relation, offered by its name
+    const CardRelation* livesIn = package->relation(QStringLiteral("lives_in"));
+    REQUIRE(livesIn != nullptr);
+    CHECK(livesIn->inverse == QStringLiteral("resident"));
+    CHECK(livesIn->choiceText(QStringLiteral("en")) == QStringLiteral("home"));
+    CHECK(livesIn->group.isEmpty());
+    // A kind named with its package
+    const CardRelation* resident = package->relation(QStringLiteral("resident"));
+    REQUIRE(resident != nullptr);
+    CHECK(resident->kind.toString() == QStringLiteral("test.type:place"));
+
+    // The field names its card by the relation
+    const ElementKind* person = package->ownKind(QStringLiteral("person"));
+    REQUIRE(person != nullptr);
+    REQUIRE(person->field(QStringLiteral("home")) != nullptr);
+    CHECK(person->field(QStringLiteral("home"))->relation == QStringLiteral("lives_in"));
+    CHECK(person->field(QStringLiteral("gender"))->relation.isEmpty());
 }
 
 TEST_CASE("Book type packages: styles with a problem", "[core][booktypes]") {

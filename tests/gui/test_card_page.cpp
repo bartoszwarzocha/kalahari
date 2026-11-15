@@ -16,6 +16,8 @@
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/color_dialog.h"
+#include "kalahari/gui/dialogs/dialog_parts.h"
+#include "kalahari/gui/dialogs/relation_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/navigator_coordinator.h"
@@ -23,12 +25,16 @@
 #include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/panels/material_page.h"
+#include "kalahari/gui/widgets/card_chapters_box.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/gui/widgets/palette_edit.h"
+#include "kalahari/gui/widgets/relations_box.h"
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCompleter>
@@ -58,6 +64,7 @@
 
 #include <cstdio>
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -378,6 +385,7 @@ struct ReadOnlyNovel {
     QTemporaryDir typesDir;
     core::ProjectManager& pm = test::book();
     QString anna;
+    QString jan;
 
     ReadOnlyNovel() {
         REQUIRE(booksDir.isValid());
@@ -389,6 +397,8 @@ struct ReadOnlyNovel {
         anna = addCard(pm, "character", QStringLiteral("Anna"));
         REQUIRE(pm.setCardValue(anna, QStringLiteral("age"), QStringLiteral("29")));
         REQUIRE(pm.setDescription(anna, QStringLiteral("A cartographer.")));
+        jan = addCard(pm, "character", QStringLiteral("Jan"));
+        REQUIRE(pm.addRelation(anna, jan, QStringLiteral("friend"), QStringLiteral("old")));
         const QString manifest = pm.getManifestPath();
         REQUIRE(pm.closeProject(false));
 
@@ -507,7 +517,8 @@ TEST_CASE("Card: the short card shows the fields of its kind marked for the Prop
     // The keys go through the card as it reads
     CHECK(tabChain(page.settingsButton()) ==
           QList<QWidget*>{page.settingsButton(), page.portraitButton(), page.nameEdit(), role,
-                          page.shortEdit(), age, occupation, goal, page.openButton()});
+                          page.shortEdit(), age, occupation, goal,
+                          page.relationsBox()->addButton(), page.openButton()});
 
     // A value chosen is saved at once in the .klh file
     role->setCurrentIndex(1);
@@ -600,9 +611,19 @@ TEST_CASE("Card: the short card shows the fields of its kind marked for the Prop
     REQUIRE(pm.renameElement(jan, QStringLiteral("Jan Kos")));
     getKeys(owner);
     CHECK(suggestions(owner) == QStringList{QStringLiteral("Anka"), QStringLiteral("Jan Kos")});
+    // The name of a card: the relation with it, which both cards show
     owner->setText(QStringLiteral("Jan Kos"));
     press(owner, Qt::Key_Return);
-    CHECK(pm.findElement(lamp)->card.value(QStringLiteral("owner")) == QStringLiteral("Jan Kos"));
+    CHECK(pm.findElement(lamp)->card.value(QStringLiteral("owner")).isEmpty());
+    CHECK(pm.cardFieldText(lamp, QStringLiteral("owner")) == QStringLiteral("Jan Kos"));
+    REQUIRE(page.relationsBox()->list()->topLevelItemCount() == 1);
+    CHECK(page.relationsBox()->list()->topLevelItem(0)->text(1) == QStringLiteral("Jan Kos"));
+    // Another text: its value
+    owner->setText(QStringLiteral("Somebody"));
+    press(owner, Qt::Key_Return);
+    CHECK(pm.findElement(lamp)->card.value(QStringLiteral("owner")) == QStringLiteral("Somebody"));
+    CHECK(page.relationsBox()->list()->topLevelItemCount() == 0);
+    CHECK(page.relationsBox()->emptyLabel()->isVisibleTo(&page));
 
     // A location is not a part of itself
     const QString mokotow = addCard(pm, "location", QStringLiteral("Mokotów"));
@@ -776,7 +797,8 @@ TEST_CASE("Card: the full card has the kind with the role, the color, the data, 
     CHECK(choosing([&page]() { page.chooseColor(); }, QColor(QStringLiteral("#123456"))) == 1);
     CHECK(pm.findElement(anna)->card.color == QStringLiteral("#123456"));
 
-    // The keys go through the header, then the data, the own fields and the description
+    // The keys go through the bar and the header, then the data, the own fields, the
+    // description and the relations
     const QList<QWidget*> chain = tabChain(page.settingsButton());
     REQUIRE(chain.size() > 6);
     CHECK(chain.mid(0, 6) == QList<QWidget*>{page.settingsButton(), page.portraitButton(),
@@ -784,7 +806,8 @@ TEST_CASE("Card: the full card has the kind with the role, the color, the data, 
                                              page.shortEdit(), role});
     CHECK(chain.indexOf(goal) < chain.indexOf(page.ownFields()->addButton()));
     CHECK(chain.indexOf(page.ownFields()->table()) < chain.indexOf(description));
-    CHECK(chain.last() == description);
+    CHECK(chain.indexOf(description) < chain.indexOf(page.relationsBox()->addButton()));
+    CHECK(chain.last() == page.relationButton());
 }
 
 TEST_CASE("Card: the portrait is a picture of the materials, from a file, or the initials on "
@@ -1038,9 +1061,55 @@ TEST_CASE("Card: a book open read-only shows its cards and changes nothing", "[g
         }
         page->removePortrait();
         CHECK(pm.findElement(novel.anna)->card.portraits.isEmpty());
+
+        // The relations are shown, and the keys and the buttons change nothing
+        gui::RelationsBox* relations = page->relationsBox();
+        QTreeWidget* list = relations->list();
+        REQUIRE(list->topLevelItemCount() == 1);
+        QTreeWidgetItem* row = list->topLevelItem(0);
+        if (row->childCount() > 0) {
+            row = row->child(0);
+        }
+        CHECK(row->text(1) == QStringLiteral("Jan"));
+        list->setCurrentItem(row);
+        CHECK_FALSE(relations->addButton()->isEnabled());
+        CHECK_FALSE(relations->removeButton()->isEnabled());
+        CHECK(messagesOf([list]() {
+                  press(list, Qt::Key_Delete);
+                  press(list, Qt::Key_Insert);
+                  press(list, Qt::Key_F2);
+              }).isEmpty());
+        CHECK(pm.cardRelations().of(novel.anna).size() == 1);
+        emit list->customContextMenuRequested(QPoint(4, 4));
+        const QList<QAction*> actions = relations->rowMenu()->actions();
+        REQUIRE(actions.size() == 5);
+        CHECK(actions.at(0)->isEnabled());
+        for (const QAction* action : actions.mid(1)) {
+            CHECK((action->isSeparator() || !action->isEnabled()));
+        }
+        relations->rowMenu()->close();
     }
     REQUIRE(full.colorButton() != nullptr);
     CHECK_FALSE(full.colorButton()->isEnabled());
+    REQUIRE(full.relationButton() != nullptr);
+    CHECK_FALSE(full.relationButton()->isEnabled());
+    // Nor do the chapters and the materials of the card, nor what is dropped on it; the book is
+    // searched all the same
+    CHECK_FALSE(full.chaptersBox()->addButton()->isEnabled());
+    CHECK_FALSE(full.materialsBox()->addButton()->isEnabled());
+    gui::IncomingMaterials dropped;
+    dropped.picture = QImage(QSize(8, 8), QImage::Format_RGB32);
+    CHECK_FALSE(full.dropMaterials(dropped, QPoint(1, 1)));
+    CHECK(full.findButton()->isEnabled());
+
+    // Nor does the window Relation save or make a card
+    const gui::dialogs::RelationDialog dialog(kalahari::test::book(), novel.anna, std::nullopt);
+    CHECK_FALSE(dialog.acceptButton()->isEnabled());
+    dialog.filterEdit()->setText(QStringLiteral("Zofia"));
+    CHECK(dialog.cardList()->currentItem() == nullptr);
+    for (int i = 0; i < dialog.cardList()->topLevelItemCount(); ++i) {
+        CHECK(dialog.cardList()->topLevelItem(i)->isHidden());
+    }
     CHECK(choosing([&full]() { full.chooseColor(); }, QColor(QStringLiteral("#123456"))) == 0);
 }
 

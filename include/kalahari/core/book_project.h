@@ -366,6 +366,7 @@ struct ProjectWorkshop {
     QString name;                    ///< Name of the Workshop's node; empty: "Workshop"
     bool grouped = false;            ///< Whether cards go to Libraries
     QList<ProjectElement> elements;  ///< Elements, in the order they were added
+    QList<OwnRelation> relations;    ///< Relations between cards that the writer named
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectWorkshop&) const = default;

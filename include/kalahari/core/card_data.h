@@ -59,6 +59,32 @@ struct CardData {
     bool operator==(const CardData&) const = default;
 };
 
+/// @brief A relation between cards that the writer named, kept in the Workshop for the next
+/// relations: "creditor" and "debtor"
+///
+/// Each one has its inverse, which the other card has (CardRelation); a relation that is the
+/// same both ways is its own inverse. In the .klh file:
+/// @code
+/// "relations": [ { "id": "own-1", "kind": "kalahari.base:character",
+///                  "other": "kalahari.base:character", "name": "creditor", "inverse": "own-2" } ]
+/// @endcode
+struct OwnRelation {
+    /// @brief The start of the ids of the relations of the writer, which no relation of a
+    /// package has: "own-1"
+    static constexpr const char* ID_PREFIX = "own-";
+
+    QString id;         ///< Unique among the relations of the Workshop: "own-1"
+    QString kind;       ///< The kind of the card that has it: "kalahari.base:character"
+    QString otherKind;  ///< The kind of the other card
+    QString name;       ///< What the other card is to the card: "creditor"
+    QString inverse;    ///< The id of the relation of the other card; its own id when it is the
+                        ///< same both ways
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    /// @brief Whether it is the same relation, with the same fields
+    bool operator==(const OwnRelation&) const = default;
+};
+
 /// @brief The colors of the cards
 struct CardColors {
     /// @brief The setting of the palette that new cards take their colors from, in order: a

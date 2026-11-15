@@ -8,6 +8,8 @@
 #ifndef KALAHARI_GUI_PANELS_CARD_PAGE_H
 #define KALAHARI_GUI_PANELS_CARD_PAGE_H
 
+#include "kalahari/gui/material_source.h"
+
 #include <QHash>
 #include <QList>
 #include <QPixmap>
@@ -15,6 +17,8 @@
 #include <QStringList>
 #include <QWidget>
 
+class QDragEnterEvent;
+class QDropEvent;
 class QFormLayout;
 class QGroupBox;
 class QLabel;
@@ -28,6 +32,7 @@ class QVBoxLayout;
 namespace kalahari::core {
 class ProjectManager;
 struct CardData;
+struct NewMaterial;
 struct CardField;
 struct ElementKind;
 struct ProjectElement;
@@ -35,7 +40,10 @@ struct ProjectElement;
 
 namespace kalahari::gui {
 
+class CardChaptersBox;
+class LinkedMaterialsBox;
 class OwnFieldsBox;
+class RelationsBox;
 
 /// @brief The card of a character, a location or an item (core::ElementKind::isCard()): short
 /// in the Properties panel, what the writer checks and changes while writing; full on a tab of
@@ -51,13 +59,21 @@ class OwnFieldsBox;
 /// - The fields of its kind (core::ElementKind::fields): those shown on the card on the full
 ///   card, those shown in the Properties panel on the short one, the field that stands beside
 ///   the kind (core::CardField::subtitle) right under the name. A text has a line, a longer
-///   text a few lines, a list its values, a card the names of the cards of its kind suggested.
-/// - The full card has a bar with the gear (Settings > Cards) over its data, which scroll: the
-///   kind with that field and the color of the card (a click opens the color window), the
-///   fields, the writer's own fields (OwnFieldsBox) and, beside them, the long description,
-///   the text of the card (setDescriptionWidget()).
-/// - The short card has the gear at the title of its group, and Open Card, which opens the
-///   full card.
+///   text a few lines, a list its values, a card the names of the cards of its kind suggested:
+///   the name of a card makes the relation of the field with it (CardField::relation).
+/// - Its relations with the other cards (RelationsBox): Enter shows the other card, on the
+///   short card in the Navigator (requestSelectCard()), on the full card as its full card.
+/// - The full card has a bar with Find in Book (the name of the card in the Search panel),
+///   Relation... and the gear (Settings > Cards) over its data, which scroll: the kind with
+///   that field and the color of the card (a click opens the color window), the fields, the
+///   writer's own fields (OwnFieldsBox) and, beside them, the long description, the text of
+///   the card (setDescriptionWidget()), the relations, the chapters the card is in
+///   (CardChaptersBox) and the materials linked with it (LinkedMaterialsBox), where a picture
+///   has Set as Portrait in its menu.
+/// - The short card has the gear at the title of its group, the relations under it, and Open
+///   Card, which opens the full card.
+/// - Files, web addresses and pictures dropped on the card are new materials linked with it
+///   (requestAddMaterials()); a picture dropped on the portrait is the portrait too.
 ///
 /// Every change is saved at once in the .klh file: a line when it loses the keys or Enter is
 /// pressed, a list when a value is chosen. The card shows a change made elsewhere at once
@@ -141,6 +157,16 @@ public:
     }
     /// @brief The menu of the portrait, filled when it opens
     [[nodiscard]] QMenu* portraitMenu() const { return m_portraitMenu; }
+    /// @brief The relations with the other cards
+    [[nodiscard]] RelationsBox* relationsBox() const { return m_relations; }
+    /// @brief Relation... of the bar: a new relation; full card
+    [[nodiscard]] QToolButton* relationButton() const { return m_relationButton; }
+    /// @brief Find in Book of the bar: the name of the card in the Search panel; full card
+    [[nodiscard]] QToolButton* findButton() const { return m_findButton; }
+    /// @brief The chapters the card is in; full card
+    [[nodiscard]] CardChaptersBox* chaptersBox() const { return m_chapters; }
+    /// @brief The materials linked with the card; full card
+    [[nodiscard]] LinkedMaterialsBox* materialsBox() const { return m_materials; }
 
 public slots:
     /// @brief Make picture material @p imageId the portrait of the card, first of its portraits,
@@ -150,6 +176,12 @@ public slots:
     /// @brief Add the picture of file @p path to the materials, linked with the card, and make
     /// it the portrait
     void addPortraitFile(const QString& path);
+
+    /// @brief What was dropped on the card at @p at (in its coordinates): a picture on the
+    /// portrait is the portrait (addPortraitFile()); else each of them is a new material linked
+    /// with the card (requestAddMaterials())
+    /// @return Whether it took them: the card is open in a book that can change
+    bool dropMaterials(const IncomingMaterials& incoming, const QPoint& at);
 
     /// @brief Take out the portrait shown; its picture stays in the materials
     void removePortrait();
@@ -161,6 +193,13 @@ signals:
     /// @brief Open the full card of @p elementId
     void requestOpenCard(const QString& elementId);
 
+    /// @brief Show card @p elementId in the Navigator, and its short card: the other card of a
+    /// relation of the short card
+    void requestSelectCard(const QString& elementId);
+
+    /// @brief Card @p elementId was made with a relation: the Navigator shows it
+    void cardAdded(const QString& elementId);
+
     /// @brief Open Settings > Cards
     void requestSettings();
 
@@ -171,12 +210,29 @@ signals:
     /// Navigator shows it
     void materialAdded(const QString& materialId);
 
+    /// @brief Add the materials @p incoming, dropped on the card, linked with card @p link
+    void requestAddMaterials(const kalahari::gui::IncomingMaterials& incoming,
+                             const QString& link);
+
+    /// @brief Open chapter @p elementId: a chapter the card is in
+    void requestOpenChapter(const QString& elementId);
+
+    /// @brief Open material @p elementId, linked with the card
+    void requestOpenMaterial(const QString& elementId);
+
+    /// @brief Search the texts of the book for @p text, the name of the card
+    void requestFindInBook(const QString& text);
+
 protected:
     /// @brief The keys of the portrait, the gear at the title of the group, the lines saved
     /// when they lose the keys, the names suggested when a line gets them
     bool eventFilter(QObject* watched, QEvent* event) override;
     /// @brief Another font: the name of the full card follows it
     void changeEvent(QEvent* event) override;
+    /// @brief Files, web addresses and pictures can be dropped on the card
+    void dragEnterEvent(QDragEnterEvent* event) override;
+    /// @brief What is dropped: dropMaterials()
+    void dropEvent(QDropEvent* event) override;
 
 private:
     /// @brief The header of the full card: the portrait, the name, the kind and the color, In
@@ -227,6 +283,14 @@ private:
     /// @brief Choose the file of a new portrait in the system window
     void choosePortraitFile();
 
+    /// @brief Add picture @p material to the materials, linked with the card, and make it the
+    /// portrait
+    void addPortrait(core::NewMaterial material);
+
+    /// @brief Set as Portrait in @p menu, the menu of material @p materialId of the card,
+    /// when it is a picture
+    void addPortraitAction(QMenu* menu, const QString& materialId);
+
     /// @brief Link picture material @p imageId with the card, when it is not
     /// @return false when it is no material, or the link could not be saved (said so)
     bool linkWithCard(const QString& imageId);
@@ -239,6 +303,10 @@ private:
 
     /// @brief Save @p value as the value of field @p fieldId
     void saveValue(const QString& fieldId, const QString& value);
+
+    /// @brief Save @p text as the text of field @p fieldId of the type "card": the name of a
+    /// card is the relation with it (core::ProjectManager::setCardFieldText())
+    void saveCardText(const QString& fieldId, const QString& text);
 
     /// @brief Save what @p watched, which lost the keys, has: In short or a field of lines
     void saveFocused(const QObject* watched);
@@ -286,6 +354,12 @@ private:
     OwnFieldsBox* m_ownFields = nullptr;
     QPushButton* m_openButton = nullptr;
     QGroupBox* m_descriptionGroup = nullptr;  ///< Full card: where the long description goes
+    QWidget* m_description = nullptr;         ///< Full card: the long description, in its group
+    RelationsBox* m_relations = nullptr;
+    QToolButton* m_relationButton = nullptr;  ///< Full card: Relation... of the bar
+    QToolButton* m_findButton = nullptr;      ///< Full card: Find in Book of the bar
+    CardChaptersBox* m_chapters = nullptr;    ///< Full card: the chapters of the card
+    LinkedMaterialsBox* m_materials = nullptr;  ///< Full card: the materials of the card
     core::ProjectManager& m_book;             ///< The book of its window
 };
 

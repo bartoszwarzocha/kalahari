@@ -46,7 +46,6 @@
 #include <QTabWidget>
 #include <QStatusBar>
 #include <QTimer>
-#include <QBuffer>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -117,15 +116,6 @@ constexpr int QUOTE_MESSAGE_MS = 2000;
 
 /// How long the status bar says that a file has not the page asked for
 constexpr int NO_PAGE_MESSAGE_MS = 3000;
-
-/// @p picture as a PNG file
-QByteArray pngOf(const QImage& picture) {
-    QByteArray data;
-    QBuffer buffer(&data);
-    buffer.open(QIODevice::WriteOnly);
-    picture.save(&buffer, "PNG");
-    return data;
-}
 
 /// The kind of all @p kinds; none when they are of several kinds, or there are none
 core::KindRef oneKindOf(const QList<core::KindRef>& kinds) {
@@ -445,10 +435,27 @@ CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
         refreshTabTitle(cardId);
         m_navigatorPanel->refreshItem(cardId);
     });
-    // A portrait from a file is a new material of the Workshop
+    // A portrait from a file is a new material of the Workshop, as is a card made with a
+    // relation
     connect(page, &CardPage::materialAdded, this, &NavigatorCoordinator::refreshNavigator);
+    connect(page, &CardPage::cardAdded, this, &NavigatorCoordinator::refreshNavigator);
     connect(page, &CardPage::requestSettings, this,
             &NavigatorCoordinator::cardSettingsRequested);
+    // The other card of a relation: its full card; a chapter of the card in its editor
+    const auto open = [this](const QString& elementId) {
+        if (const core::ProjectElement* element = m_book.findElement(elementId)) {
+            onElementSelected(elementId, element->title);
+        }
+    };
+    connect(page, &CardPage::requestOpenCard, this, open);
+    connect(page, &CardPage::requestOpenChapter, this, open);
+    connect(page, &CardPage::requestOpenMaterial, this,
+            &NavigatorCoordinator::onRequestOpenMaterial);
+    // What is dropped on the card: its materials
+    connect(page, &CardPage::requestAddMaterials, this,
+            &NavigatorCoordinator::onRequestAddMaterials);
+    connect(page, &CardPage::requestFindInBook, this,
+            &NavigatorCoordinator::findInBookRequested);
     return panel;
 }
 
@@ -1154,7 +1161,7 @@ bool NavigatorCoordinator::addWithWindow(
         core::NewMaterial newMaterial;
         newMaterial.title = title;
         if (!picture.isNull()) {
-            newMaterial.data = pngOf(picture);
+            newMaterial.data = IncomingMaterials::pngOf(picture);
             newMaterial.fileName =
                 IncomingMaterials::pictureFileName(QDateTime::currentDateTime());
         } else {
@@ -1879,7 +1886,7 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         core::NewMaterial material;
         material.title = IncomingMaterials::pictureTitle(now);
         material.fileName = IncomingMaterials::pictureFileName(now);
-        material.data = pngOf(incoming.picture);
+        material.data = IncomingMaterials::pngOf(incoming.picture);
         materials << material;
         kinds << pictureKind;
         //: In Polish: obraz zapisany w książce

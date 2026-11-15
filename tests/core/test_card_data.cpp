@@ -42,6 +42,7 @@ using kalahari::core::ElementField;
 using kalahari::core::ElementForm;
 using kalahari::core::KindRef;
 using kalahari::core::MaterialKinds;
+using kalahari::core::OwnRelation;
 using kalahari::core::ProjectElement;
 using kalahari::core::ProjectManager;
 using kalahari::core::SettingsManager;
@@ -306,6 +307,87 @@ TEST_CASE("Cards: problems of their data", "[core][cards]") {
                          "card": { "portraits": [ { "label": "young" } ] } })") ==
           QStringLiteral("workshop.elements[0].card.portraits[0].image: must be a text that is "
                          "not empty"));
+}
+
+TEST_CASE("Cards: the relations the writer named, in the book file", "[core][cards]") {
+    // A project whose Workshop has the relations @p relations (JSON)
+    const auto withRelations = [](const QByteArray& relations) {
+        return jsonOf(R"({ "format": 2, "id": "p",
+                           "books": [ { "id": "b", "folder": "book" } ],
+                           "workshop": { "grouped": false, "elements": [],
+                                         "relations": )" +
+                      relations + " } }");
+    };
+    const QByteArray relations = R"([
+        { "id": "own-1", "kind": "kalahari.base:character", "other": "kalahari.base:character",
+          "name": "wierzyciel", "inverse": "own-2", "since": 2 },
+        { "id": "own-2", "kind": "kalahari.base:character", "other": "kalahari.base:character",
+          "name": "dłużnik", "inverse": "own-1" },
+        { "id": "own-3", "kind": "kalahari.base:character", "other": "kalahari.base:location",
+          "name": "kryjówka", "inverse": "own-4" },
+        { "id": "own-4", "kind": "kalahari.base:location", "other": "kalahari.base:character",
+          "name": "ukrywa się tu", "inverse": "own-3" },
+        { "id": "own-5", "kind": "kalahari.base:character", "other": "kalahari.base:character",
+          "name": "sąsiad" } ])";
+    QStringList problems;
+    const std::optional<BookProject> project =
+        BookProject::fromJson(withRelations(relations), problems);
+    INFO(problems.join(QStringLiteral("; ")).toStdString());
+    REQUIRE(project.has_value());
+    const QList<OwnRelation>& named = project->workshop.relations;
+    REQUIRE(named.size() == 5);
+    CHECK(named.at(0).id == QStringLiteral("own-1"));
+    CHECK(named.at(0).kind == QStringLiteral("kalahari.base:character"));
+    CHECK(named.at(2).otherKind == QStringLiteral("kalahari.base:location"));
+    CHECK(named.at(1).name == QStringLiteral("dłużnik"));
+    CHECK(named.at(0).inverse == QStringLiteral("own-2"));
+    // Without an inverse, the same both ways
+    CHECK(named.at(4).inverse == QStringLiteral("own-5"));
+    // Fields this version does not know are kept
+    CHECK(named.at(0).extra.keys() == QStringList{QStringLiteral("since")});
+    // The book is saved as it was read
+    CHECK(project->toJson()[QStringLiteral("workshop")] ==
+          withRelations(relations)[QStringLiteral("workshop")]);
+
+    const auto problemOf = [&withRelations](const QByteArray& list) {
+        QStringList found;
+        CHECK_FALSE(BookProject::fromJson(withRelations(list), found).has_value());
+        return found.join(QStringLiteral("; "));
+    };
+    CHECK(problemOf(R"([ "own-1" ])") ==
+          QStringLiteral("workshop.relations[0]: must be an object with \"id\""));
+    CHECK(problemOf(R"([ { "id": "own-1", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:character" } ])") ==
+          QStringLiteral("workshop.relations[0].name: must be a text that is not empty"));
+    CHECK(problemOf(R"([ { "id": "friend", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:character", "name": "przyjaciel" } ])") ==
+          QStringLiteral("workshop.relations[0].id: 'friend' must start with \"own-\""));
+    CHECK(problemOf(R"([ { "id": "own-1", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:character", "name": "sąsiad" },
+                         { "id": "own-1", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:character", "name": "sąsiadka" } ])") ==
+          QStringLiteral("workshop.relations[1].id: 'own-1' is listed twice"));
+    CHECK(problemOf(R"([ { "id": "own-1", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:character", "name": "wierzyciel",
+                           "inverse": "own-2" } ])") ==
+          QStringLiteral("workshop.relations[0].inverse: 'own-2' is no relation of the list"));
+    CHECK(problemOf(R"([ { "id": "own-1", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:character", "name": "wierzyciel",
+                           "inverse": "own-2" },
+                         { "id": "own-2", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:character", "name": "dłużnik" } ])") ==
+          QStringLiteral("workshop.relations[0].inverse: 'own-2' must be the relation between "
+                         "the same kinds the other way round, with 'own-1' as its inverse"));
+    CHECK(problemOf(R"([ { "id": "own-1", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:location", "name": "kryjówka",
+                           "inverse": "own-2" },
+                         { "id": "own-2", "kind": "kalahari.base:character",
+                           "other": "kalahari.base:location", "name": "ukrywa się tu",
+                           "inverse": "own-1" } ])") ==
+          QStringLiteral("workshop.relations[0].inverse: 'own-2' must be the relation between "
+                         "the same kinds the other way round, with 'own-1' as its inverse; "
+                         "workshop.relations[1].inverse: 'own-1' must be the relation between "
+                         "the same kinds the other way round, with 'own-2' as its inverse"));
 }
 
 TEST_CASE("Cards: the color of a new card", "[core][cards]") {

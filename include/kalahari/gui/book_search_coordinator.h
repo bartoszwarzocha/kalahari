@@ -140,6 +140,10 @@ public:
     ///        field, the search
     void findInBook();
 
+    /// @brief Find in Book of a card: the panel in front with @p text, a name, as whole words
+    ///        in any letters, the keys in its field, the search
+    void findInBook(const QString& text);
+
     /// @brief Search the book for what the panel says, from the first text
     void search();
 

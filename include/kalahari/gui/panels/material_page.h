@@ -24,6 +24,7 @@ class QFormLayout;
 class QLabel;
 class QLineEdit;
 class QListWidget;
+class QMenu;
 class QPlainTextEdit;
 class QProgressBar;
 class QPushButton;
@@ -405,8 +406,8 @@ private:
 /// Properties panel: each with its picture, its title and its first field
 ///
 /// A click chooses a material, a double-click or Enter opens it, "+" or Insert opens Link with
-/// the materials of the Workshop, and "-" or Delete takes the link out of the material. The
-/// link is saved once, with the material.
+/// the materials of the Workshop, and "-" or Delete takes the link out of the material; the
+/// menu of a row has it all too (menuOpening()). The link is saved once, with the material.
 class LinkedMaterialsBox : public QGroupBox {
     Q_OBJECT
 
@@ -429,6 +430,8 @@ public:
     QToolButton* addButton() const { return m_addButton; }
     QToolButton* removeButton() const { return m_removeButton; }
     QLabel* emptyLabel() const { return m_emptyLabel; }
+    /// @brief The menu of a row, filled when it opens
+    QMenu* rowMenu() const { return m_menu; }
 
 public slots:
     /// @brief Open Link with the materials of the Workshop and link what is checked there
@@ -441,6 +444,10 @@ signals:
     /// @brief Open material @p elementId
     void requestOpenMaterial(const QString& elementId);
 
+    /// @brief The menu of the row of material @p materialId (empty: of no row) was filled and
+    /// opens: what has it adds its actions to @p menu
+    void menuOpening(QMenu* menu, const QString& materialId);
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
@@ -448,12 +455,16 @@ private:
     /// @brief The buttons follow the rows and a book open read-only
     void updateButtons();
 
+    /// @brief Fill the menu of the current row as it opens
+    void fillMenu();
+
     QString m_link;
     QString m_emptyText;
     QListWidget* m_list = nullptr;
     QLabel* m_emptyLabel = nullptr;
     QToolButton* m_addButton = nullptr;
     QToolButton* m_removeButton = nullptr;
+    QMenu* m_menu = nullptr;
     int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
     core::ProjectManager& m_book;  ///< The book of its window
 };

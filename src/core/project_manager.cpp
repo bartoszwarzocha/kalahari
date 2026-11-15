@@ -2503,15 +2503,23 @@ bool ProjectManager::setLinks(const QString& elementId, const QList<ElementLink>
         Logger::getInstance().warn("setLinks: No project is open");
         return false;
     }
-    // Only what the project has, without the element itself, each once
+    // Only what the project has, without the element itself, each once: the first; a card has
+    // several relations with another card, each once
+    const ProjectElement* element = findElement(elementId);
+    const bool card = element != nullptr && isCard(*element);
     ProjectElement kept;
     for (const ElementLink& link : links) {
-        if (link.to != elementId && kept.linkTo(link.to) == nullptr &&
-            m_project->hasLinkTarget(link.to)) {
+        const ProjectElement* target = findElement(link.to);
+        const bool relation = card && target != nullptr && isCard(*target);
+        const bool known = std::any_of(kept.links.cbegin(), kept.links.cend(),
+                                       [&link, relation](const ElementLink& each) {
+                                           return each.to == link.to &&
+                                                  (!relation || each.role == link.role);
+                                       });
+        if (link.to != elementId && !known && m_project->hasLinkTarget(link.to)) {
             kept.links << link;
         }
     }
-    const ProjectElement* element = findElement(elementId);
     const bool changed = element != nullptr && element->links != kept.links;
     const bool saved = changeDetails("setLinks", elementId, [&kept](ProjectElement& each) {
         each.links = kept.links;
@@ -2536,10 +2544,16 @@ ElementLink ProjectManager::newLink(const QString& elementId, const QString& tar
     ElementLink link;
     link.to = target;
     const ProjectElement* element = findElement(elementId);
-    if (element != nullptr && isMaterial(*element)) {
-        if (const KindRef kind = kindOf(*element)) {
-            link.role = LinkRoles::suggestedFor(kind.kind->id);
-        }
+    const KindRef kind = element != nullptr ? kindOf(*element) : KindRef();
+    const ProjectElement* other = findElement(target);
+    if (!kind) {
+        return link;
+    }
+    if (kind.kind->isMaterial()) {
+        link.role = LinkRoles::suggestedFor(kind.kind->id);
+    } else if (kind.kind->isCard() && (other == nullptr || !isCard(*other))) {
+        // A card in a chapter
+        link.role = LinkRoles::suggestedForCard(*kind.kind);
     }
     return link;
 }
@@ -2663,6 +2677,131 @@ QList<const ProjectElement*> ProjectManager::pictureMaterials() const {
         }
     }
     return pictures;
+}
+
+bool ProjectManager::addRelation(const QString& cardId, const QString& otherId,
+                                 const QString& relationId, const QString& note) {
+    const std::optional<RelationInfo> relation =
+        CardRelations(*this).offered(cardId, otherId, relationId);
+    if (!relation) {
+        Logger::getInstance().warn("addRelation: {} is no relation of {} with {}",
+                                   relationId.toStdString(), cardId.toStdString(),
+                                   otherId.toStdString());
+        return false;
+    }
+    const bool saved = changeProject("addRelation", [&](BookProject& project) {
+        card_links::addRelation(project, cardId, otherId, *relation, note);
+    });
+    if (saved) {
+        relationsChanged({cardId, otherId});
+    }
+    return saved;
+}
+
+bool ProjectManager::removeRelation(const ShownRelation& relation) {
+    const bool saved = changeProject("removeRelation", [&relation](BookProject& project) {
+        card_links::removeRelation(project, relation);
+    });
+    if (saved) {
+        relationsChanged({relation.ownerId, relation.linkTo});
+    }
+    return saved;
+}
+
+bool ProjectManager::replaceRelation(const QString& cardId, const ShownRelation& relation,
+                                     const QString& otherId, const QString& relationId,
+                                     const QString& note) {
+    const std::optional<RelationInfo> info =
+        CardRelations(*this).offered(cardId, otherId, relationId);
+    if (!info) {
+        Logger::getInstance().warn("replaceRelation: {} is no relation of {} with {}",
+                                   relationId.toStdString(), cardId.toStdString(),
+                                   otherId.toStdString());
+        return false;
+    }
+    const bool saved = changeProject("replaceRelation", [&](BookProject& project) {
+        card_links::removeRelation(project, relation);
+        card_links::addRelation(project, cardId, otherId, *info, note);
+    });
+    if (saved) {
+        relationsChanged({cardId, relation.otherId, otherId});
+    }
+    return saved;
+}
+
+QString ProjectManager::ownRelation(const QString& kind, const QString& otherKind,
+                                    const QString& name, const QString& inverseName) {
+    if (name.trimmed().isEmpty() || inverseName.trimmed().isEmpty()) {
+        return {};
+    }
+    QString id;
+    const bool saved = changeProject("ownRelation", [&](BookProject& project) {
+        id = card_links::ownRelation(project.workshop.relations, kind, otherKind, name,
+                                     inverseName);
+    });
+    return saved ? id : QString();
+}
+
+QString ProjectManager::cardFieldText(const QString& cardId, const QString& fieldId) const {
+    const ProjectElement* card = findElement(cardId);
+    if (card == nullptr) {
+        return {};
+    }
+    const KindRef kind = kindOf(*card);
+    const CardField* field = kind ? kind.kind->field(fieldId) : nullptr;
+    if (field != nullptr) {
+        if (const ProjectElement* named = CardRelations(*this).fieldCard(*card, *field)) {
+            return named->title;
+        }
+    }
+    return card->card.value(fieldId);
+}
+
+bool ProjectManager::setCardFieldText(const QString& cardId, const QString& fieldId,
+                                      const QString& text) {
+    const ProjectElement* card = findElement(cardId);
+    const std::optional<FieldChange> change =
+        card != nullptr ? CardRelations(*this).fieldChange(*card, fieldId, text) : std::nullopt;
+    if (!change) {
+        return setCardValue(cardId, fieldId, text);
+    }
+    const bool saved = changeProject("setCardFieldText", [&](BookProject& project) {
+        card_links::setFieldCard(project, cardId, change->relation, change->named);
+        card_links::setValue(project, cardId, fieldId, change->value);
+    });
+    if (saved) {
+        relationsChanged({cardId, change->before, change->named});
+    }
+    return saved;
+}
+
+bool ProjectManager::changeProject(const char* what,
+                                   const std::function<void(BookProject&)>& change) {
+    if (!m_project || refusesChange(what)) {
+        return false;
+    }
+    // The project as it was, to put back when the file cannot be written
+    const BookProject before = *m_project;
+    change(*m_project);
+    if (*m_project == before) {
+        return true;
+    }
+    if (!saveManifest()) {
+        *m_project = before;
+        return false;
+    }
+    return true;
+}
+
+void ProjectManager::relationsChanged(const QStringList& cardIds) {
+    QStringList told;
+    for (const QString& cardId : cardIds) {
+        if (!cardId.isEmpty() && !told.contains(cardId)) {
+            told << cardId;
+            emit cardChanged(cardId);
+        }
+    }
+    emit linksChanged();
 }
 
 bool ProjectManager::setCoverState(const QString& elementId, const QString& state,

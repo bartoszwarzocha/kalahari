@@ -26,6 +26,11 @@ class QToolButton;
 class QVBoxLayout;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+struct ProjectElement;
+}  // namespace kalahari::core
+
 namespace kalahari::gui::card {
 
 /// @brief Give @p button icon @p iconId, also after a change of the theme or of the icons
@@ -77,6 +82,12 @@ void cutOffChildren(QWidget* widget);
 
 /// @brief A form of a group of a card: the labels at the left of their fields
 [[nodiscard]] QFormLayout* groupForm();
+
+/// @brief What card @p card of @p book shows beside its kind: the value of the field that
+/// stands there (core::ElementKind::subtitleField()), a value to choose by its name in the
+/// program's language; empty when it has none
+[[nodiscard]] QString subtitleValue(const core::ProjectManager& book,
+                                    const core::ProjectElement& card);
 
 /// @brief Put @p button, a child of @p group, at the right end of the line of its title, in
 /// its middle (at the left end from right to left): the gear that opens the settings of the

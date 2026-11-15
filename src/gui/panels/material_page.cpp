@@ -28,6 +28,7 @@
 #include "kalahari/core/theme_manager.h"
 
 #include <QAbstractItemDelegate>
+#include <QAction>
 #include <QClipboard>
 #include <QComboBox>
 #include <QGridLayout>
@@ -47,6 +48,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QLocale>
 #include <QPlainTextEdit>
 #include <QPointer>
@@ -1419,7 +1421,7 @@ void MaterialCardPanel::refresh() {
 // =============================================================================
 
 LinkedMaterialsBox::LinkedMaterialsBox(core::ProjectManager& book, QWidget* parent)
-    : QGroupBox(parent), m_book(book) {
+    : QGroupBox(parent), m_menu(new QMenu(this)), m_book(book) {
     setObjectName(QStringLiteral("linkedMaterials"));
     //: The materials linked with a chapter, in its page of the Properties panel. In Polish:
     //: Materiały
@@ -1444,8 +1446,14 @@ LinkedMaterialsBox::LinkedMaterialsBox(core::ProjectManager& book, QWidget* pare
     //: In Polish: Dwuklik otwiera materiał
     m_list->setToolTip(tr("A double-click opens the material"));
     m_list->installEventFilter(this);
+    m_list->setContextMenuPolicy(Qt::CustomContextMenu);
     layout->addWidget(m_list);
     m_emptyLabel = hintLabel(this, QString(), "linkedMaterialsEmpty");
+    m_menu->setObjectName(QStringLiteral("linkedMaterialsMenu"));
+    connect(m_list, &QListWidget::customContextMenuRequested, this, [this](const QPoint& at) {
+        fillMenu();
+        m_menu->popup(m_list->viewport()->mapToGlobal(at));
+    });
     layout->addWidget(m_emptyLabel);
     connect(m_addButton, &QToolButton::clicked, this, &LinkedMaterialsBox::editMaterials);
     connect(m_removeButton, &QToolButton::clicked, this, &LinkedMaterialsBox::removeMaterial);
@@ -1543,6 +1551,26 @@ void LinkedMaterialsBox::updateButtons() {
     const bool readOnly = m_book.isReadOnly();
     m_addButton->setEnabled(!readOnly && !m_link.isEmpty());
     m_removeButton->setEnabled(!readOnly && m_list->currentItem() != nullptr);
+}
+
+void LinkedMaterialsBox::fillMenu() {
+    m_menu->clear();
+    const QListWidgetItem* item = m_list->currentItem();
+    const QString material = item != nullptr ? item->data(LINK_ROLE).toString() : QString();
+    const bool writable = !m_book.isReadOnly() && !m_link.isEmpty();
+    //: The menu of a material linked with a chapter or a card. In Polish: Otwórz materiał
+    QAction* open = m_menu->addAction(tr("Open the Material"));
+    open->setEnabled(!material.isEmpty());
+    connect(open, &QAction::triggered, this,
+            [this, material]() { emit requestOpenMaterial(material); });
+    QAction* remove = m_menu->addAction(tr("Remove Link (Delete)"));
+    remove->setEnabled(writable && !material.isEmpty());
+    connect(remove, &QAction::triggered, this, &LinkedMaterialsBox::removeMaterial);
+    m_menu->addSeparator();
+    QAction* add = m_menu->addAction(tr("Link Material... (Insert)"));
+    add->setEnabled(writable);
+    connect(add, &QAction::triggered, this, &LinkedMaterialsBox::editMaterials);
+    emit menuOpening(m_menu, material);
 }
 
 void LinkedMaterialsBox::editMaterials() {

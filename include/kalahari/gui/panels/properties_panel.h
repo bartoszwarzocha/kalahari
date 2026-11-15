@@ -15,6 +15,7 @@
 #pragma once
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/gui/material_source.h"
 
 #include <QWidget>
 #include <QString>
@@ -286,6 +287,19 @@ signals:
     /// @brief Material @p materialId was added on the short card (a portrait from a file): the
     /// Navigator shows it
     void cardMaterialAdded(const QString& materialId);
+
+    /// @brief The short card shows card @p elementId: the other card of a relation; the
+    /// Navigator shows it as the current element
+    void requestSelectCard(const QString& elementId);
+
+    /// @brief Card @p elementId was made with a relation on the short card: the Navigator
+    /// shows it
+    void cardAdded(const QString& elementId);
+
+    /// @brief Files, web addresses or pictures @p incoming were dropped on the short card: new
+    /// materials linked with card @p link
+    void requestAddCardMaterials(const kalahari::gui::IncomingMaterials& incoming,
+                                 const QString& link);
 
     /// @brief Something to say on the status bar: "Address copied: ..."
     void message(const QString& text);
