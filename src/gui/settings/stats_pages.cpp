@@ -377,10 +377,12 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
     QFormLayout* counting = addGroup(tr("What Counts toward the Goal"));
     const std::vector<QRadioButton*> goal = addChoices(
         counting, QString(), "stats.goalCounting",
-        {{tr("&Words added: written minus deleted"), "net",
-          tr("When you delete a paragraph, the words of the day go down.")},
-         {tr("&All the words written"), "written",
-          tr("Deleting does not lower the words of the day.")}});
+        {{.text = tr("&Words added: written minus deleted"),
+          .value = "net",
+          .note = tr("When you delete a paragraph, the words of the day go down.")},
+         {.text = tr("&All the words written"),
+          .value = "written",
+          .note = tr("Deleting does not lower the words of the day.")}});
     addClippingsOption(goal);
 
     QFormLayout* books = addGroup(tr("Daily and Weekly Goal"));

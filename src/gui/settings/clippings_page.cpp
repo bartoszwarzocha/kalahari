@@ -79,12 +79,14 @@ EditorClippingsPage::EditorClippingsPage(CommandRegistry& commands, QWidget* par
         cutting, QString(), Clippings::CUT_SETTING,
         //: In Polish: &Wycinaj od razu / Tytuł to pierwsze słowa fragmentu; można go zmienić
         //: później, jak tytuł każdego tekstu (F2 w Nawigatorze).
-        {{tr("Cut at &once"), Clippings::CUT_AT_ONCE,
-          tr("The title is the first words of the fragment; it can be changed later, as that "
-             "of any text (F2 in the Navigator).")},
+        {{.text = tr("Cut at &once"),
+          .value = Clippings::CUT_AT_ONCE,
+          .note = tr("The title is the first words of the fragment; it can be changed later, as "
+                     "that of any text (F2 in the Navigator).")},
          //: In Polish: Najpierw &małe okno / Z tytułem i notatką wycinka.
-         {tr("First a s&mall window"), Clippings::CUT_WITH_WINDOW,
-          tr("With the title and a note of the clipping.")}});
+         {.text = tr("First a s&mall window"),
+          .value = Clippings::CUT_WITH_WINDOW,
+          .note = tr("With the title and a note of the clipping.")}});
     cut.front()->setObjectName(QStringLiteral("clippingsCutAtOnce"));
     cut.back()->setObjectName(QStringLiteral("clippingsCutWithWindow"));
     std::vector<QRadioButton*> noSelection = addChoices(
@@ -92,9 +94,11 @@ EditorClippingsPage::EditorClippingsPage(CommandRegistry& commands, QWidget* par
         //: Followed by what the command does. In Polish: Bez zaznaczenia polecenie:
         tr("Without a selection the command:"), Clippings::NO_SELECTION_SETTING,
         //: In Polish: wycina &akapit z kursorem
-        {{tr("cuts the &paragraph with the cursor"), Clippings::NO_SELECTION_PARAGRAPH, {}},
+        {{.text = tr("cuts the &paragraph with the cursor"),
+          .value = Clippings::NO_SELECTION_PARAGRAPH,
+          .note = {}},
          //: In Polish: jest &nieaktywne
-         {tr("is &greyed out"), Clippings::NO_SELECTION_NOTHING, {}}});
+         {.text = tr("is &greyed out"), .value = Clippings::NO_SELECTION_NOTHING, .note = {}}});
     noSelection.front()->setObjectName(QStringLiteral("clippingsNoSelectionParagraph"));
     noSelection.back()->setObjectName(QStringLiteral("clippingsNoSelectionNothing"));
 
@@ -106,10 +110,13 @@ EditorClippingsPage::EditorClippingsPage(CommandRegistry& commands, QWidget* par
         //: Followed by what it opens. In Polish: Polecenie otwiera:
         tr("The command opens:"), Clippings::INSERT_SETTING,
         //: In Polish: &okno z listą i podglądem
-        {{tr("a &window with the list and the preview"), Clippings::INSERT_WINDOW, {}},
+        {{.text = tr("a &window with the list and the preview"),
+          .value = Clippings::INSERT_WINDOW,
+          .note = {}},
          //: In Polish: &listę przy kursorze / Jak szybkie wstawianie, bez podglądu.
-         {tr("a &list at the cursor"), Clippings::INSERT_LIST,
-          tr("As quick insert does, without the preview.")}});
+         {.text = tr("a &list at the cursor"),
+          .value = Clippings::INSERT_LIST,
+          .note = tr("As quick insert does, without the preview.")}});
     insert.front()->setObjectName(QStringLiteral("clippingsInsertWindow"));
     insert.back()->setObjectName(QStringLiteral("clippingsInsertList"));
     std::vector<QRadioButton*> afterInsert = addChoices(
@@ -117,12 +124,15 @@ EditorClippingsPage::EditorClippingsPage(CommandRegistry& commands, QWidget* par
         //: Followed by what happens to it. In Polish: Wstawiony wycinek:
         tr("A clipping inserted:"), Clippings::AFTER_INSERT_SETTING,
         //: In Polish: &zostaje w Warsztacie / Oznaczony jako wstawiony.
-        {{tr("&stays in the Workshop"), Clippings::AFTER_INSERT_KEEP,
-          tr("Marked as inserted.")},
+        {{.text = tr("&stays in the Workshop"),
+          .value = Clippings::AFTER_INSERT_KEEP,
+          .note = tr("Marked as inserted.")},
          //: In Polish: zni&ka z Warsztatu / Cofnięcie usuwa wstawiony tekst, a wycinek wraca
          //: do Warsztatu.
-         {tr("goes from the Wor&kshop"), Clippings::AFTER_INSERT_REMOVE,
-          tr("Undo takes the insertion back, and the clipping is in the Workshop again.")}});
+         {.text = tr("goes from the Wor&kshop"),
+          .value = Clippings::AFTER_INSERT_REMOVE,
+          .note = tr("Undo takes the insertion back, and the clipping is in the Workshop "
+                     "again.")}});
     afterInsert.front()->setObjectName(QStringLiteral("clippingsAfterInsertKeep"));
     afterInsert.back()->setObjectName(QStringLiteral("clippingsAfterInsertRemove"));
 
