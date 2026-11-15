@@ -136,6 +136,8 @@ SpellingCoordinator::SpellingCoordinator(core::ProjectManager& book, CommandRegi
             &SpellingCoordinator::updateDictionary);
     connect(&projects, &core::ProjectManager::projectClosed, this,
             &SpellingCoordinator::updateDictionary);
+    connect(&projects, &core::ProjectManager::bookDictionaryChanged, this,
+            &SpellingCoordinator::onBookDictionaryChanged);
 
     // The settings of the spelling, from the Settings dialog or the command. A listener
     // runs on the thread that changed the setting: the slot is queued.
@@ -343,8 +345,18 @@ void SpellingCoordinator::updateEditors() {
             }
             const bool chapter = isChapter(*panel);
             otherDocuments = otherDocuments || !chapter;
-            panel->getBookEditor()->setSpellCheckService(
-                chapter || m_otherLanguage.isEmpty() ? m_service : m_otherService);
+            editor::BookEditor* bookEditor = panel->getBookEditor();
+            bookEditor->setSpellCheckService(chapter || m_otherLanguage.isEmpty() ? m_service
+                                                                                  : m_otherService);
+            // The book's dictionary for its chapters only, changed from them while the book is
+            // not open read-only
+            const bool withBook = chapter && m_book.isProjectOpen();
+            bookEditor->setBookDictionary(withBook ? &m_book.bookDictionary() : nullptr,
+                                          withBook && !m_book.isReadOnly());
+            connect(bookEditor, &editor::BookEditor::addToBookDictionaryAsked, this,
+                    &SpellingCoordinator::addToBookDictionary, Qt::UniqueConnection);
+            connect(bookEditor, &editor::BookEditor::removeBookRuleAsked, this,
+                    &SpellingCoordinator::removeBookRule, Qt::UniqueConnection);
         }
     }
 
@@ -358,6 +370,42 @@ void SpellingCoordinator::updateEditors() {
                       m_otherMissingLanguage);
     }
     emit problemChanged();  // the documents may have other dictionaries now
+}
+
+void SpellingCoordinator::onBookDictionaryChanged() {
+    if (m_centralTabs == nullptr) {
+        return;
+    }
+    const core::BookDictionary* dictionary = &m_book.bookDictionary();
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
+        editor::BookEditor* bookEditor = panel != nullptr ? panel->getBookEditor() : nullptr;
+        if (bookEditor != nullptr && bookEditor->bookDictionary() == dictionary) {
+            bookEditor->requestSpellCheck();
+        }
+    }
+}
+
+bool SpellingCoordinator::changeBookDictionary(
+    const std::function<void(core::BookDictionary&)>& change) {
+    if (m_book.changeBookDictionary(change)) {
+        return true;
+    }
+    showMessage(m_book.isReadOnly() ? tr("The book is open read-only: its dictionary cannot be "
+                                         "changed")
+                                    : tr("The book's dictionary cannot be saved"),
+                DICTIONARY_MESSAGE_MS);
+    return false;
+}
+
+bool SpellingCoordinator::addToBookDictionary(const QString& word) {
+    return changeBookDictionary(
+        [&word](core::BookDictionary& dictionary) { dictionary.addWord(word); });
+}
+
+bool SpellingCoordinator::removeBookRule(const QString& ruleId) {
+    return changeBookDictionary(
+        [&ruleId](core::BookDictionary& dictionary) { dictionary.removeRule(ruleId); });
 }
 
 void SpellingCoordinator::useDictionary(editor::SpellCheckService& service,

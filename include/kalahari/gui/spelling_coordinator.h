@@ -17,6 +17,7 @@ class QTabWidget;
 class QTimer;
 
 namespace kalahari::core {
+class BookDictionary;
 class ProjectManager;
 }  // namespace kalahari::core
 namespace kalahari::gui {
@@ -42,6 +43,12 @@ namespace kalahari::gui {
 /// language without a dictionary is not checked, and the status bar says so. The writer's
 /// own words, the same in every language, are kept in the file user_dictionary.txt next to
 /// the settings.
+///
+/// The chapters of the book are checked with the book's dictionary too
+/// (core::ProjectManager::bookDictionary(), BookEditor::setBookDictionary()): its names and
+/// words are right in them, and the places written otherwise than its spelling rules want
+/// are marked. They are checked again when it changes. Add to Book Dictionary and Remove Rule
+/// on the menu of a wave change it, in a book that is not open read-only.
 ///
 /// Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off: the
 /// setting editor.spellCheck.enabled, also in the Settings dialog. Tools > Next Spelling or
@@ -116,6 +123,14 @@ public slots:
     ///        off as the setting says (after the settings or the book's language change)
     void updateDictionary();
 
+    /// @brief Add a word to the book's dictionary: right in the chapters of the book
+    /// @return false when it cannot be changed (the status bar says so)
+    bool addToBookDictionary(const QString& word);
+
+    /// @brief Remove a spelling rule from the book's dictionary
+    /// @return false when it cannot be changed (the status bar says so)
+    bool removeBookRule(const QString& ruleId);
+
 signals:
     /// @brief What problem() says may have changed: a dictionary was loaded, or not found
     void problemChanged();
@@ -124,6 +139,12 @@ private:
     /// @brief Give the editors of the documents their dictionaries, and load the one of the
     ///        documents outside the book when the first of them needs it
     void updateEditors();
+
+    /// @brief The book's dictionary changed: its chapters are checked again
+    void onBookDictionaryChanged();
+
+    /// @brief Change the book's dictionary; the status bar says when it cannot be changed
+    bool changeBookDictionary(const std::function<void(core::BookDictionary&)>& change);
 
     /// @brief Check with a dictionary, or without one when its language has none: then the
     ///        status bar says so, once for the language

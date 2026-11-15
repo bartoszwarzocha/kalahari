@@ -23,6 +23,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include <functional>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -254,6 +255,20 @@ QString partsOf(const QString& word) {
         }
     }
     return parts;
+}
+
+/// @brief Add the wrong parts of a hyphenated word wrong as a whole (none: it is right)
+/// @param start Where the word starts in its text
+/// @param right Whether a word is right
+void addWrongParts(QList<SpellErrorInfo>& errors, const QString& word, qsizetype start,
+                   const std::function<bool(const QString&)>& right) {
+    for (const WordSpan& part : wordsOf(partsOf(word))) {
+        const QString partWord = word.mid(part.start, part.length);
+        if (isChecked(part) && !right(partWord)) {
+            errors.append(SpellErrorInfo(static_cast<int>(start + part.start),
+                                         static_cast<int>(part.length), partWord));
+        }
+    }
 }
 
 // =============================================================================
@@ -654,12 +669,15 @@ bool SpellCheckService::isActive() const
     return m_enabled && m_inUse;
 }
 
-bool SpellCheckService::isCorrect(const QString& word) const
+bool SpellCheckService::isCorrect(const QString& word, const WordFilter& alsoRight) const
 {
     if (!m_inUse || word.isEmpty()) {
         return true;
     }
-    if (isWordCorrect(word)) {
+    const auto right = [this, &alsoRight](const QString& checked) {
+        return isWordCorrect(checked) || (alsoRight && alsoRight(checked));
+    };
+    if (right(word)) {
         return true;
     }
 
@@ -668,7 +686,7 @@ bool SpellCheckService::isCorrect(const QString& word) const
         return false;
     }
     for (const WordSpan& part : wordsOf(partsOf(word))) {
-        if (isChecked(part) && !isWordCorrect(word.mid(part.start, part.length))) {
+        if (isChecked(part) && !right(word.mid(part.start, part.length))) {
             return false;
         }
     }
@@ -746,34 +764,30 @@ QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestio
     return result;
 }
 
-QList<SpellErrorInfo> SpellCheckService::checkParagraph(const QString& text) const
+QList<SpellErrorInfo> SpellCheckService::checkParagraph(const QString& text,
+                                                        const WordFilter& alsoRight) const
 {
     QList<SpellErrorInfo> errors;
     if (!isActive() || text.isEmpty()) {
         return errors;
     }
 
+    const auto right = [this, &alsoRight](const QString& checked) {
+        return isWordCorrect(checked) || (alsoRight && alsoRight(checked));
+    };
     for (const WordSpan& span : wordsOf(text)) {
         if (!isChecked(span)) {
             continue;
         }
         const QString word = text.mid(span.start, span.length);
-        if (isWordCorrect(word)) {
+        if (right(word)) {
             continue;
         }
-        if (!hasHyphen(word)) {
+        if (hasHyphen(word)) {
+            addWrongParts(errors, word, span.start, right);
+        } else {
             errors.append(SpellErrorInfo(static_cast<int>(span.start),
                                          static_cast<int>(span.length), word));
-            continue;
-        }
-
-        // A hyphenated word wrong as a whole: its wrong parts (none: it is right)
-        for (const WordSpan& part : wordsOf(partsOf(word))) {
-            const QString partWord = word.mid(part.start, part.length);
-            if (isChecked(part) && !isWordCorrect(partWord)) {
-                errors.append(SpellErrorInfo(static_cast<int>(span.start + part.start),
-                                             static_cast<int>(part.length), partWord));
-            }
         }
     }
     return errors;

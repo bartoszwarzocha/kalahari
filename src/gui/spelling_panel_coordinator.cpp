@@ -61,13 +61,14 @@ constexpr const char* NEXT_ISSUE_COMMAND = "tools.nextMisspelling";
 
 /// @brief Whether a setting of the panel or of the checking
 bool isWatchedSetting(const std::string& key) {
-    return key.rfind("spellingPanel.", 0) == 0 || key.rfind("editor.spellCheck.", 0) == 0 ||
-           key.rfind("editor.grammarCheck.", 0) == 0;
+    return key.starts_with("spellingPanel.") || key.starts_with("editor.spellCheck.") ||
+           key.starts_with("editor.grammarCheck.") || key.starts_with("bookDictionary.");
 }
 
-/// @brief The index of a kind in the arrays of the kinds
+/// @brief The index of a kind in the arrays of the kinds: the rules of the book are checked
+///        with the spelling
 std::size_t kindIndex(editor::TextIssueKind kind) {
-    return kind == editor::TextIssueKind::Spelling ? 0 : 1;
+    return kind == editor::TextIssueKind::Grammar ? 1 : 0;
 }
 
 }  // namespace
@@ -102,6 +103,8 @@ SpellingPanelCoordinator::SpellingPanelCoordinator(core::ProjectManager& book,
             [this](const SpellingPanelIssue& issue) { onIgnoreWord(issue, false); });
     connect(m_panel, &SpellingPanel::addToDictionaryRequested, this,
             [this](const SpellingPanelIssue& issue) { onIgnoreWord(issue, true); });
+    connect(m_panel, &SpellingPanel::addToBookDictionaryRequested, this,
+            &SpellingPanelCoordinator::onAddToBookDictionary);
     connect(m_panel, &SpellingPanel::ignoreRuleRequested, this,
             &SpellingPanelCoordinator::onIgnoreRule);
     connect(m_panel, &SpellingPanel::menuRequested, this,
@@ -299,7 +302,15 @@ void SpellingPanelCoordinator::refresh() {
                                grammarService != nullptr && grammarService->isEnabled() &&
                                grammarService->isConfigured();
     m_panel->setKindChecked(editor::TextIssueKind::Spelling, spellingListed);
+    m_panel->setKindChecked(editor::TextIssueKind::BookRule,
+                            spellingListed && editor->bookDictionary() != nullptr);
     m_panel->setKindChecked(editor::TextIssueKind::Grammar, grammarListed);
+
+    // A misspelled word of a chapter goes to the book's dictionary too, as the setting says
+    m_panel->setAddPlaces(
+        {.bookDictionary = editor->bookDictionary() != nullptr &&
+                           editor->isBookDictionaryEditable(),
+         .bookFirst = settings.get<std::string>(ADD_TO_KEY, "book") != std::string("user")});
 
     // How far the text is checked
     const editor::BookEditor::CheckProgress progress = editor->checkProgress();
@@ -384,14 +395,22 @@ std::vector<SpellingPanelIssue> SpellingPanelCoordinator::issuesOf(editor::BookE
     // An issue's key: what it is, and which of the same it is in the text, so it stays the
     // same as the text around it changes
     QHash<QString, int> occurrences;
+    const core::BookDictionary* bookDictionary = editor.bookDictionary();
+    editor::SpellCheckService::WordFilter alsoRight;
+    if (bookDictionary != nullptr) {
+        alsoRight = [bookDictionary](const QString& word) { return bookDictionary->isRight(word); };
+    }
     for (const editor::TextIssue& issue : editor.textIssues()) {
-        const bool isSpelling = issue.kind == editor::TextIssueKind::Spelling;
+        const bool isSpelling = issue.kind != editor::TextIssueKind::Grammar;
         if (isSpelling ? !spelling : !grammar) {
             continue;
         }
-        // A word the writer made right (ignored, added to the dictionary) until the text is
-        // checked again
-        if (isSpelling && m_wordsChanged && spell != nullptr && spell->isCorrect(issue.text)) {
+        // A word the writer made right (ignored, added to a dictionary) until the text is
+        // checked again; so is a place breaking a rule of the book that is ignored
+        if (m_wordsChanged && spell != nullptr &&
+            ((issue.kind == editor::TextIssueKind::Spelling &&
+              spell->isCorrect(issue.text, alsoRight)) ||
+             (issue.kind == editor::TextIssueKind::BookRule && spell->isIgnored(issue.text)))) {
             continue;
         }
         while (block.isValid() && block.blockNumber() < issue.paragraph) {
@@ -517,6 +536,22 @@ void SpellingPanelCoordinator::onIgnoreWord(const SpellingPanelIssue& issue,
     } else {
         service->ignoreWord(issue.issue.text);
     }
+    refresh();
+    selectFrom(issue.position, issue.issue.inNote() ? issue.issue.start : -1);
+}
+
+void SpellingPanelCoordinator::onAddToBookDictionary(const SpellingPanelIssue& issue) {
+    // In the chapters of the book, as from the menu of the wave: they are checked again
+    const QString word = issue.issue.text;
+    const bool added = m_spelling != nullptr
+                           ? m_spelling->addToBookDictionary(word)
+                           : m_book.changeBookDictionary([&word](core::BookDictionary& dictionary) {
+                                 dictionary.addWord(word);
+                             });
+    if (!added) {
+        return;
+    }
+    m_wordsChanged = true;
     refresh();
     selectFrom(issue.position, issue.issue.inNote() ? issue.issue.start : -1);
 }

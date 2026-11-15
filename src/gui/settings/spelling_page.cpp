@@ -146,9 +146,12 @@ EditorSpellingPage::EditorSpellingPage(editor::SpellCheckService* spelling, QWid
     // The waves under the misspelled words and the frames of their cards in the panel
     QFormLayout* colors = addGroup(tr("Colors"));
     addNote(colors, tr("The color of the wavy line under a misspelled word and of the frames of "
-                       "its cards in the Spelling and Grammar panel. Each theme has its own "
-                       "colors: these are the colors of the current theme."));
+                       "its cards in the Spelling and Grammar panel; below it, the same for a "
+                       "word written otherwise than a spelling rule of the book's dictionary "
+                       "wants. Each theme has its own colors: these are the colors of the "
+                       "current theme."));
     addIssueColor(colors, editor::TextIssueKind::Spelling);
+    addIssueColor(colors, editor::TextIssueKind::BookRule);
     addOptimizeColorsCheckBox(colors);
     addRestoreColorsButton(colors);
 

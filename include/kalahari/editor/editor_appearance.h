@@ -254,6 +254,7 @@ struct EditorColors {
         QColor spelling;    ///< Misspelled words
         QColor grammar;     ///< Grammar, style and punctuation
         QColor repetition;  ///< Words repeated too close (the Repetitions panel)
+        QColor bookRule;    ///< Places breaking a spelling rule of the book
     };
     IssueColors issuesLight;  ///< On the light paper
     IssueColors issuesDark;   ///< On the dark paper

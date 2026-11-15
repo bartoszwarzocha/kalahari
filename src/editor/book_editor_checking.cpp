@@ -5,6 +5,7 @@
 /// @brief BookEditor: spelling and grammar checks, the word read aloud
 
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/editor/grammar_check_service.h>
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/spell_check_service.h>
@@ -12,6 +13,7 @@
 #include <QElapsedTimer>
 #include <QFont>
 #include <QFontMetrics>
+#include <QLocale>
 #include <QMenu>
 #include <QShowEvent>
 #include <QStringList>
@@ -21,6 +23,7 @@
 #include <QTextOption>
 #include <QTimer>
 #include <algorithm>
+#include <optional>
 #include <cstddef>
 #include <tuple>
 #include <utility>
@@ -29,6 +32,15 @@
 namespace kalahari::editor {
 
 namespace {
+
+/// @brief The issue of @p issues at @p offset (its end included), or nullptr
+const TextHighlight* issueAt(const std::vector<TextHighlight>& issues, int offset)
+{
+    const auto found = std::ranges::find_if(issues, [offset](const TextHighlight& issue) {
+        return offset >= issue.start && offset <= issue.start + issue.length;
+    });
+    return found != issues.end() ? &*found : nullptr;
+}
 
 /// @brief How long a turn of the spelling check runs at most (ns): typing stays smooth
 constexpr qint64 SPELL_TURN_NS = 8'000'000;
@@ -212,6 +224,47 @@ void moveGrammarWaves(const QTextBlock& first, int offset, int charsRemoved,
     }
 }
 
+/// @brief The spelling issues of a text (one paragraph): its misspelled words, but those the
+///        book's dictionary takes for right, and the places breaking a spelling rule of the
+///        book, but those ignored (Ignore All); a place breaking a rule is marked in place of
+///        the misspellings it covers. In the order of the text.
+/// @param dictionary The book's dictionary; nullptr: none
+std::vector<TextHighlight> spellingIssuesOf(const SpellCheckService& service,
+                                            const core::BookDictionary* dictionary,
+                                            const QString& text) {
+    std::vector<TextHighlight> issues;
+    QList<core::RuleDeviation> deviations;
+    SpellCheckService::WordFilter alsoRight;
+    if (dictionary != nullptr) {
+        alsoRight = [dictionary](const QString& word) { return dictionary->isRight(word); };
+        deviations = dictionary->deviations(text);
+        deviations.removeIf([&service](const core::RuleDeviation& deviation) {
+            return service.isIgnored(deviation.text);
+        });
+    }
+    for (const SpellErrorInfo& error : service.checkParagraph(text, alsoRight)) {
+        const bool covered =
+            std::ranges::any_of(deviations, [&error](const core::RuleDeviation& deviation) {
+                return error.startPos < deviation.start + deviation.length &&
+                       deviation.start < error.startPos + error.length;
+            });
+        if (!covered) {
+            issues.push_back({error.startPos, error.length, HighlightKind::Spelling});
+        }
+    }
+    for (const core::RuleDeviation& deviation : std::as_const(deviations)) {
+        issues.push_back({static_cast<int>(deviation.start), static_cast<int>(deviation.length),
+                          HighlightKind::BookRule});
+    }
+    std::ranges::stable_sort(issues, std::ranges::less{}, &TextHighlight::start);
+    return issues;
+}
+
+/// @brief The kind of issue a spelling wave marks
+TextIssueKind spellingKindOf(const TextHighlight& wave) {
+    return wave.kind == HighlightKind::BookRule ? TextIssueKind::BookRule : TextIssueKind::Spelling;
+}
+
 /// @brief A paragraph of a note's text, with the paragraph holding the note's number
 struct NoteLine {
     QString id;      ///< The note's
@@ -272,11 +325,12 @@ bool noteWavesChanged(const std::vector<NoteCheck>& before, const std::vector<No
 }
 
 /// @brief Check the spelling of the paragraphs of the texts of a paragraph's notes
+/// @param dictionary The book's dictionary (spellingIssuesOf()); nullptr: none
 /// @param checks The paragraph's results (ParagraphData::noteSpelling): replaced by these
 /// @param keep Results still for a paragraph's text are kept, not made again
 /// @return Whether their waves changed
-bool checkNoteSpelling(SpellCheckService& service, const QTextBlock& block,
-                       std::vector<NoteCheck>& checks, bool keep) {
+bool checkNoteSpelling(const SpellCheckService& service, const core::BookDictionary* dictionary,
+                       const QTextBlock& block, std::vector<NoteCheck>& checks, bool keep) {
     std::vector<NoteCheck> notes;
     for (NoteLine& line : noteLinesOf(block)) {
         if (const NoteCheck* known = NoteCheck::find(checks, line.id, line.line, line.text);
@@ -285,9 +339,7 @@ bool checkNoteSpelling(SpellCheckService& service, const QTextBlock& block,
             continue;
         }
         NoteCheck& note = notes.emplace_back();
-        for (const SpellErrorInfo& error : service.checkParagraph(line.text)) {
-            note.issues.push_back({error.startPos, error.length, HighlightKind::Spelling});
-        }
+        note.issues = spellingIssuesOf(service, dictionary, line.text);
         note.id = std::move(line.id);
         note.line = line.line;
         note.text = std::move(line.text);
@@ -402,6 +454,16 @@ void BookEditor::setSpellCheckService(SpellCheckService* service)
 SpellCheckService* BookEditor::spellCheckService() const
 {
     return m_spellCheckService;
+}
+
+void BookEditor::setBookDictionary(const core::BookDictionary* dictionary, bool editable)
+{
+    m_bookDictionaryEditable = editable;
+    if (m_bookDictionary == dictionary) {
+        return;
+    }
+    m_bookDictionary = dictionary;
+    requestSpellCheck();
 }
 
 void BookEditor::requestSpellCheck()
@@ -761,20 +823,16 @@ bool BookEditor::checkSpelling(const QTextBlock& block)
 {
     // A paragraph in a style without checking (Code) has no misspellings
     const QString text = isCheckedParagraph(block) ? block.text() : QString();
-    const QList<SpellErrorInfo> errors = m_spellCheckService->checkParagraph(text);
 
     // The word being typed gets its wave when the cursor leaves it
     const int typed = m_spellTyping >= 0 && block.contains(m_spellTyping)
                           ? m_spellTyping - block.position()
                           : -1;
-    std::vector<TextHighlight> issues;
-    issues.reserve(static_cast<size_t>(errors.size()));
-    for (const SpellErrorInfo& error : errors) {
-        if (typed > error.startPos && typed <= error.startPos + error.length) {
-            continue;
-        }
-        issues.push_back({error.startPos, error.length, HighlightKind::Spelling});
-    }
+    std::vector<TextHighlight> issues = spellingIssuesOf(*m_spellCheckService, m_bookDictionary,
+                                                         text);
+    std::erase_if(issues, [typed](const TextHighlight& issue) {
+        return typed > issue.start && typed <= issue.start + issue.length;
+    });
 
     ParagraphData* paragraphData = ParagraphData::of(block);
     ParagraphCheck& check = paragraphData->spelling;
@@ -786,7 +844,8 @@ bool BookEditor::checkSpelling(const QTextBlock& block)
 
     // The texts of its notes, a paragraph at a time, also in a paragraph not checked: they
     // are written in their frame, so no word of them is being typed
-    changed = checkNoteSpelling(*m_spellCheckService, block, paragraphData->noteSpelling, false) ||
+    changed = checkNoteSpelling(*m_spellCheckService, m_bookDictionary, block,
+                                paragraphData->noteSpelling, false) ||
               changed;
     noteIssuesChanged();  // one more paragraph checked, at least
     return changed;
@@ -828,8 +887,8 @@ void BookEditor::adjustSpellingToEdit(int from, int charsRemoved, int charsAdded
             // the list of the issues goes on from them (a fix chosen)
             if (!notesChecked(paragraphData->noteSpelling, noteLinesOf(block))) {
                 if (m_spellCheckService->isActive()) {
-                    checkNoteSpelling(*m_spellCheckService, block, paragraphData->noteSpelling,
-                                      true);
+                    checkNoteSpelling(*m_spellCheckService, m_bookDictionary, block,
+                                      paragraphData->noteSpelling, true);
                 } else {
                     check.current = false;
                 }
@@ -903,25 +962,27 @@ void BookEditor::showEvent(QShowEvent* event)
     }
 }
 
-std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int offset) const
+std::tuple<QString, int, int> BookEditor::getMisspelledWordAt(int paraIndex, int offset,
+                                                              HighlightKind* kind) const
 {
     const QTextBlock block = m_textBuffer ? m_textBuffer->findBlockByNumber(paraIndex)
                                           : QTextBlock();
-    if (const ParagraphData* paragraphData = ParagraphData::find(block)) {
-        const QString text = block.text();
-        if (const auto* issues = paragraphData->spelling.issuesFor(text)) {
-            for (const TextHighlight& issue : *issues) {
-                if (offset >= issue.start && offset <= issue.start + issue.length) {
-                    return {text.mid(issue.start, issue.length), issue.start,
-                            issue.start + issue.length};
-                }
-            }
-        }
+    const ParagraphData* paragraphData = ParagraphData::find(block);
+    const QString text = block.text();
+    const auto* issues = paragraphData != nullptr ? paragraphData->spelling.issuesFor(text)
+                                                  : nullptr;
+    const TextHighlight* issue = issues != nullptr ? issueAt(*issues, offset) : nullptr;
+    if (issue == nullptr) {
+        return {QString(), 0, 0};
     }
-    return {QString(), 0, 0};
+    if (kind != nullptr) {
+        *kind = issue->kind;
+    }
+    return {text.mid(issue->start, issue->length), issue->start, issue->start + issue->length};
 }
 
-std::tuple<QString, int, int> BookEditor::getMisspelledNoteWordAt(const NoteRange& place) const
+std::tuple<QString, int, int> BookEditor::getMisspelledNoteWordAt(const NoteRange& place,
+                                                                  HighlightKind* kind) const
 {
     const std::optional<NotePlace> note = noteOf(place.id);
     if (!note) {
@@ -942,24 +1003,35 @@ std::tuple<QString, int, int> BookEditor::getMisspelledNoteWordAt(const NoteRang
     if (check == nullptr) {
         return {QString(), 0, 0};
     }
-    const int offset = place.start - line->start;
-    for (const TextHighlight& issue : check->issues) {
-        if (offset >= issue.start && offset <= issue.start + issue.length) {
-            const int start = line->start + issue.start;
-            return {line->text.mid(issue.start, issue.length), start, start + issue.length};
-        }
+    const TextHighlight* issue = issueAt(check->issues, place.start - line->start);
+    if (issue == nullptr) {
+        return {QString(), 0, 0};
     }
-    return {QString(), 0, 0};
+    if (kind != nullptr) {
+        *kind = issue->kind;
+    }
+    const int start = line->start + issue->start;
+    return {line->text.mid(issue->start, issue->length), start, start + issue->length};
 }
 
 void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
                                     const std::function<void(const QString&)>& replace)
 {
     // The words to put in its place, in bold as in other word processors. They get free
-    // access keys as the menu shows (gui::giveFreeAccessKeys()); the other items have their own
-    const QStringList suggestions = m_spellCheckService != nullptr
-                                        ? m_spellCheckService->suggestions(word, MAX_SUGGESTIONS)
-                                        : QStringList();
+    // access keys as the menu shows (gui::giveFreeAccessKeys()); the other items have their own.
+    // A name of the book written small: the name first
+    QStringList suggestions = m_spellCheckService != nullptr
+                                  ? m_spellCheckService->suggestions(word, MAX_SUGGESTIONS)
+                                  : QStringList();
+    if (m_bookDictionary != nullptr) {
+        if (const QString name = m_bookDictionary->nameSpelling(word); !name.isEmpty()) {
+            suggestions.removeAll(name);
+            suggestions.prepend(name);
+            while (suggestions.size() > MAX_SUGGESTIONS) {
+                suggestions.removeLast();
+            }
+        }
+    }
     if (suggestions.isEmpty()) {
         menu.addAction(tr("(No suggestions)"))->setEnabled(false);
     }
@@ -975,7 +1047,8 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
     menu.addSeparator();
 
     // The word is right from now on: in every document (Ignore All until the application
-    // closes, Add to Dictionary for good). Greyed out in a read-only text as well
+    // closes, Add to Your Words for good), or in the book (Add to Book Dictionary, in its
+    // chapters). Greyed out in a read-only text as well
     QAction* ignore = menu.addAction(tr("&Ignore All"));
     disableWhileReadOnly(ignore);
     connect(ignore, &QAction::triggered, this, [this, word]() {
@@ -983,13 +1056,84 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
             m_spellCheckService->ignoreWord(word);
         }
     });
-    QAction* add = menu.addAction(tr("Add t&o Dictionary"));
+    if (m_bookDictionary != nullptr && m_bookDictionaryEditable) {
+        //: In Polish: Dodaj do &słownika książki
+        QAction* book = menu.addAction(tr("Add to &Book Dictionary"));
+        book->setToolTip(tr("The word is right in this book only"));
+        disableWhileReadOnly(book);
+        connect(book, &QAction::triggered, this,
+                [this, word]() { emit addToBookDictionaryAsked(word); });
+    }
+    //: The user's own dictionary, which every book has. In Polish: &Dodaj do Twoich słów
+    //: (wszystkie książki)
+    QAction* add = menu.addAction(tr("Add to Your &Words (All Books)"));
     disableWhileReadOnly(add);
     connect(add, &QAction::triggered, this, [this, word]() {
         if (m_spellCheckService != nullptr) {
             m_spellCheckService->addToUserDictionary(word);
         }
     });
+    menu.addSeparator();
+}
+
+std::optional<core::RuleDeviation> BookEditor::bookRuleDeviation(const QString& text) const
+{
+    if (m_bookDictionary == nullptr) {
+        return std::nullopt;
+    }
+    for (const core::RuleDeviation& deviation : m_bookDictionary->deviations(text)) {
+        if (deviation.start == 0 && deviation.length == text.size()) {
+            return deviation;
+        }
+    }
+    return std::nullopt;
+}
+
+void BookEditor::addBookRuleActions(QMenu& menu, const core::RuleDeviation& deviation,
+                                    const std::function<void(const QString&)>& replace)
+{
+    // The rule's form, in bold as the words for a misspelled one; then the rule and the
+    // author's note on it, lines that only tell
+    QAction* fix = menu.addAction(menuText(deviation.right));
+    QFont bold = fix->font();
+    bold.setBold(true);
+    fix->setFont(bold);
+    disableWhileReadOnly(fix);
+    connect(fix, &QAction::triggered, this,
+            [replace, right = deviation.right]() { replace(right); });
+    const core::SpellingRule* rule = m_bookDictionary != nullptr
+                                         ? m_bookDictionary->findRule(deviation.ruleId)
+                                         : nullptr;
+    if (rule != nullptr) {
+        //: %1 is the right spelling in quotes, as the rule has it: Book rule: write "Smok"
+        menu.addAction(menuText(tr("Book rule: write %1").arg(QLocale().quoteString(rule->right))))
+            ->setEnabled(false);
+        if (!rule->note.trimmed().isEmpty()) {
+            const QFontMetrics metrics(menu.font());
+            for (const QString& line :
+                 textLines(rule->note.simplified(), menu.font(),
+                           metrics.averageCharWidth() * GRAMMAR_MESSAGE_CHARS)) {
+                menu.addAction(menuText(line))->setEnabled(false);
+            }
+        }
+    }
+    menu.addSeparator();
+
+    // Not marked until the application closes, or the rule is gone
+    QAction* ignore = menu.addAction(tr("&Ignore All"));
+    disableWhileReadOnly(ignore);
+    connect(ignore, &QAction::triggered, this, [this, text = deviation.text]() {
+        if (m_spellCheckService != nullptr) {
+            m_spellCheckService->ignoreWord(text);
+        }
+    });
+    if (m_bookDictionaryEditable && rule != nullptr) {
+        QAction* remove = menu.addAction(tr("&Remove Rule"));
+        remove->setToolTip(tr("The book's dictionary no longer has this rule"));
+        disableWhileReadOnly(remove);
+        connect(remove, &QAction::triggered, this,
+                [this, ruleId = rule->id]() { emit removeBookRuleAsked(ruleId); });
+    }
     menu.addSeparator();
 }
 
@@ -1564,6 +1708,27 @@ void BookEditor::addGrammarActions(QMenu& menu, const GrammarError& error,
 // Issues
 // =============================================================================
 
+void BookEditor::describeSpellingIssue(TextIssue& issue) const
+{
+    if (issue.kind != TextIssueKind::BookRule) {
+        return;
+    }
+    const std::optional<core::RuleDeviation> deviation = bookRuleDeviation(issue.text);
+    if (!deviation) {
+        return;
+    }
+    const core::SpellingRule* rule = m_bookDictionary->findRule(deviation->ruleId);
+    if (rule == nullptr) {
+        return;
+    }
+    //: %1 is the right spelling in quotes, as the rule has it: Write "Smok"
+    issue.message = tr("Write %1").arg(QLocale().quoteString(rule->right));
+    issue.shortMessage = tr("Book rule");
+    issue.ruleId = rule->id;
+    issue.ruleDescription = rule->note.simplified();
+    issue.suggestions = {deviation->right};
+}
+
 std::vector<TextIssue> BookEditor::textIssues() const
 {
     std::vector<TextIssue> issues;
@@ -1594,7 +1759,7 @@ std::vector<TextIssue> BookEditor::textIssues() const
         };
         if (const auto* words = paragraphData->spelling.issuesFor(text)) {
             for (const TextHighlight& word : *words) {
-                add(TextIssueKind::Spelling, word);
+                describeSpellingIssue(add(spellingKindOf(word), word));
             }
         }
         if (const auto* grammar = paragraphData->grammar.issuesFor(text)) {
@@ -1628,7 +1793,7 @@ std::vector<TextIssue> BookEditor::textIssues() const
                 if (const NoteCheck* words = NoteCheck::find(paragraphData->noteSpelling,
                                                              line.id, line.line, line.text)) {
                     for (const TextHighlight& word : words->issues) {
-                        addInNote(TextIssueKind::Spelling, word);
+                        describeSpellingIssue(addInNote(spellingKindOf(word), word));
                     }
                 }
                 if (const NoteCheck* grammar = NoteCheck::find(paragraphData->noteGrammar,

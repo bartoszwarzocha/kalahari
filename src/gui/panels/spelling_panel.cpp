@@ -30,6 +30,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <iterator>
 #include <cstddef>
 #include <utility>
 
@@ -37,12 +38,18 @@ namespace kalahari::gui {
 
 namespace {
 
-/// @brief The kinds in the order of their buttons
-constexpr std::array<editor::TextIssueKind, 2> KINDS = {editor::TextIssueKind::Spelling,
+/// @brief The kinds in the order of their buttons: the rules of the book after the spelling,
+///        as they are checked with it
+constexpr std::array<editor::TextIssueKind, 3> KINDS = {editor::TextIssueKind::Spelling,
+                                                         editor::TextIssueKind::BookRule,
                                                          editor::TextIssueKind::Grammar};
 
 /// @brief The kinds' buttons' names in the style sheet
-constexpr std::array<const char*, 2> KIND_STYLE_NAMES = {"spelling", "grammar"};
+constexpr std::array<const char*, 3> KIND_STYLE_NAMES = {"spelling", "bookRule", "grammar"};
+
+/// @brief The buttons of the spelling and of the grammar (KINDS)
+constexpr std::size_t SPELLING_BUTTON = 0;
+constexpr std::size_t GRAMMAR_BUTTON = 2;
 
 /// @brief The suggestions the keys 1 to 5 choose
 constexpr int MAX_SUGGESTION_KEYS = 5;
@@ -55,7 +62,8 @@ constexpr double BORDER_SHARE = 0.55;
 
 /// @brief The index of a kind among the buttons of the kinds
 std::size_t kindIndex(editor::TextIssueKind kind) {
-    return kind == editor::TextIssueKind::Spelling ? 0 : 1;
+    return static_cast<std::size_t>(
+        std::ranges::distance(KINDS.cbegin(), std::ranges::find(KINDS, kind)));
 }
 
 /// @brief The panel's look: the buttons of the kinds as rounded chips, as in the Annotations
@@ -139,8 +147,11 @@ SpellingPanel::SpellingPanel(QWidget* parent)
         });
         kinds->addWidget(button);
     }
-    m_kindButtons[0]->setToolTip(tr("Show or hide the misspelled words"));
-    m_kindButtons[1]->setToolTip(tr("Show or hide the grammar issues"));
+    m_kindButtons[SPELLING_BUTTON]->setToolTip(tr("Show or hide the misspelled words"));
+    kindButton(editor::TextIssueKind::BookRule)
+        ->setToolTip(tr("Show or hide the places written otherwise than the spelling rules of "
+                        "the book want"));
+    m_kindButtons[GRAMMAR_BUTTON]->setToolTip(tr("Show or hide the grammar issues"));
     layout->addWidget(m_kindRow);
 
     // How far the text is checked, or why it is not
@@ -176,12 +187,18 @@ SpellingPanel::SpellingPanel(QWidget* parent)
             emit ignoreWordRequested(copy);
         }
     });
-    connect(m_list, &SpellingIssueList::addToDictionaryClicked, this, [this](const QString& key) {
-        if (const SpellingPanelIssue* issue = shownIssue(key); issue != nullptr && !m_readOnly) {
-            const SpellingPanelIssue copy = *issue;
-            emit addToDictionaryRequested(copy);
-        }
-    });
+    connect(m_list, &SpellingIssueList::addToDictionaryClicked, this,
+            [this](const QString& key, bool toBook) {
+                if (const SpellingPanelIssue* issue = shownIssue(key);
+                    issue != nullptr && !m_readOnly) {
+                    const SpellingPanelIssue copy = *issue;
+                    if (toBook) {
+                        emit addToBookDictionaryRequested(copy);
+                    } else {
+                        emit addToDictionaryRequested(copy);
+                    }
+                }
+            });
     connect(m_list, &SpellingIssueList::ignoreRuleClicked, this, [this](const QString& key) {
         if (const SpellingPanelIssue* issue = shownIssue(key); issue != nullptr && !m_readOnly) {
             const SpellingPanelIssue copy = *issue;
@@ -301,6 +318,10 @@ bool SpellingPanel::isKindShown(editor::TextIssueKind kind) const {
     return m_kindShown.at(kindIndex(kind));
 }
 
+void SpellingPanel::setAddPlaces(const AddPlaces& places) {
+    m_list->setAddPlaces(places);
+}
+
 void SpellingPanel::setStatus(const QString& text, bool problem) {
     m_statusLabel->setText(text);
     m_statusIcon->setVisible(problem);
@@ -406,13 +427,14 @@ void SpellingPanel::applyTheme(const core::Theme& theme) {
 
     // The cards' frames in the colors of the waves, as "Optimize colors in themes" shows them
     // on the panel
-    std::array<IssueCardColors, 2> colors;
+    std::array<IssueCardColors, KINDS.size()> colors;
     for (std::size_t i = 0; i < KINDS.size(); ++i) {
         const QColor kind = issueColorOn(KINDS.at(i), base);
         colors.at(i) = issueCardColors(kind, base, text);
         m_kindButtons.at(i)->setIcon(kindDot(kind, devicePixelRatioF()));
     }
-    m_list->setColors(colors[0], colors[1], highlight);
+    m_list->setColors(colors.at(SPELLING_BUTTON), colors.at(GRAMMAR_BUTTON),
+                      colors.at(kindIndex(editor::TextIssueKind::BookRule)), highlight);
 
     // The controls lie on the window
     const QColor windowText = themeColor(theme.palette.windowText, current, QPalette::WindowText);
@@ -553,15 +575,18 @@ void SpellingPanel::rebuild() {
 }
 
 void SpellingPanel::updateKindButtons() {
-    std::array<int, 2> counts{};
+    std::array<int, KINDS.size()> counts{};
     for (const SpellingPanelIssue& issue : m_issues) {
         ++counts.at(kindIndex(issue.issue.kind));
     }
     //: %1 is the number of the misspelled words, or – when the spelling is not checked
     const QString spelling = tr("Spelling %1");
+    //: %1 is the number of the places written otherwise than the spelling rules of the book
+    //: want. In Polish: Zasady %1
+    const QString rules = tr("Rules %1");
     //: %1 is the number of the grammar issues, or – when the grammar is not checked
     const QString grammar = tr("Grammar %1");
-    const std::array<QString, 2> names = {spelling, grammar};
+    const std::array<QString, KINDS.size()> names = {spelling, rules, grammar};
 
     const QScopedValueRollback<bool> updating(m_updatingButtons, true);
     for (std::size_t i = 0; i < m_kindButtons.size(); ++i) {
@@ -572,6 +597,9 @@ void SpellingPanel::updateKindButtons() {
         button->setText(names.at(i).arg(checked ? QString::number(counts.at(i))
                                                 : QStringLiteral("–")));
     }
+    // The rules only for a text checked with the book's dictionary (a chapter of the book)
+    kindButton(editor::TextIssueKind::BookRule)
+        ->setVisible(m_kindChecked.at(kindIndex(editor::TextIssueKind::BookRule)));
 }
 
 void SpellingPanel::updateParts() {
@@ -615,8 +643,8 @@ QString SpellingPanel::emptyText() const {
         break;
     }
 
-    const bool spelling = m_kindChecked[0];
-    const bool grammar = m_kindChecked[1];
+    const bool spelling = m_kindChecked[SPELLING_BUTTON];
+    const bool grammar = m_kindChecked[GRAMMAR_BUTTON];
     const bool anyChecked = std::any_of(m_issues.cbegin(), m_issues.cend(),
                                         [this](const SpellingPanelIssue& issue) {
                                             return m_kindChecked.at(kindIndex(issue.issue.kind));

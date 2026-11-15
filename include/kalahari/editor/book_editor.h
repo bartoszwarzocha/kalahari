@@ -80,6 +80,11 @@ class QTimer;
 class QMenu;
 class QMimeData;
 
+namespace kalahari::core {
+class BookDictionary;
+struct RuleDeviation;
+}  // namespace kalahari::core
+
 namespace kalahari::editor {
 
 // Forward declarations
@@ -1850,6 +1855,28 @@ public:
     /// @brief The dictionary the spelling is checked with, or nullptr
     SpellCheckService* spellCheckService() const;
 
+    /// @brief Check the text with the dictionary of its book too, while the spelling is checked
+    ///
+    /// The names of the book with their forms and the words of the book are right. A place
+    /// written otherwise than a spelling rule of the book wants gets a wave of its own
+    /// (HighlightKind::BookRule) in place of a misspelling's, unless the writer chose to
+    /// ignore it (Ignore All: SpellCheckService::ignoreWord()); its context menu offers the
+    /// rule's form. A name written small gets its own spelling as the first suggestion. The
+    /// chapters of the book get it (SpellingCoordinator), not the documents outside it. The
+    /// editor checks its text again when it gets another dictionary; after the dictionary
+    /// changes, requestSpellCheck() checks it again.
+    /// @param dictionary The book's dictionary (not owned); nullptr: none
+    /// @param editable Whether the context menu offers to change it: to add a word
+    ///        (addToBookDictionaryAsked()) and to remove a rule (removeBookRuleAsked())
+    void setBookDictionary(const core::BookDictionary* dictionary, bool editable);
+
+    /// @brief The dictionary of the book the text is checked with too, or nullptr
+    const core::BookDictionary* bookDictionary() const { return m_bookDictionary; }
+
+    /// @brief Whether the context menu offers to change the book's dictionary
+    ///        (setBookDictionary())
+    bool isBookDictionaryEditable() const { return m_bookDictionaryEditable; }
+
     /// @brief Check the spelling of every paragraph again
     ///
     /// The waves stay until their paragraphs are checked.
@@ -2197,6 +2224,14 @@ signals:
     /// @brief The misspelled words or grammar issues changed (textIssues()), or more of the
     ///        text was checked (checkProgress()); once for the changes made together
     void issuesChanged();
+
+    /// @brief The writer chose Add to Book Dictionary on the context menu of a misspelled word
+    ///        (setBookDictionary())
+    void addToBookDictionaryAsked(const QString& word);
+
+    /// @brief The writer chose Remove Rule on the context menu of a place breaking a spelling
+    ///        rule of the book (setBookDictionary())
+    void removeBookRuleAsked(const QString& ruleId);
 
     /// @brief Emitted when view mode changes
     /// @param mode The new view mode
@@ -3374,6 +3409,8 @@ private:
 
     // Spelling
     SpellCheckService* m_spellCheckService{nullptr};  ///< The dictionary (not owned)
+    const core::BookDictionary* m_bookDictionary{nullptr};  ///< Of the book (not owned)
+    bool m_bookDictionaryEditable{false};  ///< Its menu items change it (setBookDictionary())
     QTimer* m_spellTimer{nullptr};                    ///< Runs the next turn of the check
     int m_spellNext{0};             ///< The paragraph the next turn goes on from (not in view)
     int m_spellTyping{-1};          ///< Where the cursor stands after typing (-1: not typing)
@@ -3445,8 +3482,11 @@ private:
                          const std::optional<NoteRange>& inNote = std::nullopt);
 
     /// @brief The misspelled word at a place of a note's text (also right after it)
+    /// @param kind Gets what the wave marks: a misspelling or a rule of the book broken; may
+    ///        be nullptr
     /// @return The word and its range in the note's text, or an empty word
-    std::tuple<QString, int, int> getMisspelledNoteWordAt(const NoteRange& place) const;
+    std::tuple<QString, int, int> getMisspelledNoteWordAt(const NoteRange& place,
+                                                          HighlightKind* kind = nullptr) const;
 
     /// @brief The grammar issue at a place of a note's text (also right after it), its start
     ///        in the note's text (std::nullopt: none)
@@ -3455,14 +3495,34 @@ private:
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
     /// @param offset Character offset within paragraph (also right after the word)
+    /// @param kind Gets what the wave marks: a misspelling or a rule of the book broken; may
+    ///        be nullptr
     /// @return The misspelled word and its range, or empty if no error at position
-    std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset) const;
+    std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset,
+                                                      HighlightKind* kind = nullptr) const;
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
-    ///        put in its place, Ignore All, Add to Dictionary
+    ///        put in its place, Ignore All, Add to Book Dictionary (with the book's dictionary),
+    ///        Add to Your Words (All Books)
     /// @param replace Puts a word chosen in its place
     void addSpellingActions(QMenu& menu, const QString& word,
                             const std::function<void(const QString&)>& replace);
+
+    /// @brief Put on the context menu what is offered for a place breaking a spelling rule of
+    ///        the book: the rule's form, the rule and its note, Ignore All, Remove Rule
+    /// @param deviation The place, as the rule finds it
+    /// @param replace Puts a text chosen in its place
+    void addBookRuleActions(QMenu& menu, const core::RuleDeviation& deviation,
+                            const std::function<void(const QString&)>& replace);
+
+    /// @brief The place of @p text breaking a spelling rule of the book, as its wave marks it
+    ///        (the whole text); std::nullopt: none, or no book's dictionary
+    std::optional<core::RuleDeviation> bookRuleDeviation(const QString& text) const;
+
+    /// @brief Give a place breaking a spelling rule of the book (TextIssueKind::BookRule) what
+    ///        the panel shows: "Write ..." as its message, the rule's id and note, and the
+    ///        rule's form as its suggestion; a misspelled word stays as it is
+    void describeSpellingIssue(TextIssue& issue) const;
 
     /// @brief Replace word in document
     /// @param paraIndex Paragraph index

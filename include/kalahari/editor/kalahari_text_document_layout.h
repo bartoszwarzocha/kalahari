@@ -281,6 +281,7 @@ public:
         QColor selection;     ///< Under the text selected
         QColor spelling;      ///< Of the wave under a misspelled word
         QColor grammar;       ///< Of the wave under a grammar issue
+        QColor bookRule;      ///< Of the wave under a place breaking a rule of the book
         const NoteMarks* marks = nullptr;  ///< Of this text's notes; nullptr: none
         /// The text of a note shown selected (its number is selected in the text)
         std::optional<NoteRange> selected;

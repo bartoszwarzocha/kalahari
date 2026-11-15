@@ -3621,10 +3621,6 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <translation>(Brak podpowiedzi)</translation>
     </message>
     <message>
-        <source>Add t&amp;o Dictionary</source>
-        <translation>Dodaj do &amp;słownika</translation>
-    </message>
-    <message>
         <source>&amp;Ignore This Rule</source>
         <translation>&amp;Pomijaj tę regułę</translation>
     </message>
@@ -3882,6 +3878,42 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Delete F&amp;ootnote</source>
         <extracomment>In Polish: &amp;Usuń przypis</extracomment>
         <translation>&amp;Usuń przypis</translation>
+    </message>
+    <message>
+        <source>Add to &amp;Book Dictionary</source>
+        <extracomment>In Polish: Dodaj do &amp;słownika książki</extracomment>
+        <translation>Dodaj do &amp;słownika książki</translation>
+    </message>
+    <message>
+        <source>The word is right in this book only</source>
+        <translation>Słowo jest poprawne tylko w tej książce</translation>
+    </message>
+    <message>
+        <source>Add to Your &amp;Words (All Books)</source>
+        <extracomment>The user&apos;s own dictionary, which every book has. In Polish: &amp;Dodaj do Twoich słów (wszystkie książki)</extracomment>
+        <translation>&amp;Dodaj do Twoich słów (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>Book rule: write %1</source>
+        <extracomment>%1 is the right spelling in quotes, as the rule has it: Book rule: write &quot;Smok&quot;</extracomment>
+        <translation>Zasada książki: pisz %1</translation>
+    </message>
+    <message>
+        <source>&amp;Remove Rule</source>
+        <translation>&amp;Usuń zasadę</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary no longer has this rule</source>
+        <translation>Usuwa tę zasadę ze słownika książki</translation>
+    </message>
+    <message>
+        <source>Write %1</source>
+        <extracomment>%1 is the right spelling in quotes, as the rule has it: Write &quot;Smok&quot;</extracomment>
+        <translation>Pisz %1</translation>
+    </message>
+    <message>
+        <source>Book rule</source>
+        <translation>Zasada książki</translation>
     </message>
 </context>
 <context>
@@ -8113,8 +8145,8 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Przy ustawieniu „Sprawdzana w całym tekście” cały tekst jest sprawdzany w tle, gdy panel jest widoczny, więc liczniki i lista obejmą go w całości, gdy tylko sprawdzanie się skończy. Bezpłatny serwer api.languagetool.org ogranicza liczbę zapytań na minutę, więc tam długi tekst sprawdza się dłużej. Na tym komputerze takiego ograniczenia nie ma.</translation>
     </message>
     <message>
-        <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel. Each theme has its own colors: these are the colors of the current theme.</source>
-        <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+        <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel; below it, the same for a word written otherwise than a spelling rule of the book&apos;s dictionary wants. Each theme has its own colors: these are the colors of the current theme.</source>
+        <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”; poniżej to samo dla słowa zapisanego inaczej, niż chce zasada pisowni ze słownika książki. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
     </message>
 </context>
 <context>
@@ -11234,6 +11266,10 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>On: a color too light for a light background is shown darker, and one too dark for a dark background lighter (on the paper and in the panels). Off: the colors exactly as set. One setting for the spelling, the grammar, the annotations and the comparison of the versions.</source>
         <translation>Włączone: kolor zbyt jasny na jasnym tle jest pokazywany ciemniej, a zbyt ciemny na ciemnym tle – jaśniej (na papierze i w panelach). Wyłączone: kolory dokładnie takie, jak ustawione. Jedno ustawienie dla pisowni, gramatyki, uwag i porównania wersji.</translation>
     </message>
+    <message>
+        <source>Departure from a book rule</source>
+        <translation>Odstępstwo od zasady książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::ShortcutRules</name>
@@ -13470,6 +13506,14 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Checking the grammar further on...</source>
         <translation>Sprawdzanie gramatyki w dalszych akapitach...</translation>
     </message>
+    <message>
+        <source>The book is open read-only: its dictionary cannot be changed</source>
+        <translation>Książka jest otwarta tylko do odczytu – nie można zmienić jej słownika</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary cannot be saved</source>
+        <translation>Nie można zapisać słownika książki</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::SpellingIssueCard</name>
@@ -13508,8 +13552,24 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <translation>Pomijaj tę regułę</translation>
     </message>
     <message>
-        <source>Add to Dictionary</source>
-        <translation>Dodaj do słownika</translation>
+        <source>Other places to add the word</source>
+        <translation>Inne miejsca, do których można dodać słowo</translation>
+    </message>
+    <message>
+        <source>Add to Book Dictionary</source>
+        <translation>Dodaj do słownika książki</translation>
+    </message>
+    <message>
+        <source>Add to Your Words (All Books)</source>
+        <translation>Dodaj do Twoich słów (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>Book rule</source>
+        <translation>Zasada książki</translation>
+    </message>
+    <message>
+        <source>Add to Your Words</source>
+        <translation>Dodaj do Twoich słów</translation>
     </message>
 </context>
 <context>
@@ -13613,6 +13673,15 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>%1 – next issue, with its menu at the word</source>
         <translation>%1 – następny błąd z menu przy słowie</translation>
+    </message>
+    <message>
+        <source>Show or hide the places written otherwise than the spelling rules of the book want</source>
+        <translation>Pokaż lub ukryj odstępstwa od zasad pisowni książki</translation>
+    </message>
+    <message>
+        <source>Rules %1</source>
+        <extracomment>%1 is the number of the places written otherwise than the spelling rules of the book want. In Polish: Zasady %1</extracomment>
+        <translation>Zasady %1</translation>
     </message>
 </context>
 <context>

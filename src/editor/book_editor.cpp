@@ -86,6 +86,9 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     if (issues.grammar.isValid()) {
         colors.grammarWarning = issues.grammar;
     }
+    if (issues.bookRule.isValid()) {
+        colors.bookRule = issues.bookRule;
+    }
     if (issues.repetition.isValid()) {
         colors.repetition = issues.repetition;
     }

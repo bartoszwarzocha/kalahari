@@ -34,7 +34,9 @@ namespace kalahari::gui {
 ///
 /// Lists the issues it is given as cards (SpellingIssueList): the selected card shows the
 /// whole sentence, the suggestions and the actions. The buttons of the kinds count the issues
-/// of each kind and are its filters: off, the cards of the kind are hidden. A row under them
+/// of each kind and are its filters: off, the cards of the kind are hidden. The button of the
+/// rules of the book (Spelling, Rules, Grammar) shows only while they are checked: in a
+/// chapter of the book, with its dictionary (BookEditor::setBookDictionary()). A row under them
 /// says how far the text is checked, or why it is not. The panel changes no text itself: it
 /// reports what the writer chooses, and shows the issues it is given next.
 ///
@@ -119,6 +121,9 @@ public:
     /// @brief The text is only read: the suggestions are greyed out (SpellingIssueCard)
     void setReadOnly(bool readOnly);
 
+    /// @brief Where a misspelled word of the text in front can be added (the cards' buttons)
+    void setAddPlaces(const AddPlaces& places);
+
     /// @brief The fix buttons on every card, or only on the selected one
     void setButtonsOnEveryCard(bool every);
 
@@ -175,8 +180,11 @@ signals:
     /// @brief "Ignore Word" of a misspelled word
     void ignoreWordRequested(const kalahari::gui::SpellingPanelIssue& issue);
 
-    /// @brief "Add to Dictionary" of a misspelled word
+    /// @brief "Add to Your Words" of a misspelled word
     void addToDictionaryRequested(const kalahari::gui::SpellingPanelIssue& issue);
+
+    /// @brief "Add to Book Dictionary" of a misspelled word (AddPlaces)
+    void addToBookDictionaryRequested(const kalahari::gui::SpellingPanelIssue& issue);
 
     /// @brief "Ignore Rule" of a grammar issue
     void ignoreRuleRequested(const kalahari::gui::SpellingPanelIssue& issue);
@@ -248,8 +256,8 @@ private:
 
     std::vector<SpellingPanelIssue> m_issues;
     Content m_content = Content::NoText;
-    std::array<bool, 2> m_kindChecked{true, true};  ///< Spelling, grammar
-    std::array<bool, 2> m_kindShown{true, true};
+    std::array<bool, 3> m_kindChecked{true, false, true};  ///< Spelling, rules, grammar
+    std::array<bool, 3> m_kindShown{true, true, true};
     bool m_complete = false;
     bool m_readOnly = false;
     bool m_keysInside = false;
@@ -260,7 +268,7 @@ private:
     bool m_bookOpen = false;
     bool m_updatingButtons = false;  ///< The kind buttons set by the panel, not by the writer
 
-    std::array<QToolButton*, 2> m_kindButtons{};
+    std::array<QToolButton*, 3> m_kindButtons{};
     QWidget* m_kindRow{nullptr};
     QWidget* m_statusRow{nullptr};
     QLabel* m_statusIcon{nullptr};

@@ -11,6 +11,7 @@
 #include <QString>
 #include <QStringList>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -130,10 +131,15 @@ public:
     /// @brief Whether words are checked: the checking is on and a dictionary is loaded
     bool isActive() const;
 
+    /// @brief Words right in one text besides those of the dictionary and the writer's own
+    ///        (the words of the book's dictionary in its chapters, BookEditor::setBookDictionary())
+    using WordFilter = std::function<bool(const QString& word)>;
+
     /// @brief Whether a word is right
     ///
     /// Without a dictionary, every word is.
-    bool isCorrect(const QString& word) const;
+    /// @param alsoRight Words right besides those of the dictionary (none: no others)
+    [[nodiscard]] bool isCorrect(const QString& word, const WordFilter& alsoRight = {}) const;
 
     /// @brief Words to put in place of a misspelled one, the likeliest first
     ///
@@ -150,7 +156,10 @@ public:
     QStringList stems(const QString& word) const;
 
     /// @brief The misspelled words of a text (one paragraph), in their order
-    QList<SpellErrorInfo> checkParagraph(const QString& text) const;
+    /// @param alsoRight Words right besides those of the dictionary (none: no others); a
+    ///        hyphenated word it takes as a whole is right with its parts
+    [[nodiscard]] QList<SpellErrorInfo> checkParagraph(const QString& text,
+                                                       const WordFilter& alsoRight = {}) const;
 
     // =========================================================================
     // The writer's own words

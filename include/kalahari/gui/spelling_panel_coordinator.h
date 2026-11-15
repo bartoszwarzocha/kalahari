@@ -46,8 +46,8 @@ class SpellingPanel;
 /// GrammarCoordinator::problem()). The issue selected in the panel is selected in the text, and
 /// a click on an issue in the text selects its card. What the writer chooses in the panel goes
 /// to the text and to the checking: a suggestion takes the issue's place (a step of the undo
-/// history), and Ignore Word, Add to Dictionary and Ignore Rule do what they do in the menu of
-/// the wave; then the issue after it is selected. While the panel shows, the grammar of the
+/// history), and Ignore Word, Add to Book Dictionary, Add to Your Words and Ignore Rule do what
+/// they do in the menu of the wave; then the issue after it is selected. While the panel shows, the grammar of the
 /// whole text is checked (the setting spellingPanel.grammarScope "whole").
 ///
 /// Next Spelling or Grammar Issue (F7) shows the issue it finds in the panel (the setting
@@ -88,6 +88,11 @@ public:
     /// @brief List the issues of the text in front again now
     void refresh();
 
+    /// @brief The setting of where the button of a misspelled word's card adds it in a
+    ///        chapter of the book: "book" (the book's dictionary; the writer's words on the
+    ///        menu of the arrow beside it) or "user" (the other way)
+    static constexpr const char* ADD_TO_KEY = "bookDictionary.panelAddsTo";
+
 private slots:
     /// @brief The settings of the panel or of the checking changed (called by name, queued)
     void onSettingsChanged();
@@ -121,6 +126,7 @@ private:
     void selectFrom(int position, int noteStart = -1);  // SpellingPanel::issueFrom()
     void onSuggestionChosen(const SpellingPanelIssue& issue, const QString& suggestion);
     void onIgnoreWord(const SpellingPanelIssue& issue, bool addToDictionary);
+    void onAddToBookDictionary(const SpellingPanelIssue& issue);
     void onIgnoreRule(const SpellingPanelIssue& issue);
     void onMenuRequested(const SpellingPanelIssue& issue, const QPoint& globalPos);
     void onEditorFocusRequested();
