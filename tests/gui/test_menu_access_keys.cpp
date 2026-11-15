@@ -779,8 +779,9 @@ void checkTextMenus(bool shown, QStringList& problems) {
         items = contextMenu(&booked, &booked, placeOf(booked, 6));
         collectProblems(items, QStringLiteral("Misspelled word, with the book's dictionary"),
                         shown ? QStringList() : wordTexts, problems);
-        // and Ignore All, Add to Book Dictionary, Add to Your Words, then the usual menu
-        CHECK(itemCount(items) == words.size() + 3 + 6);
+        // and Ignore All, Add to Book Dictionary, Add to Your Words, Add Name..., then the
+        // usual menu
+        CHECK(itemCount(items) == words.size() + 4 + 6);
 
         QStringList told = {QCoreApplication::translate(BOOK_EDITOR, "Book rule: write %1")
                                 .arg(QLocale().quoteString(rule.right)),
@@ -792,8 +793,9 @@ void checkTextMenus(bool shown, QStringList& problems) {
         collectProblems(items, QStringLiteral("Departure from a rule of the book"), told,
                         problems);
         CHECK(labelsOf(items).contains(told.first()));
-        // the rule's form and its two lines, Ignore All, Remove Rule, then the usual menu
-        CHECK(itemCount(items) == 3 + 2 + 6);
+        // the rule's form and its two lines, Ignore All, Edit Rule..., Remove Rule, then the
+        // usual menu
+        CHECK(itemCount(items) == 3 + 3 + 6);
     }
 
     // A misspelled word of a note's text: its words and the note's items on top of the usual

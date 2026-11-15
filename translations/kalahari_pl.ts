@@ -1334,6 +1334,10 @@
         <source>Chapter Brea&amp;k</source>
         <translation>Pod&amp;ział rozdziału</translation>
     </message>
+    <message>
+        <source>Book &amp;Dictionary...</source>
+        <translation>Słownik &amp;książki...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -3915,6 +3919,20 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Book rule</source>
         <translation>Zasada książki</translation>
     </message>
+    <message>
+        <source>Add Nam&amp;e...</source>
+        <extracomment>Opens the window of a new name of the book&apos;s dictionary, with the word in it. In Polish: Dodaj &amp;imię lub nazwę…</extracomment>
+        <translation>Dodaj &amp;imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>The word is a name of the book: right in all its forms</source>
+        <translation>Słowo jest imieniem lub nazwą z książki: poprawne we wszystkich formach</translation>
+    </message>
+    <message>
+        <source>&amp;Edit Rule...</source>
+        <extracomment>Opens the window of the spelling rule of the book. In Polish: Zmień z&amp;asadę…</extracomment>
+        <translation>Zmień z&amp;asadę...</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -4799,6 +4817,216 @@ Przyciski na pasku panelu dziennika pozwalają:
     <message>
         <source>The replacements are chosen in Edit &gt; Settings..., group Editor &gt; Auto-correct.</source>
         <translation>Wybór zamian: Edycja &gt; Ustawienia..., grupa Edytor &gt; Autokorekta.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BookDictionaryCoordinator</name>
+    <message>
+        <source>Remove Name</source>
+        <extracomment>In Polish: Usuń imię lub nazwę</extracomment>
+        <translation>Usuń imię lub nazwę</translation>
+    </message>
+    <message>
+        <source>Remove %1 from the book&apos;s dictionary? Its forms will no longer be right in the book.</source>
+        <extracomment>%1: the name in quotes. In Polish: Usunąć %1 ze słownika książki? Jego formy nie będą już poprawne w książce.</extracomment>
+        <translation>Usunąć %1 ze słownika książki? Jego formy nie będą już poprawne w książce.</translation>
+    </message>
+    <message>
+        <source>Remove Spelling Rule</source>
+        <extracomment>In Polish: Usuń zasadę pisowni</extracomment>
+        <translation>Usuń zasadę pisowni</translation>
+    </message>
+    <message>
+        <source>Remove the rule %1 from the book&apos;s dictionary? The spellings it marks will no longer be marked.</source>
+        <extracomment>%1: the right spelling of the rule in quotes. In Polish: Usunąć zasadę %1 ze słownika książki? Zapisy, które zaznacza, nie będą już zaznaczane.</extracomment>
+        <translation>Usunąć zasadę %1 ze słownika książki? Zapisy, które zaznacza, nie będą już zaznaczane.</translation>
+    </message>
+    <message>
+        <source>Remove Words</source>
+        <extracomment>In Polish: Usuń słowa</extracomment>
+        <translation>Usuń słowa</translation>
+    </message>
+    <message>
+        <source>Remove the word %1 from the book&apos;s dictionary?</source>
+        <extracomment>%1: the word in quotes. In Polish: Usunąć słowo %1 ze słownika książki?</extracomment>
+        <translation>Usunąć słowo %1 ze słownika książki?</translation>
+    </message>
+    <message>
+        <source>Remove the chosen words from the book&apos;s dictionary (%1)?</source>
+        <extracomment>%1: how many. In Polish: Usunąć wybrane słowa ze słownika książki (%1)?</extracomment>
+        <translation>Usunąć wybrane słowa ze słownika książki (%1)?</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <extracomment>The tab of the book&apos;s dictionary. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>&amp;Remove</source>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>Your words cannot be changed now</source>
+        <extracomment>In Polish: Twoich słów nie można teraz zmienić</extracomment>
+        <translation>Twoich słów nie można teraz zmienić</translation>
+    </message>
+    <message>
+        <source>The book is open read-only: its dictionary cannot be changed</source>
+        <translation>Książka jest otwarta tylko do odczytu: jej słownika nie można zmienić</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary cannot be saved</source>
+        <translation>Nie można zapisać słownika książki</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::BookDictionaryPanel</name>
+    <message>
+        <source>does not change</source>
+        <extracomment>The forms of a name that has the same form in every case. In Polish: nie odmienia się
+----------
+The word of the rule has no other forms. In Polish: nie odmienia się</extracomment>
+        <translation>nie odmienia się</translation>
+    </message>
+    <message>
+        <source>no</source>
+        <extracomment>The rule covers its spellings alone, not their forms. In Polish: nie</extracomment>
+        <translation>nie</translation>
+    </message>
+    <message>
+        <source>yes (like %1)</source>
+        <extracomment>The rule has the forms of another word; %1: the word in quotes. In Polish: tak (jak %1)</extracomment>
+        <translation>tak (jak %1)</translation>
+    </message>
+    <message>
+        <source>yes</source>
+        <extracomment>In Polish: tak</extracomment>
+        <translation>tak</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <extracomment>The title of the page of the book&apos;s dictionary. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Spelling Settings: Book Dictionary</source>
+        <extracomment>The gear of the book&apos;s dictionary. In Polish: Ustawienia pisowni: Słownik książki</extracomment>
+        <translation>Ustawienia pisowni: Słownik książki</translation>
+    </message>
+    <message>
+        <source>Search in the dictionary, also in the forms (%1)</source>
+        <extracomment>%1: the keys of Find. In Polish: Szukaj w słowniku, także w formach (%1)</extracomment>
+        <translation>Szukaj w słowniku, także w formach (%1)</translation>
+    </message>
+    <message>
+        <source>Search in the dictionary</source>
+        <extracomment>In Polish: Szukaj w słowniku</extracomment>
+        <translation>Szukaj w słowniku</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the names. In Polish: Imię lub nazwa, Rodzaj, Formy, Inne nazwy</extracomment>
+        <translation>Imię lub nazwa</translation>
+    </message>
+    <message>
+        <source>Kind</source>
+        <translation>Rodzaj</translation>
+    </message>
+    <message>
+        <source>Forms</source>
+        <translation>Formy</translation>
+    </message>
+    <message>
+        <source>Other Names</source>
+        <translation>Inne nazwy</translation>
+    </message>
+    <message>
+        <source>Write</source>
+        <extracomment>The columns of the spelling rules. In Polish: Pisz, Zamiast, W odmianach, Uwaga</extracomment>
+        <translation>Pisz</translation>
+    </message>
+    <message>
+        <source>Instead of</source>
+        <translation>Zamiast</translation>
+    </message>
+    <message>
+        <source>In Forms</source>
+        <translation>W odmianach</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <translation>Uwaga</translation>
+    </message>
+    <message>
+        <source>Word</source>
+        <extracomment>In Polish: Słowo</extracomment>
+        <translation>Słowo</translation>
+    </message>
+    <message>
+        <source>A word to add</source>
+        <extracomment>In Polish: Słowo do dodania</extracomment>
+        <translation>Słowo do dodania</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Edit...</source>
+        <extracomment>In Polish: Zmień…</extracomment>
+        <translation>Zmień...</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>Move to Your Words</source>
+        <extracomment>Moves the chosen words of the book to the writer&apos;s own words. In Polish: Przenieś do Twoich słów</extracomment>
+        <translation>Przenieś do Twoich słów</translation>
+    </message>
+    <message>
+        <source>%1 · forms: %2 (the language of the book)</source>
+        <extracomment>%1: the title of the book, %2: the language of the forms of the names. In Polish: %1 · formy: %2 (język książki)</extracomment>
+        <translation>%1 · formy: %2 (język książki)</translation>
+    </message>
+    <message>
+        <source>Names (%1)</source>
+        <extracomment>The tabs of the book&apos;s dictionary with their counts. In Polish: Imiona i nazwy (%1)</extracomment>
+        <translation>Imiona i nazwy (%1)</translation>
+    </message>
+    <message>
+        <source>Spelling Rules (%1)</source>
+        <extracomment>In Polish: Zasady pisowni (%1)</extracomment>
+        <translation>Zasady pisowni (%1)</translation>
+    </message>
+    <message>
+        <source>Book Words (%1)</source>
+        <extracomment>In Polish: Słowa książki (%1)</extracomment>
+        <translation>Słowa książki (%1)</translation>
+    </message>
+    <message>
+        <source>Add Name...</source>
+        <extracomment>In Polish: Dodaj imię lub nazwę… / Dodaj zasadę…</extracomment>
+        <translation>Dodaj imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>Add Rule...</source>
+        <translation>Dodaj zasadę...</translation>
+    </message>
+    <message>
+        <source>Names written in the dictionary: they are right in all their forms, Quick Insert offers them and Find in Book finds them. Once there are cards of characters, locations and items, their names join them here.</source>
+        <translation>Imiona i nazwy zapisane w słowniku: są poprawne we wszystkich formach, szybkie wstawianie je podpowiada, a Znajdź w książce je znajduje. Gdy będą karty postaci, miejsc i przedmiotów, ich nazwy też tu trafią.</translation>
+    </message>
+    <message>
+        <source>The spelling check marks a departure from a rule with a wavy line of its own color, and offers the rule&apos;s spelling.</source>
+        <translation>Sprawdzanie pisowni zaznacza odstępstwo od zasady falistą linią w osobnym kolorze i podpowiada pisownię z zasady.</translation>
+    </message>
+    <message>
+        <source>Words right in this book only. The words of every book are in Settings &gt; Editor &gt; Spelling &gt; Your Words; &quot;Move to Your Words&quot; moves the chosen words there.</source>
+        <translation>Słowa poprawne tylko w tej książce. Słowa wszystkich książek są w Ustawieniach &gt; Edytor &gt; Pisownia &gt; Twoje słowa; „Przenieś do Twoich słów” przenosi tam wybrane słowa.</translation>
     </message>
 </context>
 <context>
@@ -8113,10 +8341,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Usuń</translation>
     </message>
     <message>
-        <source>Words that are right whatever the dictionary says; &quot;Add to Dictionary&quot; in the context menu of a misspelled word puts it here. A word in lower case is right also with capital letters.</source>
-        <translation>Słowa poprawne bez względu na słownik; trafia tu każde słowo dodane poleceniem „Dodaj do słownika” z menu podręcznego. Słowo dodane małymi literami jest poprawne także pisane wielkimi literami.</translation>
-    </message>
-    <message>
         <source>Colors</source>
         <translation>Kolory</translation>
     </message>
@@ -8167,6 +8391,44 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
     <message>
         <source>The color of the wavy line under a misspelled word and of the frames of its cards in the Spelling and Grammar panel; below it, the same for a word written otherwise than a spelling rule of the book&apos;s dictionary wants. Each theme has its own colors: these are the colors of the current theme.</source>
         <translation>Kolor falistej linii pod błędem pisowni i ramek jego kart w panelu „Pisownia i gramatyka”; poniżej to samo dla słowa zapisanego inaczej, niż chce zasada pisowni ze słownika książki. Każdy motyw ma własne kolory – tu ustawiasz kolory bieżącego motywu.</translation>
+    </message>
+    <message>
+        <source>Words that are right whatever the dictionary says, in every book; &quot;Add to Your Words&quot; in the context menu of a misspelled word puts it here. The words right in one book only belong to its dictionary. A word in lower case is right also with capital letters.</source>
+        <translation>Słowa poprawne bez względu na słownik, we wszystkich książkach; trafiają tu przez „Dodaj do Twoich słów” w menu podręcznym błędnego słowa. Słowa poprawne tylko w jednej książce należą do jej słownika. Słowo zapisane małymi literami jest poprawne także wielkimi.</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Mark departures from the book&apos;s spelling rules</source>
+        <translation>Zaznaczaj odstępstwa od zasad pisowni książki</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary</source>
+        <translation>Słownik książki</translation>
+    </message>
+    <message>
+        <source>Your words (all books)</source>
+        <translation>Twoje słowa (wszystkie książki)</translation>
+    </message>
+    <message>
+        <source>The panel adds a word to:</source>
+        <extracomment>Where Add of a misspelled word&apos;s card in the Spelling and Grammar panel puts the word. In Polish: Panel dodaje słowo do:</extracomment>
+        <translation>Panel dodaje słowo do:</translation>
+    </message>
+    <message>
+        <source>Open Book Dictionary</source>
+        <translation>Otwórz słownik książki</translation>
+    </message>
+    <message>
+        <source>Open a book first: each book has its own dictionary</source>
+        <extracomment>Why Open Book Dictionary in the settings is grey. In Polish: Najpierw otwórz książkę: każda ma własny słownik</extracomment>
+        <translation>Najpierw otwórz książkę: każda ma własny słownik</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary is kept in the folder of the book and has three parts: the names with their forms, the spelling rules and the words of this book. The context menu of a misspelled word always has both places: the book&apos;s dictionary and your words.</source>
+        <translation>Słownik książki jest zapisany w folderze książki i ma trzy części: imiona i nazwy z formami, zasady pisowni i słowa tej książki. Menu podręczne błędnego słowa zawsze ma oba miejsca: słownik książki i Twoje słowa.</translation>
     </message>
 </context>
 <context>
@@ -10139,6 +10401,11 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Kind &amp;Settings...</source>
         <extracomment>Opens Settings &gt; Navigator at the kinds of materials. In Polish: Ustawienia &amp;typów...</extracomment>
         <translation>Ustawienia &amp;typów...</translation>
+    </message>
+    <message>
+        <source>Book Dictionary</source>
+        <extracomment>The node at the top of the Workshop in the Navigator that shows the book&apos;s dictionary (its names, spelling rules and words) on a tab. In Polish: Słownik książki</extracomment>
+        <translation>Słownik książki</translation>
     </message>
 </context>
 <context>
@@ -13599,6 +13866,16 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     <message>
         <source>Add to Your Words</source>
         <translation>Dodaj do Twoich słów</translation>
+    </message>
+    <message>
+        <source>Add Name...</source>
+        <extracomment>Opens the window of a new name of the book&apos;s dictionary, with the word in it. In Polish: Dodaj imię lub nazwę…</extracomment>
+        <translation>Dodaj imię lub nazwę...</translation>
+    </message>
+    <message>
+        <source>Edit Rule...</source>
+        <extracomment>Opens the window of the spelling rule of the book. In Polish: Zmień zasadę…</extracomment>
+        <translation>Zmień zasadę...</translation>
     </message>
 </context>
 <context>
@@ -17115,6 +17392,132 @@ The button that moves the element. In Polish: Przenieś</extracomment>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::dialogs::NameDialog</name>
+    <message>
+        <source>Name</source>
+        <extracomment>The window of a name of the book&apos;s dictionary. In Polish: Imię lub nazwa</extracomment>
+        <translation>Imię lub nazwa</translation>
+    </message>
+    <message>
+        <source>A name of the book in all its forms: the spelling check takes them for right, Quick Insert offers them and Find in Book finds them.</source>
+        <translation>Imię lub nazwa z książki we wszystkich formach: sprawdzanie pisowni uznaje je za poprawne, szybkie wstawianie je podpowiada, a Znajdź w książce je znajduje.</translation>
+    </message>
+    <message>
+        <source>Names of this entry</source>
+        <extracomment>The list of the name itself and its other names. In Polish: Nazwy tej pozycji</extracomment>
+        <translation>Nazwy tej pozycji</translation>
+    </message>
+    <message>
+        <source>Add Other Name</source>
+        <extracomment>Adds a diminutive or a nickname of the name. In Polish: Dodaj inną nazwę</extracomment>
+        <translation>Dodaj inną nazwę</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>&amp;Name:</source>
+        <extracomment>In Polish: Imię lub nazwa:</extracomment>
+        <translation>&amp;Imię lub nazwa:</translation>
+    </message>
+    <message>
+        <source>&amp;Kind:</source>
+        <extracomment>What the name names: a character, a place... In Polish: Rodzaj:</extracomment>
+        <translation>&amp;Rodzaj:</translation>
+    </message>
+    <message>
+        <source>Declension</source>
+        <extracomment>How the words of the name decline. In Polish: Odmiana</extracomment>
+        <translation>Odmiana</translation>
+    </message>
+    <message>
+        <source>Does not change</source>
+        <extracomment>Every word of the name has the same form in every case. In Polish: Nie odmienia się</extracomment>
+        <translation>Nie odmienia się</translation>
+    </message>
+    <message>
+        <source>Suggest the Forms Again</source>
+        <extracomment>Gives every cell of the table the forms of the models again. In Polish: Podpowiedz formy od nowa</extracomment>
+        <translation>Podpowiedz formy od nowa</translation>
+    </message>
+    <message>
+        <source>The plural too (e.g. &quot;at the Wolskis&apos;&quot;)</source>
+        <extracomment>In Polish: Także liczba mnoga (np. „u Wolskich”)</extracomment>
+        <translation>Także liczba mnoga (np. „u Wolskich”)</translation>
+    </message>
+    <message>
+        <source>Show in Quick Insert (@)</source>
+        <extracomment>In Polish: Pokazuj w szybkim wstawianiu (@)</extracomment>
+        <translation>Pokazuj w szybkim wstawianiu (@)</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj / Zapisz</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>(new name)</source>
+        <extracomment>An other name not written yet, in the list of the names. In Polish: (nowa nazwa)</extracomment>
+        <translation>(nowa nazwa)</translation>
+    </message>
+    <message>
+        <source>%1 declines like:</source>
+        <extracomment>The model of declension of a word of the name; %1 is the word in quotes. In Polish: %1 odmienia się jak:</extracomment>
+        <translation>%1 odmienia się jak:</translation>
+    </message>
+    <message>
+        <source>The program has no models of declension for the language of the book: write the forms yourself.</source>
+        <translation>Program nie ma wzorów odmiany dla języka książki: wpisz formy samodzielnie.</translation>
+    </message>
+    <message>
+        <source>The forms are the singular and the plural; the spelling check takes the forms with &apos;s (Anna&apos;s) for right by itself.</source>
+        <translation>Formy to liczba pojedyncza i mnoga; formy z 's (Anna's) sprawdzanie pisowni samo uznaje za poprawne.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary knows the words of the name and confirms the forms of the models with them. Check the forms: the program only suggests them.</source>
+        <translation>Słownik pisowni zna słowa tej nazwy i potwierdza nimi formy ze wzorów. Sprawdź formy: program tylko je podpowiada.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary does not know the words of the name, so the forms come from the models of the same endings alone. Check them and correct them if needed.</source>
+        <translation>Słownik pisowni nie zna słów tej nazwy, więc formy pochodzą tylko ze wzorów o tych samych końcówkach. Sprawdź je i w razie potrzeby popraw.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary does not know %1, so its forms come from the model alone. Check them and correct them if needed.</source>
+        <extracomment>%1: the words in quotes the spelling dictionary does not know</extracomment>
+        <translation>Słownik pisowni nie zna %1, więc formy pochodzą tylko ze wzoru. Sprawdź je i w razie potrzeby popraw.</translation>
+    </message>
+    <message>
+        <source>A cell can have several forms, apart by commas.</source>
+        <translation>Komórka może mieć kilka form, oddzielonych przecinkami.</translation>
+    </message>
+    <message>
+        <source>main</source>
+        <extracomment>The name itself, in the list of the names of an entry. In Polish: główna</extracomment>
+        <translation>główna</translation>
+    </message>
+    <message>
+        <source>other name</source>
+        <extracomment>A diminutive or a nickname. In Polish: inna nazwa</extracomment>
+        <translation>inna nazwa</translation>
+    </message>
+    <message>
+        <source>first name alone</source>
+        <extracomment>In Polish: samo imię</extracomment>
+        <translation>samo imię</translation>
+    </message>
+    <message>
+        <source>surname alone</source>
+        <extracomment>In Polish: samo nazwisko</extracomment>
+        <translation>samo nazwisko</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::NewFileDialog</name>
     <message>
         <source>in {group:plural}</source>
@@ -18013,6 +18416,94 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>The replacements of the table are turned off now (Settings &gt; Editor &gt; Auto-correct).</source>
         <translation>Zamiany z tabeli są teraz wyłączone (Ustawienia &gt; Edytor &gt; Autokorekta).</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::RuleDialog</name>
+    <message>
+        <source>Spelling Rule</source>
+        <extracomment>The window of a spelling rule of the book&apos;s dictionary. In Polish: Zasada pisowni</extracomment>
+        <translation>Zasada pisowni</translation>
+    </message>
+    <message>
+        <source>How you want a word written in this book: the spelling check marks the other spellings and offers this one.</source>
+        <translation>Jak chcesz zapisywać słowo w tej książce: sprawdzanie pisowni zaznacza inne zapisy i podpowiada ten.</translation>
+    </message>
+    <message>
+        <source>&amp;Write:</source>
+        <extracomment>The right spelling of the rule. In Polish: Pisz:</extracomment>
+        <translation>&amp;Pisz:</translation>
+    </message>
+    <message>
+        <source>Wrong spellings</source>
+        <extracomment>In Polish: Błędne zapisy</extracomment>
+        <translation>Błędne zapisy</translation>
+    </message>
+    <message>
+        <source>Another wrong spelling</source>
+        <extracomment>In Polish: Inny błędny zapis</extracomment>
+        <translation>Inny błędny zapis</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <extracomment>In Polish: Dodaj
+----------
+In Polish: Dodaj / Zapisz</extracomment>
+        <translation>Dodaj</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+    <message>
+        <source>The program adds the spellings that suggest themselves: the other case of a capital letter, without the hyphen, with it or apart. The rule holds also where the spelling dictionary takes them for right.</source>
+        <translation>Program dodaje zapisy, które się nasuwają: z wielką lub małą literą, bez łącznika, z łącznikiem lub osobno. Zasada obowiązuje także tam, gdzie słownik pisowni uznaje je za poprawne.</translation>
+    </message>
+    <message>
+        <source>&amp;Instead of:</source>
+        <extracomment>The wrong spellings of the rule. In Polish: Zamiast:</extracomment>
+        <translation>&amp;Zamiast:</translation>
+    </message>
+    <message>
+        <source>&amp;Also in their forms</source>
+        <extracomment>The rule covers every form of the word. In Polish: Także w odmianach</extracomment>
+        <translation>&amp;Także w odmianach</translation>
+    </message>
+    <message>
+        <source>A short note, e.g. where the spelling comes from (optional)</source>
+        <extracomment>In Polish: Krótkie wyjaśnienie, np. skąd ta pisownia (nieobowiązkowe)</extracomment>
+        <translation>Krótkie wyjaśnienie, np. skąd ta pisownia (nieobowiązkowe)</translation>
+    </message>
+    <message>
+        <source>&amp;Note:</source>
+        <extracomment>The author&apos;s note on the rule. In Polish: Uwaga:</extracomment>
+        <translation>&amp;Uwaga:</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>suggested</source>
+        <extracomment>A wrong spelling the program added to the rule. In Polish: podpowiedź programu</extracomment>
+        <translation>podpowiedź programu</translation>
+    </message>
+    <message>
+        <source>Only the spellings listed, in no other forms.</source>
+        <translation>Tylko wymienione zapisy, bez innych form.</translation>
+    </message>
+    <message>
+        <source>The spelling dictionary knows no other forms of the word: the rule covers the spellings listed.</source>
+        <translation>Słownik pisowni nie zna innych form tego słowa: zasada obejmuje wymienione zapisy.</translation>
+    </message>
+    <message>
+        <source>Forms from the spelling dictionary: %1</source>
+        <translation>Formy ze słownika pisowni: %1</translation>
+    </message>
+    <message>
+        <source>Forms like those of %1, as the spelling dictionary does not know %2: %3</source>
+        <translation>Formy według wzoru %1 – słownik pisowni nie zna słowa %2: %3</translation>
     </message>
 </context>
 <context>
@@ -20160,6 +20651,34 @@ Notatka: %2</translation>
     </message>
 </context>
 <context>
+    <name>kalahari::gui::NameFormsTable</name>
+    <message>
+        <source>Forms</source>
+        <extracomment>The table of the forms of a name in its window. In Polish: Formy</extracomment>
+        <translation>Formy</translation>
+    </message>
+    <message>
+        <source>Case</source>
+        <extracomment>The column of the cases in the table of the forms of a name. In Polish: Przypadek</extracomment>
+        <translation>Przypadek</translation>
+    </message>
+    <message>
+        <source>Singular</source>
+        <extracomment>In Polish: Liczba pojedyncza</extracomment>
+        <translation>Liczba pojedyncza</translation>
+    </message>
+    <message>
+        <source>Plural</source>
+        <extracomment>In Polish: Liczba mnoga</extracomment>
+        <translation>Liczba mnoga</translation>
+    </message>
+    <message>
+        <source>Form</source>
+        <extracomment>The row of a language without cases: the form of the name. In Polish: Forma</extracomment>
+        <translation>Forma</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::MaterialList</name>
     <message>
         <source>%1 – %2</source>
@@ -20756,6 +21275,126 @@ Notatka: %2</translation>
         <source>Other Names</source>
         <extracomment>The heading of the other proper names of the book in a list</extracomment>
         <translation>Inne nazwy</translation>
+    </message>
+    <message>
+        <source>Character</source>
+        <extracomment>A kind of name of the book&apos;s dictionary in its window; in Polish: Postać</extracomment>
+        <translation>Postać</translation>
+    </message>
+    <message>
+        <source>Location</source>
+        <extracomment>In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Item</source>
+        <extracomment>In Polish: Przedmiot</extracomment>
+        <translation>Przedmiot</translation>
+    </message>
+    <message>
+        <source>Other name</source>
+        <extracomment>A people, an order, an event; in Polish: Inna nazwa</extracomment>
+        <translation>Inna nazwa</translation>
+    </message>
+    <message>
+        <source>who? what?</source>
+        <extracomment>The questions of the nominative; in Polish: kto? co?</extracomment>
+        <translation>kto? co?</translation>
+    </message>
+    <message>
+        <source>of whom? of what?</source>
+        <extracomment>Of the genitive; in Polish: kogo? czego?</extracomment>
+        <translation>kogo? czego?</translation>
+    </message>
+    <message>
+        <source>to whom? to what?</source>
+        <extracomment>Of the dative; in Polish: komu? czemu?</extracomment>
+        <translation>komu? czemu?</translation>
+    </message>
+    <message>
+        <source>whom? what?</source>
+        <extracomment>Of the accusative; in Polish: kogo? co?</extracomment>
+        <translation>kogo? co?</translation>
+    </message>
+    <message>
+        <source>with whom? with what?</source>
+        <extracomment>Of the instrumental; in Polish: z kim? z czym?</extracomment>
+        <translation>z kim? z czym?</translation>
+    </message>
+    <message>
+        <source>about whom? about what?</source>
+        <extracomment>Of the locative; in Polish: o kim? o czym?</extracomment>
+        <translation>o kim? o czym?</translation>
+    </message>
+    <message>
+        <source>O!</source>
+        <extracomment>Of the vocative; in Polish: o!</extracomment>
+        <translation>o!</translation>
+    </message>
+    <message>
+        <source>Jan – a man&apos;s name ending in a consonant</source>
+        <extracomment>A model of declension: its sample word, then the words that decline like it. In Polish: Jan – męskie na spółgłoskę</extracomment>
+        <translation>Jan – męskie na spółgłoskę</translation>
+    </message>
+    <message>
+        <source>Marek – a man&apos;s name whose e drops (Marka)</source>
+        <extracomment>In Polish: Marek – męskie z opadającym e (Marka)</extracomment>
+        <translation>Marek – męskie z opadającym e (Marka)</translation>
+    </message>
+    <message>
+        <source>Kuba – a man&apos;s name ending in -a or -o</source>
+        <extracomment>In Polish: Kuba – męskie na -a lub -o</extracomment>
+        <translation>Kuba – męskie na -a lub -o</translation>
+    </message>
+    <message>
+        <source>Kowalski – a masculine adjective (-ski, -cki, -y)</source>
+        <extracomment>In Polish: Kowalski – przymiotnikowe męskie (-ski, -cki, -y)</extracomment>
+        <translation>Kowalski – przymiotnikowe męskie (-ski, -cki, -y)</translation>
+    </message>
+    <message>
+        <source>Anna – a feminine noun ending in -a</source>
+        <extracomment>In Polish: Anna – żeńskie na -a</extracomment>
+        <translation>Anna – żeńskie na -a</translation>
+    </message>
+    <message>
+        <source>Kowalska – a feminine adjective (-ska, -cka, -owa)</source>
+        <extracomment>In Polish: Kowalska – przymiotnikowe żeńskie (-ska, -cka, -owa)</extracomment>
+        <translation>Kowalska – przymiotnikowe żeńskie (-ska, -cka, -owa)</translation>
+    </message>
+    <message>
+        <source>Gdańsk – a masculine thing, genitive -a</source>
+        <extracomment>In Polish: Gdańsk – męskie nieżywotne, dopełniacz na -a</extracomment>
+        <translation>Gdańsk – męskie nieżywotne, dopełniacz na -a</translation>
+    </message>
+    <message>
+        <source>Londyn – a masculine thing, genitive -u</source>
+        <extracomment>In Polish: Londyn – męskie nieżywotne, dopełniacz na -u</extracomment>
+        <translation>Londyn – męskie nieżywotne, dopełniacz na -u</translation>
+    </message>
+    <message>
+        <source>Gniezno – a neuter noun ending in -o</source>
+        <extracomment>In Polish: Gniezno – nijakie na -o</extracomment>
+        <translation>Gniezno – nijakie na -o</translation>
+    </message>
+    <message>
+        <source>Opole – a neuter noun ending in -e</source>
+        <extracomment>In Polish: Opole – nijakie na -e</extracomment>
+        <translation>Opole – nijakie na -e</translation>
+    </message>
+    <message>
+        <source>Zakopane – a neuter adjective</source>
+        <extracomment>In Polish: Zakopane – przymiotnikowe nijakie</extracomment>
+        <translation>Zakopane – przymiotnikowe nijakie</translation>
+    </message>
+    <message>
+        <source>Regular – the plural with -s</source>
+        <extracomment>An English name: its plural with -s. In Polish: Regularna – liczba mnoga z -s</extracomment>
+        <translation>Regularna – liczba mnoga z -s</translation>
+    </message>
+    <message>
+        <source>Does not change</source>
+        <extracomment>A word of a name that has the same form in every case. In Polish: Nie odmienia się</extracomment>
+        <translation>Nie odmienia się</translation>
     </message>
 </context>
 <context>

@@ -814,8 +814,19 @@ QStringList SpellCheckService::stems(const QString& word) const
 
 QStringList SpellCheckService::relatedForms(const QString& word) const
 {
-    if (!m_inUse || word.isEmpty()) {
+    const core::AffixExpander* expander = word.isEmpty() ? nullptr : affixExpander();
+    if (expander == nullptr) {
         return {};
+    }
+    QString asked = word;
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
+    return expander->relatedForms(asked);
+}
+
+const core::AffixExpander* SpellCheckService::affixExpander() const
+{
+    if (!m_inUse) {
+        return nullptr;
     }
     if (m_expander == nullptr || m_expanderDictionary != m_dictionary) {
         const QString files = folderOf(m_dictionary) + QLatin1Char('/') + m_dictionary;
@@ -823,9 +834,7 @@ QStringList SpellCheckService::relatedForms(const QString& word) const
         m_expander->load(files + QStringLiteral(".aff"), files + QStringLiteral(".dic"));
         m_expanderDictionary = m_dictionary;
     }
-    QString asked = word;
-    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
-    return m_expander->relatedForms(asked);
+    return m_expander.get();
 }
 
 bool SpellCheckService::isWordCorrect(const QString& word) const

@@ -12,6 +12,7 @@
 #include "kalahari/gui/settings/stats_pages.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
@@ -133,7 +134,15 @@ void SettingsDialog::createNavigationTree() {
         return imagesPage;
     });
     m_pageItems[SPELLING_PAGE] =
-        addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
+        addPage(editor, tr("Spelling"), [this]() {
+            auto* spellingPage = new EditorSpellingPage(m_spelling, m_book.isProjectOpen());
+            // Open Book Dictionary: OK, then the dictionary on its tab
+            connect(spellingPage, &EditorSpellingPage::bookDictionaryAsked, this, [this]() {
+                accept();
+                m_bookDictionaryAsked = result() == QDialog::Accepted;
+            });
+            return spellingPage;
+        });
     addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_book, m_grammar); });
     addPage(editor, tr("Auto-correct"), [this]() { return new EditorAutoCorrectPage(m_commands); });
     //: Settings > Editor > Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie

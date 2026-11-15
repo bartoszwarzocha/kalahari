@@ -177,6 +177,13 @@ signals:
     /// @brief "Ignore Rule" was clicked
     void ignoreRuleClicked();
 
+    /// @brief "Add Name..." was chosen on the menu of the arrow beside the button that adds
+    ///        the word to a dictionary
+    void addNameClicked();
+
+    /// @brief "Edit Rule..." of a place breaking a spelling rule of the book was clicked
+    void editRuleClicked();
+
 protected:
     void paintEvent(QPaintEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
@@ -192,6 +199,14 @@ private:
 
     /// @brief The buttons of the suggestions and the actions, for the issue and the state
     void updateButtons();
+
+    /// @brief The text of the second button of the actions: the dictionary it adds the word
+    ///        to, or Edit Rule... at a place breaking a spelling rule of the book
+    [[nodiscard]] QString addButtonText(bool bookRule) const;
+
+    /// @brief The menu of the arrow beside the second button: the other dictionary, Add
+    ///        Name...
+    void showMoreMenu(QAbstractButton* more);
 
     /// @brief The colors of the labels and the buttons
     void applyColors();
@@ -327,6 +342,12 @@ signals:
 
     /// @brief "Ignore Rule" of a card was clicked
     void ignoreRuleClicked(const QString& key);
+
+    /// @brief "Add Name..." of a card was chosen
+    void addNameClicked(const QString& key);
+
+    /// @brief "Edit Rule..." of a card was clicked
+    void editRuleClicked(const QString& key);
 
     /// @brief The card of the selected issue was made or changed (its buttons are others)
     void selectedCardChanged();

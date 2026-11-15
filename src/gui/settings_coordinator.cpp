@@ -129,6 +129,9 @@ void SettingsCoordinator::runSettingsDialog(const QString& page, QWidget* parent
     if (m_languageChanged) {
         offerRestartForLanguage();
     }
+    if (dialog.isBookDictionaryAsked()) {
+        emit bookDictionaryRequested();
+    }
 }
 
 void SettingsCoordinator::offerRestartForLanguage() {

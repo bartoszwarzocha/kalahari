@@ -227,20 +227,27 @@ void moveGrammarWaves(const QTextBlock& first, int offset, int charsRemoved,
     }
 }
 
+/// @brief How the book's dictionary checks a text
+struct BookChecking {
+    const core::BookDictionary* dictionary = nullptr;  ///< Its words are right; nullptr: none
+    bool rules = true;  ///< The places breaking its rules are marked
+};
+
 /// @brief The spelling issues of a text (one paragraph): its misspelled words, but those the
 ///        book's dictionary takes for right, and the places breaking a spelling rule of the
 ///        book, but those ignored (Ignore All); a place breaking a rule is marked in place of
 ///        the misspellings it covers. In the order of the text.
-/// @param dictionary The book's dictionary; nullptr: none
+/// @param book The book's dictionary, and whether the places breaking its rules are marked
 std::vector<TextHighlight> spellingIssuesOf(const SpellCheckService& service,
-                                            const core::BookDictionary* dictionary,
-                                            const QString& text) {
+                                            const BookChecking& book, const QString& text) {
     std::vector<TextHighlight> issues;
     QList<core::RuleDeviation> deviations;
     SpellCheckService::WordFilter alsoRight;
-    if (dictionary != nullptr) {
+    if (const core::BookDictionary* dictionary = book.dictionary; dictionary != nullptr) {
         alsoRight = [dictionary](const QString& word) { return dictionary->isRight(word); };
-        deviations = dictionary->deviations(text);
+        if (book.rules) {
+            deviations = dictionary->deviations(text);
+        }
         deviations.removeIf([&service](const core::RuleDeviation& deviation) {
             return service.isIgnored(deviation.text);
         });
@@ -331,11 +338,11 @@ bool noteWavesChanged(const std::vector<NoteCheck>& before, const std::vector<No
 }
 
 /// @brief Check the spelling of the paragraphs of the texts of a paragraph's notes
-/// @param dictionary The book's dictionary (spellingIssuesOf()); nullptr: none
+/// @param book The book's dictionary (spellingIssuesOf())
 /// @param checks The paragraph's results (ParagraphData::noteSpelling): replaced by these
 /// @param keep Results still for a paragraph's text are kept, not made again
 /// @return Whether their waves changed
-bool checkNoteSpelling(const SpellCheckService& service, const core::BookDictionary* dictionary,
+bool checkNoteSpelling(const SpellCheckService& service, const BookChecking& book,
                        const QTextBlock& block, std::vector<NoteCheck>& checks, bool keep) {
     std::vector<NoteCheck> notes;
     for (NoteLine& line : noteLinesOf(block)) {
@@ -345,7 +352,7 @@ bool checkNoteSpelling(const SpellCheckService& service, const core::BookDiction
             continue;
         }
         NoteCheck& note = notes.emplace_back();
-        note.issues = spellingIssuesOf(service, dictionary, line.text);
+        note.issues = spellingIssuesOf(service, book, line.text);
         note.id = std::move(line.id);
         note.line = line.line;
         note.text = std::move(line.text);
@@ -471,6 +478,15 @@ void BookEditor::setBookDictionary(const core::BookDictionary* dictionary, bool 
         return;
     }
     m_bookDictionary = dictionary;
+    requestSpellCheck();
+}
+
+void BookEditor::setBookRulesMarked(bool marked)
+{
+    if (m_bookRulesMarked == marked) {
+        return;
+    }
+    m_bookRulesMarked = marked;
     requestSpellCheck();
 }
 
@@ -836,8 +852,8 @@ bool BookEditor::checkSpelling(const QTextBlock& block)
     const int typed = m_spellTyping >= 0 && block.contains(m_spellTyping)
                           ? m_spellTyping - block.position()
                           : -1;
-    std::vector<TextHighlight> issues = spellingIssuesOf(*m_spellCheckService, m_bookDictionary,
-                                                         text);
+    const BookChecking book{.dictionary = m_bookDictionary, .rules = m_bookRulesMarked};
+    std::vector<TextHighlight> issues = spellingIssuesOf(*m_spellCheckService, book, text);
     std::erase_if(issues, [typed](const TextHighlight& issue) {
         return typed > issue.start && typed <= issue.start + issue.length;
     });
@@ -852,8 +868,8 @@ bool BookEditor::checkSpelling(const QTextBlock& block)
 
     // The texts of its notes, a paragraph at a time, also in a paragraph not checked: they
     // are written in their frame, so no word of them is being typed
-    changed = checkNoteSpelling(*m_spellCheckService, m_bookDictionary, block,
-                                paragraphData->noteSpelling, false) ||
+    changed = checkNoteSpelling(*m_spellCheckService, book, block, paragraphData->noteSpelling,
+                                false) ||
               changed;
     noteIssuesChanged();  // one more paragraph checked, at least
     return changed;
@@ -895,7 +911,9 @@ void BookEditor::adjustSpellingToEdit(int from, int charsRemoved, int charsAdded
             // the list of the issues goes on from them (a fix chosen)
             if (!notesChecked(paragraphData->noteSpelling, noteLinesOf(block))) {
                 if (m_spellCheckService->isActive()) {
-                    checkNoteSpelling(*m_spellCheckService, m_bookDictionary, block,
+                    const BookChecking book{.dictionary = m_bookDictionary,
+                                            .rules = m_bookRulesMarked};
+                    checkNoteSpelling(*m_spellCheckService, book, block,
                                       paragraphData->noteSpelling, true);
                 } else {
                     check.current = false;
@@ -1081,6 +1099,15 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
             m_spellCheckService->addToUserDictionary(word);
         }
     });
+    // The word as a name of the book, with its forms: the window of the name opens with it
+    if (m_bookDictionary != nullptr && m_bookDictionaryEditable) {
+        //: Opens the window of a new name of the book's dictionary, with the word in it. In
+        //: Polish: Dodaj &imię lub nazwę…
+        QAction* name = menu.addAction(tr("Add Nam&e..."));
+        name->setToolTip(tr("The word is a name of the book: right in all its forms"));
+        disableWhileReadOnly(name);
+        connect(name, &QAction::triggered, this, [this, word]() { emit addNameAsked(word); });
+    }
     menu.addSeparator();
 }
 
@@ -1136,6 +1163,11 @@ void BookEditor::addBookRuleActions(QMenu& menu, const core::RuleDeviation& devi
         }
     });
     if (m_bookDictionaryEditable && rule != nullptr) {
+        //: Opens the window of the spelling rule of the book. In Polish: Zmień z&asadę…
+        QAction* edit = menu.addAction(tr("&Edit Rule..."));
+        disableWhileReadOnly(edit);
+        connect(edit, &QAction::triggered, this,
+                [this, ruleId = rule->id]() { emit editBookRuleAsked(ruleId); });
         QAction* remove = menu.addAction(tr("&Remove Rule"));
         remove->setToolTip(tr("The book's dictionary no longer has this rule"));
         disableWhileReadOnly(remove);

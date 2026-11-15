@@ -7,6 +7,7 @@
 ///        the context menu offers the rule's form and the dictionary's items
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/affix_expander.h>
 #include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/name_declension.h>
 #include <kalahari/editor/book_editor.h>
@@ -133,6 +134,21 @@ TEST_CASE("Book dictionary: the spelling service takes the words of a filter for
     CHECK(misspelled(text, book) == QStringList{QStringLiteral("Zorblat")});
 }
 
+TEST_CASE("Book dictionary: the forms of the words of the spelling dictionary in use",
+          "[editor][spelling][dictionary]") {
+    const SpellCheckService none;
+    CHECK(none.affixExpander() == nullptr);
+    CHECK(none.relatedForms(QStringLiteral("dragon")).isEmpty());
+
+    const auto spelling = englishService();
+    const kalahari::core::AffixExpander* forms = spelling->affixExpander();
+    REQUIRE(forms != nullptr);
+    CHECK(spelling->affixExpander() == forms);  // read once
+    CHECK(forms->relatedForms(QStringLiteral("dragon")).contains(QStringLiteral("dragons")));
+    CHECK(spelling->relatedForms(QStringLiteral("dragon")).contains(QStringLiteral("dragons")));
+    CHECK(spelling->relatedForms(QString()).isEmpty());
+}
+
 TEST_CASE("Book dictionary: a chapter checked with it", "[editor][spelling][dictionary]") {
     auto spelling = englishService();
     const BookDictionary dictionary = sampleDictionary();
@@ -179,6 +195,17 @@ TEST_CASE("Book dictionary: a chapter checked with it", "[editor][spelling][dict
         CHECK(waves(*editor, 0, HighlightKind::Spelling).contains(QStringLiteral("zorblat")));
     }
 
+    SECTION("the places breaking its rules not marked: its words are still right") {
+        editor->setBookRulesMarked(false);
+        editor->setBookRulesMarked(false);  // no change: nothing checked again
+        REQUIRE(checked(*editor));
+        CHECK(waves(*editor, 0, HighlightKind::BookRule).isEmpty());
+        CHECK(waves(*editor, 0, HighlightKind::Spelling) == QStringList{QStringLiteral("qwertz")});
+        editor->setBookRulesMarked(true);
+        REQUIRE(checked(*editor));
+        CHECK(waves(*editor, 0, HighlightKind::BookRule) == QStringList{QStringLiteral("email")});
+    }
+
     SECTION("the menu at the place: the rule's form, the rule and its note, Ignore All, "
             "Remove Rule") {
         editor->setCursorPosition({.paragraph = 0, .offset = 16});  // in "email"
@@ -193,6 +220,14 @@ TEST_CASE("Book dictionary: a chapter checked with it", "[editor][spelling][dict
         CHECK(texts.contains(QStringLiteral("&Ignore All")));
         CHECK_FALSE(texts.contains(QStringLiteral("Add to &Book Dictionary")));
         CHECK(removed == QStringList{dictionary.rules().front().id});
+
+        // Edit Rule... opens the window of the rule
+        QStringList edited;
+        QObject::connect(editor.get(), &BookEditor::editBookRuleAsked,
+                         [&edited](const QString& ruleId) { edited.append(ruleId); });
+        editor->setCursorPosition({.paragraph = 0, .offset = 16});
+        texts = menuAtCursor(*editor, QStringLiteral("&Edit Rule..."));
+        CHECK(edited == QStringList{dictionary.rules().front().id});
 
         // The rule's form put in its place
         editor->setCursorPosition({.paragraph = 0, .offset = 16});
@@ -209,6 +244,7 @@ TEST_CASE("Book dictionary: a chapter checked with it", "[editor][spelling][dict
         texts = menuAtCursor(*editor);
         CHECK(texts.value(0) == QStringLiteral("e-mail"));
         CHECK_FALSE(texts.contains(QStringLiteral("&Remove Rule")));
+        CHECK_FALSE(texts.contains(QStringLiteral("&Edit Rule...")));
     }
 
     SECTION("the menu at a misspelled word: Add to Book Dictionary, Add to Your Words") {
@@ -225,11 +261,21 @@ TEST_CASE("Book dictionary: a chapter checked with it", "[editor][spelling][dict
         CHECK(added == QStringList{QStringLiteral("qwertz")});
         CHECK_FALSE(spelling->isInUserDictionary(QStringLiteral("qwertz")));
 
+        // Add Name... opens the window of a new name with the word
+        QStringList names;
+        QObject::connect(editor.get(), &BookEditor::addNameAsked,
+                         [&names](const QString& word) { names.append(word); });
+        editor->setCursorPosition({.paragraph = 0, .offset = 57});
+        texts = menuAtCursor(*editor, QStringLiteral("Add Nam&e..."));
+        CHECK(texts.indexOf(QStringLiteral("Add Nam&e...")) > book);
+        CHECK(names == QStringList{QStringLiteral("qwertz")});
+
         // Not to be changed: the writer's words only
         editor->setBookDictionary(&dictionary, false);
         editor->setCursorPosition({.paragraph = 0, .offset = 57});
         texts = menuAtCursor(*editor);
         CHECK_FALSE(texts.contains(QStringLiteral("Add to &Book Dictionary")));
+        CHECK_FALSE(texts.contains(QStringLiteral("Add Nam&e...")));
         CHECK(texts.contains(QStringLiteral("Add to Your &Words (All Books)")));
     }
 }

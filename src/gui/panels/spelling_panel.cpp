@@ -208,6 +208,8 @@ SpellingPanel::SpellingPanel(QWidget* parent)
             emit ignoreRuleRequested(copy);
         }
     });
+    forwardRequest(&SpellingIssueList::addNameClicked, &SpellingPanel::addNameRequested);
+    forwardRequest(&SpellingIssueList::editRuleClicked, &SpellingPanel::editRuleRequested);
 
     // What the panel says without cards, and the button that turns the checking on
     m_emptyWidget = new QWidget(this);
@@ -546,6 +548,17 @@ void SpellingPanel::contextMenuEvent(QContextMenuEvent* event) {
     }
     const SpellingPanelIssue issue = m_list->issues().at(static_cast<std::size_t>(index));
     emit menuRequested(issue, event->globalPos());
+}
+
+void SpellingPanel::forwardRequest(
+    void (SpellingIssueList::*clicked)(const QString&),
+    void (SpellingPanel::*request)(const kalahari::gui::SpellingPanelIssue&)) {
+    connect(m_list, clicked, this, [this, request](const QString& key) {
+        if (const SpellingPanelIssue* issue = shownIssue(key); issue != nullptr && !m_readOnly) {
+            const SpellingPanelIssue copy = *issue;
+            (this->*request)(copy);
+        }
+    });
 }
 
 void SpellingPanel::rebuild() {

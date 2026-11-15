@@ -354,6 +354,20 @@ TEST_CASE("NameDeclension: models given by hand", "[core][dictionary][declension
                   false) == "Fredro, Fredry, Fredrze, Fredrę, Fredrą, Fredrze, Fredro");
     }
 
+    SECTION("the models a word can be given: the endings they take off are there") {
+        CHECK(polish.fits(QStringLiteral("Wolska"), QStringLiteral("kowalska")));
+        CHECK(polish.fits(QStringLiteral("Wolska"), QStringLiteral("anna")));
+        CHECK_FALSE(polish.fits(QStringLiteral("Jan"), QStringLiteral("kowalska")));
+        CHECK(polish.fits(QStringLiteral("Jan"), QStringLiteral("jan")));
+        CHECK(polish.fits(QStringLiteral("Jan"), NameDeclension::unchanged()));
+        CHECK_FALSE(polish.fits(QStringLiteral("Jan"), QStringLiteral("regular")));
+        const NameDeclension english(QStringLiteral("en"));
+        CHECK(english.fits(QStringLiteral("Smith"), QStringLiteral("regular")));
+        CHECK_FALSE(english.fits(QStringLiteral("Smith"), QStringLiteral("anna")));
+        CHECK(NameDeclension(QStringLiteral("de")).fits(QStringLiteral("Anna"),
+                                                        NameDeclension::unchanged()));
+    }
+
     SECTION("models as many as the words, or picked anew") {
         CHECK(row(polish.nameForms(QStringLiteral("Anna Nowak"),
                                    {QStringLiteral("anna"), QStringLiteral("jan")},

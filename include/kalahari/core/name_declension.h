@@ -116,6 +116,11 @@ public:
     /// @brief The id of the model of a word that does not change ("none")
     [[nodiscard]] static QString unchanged();
 
+    /// @brief Whether @p model can be given to @p word: the endings it takes off are there
+    ///        ("Kowalska" for "Wolska", not for "Jan"); unchanged() can be given to any word,
+    ///        and a model the language does not have to none
+    [[nodiscard]] bool fits(const QString& word, const QString& model) const;
+
     /// @brief The words of a name, as the models are given for them (split at spaces)
     [[nodiscard]] static QStringList wordsOf(const QString& name);
 

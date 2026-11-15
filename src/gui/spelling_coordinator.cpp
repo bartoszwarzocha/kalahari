@@ -146,6 +146,9 @@ SpellingCoordinator::SpellingCoordinator(core::ProjectManager& book, CommandRegi
         [this](const std::string& key) {
             if (key.rfind("editor.spellCheck.", 0) == 0 || key == "ui.language") {
                 QMetaObject::invokeMethod(this, "updateDictionary", Qt::QueuedConnection);
+            } else if (key == MARK_RULES_KEY) {
+                QMetaObject::invokeMethod(
+                    this, [this]() { updateEditors(); }, Qt::QueuedConnection);
             }
         });
 
@@ -338,6 +341,8 @@ void SpellingCoordinator::updateDictionary() {
 void SpellingCoordinator::updateEditors() {
     m_editorsTimer->stop();
     bool otherDocuments = false;
+    const bool rulesMarked =
+        core::SettingsManager::getInstance().get<bool>(MARK_RULES_KEY, true);
     if (m_centralTabs != nullptr) {
         for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
             auto* panel = qobject_cast<EditorPanel*>(page);
@@ -354,10 +359,8 @@ void SpellingCoordinator::updateEditors() {
             const bool withBook = chapter && m_book.isProjectOpen();
             bookEditor->setBookDictionary(withBook ? &m_book.bookDictionary() : nullptr,
                                           withBook && !m_book.isReadOnly());
-            connect(bookEditor, &editor::BookEditor::addToBookDictionaryAsked, this,
-                    &SpellingCoordinator::addToBookDictionary, Qt::UniqueConnection);
-            connect(bookEditor, &editor::BookEditor::removeBookRuleAsked, this,
-                    &SpellingCoordinator::removeBookRule, Qt::UniqueConnection);
+            bookEditor->setBookRulesMarked(rulesMarked);
+            connectEditor(bookEditor);
         }
     }
 
@@ -371,6 +374,17 @@ void SpellingCoordinator::updateEditors() {
                       m_otherMissingLanguage);
     }
     emit problemChanged();  // the documents may have other dictionaries now
+}
+
+void SpellingCoordinator::connectEditor(editor::BookEditor* bookEditor) const {
+    connect(bookEditor, &editor::BookEditor::addToBookDictionaryAsked, this,
+            &SpellingCoordinator::addToBookDictionary, Qt::UniqueConnection);
+    connect(bookEditor, &editor::BookEditor::removeBookRuleAsked, this,
+            &SpellingCoordinator::removeBookRule, Qt::UniqueConnection);
+    connect(bookEditor, &editor::BookEditor::addNameAsked, this,
+            &SpellingCoordinator::addNameAsked, Qt::UniqueConnection);
+    connect(bookEditor, &editor::BookEditor::editBookRuleAsked, this,
+            &SpellingCoordinator::editRuleAsked, Qt::UniqueConnection);
 }
 
 void SpellingCoordinator::onBookDictionaryChanged() {

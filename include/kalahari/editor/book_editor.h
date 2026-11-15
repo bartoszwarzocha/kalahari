@@ -1877,6 +1877,14 @@ public:
     ///        (setBookDictionary())
     bool isBookDictionaryEditable() const { return m_bookDictionaryEditable; }
 
+    /// @brief Mark the places written otherwise than the spelling rules of the book's
+    ///        dictionary want, or not (the setting; they are marked by default); the text is
+    ///        checked again when it changes
+    void setBookRulesMarked(bool marked);
+
+    /// @brief Whether the places breaking the spelling rules of the book are marked
+    bool areBookRulesMarked() const { return m_bookRulesMarked; }
+
     /// @brief Check the spelling of every paragraph again
     ///
     /// The waves stay until their paragraphs are checked.
@@ -2232,6 +2240,14 @@ signals:
     /// @brief The writer chose Remove Rule on the context menu of a place breaking a spelling
     ///        rule of the book (setBookDictionary())
     void removeBookRuleAsked(const QString& ruleId);
+
+    /// @brief The writer chose Add Name... on the context menu of a misspelled word: the
+    ///        word is to be a name of the book's dictionary (setBookDictionary())
+    void addNameAsked(const QString& word);
+
+    /// @brief The writer chose Edit Rule... on the context menu of a place breaking a spelling
+    ///        rule of the book (setBookDictionary())
+    void editBookRuleAsked(const QString& ruleId);
 
     /// @brief Emitted when view mode changes
     /// @param mode The new view mode
@@ -3411,6 +3427,7 @@ private:
     SpellCheckService* m_spellCheckService{nullptr};  ///< The dictionary (not owned)
     const core::BookDictionary* m_bookDictionary{nullptr};  ///< Of the book (not owned)
     bool m_bookDictionaryEditable{false};  ///< Its menu items change it (setBookDictionary())
+    bool m_bookRulesMarked{true};  ///< The places breaking its rules are marked
     QTimer* m_spellTimer{nullptr};                    ///< Runs the next turn of the check
     int m_spellNext{0};             ///< The paragraph the next turn goes on from (not in view)
     int m_spellTyping{-1};          ///< Where the cursor stands after typing (-1: not typing)
@@ -3503,13 +3520,14 @@ private:
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
     ///        put in its place, Ignore All, Add to Book Dictionary (with the book's dictionary),
-    ///        Add to Your Words (All Books)
+    ///        Add to Your Words (All Books), Add Name... (with the book's dictionary)
     /// @param replace Puts a word chosen in its place
     void addSpellingActions(QMenu& menu, const QString& word,
                             const std::function<void(const QString&)>& replace);
 
     /// @brief Put on the context menu what is offered for a place breaking a spelling rule of
-    ///        the book: the rule's form, the rule and its note, Ignore All, Remove Rule
+    ///        the book: the rule's form, the rule and its note, Ignore All, Edit Rule...,
+    ///        Remove Rule
     /// @param deviation The place, as the rule finds it
     /// @param replace Puts a text chosen in its place
     void addBookRuleActions(QMenu& menu, const core::RuleDeviation& deviation,

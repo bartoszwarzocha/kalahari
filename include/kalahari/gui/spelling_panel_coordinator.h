@@ -47,8 +47,10 @@ class SpellingPanel;
 /// a click on an issue in the text selects its card. What the writer chooses in the panel goes
 /// to the text and to the checking: a suggestion takes the issue's place (a step of the undo
 /// history), and Ignore Word, Add to Book Dictionary, Add to Your Words and Ignore Rule do what
-/// they do in the menu of the wave; then the issue after it is selected. While the panel shows, the grammar of the
-/// whole text is checked (the setting spellingPanel.grammarScope "whole").
+/// they do in the menu of the wave; then the issue after it is selected. Add Name... and Edit
+/// Rule... ask for the windows of the book's dictionary (addNameAsked(), editRuleAsked()).
+/// While the panel shows, the grammar of the whole text is checked (the setting
+/// spellingPanel.grammarScope "whole").
 ///
 /// Next Spelling or Grammar Issue (F7) shows the issue it finds in the panel (the setting
 /// spellingPanel.nextIssue "panel"), and gives the panel the keys: a closed panel opens, and
@@ -92,6 +94,14 @@ public:
     ///        chapter of the book: "book" (the book's dictionary; the writer's words on the
     ///        menu of the arrow beside it) or "user" (the other way)
     static constexpr const char* ADD_TO_KEY = "bookDictionary.panelAddsTo";
+
+signals:
+    /// @brief Add Name... of a misspelled word was chosen in the panel
+    void addNameAsked(const QString& word);
+
+    /// @brief Edit Rule... of a place breaking a spelling rule of the book was clicked in the
+    ///        panel
+    void editRuleAsked(const QString& ruleId);
 
 private slots:
     /// @brief The settings of the panel or of the checking changed (called by name, queued)

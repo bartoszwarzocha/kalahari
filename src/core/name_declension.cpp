@@ -390,6 +390,16 @@ QString NameDeclension::unchanged() {
     return {UNCHANGED};
 }
 
+bool NameDeclension::fits(const QString& word, const QString& model) const {
+    if (model == UNCHANGED) {
+        return true;
+    }
+    if (!models().contains(model)) {
+        return false;
+    }
+    return m_language != Language::Polish || fitsWord(word, polishModelOf(model));
+}
+
 QStringList NameDeclension::wordsOf(const QString& name) {
     static const QRegularExpression spaces(QStringLiteral("\\s+"));
     return name.split(spaces, Qt::SkipEmptyParts);

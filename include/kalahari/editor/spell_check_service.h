@@ -167,6 +167,11 @@ public:
     /// they are asked for.
     [[nodiscard]] QStringList relatedForms(const QString& word) const;
 
+    /// @brief The forms of the words of the dictionary in use (relatedForms()), for the forms
+    ///        of the spelling rules of the book (core::fillRuleForms()); nullptr without a
+    ///        dictionary
+    [[nodiscard]] const core::AffixExpander* affixExpander() const;
+
     /// @brief The misspelled words of a text (one paragraph), in their order
     /// @param alsoRight Words right besides those of the dictionary (none: no others); a
     ///        hyphenated word it takes as a whole is right with its parts

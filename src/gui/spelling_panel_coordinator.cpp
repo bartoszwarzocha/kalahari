@@ -107,6 +107,10 @@ SpellingPanelCoordinator::SpellingPanelCoordinator(core::ProjectManager& book,
             &SpellingPanelCoordinator::onAddToBookDictionary);
     connect(m_panel, &SpellingPanel::ignoreRuleRequested, this,
             &SpellingPanelCoordinator::onIgnoreRule);
+    connect(m_panel, &SpellingPanel::addNameRequested, this,
+            [this](const SpellingPanelIssue& issue) { emit addNameAsked(issue.issue.text); });
+    connect(m_panel, &SpellingPanel::editRuleRequested, this,
+            [this](const SpellingPanelIssue& issue) { emit editRuleAsked(issue.issue.ruleId); });
     connect(m_panel, &SpellingPanel::menuRequested, this,
             &SpellingPanelCoordinator::onMenuRequested);
     connect(m_panel, &SpellingPanel::editorFocusRequested, this,

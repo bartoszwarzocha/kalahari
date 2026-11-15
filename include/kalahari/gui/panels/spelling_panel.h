@@ -189,6 +189,12 @@ signals:
     /// @brief "Ignore Rule" of a grammar issue
     void ignoreRuleRequested(const kalahari::gui::SpellingPanelIssue& issue);
 
+    /// @brief "Add Name..." of a misspelled word (AddPlaces::bookDictionary)
+    void addNameRequested(const kalahari::gui::SpellingPanelIssue& issue);
+
+    /// @brief "Edit Rule..." of a place breaking a spelling rule of the book
+    void editRuleRequested(const kalahari::gui::SpellingPanelIssue& issue);
+
     /// @brief The menu of an issue was asked for: a right click on its card, the menu key,
     ///        Shift+F10
     /// @param issue The issue (selected first)
@@ -210,6 +216,11 @@ private:
     /// @brief The issues listed, the buttons of the kinds, the texts and the buttons, for
     ///        what the panel shows now
     void rebuild();
+
+    /// @brief A button of the cards asks for @p request with the issue of its card; not in a
+    ///        text only read
+    void forwardRequest(void (SpellingIssueList::*clicked)(const QString&),
+                        void (SpellingPanel::*request)(const kalahari::gui::SpellingPanelIssue&));
 
     /// @brief The counts on the buttons of the kinds
     void updateKindButtons();

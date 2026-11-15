@@ -771,6 +771,15 @@ TEST_CASE("Spelling panel: the cards of the book's dictionary", "[gui][spelling-
         card.actionButtons().first()->click();
         CHECK(ignored == 1);
 
+        // In a chapter: Edit Rule... opens the window of the rule
+        card.setAddPlaces({.bookDictionary = true, .bookFirst = true});
+        CHECK(buttonTexts(card.actionButtons(), card) ==
+              QStringList{QStringLiteral("Ignore Word"), QStringLiteral("Edit Rule...")});
+        int edited = 0;
+        QObject::connect(&card, &SpellingIssueCard::editRuleClicked, [&edited]() { ++edited; });
+        card.actionButtons().at(1)->click();
+        CHECK(edited == 1);
+
         // Its suggestion is its own, not one of the dictionary's
         SpellingIssueList list;
         list.setSuggestionProvider(
@@ -797,7 +806,16 @@ TEST_CASE("Spelling panel: the cards of the book's dictionary", "[gui][spelling-
         QStringList texts = kalahari::test::runPopupMenu(
             [&buttons]() { buttons.at(2)->click(); },
             QStringLiteral("Add to Your Words (All Books)"));
-        CHECK(texts == QStringList{QStringLiteral("Add to Your Words (All Books)")});
+        CHECK(texts == QStringList{QStringLiteral("Add to Your Words (All Books)"),
+                                   QStringLiteral("Add Name...")});
+        CHECK(added == QList<bool>{true, false});
+
+        // The word as a name of the book: the window of a new name
+        int names = 0;
+        QObject::connect(&card, &SpellingIssueCard::addNameClicked, [&names]() { ++names; });
+        kalahari::test::runPopupMenu([&buttons]() { buttons.at(2)->click(); },
+                                     QStringLiteral("Add Name..."));
+        CHECK(names == 1);
         CHECK(added == QList<bool>{true, false});
 
         added.clear();
@@ -806,7 +824,8 @@ TEST_CASE("Spelling panel: the cards of the book's dictionary", "[gui][spelling-
         card.actionButtons().at(1)->click();
         texts = kalahari::test::runPopupMenu([&card]() { card.actionButtons().at(2)->click(); },
                                              QStringLiteral("Add to Book Dictionary"));
-        CHECK(texts == QStringList{QStringLiteral("Add to Book Dictionary")});
+        CHECK(texts == QStringList{QStringLiteral("Add to Book Dictionary"),
+                                   QStringLiteral("Add Name...")});
         CHECK(added == QList<bool>{false, true});
     }
 }
@@ -1283,6 +1302,19 @@ TEST_CASE("Spelling panel: in a chapter, the departures from the rules of the bo
         emit desk.panel->list()->addToDictionaryClicked(desk.panel->selectedKey(), true);
         CHECK(projects.bookDictionary().hasWord(QStringLiteral("Vael")));
         CHECK(desk.lists({QStringLiteral("rule 1 email")}));
+
+        // The window of a new name with the word, and the window of the rule
+        QStringList names;
+        QStringList rulesEdited;
+        QObject::connect(desk.coordinator.get(), &SpellingPanelCoordinator::addNameAsked,
+                         [&names](const QString& text) { names.append(text); });
+        QObject::connect(desk.coordinator.get(), &SpellingPanelCoordinator::editRuleAsked,
+                         [&rulesEdited](const QString& ruleId) { rulesEdited.append(ruleId); });
+        const QString ruleKey = desk.panel->shownIssues().at(0).key;
+        emit desk.panel->list()->addNameClicked(ruleKey);
+        emit desk.panel->list()->editRuleClicked(ruleKey);
+        CHECK(names == QStringList{QStringLiteral("email")});
+        CHECK(rulesEdited == QStringList{projects.bookDictionary().rules().front().id});
 
         // A file outside the book: no rules, no book's dictionary
         desk.open({QStringLiteral("Kirran wrote an email.")});
