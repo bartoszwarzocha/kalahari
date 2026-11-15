@@ -464,11 +464,11 @@ void ClippingsCoordinator::insert(editor::BookEditor* text) {
 
     if (settingIs(core::Clippings::INSERT_SETTING, core::Clippings::INSERT_LIST)) {
         // The list at the cursor, which closes with the choice
+        // Into the text open then: by its id, so that nothing goes into a text closed since
         auto* popup = new dialogs::ClippingListPopup(all, m_window);
-        const QPointer<editor::BookEditor> into(text);
         connect(popup, &dialogs::ClippingListPopup::chosen, this,
-                [this, into](ClippingChoice choice, const QString& clippingId) {
-                    if (into != nullptr) {
+                [this, textId = element.id](ClippingChoice choice, const QString& clippingId) {
+                    if (editor::BookEditor* into = editorOf(textId)) {
                         act(into, choice, clippingId);
                     }
                 });
@@ -662,11 +662,11 @@ bool ClippingsCoordinator::restore(const QString& clippingId) {
     const QString message = tr("The exact place is no longer in the text. The cursor is in the "
                                "paragraph the fragment came from.");
     if (EditorPanel* panel = panelOf(text); m_showNotice && panel != nullptr) {
-        const QPointer<editor::BookEditor> into(text);
+        // Into the text while it is open (by its id, as the notice may outlive it)
         //: In Polish: &Wstaw tutaj / Wstaw wycinek w miejscu kursora
         m_showNotice(panel, message, tr("&Insert Here"), tr("Insert the clipping at the cursor"),
-                     [this, into, clippingId]() {
-                         if (into != nullptr) {
+                     [this, textId = clipping->clipping.origin.element, clippingId]() {
+                         if (editor::BookEditor* into = editorOf(textId)) {
                              insertAt(into, clippingId);
                          }
                      });

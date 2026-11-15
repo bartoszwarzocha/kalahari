@@ -14,7 +14,6 @@
 #include <QList>
 #include <QMetaObject>
 #include <QObject>
-#include <QPointer>
 #include <QString>
 
 #include <cstdint>
@@ -225,7 +224,7 @@ private:
     ///        take the clipping back and forth with it
     struct Step {
         int id = 0;                         ///< Unique among the steps
-        QPointer<editor::BookEditor> text;  ///< Where it was done
+        editor::BookEditor* text = nullptr;  ///< Where it was done (followed: gone with it)
         const QTextDocument* document = nullptr;  ///< Its document then (a new one: forgotten)
         int level = 0;          ///< The level of undo of the step in the text
         bool done = true;       ///< false while undone
@@ -298,9 +297,13 @@ private:
     /// @brief Follow the undo of @p text and its document: its steps undone and redone
     void follow(editor::BookEditor* text);
 
-    /// @brief Stop following @p text, and forget its steps (its document is another one);
-    ///        the texts destroyed too (null: only those)
+    /// @brief Stop following @p text, and forget its steps (its document is another one, or
+    ///        it is destroyed)
     void unfollow(const editor::BookEditor* text);
+
+    /// @brief Text @p gone is destroyed: unfollow() it. While it goes it is no longer a
+    ///        BookEditor, so it is known by the QObject it is
+    void forget(const QObject* gone);
 
     /// @brief The text of @p text changed: its steps undone or redone take their clippings
     ///        with them
@@ -385,8 +388,13 @@ private:
     std::list<Step> m_steps;
     int m_nextStepId = 1;       ///< The id of the next step
     int m_lastStepId = 0;       ///< The last cut or insertion (the Undo of its notice)
-    /// The texts followed, each with its connections
-    QList<QPair<QPointer<editor::BookEditor>, QList<QMetaObject::Connection>>> m_followed;
+    /// @brief A text followed in its undo
+    struct Followed {
+        editor::BookEditor* text = nullptr;  ///< The text
+        const QObject* object = nullptr;     ///< The same object, known while it is destroyed
+        QList<QMetaObject::Connection> connections;  ///< What follows it
+    };
+    QList<Followed> m_followed;  ///< The texts followed
     bool m_changing = false;  ///< The coordinator changes a text itself: no step follows it
 };
 

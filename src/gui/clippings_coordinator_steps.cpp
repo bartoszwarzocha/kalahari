@@ -54,40 +54,43 @@ void ClippingsCoordinator::addStep(Step step) {
 }
 
 void ClippingsCoordinator::follow(editor::BookEditor* text) {
-    const bool followed =
-        std::ranges::any_of(m_followed, [text](const auto& each) { return each.first == text; });
-    if (followed || text == nullptr || text->textDocument() == nullptr) {
+    if (text == nullptr || text->textDocument() == nullptr ||
+        std::ranges::find(m_followed, text, &Followed::text) != m_followed.cend()) {
         return;
     }
-    QList<QMetaObject::Connection> connections;
-    connections << connect(text, &editor::BookEditor::contentChanged, this,
-                           [this, text]() { textChanged(text); });
-    connections << connect(text, &editor::BookEditor::documentChanged, this,
-                           [this, text]() { unfollow(text); });
-    // Destroyed: forgotten once it is gone and its pointers are null. While it goes it is no
-    // longer a BookEditor, and a pointer to it may not be compared as one.
-    connections << connect(
-        text, &QObject::destroyed, this, [this]() { unfollow(nullptr); }, Qt::QueuedConnection);
+    Followed followed{.text = text, .object = text, .connections = {}};
+    followed.connections << connect(text, &editor::BookEditor::contentChanged, this,
+                                    [this, text]() { textChanged(text); });
+    followed.connections << connect(text, &editor::BookEditor::documentChanged, this,
+                                    [this, text]() { unfollow(text); });
+    // Its steps go with it at once
+    followed.connections << connect(text, &QObject::destroyed, this,
+                                    [this](const QObject* gone) { forget(gone); });
     // After the editor counts the new level (it connected first)
-    connections << connect(text->textDocument(), &QTextDocument::undoCommandAdded, this,
-                           [this, text]() { undoAdded(text); });
-    m_followed.append({QPointer<editor::BookEditor>(text), connections});
+    followed.connections << connect(text->textDocument(), &QTextDocument::undoCommandAdded,
+                                    this, [this, text]() { undoAdded(text); });
+    m_followed.append(followed);
 }
 
 void ClippingsCoordinator::unfollow(const editor::BookEditor* text) {
     for (qsizetype i = m_followed.size() - 1; i >= 0; --i) {
-        // The texts destroyed are null
-        if (m_followed.at(i).first == text || m_followed.at(i).first == nullptr) {
+        if (m_followed.at(i).text == text) {
             for (const QMetaObject::Connection& connection :
-                 std::as_const(m_followed.at(i).second)) {
+                 std::as_const(m_followed.at(i).connections)) {
                 disconnect(connection);
             }
             m_followed.removeAt(i);
         }
     }
-    std::erase_if(m_steps, [text](const Step& step) {
-        return step.text == nullptr || step.text == text;
-    });
+    std::erase_if(m_steps, [text](const Step& step) { return step.text == text; });
+}
+
+void ClippingsCoordinator::forget(const QObject* gone) {
+    // Only the pointers are compared: what it points to is no longer a BookEditor
+    if (const auto followed = std::ranges::find(m_followed, gone, &Followed::object);
+        followed != m_followed.cend()) {
+        unfollow(followed->text);
+    }
 }
 
 void ClippingsCoordinator::undoAdded(const editor::BookEditor* text) {
@@ -266,8 +269,8 @@ void ClippingsCoordinator::forgetStep(int stepId) {
 }
 
 void ClippingsCoordinator::forgetSteps() {
-    for (const auto& followed : std::as_const(m_followed)) {
-        for (const QMetaObject::Connection& connection : followed.second) {
+    for (const Followed& followed : std::as_const(m_followed)) {
+        for (const QMetaObject::Connection& connection : followed.connections) {
             disconnect(connection);
         }
     }
