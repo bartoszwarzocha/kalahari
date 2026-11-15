@@ -55,6 +55,18 @@ constexpr const char* BROWSER = "browser";
 /// @brief The zoom of the pages at their size, in percent
 constexpr int ACTUAL_PERCENT = 100;
 
+/// @brief The fewest letters a choice of a combo box shows: a longer one is shortened in a
+/// narrow window, and its list shows it whole
+constexpr int MIN_CHOICE_CHARACTERS = 14;
+
+/// @brief A combo box whose longest choice does not widen the page in a narrow window
+QComboBox* narrowComboBox() {
+    auto* box = new QComboBox();
+    box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    box->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
+    return box;
+}
+
 /// @brief Half a line between two settings of a group, more than between the choices of one
 void addGap(QFormLayout* form) {
     const int line = form->parentWidget()->fontMetrics().height();
@@ -215,18 +227,20 @@ void MaterialsPage::addPdfPreview() {
     //: In Polish: Strony przyciemnione
     auto* dimmed = new QRadioButton(tr("Pages dimmed"));
     dimmed->setObjectName(QStringLiteral("materialsPdfDimmed"));
-    //: In Polish: Odwrócone kolory: jasny tekst na ciemnym tle
-    auto* inverted = new QRadioButton(tr("Colors turned: light text on a dark page"));
+    //: In Polish: Odwrócone kolory
+    auto* inverted = new QRadioButton(tr("Inverted colors"));
     inverted->setObjectName(QStringLiteral("materialsPdfInverted"));
-    //: In Polish: Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.
-    const QString darkNote = tr("Only the look on the screen changes; the file stays as it is.");
+    //: Under Inverted colors, the last choice of In a dark theme. In Polish: Jasny tekst na
+    //: ciemnym tle. Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.
+    const QString darkNote = tr("Light text on a dark page. Only the look on the screen changes; "
+                                "the file stays as it is.");
     //: In Polish: W ciemnym motywie:
     addChoices(pdf, tr("In a dark theme:"), PdfFiles::DARK_SETTING,
                {{PdfFiles::AS_FILE, asFile, QString()},
                 {PdfFiles::DIMMED, dimmed, QString()},
                 {PdfFiles::INVERTED, inverted, darkNote}});
 
-    m_pdfZoom = new QComboBox();
+    m_pdfZoom = narrowComboBox();
     m_pdfZoom->setObjectName(QStringLiteral("materialsPdfZoom"));
     //: The zoom the preview opens with. In Polish: Szerokość strony (zalecana)
     m_pdfZoom->addItem(tr("Page width (recommended)"), QString::fromLatin1(PdfFiles::PAGE_WIDTH));
@@ -238,7 +252,7 @@ void MaterialsPage::addPdfPreview() {
     //: In Polish: Powiększenie:
     addField(pdf, tr("Zoom:"), m_pdfZoom, PdfFiles::ZOOM_SETTING);
 
-    m_pdfSide = new QComboBox();
+    m_pdfSide = narrowComboBox();
     m_pdfSide->setObjectName(QStringLiteral("materialsPdfSide"));
     //: The side panel the preview opens with. In Polish: Zakładki, a bez nich spis treści
     //: (zalecane)
@@ -281,7 +295,7 @@ void MaterialsPage::addSources() {
     //: The group of the page Materials. In Polish: Źródła
     QFormLayout* sources = addGroup(tr("Sources"));
 
-    m_style = new QComboBox();
+    m_style = narrowComboBox();
     m_style->setObjectName(QStringLiteral("materialsSourcesStyle"));
     for (const QString& style : Bibliography::styles()) {
         const QString name = Bibliography::styleName(style);
@@ -299,7 +313,7 @@ void MaterialsPage::addSources() {
     addNote(sources, tr("The style of new books and of the books without their own; a book may "
                         "have its own in the Properties of the book."));
 
-    m_reference = new QComboBox();
+    m_reference = narrowComboBox();
     m_reference->setObjectName(QStringLiteral("materialsSourcesReference"));
     for (const QString& form : Bibliography::referenceForms()) {
         const QString example = SourceNames::referenceExample(form);

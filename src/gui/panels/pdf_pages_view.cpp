@@ -197,6 +197,10 @@ void PdfPagesView::select(int page, const QPointF& start, const QPointF& end) {
         clearSelection();
         return;
     }
+    takeSelection(page, std::move(*selection));
+}
+
+void PdfPagesView::takeSelection(int page, QPdfSelection selection) {
     m_selection = std::move(selection);
     m_selectionPage = page;
     viewport()->update();
@@ -244,11 +248,44 @@ QRectF PdfPagesView::textBounds(int page) {
     return bounds;
 }
 
-void PdfPagesView::selectHit(int page, const QList<QRectF>& rectangles) {
+std::optional<QPdfSelection> PdfPagesView::occurrenceOf(int page, const QString& text,
+                                                       int occurrence) const {
+    if (text.isEmpty() || occurrence < 0) {
+        return std::nullopt;
+    }
+    const QPdfSelection all = m_document->getAllText(page);
+    const QString pageText = all.text();
+    qsizetype at = -1;
+    for (int found = 0; found <= occurrence; ++found) {
+        at = pageText.indexOf(text, at + 1, Qt::CaseInsensitive);
+        if (at < 0) {
+            return std::nullopt;
+        }
+    }
+    QPdfSelection selection = m_document->getSelectionAtIndex(
+        page, all.startIndex() + static_cast<int>(at), static_cast<int>(text.size()));
+    // The text of the page is without the spaces at its ends: the places may then differ
+    if (!selection.isValid() || selection.text().compare(text, Qt::CaseInsensitive) != 0) {
+        return std::nullopt;
+    }
+    return selection;
+}
+
+void PdfPagesView::selectHit(int page, const QString& text, int occurrence,
+                             const QList<QRectF>& rectangles) {
+    if (m_document == nullptr || page < 0 || page >= pageCount()) {
+        return;
+    }
+    // By the places of its letters in the text: which letters are at a place in the page
+    // QPdfDocument tells differently in each version of Qt
+    if (std::optional<QPdfSelection> selection = occurrenceOf(page, text, occurrence)) {
+        takeSelection(page, std::move(*selection));
+        return;
+    }
     if (rectangles.isEmpty()) {
         return;
     }
-    // From the left edge of its first letter to the right edge of its last one, in the
+    // Else from the left edge of its first letter to the right edge of its last one, in the
     // middle of their lines
     const QRectF& first = rectangles.first();
     const QRectF& last = rectangles.last();
@@ -265,10 +302,7 @@ void PdfPagesView::selectPage(int page) {
         clearSelection();
         return;
     }
-    m_selection = std::move(selection);
-    m_selectionPage = page;
-    viewport()->update();
-    emit selectionChanged();
+    takeSelection(page, std::move(selection));
 }
 
 void PdfPagesView::clearSelection() {

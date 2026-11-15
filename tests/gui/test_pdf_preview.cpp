@@ -382,7 +382,7 @@ TEST_CASE("PDF preview: the search finds the hits, goes to them and selects them
     CHECK(preview.currentHit() == 0);
     CHECK(preview.hitsLabel()->text() == QStringLiteral("1 of 3"));
     CHECK(preview.view()->hasSelection());
-    CHECK(preview.view()->selectedText().contains(QStringLiteral("atlas")));
+    CHECK(preview.view()->selectedText() == QStringLiteral("atlas"));
     CHECK(preview.sidePanel()->currentIndex() == PdfPreviewPanel::ResultsTab);
 
     preview.nextHit();
@@ -398,7 +398,8 @@ TEST_CASE("PDF preview: the search finds the hits, goes to them and selects them
     preview.search(QStringLiteral("camel"));
     REQUIRE(waitFor([model]() { return model->rowCount(QModelIndex()) == 1; }));
     CHECK(preview.view()->currentPage() == 1);
-    CHECK(preview.view()->selectedText().contains(QStringLiteral("camel")));
+    // The letters of the hit, without the full stop after it
+    CHECK(preview.view()->selectedText() == QStringLiteral("camel"));
 
     preview.searchEdit()->setText(QStringLiteral("oasis"));
     preview.search(QStringLiteral("oasis"));

@@ -153,8 +153,9 @@ public:
     /// @brief Select the text of page @p page between @p start and @p end (in points)
     void select(int page, const QPointF& start, const QPointF& end);
 
-    /// @brief Select the text of a hit of the search: its @p rectangles on page @p page
-    void selectHit(int page, const QList<QRectF>& rectangles);
+    /// @brief Select a hit of the search for @p text on page @p page: the @p occurrence-th
+    /// there (from 0), at @p rectangles
+    void selectHit(int page, const QString& text, int occurrence, const QList<QRectF>& rectangles);
 
     /// @brief Select all the text of page @p page
     void selectPage(int page);
@@ -282,6 +283,14 @@ private:
 
     /// @brief Where the text of page @p page is, in points; empty: it has none
     [[nodiscard]] QRectF textBounds(int page);
+
+    /// @brief The @p occurrence-th (from 0) @p text on page @p page, by the places of its
+    /// letters in the text of the page, in any case; none: the page does not have it
+    [[nodiscard]] std::optional<QPdfSelection> occurrenceOf(int page, const QString& text,
+                                                            int occurrence) const;
+
+    /// @brief @p selection of page @p page becomes the selection, and it says so
+    void takeSelection(int page, QPdfSelection selection);
 
     /// @brief The page in the middle of the window becomes the page shown
     void followScroll();

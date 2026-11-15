@@ -411,7 +411,12 @@ void PdfPreviewPanel::goToHit(int index) {
     m_view->showPlace(hit.page(), place);
     m_view->setCurrentHit(hit.page(), rectangles);
     // The hit is the selection: Copy and the menu of the selection work on it
-    m_view->selectHit(hit.page(), rectangles);
+    int occurrence = 0;
+    for (int before = index - 1;
+         before >= 0 && m_search->resultAtIndex(before).page() == hit.page(); --before) {
+        ++occurrence;
+    }
+    m_view->selectHit(hit.page(), m_search->searchString(), occurrence, rectangles);
     m_resultsList->setCurrentIndex(m_search->index(index, 0));
     updateHits();
 }

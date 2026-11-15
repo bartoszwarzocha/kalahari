@@ -25512,16 +25512,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Strony przyciemnione</translation>
     </message>
     <message>
-        <source>Colors turned: light text on a dark page</source>
-        <extracomment>In Polish: Odwrócone kolory: jasny tekst na ciemnym tle</extracomment>
-        <translation>Odwrócone kolory: jasny tekst na ciemnym tle</translation>
-    </message>
-    <message>
-        <source>Only the look on the screen changes; the file stays as it is.</source>
-        <extracomment>In Polish: Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</extracomment>
-        <translation>Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</translation>
-    </message>
-    <message>
         <source>In a dark theme:</source>
         <extracomment>In Polish: W ciemnym motywie:</extracomment>
         <translation>W ciemnym motywie:</translation>
@@ -25594,6 +25584,16 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>The card of a quote shows the reference, and Copy with Reference in the preview of a PDF file adds it to the text copied.</source>
         <extracomment>In Polish: Odnośnik pokazuje karta cytatu, a „Kopiuj z odnośnikiem” w podglądzie PDF dodaje go do skopiowanego tekstu.</extracomment>
         <translation>Odnośnik pokazuje karta cytatu, a „Kopiuj z odnośnikiem” w podglądzie PDF dodaje go do skopiowanego tekstu.</translation>
+    </message>
+    <message>
+        <source>Inverted colors</source>
+        <extracomment>In Polish: Odwrócone kolory</extracomment>
+        <translation>Odwrócone kolory</translation>
+    </message>
+    <message>
+        <source>Light text on a dark page. Only the look on the screen changes; the file stays as it is.</source>
+        <extracomment>Under Inverted colors, the last choice of In a dark theme. In Polish: Jasny tekst na ciemnym tle. Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</extracomment>
+        <translation>Jasny tekst na ciemnym tle. Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</translation>
     </message>
 </context>
 <context>
