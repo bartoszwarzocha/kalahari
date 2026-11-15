@@ -327,12 +327,12 @@ TEST_CASE("Material card: a page, a picture on the web with and without its copy
 
     const QString pageUrl = QStringLiteral("https://en.wikipedia.org/wiki/Kalahari_Desert");
     const QString pictureUrl = QStringLiteral("https://upload.example.org/Camel_on_a_dune.jpg");
-    const QString pageId =
-        addMaterial(pm, {QStringLiteral("Kalahari Desert"), {}, {}, {}, pageUrl, {}, {}});
-    const QString pictureId =
-        addMaterial(pm, {QStringLiteral("Camel on a dune"), {}, {}, {}, pictureUrl, {}, {}});
-    const QString quoteId =
-        addMaterial(pm, {QStringLiteral("What the guide said"), {}, {}, {}, {}, {}, {}});
+    const QString pageId = addMaterial(
+        pm, {QStringLiteral("Kalahari Desert"), {}, {}, {}, pageUrl, {}, {}, {}, {}, {}});
+    const QString pictureId = addMaterial(
+        pm, {QStringLiteral("Camel on a dune"), {}, {}, {}, pictureUrl, {}, {}, {}, {}, {}});
+    const QString quoteId = addMaterial(
+        pm, {QStringLiteral("What the guide said"), {}, {}, {}, {}, {}, {}, {}, {}, {}});
 
     gui::MaterialPage page(kalahari::test::book());
     QStringList browsers;

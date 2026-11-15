@@ -8,6 +8,7 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/source_description.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/cover_names.h"
@@ -17,6 +18,7 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/source_names.h"
 #include "kalahari/gui/utils/file_location.h"
 
 #include <QDir>
@@ -46,6 +48,10 @@ constexpr int LONG_MESSAGE_TIMEOUT = 6000;
 /// @brief The beginning of the keys of the settings of the cover: the unit and the targets of
 /// its texts (core::CoverMaterial::UNIT_SETTING, TARGETS_SETTING)
 constexpr const char* COVER_SETTINGS = "materials.cover.";
+
+/// @brief The beginning of the keys of the settings of the sources: the style of the
+/// bibliography and the form of the references (core::Bibliography::STYLE_SETTING...)
+constexpr const char* SOURCE_SETTINGS = "materials.sources.";
 
 /// @brief The ids of all the elements of the Workshop of the open book
 QSet<QString> workshopIds(const core::ProjectManager& book) {
@@ -91,6 +97,10 @@ MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
             &MaterialListCoordinator::refresh);
     connect(&m_book, &core::ProjectManager::linksChanged, this,
             &MaterialListCoordinator::refresh);
+    // A description, the source of a quote or the style of the book: the list Sources, the
+    // column Source of the quotes
+    connect(&m_book, &core::ProjectManager::sourcesChanged, this,
+            &MaterialListCoordinator::refresh);
     connect(m_centralTabs, &QTabWidget::currentChanged, this,
             &MaterialListCoordinator::onCurrentTabChanged);
 
@@ -104,8 +114,8 @@ MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
                 QMetaObject::invokeMethod(self, "onTreeSettingChanged", Qt::QueuedConnection);
             } else if (key == MaterialList::HIDDEN_SETTING) {
                 QMetaObject::invokeMethod(self, "onHiddenSettingChanged", Qt::QueuedConnection);
-            } else if (key.rfind(COVER_SETTINGS, 0) == 0) {
-                // The unit and the targets of the texts of the cover
+            } else if (key.rfind(COVER_SETTINGS, 0) == 0 || key.rfind(SOURCE_SETTINGS, 0) == 0) {
+                // The unit and the targets of the texts of the cover; the style of the entries
                 QMetaObject::invokeMethod(self, "refresh", Qt::QueuedConnection);
             }
         });
@@ -352,11 +362,12 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
     if (!pm.isProjectOpen() || pm.isReadOnly()) {
         return;
     }
-    // The Add Element window with the kind of the list, or with the kinds of all of them
+    // The Add Element window with the kind of the list, or with the kinds of all of them; the
+    // list of the sources has those that can be a source, a publication chosen
     AddTarget target;
     target.scope = AddTarget::Scope::Workshop;
-    const QStringList kinds = list.isEmpty() ? MaterialList::kinds(m_book) : QStringList{list};
-    for (const QString& kindName : kinds) {
+    const bool sources = list == QLatin1String(MaterialList::SOURCES);
+    for (const QString& kindName : MaterialList::addKindsOf(m_book, list)) {
         const std::optional<core::KindReference> reference = core::KindReference::parse(kindName);
         const core::KindRef kind =
             reference ? pm.bookTypes().findKind(reference->packageId, reference->kindId)
@@ -386,6 +397,19 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
     }
     if (added.isEmpty()) {
         return;
+    }
+    // A material added to the sources is one: its kind and its title in its description
+    if (const core::ProjectElement* element = pm.findElement(added);
+        sources && element != nullptr && element->source.isEmpty()) {
+        core::SourceDescription source;
+        source.type = core::SourceDescription::kindFor(SourceNames::baseKindOf(m_book, *element));
+        source.setValue(QString::fromLatin1(core::SourceDescription::TITLE), element->title);
+        if (!pm.setSource(added, source)) {
+            //: In Polish: Nie zapisano opisu bibliograficznego
+            dialogs::MessageDialog::warning(window(),
+                                            MaterialList::tr("Bibliographic Description Not Saved"),
+                                            MaterialList::tr("Failed to save changes."));
+        }
     }
     panel->setProperty(STALE_PROPERTY, false);
     panel->refresh();

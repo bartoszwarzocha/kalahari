@@ -335,7 +335,12 @@ public:
     /// @note Updates the display title (including status suffix) from ProjectManager
     /// @note Does nothing if element not found in tree
     /// @note In a group of the Workshop the element goes to the place of its title
+    /// @note The number of the sources follows the descriptions
     void refreshItem(const QString& elementId);
+
+    /// @brief Give Sources in Materials the number of the materials with a bibliographic
+    /// description
+    void refreshSourcesCount();
 
     /// @brief Set modified indicator for a chapter element (OpenSpec #00042 Phase 7.5)
     /// @param elementId Element ID of the chapter
@@ -403,6 +408,10 @@ signals:
     /// @brief Request to open the settings of the kinds of materials (Settings > Navigator):
     /// Kind Settings... in the menu of Materials and of its kinds
     void requestMaterialSettings();
+
+    /// @brief Request to open the settings of the sources (Settings > Materials): Source
+    /// Settings... in the menu of Sources
+    void requestSourceSettings();
 
     /// @brief Request to add the materials @p incoming, dropped on the Navigator from outside
     /// the program or pasted in it; @p link: the node they are linked with (empty: none), as

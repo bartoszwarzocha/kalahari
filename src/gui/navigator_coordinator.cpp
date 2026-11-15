@@ -1386,6 +1386,12 @@ void NavigatorCoordinator::onRequestOpenMaterialCard(const QString& elementId,
         connect(page, &MaterialPage::changed, this, &NavigatorCoordinator::onMaterialChanged);
         connect(page, &MaterialPage::message, this,
                 [this](const QString& text) { m_statusBar->showMessage(text, 2000); });
+        connect(page, &MaterialPage::requestOpenCard, this,
+                [this](const QString& id) { onRequestOpenMaterialCard(id); });
+        connect(page, &MaterialPage::requestNewQuote, this,
+                &NavigatorCoordinator::onRequestNewQuote);
+        connect(page, &MaterialPage::requestSourceSettings, this,
+                &NavigatorCoordinator::sourceSettingsRequested);
         page->setDownloading(elementId, m_downloader->isFetching(elementId));
         m_centralTabs->addTab(
             card, core::ArtProvider::getInstance().getIcon(card->property("tabIconId").toString()),
@@ -1528,7 +1534,13 @@ void NavigatorCoordinator::showDownloading(const QString& elementId) {
 }
 
 void NavigatorCoordinator::onMaterialChanged(const QString& elementId) {
+    // A quote shows among the quotes of its source, with its words
+    const core::ProjectElement* element = m_book.findElement(elementId);
+    const QString source = element != nullptr ? element->quote.source : QString();
     for (MaterialCardPanel* card : materialCards()) {
+        if (!source.isEmpty() && card->elementId() == source) {
+            card->refresh();
+        }
         if (card->elementId() == elementId) {
             card->refresh();
             m_centralTabs->setTabIcon(
@@ -1541,6 +1553,47 @@ void NavigatorCoordinator::onMaterialChanged(const QString& elementId) {
     m_propertiesPanel->refreshMaterial(elementId);
     m_navigatorPanel->refreshItem(elementId);
     emit materialChanged(elementId);
+}
+
+void NavigatorCoordinator::onRequestNewQuote(const QString& sourceId) {
+    auto& pm = m_book;
+    const core::ProjectElement* source = pm.findElement(sourceId);
+    if (source == nullptr || !pm.isProjectOpen() || pm.isReadOnly()) {
+        return;
+    }
+    const core::KindRef kind = pm.bookTypes().findKind(
+        QString::fromLatin1(core::ProjectManager::BASE_PACKAGE),
+        QString::fromLatin1(core::MaterialKinds::QUOTE));
+    if (!core::ProjectManager::canAdd(kind)) {
+        core::Logger::getInstance().warn("NavigatorCoordinator: The book has no quotes");
+        return;
+    }
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(kind)}};
+    const QString sourceTitle = source->source.value(core::SourceDescription::TITLE).isEmpty()
+                                    ? source->title
+                                    : source->source.value(core::SourceDescription::TITLE);
+    core::NewMaterial quote;
+    //: The title of a new quote from a source: %1 the title of the source. In Polish: Cytat z:
+    //: %1
+    quote.title = tr("Quote from: %1").arg(sourceTitle);
+    quote.quote.source = sourceId;
+    if (source->lastPage > 0) {
+        quote.quote.page = QString::number(source->lastPage);
+    }
+    const QString elementId = pm.addMaterial(quote, kind);
+    if (elementId.isEmpty()) {
+        dialogs::MessageDialog::warning(qobject_cast<QWidget*>(parent()),
+                                        core::fillWords(tr("Add {Kind} Failed"), nouns),
+                                        tr("Failed to save changes."));
+        return;
+    }
+    showAdded(elementId, quote.title);
+    m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(quote.title),
+                             2000);
+    // The source shows it among its quotes; the writer types its words on its card
+    onMaterialChanged(elementId);
+    onRequestOpenMaterialCard(elementId, true);
+    emit documentModified();
 }
 
 QList<MaterialCardPanel*> NavigatorCoordinator::materialCards() const {

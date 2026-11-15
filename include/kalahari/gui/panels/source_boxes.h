@@ -1,0 +1,322 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
+/// @file source_boxes.h
+/// @brief The groups of the card of a material that is a source: its bibliographic
+/// description, how the bibliography shows it, its bookmarks and the quotes from it; and the
+/// group of a quote that says where it comes from
+
+#ifndef KALAHARI_GUI_PANELS_SOURCE_BOXES_H
+#define KALAHARI_GUI_PANELS_SOURCE_BOXES_H
+
+#include "kalahari/core/source_description.h"
+
+#include <QGroupBox>
+#include <QHash>
+#include <QString>
+
+class QComboBox;
+class QFormLayout;
+class QLabel;
+class QLineEdit;
+class QPushButton;
+class QTableWidget;
+class QToolButton;
+
+namespace kalahari::core {
+class ProjectManager;
+struct ProjectElement;
+}  // namespace kalahari::core
+
+namespace kalahari::gui {
+
+/// @brief The bibliographic description of a material on its full card: the kind of the source,
+/// its people and the fields of its kind
+///
+/// The kind changes the fields and their names (a journal for an article, a site for a web
+/// page). The people are a table of names and what each did: "+" or Insert adds one with the
+/// keys in its name, F2 edits a cell, "-" or Delete takes one out. A field is saved when it
+/// loses the keys; the title, empty, is the title of the material. Paste Description reads a
+/// record of BibTeX or RIS from the clipboard. A material whose description says nothing is no
+/// source; the kind alone does not make it one.
+class SourceDescriptionBox : public QGroupBox {
+    Q_OBJECT
+
+public:
+    explicit SourceDescriptionBox(core::ProjectManager& book, QWidget* parent = nullptr);
+
+    /// @brief Show the description of @p element; the field with the keys keeps what is typed
+    void showMaterial(const core::ProjectElement& element);
+
+    /// @brief The description the card shows now, as it would be saved
+    [[nodiscard]] core::SourceDescription shownSource() const;
+
+    [[nodiscard]] QComboBox* kindBox() const { return m_kindBox; }
+    [[nodiscard]] QTableWidget* peopleTable() const { return m_peopleTable; }
+    [[nodiscard]] QToolButton* addPersonButton() const { return m_addPersonButton; }
+    [[nodiscard]] QToolButton* removePersonButton() const { return m_removePersonButton; }
+    [[nodiscard]] QPushButton* pasteButton() const { return m_pasteButton; }
+
+    /// @brief The field of @p field (core::SourceDescription::TITLE...)
+    [[nodiscard]] QLineEdit* field(const QString& field) const { return m_edits.value(field); }
+
+    /// @brief Whether the card shows the field of @p field for the kind chosen
+    [[nodiscard]] bool isFieldShown(const QString& field) const;
+
+    /// @brief The label of the field of @p field
+    [[nodiscard]] QLabel* fieldLabel(const QString& field) const { return m_labels.value(field); }
+
+public slots:
+    /// @brief Add a person at the end, with the keys in the name
+    void addPerson();
+
+    /// @brief Take out the current person
+    void removePerson();
+
+    /// @brief Take the description from a record of BibTeX or RIS on the clipboard
+    void pasteDescription();
+
+    /// @brief Save what the card shows
+    void save();
+
+signals:
+    /// @brief The description of material @p elementId changed
+    void changed(const QString& elementId);
+
+    /// @brief A sentence for the status bar
+    void message(const QString& text);
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    /// @brief The fields of the kind chosen, with their names
+    void showKind();
+
+    /// @brief The buttons follow the rows and a book open read-only
+    void updateButtons();
+
+    core::ProjectManager& m_book;
+    QString m_elementId;
+    QString m_materialKind;           ///< core::MaterialKinds::PUBLICATION...
+    QString m_shownKind;              ///< The kind whose fields the form has
+    core::SourceDescription m_source;  ///< As saved
+    bool m_updating = false;
+    QComboBox* m_kindBox = nullptr;
+    QTableWidget* m_peopleTable = nullptr;
+    QLabel* m_noPeopleLabel = nullptr;
+    QToolButton* m_addPersonButton = nullptr;
+    QToolButton* m_removePersonButton = nullptr;
+    QFormLayout* m_form = nullptr;
+    QHash<QString, QLineEdit*> m_edits;
+    QHash<QString, QLabel*> m_labels;
+    QPushButton* m_pasteButton = nullptr;
+};
+
+/// @brief How the bibliography of the book shows a material: its entry in a style, whether the
+/// bibliography has it, and Copy Entry
+///
+/// The full card offers every style, that of the book first chosen; the choice only shows the
+/// entry in another style. The short card of the Properties panel shows the entry in the style
+/// of the book alone, for a material that is a source. The gear opens Settings > Materials.
+class BibliographyEntryBox : public QGroupBox {
+    Q_OBJECT
+
+public:
+    /// @param compact The short card: the entry in the style of the book and Copy Entry
+    explicit BibliographyEntryBox(core::ProjectManager& book, QWidget* parent = nullptr,
+                                  bool compact = false);
+
+    /// @brief Show the entry of @p element
+    void showMaterial(const core::ProjectElement& element);
+
+    /// @brief The style the entry is shown in
+    [[nodiscard]] QString style() const;
+
+    /// @brief The entry shown, as plain text
+    [[nodiscard]] QString entryText() const;
+
+    [[nodiscard]] QComboBox* styleBox() const { return m_styleBox; }
+    [[nodiscard]] QLabel* entryLabel() const { return m_entryLabel; }
+    [[nodiscard]] QComboBox* inclusionBox() const { return m_inclusionBox; }
+    [[nodiscard]] QPushButton* copyButton() const { return m_copyButton; }
+    [[nodiscard]] QToolButton* settingsButton() const { return m_settingsButton; }
+
+public slots:
+    /// @brief Copy the entry to the clipboard, with its italics where the clipboard takes them
+    void copyEntry();
+
+signals:
+    /// @brief The description of material @p elementId changed: whether the bibliography has it
+    void changed(const QString& elementId);
+
+    /// @brief Open Settings > Materials
+    void requestSettings();
+
+    /// @brief A sentence for the status bar
+    void message(const QString& text);
+
+private:
+    /// @brief The styles, that of the book marked and chosen when @p chooseBook
+    void fillStyles(bool chooseBook);
+
+    /// @brief The entry in the style chosen
+    void updateEntry();
+
+    core::ProjectManager& m_book;
+    bool m_compact = false;
+    QString m_elementId;
+    QString m_title;
+    core::SourceDescription m_source;
+    QString m_bookStyle;  ///< The style of the book the styles were filled for
+    QComboBox* m_styleBox = nullptr;
+    QLabel* m_entryLabel = nullptr;
+    QComboBox* m_inclusionBox = nullptr;
+    QPushButton* m_copyButton = nullptr;
+    QToolButton* m_settingsButton = nullptr;
+};
+
+/// @brief The bookmarks of the file of a material: a page and a note each
+///
+/// "+" or Insert adds one at the page shown last with the keys in its page, F2 edits a cell,
+/// "-" or Delete takes one out. Every change is saved at once.
+class BookmarksBox : public QGroupBox {
+    Q_OBJECT
+
+public:
+    explicit BookmarksBox(core::ProjectManager& book, QWidget* parent = nullptr);
+
+    /// @brief Show the bookmarks of @p element
+    void showMaterial(const core::ProjectElement& element);
+
+    [[nodiscard]] QTableWidget* table() const { return m_table; }
+    [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
+    [[nodiscard]] QToolButton* removeButton() const { return m_removeButton; }
+
+public slots:
+    /// @brief Add a bookmark at the end, with the keys in its page
+    void addBookmark();
+
+    /// @brief Take out the current bookmark
+    void removeBookmark();
+
+signals:
+    /// @brief The bookmarks of material @p elementId changed
+    void changed(const QString& elementId);
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    /// @brief Save the bookmarks of the table, in its order
+    void save();
+
+    /// @brief The buttons follow the rows and a book open read-only
+    void updateButtons();
+
+    core::ProjectManager& m_book;
+    QString m_elementId;
+    int m_lastPage = 0;
+    QList<core::PageBookmark> m_bookmarks;  ///< As saved, with what the table does not show
+    bool m_updating = false;
+    QTableWidget* m_table = nullptr;
+    QLabel* m_emptyLabel = nullptr;
+    QToolButton* m_addButton = nullptr;
+    QToolButton* m_removeButton = nullptr;
+};
+
+/// @brief The quotes whose source is a material, with their pages
+///
+/// "+" or Insert asks for a new quote from the source; a double-click or Enter opens a quote.
+class SourceQuotesBox : public QGroupBox {
+    Q_OBJECT
+
+public:
+    explicit SourceQuotesBox(core::ProjectManager& book, QWidget* parent = nullptr);
+
+    /// @brief Show the quotes from @p element
+    void showMaterial(const core::ProjectElement& element);
+
+    [[nodiscard]] QTableWidget* table() const { return m_table; }
+    [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
+
+signals:
+    /// @brief Make a new quote from source @p sourceId
+    void requestNewQuote(const QString& sourceId);
+
+    /// @brief Open quote @p elementId
+    void requestOpenQuote(const QString& elementId);
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
+
+private:
+    core::ProjectManager& m_book;
+    QString m_elementId;
+    QTableWidget* m_table = nullptr;
+    QLabel* m_emptyLabel = nullptr;
+    QToolButton* m_addButton = nullptr;
+};
+
+/// @brief Where a quote comes from: a material that is a source and its page, or an author and
+/// a work written in, and the reference to it in the text
+///
+/// The list of the sources has the materials with a bibliographic description, by title, and
+/// "No source" first, which shows the fields of the author and the work. Open Source opens the
+/// card of the source. Every change is saved at once, a field when it loses the keys.
+class QuoteSourceBox : public QGroupBox {
+    Q_OBJECT
+
+public:
+    explicit QuoteSourceBox(core::ProjectManager& book, QWidget* parent = nullptr);
+
+    /// @brief Show where quote @p element comes from; the field with the keys keeps what is
+    /// typed
+    void showMaterial(const core::ProjectElement& element);
+
+    /// @brief Where the quote comes from, as the card shows it
+    [[nodiscard]] core::QuoteSource shownQuote() const;
+
+    [[nodiscard]] QComboBox* sourceBox() const { return m_sourceBox; }
+    [[nodiscard]] QLineEdit* pageEdit() const { return m_pageEdit; }
+    [[nodiscard]] QLineEdit* authorEdit() const { return m_authorEdit; }
+    [[nodiscard]] QLineEdit* workEdit() const { return m_workEdit; }
+    [[nodiscard]] QPushButton* openSourceButton() const { return m_openSourceButton; }
+    [[nodiscard]] QLabel* fromSourceLabel() const { return m_fromSourceLabel; }
+    [[nodiscard]] QLabel* referenceLabel() const { return m_referenceLabel; }
+
+public slots:
+    /// @brief Save what the card shows
+    void save();
+
+signals:
+    /// @brief Where quote @p elementId comes from changed
+    void changed(const QString& elementId);
+
+    /// @brief Open source @p sourceId at page @p page (empty: its card)
+    void requestOpenSource(const QString& sourceId, const QString& page);
+
+private:
+    /// @brief The sources of the book in the list, with that of the quote chosen
+    void fillSources(const QString& chosen);
+
+    /// @brief The fields that the source chosen asks for, the sentence and the reference
+    void updateShown();
+
+    core::ProjectManager& m_book;
+    QString m_elementId;
+    core::QuoteSource m_quote;  ///< As saved
+    bool m_updating = false;
+    QFormLayout* m_form = nullptr;
+    QComboBox* m_sourceBox = nullptr;
+    QLineEdit* m_pageEdit = nullptr;
+    QPushButton* m_openSourceButton = nullptr;
+    QLineEdit* m_authorEdit = nullptr;
+    QLineEdit* m_workEdit = nullptr;
+    QLabel* m_fromSourceLabel = nullptr;
+    QLabel* m_referenceLabel = nullptr;
+};
+
+}  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PANELS_SOURCE_BOXES_H

@@ -58,6 +58,8 @@ set(KALAHARI_CORE_SOURCES
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
+    core/source_description.cpp # The bibliographic description of a source, its bookmarks
+    core/bibliography.cpp       # The entries of a bibliography, references, BibTeX and RIS
     core/link_roles.cpp         # The roles of links, and the paragraph a link names
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
@@ -186,6 +188,7 @@ set(KALAHARI_SOURCES
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/cover_names.cpp    # The materials of the cover in the program's words
+    gui/source_names.cpp   # The sources in the program's words
     gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters
     gui/read_only_book.cpp # What the program says of a book open read-only
     gui/dialogs/rename_element_dialog.cpp  # RenameElementDialog - new name of an element in the Navigator
@@ -276,6 +279,7 @@ set(KALAHARI_SOURCES
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
+    gui/settings/materials_page.cpp  # Settings > Materials
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
@@ -331,6 +335,8 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
+    gui/panels/card_parts.cpp  # The small parts of the cards of the materials
+    gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
     gui/panels/paragraph_panel.cpp
@@ -526,6 +532,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h  # The groups of the card of a source with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT

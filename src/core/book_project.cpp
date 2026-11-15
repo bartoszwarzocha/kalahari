@@ -371,6 +371,94 @@ void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = coverFields.rest();
 }
 
+/// The bibliographic description of a material that is a source, with the fields of "source"
+/// this version does not know
+void readSource(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue source = fields.take("source");
+    if (source.isUndefined()) {
+        return;
+    }
+    if (!source.isObject()) {
+        fields.problem("source", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields sourceFields(source.toObject(), fields.path("source"), problems);
+    SourceDescription& data = element.source;
+    data.type = sourceFields.string("type");
+    const QJsonArray people = sourceFields.array("people");
+    for (qsizetype i = 0; i < people.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(sourceFields.path("people")).arg(i);
+        if (!people.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with a name"));
+            continue;
+        }
+        Fields personFields(people.at(i).toObject(), path, problems);
+        SourcePerson person;
+        person.name = personFields.string("name");
+        person.role = personFields.string("role");
+        person.extra = personFields.rest();
+        data.people << person;
+    }
+    for (const QString& name : SourceDescription::allFields()) {
+        const QByteArray key = name.toLatin1();
+        data.setValue(name, sourceFields.string(key.constData()));
+    }
+    data.bibliography = sourceFields.string("bibliography");
+    data.extra = sourceFields.rest();
+}
+
+/// The bookmarks of the file of a material and the page shown last
+void readBookmarks(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonArray bookmarks = fields.array("bookmarks");
+    for (qsizetype i = 0; i < bookmarks.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("bookmarks")).arg(i);
+        if (!bookmarks.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with a page"));
+            continue;
+        }
+        Fields bookmarkFields(bookmarks.at(i).toObject(), path, problems);
+        PageBookmark bookmark;
+        const QJsonValue page = bookmarkFields.take("page");
+        const int number = isWholeNumber(page) ? page.toInt(0) : 0;
+        if (number < 1) {
+            bookmarkFields.problem("page", QStringLiteral("must be a whole number, 1 or more"));
+            continue;
+        }
+        bookmark.page = number;
+        bookmark.note = bookmarkFields.string("note");
+        bookmark.extra = bookmarkFields.rest();
+        element.bookmarks << bookmark;
+    }
+    const QJsonValue lastPage = fields.take("lastPage");
+    if (!lastPage.isUndefined()) {
+        const int number = isWholeNumber(lastPage) ? lastPage.toInt(-1) : -1;
+        if (number < 0) {
+            fields.problem("lastPage", QStringLiteral("must be a whole number, 0 or more"));
+        } else {
+            element.lastPage = number;
+        }
+    }
+}
+
+/// Where a quote comes from, with the fields of "quote" this version does not know
+void readQuote(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue quote = fields.take("quote");
+    if (quote.isUndefined()) {
+        return;
+    }
+    if (!quote.isObject()) {
+        fields.problem("quote", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields quoteFields(quote.toObject(), fields.path("quote"), problems);
+    QuoteSource& data = element.quote;
+    data.source = quoteFields.string("source");
+    data.page = quoteFields.string("page");
+    data.author = quoteFields.string("author");
+    data.work = quoteFields.string("work");
+    data.extra = quoteFields.rest();
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -406,6 +494,9 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.links = readLinks(fields, problems);
     readView(fields, element, problems);
     readCover(fields, element, problems);
+    readSource(fields, element, problems);
+    readBookmarks(fields, element, problems);
+    readQuote(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -636,6 +727,7 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     if (const QJsonValue footnotes = fields.take("footnotes"); !footnotes.isUndefined()) {
         book.footnotes = readFootnotes(footnotes, fields.path("footnotes"), problems);
     }
+    book.bibliographyStyle = fields.string("bibliographyStyle");
     book.extra = fields.rest();
     return book;
 }
@@ -698,6 +790,63 @@ QString dateTimeText(const QDateTime& time) {
 }
 
 QJsonArray elementsToJson(const QList<ProjectElement>& elements);
+
+/// The description of a source, the bookmarks, the page shown last and the source of a quote
+/// of @p element in @p json
+void writeSource(QJsonObject& json, const ProjectElement& element) {
+    const SourceDescription& source = element.source;
+    if (source.isEmpty()) {
+        json.remove(QLatin1String("source"));
+    } else {
+        QJsonObject data = source.extra;
+        setOrRemove(data, "type", source.type);
+        QJsonArray people;
+        for (const SourcePerson& person : source.people) {
+            QJsonObject each = person.extra;
+            each.insert(QLatin1String("name"), person.name);
+            setOrRemove(each, "role", person.role);
+            people.append(each);
+        }
+        if (people.isEmpty()) {
+            data.remove(QLatin1String("people"));
+        } else {
+            data.insert(QLatin1String("people"), people);
+        }
+        for (auto value = source.values.cbegin(); value != source.values.cend(); ++value) {
+            data.insert(value.key(), value.value());
+        }
+        setOrRemove(data, "bibliography", source.bibliography);
+        json.insert(QLatin1String("source"), data);
+    }
+    if (element.bookmarks.isEmpty()) {
+        json.remove(QLatin1String("bookmarks"));
+    } else {
+        QJsonArray bookmarks;
+        for (const PageBookmark& bookmark : element.bookmarks) {
+            QJsonObject each = bookmark.extra;
+            each.insert(QLatin1String("page"), bookmark.page);
+            setOrRemove(each, "note", bookmark.note);
+            bookmarks.append(each);
+        }
+        json.insert(QLatin1String("bookmarks"), bookmarks);
+    }
+    if (element.lastPage > 0) {
+        json.insert(QLatin1String("lastPage"), element.lastPage);
+    } else {
+        json.remove(QLatin1String("lastPage"));
+    }
+    const QuoteSource& quote = element.quote;
+    if (quote.isEmpty()) {
+        json.remove(QLatin1String("quote"));
+    } else {
+        QJsonObject data = quote.extra;
+        setOrRemove(data, "source", quote.source);
+        setOrRemove(data, "page", quote.page);
+        setOrRemove(data, "author", quote.author);
+        setOrRemove(data, "work", quote.work);
+        json.insert(QLatin1String("quote"), data);
+    }
+}
 
 QJsonObject elementToJson(const ProjectElement& element) {
     QJsonObject json = element.extra;
@@ -789,6 +938,7 @@ QJsonObject elementToJson(const ProjectElement& element) {
         }
         json.insert(QLatin1String("cover"), data);
     }
+    writeSource(json, element);
     return json;
 }
 
@@ -881,6 +1031,7 @@ QJsonObject bookToJson(const ProjectBook& book) {
     } else {
         json.remove(QLatin1String("footnotes"));
     }
+    setOrRemove(json, "bibliographyStyle", book.bibliographyStyle);
     return json;
 }
 
@@ -1207,8 +1358,9 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            file == other.file && url == other.url && status == other.status &&
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
-           rotation == other.rotation && cover == other.cover && viewExtra == other.viewExtra &&
-           extra == other.extra;
+           rotation == other.rotation && cover == other.cover && source == other.source &&
+           bookmarks == other.bookmarks && lastPage == other.lastPage && quote == other.quote &&
+           viewExtra == other.viewExtra && extra == other.extra;
 }
 
 // =============================================================================

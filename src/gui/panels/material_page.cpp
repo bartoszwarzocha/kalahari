@@ -14,7 +14,10 @@
 #include "kalahari/gui/link_names.h"
 #include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/panels/source_boxes.h"
+#include "kalahari/gui/source_names.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
@@ -67,78 +70,20 @@ namespace {
 /// The link of a row of the links, and the material of a row of the materials
 constexpr int LINK_ROLE = Qt::UserRole;
 
-/// Rows of the fields and of the links shown at least and at most; the others scroll
-constexpr int MINIMUM_ROWS = 2;
-constexpr int MAXIMUM_ROWS = 8;
-
 /// Size of the pictures of the materials of an element
 constexpr int MATERIAL_ICON = 40;
 
 /// Size the picture of the card is read at, before it is fitted to the panel
 const QSize THUMBNAIL_BOUNDS(960, 2 * MaterialPage::MAXIMUM_THUMBNAIL_HEIGHT);
 
-/// Give @p button icon @p iconId, also after a change of the theme or of the icons
-template <typename Button>
-void keepIcon(Button* button, const QString& iconId, core::IconContext context) {
-    auto& art = core::ArtProvider::getInstance();
-    const auto update = [button, iconId, context]() {
-        button->setIcon(core::ArtProvider::getInstance().getIcon(iconId, context));
-    };
-    update();
-    QObject::connect(&art, &core::ArtProvider::resourcesChanged, button, update);
-}
-
-/// A small button of a list: "+" or "-"
-QToolButton* listButton(QWidget* parent, const char* iconId, const QString& tooltip,
-                        const char* name) {
-    auto* button = new QToolButton(parent);
-    button->setObjectName(QString::fromLatin1(name));
-    button->setAutoRaise(true);
-    keepIcon(button, QString::fromLatin1(iconId), core::IconContext::Menu);
-    button->setToolTip(tooltip);
-    button->setAccessibleName(tooltip);
-    return button;
-}
-
-/// A row of "+" and "-" at the right, over a list
-QHBoxLayout* buttonRow(QToolButton* add, QToolButton* remove) {
-    auto* row = new QHBoxLayout();
-    row->setContentsMargins(0, 0, 0, 0);
-    row->setSpacing(2);
-    row->addStretch();
-    row->addWidget(add);
-    row->addWidget(remove);
-    return row;
-}
-
-/// A grey sentence of a list, which wraps
-QLabel* hintLabel(QWidget* parent, const QString& text, const char* name) {
-    auto* label = new QLabel(text, parent);
-    label->setObjectName(QString::fromLatin1(name));
-    label->setWordWrap(true);
-    label->setForegroundRole(QPalette::PlaceholderText);
-    return label;
-}
-
-/// Height of @p rows rows of @p view, between MINIMUM_ROWS and MAXIMUM_ROWS, with the header
-int listHeight(const QAbstractItemView* view, int rows, int rowHeight, int header) {
-    const int shown = std::clamp(rows, MINIMUM_ROWS, MAXIMUM_ROWS);
-    const int frame = view->style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-    return shown * rowHeight + header + 2 * frame + 2;
-}
-
-/// Whether @p event is a key of a list that its own handler takes: Insert or Delete without
-/// modifiers
-bool isListKey(const QKeyEvent* key, Qt::Key which) {
-    return key->key() == which &&
-           (key->modifiers() & ~Qt::KeypadModifier) == Qt::NoModifier;
-}
-
-/// Whether @p key is Enter without modifiers, which opens the current row of a list also on
-/// macOS, where a list edits it
-bool isOpenKey(const QKeyEvent* key) {
-    return isListKey(key, Qt::Key_Return) || isListKey(key, Qt::Key_Enter);
-}
+using card::buttonRow;
+using card::cutOffChildren;
+using card::hintLabel;
+using card::isListKey;
+using card::isOpenKey;
+using card::keepIcon;
+using card::listButton;
+using card::listHeight;
 
 /// The names of the fields: the names of the fields of the book suggested as they are typed
 class FieldDelegate : public QStyledItemDelegate {
@@ -217,14 +162,6 @@ private:
         return NavigatorPanel::linksOf(event->mimeData());
     }
 };
-
-/// Nothing of the children of @p widget reaches it any more. QWidget's destructor deletes them
-/// after the class of @p widget is gone, and a field with the keys finishes its editing then.
-void cutOffChildren(QWidget* widget) {
-    for (QObject* child : widget->findChildren<QObject*>()) {
-        child->disconnect(widget);
-    }
-}
 
 } // namespace
 
@@ -340,6 +277,13 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     infoLayout->addLayout(m_form);
     connect(m_titleEdit, &QLineEdit::editingFinished, this, &MaterialPage::saveTitle);
 
+    // A material that can be a source: on the full card its bibliographic description and its
+    // entry in the bibliography above its description
+    if (full) {
+        m_sourceBox = new SourceDescriptionBox(m_book, this);
+        m_entryBox = new BibliographyEntryBox(m_book, this);
+    }
+
     // The description, saved when the field loses the keys
     //: The description of a material in the Properties panel. In Polish: Opis
     m_descriptionGroup = new QGroupBox(tr("Description"), this);
@@ -416,8 +360,22 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     m_counter->hide();
     connect(m_descriptionEdit, &QPlainTextEdit::textChanged, this, &MaterialPage::updateCounter);
 
+    // A quote: where it comes from, under its words; on the short card the entry of a source
+    // in the bibliography of the book
+    m_quoteBox = new QuoteSourceBox(m_book, this);
+    if (!full) {
+        m_entryBox = new BibliographyEntryBox(m_book, this, true);
+    }
+
     // The data of a material of the cover, between its text and its own fields
     createCoverGroup();
+
+    // The bookmarks of a PDF, and on the full card the quotes from a source
+    m_bookmarksBox = new BookmarksBox(m_book, this);
+    if (full) {
+        m_quotesBox = new SourceQuotesBox(m_book, this);
+    }
+    connectSourceParts();
 
     // The writer's own fields
     //: The writer's own fields of a material: a name and a value each. In Polish: Własne pola
@@ -534,26 +492,42 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     connect(m_linksList, &QTreeWidget::currentItemChanged, this, &MaterialPage::updateButtons);
 
     if (full) {
-        // The description beside the own fields, the links under them
+        // The description of a source, its entry, the description and where a quote comes
+        // from beside the data of the cover, the bookmarks, the quotes and the own fields; the
+        // links under them
         auto* grid = new QGridLayout(this);
         grid->setContentsMargins(0, 0, 0, 0);
         grid->setSpacing(11);
         grid->addWidget(m_infoGroup, 0, 0, 1, 2);
-        grid->addWidget(descriptionGroup, 1, 0, 2, 1);
-        grid->addWidget(m_coverGroup, 1, 1);
-        grid->addWidget(fieldsGroup, 2, 1);
-        grid->addWidget(linksGroup, 3, 0, 1, 2);
+        auto* left = new QVBoxLayout();
+        left->setSpacing(11);
+        left->addWidget(m_sourceBox);
+        left->addWidget(m_entryBox);
+        left->addWidget(descriptionGroup, 1);
+        left->addWidget(m_quoteBox);
+        auto* right = new QVBoxLayout();
+        right->setSpacing(11);
+        right->addWidget(m_coverGroup);
+        right->addWidget(m_bookmarksBox);
+        right->addWidget(m_quotesBox);
+        right->addWidget(fieldsGroup, 1);
+        grid->addLayout(left, 1, 0);
+        grid->addLayout(right, 1, 1);
+        grid->addWidget(linksGroup, 2, 0, 1, 2);
         grid->setColumnStretch(0, 3);
         grid->setColumnStretch(1, 2);
-        grid->setRowStretch(2, 1);
-        grid->setRowStretch(4, 1);
+        grid->setRowStretch(1, 1);
+        grid->setRowStretch(3, 1);
     } else {
         auto* layout = new QVBoxLayout(this);
         layout->setContentsMargins(0, 0, 0, 0);
         layout->setSpacing(11);
         layout->addWidget(m_infoGroup);
         layout->addWidget(descriptionGroup);
+        layout->addWidget(m_quoteBox);
+        layout->addWidget(m_entryBox);
         layout->addWidget(m_coverGroup);
+        layout->addWidget(m_bookmarksBox);
         layout->addWidget(fieldsGroup);
         layout->addWidget(linksGroup);
         layout->addStretch(1);
@@ -588,6 +562,18 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
                         if (const core::ProjectElement* element =
                                 page->m_book.findElement(page->m_elementId)) {
                             page->showCover(*element);
+                        }
+                    },
+                    Qt::QueuedConnection);
+                return;
+            }
+            // The style of the bibliography and the form of the references of the Settings
+            if (key.rfind("materials.sources.", 0) == 0) {
+                QMetaObject::invokeMethod(
+                    page,
+                    [page]() {
+                        if (page != nullptr) {
+                            page->refresh();
                         }
                     },
                     Qt::QueuedConnection);
@@ -645,6 +631,7 @@ void MaterialPage::refresh() {
     fillFields(*element);
     fillLinks(*element);
     showCover(*element);
+    showSourceParts(*element);
 
     const bool readOnly = pm.isReadOnly();
     m_titleEdit->setReadOnly(readOnly);
@@ -752,6 +739,69 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
     m_addressLabel->setText(m_url);
     m_addressLabel->setToolTip(m_url);
     m_form->setRowVisible(m_addressLabel, fromWeb);
+}
+
+void MaterialPage::connectSourceParts() {
+    const auto changedHere = [this](const QString& elementId) { emit changed(elementId); };
+    const auto messageHere = [this](const QString& text) { emit message(text); };
+    if (m_sourceBox != nullptr) {
+        connect(m_sourceBox, &SourceDescriptionBox::changed, this, changedHere);
+        connect(m_sourceBox, &SourceDescriptionBox::message, this, messageHere);
+    }
+    connect(m_entryBox, &BibliographyEntryBox::changed, this, changedHere);
+    connect(m_entryBox, &BibliographyEntryBox::message, this, messageHere);
+    connect(m_entryBox, &BibliographyEntryBox::requestSettings, this,
+            &MaterialPage::requestSourceSettings);
+    connect(m_bookmarksBox, &BookmarksBox::changed, this, changedHere);
+    connect(m_quoteBox, &QuoteSourceBox::changed, this, changedHere);
+    // The source of a quote opens on its card
+    connect(m_quoteBox, &QuoteSourceBox::requestOpenSource, this,
+            [this](const QString& sourceId, const QString&) { emit requestOpenCard(sourceId); });
+    if (m_quotesBox != nullptr) {
+        connect(m_quotesBox, &SourceQuotesBox::requestNewQuote, this,
+                &MaterialPage::requestNewQuote);
+        connect(m_quotesBox, &SourceQuotesBox::requestOpenQuote, this,
+                &MaterialPage::requestOpenCard);
+    }
+}
+
+void MaterialPage::showSourceParts(const core::ProjectElement& element) {
+    // A material that can be a source: its description on the full card; its entry there,
+    // and on the short card once it is a source; the quotes from it once it is one or has some
+    const bool describable = SourceNames::canDescribe(m_book, element);
+    const bool source = describable && !element.source.isEmpty();
+    if (m_sourceBox != nullptr) {
+        m_sourceBox->setVisible(describable);
+        if (describable) {
+            m_sourceBox->showMaterial(element);
+        }
+    }
+    const bool entry = m_full ? describable : source;
+    m_entryBox->setVisible(entry);
+    if (entry) {
+        m_entryBox->showMaterial(element);
+    }
+    if (m_quotesBox != nullptr) {
+        const bool quotes = source || !m_book.quotesOf(element.id).isEmpty();
+        m_quotesBox->setVisible(quotes);
+        if (quotes) {
+            m_quotesBox->showMaterial(element);
+        }
+    }
+    // The bookmarks of a PDF, or of a file that has some
+    const bool pdf =
+        QFileInfo(element.file).suffix().compare(QLatin1String("pdf"), Qt::CaseInsensitive) == 0;
+    const bool bookmarks = !element.bookmarks.isEmpty() || (!element.file.isEmpty() && pdf);
+    m_bookmarksBox->setVisible(bookmarks);
+    if (bookmarks) {
+        m_bookmarksBox->showMaterial(element);
+    }
+    // A quote: where it comes from, under its words
+    const bool quote = SourceNames::isQuote(m_book, element);
+    m_quoteBox->setVisible(quote);
+    if (quote) {
+        m_quoteBox->showMaterial(element);
+    }
 }
 
 void MaterialPage::setDownloading(const QString& elementId, bool downloading) {
@@ -1185,6 +1235,14 @@ void MaterialPage::showCover(const core::ProjectElement& element) {
         m_descriptionEdit->setAccessibleName(tr("Text of the cover material"));
         //: In Polish: Wpisz treść...
         m_descriptionEdit->setPlaceholderText(tr("Enter the text..."));
+    } else if (SourceNames::isQuote(m_book, element)) {
+        // The description of a quote is its words
+        //: The words of a quote, in the field of the description of its card. In Polish: Cytat
+        m_descriptionGroup->setTitle(tr("Quote"));
+        //: In Polish: Słowa cytatu
+        m_descriptionEdit->setAccessibleName(tr("Words of the quote"));
+        //: In Polish: Wpisz albo wklej słowa cytatu...
+        m_descriptionEdit->setPlaceholderText(tr("Type or paste the words of the quote..."));
     } else {
         m_descriptionGroup->setTitle(tr("Description"));
         m_descriptionEdit->setAccessibleName(tr("Description of the material"));

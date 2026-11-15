@@ -11,6 +11,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Sources: the bibliographic description of a material, the bibliography and the quotes
+  with their source** - 2026-11-15. A publication, a document, a web page and a recording
+  can be a source: their card has the group Bibliographic Description (the kind of source –
+  book, chapter in a book, article in a journal, web page, archival document, talk or
+  interview, film or recording, thesis, other – changes the fields; the people with their
+  roles in a table, Insert and Delete; Paste Description takes a record in BibTeX or RIS
+  copied from a library catalog or a bibliography manager), As the Bibliography Shows It
+  (the entry in the style of the book, another style to compare, In the bibliography: when
+  linked with the text, always or never, Copy Entry as text and with italics, the gear opens
+  Settings > Materials), Bookmarks of a PDF (a page and a note each, saved at once) and
+  Quotes from This Source (Insert makes a new quote with the source and the page shown last,
+  Enter opens one). The short card in the Properties panel shows the entry. The card of a
+  quote has the group Where It Comes From: a source (the materials with a description) or
+  none with the author and the work, the page and the reference in the text, as
+  "(Wiśniewska 2011, p. 45)"; Open Source opens the card of the source. Sources, first in
+  Materials of the Navigator (in italics, with its number), opens the list of all the
+  materials with a description: material, kind of source, author, title, year, in the
+  bibliography, in the text; Copy Entries copies the entries of the sources shown, in the
+  style of the book. The list of the quotes has the column Source. The styles: PN-ISO 690
+  (at first), APA, Chicago, MLA and Harvard; the reference: author and year (at first),
+  author and title, or number (Settings > Materials > Sources). A book may have its own style
+  (Properties of the book > Bibliography). The kind Source of non-fiction is retired: books
+  that have one keep it. In the book file: `source`, `bookmarks`, `lastPage` and `quote` of
+  a material, `bibliographyStyle` of a book; fields the program does not know are kept.
+
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

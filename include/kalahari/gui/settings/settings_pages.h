@@ -466,6 +466,19 @@ private:
     const core::ProjectManager& m_book;  ///< The book of its window
 };
 
+/// @brief Materials: the sources, the style of the bibliography of a book without its own
+/// (core::Bibliography::STYLE_SETTING) and the form of a reference in the text
+/// (core::Bibliography::REFERENCE_SETTING)
+class MaterialsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit MaterialsPage(QWidget* parent = nullptr);
+
+private:
+    QComboBox* m_style = nullptr;      ///< PN-ISO 690, APA...
+    QComboBox* m_reference = nullptr;  ///< (Wiśniewska 2011, s. 45)...
+};
+
 /// @brief Network > Materials: whether the program downloads the title of the page or the copy
 /// of the picture of a material with a web address (MaterialDownloader::SETTING): when the box
 /// of the Add Element window asks for it (the usual one), always, or never

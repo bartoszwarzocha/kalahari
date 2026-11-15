@@ -149,6 +149,9 @@ void SettingsDialog::createNavigationTree() {
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     m_pageItems[NAVIGATOR_PAGE] =
         addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    //: The page of the materials: the sources. In Polish: Materiały
+    m_pageItems[MATERIALS_PAGE] =
+        addPage(nullptr, tr("Materials"), []() { return new MaterialsPage(); });
     //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
     //: and the colors. In Polish: Statystyki i cele
     QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));

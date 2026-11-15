@@ -21,6 +21,7 @@
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/bibliography.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
@@ -34,6 +35,7 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QComboBox>
+#include <QSignalBlocker>
 #include <QTextEdit>
 #include <QStackedWidget>
 #include <QTimer>
@@ -290,6 +292,16 @@ QWidget* PropertiesPanel::createProjectPage() {
     m_projectLanguageCombo->addItem(tr("Chinese"), "zh");
     m_projectLanguageCombo->addItem(tr("Japanese"), "ja");
     infoLayout->addRow(tr("Language:"), m_projectLanguageCombo);
+
+    // The style of the bibliography and of the entries of the sources: the book's own, or
+    // that of the Settings
+    m_projectBibliographyCombo = new QComboBox(infoGroup);
+    m_projectBibliographyCombo->setObjectName(QStringLiteral("projectBibliographyCombo"));
+    //: In Polish: Norma zapisu bibliografii i odnośników tej książki
+    m_projectBibliographyCombo->setToolTip(
+        tr("The style of the bibliography and of the references of this book"));
+    //: The style of the bibliography of the book: PN-ISO 690, APA... In Polish: Bibliografia:
+    infoLayout->addRow(tr("Bibliography:"), m_projectBibliographyCombo);
 
     // Genre
     m_projectGenreEdit = new QLineEdit(infoGroup);
@@ -753,6 +765,10 @@ QWidget* PropertiesPanel::createMaterialPage() {
             &PropertiesPanel::requestOpenWithSystem);
     connect(m_materialPage, &MaterialPage::requestOpenLink, this,
             &PropertiesPanel::requestOpenLink);
+    connect(m_materialPage, &MaterialPage::requestOpenCard, this,
+            &PropertiesPanel::requestOpenMaterialCard);
+    connect(m_materialPage, &MaterialPage::requestSourceSettings, this,
+            &PropertiesPanel::requestSourceSettings);
     connect(m_materialPage, &MaterialPage::requestOpenInBrowser, this,
             &PropertiesPanel::requestOpenInBrowser);
     connect(m_materialPage, &MaterialPage::requestSaveCopy, this,
@@ -798,6 +814,24 @@ void PropertiesPanel::connectSignals() {
             this, &PropertiesPanel::onProjectLanguageChanged);
     connect(m_projectGenreEdit, &QLineEdit::editingFinished,
             this, &PropertiesPanel::onProjectGenreChanged);
+    connect(m_projectBibliographyCombo, &QComboBox::activated, this, [this]() {
+        if (m_isUpdating || m_book.isReadOnly()) {
+            return;
+        }
+        const QString style = m_projectBibliographyCombo->currentData().toString();
+        if (!m_book.setBookBibliographyStyle(style)) {
+            //: In Polish: Nie zapisano normy bibliografii
+            dialogs::MessageDialog::warning(this, tr("Bibliography Style Not Saved"),
+                                            tr("Failed to save changes."));
+        }
+        populateBibliographyStyle();
+    });
+    // The style of the Settings changes the first choice, the book's style the one chosen
+    connect(&m_book, &core::ProjectManager::sourcesChanged, this, [this]() {
+        if (m_book.book() != nullptr) {
+            populateBibliographyStyle();
+        }
+    });
     connect(m_projectSectionsCombo, &QComboBox::currentIndexChanged,
             this, &PropertiesPanel::onProjectSectionsChanged);
     connect(m_projectSectionNames, &SectionNamesEdit::editingFinished,
@@ -1384,6 +1418,22 @@ bool PropertiesPanel::eventFilter(QObject* obj, QEvent* event) {
     return QWidget::eventFilter(obj, event);
 }
 
+void PropertiesPanel::populateBibliographyStyle() {
+    const QSignalBlocker blocker(m_projectBibliographyCombo);
+    m_projectBibliographyCombo->clear();
+    //: The book follows the style of the Settings: %1 its name. In Polish: Jak w Ustawieniach
+    //: (%1)
+    m_projectBibliographyCombo->addItem(
+        tr("As in the Settings (%1)")
+            .arg(core::Bibliography::styleName(core::Bibliography::settingsStyle())),
+        QString());
+    for (const QString& style : core::Bibliography::styles()) {
+        m_projectBibliographyCombo->addItem(core::Bibliography::styleName(style), style);
+    }
+    const int at = m_projectBibliographyCombo->findData(m_book.bookBibliographyStyle());
+    m_projectBibliographyCombo->setCurrentIndex(std::max(at, 0));
+}
+
 void PropertiesPanel::populateProjectFields() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateProjectFields()");
@@ -1415,6 +1465,7 @@ void PropertiesPanel::populateProjectFields() {
 
     m_projectGenreEdit->setText(book->genre);
     populateBookSections(*book);
+    populateBibliographyStyle();
 
     // A book open read-only is read only, here too
     const bool readOnly = pm.isReadOnly();
@@ -1422,6 +1473,7 @@ void PropertiesPanel::populateProjectFields() {
         field->setReadOnly(readOnly);
     }
     m_projectLanguageCombo->setEnabled(!readOnly);
+    m_projectBibliographyCombo->setEnabled(!readOnly);
     m_projectSectionsCombo->setEnabled(!readOnly);
     m_projectSectionNames->setEnabled(!readOnly);
 

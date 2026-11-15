@@ -793,6 +793,10 @@ NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     connect(&artProvider, &core::ArtProvider::resourcesChanged,
             this, &NavigatorPanel::refreshIcons);
 
+    // A material got or lost its bibliographic description: the number of Sources
+    connect(&m_book, &core::ProjectManager::sourcesChanged, this,
+            &NavigatorPanel::refreshSourcesCount);
+
     // Connect to ThemeManager for highlight color updates (OpenSpec #00034 Phase C)
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged,
             this, &NavigatorPanel::updateHighlightColor);
@@ -1409,13 +1413,44 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         }
     }
 
-    // Materials has the number of all of them
+    // Materials has the number of all of them, and first Sources: the materials with a
+    // bibliographic description, of every kind; a view of them, in italics, not a kind
     if (materials) {
         qsizetype all = hiddenCount;
         for (int i = 0; i < materials->childCount(); ++i) {
             all += materials->child(i)->data(0, COUNT_ROLE).toInt();
         }
         setCount(materials, all);
+        const QString sourcesList = QString::fromLatin1(MaterialList::SOURCES);
+        auto* sources = new QTreeWidgetItem();
+        materials->insertChild(0, sources);
+        sources->setText(0, MaterialList::nameOf(sourcesList));
+        sources->setData(0, Qt::UserRole, WORKSHOP_ID_PREFIX + sourcesList);
+        sources->setData(0, Qt::UserRole + 1, QStringLiteral("workshop_view"));
+        sources->setData(0, ICON_ROLE, MaterialList::iconIdOf(sourcesList));
+        sources->setData(0, KIND_ROLE, sourcesList);
+        sources->setIcon(0, itemIcon(sources, MaterialList::iconIdOf(sourcesList)));
+        sources->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+        QFont italic = m_treeWidget->font();
+        italic.setItalic(true);
+        sources->setFont(0, italic);
+        //: The tooltip of Sources in the Navigator. In Polish: Materiały z opisem
+        //: bibliograficznym, każdego typu
+        sources->setToolTip(0, tr("The materials with a bibliographic description, of every "
+                                  "kind"));
+        setCount(sources, MaterialList::countOf(m_book, sourcesList));
+    }
+}
+
+void NavigatorPanel::refreshSourcesCount() {
+    const QString list = QString::fromLatin1(MaterialList::SOURCES);
+    const QString id = WORKSHOP_ID_PREFIX + list;
+    for (QTreeWidgetItemIterator it(m_treeWidget); *it; ++it) {
+        if ((*it)->data(0, Qt::UserRole).toString() == id) {
+            setCount(*it, MaterialList::countOf(m_book, list));
+            m_treeWidget->viewport()->update();
+            return;
+        }
     }
 }
 
@@ -2384,6 +2419,26 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         addExpandCollapseActions();
 
+    } else if (elementType == "workshop_view") {
+        // Sources: the list of the materials with a bibliographic description
+        if (const std::optional<QString> list = materialListOf(item)) {
+            QAction* openAction = menu.addAction(
+                artProvider.getIcon("file.open", core::IconContext::Menu),
+                withKeys(tr("&Open List"), QKeyCombination(Qt::Key_Enter)));
+            QFont bold = openAction->font();
+            bold.setBold(true);
+            openAction->setFont(bold);
+            connect(openAction, &QAction::triggered, this,
+                    [this, list]() { emit requestOpenMaterialList(*list, true); });
+            menu.addSeparator();
+            //: Opens Settings > Materials at the sources. In Polish: &Ustawienia źródeł...
+            QAction* settingsAction = menu.addAction(
+                artProvider.getIcon("dock.settings", core::IconContext::Menu),
+                tr("Source &Settings..."));
+            connect(settingsAction, &QAction::triggered, this,
+                    [this]() { emit requestSourceSettings(); });
+        }
+
     } else if (elementType == "workshop_shelf" || elementType == "workshop_group") {
         // Materials and its kinds show their lists on tabs
         if (const std::optional<QString> list = materialListOf(item)) {
@@ -2794,7 +2849,9 @@ std::optional<QString> NavigatorPanel::materialListOf(const QTreeWidgetItem* ite
     if (item->data(0, Qt::UserRole).toString() == materials) {
         return QString::fromLatin1(MaterialList::ALL);
     }
-    if (typeOf(item) == QLatin1String("workshop_group") && item->parent() != nullptr &&
+    if ((typeOf(item) == QLatin1String("workshop_group") ||
+         typeOf(item) == QLatin1String("workshop_view")) &&
+        item->parent() != nullptr &&
         item->parent()->data(0, Qt::UserRole).toString() == materials) {
         return item->data(0, KIND_ROLE).toString();
     }
@@ -3090,6 +3147,7 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
     if (elementId.isEmpty()) {
         return;
     }
+    refreshSourcesCount();
 
     // Find item by elementId
     QTreeWidgetItem* item = findItemByElementId(elementId);

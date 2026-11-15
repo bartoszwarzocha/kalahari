@@ -333,6 +333,11 @@ MainWindow::MainWindow(QWidget* parent)
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenWithSystem);
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenLink,
             m_navigatorCoordinator, &NavigatorCoordinator::onRequestOpenLink);
+    // The source of a quote opens on its card
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenMaterialCard,
+            m_navigatorCoordinator, [this](const QString& elementId) {
+                m_navigatorCoordinator->onRequestOpenMaterialCard(elementId);
+            });
     // A material with an address: its page in the browser, the copy of its picture; a change
     // on one card of a material shows on the others
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestOpenInBrowser,
@@ -522,6 +527,20 @@ MainWindow::MainWindow(QWidget* parent)
     };
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestMaterialSettings, this,
             openMaterialSettings);
+    // Source Settings... of Sources and the gears of the entries of the sources: Settings >
+    // Materials
+    const auto openSourceSettings = [this]() {
+        if (m_settingsCoordinator) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::MATERIALS_PAGE));
+        }
+    };
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestSourceSettings, this,
+            openSourceSettings);
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestSourceSettings, this,
+            openSourceSettings);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::sourceSettingsRequested, this,
+            openSourceSettings);
     connect(m_materialListCoordinator, &MaterialListCoordinator::settingsRequested, this,
             openMaterialSettings);
     // Save Version and Version History of the text in front; a text is opened as from the

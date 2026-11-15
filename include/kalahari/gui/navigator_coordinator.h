@@ -309,8 +309,12 @@ public slots:
     void onRequestSaveCopy(const QString& elementId);
 
     /// @brief Material @p elementId changed on one of its cards: the others, its tabs and its
-    /// node in the Navigator show it
+    /// node in the Navigator show it; a quote's source shows it among its quotes
     void onMaterialChanged(const QString& elementId);
+
+    /// @brief A new quote from source @p sourceId in the Workshop, at the page of the source
+    /// shown last; its card opens with the keys in its words
+    void onRequestNewQuote(const QString& sourceId);
 
     /// @brief Add the materials @p incoming, dropped on the Navigator from outside the program
     /// or pasted in it, as NavigatorPanel::QUICK_MATERIALS_SETTING says: at once, linked with
@@ -372,6 +376,9 @@ signals:
     /// @brief Material @p elementId changed on one of its cards (onMaterialChanged()): the
     /// lists of the materials show it
     void materialChanged(const QString& elementId);
+
+    /// @brief The gear of the entry of a source on a card: open Settings > Materials
+    void sourceSettingsRequested();
 
     /// @brief Emitted when chapter dirty state changes (OpenSpec #00042 Phase 7.5)
     /// @param elementId Element ID of the chapter

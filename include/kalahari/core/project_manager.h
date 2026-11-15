@@ -137,6 +137,9 @@ struct NewMaterial {
     QStringList links;   ///< What it is about (ProjectElement::links); each link gets the
                          ///< role of its kind (newLink())
     CoverData cover;     ///< Of a material of the cover: what it is and where it goes
+    QString description;          ///< Its description: the words of a quote; empty: none
+    SourceDescription source;     ///< Its bibliographic description; empty: none
+    QuoteSource quote;            ///< Of a quote: its source and page; empty: none
 };
 
 /// @brief The book project open in a book window
@@ -776,6 +779,56 @@ public:
                        QStringList* drafts = nullptr);
 
     // =========================================================================
+    // Sources, Bookmarks and Quotes
+    // =========================================================================
+
+    /// @brief Give material @p elementId the bibliographic description @p source (empty: it is
+    /// no source) and save the .klh file (sourcesChanged())
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its description then
+    bool setSource(const QString& elementId, const SourceDescription& source);
+
+    /// @brief Give material @p elementId the bookmarks @p bookmarks and save the .klh file
+    /// @return false when the project has no such element or the file cannot be written
+    bool setBookmarks(const QString& elementId, const QList<PageBookmark>& bookmarks);
+
+    /// @brief Note page @p page (from 1; 0: none) as the page of the file of material
+    /// @p elementId shown last and save the .klh file
+    /// @return false for a page below 0, when the project has no such element or the file
+    ///         cannot be written
+    bool setLastPage(const QString& elementId, int page);
+
+    /// @brief Give quote @p elementId its source and page @p quote and save the .klh file
+    /// (sourcesChanged())
+    /// @return false when the project has no such element or the file cannot be written
+    bool setQuoteSource(const QString& elementId, const QuoteSource& quote);
+
+    /// @brief The materials with a bibliographic description, in the order of the Workshop
+    QList<const ProjectElement*> sources() const;
+
+    /// @brief The quotes of the Workshop whose source is material @p elementId, in its order
+    QList<const ProjectElement*> quotesOf(const QString& elementId) const;
+
+    /// @brief How many links with elements of the book material @p elementId and the quotes
+    /// from it have: the places of the text where it is used
+    int placesInText(const QString& elementId) const;
+
+    /// @brief The style of the book's bibliography: its own (ProjectBook::bibliographyStyle),
+    /// else the Settings' one (Bibliography::settingsStyle())
+    QString bibliographyStyle() const;
+
+    /// @brief The book's own style of bibliography; empty: none, or no project
+    QString bookBibliographyStyle() const;
+
+    /// @brief Give the book its own style of bibliography (empty: the Settings' one) and save
+    /// the .klh file (sourcesChanged())
+    /// @return false when no project is open, it is read-only or the file cannot be written
+    bool setBookBibliographyStyle(const QString& style);
+
+    /// @brief The language of the text of the book ("pl"); empty without a project
+    QString bookLanguage() const;
+
+    // =========================================================================
     // Paragraph Styles of the Books
     // =========================================================================
 
@@ -1048,6 +1101,9 @@ signals:
 
     /// @brief The numbering of the book's notes changed (setBookFootnotes())
     void bookFootnotesChanged();
+    /// @brief A bibliographic description, the source of a quote or the style of the book's
+    /// bibliography changed (setSource(), setQuoteSource(), setBookBibliographyStyle())
+    void sourcesChanged();
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
     void versionsChanged(const QString& elementId);
