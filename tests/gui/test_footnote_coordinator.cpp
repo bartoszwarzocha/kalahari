@@ -582,7 +582,9 @@ TEST_CASE("Notes in the book: the window in Polish, its keys, its gear, a small 
     CHECK(lists[1]->currentText() == QStringLiteral("W każdym rozdziale od 1"));
     CHECK(lists[2]->currentText() == QStringLiteral("Koniec rozdziału"));
     CHECK(lists[3]->currentText() == QStringLiteral("i, ii, iii"));
-    CHECK(QApplication::focusWidget() == lists[0]);
+    // The dialog's own focus widget: on Windows another window may be the active one while
+    // the tests run side by side, and then the program's focus widget is none
+    CHECK(dialog.focusWidget() == lists[0]);
 
     // Each key once, Latin letters only (Alt does not reach "ś")
     std::map<QChar, QStringList> byKey;
