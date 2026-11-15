@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file auto_correct_replacements.cpp
 /// @brief The replacement table of auto-correct in the settings
 

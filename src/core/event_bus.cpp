@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file event_bus.cpp
 /// @brief Implementation of thread-safe event pub/sub system
 

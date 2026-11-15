@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dashboard_layouts.cpp
 /// @brief The layouts of the Dashboard, which fit it to a narrow or a low panel
 

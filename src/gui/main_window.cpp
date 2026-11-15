@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file main_window.cpp
 /// @brief Main application window implementation
 
@@ -18,6 +21,7 @@
 #include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/style_coordinator.h"
+#include "kalahari/gui/book_export_coordinator.h"
 #include "kalahari/gui/caption_coordinator.h"
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
@@ -83,6 +87,8 @@
 #include "kalahari/core/recent_books_manager.h"
 #include "kalahari/gui/widgets/status_bar_statistics.h"
 #include <QActionGroup>
+#include <QLayout>
+#include <QPointer>
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
@@ -131,7 +137,7 @@ constexpr std::pair<const char*, const char*> WORKSHOP_COMMANDS[] = {
 
 /// The kind @p kindId of the Workshop of the base package; none when the program has none
 core::KindRef workshopKind(const QString& kindId) {
-    return core::ProjectManager::getInstance().bookTypes().findKind(
+    return core::ProjectManager::installedBookTypes().findKind(
         QString::fromLatin1(core::ProjectManager::BASE_PACKAGE), kindId);
 }
 
@@ -192,6 +198,8 @@ EditorPanel* panelOf(const editor::BookEditor& text, EditorPanel* inFront) {
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
+    , m_book(std::make_unique<core::ProjectManager>())
+    , m_commands(std::make_unique<CommandRegistry>())
     , m_fileMenu(nullptr)
     , m_editMenu(nullptr)
     , m_viewMenu(nullptr)
@@ -230,12 +238,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Create SettingsCoordinator after docks (needs DockCoordinator for panel access)
     // OpenSpec #00038 Phase 5 - Settings management extracted from MainWindow
-    m_settingsCoordinator = new SettingsCoordinator(
-        this,
-        m_dockCoordinator,
-        statusBar(),
-        this
-    );
+    m_settingsCoordinator =
+        new SettingsCoordinator(*m_book, *m_commands, this, m_dockCoordinator, statusBar(), this);
     // Set diagnostic mode getter so SettingsCoordinator can check current state
     m_settingsCoordinator->setDiagnosticModeGetter([this]() { return isDiagnosticMode(); });
     // Connect diagnostic mode signals
@@ -254,12 +258,8 @@ MainWindow::MainWindow(QWidget* parent)
     // Create NavigatorCoordinator after docks (needs DockCoordinator for panel/dock access)
     // OpenSpec #00038 Phase 6 - Navigator handlers extracted from MainWindow
     m_navigatorCoordinator = new NavigatorCoordinator(
-        m_dockCoordinator->navigatorPanel(),
-        m_dockCoordinator->propertiesPanel(),
-        m_dockCoordinator->centralTabs(),
-        statusBar(),
-        this
-    );
+        *m_book, *m_commands, m_dockCoordinator->navigatorPanel(),
+        m_dockCoordinator->propertiesPanel(), m_dockCoordinator->centralTabs(), statusBar(), this);
     logger.debug("MainWindow: NavigatorCoordinator created");
 
     // Connect DockCoordinator navigator signals to NavigatorCoordinator
@@ -359,15 +359,10 @@ MainWindow::MainWindow(QWidget* parent)
     // Create DocumentCoordinator after NavigatorCoordinator (needs it for dirty chapter tracking)
     // OpenSpec #00038 Phase 7 - Document operations extracted from MainWindow
     m_documentCoordinator = new DocumentCoordinator(
-        this,
-        m_dockCoordinator->centralTabs(),
-        m_dockCoordinator->navigatorPanel(),
-        m_dockCoordinator->propertiesPanel(),
-        m_dockCoordinator->dashboardPanel(),
-        m_navigatorCoordinator,
-        m_dockCoordinator->standaloneInfoBar(),
-        statusBar(),
-        [this]() { updateWindowTitle(); },
+        *m_book, *m_commands, this, m_dockCoordinator->centralTabs(),
+        m_dockCoordinator->navigatorPanel(), m_dockCoordinator->propertiesPanel(),
+        m_dockCoordinator->dashboardPanel(), m_navigatorCoordinator,
+        m_dockCoordinator->standaloneInfoBar(), statusBar(), [this]() { updateWindowTitle(); },
         [this]() {
             // An annotation or a note being written is kept before the documents are saved
             // or closed
@@ -379,8 +374,7 @@ MainWindow::MainWindow(QWidget* parent)
             }
             return hasUnsavedChanges();
         },
-        this
-    );
+        this);
     // Connect DocumentCoordinator signals
     connect(m_documentCoordinator, &DocumentCoordinator::windowTitleChanged,
             this, &MainWindow::setWindowTitle);
@@ -389,7 +383,7 @@ MainWindow::MainWindow(QWidget* parent)
     // updateBookCommands(), a closed tab). Their keys, and those of the commands of the open
     // book, say it in the status bar then.
     {
-        CommandRegistry& registry = CommandRegistry::getInstance();
+        CommandRegistry& registry = commands();
         utils::bindSaveCommands(
             registry,
             [this]() {
@@ -424,7 +418,7 @@ MainWindow::MainWindow(QWidget* parent)
     m_distractionFreeLayout = new utils::DistractionFreeLayout(this);
     connect(m_distractionFreeLayout, &utils::DistractionFreeLayout::activeChanged,
             this, &MainWindow::onDistractionFreeChanged);
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged,
+    connect(&commands(), &CommandRegistry::shortcutsChanged,
             m_distractionFreeLayout, &utils::DistractionFreeLayout::updateShortcuts);
 
     logger.debug("MainWindow: DocumentCoordinator created");
@@ -432,7 +426,7 @@ MainWindow::MainWindow(QWidget* parent)
     // The statistics bar above the tabs of the texts, and the record of writing of the book
     // that opens (after the documents, which make the collector of its editors)
     m_writingStatsCoordinator = new WritingStatsCoordinator(
-        m_dockCoordinator, m_documentCoordinator,
+        *m_book, *m_commands, m_dockCoordinator, m_documentCoordinator,
         [this](const QString& page) { m_settingsCoordinator->openSettingsPage(page); }, this);
     m_writingStatsCoordinator->connectCommands();
     // The time of writing and the days in a row after the reading time, and the summary of
@@ -443,17 +437,15 @@ MainWindow::MainWindow(QWidget* parent)
     // The annotation commands and the Annotations panel; a chapter is opened as from the
     // Navigator
     m_annotationsCoordinator = new AnnotationsCoordinator(
-        m_dockCoordinator->annotationsPanel(),
-        m_dockCoordinator->annotationsDock(),
-        m_dockCoordinator->centralTabs(),
+        *m_book, *m_commands, m_dockCoordinator->annotationsPanel(),
+        m_dockCoordinator->annotationsDock(), m_dockCoordinator->centralTabs(),
         [this](const QString& elementId) {
             if (const core::ProjectElement* element =
-                    core::ProjectManager::getInstance().findElement(elementId)) {
+                    book().findElement(elementId)) {
                 m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
-        statusBar(),
-        this);
+        statusBar(), this);
     m_annotationsCoordinator->connectCommands();
     // Card Appearance and Colors... in the menu of a card opens the Annotations page
     connect(m_annotationsCoordinator, &AnnotationsCoordinator::settingsPageRequested, this,
@@ -464,7 +456,7 @@ MainWindow::MainWindow(QWidget* parent)
     // The paperclips beside the paragraphs that materials are linked with: one chosen shows
     // its material in the Properties panel, brought to the front
     m_paragraphMarksCoordinator = new ParagraphMarksCoordinator(
-        m_dockCoordinator->centralTabs(),
+        *m_book, m_dockCoordinator->centralTabs(),
         [this](const QString& materialId) {
             m_dockCoordinator->propertiesPanel()->showMaterialProperties(materialId);
             QDockWidget* dock = m_dockCoordinator->propertiesDock();
@@ -480,7 +472,7 @@ MainWindow::MainWindow(QWidget* parent)
     // the Navigator, or Materials itself. A material chosen in a list shows in the Properties
     // panel, brought to the front; Alt+Enter gives it the keys.
     m_materialListCoordinator = new MaterialListCoordinator(
-        m_dockCoordinator->centralTabs(), m_navigatorCoordinator, statusBar(),
+        *m_book, m_dockCoordinator->centralTabs(), m_navigatorCoordinator, statusBar(),
         [this](bool keys) {
             QDockWidget* dock = m_dockCoordinator->propertiesDock();
             dock->show();
@@ -512,10 +504,10 @@ MainWindow::MainWindow(QWidget* parent)
     // Save Version and Version History of the text in front; a text is opened as from the
     // Navigator, and the bar under it says that a version was restored
     m_versionsCoordinator = new VersionsCoordinator(
-        m_dockCoordinator->centralTabs(),
+        *m_book, *m_commands, m_dockCoordinator->centralTabs(),
         [this](const QString& elementId) {
             if (const core::ProjectElement* element =
-                    core::ProjectManager::getInstance().findElement(elementId)) {
+                    book().findElement(elementId)) {
                 m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
@@ -529,7 +521,7 @@ MainWindow::MainWindow(QWidget* parent)
     // Format > Text Style: new styles of the book, the one at the cursor changed or deleted,
     // Manage Styles...; the bar under the text says that a style was deleted, with Undo
     m_styleCoordinator = new StyleCoordinator(
-        m_dockCoordinator->centralTabs(),
+        *m_book, *m_commands, m_dockCoordinator->centralTabs(),
         [this](EditorPanel* editor, const QString& message, const QString& actionText,
                const QString& actionToolTip, std::function<void()> action) {
             m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
@@ -541,10 +533,10 @@ MainWindow::MainWindow(QWidget* parent)
     // captions of every open text in the book around it; Ctrl+click on a caption of another
     // text opens it, as from the Navigator
     m_captionCoordinator = new CaptionCoordinator(
-        m_dockCoordinator->centralTabs(),
+        *m_book, *m_commands, m_dockCoordinator->centralTabs(),
         [this](const QString& elementId) {
             if (const core::ProjectElement* element =
-                    core::ProjectManager::getInstance().findElement(elementId)) {
+                    book().findElement(elementId)) {
                 m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
@@ -558,7 +550,7 @@ MainWindow::MainWindow(QWidget* parent)
     // Image > Filter > Same Filter for All Images...; the bar under the text says how many
     // images changed, with Undo
     m_imageFilterCoordinator = new ImageFilterCoordinator(
-        m_dockCoordinator->centralTabs(),
+        *m_book, m_dockCoordinator->centralTabs(),
         [this](EditorPanel* editor, const QString& message, const QString& actionText,
                const QString& actionToolTip, std::function<void()> action) {
             m_documentCoordinator->showNotice(editor, message, actionText, actionToolTip,
@@ -595,6 +587,7 @@ MainWindow::MainWindow(QWidget* parent)
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
     m_editCoordinator = new EditCoordinator(
+        *m_commands,
         [this]() -> editor::BookEditor* {
             EditorPanel* panel = getCurrentEditor();
             return panel != nullptr ? panel->getBookEditor() : nullptr;
@@ -642,7 +635,7 @@ MainWindow::MainWindow(QWidget* parent)
     changingCommands.insert(changingCommands.end(), pasteCommands.begin(), pasteCommands.end());
     changingCommands.emplace_back("edit.pasteSpecial");
     for (const std::string& id : changingCommands) {
-        if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+        if (Command* command = commands().getCommand(id)) {
             const bool object =
                 std::find(objectCommands.begin(), objectCommands.end(), id) != objectCommands.end();
             command->disabledReason = [this, object]() {
@@ -664,11 +657,11 @@ MainWindow::MainWindow(QWidget* parent)
     // Footnote Layout...; a click on an endnote of another text at the end of the book
     // opens that text, as from the Navigator
     m_footnoteCoordinator = new FootnoteCoordinator(
-        m_dockCoordinator->centralTabs(),
+        *m_book, *m_commands, m_dockCoordinator->centralTabs(),
         [this]() { return m_editCoordinator->textWithKeys(); },
         [this](const QString& elementId) {
             if (const core::ProjectElement* element =
-                    core::ProjectManager::getInstance().findElement(elementId)) {
+                    book().findElement(elementId)) {
                 m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
@@ -684,7 +677,7 @@ MainWindow::MainWindow(QWidget* parent)
         return !text.isReadOnly() && text.annotationsAllowed();
     });
     for (const std::string& id : noteCommands) {
-        if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+        if (Command* command = commands().getCommand(id)) {
             command->disabledReason = [this]() {
                 const editor::BookEditor* text = m_editCoordinator->textWithKeys();
                 if (text != nullptr && text->isReadOnly()) {
@@ -700,11 +693,19 @@ MainWindow::MainWindow(QWidget* parent)
     }
     m_editCoordinator->updateStates();
 
+    // File > Export > DOCX and Markdown: the book, some of its texts or the text in front, with
+    // the numbers of the captions and notes of the book
+    m_bookExportCoordinator = new BookExportCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(),
+        [this]() { return getCurrentEditor(); },
+        m_captionCoordinator, m_footnoteCoordinator, this, this);
+    m_bookExportCoordinator->connectCommands();
+
     // Edit > Find in Book... and the Search panel: all the texts of the book; a match of a
     // text not open opens it, as from the Navigator, and the bar under the text says how many
     // matches Replace All in Book changed, with Undo
     m_bookSearchCoordinator = new BookSearchCoordinator(
-        m_dockCoordinator->centralTabs(), m_dockCoordinator->searchPanel(),
+        book(), commands(), m_dockCoordinator->centralTabs(), m_dockCoordinator->searchPanel(),
         [this]() {
             QDockWidget* dock = m_dockCoordinator->searchDock();
             dock->show();
@@ -716,7 +717,7 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return m_editCoordinator->textWithKeys(); },
         [this](const QString& elementId) {
             if (const core::ProjectElement* element =
-                    core::ProjectManager::getInstance().findElement(elementId)) {
+                    book().findElement(elementId)) {
                 m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
@@ -735,7 +736,7 @@ MainWindow::MainWindow(QWidget* parent)
     // Book > Chapter Break: the text from the cursor to a new text right after the text with
     // the keys; the bar under the new text says where the text went, with Undo
     m_chapterBreakCoordinator = new ChapterBreakCoordinator(
-        m_dockCoordinator->centralTabs(), m_navigatorCoordinator,
+        book(), commands(), m_dockCoordinator->centralTabs(), m_navigatorCoordinator,
         [this]() { return m_editCoordinator->textWithKeys(); },
         [this](EditorPanel* editor, const QString& message, const QString& actionText,
                const QString& actionToolTip, std::function<void()> action) {
@@ -754,8 +755,8 @@ MainWindow::MainWindow(QWidget* parent)
     // plain text file either (it keeps no fields). The fields of every open text show the
     // book's title, author and language as the Properties panel changes them
     m_fieldCoordinator = new FieldCoordinator(
-        m_dockCoordinator->centralTabs(), [this]() { return m_editCoordinator->textWithKeys(); },
-        this, this);
+        *m_book, *m_commands, m_dockCoordinator->centralTabs(),
+        [this]() { return m_editCoordinator->textWithKeys(); }, this, this);
     m_fieldCoordinator->connectCommands();
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookChanged,
             m_fieldCoordinator, &FieldCoordinator::refresh);
@@ -772,7 +773,7 @@ MainWindow::MainWindow(QWidget* parent)
         });
     for (const char* id : {FieldCoordinator::DATE_TIME_COMMAND, FieldCoordinator::DATE_COMMAND,
                            FieldCoordinator::TIME_COMMAND, FieldCoordinator::FIELD_COMMAND}) {
-        if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+        if (Command* command = commands().getCommand(id)) {
             const bool field = std::string(id) == FieldCoordinator::FIELD_COMMAND;
             command->disabledReason = [this, field]() {
                 const editor::BookEditor* text = m_editCoordinator->textWithKeys();
@@ -797,12 +798,12 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Format > Text Style also shows the other styles of the text in front (the window owns
     // the object)
-    if (QAction* heading = CommandRegistry::getInstance().getAction(
+    if (QAction* heading = commands().getAction(
             QString::fromLatin1(styleCommands().front().commandId))) {
         for (QObject* object : heading->associatedObjects()) {
             if (auto* menu = qobject_cast<QMenu*>(object)) {
                 new ParagraphStyleMenu(
-                    menu,
+                    *m_commands, menu,
                     [this]() -> editor::BookEditor* {
                         EditorPanel* panel = getCurrentEditor();
                         return panel != nullptr ? panel->getBookEditor() : nullptr;
@@ -829,7 +830,7 @@ MainWindow::MainWindow(QWidget* parent)
     m_highlightColorMenu = new ColorMenu(ColorMenu::Kind::Highlight, shownColor(true), this);
     for (ColorMenu* menu : {m_fontColorMenu, m_highlightColorMenu}) {
         const bool highlight = menu == m_highlightColorMenu;
-        if (QAction* command = CommandRegistry::getInstance().getAction(
+        if (QAction* command = commands().getAction(
                 highlight ? QStringLiteral("format.highlightColor")
                           : QStringLiteral("format.fontColor"))) {
             command->setMenu(menu);
@@ -844,14 +845,14 @@ MainWindow::MainWindow(QWidget* parent)
     new ToolbarKeys(this, this);
 
     // Auto-correct as you type turned on and off as a whole (the window owns the object)
-    auto* autoCorrect = new AutoCorrectCoordinator(statusBar(), this);
+    auto* autoCorrect = new AutoCorrectCoordinator(*m_commands, statusBar(), this);
     autoCorrect->connectCommands();
 
     // Insert > Special Character...: the window inserts in the chapter in front; the
     // characters given keys there work as the formatting characters (the window owns the
     // object)
     m_specialCharacterCoordinator = new SpecialCharacterCoordinator(
-        this, statusBar(),
+        *m_commands, this, statusBar(),
         [this]() -> editor::BookEditor* {
             EditorPanel* panel = getCurrentEditor();
             return panel != nullptr ? panel->getBookEditor() : nullptr;
@@ -865,7 +866,7 @@ MainWindow::MainWindow(QWidget* parent)
             m_editCoordinator->addTextCommands(
                 ids, [](const editor::BookEditor& text) { return !text.isReadOnly(); });
             for (const std::string& id : ids) {
-                if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+                if (Command* command = commands().getCommand(id)) {
                     command->disabledReason = [this]() {
                         const editor::BookEditor* text = m_editCoordinator->textWithKeys();
                         return text != nullptr && text->isReadOnly() ? readOnlyReason()
@@ -880,8 +881,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Spelling as you type: the dictionary of the editors follows the settings and the
     // language of the book, also as it is changed in the Properties panel
-    m_spellingCoordinator =
-        new SpellingCoordinator(m_dockCoordinator->centralTabs(), statusBar(), this);
+    m_spellingCoordinator = new SpellingCoordinator(
+        *m_book, *m_commands, m_dockCoordinator->centralTabs(), statusBar(), this);
     m_spellingCoordinator->connectCommands();
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
             m_spellingCoordinator, &SpellingCoordinator::updateDictionary);
@@ -889,8 +890,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Grammar as you type, in the spelling's language: on LanguageTool the program prepares
     // on this computer, or on a server in the internet the writer chose
-    m_grammarCoordinator =
-        new GrammarCoordinator(m_dockCoordinator->centralTabs(), statusBar(), this);
+    m_grammarCoordinator = new GrammarCoordinator(
+        *m_book, *m_commands, m_dockCoordinator->centralTabs(), statusBar(), this);
     m_grammarCoordinator->connectCommands();
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
             m_grammarCoordinator, &GrammarCoordinator::updateChecking);
@@ -899,17 +900,18 @@ MainWindow::MainWindow(QWidget* parent)
     // The Spelling and Grammar panel: the issues of the text in front, where Next Spelling or
     // Grammar Issue shows the one it finds
     m_spellingPanelCoordinator = new SpellingPanelCoordinator(
-        m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
+        *m_book, *m_commands, m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
 
     // The Repetitions panel, the marks of the repeated words and Next Repetition; a chapter
     // is opened as from the Navigator
     m_repetitionsCoordinator = new RepetitionsCoordinator(
-        m_dockCoordinator->repetitionsPanel(), m_dockCoordinator->repetitionsDock(),
-        m_dockCoordinator->centralTabs(), m_spellingCoordinator,
+        *m_book, *m_commands, m_dockCoordinator->repetitionsPanel(),
+        m_dockCoordinator->repetitionsDock(), m_dockCoordinator->centralTabs(),
+        m_spellingCoordinator,
         [this](const QString& elementId) {
             if (const core::ProjectElement* element =
-                    core::ProjectManager::getInstance().findElement(elementId)) {
+                    book().findElement(elementId)) {
                 m_navigatorCoordinator->onElementSelected(elementId, element->title);
             }
         },
@@ -929,8 +931,11 @@ MainWindow::MainWindow(QWidget* parent)
     // ThemeManager::themeChanged to ArtProvider::onThemeChanged, which drives IconRegistry
     // itself. Do not connect IconRegistry to themeChanged here -- see ArtProvider::onThemeChanged.
 
+    // The books this window opens go to the top of the recent books
+    core::RecentBooksManager::getInstance().follow(*m_book);
+
     // Connect ProjectManager signals (OpenSpec #00033 Phase D) to DocumentCoordinator
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = book();
     connect(&pm, &core::ProjectManager::projectOpened,
             m_documentCoordinator, &DocumentCoordinator::onProjectOpened);
     connect(&pm, &core::ProjectManager::projectAboutToClose,
@@ -964,6 +969,10 @@ MainWindow::~MainWindow() {
     auto& logger = core::Logger::getInstance();
     logger.debug("MainWindow destructor - disconnecting all signals");
 
+    // The book still open closes as when the program ends, while everything that follows it is
+    // there: the texts, the panels, the statistics in its database
+    m_book->closeProject();
+
     // The windows of their own of the tabs go with the window, saying nothing meanwhile
     if (m_documentWindows) {
         m_documentWindows->blockSignals(true);
@@ -975,7 +984,7 @@ MainWindow::~MainWindow() {
     // partially-destroyed MainWindow, causing ASSERT failure.
     disconnect(&core::ThemeManager::getInstance(), nullptr, this, nullptr);
     disconnect(&core::ArtProvider::getInstance(), nullptr, this, nullptr);
-    disconnect(&core::ProjectManager::getInstance(), nullptr, this, nullptr);
+    disconnect(&book(), nullptr, this, nullptr);
     // The dialogs' gears open the settings of this window: without it, none
     dialogs::KalahariDialog::setSettingsOpener(nullptr);
 
@@ -1017,6 +1026,22 @@ MainWindow::~MainWindow() {
     // Disconnect all remaining children (BookEditors, panels, etc.)
     for (QObject* child : findChildren<QObject*>()) {
         disconnect(child, nullptr, this, nullptr);
+    }
+
+    // The parts of the window go while the book and the commands they use are still there (the
+    // members go after this body, the children of a widget only after it is no longer a
+    // MainWindow). Its layout stays with it.
+    const auto nextPart = [this]() -> QObject* {
+        for (QObject* child : children()) {
+            if (qobject_cast<QLayout*>(child) == nullptr) {
+                return child;
+            }
+        }
+        return nullptr;
+    };
+    // Deleting a part takes it out of the children, and may delete others with it
+    while (QObject* part = nextPart()) {
+        delete part;
     }
 
     logger.debug("MainWindow destructor complete");
@@ -1364,7 +1389,7 @@ void MainWindow::registerCommands() {
         }
 
         // Dashboard doesn't exist - create new one
-        DashboardPanel* dashboardPanel = new DashboardPanel(this);
+        DashboardPanel* dashboardPanel = new DashboardPanel(*m_commands, this);
         m_dockCoordinator->setDashboardPanel(dashboardPanel);
         auto& artProvider = core::ArtProvider::getInstance();
         QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
@@ -1388,18 +1413,18 @@ void MainWindow::registerCommands() {
     callbacks.onAbout = [this]() { onAbout(); };
 
     // Register all commands with the callbacks
-    int count = registerAllCommands(callbacks);
+    int count = registerAllCommands(commands(), callbacks);
 
     // The Window menu: the texts in windows of their own (DocumentWindows, made with the tabs)
-    count += DocumentWindows::registerCommands(CommandRegistry::getInstance(),
+    count += DocumentWindows::registerCommands(commands(),
                                                [this]() { return m_documentWindows; });
 
     // The keys the user changed in Settings > Keyboard Shortcuts take the place of the
     // program's, in the menus and the toolbars built next
-    CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
+    commands().setCustomShortcuts(loadCustomShortcuts());
 
     // OpenSpec #00040: Setup fullscreen command callbacks (post-registration modification)
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = commands();
     if (auto* fsCmd = registry.getCommand("view.fullScreen")) {
         fsCmd->execute = [this]() { toggleFullScreen(); };
         fsCmd->isChecked = [this]() { return isFullScreen(); };
@@ -1420,21 +1445,21 @@ void MainWindow::registerCommands() {
     // The Book menu works with a book open, and changes it: over a book open read-only it is
     // greyed out, its tooltips and the status bar saying why. New Chapter... also needs a kind
     // of text the body of the book can have (see updateBookCommands())
-    const auto whyReadOnly = []() {
-        const auto& projects = core::ProjectManager::getInstance();
+    const auto whyReadOnly = [this]() {
+        const auto& projects = book();
         return projects.isProjectOpen() && projects.isReadOnly() ? readOnlyReason() : QString();
     };
     if (auto* newText = registry.getCommand("book.newChapter")) {
-        newText->isEnabled = []() {
-            const auto& projects = core::ProjectManager::getInstance();
+        newText->isEnabled = [this]() {
+            const auto& projects = book();
             return projects.isProjectOpen() && !projects.isReadOnly()
                    && static_cast<bool>(projects.chapterKindFor(core::BookPlace::Main));
         };
         newText->disabledReason = whyReadOnly;
     }
     if (auto* properties = registry.getCommand("book.properties")) {
-        properties->isEnabled = []() {
-            const auto& projects = core::ProjectManager::getInstance();
+        properties->isEnabled = [this]() {
+            const auto& projects = book();
             return projects.isProjectOpen() && !projects.isReadOnly();
         };
         properties->disabledReason = whyReadOnly;
@@ -1442,8 +1467,8 @@ void MainWindow::registerCommands() {
     // Add... adds to the book open, after the element in front or anywhere in it; it leads the
     // menu, in bold, as in the menus of the Navigator
     if (auto* add = registry.getCommand("book.addElement")) {
-        add->isEnabled = []() {
-            const auto& projects = core::ProjectManager::getInstance();
+        add->isEnabled = [this]() {
+            const auto& projects = book();
             return projects.isProjectOpen() && !projects.isReadOnly();
         };
         add->disabledReason = whyReadOnly;
@@ -1461,8 +1486,8 @@ void MainWindow::registerCommands() {
             continue;
         }
         const QString kindName = QString::fromLatin1(kindId);
-        command->isEnabled = [kindName]() {
-            const auto& projects = core::ProjectManager::getInstance();
+        command->isEnabled = [this, kindName]() {
+            const auto& projects = book();
             const core::KindRef kind = workshopKind(kindName);
             const QList<core::KindRef> offered =
                 projects.isProjectOpen() ? projects.kindsFor(core::BookPlace::Workshop)
@@ -1555,8 +1580,8 @@ void MainWindow::registerCommands() {
 
     // Close Book and the export of the book's archive work on the open book: without one
     // they are greyed out, as the Book menu (updateBookCommands())
-    utils::bindToOpenBook(registry, []() {
-        return core::ProjectManager::getInstance().isProjectOpen();
+    utils::bindToOpenBook(registry, [this]() {
+        return book().isProjectOpen();
     });
 
     // The paper, the text frame border, Typewriter Scrolling and Focus are settings of every
@@ -1597,7 +1622,7 @@ void MainWindow::createMenus() {
     // Build menu bar from CommandRegistry using MenuBuilder
     // Task #00025: Store MenuBuilder for icon refresh on theme change
     m_menuBuilder = std::make_unique<MenuBuilder>();
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = commands();
     m_menuBuilder->buildMenuBar(registry, this);
 
     // Store FILE menu pointer for Recent Books integration
@@ -1605,7 +1630,7 @@ void MainWindow::createMenus() {
 
     // OpenSpec #00030: Add Recent Books submenu to FILE menu
     if (m_fileMenu) {
-        auto* recentBooks = new RecentBooksMenu(m_fileMenu);
+        auto* recentBooks = new RecentBooksMenu(*m_commands, m_fileMenu);
         recentBooks->insertInto(m_fileMenu);
 
         // Open the chosen book via DocumentCoordinator
@@ -1630,8 +1655,8 @@ void MainWindow::createToolbars() {
     logger.debug("Creating toolbars from CommandRegistry using ToolbarManager");
 
     // Task #00019: Create ToolbarManager and build 5 toolbars
-    m_toolbarManager = std::make_unique<ToolbarManager>(this);
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    m_toolbarManager = std::make_unique<ToolbarManager>(*m_commands, this);
+    CommandRegistry& registry = commands();
     m_toolbarManager->createToolbars(registry);
 
     // OpenSpec #00026: Connect ArtProvider::resourcesChanged() to update toolbar icon sizes
@@ -1684,7 +1709,7 @@ void MainWindow::createStatusBar() {
         QStringLiteral("common.lock"), tr("Read-only"), m_readOnlyStatus,
         core::IconContext::StatusBar));
     connect(m_readOnlyStatus->defaultAction(), &QAction::triggered, this, [this]() {
-        statusBar()->showMessage(readOnlyBookMessage(), READ_ONLY_MESSAGE_MS);
+        statusBar()->showMessage(readOnlyBookMessage(book()), READ_ONLY_MESSAGE_MS);
     });
     m_readOnlyStatus->hide();
     statusBar()->addPermanentWidget(m_readOnlyStatus);
@@ -2070,7 +2095,7 @@ void MainWindow::onDistractionFreeChanged(bool enabled) {
     }
 
 
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = commands();
     registry.updateActionState("view.mode.distraction-free");
     registry.updateActionState("view.fullScreen");
 }
@@ -2105,7 +2130,7 @@ void MainWindow::addTableCommands() {
     });
 
     // Why
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = *m_commands;  // commands() is the list of ids here
     const auto explain = [this, &registry](const std::string& id,
                                            const std::function<QString(Text)>& why) {
         if (Command* command = registry.getCommand(id)) {
@@ -2261,7 +2286,7 @@ void MainWindow::addImageCommands() {
     });
 
     // The filter of the selected image
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = *m_commands;  // commands() is the list of ids here
     for (const auto& [id, filter] : IMAGE_FILTER_COMMANDS) {
         if (Command* command = registry.getCommand(id)) {
             command->isChecked = [this, wanted = filter]() {
@@ -2414,7 +2439,7 @@ void MainWindow::updateEditorActionStates() {
     // out (utils::bindToDocument())
     EditorPanel* editor = getCurrentEditor();
     editor::BookEditor* bookEditor = editor != nullptr ? editor->getBookEditor() : nullptr;
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = commands();
     const auto setChecked = [&registry](const std::string& id, bool checked) {
         if (Command* command = registry.getCommand(id)) {
             command->isChecked = [checked]() { return checked; };
@@ -2463,6 +2488,10 @@ void MainWindow::updateEditorActionStates() {
     utils::updateDocumentCommands(registry);
     // Save, Save As and Save All follow the tabs: a chapter, a file outside the book, none
     utils::updateSaveCommands(registry);
+    // The export works on the book or on the text in front
+    if (m_bookExportCoordinator != nullptr) {
+        m_bookExportCoordinator->updateCommands();
+    }
 
     // Sync the font family/size toolbar controls to the char format under the caret,
     // so they reflect the formatting at the cursor (updates on every cursor move /
@@ -2502,7 +2531,7 @@ void MainWindow::createDocks() {
     logger.debug("Creating dock widgets via DockCoordinator");
 
     // Create DockCoordinator to manage all dock widgets and panels
-    m_dockCoordinator = new DockCoordinator(this, this);
+    m_dockCoordinator = new DockCoordinator(*m_book, *m_commands, this, this);
     m_dockCoordinator->createDocks();
 
     // Connect DockCoordinator signals to MainWindow slots or DocumentCoordinator
@@ -2597,7 +2626,7 @@ void MainWindow::createDocks() {
         widget->deleteLater();
         // Save All saves the files of all tabs: the last file outside a book leaves it
         // nothing, also from a tab behind the one in front
-        utils::updateSaveCommands(CommandRegistry::getInstance());
+        utils::updateSaveCommands(commands());
 
         logger.debug("Tab closed");
     };
@@ -2630,7 +2659,7 @@ void MainWindow::createDocks() {
             && (getCurrentEditor() == nullptr || m_documentWindows->isDetached(page))) {
             m_distractionFreeLayout->setActive(false);
         }
-        CommandRegistry::getInstance().updateActionState("view.mode.distraction-free");
+        commands().updateActionState("view.mode.distraction-free");
 
         if (page == nullptr) {
             navigatorPanel->clearHighlight();
@@ -2793,7 +2822,7 @@ void MainWindow::resetLayout() {
 }
 
 void MainWindow::showBookProperties() {
-    if (m_dockCoordinator == nullptr || !core::ProjectManager::getInstance().isProjectOpen()) {
+    if (m_dockCoordinator == nullptr || !book().isProjectOpen()) {
         return;
     }
     QDockWidget* dock = m_dockCoordinator->propertiesDock();
@@ -2810,17 +2839,17 @@ void MainWindow::updateReadOnlyStatus() {
     if (m_readOnlyStatus == nullptr) {
         return;
     }
-    const QString message = readOnlyBookMessage();
+    const QString message = readOnlyBookMessage(book());
     m_readOnlyStatus->defaultAction()->setToolTip(message);
     m_readOnlyStatus->setVisible(!message.isEmpty());
 }
 
 void MainWindow::updateBookCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = commands();
     if (Command* newText = registry.getCommand("book.newChapter")) {
         // Named after the texts it adds: "New Story..." in a collection of short stories,
         // "New Chapter..." without a book
-        const auto& projects = core::ProjectManager::getInstance();
+        const auto& projects = book();
         const core::KindRef kind = projects.isProjectOpen()
                                        ? projects.chapterKindFor(core::BookPlace::Main)
                                        : core::KindRef{};
@@ -2834,7 +2863,7 @@ void MainWindow::updateBookCommands() {
     }
     if (Command* textBreak = registry.getCommand(ChapterBreakCoordinator::COMMAND)) {
         // Named after the texts of the book too: "Story Break"
-        const auto& projects = core::ProjectManager::getInstance();
+        const auto& projects = book();
         const core::KindRef kind = projects.isProjectOpen()
                                        ? projects.chapterKindFor(core::BookPlace::Main)
                                        : core::KindRef{};
@@ -2853,6 +2882,9 @@ void MainWindow::updateBookCommands() {
     }
     registry.updateActionState("book.properties");
     utils::updateOpenBookCommands(registry);
+    if (m_bookExportCoordinator != nullptr) {
+        m_bookExportCoordinator->updateCommands();
+    }
     // A book open read-only says so in the status bar, and in the title of the window
     updateReadOnlyStatus();
     // Save saves the open book also with no tab of it in front
@@ -2912,7 +2944,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 
     // Single source of truth for all unsaved-changes prompts (content + structure
     // + standalone tabs). Fixes Bug#3 - previously divergent OR of competing flags.
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = book();
 
     // An annotation or a note being written is kept first
     if (m_annotationsCoordinator) {
@@ -3000,7 +3032,7 @@ void MainWindow::closeEvent(QCloseEvent* event) {
 void MainWindow::updateWindowTitle() {
     // The open book, as when it is opened: "Rain - Kalahari"; without a book, the name of
     // the program alone, as when a book is closed
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = book();
     if (pm.isProjectOpen() && pm.book() && !pm.book()->title.isEmpty()) {
         QString title = pm.book()->title;
         if (pm.isReadOnly()) {
@@ -3041,7 +3073,7 @@ void MainWindow::toggleFullScreen() {
 
     // OpenSpec #00040: Update action checked state after fullscreen toggle
     // This synchronizes the QAction's checked state with actual window state
-    CommandRegistry::getInstance().updateActionState("view.fullScreen");
+    commands().updateActionState("view.fullScreen");
 }
 
 EditorPanel* MainWindow::getCurrentEditor() {
@@ -3102,7 +3134,7 @@ void MainWindow::focusCurrentText() {
 void MainWindow::placeOpenedChapterCursor(const QString& elementId) {
     const auto opensAt = core::SettingsManager::getInstance().get<std::string>(
         utils::CHAPTER_OPENS_AT_KEY, utils::CHAPTER_OPENS_WHERE_LEFT);
-    const core::ProjectDatabase* database = core::ProjectManager::getInstance().getDatabase();
+    const core::ProjectDatabase* database = book().getDatabase();
     if (opensAt == utils::CHAPTER_OPENS_AT_START || database == nullptr || !database->isOpen()) {
         return;  // at its start, as a new editor has it
     }
@@ -3117,7 +3149,7 @@ void MainWindow::placeOpenedChapterCursor(const QString& elementId) {
 }
 
 void MainWindow::rememberChapterCursor(const EditorPanel* editor) {
-    core::ProjectDatabase* database = core::ProjectManager::getInstance().getDatabase();
+    core::ProjectDatabase* database = book().getDatabase();
     if (editor == nullptr || editor->getBookEditor() == nullptr || database == nullptr
         || !database->isOpen()) {
         return;
@@ -3130,7 +3162,7 @@ void MainWindow::rememberChapterCursor(const EditorPanel* editor) {
 }
 
 void MainWindow::rememberChapterCursors() {
-    core::ProjectDatabase* database = core::ProjectManager::getInstance().getDatabase();
+    core::ProjectDatabase* database = book().getDatabase();
     QTabWidget* centralTabs = m_dockCoordinator ? m_dockCoordinator->centralTabs() : nullptr;
     if (database == nullptr || !database->isOpen() || centralTabs == nullptr) {
         return;

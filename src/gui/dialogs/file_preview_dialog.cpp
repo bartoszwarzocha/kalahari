@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file file_preview_dialog.cpp
 /// @brief Preview of a chapter file that no element of the book has: its text, read-only,
 /// and what can be done with the file

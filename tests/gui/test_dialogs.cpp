@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_dialogs.cpp
 /// @brief The program's own dialogs: their common base and the Navigator's dialogs
 
@@ -42,6 +45,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui::dialogs;
 using kalahari::core::BookPlace;
@@ -419,7 +423,7 @@ namespace {
 /// @brief The New Book window with the built-in book types, and its fields of sections
 struct NewBook {
     NewBook() {
-        kalahari::core::ProjectManager::getInstance().loadBookTypes(
+        kalahari::test::book().loadBookTypes(
             {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
         dialog = std::make_unique<NewItemDialog>(NewItemMode::Project);
         sections = dialog->findChild<QComboBox*>(QStringLiteral("newBookSectionsCombo"));

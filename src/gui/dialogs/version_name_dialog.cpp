@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file version_name_dialog.cpp
 /// @brief The small window of Save Version, and of Change Description of a version
 

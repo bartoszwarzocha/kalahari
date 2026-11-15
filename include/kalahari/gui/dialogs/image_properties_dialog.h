@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file image_properties_dialog.h
 /// @brief Image > Image Properties...: the file, size, crop, border, colors, description and
 ///        caption of the selected image

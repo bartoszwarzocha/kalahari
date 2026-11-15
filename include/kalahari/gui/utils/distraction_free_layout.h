@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file distraction_free_layout.h
 /// @brief The main window's layout for Distraction-Free writing
 

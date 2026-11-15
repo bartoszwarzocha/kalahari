@@ -36,6 +36,7 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using editor::FieldType;
@@ -60,7 +61,8 @@ struct Fields {
     FieldCoordinator coordinator;
 
     explicit Fields(Window& window)
-        : coordinator(window.tabs, [this]() { return keys; }, &window.window) {
+        : coordinator(kalahari::test::book(), kalahari::test::commands(), window.tabs,
+                      [this]() { return keys; }, &window.window) {
         coordinator.connectCommands();
     }
 };
@@ -224,18 +226,18 @@ TEST_CASE("Fields: the open texts show the book's title, author, language and th
     CHECK_FALSE(outside.language.isEmpty());
 
     // The names in the window: the title and the words named after the kind of the text
-    const auto names = FieldCoordinator::fieldNames(book.chapterId);
+    const auto names = fields.coordinator.fieldNames(book.chapterId);
     CHECK(names.at(static_cast<size_t>(FieldType::TextTitle)) == QStringLiteral("Chapter Title"));
     CHECK(names.at(static_cast<size_t>(FieldType::Words)) ==
           QStringLiteral("Chapter Word Count"));
     CHECK(names.at(static_cast<size_t>(FieldType::BookTitle)) == QStringLiteral("Book Title"));
-    CHECK(FieldCoordinator::fieldNames(QString()).at(static_cast<size_t>(FieldType::TextTitle)) ==
-          QStringLiteral("Text Title"));
+    CHECK(fields.coordinator.fieldNames(QString()).at(
+              static_cast<size_t>(FieldType::TextTitle)) == QStringLiteral("Text Title"));
 }
 
 TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... changes it",
           "[gui][fields]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     OpenNovel book(QStringLiteral("The Desert"));
     Window window;
     Fields fields(window);
@@ -333,7 +335,7 @@ TEST_CASE("Fields: Insert > Field... inserts the field chosen, Edit Field... cha
 
 TEST_CASE("Fields: Insert > Date && Time... as text or as a field, and the date at once",
           "[gui][fields]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     const DateSettings kept;
     auto& settings = core::SettingsManager::getInstance();
     settings.set<std::string>(FieldCoordinator::DATE_FORMAT_KEY, "long");
@@ -347,15 +349,15 @@ TEST_CASE("Fields: Insert > Date && Time... as text or as a field, and the date 
     text->setCursorPosition(editor::CursorPosition{0, 1});
 
     // The keys, which no menu has, as the window says
-    const gui::Command* date = CommandRegistry::getInstance().getCommand("insert.date");
+    const gui::Command* date = kalahari::test::commands().getCommand("insert.date");
     REQUIRE(date != nullptr);
     CHECK_FALSE(date->showInMenu);
     CHECK(date->menuPath.rfind("INSERT/", 0) == 0);
     CHECK(window.window.actions().contains(
-        CommandRegistry::getInstance().getAction(std::string("insert.date"))));
+        kalahari::test::commands().getAction(std::string("insert.date"))));
     // Settings > Keyboard Shortcuts lists them under Insert, with their keys
     {
-        gui::ShortcutsPage page;
+        gui::ShortcutsPage page(kalahari::test::commands());
         page.load();
         auto* list = page.findChild<QTreeWidget*>(QStringLiteral("shortcutsList"));
         REQUIRE(list != nullptr);
@@ -378,7 +380,7 @@ TEST_CASE("Fields: Insert > Date && Time... as text or as a field, and the date 
     }
 #ifndef Q_OS_MACOS
     CHECK(date->shortcut.toQKeySequence() == QKeySequence(QStringLiteral("Alt+Shift+D")));
-    CHECK(CommandRegistry::getInstance().getCommand("insert.time")->shortcut.toQKeySequence() ==
+    CHECK(kalahari::test::commands().getCommand("insert.time")->shortcut.toQKeySequence() ==
           QKeySequence(QStringLiteral("Alt+Shift+T")));
 #endif
 

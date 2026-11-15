@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file move_element_dialog.h
 /// @brief Move: a new place in the book for an element, with the elements inside it
 
@@ -10,6 +13,10 @@
 
 #include <QList>
 #include <QString>
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
 
 namespace kalahari {
 namespace gui {
@@ -40,9 +47,9 @@ public:
                                         ///< without it; none: the element is not in the book
     };
 
-    /// @brief Element @p elementId of the book open in core::ProjectManager, and the book
+    /// @brief Element @p elementId of the book open in @p projects, and the book
     /// without it; no sections when the book has no element @p elementId
-    static Book openBook(const QString& elementId);
+    static Book openBook(const core::ProjectManager& projects, const QString& elementId);
 
     /// @brief Create the dialog
     /// @param book The element and the book without it

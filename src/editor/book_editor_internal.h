@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_internal.h
 /// @brief Helpers shared by the BookEditor source files (not part of the editor's API)
 

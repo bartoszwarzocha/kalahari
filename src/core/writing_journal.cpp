@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_journal.cpp
 /// @brief The table of the record of writing, and the writer's journal of all the books
 

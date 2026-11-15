@@ -46,6 +46,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (docs/kml_format.md). The window has the fields in four tabs (Book, Text, Pages, Date; Ctrl+Tab
   or Alt with the tab's letter goes between them), with the format, how the field shows and its
   hint under the list of the tab, so it fits a small screen without scrolling.
+- **Export of the book to Word (DOCX) and Markdown** - 2026-11-13. File > Export > DOCX... and
+  Markdown... open one window, "Export Book", with four tabs that fit a screen of 1366x768 at
+  150% without scrolling (File, Texts, Layout, Annotations and Images; the progress and the
+  result under them): the format in a list (it can be changed there; the formats of the
+  exporters of plugins, `IExporter::getFormats()`, join the list, a format with options of its
+  own on a tab of its own, `IExporter::createOptionsPage()`), the folder
+  (remembered; at first Export in the folder of the books) and the name, then what goes to the
+  file – the whole book, the texts chosen in a list of the book's sections, parts and texts
+  with their statuses (Check All, Uncheck All, Only Final), or the text in front, also a file
+  outside the book – in the order of the Navigator, with the unsaved changes. A Word document
+  has the book's structure: the titles of the Navigator as headings (Part Title and Chapter
+  Title where the book type has them, else Heading 1; a text that starts with a heading keeps
+  its own, the title page, copyright page, dedication and motto get none), Word's own Heading
+  1–3 for the navigation pane and the table of contents, the book's other paragraph styles as
+  Word styles of the same names, Word's footnotes and endnotes, lists, tables, comments (an
+  option) and table of contents, the images as the editor shows them, each text from a new
+  page (a right one with mirror margins) and page numbers, on the page of Settings > Editor >
+  Pages and Margins (the gear of the window), in the editor's font or another. A Markdown file
+  is GitHub Flavored, with its images copied to a folder "<name> – images" next to it (an
+  option). The result shows Open File and Show in Folder; the window keeps its choices.
 - **Chapter Break** - 2026-11-13. Book > Chapter Break (named after the texts of the book:
   "Story Break" in a collection of stories) moves the text from the cursor, or from the start
   of the selection, to a new text right after the one it was in, in the same part, of the
@@ -977,6 +997,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   book is opened again.
 
 ### Changed
+
+- **Each book window has its own book and its own commands** - 2026-11-13. Inside the
+  program, with nothing changed on the screen: the window owns the book open in it
+  (`core::ProjectManager`, no longer one for the whole program) and its commands with their
+  actions (`gui::CommandRegistry`), and gives them to its coordinators, panels and dialogs.
+  The book types installed with the program and the user's keys of the commands are the same
+  for every window. This prepares several books open at once, each in its own window.
 
 - **Images: a new image in a paragraph of its own, with a caption** - 2026-11-12. Insert >
   Image... and a file dropped or pasted from a folder put the image in a paragraph of its own,

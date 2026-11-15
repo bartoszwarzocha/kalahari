@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_lists.h
 /// @brief Bulleted and numbered lists: the list a paragraph is an item of, its level, the
 ///        formats of the levels and the numbers of the items

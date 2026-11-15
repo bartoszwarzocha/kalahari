@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_version_comparison.cpp
 /// @brief A version of a text compared with the text as it is now: the comparison an editor
 /// shows, its changes, and the fragments of the version it leads to

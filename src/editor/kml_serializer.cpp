@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_serializer.cpp
 /// @brief KML Serializer implementation (OpenSpec #00043 Phase 11.2)
 ///

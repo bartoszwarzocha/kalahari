@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_command_shortcuts.cpp
 /// @brief The keyboard shortcuts of the application's commands
 
@@ -21,6 +24,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -28,10 +32,10 @@ TEST_CASE("Command shortcuts: no two commands share a shortcut", "[gui][command]
     // Regression: F3 was both Find Next and the Properties panel toggle. Find Next had no
     // callback, so its action was disabled; once it got one, F3 was an ambiguous shortcut
     // that triggered neither command.
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
 
     std::map<std::string, std::string> owners;
-    for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
+    for (const Command& command : kalahari::test::commands().getAllCommands()) {
         const QKeySequence keys = command.shortcut.toQKeySequence();
         if (keys.isEmpty()) {
             continue;
@@ -199,10 +203,10 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"help.manual", QStringLiteral("F1")},
     };
 
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
 
     std::map<std::string, QKeySequence> actual;
-    for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
+    for (const Command& command : kalahari::test::commands().getAllCommands()) {
         if (!command.shortcut.isEmpty()) {
             actual.emplace(command.id, command.shortcut.toQKeySequence());
         }
@@ -228,9 +232,9 @@ TEST_CASE("Command shortcuts: no command takes a key of the text", "[gui][comman
     // paragraph; the window's action would take it from the editor. Edit > Delete shows
     // Delete, as word processors do: the text keeps the key (BookEditor::event()), and the
     // command works where nothing else has it
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
 
-    for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
+    for (const Command& command : kalahari::test::commands().getAllCommands()) {
         const QKeySequence keys = command.shortcut.toQKeySequence();
         if (keys.isEmpty() || command.id == "edit.delete") {
             continue;

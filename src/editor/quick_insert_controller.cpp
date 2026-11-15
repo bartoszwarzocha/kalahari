@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file quick_insert_controller.cpp
 /// @brief Quick insert in a BookEditor: the list at the cursor
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotation_colors.cpp
 /// @brief The colors of the annotations' cards, readable on the panel and on the paper
 

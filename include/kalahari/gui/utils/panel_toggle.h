@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file panel_toggle.h
 /// @brief Show/hide toggles of the dock panels (View > Panels and the View toolbar)
 

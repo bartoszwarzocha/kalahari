@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file command_registry.cpp
 /// @brief CommandRegistry implementation
 
@@ -12,23 +15,32 @@ namespace kalahari {
 namespace gui {
 
 // ============================================================================
-// Singleton
+// Construction
 // ============================================================================
 
-CommandRegistry::CommandRegistry() : QObject(nullptr) {
-    // Parent is nullptr - singleton lifetime managed by static storage
+namespace {
+
+/// The registries there are now (CommandRegistry::registries())
+QList<CommandRegistry*>& liveRegistries() {
+    static QList<CommandRegistry*> registries;
+    return registries;
+}
+
+}  // namespace
+
+CommandRegistry::CommandRegistry(QObject* parent) : QObject(parent) {
+    liveRegistries().append(this);
 }
 
 CommandRegistry::~CommandRegistry() {
+    liveRegistries().removeAll(this);
     // Clean up all owned QAction instances
     qDeleteAll(m_actions);
     m_actions.clear();
 }
 
-CommandRegistry& CommandRegistry::getInstance() {
-    // Meyers singleton - thread-safe in C++11+
-    static CommandRegistry instance;
-    return instance;
+QList<CommandRegistry*> CommandRegistry::registries() {
+    return liveRegistries();
 }
 
 // ============================================================================

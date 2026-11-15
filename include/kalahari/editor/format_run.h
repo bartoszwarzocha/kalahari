@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file format_run.h
 /// @brief FormatRun struct for paragraph formatting ranges (OpenSpec #00043)
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file fitting_scroll_area.h
 /// @brief A scroll area as large as its content, which scrolls only on a small screen
 

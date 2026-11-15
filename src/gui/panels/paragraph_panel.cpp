@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file paragraph_panel.cpp
 /// @brief The Paragraph and Styles panel
 
@@ -88,8 +91,9 @@ QFont styleFont(const QFont& base, const editor::ParagraphStyleSet& styles, cons
 
 }  // namespace
 
-ParagraphPanel::ParagraphPanel(QWidget* parent)
+ParagraphPanel::ParagraphPanel(CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
+    , m_commands(commands)
 {
     setObjectName(QStringLiteral("paragraphPanel"));
 
@@ -338,7 +342,7 @@ QToolBar* ParagraphPanel::commandBar(const QList<const char*>& commandIds) {
     bar->setMovable(false);
     bar->setFloatable(false);
     bar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = m_commands;
     for (const char* id : commandIds) {
         if (id == nullptr) {
             bar->addSeparator();

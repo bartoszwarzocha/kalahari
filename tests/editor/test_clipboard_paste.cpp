@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_clipboard_paste.cpp
 /// @brief Text of other programs pasted in the three paste modes, and the HTML and plain text
 ///        the other programs get of Kalahari's text
@@ -29,6 +32,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::editor;
 using namespace kalahari::test;
@@ -520,11 +524,12 @@ TEST_CASE("Paste: Settings > Editor > General gives the editors the mode",
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string before = settings.get<std::string>(PASTE_MODE_KEY);
     settings.set<std::string>(PASTE_MODE_KEY, PASTE_MODE_MERGE);
-    kalahari::gui::EditorPanel panel;
+    kalahari::gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     BookEditor* bookEditor = panel.getBookEditor();
     CHECK(bookEditor->pasteMode() == PasteMode::Merge);
 
-    kalahari::gui::SettingsDialog dialog(nullptr);
+    kalahari::gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(),
+                                         nullptr);
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     for (QTreeWidgetItemIterator it(tree); *it; ++it) {

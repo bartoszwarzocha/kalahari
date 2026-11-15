@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_document_generator.cpp
 /// @brief Implementation of test document generator for benchmarks
 ///

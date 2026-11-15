@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_quick_insert_items.cpp
 /// @brief Quick insert in the program: the cards of the Workshop, the fragments and the
 ///        characters of the settings, the page Settings > Editor > Quick Insert and its window
@@ -24,6 +27,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using editor::QuickInsertItem;
@@ -100,14 +104,15 @@ TEST_CASE("Quick insert items: the characters at first, the sources of @ and #",
 
     // @ for the cards, # for the fragments and the characters
     CHECK(gui::quickInsertTriggers() == QStringLiteral("@#"));
-    CHECK(gui::quickInsertItems(QLatin1Char('#')).size() == 12);
-    REQUIRE(core::ProjectManager::getInstance().project() == nullptr);
-    CHECK(gui::quickInsertItems(QLatin1Char('@')).isEmpty());  // no book open
+    CHECK(gui::quickInsertItems(kalahari::test::book(), QLatin1Char('#')).size() == 12);
+    REQUIRE(test::book().project() == nullptr);
+    CHECK(
+        gui::quickInsertItems(kalahari::test::book(), QLatin1Char('@')).isEmpty());  // no book open
     manager.set<json>(keys::HASH_SOURCES, json::array());
     CHECK(gui::quickInsertTriggers() == QStringLiteral("@"));
-    CHECK(gui::quickInsertItems(QLatin1Char('#')).isEmpty());
+    CHECK(gui::quickInsertItems(kalahari::test::book(), QLatin1Char('#')).isEmpty());
     // The command lists all of them
-    CHECK(gui::quickInsertItems(QChar()).size() == 12);
+    CHECK(gui::quickInsertItems(kalahari::test::book(), QChar()).size() == 12);
     manager.set<bool>(keys::ENABLED, false);
     CHECK(gui::quickInsertTriggers().isEmpty());
 
@@ -119,7 +124,8 @@ TEST_CASE("Quick insert items: the characters at first, the sources of @ and #",
                                    QStringLiteral("* * *")));
     gui::setQuickInsertFragments(items);
     CHECK(manager.get<json>(keys::ITEMS).is_array());
-    const QList<QuickInsertItem> found = gui::quickInsertItems(QLatin1Char('#'));
+    const QList<QuickInsertItem> found =
+        gui::quickInsertItems(kalahari::test::book(), QLatin1Char('#'));
     REQUIRE(found.size() == 13);
     CHECK(found.first().name == QStringLiteral("scene"));
     CHECK(found.first().group == QStringLiteral("Text Fragments"));
@@ -145,7 +151,7 @@ TEST_CASE("Quick insert items: the names of the cards of the Workshop, a group f
     QuickInsertSettings settings;
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     REQUIRE(pm.createProject(dir.path(), QStringLiteral("Cards"), QStringLiteral("Author"),
                              QStringLiteral("en"), false, QStringLiteral("kalahari.novel")));
@@ -175,7 +181,8 @@ TEST_CASE("Quick insert items: the names of the cards of the Workshop, a group f
     CHECK(cards.at(2).text == QStringLiteral("Jan Anioł"));
     CHECK(cards.at(0).source == QuickInsertSource::Card);
 
-    CHECK(namesOf(gui::quickInsertItems(QLatin1Char('@'))) == namesOf(cards));
+    CHECK(namesOf(gui::quickInsertItems(kalahari::test::book(), QLatin1Char('@'))) ==
+          namesOf(cards));
     pm.closeProject(false);
 }
 
@@ -183,7 +190,7 @@ TEST_CASE("Settings > Editor > Quick Insert: the sources of @ and #, the fragmen
           "[gui][quickinsert][settings]") {
     QuickInsertSettings settings;
     auto& manager = core::SettingsManager::getInstance();
-    gui::EditorQuickInsertPage page;
+    gui::EditorQuickInsertPage page(kalahari::test::commands());
     page.load();
     const auto box = [&page](const char* name) {
         auto* found = page.findChild<QCheckBox*>(QString::fromLatin1(name));

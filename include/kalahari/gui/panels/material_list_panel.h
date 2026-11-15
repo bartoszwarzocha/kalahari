@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list_panel.h
 /// @brief The list of a kind of materials of the Workshop on a tab in the middle of the
 /// window: a table or tiles, with a search, filters and the commands of a material
@@ -25,6 +28,10 @@ class QSortFilterProxyModel;
 class QStackedWidget;
 class QTableView;
 class QToolButton;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
 
 namespace kalahari {
 namespace gui {
@@ -69,7 +76,8 @@ public:
     static constexpr int STATE_ROLE = Qt::UserRole + 6;  ///< The state of a material of the cover
 
     /// @brief The list @p list (MaterialList::kinds(), MaterialList::ALL)
-    explicit MaterialListPanel(const QString& list, QWidget* parent = nullptr);
+    explicit MaterialListPanel(core::ProjectManager& book, const QString& list,
+                               QWidget* parent = nullptr);
     ~MaterialListPanel() override;
 
     /// @brief The list it shows
@@ -314,6 +322,7 @@ private:
     QLabel* m_sorting = nullptr;
 
     bool m_loading = false;  ///< The list is being filled: no material is chosen by the writer
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

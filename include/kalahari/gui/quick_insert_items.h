@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file quick_insert_items.h
 /// @brief What the list of quick insert offers: the cards of the book's Workshop, the writer's
 ///        text fragments and the typographic characters, as Settings > Editor > Quick Insert
@@ -17,6 +20,7 @@
 namespace kalahari::core {
 struct BookProject;
 class BookTypeRegistry;
+class ProjectManager;
 }  // namespace kalahari::core
 
 namespace kalahari::gui {
@@ -70,7 +74,7 @@ QList<editor::QuickInsertItem> cardItems(const core::BookProject& project,
 QString quickInsertTriggers();
 
 /// @brief The items of the list opened by @p trigger ('@', '#'; QChar(): all of them, for
-///        Insert > Quick Insert...), with the cards of the book open
-QList<editor::QuickInsertItem> quickInsertItems(QChar trigger);
+///        Insert > Quick Insert...), with the cards of the book open in @p book
+QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger);
 
 }  // namespace kalahari::gui

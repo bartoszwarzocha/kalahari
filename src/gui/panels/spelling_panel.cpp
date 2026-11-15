@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_panel.cpp
 /// @brief The Spelling and Grammar panel: the misspelled words and grammar issues of the text
 ///        in front, as cards

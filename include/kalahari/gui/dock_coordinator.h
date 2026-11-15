@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dock_coordinator.h
 /// @brief Dock widget and panel coordination for MainWindow
 ///
@@ -20,6 +23,13 @@ class QWidget;
 class QAction;
 class QRect;
 class QSplitter;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari {
 namespace editor {
@@ -65,9 +75,12 @@ class DockCoordinator : public QObject {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param mainWindow Parent QMainWindow
     /// @param parent Parent QObject
-    explicit DockCoordinator(QMainWindow* mainWindow, QObject* parent = nullptr);
+    explicit DockCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                             QMainWindow* mainWindow, QObject* parent = nullptr);
 
     /// @brief Destructor
     ~DockCoordinator() override = default;
@@ -514,6 +527,8 @@ private:
     // Icon tracking for refresh
     QList<QLabel*> m_dockIconLabels;
     QList<QToolButton*> m_dockToolButtons;
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

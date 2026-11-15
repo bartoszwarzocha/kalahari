@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_search.cpp
 /// @brief Find in Book: the texts of the book searched as the editor would search them, open
 ///        or not, with the texts of their notes; the matches in the Search panel, going to them,
@@ -159,10 +162,10 @@ struct Search {
 
     explicit Search(Window& window)
         : coordinator(
-              window.tabs, &panel, []() {}, [this]() { return keys; },
+              test::book(), test::commands(), window.tabs, &panel, []() {},
+              [this]() { return keys; },
               [&window](const QString& id) {
-                  const core::ProjectElement* element =
-                      core::ProjectManager::getInstance().findElement(id);
+                  const core::ProjectElement* element = test::book().findElement(id);
                   window.navigator.onElementSelected(id, element != nullptr ? element->title
                                                                             : QString());
               },

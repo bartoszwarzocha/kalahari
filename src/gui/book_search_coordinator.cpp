@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_search_coordinator.cpp
 /// @brief Edit > Find in Book...: the search in all the texts of the book in the Search panel,
 ///        and Replace All in Book with Undo
@@ -108,12 +111,15 @@ SearchPanelHit shownSearchHit(const QString& line, int offset, int length, const
 // Construction
 // =============================================================================
 
-BookSearchCoordinator::BookSearchCoordinator(QTabWidget* centralTabs, SearchPanel* panel,
+BookSearchCoordinator::BookSearchCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                             QTabWidget* centralTabs, SearchPanel* panel,
                                              PanelShower showPanel, TextWithKeys textWithKeys,
                                              ChapterOpener openChapter, NoteContexts noteContexts,
                                              NoticeShower showNotice, QStatusBar* statusBar,
                                              QWidget* window, QObject* parent)
     : QObject(parent),
+      m_book(book),
+      m_commands(commands),
       m_centralTabs(centralTabs),
       m_panel(panel),
       m_showPanel(std::move(showPanel)),
@@ -161,7 +167,7 @@ BookSearchCoordinator::BookSearchCoordinator(QTabWidget* centralTabs, SearchPane
     }
 
     // Another book, or none: what was found and read is of the old one
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this, &BookSearchCoordinator::reset);
     connect(&projects, &core::ProjectManager::projectClosed, this, &BookSearchCoordinator::reset);
     // Insert > Footnote Layout...: other numbers of the notes the matches are in
@@ -190,18 +196,16 @@ BookSearchCoordinator::BookSearchCoordinator(QTabWidget* centralTabs, SearchPane
 }
 
 void BookSearchCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(FIND_IN_BOOK_COMMAND)) {
         command->execute = [this]() { findInBook(); };
-        command->isEnabled = []() { return core::ProjectManager::getInstance().isProjectOpen(); };
+        command->isEnabled = [this]() { return m_book.isProjectOpen(); };
         //: Why Edit > Find in Book... is greyed out. In Polish: Żadna książka nie jest otwarta
         command->disabledReason = []() { return tr("No book is open"); };
         registry.updateActionState(FIND_IN_BOOK_COMMAND);
     }
-    auto& projects = core::ProjectManager::getInstance();
-    const auto updateCommand = []() {
-        CommandRegistry::getInstance().updateActionState(FIND_IN_BOOK_COMMAND);
-    };
+    auto& projects = m_book;
+    const auto updateCommand = [this]() { m_commands.updateActionState(FIND_IN_BOOK_COMMAND); };
     connect(&projects, &core::ProjectManager::projectOpened, this, updateCommand);
     connect(&projects, &core::ProjectManager::projectClosed, this, updateCommand);
 }
@@ -245,7 +249,7 @@ void BookSearchCoordinator::search() {
     m_query.reset();
 
     const QString text = m_panel != nullptr ? m_panel->searchText() : QString();
-    if (!core::ProjectManager::getInstance().isProjectOpen() || text.isEmpty()) {
+    if (!m_book.isProjectOpen() || text.isEmpty()) {
         publish();
         return;
     }
@@ -253,7 +257,7 @@ void BookSearchCoordinator::search() {
     m_engine.setSearchText(text);
     m_engine.setOptions(m_query->options);
     if (m_engine.canSearch()) {
-        for (const BookTextElement& element : bookTextElements()) {
+        for (const BookTextElement& element : bookTextElements(m_book)) {
             m_queue.append({element.element->id, element.element->title});
         }
     }
@@ -324,7 +328,7 @@ BookSearchCoordinator::paragraphsOf(const QString& elementId, editor::BookEditor
         return read.paragraphs;
     }
     read.current = false;
-    if (const std::optional<QString> kml = savedTextIfChanged(elementId, read.signature)) {
+    if (const std::optional<QString> kml = savedTextIfChanged(m_book, elementId, read.signature)) {
         read.paragraphs = editor::searchableParagraphsOfKml(*kml);
     }
     return read.paragraphs;
@@ -460,7 +464,7 @@ void BookSearchCoordinator::publish() {
     m_panel->setTexts(texts);
 
     QString status;
-    if (!core::ProjectManager::getInstance().isProjectOpen()) {
+    if (!m_book.isProjectOpen()) {
         //: The Search panel without a book. In Polish: Żadna książka nie jest otwarta
         status = tr("No book is open");
     } else if (!m_query) {
@@ -642,7 +646,7 @@ bool BookSearchCoordinator::goToMatch(int text, int match, bool keys) {
 // =============================================================================
 
 QString BookSearchCoordinator::whyNotReplace() const {
-    const auto& projects = core::ProjectManager::getInstance();
+    const auto& projects = m_book;
     if (!projects.isProjectOpen()) {
         //: Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwarta
         return tr("No book is open");
@@ -687,7 +691,7 @@ bool BookSearchCoordinator::confirm(int matches, int texts) const {
 }
 
 int BookSearchCoordinator::replaceAllInBook() {
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     if (!projects.isProjectOpen() || projects.isReadOnly() || !m_query || !m_engine.canSearch()) {
         say(whyNotReplace());
         return -1;
@@ -745,7 +749,7 @@ int BookSearchCoordinator::replaceAllInBook() {
         if (count == 0) {
             continue;
         }
-        keepVersionBeforeReplaceAll(text.elementId, kml, query.text, replacement, count);
+        keepVersionBeforeReplaceAll(m_book, text.elementId, kml, query.text, replacement, count);
         const bool clean = std::find(dirty.cbegin(), dirty.cend(), text.elementId) == dirty.cend();
         projects.setChapterContent(text.elementId, replaced);
         const bool saved = clean && projects.saveChapterContent(text.elementId);
@@ -787,7 +791,7 @@ int BookSearchCoordinator::replaceAllInBook() {
 }
 
 bool BookSearchCoordinator::canUndo() const {
-    if (!m_undo || core::ProjectManager::getInstance().isReadOnly()) {
+    if (!m_undo || m_book.isReadOnly()) {
         return false;
     }
     // Every open text it changed is still open, and no text it changed in its file is open now
@@ -816,7 +820,7 @@ bool BookSearchCoordinator::undo() {
     for (editor::BookEditor* editor : step.editors) {
         editor->undo();
     }
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     for (const SavedText& text : step.savedTexts) {
         projects.setChapterContent(text.elementId, text.kml);
         if (text.saved) {
@@ -865,7 +869,7 @@ void BookSearchCoordinator::reset() {
     m_changed.clear();
     m_query.reset();
     if (m_panel != nullptr && !m_panel->searchText().isEmpty() &&
-        core::ProjectManager::getInstance().isProjectOpen()) {
+        m_book.isProjectOpen()) {
         search();  // the new book
     } else {
         publish();

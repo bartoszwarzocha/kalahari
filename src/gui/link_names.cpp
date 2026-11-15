@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file link_names.cpp
 /// @brief What the links of a material name in the open book
 
@@ -29,8 +32,7 @@ QString sectionIconId(core::BookPlace place) {
 
 } // namespace
 
-QString linkTitle(const QString& link) {
-    const auto& pm = core::ProjectManager::getInstance();
+QString linkTitle(const core::ProjectManager& pm, const QString& link) {
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return {};
@@ -46,14 +48,13 @@ QString linkTitle(const QString& link) {
     return {};
 }
 
-QIcon linkIcon(const QString& link, core::IconContext context) {
-    const auto& pm = core::ProjectManager::getInstance();
+QIcon linkIcon(const core::ProjectManager& pm, const QString& link, core::IconContext context) {
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return {};
     }
     if (const core::ProjectElement* element = project->findElement(link)) {
-        return NavigatorPanel::iconOf(pm.bookTypes(), *element, context);
+        return NavigatorPanel::iconOf(pm, *element, context);
     }
     for (qsizetype book = 0; book < project->books.size(); ++book) {
         if (const std::optional<core::BookPlace> place = project->linkedSection(link, book)) {
@@ -63,8 +64,7 @@ QIcon linkIcon(const QString& link, core::IconContext context) {
     return {};
 }
 
-QString linkPlace(const QString& link) {
-    const auto& pm = core::ProjectManager::getInstance();
+QString linkPlace(const core::ProjectManager& pm, const QString& link) {
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return {};
@@ -81,7 +81,7 @@ QString linkPlace(const QString& link) {
     }
     if (at->place == core::BookPlace::Workshop) {
         return core::fillWords(QStringLiteral("{Kind:plural}"),
-                               {{QStringLiteral("kind"), wordsOf(*element)}});
+                               {{QStringLiteral("kind"), wordsOf(pm, *element)}});
     }
     if (!at->groupId.isEmpty()) {
         if (const core::ProjectElement* group = project->findElement(at->groupId)) {

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_tabs.cpp
 /// @brief The tabs of the open book: one file is edited in one tab, Save As and Close Book
 /// with a book open, Save, Save As and Save All greyed out while they have nothing to save, the
@@ -35,6 +38,7 @@
 
 #include <cstdio>
 #include <functional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::MessageDialog;
@@ -60,7 +64,7 @@ QByteArray readText(const QString& path) {
 
 /// The file of the element @p elementId of the open book
 QString fileOf(const QString& elementId) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     const core::ProjectElement* element = pm.findElement(elementId);
     REQUIRE(element != nullptr);
     return pm.filePathOf(*element);
@@ -94,7 +98,7 @@ QString nameInNavigator(const Window& window, const QString& path) {
 /// The tabs of @p window follow the book as in the main window: they take the files of the
 /// book when it opens, and its chapters close with it
 void followBook(Window& window) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QObject::connect(&pm, &core::ProjectManager::projectOpened, &window.documents,
                      &gui::DocumentCoordinator::onProjectOpened);
     QObject::connect(&pm, &core::ProjectManager::projectClosed, &window.documents,
@@ -105,14 +109,14 @@ void followBook(Window& window) {
 /// test, which goes after them
 class Commands {
 public:
-    Commands() { gui::CommandRegistry::getInstance().clear(); }
-    ~Commands() { gui::CommandRegistry::getInstance().clear(); }
+    Commands() { test::commands().clear(); }
+    ~Commands() { test::commands().clear(); }
     Commands(const Commands&) = delete;
     Commands& operator=(const Commands&) = delete;
 
     /// The action of the command @p id
     static QAction& action(const char* id) {
-        QAction* action = gui::CommandRegistry::getInstance().getAction(std::string(id));
+        QAction* action = test::commands().getAction(std::string(id));
         REQUIRE(action != nullptr);
         return *action;
     }
@@ -269,8 +273,8 @@ TEST_CASE("Book tabs: Save, Save As and Save All are greyed out while they have 
     callbacks.onSaveDocument = [&window]() { window.documents.onSaveDocument(); };
     callbacks.onSaveAsDocument = [&window]() { window.documents.onSaveAsDocument(); };
     callbacks.onSaveAll = [&window]() { window.documents.onSaveAll(); };
-    gui::registerAllCommands(callbacks);
-    gui::CommandRegistry& registry = gui::CommandRegistry::getInstance();
+    gui::registerAllCommands(kalahari::test::commands(), callbacks);
+    gui::CommandRegistry& registry = test::commands();
     gui::utils::bindSaveCommands(
         registry, [&window]() { return window.documents.whyNotSave(); },
         [&window]() { return window.documents.whyNotSaveAs(); },
@@ -278,7 +282,7 @@ TEST_CASE("Book tabs: Save, Save As and Save All are greyed out while they have 
     // As in the main window: the tab in front and the open book update them
     QObject::connect(window.tabs, &QTabWidget::currentChanged, &window.window,
                      [&registry]() { gui::utils::updateSaveCommands(registry); });
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QObject::connect(&pm, &core::ProjectManager::projectOpened, &window.window,
                      [&registry]() { gui::utils::updateSaveCommands(registry); });
     QObject::connect(&pm, &core::ProjectManager::projectClosed, &window.window,

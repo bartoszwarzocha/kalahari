@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_archive_dialogs.cpp
 /// @brief Export Project Archive and Import Project Archive: the fields and the lines under
 /// them, and the progress and the result of the work in the window
@@ -39,6 +42,7 @@
 #include <zip.h>
 
 #include <utility>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::dialogs::ArchiveDialog;
@@ -171,7 +175,7 @@ void writeArchive(const QString& path, const QByteArray& name, const QByteArray&
 
 /// @brief An archive of the new novel "Travels" by Anna, in @p dir
 QString novelArchive(const QTemporaryDir& dir) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     REQUIRE(pm.createProject(dir.path(), "Travels", "Anna", "en", true, "kalahari.novel"));
     const QString archive = QDir(dir.path()).filePath(QStringLiteral("Travels.klh.zip"));

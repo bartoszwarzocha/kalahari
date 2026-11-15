@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotations_panel.h
 /// @brief The Annotations panel: the comments, to-dos and notes of a chapter or the book
 
@@ -25,6 +28,10 @@ class QLineEdit;
 class QScrollArea;
 class QToolButton;
 class QVBoxLayout;
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari::core {
 struct Theme;
@@ -55,8 +62,9 @@ class AnnotationsPanel : public QWidget {
 
 public:
     /// @brief Constructor
+    /// @param commands The commands of its window
     /// @param parent Parent widget
-    explicit AnnotationsPanel(QWidget* parent = nullptr);
+    explicit AnnotationsPanel(CommandRegistry& commands, QWidget* parent = nullptr);
 
     /// @brief The annotations to list (the panel filters and orders them)
     ///
@@ -247,6 +255,7 @@ private:
     QLabel* m_todoLabel{nullptr};
     QToolButton* m_previousTodoButton{nullptr};
     QToolButton* m_nextTodoButton{nullptr};
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

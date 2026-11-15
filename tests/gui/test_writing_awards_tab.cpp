@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_writing_awards_tab.cpp
 /// @brief The badges and challenges in the window: what the tracker wins and says, the tab
 /// Challenges and Badges, Add Challenge, the view Achievements of the Statistics panel, the
@@ -47,6 +50,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <functional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using core::BadgeKind;
@@ -625,20 +629,22 @@ TEST_CASE("Writing awards: the commands, the tab and the messages at the bottom"
 {
     DefaultSettings defaults;
     QMainWindow window;
-    gui::registerAllCommands(gui::CommandCallbacks{});
-    auto* docks = new gui::DockCoordinator(&window, &window);
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
+    auto* docks = new gui::DockCoordinator(kalahari::test::book(), kalahari::test::commands(),
+                                           &window, &window);
     docks->createDocks();
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
-    gui::WritingStatsCoordinator coordinator(docks, nullptr, [](const QString&) {}, nullptr,
-                                             dir.filePath(QStringLiteral("journal.db")));
+    gui::WritingStatsCoordinator coordinator(
+        kalahari::test::book(), kalahari::test::commands(), docks, nullptr, [](const QString&) {},
+        nullptr, dir.filePath(QStringLiteral("journal.db")));
     coordinator.connectCommands();
     window.show();
 
     // Tools > Challenges and Badges: one tab in the middle
     QTabWidget* tabs = docks->centralTabs();
     const int before = tabs->count();
-    auto& registry = gui::CommandRegistry::getInstance();
+    auto& registry = test::commands();
     REQUIRE(registry.executeCommand("tools.challenges") == gui::CommandExecutionResult::Success);
     REQUIRE(tabs->count() == before + 1);
     auto* tab = qobject_cast<WritingAwardsTab*>(tabs->currentWidget());
@@ -719,12 +725,14 @@ TEST_CASE("Writing awards: the window goes with its middle before the coordinato
     // bars (seen under the sanitizers)
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     auto* window = new QMainWindow();
-    auto* docks = new gui::DockCoordinator(window, window);
+    auto* docks = new gui::DockCoordinator(kalahari::test::book(), kalahari::test::commands(),
+                                           window, window);
     docks->createDocks();
     auto* coordinator = new gui::WritingStatsCoordinator(
-        docks, nullptr, [](const QString&) {}, window, dir.filePath(QStringLiteral("journal.db")));
+        kalahari::test::book(), kalahari::test::commands(), docks, nullptr, [](const QString&) {},
+        window, dir.filePath(QStringLiteral("journal.db")));
     REQUIRE(coordinator->bar() != nullptr);
     REQUIRE(coordinator->bar()->parent() != nullptr);
     bool gone = false;

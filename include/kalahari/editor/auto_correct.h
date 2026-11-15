@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file auto_correct.h
 /// @brief Autocorrect: the typographic characters that take the place of what is typed
 ///

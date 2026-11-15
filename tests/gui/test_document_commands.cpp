@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_document_commands.cpp
 /// @brief The commands that work on the document in front are greyed out without one, those of
 /// the open book without a book, Save All without a document; a greyed out command says why,
@@ -22,6 +25,7 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -82,9 +86,9 @@ void press(QWidget* widget, const QKeySequence& keys) {
 
 TEST_CASE("Document commands: greyed out without a document in front, with their keys",
           "[gui][commands]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
-    registerAllCommands(runningCallbacks());
+    registerAllCommands(kalahari::test::commands(), runningCallbacks());
 
     // Every command of the list is one of the program's, and runs
     for (const std::string& id : utils::documentCommands()) {
@@ -152,9 +156,9 @@ TEST_CASE("Document commands: greyed out without a document in front, with their
 
 TEST_CASE("Document commands: over a read-only chapter those that change it are greyed out",
           "[gui][commands][readonly]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
-    registerAllCommands(runningCallbacks());
+    registerAllCommands(kalahari::test::commands(), runningCallbacks());
     CHECK(utils::changingDocumentCommands() ==
           std::vector<std::string>{"edit.findReplace", "format.font", "format.paragraph",
                                    "insert.link", "insert.table", "insert.image", "format.bold",
@@ -223,12 +227,12 @@ TEST_CASE("Document commands: the keys of a command greyed out over a read-only 
     if (!canActivateWindows()) {
         SKIP(NEEDS_OFFSCREEN);
     }
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
     CommandCallbacks callbacks = runningCallbacks();
     int bold = 0;
     callbacks.onFormatBold = [&bold]() { ++bold; };
-    registerAllCommands(callbacks);
+    registerAllCommands(kalahari::test::commands(), callbacks);
     bool readOnly = true;
     utils::bindToDocument(registry, []() { return true; }, [&readOnly]() { return readOnly; });
 
@@ -264,7 +268,7 @@ TEST_CASE("Document commands: the keys of a command greyed out over a read-only 
 TEST_CASE("Book commands: Close Book and the export of the archive greyed out without a book",
           "[gui][commands]") {
     // Round 3 report 19.2: without a book they could only say that one must be opened first
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
     CommandCallbacks callbacks = runningCallbacks();
     const auto none = []() {};
@@ -273,7 +277,7 @@ TEST_CASE("Book commands: Close Book and the export of the archive greyed out wi
           &callbacks.onImportArchive, &callbacks.onCloseDocument, &callbacks.onExportArchive}) {
         *callback = none;
     }
-    registerAllCommands(callbacks);
+    registerAllCommands(kalahari::test::commands(), callbacks);
     CHECK(utils::openBookCommands() ==
           std::vector<std::string>{"file.close", "file.export.archive"});
 
@@ -319,12 +323,12 @@ TEST_CASE("Book commands: the keys of a greyed out command say why in the status
     if (!canActivateWindows()) {
         SKIP(NEEDS_OFFSCREEN);
     }
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
     CommandCallbacks callbacks = runningCallbacks();
     int closed = 0;
     callbacks.onCloseDocument = [&closed]() { ++closed; };
-    registerAllCommands(callbacks);
+    registerAllCommands(kalahari::test::commands(), callbacks);
     bool hasBook = false;
     utils::bindToOpenBook(registry, [&hasBook]() { return hasBook; });
 
@@ -375,12 +379,12 @@ TEST_CASE("Save commands: a key given to Save All says why it is greyed out",
     if (!canActivateWindows()) {
         SKIP(NEEDS_OFFSCREEN);
     }
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
     CommandCallbacks callbacks = runningCallbacks();
     int saved = 0;
     callbacks.onSaveAll = [&saved]() { ++saved; };
-    registerAllCommands(callbacks);
+    registerAllCommands(kalahari::test::commands(), callbacks);
     QString whyNot = QStringLiteral("No document to save");
     const auto none = []() { return QString(); };
     utils::bindSaveCommands(registry, none, none, [&whyNot]() { return whyNot; });

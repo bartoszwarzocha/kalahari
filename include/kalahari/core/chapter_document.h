@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file chapter_document.h
 /// @brief KChapter document format for rich chapter storage
 ///

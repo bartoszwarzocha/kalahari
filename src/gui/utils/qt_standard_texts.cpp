@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file qt_standard_texts.cpp
 /// @brief Qt's own texts that Kalahari translates
 ///

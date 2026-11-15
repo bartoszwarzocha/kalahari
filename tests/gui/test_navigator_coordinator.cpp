@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_navigator_coordinator.cpp
 /// @brief The Navigator's commands on the open book project: adding, renaming, moving and
 /// deleting elements, which ProjectManager saves at once, and the files that no element has
@@ -79,6 +82,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -273,7 +277,7 @@ gui::AddTarget onWorkshop() {
 
 /// @brief Kind @p kindId of a novel: of the novel package, else of the base package
 core::KindRef novelKind(const QString& kindId) {
-    const core::BookTypeRegistry& types = core::ProjectManager::getInstance().bookTypes();
+    const core::BookTypeRegistry& types = test::book().bookTypes();
     const core::KindRef kind = types.findKind(QStringLiteral("kalahari.novel"), kindId);
     return kind ? kind : types.findKind(QStringLiteral("kalahari.base"), kindId);
 }
@@ -427,7 +431,7 @@ struct TestFileManager {
 /// with their files, which the Navigator would list under "Unassigned Files".
 struct OpenNovel {
     QTemporaryDir dir;
-    core::ProjectManager& pm = core::ProjectManager::getInstance();
+    core::ProjectManager& pm = test::book();
 
     OpenNovel() {
         pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
@@ -526,11 +530,17 @@ private:
 /// @brief The Navigator with its coordinator
 struct Navigator {
     QWidget window;
-    gui::NavigatorPanel* panel = new gui::NavigatorPanel(&window);
-    gui::PropertiesPanel* properties = new gui::PropertiesPanel(&window);
+    gui::NavigatorPanel* panel = new gui::NavigatorPanel(kalahari::test::book(), &window);
+    gui::PropertiesPanel* properties = new gui::PropertiesPanel(kalahari::test::book(), &window);
     QTabWidget* tabs = new QTabWidget(&window);
     QStatusBar* statusBar = new QStatusBar(&window);
-    gui::NavigatorCoordinator coordinator{panel, properties, tabs, statusBar, &window};
+    gui::NavigatorCoordinator coordinator{kalahari::test::book(),
+                                          kalahari::test::commands(),
+                                          panel,
+                                          properties,
+                                          tabs,
+                                          statusBar,
+                                          &window};
 
     Navigator() { coordinator.refreshNavigator(); }
 
@@ -546,7 +556,7 @@ struct Navigator {
     /// as the Navigator does after adding: the commands of the tests start from it
     QString added(const QString& kindId, core::BookPlace place = core::BookPlace::Main,
                   const QString& groupId = QString()) {
-        auto& pm = core::ProjectManager::getInstance();
+        auto& pm = test::book();
         const core::KindRef kind = novelKind(kindId);
         REQUIRE(kind);
         const QString id = pm.addElement(kind, pm.defaultTitle(kind), place, groupId);
@@ -2844,7 +2854,7 @@ struct TestBrowser {
 
 /// @brief The material of the Workshop added last
 const core::ProjectElement& lastMaterial() {
-    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const core::BookProject* project = test::book().project();
     REQUIRE(project != nullptr);
     REQUIRE_FALSE(project->workshop.elements.isEmpty());
     return project->workshop.elements.constLast();
@@ -2861,7 +2871,7 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
     core::SettingsManager::getInstance().set<std::string>(
         gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     Navigator navigator;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddMaterials,
                      &navigator.coordinator, &gui::NavigatorCoordinator::onRequestAddMaterials);
     const QString chapter = navigator.added(QStringLiteral("chapter"));
@@ -3155,7 +3165,7 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
         gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     Navigator navigator;
     TestBrowser browser;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     core::NewMaterial page;
     page.title = QStringLiteral("Kalahari");
     page.url = QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari");

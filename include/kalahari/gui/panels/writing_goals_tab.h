@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_goals_tab.h
 /// @brief The tab Writing Goals and Deadlines in the middle of the window: the daily and weekly
 /// goal of the writer, the length and the deadline of the book, and the deadlines of its parts

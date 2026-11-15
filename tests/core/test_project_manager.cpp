@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_project_manager.cpp
 /// @brief ProjectManager: creating, opening and saving book projects, their elements, the text
 /// and the data of their chapter files
@@ -35,6 +38,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::core;
 
@@ -42,14 +46,14 @@ namespace {
 
 /// ProjectManager with the built-in book types of the source tree
 ProjectManager& projects() {
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     REQUIRE(pm.bookTypes().problems().isEmpty());
     return pm;
 }
 
 KindRef kind(const QString& packageId, const QString& kindId) {
-    const KindRef found = ProjectManager::getInstance().bookTypes().findKind(packageId, kindId);
+    const KindRef found = kalahari::test::book().bookTypes().findKind(packageId, kindId);
     REQUIRE(found);
     return found;
 }
@@ -57,7 +61,7 @@ KindRef kind(const QString& packageId, const QString& kindId) {
 /// The open book takes kind @p kindId of package @p packageId too: its .klh file names the kind,
 /// and the book opens again with a copy of the package. Kinds taken before are no longer valid.
 void takeKind(const QString& packageId, const QString& kindId) {
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     const QString manifest = pm.getManifestPath();
     pm.project()->kinds.append(KindReference{packageId, kindId});
     REQUIRE(pm.saveManifest());
@@ -103,7 +107,7 @@ BookProject savedProject(const QString& manifest) {
 
 /// The chapter file of element @p id
 ChapterDocument chapterFileOf(const QString& id) {
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     const ProjectElement* element = pm.findElement(id);
     REQUIRE(element != nullptr);
     std::optional<ChapterDocument> chapter = ChapterDocument::load(pm.filePathOf(*element));
@@ -138,7 +142,7 @@ QStringList paragraphsOf(const QString& id) {
 
 /// Whether the database of the open project has paragraph style @p id
 bool hasParagraphStyle(const QString& id) {
-    ProjectDatabase* database = ProjectManager::getInstance().getDatabase();
+    ProjectDatabase* database = kalahari::test::book().getDatabase();
     REQUIRE(database != nullptr);
     const QList<ParagraphStyle> styles = database->getParagraphStyles();
     return std::any_of(styles.cbegin(), styles.cend(),

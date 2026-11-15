@@ -1,5 +1,10 @@
 # Command Registry Architecture
 
+> **Note (2026-11):** CommandRegistry is no longer a singleton. Each book window owns one
+> (`MainWindow::commands()`), and the parts of the window get it in their constructors; read
+> `CommandRegistry::getInstance()` below as "the commands of the window". The user's keys go to
+> every window (`applyCustomShortcuts()`, `CommandRegistry::registries()`).
+
 **Status:** ✅ Complete (Phase 1, Zagadnienie 1.2)
 **Created:** 2025-11-13
 **Version:** 1.0

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_plugin_manager.cpp
 /// @brief Unit tests for PluginManager singleton
 

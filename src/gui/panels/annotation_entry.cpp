@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotation_entry.cpp
 /// @brief What the Annotations panel shows: its filters and orders
 
