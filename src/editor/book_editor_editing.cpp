@@ -16,6 +16,7 @@
 #include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_images.h>
 #include <QAction>
 #include <QClipboard>
@@ -1461,10 +1462,18 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
             }
         }
     }
-    // The numbers and references as the editor shows them, with the whole book counted
+    // The numbers, references and fields as the editor shows them, with the whole book
+    // counted
     const CaptionNumbers& numbers = captionNumbers();
+    const FieldTextOf shownField = [this, &numbers](int position, const QTextFormat& format) {
+        const auto* layout =
+            qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+        return layout != nullptr ? layout->fieldText(position, format)
+                                 : numbers.fieldText(position, format);
+    };
     for (const auto& [rangeFrom, rangeTo] : ranges) {
-        std::vector<QString> texts = fieldTexts(*m_textBuffer, numbers, rangeFrom, rangeTo);
+        std::vector<QString> texts =
+            fieldTexts(*m_textBuffer, numbers, shownField, rangeFrom, rangeTo);
         marks.fields.insert(marks.fields.end(), std::make_move_iterator(texts.begin()),
                             std::make_move_iterator(texts.end()));
     }
