@@ -46,6 +46,8 @@ struct PlotCardEdit {
 /// by side, each over its texts; in a grid the texts are in rows under the title of their part.
 /// The scenes of a text are under its card in columns, and in a drawer under its row in a grid,
 /// which Space or a click on "3 scenes" opens and closes (setShowScenes() opens all of them).
+/// The texts of the front and the back section of the book may be shown too, dimmed, before
+/// and after the main section: a preview only (setSections()).
 ///
 /// The keys: the arrows go to the card in their direction, Home and End to the first and the
 /// last card; Ctrl with an arrow moves the card (in a grid Ctrl+Up and Ctrl+Down by a row);
@@ -158,6 +160,21 @@ public:
 
     /// @brief The bands shown
     [[nodiscard]] const QList<PlotBand>& bands() const { return m_bands; }
+
+    /// @brief The texts of the front section @p front of the book, shown before the bands, and
+    /// of the back section @p back, shown after them, when setShowSections() says so: a
+    /// preview, dimmed, whose cards cannot be chosen, moved or opened (the Navigator opens
+    /// their texts); a section without texts is not shown
+    void setSections(const PlotBand& front, const PlotBand& back);
+
+    /// @brief Show the front and the back section (setSections()), or not
+    void setShowSections(bool show);
+    /// @brief Whether the board shows the front and the back section (setShowSections())
+    [[nodiscard]] bool showsSections() const { return m_showSections; }
+
+    /// @brief Where text @p elementId of the front or the back section is on the screen, in
+    /// the coordinates of the viewport; empty when the board does not show it
+    [[nodiscard]] QRect sectionCardRect(const QString& elementId) const;
 
     /// @brief Arrange the cards as @p arrangement says
     void setArrangement(Arrangement arrangement);
@@ -319,6 +336,12 @@ private:
         QRect header;  ///< Its title; empty for texts outside the parts
         QRect area;    ///< Its cards, or the place of an empty part
     };
+    /// @brief The front or the back section where it is on the board: a preview
+    struct SectionPlace {
+        bool back = false;   ///< The back section; false: the front one
+        QRect header;        ///< Its title
+        QList<QRect> cards;  ///< Its texts, in their order
+    };
     /// @brief Where a card dragged goes
     struct DropTarget {
         QString anchorId;  ///< Before or after this card
@@ -372,6 +395,19 @@ private:
     /// @brief Put text @p text and its scenes under it in a column
     /// @return The bottom of the column
     int layOutColumn(const CardPlace& text, const QSize& card);
+    /// @brief Whether the front and the back section are on the board: shown, with texts of
+    /// the main section too
+    [[nodiscard]] bool sectionsOnBoard() const;
+    /// @brief Put the front section (@p back false) or the back section in a band from @p x,
+    /// its texts side by side
+    /// @return Where the next band starts
+    int layOutSectionColumns(bool back, int x, const QSize& card, int header);
+    /// @brief Put the front section (@p back false) or the back section in rows from @p top
+    /// @return Where the next band starts
+    int layOutSectionGrid(bool back, int top, const GridRows& rows);
+    [[nodiscard]] const PlotBand& sectionOf(const SectionPlace& place) const;
+    /// @brief The text of the front or the back section at @p pos; nullptr: none
+    [[nodiscard]] const PlotCard* sectionCardAt(const QPoint& pos) const;
     void layOutGrid(const QSize& card, int header);
     /// @brief Put the title and the cards of band @p band in rows from @p top
     /// @return The bottom of the band
@@ -398,6 +434,10 @@ private:
     void paintPartTitle(QPainter& painter, const QRect& header, const PlotBand& band) const;
     void paintEmptyPart(QPainter& painter, const QRect& area) const;
     void paintDrawer(QPainter& painter, const DrawerPlace& drawer) const;
+    void paintSection(QPainter& painter, const SectionPlace& place, const QRect& shown) const;
+    /// @brief A text of the front or the back section: dimmed, in a dashed frame, without
+    /// colors and the line of the plot
+    void paintSectionCard(QPainter& painter, const PlotCard& card, const QRect& rect) const;
     void paintCard(QPainter& painter, const CardPlace& place) const;
     /// @param planned A scene in the plan among the scenes of its text: a dashed frame
     void paintCardFrame(QPainter& painter, const PlotCard& card, const QRect& rect,
@@ -432,7 +472,8 @@ private:
     void showCurrent();
     /// @brief The point of view, the place and the time of @p card in words
     [[nodiscard]] static QStringList plotTexts(const PlotCard& card);
-    [[nodiscard]] static QString toolTipOf(const PlotCard& card);
+    /// @param note In italics under the rest; empty: none
+    [[nodiscard]] static QString toolTipOf(const PlotCard& card, const QString& note = QString());
     void choose(const QString& elementId);
     void ensureVisible(const QRect& rect);
     void closeEditor(bool save);
@@ -445,6 +486,10 @@ private:
     QList<CardPlace> m_cards;
     QList<BandPlace> m_bandPlaces;
     QList<DrawerPlace> m_drawers;
+    PlotBand m_front;                     ///< setSections()
+    PlotBand m_back;                      ///< setSections()
+    bool m_showSections = false;          ///< setShowSections()
+    QList<SectionPlace> m_sectionPlaces;  ///< The sections on the board
     bool m_showScenes = true;
     QSet<QString> m_toggled;  ///< In a grid: the texts whose drawers are not as m_showScenes
     QSize m_contentsSize;

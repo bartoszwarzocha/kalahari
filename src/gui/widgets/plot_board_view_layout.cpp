@@ -61,6 +61,7 @@ void PlotBoardView::relayout() {
     m_cards.clear();
     m_bandPlaces.clear();
     m_drawers.clear();
+    m_sectionPlaces.clear();
     const QSize card = cardSizePixels();
     const int header = QFontMetrics(boldFont(font())).height() + HEADER_PADDING;
     if (m_arrangement == Arrangement::Columns) {
@@ -71,8 +72,56 @@ void PlotBoardView::relayout() {
     updateScrollBars();
 }
 
+bool PlotBoardView::sectionsOnBoard() const {
+    return m_showSections && !m_bands.isEmpty();
+}
+
+const PlotBand& PlotBoardView::sectionOf(const SectionPlace& place) const {
+    return place.back ? m_back : m_front;
+}
+
+int PlotBoardView::layOutSectionColumns(bool back, int x, const QSize& card, int header) {
+    const PlotBand& section = back ? m_back : m_front;
+    if (!sectionsOnBoard() || section.cards.isEmpty()) {
+        return x;
+    }
+    const int count = static_cast<int>(section.cards.size());
+    const int width = (count * card.width()) + ((count - 1) * GAP);
+    const int cardsTop = MARGIN + header + HEADER_GAP;
+    SectionPlace place;
+    place.back = back;
+    place.header = QRect(x, MARGIN, width, header);
+    for (int i = 0; i < count; ++i) {
+        place.cards << QRect(x + (i * (card.width() + GAP)), cardsTop, card.width(),
+                             card.height());
+    }
+    m_sectionPlaces << place;
+    return x + width + BAND_GAP;
+}
+
+int PlotBoardView::layOutSectionGrid(bool back, int top, const GridRows& rows) {
+    const PlotBand& section = back ? m_back : m_front;
+    if (!sectionsOnBoard() || section.cards.isEmpty()) {
+        return top;
+    }
+    SectionPlace place;
+    place.back = back;
+    place.header = QRect(MARGIN, top, rows.width, rows.header);
+    const int cardsTop = top + rows.header + HEADER_GAP;
+    const QSize card = rows.card;
+    for (int i = 0; i < static_cast<int>(section.cards.size()); ++i) {
+        place.cards << QRect(MARGIN + ((i % rows.perRow) * (card.width() + GAP)),
+                             cardsTop + ((i / rows.perRow) * (card.height() + GAP)),
+                             card.width(), card.height());
+    }
+    const int bottom = place.cards.constLast().bottom() + 1;
+    m_sectionPlaces << place;
+    return bottom + BAND_GAP;
+}
+
 void PlotBoardView::layOutColumns(const QSize& card, int header) {
-    int x = MARGIN;
+    // The front section, a preview, before the bands; the back section after them
+    int x = layOutSectionColumns(false, MARGIN, card, header);
     const int cardsTop = MARGIN + header + HEADER_GAP;
     int bottom = cardsTop + card.height();
     int column = 0;
@@ -97,6 +146,7 @@ void PlotBoardView::layOutColumns(const QSize& card, int header) {
         bottom = std::max(bottom, bandBottom);
         x += width + BAND_GAP;
     }
+    x = layOutSectionColumns(true, x, card, header);
     m_contentsSize = QSize(std::max(x - BAND_GAP + MARGIN, 0), bottom + MARGIN);
 }
 
@@ -127,10 +177,11 @@ void PlotBoardView::layOutGrid(const QSize& card, int header) {
     rows.perDrawerRow =
         std::max(1, (rows.width - (2 * DRAWER_PADDING) + GAP) / (card.width() + GAP));
     rows.label = QFontMetrics(smallFont(font())).height() + LABEL_PADDING;
-    int y = MARGIN;
+    int y = layOutSectionGrid(false, MARGIN, rows);
     for (int b = 0; b < m_bands.size(); ++b) {
         y = layOutGridBand(b, y, rows) + BAND_GAP;
     }
+    y = layOutSectionGrid(true, y, rows);
     m_contentsSize = QSize(rows.width + (2 * MARGIN), std::max(y - BAND_GAP + MARGIN, 0));
 }
 
@@ -284,6 +335,30 @@ const PlotBoardView::CardPlace* PlotBoardView::cardAt(const QPoint& pos) const {
         }
     }
     return nullptr;
+}
+
+const PlotCard* PlotBoardView::sectionCardAt(const QPoint& pos) const {
+    for (const SectionPlace& place : m_sectionPlaces) {
+        for (qsizetype i = 0; i < place.cards.size(); ++i) {
+            if (place.cards.at(i).contains(pos)) {
+                return &sectionOf(place).cards.at(i);
+            }
+        }
+    }
+    return nullptr;
+}
+
+QRect PlotBoardView::sectionCardRect(const QString& elementId) const {
+    for (const SectionPlace& place : m_sectionPlaces) {
+        const QList<PlotCard>& cards = sectionOf(place).cards;
+        for (qsizetype i = 0; i < cards.size(); ++i) {
+            if (cards.at(i).id == elementId) {
+                return place.cards.at(i).translated(-horizontalScrollBar()->value(),
+                                                    -verticalScrollBar()->value());
+            }
+        }
+    }
+    return {};
 }
 
 QPoint PlotBoardView::contentsPos(const QPoint& viewportPos) const {

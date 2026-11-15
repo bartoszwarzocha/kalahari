@@ -236,7 +236,10 @@ std::map<std::string, json> buildDefaults() {
         // of a card in a strip at its top ("strip") or as its background ("tint"); the
         // background of the board: the theme's ("theme"), cork ("cork") or the writer's own
         // ("own", the color plotBackground of the theme); what the cards show besides their
-        // titles (fields) and the columns of the outline besides the title (outline)
+        // titles (fields) and the columns of the outline besides the title (outline); whether
+        // the board shows the front and the back section too, as a preview (showSections);
+        // what happens to the numbers in the titles the program gave after a move: offered on
+        // the bar under the board ("ask"), changed at once ("auto") or never ("never")
         {"plotBoard.view", "board"},
         {"plotBoard.startView", "last"},
         {"plotBoard.layout", "columns"},
@@ -246,6 +249,8 @@ std::map<std::string, json> buildDefaults() {
         {"plotBoard.background", "theme"},
         {"plotBoard.showScenes", true},
         {"plotBoard.scenes", "both"},
+        {"plotBoard.showSections", false},
+        {"plotBoard.renumber", "ask"},
         {"plotBoard.fields.description", true},
         {"plotBoard.fields.pov", true},
         {"plotBoard.fields.place", true},

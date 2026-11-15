@@ -313,4 +313,106 @@ void PlotBoardCoordinator::pasteScene(const QString& marked, const QString& afte
     placeScene(afterText, slot, static_cast<int>(anchor >= from ? anchor : anchor + 1));
 }
 
+// =============================================================================
+// The numbers in the titles
+// =============================================================================
+
+void PlotBoardCoordinator::renumberTitles() {
+    if (m_book.isReadOnly()) {
+        return;
+    }
+    const QList<PlotBoard::TitleChange> titles = PlotBoard::renumbered(m_book);
+    if (titles.isEmpty()) {
+        //: Under the plot board after Renumber, when nothing had to change. In Polish: Numery w
+        //: tytułach zgadzają się z kolejnością.
+        say(tr("The numbers in the titles follow the order."));
+        return;
+    }
+    const QList<PlotBoard::TitleChange> former = formerTitles(titles);
+    if (!retitle(titles)) {
+        retitle(former);
+        notSaved();
+        return;
+    }
+    pushChange(
+        //: What Undo undoes on the plot board, after "Undone:". In Polish: ponumerowanie
+        //: tytułów od nowa
+        tr("renumbering the titles"), [this, former]() { return retitle(former); },
+        [this, titles]() { return retitle(titles); });
+    const int count = static_cast<int>(titles.size());
+    //: Under the plot board after Renumber; %n the titles changed. In Polish: Ponumerowano od
+    //: nowa %n tytuł / tytuły / tytułów; zmieniły się tylko numery.
+    QString message = tr("%n titles renumbered; only the numbers changed.", nullptr, count);
+    if (count == 1) {
+        //: Under the plot board after Renumber. In Polish: Ponumerowano od nowa 1 tytuł;
+        //: zmienił się tylko numer.
+        message = tr("1 title renumbered; only its number changed.");
+    }
+    say(message, true);
+}
+
+QList<PlotBoard::TitleChange> PlotBoardCoordinator::renumberAtOnce(
+    const QList<PlotBoard::TitleChange>& titles, QList<PlotBoard::TitleChange>& former) {
+    if (titles.isEmpty() ||
+        PlotBoard::renumbering() != QLatin1String(PlotBoard::RENUMBER_AUTO)) {
+        return {};
+    }
+    former = formerTitles(titles);
+    if (!retitle(titles)) {
+        retitle(former);
+        former.clear();
+        notSaved();
+        return {};
+    }
+    return titles;
+}
+
+void PlotBoardCoordinator::sayMoved(const QString& moved, bool outOfOrder, bool renumbered) {
+    if (renumbered) {
+        //: Added under the plot board after a move that renumbered the titles at once
+        //: ("Chapter 3"). In Polish: Tytuły ponumerowano od nowa.
+        say(tr("%1 The titles were renumbered.").arg(moved), true);
+        return;
+    }
+    if (outOfOrder && m_panel != nullptr &&
+        PlotBoard::renumbering() == QLatin1String(PlotBoard::RENUMBER_ASK)) {
+        //: Added under the plot board after a move, with the button Renumber. In Polish:
+        //: Numery w tytułach nie zgadzają się już z kolejnością.
+        m_panel->offerRenumbering(
+            tr("%1 The numbers in the titles no longer follow the order.").arg(moved));
+        return;
+    }
+    say(moved, true);
+}
+
+bool PlotBoardCoordinator::retitle(const QList<PlotBoard::TitleChange>& titles) {
+    if (titles.isEmpty()) {
+        return true;
+    }
+    bool saved = true;
+    ++m_ownChanges;
+    for (const PlotBoard::TitleChange& change : titles) {
+        if (m_book.findElement(change.id) == nullptr ||
+            !m_book.renameElement(change.id, change.title)) {
+            saved = false;
+        }
+    }
+    --m_ownChanges;
+    m_navigator->refreshNavigator();
+    for (const PlotBoard::TitleChange& change : titles) {
+        m_navigator->refreshTabTitle(change.id);
+    }
+    refreshNow();
+    return saved;
+}
+
+QList<PlotBoard::TitleChange> PlotBoardCoordinator::formerTitles(
+    const QList<PlotBoard::TitleChange>& titles) const {
+    QList<PlotBoard::TitleChange> former;
+    for (const PlotBoard::TitleChange& change : titles) {
+        former << PlotBoard::TitleChange{.id = change.id, .title = textTitleOf(change.id)};
+    }
+    return former;
+}
+
 }  // namespace kalahari::gui

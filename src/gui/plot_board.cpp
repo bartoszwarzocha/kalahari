@@ -178,20 +178,28 @@ QList<PlotCard> sceneCards(const PlotCard& text, const QList<core::KmlScene>& wr
     return cards;
 }
 
-/// @brief The card of text @p element of part @p partId, the @p number -th of the board, with
-/// the cards of its scenes
-PlotCard textCard(const CardSource& source, const core::ProjectElement& element,
-                  const QString& partId, int number) {
-    const core::ProjectManager& book = *source.book;
+/// @brief The card of text @p element of @p book without its scenes; the names of the kinds
+/// in @p language
+PlotCard plainCard(const core::ProjectManager& book, const core::ProjectElement& element,
+                   const QString& language) {
     PlotCard card;
     card.id = element.id;
     const core::KindRef kind = book.kindOf(element);
-    card.kindName = kind ? kind.kind->name.text(source.language) : QString();
+    card.kindName = kind ? kind.kind->name.text(language) : QString();
     card.title = element.title;
     card.description = element.description;
     card.plot = element.plot;
     card.status = core::ProjectManager::statusOf(element);
     card.words = book.wordCount(element.id);
+    return card;
+}
+
+/// @brief The card of text @p element of part @p partId, the @p number -th of the board, with
+/// the cards of its scenes
+PlotCard textCard(const CardSource& source, const core::ProjectElement& element,
+                  const QString& partId, int number) {
+    const core::ProjectManager& book = *source.book;
+    PlotCard card = plainCard(book, element, source.language);
     card.partId = partId;
     card.number = number;
     // The scenes of the text the writer sees: of an open text with changes, its own
@@ -311,6 +319,29 @@ QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book,
         }
     }
     return bands;
+}
+
+PlotBand PlotBoard::sectionBand(const core::ProjectManager& book, core::BookPlace place) {
+    PlotBand band;
+    const core::ProjectBook* first = book.book();
+    if (first == nullptr) {
+        return band;
+    }
+    band.title = first->sectionName(place);
+    const QString language = programLanguage();
+    const std::function<void(const QList<core::ProjectElement>&)> collect =
+        [&](const QList<core::ProjectElement>& elements) {
+            for (const core::ProjectElement& element : elements) {
+                const core::ElementForm form = book.formOf(element);
+                if (form == core::ElementForm::Text) {
+                    band.cards << plainCard(book, element, language);
+                } else if (form == core::ElementForm::Group) {
+                    collect(element.elements);
+                }
+            }
+        };
+    collect(place == core::BookPlace::Back ? first->backElements : first->frontElements);
+    return band;
 }
 
 QList<PlotCard> PlotBoard::cardsOf(const QList<PlotBand>& bands) {

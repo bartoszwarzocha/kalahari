@@ -531,6 +531,40 @@ TEST_CASE("Settings dialog: the Plot Board page chooses the view, the cards and 
     settings.set<bool>("plotBoard.outline.words", words);
 }
 
+TEST_CASE("Settings dialog: the Plot Board page shows the sections and renumbers the titles",
+          "[gui][settings][plotboard]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const bool sections = settings.get<bool>("plotBoard.showSections", false);
+    const auto renumber = settings.get<std::string>("plotBoard.renumber", "ask");
+    settings.set<bool>("plotBoard.showSections", false);
+    settings.set<std::string>("plotBoard.renumber", "sometimes");  // unknown: offered on the bar
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    auto* shown = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.showSections"));
+    auto* ask = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberAsk"));
+    auto* now = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberAuto"));
+    auto* never = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_renumberNever"));
+    REQUIRE(shown != nullptr);
+    REQUIRE(ask != nullptr);
+    REQUIRE(now != nullptr);
+    REQUIRE(never != nullptr);
+    CHECK_FALSE(shown->isChecked());
+    CHECK(ask->isChecked());
+    CHECK_FALSE(dialog.hasChanges());
+
+    shown->click();
+    now->click();
+    const QStringList applied = dialog.applyChanges();
+    CHECK(applied.contains(QStringLiteral("plotBoard.showSections")));
+    CHECK(applied.contains(QStringLiteral("plotBoard.renumber")));
+    CHECK(settings.get<bool>("plotBoard.showSections"));
+    CHECK(settings.get<std::string>("plotBoard.renumber") == "auto");
+
+    settings.set<bool>("plotBoard.showSections", sections);
+    settings.set<std::string>("plotBoard.renumber", renumber);
+}
+
 TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in the menus",
           "[gui][settings]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();

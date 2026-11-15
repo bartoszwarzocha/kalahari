@@ -8,9 +8,10 @@
 /// shown and which scenes there are: the scenes of the texts and those in their plans (the
 /// default), the scenes of the texts only, or those in the plans only
 /// (PlotBoard::SCENES_VARIANT_SETTING); what the cards show; what colors them, as a strip at
-/// their top or as their background, and what is under them; the columns of the outline. The
-/// board follows the settings at once. The colors are those of the theme: kept for each theme,
-/// as the other colors of the editor.
+/// their top or as their background, and what is under them; the columns of the outline; the
+/// front and back sections shown as a preview; what happens to the numbers in the titles after
+/// a move (PlotBoard::RENUMBER_SETTING). The board follows the settings at once. The colors
+/// are those of the theme: kept for each theme, as the other colors of the editor.
 
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/settings_schema.h"
@@ -111,6 +112,7 @@ PlotBoardPage::PlotBoardPage(QWidget* parent) : SettingsPage(parent) {
     addCardsGroup();
     addColorsGroup();
     addOutlineGroup();
+    addNumbersGroup();
     pageLayout()->addStretch();
 }
 
@@ -170,11 +172,15 @@ void PlotBoardPage::addViewGroup() {
     //: The view a new tab of the plot board opens on. In Polish: Otwieraj na:
     addChoices(view, tr("Open on:"), PlotBoard::START_VIEW_SETTING,
                {//: In Polish: tablicy
-                {tr("the board"), PlotBoard::VIEW_BOARD, "startBoard"},
+                {.text = tr("the board"), .value = PlotBoard::VIEW_BOARD, .name = "startBoard"},
                 //: In Polish: konspekcie
-                {tr("the outline"), PlotBoard::VIEW_OUTLINE, "startOutline"},
+                {.text = tr("the outline"),
+                 .value = PlotBoard::VIEW_OUTLINE,
+                 .name = "startOutline"},
                 //: In Polish: ostatnio używanym
-                {tr("the view used last"), PlotBoard::START_LAST, "startLast"}});
+                {.text = tr("the view used last"),
+                 .value = PlotBoard::START_LAST,
+                 .name = "startLast"}});
     //: The note under the view a tab opens on. In Polish: Książka > Tablica fabuły i Książka >
     //: Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy
     //: fabuły” w Nawigatorze.
@@ -183,17 +189,22 @@ void PlotBoardPage::addViewGroup() {
     //: In Polish: Układ tablicy:
     addChoices(view, tr("Layout of the board:"), PlotBoard::LAYOUT_SETTING,
                {//: The parts side by side. In Polish: kolumny
-                {tr("columns"), PlotBoard::LAYOUT_COLUMNS, "columns"},
+                {.text = tr("columns"), .value = PlotBoard::LAYOUT_COLUMNS, .name = "columns"},
                 //: The cards in rows. In Polish: siatka
-                {tr("grid"), PlotBoard::LAYOUT_GRID, "grid"}});
+                {.text = tr("grid"), .value = PlotBoard::LAYOUT_GRID, .name = "grid"}});
     //: In Polish: Rozmiar kart:
     addChoices(view, tr("Size of the cards:"), PlotBoard::SIZE_SETTING,
                {//: In Polish: małe
-                {tr("small"), PlotBoard::SIZE_SMALL, "small"},
+                {.text = tr("small"), .value = PlotBoard::SIZE_SMALL, .name = "small"},
                 //: In Polish: średnie
-                {tr("medium"), PlotBoard::SIZE_MEDIUM, "medium"},
+                {.text = tr("medium"), .value = PlotBoard::SIZE_MEDIUM, .name = "medium"},
                 //: In Polish: duże
-                {tr("large"), PlotBoard::SIZE_LARGE, "large"}});
+                {.text = tr("large"), .value = PlotBoard::SIZE_LARGE, .name = "large"}});
+    //: What the plot board shows besides the main section. In Polish: Pokazuj na tablicy:
+    addChecks(view, tr("Show on the board:"),
+              {//: In Polish: sekcję początkową i końcową (tylko podgląd)
+               {tr("the front and back sections (a preview only)"),
+                PlotBoard::SECTIONS_SETTING}});
 }
 
 void PlotBoardPage::addScenesGroup() {
@@ -261,27 +272,39 @@ void PlotBoardPage::addColorsGroup() {
     //: In Polish: Koloruj karty:
     addChoices(colors, tr("Color the cards:"), PlotBoard::COLOR_SETTING,
                {//: In Polish: według stanu
-                {tr("by state"), PlotBoard::COLOR_STATUS, "colorStatus"},
+                {.text = tr("by state"), .value = PlotBoard::COLOR_STATUS, .name = "colorStatus"},
                 //: In Polish: według punktu widzenia
-                {tr("by point of view"), PlotBoard::COLOR_POV, "colorPov"},
+                {.text = tr("by point of view"), .value = PlotBoard::COLOR_POV, .name = "colorPov"},
                 //: In Polish: własnym kolorem karty
-                {tr("by the own color of the card"), PlotBoard::COLOR_OWN, "colorOwn"},
+                {.text = tr("by the own color of the card"),
+                 .value = PlotBoard::COLOR_OWN,
+                 .name = "colorOwn"},
                 //: In Polish: bez kolorów
-                {tr("without colors"), PlotBoard::COLOR_NONE, "colorNone"}});
+                {.text = tr("without colors"),
+                 .value = PlotBoard::COLOR_NONE,
+                 .name = "colorNone"}});
     //: Where the color of a card is. In Polish: Kolor na karcie:
     addChoices(colors, tr("Color on the card:"), PlotBoard::COLOR_PLACE_SETTING,
                {//: In Polish: pasek u góry
-                {tr("a strip at the top"), PlotBoard::COLOR_STRIP, "strip"},
+                {.text = tr("a strip at the top"),
+                 .value = PlotBoard::COLOR_STRIP,
+                 .name = "strip"},
                 //: In Polish: tło karty
-                {tr("the background of the card"), PlotBoard::COLOR_TINT, "tint"}});
+                {.text = tr("the background of the card"),
+                 .value = PlotBoard::COLOR_TINT,
+                 .name = "tint"}});
     //: What is under the cards. In Polish: Tło tablicy:
     addChoices(colors, tr("Background of the board:"), PlotBoard::BACKGROUND_SETTING,
                {//: In Polish: kolor motywu
-                {tr("the color of the theme"), PlotBoard::BACKGROUND_THEME, "backgroundTheme"},
+                {.text = tr("the color of the theme"),
+                 .value = PlotBoard::BACKGROUND_THEME,
+                 .name = "backgroundTheme"},
                 //: In Polish: korek
-                {tr("cork"), PlotBoard::BACKGROUND_CORK, "backgroundCork"},
+                {.text = tr("cork"), .value = PlotBoard::BACKGROUND_CORK, .name = "backgroundCork"},
                 //: In Polish: własny kolor
-                {tr("own color"), PlotBoard::BACKGROUND_OWN, "backgroundOwn"}});
+                {.text = tr("own color"),
+                 .value = PlotBoard::BACKGROUND_OWN,
+                 .name = "backgroundOwn"}});
     //: In Polish: Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma
     //: swoje kolory: to są kolory bieżącego motywu.
     addNote(colors, tr("The colors of the states of the texts, of the scenes in the plan and "
@@ -332,6 +355,30 @@ void PlotBoardPage::addOutlineGroup() {
     //: In Polish: Tytuł widać zawsze. Kolumny wybiera też przycisk „Kolumny” nad konspektem.
     addNote(outline, tr("The title is always shown. The button Table Columns over the outline "
                         "chooses the columns too."));
+}
+
+void PlotBoardPage::addNumbersGroup() {
+    //: A group of Settings > Plot Board: the numbers in the titles of the texts ("Chapter 3").
+    //: In Polish: Numery w tytułach
+    QFormLayout* numbers = addGroup(tr("Numbers in the Titles"));
+    //: In Polish: Po przestawieniu rozdziałów:
+    addChoices(numbers, tr("After the chapters are rearranged:"), PlotBoard::RENUMBER_SETTING,
+               {//: In Polish: zaproponuj na pasku
+                {.text = tr("offer it on the bar"),
+                 .value = PlotBoard::RENUMBER_ASK,
+                 .name = "renumberAsk"},
+                //: In Polish: ponumeruj od razu
+                {.text = tr("renumber at once"),
+                 .value = PlotBoard::RENUMBER_AUTO,
+                 .name = "renumberAuto"},
+                //: In Polish: nie zmieniaj
+                {.text = tr("do not change"),
+                 .value = PlotBoard::RENUMBER_NEVER,
+                 .name = "renumberNever"}});
+    //: In Polish: Dotyczy tytułów nadanych przez program („Rozdział 3”, także z dalszym ciągiem,
+    //: np. „Rozdział 3. Burza”); zmienia się tylko numer.
+    addNote(numbers, tr("For the titles the program gave (\"Chapter 3\", also with more, as "
+                        "in \"Chapter 3. Storm\"); only the number changes."));
 }
 
 }  // namespace kalahari::gui

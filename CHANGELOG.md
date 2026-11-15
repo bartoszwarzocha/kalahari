@@ -65,6 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Board": its description, point of view, place, time of the action and card color, with the
   characters and places of the Workshop suggested; a field keeps what was written when the
   keys leave it, and a change on the board shows there at once.
+- **Plot board: the front and back sections, the numbers in the titles** - 2026-11-15. Settings
+  > Plot Board can show the texts of the front and the back section too, dimmed, before and
+  after the main section: a preview, whose texts open from the Navigator. When a move leaves
+  the numbers in the titles the program gave ("Chapter 3", also "Chapter 3. Storm") out of the
+  order, the bar under the board offers "Renumber" (a step of its own for Ctrl+Z); Settings >
+  Plot Board can renumber them at once, in the step of the move, or never. Only the number
+  changes, and the writer's own titles stay as they are.
 - **Settings > Plot Board: the view, the cards, the colors and the outline** - 2026-11-15. The
   page chooses the view a new tab of the board opens on (the board, the outline or the one used
   last), the layout and the size of the cards, the scenes shown, what the cards show besides

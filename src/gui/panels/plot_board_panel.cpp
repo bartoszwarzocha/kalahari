@@ -25,12 +25,10 @@
 #include <QTableView>
 #include <QVBoxLayout>
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <functional>
 #include <optional>
-#include <string>
 #include <utility>
 
 namespace kalahari::gui {
@@ -239,7 +237,13 @@ void PlotBoardPanel::buildBody(QVBoxLayout* layout) {
     m_infoBar->setObjectName(QStringLiteral("plotBoardInfoBar"));
     m_infoBar->hide();
     layout->addWidget(m_infoBar);
-    connect(m_infoBar, &InfoBar::actionClicked, this, &PlotBoardPanel::undoRequested);
+    connect(m_infoBar, &InfoBar::actionClicked, this, [this]() {
+        if (m_offersRenumbering) {
+            emit renumberRequested();
+        } else {
+            emit undoRequested();
+        }
+    });
     connect(m_infoBar, &InfoBar::dismissed, m_infoBar, &QWidget::hide);
 
     m_menu = new QMenu(this);
@@ -304,6 +308,10 @@ void PlotBoardPanel::connectOutline() {
 
 PlotBoardPanel::~PlotBoardPanel() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
+}
+
+void PlotBoardPanel::setSections(const PlotBand& front, const PlotBand& back) {
+    m_board->setSections(front, back);
 }
 
 void PlotBoardPanel::setBands(const QList<PlotBand>& bands) {
@@ -453,7 +461,18 @@ bool PlotBoardPanel::editCard(const QString& elementId) {
     return m_outline->indexWidget(title) != nullptr;
 }
 
+void PlotBoardPanel::offerRenumbering(const QString& message) {
+    m_offersRenumbering = true;
+    m_infoBar->setMessage(message);
+    //: The button of the bar under the plot board that renumbers the titles of the texts after
+    //: a move ("Chapter 3"). In Polish: Ponume&ruj od nowa
+    m_infoBar->setActionText(tr("&Renumber"));
+    m_infoBar->setActionToolTip(QString());
+    m_infoBar->setVisible(true);
+}
+
 void PlotBoardPanel::showMessage(const QString& message, bool canUndo) {
+    m_offersRenumbering = false;
     m_infoBar->setMessage(message);
     //: The button of the bar under the plot board that undoes what it says. In Polish: &Cofnij
     m_infoBar->setActionText(canUndo ? tr("&Undo") : QString());

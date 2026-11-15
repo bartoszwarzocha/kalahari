@@ -9,6 +9,7 @@
 #define KALAHARI_GUI_PLOT_BOARD_H
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
 
 #include <QColor>
 #include <QCoreApplication>
@@ -144,6 +145,15 @@ public:
     /// The columns of the outline shown: OUTLINE_SETTING followed by the name of a column
     /// (PlotOutlineModel::columnName()), true or false; the title is always shown
     static constexpr const char* OUTLINE_SETTING = "plotBoard.outline.";
+    /// Whether the board shows the texts of the front and the back section of the book too,
+    /// before and after those of the main section: a preview, whose cards cannot be chosen
+    static constexpr const char* SECTIONS_SETTING = "plotBoard.showSections";
+    /// What happens to the numbers in the titles the program gave ("Chapter 3") when a move on
+    /// the board leaves them out of the order: RENUMBER_ASK, RENUMBER_AUTO or RENUMBER_NEVER
+    static constexpr const char* RENUMBER_SETTING = "plotBoard.renumber";
+    static constexpr const char* RENUMBER_ASK = "ask";      ///< The bar under the board offers it
+    static constexpr const char* RENUMBER_AUTO = "auto";    ///< At once, with the move
+    static constexpr const char* RENUMBER_NEVER = "never";  ///< The titles stay as they are
     /// @}
 
     /// @brief Which scenes there are (SCENES_VARIANT_SETTING): SCENES_BOTH, SCENES_TEXT or
@@ -152,6 +162,10 @@ public:
 
     /// @brief The view a new tab opens on (START_VIEW_SETTING): VIEW_BOARD or VIEW_OUTLINE
     [[nodiscard]] static QString startView();
+
+    /// @brief What happens to the numbers in the titles after a move (RENUMBER_SETTING):
+    /// RENUMBER_ASK, RENUMBER_AUTO or RENUMBER_NEVER
+    [[nodiscard]] static QString renumbering();
 
     /// @brief The key of the setting of field @p field (FIELD_DESCRIPTION...) of the cards
     [[nodiscard]] static std::string fieldSetting(const char* field);
@@ -168,6 +182,33 @@ public:
     [[nodiscard]] static QList<PlotBand> bandsOf(const core::ProjectManager& book,
                                                  const QHash<QString, QString>& unsaved = {},
                                                  const QString& variant = QString());
+
+    /// @brief The texts of the front (@p place core::BookPlace::Front) or the back section of
+    /// the open book, also those in its groups, in a band with the name of the section; their
+    /// cards have no scenes and no numbers
+    [[nodiscard]] static PlotBand sectionBand(const core::ProjectManager& book,
+                                              core::BookPlace place);
+
+    /// @brief A new title of a text
+    struct TitleChange {
+        QString id;     ///< The text
+        QString title;  ///< Its title
+
+        bool operator==(const TitleChange&) const = default;
+    };
+
+    /// @brief Title @p title of an element of kind @p kind with number @p number, when it is a
+    /// title the program gives in @p language ("Chapter 3", also "Chapter 3. Storm"): only the
+    /// number changes; nullopt for another title, and for a kind without a number in its titles
+    [[nodiscard]] static std::optional<QString> numberedTitle(const QString& title,
+                                                              const core::ElementKind& kind,
+                                                              const QString& language,
+                                                              int number);
+
+    /// @brief The texts of the main section of the open book with titles the program gave
+    /// whose numbers no longer follow the order of the book, with their titles renumbered: the
+    /// n-th text of a kind has number n (numberedTitle()), in the language of the book
+    [[nodiscard]] static QList<TitleChange> renumbered(const core::ProjectManager& book);
 
     /// @brief The cards of the texts of @p bands one after another
     [[nodiscard]] static QList<PlotCard> cardsOf(const QList<PlotBand>& bands);

@@ -96,6 +96,23 @@ void PlotBoardView::setBands(const QList<PlotBand>& bands) {
     viewport()->update();
 }
 
+void PlotBoardView::setSections(const PlotBand& front, const PlotBand& back) {
+    m_front = front;
+    m_back = back;
+    relayout();
+    placeEditor();
+    viewport()->update();
+}
+
+void PlotBoardView::setShowSections(bool show) {
+    if (m_showSections == show) {
+        return;
+    }
+    m_showSections = show;
+    relayout();
+    showCurrent();
+}
+
 qsizetype PlotBoardView::indexOfText(const QString& textId) const {
     const QList<PlotCard> texts = PlotBoard::cardsOf(m_bands);
     for (qsizetype i = 0; i < texts.size(); ++i) {
@@ -302,7 +319,7 @@ QString PlotBoardView::spokenText(const QString& elementId) const {
     return parts.join(QStringLiteral(". "));
 }
 
-QString PlotBoardView::toolTipOf(const PlotCard& card) {
+QString PlotBoardView::toolTipOf(const PlotCard& card, const QString& note) {
     QStringList lines{QStringLiteral("<b>%1</b>").arg(
         (card.title.isEmpty() ? card.kindName : card.title).toHtmlEscaped())};
     if (!card.description.isEmpty()) {
@@ -314,6 +331,9 @@ QString PlotBoardView::toolTipOf(const PlotCard& card) {
             text = text.toHtmlEscaped();
         }
         lines << plot.join(QStringLiteral("<br>"));
+    }
+    if (!note.isEmpty()) {
+        lines << QStringLiteral("<i>%1</i>").arg(note.toHtmlEscaped());
     }
     return QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
         .arg(lines.join(QStringLiteral("<br>")));
@@ -380,13 +400,21 @@ bool PlotBoardView::viewportEvent(QEvent* event) {
     }
     const auto* help = static_cast<QHelpEvent*>(event);
     const CardPlace* place = cardAt(contentsPos(help->pos()));
-    if (place == nullptr) {
-        QToolTip::hideText();
-        event->ignore();
+    if (place != nullptr) {
+        QToolTip::showText(help->globalPos(), toolTipOf(cardOfPlace(*place)), viewport(),
+                           cardRect(place->id));
         return true;
     }
-    QToolTip::showText(help->globalPos(), toolTipOf(cardOfPlace(*place)), viewport(),
-                       cardRect(place->id));
+    if (const PlotCard* text = sectionCardAt(contentsPos(help->pos()))) {
+        //: The tooltip of a text of the front or the back section on the plot board, after its
+        //: title. In Polish: Tekst sekcji – otwiera się z Nawigatora.
+        const QString note = tr("A text of the section – it opens from the Navigator.");
+        QToolTip::showText(help->globalPos(), toolTipOf(*text, note), viewport(),
+                           sectionCardRect(text->id));
+        return true;
+    }
+    QToolTip::hideText();
+    event->ignore();
     return true;
 }
 

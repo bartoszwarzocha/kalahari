@@ -2081,3 +2081,185 @@ TEST_CASE("Plot board: the look of the board and the outline from Settings > Plo
         CHECK(PlotBoard::startView() == QLatin1String(PlotBoard::VIEW_OUTLINE));
     }
 }
+
+TEST_CASE("Plot board: the front and back sections shown as a preview", "[gui][plotboard]") {
+    const KeptSwitch sections{PlotBoard::SECTIONS_SETTING};
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<bool>(PlotBoard::SECTIONS_SETTING, false);
+    StormBoard scenes;
+    core::ProjectManager& pm = scenes.pm;
+    gui::PlotBoardView* board = scenes.board;
+    const QString dedication = pm.addElement(baseKind("dedication"), QStringLiteral("For Leila"),
+                                             core::BookPlace::Front);
+    const QString thanks = pm.addElement(baseKind("acknowledgments"), QStringLiteral("Thanks"),
+                                         core::BookPlace::Back);
+    REQUIRE_FALSE(dedication.isEmpty());
+    REQUIRE_FALSE(thanks.isEmpty());
+    scenes.boards.refresh();
+    QCoreApplication::processEvents();
+
+    SECTION("the texts of a section in a band with its name, without scenes and numbers") {
+        const gui::PlotBand front = PlotBoard::sectionBand(pm, core::BookPlace::Front);
+        const gui::PlotBand back = PlotBoard::sectionBand(pm, core::BookPlace::Back);
+        CHECK(front.title == pm.book()->sectionName(core::BookPlace::Front));
+        CHECK(back.title == pm.book()->sectionName(core::BookPlace::Back));
+        CHECK(front.partId.isEmpty());
+        const auto has = [](const gui::PlotBand& band, const QString& id) {
+            return std::ranges::any_of(band.cards,
+                                       [&id](const PlotCard& card) { return card.id == id; });
+        };
+        CHECK(has(front, dedication));
+        CHECK_FALSE(has(front, thanks));
+        CHECK(has(back, thanks));
+        for (const PlotCard& card : front.cards) {
+            CHECK(card.scenes.isEmpty());
+            CHECK(card.number == 0);
+        }
+        // The main section as it was
+        CHECK(boardOfBook() == "Chapter 1, The Storm | Part One: The Calm");
+    }
+
+    SECTION("before and after the main section, in columns and in the grid; not chosen") {
+        CHECK_FALSE(board->showsSections());
+        CHECK_FALSE(board->sectionCardRect(dedication).isValid());
+        settings.set<bool>(PlotBoard::SECTIONS_SETTING, true);
+        QCoreApplication::processEvents();
+        CHECK(board->showsSections());
+        const QRect front = board->sectionCardRect(dedication);
+        const QRect back = board->sectionCardRect(thanks);
+        REQUIRE(front.isValid());
+        REQUIRE(back.isValid());
+        CHECK(front.right() < board->cardRect(scenes.book.first).left());
+        CHECK(back.left() > board->cardRect(scenes.book.calm).right());
+        // A preview: its cards are not the board's
+        CHECK_FALSE(board->setCurrentCard(dedication));
+        CHECK(board->currentCard() == scenes.storm);
+        press(board, Qt::Key_Home);
+        CHECK(board->currentCard() == scenes.book.first);
+
+        settings.set<std::string>(PlotBoard::LAYOUT_SETTING, PlotBoard::LAYOUT_GRID);
+        QCoreApplication::processEvents();
+        CHECK(board->sectionCardRect(dedication).bottom() <
+              board->cardRect(scenes.book.first).top());
+        CHECK(board->sectionCardRect(thanks).top() > board->cardRect(scenes.book.calm).bottom());
+    }
+}
+
+TEST_CASE("Plot board: the numbers in the titles the program gave follow the moves",
+          "[gui][plotboard]") {
+    const core::KindRef chapter = baseKind("chapter");
+    const core::KindRef part = baseKind("part");
+    const core::KindRef dedication = baseKind("dedication");
+    REQUIRE(chapter);
+    REQUIRE(part);
+    REQUIRE(dedication);
+    const auto numbered = [](const core::KindRef& kind, const char* title, const char* language,
+                             int number) {
+        return PlotBoard::numberedTitle(QString::fromUtf8(title), *kind.kind,
+                                        QString::fromLatin1(language), number)
+            .value_or(QStringLiteral("-"))
+            .toStdString();
+    };
+
+    SECTION("only the number of a title the program gave changes") {
+        CHECK(numbered(chapter, "Chapter 3", "en", 1) == "Chapter 1");
+        CHECK(numbered(chapter, "Chapter 3. Storm", "en", 12) == "Chapter 12. Storm");
+        CHECK(numbered(chapter, "Chapter 12: Calm", "en", 2) == "Chapter 2: Calm");
+        CHECK(numbered(chapter, "Rozdział 3. Burza", "pl", 4) == "Rozdział 4. Burza");
+        CHECK(numbered(chapter, "Chapter 3", "en", 3) == "Chapter 3");
+        // The writer's own titles stay
+        CHECK(numbered(chapter, "The Storm", "en", 1) == "-");
+        CHECK(numbered(chapter, "Chapter 3a", "en", 1) == "-");
+        CHECK(numbered(chapter, "Chapters 3", "en", 1) == "-");
+        CHECK(numbered(chapter, "Chapter three", "en", 1) == "-");
+        CHECK(numbered(chapter, "Rozdział 3", "en", 1) == "-");
+        // Roman numbers, as the kind has them
+        CHECK(numbered(part, "Part II", "en", 3) == "Part III");
+        CHECK(numbered(part, "Part IV. The Sea", "en", 1) == "Part I. The Sea");
+        CHECK(numbered(part, "Part Ivy", "en", 1) == "-");
+        // A kind without a number in its titles
+        CHECK(numbered(dedication, "Dedication", "en", 1) == "-");
+    }
+
+    const KeptSetting renumber{PlotBoard::RENUMBER_SETTING};
+    auto& settings = core::SettingsManager::getInstance();
+    StormBoard scenes;
+    core::ProjectManager& pm = scenes.pm;
+    gui::PlotBoardView* board = scenes.board;
+    gui::PlotBoardPanel* panel = scenes.panel;
+    const QString& first = scenes.book.first;
+    const QString& storm = scenes.storm;
+    const QString& calm = scenes.book.calm;
+    REQUIRE(pm.renameElement(storm, QStringLiteral("Chapter 2. The Storm")));
+    REQUIRE(pm.renameElement(calm, QStringLiteral("Chapter 3")));
+    scenes.boards.refresh();
+    QCoreApplication::processEvents();
+    CHECK(PlotBoard::renumbered(pm).isEmpty());
+    const auto titles = [&pm, &first, &storm, &calm]() {
+        return QStringList{pm.findElement(first)->title, pm.findElement(storm)->title,
+                           pm.findElement(calm)->title}
+            .join(QStringLiteral(", "))
+            .toStdString();
+    };
+    const auto barButton = [panel]() {
+        auto* bar = panel->findChild<QWidget*>(QStringLiteral("plotBoardInfoBar"));
+        REQUIRE(bar != nullptr);
+        auto* button = bar->findChild<QPushButton*>();
+        REQUIRE(button != nullptr);
+        return button;
+    };
+    REQUIRE(board->setCurrentCard(calm));
+
+    SECTION("the texts of a kind numbered in the order of the book") {
+        REQUIRE(pm.renameElement(first, QStringLiteral("Chapter 5")));
+        const QList<PlotBoard::TitleChange> changes = PlotBoard::renumbered(pm);
+        REQUIRE(changes.size() == 1);
+        CHECK(changes.constFirst().id == first);
+        CHECK(changes.constFirst().title == QStringLiteral("Chapter 1"));
+    }
+
+    SECTION("offered on the bar: Renumber is a step of its own") {
+        settings.set<std::string>(PlotBoard::RENUMBER_SETTING, PlotBoard::RENUMBER_ASK);
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        CHECK(boardOf(board->bands()) == "Chapter 3, Chapter 1, Chapter 2. The Storm | Part One: ");
+        CHECK(titles() == "Chapter 1, Chapter 2. The Storm, Chapter 3");
+        CHECK(panel->message() == QStringLiteral("\"Chapter 3\" moved. The numbers in the titles "
+                                                 "no longer follow the order."));
+        CHECK(barButton()->text() == QStringLiteral("&Renumber"));
+
+        barButton()->click();
+        CHECK(titles() == "Chapter 2, Chapter 3. The Storm, Chapter 1");
+        CHECK(panel->message() ==
+              QStringLiteral("3 titles renumbered; only the numbers changed."));
+        CHECK(barButton()->text() == QStringLiteral("&Undo"));
+        barButton()->click();
+        CHECK(titles() == "Chapter 1, Chapter 2. The Storm, Chapter 3");
+        CHECK(boardOf(board->bands()) == "Chapter 3, Chapter 1, Chapter 2. The Storm | Part One: ");
+    }
+
+    SECTION("at once, in the same step") {
+        settings.set<std::string>(PlotBoard::RENUMBER_SETTING, PlotBoard::RENUMBER_AUTO);
+        REQUIRE(board->setCurrentCard(storm));
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        CHECK(boardOf(board->bands()) == "Chapter 1. The Storm, Chapter 2 | Part One: Chapter 3");
+        CHECK(titles() == "Chapter 2, Chapter 1. The Storm, Chapter 3");
+        CHECK(panel->message() ==
+              QStringLiteral("\"Chapter 2. The Storm\" moved. The titles were renumbered."));
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(boardOf(board->bands()) == "Chapter 1, Chapter 2. The Storm | Part One: Chapter 3");
+        CHECK(titles() == "Chapter 1, Chapter 2. The Storm, Chapter 3");
+        press(board, Qt::Key_Y, Qt::ControlModifier);
+        CHECK(titles() == "Chapter 2, Chapter 1. The Storm, Chapter 3");
+    }
+
+    SECTION("never") {
+        settings.set<std::string>(PlotBoard::RENUMBER_SETTING, PlotBoard::RENUMBER_NEVER);
+        REQUIRE(board->setCurrentCard(storm));
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        CHECK(titles() == "Chapter 1, Chapter 2. The Storm, Chapter 3");
+        CHECK(panel->message() == QStringLiteral("\"Chapter 2. The Storm\" moved."));
+        CHECK(barButton()->text() == QStringLiteral("&Undo"));
+    }
+}

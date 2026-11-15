@@ -62,6 +62,7 @@ using board_view::QUIET_RING_ALPHA;
 using board_view::RADIUS;
 using board_view::READABLE_CONTRAST;
 using board_view::RING_WIDTH;
+using board_view::SECTION_OPACITY;
 using board_view::smallFont;
 using board_view::STATE_GAP;
 using board_view::STRIP;
@@ -229,6 +230,9 @@ void PlotBoardView::paintEmptyBoard(QPainter& painter, const QRect& shown) const
 }
 
 void PlotBoardView::paintBands(QPainter& painter, const QRect& shown) const {
+    for (const SectionPlace& section : m_sectionPlaces) {
+        paintSection(painter, section, shown);
+    }
     for (const BandPlace& band : m_bandPlaces) {
         if (band.header.isValid() || band.area.intersects(shown)) {
             paintBandHeader(painter, band);
@@ -318,6 +322,40 @@ void PlotBoardView::paintDrawer(QPainter& painter, const DrawerPlace& drawer) co
     painter.drawText(label, Qt::AlignLeft | Qt::AlignVCenter,
                      metrics.elidedText(tr("Scenes – %1").arg(drawer.title), Qt::ElideRight,
                                         label.width()));
+    painter.restore();
+}
+
+void PlotBoardView::paintSection(QPainter& painter, const SectionPlace& place,
+                                 const QRect& shown) const {
+    const PlotBand& section = sectionOf(place);
+    paintPartTitle(painter, place.header, section);
+    for (qsizetype i = 0; i < place.cards.size(); ++i) {
+        if (place.cards.at(i).intersects(shown)) {
+            paintSectionCard(painter, section.cards.at(i), place.cards.at(i));
+        }
+    }
+}
+
+void PlotBoardView::paintSectionCard(QPainter& painter, const PlotCard& card,
+                                     const QRect& rect) const {
+    const QPalette& colors = palette();
+    painter.save();
+    painter.setOpacity(SECTION_OPACITY);
+    QPainterPath shape;
+    shape.addRoundedRect(QRectF(rect).adjusted(HALF_PIXEL, HALF_PIXEL, -HALF_PIXEL, -HALF_PIXEL),
+                         RADIUS, RADIUS);
+    painter.fillPath(shape, colors.color(QPalette::Base));
+    QPen border(colors.color(QPalette::Mid));
+    border.setStyle(Qt::DashLine);
+    painter.setPen(border);
+    painter.setBrush(Qt::NoBrush);
+    painter.drawPath(shape);
+    const QRect inner = rect.adjusted(PADDING, PADDING + STRIP, -PADDING, -PADDING);
+    const int titleTop = paintCardHead(painter, card, inner);
+    const int descriptionTop = paintCardTitle(painter, card, inner, titleTop) + LINE_GAP;
+    if (m_fields.description && !card.description.isEmpty()) {
+        paintCardDescription(painter, card, inner, descriptionTop, false);
+    }
     painter.restore();
 }
 

@@ -54,6 +54,7 @@ constexpr int RING_WIDTH = 2;       ///< The ring of the card chosen
 constexpr double SMALL_FONT_SCALE = 0.86;   ///< Of the small lines: the kind, the plot
 constexpr double MARKED_OPACITY = 0.55;     ///< Of a card marked to move (Ctrl+X)
 constexpr float PLANNED_OPACITY = 0.6F;     ///< Of a scene in the plan among the scenes written
+constexpr double SECTION_OPACITY = 0.7;     ///< Of a text of the front or the back section
 constexpr double HALF_PIXEL = 0.5;          ///< The border of a card on the middle of a pixel
 constexpr double TINT_SHARE = 0.22;         ///< Of the color of a card in its background
 constexpr double READABLE_CONTRAST = 4.5;   ///< Of the texts on the background of the board

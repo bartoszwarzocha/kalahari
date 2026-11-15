@@ -235,6 +235,7 @@ set(KALAHARI_SOURCES
     gui/writing_stats_model.cpp  # WritingStatsModel - the statistics of writing shown
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
     gui/plot_board.cpp  # PlotBoard - what the plot board shows of the book, where its cards move
+    gui/plot_board_titles.cpp  # PlotBoard - the numbers in the titles after a move
     gui/plot_board_coordinator.cpp  # PlotBoardCoordinator - the plot board on its tab, its changes
     gui/plot_board_coordinator_arrange.cpp  # PlotBoardCoordinator - cards moved, added, cut
     gui/plot_board_coordinator_plan.cpp  # PlotBoardCoordinator - the scenes moved, the plans

@@ -9,6 +9,7 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
@@ -184,6 +185,8 @@ void PlotBoardCoordinator::refreshNow() {
     m_panel->setSuggestions(PlotBoard::povSuggestions(m_book),
                             PlotBoard::placeSuggestions(m_book));
     m_panel->setBands(PlotBoard::bandsOf(m_book, unsavedTexts()));
+    m_panel->setSections(PlotBoard::sectionBand(m_book, core::BookPlace::Front),
+                         PlotBoard::sectionBand(m_book, core::BookPlace::Back));
     m_panel->setMarkedCard(m_marked);
     updateTab();
 }
@@ -246,6 +249,8 @@ void PlotBoardCoordinator::connectBoard(PlotBoardPanel* panel) {
     connect(panel, &PlotBoardPanel::cutCancelled, this, &PlotBoardCoordinator::cancelCut);
     connect(panel, &PlotBoardPanel::undoRequested, this, &PlotBoardCoordinator::undo);
     connect(panel, &PlotBoardPanel::redoRequested, this, &PlotBoardCoordinator::redo);
+    connect(panel, &PlotBoardPanel::renumberRequested, this,
+            &PlotBoardCoordinator::renumberTitles);
     connect(panel, &PlotBoardPanel::propertiesRequested, this,
             [this](const QString& elementId) { showProperties(elementId, true); });
     // Another variant of the scenes shows other cards
@@ -495,18 +500,28 @@ void PlotBoardCoordinator::moveWithUndo(const QString& elementId,
         notSaved();
         return;
     }
+    // The numbers in the titles that no longer follow the order (PlotBoard::RENUMBER_SETTING):
+    // renumbered at once in the same step, or offered on the bar
+    const QList<PlotBoard::TitleChange> titles =
+        PlotBoard::renumbering() == QLatin1String(PlotBoard::RENUMBER_NEVER)
+            ? QList<PlotBoard::TitleChange>()
+            : PlotBoard::renumbered(m_book);
+    QList<PlotBoard::TitleChange> former;
+    const QList<PlotBoard::TitleChange> renamed = renumberAtOnce(titles, former);
     pushChange(
         //: What Undo undoes on the plot board, after "Undone:"; %1 the title. In Polish:
         //: przeniesienie „%1”
         tr("moving \"%1\"").arg(title),
-        [this, elementId, from]() { return moveTo(elementId, *from); },
-        [this, elementId, place]() { return moveTo(elementId, place); });
+        [this, elementId, from, former]() { return retitle(former) && moveTo(elementId, *from); },
+        [this, elementId, place, renamed]() {
+            return moveTo(elementId, place) && retitle(renamed);
+        });
     if (m_panel != nullptr) {
         m_panel->setCurrentCard(elementId);
     }
     //: Under the plot board after a card was moved; %1 its title. In Polish: Przeniesiono
     //: „%1”.
-    say(tr("\"%1\" moved.").arg(title), true);
+    sayMoved(tr("\"%1\" moved.").arg(title), !titles.isEmpty(), !renamed.isEmpty());
 }
 
 void PlotBoardCoordinator::changeWithUndo(const QString& elementId, const CardText& text,

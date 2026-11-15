@@ -259,6 +259,8 @@ void PlotBoardPanel::applySettings() {
         core::SettingsManager::getInstance().get<bool>(PlotBoard::SCENES_SETTING, true);
     m_board->setShowScenes(scenes);
     m_model->setShowScenes(scenes);
+    m_board->setShowSections(
+        core::SettingsManager::getInstance().get<bool>(PlotBoard::SECTIONS_SETTING, false));
     applyOutlineColumns();
     updateSwitches();
     // Other scenes are other cards

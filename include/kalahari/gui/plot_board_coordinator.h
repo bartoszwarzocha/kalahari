@@ -71,6 +71,11 @@ struct PlotCardEdit;
 /// there, each one Ctrl+Z on the board. Enter on a scene in the plan beside the scenes of its
 /// text writes it: a scene break with what it says comes at its place in the text, and the text
 /// opens there.
+///
+/// A move that leaves the numbers in the titles the program gave out of the order of the book
+/// ("Chapter 3"; PlotBoard::renumbered()) renumbers them as the settings say: the bar under the
+/// board offers it (a step of its own), the move does it in its own step, or nothing happens.
+/// The board also shows the texts of the front and back sections when the settings say so.
 class PlotBoardCoordinator : public QObject {
     Q_OBJECT
 
@@ -304,8 +309,30 @@ private:
     /// @}
 
     /// @brief Move text @p elementId to @p place (in its list without it) and remember it to
-    /// be undone
+    /// be undone; the numbers in the titles as the settings say (PlotBoard::RENUMBER_SETTING)
     void moveWithUndo(const QString& elementId, const core::ElementPlace& place);
+
+    /// @name The numbers in the titles the program gave ("Chapter 3")
+    /// @{
+    /// @brief Renumber the titles as the order of the book says, as one step to be undone (the
+    /// button Renumber of the bar under the board)
+    void renumberTitles();
+    /// @brief Give the texts @p titles after a move, when the settings say so at once
+    /// (PlotBoard::RENUMBER_AUTO); @p former gets the titles they had
+    /// @return The titles given; none when the settings say otherwise, or the book could not
+    ///         take them (the titles stay as they were)
+    QList<PlotBoard::TitleChange> renumberAtOnce(const QList<PlotBoard::TitleChange>& titles,
+                                                 QList<PlotBoard::TitleChange>& former);
+    /// @brief Say @p moved under the board after a move: with what happened to the numbers in
+    /// the titles, @p outOfOrder (they no longer follow the order) and @p renumbered (at once)
+    void sayMoved(const QString& moved, bool outOfOrder, bool renumbered);
+    /// @brief Give the texts the titles of @p titles
+    /// @return false when the book could not take a title
+    bool retitle(const QList<PlotBoard::TitleChange>& titles);
+    /// @brief The titles the texts of @p titles have now
+    [[nodiscard]] QList<PlotBoard::TitleChange> formerTitles(
+        const QList<PlotBoard::TitleChange>& titles) const;
+    /// @}
     /// @brief Give the card of text @p elementId @p text and remember it to be undone;
     /// @p message says what was done
     void changeWithUndo(const QString& elementId, const CardText& text, const QString& message,

@@ -435,7 +435,8 @@ private:
 /// scenes shown and which scenes there are (those of the texts, those in their plans, or
 /// both: PlotBoard::SCENES_VARIANT_SETTING); what the cards show; what colors them, as a strip
 /// or their background, the background of the board and the colors of the theme; the columns
-/// of the outline
+/// of the outline; the front and back sections shown as a preview; what happens to the numbers
+/// in the titles after a move (PlotBoard::RENUMBER_SETTING)
 class PlotBoardPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -459,7 +460,8 @@ private:
     void addChecks(QFormLayout* form, const QString& label,
                    const std::vector<std::pair<QString, std::string>>& checks);
 
-    /// @brief View: the view a tab opens on, the layout and the size of the cards
+    /// @brief View: the view a tab opens on, the layout and the size of the cards, the front
+    /// and back sections
     void addViewGroup();
     /// @brief Scenes: shown under the texts or not, and which scenes there are
     void addScenesGroup();
@@ -469,6 +471,8 @@ private:
     void addColorsGroup();
     /// @brief Outline: its columns besides the title
     void addOutlineGroup();
+    /// @brief Numbers in the Titles: what happens to them after a move
+    void addNumbersGroup();
 };
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,

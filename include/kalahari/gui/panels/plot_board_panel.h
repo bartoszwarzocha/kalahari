@@ -71,6 +71,10 @@ public:
     /// @brief The bands shown
     [[nodiscard]] const QList<PlotBand>& bands() const { return m_bands; }
 
+    /// @brief The texts of the front (@p front) and the back section (@p back) of the book: the
+    /// board shows them as a preview when the settings say so (PlotBoard::SECTIONS_SETTING)
+    void setSections(const PlotBand& front, const PlotBand& back);
+
     /// @brief Whether the book is open read-only: nothing can be changed
     void setReadOnly(bool readOnly);
     /// @brief Whether the book is open read-only
@@ -103,6 +107,10 @@ public:
 
     /// @brief Say @p message under the board; @p canUndo: with an Undo button
     void showMessage(const QString& message, bool canUndo);
+
+    /// @brief Say @p message under the board with the button Renumber (renumberRequested()):
+    /// the numbers in the titles no longer follow the order
+    void offerRenumbering(const QString& message);
 
     /// @brief What the bar under the board says; empty when it is hidden
     [[nodiscard]] QString message() const;
@@ -173,6 +181,9 @@ signals:
     void undoRequested();
     /// @brief Redo the last change of the board undone
     void redoRequested();
+    /// @brief Renumber the titles of the texts as the order of the book says (the button of
+    /// offerRenumbering())
+    void renumberRequested();
     /// @brief Show the text in the Properties panel with the keys there (Alt+Enter)
     void propertiesRequested(const QString& elementId);
     /// @brief The settings show other scenes (PlotBoard::SCENES_VARIANT_SETTING): the board is
@@ -220,6 +231,7 @@ private:
     bool m_readOnly = false;
     bool m_canUndo = false;  ///< setUndoState()
     bool m_canRedo = false;  ///< setUndoState()
+    bool m_offersRenumbering = false;  ///< The button of the bar renumbers: offerRenumbering()
     QStackedWidget* m_stack = nullptr;
     PlotBoardView* m_board = nullptr;
     QTableView* m_outline = nullptr;

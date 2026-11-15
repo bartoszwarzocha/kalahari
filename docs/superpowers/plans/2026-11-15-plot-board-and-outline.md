@@ -169,11 +169,23 @@ The page came with 2c, with the scenes and the colors; now, as in the mockup, in
 `PlotBoardPanel` keeps its switches and the look from the settings in
 `plot_board_panel_header.cpp`.
 
-### 3c – the front and back sections, the numbers in the titles
+### 3c – the front and back sections, the numbers in the titles (done)
 
-As in the mockup: the front and back sections shown on the board (a preview only, Settings >
-Plot Board > View); the numbers in the titles ("Chapter 3") after a move: offered on the bar
-under the board (the default), at once, or never, only the number changing.
+As in the mockup:
+
+- The front and back sections on the board (`plotBoard.showSections`, off by default; Settings
+  > Plot Board > View): a band with the name of the section before the main section and one
+  after it, in columns and in the grid, their texts (also those in groups) dimmed in a dashed
+  frame (`PlotBoard::sectionBand()`, `PlotBoardView::setSections()`). A preview only: their
+  cards cannot be chosen, moved or opened, the tooltip says that the Navigator opens them. A
+  section without texts is not shown; the outline shows the main section only.
+- The numbers in the titles the program gave ("Chapter 3", also "Chapter 3. Storm";
+  `PlotBoard::numberedTitle()`: the default title of the kind in the language of the book, its
+  numbers arabic or roman, with any rest after them) when a move leaves them out of the order
+  of the book (`PlotBoard::renumbered()`: the n-th text of a kind in the main section has number
+  n). `plotBoard.renumber`: "ask" (the default) – the bar under the board says so and offers
+  "Renumber", a step of its own for Ctrl+Z; "auto" – renumbered in the step of the move;
+  "never". Only the number changes; the writer's own titles stay.
 
 ## Every stage
 

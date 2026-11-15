@@ -10553,6 +10553,40 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>„%1” czeka na przeniesienie: wybierz kartę i naciśnij Ctrl+V, by wstawić ją za nią; Esc rezygnuje.</translation>
     </message>
     <message>
+        <source>The numbers in the titles follow the order.</source>
+        <extracomment>Under the plot board after Renumber, when nothing had to change. In Polish: Numery w tytułach zgadzają się z kolejnością.</extracomment>
+        <translation>Numery w tytułach zgadzają się z kolejnością.</translation>
+    </message>
+    <message>
+        <source>renumbering the titles</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;. In Polish: ponumerowanie tytułów od nowa</extracomment>
+        <translation>ponumerowanie tytułów od nowa</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n titles renumbered; only the numbers changed.</source>
+        <extracomment>Under the plot board after Renumber; %n the titles changed. In Polish: Ponumerowano od nowa %n tytuł / tytuły / tytułów; zmieniły się tylko numery.</extracomment>
+        <translation>
+            <numerusform>Ponumerowano od nowa %n tytuł; zmienił się tylko numer.</numerusform>
+            <numerusform>Ponumerowano od nowa %n tytuły; zmieniły się tylko numery.</numerusform>
+            <numerusform>Ponumerowano od nowa %n tytułów; zmieniły się tylko numery.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>1 title renumbered; only its number changed.</source>
+        <extracomment>Under the plot board after Renumber. In Polish: Ponumerowano od nowa 1 tytuł; zmienił się tylko numer.</extracomment>
+        <translation>Ponumerowano od nowa 1 tytuł; zmienił się tylko numer.</translation>
+    </message>
+    <message>
+        <source>%1 The titles were renumbered.</source>
+        <extracomment>Added under the plot board after a move that renumbered the titles at once (&quot;Chapter 3&quot;). In Polish: Tytuły ponumerowano od nowa.</extracomment>
+        <translation>%1 Tytuły ponumerowano od nowa.</translation>
+    </message>
+    <message>
+        <source>%1 The numbers in the titles no longer follow the order.</source>
+        <extracomment>Added under the plot board after a move, with the button Renumber. In Polish: Numery w tytułach nie zgadzają się już z kolejnością.</extracomment>
+        <translation>%1 Numery w tytułach nie zgadzają się już z kolejnością.</translation>
+    </message>
+    <message>
         <source>Nothing to undo on the board.</source>
         <extracomment>Under the plot board after Ctrl+Z with nothing to undo. In Polish: Na tablicy nie ma nic do cofnięcia.</extracomment>
         <translation>Na tablicy nie ma nic do cofnięcia.</translation>
@@ -10834,6 +10868,16 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <translation>duże</translation>
     </message>
     <message>
+        <source>Show on the board:</source>
+        <extracomment>What the plot board shows besides the main section. In Polish: Pokazuj na tablicy:</extracomment>
+        <translation>Pokazuj na tablicy:</translation>
+    </message>
+    <message>
+        <source>the front and back sections (a preview only)</source>
+        <extracomment>In Polish: sekcję początkową i końcową (tylko podgląd)</extracomment>
+        <translation>sekcję początkową i końcową (tylko podgląd)</translation>
+    </message>
+    <message>
         <source>Scenes</source>
         <extracomment>A group of Settings &gt; Plot Board. In Polish: Sceny</extracomment>
         <translation>Sceny</translation>
@@ -10999,6 +11043,36 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <translation>Tytuł widać zawsze. Kolumny wybiera też przycisk „Kolumny” nad konspektem.</translation>
     </message>
     <message>
+        <source>Numbers in the Titles</source>
+        <extracomment>A group of Settings &gt; Plot Board: the numbers in the titles of the texts (&quot;Chapter 3&quot;). In Polish: Numery w tytułach</extracomment>
+        <translation>Numery w tytułach</translation>
+    </message>
+    <message>
+        <source>After the chapters are rearranged:</source>
+        <extracomment>In Polish: Po przestawieniu rozdziałów:</extracomment>
+        <translation>Po przestawieniu rozdziałów:</translation>
+    </message>
+    <message>
+        <source>offer it on the bar</source>
+        <extracomment>In Polish: zaproponuj na pasku</extracomment>
+        <translation>zaproponuj na pasku</translation>
+    </message>
+    <message>
+        <source>renumber at once</source>
+        <extracomment>In Polish: ponumeruj od razu</extracomment>
+        <translation>ponumeruj od razu</translation>
+    </message>
+    <message>
+        <source>do not change</source>
+        <extracomment>In Polish: nie zmieniaj</extracomment>
+        <translation>nie zmieniaj</translation>
+    </message>
+    <message>
+        <source>For the titles the program gave (&quot;Chapter 3&quot;, also with more, as in &quot;Chapter 3. Storm&quot;); only the number changes.</source>
+        <extracomment>In Polish: Dotyczy tytułów nadanych przez program („Rozdział 3”, także z dalszym ciągiem, np. „Rozdział 3. Burza”); zmienia się tylko numer.</extracomment>
+        <translation>Dotyczy tytułów nadanych przez program („Rozdział 3”, także z dalszym ciągiem, np. „Rozdział 3. Burza”); zmienia się tylko numer.</translation>
+    </message>
+    <message>
         <source>The colors of the states of the texts, of the scenes in the plan and the own colors of the cards. Each theme has its own colors: these are the colors of the current theme.</source>
         <extracomment>In Polish: Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</extracomment>
         <translation>Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</translation>
@@ -11012,6 +11086,11 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
 ----------
 The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <translation>Konspekt</translation>
+    </message>
+    <message>
+        <source>&amp;Renumber</source>
+        <extracomment>The button of the bar under the plot board that renumbers the titles of the texts after a move (&quot;Chapter 3&quot;). In Polish: Ponume&amp;ruj od nowa</extracomment>
+        <translation>Ponume&amp;ruj od nowa</translation>
     </message>
     <message>
         <source>Board</source>
@@ -11215,6 +11294,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>Cut – Ctrl+V puts it after the current card</source>
         <extracomment>A card marked to move with Ctrl+X. In Polish: Wycięta – Ctrl+V wstawia ją za bieżącą kartą</extracomment>
         <translation>Wycięta – Ctrl+V wstawia ją za bieżącą kartą</translation>
+    </message>
+    <message>
+        <source>A text of the section – it opens from the Navigator.</source>
+        <extracomment>The tooltip of a text of the front or the back section on the plot board, after its title. In Polish: Tekst sekcji – otwiera się z Nawigatora.</extracomment>
+        <translation>Tekst sekcji – otwiera się z Nawigatora.</translation>
     </message>
     <message>
         <source>The main section of the book has no texts yet. Insert adds a chapter.</source>
