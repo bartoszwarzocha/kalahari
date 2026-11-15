@@ -20,7 +20,8 @@
 /// KML writes a field as <field type="page" format="i"/>, without the format when it is the
 /// type's first (docs/kml_format.md).
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_FIELDS_H
+#define KALAHARI_EDITOR_TEXT_FIELDS_H
 
 #include <QDateTime>
 #include <QString>
@@ -169,3 +170,5 @@ QString textFieldKml(const TextField& field);
 std::optional<TextField> textFieldOfKml(const QXmlStreamAttributes& attributes);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_FIELDS_H

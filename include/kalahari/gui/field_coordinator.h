@@ -6,7 +6,8 @@
 ///        Insert > Field..., the date and the time at once (Alt+Shift+D, Alt+Shift+T) and
 ///        Edit Field...
 
-#pragma once
+#ifndef KALAHARI_GUI_FIELD_COORDINATOR_H
+#define KALAHARI_GUI_FIELD_COORDINATOR_H
 
 #include "kalahari/editor/text_fields.h"
 
@@ -154,3 +155,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_FIELD_COORDINATOR_H
