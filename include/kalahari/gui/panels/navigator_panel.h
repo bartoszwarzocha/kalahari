@@ -175,11 +175,13 @@ public:
     static AddChooser addChooser();
 
     /// @brief The setting of how a material opens: "card" (its picture on a preview tab of the
-    /// program, the usual one) or "system" (in the program the system gives its file)
+    /// program, the usual one) or "system" (in the program the system gives its file); set in
+    /// Settings > Materials > Opening
     static constexpr const char* OPEN_MATERIALS_SETTING = "navigator.openMaterials";
 
     /// @brief The setting of how a material with the address of a page opens: "browser" (in
-    /// the system's browser, the usual one) or "card" (its card in the middle of the window)
+    /// the system's browser, the usual one) or "card" (its card in the middle of the window);
+    /// set in Settings > Materials > Opening
     static constexpr const char* OPEN_PAGES_SETTING = "navigator.openPages";
 
     /// @brief The setting of what a file, a web address or a picture dropped on the Navigator

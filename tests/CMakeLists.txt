@@ -454,6 +454,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
     ${CMAKE_SOURCE_DIR}/src/gui/source_names.cpp                     # The sources in words
+    ${CMAKE_SOURCE_DIR}/src/gui/pdf_files.cpp                        # PDF files as shown
     ${CMAKE_SOURCE_DIR}/src/gui/quick_insert_items.cpp               # What quick insert offers
     ${CMAKE_SOURCE_DIR}/src/gui/read_only_book.cpp                   # A book open read-only
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/element_place_picker.cpp     # The place of an element in the book
@@ -489,6 +490,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_page.cpp             # The card of a material in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_parts.cpp                # The small parts of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/source_boxes.cpp              # The groups of the card of a source
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/preview_panel.cpp             # A preview of a file
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
@@ -497,6 +499,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_name_dialog.cpp      # The description of a version
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/quick_insert_item_dialog.cpp  # A fragment or a character of quick insert
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/deadline_dialog.cpp          # A deadline of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_quote_dialog.cpp         # A quote from a selection of a PDF
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/challenge_dialog.cpp         # Add Challenge
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/session_summary_dialog.cpp   # The summary of the session
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_history_dialog.cpp   # The versions of a text
@@ -643,12 +646,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h   # The groups of the card of a source with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_quote_dialog.h  # NewQuoteDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/session_summary_dialog.h  # SessionSummaryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
@@ -679,6 +684,17 @@ set(TEST_SOURCES ${TEST_SOURCES}
     # GUI source files removed (wxWidgets → Qt6 migration in progress)
     # More test files will be added as we implement features
 )
+
+# The preview of PDF files and its tests: only with Qt PDF
+if(KALAHARI_PDF_AVAILABLE)
+    list(APPEND TEST_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_panel.cpp  # A PDF on a tab
+        ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_view.cpp     # The pages of a PDF
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_preview_panel.h  # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_pages_view.h     # with Q_OBJECT
+        gui/test_pdf_preview.cpp  # The preview of a PDF: pages, side panel, search, selection
+    )
+endif()
 
 # Create test executable
 add_executable(kalahari-tests ${TEST_SOURCES})
@@ -740,6 +756,12 @@ target_link_libraries(kalahari-tests PRIVATE
 # OpenSpec #00042: Hunspell include/library paths for spell check service
 target_include_directories(kalahari-tests PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari-tests PRIVATE ${HUNSPELL_LIBRARY_DIRS})
+
+# The preview of PDF files (optional Qt PDF module)
+if(KALAHARI_PDF_AVAILABLE)
+    target_link_libraries(kalahari-tests PRIVATE Qt6::Pdf)
+    target_compile_definitions(kalahari-tests PRIVATE KALAHARI_HAS_PDF)
+endif()
 
 # Windows: Workaround for Catch2d.lib link errors with VS 2022/2026
 # Root cause: vcpkg Catch2 built with incompatible CRT, missing __std_find_* symbols

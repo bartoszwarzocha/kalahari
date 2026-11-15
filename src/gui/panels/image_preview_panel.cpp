@@ -56,8 +56,7 @@ const QList<double>& ImagePreviewPanel::zoomSteps() {
 
 ImagePreviewPanel::ImagePreviewPanel(core::ProjectManager& book, const QString& elementId,
                                      QWidget* parent)
-    : QWidget(parent), m_elementId(elementId), m_book(book) {
-    setProperty("elementId", elementId);
+    : PreviewPanel(elementId, parent), m_book(book) {
     setProperty("tabIconId", QStringLiteral("common.image"));
 
     const auto& pm = m_book;
@@ -126,7 +125,7 @@ ImagePreviewPanel::ImagePreviewPanel(core::ProjectManager& book, const QString& 
     connect(m_rotateRightAction, &QAction::triggered, this, &ImagePreviewPanel::rotateRight);
     connect(m_negativeAction, &QAction::triggered, this, &ImagePreviewPanel::toggleNegative);
     connect(m_systemAction, &QAction::triggered, this,
-            [this]() { emit openWithSystemRequested(m_elementId); });
+            [this]() { emit openWithSystemRequested(this->elementId()); });
 
     // The picture, or why there is none
     m_pages = new QStackedWidget(this);
@@ -163,7 +162,7 @@ ImagePreviewPanel::ImagePreviewPanel(core::ProjectManager& book, const QString& 
     m_problemButton = new QPushButton(tr("&Open in the System Program"), problemPage);
     m_problemButton->setObjectName(QStringLiteral("imagePreviewOpenSystem"));
     connect(m_problemButton, &QPushButton::clicked, this,
-            [this]() { emit openWithSystemRequested(m_elementId); });
+            [this]() { emit openWithSystemRequested(this->elementId()); });
     auto* buttonRow = new QHBoxLayout();
     buttonRow->addStretch();
     buttonRow->addWidget(m_problemButton);
@@ -262,6 +261,14 @@ void ImagePreviewPanel::zoomToFit() {
     applyZoom();
 }
 
+void ImagePreviewPanel::zoomToPageWidth() {
+    zoomToFit();
+}
+
+void ImagePreviewPanel::zoomToWholePage() {
+    zoomToFit();
+}
+
 void ImagePreviewPanel::rotateLeft() {
     turn(270);
 }
@@ -286,8 +293,8 @@ void ImagePreviewPanel::turn(int degrees) {
     m_rotation = (m_rotation + degrees) % 360;
     showPicture();
     // The material remembers it; a book open read-only only shows it
-    if (m_book.setRotation(m_elementId, m_rotation)) {
-        emit rotationChanged(m_elementId);
+    if (m_book.setRotation(elementId(), m_rotation)) {
+        emit rotationChanged(elementId());
     }
 }
 
@@ -369,7 +376,7 @@ bool ImagePreviewPanel::eventFilter(QObject* watched, QEvent* event) {
             }
         }
     }
-    return QWidget::eventFilter(watched, event);
+    return PreviewPanel::eventFilter(watched, event);
 }
 
 } // namespace gui

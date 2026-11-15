@@ -12,7 +12,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
-#include "kalahari/gui/panels/image_preview_panel.h"
+#include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/navigator_coordinator.h"
@@ -2179,7 +2179,7 @@ void DocumentCoordinator::onProjectClosed() {
     const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
     for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
         QWidget* widget = *it;
-        if (((qobject_cast<EditorPanel*>(widget) || qobject_cast<ImagePreviewPanel*>(widget) ||
+        if (((qobject_cast<EditorPanel*>(widget) || qobject_cast<PreviewPanel*>(widget) ||
               qobject_cast<MaterialCardPanel*>(widget)) &&
              !widget->property("elementId").toString().isEmpty()) ||
             qobject_cast<MaterialListPanel*>(widget)) {

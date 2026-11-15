@@ -10,6 +10,7 @@
 #pragma once
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QMap>
 #include <QList>
@@ -51,6 +52,7 @@ class NavigatorPanel;
 class PropertiesPanel;
 class EditorPanel;
 class MaterialCardPanel;
+class PreviewPanel;
 
 namespace dialogs {
 class NewFileDialog;
@@ -288,6 +290,7 @@ public slots:
     void onRequestWorkshopGrouped(bool grouped);
 
     /// @brief Open material @p elementId of the Workshop as its source and the settings say: a
+    /// PDF file on its preview tab or in the system program (PdfFiles::opensInPreview()); a
     /// picture, also the copy of a picture from the web, on its preview tab or in the program
     /// the system gives its file (NavigatorPanel::OPEN_MATERIALS_SETTING); another file in the
     /// system program; a web page, and a picture on the web without a copy, in the browser or
@@ -316,6 +319,17 @@ public slots:
     /// shown last; its card opens with the keys in its words
     void onRequestNewQuote(const QString& sourceId);
 
+    /// @brief The New Quote window for words @p text selected on page @p page of the file of
+    /// source @p sourceId: the quote is made in the Workshop, linked as the writer chooses, and
+    /// with Create and Insert into Chapter its words with the reference go into the chapter
+    /// open last, which comes to the front
+    void onRequestQuoteFromPreview(const QString& sourceId, const QString& text,
+                                   const QString& page);
+
+    /// @brief Show page @p page of the file of material @p elementId in its preview; without
+    /// the preview of PDF files the file opens in the system program
+    void onRequestShowPage(const QString& elementId, const QString& page);
+
     /// @brief Add the materials @p incoming, dropped on the Navigator from outside the program
     /// or pasted in it, as NavigatorPanel::QUICK_MATERIALS_SETTING says: at once, linked with
     /// @p link when it is not empty, or each in the Add Element window; the Navigator shows the
@@ -328,7 +342,8 @@ public slots:
     MaterialDownloader* materialDownloader() const { return m_downloader; }
 
     /// @brief Show the preview of material @p elementId on a tab of its own beside the
-    /// chapters, or bring its tab to the front
+    /// chapters, or bring its tab to the front, with the keys in it: of a picture, or of a PDF
+    /// file (which opens in the system program without the preview of PDF files)
     void onRequestPreview(const QString& elementId);
 
     /// @brief Open material @p elementId in the program the system gives its file; the writer
@@ -377,7 +392,8 @@ signals:
     /// lists of the materials show it
     void materialChanged(const QString& elementId);
 
-    /// @brief The gear of the entry of a source on a card: open Settings > Materials
+    /// @brief The gear of the entry of a source on a card, or of the preview of a PDF file:
+    /// open Settings > Materials
     void sourceSettingsRequested();
 
     /// @brief Emitted when chapter dirty state changes (OpenSpec #00042 Phase 7.5)
@@ -436,6 +452,20 @@ private:
     /// @brief The tabs of the cards of materials
     QList<MaterialCardPanel*> materialCards() const;
 
+    /// @brief The previews of the materials, in the book window and in windows of their own
+    QList<PreviewPanel*> previews() const;
+
+    /// @brief The preview of material @p elementId brought to the front: the one open, else a
+    /// new tab; nullptr when the program has none for its file (a PDF file then opens in the
+    /// system program)
+    PreviewPanel* openPreview(const QString& elementId);
+
+    /// @brief A new quote of words @p text from page @p page of source @p sourceId, linked with
+    /// @p links, shown in the Navigator, and its source shows it among its quotes
+    /// @return Its id; empty when it could not be made (the writer is told why)
+    QString addQuote(const QString& sourceId, const QString& text, const QString& page,
+                     const QStringList& links);
+
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
     QTabWidget* m_centralTabs;
@@ -462,6 +492,10 @@ private:
     /// @brief The materials whose downloads the writer asked for: a failure is told in a
     /// window
     QSet<QString> m_askedDownloads;
+
+    /// @brief The chapter in front last: New Quote links the quote with it and inserts it there
+    QPointer<EditorPanel> m_lastChapter;
+
     core::ProjectManager& m_book;  ///< The book of its window
     CommandRegistry& m_commands;  ///< The commands of its window
 };

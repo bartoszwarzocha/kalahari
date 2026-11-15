@@ -17,6 +17,7 @@
 #include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/source_boxes.h"
+#include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/link_roles.h"
@@ -707,9 +708,21 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
     const bool fromWeb = m_source == MaterialSource::Page || m_source == MaterialSource::WebPicture;
     m_previewButton->setVisible(fromFile || (m_source == MaterialSource::WebPicture && hasFile));
     m_previewButton->setEnabled(m_picture);
-    //: The tooltip of Preview for a file that is no picture. In Polish: Program pokazuje
-    //: tylko obrazy
-    const QString onlyPictures = tr("The program shows only pictures");
+    QString onlyPictures;
+    if (file.pdf) {
+        //: The tooltip of Preview for a PDF file in a program without the Qt PDF module. In
+        //: Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy
+        onlyPictures = tr("This version of the program has no preview of PDF files; the "
+                          "system program opens them");
+    } else if (PdfFiles::previewAvailable()) {
+        //: The tooltip of Preview for a file that is no picture nor PDF. In Polish: Program
+        //: pokazuje tylko obrazy i pliki PDF
+        onlyPictures = tr("The program shows only pictures and PDF files");
+    } else {
+        //: The tooltip of Preview for a file that is no picture. In Polish: Program pokazuje
+        //: tylko obrazy
+        onlyPictures = tr("The program shows only pictures");
+    }
     //: In Polish: Otwórz podgląd
     m_previewButton->setToolTip(m_picture           ? tr("Open the Preview")
                                 : problem.isEmpty() ? onlyPictures
@@ -753,10 +766,18 @@ void MaterialPage::connectSourceParts() {
     connect(m_entryBox, &BibliographyEntryBox::requestSettings, this,
             &MaterialPage::requestSourceSettings);
     connect(m_bookmarksBox, &BookmarksBox::changed, this, changedHere);
+    connect(m_bookmarksBox, &BookmarksBox::requestShowPage, this,
+            &MaterialPage::requestShowPage);
     connect(m_quoteBox, &QuoteSourceBox::changed, this, changedHere);
-    // The source of a quote opens on its card
+    // The source of a quote opens on its card, or at the page of the quote in its preview
     connect(m_quoteBox, &QuoteSourceBox::requestOpenSource, this,
-            [this](const QString& sourceId, const QString&) { emit requestOpenCard(sourceId); });
+            [this](const QString& sourceId, const QString& page) {
+                if (page.isEmpty()) {
+                    emit requestOpenCard(sourceId);
+                } else {
+                    emit requestShowPage(sourceId, page);
+                }
+            });
     if (m_quotesBox != nullptr) {
         connect(m_quotesBox, &SourceQuotesBox::requestNewQuote, this,
                 &MaterialPage::requestNewQuote);

@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The preview of PDF files in the program** - 2026-11-15. A PDF opens in a card of its own
+  (Settings > Materials > Opening: in the program, at first, or in the system program): the
+  pages one under another (at first), one at a time or two side by side; the zoom of
+  View > Zoom (page width at first, the whole page, 100% or as last time); the page number
+  with the file's own labels, Ctrl+G, PgUp, PgDn, Home and End; in the dark theme the pages
+  as in the file (at first), dimmed or with inverted colors. The side panel has the
+  bookmarks of the source, the contents of the file, thumbnails and the hits of Find in the
+  File with their words (Ctrl+F, Enter, Shift+Enter, Esc); F6 and Shift+F6 go between the
+  bar, the side panel and the pages. Text selected with the mouse, or all the text of the
+  page (Select All), copies with Ctrl+C or with the reference to the source and the page;
+  the menu of the selection (the menu key, Shift+F10) also has Create Quote..., which opens
+  New Quote: the words, the source, the page and the link with the chapter open last, with
+  another element or with none; Create and Insert into Chapter also inserts the words with
+  their reference. Bookmark Here adds a bookmark of the page. The preview opens at the page
+  shown last (an option). The card of a PDF shows its first page, Fill In from File takes
+  the title, the author, the year and the pages from the file, a bookmark shows its page in
+  the preview, and the card of a quote has Show Page. The colors around the pages, of the
+  selection and of the hits are the editor's (Settings > Editor > Colors). The opening of
+  pictures and pages on the web moved from Settings > Navigator to Settings > Materials.
+  Without the Qt PDF module a PDF opens in the system program and the options of the
+  preview are dimmed. Linux needs the package `qt6-pdf-dev`; Windows and macOS get Qt PDF
+  from vcpkg (`qtwebengine` with the feature `pdf`).
+
 - **Sources: the bibliographic description of a material, the bibliography and the quotes
   with their source** - 2026-11-15. A publication, a document, a web page and a recording
   can be a source: their card has the group Bibliographic Description (the kind of source –

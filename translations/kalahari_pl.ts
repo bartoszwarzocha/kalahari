@@ -9516,6 +9516,15 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>The title of a new quote from a source: %1 the title of the source. In Polish: Cytat z: %1</extracomment>
         <translation>Cytat z: %1</translation>
     </message>
+    <message>
+        <source>Links Not Saved</source>
+        <translation>Nie zapisano powiązań</translation>
+    </message>
+    <message>
+        <source>The file has no page %1</source>
+        <extracomment>%1: the page the writer asked for. In Polish: W pliku nie ma strony %1</extracomment>
+        <translation>W pliku nie ma strony %1</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
@@ -9583,56 +9592,6 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Materials</source>
         <extracomment>The group of the materials of the Workshop. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
-    </message>
-    <message>
-        <source>On a tab of the program</source>
-        <extracomment>In Polish: Na karcie w programie</extracomment>
-        <translation>Na karcie w programie</translation>
-    </message>
-    <message>
-        <source>In the system program</source>
-        <extracomment>In Polish: W programie systemowym</extracomment>
-        <translation>W programie systemowym</translation>
-    </message>
-    <message>
-        <source>Pictures too. The Preview button in the Properties panel then opens the preview tab.</source>
-        <extracomment>In Polish: Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</extracomment>
-        <translation>Także obrazy. Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</translation>
-    </message>
-    <message>
-        <source>Opening materials:</source>
-        <extracomment>In Polish: Otwieranie materiałów:</extracomment>
-        <translation>Otwieranie materiałów:</translation>
-    </message>
-    <message>
-        <source>A picture, also the copy of one from the web, opens on a preview tab, as a chapter does. A file of another kind, such as a PDF, opens in the system program until the program has a preview of it. A material without a file and an address opens on its card.</source>
-        <extracomment>In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej karcie.</extracomment>
-        <translation>Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik innego rodzaju, np. PDF, otwiera się w programie systemowym, dopóki program nie będzie miał jego podglądu. Materiał bez pliku i adresu otwiera się na swojej karcie.</translation>
-    </message>
-    <message>
-        <source>In the browser</source>
-        <extracomment>In Polish: W przeglądarce</extracomment>
-        <translation>W przeglądarce</translation>
-    </message>
-    <message>
-        <source>On the card of the material</source>
-        <extracomment>In Polish: Na karcie materiału</extracomment>
-        <translation>Na karcie materiału</translation>
-    </message>
-    <message>
-        <source>Double-click and Enter open the address in the system&apos;s browser. Open Card in the menu of the node opens the card of the material in the middle of the window.</source>
-        <extracomment>In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</extracomment>
-        <translation>Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</translation>
-    </message>
-    <message>
-        <source>Double-click and Enter open the card of the material in the middle of the window; its Open in Browser button opens the address.</source>
-        <extracomment>In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</extracomment>
-        <translation>Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</translation>
-    </message>
-    <message>
-        <source>Pages and pictures on the web:</source>
-        <extracomment>In Polish: Strony i obrazy z sieci:</extracomment>
-        <translation>Strony i obrazy z sieci:</translation>
     </message>
     <message>
         <source>At once, linked</source>
@@ -11207,7 +11166,7 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
     </message>
     <message>
         <source>Materials</source>
-        <extracomment>The page of the materials: the sources. In Polish: Materiały
+        <extracomment>The page of the materials: how they open, the preview of PDF files and the sources. In Polish: Materiały
 ----------
 The page of the downloads for the materials with a web address. In Polish: Materiały</extracomment>
         <translation>Materiały</translation>
@@ -19779,6 +19738,15 @@ Notatka: %2</translation>
         <extracomment>%1: the format, e.g. WEBP. In Polish: Program nie pokazuje obrazów %1. Otwórz plik w programie systemowym.</extracomment>
         <translation>Program nie pokazuje obrazów %1. Otwórz plik w programie systemowym.</translation>
     </message>
+    <message numerus="yes">
+        <source>%n page(s)</source>
+        <extracomment>The pages of a PDF file. In Polish: %n strona / %n strony / %n stron</extracomment>
+        <translation>
+            <numerusform>%n strona</numerusform>
+            <numerusform>%n strony</numerusform>
+            <numerusform>%n stron</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::MaterialPage</name>
@@ -20127,6 +20095,16 @@ Notatka: %2</translation>
         <source>Type or paste the words of the quote...</source>
         <extracomment>In Polish: Wpisz albo wklej słowa cytatu...</extracomment>
         <translation>Wpisz albo wklej słowa cytatu...</translation>
+    </message>
+    <message>
+        <source>This version of the program has no preview of PDF files; the system program opens them</source>
+        <extracomment>The tooltip of Preview for a PDF file in a program without the Qt PDF module. In Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</extracomment>
+        <translation>Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</translation>
+    </message>
+    <message>
+        <source>The program shows only pictures and PDF files</source>
+        <extracomment>The tooltip of Preview for a file that is no picture nor PDF. In Polish: Program pokazuje tylko obrazy i pliki PDF</extracomment>
+        <translation>Program pokazuje tylko obrazy i pliki PDF</translation>
     </message>
 </context>
 <context>
@@ -25380,6 +25358,11 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Failed to save changes.</source>
         <translation>Nie udało się zapisać zmian.</translation>
     </message>
+    <message>
+        <source>Show the Page in the Preview</source>
+        <extracomment>In Polish: Pokaż stronę w podglądzie</extracomment>
+        <translation>Pokaż stronę w podglądzie</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::MaterialsPage</name>
@@ -25409,9 +25392,208 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Odnośnik:</translation>
     </message>
     <message>
-        <source>The card of a quote shows the reference.</source>
-        <extracomment>In Polish: Odnośnik pokazuje karta cytatu.</extracomment>
-        <translation>Odnośnik pokazuje karta cytatu.</translation>
+        <source>Opening</source>
+        <extracomment>The group of the page Materials: how the materials open. In Polish: Otwieranie</extracomment>
+        <translation>Otwieranie</translation>
+    </message>
+    <message>
+        <source>On a tab of the program</source>
+        <extracomment>In Polish: Na karcie w programie</extracomment>
+        <translation>Na karcie w programie</translation>
+    </message>
+    <message>
+        <source>In the system program</source>
+        <extracomment>In Polish: W programie systemowym</extracomment>
+        <translation>W programie systemowym</translation>
+    </message>
+    <message>
+        <source>A picture, also the copy of one from the web, opens on a preview tab, as a chapter does. A file the program does not show opens in the system program, and a material without a file and an address on its card.</source>
+        <extracomment>In Polish: Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik, którego program nie pokazuje, otwiera się w programie systemowym, a materiał bez pliku i adresu – na swojej karcie.</extracomment>
+        <translation>Obraz, także kopia obrazu z sieci, otwiera się na karcie podglądu, jak rozdział. Plik, którego program nie pokazuje, otwiera się w programie systemowym, a materiał bez pliku i adresu – na swojej karcie.</translation>
+    </message>
+    <message>
+        <source>The Preview button in the Properties panel then opens the preview tab.</source>
+        <extracomment>In Polish: Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</extracomment>
+        <translation>Kartę podglądu otwiera wtedy przycisk „Podgląd” we Właściwościach.</translation>
+    </message>
+    <message>
+        <source>Pictures:</source>
+        <extracomment>In Polish: Obrazy:</extracomment>
+        <translation>Obrazy:</translation>
+    </message>
+    <message>
+        <source>In the browser</source>
+        <extracomment>In Polish: W przeglądarce</extracomment>
+        <translation>W przeglądarce</translation>
+    </message>
+    <message>
+        <source>On the card of the material</source>
+        <extracomment>In Polish: Na karcie materiału</extracomment>
+        <translation>Na karcie materiału</translation>
+    </message>
+    <message>
+        <source>Double-click and Enter open the address in the system&apos;s browser. Open Card in the menu of the node opens the card of the material in the middle of the window.</source>
+        <extracomment>In Polish: Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</extracomment>
+        <translation>Dwuklik i Enter otwierają adres w przeglądarce systemowej. Kartę materiału na środku okna otwiera polecenie „Otwórz kartę” w menu węzła.</translation>
+    </message>
+    <message>
+        <source>Double-click and Enter open the card of the material in the middle of the window; its Open in Browser button opens the address.</source>
+        <extracomment>In Polish: Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</extracomment>
+        <translation>Dwuklik i Enter otwierają kartę materiału na środku okna, a adres – przycisk „Otwórz w przeglądarce” na tej karcie.</translation>
+    </message>
+    <message>
+        <source>Pages and pictures on the web:</source>
+        <extracomment>In Polish: Strony i obrazy z sieci:</extracomment>
+        <translation>Strony i obrazy z sieci:</translation>
+    </message>
+    <message>
+        <source>On a preview tab of the program</source>
+        <extracomment>In Polish: Na karcie podglądu w programie</extracomment>
+        <translation>Na karcie podglądu w programie</translation>
+    </message>
+    <message>
+        <source>The pages, the bookmarks, the contents and the search of the file; text selected on a page makes a quote with its page.</source>
+        <extracomment>In Polish: Strony, zakładki, spis treści i szukanie w pliku; tekst zaznaczony na stronie daje cytat z numerem strony.</extracomment>
+        <translation>Strony, zakładki, spis treści i szukanie w pliku; tekst zaznaczony na stronie daje cytat z numerem strony.</translation>
+    </message>
+    <message>
+        <source>Show Page on the cards of the sources and the quotes still opens the preview at the page.</source>
+        <extracomment>In Polish: Przycisk „Pokaż stronę” na kartach źródeł i cytatów nadal otwiera podgląd na tej stronie.</extracomment>
+        <translation>Przycisk „Pokaż stronę” na kartach źródeł i cytatów nadal otwiera podgląd na tej stronie.</translation>
+    </message>
+    <message>
+        <source>This version of the program has no preview of PDF files: they open in the system program.</source>
+        <extracomment>In Polish: Ta wersja programu nie ma podglądu plików PDF: otwierają się w programie systemowym.</extracomment>
+        <translation>Ta wersja programu nie ma podglądu plików PDF: otwierają się w programie systemowym.</translation>
+    </message>
+    <message>
+        <source>PDF files:</source>
+        <extracomment>In Polish: Pliki PDF:</extracomment>
+        <translation>Pliki PDF:</translation>
+    </message>
+    <message>
+        <source>PDF Preview</source>
+        <extracomment>The group of the page Materials. In Polish: Podgląd PDF</extracomment>
+        <translation>Podgląd PDF</translation>
+    </message>
+    <message>
+        <source>One under another</source>
+        <extracomment>In Polish: Jedna pod drugą</extracomment>
+        <translation>Jedna pod drugą</translation>
+    </message>
+    <message>
+        <source>One page at a time</source>
+        <extracomment>In Polish: Po jednej stronie</extracomment>
+        <translation>Po jednej stronie</translation>
+    </message>
+    <message>
+        <source>Two side by side</source>
+        <extracomment>In Polish: Dwie obok siebie</extracomment>
+        <translation>Dwie obok siebie</translation>
+    </message>
+    <message>
+        <source>The buttons on the bar of the preview change the same setting.</source>
+        <extracomment>In Polish: Przyciski na pasku podglądu zmieniają to samo ustawienie.</extracomment>
+        <translation>Przyciski na pasku podglądu zmieniają to samo ustawienie.</translation>
+    </message>
+    <message>
+        <source>Page layout:</source>
+        <extracomment>In Polish: Układ stron:</extracomment>
+        <translation>Układ stron:</translation>
+    </message>
+    <message>
+        <source>Pages as in the file</source>
+        <extracomment>In Polish: Strony jak w pliku</extracomment>
+        <translation>Strony jak w pliku</translation>
+    </message>
+    <message>
+        <source>Pages dimmed</source>
+        <extracomment>In Polish: Strony przyciemnione</extracomment>
+        <translation>Strony przyciemnione</translation>
+    </message>
+    <message>
+        <source>Colors turned: light text on a dark page</source>
+        <extracomment>In Polish: Odwrócone kolory: jasny tekst na ciemnym tle</extracomment>
+        <translation>Odwrócone kolory: jasny tekst na ciemnym tle</translation>
+    </message>
+    <message>
+        <source>Only the look on the screen changes; the file stays as it is.</source>
+        <extracomment>In Polish: Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</extracomment>
+        <translation>Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</translation>
+    </message>
+    <message>
+        <source>In a dark theme:</source>
+        <extracomment>In Polish: W ciemnym motywie:</extracomment>
+        <translation>W ciemnym motywie:</translation>
+    </message>
+    <message>
+        <source>Page width (recommended)</source>
+        <extracomment>The zoom the preview opens with. In Polish: Szerokość strony (zalecana)</extracomment>
+        <translation>Szerokość strony (zalecana)</translation>
+    </message>
+    <message>
+        <source>Whole page</source>
+        <extracomment>In Polish: Cała strona</extracomment>
+        <translation>Cała strona</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>As last time</source>
+        <extracomment>In Polish: Jak ostatnio</extracomment>
+        <translation>Jak ostatnio</translation>
+    </message>
+    <message>
+        <source>Zoom:</source>
+        <extracomment>In Polish: Powiększenie:</extracomment>
+        <translation>Powiększenie:</translation>
+    </message>
+    <message>
+        <source>Bookmarks, else the contents (recommended)</source>
+        <extracomment>The side panel the preview opens with. In Polish: Zakładki, a bez nich spis treści (zalecane)</extracomment>
+        <translation>Zakładki, a bez nich spis treści (zalecane)</translation>
+    </message>
+    <message>
+        <source>Contents</source>
+        <extracomment>In Polish: Spis treści</extracomment>
+        <translation>Spis treści</translation>
+    </message>
+    <message>
+        <source>Thumbnails</source>
+        <extracomment>In Polish: Miniatury</extracomment>
+        <translation>Miniatury</translation>
+    </message>
+    <message>
+        <source>Hidden</source>
+        <extracomment>In Polish: Ukryty</extracomment>
+        <translation>Ukryty</translation>
+    </message>
+    <message>
+        <source>Side panel:</source>
+        <extracomment>In Polish: Panel boczny:</extracomment>
+        <translation>Panel boczny:</translation>
+    </message>
+    <message>
+        <source>Open at the page shown last</source>
+        <extracomment>In Polish: Otwieraj na stronie oglądanej ostatnio</extracomment>
+        <translation>Otwieraj na stronie oglądanej ostatnio</translation>
+    </message>
+    <message>
+        <source>The colors around the pages, of the selection and of the search hits are on the page Editor &gt; Colors, for each theme apart.</source>
+        <extracomment>In Polish: Kolory tła wokół stron, zaznaczenia i wyników szukania są na stronie Edytor &gt; Kolory, osobno w każdym motywie.</extracomment>
+        <translation>Kolory tła wokół stron, zaznaczenia i wyników szukania są na stronie Edytor &gt; Kolory, osobno w każdym motywie.</translation>
+    </message>
+    <message>
+        <source>Sh&amp;ow</source>
+        <extracomment>Shows the page Editor &gt; Colors. In Polish: Po&amp;każ</extracomment>
+        <translation>Po&amp;każ</translation>
+    </message>
+    <message>
+        <source>The card of a quote shows the reference, and Copy with Reference in the preview of a PDF file adds it to the text copied.</source>
+        <extracomment>In Polish: Odnośnik pokazuje karta cytatu, a „Kopiuj z odnośnikiem” w podglądzie PDF dodaje go do skopiowanego tekstu.</extracomment>
+        <translation>Odnośnik pokazuje karta cytatu, a „Kopiuj z odnośnikiem” w podglądzie PDF dodaje go do skopiowanego tekstu.</translation>
     </message>
 </context>
 <context>
@@ -25501,6 +25683,16 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Choose a source or type the author.</source>
         <extracomment>In Polish: Wybierz źródło albo wpisz autora.</extracomment>
         <translation>Wybierz źródło albo wpisz autora.</translation>
+    </message>
+    <message>
+        <source>Show Page</source>
+        <extracomment>In Polish: Pokaż stronę</extracomment>
+        <translation>Pokaż stronę</translation>
+    </message>
+    <message>
+        <source>Show the page in the preview of the file of the source</source>
+        <extracomment>In Polish: Pokaż stronę w podglądzie pliku źródła</extracomment>
+        <translation>Pokaż stronę w podglądzie pliku źródła</translation>
     </message>
 </context>
 <context>
@@ -25612,6 +25804,31 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Bibliographic description pasted</source>
         <extracomment>In Polish: Wklejono opis bibliograficzny</extracomment>
         <translation>Wklejono opis bibliograficzny</translation>
+    </message>
+    <message>
+        <source>Fill In from File</source>
+        <extracomment>In Polish: Uzupełnij z pliku</extracomment>
+        <translation>Uzupełnij z pliku</translation>
+    </message>
+    <message>
+        <source>Fills the empty fields with the title, the authors, the year and the pages the PDF file has</source>
+        <extracomment>In Polish: Wpisuje w puste pola tytuł, autorów, rok i liczbę stron zapisane w pliku PDF</extracomment>
+        <translation>Wpisuje w puste pola tytuł, autorów, rok i liczbę stron zapisane w pliku PDF</translation>
+    </message>
+    <message>
+        <source>The PDF file cannot be read. It may be damaged or protected with a password.</source>
+        <extracomment>In Polish: Nie da się odczytać pliku PDF. Może być uszkodzony albo chroniony hasłem.</extracomment>
+        <translation>Nie da się odczytać pliku PDF. Może być uszkodzony albo chroniony hasłem.</translation>
+    </message>
+    <message>
+        <source>Nothing to fill in: the file has no title, author or year, or the description has them already.</source>
+        <extracomment>In Polish: Nie ma czego uzupełnić: plik nie ma tytułu, autora ani roku albo opis już je ma.</extracomment>
+        <translation>Nie ma czego uzupełnić: plik nie ma tytułu, autora ani roku albo opis już je ma.</translation>
+    </message>
+    <message>
+        <source>Description filled in from the file</source>
+        <extracomment>In Polish: Uzupełniono opis z pliku</extracomment>
+        <translation>Uzupełniono opis z pliku</translation>
     </message>
 </context>
 <context>
@@ -25913,6 +26130,375 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>No quotes. &quot;+&quot; or Insert adds a quote from this source.</source>
         <extracomment>In Polish: Brak cytatów. „+” albo Insert dodaje cytat z tego źródła.</extracomment>
         <translation>Brak cytatów. „+” albo Insert dodaje cytat z tego źródła.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PdfFiles</name>
+    <message>
+        <source>The file is missing.</source>
+        <extracomment>In Polish: Nie ma pliku.</extracomment>
+        <translation>Nie ma pliku.</translation>
+    </message>
+    <message>
+        <source>The file is protected with a password.</source>
+        <extracomment>In Polish: Plik jest chroniony hasłem.</extracomment>
+        <translation>Plik jest chroniony hasłem.</translation>
+    </message>
+    <message>
+        <source>The PDF file cannot be read. It may be damaged.</source>
+        <extracomment>In Polish: Nie da się odczytać pliku PDF. Może być uszkodzony.</extracomment>
+        <translation>Nie da się odczytać pliku PDF. Może być uszkodzony.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PdfPreviewPanel</name>
+    <message>
+        <source>p. %1</source>
+        <extracomment>A page in the list of the hits of a search: %1 its number. In Polish: s. %1</extracomment>
+        <translation>s. %1</translation>
+    </message>
+    <message>
+        <source>Pages of the PDF file: PgUp and PgDn change the page, Enter opens the card of the material</source>
+        <extracomment>The pages on the tab of the preview of a PDF file. In Polish: Strony pliku PDF: PgUp i PgDn zmieniają stronę, Enter otwiera kartę materiału</extracomment>
+        <translation>Strony pliku PDF: PgUp i PgDn zmieniają stronę, Enter otwiera kartę materiału</translation>
+    </message>
+    <message>
+        <source>&amp;Open in the System Program</source>
+        <extracomment>In Polish: &amp;Otwórz w programie systemowym</extracomment>
+        <translation>&amp;Otwórz w programie systemowym</translation>
+    </message>
+    <message>
+        <source>Side Panel</source>
+        <extracomment>The button that shows and hides the side panel of the preview. In Polish: Panel boczny
+----------
+In Polish: Panel boczny</extracomment>
+        <translation>Panel boczny</translation>
+    </message>
+    <message>
+        <source>Previous Page</source>
+        <extracomment>In Polish: Poprzednia strona</extracomment>
+        <translation>Poprzednia strona</translation>
+    </message>
+    <message>
+        <source>Next Page</source>
+        <extracomment>In Polish: Następna strona</extracomment>
+        <translation>Następna strona</translation>
+    </message>
+    <message>
+        <source>Page</source>
+        <extracomment>In Polish: Strona
+----------
+The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
+        <translation>Strona</translation>
+    </message>
+    <message>
+        <source>Page number</source>
+        <extracomment>In Polish: Numer strony (Ctrl+G)</extracomment>
+        <translation>Numer strony</translation>
+    </message>
+    <message>
+        <source>Zoom Out</source>
+        <translation>Pomniejsz</translation>
+    </message>
+    <message>
+        <source>Zoom</source>
+        <extracomment>In Polish: Powiększenie</extracomment>
+        <translation>Powiększenie</translation>
+    </message>
+    <message>
+        <source>Page Width</source>
+        <extracomment>The zoom at which the width of the page fills the window. In Polish: Szerokość strony</extracomment>
+        <translation>Szerokość strony</translation>
+    </message>
+    <message>
+        <source>Whole Page</source>
+        <extracomment>The zoom at which the whole page is in the window. In Polish: Cała strona</extracomment>
+        <translation>Cała strona</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <extracomment>A zoom of the pages; %1: the percent. In Polish: %1%</extracomment>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>Zoom In</source>
+        <translation>Powiększ</translation>
+    </message>
+    <message>
+        <source>Pages One under Another</source>
+        <extracomment>In Polish: Strony jedna pod drugą</extracomment>
+        <translation>Strony jedna pod drugą</translation>
+    </message>
+    <message>
+        <source>One Page at a Time</source>
+        <extracomment>In Polish: Po jednej stronie</extracomment>
+        <translation>Po jednej stronie</translation>
+    </message>
+    <message>
+        <source>Two Pages Side by Side</source>
+        <extracomment>In Polish: Dwie strony obok siebie</extracomment>
+        <translation>Dwie strony obok siebie</translation>
+    </message>
+    <message>
+        <source>Find in the File</source>
+        <extracomment>In Polish: Szukaj w pliku (Ctrl+F)</extracomment>
+        <translation>Szukaj w pliku</translation>
+    </message>
+    <message>
+        <source>Previous Hit</source>
+        <extracomment>In Polish: Poprzedni wynik</extracomment>
+        <translation>Poprzedni wynik</translation>
+    </message>
+    <message>
+        <source>Next Hit</source>
+        <extracomment>In Polish: Następny wynik</extracomment>
+        <translation>Następny wynik</translation>
+    </message>
+    <message>
+        <source>Material Card</source>
+        <extracomment>The button that opens the card of the material of the PDF file. In Polish: Karta materiału</extracomment>
+        <translation>Karta materiału</translation>
+    </message>
+    <message>
+        <source>Open in the System Program</source>
+        <extracomment>In Polish: Otwórz w programie systemowym</extracomment>
+        <translation>Otwórz w programie systemowym</translation>
+    </message>
+    <message>
+        <source>PDF Preview Settings</source>
+        <extracomment>The gear of the preview of a PDF file. In Polish: Ustawienia podglądu PDF</extracomment>
+        <translation>Ustawienia podglądu PDF</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Bookmarks: Enter goes to the page, Insert adds a bookmark, F2 changes the note, Delete takes it away</source>
+        <extracomment>In Polish: Zakładki: Enter przechodzi do strony, Insert dodaje zakładkę, F2 zmienia notatkę, Delete usuwa</extracomment>
+        <translation>Zakładki: Enter przechodzi do strony, Insert dodaje zakładkę, F2 zmienia notatkę, Delete usuwa</translation>
+    </message>
+    <message>
+        <source>No bookmarks. The button below or Insert adds a bookmark at the page shown.</source>
+        <extracomment>In Polish: Bez zakładek. Przycisk niżej albo Insert dodaje zakładkę na pokazanej stronie.</extracomment>
+        <translation>Bez zakładek. Przycisk niżej albo Insert dodaje zakładkę na pokazanej stronie.</translation>
+    </message>
+    <message>
+        <source>Bookmarks</source>
+        <extracomment>In Polish: Zakładki</extracomment>
+        <translation>Zakładki</translation>
+    </message>
+    <message>
+        <source>Contents of the file</source>
+        <extracomment>In Polish: Spis treści pliku</extracomment>
+        <translation>Spis treści pliku</translation>
+    </message>
+    <message>
+        <source>The file has no table of contents.</source>
+        <extracomment>In Polish: Plik nie ma spisu treści.</extracomment>
+        <translation>Plik nie ma spisu treści.</translation>
+    </message>
+    <message>
+        <source>Contents</source>
+        <extracomment>In Polish: Spis treści</extracomment>
+        <translation>Spis treści</translation>
+    </message>
+    <message>
+        <source>Pages</source>
+        <extracomment>In Polish: Strony</extracomment>
+        <translation>Strony</translation>
+    </message>
+    <message>
+        <source>Thumbnails</source>
+        <extracomment>In Polish: Miniatury</extracomment>
+        <translation>Miniatury</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <extracomment>In Polish: Wyniki szukania</extracomment>
+        <translation>Wyniki szukania</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <extracomment>In Polish: Kopiuj</extracomment>
+        <translation>Kopiuj</translation>
+    </message>
+    <message>
+        <source>Copy with Reference</source>
+        <extracomment>In Polish: Kopiuj z odnośnikiem</extracomment>
+        <translation>Kopiuj z odnośnikiem</translation>
+    </message>
+    <message>
+        <source>Copy together with the reference to the source and its page</source>
+        <extracomment>In Polish: Kopiuj razem z odnośnikiem do źródła i strony</extracomment>
+        <translation>Kopiuj razem z odnośnikiem do źródła i strony</translation>
+    </message>
+    <message>
+        <source>Create Quote...</source>
+        <extracomment>In Polish: Utwórz cytat…</extracomment>
+        <translation>Utwórz cytat...</translation>
+    </message>
+    <message>
+        <source>Bookmark Here</source>
+        <extracomment>In Polish: Zakładka tutaj</extracomment>
+        <translation>Zakładka tutaj</translation>
+    </message>
+    <message>
+        <source>Select All Text of the Page</source>
+        <extracomment>In Polish: Zaznacz cały tekst strony</extracomment>
+        <translation>Zaznacz cały tekst strony</translation>
+    </message>
+    <message>
+        <source>Selection</source>
+        <extracomment>In Polish: Zaznaczenie</extracomment>
+        <translation>Zaznaczenie</translation>
+    </message>
+    <message>
+        <source>Page %1 of %2</source>
+        <extracomment>The page shown in the status bar: %1 its number, %2 the number of pages. In Polish: Strona %1 z %2</extracomment>
+        <translation>Strona %1 z %2</translation>
+    </message>
+    <message>
+        <source>Delete Bookmark</source>
+        <translation>Usuń zakładkę</translation>
+    </message>
+    <message>
+        <source>Delete the bookmark of page %1 with its note?</source>
+        <extracomment>%1: the page. In Polish: Usunąć zakładkę strony %1 razem z notatką?</extracomment>
+        <translation>Usunąć zakładkę strony %1 razem z notatką?</translation>
+    </message>
+    <message>
+        <source>&amp;Delete</source>
+        <extracomment>In Polish: &amp;Usuń</extracomment>
+        <translation>&amp;Usuń</translation>
+    </message>
+    <message>
+        <source>of %1</source>
+        <extracomment>The number of pages after the field of the page: %1 how many. In Polish: z %1</extracomment>
+        <translation>z %1</translation>
+    </message>
+    <message>
+        <source>Page %1 of the file</source>
+        <extracomment>The tooltip of the field of the page: %1 the page counted from the first one of the file. In Polish: Strona %1 pliku (Ctrl+G)</extracomment>
+        <translation>Strona %1 pliku</translation>
+    </message>
+    <message>
+        <source>Bookmark at Page %1</source>
+        <extracomment>The button under the bookmarks: %1 the page shown. In Polish: Zakładka na s. %1</extracomment>
+        <translation>Zakładka na s. %1</translation>
+    </message>
+    <message>
+        <source>Add Bookmark</source>
+        <extracomment>In Polish: Dodaj zakładkę</extracomment>
+        <translation>Dodaj zakładkę</translation>
+    </message>
+    <message>
+        <source>No hits</source>
+        <extracomment>In Polish: Brak wyników</extracomment>
+        <translation>Brak wyników</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n hit(s)</source>
+        <extracomment>How many hits the search found. In Polish: %n wynik / %n wyniki / %n wyników</extracomment>
+        <translation>
+            <numerusform>%n wynik</numerusform>
+            <numerusform>%n wyniki</numerusform>
+            <numerusform>%n wyników</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 of %2</source>
+        <extracomment>The hit gone to: %1 which, %2 how many. In Polish: %1 z %2</extracomment>
+        <translation>%1 z %2</translation>
+    </message>
+    <message>
+        <source>The file does not have this text.</source>
+        <extracomment>In Polish: Nie ma w pliku tego tekstu.</extracomment>
+        <translation>Nie ma w pliku tego tekstu.</translation>
+    </message>
+    <message>
+        <source>Type at least three letters in the field &quot;Find in the File&quot;, or press Enter.</source>
+        <extracomment>In Polish: Wpisz w pole „Szukaj w pliku” co najmniej trzy litery albo naciśnij Enter.</extracomment>
+        <translation>Wpisz w pole „Szukaj w pliku” co najmniej trzy litery albo naciśnij Enter.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::NewQuoteDialog</name>
+    <message>
+        <source>From the selection in “%1”.</source>
+        <extracomment>%1: the title of the file. In Polish: Z zaznaczenia w pliku „%1”.</extracomment>
+        <translation>Z zaznaczenia w pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>From the selection on page %1 of “%2”.</source>
+        <extracomment>%1: the page, %2: the title of the file. In Polish: Z zaznaczenia na stronie %1 pliku „%2”.</extracomment>
+        <translation>Z zaznaczenia na stronie %1 pliku „%2”.</translation>
+    </message>
+    <message>
+        <source>New Quote</source>
+        <extracomment>In Polish: Nowy cytat</extracomment>
+        <translation>Nowy cytat</translation>
+    </message>
+    <message>
+        <source>&amp;Quote</source>
+        <extracomment>In Polish: &amp;Cytat</extracomment>
+        <translation>&amp;Cytat</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <extracomment>In Polish: Źródło</extracomment>
+        <translation>Źródło</translation>
+    </message>
+    <message>
+        <source>&amp;Page</source>
+        <extracomment>In Polish: &amp;Strona</extracomment>
+        <translation>&amp;Strona</translation>
+    </message>
+    <message>
+        <source>%1 (open)</source>
+        <extracomment>The chapter open last. %1: its title. In Polish: %1 (otwarty)</extracomment>
+        <translation>%1 (otwarty)</translation>
+    </message>
+    <message>
+        <source>no link</source>
+        <extracomment>In Polish: bez powiązania</extracomment>
+        <translation>bez powiązania</translation>
+    </message>
+    <message>
+        <source>Other Element...</source>
+        <extracomment>In Polish: Inny element...</extracomment>
+        <translation>Inny element...</translation>
+    </message>
+    <message>
+        <source>&amp;Link with</source>
+        <extracomment>In Polish: &amp;Powiąż z</extracomment>
+        <translation>&amp;Powiąż z</translation>
+    </message>
+    <message>
+        <source>The quote goes to the Workshop with its source and page. The selection in the PDF file stays as it is.</source>
+        <extracomment>In Polish: Cytat trafia do Warsztatu ze źródłem i stroną. Zaznaczenie w pliku PDF zostaje bez zmian.</extracomment>
+        <translation>Cytat trafia do Warsztatu ze źródłem i stroną. Zaznaczenie w pliku PDF zostaje bez zmian.</translation>
+    </message>
+    <message>
+        <source>&amp;Create</source>
+        <extracomment>In Polish: &amp;Utwórz</extracomment>
+        <translation>&amp;Utwórz</translation>
+    </message>
+    <message>
+        <source>Create and &amp;Insert into Chapter</source>
+        <extracomment>In Polish: Utwórz i &amp;wstaw do rozdziału</extracomment>
+        <translation>Utwórz i &amp;wstaw do rozdziału</translation>
+    </message>
+    <message>
+        <source>No chapter is open</source>
+        <extracomment>In Polish: Żaden rozdział nie jest otwarty</extracomment>
+        <translation>Żaden rozdział nie jest otwarty</translation>
+    </message>
+    <message>
+        <source>The chapter is read-only</source>
+        <extracomment>In Polish: Rozdział jest tylko do odczytu</extracomment>
+        <translation>Rozdział jest tylko do odczytu</translation>
     </message>
 </context>
 </TS>

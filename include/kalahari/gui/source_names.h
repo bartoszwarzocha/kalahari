@@ -65,6 +65,18 @@ public:
     /// @brief "Wiśniewska Anna; Nowak Jan": the authors of @p source, family name first, as a
     /// list of sources shows and sorts them
     [[nodiscard]] static QString authorsOf(const core::SourceDescription& source);
+
+    /// @brief The reference of the text to page @p page of source @p sourceId of @p book, in
+    /// the form of the settings and the language of the book: "(Wiśniewska 2011, s. 45)";
+    /// empty when the book has no such material
+    [[nodiscard]] static QString referenceTo(const core::ProjectManager& book,
+                                             const QString& sourceId, const QString& page);
+
+    /// @brief @p text in the quotation marks of the language of @p book, with the reference
+    /// to page @p page of source @p sourceId: „Karawana idzie…” (Wiśniewska 2011, s. 45)
+    [[nodiscard]] static QString quotedWithReference(const core::ProjectManager& book,
+                                                     const QString& sourceId,
+                                                     const QString& text, const QString& page);
 };
 
 }  // namespace kalahari::gui

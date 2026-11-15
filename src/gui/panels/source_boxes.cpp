@@ -11,6 +11,7 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/panels/card_parts.h"
+#include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
 
 #include <QAbstractItemDelegate>
@@ -299,8 +300,17 @@ SourceDescriptionBox::SourceDescriptionBox(core::ProjectManager& book, QWidget* 
     //: In Polish: Wkleja opis skopiowany z katalogu biblioteki albo z programu do bibliografii
     m_pasteButton->setToolTip(tr("Pastes a description copied from a library catalog or from a "
                                  "bibliography manager"));
+    //: In Polish: Uzupełnij z pliku
+    m_fillButton = new QPushButton(tr("Fill In from File"), this);
+    m_fillButton->setObjectName(QStringLiteral("sourceFillButton"));
+    keepIcon(m_fillButton, QStringLiteral("material.pdf"), core::IconContext::Button);
+    //: In Polish: Wpisuje w puste pola tytuł, autorów, rok i liczbę stron zapisane w pliku PDF
+    m_fillButton->setToolTip(tr("Fills the empty fields with the title, the authors, the year "
+                                "and the pages the PDF file has"));
+    m_fillButton->hide();
     auto* pasteRow = new QHBoxLayout();
     pasteRow->addWidget(m_pasteButton);
+    pasteRow->addWidget(m_fillButton);
     pasteRow->addStretch(1);
     layout->addLayout(pasteRow);
 
@@ -312,6 +322,7 @@ SourceDescriptionBox::SourceDescriptionBox(core::ProjectManager& book, QWidget* 
     connect(m_removePersonButton, &QToolButton::clicked, this,
             &SourceDescriptionBox::removePerson);
     connect(m_pasteButton, &QPushButton::clicked, this, &SourceDescriptionBox::pasteDescription);
+    connect(m_fillButton, &QPushButton::clicked, this, &SourceDescriptionBox::fillFromFile);
     connect(m_peopleTable, &QTableWidget::itemChanged, this, [this]() {
         if (!m_updating) {
             save();
@@ -350,6 +361,7 @@ void SourceDescriptionBox::showMaterial(const core::ProjectElement& element) {
     const bool other = element.id != m_elementId;
     m_elementId = element.id;
     m_materialKind = SourceNames::baseKindOf(m_book, element);
+    m_pdf = PdfFiles::previewAvailable() && PdfFiles::isPdf(m_book.filePathOf(element));
     m_source = element.source;
     m_updating = true;
 
@@ -469,6 +481,7 @@ void SourceDescriptionBox::showKind() {
         previous = edit;
     }
     setTabOrder(previous, m_pasteButton);
+    setTabOrder(m_pasteButton, m_fillButton);
 }
 
 void SourceDescriptionBox::updateButtons() {
@@ -477,6 +490,8 @@ void SourceDescriptionBox::updateButtons() {
     m_removePersonButton->setEnabled(editable && m_peopleTable->currentRow() >= 0 &&
                                      m_peopleTable->rowCount() > 0);
     m_pasteButton->setEnabled(editable);
+    m_fillButton->setVisible(m_pdf);
+    m_fillButton->setEnabled(editable && m_pdf);
     const bool none = m_peopleTable->rowCount() == 0;
     m_peopleTable->setVisible(!none);
     m_noPeopleLabel->setVisible(none);
@@ -576,6 +591,72 @@ void SourceDescriptionBox::pasteDescription() {
     emit changed(m_elementId);
     //: In Polish: Wklejono opis bibliograficzny
     emit message(tr("Bibliographic description pasted"));
+}
+
+void SourceDescriptionBox::fillFromFile() {
+    const core::ProjectElement* element = m_book.findElement(m_elementId);
+    if (element == nullptr || m_book.isReadOnly() || !m_pdf) {
+        return;
+    }
+    //: In Polish: Uzupełnij z pliku
+    const QString title = tr("Fill In from File");
+    const std::optional<PdfMetaData> meta = PdfFiles::metaData(m_book.filePathOf(*element));
+    if (!meta) {
+        dialogs::MessageDialog::warning(
+            this, title,
+            //: In Polish: Nie da się odczytać pliku PDF. Może być uszkodzony albo chroniony
+            //: hasłem.
+            tr("The PDF file cannot be read. It may be damaged or protected with a password."));
+        return;
+    }
+    // Only the empty fields: what the writer typed stays
+    SourceDescription source = shownSource();
+    const QString kind = m_kindBox->currentData().toString();
+    bool filled = false;
+    const auto fill = [&source, &filled](const char* field, const QString& text) {
+        if (source.value(field).isEmpty() && !text.isEmpty()) {
+            source.setValue(QString::fromLatin1(field), text);
+            filled = true;
+        }
+    };
+    fill(SourceDescription::TITLE, meta->title);
+    fill(SourceDescription::YEAR, meta->year);
+    // The pages of a whole work; of a chapter or an article they are its range in the book
+    if (meta->pages > 0 && (kind == QLatin1String(SourceDescription::BOOK) ||
+                            kind == QLatin1String(SourceDescription::THESIS))) {
+        fill(SourceDescription::PAGES, QString::number(meta->pages));
+    }
+    // The authors, one after another with ";" as the files keep several
+    if (source.people.isEmpty() && !meta->author.isEmpty()) {
+        for (const QString& name : meta->author.split(QLatin1Char(';'), Qt::SkipEmptyParts)) {
+            if (!name.trimmed().isEmpty()) {
+                source.people << core::SourcePerson{
+                    name.trimmed(), QString::fromLatin1(SourceDescription::AUTHOR), {}};
+                filled = true;
+            }
+        }
+    }
+    if (!filled) {
+        dialogs::MessageDialog::information(
+            this, title,
+            //: In Polish: Nie ma czego uzupełnić: plik nie ma tytułu, autora ani roku albo opis
+            //: już je ma.
+            tr("Nothing to fill in: the file has no title, author or year, or the description "
+               "has them already."));
+        return;
+    }
+    source.type = kind;
+    if (!m_book.setSource(m_elementId, source)) {
+        dialogs::MessageDialog::warning(this, tr("Bibliographic Description Not Saved"),
+                                        tr("Failed to save changes."));
+        return;
+    }
+    if (const core::ProjectElement* updated = m_book.findElement(m_elementId)) {
+        showMaterial(*updated);
+    }
+    emit changed(m_elementId);
+    //: In Polish: Uzupełniono opis z pliku
+    emit message(tr("Description filled in from the file"));
 }
 
 void SourceDescriptionBox::save() {
@@ -807,7 +888,12 @@ BookmarksBox::BookmarksBox(core::ProjectManager& book, QWidget* parent)
     //: In Polish: Usuń zakładkę (Delete)
     m_removeButton = listButton(this, "common.remove", tr("Delete Bookmark (Delete)"),
                                 "bookmarksRemove");
-    layout->addLayout(buttonRow(m_addButton, m_removeButton));
+    //: In Polish: Pokaż stronę w podglądzie
+    m_showButton = listButton(this, "common.preview", tr("Show the Page in the Preview"),
+                              "bookmarksShow");
+    QHBoxLayout* buttons = buttonRow(m_addButton, m_removeButton);
+    buttons->insertWidget(1, m_showButton);
+    layout->addLayout(buttons);
     m_table = cardTable(this, "bookmarksTable",
                         //: In Polish: Zakładki pliku
                         tr("Bookmarks of the file"),
@@ -827,6 +913,7 @@ BookmarksBox::BookmarksBox(core::ProjectManager& book, QWidget* parent)
     layout->addWidget(m_emptyLabel);
     connect(m_addButton, &QToolButton::clicked, this, &BookmarksBox::addBookmark);
     connect(m_removeButton, &QToolButton::clicked, this, &BookmarksBox::removeBookmark);
+    connect(m_showButton, &QToolButton::clicked, this, &BookmarksBox::showPage);
     connect(m_table, &QTableWidget::itemChanged, this, [this]() {
         if (!m_updating) {
             save();
@@ -839,6 +926,7 @@ void BookmarksBox::showMaterial(const core::ProjectElement& element) {
     const bool other = element.id != m_elementId;
     m_elementId = element.id;
     m_lastPage = element.lastPage;
+    m_preview = PdfFiles::previewAvailable() && PdfFiles::isPdf(m_book.filePathOf(element));
     if (other || (!isEditing(m_table) && element.bookmarks != m_bookmarks)) {
         m_bookmarks = element.bookmarks;
         m_updating = true;
@@ -863,6 +951,8 @@ void BookmarksBox::updateButtons() {
     m_addButton->setEnabled(editable);
     m_removeButton->setEnabled(editable && m_table->currentRow() >= 0 &&
                                m_table->rowCount() > 0);
+    m_showButton->setVisible(m_preview);
+    m_showButton->setEnabled(m_table->currentRow() >= 0 && m_table->rowCount() > 0);
     const bool none = m_table->rowCount() == 0;
     m_table->setVisible(!none);
     m_emptyLabel->setVisible(none);
@@ -913,6 +1003,13 @@ void BookmarksBox::removeBookmark() {
     if (m_table->rowCount() > 0) {
         m_table->setCurrentCell(std::min(row, m_table->rowCount() - 1), PAGE_COLUMN);
         m_table->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+void BookmarksBox::showPage() {
+    const QTableWidgetItem* page = m_table->item(m_table->currentRow(), PAGE_COLUMN);
+    if (m_preview && page != nullptr) {
+        emit requestShowPage(m_elementId, page->text());
     }
 }
 
@@ -1106,8 +1203,23 @@ QuoteSourceBox::QuoteSourceBox(core::ProjectManager& book, QWidget* parent)
     m_pageEdit->setObjectName(QStringLiteral("quotePageEdit"));
     //: The page of a quote, as the writer puts it. In Polish: 45, xii albo 41–42
     m_pageEdit->setPlaceholderText(tr("45, xii or 41–42"));
+    auto* pageRow = new QWidget(this);
+    auto* pageLayout = new QHBoxLayout(pageRow);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->setSpacing(6);
+    m_pageEdit->setParent(pageRow);
+    //: In Polish: Pokaż stronę
+    m_showPageButton = new QPushButton(tr("Show Page"), pageRow);
+    m_showPageButton->setObjectName(QStringLiteral("quoteShowPageButton"));
+    //: In Polish: Pokaż stronę w podglądzie pliku źródła
+    m_showPageButton->setToolTip(tr("Show the page in the preview of the file of the source"));
+    keepIcon(m_showPageButton, QStringLiteral("common.preview"), core::IconContext::Button);
+    pageLayout->addWidget(m_pageEdit, 1);
+    pageLayout->addWidget(m_showPageButton);
     //: In Polish: Strona:
-    m_form->addRow(tr("Page:"), m_pageEdit);
+    auto* pageLabel = new QLabel(tr("Page:"), this);
+    pageLabel->setBuddy(m_pageEdit);
+    m_form->addRow(pageLabel, pageRow);
     m_authorEdit = new QLineEdit(this);
     m_authorEdit->setObjectName(QStringLiteral("quoteAuthorEdit"));
     //: Who said a quote without a source. In Polish: Autor:
@@ -1136,6 +1248,12 @@ QuoteSourceBox::QuoteSourceBox(core::ProjectManager& book, QWidget* parent)
         const QString source = m_sourceBox->currentData().toString();
         if (m_book.findElement(source) != nullptr) {
             emit requestOpenSource(source, QString());
+        }
+    });
+    connect(m_showPageButton, &QPushButton::clicked, this, [this]() {
+        const QString source = m_sourceBox->currentData().toString();
+        if (m_book.findElement(source) != nullptr) {
+            emit requestOpenSource(source, m_pageEdit->text().trimmed());
         }
     });
     for (QLineEdit* edit : {m_pageEdit, m_authorEdit, m_workEdit}) {
@@ -1237,6 +1355,10 @@ void QuoteSourceBox::updateShown() {
     m_form->setRowVisible(m_workEdit, none);
     m_form->setRowVisible(m_fromSourceLabel, !none);
     m_openSourceButton->setEnabled(source != nullptr);
+    // The page in the preview of the PDF file of the source
+    m_showPageButton->setVisible(source != nullptr && PdfFiles::previewAvailable() &&
+                                 PdfFiles::isPdf(m_book.filePathOf(*source)));
+    m_showPageButton->setEnabled(!m_pageEdit->text().trimmed().isEmpty());
 
     const QString language = m_book.bookLanguage();
     QString reference;
@@ -1255,13 +1377,7 @@ void QuoteSourceBox::updateShown() {
                 //: %1 the authors, %2 the title. In Polish: z karty źródła: %1, „%2”
                 : tr("From the card of the source: %1, “%2”")
                       .arg(authors.join(QStringLiteral(", ")), title));
-        const QList<const core::ProjectElement*> sources = m_book.sources();
-        const auto at = std::find(sources.cbegin(), sources.cend(), source);
-        const int number =
-            at != sources.cend() ? static_cast<int>(std::distance(sources.cbegin(), at)) + 1 : 1;
-        reference = Bibliography::reference(source->source, source->title, quote.page,
-                                            Bibliography::settingsReferenceForm(), number,
-                                            language);
+        reference = SourceNames::referenceTo(m_book, quote.source, quote.page);
     } else if (none) {
         reference = Bibliography::reference(quote, language);
     } else {

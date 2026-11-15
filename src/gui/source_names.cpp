@@ -11,7 +11,11 @@
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/source_description.h"
+#include "kalahari/editor/auto_correct.h"
 #include "kalahari/gui/kind_names.h"
+
+#include <algorithm>
+#include <iterator>
 
 namespace kalahari::gui {
 
@@ -304,6 +308,31 @@ QString SourceNames::authorsOf(const SourceDescription& source) {
         names << (name.given.isEmpty() ? name.family : name.family + QLatin1Char(' ') + name.given);
     }
     return names.join(QStringLiteral("; "));
+}
+
+QString SourceNames::referenceTo(const core::ProjectManager& book, const QString& sourceId,
+                                 const QString& page) {
+    const core::ProjectElement* source = book.findElement(sourceId);
+    if (source == nullptr) {
+        return {};
+    }
+    // The number of the source in the bibliography, for the form "[1, s. 45]"
+    const QList<const core::ProjectElement*> sources = book.sources();
+    const auto at = std::find(sources.cbegin(), sources.cend(), source);
+    const int number =
+        at != sources.cend() ? static_cast<int>(std::distance(sources.cbegin(), at)) + 1 : 1;
+    return core::Bibliography::reference(source->source, source->title, page,
+                                         core::Bibliography::settingsReferenceForm(), number,
+                                         book.bookLanguage());
+}
+
+QString SourceNames::quotedWithReference(const core::ProjectManager& book,
+                                         const QString& sourceId, const QString& text,
+                                         const QString& page) {
+    const editor::QuoteMarks marks = editor::QuoteMarks::forLanguage(book.bookLanguage());
+    const QString quoted = marks.doubleOpening + text.simplified() + marks.doubleClosing;
+    const QString reference = referenceTo(book, sourceId, page);
+    return reference.isEmpty() ? quoted : quoted + QLatin1Char(' ') + reference;
 }
 
 }  // namespace kalahari::gui

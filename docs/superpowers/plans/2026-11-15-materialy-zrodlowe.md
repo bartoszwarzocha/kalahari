@@ -94,6 +94,14 @@ ma; otwierają podgląd dopiero w etapie 2.
 - Ustawienia › Materiały: Otwieranie PDF (w programie, domyślnie, albo w programie systemowym), grupa
   „Podgląd PDF”.
 
+Stan: zrobiony (gałąź `claude/project-thread-zsum8e`, po etapie 1). Zakładkę na karcie pokazuje przycisk
+„Pokaż stronę w podglądzie”, nie dwuklik, bo dwuklik w tabeli zmienia stronę lub notatkę. Kolory wokół
+stron, zaznaczenia i wyników są wspólne z edytorem (Edytor › Kolory). Grupa Otwieranie (obrazy, strony
+w sieci, PDF) przeszła ze strony Nawigator na stronę Materiały. „Utwórz cytat…” w oknie „Nowy cytat”
+wiąże cytat z rozdziałem otwartym ostatnio, z innym elementem albo z żadnym; „Utwórz i wstaw do
+rozdziału” wstawia słowa z odnośnikiem. Windows i macOS dostają Qt PDF z vcpkg (`qtwebengine` z cechą
+`pdf`); Linux z pakietu `qt6-pdf-dev`.
+
 ### 3. Opcje
 
 - „Uzupełniaj opis z sieci po ISBN i DOI” (domyślnie wyłączone): wysyła sam numer do katalogu w sieci;

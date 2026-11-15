@@ -48,6 +48,7 @@ jobs:
         host: linux
         target: desktop
         arch: linux_gcc_64
+        modules: 'qtpdf'  # The preview of PDF files
         cache: true
 
     - name: Install all dependencies from apt (no vcpkg)
@@ -183,7 +184,7 @@ jobs:
         done
         sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config clang-tidy \
-          qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
+          qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools qt6-pdf-dev \
           libgl1-mesa-dev libxkbcommon-dev \
           libspdlog-dev nlohmann-json3-dev libzip-dev zipcmp zipmerge ziptool \
           libcurl4-openssl-dev libhunspell-dev catch2 \

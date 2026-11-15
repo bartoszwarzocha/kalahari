@@ -52,7 +52,7 @@
 #include "kalahari/gui/recent_books_menu.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
-#include "kalahari/gui/panels/image_preview_panel.h"
+#include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/paragraph_styles.h"
@@ -1362,12 +1362,12 @@ void MainWindow::registerCommands() {
             QString::fromLatin1(SettingsDialog::MARGIN_NUMBERING_PAGE));
     };
 
-    // Zoom commands act on the editor in front, or on the preview of a material, which fits
-    // its picture to the window for the width of the page and the whole page
+    // Zoom commands act on the editor in front, or on the preview of a material: a picture
+    // fits the window for the width of the page and the whole page, a PDF file as it says
     const auto onEditor = [this](void (editor::BookEditor::*action)(),
-                                 void (ImagePreviewPanel::*previewAction)()) {
+                                 void (PreviewPanel::*previewAction)()) {
         return [this, action, previewAction]() {
-            if (ImagePreviewPanel* preview = currentPreview()) {
+            if (PreviewPanel* preview = currentPreview()) {
                 (preview->*previewAction)();
                 return;
             }
@@ -1377,14 +1377,13 @@ void MainWindow::registerCommands() {
             }
         };
     };
-    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn, &ImagePreviewPanel::zoomIn);
-    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut, &ImagePreviewPanel::zoomOut);
-    callbacks.onZoomReset =
-        onEditor(&editor::BookEditor::zoomReset, &ImagePreviewPanel::zoomReset);
+    callbacks.onZoomIn = onEditor(&editor::BookEditor::zoomIn, &PreviewPanel::zoomIn);
+    callbacks.onZoomOut = onEditor(&editor::BookEditor::zoomOut, &PreviewPanel::zoomOut);
+    callbacks.onZoomReset = onEditor(&editor::BookEditor::zoomReset, &PreviewPanel::zoomReset);
     callbacks.onZoomPageWidth =
-        onEditor(&editor::BookEditor::zoomToPageWidth, &ImagePreviewPanel::zoomToFit);
+        onEditor(&editor::BookEditor::zoomToPageWidth, &PreviewPanel::zoomToPageWidth);
     callbacks.onZoomWholePage =
-        onEditor(&editor::BookEditor::zoomToWholePage, &ImagePreviewPanel::zoomToFit);
+        onEditor(&editor::BookEditor::zoomToWholePage, &PreviewPanel::zoomToWholePage);
 
     // View commands
     callbacks.onDashboard = [this]() {
@@ -1573,11 +1572,14 @@ void MainWindow::registerCommands() {
         };
     }
 
-    // Find goes to the search of a list of materials too
+    // Find goes to the search of a list of materials and of the preview of a PDF file too
     if (Command* command = registry.getCommand("edit.find")) {
         command->isEnabled = [this]() {
-            return hasDocumentInFront() || (m_materialListCoordinator != nullptr &&
-                                            m_materialListCoordinator->currentList() != nullptr);
+            const PreviewPanel* preview =
+                m_dockCoordinator != nullptr ? currentPreview() : nullptr;
+            return hasDocumentInFront() || (preview != nullptr && preview->canFind()) ||
+                   (m_materialListCoordinator != nullptr &&
+                    m_materialListCoordinator->currentList() != nullptr);
         };
     }
 
@@ -1823,6 +1825,10 @@ void MainWindow::onFind() {
                                       ? m_materialListCoordinator->currentList()
                                       : nullptr) {
         list->focusSearch();
+        return;
+    }
+    if (PreviewPanel* preview = currentPreview(); preview != nullptr && preview->canFind()) {
+        preview->find();
         return;
     }
     EditorPanel* editor = getCurrentEditor();
@@ -2663,10 +2669,12 @@ void MainWindow::createDocks() {
         // (none over the Dashboard or without a tab)
         EditorPanel* front = getCurrentEditor();
         m_statusBarStatistics->setEditor(front ? front->getBookEditor() : nullptr);
-        // The zoom of the preview of a material follows it
-        if (ImagePreviewPanel* preview = currentPreview()) {
-            connect(preview, &ImagePreviewPanel::zoomChanged, this,
-                    &MainWindow::updatePageStatus, Qt::UniqueConnection);
+        // The zoom of the preview of a material follows it, and the page of a PDF file
+        if (PreviewPanel* preview = currentPreview()) {
+            connect(preview, &PreviewPanel::zoomChanged, this, &MainWindow::updatePageStatus,
+                    Qt::UniqueConnection);
+            connect(preview, &PreviewPanel::pageChanged, this, &MainWindow::updatePageStatus,
+                    Qt::UniqueConnection);
         }
         updatePageStatus();
 
@@ -3109,9 +3117,13 @@ EditorPanel* MainWindow::getCurrentEditor() {
     return qobject_cast<EditorPanel*>(currentWidget);  // nullptr if not EditorPanel
 }
 
-ImagePreviewPanel* MainWindow::currentPreview() {
+PreviewPanel* MainWindow::currentPreview() {
+    // The page the keys went to last, also in a window of its own
+    if (m_documentWindows != nullptr) {
+        return qobject_cast<PreviewPanel*>(m_documentWindows->frontPage());
+    }
     QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
-    return centralTabs != nullptr ? qobject_cast<ImagePreviewPanel*>(centralTabs->currentWidget())
+    return centralTabs != nullptr ? qobject_cast<PreviewPanel*>(centralTabs->currentWidget())
                                   : nullptr;
 }
 
@@ -3534,9 +3546,11 @@ void MainWindow::updatePageStatus() {
         return;
     }
 
-    // The zoom of the preview of a material
-    if (ImagePreviewPanel* preview = currentPreview()) {
-        m_pageLabel->hide();
+    // The page (of a PDF file) and the zoom of the preview of a material
+    if (const PreviewPanel* preview = currentPreview()) {
+        const QString page = preview->pageStatus();
+        m_pageLabel->setText(page);
+        m_pageLabel->setVisible(!page.isEmpty());
         m_zoomLabel->setText(tr("%1%").arg(qRound(preview->zoom() * 100.0)));
         m_zoomLabel->show();
         return;

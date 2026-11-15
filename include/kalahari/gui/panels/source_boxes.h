@@ -37,7 +37,8 @@ namespace kalahari::gui {
 /// page). The people are a table of names and what each did: "+" or Insert adds one with the
 /// keys in its name, F2 edits a cell, "-" or Delete takes one out. A field is saved when it
 /// loses the keys; the title, empty, is the title of the material. Paste Description reads a
-/// record of BibTeX or RIS from the clipboard. A material whose description says nothing is no
+/// record of BibTeX or RIS from the clipboard; Fill In from File, for a PDF file, the title, the
+/// author, the year and the pages the file has. A material whose description says nothing is no
 /// source; the kind alone does not make it one.
 class SourceDescriptionBox : public QGroupBox {
     Q_OBJECT
@@ -56,6 +57,7 @@ public:
     [[nodiscard]] QToolButton* addPersonButton() const { return m_addPersonButton; }
     [[nodiscard]] QToolButton* removePersonButton() const { return m_removePersonButton; }
     [[nodiscard]] QPushButton* pasteButton() const { return m_pasteButton; }
+    [[nodiscard]] QPushButton* fillButton() const { return m_fillButton; }
 
     /// @brief The field of @p field (core::SourceDescription::TITLE...)
     [[nodiscard]] QLineEdit* field(const QString& field) const { return m_edits.value(field); }
@@ -75,6 +77,10 @@ public slots:
 
     /// @brief Take the description from a record of BibTeX or RIS on the clipboard
     void pasteDescription();
+
+    /// @brief Fill the empty fields with what the PDF file of the material says of itself: its
+    /// title, its authors, its year and, of a book or a thesis, its pages
+    void fillFromFile();
 
     /// @brief Save what the card shows
     void save();
@@ -111,6 +117,8 @@ private:
     QHash<QString, QLineEdit*> m_edits;
     QHash<QString, QLabel*> m_labels;
     QPushButton* m_pasteButton = nullptr;
+    QPushButton* m_fillButton = nullptr;
+    bool m_pdf = false;  ///< The file of the material is a PDF the program reads
 };
 
 /// @brief How the bibliography of the book shows a material: its entry in a style, whether the
@@ -179,7 +187,8 @@ private:
 /// @brief The bookmarks of the file of a material: a page and a note each
 ///
 /// "+" or Insert adds one at the page shown last with the keys in its page, F2 edits a cell,
-/// "-" or Delete takes one out. Every change is saved at once.
+/// "-" or Delete takes one out, the eye shows its page in the preview of a PDF file. Every
+/// change is saved at once.
 class BookmarksBox : public QGroupBox {
     Q_OBJECT
 
@@ -192,6 +201,7 @@ public:
     [[nodiscard]] QTableWidget* table() const { return m_table; }
     [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
     [[nodiscard]] QToolButton* removeButton() const { return m_removeButton; }
+    [[nodiscard]] QToolButton* showButton() const { return m_showButton; }
 
 public slots:
     /// @brief Add a bookmark at the end, with the keys in its page
@@ -200,9 +210,15 @@ public slots:
     /// @brief Take out the current bookmark
     void removeBookmark();
 
+    /// @brief Show the page of the current bookmark in the preview of the file
+    void showPage();
+
 signals:
     /// @brief The bookmarks of material @p elementId changed
     void changed(const QString& elementId);
+
+    /// @brief Show page @p page of the file of material @p elementId in its preview
+    void requestShowPage(const QString& elementId, const QString& page);
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -223,6 +239,8 @@ private:
     QLabel* m_emptyLabel = nullptr;
     QToolButton* m_addButton = nullptr;
     QToolButton* m_removeButton = nullptr;
+    QToolButton* m_showButton = nullptr;
+    bool m_preview = false;  ///< Whether the file is shown in a preview with pages
 };
 
 /// @brief The quotes whose source is a material, with their pages
@@ -282,6 +300,7 @@ public:
     [[nodiscard]] QLineEdit* authorEdit() const { return m_authorEdit; }
     [[nodiscard]] QLineEdit* workEdit() const { return m_workEdit; }
     [[nodiscard]] QPushButton* openSourceButton() const { return m_openSourceButton; }
+    [[nodiscard]] QPushButton* showPageButton() const { return m_showPageButton; }
     [[nodiscard]] QLabel* fromSourceLabel() const { return m_fromSourceLabel; }
     [[nodiscard]] QLabel* referenceLabel() const { return m_referenceLabel; }
 
@@ -311,6 +330,7 @@ private:
     QComboBox* m_sourceBox = nullptr;
     QLineEdit* m_pageEdit = nullptr;
     QPushButton* m_openSourceButton = nullptr;
+    QPushButton* m_showPageButton = nullptr;
     QLineEdit* m_authorEdit = nullptr;
     QLineEdit* m_workEdit = nullptr;
     QLabel* m_fromSourceLabel = nullptr;

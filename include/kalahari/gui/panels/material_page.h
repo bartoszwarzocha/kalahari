@@ -242,6 +242,9 @@ signals:
     /// @brief Open the settings of the sources (Settings > Materials)
     void requestSourceSettings();
 
+    /// @brief Show page @p page of the file of material @p elementId in its preview
+    void requestShowPage(const QString& elementId, const QString& page);
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
