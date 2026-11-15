@@ -186,7 +186,7 @@ TEST_CASE("Editor panel: the text's context menu has the commands of the Edit me
     for (const test::MenuItem& item : reader.items()) {
         if (!item.separator) {
             commands.append(item.action);
-            texts.append(item.action->text().section(QLatin1Char('\t'), 0, 0));
+            texts.append(item.text.section(QLatin1Char('\t'), 0, 0));
         }
     }
     const QList<const QAction*> edit = {registry.getAction(QStringLiteral("edit.cut")),
