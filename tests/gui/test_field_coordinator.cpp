@@ -617,7 +617,7 @@ TEST_CASE("Fields: the formats of the windows", "[gui][fields]") {
     data.background = QColor(QStringLiteral("#dddddd"));
     const FieldDialog dialog(data);
     const QLabel* preview = nullptr;
-    for (QLabel* label : dialog.findChildren<QLabel*>()) {
+    for (const QLabel* label : dialog.findChildren<QLabel*>()) {
         if (label->text() == QStringLiteral("4321")) {
             preview = label;
         }
