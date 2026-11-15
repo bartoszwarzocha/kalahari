@@ -286,7 +286,7 @@ GoToOutcome BookEditor::goToPlaceAt(PlaceKind kind, const std::vector<int>& plac
     outcome.count = static_cast<int>(places.size());
     outcome.ordinal = index + 1;
     const int position = places[static_cast<size_t>(index)];
-    QTextDocument* const document = m_textBuffer.get();
+    const QTextDocument* const document = m_textBuffer.get();
     const auto putCursor = [this, document](int at) {
         clearSelection();
         const CursorPosition place = absoluteToCursorPosition(document, at);

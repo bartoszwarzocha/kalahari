@@ -1563,7 +1563,8 @@ TEST_CASE("Paste Special and Go To benchmark: a 150k-word chapter with headings 
     // -------------------------------------------------------------------------
     const int middle = static_cast<int>(editor.paragraphCount() / 2);
     editor.setCursorPosition({.paragraph = middle, .offset = 0});
-    editor.setSelection({{middle, 0}, {middle + 40, 0}});
+    editor.setSelection({.start = {.paragraph = middle, .offset = 0},
+                         .end = {.paragraph = middle + 40, .offset = 0}});
     const std::unique_ptr<QMimeData> copied = editor.createMimeDataFromSelection();
     REQUIRE(copied);
     editor.clearSelection();
@@ -1574,7 +1575,7 @@ TEST_CASE("Paste Special and Go To benchmark: a 150k-word chapter with headings 
                     .note = QStringLiteral("to, co okno pokazuje przy otwarciu")});
     CHECK(forms.size() == 4);
     const auto pasteIn = [&](const QString& name, PasteForm form) {
-        editor.setCursorPosition({middle + 100, 0});
+        editor.setCursorPosition({.paragraph = middle + 100, .offset = 0});
         const QString before = editor.textDocument()->findBlockByNumber(middle + 100).text();
         const double ms = timeMs([&] {
             editor.insertInForm(copied.get(), form);

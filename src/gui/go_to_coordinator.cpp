@@ -18,6 +18,16 @@
 
 namespace kalahari::gui {
 
+namespace {
+
+/// The text with the keys, or the last one when no text has them
+editor::BookEditor* textOrLast(editor::BookEditor* withKeys, editor::BookEditor* last)
+{
+    return withKeys != nullptr ? withKeys : last;
+}
+
+}  // namespace
+
 GoToCoordinator::GoToCoordinator(CommandRegistry& commands, TextWithKeys textWithKeys,
                                  QWidget* window, QObject* parent)
     : QObject(parent),
@@ -57,8 +67,7 @@ void GoToCoordinator::followKeys()
 
 editor::BookEditor* GoToCoordinator::text() const
 {
-    editor::BookEditor* const text = m_textWithKeys ? m_textWithKeys() : nullptr;
-    return text != nullptr ? text : m_lastText;
+    return textOrLast(m_textWithKeys ? m_textWithKeys() : nullptr, m_lastText);
 }
 
 void GoToCoordinator::open()
