@@ -93,6 +93,15 @@
     "noteFrameDark": "#5A9BE0",
     "selection": "#4285F4",
     "searchMatch": "#FFD600",
-    "currentSearchMatch": "#FF8C00"
+    "currentSearchMatch": "#FF8C00",
+    "plotDraft": "#8A8F98",
+    "plotRevision": "#5B9BD5",
+    "plotFinal": "#5CC178",
+    "plotBlue": "#5B9BD5",
+    "plotTeal": "#3FB8AF",
+    "plotGreen": "#6CBF6A",
+    "plotAmber": "#E3A13B",
+    "plotRose": "#E06C9F",
+    "plotViolet": "#A78BDB"
   }
 }

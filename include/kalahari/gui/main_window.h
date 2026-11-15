@@ -70,6 +70,7 @@ class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
 class AnnotationsCoordinator;
 class ParagraphMarksCoordinator;
 class MaterialListCoordinator;
+class PlotBoardCoordinator;
 class EditCoordinator;
 class SpecialCharacterCoordinator;
 class VersionsCoordinator;
@@ -517,6 +518,8 @@ private:
     ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
     /// @brief The lists of the kinds of materials on their tabs
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
+    /// @brief The plot board of the book and its outline on their tab
+    PlotBoardCoordinator* m_plotBoardCoordinator{nullptr};
     /// @brief The statistics bar and the goals of writing
     WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};

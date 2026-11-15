@@ -1859,6 +1859,66 @@ TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager keeps the description and the plot of the texts of the book",
+          "[project_manager][plot]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Plot", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+    const QString picture = QDir(dir.path()).filePath("map.png");
+    writeFile(picture, "a picture");
+    const QString map = pm.addMaterial(picture, kind("kalahari.base", "picture"), "Map");
+    REQUIRE_FALSE(map.isEmpty());
+    int changes = 0;
+    const QMetaObject::Connection counted =
+        QObject::connect(&pm, &ProjectManager::projectChanged, [&changes] { ++changes; });
+
+    // The description and the plot of a chapter, saved at once
+    ElementPlot plot;
+    plot.pov = "Amara";
+    plot.place = "Dakhla";
+    plot.time = "Day 1";
+    plot.color = "teal";
+    REQUIRE(pm.setPlot(chapter, "Amara joins the caravan.", plot));
+    CHECK(changes == 1);
+    CHECK(pm.findElement(chapter)->description == "Amara joins the caravan.");
+    CHECK(pm.findElement(chapter)->plot == plot);
+    // They are not its notes, which its chapter file keeps
+    CHECK(pm.notes(chapter).isEmpty());
+
+    // The same again changes nothing and saves nothing
+    REQUIRE(pm.setPlot(chapter, "Amara joins the caravan.", plot));
+    CHECK(changes == 1);
+
+    // A material of the Workshop, or an element the book has not, has no plot
+    CHECK_FALSE(pm.setPlot(map, "Not a text", plot));
+    CHECK_FALSE(pm.setPlot("nothing", "Nothing", plot));
+    CHECK(pm.findElement(map)->plot.isEmpty());
+    CHECK(changes == 1);
+
+    // A .klh file that cannot be written leaves the chapter as it was
+    REQUIRE(QFile::remove(manifest));
+    REQUIRE(QDir().mkdir(manifest));
+    CHECK_FALSE(pm.setPlot(chapter, "Changed", {}));
+    CHECK(pm.findElement(chapter)->plot == plot);
+    CHECK(changes == 1);
+    REQUIRE(QDir().rmdir(manifest));
+    REQUIRE(pm.saveManifest());
+    CHECK(changes == 2);
+    QObject::disconnect(counted);
+
+    // The .klh file has them
+    REQUIRE(pm.closeProject(false));
+    const BookProject saved = savedProject(manifest);
+    const ProjectElement* savedChapter = saved.findElement(chapter);
+    REQUIRE(savedChapter != nullptr);
+    CHECK(savedChapter->description == "Amara joins the caravan.");
+    CHECK(savedChapter->plot == plot);
+}
+
 TEST_CASE("ProjectManager keeps how a material is linked, and a link follows its paragraph",
           "[project_manager][links]") {
     QTemporaryDir dir;

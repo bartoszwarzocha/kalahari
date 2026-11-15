@@ -724,6 +724,13 @@ public:
     ///         element keeps its description then
     bool setDescription(const QString& elementId, const QString& description);
 
+    /// @brief Give text element @p elementId of a book its short description on the plot board
+    /// and its plot (point of view, place and time of the action, color of its card), and save
+    /// the .klh file once
+    /// @return false when the project has no such element, it is no text of a book, or the
+    ///         file cannot be written; the element keeps its description and plot then
+    bool setPlot(const QString& elementId, const QString& description, const ElementPlot& plot);
+
     /// @brief Give element @p elementId the writer's own fields @p fields, in this order, and
     /// save the .klh file
     /// @return false when the project has no such element or the file cannot be written; the
@@ -1036,6 +1043,10 @@ signals:
     /// @brief Emitted when dirty state changes
     /// @param dirty true if project has unsaved changes
     void dirtyStateChanged(bool dirty);
+
+    /// @brief The .klh file was saved after a change of the project: its elements, their
+    /// order, titles, states or details may be other than before (saveManifest())
+    void projectChanged();
 
     /// @brief Emitted when the links of elements change (ProjectElement::links): set, added
     /// with a material, taken out with an element, or following the paragraphs of a text that

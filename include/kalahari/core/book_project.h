@@ -91,6 +91,10 @@
 ///   project folder (if it has one), a status ("draft", "revision" or "final"; groups have
 ///   none) and the elements inside it (groups). The order and nesting of elements are saved
 ///   only here, not in folders.
+/// - A text element of a book can have a short description for the plot board ("description")
+///   and what the board says of its plot ("plot", ElementPlot): its point of view, place and
+///   time of the action, and the color of its card:
+///   { "pov": "Amara", "place": "Oaza Al-Ma", "time": "Dzień 3", "color": "teal" }.
 /// - An element of the Workshop can have a description ("description"), the writer's own fields
 ///   ("fields": a name and a value each, in the writer's order) and what it is about ("links":
 ///   the ids of elements, and of sections as "<book id>/front", "/main" or "/back"). A link is
@@ -156,6 +160,27 @@ struct ElementLink {
     bool operator==(const ElementLink&) const = default;
 };
 
+/// @brief What the plot board says of a text element of a book: whose eyes the reader sees it
+/// with, where and when it happens, and the color of its card
+///
+/// The texts are the writer's own words: a name of a character or a place of the Workshop, or
+/// anything else ("Dzień 3", "Marzec 1931").
+struct ElementPlot {
+    QString pov;        ///< Point of view; empty: not said
+    QString place;      ///< Place of the action; empty: not said
+    QString time;       ///< Time of the action; empty: not said
+    QString color;      ///< Own color of its card, a name of PlotColors ("blue"); empty: none
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    /// @brief Whether it says nothing: the file has no "plot"
+    bool isEmpty() const {
+        return pov.isEmpty() && place.isEmpty() && time.isEmpty() && color.isEmpty() &&
+               extra.isEmpty();
+    }
+
+    bool operator==(const ElementPlot&) const = default;
+};
+
 /// @brief Element of a book or of the Workshop: a chapter, a part, a character card...
 struct ProjectElement {
     QString id;                      ///< Unique in the project
@@ -170,7 +195,9 @@ struct ProjectElement {
                                      ///< the file "firstPage": "left", without it a right page
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a
-                                     ///< text of its own (a material); empty: none
+                                     ///< text of its own (a material), or the short
+                                     ///< description of a text of a book on the plot board;
+                                     ///< empty: none
     QList<ElementField> fields;      ///< The writer's own fields, in the writer's order
     QList<ElementLink> links;        ///< What it is about: elements and sections, each
                                      ///< once, in the order linked
@@ -178,6 +205,8 @@ struct ProjectElement {
                                      ///< 90, 180 or 270 degrees
     CoverData cover;                 ///< Of a material of the cover: what it is and where
                                      ///< it goes; empty: none
+    ElementPlot plot;                ///< Of a text of a book: its plot on the plot board;
+                                     ///< empty: none
     QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
     QJsonObject extra;               ///< Fields this version does not know, saved back
 

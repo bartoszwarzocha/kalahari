@@ -1094,6 +1094,7 @@ bool ProjectManager::saveManifest() {
 
     setDirty(false);
     Logger::getInstance().info("Manifest saved successfully");
+    emit projectChanged();
     return true;
 }
 
@@ -2412,6 +2413,23 @@ bool ProjectManager::changeDetails(const char* what, const QString& elementId,
 bool ProjectManager::setDescription(const QString& elementId, const QString& description) {
     return changeDetails("setDescription", elementId, [&description](ProjectElement& element) {
         element.description = description;
+    });
+}
+
+bool ProjectManager::setPlot(const QString& elementId, const QString& description,
+                             const ElementPlot& plot) {
+    // Only the texts of a book have a plot: chapters, a prologue, scenes...
+    const ProjectElement* element = findElement(elementId);
+    const std::optional<ElementPlace> place =
+        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
+    if (element != nullptr && (!place || place->place == BookPlace::Workshop ||
+                               formOf(*element) != ElementForm::Text)) {
+        Logger::getInstance().warn("setPlot: Not a text of a book: {}", elementId.toStdString());
+        return false;
+    }
+    return changeDetails("setPlot", elementId, [&description, &plot](ProjectElement& each) {
+        each.description = description;
+        each.plot = plot;
     });
 }
 

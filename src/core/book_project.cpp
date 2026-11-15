@@ -371,6 +371,26 @@ void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = coverFields.rest();
 }
 
+/// What the plot board says of a text of a book, with the fields of "plot" this version does
+/// not know
+void readPlot(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue plot = fields.take("plot");
+    if (plot.isUndefined()) {
+        return;
+    }
+    if (!plot.isObject()) {
+        fields.problem("plot", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields plotFields(plot.toObject(), fields.path("plot"), problems);
+    ElementPlot& data = element.plot;
+    data.pov = plotFields.string("pov");
+    data.place = plotFields.string("place");
+    data.time = plotFields.string("time");
+    data.color = plotFields.string("color");
+    data.extra = plotFields.rest();
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -406,6 +426,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.links = readLinks(fields, problems);
     readView(fields, element, problems);
     readCover(fields, element, problems);
+    readPlot(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -788,6 +809,17 @@ QJsonObject elementToJson(const ProjectElement& element) {
             }
         }
         json.insert(QLatin1String("cover"), data);
+    }
+    const ElementPlot& plot = element.plot;
+    if (plot.isEmpty()) {
+        json.remove(QLatin1String("plot"));
+    } else {
+        QJsonObject data = plot.extra;
+        setOrRemove(data, "pov", plot.pov);
+        setOrRemove(data, "place", plot.place);
+        setOrRemove(data, "time", plot.time);
+        setOrRemove(data, "color", plot.color);
+        json.insert(QLatin1String("plot"), data);
     }
     return json;
 }
@@ -1207,8 +1239,8 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            file == other.file && url == other.url && status == other.status &&
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
-           rotation == other.rotation && cover == other.cover && viewExtra == other.viewExtra &&
-           extra == other.extra;
+           rotation == other.rotation && cover == other.cover && plot == other.plot &&
+           viewExtra == other.viewExtra && extra == other.extra;
 }
 
 // =============================================================================

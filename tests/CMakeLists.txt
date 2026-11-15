@@ -165,6 +165,7 @@ set(TEST_SOURCES
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
+    gui/test_plot_board.cpp                      # The plot board and the outline of the book
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
     gui/test_versions.cpp                        # Versions of the texts: save, history, restore, insert
@@ -380,6 +381,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/writing_awards_tracker.cpp  # The badges and challenges won
     ${CMAKE_SOURCE_DIR}/src/gui/writing_stats_model.cpp  # The statistics of writing shown
     ${CMAKE_SOURCE_DIR}/src/gui/material_list_coordinator.cpp  # The lists of the materials on tabs
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board_coordinator.cpp  # The plot board on its tab
     ${CMAKE_SOURCE_DIR}/src/gui/edit_coordinator.cpp        # Edit commands on the focused element
     ${CMAKE_SOURCE_DIR}/src/gui/paragraph_style_menu.cpp    # Format > Text Style: the text's styles
     ${CMAKE_SOURCE_DIR}/src/gui/book_styles.cpp             # The paragraph styles of the open book
@@ -484,6 +486,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_list_panel.cpp       # The list of a kind of materials
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_board.cpp                       # What the plot board shows
+    ${CMAKE_SOURCE_DIR}/src/gui/plot_outline_model.cpp               # The outline of the book
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_board_panel.cpp          # The tab of the plot board
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view.cpp          # The cards of the texts
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_card_editor.cpp         # A card edited (F2)
     ${CMAKE_SOURCE_DIR}/src/gui/version_texts.cpp                    # What the program says of a version
     ${CMAKE_SOURCE_DIR}/src/gui/versions_coordinator.cpp             # Save Version and Version History
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/version_name_dialog.cpp      # The description of a version
@@ -571,6 +578,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_awards_tracker.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_board_coordinator.h  # PlotBoardCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_outline_model.h  # PlotOutlineModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
@@ -636,6 +645,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_board_panel.h  # PlotBoardPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_board_view.h  # PlotBoardView with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_card_editor.h  # PlotCardEditor with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT

@@ -15,6 +15,7 @@
 #include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/material_page.h"
+#include "kalahari/gui/panels/plot_board_panel.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/utils/tab_focus.h"
 #include "kalahari/gui/widgets/standalone_info_bar.h"
@@ -2175,14 +2176,14 @@ void DocumentCoordinator::onProjectClosed() {
 
     // The book's chapters close with it; their changes were saved or discarded before (also
     // those in windows of their own, which close with their last tab). So do the previews and
-    // the cards of its materials, and the lists of them.
+    // the cards of its materials, the lists of them, and its plot board.
     const QList<QWidget*> pages = DocumentWindows::of(*m_centralTabs).pages();
     for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
         QWidget* widget = *it;
         if (((qobject_cast<EditorPanel*>(widget) || qobject_cast<ImagePreviewPanel*>(widget) ||
               qobject_cast<MaterialCardPanel*>(widget)) &&
              !widget->property("elementId").toString().isEmpty()) ||
-            qobject_cast<MaterialListPanel*>(widget)) {
+            qobject_cast<MaterialListPanel*>(widget) || qobject_cast<PlotBoardPanel*>(widget)) {
             DocumentWindows::removePage(widget);
             widget->deleteLater();
         }

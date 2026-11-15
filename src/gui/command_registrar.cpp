@@ -438,6 +438,15 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_CB("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 0,
                callbacks.onInsertSceneBreak);
 
+    // The plot board of the book: its texts as cards, or in a table (the outline), on one tab;
+    // in the Book menu, since every letter of the names has a command of the View menu
+    REG_CMD_KEY_CB("view.plotBoard", QT_TRANSLATE_NOOP("CommandRegistrar", "Plot &Board"), "BOOK/Plot Board", 92, false, 0,
+                   KeyboardShortcut(Qt::Key_T, Qt::ControlModifier | Qt::ShiftModifier),
+                   callbacks.onPlotBoard);
+    REG_CMD_KEY_CB("view.outline", QT_TRANSLATE_NOOP("CommandRegistrar", "&Outline"), "BOOK/Outline", 94, true, 0,
+                   KeyboardShortcut(Qt::Key_L, Qt::ControlModifier | Qt::ShiftModifier),
+                   callbacks.onOutline);
+
     REG_CMD_TOOL_ICON("book.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Properties..."), "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
                       IconSet(),

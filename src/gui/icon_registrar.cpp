@@ -267,6 +267,12 @@ void registerAllIcons() {
     // VIEW MENU ICONS
     // -------------------------------------------------------------------------
     iconRegistry.registerIcon("view.dashboard", "resources/icons/twotone/home.svg", "Dashboard");
+    iconRegistry.registerIcon("view.plotBoard", "resources/icons/twotone/view_module.svg", "Plot Board");
+    iconRegistry.registerIcon("view.outline", "resources/icons/twotone/table_chart.svg", "Outline");
+    // The point of view, the place and the time of the action on the cards of the plot board
+    iconRegistry.registerIcon("plotBoard.pov", "resources/icons/twotone/visibility.svg", "Point of View");
+    iconRegistry.registerIcon("plotBoard.place", "resources/icons/twotone/place.svg", "Place");
+    iconRegistry.registerIcon("plotBoard.time", "resources/icons/twotone/schedule.svg", "Time of the Action");
     iconRegistry.registerIcon("view.navigator", "resources/icons/twotone/import_contacts.svg", "Navigator");
     iconRegistry.registerIcon("view.search", "resources/icons/twotone/search.svg", "Search Panel");
     iconRegistry.registerIcon("view.properties", "resources/icons/twotone/tune.svg", "Properties");

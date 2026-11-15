@@ -233,6 +233,9 @@ set(KALAHARI_SOURCES
     gui/writing_awards_tracker.cpp  # WritingAwardsTracker - the badges and challenges won
     gui/writing_stats_model.cpp  # WritingStatsModel - the statistics of writing shown
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
+    gui/plot_board.cpp  # PlotBoard - what the plot board shows of the book, where its cards move
+    gui/plot_board_coordinator.cpp  # PlotBoardCoordinator - the plot board on its tab, its changes
+    gui/plot_outline_model.cpp  # PlotOutlineModel - the outline: the texts of the book in a table
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
     gui/paragraph_style_menu.cpp  # ParagraphStyleMenu - Format > Text Style shows the text's styles
     gui/book_styles.cpp  # The paragraph styles of the open book: its type's and its own
@@ -293,6 +296,8 @@ set(KALAHARI_SOURCES
     gui/widgets/length_spin_box.cpp
     gui/widgets/color_menu.cpp             # The submenus Font Color and Highlight Color
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
+    gui/widgets/plot_board_view.cpp  # PlotBoardView - the cards of the texts of the book
+    gui/widgets/plot_card_editor.cpp  # PlotCardEditor - a card of the plot board edited (F2)
     gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit
     gui/widgets/wrapping_button.cpp  # A button that wraps its text only where it does not fit
@@ -333,6 +338,7 @@ set(KALAHARI_SOURCES
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
+    gui/panels/plot_board_panel.cpp  # PlotBoardPanel - the tab of the plot board and the outline
     gui/panels/paragraph_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
@@ -477,6 +483,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_awards_tracker.h  # WritingAwardsTracker with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/writing_stats_model.h  # WritingStatsModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_list_coordinator.h  # MaterialListCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_board_coordinator.h  # PlotBoardCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plot_outline_model.h  # PlotOutlineModel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/edit_coordinator.h  # EditCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/auto_correct_coordinator.h  # AutoCorrectCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/special_character_coordinator.h  # SpecialCharacterCoordinator with Q_OBJECT
@@ -497,6 +505,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/length_spin_box.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/color_menu.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/info_bar.h  # InfoBar with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_board_view.h  # PlotBoardView with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/plot_card_editor.h  # PlotCardEditor with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/cover_plan.h  # CoverPlan with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/shortcut_recorder.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/tool_button_columns.h
@@ -528,6 +538,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_board_panel.h  # PlotBoardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Plot board and outline** - 2026-11-15. Book > Plot Board (Ctrl+Shift+T) shows the texts of
+  the main section of the book (chapters, prologue, epilogue) as cards on a tab of their own:
+  the title, a short description, the point of view, the place and the time of the action, the
+  words and the state. Columns (the parts side by side) or Grid (rows under the titles of the
+  parts), three sizes of the cards, colored by state, by point of view, by the writer's own
+  color or not at all. A card moves with Ctrl and the arrows, Ctrl+X and Ctrl+V or the mouse,
+  to the same places as in the Navigator; F2 edits it over the card (the characters and the
+  places of the Workshop as suggestions), Enter opens its text, Insert adds a text after it,
+  Delete deletes it, Alt+Enter shows its properties, Ctrl+Z and Ctrl+Y undo and redo what was
+  done on the board. Book > Outline (Ctrl+Shift+L) shows the same texts in a table under their
+  parts, edited in the cells. The description and the plot of a text are kept in the `.klh`
+  file (`"description"`, `"plot"`); the colors are in the themes (`editor.plot*`).
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

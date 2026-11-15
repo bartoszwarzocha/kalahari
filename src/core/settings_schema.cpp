@@ -224,6 +224,16 @@ std::map<std::string, json> buildDefaults() {
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
         {"navigator.addCommands", "named"},
 
+        // The plot board (gui::PlotBoard): the board of the cards ("board") or the outline
+        // ("outline"), the one shown last; the parts side by side ("columns") or the cards in
+        // rows under the titles of the parts ("grid"); the size of the cards ("small",
+        // "medium", "large"); what colors them: the state ("status"), the point of view
+        // ("pov"), the writer's own colors ("own") or nothing ("none")
+        {"plotBoard.view", "board"},
+        {"plotBoard.layout", "columns"},
+        {"plotBoard.cardSize", "medium"},
+        {"plotBoard.colorBy", "status"},
+
         // New projects
         {"project.defaultAuthor", ""},
         // Language of new books ("pl"); empty: the language of the program

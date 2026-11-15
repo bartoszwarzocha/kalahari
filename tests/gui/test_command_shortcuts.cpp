@@ -111,6 +111,8 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.previousTodo", QStringLiteral("Alt+Up")},
 #endif
         {"book.addElement", QStringLiteral("Ctrl+Shift+Return")},
+        {"view.plotBoard", QStringLiteral("Ctrl+Shift+T")},
+        {"view.outline", QStringLiteral("Ctrl+Shift+L")},
         {"insert.annotation", QStringLiteral("Ctrl+Shift+M")},
         {"insert.pageBreak", QStringLiteral("Ctrl+Return")},  // and Ctrl with the keypad's Enter
         {"insert.quickCharacter", QStringLiteral("Ctrl+Shift+I")},

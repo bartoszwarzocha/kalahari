@@ -1,0 +1,185 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
+/// @file plot_board.h
+/// @brief What the plot board and the outline show of the book, the places a card moves to,
+/// and the colors of the cards
+
+#ifndef KALAHARI_GUI_PLOT_BOARD_H
+#define KALAHARI_GUI_PLOT_BOARD_H
+
+#include "kalahari/core/book_project.h"
+
+#include <QColor>
+#include <QCoreApplication>
+#include <QList>
+#include <QString>
+#include <QStringList>
+
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
+namespace kalahari::gui {
+
+/// @brief A text of the main section of the book as a card of the plot board and a row of the
+/// outline
+struct PlotCard {
+    QString id;               ///< Id of the element
+    QString kindName;         ///< Name of its kind: "Chapter", "Prologue"
+    QString iconId;           ///< ArtProvider id of its icon
+    QString title;            ///< Its title
+    QString description;      ///< Its short description (core::ProjectElement::description)
+    core::ElementPlot plot;   ///< Point of view, place and time of the action, color of the card
+    QString status;           ///< "draft", "revision" or "final"
+    int words = 0;            ///< Words of its text (core::ProjectManager::wordCount())
+    QString partId;           ///< The part it is in; empty: outside the parts
+    int number = 0;           ///< Its place among the cards of the board, from 1
+
+    bool operator==(const PlotCard&) const = default;
+};
+
+/// @brief A part of the main section with its texts, or texts outside the parts one after
+/// another
+struct PlotBand {
+    QString partId;         ///< Id of the part; empty: texts outside the parts
+    QString title;          ///< Title of the part; empty outside the parts
+    QList<PlotCard> cards;  ///< Its texts in the order of the book
+
+    /// @brief Words of its texts
+    [[nodiscard]] int words() const;
+
+    bool operator==(const PlotBand&) const = default;
+};
+
+/// @brief What the plot board shows of the open book, and where its cards move
+///
+/// The board shows the texts of the main section of the book (chapters, a prologue, an
+/// epilogue...) in the order of the book, the texts of a part together under its title. A card
+/// moves as the element moves in the Navigator (core::ProjectManager::moveElementTo()): one step
+/// back or forward goes past one place of the main section, so a text at the start of a part
+/// first leaves the part, and the next step takes it to the end of the part before.
+class PlotBoard {
+    Q_DECLARE_TR_FUNCTIONS(PlotBoard)
+
+public:
+    /// @name Settings of the board
+    /// @{
+    /// The board or the outline, the one shown last: VIEW_BOARD or VIEW_OUTLINE
+    static constexpr const char* VIEW_SETTING = "plotBoard.view";
+    static constexpr const char* VIEW_BOARD = "board";
+    static constexpr const char* VIEW_OUTLINE = "outline";
+    /// The layout of the cards: LAYOUT_COLUMNS (the parts side by side) or LAYOUT_GRID (the
+    /// cards in rows under the titles of the parts)
+    static constexpr const char* LAYOUT_SETTING = "plotBoard.layout";
+    static constexpr const char* LAYOUT_COLUMNS = "columns";
+    static constexpr const char* LAYOUT_GRID = "grid";
+    /// The size of the cards: SIZE_SMALL, SIZE_MEDIUM or SIZE_LARGE
+    static constexpr const char* SIZE_SETTING = "plotBoard.cardSize";
+    static constexpr const char* SIZE_SMALL = "small";
+    static constexpr const char* SIZE_MEDIUM = "medium";
+    static constexpr const char* SIZE_LARGE = "large";
+    /// What colors the cards: COLOR_STATUS, COLOR_POV (a color for each point of view),
+    /// COLOR_OWN (the writer's own color of each card) or COLOR_NONE
+    static constexpr const char* COLOR_SETTING = "plotBoard.colorBy";
+    static constexpr const char* COLOR_STATUS = "status";
+    static constexpr const char* COLOR_POV = "pov";
+    static constexpr const char* COLOR_OWN = "own";
+    static constexpr const char* COLOR_NONE = "none";
+    /// @}
+
+    /// @brief The texts of the main section of the open book in bands: each part with its
+    /// texts, and the texts outside the parts between them; none without a book
+    [[nodiscard]] static QList<PlotBand> bandsOf(const core::ProjectManager& book);
+
+    /// @brief The cards of @p bands one after another
+    [[nodiscard]] static QList<PlotCard> cardsOf(const QList<PlotBand>& bands);
+
+    /// @brief The place of the main section @p steps places before (less than 0) or after the
+    /// place of text @p elementId, among the places its kind can be; as far as it can go
+    /// @return nullopt at the start or the end of the main section, and for an element that is
+    ///         not a text of it
+    [[nodiscard]] static std::optional<core::ElementPlace> stepPlace(
+        const core::ProjectManager& book, const QString& elementId, int steps);
+
+    /// @brief The place right after text @p anchorId (or right before it, @p after false) in
+    /// its list, for text @p elementId
+    /// @return nullopt when the kind of @p elementId cannot be there, or one is not a text of
+    ///         the book
+    [[nodiscard]] static std::optional<core::ElementPlace> placeBeside(
+        const core::ProjectManager& book, const QString& elementId, const QString& anchorId,
+        bool after);
+
+    /// @brief The first place (or the last, @p atEnd) of part @p partId, for text @p elementId
+    /// @return nullopt when the kind of @p elementId cannot be there
+    [[nodiscard]] static std::optional<core::ElementPlace> placeInPart(
+        const core::ProjectManager& book, const QString& elementId, const QString& partId,
+        bool atEnd);
+
+    /// @brief The titles of the characters of the Workshop, sorted: points of view to choose
+    [[nodiscard]] static QStringList povSuggestions(const core::ProjectManager& book);
+
+    /// @brief The titles of the places of the Workshop, sorted: places of the action to choose
+    [[nodiscard]] static QStringList placeSuggestions(const core::ProjectManager& book);
+
+    /// @brief The name of status @p status ("draft"...) in the program's language
+    [[nodiscard]] static QString statusName(const QString& status);
+
+    /// @brief "4,210 words" in the program's language
+    [[nodiscard]] static QString wordsText(int words);
+
+    /// @brief "7 texts" in the program's language
+    [[nodiscard]] static QString textsText(int texts);
+};
+
+/// @brief The colors of the cards of the plot board in the theme of the program
+///
+/// The theme files have them with the other colors of the editor (core::ThemeManager::
+/// editorColor()): the colors of the three states, and the six colors the writer gives a card
+/// or that the points of view take in turn.
+struct PlotColors {
+    QColor draft;     ///< A text in the draft state
+    QColor revision;  ///< A text in revision
+    QColor finished;  ///< A finished text
+    QList<QColor> own;  ///< The writer's colors, in the order of ownNames()
+
+    /// @brief The keys of the colors in the theme files: "plotDraft"...
+    [[nodiscard]] static const std::vector<std::string>& keys();
+
+    /// @brief The names of the writer's colors in the .klh file (core::ElementPlot::color):
+    /// "blue", "teal", "green", "amber", "rose", "violet"
+    [[nodiscard]] static const QStringList& ownNames();
+
+    /// @brief The name of own color @p name in the program's language; empty for no name
+    [[nodiscard]] static QString ownTitle(const QString& name);
+
+    /// @brief The colors of the theme of the program
+    [[nodiscard]] static PlotColors current();
+
+    /// @brief The color of status @p status; invalid for no status
+    [[nodiscard]] QColor ofStatus(const QString& status) const;
+
+    /// @brief The writer's color named @p name; invalid for no color
+    [[nodiscard]] QColor ofOwn(const QString& name) const;
+
+    /// @brief The color of point of view @p pov among the points of view @p povs of the book
+    /// (povsOf()): the writer's colors in turn; invalid for no point of view
+    [[nodiscard]] QColor ofPov(const QString& pov, const QStringList& povs) const;
+
+    /// @brief The color of card @p card as @p colorBy (PlotBoard::COLOR_STATUS...) says;
+    /// invalid: the card has none
+    [[nodiscard]] QColor ofCard(const PlotCard& card, const QString& colorBy,
+                                const QStringList& povs) const;
+};
+
+/// @brief The points of view of @p cards, each once, sorted: each keeps its color when the
+/// cards move
+[[nodiscard]] QStringList povsOf(const QList<PlotCard>& cards);
+
+}  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_PLOT_BOARD_H

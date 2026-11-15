@@ -15,6 +15,8 @@
 #include "kalahari/gui/annotations_coordinator.h"
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/material_list_coordinator.h"
+#include "kalahari/gui/plot_board.h"
+#include "kalahari/gui/plot_board_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/special_character_coordinator.h"
@@ -510,6 +512,22 @@ MainWindow::MainWindow(QWidget* parent)
         this);
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestOpenMaterialList,
             m_materialListCoordinator, &MaterialListCoordinator::openList);
+    // The plot board and the outline of the book on their tab (Book > Plot Board, Outline);
+    // Alt+Enter on a card shows it in the Properties panel with the keys
+    m_plotBoardCoordinator = new PlotBoardCoordinator(
+        *m_book, m_dockCoordinator->centralTabs(), m_navigatorCoordinator, statusBar(),
+        [this](bool keys) {
+            QDockWidget* dock = m_dockCoordinator->propertiesDock();
+            dock->show();
+            dock->raise();
+            if (keys) {
+                if (dock->isFloating()) {
+                    dock->activateWindow();
+                }
+                m_dockCoordinator->propertiesPanel()->focusFirstField();
+            }
+        },
+        this);
     // Hide Kind in the menu of a kind of the Navigator; Kind Settings... there and the gear of
     // a list: the materials in Settings > Navigator
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestHideKind,
@@ -1368,6 +1386,17 @@ void MainWindow::registerCommands() {
         onEditor(&editor::BookEditor::zoomToWholePage, &ImagePreviewPanel::zoomToFit);
 
     // View commands
+    // The plot board of the book with its cards, or with the outline, the keys in it
+    callbacks.onPlotBoard = [this]() {
+        if (m_plotBoardCoordinator) {
+            m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
+        }
+    };
+    callbacks.onOutline = [this]() {
+        if (m_plotBoardCoordinator) {
+            m_plotBoardCoordinator->openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true);
+        }
+    };
     callbacks.onDashboard = [this]() {
         // Check if Dashboard tab already exists
         QTabWidget* centralTabs = m_dockCoordinator->centralTabs();
