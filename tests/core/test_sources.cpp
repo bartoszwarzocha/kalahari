@@ -6,6 +6,7 @@
 /// file, their entries in the styles of a bibliography, the references in the text and the
 /// descriptions pasted as BibTeX and RIS
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/bibliography.h>
 #include <kalahari/core/book_project.h>

@@ -151,11 +151,11 @@ void PdfPagesView::showPlace(int page, const QRectF& points) {
     // The place in the middle of the window, as far as the pages go
     m_scrolling = true;
     QScrollBar* vertical = verticalScrollBar();
-    vertical->setValue(vertical->value() + place.center().y() - viewport()->height() / 2);
+    vertical->setValue(vertical->value() + place.center().y() - (viewport()->height() / 2));
     if (!viewport()->rect().contains(place.left(), place.top()) ||
         !viewport()->rect().contains(place.right(), place.top())) {
         QScrollBar* horizontal = horizontalScrollBar();
-        horizontal->setValue(horizontal->value() + place.center().x() - viewport()->width() / 2);
+        horizontal->setValue(horizontal->value() + place.center().x() - (viewport()->width() / 2));
     }
     m_scrolling = false;
     viewport()->update();

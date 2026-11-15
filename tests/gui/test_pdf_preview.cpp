@@ -24,6 +24,7 @@
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/utils/file_location.h"
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <QAction>

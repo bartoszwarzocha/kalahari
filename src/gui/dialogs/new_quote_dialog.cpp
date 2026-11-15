@@ -49,8 +49,8 @@ NewQuoteDialog::NewQuoteDialog(const QString& text, const QString& page, const Q
     m_textEdit = new QPlainTextEdit(text, this);
     m_textEdit->setObjectName(QStringLiteral("newQuoteText"));
     m_textEdit->setTabChangesFocus(true);
-    m_textEdit->setFixedHeight(m_textEdit->fontMetrics().lineSpacing() * TEXT_LINES +
-                               2 * m_textEdit->frameWidth() +
+    m_textEdit->setFixedHeight((m_textEdit->fontMetrics().lineSpacing() * TEXT_LINES) +
+                               (2 * m_textEdit->frameWidth()) +
                                static_cast<int>(2 * m_textEdit->document()->documentMargin()));
     //: In Polish: &Cytat
     addField(tr("&Quote"), m_textEdit);

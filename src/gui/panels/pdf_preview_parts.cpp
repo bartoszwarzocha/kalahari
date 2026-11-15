@@ -204,7 +204,7 @@ void PdfPreviewPanel::buildToolBar() {
     m_pageEdit->setObjectName(QStringLiteral("pdfPreviewPage"));
     m_pageEdit->setAlignment(Qt::AlignCenter);
     m_pageEdit->setFixedWidth(m_pageEdit->fontMetrics().horizontalAdvance(QStringLiteral("00000")) +
-                              2 * BAR_GAP);
+                              (2 * BAR_GAP));
     //: In Polish: Numer strony (Ctrl+G)
     m_pageEdit->setAccessibleName(
         withKey(tr("Page number"), keyText(QKeySequence(Qt::CTRL | Qt::Key_G))));
@@ -264,7 +264,7 @@ void PdfPreviewPanel::buildToolBar() {
                             QLineEdit::LeadingPosition);
     m_searchEdit->setMinimumWidth(m_searchEdit->fontMetrics().horizontalAdvance(
                                       m_searchEdit->placeholderText()) +
-                                  4 * BAR_GAP);
+                                  (4 * BAR_GAP));
     m_toolBar->addWidget(m_searchEdit);
     m_hitsLabel = new QLabel(m_toolBar);
     m_hitsLabel->setObjectName(QStringLiteral("pdfPreviewHits"));
@@ -790,7 +790,7 @@ void PdfPreviewPanel::placeSelectionBar(bool show) {
     m_selectionBar->adjustSize();
     const QSize size = m_selectionBar->size();
     const QRect window = m_view->viewport()->rect();
-    const int x = std::clamp(selection.center().x() - size.width() / 2, BAR_GAP,
+    const int x = std::clamp(selection.center().x() - (size.width() / 2), BAR_GAP,
                              std::max(BAR_GAP, window.width() - size.width() - BAR_GAP));
     int y = selection.top() - size.height() - BAR_GAP;
     if (y < BAR_GAP) {

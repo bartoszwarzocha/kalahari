@@ -36,7 +36,7 @@
 #include <QSpacerItem>
 #include <QVBoxLayout>
 
-#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <string>
 #include <utility>
@@ -148,7 +148,8 @@ void MaterialsPage::addOpening() {
         tr("The Preview button in the Properties panel then opens the preview tab.");
     //: In Polish: Obrazy:
     addChoices(opening, tr("Pictures:"), NavigatorPanel::OPEN_MATERIALS_SETTING,
-               {{CARD, pictureCard, pictureCardNote}, {SYSTEM, pictureSystem, pictureSystemNote}});
+               {{.value = CARD, .button = pictureCard, .note = pictureCardNote},
+                {.value = SYSTEM, .button = pictureSystem, .note = pictureSystemNote}});
 
     //: In Polish: W przeglądarce
     auto* pagesBrowser = new QRadioButton(tr("In the browser"));
@@ -168,7 +169,8 @@ void MaterialsPage::addOpening() {
            "its Open in Browser button opens the address.");
     //: In Polish: Strony i obrazy z sieci:
     addChoices(opening, tr("Pages and pictures on the web:"), NavigatorPanel::OPEN_PAGES_SETTING,
-               {{BROWSER, pagesBrowser, pagesBrowserNote}, {CARD, pagesCard, pagesCardNote}});
+               {{.value = BROWSER, .button = pagesBrowser, .note = pagesBrowserNote},
+                {.value = CARD, .button = pagesCard, .note = pagesCardNote}});
 
     const bool preview = PdfFiles::previewAvailable();
     //: In Polish: Na karcie podglądu w programie
@@ -194,8 +196,8 @@ void MaterialsPage::addOpening() {
     }
     //: In Polish: Pliki PDF:
     addChoices(opening, tr("PDF files:"), PdfFiles::OPEN_SETTING,
-               {{PdfFiles::PREVIEW, m_openPdfPreview, previewNote},
-                {PdfFiles::SYSTEM, pdfSystem, systemNote}});
+               {{.value = PdfFiles::PREVIEW, .button = m_openPdfPreview, .note = previewNote},
+                {.value = PdfFiles::SYSTEM, .button = pdfSystem, .note = systemNote}});
 }
 
 void MaterialsPage::addPdfPreview() {
@@ -217,9 +219,9 @@ void MaterialsPage::addPdfPreview() {
     const QString layoutNote = tr("The buttons on the bar of the preview change the same setting.");
     //: In Polish: Układ stron:
     addChoices(pdf, tr("Page layout:"), PdfFiles::LAYOUT_SETTING,
-               {{PdfFiles::CONTINUOUS, continuous, QString()},
-                {PdfFiles::SINGLE, single, QString()},
-                {PdfFiles::TWO, two, layoutNote}});
+               {{.value = PdfFiles::CONTINUOUS, .button = continuous, .note = {}},
+                {.value = PdfFiles::SINGLE, .button = single, .note = {}},
+                {.value = PdfFiles::TWO, .button = two, .note = layoutNote}});
 
     //: In Polish: Strony jak w pliku
     auto* asFile = new QRadioButton(tr("Pages as in the file"));
@@ -236,9 +238,9 @@ void MaterialsPage::addPdfPreview() {
                                 "the file stays as it is.");
     //: In Polish: W ciemnym motywie:
     addChoices(pdf, tr("In a dark theme:"), PdfFiles::DARK_SETTING,
-               {{PdfFiles::AS_FILE, asFile, QString()},
-                {PdfFiles::DIMMED, dimmed, QString()},
-                {PdfFiles::INVERTED, inverted, darkNote}});
+               {{.value = PdfFiles::AS_FILE, .button = asFile, .note = {}},
+                {.value = PdfFiles::DIMMED, .button = dimmed, .note = {}},
+                {.value = PdfFiles::INVERTED, .button = inverted, .note = darkNote}});
 
     m_pdfZoom = narrowComboBox();
     m_pdfZoom->setObjectName(QStringLiteral("materialsPdfZoom"));

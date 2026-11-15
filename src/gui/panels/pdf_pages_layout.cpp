@@ -195,15 +195,15 @@ void PdfPagesView::placePages(const QList<QList<int>>& shownRows) {
         for (const int page : row) {
             height = std::max(height, pixels(page).height());
         }
-        int left = MARGIN + (widest - widths.at(index)) / 2;
+        int left = MARGIN + ((widest - widths.at(index)) / 2);
         for (const int page : row) {
             const QSize size = pixels(page);
-            m_rects[page] = QRect(QPoint(left, top + (height - size.height()) / 2), size);
+            m_rects[page] = QRect(QPoint(left, top + ((height - size.height()) / 2)), size);
             left += size.width() + GAP;
         }
         top += height + GAP;
     }
-    m_size = shownRows.isEmpty() ? QSize() : QSize(widest + 2 * MARGIN, top - GAP + MARGIN);
+    m_size = shownRows.isEmpty() ? QSize() : QSize(widest + (2 * MARGIN), top - GAP + MARGIN);
 }
 
 QList<QList<int>> PdfPagesView::rows() const {
@@ -296,7 +296,7 @@ QRectF PdfPagesView::toViewport(int page, const QRectF& points) const {
     const QSizeF size = m_pointSizes.at(page);
     const double x = rect.width() / size.width();
     const double y = rect.height() / size.height();
-    return {rect.x() + points.x() * x, rect.y() + points.y() * y, points.width() * x,
+    return {rect.x() + (points.x() * x), rect.y() + (points.y() * y), points.width() * x,
             points.height() * y};
 }
 
@@ -316,7 +316,7 @@ void PdfPagesView::followScroll() {
         return;
     }
     // The last page that begins above the middle of the window
-    const int middle = verticalScrollBar()->value() + viewport()->height() / 2;
+    const int middle = verticalScrollBar()->value() + (viewport()->height() / 2);
     const auto after =
         std::ranges::upper_bound(std::as_const(m_rects), middle, std::less<>(), &QRect::top);
     const int page = std::max(0, static_cast<int>(after - m_rects.cbegin()) - 1);
