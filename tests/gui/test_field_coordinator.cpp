@@ -326,7 +326,8 @@ TEST_CASE("Fields: the open texts show the book's title, author, language and th
     Window window;
     Fields fields(window);
     window.navigator.onElementSelected(book.chapterId, QStringLiteral("The Storm"));
-    editor::BookEditor* text = window.editor(window.tabs->currentIndex())->getBookEditor();
+    const editor::BookEditor* const text =
+        window.editor(window.tabs->currentIndex())->getBookEditor();
     fields.coordinator.refresh();  // as the window does when the text comes to the front
 
     editor::FieldContext context = text->fieldContext();
@@ -615,7 +616,7 @@ TEST_CASE("Fields: the formats of the windows", "[gui][fields]") {
     };
     data.background = QColor(QStringLiteral("#dddddd"));
     const FieldDialog dialog(data);
-    QLabel* preview = nullptr;
+    const QLabel* preview = nullptr;
     for (QLabel* label : dialog.findChildren<QLabel*>()) {
         if (label->text() == QStringLiteral("4321")) {
             preview = label;

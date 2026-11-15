@@ -406,8 +406,8 @@ void FieldDialog::showTab(int tab)
     if (tab < 0 || static_cast<size_t>(tab) >= m_lists.size()) {
         return;
     }
-    QWidget* const page = m_tabs->widget(tab);
-    if (QWidget* const was = m_details->parentWidget(); was != page && was != nullptr) {
+    const QWidget* const page = m_tabs->widget(tab);
+    if (const QWidget* const was = m_details->parentWidget(); was != page && was != nullptr) {
         if (QLayout* const layout = was->layout()) {
             layout->removeWidget(m_details);
         }
