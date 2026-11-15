@@ -6,6 +6,7 @@
 ///        pages, the text's words and the date
 
 #include "kalahari/editor/text_fields.h"
+
 #include "kalahari/editor/kml_format_registry.h"
 #include "kalahari/editor/text_lists.h"
 
@@ -18,6 +19,10 @@
 #include <QXmlStreamAttributes>
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
+#include <optional>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -28,13 +33,13 @@ constexpr std::array<const char*, 7> TYPE_NAMES = {"book-title", "author", "titl
                                                    "pages",      "words",  "date"};
 
 /// What a page field shows in a view without pages
-constexpr char NO_PAGE_TEXT[] = "#";
+constexpr const char* NO_PAGE_TEXT = "#";
 
 /// The locale of a language ("pl", "en-US"); the program's without one
 QLocale localeOf(const QString& language)
 {
     if (language.trimmed().isEmpty()) {
-        return QLocale();
+        return {};
     }
     return QLocale(QString(language.trimmed()).replace(QLatin1Char('-'), QLatin1Char('_')));
 }
@@ -65,6 +70,44 @@ QString pageNumberText(int number, const QString& format)
     return QString::number(number);
 }
 
+/// The value a field of the book or the text shows: its title or its author
+const QString& titleOf(FieldType type, const FieldContext& context)
+{
+    if (type == FieldType::BookTitle) {
+        return context.bookTitle;
+    }
+    if (type == FieldType::Author) {
+        return context.author;
+    }
+    return context.textTitle;
+}
+
+/// The text of a field of the book's title, its author or the text's title, on one line
+QString titleFieldText(const TextField& field, const QString& format, const FieldContext& context)
+{
+    if (isTextFieldEmpty(field, context)) {
+        return QStringLiteral("[%1]").arg(fieldTypeTitle(field.type));
+    }
+    // One line: the line breaks of a title are spaces
+    const QString text = titleOf(field.type, context).simplified();
+    return format == QLatin1String("upper") ? localeOf(context.language).toUpper(text) : text;
+}
+
+/// The text of a field of the page or the pages: "#" without pages
+QString pageFieldText(FieldType type, const QString& format, const FieldCounts& counts)
+{
+    const int number = type == FieldType::Page ? counts.page : counts.pages;
+    return number > 0 ? pageNumberText(number, format) : QString::fromLatin1(NO_PAGE_TEXT);
+}
+
+/// The text of a field of the words: "12 345" in the book's language, or "12345"
+QString wordsFieldText(const QString& format, int words, const QString& language)
+{
+    const int shown = std::max(0, words);
+    return format == QLatin1String("plain") ? QString::number(shown)
+                                            : localeOf(language).toString(shown);
+}
+
 }  // namespace
 
 // =============================================================================
@@ -78,7 +121,7 @@ std::optional<TextField> textFieldOf(const QTextFormat& format)
     }
     TextField field;
     const int type = format.intProperty(FIELD_TYPE_PROPERTY);
-    if (type >= 0 && type < static_cast<int>(FIELD_TYPES.size())) {
+    if (type >= 0 && std::cmp_less(type, FIELD_TYPES.size())) {
         field.type = static_cast<FieldType>(type);
     }
     field.format = normalizedFieldFormat(field.type, format.stringProperty(FIELD_FORMAT_PROPERTY));
@@ -163,7 +206,7 @@ QString fieldTypeTitle(FieldType type)
             //: A field: today's date or time. In Polish: Data
             return QCoreApplication::translate("TextFields", "Date");
     }
-    return QString();
+    return {};
 }
 
 QStringList fieldFormats(FieldType type)
@@ -263,39 +306,21 @@ QString textFieldText(const TextField& field, const FieldContext& context,
                       const FieldCounts& counts)
 {
     const QString format = normalizedFieldFormat(field.type, field.format);
-    const QLocale locale = localeOf(context.language);
     switch (field.type) {
         case FieldType::BookTitle:
         case FieldType::Author:
-        case FieldType::TextTitle: {
-            if (isTextFieldEmpty(field, context)) {
-                return QStringLiteral("[%1]").arg(fieldTypeTitle(field.type));
-            }
-            const QString& value = field.type == FieldType::BookTitle ? context.bookTitle
-                                   : field.type == FieldType::Author  ? context.author
-                                                                      : context.textTitle;
-            // One line: the line breaks of a title are spaces
-            QString text = value.simplified();
-            return format == QLatin1String("upper") ? locale.toUpper(text) : text;
-        }
+        case FieldType::TextTitle:
+            return titleFieldText(field, format, context);
         case FieldType::Page:
-        case FieldType::Pages: {
-            const int number = field.type == FieldType::Page ? counts.page : counts.pages;
-            if (number <= 0) {
-                return QString::fromLatin1(NO_PAGE_TEXT);
-            }
-            return pageNumberText(number, format);
-        }
-        case FieldType::Words: {
-            const int words = std::max(0, counts.words);
-            return format == QLatin1String("plain") ? QString::number(words)
-                                                    : locale.toString(words);
-        }
+        case FieldType::Pages:
+            return pageFieldText(field.type, format, counts);
+        case FieldType::Words:
+            return wordsFieldText(format, counts.words, context.language);
         case FieldType::Date:
             return dateText(context.now.isValid() ? context.now : QDateTime::currentDateTime(),
                             format, context.language);
     }
-    return QString();
+    return {};
 }
 
 // =============================================================================

@@ -252,11 +252,13 @@ public:
     /// @brief Set what the fields show of the book and the text; the laid out fields that show
     ///        something else then are laid out again
     void setFieldContext(const FieldContext& context);
+    /// @brief What the fields show of the book and the text
     const FieldContext& fieldContext() const { return m_fieldContext; }
 
     /// @brief Set the words of the text the word count fields show (the editor counts them);
     ///        the laid out ones are laid out again when the number changed
     void setFieldWords(int words);
+    /// @brief The words of the text the word count fields show
     int fieldWords() const { return m_fieldWords; }
 
     /// @brief Whether the document has a field of the type

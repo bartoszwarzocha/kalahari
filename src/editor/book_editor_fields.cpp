@@ -6,15 +6,25 @@
 ///        the words and the date
 
 #include <kalahari/editor/book_editor.h>
+
 #include "book_editor_internal.h"
+
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/editor_render_pipeline.h>
+#include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
+#include <kalahari/editor/view_modes.h>
+
 #include <QMenu>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTimer>
+
+#include <optional>
 
 namespace kalahari::editor {
 
@@ -45,6 +55,66 @@ bool isFieldAt(QTextDocument* document, int position)
         return false;
     }
     return isFieldFormat(characterFormat(document, position));
+}
+
+/// What the tooltip of a field of the book's title or its author says it changes with
+QString bookFieldNote(const TextField& field, const FieldContext& context)
+{
+    const bool empty = isTextFieldEmpty(field, context);
+    if (field.type == FieldType::BookTitle) {
+        return empty
+                   //: The tooltip of a field of a book without a title
+                   ? BookEditor::tr("The book has no title yet: write it in the Properties panel.")
+                   : BookEditor::tr("It changes with the book's title in the Properties panel.");
+    }
+    return empty ? BookEditor::tr("The book has no author yet: write it in the Properties panel.")
+                 : BookEditor::tr("It changes with the book's author in the Properties panel.");
+}
+
+/// What the tooltip of a field of the page or the pages says it shows, in the page view
+/// (@p pages) or in the others
+QString pageFieldNote(FieldType type, bool pages)
+{
+    if (type == FieldType::Page) {
+        return pages ? BookEditor::tr("The page the field is on in the Page Layout view.")
+                     //: The tooltip of a page number field in the continuous views, where
+                     //: it shows "#"
+                     : BookEditor::tr("The page number shows in the Page Layout view (View > "
+                                      "View Mode).");
+    }
+    return pages ? BookEditor::tr("The pages of the text in the Page Layout view.")
+                 : BookEditor::tr("The page count shows in the Page Layout view (View > View "
+                                  "Mode).");
+}
+
+/// What the tooltip of a field of the date says it shows: the date or the time
+QString dateFieldNote(const QString& format)
+{
+    return format == QLatin1String("time") || format == QLatin1String("date-time")
+               ? BookEditor::tr("The time the text was opened or brought to the front.")
+               : BookEditor::tr(
+                     "Today's date: it changes when the text is opened on another day.");
+}
+
+/// What the tooltip of a field says it shows and how it changes, in the page view (@p pages) or
+/// in the others
+QString fieldNote(const TextField& field, const FieldContext& context, bool pages)
+{
+    switch (field.type) {
+        case FieldType::BookTitle:
+        case FieldType::Author:
+            return bookFieldNote(field, context);
+        case FieldType::TextTitle:
+            return BookEditor::tr("It changes with the title of the text.");
+        case FieldType::Page:
+        case FieldType::Pages:
+            return pageFieldNote(field.type, pages);
+        case FieldType::Words:
+            return BookEditor::tr("The words of the text, as the status bar counts them.");
+        case FieldType::Date:
+            return dateFieldNote(field.format);
+    }
+    return {};
 }
 
 }  // namespace
@@ -86,7 +156,7 @@ bool BookEditor::insertField(const TextField& field)
     QTextDocument* document = m_textBuffer.get();
 
     // One undo step with the selection it replaces
-    const StepCursor before{m_cursorPosition, m_selection};
+    const StepCursor before{.cursor = m_cursorPosition, .selection = m_selection};
     QTextCursor step(document);
     step.beginEditBlock();
     document->appendUndoItem(new CallbackUndoItem([this, before] { m_stepCursor = before; }));
@@ -110,8 +180,8 @@ bool BookEditor::insertField(const TextField& field)
     setTextField(format, field);
     cursor.insertText(QString(QChar::ObjectReplacementCharacter), format);
     const CursorPosition after = absoluteToCursorPosition(document, cursor.position());
-    document->appendUndoItem(
-        new CallbackUndoItem([this, state = StepCursor{after, {}}] { m_stepCursor = state; }));
+    document->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{.cursor = after, .selection = {}}] { m_stepCursor = state; }));
     step.endEditBlock();
     m_learnableChange.reset();
 
@@ -165,7 +235,7 @@ QString BookEditor::fieldTextAt(int position) const
 {
     QTextDocument* document = m_textBuffer.get();
     if (!isFieldAt(document, position)) {
-        return QString();
+        return {};
     }
     const QTextCharFormat format = characterFormat(document, position);
     if (const KalahariTextDocumentLayout* layout = layoutOf(document)) {
@@ -189,7 +259,9 @@ bool BookEditor::setTextFieldAt(int position, const TextField& field)
     QTextCursor step(document);
     step.beginEditBlock();
     document->appendUndoItem(new CallbackUndoItem(
-        [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
+        [this, state = StepCursor{.cursor = m_cursorPosition, .selection = m_selection}] {
+            m_stepCursor = state;
+        }));
     QTextCursor cursor(document);
     cursor.setPosition(position);
     cursor.setPosition(position + 1, QTextCursor::KeepAnchor);
@@ -217,7 +289,7 @@ bool BookEditor::convertFieldToText(int position)
 
     // The text in the formatting of the field (its font, its annotations), as one undo step;
     // the cursor after it
-    const StepCursor before{m_cursorPosition, m_selection};
+    const StepCursor before{.cursor = m_cursorPosition, .selection = m_selection};
     QTextCursor step(document);
     step.beginEditBlock();
     document->appendUndoItem(new CallbackUndoItem([this, before] { m_stepCursor = before; }));
@@ -230,8 +302,8 @@ bool BookEditor::convertFieldToText(int position)
     clearSelection();
     cursor.insertText(text, format);
     const CursorPosition after = absoluteToCursorPosition(document, cursor.position());
-    document->appendUndoItem(
-        new CallbackUndoItem([this, state = StepCursor{after, {}}] { m_stepCursor = state; }));
+    document->appendUndoItem(new CallbackUndoItem(
+        [this, state = StepCursor{.cursor = after, .selection = {}}] { m_stepCursor = state; }));
     step.endEditBlock();
     m_learnableChange.reset();
 
@@ -273,47 +345,9 @@ QString BookEditor::fieldToolTip(int position) const
 {
     const std::optional<TextField> field = textFieldAt(position);
     if (!field) {
-        return QString();
+        return {};
     }
-    const bool pages = m_viewMode == ViewMode::Page;
-    QString note;
-    switch (field->type) {
-        case FieldType::BookTitle:
-            note = isTextFieldEmpty(*field, m_fieldContext)
-                       //: The tooltip of a field of a book without a title
-                       ? tr("The book has no title yet: write it in the Properties panel.")
-                       : tr("It changes with the book's title in the Properties panel.");
-            break;
-        case FieldType::Author:
-            note = isTextFieldEmpty(*field, m_fieldContext)
-                       ? tr("The book has no author yet: write it in the Properties panel.")
-                       : tr("It changes with the book's author in the Properties panel.");
-            break;
-        case FieldType::TextTitle:
-            note = tr("It changes with the title of the text.");
-            break;
-        case FieldType::Page:
-            note = pages ? tr("The page the field is on in the Page Layout view.")
-                         //: The tooltip of a page number field in the continuous views, where
-                         //: it shows "#"
-                         : tr("The page number shows in the Page Layout view (View > View "
-                              "Mode).");
-            break;
-        case FieldType::Pages:
-            note = pages ? tr("The pages of the text in the Page Layout view.")
-                         : tr("The page count shows in the Page Layout view (View > View "
-                              "Mode).");
-            break;
-        case FieldType::Words:
-            note = tr("The words of the text, as the status bar counts them.");
-            break;
-        case FieldType::Date:
-            note = field->format == QLatin1String("time") ||
-                           field->format == QLatin1String("date-time")
-                       ? tr("The time the text was opened or brought to the front.")
-                       : tr("Today's date: it changes when the text is opened on another day.");
-            break;
-    }
+    const QString note = fieldNote(*field, m_fieldContext, m_viewMode == ViewMode::Page);
     //: The tooltip of a field: its name in bold, what it shows, how to change it. %1: the
     //: field's name ("Page Number")
     const QString title = tr("Field: %1").arg(fieldTypeTitle(field->type));

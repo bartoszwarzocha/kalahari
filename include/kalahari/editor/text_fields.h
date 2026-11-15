@@ -63,7 +63,7 @@ inline constexpr std::array<FieldType, 7> FIELD_TYPES = {
 
 /// @brief A field: what it shows and how
 struct TextField {
-    FieldType type = FieldType::BookTitle;
+    FieldType type = FieldType::BookTitle;  ///< What it shows
     QString format;  ///< The name of its format (fieldFormats()); empty: the type's first
 
     bool operator==(const TextField&) const = default;

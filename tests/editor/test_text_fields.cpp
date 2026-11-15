@@ -5,24 +5,35 @@
 /// @brief The fields of the book's title, its author, the text's title, the page, the words and
 ///        the date: values, formats, KML, the layout, editing and the clipboard
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+
+#include "editor_test_utils.h"
+
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/clipboard_handler.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_fields.h>
-#include "editor_test_utils.h"
+#include <kalahari/editor/view_modes.h>
 
 #include <QMimeData>
 #include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QXmlStreamReader>
-#include <memory>
 
-using namespace kalahari::editor;
-using namespace kalahari::test;
+#include <memory>
+#include <optional>
+#include <string>
+
+namespace kalahari::editor {
+
+using test::kmlOf;
+using test::PopupMenuReader;
+using test::resizeWidget;
+using test::waitUntil;
 
 namespace {
 
@@ -120,7 +131,7 @@ TEST_CASE("Fields: each type shows its value in its format", "[editor][fields]")
     FieldCounts counts;
     counts.words = 12345;
     const auto text = [&](FieldType type, const QString& format) {
-        return textFieldText({type, format}, context, counts);
+        return textFieldText({.type = type, .format = format}, context, counts);
     };
     CHECK(text(FieldType::BookTitle, QString()) == QStringLiteral("Mgła nad Narwią"));
     CHECK(text(FieldType::BookTitle, QStringLiteral("upper")) == QStringLiteral("MGŁA NAD NARWIĄ"));
@@ -142,15 +153,15 @@ TEST_CASE("Fields: each type shows its value in its format", "[editor][fields]")
     // A value the book does not have: the field's name
     FieldContext empty = context;
     empty.author.clear();
-    CHECK(textFieldText({FieldType::Author, QString()}, empty, counts) ==
+    CHECK(textFieldText({.type = FieldType::Author, .format = QString()}, empty, counts) ==
           QStringLiteral("[Author]"));
-    CHECK(isTextFieldEmpty({FieldType::Author, QString()}, empty));
-    CHECK_FALSE(isTextFieldEmpty({FieldType::Author, QString()}, context));
+    CHECK(isTextFieldEmpty({.type = FieldType::Author, .format = QString()}, empty));
+    CHECK_FALSE(isTextFieldEmpty({.type = FieldType::Author, .format = QString()}, context));
 
     // A title of two lines is one line
     FieldContext twoLines = context;
     twoLines.bookTitle = QStringLiteral("Mgła\nnad  Narwią");
-    CHECK(textFieldText({FieldType::BookTitle, QString()}, twoLines, counts) ==
+    CHECK(textFieldText({.type = FieldType::BookTitle, .format = QString()}, twoLines, counts) ==
           QStringLiteral("Mgła nad Narwią"));
 }
 
@@ -178,18 +189,17 @@ TEST_CASE("Fields: the formats a type has", "[editor][fields]") {
 
 TEST_CASE("Fields: a field in KML, without the format when it is the type's first",
           "[editor][fields][kml]") {
-    CHECK(textFieldKml({FieldType::Page, QString()}) == QStringLiteral("<field type=\"page\"/>"));
-    CHECK(textFieldKml({FieldType::Page, QStringLiteral("i")}) ==
+    CHECK(textFieldKml({.type = FieldType::Page, .format = QString()}) ==
+          QStringLiteral("<field type=\"page\"/>"));
+    CHECK(textFieldKml({.type = FieldType::Page, .format = QStringLiteral("i")}) ==
           QStringLiteral("<field type=\"page\" format=\"i\"/>"));
-    CHECK(textFieldKml({FieldType::Date, QStringLiteral("long")}) ==
+    CHECK(textFieldKml({.type = FieldType::Date, .format = QStringLiteral("long")}) ==
           QStringLiteral("<field type=\"date\"/>"));
-    CHECK(textFieldKml({FieldType::BookTitle, QStringLiteral("upper")}) ==
+    CHECK(textFieldKml({.type = FieldType::BookTitle, .format = QStringLiteral("upper")}) ==
           QStringLiteral("<field type=\"book-title\" format=\"upper\"/>"));
     const std::optional<TextField> read =
         fieldOfElement(QStringLiteral("<field type=\"date\" format=\"date-time\"/>"));
-    REQUIRE(read);
-    CHECK(read->type == FieldType::Date);
-    CHECK(read->format == QStringLiteral("date-time"));
+    CHECK(read == TextField{.type = FieldType::Date, .format = QStringLiteral("date-time")});
     CHECK_FALSE(fieldOfElement(QStringLiteral("<field type=\"weather\"/>")));
     CHECK_FALSE(fieldOfElement(QStringLiteral("<field/>")));
 
@@ -234,7 +244,7 @@ TEST_CASE("Fields: the word count follows the text when typing pauses", "[editor
     auto editor = editorWith(QStringLiteral(
         "<kml><p>One two three <field type=\"words\"/> words.</p></kml>"));
     CHECK(shownFields(*editor) == "4");  // the field is no word
-    editor->setCursorPosition({0, 0});
+    editor->setCursorPosition({.paragraph = 0, .offset = 0});
     editor->insertText(QStringLiteral("Zero "));
     CHECK(shownFields(*editor) == "4");  // not while typing
     CHECK(waitUntil([&editor] { return shownFields(*editor) == "5"; }));
@@ -264,8 +274,8 @@ TEST_CASE("Fields: the page in the page view, \"#\" in the continuous one", "[ed
     CHECK(fieldWidth(*editor, field) >= fieldWidth(*editor, field + 5) - 0.5);
 
     // A field on the first page
-    editor->setCursorPosition({0, 0});
-    REQUIRE(editor->insertField({FieldType::Page, QStringLiteral("I")}));
+    editor->setCursorPosition({.paragraph = 0, .offset = 0});
+    REQUIRE(editor->insertField({.type = FieldType::Page, .format = QStringLiteral("I")}));
     CHECK(editor->fieldTextAt(0) == QStringLiteral("I"));
 
     editor->setViewMode(ViewMode::Continuous);
@@ -300,13 +310,14 @@ TEST_CASE("Fields: Insert, Edit Field and Convert to Text, each one undo step",
           "[editor][fields]") {
     auto editor = editorWith(QStringLiteral("<kml><p>Written on .</p></kml>"));
     editor->setFieldContext(bookContext());
-    editor->setCursorPosition({0, 11});
-    REQUIRE(editor->insertField({FieldType::Date, QStringLiteral("iso")}));
+    editor->setCursorPosition({.paragraph = 0, .offset = 11});
+    REQUIRE(editor->insertField({.type = FieldType::Date, .format = QStringLiteral("iso")}));
     CHECK(editor->toKml() ==
           QStringLiteral("<kml><p>Written on <field type=\"date\" format=\"iso\"/>.</p></kml>"));
     CHECK(editor->cursorPosition().offset == 12);
     CHECK(editor->fieldAtCursor() == 11);
-    CHECK(editor->textFieldAt(11) == TextField{FieldType::Date, QStringLiteral("iso")});
+    CHECK(editor->textFieldAt(11) ==
+          TextField{.type = FieldType::Date, .format = QStringLiteral("iso")});
     CHECK_FALSE(editor->textFieldAt(10));
 
     // Typed after it: plain text, not a field
@@ -316,9 +327,11 @@ TEST_CASE("Fields: Insert, Edit Field and Convert to Text, each one undo step",
     editor->undo();
 
     // Another format
-    REQUIRE(editor->setTextFieldAt(11, {FieldType::Date, QStringLiteral("long")}));
+    REQUIRE(
+        editor->setTextFieldAt(11, {.type = FieldType::Date, .format = QStringLiteral("long")}));
     CHECK(editor->fieldTextAt(11) == QStringLiteral("11 października 2026"));
-    CHECK_FALSE(editor->setTextFieldAt(11, {FieldType::Date, QStringLiteral("long")}));
+    CHECK_FALSE(
+        editor->setTextFieldAt(11, {.type = FieldType::Date, .format = QStringLiteral("long")}));
     editor->undo();
     CHECK(editor->fieldTextAt(11) == QStringLiteral("2026-10-11"));
 
@@ -334,14 +347,15 @@ TEST_CASE("Fields: Insert, Edit Field and Convert to Text, each one undo step",
 
     // Not in a read-only text
     editor->setReadOnly(true);
-    CHECK_FALSE(editor->insertField({FieldType::Author, QString()}));
+    CHECK_FALSE(editor->insertField({.type = FieldType::Author, .format = QString()}));
 }
 
 TEST_CASE("Fields: in place of the selection, in bold text", "[editor][fields]") {
     auto editor = editorWith(QStringLiteral("<kml><p><b>By someone</b></p></kml>"));
     editor->setFieldContext(bookContext());
-    editor->setSelection({{0, 3}, {0, 10}});
-    REQUIRE(editor->insertField({FieldType::Author, QString()}));
+    editor->setSelection(
+        {.start = {.paragraph = 0, .offset = 3}, .end = {.paragraph = 0, .offset = 10}});
+    REQUIRE(editor->insertField({.type = FieldType::Author, .format = QString()}));
     // An object is a run of its own, in the formatting of its place, as a note's number is
     CHECK(editor->toKml() ==
           QStringLiteral("<kml><p><b>By </b><b><field type=\"author\"/></b></p></kml>"));
@@ -362,7 +376,7 @@ TEST_CASE("Fields: copied as the text they show", "[editor][fields][clipboard]")
 
     // Pasted in a text: fields again
     editor->clearSelection();
-    editor->setCursorPosition({0, 0});
+    editor->setCursorPosition({.paragraph = 0, .offset = 0});
     editor->insertFromMimeData(data.get());
     CHECK(editor->toKml().count(QStringLiteral("<field type=\"book-title\"/>")) == 2);
 
@@ -375,10 +389,10 @@ TEST_CASE("Fields: copied as the text they show", "[editor][fields][clipboard]")
 TEST_CASE("Fields: the context menu of a field", "[editor][fields][menu]") {
     auto editor = editorWith(QStringLiteral("<kml><p>By <field type=\"author\"/> now</p></kml>"));
     editor->setFieldContext(bookContext());
-    editor->setCursorPosition({0, 4});  // after the field
+    editor->setCursorPosition({.paragraph = 0, .offset = 4});  // after the field
     QStringList texts;
     {
-        PopupMenuReader reader(texts, QString());
+        const PopupMenuReader reader(texts, QString());
         editor->showContextMenuAtCursor();
     }
     CHECK(texts.contains(QStringLiteral("&Edit Field...")));
@@ -389,22 +403,22 @@ TEST_CASE("Fields: the context menu of a field", "[editor][fields][menu]") {
     QObject::connect(editor.get(), &BookEditor::fieldEditRequested,
                      [&asked](int position) { asked << position; });
     {
-        PopupMenuReader reader(texts, QStringLiteral("&Edit Field..."));
+        const PopupMenuReader reader(texts, QStringLiteral("&Edit Field..."));
         editor->showContextMenuAtCursor();
     }
     CHECK(asked == QList<int>{3});
 
     // Before it too; not elsewhere
-    editor->setCursorPosition({0, 3});
+    editor->setCursorPosition({.paragraph = 0, .offset = 3});
     CHECK(editor->fieldAtCursor() == 3);
     {
-        PopupMenuReader reader(texts, QStringLiteral("Con&vert to Text"));
+        const PopupMenuReader reader(texts, QStringLiteral("Con&vert to Text"));
         editor->showContextMenuAtCursor();
     }
     CHECK(editor->toKml() == QStringLiteral("<kml><p>By Anna Nowak now</p></kml>"));
     texts.clear();
     {
-        PopupMenuReader reader(texts, QString());
+        const PopupMenuReader reader(texts, QString());
         editor->showContextMenuAtCursor();
     }
     CHECK_FALSE(texts.contains(QStringLiteral("&Edit Field...")));
@@ -418,3 +432,5 @@ TEST_CASE("Fields: no gray background without the setting", "[editor][fields]") 
     editor->setAppearance(appearance);
     CHECK_FALSE(editor->appearance().fieldShading);
 }
+
+}  // namespace kalahari::editor

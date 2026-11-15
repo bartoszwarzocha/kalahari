@@ -1283,6 +1283,7 @@ public:
     ///        time it is set: the dates are those of when the text was opened or came to the
     ///        front last
     void setFieldContext(const FieldContext& context);
+    /// @brief What the fields show of the book and the text
     const FieldContext& fieldContext() const { return m_fieldContext; }
 
     /// @brief Insert > Field..., Date && Time...: a field at the cursor, in place of the

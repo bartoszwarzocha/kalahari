@@ -564,7 +564,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     editor.fromKml(QStringLiteral("<kml><p>The<field type=\"page\"/> ") + sentence() +
                    QStringLiteral("</p></kml>"));
     const QRectF afterField = editor.placeRect(4, true);  // the field is the fourth character
-    QList<test::MenuItem> fieldMenu = contextMenu(
+    const QList<test::MenuItem> fieldMenu = contextMenu(
         &editor, &editor, QPoint(qRound(afterField.left()) - 2, qRound(afterField.center().y())));
     collectProblems(fieldMenu, QStringLiteral("Field"), {}, problems);
     CHECK(itemCount(fieldMenu) == 6 + 2);

@@ -16,6 +16,7 @@
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_keys.h>
 #include <QFocusEvent>
 #include <QHelpEvent>
@@ -78,8 +79,8 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     const EditorColors::FieldColors& fields = appearance.colors.fields;
     // Without the gray background of the fields a cross-reference to a caption the book does
     // not have keeps its own
-    colors.field = appearance.fieldShading ? (light ? fields.light : fields.dark)
-                                           : QColor(Qt::transparent);
+    const QColor shading = light ? fields.light : fields.dark;
+    colors.field = appearance.fieldShading ? shading : QColor(Qt::transparent);
     colors.brokenField = light ? fields.brokenLight : fields.brokenDark;
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
     colors.annotationComment = annotations.comment;

@@ -5,15 +5,17 @@
 /// @brief Numbered captions, cross-references to them and the list of figures
 
 #include "kalahari/editor/text_captions.h"
-#include "kalahari/editor/text_fields.h"
-#include "kalahari/editor/text_footnotes.h"
 #include "kalahari/editor/kml_format_registry.h"
 #include "kalahari/editor/paragraph_styles.h"
+#include "kalahari/editor/text_fields.h"
+#include "kalahari/editor/text_footnotes.h"
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/text_tables.h"
 
 #include <QCoreApplication>
 #include <QRandomGenerator>
+#include <QString>
+#include <QStringList>
 #include <QTextBlock>
 #include <QTextBlockFormat>
 #include <QTextCharFormat>
@@ -24,6 +26,8 @@
 #include <QXmlStreamReader>
 
 #include <array>
+#include <optional>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -657,7 +661,7 @@ FieldText CaptionNumbers::fieldText(int position, const QTextFormat& format) con
     }
     if (const std::optional<TextField> field = textFieldOf(format)) {
         // Without the book and the view: the editor's layout gives the values it has
-        return {textFieldText(*field, FieldContext{}, FieldCounts{}), false};
+        return {.text = textFieldText(*field, FieldContext{}, FieldCounts{}), .broken = false};
     }
     return {};
 }
@@ -776,49 +780,89 @@ std::vector<QString> fieldTexts(const QTextDocument& document, const CaptionNumb
         from, to);
 }
 
-std::vector<QString> fieldTexts(const QTextDocument& document, const CaptionNumbers& numbers,
-                                const FieldTextOf& textOf, int from, int to)
+namespace {
+
+/// A character of a field or of a list of figures, at its position
+struct FieldCharacter {
+    int position = 0;
+    QTextCharFormat format;
+};
+
+/// Whether a fragment ends after @p from
+bool endsAfter(const QTextFragment& fragment, int from)
 {
-    std::vector<QString> texts;
-    QString list;
-    bool listKnown = false;
+    return fragment.isValid() && fragment.position() + fragment.length() > from;
+}
+
+/// Whether a format is one of a field or of a list of figures
+bool isFieldOrListFormat(const QTextCharFormat& format)
+{
+    return isFieldFormat(format) || textObjectOf(format) == TextObject::FigureList;
+}
+
+/// Add the characters of the objects of a fragment between @p from and @p to
+void addObjectCharacters(const QTextFragment& fragment, int from, int to,
+                         std::vector<FieldCharacter>& characters)
+{
+    const QString text = fragment.text();
+    const QTextCharFormat format = fragment.charFormat();
+    for (int i = 0; i < text.size(); ++i) {
+        const int position = fragment.position() + i;
+        if (position >= from && position < to && text.at(i) == QChar::ObjectReplacementCharacter) {
+            characters.push_back({.position = position, .format = format});
+        }
+    }
+}
+
+/// The characters of the fields and the lists of figures between @p from and @p to, in their
+/// order
+std::vector<FieldCharacter> fieldCharacters(const QTextDocument& document, int from, int to)
+{
+    std::vector<FieldCharacter> characters;
     for (QTextBlock block = document.findBlock(from); block.isValid() && block.position() < to;
          block = block.next()) {
         for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
             const QTextFragment fragment = it.fragment();
-            if (!fragment.isValid() || fragment.position() + fragment.length() <= from) {
+            if (!endsAfter(fragment, from)) {
                 continue;
             }
             if (fragment.position() >= to) {
                 break;
             }
-            const QTextCharFormat format = fragment.charFormat();
-            const bool field = isFieldFormat(format);
-            if (!field && textObjectOf(format) != TextObject::FigureList) {
-                continue;
-            }
-            const QString text = fragment.text();
-            for (int i = 0; i < text.size(); ++i) {
-                const int position = fragment.position() + i;
-                if (position < from || position >= to ||
-                    text.at(i) != QChar::ObjectReplacementCharacter) {
-                    continue;
-                }
-                if (field) {
-                    texts.push_back(textOf(position, format).text);
-                    continue;
-                }
-                if (!listKnown) {
-                    QStringList rows;
-                    for (const FigureListRow& row : numbers.figureList()) {
-                        rows << row.text;
-                    }
-                    list = rows.join(QLatin1Char('\n'));
-                    listKnown = true;
-                }
-                texts.push_back(list);
+            if (isFieldOrListFormat(fragment.charFormat())) {
+                addObjectCharacters(fragment, from, to, characters);
             }
         }
+    }
+    return characters;
+}
+
+/// The text of the list of figures: its rows, one a line
+QString figureListText(const CaptionNumbers& numbers)
+{
+    QStringList rows;
+    for (const FigureListRow& row : numbers.figureList()) {
+        rows << row.text;
+    }
+    return rows.join(QLatin1Char('\n'));
+}
+
+}  // namespace
+
+std::vector<QString> fieldTexts(const QTextDocument& document, const CaptionNumbers& numbers,
+                                const FieldTextOf& textOf, int from, int to)
+{
+    std::vector<QString> texts;
+    std::optional<QString> list;  // made once, when a list is found
+    for (const FieldCharacter& character : fieldCharacters(document, from, to)) {
+        if (isFieldFormat(character.format)) {
+            texts.push_back(textOf(character.position, character.format).text);
+            continue;
+        }
+        if (!list) {
+            list = figureListText(numbers);
+        }
+        texts.push_back(*list);
     }
     return texts;
 }

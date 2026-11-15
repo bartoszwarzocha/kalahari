@@ -23,9 +23,7 @@ class QLabel;
 class QListWidget;
 class QTabWidget;
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 /// @brief Insert > Date && Time...: today's date or time in the language of the book
 ///
@@ -49,6 +47,7 @@ public:
         QString timeKeys;   ///< And the time
     };
 
+    /// @brief The window showing @p shown
     explicit DateTimeDialog(Data shown, QWidget* parent = nullptr);
 
     /// @brief The format chosen
@@ -88,12 +87,28 @@ public:
         QColor text;        ///< Of the text; invalid: the window's
     };
 
+    /// @brief The window showing @p shown
     explicit FieldDialog(Data shown, QWidget* parent = nullptr);
 
     /// @brief The field chosen
     [[nodiscard]] editor::TextField field() const;
 
 private:
+    /// @brief The tabs of the fields, each with the list of its fields
+    /// @return The tab of the field chosen first
+    int addTabs();
+
+    /// @brief The list of the fields @p types in a tab, @p lines high, the field chosen first
+    ///        chosen in it
+    [[nodiscard]] QListWidget* fieldList(const std::vector<editor::FieldType>& types, int lines,
+                                         QWidget* page) const;
+
+    /// @brief The format, the preview and the hint, shown under the list of the tab shown
+    void addDetails();
+
+    /// @brief The preview in the colors of the fields in the text
+    void colorPreview();
+
     /// @brief The formats of the field chosen, the one of @p format chosen
     void showFormats(const QString& format);
 
@@ -125,6 +140,4 @@ private:
 QString fieldFormatText(editor::FieldType type, const QString& format, const QDateTime& now,
                         const QString& language);
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+}  // namespace kalahari::gui::dialogs

@@ -7,10 +7,14 @@
 
 #include "kalahari/gui/field_coordinator.h"
 
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/text_fields.h"
+#include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/field_dialogs.h"
 #include "kalahari/gui/document_windows.h"
@@ -22,6 +26,10 @@
 #include <QFileInfo>
 #include <QTabWidget>
 
+#include <array>
+#include <cstddef>
+#include <functional>
+#include <optional>
 #include <utility>
 
 namespace kalahari::gui {
@@ -63,7 +71,7 @@ FieldCoordinator::FieldCoordinator(core::ProjectManager& book, CommandRegistry& 
 
     // A text opened, closed or brought to the front: its fields show what is now
     if (m_centralTabs != nullptr) {
-        DocumentWindows& windows = DocumentWindows::of(*m_centralTabs);
+        const DocumentWindows& windows = DocumentWindows::of(*m_centralTabs);
         connect(&windows, &DocumentWindows::frontChanged, this, &FieldCoordinator::refresh);
         connect(&windows, &DocumentWindows::windowsChanged, this, &FieldCoordinator::refresh);
         connect(m_centralTabs, &QTabWidget::currentChanged, this, &FieldCoordinator::refresh);
@@ -182,7 +190,7 @@ void FieldCoordinator::attachEditors()
 
 QString FieldCoordinator::dateFormatOfKeys()
 {
-    const std::string saved =
+    const auto saved =
         core::SettingsManager::getInstance().get<std::string>(DATE_FORMAT_KEY, "long");
     const QString chosen =
         editor::normalizedFieldFormat(editor::FieldType::Date, QString::fromStdString(saved));
@@ -251,7 +259,7 @@ void FieldCoordinator::insertDateTime()
     }
     if (dialog.asField()) {
         editor->setFieldContext(context);  // the time of now
-        editor->insertField({editor::FieldType::Date, format});
+        editor->insertField({.type = editor::FieldType::Date, .format = format});
     } else {
         editor->insertText(
             editor::dateText(QDateTime::currentDateTime(), format, context.language));
