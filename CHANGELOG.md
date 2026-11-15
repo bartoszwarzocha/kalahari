@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
+  opens another book window, with the Dashboard; the Window menu lists every window of the
+  program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the
+  Dashboard, Import Archive) while another is open in the window asks "Opening a Book": In a
+  New Window, In This Window (the open book closes, after the question about its changes) or
+  Cancel; "Remember my choice" keeps the answer, and Settings > General > Windows (the gear of
+  the question) changes it ("Book opened while another is open"). The same book never opens
+  twice: its window comes to the front and says so in its info bar. File > Exit closes every
+  window with one question about all unsaved books. At the next start all the books open at
+  closing open again, each in its own window (Settings > General > Startup > When several
+  books were open at closing: All or Only the last one). The windows share the settings
+  (applied in all of them at once), one LanguageTool server, the words of the user
+  dictionary and the keys given to characters.
 - **Export of the book to Word (DOCX) and Markdown** - 2026-11-13. File > Export > DOCX... and
   Markdown... open one window, "Export Book", with four tabs that fit a screen of 1366x768 at
   150% without scrolling (File, Texts, Layout, Annotations and Images; the progress and the

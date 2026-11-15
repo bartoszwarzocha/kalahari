@@ -122,6 +122,7 @@ set(TEST_SOURCES
     gui/test_recent_book_cards.cpp               # Dashboard: the data of the recent books
     gui/test_save_all.cpp                        # Save All: the book and the files outside it
     gui/test_document_windows.cpp                # The tabs of the texts in windows of their own
+    gui/test_book_windows.cpp                    # The book windows of the program, each with its book
     gui/test_new_book.cpp                        # New Book: the kinds of a user project, without opening
     gui/test_new_file.cpp                        # New File: an element of the book, or a file outside one
     gui/test_book_tabs.cpp                       # The tabs of a book: one file in one tab, Close Book, words
@@ -404,6 +405,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # The Navigator's requests
     ${CMAKE_SOURCE_DIR}/src/gui/document_coordinator.cpp    # Save All and the document commands
     ${CMAKE_SOURCE_DIR}/src/gui/document_windows.cpp        # The texts in the tabs and in windows of their own
+    ${CMAKE_SOURCE_DIR}/src/gui/main_window.cpp             # The book windows of the program, with all their parts
+    ${CMAKE_SOURCE_DIR}/src/gui/settings_coordinator.cpp    # The Settings dialog of a book window
+    ${CMAKE_SOURCE_DIR}/src/gui/diagnostic_controller.cpp   # The Diagnostics menu of a book window
+    ${CMAKE_SOURCE_DIR}/src/editor/editor_benchmark.cpp     # The editor's benchmark of the Diagnostics menu
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Panels of DockCoordinator
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_panel.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/panels/dashboard_layouts.cpp  # The Dashboard on a narrow panel
@@ -435,6 +440,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/icon_downloader_dialog.cpp   # Icon Downloader on the common base
     ${CMAKE_SOURCE_DIR}/src/core/utils/icon_downloader.cpp           # Downloads of the Icon Downloader
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/message_dialog.cpp           # Own messages, questions and typed texts
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/open_book_dialog.cpp         # Opening a Book: in a new window or in this one
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/grammar_setup_dialog.cpp     # The window of the grammar preparation
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/progress_dialog.cpp          # Own window for the progress of a long task
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/color_dialog.cpp             # Own window for choosing a color
@@ -575,6 +581,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/central_tabs.h  # CentralTabs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_coordinator.h  # DocumentCoordinator, Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_windows.h  # DocumentWindows, DetachedWindow, Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/main_window.h  # MainWindow with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/settings_coordinator.h  # SettingsCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/diagnostic_controller.h  # DiagnosticController with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_benchmark.h  # EditorBenchmark with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # Panels of DockCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/dashboard_panel.h
@@ -596,6 +606,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/icon_downloader_dialog.h  # IconDownloaderDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/message_dialog.h  # MessageDialog, TextInputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/open_book_dialog.h  # OpenBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/grammar_setup_dialog.h  # GrammarSetupDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/progress_dialog.h  # ProgressDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/color_dialog.h  # ColorDialog with Q_OBJECT

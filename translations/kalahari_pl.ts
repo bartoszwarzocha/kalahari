@@ -6271,6 +6271,11 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <extracomment>%1: the title of the new book; %2: its type, e.g. Novel. In Polish: Nie można utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.</extracomment>
         <translation>Nie można utworzyć książki „%1”: typ książki „%2” nie jest zainstalowany.</translation>
     </message>
+    <message>
+        <source>The book &quot;%1&quot; is already open – in this window.</source>
+        <extracomment>The info bar of the window that has the book the writer wanted to open again, from another window. %1: the title of the book. In Polish: Książka „%1” jest już otwarta – w tym oknie.</extracomment>
+        <translation>Książka „%1” jest już otwarta – w tym oknie.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::DocumentWindows</name>
@@ -6313,6 +6318,11 @@ Użyj polecenia Plik → Nowa książka... albo Plik → Otwórz książkę...</
         <source>Window &amp;Settings...</source>
         <extracomment>Window menu: Settings &gt; General at the options of the windows. In Polish: &amp;Ustawienia okien...</extracomment>
         <translation>&amp;Ustawienia okien...</translation>
+    </message>
+    <message>
+        <source>Ne&amp;w Window</source>
+        <extracomment>Window menu: a new book window, with the Dashboard. In Polish: N&amp;owe okno</extracomment>
+        <translation>N&amp;owe okno</translation>
     </message>
 </context>
 <context>
@@ -8366,6 +8376,51 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>A tab goes to a window of its own when it is dragged off the bar of the tabs, or from the Window menu.</source>
         <extracomment>In Polish: Kartę odrywa się, przeciągając ją poza pasek kart albo z menu Okno.</extracomment>
         <translation>Kartę odrywa się do osobnego okna, przeciągając ją poza pasek kart albo z menu Okno.</translation>
+    </message>
+    <message>
+        <source>All, each in its own window</source>
+        <extracomment>Settings &gt; General &gt; Startup: the books open when the program was closed open again, each in its window. In Polish: Wszystkie, każda w swoim oknie</extracomment>
+        <translation>Wszystkie, każda w swoim oknie</translation>
+    </message>
+    <message>
+        <source>Only the last one</source>
+        <extracomment>The book opened last opens. In Polish: Tylko ostatnia</extracomment>
+        <translation>Tylko ostatnia</translation>
+    </message>
+    <message>
+        <source>The books open when Kalahari was closed open again, each in its own window, or only the book opened last.</source>
+        <extracomment>In Polish: Książki otwarte w chwili zamknięcia programu otwierają się znów, każda w swoim oknie, albo tylko książka otwarta ostatnio.</extracomment>
+        <translation>Książki otwarte w chwili zamknięcia programu otwierają się znów, każda w swoim oknie, albo tylko książka otwarta ostatnio.</translation>
+    </message>
+    <message>
+        <source>When several books were open at closing:</source>
+        <extracomment>In Polish: Gdy przy zamknięciu było otwartych kilka książek:</extracomment>
+        <translation>Gdy przy zamknięciu było otwartych kilka książek:</translation>
+    </message>
+    <message>
+        <source>Ask every time</source>
+        <extracomment>Settings &gt; General &gt; Windows: the question Opening a Book each time. In Polish: Pytaj za każdym razem</extracomment>
+        <translation>Pytaj za każdym razem</translation>
+    </message>
+    <message>
+        <source>Open in a new window</source>
+        <extracomment>In Polish: Otwieraj w nowym oknie</extracomment>
+        <translation>Otwieraj w nowym oknie</translation>
+    </message>
+    <message>
+        <source>Open in this window (closes the open one)</source>
+        <extracomment>In Polish: Otwieraj w tym oknie (zamyka otwartą)</extracomment>
+        <translation>Otwieraj w tym oknie (zamyka otwartą)</translation>
+    </message>
+    <message>
+        <source>Where a book opens while another one is open in the window. The same book never opens twice: its window comes to the front.</source>
+        <extracomment>In Polish: Gdzie otwiera się książka wybrana, gdy w oknie jest otwarta inna. Ta sama książka nigdy nie otwiera się dwa razy: jej okno wychodzi na wierzch.</extracomment>
+        <translation>Gdzie otwiera się książka wybrana, gdy w oknie jest otwarta inna. Ta sama książka nigdy nie otwiera się dwa razy: jej okno wychodzi na wierzch.</translation>
+    </message>
+    <message>
+        <source>Book opened while another is open:</source>
+        <extracomment>In Polish: Książka otwierana, gdy inna jest otwarta:</extracomment>
+        <translation>Książka otwierana, gdy inna jest otwarta:</translation>
     </message>
 </context>
 <context>
@@ -17589,6 +17644,39 @@ How many empty text files there can be. In Polish: dowolnie wiele</extracomment>
     <message>
         <source>Preview</source>
         <translation>Podgląd</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::OpenBookDialog</name>
+    <message>
+        <source>Opening a Book</source>
+        <extracomment>The question when a book is opened while another one is open in the window. In Polish: Otwieranie książki</extracomment>
+        <translation>Otwieranie książki</translation>
+    </message>
+    <message>
+        <source>This window has the book &quot;%1&quot; open. Where do you want to open the book &quot;%2&quot;?</source>
+        <extracomment>%1: the title of the open book, %2: the name of the book chosen. In Polish: W tym oknie jest otwarta książka „%1”. Gdzie otworzyć książkę „%2”?</extracomment>
+        <translation>W tym oknie jest otwarta książka „%1”. Gdzie otworzyć książkę „%2”?</translation>
+    </message>
+    <message>
+        <source>Window Settings</source>
+        <extracomment>Settings &gt; General has the option of where a book opens. In Polish: Ustawienia okien</extracomment>
+        <translation>Ustawienia okien</translation>
+    </message>
+    <message>
+        <source>&amp;Remember my choice and do not ask again (you can change it in Settings &gt; General)</source>
+        <extracomment>In Polish: &amp;Zapamiętaj wybór i nie pytaj więcej (zmienisz go w Ustawieniach › Ogólne)</extracomment>
+        <translation>&amp;Zapamiętaj wybór i nie pytaj więcej (zmienisz go w Ustawieniach › Ogólne)</translation>
+    </message>
+    <message>
+        <source>In a &amp;New Window</source>
+        <extracomment>The book opens in a new window; the open one stays. In Polish: W &amp;nowym oknie</extracomment>
+        <translation>W &amp;nowym oknie</translation>
+    </message>
+    <message>
+        <source>In &amp;This Window</source>
+        <extracomment>The open book closes, and the book chosen opens in its place. In Polish: W &amp;tym oknie</extracomment>
+        <translation>W &amp;tym oknie</translation>
     </message>
 </context>
 <context>
