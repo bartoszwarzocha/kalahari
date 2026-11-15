@@ -6,9 +6,10 @@
 
 #pragma once
 
+#include "kalahari/gui/panels/preview_panel.h"
+
 #include <QImage>
 #include <QString>
-#include <QWidget>
 
 class QAction;
 class QGraphicsPixmapItem;
@@ -40,7 +41,7 @@ namespace gui {
 /// it in the system program.
 ///
 /// The tab has the properties "elementId" and "tabIconId", as an editor's tab has them.
-class ImagePreviewPanel : public QWidget {
+class ImagePreviewPanel : public PreviewPanel {
     Q_OBJECT
 
 public:
@@ -51,9 +52,6 @@ public:
     explicit ImagePreviewPanel(core::ProjectManager& book, const QString& elementId,
                                QWidget* parent = nullptr);
 
-    /// @brief The material it shows
-    QString elementId() const { return m_elementId; }
-
     /// @brief Whether it shows a picture; false with the sentence of why it does not
     bool hasPicture() const { return !m_picture.isNull(); }
 
@@ -61,7 +59,7 @@ public:
     QString problem() const;
 
     /// @brief Zoom: 1 is 100%
-    double zoom() const { return m_zoom; }
+    [[nodiscard]] double zoom() const override { return m_zoom; }
 
     /// @brief Whether the picture fits the window, also when the window changes its size
     bool fitsWindow() const { return m_fit; }
@@ -86,16 +84,22 @@ public slots:
     void reload();
 
     /// @brief The next larger zoom of zoomSteps()
-    void zoomIn();
+    void zoomIn() override;
 
     /// @brief The next smaller zoom of zoomSteps()
-    void zoomOut();
+    void zoomOut() override;
 
     /// @brief 100%
-    void zoomReset();
+    void zoomReset() override;
 
     /// @brief The whole picture in the window, at 100% at most
     void zoomToFit();
+
+    /// @brief The picture has no page: the whole picture in the window (zoomToFit())
+    void zoomToPageWidth() override;
+
+    /// @brief The whole picture in the window (zoomToFit())
+    void zoomToWholePage() override;
 
     /// @brief Turn by 90 degrees to the left and save the turn with the material
     void rotateLeft();
@@ -107,12 +111,6 @@ public slots:
     void toggleNegative();
 
 signals:
-    /// @brief The writer asked to open the file in the program the system gives it
-    void openWithSystemRequested(const QString& elementId);
-
-    /// @brief The zoom changed: the status bar can show it
-    void zoomChanged(double zoom);
-
     /// @brief The turn changed and was saved with material @p elementId: its card and the
     /// lists of materials can show it
     void rotationChanged(const QString& elementId);
@@ -136,7 +134,6 @@ private:
     /// @brief Refresh the icons of the bar after a change of theme or icons
     void refreshIcons();
 
-    QString m_elementId;
     QString m_path;          ///< The file of the material
     QImage m_picture;        ///< The picture as read, not turned
     QString m_problem;       ///< Why there is no picture

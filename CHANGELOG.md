@@ -11,6 +11,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The preview of PDF files in the program** - 2026-11-15. A PDF opens in a card of its own
+  (Settings > Materials > Opening: in the program, at first, or in the system program): the
+  pages one under another (at first), one at a time or two side by side; the zoom of
+  View > Zoom (page width at first, the whole page, 100% or as last time); the page number
+  with the file's own labels, Ctrl+G, PgUp, PgDn, Home and End; in the dark theme the pages
+  as in the file (at first), dimmed or with inverted colors. The side panel has the
+  bookmarks of the source, the contents of the file, thumbnails and the hits of Find in the
+  File with their words (Ctrl+F, Enter, Shift+Enter, Esc); F6 and Shift+F6 go between the
+  bar, the side panel and the pages. Text selected with the mouse, or all the text of the
+  page (Select All), copies with Ctrl+C or with the reference to the source and the page;
+  the menu of the selection (the menu key, Shift+F10) also has Create Quote..., which opens
+  New Quote: the words, the source, the page and the link with the chapter open last, with
+  another element or with none; Create and Insert into Chapter also inserts the words with
+  their reference. Bookmark Here adds a bookmark of the page. The preview opens at the page
+  shown last (an option). The card of a PDF shows its first page, Fill In from File takes
+  the title, the author, the year and the pages from the file, a bookmark shows its page in
+  the preview, and the card of a quote has Show Page. The colors around the pages, of the
+  selection and of the hits are the editor's (Settings > Editor > Colors). The opening of
+  pictures and pages on the web moved from Settings > Navigator to Settings > Materials.
+  Without the Qt PDF module a PDF opens in the system program and the options of the
+  preview are dimmed. On Linux the package `qt6-pdf-dev` gives it. Windows and macOS builds
+  are without it by default: the vcpkg feature `pdf-preview` (`qtwebengine` with only its
+  feature `pdf`, `-DVCPKG_MANIFEST_FEATURES="qt6;pdf-preview"`) adds it, but its build takes
+  hours and tens of GB.
+
+- **Sources: the bibliographic description of a material, the bibliography and the quotes
+  with their source** - 2026-11-15. A publication, a document, a web page and a recording
+  can be a source: their card has the group Bibliographic Description (the kind of source –
+  book, chapter in a book, article in a journal, web page, archival document, talk or
+  interview, film or recording, thesis, other – changes the fields; the people with their
+  roles in a table, Insert and Delete; Paste Description takes a record in BibTeX or RIS
+  copied from a library catalog or a bibliography manager), As the Bibliography Shows It
+  (the entry in the style of the book, another style to compare, In the bibliography: when
+  linked with the text, always or never, Copy Entry as text and with italics, the gear opens
+  Settings > Materials), Bookmarks of a PDF (a page and a note each, saved at once) and
+  Quotes from This Source (Insert makes a new quote with the source and the page shown last,
+  Enter opens one). The short card in the Properties panel shows the entry. The card of a
+  quote has the group Where It Comes From: a source (the materials with a description) or
+  none with the author and the work, the page and the reference in the text, as
+  "(Wiśniewska 2011, p. 45)"; Open Source opens the card of the source. Sources, first in
+  Materials of the Navigator (in italics, with its number), opens the list of all the
+  materials with a description: material, kind of source, author, title, year, in the
+  bibliography, in the text; Copy Entries copies the entries of the sources shown, in the
+  style of the book. The list of the quotes has the column Source. The styles: PN-ISO 690
+  (at first), APA, Chicago, MLA and Harvard; the reference: author and year (at first),
+  author and title, or number (Settings > Materials > Sources). A book may have its own style
+  (Properties of the book > Bibliography). The kind Source of non-fiction is retired: books
+  that have one keep it. In the book file: `source`, `bookmarks`, `lastPage` and `quote` of
+  a material, `bibliographyStyle` of a book; fields the program does not know are kept.
+
 - **Fields** - 2026-11-13. Insert > Field... inserts a value that changes by itself: the title
   of the book, its author, the title of the text (named after its kind: "Chapter Title"), the
   page number, the page count, the word count of the text and the date, each in its formats

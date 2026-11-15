@@ -75,6 +75,7 @@ public:
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
     static constexpr const char* NAVIGATOR_PAGE = "navigator";       ///< Navigator
+    static constexpr const char* MATERIALS_PAGE = "materials";       ///< Materials
     static constexpr const char* STATS_BAR_PAGE = "stats.bar";       ///< Statistics > Bar and Panel
     static constexpr const char* STATS_COUNTING_PAGE = "stats.counting";  ///< Statistics > Counting
     static constexpr const char* STATS_NOTIFICATIONS_PAGE = "stats.notifications";  ///< > Notifications
@@ -116,7 +117,8 @@ public:
     /// FIELDS_PAGE (the gear of Insert > Field...), SPELLING_PAGE (the gear of the Spelling and
     /// Grammar panel), VERSIONS_PAGE (the gear of the versions), REPETITIONS_PAGE (the gear of
     /// the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel),
-    /// NAVIGATOR_PAGE (the gear of a list of materials) or SHORTCUTS_PAGE (as
+    /// NAVIGATOR_PAGE (the gear of a list of materials), MATERIALS_PAGE (the gear of the entry
+    /// of a source) or SHORTCUTS_PAGE (as
     /// showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);

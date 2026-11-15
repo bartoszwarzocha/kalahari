@@ -6,6 +6,8 @@
 
 #include "kalahari/gui/material_file.h"
 
+#include "kalahari/gui/pdf_files.h"
+
 #include <QFileInfo>
 #include <QImageReader>
 #include <QLocale>
@@ -34,6 +36,17 @@ MaterialFile MaterialFile::of(const QString& path) {
         return file;
     }
     file.bytes = info.size();
+
+    // A PDF file shows its pages, also where an image plugin of Qt PDF would read it
+    if (PdfFiles::isPdf(path)) {
+        file.pdf = true;
+        file.format = QStringLiteral("PDF");
+        if (PdfFiles::previewAvailable()) {
+            file.pages = PdfFiles::pageCount(path, &file.readError);
+            file.readable = file.pages > 0;
+        }
+        return file;
+    }
 
     const QMimeType type = QMimeDatabase().mimeTypeForFile(info);
     file.picture = type.name().startsWith(QLatin1String("image/"));
@@ -71,6 +84,10 @@ QString MaterialFile::summary() const {
         //: The size of a picture in pixels: %1 the width, %2 the height. In Polish: %1 × %2 px
         parts << tr("%1 × %2 px").arg(size.width()).arg(size.height());
     }
+    if (pages > 0) {
+        //: The pages of a PDF file. In Polish: %n strona / %n strony / %n stron
+        parts << tr("%n page(s)", nullptr, pages);
+    }
     if (exists) {
         parts << QLocale().formattedDataSize(bytes, bytes < MEGABYTE ? 0 : 1,
                                              QLocale::DataSizeTraditionalFormat);
@@ -82,6 +99,10 @@ QString MaterialFile::problem() const {
     if (!exists) {
         //: In Polish: Pliku nie ma w folderze książki.
         return tr("The file is not in the book's folder.");
+    }
+    if (pdf) {
+        // Without the Qt PDF module the file opens in the system program, as it should
+        return readable || !PdfFiles::previewAvailable() ? QString() : readError;
     }
     if (!picture || readable) {
         return {};
@@ -101,6 +122,15 @@ QString MaterialFile::problem() const {
 }
 
 QImage readPicture(const QString& path, int rotation, const QSize& bounds, QString* error) {
+    // A PDF file: its first page
+    if (PdfFiles::isPdf(path)) {
+        const bool sideways = rotation == 90 || rotation == 270;
+        QImage page = PdfFiles::firstPage(path, sideways ? bounds.transposed() : bounds, error);
+        if (!page.isNull() && rotation != 0) {
+            page = page.transformed(QTransform().rotate(rotation), Qt::SmoothTransformation);
+        }
+        return page;
+    }
     QImageReader reader(path);
     reader.setAutoTransform(true);
     // The size of the picture as it is shown, turned by its own metadata and by @p rotation
