@@ -459,10 +459,10 @@ private:
     // All actions are dynamically created from Command structs
 
     // Menus
-    QMenu* m_fileMenu;
-    QMenu* m_editMenu;
-    QMenu* m_viewMenu;
-    QMenu* m_helpMenu;
+    QMenu* m_fileMenu = nullptr;
+    QMenu* m_editMenu = nullptr;
+    QMenu* m_viewMenu = nullptr;
+    QMenu* m_helpMenu = nullptr;
 
     // Toolbars (Task #00019)
     std::unique_ptr<ToolbarManager> m_toolbarManager;
@@ -471,10 +471,10 @@ private:
     std::unique_ptr<MenuBuilder> m_menuBuilder;
 
     // Dock/panel coordinator (OpenSpec #00038 Phase 4)
-    DockCoordinator* m_dockCoordinator;  ///< Manages dock widgets and panels
+    DockCoordinator* m_dockCoordinator = nullptr;  ///< Manages dock widgets and panels
 
     // First show flag (for geometry restore)
-    bool m_firstShow;
+    bool m_firstShow = true;
 
     /// The first window of the program (setFirstWindow())
     bool m_firstWindow = false;
@@ -501,16 +501,20 @@ private:
     QString m_startupFile;
 
     // Diagnostic/Dev mode controller (OpenSpec #00038)
-    DiagnosticController* m_diagnosticController;  ///< Manages diagnostic/dev mode and menus
+    DiagnosticController* m_diagnosticController = nullptr;  ///< Manages diagnostic/dev mode
+                                                             ///< and menus
 
     // Settings coordinator (OpenSpec #00038 Phase 5)
-    SettingsCoordinator* m_settingsCoordinator;  ///< Manages settings dialog and application
+    SettingsCoordinator* m_settingsCoordinator = nullptr;  ///< Manages settings dialog and
+                                                           ///< application
 
     // Navigator coordinator (OpenSpec #00038 Phase 6)
-    NavigatorCoordinator* m_navigatorCoordinator;  ///< Manages navigator panel interactions
+    NavigatorCoordinator* m_navigatorCoordinator = nullptr;  ///< Manages navigator panel
+                                                             ///< interactions
 
     // Document coordinator (OpenSpec #00038 Phase 7)
-    DocumentCoordinator* m_documentCoordinator;  ///< Manages document lifecycle and file operations
+    DocumentCoordinator* m_documentCoordinator = nullptr;  ///< Manages document lifecycle and
+                                                           ///< file operations
 
     /// @brief The annotation commands and the Annotations panel
     AnnotationsCoordinator* m_annotationsCoordinator{nullptr};
