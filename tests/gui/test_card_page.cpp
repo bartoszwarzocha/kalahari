@@ -37,6 +37,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QAction>
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCompleter>
@@ -168,6 +169,17 @@ void loseKeys(QWidget* widget) {
 void getKeys(QWidget* widget) {
     QFocusEvent event(QEvent::FocusIn, Qt::TabFocusReason);
     QCoreApplication::sendEvent(widget, &event);
+}
+
+/// No field of @p page has the keys: the test gives them the keys and the focus events
+/// itself. A window that becomes active gives the keys to its first field when the system
+/// activates it (macOS to the name, the first field that takes them with Tab there), and a
+/// field with the keys keeps what it shows while the card changes elsewhere
+void takeKeysOff(const QWidget& page) {
+    if (QWidget* focused = QApplication::focusWidget();
+        focused != nullptr && page.isAncestorOf(focused)) {
+        focused->clearFocus();
+    }
 }
 
 /// The names that the line of a field of the type "card" suggests now
@@ -560,6 +572,7 @@ TEST_CASE("Card: the short card shows the fields of its kind marked for the Prop
     CHECK(titles.size() == 1);
 
     // A change made elsewhere shows at once
+    takeKeysOff(page);
     REQUIRE(pm.setCardValue(anna, QStringLiteral("age"), QStringLiteral("30")));
     CHECK(age->text() == QStringLiteral("30"));
     REQUIRE(pm.setCardValue(anna, QStringLiteral("role"), QStringLiteral("minor")));
@@ -583,6 +596,7 @@ TEST_CASE("Card: the short card shows the fields of its kind marked for the Prop
     const QString manifest = pm.getManifestPath();
     REQUIRE(pm.closeProject(false));
     REQUIRE(pm.openProject(manifest));
+    takeKeysOff(page);
     page.showCard(anna);
     CHECK(page.nameEdit()->text() == QStringLiteral("Anka"));
     CHECK(page.shortEdit()->toPlainText() == QStringLiteral("A painter."));
