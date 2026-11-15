@@ -20,6 +20,10 @@ class Hunspell;  // hunspell/hunspell.hxx
 class QThread;
 class QTimer;
 
+namespace kalahari::core {
+class AffixExpander;
+}
+
 namespace kalahari::editor {
 
 /// @brief A misspelled word of a text
@@ -155,6 +159,14 @@ public:
     ///        (chooseBaseForm()); empty without a dictionary or for a word it does not know
     QStringList stems(const QString& word) const;
 
+    /// @brief Every form of every word of the dictionary that @p word is a form of
+    ///        ("powiedział" -> "powiedział", "powiedziała", "powiedzieli"...), for the search of
+    ///        all forms; empty without a dictionary or for a word it does not know
+    ///
+    /// The forms come from the dictionary's files (core::AffixExpander), read the first time
+    /// they are asked for.
+    [[nodiscard]] QStringList relatedForms(const QString& word) const;
+
     /// @brief The misspelled words of a text (one paragraph), in their order
     /// @param alsoRight Words right besides those of the dictionary (none: no others); a
     ///        hyphenated word it takes as a whole is right with its parts
@@ -273,6 +285,10 @@ private:
     QTimer* m_retireTimer;                             ///< Destroys them a little later
 
     std::shared_ptr<OwnWords> m_ownWords;  ///< The writer's own words
+
+    /// The forms of the words of m_expanderDictionary (relatedForms())
+    mutable std::unique_ptr<core::AffixExpander> m_expander;
+    mutable QString m_expanderDictionary;  ///< The dictionary m_expander has read
 };
 
 }  // namespace kalahari::editor

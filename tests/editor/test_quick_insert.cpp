@@ -23,11 +23,36 @@ namespace {
 
 QuickInsertItem card(const QString& name) {
     return {QuickInsertSource::Card, name, name, QStringLiteral("character"),
-            QStringLiteral("Characters")};
+            QStringLiteral("Characters"), QString(), {}};
 }
 
 QuickInsertItem fragment(const QString& name, const QString& text) {
-    return {QuickInsertSource::Fragment, name, text, text, QStringLiteral("Text Fragments")};
+    return {QuickInsertSource::Fragment, name, text, text, QStringLiteral("Text Fragments"),
+            QString(), {}};
+}
+
+/// A name of the book's dictionary with its forms; @p owner: the name it is another name of
+QuickInsertItem name(const QString& text, const QList<QuickInsertForm>& forms,
+                     const QString& owner = {}) {
+    const QString detail = owner.isEmpty() ? QStringLiteral("character") : owner;
+    return {QuickInsertSource::Name, text, text, detail, QStringLiteral("Characters"), owner,
+            forms};
+}
+
+/// Anna Wolska, and Anna, her first name alone
+QList<QuickInsertItem> annaWolska() {
+    const auto form = [](const char* text, const char* cases) {
+        return QuickInsertForm{QString::fromUtf8(text), QString::fromUtf8(cases)};
+    };
+    return {name(QStringLiteral("Anna Wolska"),
+                 {form("Anna Wolska", "nominative"), form("Anny Wolskiej", "genitive"),
+                  form("Annie Wolskiej", "dative, locative"), form("Annę Wolską", "accusative"),
+                  form("Anną Wolską", "instrumental"), form("Anno Wolska", "vocative")}),
+            name(QStringLiteral("Anna"),
+                 {form("Anna", "nominative"), form("Anny", "genitive"),
+                  form("Annie", "dative, locative"), form("Annę", "accusative"),
+                  form("Anną", "instrumental"), form("Anno", "vocative")},
+                 QStringLiteral("Anna Wolska"))};
 }
 
 QStringList namesOf(const QList<QuickInsertItem>& items) {
@@ -268,4 +293,96 @@ TEST_CASE("Quick insert: a read-only text opens no list", "[editor][quickinsert]
     f.type(QStringLiteral("@"));
     f.quick->openAtCursor();
     CHECK_FALSE(f.quick->isOpen());
+}
+
+TEST_CASE("Quick insert: the letters find the forms of names", "[editor][quickinsert]") {
+    const QList<QuickInsertItem> names = annaWolska();
+
+    // The letters of a name find it with its forms; the whole name first
+    CHECK(namesOf(matchQuickInsert(names, QStringLiteral("an"))) ==
+          QStringList{QStringLiteral("Anna Wolska"), QStringLiteral("Anna")});
+    CHECK(namesOf(matchQuickInsert(names, QStringLiteral("anna"))) ==
+          QStringList{QStringLiteral("Anna"), QStringLiteral("Anna Wolska")});
+    CHECK(matchQuickInsert(names, QStringLiteral("an")).at(0).forms.size() == 6);
+
+    // Those of a form find the form, with its case and the name it is a form of
+    const QList<QuickInsertItem> accusative = matchQuickInsert(names, QStringLiteral("annę"));
+    REQUIRE(namesOf(accusative) ==
+            QStringList{QStringLiteral("Annę"), QStringLiteral("Annę Wolską")});
+    CHECK(accusative.at(0).text == QStringLiteral("Annę"));
+    CHECK(accusative.at(0).detail == QStringLiteral("accusative · Anna (Anna Wolska)"));
+    CHECK(accusative.at(0).forms.isEmpty());
+    CHECK(accusative.at(1).detail == QStringLiteral("accusative · Anna Wolska"));
+
+    // As typed before without the marks of the letters: "wolską" is not "Wolska"
+    CHECK(namesOf(matchQuickInsert(names, QStringLiteral("wolską"))) ==
+          QStringList{QStringLiteral("Annę Wolską"), QStringLiteral("Anną Wolską")});
+    CHECK(namesOf(matchQuickInsert(names, QStringLiteral("anne"))) ==
+          QStringList{QStringLiteral("Annę"), QStringLiteral("Annę Wolską")});
+    CHECK(matchQuickInsert(names, QStringLiteral("annx")).isEmpty());
+
+    // A form in several cases is one item
+    CHECK(namesOf(matchQuickInsert(names, QStringLiteral("annie"))) ==
+          QStringList{QStringLiteral("Annie"), QStringLiteral("Annie Wolskiej")});
+}
+
+TEST_CASE("Quick insert: Right shows the forms of a name, Left the list again",
+          "[editor][quickinsert]") {
+    Fixture f({QStringLiteral("Czy ktoś widział ")});
+    f.cards = annaWolska();
+    f.editor->setCursorPosition({0, 17});
+    f.type(QStringLiteral("@an"));
+    REQUIRE(f.quick->isOpen());
+    QuickInsertList* list = f.quick->list();
+    CHECK(list->hasForms());
+    CHECK_FALSE(list->showsForms());
+
+    f.press(Qt::Key_Right);
+    REQUIRE(list->showsForms());
+    CHECK(f.shown() == QStringList{QStringLiteral("Anna Wolska"), QStringLiteral("Anny Wolskiej"),
+                                   QStringLiteral("Annie Wolskiej"), QStringLiteral("Annę Wolską"),
+                                   QStringLiteral("Anną Wolską"), QStringLiteral("Anno Wolska")});
+    CHECK(list->current() == 0);
+    CHECK(list->items().at(2).detail == QStringLiteral("dative, locative"));
+    CHECK(f.editor->plainText() == QStringLiteral("Czy ktoś widział @an"));  // the cursor stays
+
+    // Left: the list again, the name whose forms were shown chosen
+    f.press(Qt::Key_Down);
+    f.press(Qt::Key_Left);
+    CHECK_FALSE(list->showsForms());
+    CHECK(f.shown() == QStringList{QStringLiteral("Anna Wolska"), QStringLiteral("Anna")});
+    CHECK(list->current() == 0);
+
+    // Enter inserts the form chosen in place of @an
+    f.press(Qt::Key_Down);
+    f.press(Qt::Key_Right);
+    CHECK(f.shown().at(3) == QStringLiteral("Annę"));
+    for (int step = 0; step < 3; ++step) {
+        f.press(Qt::Key_Down);
+    }
+    f.press(Qt::Key_Return);
+    CHECK_FALSE(f.quick->isOpen());
+    CHECK(f.editor->plainText() == QStringLiteral("Czy ktoś widział Annę"));
+
+    // A letter typed while the forms are shown narrows the list again
+    f.type(QStringLiteral(" i @an"));
+    f.press(Qt::Key_Right);
+    REQUIRE(list->showsForms());
+    f.type(QStringLiteral("n"));
+    CHECK_FALSE(list->showsForms());
+    CHECK(f.shown() == QStringList{QStringLiteral("Anna Wolska"), QStringLiteral("Anna")});
+}
+
+TEST_CASE("Quick insert: without forms Right and Left move the cursor in the text",
+          "[editor][quickinsert]") {
+    Fixture f({QStringLiteral("zapytał ")});
+    f.editor->setCursorPosition({0, 8});
+    f.type(QStringLiteral("@an"));
+    REQUIRE(f.quick->isOpen());
+    CHECK_FALSE(f.quick->list()->hasForms());
+    CHECK_FALSE(f.quick->list()->showForms());
+    f.press(Qt::Key_Left);
+    CHECK(f.editor->cursorPosition() == CursorPosition{0, 10});
+    CHECK(f.quick->isOpen());
+    CHECK(f.shown() == QStringList{QStringLiteral("Anna Wolska"), QStringLiteral("Jan Anioł")});
 }

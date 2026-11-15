@@ -57,6 +57,7 @@
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
+#include "kalahari/editor/search_forms.h"
 #include "kalahari/editor/view_modes.h"
 #include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/editor_appearance.h"
@@ -854,6 +855,13 @@ MainWindow::MainWindow(QWidget* parent)
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookLanguageChanged,
             m_spellingCoordinator, &SpellingCoordinator::updateDictionary);
     m_settingsCoordinator->setSpellCheckService(m_spellingCoordinator->service());
+    // The option of all forms of Find in Book: the forms of the names of the book's dictionary
+    // and of the words of the spelling dictionary of its chapters
+    m_bookSearchCoordinator->setFormsOf([this](const QString& text) {
+        return editor::formsToFind(
+            text, &m_book->bookDictionary(),
+            m_spellingCoordinator != nullptr ? m_spellingCoordinator->service() : nullptr);
+    });
 
     // Grammar as you type, in the spelling's language: on LanguageTool the program prepares
     // on this computer, or on a server in the internet the writer chose

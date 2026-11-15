@@ -4014,6 +4014,21 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Use Regular Expression (%1)</source>
         <translation>Wyrażenie regularne (%1)</translation>
     </message>
+    <message>
+        <source>Forms</source>
+        <extracomment>The option of the find bar that finds every form of a word or a name, short. In Polish: Odm</extracomment>
+        <translation>Odm</translation>
+    </message>
+    <message>
+        <source>All Forms (%1)</source>
+        <extracomment>In Polish: Wszystkie odmiany (%1)</extracomment>
+        <translation>Wszystkie odmiany (%1)</translation>
+    </message>
+    <message>
+        <source>Replace All is off while all forms are found: one replacement of every form would break the declension</source>
+        <extracomment>The tooltip of Replace All of the find bar while it finds all forms</extracomment>
+        <translation>Przy wyszukiwaniu wszystkich odmian „Zamień wszystko” jest wyłączone – jedna zamiana wszystkich form zepsułaby odmianę</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::KalahariTextDocumentLayout</name>
@@ -4933,6 +4948,11 @@ Why Replace All in Book is greyed out. In Polish: Żadna książka nie jest otwa
         <source>The texts are as they were before the replacement.</source>
         <extracomment>In Polish: Teksty są takie jak przed zamianą.</extracomment>
         <translation>Teksty są takie jak przed zamianą.</translation>
+    </message>
+    <message>
+        <source>Replace All in Book is off while all forms are found: one replacement of every form would break the declension</source>
+        <extracomment>Why Replace All in Book is greyed out while the search finds all forms (&quot;Odm&quot;)</extracomment>
+        <translation>Przy wyszukiwaniu wszystkich odmian „Zamień wszystko w książce” jest wyłączone – jedna zamiana wszystkich form zepsułaby odmianę</translation>
     </message>
 </context>
 <context>
@@ -10990,6 +11010,15 @@ Szczegóły są w dzienniku programu.</translation>
         <source>Replace all the matches in all the texts of the book</source>
         <extracomment>The tooltip of Replace All in Book. In Polish: Zamień wszystkie trafienia we wszystkich tekstach książki</extracomment>
         <translation>Zamień wszystkie trafienia we wszystkich tekstach książki</translation>
+    </message>
+    <message>
+        <source>Forms</source>
+        <extracomment>The option that finds every form of a word or a name, short; its tooltip. In Polish: Odm / Wszystkie odmiany (%1)</extracomment>
+        <translation>Odm</translation>
+    </message>
+    <message>
+        <source>All Forms (%1)</source>
+        <translation>Wszystkie odmiany (%1)</translation>
     </message>
 </context>
 <context>
@@ -20638,6 +20667,98 @@ Notatka: %2</translation>
     </message>
 </context>
 <context>
+    <name>NameLabels</name>
+    <message>
+        <source>nominative</source>
+        <extracomment>A grammatical case of a name; in Polish: mianownik</extracomment>
+        <translation>mianownik</translation>
+    </message>
+    <message>
+        <source>genitive</source>
+        <extracomment>In Polish: dopełniacz</extracomment>
+        <translation>dopełniacz</translation>
+    </message>
+    <message>
+        <source>dative</source>
+        <extracomment>In Polish: celownik</extracomment>
+        <translation>celownik</translation>
+    </message>
+    <message>
+        <source>accusative</source>
+        <extracomment>In Polish: biernik</extracomment>
+        <translation>biernik</translation>
+    </message>
+    <message>
+        <source>instrumental</source>
+        <extracomment>In Polish: narzędnik</extracomment>
+        <translation>narzędnik</translation>
+    </message>
+    <message>
+        <source>locative</source>
+        <extracomment>In Polish: miejscownik</extracomment>
+        <translation>miejscownik</translation>
+    </message>
+    <message>
+        <source>vocative</source>
+        <extracomment>In Polish: wołacz</extracomment>
+        <translation>wołacz</translation>
+    </message>
+    <message>
+        <source>%1 plural</source>
+        <extracomment>A grammatical case (%1, &quot;genitive&quot;) in the plural; in Polish: %1 lm.</extracomment>
+        <translation>%1 lm.</translation>
+    </message>
+    <message>
+        <source>plural</source>
+        <extracomment>The number of a form of a name, in a language without cases</extracomment>
+        <translation>liczba mnoga</translation>
+    </message>
+    <message>
+        <source>singular</source>
+        <translation>liczba pojedyncza</translation>
+    </message>
+    <message>
+        <source>character</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a person or another being of the story</extracomment>
+        <translation>postać</translation>
+    </message>
+    <message>
+        <source>location</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a place</extracomment>
+        <translation>miejsce</translation>
+    </message>
+    <message>
+        <source>item</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a thing</extracomment>
+        <translation>przedmiot</translation>
+    </message>
+    <message>
+        <source>name</source>
+        <extracomment>What a name of the book&apos;s dictionary names: a people, an order, an event</extracomment>
+        <translation>nazwa</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <extracomment>The heading of the characters of the book in a list</extracomment>
+        <translation type="unfinished">Znaki</translation>
+    </message>
+    <message>
+        <source>Locations</source>
+        <extracomment>The heading of the places of the book in a list</extracomment>
+        <translation>Miejsca</translation>
+    </message>
+    <message>
+        <source>Items</source>
+        <extracomment>The heading of the things of the book in a list</extracomment>
+        <translation>Przedmioty</translation>
+    </message>
+    <message>
+        <source>Other Names</source>
+        <extracomment>The heading of the other proper names of the book in a list</extracomment>
+        <translation>Inne nazwy</translation>
+    </message>
+</context>
+<context>
     <name>kalahari::gui::dialogs::LinkDialog</name>
     <message>
         <source>Link Material &quot;%1&quot;</source>
@@ -24307,10 +24428,6 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <translation>Otwieraj listę po @ albo #</translation>
     </message>
     <message>
-        <source>Names from the cards of the Workshop</source>
-        <translation>Imiona i nazwy z kart Warsztatu</translation>
-    </message>
-    <message>
         <source>Text fragments</source>
         <translation>Fragmenty tekstu</translation>
     </message>
@@ -24373,8 +24490,12 @@ The special indent: none, first line, hanging. In Polish: (brak), Pierwszy wiers
         <translation>Przywróć domyślne &amp;znaki</translation>
     </message>
     <message>
-        <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the cards are those of the book open; they need no list here.</source>
-        <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
+        <source>Names from the book dictionary (and the cards)</source>
+        <translation>Imiona i nazwy ze słownika książki (i z kart)</translation>
+    </message>
+    <message>
+        <source>Type # and the first letters of a name at the start of a word to insert its text. The names of the book dictionary and of the cards are those of the book open; they need no list here.</source>
+        <translation>Wpisz # i pierwsze litery nazwy na początku słowa, żeby wstawić jej tekst. Imiona i nazwy ze słownika książki i z kart pochodzą z otwartej książki; nie trzeba ich tu dopisywać.</translation>
     </message>
 </context>
 <context>
@@ -24716,6 +24837,21 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Inserts: %1</source>
         <extracomment>Quick insert: what the chosen item puts in the text</extracomment>
         <translation>Wstawia: %1</translation>
+    </message>
+    <message>
+        <source>%1 – forms</source>
+        <extracomment>Quick insert: the heading of the forms of a name (%1, &quot;Anna Wolska&quot;) in the list</extracomment>
+        <translation>%1 – odmiany</translation>
+    </message>
+    <message>
+        <source>↑↓ choose · ← back to the list · Enter, Tab insert · Esc leaves “%1”</source>
+        <extracomment>Quick insert: the keys of the forms of a name; %1 is what was typed in the text (&quot;@an&quot;)</extracomment>
+        <translation>↑↓ wybór · ← powrót do listy · Enter, Tab wstawia · Esc zostawia „%1”</translation>
+    </message>
+    <message>
+        <source>↑↓ choose · → forms · Enter, Tab insert · Esc leaves “%1”</source>
+        <extracomment>Quick insert: the keys of a list with names that have forms (▸); %1 is what was typed in the text (&quot;@an&quot;)</extracomment>
+        <translation>↑↓ wybór · → odmiany · Enter, Tab wstawia · Esc zostawia „%1”</translation>
     </message>
 </context>
 <context>

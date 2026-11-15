@@ -62,6 +62,7 @@ set(TEST_SOURCES
     editor/test_grammar.cpp                 # Grammar as you type in the editor
     editor/test_spelling.cpp                # Spelling as you type in the editor
     editor/test_book_dictionary_checking.cpp  # Chapters checked with the book's dictionary too
+    editor/test_search_forms.cpp            # The search of all forms of a name or a word
     editor/test_text_issues.cpp             # The misspelled words and grammar issues as one list
     editor/test_book_editor_integration.cpp # Task 7.18: Integration tests
     editor/test_buffer_commands.cpp        # Cursor position helpers
@@ -304,6 +305,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/text_keys.cpp             # The keys of the text on each system
     ${CMAKE_SOURCE_DIR}/src/editor/auto_correct.cpp          # Autocorrect: the changes of the text as it is typed
     ${CMAKE_SOURCE_DIR}/src/editor/search_engine.cpp        # OpenSpec #00044 Task 9.4: SearchEngine
+    ${CMAKE_SOURCE_DIR}/src/editor/search_forms.cpp         # The forms of the search of all forms
     ${CMAKE_SOURCE_DIR}/src/editor/kml_document_model.cpp  # KML reader
     ${CMAKE_SOURCE_DIR}/src/editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout
     ${CMAKE_SOURCE_DIR}/src/editor/kalahari_text_document_layout_notes.cpp  # The layout of the notes
@@ -457,6 +459,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/color_palettes.cpp           # The palettes of the color window
     ${CMAKE_SOURCE_DIR}/src/gui/section_words.cpp                    # Parts of the book in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
+    ${CMAKE_SOURCE_DIR}/src/gui/name_labels.cpp                      # Cases and kinds of names
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
     ${CMAKE_SOURCE_DIR}/src/gui/quick_insert_items.cpp               # What quick insert offers
     ${CMAKE_SOURCE_DIR}/src/gui/read_only_book.cpp                   # A book open read-only

@@ -6,15 +6,18 @@
 
 #include "kalahari/gui/quick_insert_items.h"
 
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/name_labels.h"
 
 #include <QCoreApplication>
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -55,10 +58,84 @@ void addCards(const QList<core::ProjectElement>& elements, const core::BookTypeR
             const QString title = element.title.trimmed();
             cards.append({editor::QuickInsertSource::Card, title, title,
                           wordsOf(kind).form(QStringLiteral("singular")),
-                          kind.kind->plural.text(language)});
+                          kind.kind->plural.text(language), QString(), {}});
         }
         addCards(element.elements, registry, cards);  // the cards in its groups
     }
+}
+
+/// @brief Each group in one place, the groups in the order of their first item
+void sortByGroup(QList<editor::QuickInsertItem>& items) {
+    QStringList groups;
+    for (const editor::QuickInsertItem& item : items) {
+        if (!groups.contains(item.group)) {
+            groups.append(item.group);
+        }
+    }
+    std::ranges::stable_sort(items, std::ranges::less{},
+                             [&groups](const editor::QuickInsertItem& item) {
+                                 return groups.indexOf(item.group);
+                             });
+}
+
+/// @brief A form of a name with the cases it is the form of
+struct FormCases {
+    QString text;
+    QStringList cases;
+};
+
+/// @brief Add the forms of a cell (named @p label) to @p forms, each once
+void addCell(const QStringList& cell, const QString& label, QList<FormCases>& forms) {
+    for (const QString& form : cell) {
+        if (form.isEmpty()) {
+            continue;
+        }
+        const auto found = std::ranges::find(forms, form, &FormCases::text);
+        if (found == forms.end()) {
+            forms.append({form, {label}});
+        } else if (!found->cases.contains(label)) {
+            found->cases.append(label);
+        }
+    }
+}
+
+/// @brief Whether a table has forms only in the nominative: the forms of a language without
+///        cases, named by their number
+bool onlyNominative(const core::FormTable& forms) {
+    return std::ranges::all_of(core::FormTable::allCases(), [&forms](core::GrammaticalCase cell) {
+        return cell == core::GrammaticalCase::Nominative ||
+               (forms.cell(cell, false).isEmpty() && forms.cell(cell, true).isEmpty());
+    });
+}
+
+/// @brief The item of a variant of a name of the dictionary; @p itself: the name itself
+editor::QuickInsertItem variantItem(const core::DictionaryName& name,
+                                    const core::NameVariant& variant, bool itself) {
+    editor::QuickInsertItem item;
+    item.source = editor::QuickInsertSource::Name;
+    item.name = variant.text.trimmed();
+    item.text = item.name;
+    item.group = nameKindGroup(name.kind);
+    item.owner = itself ? QString() : name.text();
+    item.detail = itself ? nameKindLabel(name.kind) : item.owner;
+    item.forms = quickInsertForms(variant, name.plural);
+    return item;
+}
+
+/// @brief The names of the dictionary and the cards of the book open in @p book; a card
+///        whose name the dictionary has is left to it
+QList<editor::QuickInsertItem> nameItems(const core::ProjectManager& book) {
+    const core::BookDictionary& dictionary = book.bookDictionary();
+    QList<editor::QuickInsertItem> names = dictionaryItems(dictionary);
+    if (const core::BookProject* project = book.project()) {
+        for (const editor::QuickInsertItem& card : cardItems(*project, book.bookTypes())) {
+            if (dictionary.findNameWithText(card.name) == nullptr) {
+                names.append(card);
+            }
+        }
+    }
+    sortByGroup(names);
+    return names;
 }
 
 }  // namespace
@@ -154,18 +231,50 @@ QList<editor::QuickInsertItem> cardItems(const core::BookProject& project,
                                          const core::BookTypeRegistry& registry) {
     QList<editor::QuickInsertItem> cards;
     addCards(project.elementsIn(core::BookPlace::Workshop), registry, cards);
-    // Each kind in one group, the kinds in the order of their first card
-    QStringList groups;
-    for (const editor::QuickInsertItem& card : cards) {
-        if (!groups.contains(card.group)) {
-            groups.append(card.group);
+    sortByGroup(cards);  // each kind in one group, the kinds in the order of their first card
+    return cards;
+}
+
+QList<editor::QuickInsertForm> quickInsertForms(const core::NameVariant& variant,
+                                                bool withPlural) {
+    const bool byNumber = onlyNominative(variant.forms);
+    QList<FormCases> found;
+    for (const bool inPlural : {false, true}) {
+        if (inPlural && !withPlural) {
+            break;
+        }
+        for (const core::GrammaticalCase cell : core::FormTable::allCases()) {
+            addCell(variant.forms.cell(cell, inPlural),
+                    byNumber ? numberLabel(inPlural) : caseLabel(cell, inPlural), found);
         }
     }
-    std::stable_sort(cards.begin(), cards.end(),
-                     [&groups](const editor::QuickInsertItem& a, const editor::QuickInsertItem& b) {
-                         return groups.indexOf(a.group) < groups.indexOf(b.group);
-                     });
-    return cards;
+    if (found.size() < 2) {
+        return {};  // A single form: nothing to choose
+    }
+    QList<editor::QuickInsertForm> forms;
+    forms.reserve(found.size());
+    for (const FormCases& form : found) {
+        forms.append({form.text, form.cases.join(QStringLiteral(", "))});
+    }
+    return forms;
+}
+
+QList<editor::QuickInsertItem> dictionaryItems(const core::BookDictionary& dictionary) {
+    QList<editor::QuickInsertItem> items;
+    for (const core::DictionaryName& name : dictionary.names()) {
+        if (!name.quickInsert) {
+            continue;
+        }
+        bool itself = true;
+        for (const core::NameVariant& variant : name.variants) {
+            if (!variant.text.trimmed().isEmpty()) {
+                items.append(variantItem(name, variant, itself));
+            }
+            itself = false;
+        }
+    }
+    sortByGroup(items);
+    return items;
 }
 
 QString quickInsertTriggers() {
@@ -197,9 +306,7 @@ QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book
 
     QList<editor::QuickInsertItem> items;
     if (sources.contains(QLatin1String(quick_insert_keys::SOURCE_CARDS))) {
-        if (const core::BookProject* project = book.project()) {
-            items.append(cardItems(*project, book.bookTypes()));
-        }
+        items.append(nameItems(book));
     }
     const bool fragments = sources.contains(QLatin1String(quick_insert_keys::SOURCE_FRAGMENTS));
     const bool characters = sources.contains(QLatin1String(quick_insert_keys::SOURCE_CHARACTERS));

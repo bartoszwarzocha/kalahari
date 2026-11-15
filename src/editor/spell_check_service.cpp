@@ -5,6 +5,7 @@
 /// @brief The spelling dictionary every editor checks its text with (Hunspell)
 
 #include <kalahari/editor/spell_check_service.h>
+#include <kalahari/core/affix_expander.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/resource_paths.h>
 
@@ -805,6 +806,22 @@ QStringList SpellCheckService::stems(const QString& word) const
         result.append(fromDictionary(stem));
     }
     return result;
+}
+
+QStringList SpellCheckService::relatedForms(const QString& word) const
+{
+    if (!m_inUse || word.isEmpty()) {
+        return {};
+    }
+    if (m_expander == nullptr || m_expanderDictionary != m_dictionary) {
+        const QString files = folderOf(m_dictionary) + QLatin1Char('/') + m_dictionary;
+        m_expander = std::make_unique<core::AffixExpander>();
+        m_expander->load(files + QStringLiteral(".aff"), files + QStringLiteral(".dic"));
+        m_expanderDictionary = m_dictionary;
+    }
+    QString asked = word;
+    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    return m_expander->relatedForms(asked);
 }
 
 bool SpellCheckService::isWordCorrect(const QString& word) const

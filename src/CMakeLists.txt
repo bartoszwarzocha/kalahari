@@ -191,6 +191,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
+    gui/name_labels.cpp    # The cases and kinds of the names of the book dictionary, in the program's language
     gui/cover_names.cpp    # The materials of the cover in the program's words
     gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters
     gui/read_only_book.cpp # What the program says of a book open read-only
@@ -401,6 +402,7 @@ set(KALAHARI_SOURCES
     editor/quick_insert_controller.cpp   # Quick insert: the list at the cursor of an editor
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
+    editor/search_forms.cpp              # The forms the search of all forms finds ("Odm")
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     editor/kalahari_text_document_layout_notes.cpp  # The layout of the notes: numbers, under paragraphs, at the bottom of pages
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
