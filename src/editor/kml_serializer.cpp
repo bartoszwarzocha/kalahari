@@ -14,6 +14,7 @@
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
@@ -640,7 +641,8 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     // Escape XML special characters in text content, a line break in the paragraph is the
     // element <br/>, an image the element <img/>; the annotations on places inside the run
     // go after their characters
-    // An object of the line is its element: an image, a caption's number, a cross-reference
+    // An object of the line is its element: an image, a caption's number, a cross-reference,
+    // a field
     QString objectElement;
     if (const std::optional<ImageProperties> image = imageOf(format)) {
         objectElement = imageKml(*image);
@@ -648,6 +650,8 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
         objectElement = captionNumberKml(*number);
     } else if (const std::optional<CrossReference> reference = crossReferenceOf(format)) {
         objectElement = crossReferenceKml(*reference);
+    } else if (const std::optional<TextField> field = textFieldOf(format)) {
+        objectElement = textFieldKml(*field);
     } else if (const std::optional<Footnote> note = footnoteOf(format)) {
         objectElement = noteKml(*note);
     }
