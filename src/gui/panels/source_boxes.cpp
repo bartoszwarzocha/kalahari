@@ -784,10 +784,10 @@ void BibliographyEntryBox::copyEntry() {
     if (clipboard == nullptr) {
         return;
     }
-    auto* data = new QMimeData();
-    data->setHtml(Bibliography::entry(m_source, m_title, style(), m_book.bookLanguage(), true));
-    data->setText(entryText());
-    clipboard->setMimeData(data);
+    auto* mime = new QMimeData();
+    mime->setHtml(Bibliography::entry(m_source, m_title, style(), m_book.bookLanguage(), true));
+    mime->setText(entryText());
+    clipboard->setMimeData(mime);
     //: %1: the style. In Polish: Skopiowano zapis (%1)
     emit message(tr("Entry copied (%1)").arg(Bibliography::styleName(style())));
 }

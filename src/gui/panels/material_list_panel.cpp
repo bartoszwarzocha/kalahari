@@ -1539,10 +1539,10 @@ void MaterialListPanel::copyEntries() {
     if (texts.isEmpty()) {
         return;
     }
-    auto* data = new QMimeData();
-    data->setHtml(rich.join(QString()));
-    data->setText(texts.join(QLatin1Char('\n')));
-    clipboard->setMimeData(data);
+    auto* mime = new QMimeData();
+    mime->setHtml(rich.join(QString()));
+    mime->setText(texts.join(QLatin1Char('\n')));
+    clipboard->setMimeData(mime);
     const auto count = static_cast<int>(texts.size());
     //: The status bar after Copy Entries of the list Sources; %1 the style. In Polish:
     //: Skopiowano zapisy: %n (%1)
