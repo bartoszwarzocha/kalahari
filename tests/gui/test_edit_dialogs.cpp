@@ -4,19 +4,24 @@
 /// @file test_edit_dialogs.cpp
 /// @brief The windows of the Edit menu: Paste Special... and Go To..., and their commands
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+
 #include "dialog_checks.h"
 #include "document_window.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/editor_appearance.h"
-#include "kalahari/editor/kalahari_text_document_layout.h"
+#include "kalahari/editor/text_places.h"
+#include "kalahari/editor/view_modes.h"
+#include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/edit_dialogs.h"
 #include "kalahari/gui/go_to_coordinator.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "test_support/window_parts.h"
 
 #include <QClipboard>
 #include <QGuiApplication>
@@ -29,11 +34,12 @@
 #include <QTextBlock>
 #include <QToolButton>
 
+#include <cstdio>
 #include <memory>
 #include <string>
-#include "test_support/window_parts.h"
 
-using namespace kalahari;
+namespace kalahari {
+
 using editor::ClipboardSource;
 using editor::PasteForm;
 using editor::PlaceKind;
@@ -159,7 +165,7 @@ TEST_CASE("Paste Special: the forms of the clipboard, the one Paste gives chosen
     data = PasteSpecialDialog::dataFor(*text, &own);
     CHECK(data.source == ClipboardSource::Kalahari);
     CHECK(data.chosen == PasteForm::Kalahari);
-    PasteSpecialDialog ownDialog(data);
+    const PasteSpecialDialog ownDialog(data);
     only<QListWidget>(ownDialog)->setCurrentRow(1);
     CHECK(test::textsOf(ownDialog).contains(
         QStringLiteral("Text copied in Kalahari comes without its annotations and images")));
@@ -184,7 +190,7 @@ TEST_CASE("Paste Special: the forms of the clipboard, the one Paste gives chosen
     CHECK(data.forms.empty());
     CHECK(data.whyNoImage ==
           QStringLiteral("Save the file first: its images are kept in a folder next to it"));
-    PasteSpecialDialog pictureDialog(data);
+    const PasteSpecialDialog pictureDialog(data);
     CHECK(only<QListWidget>(pictureDialog)->item(4)->toolTip() == data.whyNoImage);
     CHECK_FALSE(pictureDialog.acceptButton()->isEnabled());
 }
@@ -458,3 +464,5 @@ TEST_CASE("Go To and Paste Special: the windows in Polish, their keys, a small s
     gear->click();
     CHECK(openedPage == QString::fromLatin1(gui::SettingsDialog::PASTE_PAGE));
 }
+
+}  // namespace kalahari

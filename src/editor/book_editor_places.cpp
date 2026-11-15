@@ -6,19 +6,23 @@
 ///        tables and the annotations of the text
 
 #include <kalahari/editor/book_editor.h>
-#include "book_editor_internal.h"
+
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_images.h>
+#include <kalahari/editor/text_places.h>
+
 #include <QRegularExpression>
 #include <QTextBlock>
 #include <QTextFrame>
 #include <QTextTable>
 
 #include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <utility>
 #include <vector>

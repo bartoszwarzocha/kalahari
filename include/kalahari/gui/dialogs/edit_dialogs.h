@@ -4,7 +4,8 @@
 /// @file edit_dialogs.h
 /// @brief The windows of the Edit menu: Paste Special... and Go To...
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_EDIT_DIALOGS_H
+#define KALAHARI_GUI_DIALOGS_EDIT_DIALOGS_H
 
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/text_places.h"
@@ -143,3 +144,5 @@ private:
 };
 
 }  // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_EDIT_DIALOGS_H

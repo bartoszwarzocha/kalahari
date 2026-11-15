@@ -5,7 +5,8 @@
 /// @brief The places of a text Edit > Go To... goes to: the pages, the headings, the notes, the
 ///        images, the tables and the annotations
 
-#pragma once
+#ifndef KALAHARI_EDITOR_TEXT_PLACES_H
+#define KALAHARI_EDITOR_TEXT_PLACES_H
 
 #include <QString>
 
@@ -61,3 +62,5 @@ struct PlaceNumber {
 PlaceNumber placeNumberOf(const QString& text);
 
 }  // namespace kalahari::editor
+
+#endif  // KALAHARI_EDITOR_TEXT_PLACES_H

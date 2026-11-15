@@ -825,8 +825,10 @@ MainWindow::MainWindow(QWidget* parent)
     // stays open over the text that had the keys last
     m_goToCoordinator = new GoToCoordinator(
         *m_commands,
-        [this]() { return m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr; }, this,
-        this);
+        [this]() {
+            return m_editCoordinator != nullptr ? m_editCoordinator->textWithKeys() : nullptr;
+        },
+        this, this);
     m_goToCoordinator->connectCommands();
     m_editCoordinator->addTextCommands({GoToCoordinator::COMMAND},
                                        [](const editor::BookEditor&) { return true; });

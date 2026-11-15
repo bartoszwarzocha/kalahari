@@ -64,6 +64,7 @@
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
+#include <kalahari/editor/text_places.h>
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/gui/book_search_coordinator.h>

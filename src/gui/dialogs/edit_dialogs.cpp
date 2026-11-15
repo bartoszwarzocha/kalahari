@@ -8,6 +8,10 @@
 
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/clipboard_handler.h"
+#include "kalahari/editor/text_places.h"
+#include "kalahari/editor/view_modes.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/settings_dialog.h"
 
 #include <QClipboard>
@@ -15,11 +19,13 @@
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLatin1Char>
 #include <QLineEdit>
 #include <QListWidget>
 #include <QMimeData>
 #include <QPalette>
 #include <QPushButton>
+#include <QString>
 #include <QStringList>
 #include <QVBoxLayout>
 
@@ -27,6 +33,7 @@
 #include <array>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace kalahari::gui::dialogs {
 
@@ -252,8 +259,8 @@ void PasteSpecialDialog::addForms()
             item->setToolTip(whyNoForm(form, m_data));
         }
     }
-    const auto chosen = std::ranges::find(PASTE_FORMS, m_data.chosen);
-    m_forms->setCurrentRow(static_cast<int>(chosen - PASTE_FORMS.begin()));
+    const auto row = std::ranges::find(PASTE_FORMS, m_data.chosen) - PASTE_FORMS.begin();
+    m_forms->setCurrentRow(static_cast<int>(row));
     //: The list of the forms. In Polish: &Wklej jako
     addField(tr("Paste &as"), m_forms);
 

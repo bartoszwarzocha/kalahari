@@ -927,7 +927,7 @@ TEST_CASE("Images: files of pictures pasted or dropped become images, one after 
 
 TEST_CASE("Images: Paste Special pastes the picture of text, or the files of pictures",
           "[editor][images][clipboard][special]") {
-    BookFolder book;
+    const BookFolder book;
     QImage picture(QSize(16, 8), QImage::Format_RGB32);
     picture.fill(Qt::green);
 
@@ -951,7 +951,7 @@ TEST_CASE("Images: Paste Special pastes the picture of text, or the files of pic
     CHECK(editor->toKml() == QStringLiteral("<kml><p>acdb</p></kml>"));
 
     // Files of pictures
-    QTemporaryDir outside;
+    const QTemporaryDir outside;
     const QString red = pictureFile(outside, QStringLiteral("red.png"), QSize(8, 8), Qt::red);
     QMimeData files;
     files.setUrls({QUrl::fromLocalFile(red)});

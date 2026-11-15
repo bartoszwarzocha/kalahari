@@ -6,20 +6,27 @@
 ///        and the previous one
 
 #include <catch2/catch_test_macros.hpp>
+
+#include "editor_test_utils.h"
+
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/editor_appearance.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/text_places.h>
-#include "editor_test_utils.h"
+#include <kalahari/editor/view_modes.h>
 
 #include <QCoreApplication>
 #include <QTextBlock>
 #include <QTextDocument>
+
 #include <memory>
+#include <string>
 #include <vector>
 
-using namespace kalahari::editor;
-using namespace kalahari::test;
+namespace kalahari::editor {
+
+using test::kmlOf;
+using test::resizeWidget;
 
 namespace {
 
@@ -263,3 +270,5 @@ TEST_CASE("Go To: the pages of the page view, none in the continuous one", "[edi
     CHECK(editor->goToPlace(PlaceKind::Page, QString::number(pages)) == done(pages, pages));
     CHECK(editor->goToAdjacentPlace(PlaceKind::Page, true) == failed(GoToResult::NoFurther, pages));
 }
+
+}  // namespace kalahari::editor

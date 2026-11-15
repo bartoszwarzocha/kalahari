@@ -31,9 +31,9 @@
 #include <QDate>
 #include <QFile>
 #include <QGroupBox>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
-#include <QKeyEvent>
 #include <QTabWidget>
 #include <QTextDocument>
 #include <QTimer>
@@ -43,7 +43,6 @@
 
 #include <cstdio>
 #include <functional>
-#include <map>
 #include <optional>
 #include <string>
 #include <utility>

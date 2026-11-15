@@ -5,7 +5,8 @@
 /// @brief Edit > Go To...: the window of the places of the text, over the text that had the
 ///        keys last
 
-#pragma once
+#ifndef KALAHARI_GUI_GO_TO_COORDINATOR_H
+#define KALAHARI_GUI_GO_TO_COORDINATOR_H
 
 #include <QMetaObject>
 #include <QObject>
@@ -80,3 +81,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_GO_TO_COORDINATOR_H
