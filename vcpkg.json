@@ -38,12 +38,16 @@
           "name": "qttools",
           "version>=": "6.5.0",
           "default-features": false
-        },
+        }
+      ]
+    },
+    "pdf-preview": {
+      "description": "Qt PDF (qtwebengine with only its pdf feature) for the preview of PDF files in the program. Off by default, locally and in CI: its build takes hours and tens of GB. Without it a PDF opens in the system program",
+      "dependencies": [
         {
           "name": "qtwebengine",
           "default-features": false,
-          "features": ["pdf"],
-          "platform": "(windows & x64 & !static) | osx"
+          "features": ["pdf"]
         }
       ]
     }

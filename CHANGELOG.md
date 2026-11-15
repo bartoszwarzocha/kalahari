@@ -31,8 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   selection and of the hits are the editor's (Settings > Editor > Colors). The opening of
   pictures and pages on the web moved from Settings > Navigator to Settings > Materials.
   Without the Qt PDF module a PDF opens in the system program and the options of the
-  preview are dimmed. Linux needs the package `qt6-pdf-dev`; Windows and macOS get Qt PDF
-  from vcpkg (`qtwebengine` with the feature `pdf`).
+  preview are dimmed. On Linux the package `qt6-pdf-dev` gives it. Windows and macOS builds
+  are without it by default: the vcpkg feature `pdf-preview` (`qtwebengine` with only its
+  feature `pdf`, `-DVCPKG_MANIFEST_FEATURES="qt6;pdf-preview"`) adds it, but its build takes
+  hours and tens of GB.
 
 - **Sources: the bibliographic description of a material, the bibliography and the quotes
   with their source** - 2026-11-15. A publication, a document, a web page and a recording

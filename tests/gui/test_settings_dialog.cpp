@@ -788,31 +788,39 @@ TEST_CASE("Settings dialog: the Materials page sets the preview of PDF files",
     CHECK(zoom->currentData().toString() == QLatin1String(PdfFiles::PAGE_WIDTH));
     CHECK(side->currentData().toString() == QLatin1String(PdfFiles::BOOKMARKS));
     CHECK(lastPage->isChecked());
-    CHECK(zoom->isEnabled() == PdfFiles::previewAvailable());
-
-    two->click();
-    inverted->click();
-    zoom->setCurrentIndex(zoom->findData(QString::fromLatin1(PdfFiles::LAST)));
-    side->setCurrentIndex(side->findData(QString::fromLatin1(PdfFiles::HIDDEN)));
-    lastPage->click();
-    const QStringList written = dialog.applyChanges();
-    CHECK(written.size() == 5);
-    CHECK(settings.get<std::string>(PdfFiles::LAYOUT_SETTING) == "two");
-    CHECK(settings.get<std::string>(PdfFiles::DARK_SETTING) == "invert");
-    CHECK(settings.get<std::string>(PdfFiles::ZOOM_SETTING) == "last");
-    CHECK(settings.get<std::string>(PdfFiles::SIDE_SETTING) == "hidden");
-    CHECK_FALSE(settings.get<bool>(PdfFiles::LAST_PAGE_SETTING));
-
-    // The colors are those of the editor: its page opens
     auto* showColors = dialog.findChild<QPushButton*>(QStringLiteral("materialsShowEditorColors"));
     REQUIRE(showColors != nullptr);
-    auto* tree = dialog.findChild<QTreeWidget*>();
-    REQUIRE(tree != nullptr);
-    showColors->click();
-    REQUIRE(tree->currentItem() != nullptr);
-    CHECK(tree->currentItem()->text(0) == QStringLiteral("Colors"));
-    REQUIRE(tree->currentItem()->parent() != nullptr);
-    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+
+    if (!PdfFiles::previewAvailable()) {
+        // Without the preview of PDF files its settings wait, dimmed
+        CHECK_FALSE(two->isEnabled());
+        CHECK_FALSE(zoom->isEnabled());
+        CHECK_FALSE(lastPage->isEnabled());
+        CHECK_FALSE(showColors->isEnabled());
+        CHECK(dialog.applyChanges().isEmpty());
+    } else {
+        two->click();
+        inverted->click();
+        zoom->setCurrentIndex(zoom->findData(QString::fromLatin1(PdfFiles::LAST)));
+        side->setCurrentIndex(side->findData(QString::fromLatin1(PdfFiles::HIDDEN)));
+        lastPage->click();
+        const QStringList written = dialog.applyChanges();
+        CHECK(written.size() == 5);
+        CHECK(settings.get<std::string>(PdfFiles::LAYOUT_SETTING) == "two");
+        CHECK(settings.get<std::string>(PdfFiles::DARK_SETTING) == "invert");
+        CHECK(settings.get<std::string>(PdfFiles::ZOOM_SETTING) == "last");
+        CHECK(settings.get<std::string>(PdfFiles::SIDE_SETTING) == "hidden");
+        CHECK_FALSE(settings.get<bool>(PdfFiles::LAST_PAGE_SETTING));
+
+        // The colors are those of the editor: its page opens
+        auto* tree = dialog.findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        showColors->click();
+        REQUIRE(tree->currentItem() != nullptr);
+        CHECK(tree->currentItem()->text(0) == QStringLiteral("Colors"));
+        REQUIRE(tree->currentItem()->parent() != nullptr);
+        CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+    }
 
     for (const auto& [key, value] : before) {
         settings.set<std::string>(key, value);

@@ -99,8 +99,10 @@ Stan: zrobiony (gałąź `claude/project-thread-zsum8e`, po etapie 1). Zakładk�
 stron, zaznaczenia i wyników są wspólne z edytorem (Edytor › Kolory). Grupa Otwieranie (obrazy, strony
 w sieci, PDF) przeszła ze strony Nawigator na stronę Materiały. „Utwórz cytat…” w oknie „Nowy cytat”
 wiąże cytat z rozdziałem otwartym ostatnio, z innym elementem albo z żadnym; „Utwórz i wstaw do
-rozdziału” wstawia słowa z odnośnikiem. Windows i macOS dostają Qt PDF z vcpkg (`qtwebengine` z cechą
-`pdf`); Linux z pakietu `qt6-pdf-dev`.
+rozdziału” wstawia słowa z odnośnikiem. Linux ma Qt PDF z pakietu `qt6-pdf-dev`. Na Windows i macOS
+Qt PDF daje tylko opcjonalna cecha vcpkg `pdf-preview` (`qtwebengine` z samą cechą `pdf`), domyślnie
+wyłączona lokalnie i w CI: jej kompilacja trwa godziny i zajmuje dziesiątki GB, a na Windows pada na
+ścieżkach dłuższych niż 260 znaków. Bez niej PDF otwiera się w programie systemowym.
 
 ### 3. Opcje
 

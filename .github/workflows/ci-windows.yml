@@ -17,7 +17,7 @@ jobs:
   build:
     name: Windows Build & Test
     runs-on: windows-latest
-    timeout-minutes: 240  # Qt6 and Qt PDF (qtwebengine) via vcpkg take long without a warm binary cache
+    timeout-minutes: 120  # Qt6 via vcpkg takes a long time without a warm binary cache
 
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
