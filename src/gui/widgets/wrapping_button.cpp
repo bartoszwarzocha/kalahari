@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file wrapping_button.cpp
 /// @brief A button in one line where it has room, which wraps its text where it has less
 

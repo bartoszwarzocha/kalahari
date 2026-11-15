@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_style_coordinator.cpp
 /// @brief The paragraph styles of the book changed from Format > Text Style: a new style, a
 ///        style of the type changed and reset, a deleted style whose paragraphs go to its base
@@ -19,6 +22,7 @@
 #include <QStringList>
 
 #include <functional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::StyleCoordinator;
@@ -57,7 +61,7 @@ struct Styles {
 
     explicit Styles(Window& window)
         : coordinator(
-              window.tabs,
+              test::book(), test::commands(), window.tabs,
               [this](gui::EditorPanel*, const QString& message, const QString&, const QString&,
                      const std::function<void()>&) { notices.append(message); },
               &window.statusBar, &window.window) {}
@@ -98,7 +102,7 @@ TEST_CASE("Style coordinator: a new style of the book, kept and undone", "[gui][
     CHECK(memory->baseStyle == QStringLiteral("quote"));
     CHECK(memory->properties.value(QStringLiteral("italic")).toBool());  // Quote's
     CHECK(book.pm.paragraphStyles().size() == 1);
-    CHECK(gui::bookParagraphStyles().contains(id));
+    CHECK(gui::bookParagraphStyles(kalahari::test::book()).contains(id));
 
     // A second one of the same name gets another id
     StyleDraft other = StyleDraft::newStyle(styles.coordinator.styles(), QStringLiteral("normal"),
@@ -129,8 +133,9 @@ TEST_CASE("Style coordinator: a style of the type changed in the book and reset"
           QStringLiteral("\"Quote\" is as the type \"Novel\" has it"));
     CHECK(styles.coordinator.removeStyle(QStringLiteral("quote")) == -1);
 
-    StyleDraft quote = StyleDraft::existing(styles.coordinator.styles(), gui::bookTypeStyles(),
-                                            QStringLiteral("quote"));
+    StyleDraft quote =
+        StyleDraft::existing(styles.coordinator.styles(),
+                             gui::bookTypeStyles(kalahari::test::book()), QStringLiteral("quote"));
     quote.setValue(QStringLiteral("italic"), false);
     CHECK(styles.coordinator.saveDraft(quote) == QStringLiteral("quote"));
     CHECK(styles.coordinator.styles().find(QStringLiteral("quote"))->origin ==
@@ -251,8 +256,8 @@ TEST_CASE("Style coordinator: Delete Style asks when paragraphs use the style",
 TEST_CASE("Style coordinator: the commands follow the book and the text in front",
           "[gui][styles]") {
     gui::registerAllIcons();
-    gui::registerAllCommands(gui::CommandCallbacks{});
-    gui::CommandRegistry& registry = gui::CommandRegistry::getInstance();
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
+    gui::CommandRegistry& registry = test::commands();
     const auto action = [&registry](const char* id) {
         QAction* found = registry.getAction(QString::fromLatin1(id));
         REQUIRE(found != nullptr);

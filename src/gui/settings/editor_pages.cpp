@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_pages.cpp
 /// @brief Settings pages: Editor > General, Colors, Cursor, Pages and Margins
 ///
@@ -398,8 +401,9 @@ private:
 // Editor > General
 // ============================================================================
 
-EditorGeneralPage::EditorGeneralPage(QWidget* parent)
+EditorGeneralPage::EditorGeneralPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
 {
     QFormLayout* font = addGroup(tr("Editor Font"));
     auto* family = new QFontComboBox();
@@ -422,8 +426,8 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     addField(behavior, tr("Paste Command:"), pasteMode, editor::PASTE_MODE_KEY);
     QLabel* pasteNote = addNote(behavior, QString());
     // With the keys Paste has now (the user may change them)
-    const auto showPasteKeys = [pasteNote]() {
-        const Command* command = CommandRegistry::getInstance().getCommand("edit.paste");
+    const auto showPasteKeys = [this, pasteNote]() {
+        const Command* command = m_commands.getCommand("edit.paste");
         const QString keys = command != nullptr && !command->shortcut.isEmpty()
             ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
             : QString();
@@ -438,7 +442,7 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
                "Text Only."));
     };
     showPasteKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, pasteNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, pasteNote,
             showPasteKeys);
     // The fields on a gray background, so that they stand out of the text (as in Word)
     //: In Polish: Szare tło pól
@@ -548,8 +552,8 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
     QFormLayout* typewriter = addGroup(tr("Typewriter Scrolling"));
     QLabel* typewriterNote = addNote(typewriter, QString());
     // With the keys the command has now (the user may change them)
-    const auto showTypewriterKeys = [typewriterNote]() {
-        const Command* command = CommandRegistry::getInstance().getCommand("view.typewriter");
+    const auto showTypewriterKeys = [this, typewriterNote]() {
+        const Command* command = m_commands.getCommand("view.typewriter");
         const QString keys = command != nullptr && !command->shortcut.isEmpty()
             ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
             : QString();
@@ -562,7 +566,7 @@ EditorGeneralPage::EditorGeneralPage(QWidget* parent)
                       .arg(keys));
     };
     showTypewriterKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, typewriterNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, typewriterNote,
             showTypewriterKeys);
     auto* focus = new QSpinBox();
     focus->setRange(10, 90);

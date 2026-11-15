@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file add_to_book_dialog.cpp
 /// @brief Add to Book: a file as a new text element, of the kind, with the title and at the
 /// place the writer chooses
@@ -46,9 +49,9 @@ int indexOf(const QList<NewElementChoice>& choices,
 
 } // anonymous namespace
 
-AddToBookDialog::Book AddToBookDialog::openBook(const QString& path) {
+AddToBookDialog::Book AddToBookDialog::openBook(const core::ProjectManager& pm,
+                                                const QString& path) {
     Book book;
-    const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
     if (!project || !projectBook) {

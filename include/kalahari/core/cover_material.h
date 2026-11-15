@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file cover_material.h
 /// @brief The materials of the cover (MaterialKinds::COVER): what each is and where it goes
 

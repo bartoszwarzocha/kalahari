@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_writing_goals.cpp
 /// @brief The goals of a book, its deadlines and the reckoning of the words they need; the
 /// record of writing in a database: the writer's journal and the book's project.db

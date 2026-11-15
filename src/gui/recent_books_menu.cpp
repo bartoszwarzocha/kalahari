@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file recent_books_menu.cpp
 /// @brief File > Recent Books submenu implementation
 
@@ -13,8 +16,9 @@
 namespace kalahari {
 namespace gui {
 
-RecentBooksMenu::RecentBooksMenu(QWidget* parent)
+RecentBooksMenu::RecentBooksMenu(CommandRegistry& commands, QWidget* parent)
     : QMenu(MenuBuilder::menuText("Recent Books"), parent)
+    , m_commands(commands)
 {
     // In the icon colors after they change, as the other submenus
     MenuBuilder::showSubmenuIcon(this, MenuBuilder::submenuIconId("Recent Books"));
@@ -30,7 +34,7 @@ void RecentBooksMenu::insertInto(QMenu* menu) {
         return;
     }
     // The command's shared action, not its text: the text is translated
-    QAction* closeBook = CommandRegistry::getInstance().getAction(std::string("file.close"));
+    QAction* closeBook = m_commands.getAction(std::string("file.close"));
     if (closeBook != nullptr && menu->actions().contains(closeBook)) {
         menu->insertMenu(closeBook, this);
     } else {

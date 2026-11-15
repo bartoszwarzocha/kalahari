@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file images_page.cpp
 /// @brief Settings > Editor > Images: new images, the captions of new books, the copies of the
 ///        files and the manuscript for a publisher

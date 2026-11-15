@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file document_coordinator.h
 /// @brief Document lifecycle and file operations coordination for MainWindow
 ///
@@ -14,7 +17,13 @@
 #include <functional>
 #include <memory>
 
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::core {
+
+class ProjectManager;
 enum class OpenFailure;
 }
 
@@ -74,6 +83,8 @@ public:
     using HasUnsavedChangesGetter = std::function<bool()>;
 
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param mainWindow Parent QMainWindow for dialogs
     /// @param centralTabs Central tab widget for editor tabs
     /// @param navigatorPanel Navigator panel for document structure
@@ -85,17 +96,12 @@ public:
     /// @param updateTitle Callback to update window title
     /// @param hasUnsavedChanges Callback that tells whether anything has unsaved changes
     /// @param parent Parent QObject
-    explicit DocumentCoordinator(QMainWindow* mainWindow,
-                                  QTabWidget* centralTabs,
-                                  NavigatorPanel* navigatorPanel,
-                                  PropertiesPanel* propertiesPanel,
-                                  DashboardPanel* dashboardPanel,
-                                  NavigatorCoordinator* navigatorCoordinator,
-                                  StandaloneInfoBar* standaloneInfoBar,
-                                  QStatusBar* statusBar,
-                                  WindowTitleUpdater updateTitle,
-                                  HasUnsavedChangesGetter hasUnsavedChanges,
-                                  QObject* parent = nullptr);
+    explicit DocumentCoordinator(
+        core::ProjectManager& book, CommandRegistry& commands, QMainWindow* mainWindow,
+        QTabWidget* centralTabs, NavigatorPanel* navigatorPanel, PropertiesPanel* propertiesPanel,
+        DashboardPanel* dashboardPanel, NavigatorCoordinator* navigatorCoordinator,
+        StandaloneInfoBar* standaloneInfoBar, QStatusBar* statusBar, WindowTitleUpdater updateTitle,
+        HasUnsavedChangesGetter hasUnsavedChanges, QObject* parent = nullptr);
 
     /// @brief Destructor
     ~DocumentCoordinator() override = default;
@@ -472,6 +478,8 @@ private:
 
     /// @brief Statistics collector for session tracking (OpenSpec #00042 Task 7.7)
     std::unique_ptr<editor::StatisticsCollector> m_statisticsCollector;
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

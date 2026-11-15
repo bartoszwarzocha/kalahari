@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file issue_colors.h
 /// @brief The colors of the misspelled words and the grammar issues, as the theme gives them
 

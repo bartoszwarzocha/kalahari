@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file paragraph_dialog.h
 /// @brief Format > Paragraph...: the alignment, indents, spacing, line spacing and the breaks
 ///        of lines and pages of the selected paragraphs

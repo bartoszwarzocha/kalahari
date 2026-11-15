@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_statistics.h
 /// @brief The statistics of writing counted from the record of writing: the writing days,
 /// the graph of a day, the days in a row, the hours of writing and the temperature of work

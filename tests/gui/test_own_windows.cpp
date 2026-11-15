@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_own_windows.cpp
 /// @brief The program shows only its own windows: no window of the system but those that
 /// choose a file or a folder, and every dialog on the common base (KalahariDialog), also
@@ -34,6 +37,7 @@
 #include <QTimer>
 
 #include <algorithm>
+#include "test_support/window_parts.h"
 
 using kalahari::gui::IconDownloaderDialog;
 using kalahari::gui::dialogs::AboutDialog;
@@ -297,12 +301,12 @@ TEST_CASE("Own windows: the Icon Downloader stays open after Download", "[gui][d
 
 TEST_CASE("Own windows: a window that got the heading is higher by it", "[gui][dialogs]") {
     using namespace kalahari;
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     gui::registerAllIcons();
     test::OpenNovel book(QStringLiteral("Rain"));
     QMainWindow window;
-    gui::ToolbarManager toolbars(&window);
-    toolbars.createToolbars(gui::CommandRegistry::getInstance());
+    gui::ToolbarManager toolbars(kalahari::test::commands(), &window);
+    toolbars.createToolbars(test::commands());
 
     // The default size the window had before its heading, higher by the heading and the line
     // under it at that width; a smaller screen gets a lower window.
@@ -324,8 +328,8 @@ TEST_CASE("Own windows: a window that got the heading is higher by it", "[gui][d
 
     gui::dialogs::NewItemDialog newBook(gui::dialogs::NewItemMode::Project);
     check(newBook, QSize(850, 620));
-    gui::dialogs::NewFileDialog newFile(gui::dialogs::NewFileDialog::openBook(),
-                                        book.pm.bookTypes());
+    gui::dialogs::NewFileDialog newFile(
+        gui::dialogs::NewFileDialog::openBook(kalahari::test::book()), book.pm.bookTypes());
     check(newFile, QSize(880, 740));
     gui::dialogs::ToolbarManagerDialog toolbarManager(&toolbars, &window);
     check(toolbarManager, QSize(1000, 650));

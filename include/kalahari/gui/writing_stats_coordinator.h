@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_stats_coordinator.h
 /// @brief The statistics and goals of writing in the main window: the statistics bar above the
 /// tabs of the texts, its commands, the badges and challenges, the messages at the bottom and
@@ -16,7 +19,12 @@ class QStatusBar;
 class QTimer;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
 namespace kalahari::gui {
+
+class CommandRegistry;
 
 class DockCoordinator;
 class DocumentCoordinator;
@@ -51,11 +59,14 @@ public:
     /// count toward them
     static constexpr const char* GOALS_SETTINGS_PAGE = "stats.counting";
 
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param docks The window's docks and its middle (centralWrapper())
     /// @param documents Its collector records the writing of the book that is open
     /// @param openSettings Opens the Settings dialog at a page (SettingsDialog::openPage())
     /// @param journalPath The writer's journal; empty: WritingJournal::defaultPath()
-    WritingStatsCoordinator(DockCoordinator* docks, DocumentCoordinator* documents,
+    WritingStatsCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                            DockCoordinator* docks, DocumentCoordinator* documents,
                             std::function<void(const QString&)> openSettings,
                             QObject* parent = nullptr, const QString& journalPath = QString());
     ~WritingStatsCoordinator() override;
@@ -142,6 +153,8 @@ private:
     QDateTime m_sessionStart;     ///< The session started then: the book opened
     bool m_summaryShown{false};   ///< The summary of this session was shown
     int m_settingsListener{-1};
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

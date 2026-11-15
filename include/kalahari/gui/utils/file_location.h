@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file file_location.h
 /// @brief A file or a folder shown in the file manager of the system, a file opened in the
 /// program the system gives it, and a web address opened in the system's browser

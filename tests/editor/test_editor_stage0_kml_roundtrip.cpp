@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage0_kml_roundtrip.cpp
 /// @brief Stage 0 safety net: KML load/save through the REAL BookEditor path
 ///

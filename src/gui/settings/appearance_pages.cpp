@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file appearance_pages.cpp
 /// @brief Settings pages: Appearance > Theme and Icons
 

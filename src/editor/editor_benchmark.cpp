@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_benchmark.cpp
 /// @brief Performance benchmarks for BookEditor (OpenSpec #00043)
 

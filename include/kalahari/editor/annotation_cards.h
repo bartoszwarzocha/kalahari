@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotation_cards.h
 /// @brief The cards of the annotations under their paragraphs (the continuous views)
 

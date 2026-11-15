@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_panel_coordinator.h
 /// @brief The Spelling and Grammar panel: the issues of the text in front, what the writer
 ///        does with them, and when the panel shows
@@ -17,6 +20,13 @@
 class QDockWidget;
 class QTabWidget;
 class QTimer;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari::editor {
 class BookEditor;
@@ -50,13 +60,16 @@ class SpellingPanelCoordinator : public QObject {
 public:
     /// @brief Constructor: the coordinator shows the next issue for the spelling coordinator
     ///        (SpellingCoordinator::setNextIssueHandler())
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param panel The panel
     /// @param dock The panel's dock
     /// @param centralTabs The tabs of the documents
     /// @param spelling The spelling as you type
     /// @param grammar The grammar as you type (may be null)
     /// @param parent Parent object
-    SpellingPanelCoordinator(SpellingPanel* panel, QDockWidget* dock, QTabWidget* centralTabs,
+    SpellingPanelCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                             SpellingPanel* panel, QDockWidget* dock, QTabWidget* centralTabs,
                              SpellingCoordinator* spelling, GrammarCoordinator* grammar,
                              QObject* parent = nullptr);
 
@@ -136,6 +149,8 @@ private:
     std::array<bool, 2> m_done{};   ///< The spelling, the grammar checked through (isDone())
     int m_settingsListener{0};
     std::atomic<bool> m_settingsPending{false};  ///< onSettingsChanged() is queued
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

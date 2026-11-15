@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_word_repetitions.cpp
 /// @brief The repetitions of words: those too close, the most frequent, the base forms
 

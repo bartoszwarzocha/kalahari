@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file shortcut_rules.h
 /// @brief Which keys a command can have: the keys of the text and of the system are not theirs
 ///

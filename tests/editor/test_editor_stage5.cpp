@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage5.cpp
 /// @brief Editor Stage 5: one highlight layer (check results kept with the paragraphs, the
 ///        word read aloud) that leaves annotations and typed patterns as plain text;

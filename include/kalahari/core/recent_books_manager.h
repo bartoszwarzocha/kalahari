@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file recent_books_manager.h
 /// @brief Manager for recent books list
 ///
@@ -12,6 +15,8 @@
 
 namespace kalahari {
 namespace core {
+
+class ProjectManager;
 
 /// @brief Manager for recent books list
 ///
@@ -34,6 +39,10 @@ public:
     /// @brief Get singleton instance
     /// @return Reference to the singleton instance
     static RecentBooksManager& getInstance();
+
+    /// @brief Every book @p book opens, or creates and opens, goes to the top of the list and is
+    /// the book opened at startup; each book window gives its book
+    void follow(const ProjectManager& book);
 
     /// @brief Add a file to the recent list
     /// @param filePath Full path to the .klh file

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_widget_keys.cpp
 /// @brief Qt's fields, lists and buttons with the keys of Windows, also on Linux (WidgetKeys)
 ///

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_statistics.cpp
 /// @brief The statistics of writing counted from the record of writing
 

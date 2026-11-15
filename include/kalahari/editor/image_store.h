@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file image_store.h
 /// @brief The image files of a book: where they are, their sizes and their pictures
 ///

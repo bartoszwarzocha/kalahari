@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file setting_toggle.cpp
 /// @brief Implementation of the toggles of on/off settings
 

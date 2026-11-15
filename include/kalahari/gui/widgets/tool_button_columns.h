@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file tool_button_columns.h
 /// @brief Tool buttons stacked in a column that wraps into more columns when low
 

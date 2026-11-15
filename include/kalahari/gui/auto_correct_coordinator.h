@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file auto_correct_coordinator.h
 /// @brief Auto-correct as you type turned on and off as a whole: the command, its check mark
 ///        and its tooltip
@@ -10,6 +13,8 @@
 class QStatusBar;
 
 namespace kalahari::gui {
+
+class CommandRegistry;
 
 /// @brief Turns auto-correct on and off as a whole: Tools > Auto-correct as You Type, also a
 ///        button on the Tools toolbar
@@ -27,9 +32,11 @@ public:
     static constexpr const char* ENABLED_KEY = "editor.autoCorrect.enabled";
 
     /// @brief Constructor
+    /// @param commands The commands of its window
     /// @param statusBar Where the command says what it did (may be null)
     /// @param parent Parent object
-    explicit AutoCorrectCoordinator(QStatusBar* statusBar, QObject* parent = nullptr);
+    explicit AutoCorrectCoordinator(CommandRegistry& commands, QStatusBar* statusBar,
+                                    QObject* parent = nullptr);
 
     /// @brief Destructor: the command has no callback any more
     ~AutoCorrectCoordinator() override;
@@ -47,7 +54,7 @@ public:
     /// @brief The command's tooltip as the settings are now, a line each: its name, the
     ///        replacements chosen (while auto-correct is off: those it makes when on) and
     ///        where they are chosen
-    static QString toolTip();
+    [[nodiscard]] QString toolTip() const;
 
 private slots:
     /// @brief Give the command the tooltip of the settings as they are now
@@ -56,6 +63,7 @@ private slots:
 private:
     QStatusBar* m_statusBar;
     int m_settingsListener = 0;  ///< The subscription to the settings
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

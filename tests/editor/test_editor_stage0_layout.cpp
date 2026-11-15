@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage0_layout.cpp
 /// @brief Stage 0 safety net: paragraph geometry of the edit-mode layout stack
 ///

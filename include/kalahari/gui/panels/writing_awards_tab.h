@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_awards_tab.h
 /// @brief The tab Challenges and Badges in the middle of the window: the writer's challenges
 /// and the badges in three parts, the writer's own, the open book's and the month's

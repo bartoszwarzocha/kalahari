@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_project.cpp
 /// @brief Book project and its .klh file: every field, kinds of other types and of packages
 /// that are not installed, files with problems and the example project

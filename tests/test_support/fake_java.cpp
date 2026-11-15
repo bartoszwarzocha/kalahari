@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file fake_java.cpp
 /// @brief A stand-in for Java running the LanguageTool server, for the grammar tests
 ///

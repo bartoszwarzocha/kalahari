@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_command_registry_execution.cpp
 /// @brief Unit tests for CommandRegistry execution API (Task #00026)
 ///
@@ -10,6 +13,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/gui/command_registry.h"
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -67,7 +71,7 @@ static ErrorHandlerState g_errorState;
 // =============================================================================
 
 TEST_CASE("CommandRegistry executeCommand - success", "[gui][command][registry][execution]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
     resetExecutionCount();
 
@@ -99,7 +103,7 @@ TEST_CASE("CommandRegistry executeCommand - success", "[gui][command][registry][
 // =============================================================================
 
 TEST_CASE("CommandRegistry executeCommand - not found", "[gui][command][registry][execution]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("executeCommand returns CommandNotFound for non-existent command") {
@@ -122,7 +126,7 @@ TEST_CASE("CommandRegistry executeCommand - not found", "[gui][command][registry
 // =============================================================================
 
 TEST_CASE("CommandRegistry executeCommand - disabled", "[gui][command][registry][execution]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
     resetExecutionCount();
 
@@ -167,7 +171,7 @@ TEST_CASE("CommandRegistry executeCommand - disabled", "[gui][command][registry]
 // =============================================================================
 
 TEST_CASE("CommandRegistry executeCommand - no callback", "[gui][command][registry][execution]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     Command cmd;
@@ -189,7 +193,7 @@ TEST_CASE("CommandRegistry executeCommand - no callback", "[gui][command][regist
 // =============================================================================
 
 TEST_CASE("CommandRegistry executeCommand - exceptions", "[gui][command][registry][execution]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("executeCommand catches std::exception") {
@@ -222,7 +226,7 @@ TEST_CASE("CommandRegistry executeCommand - exceptions", "[gui][command][registr
 // =============================================================================
 
 TEST_CASE("CommandRegistry canExecute", "[gui][command][registry][execution]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("canExecute returns true for executable command") {
@@ -274,7 +278,7 @@ TEST_CASE("CommandRegistry canExecute", "[gui][command][registry][execution]") {
 // =============================================================================
 
 TEST_CASE("CommandRegistry isChecked", "[gui][command][registry][execution]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
 
     SECTION("isChecked returns true when isChecked callback returns true") {
@@ -328,7 +332,7 @@ TEST_CASE("CommandRegistry isChecked", "[gui][command][registry][execution]") {
 // =============================================================================
 
 TEST_CASE("CommandRegistry error handler", "[gui][command][registry][execution][error]") {
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     registry.clear();
     g_errorState.reset();
 

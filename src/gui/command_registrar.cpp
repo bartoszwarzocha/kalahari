@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file command_registrar.cpp
 /// @brief Application command registration with CommandRegistry
 ///
@@ -38,11 +41,10 @@ static void setTexts(Command& cmd, const char* menuText) {
     cmd.tooltip = cmd.label;
 }
 
-int registerAllCommands(const CommandCallbacks& callbacks) {
+int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callbacks) {
     auto& logger = core::Logger::getInstance();
     logger.debug("Registering commands with CommandRegistry");
 
-    CommandRegistry& registry = CommandRegistry::getInstance();
     int count = 0;
 
     // =========================================================================
@@ -271,10 +273,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onImportArchive);
 
-    // Export submenu
-    REG_CMD("file.export.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX"), "FILE/Export/DOCX", 120, false, 1);
+    // Export submenu: DOCX and Markdown open the window of the export (BookExportCoordinator)
+    REG_CMD("file.export.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX..."), "FILE/Export/DOCX", 120, false, 0);
     REG_CMD("file.export.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF"), "FILE/Export/PDF", 130, false, 1);
-    REG_CMD("file.export.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown"), "FILE/Export/Markdown", 140, true, 1);
+    REG_CMD("file.export.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown..."), "FILE/Export/Markdown", 140, true, 0);
     REG_CMD("file.export.epub", QT_TRANSLATE_NOOP("CommandRegistrar", "&EPUB"), "FILE/Export/EPUB", 150, false, 2);
     REG_CMD("file.export.mobi", QT_TRANSLATE_NOOP("CommandRegistrar", "M&OBI"), "FILE/Export/MOBI", 160, false, 2);
     REG_CMD("file.export.icml", QT_TRANSLATE_NOOP("CommandRegistrar", "&InDesign ICML"), "FILE/Export/InDesign ICML", 170, false, 3);

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_stats_bar.cpp
 /// @brief The statistics bar above the tabs of the texts
 

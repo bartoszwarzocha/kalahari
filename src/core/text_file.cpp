@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_file.cpp
 /// @brief Plain text files read and written in their own encoding and line ends
 

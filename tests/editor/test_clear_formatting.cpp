@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_clear_formatting.cpp
 /// @brief Format > Clear Formatting: the formatting given by hand goes, the styles of the
 ///        paragraphs, the annotations and the objects stay

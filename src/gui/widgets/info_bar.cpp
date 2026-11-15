@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file info_bar.cpp
 /// @brief A message across the text area: an icon, the message, a button and a close button
 

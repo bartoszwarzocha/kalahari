@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_issue_list.cpp
 /// @brief The list of the Spelling and Grammar panel: a card for each misspelled word and
 ///        grammar issue, made only for the cards in view

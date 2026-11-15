@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_issue.h
 /// @brief A misspelled word or a grammar issue of a text, as its wave marks it
 

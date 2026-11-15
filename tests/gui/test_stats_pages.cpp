@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_stats_pages.cpp
 /// @brief Settings > Statistics and Goals: Bar and Panel, Counting, Notifications and Colors
 
@@ -21,6 +24,7 @@
 #include <QTreeWidget>
 
 #include <algorithm>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::SettingsDialog;
@@ -49,7 +53,7 @@ std::vector<std::string> sorted(std::vector<std::string> keys)
 
 TEST_CASE("Statistics settings: four pages under Statistics and Goals", "[gui][settings][statistics]")
 {
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     const QList<QTreeWidgetItem*> found =

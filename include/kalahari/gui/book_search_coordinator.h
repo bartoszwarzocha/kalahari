@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_search_coordinator.h
 /// @brief Edit > Find in Book...: the search in all the texts of the book in the Search panel,
 ///        and Replace All in Book with Undo
@@ -25,12 +28,17 @@ class QStatusBar;
 class QTabWidget;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}
+
 namespace kalahari::editor {
 class BookEditor;
 }
 
 namespace kalahari::gui {
 
+class CommandRegistry;
 class EditorPanel;
 
 /// @brief A match as the Search panel shows it: the line around it
@@ -104,6 +112,8 @@ public:
         QList<SearchPanelHit> hits;  ///< As the panel lists them: of the first matches
     };
 
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the book window (DocumentWindows gives all the texts)
     /// @param panel The Search panel
     /// @param showPanel Shows the panel in front
@@ -115,7 +125,8 @@ public:
     /// @param statusBar Where short messages go (may be null)
     /// @param window Over which the window asking opens
     /// @param parent Parent object
-    BookSearchCoordinator(QTabWidget* centralTabs, SearchPanel* panel, PanelShower showPanel,
+    BookSearchCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                          QTabWidget* centralTabs, SearchPanel* panel, PanelShower showPanel,
                           TextWithKeys textWithKeys, ChapterOpener openChapter,
                           NoteContexts noteContexts, NoticeShower showNotice,
                           QStatusBar* statusBar, QWidget* window, QObject* parent = nullptr);
@@ -257,6 +268,8 @@ private:
     /// @brief Forget what was found and read: another book, or none
     void reset();
 
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;   ///< The commands of its window
     QTabWidget* m_centralTabs = nullptr;
     SearchPanel* m_panel = nullptr;
     PanelShower m_showPanel;

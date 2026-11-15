@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file svg_converter.h
 /// @brief SVG converter for Material Design → Kalahari template format
 ///

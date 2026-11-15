@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_cursor.cpp
 /// @brief BookEditor: the cursor, its movement (Page Up/Down included) and the selection
 

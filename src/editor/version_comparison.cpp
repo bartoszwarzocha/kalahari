@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file version_comparison.cpp
 /// @brief A version of a text compared with the text as it is now, as a text to read
 

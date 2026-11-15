@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file image_preview_panel.h
 /// @brief The preview of the picture of a material, on a tab in the center of the window
 
@@ -15,6 +18,10 @@ class QLabel;
 class QPushButton;
 class QStackedWidget;
 class QToolBar;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
 
 namespace kalahari {
 namespace gui {
@@ -41,7 +48,8 @@ public:
     static const QList<double>& zoomSteps();
 
     /// @brief Create the preview of material @p elementId of the open book
-    explicit ImagePreviewPanel(const QString& elementId, QWidget* parent = nullptr);
+    explicit ImagePreviewPanel(core::ProjectManager& book, const QString& elementId,
+                               QWidget* parent = nullptr);
 
     /// @brief The material it shows
     QString elementId() const { return m_elementId; }
@@ -153,6 +161,7 @@ private:
     QGraphicsPixmapItem* m_item = nullptr;
     QLabel* m_problemLabel = nullptr;
     QPushButton* m_problemButton = nullptr;
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

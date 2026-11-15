@@ -9,6 +9,8 @@ scripts/build_windows.bat Debug          # Build (Windows)
 ./build-windows/bin/kalahari-tests.exe   # Tests (Windows)
 scripts/build_linux.sh                   # Build (Linux)
 ./build-linux/bin/kalahari-tests         # Tests (Linux)
+scripts/sonar_analysis.bat               # SonarQube analysis (Windows) - before finishing every stage
+python scripts/sonar_analysis.py         # SonarQube analysis (any OS, after a build)
 ```
 
 ## Project Context
