@@ -144,6 +144,10 @@ void SettingsDialog::createNavigationTree() {
     //: Settings > Editor > Versions: the versions of the texts. In Polish: Wersje
     m_pageItems[VERSIONS_PAGE] =
         addPage(editor, tr("Versions"), [this]() { return new EditorVersionsPage(m_commands); });
+    //: Settings > Editor > Clippings: Cut to Clippings and Insert > Clipping from the Workshop.
+    //: In Polish: Wycinki
+    m_pageItems[CLIPPINGS_PAGE] = addPage(
+        editor, tr("Clippings"), [this]() { return new EditorClippingsPage(m_commands); });
 
     m_pageItems[ANNOTATIONS_PAGE] =
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });

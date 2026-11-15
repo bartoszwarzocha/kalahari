@@ -138,7 +138,9 @@ EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, 
          registry.getAction(QStringLiteral("edit.copy")),
          registry.getAction(QStringLiteral("edit.paste")),
          registry.getAction(QStringLiteral("edit.selectAll")),
-         registry.getAction(QStringLiteral("insert.link"))});
+         registry.getAction(QStringLiteral("insert.link")),
+         registry.getAction(QStringLiteral("edit.cutToClippings")),
+         registry.getAction(QStringLiteral("insert.clipping"))});
     // The context menu of a cell: the commands of the Table menu, enabled as there
     const auto actions = [&registry](std::initializer_list<const char*> ids) {
         QList<QAction*> found;

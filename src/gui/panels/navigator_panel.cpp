@@ -2910,15 +2910,18 @@ QList<core::KindRef> NavigatorPanel::namedKindsOf(const QTreeWidgetItem* item) c
     case AddTarget::Scope::Workshop: {
         // The kinds of the node the program makes elements of; a node of several kinds (the
         // Workshop, Materials) leaves the kinds of materials, many of the same weight, to the
-        // window, as the front and back sections do
+        // window, as the front and back sections do. The clippings come from Edit > Cut to
+        // Clippings: one is added by hand only in the window.
         const QList<core::KindRef> available = pm.kindsFor(core::BookPlace::Workshop);
         const QList<core::KindRef> all =
             target->kinds.isEmpty() && project
                 ? project->kindsIn(pm.bookTypes(), core::BookPlace::Workshop)
                 : target->kinds;
         const bool several = all.size() > 1;
+        const core::KindRef clipping = pm.clippingKind();
         for (const core::KindRef& kind : all) {
-            if (offered(available, kind) && !(several && kind.kind->isMaterial())) {
+            const bool isClipping = clipping && kind.kind == clipping.kind;
+            if (offered(available, kind) && !(several && (kind.kind->isMaterial() || isClipping))) {
                 append(kind);
             }
         }

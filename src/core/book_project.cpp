@@ -5,6 +5,7 @@
 /// @brief Book project as its .klh file saves it
 
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/clipping.h>
 #include <kalahari/core/logger.h>
 #include <QFile>
 #include <QFileInfo>
@@ -371,6 +372,67 @@ void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = coverFields.rest();
 }
 
+/// Where a clipping was cut from, from the object @p value of "origin"
+void readClippingOrigin(const QJsonValue& value, const QString& field, ClippingOrigin& origin,
+                        QStringList& problems) {
+    Fields originFields(value.toObject(), field, problems);
+    origin.element = originFields.string("element");
+    origin.title = originFields.string("title");
+    if (const QJsonValue paragraph = originFields.take("paragraph"); !paragraph.isUndefined()) {
+        const int number = isWholeNumber(paragraph) ? paragraph.toInt(-1) : -1;
+        if (number < 0) {
+            originFields.problem("paragraph", QStringLiteral("must be a whole number, 0 or more"));
+        } else {
+            origin.paragraph = number;
+        }
+    }
+    origin.before = originFields.string("before");
+    origin.after = originFields.string("after");
+    origin.cut = originFields.dateTime("cut");
+    origin.extra = originFields.rest();
+}
+
+/// Where a clipping was inserted, from the array "inserted" of @p clippingFields
+void readClippingInsertions(Fields& clippingFields, ClippingData& data, QStringList& problems) {
+    const QString insertedField = clippingFields.path("inserted");
+    const QJsonArray inserted = clippingFields.array("inserted");
+    for (qsizetype i = 0; i < inserted.size(); ++i) {
+        const QString field = QStringLiteral("%1[%2]").arg(insertedField).arg(i);
+        if (!inserted.at(i).isObject()) {
+            addProblem(problems, field, QStringLiteral("must be an object"));
+            continue;
+        }
+        Fields insertionFields(inserted.at(i).toObject(), field, problems);
+        ClippingInsertion insertion;
+        insertion.element = insertionFields.string("element");
+        insertion.at = insertionFields.dateTime("at");
+        insertion.extra = insertionFields.rest();
+        data.inserted << insertion;
+    }
+}
+
+/// Where a clipping was cut from and where it was inserted, with the fields of "clipping" this
+/// version does not know
+void readClipping(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue clipping = fields.take("clipping");
+    if (clipping.isUndefined()) {
+        return;
+    }
+    if (!clipping.isObject()) {
+        fields.problem("clipping", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields clippingFields(clipping.toObject(), fields.path("clipping"), problems);
+    ClippingData& data = element.clipping;
+    if (const QJsonValue origin = clippingFields.take("origin"); origin.isObject()) {
+        readClippingOrigin(origin, clippingFields.path("origin"), data.origin, problems);
+    } else if (!origin.isUndefined()) {
+        clippingFields.problem("origin", QStringLiteral("must be an object"));
+    }
+    readClippingInsertions(clippingFields, data, problems);
+    data.extra = clippingFields.rest();
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -406,6 +468,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.links = readLinks(fields, problems);
     readView(fields, element, problems);
     readCover(fields, element, problems);
+    readClipping(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -699,6 +762,41 @@ QString dateTimeText(const QDateTime& time) {
 
 QJsonArray elementsToJson(const QList<ProjectElement>& elements);
 
+/// "clipping" of a clipping: where it was cut from and where it was inserted
+QJsonObject clippingToJson(const ClippingData& clipping) {
+    QJsonObject data = clipping.extra;
+    const ClippingOrigin& origin = clipping.origin;
+    if (isEmpty(origin) && origin.extra.isEmpty()) {
+        data.remove(QLatin1String("origin"));
+    } else {
+        QJsonObject from = origin.extra;
+        setOrRemove(from, "element", origin.element);
+        setOrRemove(from, "title", origin.title);
+        if (origin.paragraph > 0) {
+            from.insert(QLatin1String("paragraph"), origin.paragraph);
+        } else {
+            from.remove(QLatin1String("paragraph"));
+        }
+        setOrRemove(from, "before", origin.before);
+        setOrRemove(from, "after", origin.after);
+        setOrRemove(from, "cut", dateTimeText(origin.cut));
+        data.insert(QLatin1String("origin"), from);
+    }
+    if (clipping.inserted.isEmpty()) {
+        data.remove(QLatin1String("inserted"));
+    } else {
+        QJsonArray inserted;
+        for (const ClippingInsertion& insertion : clipping.inserted) {
+            QJsonObject each = insertion.extra;
+            setOrRemove(each, "element", insertion.element);
+            setOrRemove(each, "at", dateTimeText(insertion.at));
+            inserted.append(each);
+        }
+        data.insert(QLatin1String("inserted"), inserted);
+    }
+    return data;
+}
+
 QJsonObject elementToJson(const ProjectElement& element) {
     QJsonObject json = element.extra;
     json.insert(QLatin1String("id"), element.id);
@@ -788,6 +886,12 @@ QJsonObject elementToJson(const ProjectElement& element) {
             }
         }
         json.insert(QLatin1String("cover"), data);
+    }
+    const ClippingData& clipping = element.clipping;
+    if (isEmpty(clipping)) {
+        json.remove(QLatin1String("clipping"));
+    } else {
+        json.insert(QLatin1String("clipping"), clippingToJson(clipping));
     }
     return json;
 }
@@ -1207,7 +1311,8 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            file == other.file && url == other.url && status == other.status &&
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
-           rotation == other.rotation && cover == other.cover && viewExtra == other.viewExtra &&
+           rotation == other.rotation && cover == other.cover && clipping == other.clipping &&
+           viewExtra == other.viewExtra &&
            extra == other.extra;
 }
 

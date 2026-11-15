@@ -1233,8 +1233,8 @@ struct KeptMaterialSettings {
 };
 
 /// @brief The kinds of the Workshop of a novel that Add Element can add, in their order
-constexpr const char* WORKSHOP_KINDS = "Working note | Cover | Quote | Web page | Picture | "
-                                       "Document | Publication | Recording | Other file";
+constexpr const char* WORKSHOP_KINDS = "Working note | Clipping | Cover | Quote | Web page | "
+                                       "Picture | Document | Publication | Recording | Other file";
 
 /// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
 gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),
@@ -1384,8 +1384,8 @@ TEST_CASE("Add Element: in the Workshop a working note and materials of their ki
         CHECK(test::textsOf(dialog).contains(
             QStringLiteral("Choose the kind of the new element of the Workshop and its title.")));
         CHECK(joined(enabledRowsOf(dialog)) ==
-              "# Workshop | Working note | Cover | Quote | Web page | Picture | Document | "
-              "Publication | Recording | Other file");
+              "# Workshop | Working note | Clipping | Cover | Quote | Web page | Picture | "
+              "Document | Publication | Recording | Other file");
         CHECK(rowsOf(*dialog.kindList()).contains(
             QStringLiteral("Mind map (greyed): The program does not have an editor for the mind "
                            "map yet.")));

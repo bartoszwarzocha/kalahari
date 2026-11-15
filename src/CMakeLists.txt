@@ -60,6 +60,7 @@ set(KALAHARI_CORE_SOURCES
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/link_roles.cpp         # The roles of links, and the paragraph a link names
     core/book_project.cpp       # Book project as its .klh file saves it
+    core/clipping.cpp           # Clippings: their titles and the places they were cut from
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/unicode_paths.cpp      # Paths with any characters, as UTF-8 text, and their ZIP archives
     core/utils/svg_converter.cpp
@@ -196,7 +197,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/hyperlink_dialog.cpp       # Insert > Link...
     gui/dialogs/insert_table_dialog.cpp    # Insert > Table...
     gui/dialogs/caption_dialogs.cpp        # Insert Caption, Caption Numbering, Insert Cross-Reference
-    gui/dialogs/footnote_settings_dialog.cpp  # Insert > Footnote Layout...: the numbering of the notes
+    gui/dialogs/footnote_settings_dialog.cpp  # Format > Footnote Layout...: the numbering of the notes
     gui/dialogs/table_dialogs.cpp          # The windows of the Table menu
     gui/dialogs/image_properties_dialog.cpp  # Image > Image Properties...
     gui/widgets/character_grid.cpp  # CharacterGrid - characters in cells, in the font of the text
@@ -216,6 +217,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/challenge_dialog.cpp  # ChallengeDialog - Add Challenge
     gui/dialogs/session_summary_dialog.cpp  # SessionSummaryDialog - the summary of the session
     gui/dialogs/version_history_dialog.cpp  # VersionHistoryDialog - the versions of a text
+    gui/dialogs/clipping_dialogs.cpp  # Cut to Clippings, Insert > Clipping: the windows and the list
     gui/kalahari_syntax_highlighter.cpp
     gui/icon_registrar.cpp  # IconRegistrar - Icon registration extracted from MainWindow (OpenSpec #00038)
     gui/command_registrar.cpp  # CommandRegistrar - Command registration extracted from MainWindow (OpenSpec #00038)
@@ -246,6 +248,8 @@ set(KALAHARI_SOURCES
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
     gui/book_search_coordinator.cpp  # BookSearchCoordinator - Find in Book and Replace All in Book
     gui/chapter_break_coordinator.cpp  # ChapterBreakCoordinator - Book > Chapter Break with Undo
+    gui/clippings_coordinator.cpp  # ClippingsCoordinator - Cut to Clippings and Insert > Clipping
+    gui/clippings_coordinator_steps.cpp  # ClippingsCoordinator - the undo of the texts, the tabs
     gui/dialogs/style_dialog.cpp  # StyleDialog - New Style and Modify Style, in two variants
     gui/dialogs/manage_styles_dialog.cpp  # ManageStylesDialog - Format > Text Style > Manage Styles
     gui/widgets/style_tag_delegate.cpp  # The names of styles in a list, with "own" or "changed"
@@ -274,6 +278,7 @@ set(KALAHARI_SOURCES
     gui/settings/quick_insert_page.cpp  # Settings > Editor > Quick Insert
     gui/settings/repetitions_page.cpp  # Settings > Editor > Repetitions
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
+    gui/settings/clippings_page.cpp  # Settings > Editor > Clippings
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
     gui/settings/network_page.cpp  # Settings > Network > Materials
@@ -455,6 +460,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/session_summary_dialog.h  # SessionSummaryDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_history_dialog.h  # VersionHistoryDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/clipping_dialogs.h  # The windows of the clippings with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/versions_coordinator.h  # VersionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
@@ -463,6 +469,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/chapter_break_coordinator.h  # ChapterBreakCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/clippings_coordinator.h  # ClippingsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/kalahari_syntax_highlighter.h

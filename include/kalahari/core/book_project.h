@@ -97,7 +97,8 @@
 ///   saved once, with the element that has it; an element deleted from the project leaves the
 ///   links. "view" has how its picture is shown: "rotation", 0, 90, 180 or 270 degrees
 ///   clockwise. A material of the cover has what it is and where it goes in "cover"
-///   (CoverData). None of these: the element has none.
+///   (CoverData), a clipping where it was cut from and where it was inserted in "clipping"
+///   (ClippingData). None of these: the element has none.
 /// - A material is a copy of a file in the Workshop's folder ("file"), a web address ("url":
 ///   a page, or a picture on the web, whose copy in the book is then its file), or neither of
 ///   them: a paper book, a talk or a quotation that its description and fields tell of.
@@ -112,6 +113,7 @@
 #pragma once
 
 #include <kalahari/core/book_type_registry.h>
+#include <kalahari/core/clipping.h>
 #include <kalahari/core/cover_material.h>
 #include <QByteArray>
 #include <QDateTime>
@@ -178,6 +180,8 @@ struct ProjectElement {
                                      ///< 90, 180 or 270 degrees
     CoverData cover;                 ///< Of a material of the cover: what it is and where
                                      ///< it goes; empty: none
+    ClippingData clipping;           ///< Of a clipping: where it was cut from and where it
+                                     ///< was inserted; empty: none
     QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
@@ -259,7 +263,7 @@ struct BookCaptions {
     CaptionLabelNumbering numberingOf(const QString& label) const;
 };
 
-/// @brief How a book numbers its footnotes or its endnotes (Insert > Footnote Layout...)
+/// @brief How a book numbers its footnotes or its endnotes (Format > Footnote Layout...)
 struct NoteNumbering {
     QString format;           ///< Of the number: "1", "a", "A", "i", "I" or "*" (*, †, ‡, §)
     bool perChapter = true;   ///< Anew in each chapter; false: through the book

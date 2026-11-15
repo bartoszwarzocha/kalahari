@@ -60,6 +60,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.undo", "resources/icons/twotone/undo.svg", "Undo");
     iconRegistry.registerIcon("edit.redo", "resources/icons/twotone/redo.svg", "Redo");
     iconRegistry.registerIcon("edit.cut", "resources/icons/twotone/content_cut.svg", "Cut");
+    iconRegistry.registerIcon("edit.cutToClippings", "resources/icons/twotone/move_to_inbox.svg",
+                              "Cut to Clippings");
     iconRegistry.registerIcon("edit.copy", "resources/icons/twotone/content_copy.svg", "Copy");
     iconRegistry.registerIcon("edit.paste", "resources/icons/twotone/content_paste.svg", "Paste");
     // As Word's paste options: a brush keeps the source's look, plain text leaves it
@@ -117,6 +119,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.specialChar", "resources/icons/twotone/emoji_symbols.svg", "Insert Special Character");
     iconRegistry.registerIcon("insert.quickCharacter", "resources/icons/twotone/bolt.svg", "Quick Character");
     iconRegistry.registerIcon("insert.quickInsert", "resources/icons/twotone/text_snippet.svg", "Quick Insert");
+    iconRegistry.registerIcon("insert.clipping", "resources/icons/twotone/outbox.svg",
+                              "Clipping from the Workshop");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
     iconRegistry.registerIcon("insert.horizontalLine", "resources/icons/twotone/horizontal_rule.svg", "Insert Horizontal Line");
@@ -491,6 +495,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("template.mindmap", "resources/icons/twotone/account_tree.svg", "Mind Map");
     iconRegistry.registerIcon("template.timeline", "resources/icons/twotone/timeline.svg", "Timeline");
     iconRegistry.registerIcon("template.note", "resources/icons/twotone/sticky_note_2.svg", "Note");
+    iconRegistry.registerIcon("template.clipping", "resources/icons/twotone/content_cut.svg",
+                              "Clipping");
     iconRegistry.registerIcon("template.character", "resources/icons/twotone/person.svg", "Character");
     iconRegistry.registerIcon("template.location", "resources/icons/twotone/place.svg", "Location");
 

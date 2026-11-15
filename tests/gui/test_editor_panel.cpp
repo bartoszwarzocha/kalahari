@@ -182,9 +182,11 @@ TEST_CASE("Editor panel: the text's context menu has the commands of the Edit me
     CHECK(test::waitUntil([] { return QApplication::activePopupWidget() == nullptr; }));
     REQUIRE(reader.menusRead() == 1);
     QList<const QAction*> commands;
+    QStringList texts;
     for (const test::MenuItem& item : reader.items()) {
         if (!item.separator) {
             commands.append(item.action);
+            texts.append(item.action->text().section(QLatin1Char('\t'), 0, 0));
         }
     }
     const QList<const QAction*> edit = {registry.getAction(QStringLiteral("edit.cut")),
@@ -192,8 +194,14 @@ TEST_CASE("Editor panel: the text's context menu has the commands of the Edit me
                                         registry.getAction(QStringLiteral("edit.paste")),
                                         registry.getAction(QStringLiteral("edit.selectAll"))};
     REQUIRE_FALSE(edit.contains(nullptr));
-    REQUIRE(commands.size() > edit.size());
-    CHECK(commands.mid(0, edit.size()) == edit);
+    REQUIRE(commands.size() > edit.size() + 2);
+    // Cut to Clippings under Cut, Insert > Clipping under Paste, under names of the menu
+    CHECK(commands.at(0) == edit.at(0));
+    CHECK(texts.at(1) == QStringLiteral("Cut to C&lippings"));
+    CHECK(commands.at(2) == edit.at(1));
+    CHECK(commands.at(3) == edit.at(2));
+    CHECK(texts.at(4) == QStringLiteral("&Insert Clipping..."));
+    CHECK(commands.at(5) == edit.at(3));
 }
 
 TEST_CASE("Editor panel: says whether its text differs from the saved text", "[gui][editor]") {

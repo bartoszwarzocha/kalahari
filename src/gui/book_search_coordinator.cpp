@@ -170,7 +170,7 @@ BookSearchCoordinator::BookSearchCoordinator(core::ProjectManager& book, Command
     auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this, &BookSearchCoordinator::reset);
     connect(&projects, &core::ProjectManager::projectClosed, this, &BookSearchCoordinator::reset);
-    // Insert > Footnote Layout...: other numbers of the notes the matches are in
+    // Format > Footnote Layout...: other numbers of the notes the matches are in
     connect(&projects, &core::ProjectManager::bookFootnotesChanged, this,
             &BookSearchCoordinator::searchAgain);
 

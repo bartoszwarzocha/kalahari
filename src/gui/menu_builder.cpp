@@ -48,7 +48,9 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Import") return QObject::tr("&Import");
     if (technicalName == "Export") return QObject::tr("&Export");
     if (technicalName == "Text Style") return QObject::tr("Text &Style");
-    if (technicalName == "Text Effects") return QObject::tr("&Text Effects");
+    if (technicalName == "Text Effects") {
+        return QObject::tr("Te&xt Effects");
+    }
     if (technicalName == "Change Case") return QObject::tr("&Change Case");
     if (technicalName == "Align Text") return QObject::tr("A&lign Text");
     if (technicalName == "Formatting Character") return QObject::tr("Formatting C&haracter");

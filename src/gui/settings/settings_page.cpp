@@ -34,7 +34,9 @@
 #include <QVBoxLayout>
 
 #include <cmath>
+#include <cstddef>
 #include <memory>
+#include <utility>
 
 namespace kalahari {
 namespace gui {
@@ -296,6 +298,69 @@ QCheckBox* SettingsPage::addCheckBox(QFormLayout* form, const QString& text, con
         addNote(form, restartText());
     }
     return box;
+}
+
+std::vector<QRadioButton*> SettingsPage::addChoices(QFormLayout* form, const QString& label,
+                                                    const std::string& key,
+                                                    std::vector<Choice> choices, bool inRow) {
+    auto* holder = new QWidget();
+    QBoxLayout* layout = inRow ? static_cast<QBoxLayout*>(new QHBoxLayout(holder))
+                               : static_cast<QBoxLayout*>(new QVBoxLayout(holder));
+    layout->setContentsMargins(0, 0, 0, 0);
+    // The buttons share the holder, so one of them is checked at a time (auto-exclusive)
+    std::vector<QRadioButton*> buttons;
+    for (const Choice& choice : choices) {
+        auto* button = new QRadioButton(choice.text);
+        layout->addWidget(button);
+        if (!choice.note.isEmpty()) {
+            alignWithText(addNote(layout, choice.note), button);
+        }
+        buttons.push_back(button);
+    }
+    if (inRow) {
+        layout->addStretch();
+    }
+    if (label.isEmpty()) {
+        form->addRow(holder);
+    } else {
+        auto* caption = new QLabel(label);
+        caption->setBuddy(buttons.front());
+        form->addRow(caption, holder);
+    }
+    bindCustom(choicesBinding(key, buttons, std::move(choices)));
+    return buttons;
+}
+
+SettingsPage::Binding SettingsPage::choicesBinding(const std::string& key,
+                                                   const std::vector<QRadioButton*>& buttons,
+                                                   std::vector<Choice> choices) {
+    auto values = std::make_shared<std::vector<Choice>>(std::move(choices));
+    Binding binding;
+    binding.key = [key]() { return key; };
+    binding.stored = [key, values]() {
+        return core::SettingsManager::getInstance().get<json>(key, values->front().value);
+    };
+    binding.shown = [buttons, values]() {
+        for (std::size_t i = 0; i < buttons.size(); ++i) {
+            if (buttons[i]->isChecked()) {
+                return (*values)[i].value;
+            }
+        }
+        return values->front().value;
+    };
+    binding.show = [buttons, values](const json& value) {
+        for (std::size_t i = 0; i < buttons.size(); ++i) {
+            if ((*values)[i].value == value) {
+                buttons[i]->setChecked(true);
+                return;
+            }
+        }
+        buttons.front()->setChecked(true);
+    };
+    binding.store = [key](const json& value) {
+        core::SettingsManager::getInstance().set<json>(key, value);
+    };
+    return binding;
 }
 
 QLabel* SettingsPage::addNote(QLayout* layout, const QString& text) {

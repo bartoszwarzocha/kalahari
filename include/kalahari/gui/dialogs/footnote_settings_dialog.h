@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file footnote_settings_dialog.h
-/// @brief Insert > Footnote Layout...: how the book numbers its notes and where its
+/// @brief Format > Footnote Layout...: how the book numbers its notes and where its
 ///        endnotes are
 
 #pragma once
@@ -16,7 +16,7 @@ namespace kalahari {
 namespace gui {
 namespace dialogs {
 
-/// @brief Insert > Footnote Layout...: the numbering of the book's footnotes and endnotes
+/// @brief Format > Footnote Layout...: the numbering of the book's footnotes and endnotes
 ///        and the place of its endnotes
 ///
 /// The format of the numbers (1, 2, 3; a, b, c; A, B, C; i, ii, iii; I, II, III; *, †, ‡) and

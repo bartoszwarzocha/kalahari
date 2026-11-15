@@ -7,6 +7,7 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/clipping.h>
 #include <kalahari/core/link_roles.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/material_kinds.h>
@@ -2498,6 +2499,54 @@ bool ProjectManager::setRotation(const QString& elementId, int rotation) {
 bool ProjectManager::setCover(const QString& elementId, const CoverData& cover) {
     return changeDetails("setCover", elementId,
                          [&cover](ProjectElement& element) { element.cover = cover; });
+}
+
+KindRef ProjectManager::clippingKind() const {
+    return bookTypes().findKind(QString::fromLatin1(BASE_PACKAGE),
+                                QString::fromLatin1(Clippings::KIND));
+}
+
+bool ProjectManager::isClipping(const ProjectElement& element) {
+    return element.kind.packageId == QLatin1String(BASE_PACKAGE) &&
+           element.kind.kindId == QLatin1String(Clippings::KIND);
+}
+
+QString ProjectManager::addClipping(const QString& title, const QString& kml,
+                                    const ClippingData& data) {
+    auto& logger = Logger::getInstance();
+    if (!m_project || refusesChange("addClipping")) {
+        return {};
+    }
+    const KindRef kind = clippingKind();
+    if (!kind) {
+        logger.error("addClipping: The base package has no clippings");
+        return {};
+    }
+
+    // A book without the clippings among its kinds takes them, saved with the new clipping
+    const BookProject before = *m_project;
+    const QList<KindRef> offered = m_project->kindsIn(bookTypes(), BookPlace::Workshop);
+    if (std::ranges::none_of(offered,
+                             [&kind](const KindRef& each) { return each.kind == kind.kind; })) {
+        m_project->kinds.append(
+            KindReference{.packageId = kind.package->id, .kindId = kind.kind->id});
+    }
+    QString clippingId = addElement(kind, title, BookPlace::Workshop, QString(), -1, {}, kml);
+    if (clippingId.isEmpty()) {
+        *m_project = before;
+        return {};
+    }
+    // Its text is saved: without its origin it is still a clipping, which the writer finds
+    if (!isEmpty(data) && !setClipping(clippingId, data)) {
+        logger.warn("addClipping: '{}' was added without where it comes from",
+                    title.toStdString());
+    }
+    return clippingId;
+}
+
+bool ProjectManager::setClipping(const QString& elementId, const ClippingData& data) {
+    return changeDetails("setClipping", elementId,
+                         [&data](ProjectElement& element) { element.clipping = data; });
 }
 
 bool ProjectManager::setCoverState(const QString& elementId, const QString& state,

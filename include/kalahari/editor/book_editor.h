@@ -488,6 +488,18 @@ public:
     ///        the text comes back, and its words are not written (movingStarted())
     void undoMovedText();
 
+    /// @brief Take the selection away as one undo step, with the annotations anchored in it,
+    ///        and leave the clipboard as it is (Edit > Cut to Clippings: the annotations go with
+    ///        the text to the clipping, as Cut takes them to the clipboard)
+    /// @param moved The words go to another text and are not deleted: the step, its undo and
+    ///        its redo are moving (movingStarted()), as Book > Chapter Break is
+    /// @return false in a read-only text or without a selection
+    bool takeSelection(bool moved);
+
+    /// @brief The level of undo of the text as it is: one for each step undo() takes back
+    ///        (Edit > Cut to Clippings follows its step with it)
+    [[nodiscard]] int undoLevel() const { return m_undoLevel; }
+
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.
@@ -1622,6 +1634,10 @@ public:
         QAction* paste = nullptr;
         QAction* selectAll = nullptr;
         QAction* link = nullptr;  ///< Insert > Link, whose keys Edit Hyperlink of a link shows
+        /// Edit > Cut to Clippings, under Cut, and Insert > Clipping, under Paste: items of
+        /// their own names, with the icons, the keys and the state of the commands
+        QAction* cutToClippings = nullptr;
+        QAction* insertClipping = nullptr;  ///< Insert > Clipping (see cutToClippings)
     };
 
     /// @brief The commands of the Edit menu the text's context menu shows as its editing
@@ -2476,6 +2492,20 @@ private:
     /// the end of the replaced text when it is redone
     void restoreStepCursor();
 
+    /// @brief What an undo level is besides a change of the text
+    struct LevelKind {
+        bool pasting = false;  ///< A paste (m_pasteLevels)
+        bool moving = false;   ///< Words moved, not written (m_movedLevels)
+    };
+
+    /// @brief Announce that undo or redo changes level @p level: pastingStarted() for a paste,
+    ///        movingStarted() for words moved
+    LevelKind announceLevel(int level);
+
+    /// @brief The end of the change of level @p level of @p kind: pastingFinished(),
+    ///        movingFinished()
+    void finishLevel(int level, LevelKind kind);
+
     // The cards of the annotations under the paragraphs (book_editor_cards.cpp)
 
     /// @brief Install the room under the paragraphs and the drawing of the cards in the
@@ -3311,6 +3341,9 @@ private:
     int m_undoLevel = 0;
     /// The levels of undo that pasted or dropped text: undoing and redoing them is pasting too
     QSet<int> m_pasteLevels;
+    /// The levels of undo that took text to another text (takeSelection()): undoing and
+    /// redoing them is moving too
+    QSet<int> m_movedLevels;
 
     /// @brief The last level of undo pasted or dropped text: pastingFinished()
     void finishPasting();

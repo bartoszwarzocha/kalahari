@@ -26,6 +26,7 @@
 #include "kalahari/gui/footnote_coordinator.h"
 #include "kalahari/gui/book_search_coordinator.h"
 #include "kalahari/gui/chapter_break_coordinator.h"
+#include "kalahari/gui/clippings_coordinator.h"
 #include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -761,6 +762,31 @@ MainWindow::MainWindow(QWidget* parent)
     m_editCoordinator->addTextCommands(
         {ChapterBreakCoordinator::COMMAND}, [this](const editor::BookEditor& text) {
             return m_chapterBreakCoordinator->canBreak(text);
+        });
+
+    // Edit > Cut to Clippings and Insert > Clipping from the Workshop: fragments to the
+    // Workshop and back, with Undo on the bar under the text and Ctrl+Z in it
+    m_clippingsCoordinator = new ClippingsCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(), m_navigatorCoordinator,
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        ClippingsCoordinator::Feedback{
+            .showNotice =
+                [this](EditorPanel* editor, const QString& message, const QString& actionText,
+                       const QString& actionToolTip, std::function<void()> action) {
+                    m_documentCoordinator->showNotice(editor, message, actionText,
+                                                      actionToolTip, std::move(action));
+                },
+            .statusBar = statusBar(),
+            .window = this},
+        this);
+    m_clippingsCoordinator->connectCommands();
+    m_editCoordinator->addTextCommands(
+        {ClippingsCoordinator::CUT_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_clippingsCoordinator->canCut(text);
+        });
+    m_editCoordinator->addTextCommands(
+        {ClippingsCoordinator::INSERT_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_clippingsCoordinator->canInsert(text);
         });
 
     // Format > Text Style also shows the other styles of the text in front (the window owns

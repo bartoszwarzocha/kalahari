@@ -48,6 +48,7 @@
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/chapter_versions.h"
+#include "kalahari/core/clipping.h"
 #include "kalahari/core/package_card.h"
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
@@ -774,6 +775,32 @@ public:
     ///         materials keep their states then
     bool setCoverState(const QString& elementId, const QString& state,
                        QStringList* drafts = nullptr);
+
+    // =========================================================================
+    // Clippings (Edit > Cut to Clippings)
+    // =========================================================================
+
+    /// @brief The kind of the clippings: Clippings::KIND of the base package; none when the
+    /// installed base package does not have it
+    [[nodiscard]] KindRef clippingKind() const;
+
+    /// @brief Whether @p element is a clipping
+    [[nodiscard]] static bool isClipping(const ProjectElement& element);
+
+    /// @brief Add a clipping to the Workshop: a text element of clippingKind() with @p title,
+    /// the text @p kml (KML) and @p data, where the place of its kind is
+    ///
+    /// Every book can have clippings: a book whose kinds do not have them (a user project, a
+    /// type of another package) takes their kind with the first one. Saves the .klh file.
+    /// @return The id of the new clipping; empty when no book is open or it is read-only, the
+    ///         base package has no clippings, or a file cannot be written
+    QString addClipping(const QString& title, const QString& kml, const ClippingData& data);
+
+    /// @brief Give clipping @p elementId the data @p data (where it was cut from and where it
+    /// was inserted) and save the .klh file
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its data then
+    bool setClipping(const QString& elementId, const ClippingData& data);
 
     // =========================================================================
     // Paragraph Styles of the Books

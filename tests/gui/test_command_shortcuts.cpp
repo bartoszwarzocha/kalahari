@@ -91,6 +91,7 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         {"edit.pasteMergeFormatting", QStringLiteral("Alt+Shift+M")},
 #endif
         {"edit.pasteTextOnly", QStringLiteral("Ctrl+Shift+V")},
+        {"edit.cutToClippings", QStringLiteral("Ctrl+Shift+X")},  // Cut, with Shift
         {"edit.delete", QStringLiteral("Del")},
         {"edit.selectAll", QStringLiteral("Ctrl+A")},
         {"edit.find", QStringLiteral("Ctrl+F")},
@@ -121,10 +122,12 @@ TEST_CASE("Command shortcuts: one set on every system, as the documentation list
         // Option+Shift+Cmd, as the pastes: Option with a letter types a character
         {"insert.footnote", QStringLiteral("Ctrl+Alt+Shift+F")},
         {"insert.endnote", QStringLiteral("Ctrl+Alt+Shift+E")},
+        {"insert.clipping", QStringLiteral("Ctrl+Alt+Shift+X")},
 #else
         // Word's Ctrl+Alt+F and Ctrl+Alt+D are AltGr on Windows
         {"insert.footnote", QStringLiteral("Alt+Shift+F")},
         {"insert.endnote", QStringLiteral("Alt+Shift+E")},
+        {"insert.clipping", QStringLiteral("Alt+Shift+X")},  // the clipping cut with Ctrl+Shift+X
 #endif
         // The formatting characters, as in Word; Ctrl+_ is Ctrl+Shift+-
         {"insert.noBreakSpace", QStringLiteral("Ctrl+Shift+Space")},

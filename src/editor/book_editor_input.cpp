@@ -1442,12 +1442,35 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
             menu.addAction(text, this, edit);
         }
     };
+    // A command of the application under a name of its own, which fits the menu of the text:
+    // its icon, its keys only shown, its state and why it is greyed out
+    const auto addCommandItem = [&menu](QAction* command, const QString& text) {
+        if (command == nullptr) {
+            return;
+        }
+        QString shown = text;
+        if (const QKeySequence keys = command->shortcut(); !keys.isEmpty()) {
+            shown += QLatin1Char('\t') + keys.toString(QKeySequence::NativeText);
+        }
+        QAction* item = menu.addAction(command->icon(), shown, command, &QAction::trigger);
+        item->setEnabled(command->isEnabled());
+        item->setToolTip(command->toolTip());
+        item->setStatusTip(command->statusTip());
+    };
     const ContextMenuEditActions& commands = m_contextMenuEditActions;
     if (hasSelection()) {
         addEditItem(commands.cut, tr("Cu&t"), &BookEditor::cut, true);
+    }
+    // Also without a selection: the paragraph with the cursor (the settings)
+    //: The item of the text's context menu under Cut. In Polish: Wytni&j do wycinków
+    addCommandItem(commands.cutToClippings, tr("Cut to C&lippings"));
+    if (hasSelection()) {
         addEditItem(commands.copy, tr("&Copy"), &BookEditor::copy, false);
     }
     addEditItem(commands.paste, tr("&Paste"), &BookEditor::paste, true);
+    //: The item of the text's context menu under Paste: Insert > Clipping from the Workshop.
+    //: In Polish: Wstaw w&ycinek...
+    addCommandItem(commands.insertClipping, tr("&Insert Clipping..."));
 
     // Also without a selection, as in the program's text fields
     menu.addSeparator();

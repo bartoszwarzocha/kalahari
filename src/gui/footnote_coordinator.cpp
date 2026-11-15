@@ -292,7 +292,7 @@ bool FootnoteCoordinator::editSettings() {
 QString FootnoteCoordinator::whyNotEditSettings() const {
     const auto& projects = m_book;
     if (!projects.isProjectOpen()) {
-        //: Why Insert > Footnote Layout... is greyed out.
+        //: Why Format > Footnote Layout... is greyed out.
         //: In Polish: Żadna książka nie jest otwarta
         return tr("No book is open");
     }

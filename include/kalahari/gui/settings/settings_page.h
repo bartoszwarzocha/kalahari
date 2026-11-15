@@ -28,6 +28,7 @@ class QFormLayout;
 class QLabel;
 class QLayout;
 class QPushButton;
+class QRadioButton;
 class QVBoxLayout;
 
 namespace kalahari {
@@ -132,6 +133,27 @@ protected:
 
     /// @brief Add a check box spanning the form and bind it
     QCheckBox* addCheckBox(QFormLayout* form, const QString& text, const std::string& key);
+
+    /// @brief One choice of a setting (addChoices())
+    struct Choice {
+        QString text;          ///< What the radio button says
+        nlohmann::json value;  ///< The value of the setting it stands for
+        QString note;          ///< A note under it; empty: none
+    };
+
+    /// @brief Radio buttons of a setting, under one label of the form, bound to the setting
+    /// @param label The label of the row; empty: the buttons span the form
+    /// @param inRow The buttons side by side (without notes)
+    /// @return The buttons, in the order of @p choices
+    std::vector<QRadioButton*> addChoices(QFormLayout* form, const QString& label,
+                                          const std::string& key, std::vector<Choice> choices,
+                                          bool inRow = false);
+
+    /// @brief The binding of radio buttons @p buttons to setting @p key: button i stands for
+    ///        the value of @p choices [i] (addChoices())
+    [[nodiscard]] static Binding choicesBinding(const std::string& key,
+                                                const std::vector<QRadioButton*>& buttons,
+                                                std::vector<Choice> choices);
 
     /// @brief Add a muted explanatory text to a layout
     ///

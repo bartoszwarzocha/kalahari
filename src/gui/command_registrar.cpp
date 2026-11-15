@@ -314,6 +314,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       IconSet(),
                       callbacks.onCut);
 
+    // The selection, or the paragraph with the cursor, to a new clipping of the Workshop
+    // (ClippingsCoordinator gives it its callback). Ctrl+Shift+X: Cut with Shift
+    REG_CMD_KEY("edit.cutToClippings",
+                QT_TRANSLATE_NOOP("CommandRegistrar", "Cut to C&lippings"),
+                "EDIT/Cut to Clippings", 35, false, 0,
+                KeyboardShortcut(Qt::Key_X, Qt::ControlModifier | Qt::ShiftModifier));
+
     REG_CMD_TOOL_ICON("edit.copy", QT_TRANSLATE_NOOP("CommandRegistrar", "&Copy"), "EDIT/Copy", 40, false, 0,
                       KeyboardShortcut(Qt::Key_C, Qt::ControlModifier),
                       IconSet(),
@@ -359,7 +366,7 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_KEY_CB("edit.findPrevious", QT_TRANSLATE_NOOP("CommandRegistrar", "Find Pre&vious"), "EDIT/Find Previous", 130, false, 1,
                    KeyboardShortcut(Qt::Key_F3, Qt::ShiftModifier),
                    callbacks.onFindPrevious);
-    REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find && Rep&lace..."), "EDIT/Find & Replace...", 140, false, 1,
+    REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find && R&eplace..."), "EDIT/Find & Replace...", 140, false, 1,
                    replaceShortcut,
                    callbacks.onFindReplace);
     // Find in Book: the Search panel, in all the texts of the book (BookSearchCoordinator gives
@@ -375,6 +382,9 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
 
     REG_CMD_CB("edit.preferences", QT_TRANSLATE_NOOP("CommandRegistrar", "Pr&eferences..."), "EDIT/Preferences...", 160, false, 0,
                callbacks.onSettings);
+    // Not in the menu: Settings... below opens the same window, under the name it has (the
+    // keys and the toolbars still have it)
+    registry.getCommand("edit.preferences")->showInMenu = false;
 
     // OpenSpec #00037: edit.settings command (alias for Settings dialog, used in Quick Actions toolbar)
     REG_CMD_TOOL_ICON("edit.settings", QT_TRANSLATE_NOOP("CommandRegistrar", "Settin&gs..."), "EDIT/Settings...", 165, false, 0,
@@ -474,9 +484,6 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                 KeyboardShortcut(Qt::Key_F, pasteModifiers));
     REG_CMD_KEY("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Endnote"), "INSERT/Endnote", 50, false, 1,
                 KeyboardShortcut(Qt::Key_E, pasteModifiers));
-    // How the book numbers its notes and where its endnotes are (Polish: Ustawienia
-    // przypisów...; the other letters of both names are other items' keys)
-    REG_CMD("insert.footnoteSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Footnote La&yout..."), "INSERT/Footnote Layout...", 55, false, 1);
 
     // Annotations on the text; AnnotationsCoordinator gives them their callbacks. Add
     // Annotation opens a small menu of the kinds at the cursor. Not Ctrl+M (it minimizes
@@ -523,6 +530,12 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // a word open it. Ctrl+Shift+W: the program has no other command on it
     REG_CMD_KEY_CB("insert.quickInsert", QT_TRANSLATE_NOOP("CommandRegistrar", "Q&uick Insert..."), "INSERT/Quick Insert...", 87, false, 0,
                    KeyboardShortcut(Qt::Key_W, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onQuickInsert);
+    // A clipping of the Workshop at the cursor, or where it was cut from (ClippingsCoordinator
+    // gives it its callback); Alt+Shift with X, as the pastes have Alt+Shift with a letter
+    REG_CMD_KEY("insert.clipping",
+                QT_TRANSLATE_NOOP("CommandRegistrar", "Clipping from the &Workshop..."),
+                "INSERT/Clipping from the Workshop...", 88, false, 0,
+                KeyboardShortcut(Qt::Key_X, pasteModifiers));
     REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time"), "INSERT/Date & Time", 90, false, 1);
     REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 1);
 
@@ -546,8 +559,11 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_CB("format.paragraph", QT_TRANSLATE_NOOP("CommandRegistrar", "&Paragraph..."), "FORMAT/Paragraph...", 20, false, 0,
                callbacks.onParagraph);
     // The formats of the levels of the list in the selected paragraphs (gui/dialogs/list_dialogs.h)
-    REG_CMD_CB("format.bulletsNumbering", QT_TRANSLATE_NOOP("CommandRegistrar", "Bullets and Numberin&g..."), "FORMAT/Bullets and Numbering...", 25, true, 0,
+    REG_CMD_CB("format.bulletsNumbering", QT_TRANSLATE_NOOP("CommandRegistrar", "Bullets and Numberin&g..."), "FORMAT/Bullets and Numbering...", 25, false, 0,
                callbacks.onBulletsNumbering);
+    // How the book numbers its notes and where its endnotes are; in the Format menu, as the
+    // Insert menu has a key for each letter of its names (Polish: U&stawienia przypisów...)
+    REG_CMD("insert.footnoteSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Foo&tnote Layout..."), "FORMAT/Footnote Layout...", 27, true, 1);
 
     // Text Style submenu: the paragraph styles every book has (the package "Base"), by the ids
     // of editor/paragraph_styles.h; the menu adds the other styles of the book after Code.
