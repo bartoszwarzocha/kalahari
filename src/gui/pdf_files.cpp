@@ -20,6 +20,8 @@
 #include <QPdfDocument>
 #endif
 
+#include <initializer_list>
+#include <optional>
 #include <string>
 
 namespace kalahari::gui {
@@ -50,7 +52,7 @@ bool PdfFiles::opensInPreview() {
 
 QString PdfFiles::choice(const char* key, const char* fallback,
                          std::initializer_list<const char*> values) {
-    const std::string value =
+    const auto value =
         core::SettingsManager::getInstance().get<std::string>(key, std::string(fallback));
     for (const char* each : values) {
         if (value == each) {

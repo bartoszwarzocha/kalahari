@@ -44,22 +44,22 @@ struct SourceDescription {
     static constexpr const char* BOOK = "book";
     static constexpr const char* CHAPTER = "chapter";      ///< A chapter in a book
     static constexpr const char* ARTICLE = "article";      ///< An article in a journal
-    static constexpr const char* WEB_PAGE = "webPage";
+    static constexpr const char* WEB_PAGE = "webPage";     ///< A page on the Internet
     static constexpr const char* ARCHIVE = "archive";      ///< A document of an archive
     static constexpr const char* INTERVIEW = "interview";  ///< A talk or an interview
     static constexpr const char* FILM = "film";            ///< A film or a recording
     static constexpr const char* THESIS = "thesis";        ///< A thesis
-    static constexpr const char* OTHER = "other";
+    static constexpr const char* OTHER = "other";          ///< Any other source
     /// @}
 
     /// @name What a person of a source did
     /// @{
     static constexpr const char* AUTHOR = "author";
-    static constexpr const char* EDITOR = "editor";
-    static constexpr const char* TRANSLATOR = "translator";
-    static constexpr const char* INTERVIEWEE = "interviewee";
-    static constexpr const char* INTERVIEWER = "interviewer";
-    static constexpr const char* DIRECTOR = "director";
+    static constexpr const char* EDITOR = "editor";        ///< Edited the work
+    static constexpr const char* TRANSLATOR = "translator";  ///< Translated it
+    static constexpr const char* INTERVIEWEE = "interviewee";  ///< Was interviewed
+    static constexpr const char* INTERVIEWER = "interviewer";  ///< Asked the questions
+    static constexpr const char* DIRECTOR = "director";    ///< Directed a film
     static constexpr const char* SUPERVISOR = "supervisor";    ///< Of a thesis
     static constexpr const char* INSTITUTION = "institution";  ///< The author is one
     /// @}
@@ -67,35 +67,35 @@ struct SourceDescription {
     /// @name The fields of a description (values)
     /// @{
     static constexpr const char* TITLE = "title";          ///< Of the work: book, chapter, page
-    static constexpr const char* SUBTITLE = "subtitle";
+    static constexpr const char* SUBTITLE = "subtitle";    ///< The subtitle of the work
     static constexpr const char* CONTAINER = "container";  ///< The book of a chapter, the
                                                            ///< journal of an article, the site
                                                            ///< of a page, the archive
-    static constexpr const char* EDITION = "edition";
+    static constexpr const char* EDITION = "edition";      ///< "2nd edition", "wyd. 3"
     static constexpr const char* PLACE = "place";          ///< Of publishing, of a talk
     static constexpr const char* PUBLISHER = "publisher";  ///< Of a thesis: the university
     static constexpr const char* YEAR = "year";            ///< The year or the date
-    static constexpr const char* VOLUME = "volume";
-    static constexpr const char* ISSUE = "issue";
+    static constexpr const char* VOLUME = "volume";        ///< Of a journal or of a work in volumes
+    static constexpr const char* ISSUE = "issue";          ///< The number of a journal
     static constexpr const char* PAGES = "pages";          ///< All of a book; "41–58" of a part
-    static constexpr const char* SERIES = "series";
-    static constexpr const char* ISBN = "isbn";
-    static constexpr const char* ISSN = "issn";
-    static constexpr const char* DOI = "doi";
-    static constexpr const char* URL = "url";
+    static constexpr const char* SERIES = "series";        ///< The series a book is in
+    static constexpr const char* ISBN = "isbn";            ///< Of a book
+    static constexpr const char* ISSN = "issn";            ///< Of a journal or a series
+    static constexpr const char* DOI = "doi";              ///< Digital Object Identifier
+    static constexpr const char* URL = "url";              ///< The address of a page
     static constexpr const char* PUBLISHED = "published";  ///< When a page was published
     static constexpr const char* ACCESSED = "accessed";    ///< When a page was read
     static constexpr const char* FONDS = "fonds";          ///< The fonds of an archive
     static constexpr const char* SIGNATURE = "signature";  ///< The call number in an archive
     static constexpr const char* FORM = "form";            ///< "rękopis", "nagranie, 48 min"
-    static constexpr const char* LANGUAGE = "language";
+    static constexpr const char* LANGUAGE = "language";    ///< Of a work in another language
     /// @}
 
     /// @name In the bibliography of the book (bibliography)
     /// @{
     static constexpr const char* LINKED = "linked";  ///< When it is linked with the text
-    static constexpr const char* ALWAYS = "always";
-    static constexpr const char* NEVER = "never";
+    static constexpr const char* ALWAYS = "always";  ///< Also when it is not linked
+    static constexpr const char* NEVER = "never";    ///< Not even when it is linked
     /// @}
 
     QString type;                   ///< BOOK...; empty: not said (a book)

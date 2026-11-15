@@ -25,7 +25,10 @@
 #include <QSizeF>
 #include <QVector>
 
+#include <functional>
 #include <optional>
+
+class QPainter;
 
 namespace kalahari::gui {
 
@@ -77,6 +80,7 @@ public:
     /// @brief The zooms of Zoom In and Zoom Out, from the smallest
     [[nodiscard]] static const QList<double>& zoomSteps();
 
+    /// @brief The view without a document: no pages
     explicit PdfPagesView(QWidget* parent = nullptr);
 
     /// @brief Show the pages of @p document (not owned), from the first; nullptr: none
@@ -211,6 +215,36 @@ protected:
 private:
     /// @brief Lay out the pages anew, keeping the place shown
     void relayout();
+
+    /// @brief The place shown: how far down the page shown the window begins, in parts of its
+    /// height; 0 when the pages show one row at a time
+    [[nodiscard]] double shownDown() const;
+
+    /// @brief The rows laid out: all of them, or the row of the page shown
+    [[nodiscard]] QList<QList<int>> shownRows() const;
+
+    /// @brief Lay out the pages of @p shownRows at m_zoom: m_rects and m_size
+    void placePages(const QList<QList<int>>& shownRows);
+
+    /// @brief Draw over page @p page, at @p rect of the viewport, the hits of the search, the
+    /// hit gone to and the selection
+    void paintMarks(QPainter& painter, int page, const QRect& rect) const;
+
+    /// @brief One page or one spread at a time: past the end of the row, the wheel turned by
+    /// @p delta goes to the next row; false when it scrolls the row
+    bool wheelToNextRow(int delta);
+
+    /// @brief The keys of the pages: @p key with @p modifiers (without the one of the keypad)
+    /// @return false when the pages do not use it
+    bool handleKey(int key, Qt::KeyboardModifiers modifiers);
+
+    /// @brief Page Down, Page Up, Home and End go to another row, the first or the last page
+    /// @return false for another key
+    bool moveKey(int key);
+
+    /// @brief Where the menu of the selection opens from the keys, on the screen: under the
+    /// selection, or in the middle of the pages without one
+    [[nodiscard]] QPoint selectionMenuPlace() const;
 
     /// @brief The pages in each row, from the top: one, or two side by side
     [[nodiscard]] QList<QList<int>> rows() const;

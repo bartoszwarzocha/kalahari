@@ -25669,14 +25669,17 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
     <message>
         <source>The source is gone</source>
+        <extracomment>In Polish: Nie ma już tego źródła</extracomment>
         <translation>Nie ma już tego źródła</translation>
     </message>
     <message>
         <source>From the card of the source: “%1”</source>
+        <extracomment>The author and the work of a quote from a source: %1 its title. In Polish: z karty źródła: „%1”</extracomment>
         <translation>Z karty źródła: „%1”</translation>
     </message>
     <message>
         <source>From the card of the source: %1, “%2”</source>
+        <extracomment>%1 the authors, %2 the title. In Polish: z karty źródła: %1, „%2”</extracomment>
         <translation>Z karty źródła: %1, „%2”</translation>
     </message>
     <message>

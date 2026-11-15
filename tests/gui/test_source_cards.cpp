@@ -8,9 +8,10 @@
 
 #include "document_window.h"
 
-#include "kalahari/core/bibliography.h"
 #include "kalahari/core/material_kinds.h"
-#include "kalahari/core/settings_manager.h"
+#include "kalahari/core/project_manager.h"
+#include "kalahari/core/source_description.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/material_list_panel.h"
@@ -37,7 +38,9 @@
 
 #include "test_support/window_parts.h"
 
-using namespace kalahari;
+namespace core = kalahari::core;
+namespace gui = kalahari::gui;
+namespace test = kalahari::test;
 using core::SourceDescription;
 
 namespace {
@@ -87,8 +90,8 @@ void typeField(QLineEdit* edit, const QString& text) {
 }
 
 /// The item of @p tree with id @p id
-QTreeWidgetItem* itemOf(const QTreeWidget* tree, const QString& id) {
-    for (QTreeWidgetItemIterator it(const_cast<QTreeWidget*>(tree)); *it; ++it) {
+QTreeWidgetItem* itemOf(QTreeWidget* tree, const QString& id) {
+    for (QTreeWidgetItemIterator it(tree); *it != nullptr; ++it) {
         if ((*it)->data(0, Qt::UserRole).toString() == id) {
             return *it;
         }
@@ -100,7 +103,8 @@ QTreeWidgetItem* itemOf(const QTreeWidget* tree, const QString& id) {
 SourceDescription atlas() {
     SourceDescription source;
     source.type = QString::fromLatin1(SourceDescription::BOOK);
-    source.people << core::SourcePerson{QStringLiteral("Anna Wiśniewska"), {}, {}};
+    source.people << core::SourcePerson{
+        .name = QStringLiteral("Anna Wiśniewska"), .role = {}, .extra = {}};
     source.setValue(QString::fromLatin1(SourceDescription::TITLE),
                     QStringLiteral("Atlas pustyń świata"));
     source.setValue(QString::fromLatin1(SourceDescription::YEAR), QStringLiteral("2011"));
@@ -382,8 +386,10 @@ TEST_CASE("Sources: the list of the materials with a description and its node in
     REQUIRE(pm.setSource(atlasId, atlas()));
     SourceDescription page;
     page.type = QString::fromLatin1(SourceDescription::WEB_PAGE);
-    page.people << core::SourcePerson{QStringLiteral("Nature Atlas"),
-                                      QString::fromLatin1(SourceDescription::INSTITUTION), {}};
+    page.people << core::SourcePerson{
+        .name = QStringLiteral("Nature Atlas"),
+        .role = QString::fromLatin1(SourceDescription::INSTITUTION),
+        .extra = {}};
     REQUIRE(pm.setSource(pageId, page));
 
     const QString sources = QString::fromLatin1(gui::MaterialList::SOURCES);
@@ -414,8 +420,8 @@ TEST_CASE("Sources: the list of the materials with a description and its node in
     CHECK_FALSE(kinds.contains(QStringLiteral("kalahari.base:quote")));
 
     // First in Materials, with its number, which follows the descriptions
-    test::Window window;
-    const QTreeWidget* tree = window.navigatorPanel->tree();
+    const test::Window window;
+    QTreeWidget* tree = window.navigatorPanel->tree();
     QTreeWidgetItem* node = itemOf(tree, QStringLiteral("workshop:sources"));
     REQUIRE(node != nullptr);
     REQUIRE(node->parent() != nullptr);

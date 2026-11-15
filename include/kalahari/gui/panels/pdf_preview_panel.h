@@ -15,6 +15,7 @@
 class QAction;
 class QComboBox;
 class QFrame;
+class QKeyEvent;
 class QLabel;
 class QLineEdit;
 class QListView;
@@ -30,6 +31,7 @@ class QTimer;
 class QToolBar;
 class QTreeView;
 class QTreeWidget;
+class QTreeWidgetItem;
 
 namespace kalahari::core {
 class ProjectManager;
@@ -65,7 +67,12 @@ class PdfPreviewPanel : public PreviewPanel {
 
 public:
     /// @brief The tabs of the side panel
-    enum SideTab { BookmarksTab, ContentsTab, ThumbnailsTab, ResultsTab };
+    enum SideTab {
+        BookmarksTab,   ///< The bookmarks of the material
+        ContentsTab,    ///< The table of contents of the file
+        ThumbnailsTab,  ///< The pages small
+        ResultsTab      ///< The hits of the search
+    };
 
     /// @brief Create the preview of material @p elementId of the open book
     PdfPreviewPanel(core::ProjectManager& book, const QString& elementId,
@@ -76,6 +83,8 @@ public:
 
     PdfPreviewPanel(const PdfPreviewPanel&) = delete;
     PdfPreviewPanel& operator=(const PdfPreviewPanel&) = delete;
+    PdfPreviewPanel(PdfPreviewPanel&&) = delete;
+    PdfPreviewPanel& operator=(PdfPreviewPanel&&) = delete;
 
     /// @brief Whether it shows the file; false with the sentence of why not (problem())
     [[nodiscard]] bool hasDocument() const;
@@ -98,24 +107,44 @@ public:
     [[nodiscard]] QString textWithReference() const;
 
     // The parts, for the tests
+    /// @brief The pages
     [[nodiscard]] PdfPagesView* view() const { return m_view; }
+    /// @brief The bar over the pages
     [[nodiscard]] QToolBar* toolBar() const { return m_toolBar; }
+    /// @brief The field of the page shown
     [[nodiscard]] QLineEdit* pageEdit() const { return m_pageEdit; }
+    /// @brief The number of pages after it: "of 120"
     [[nodiscard]] QLabel* pageCountLabel() const { return m_pageCountLabel; }
+    /// @brief The box of the zoom
     [[nodiscard]] QComboBox* zoomBox() const { return m_zoomBox; }
+    /// @brief The field of the search
     [[nodiscard]] QLineEdit* searchEdit() const { return m_searchEdit; }
+    /// @brief The hits found: "3 of 12"
     [[nodiscard]] QLabel* hitsLabel() const { return m_hitsLabel; }
+    /// @brief The side panel and its tabs (SideTab)
     [[nodiscard]] QTabWidget* sidePanel() const { return m_side; }
+    /// @brief The bookmarks of the material: a page and a note each
     [[nodiscard]] QTreeWidget* bookmarksList() const { return m_bookmarksList; }
+    /// @brief The button under the bookmarks: a bookmark at the page shown
     [[nodiscard]] QPushButton* addBookmarkButton() const { return m_addBookmarkButton; }
+    /// @brief The table of contents of the file
     [[nodiscard]] QTreeView* contentsTree() const { return m_contentsTree; }
+    /// @brief The pages small
     [[nodiscard]] QListWidget* thumbnails() const { return m_thumbnails; }
+    /// @brief The hits of the search
     [[nodiscard]] QListView* resultsList() const { return m_resultsList; }
+    /// @brief The bar over a selection made with the mouse
     [[nodiscard]] QFrame* selectionBar() const { return m_selectionBar; }
+    /// @brief The search in the file
     [[nodiscard]] QPdfSearchModel* searchModel() const { return m_search; }
+    /// @brief The button that shows and hides the side panel
     [[nodiscard]] QAction* sideAction() const { return m_sideAction; }
+    /// @brief The button of the layout @p layout of the pages
     [[nodiscard]] QAction* layoutAction(PdfPagesView::Layout layout) const;
+    /// @brief The commands of a selection: Copy, Copy with Reference, Create Quote, Bookmark
+    /// Here and Select All Text of the Page
     [[nodiscard]] QList<QAction*> selectionActions() const;
+    /// @brief The hit gone to, from 0; -1: none
     [[nodiscard]] int currentHit() const { return m_hit; }
 
 public slots:
@@ -143,8 +172,8 @@ public slots:
     /// @brief Go to hit @p index of the search, from 0, and select it
     void goToHit(int index);
 
-    /// @brief Copy the selection with the reference to its page (copyWithReference())
-    void copyWithReference();
+    /// @brief Copy the selection with the reference to its page (textWithReference())
+    void copyWithReference() const;
 
     /// @brief Ask for a quote of the selection from its page (newQuoteRequested())
     void createQuote();
@@ -166,14 +195,60 @@ private:
     /// @brief The bar over the pages
     void buildToolBar();
 
+    /// @brief What the buttons and the fields of the bar over the pages do
+    void connectToolBar();
+
+    /// @brief What shows instead of the pages when they cannot be shown: why, and the button
+    /// that opens the file in the system program
+    [[nodiscard]] QWidget* buildProblemPage();
+
     /// @brief The side panel and its tabs
     void buildSidePanel();
+
+    /// @brief The lists of the side panel go to their pages, and the notes of the bookmarks
+    /// are kept as they are typed
+    void connectSidePanel();
+
+    /// @brief Go to the page of the bookmark of @p item
+    void goToBookmark(QTreeWidgetItem* item);
+
+    /// @brief Keep the note typed in @p item of the bookmarks; @p column: the column changed
+    void saveBookmarkNote(QTreeWidgetItem* item, int column);
 
     /// @brief The bar over a selection and the commands of the selection
     void buildSelectionCommands();
 
-    /// @brief The settings of the preview, at its opening
+    /// @brief The settings of the preview: the layout of the pages; at its opening also the
+    /// zoom, the tab of the side panel and the page shown last
     void applySettings(bool opening);
+
+    /// @brief The zoom the preview opens with (Settings > Materials > PDF Preview)
+    void applyZoomSetting();
+
+    /// @brief The tab the side panel opens with, or the side panel hidden
+    void applySideSetting();
+
+    /// @brief The keys of the preview: @p key on its part @p watched
+    /// @return true when the preview used it
+    bool handleKey(QObject* watched, QKeyEvent& key);
+
+    /// @brief F6, Shift+F6 and Ctrl+G, over the keys of the window: @p key with @p modifiers
+    /// (without the one of the keypad)
+    /// @return false for another key
+    bool partKey(QKeyEvent& key, Qt::KeyboardModifiers modifiers);
+
+    /// @brief Enter and Shift+Enter in the field of the search go to the next and the previous
+    /// hit; Esc to the pages
+    /// @return false for another key
+    bool searchKey(int key, Qt::KeyboardModifiers modifiers);
+
+    /// @brief Insert, Delete and F2 in the bookmarks: add one, take one away, change its note
+    /// @return false for another key
+    bool bookmarkKey(int key);
+
+    /// @brief The note of a new bookmark at page @p page: the text selected on it, shortened;
+    /// empty without one
+    [[nodiscard]] QString noteOfSelection(int page) const;
 
     /// @brief The look of the pages and their colors, for the theme in use
     void applyAppearance();
@@ -192,6 +267,9 @@ private:
 
     /// @brief Give the material the bookmarks @p bookmarks
     void saveBookmarks(const QList<core::PageBookmark>& bookmarks);
+
+    /// @brief The small pages of the @p count pages, blank until they are drawn
+    void fillThumbnails(int count);
 
     /// @brief Show the pages small, for the pages in the window of the list
     void drawThumbnails();
@@ -215,6 +293,9 @@ private:
     /// @brief F6 and Shift+F6: the keys go to the next part (or the previous one) of the bar,
     /// the side panel and the pages
     void focusNextPart(bool forward);
+
+    /// @brief Which of @p parts has the keys; -1: none
+    [[nodiscard]] qsizetype partWithFocus(const QList<QWidget*>& parts) const;
 
     /// @brief Keep the page shown and the zoom (Settings > Materials > PDF Preview > As
     /// Last Time)

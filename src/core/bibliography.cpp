@@ -2,21 +2,33 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file bibliography.cpp
-/// @brief The entries of the sources in the styles of a bibliography, the references in the
-/// text and the reading of BibTeX and RIS
+/// @brief The entries of the sources in the styles of a bibliography and the references in the
+/// text (the reading of BibTeX and RIS is in bibliography_records.cpp)
 
 #include "kalahari/core/bibliography.h"
 
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/source_description.h"
 
+#include <QChar>
+#include <QList>
 #include <QRegularExpression>
+#include <QString>
+#include <QStringList>
 
-#include <functional>
+#include <initializer_list>
 #include <string>
+#include <utility>
 
 namespace kalahari::core {
 
 namespace {
+
+/// The closing double quotation mark: "”"
+constexpr char16_t CLOSING_QUOTE = u'\u201D';
+
+/// The most names an entry shows before "i in." in PN-ISO 690 and Harvard
+constexpr qsizetype MOST_NAMED = 3;
 
 /// The words of a bibliography in one language
 struct Words {
@@ -116,8 +128,8 @@ bool endsWithStop(const QString& text) {
     static const QRegularExpression tags(QStringLiteral("(<[^>]*>)+$"));
     end.remove(tags);
     end = end.trimmed();
-    while (!end.isEmpty() && (end.back() == QChar(0x201D) || end.back() == QLatin1Char('"') ||
-                              end.back() == QLatin1Char('\''))) {
+    while (!end.isEmpty() && (end.back() == QChar(CLOSING_QUOTE) ||
+                              end.back() == QLatin1Char('"') || end.back() == QLatin1Char('\''))) {
         end.chop(1);
     }
     return end.endsWith(QLatin1Char('.')) || end.endsWith(QLatin1Char('?')) ||
@@ -154,6 +166,16 @@ QString joined(const QStringList& parts, const QString& separator) {
     return shown.join(separator);
 }
 
+/// "t. 12": @p label (a word of the language) and @p value; nothing without a value
+QString labelled(const char* label, const QString& value) {
+    return value.isEmpty() ? QString() : word(label) + QLatin1Char(' ') + value;
+}
+
+/// "(Seria)": @p value between @p before and @p after; nothing without a value
+QString enclosed(const QString& value, const QString& before, const QString& after) {
+    return value.isEmpty() ? QString() : before + value + after;
+}
+
 /// "Wyd. 2 popr.", "2nd ed.": an edition that starts with its number gets the word of the
 /// language before or after it; a text of its own ("Second edition") stays as it is
 QString editionText(const QString& edition, const Words& words, bool lower = false) {
@@ -173,10 +195,10 @@ class Writer {
 public:
     Writer(const SourceDescription& source, const QString& title, const QString& language,
            bool rich)
-        : m_source(source), m_title(title.trimmed()), m_words(wordsFor(language)), m_rich(rich) {}
+        : m_source(&source), m_title(title.trimmed()), m_words(&wordsFor(language)), m_rich(rich) {}
 
-    [[nodiscard]] const Words& words() const { return m_words; }
-    [[nodiscard]] const SourceDescription& source() const { return m_source; }
+    [[nodiscard]] const Words& words() const { return *m_words; }
+    [[nodiscard]] const SourceDescription& source() const { return *m_source; }
 
     /// The text as the entry has it: escaped in a rich entry
     [[nodiscard]] QString text(const QString& plain) const {
@@ -196,11 +218,11 @@ public:
         if (plain.isEmpty()) {
             return {};
         }
-        return word(m_words.openQuote) + text(plain) + word(m_words.closeQuote);
+        return word(m_words->openQuote) + text(plain) + word(m_words->closeQuote);
     }
 
     /// The value of @p field as the writer typed it
-    [[nodiscard]] QString raw(const char* field) const { return m_source.value(field); }
+    [[nodiscard]] QString raw(const char* field) const { return m_source->value(field); }
 
     /// The value of @p field as the entry has it
     [[nodiscard]] QString value(const char* field) const { return text(raw(field)); }
@@ -225,16 +247,16 @@ public:
 
     /// The people of @p role
     [[nodiscard]] QList<SourcePerson> people(const char* role) const {
-        return m_source.peopleOf(role);
+        return m_source->peopleOf(role);
     }
 
     /// The authors: the people who wrote it, the ones asked in a talk, the institutions
     [[nodiscard]] QList<SourcePerson> authors() const {
         QList<SourcePerson> found = people(SourceDescription::AUTHOR);
-        if (m_source.kind() == QLatin1String(SourceDescription::INTERVIEW)) {
+        if (m_source->kind() == QLatin1String(SourceDescription::INTERVIEW)) {
             found << people(SourceDescription::INTERVIEWEE);
         }
-        if (found.isEmpty() && m_source.kind() != QLatin1String(SourceDescription::WEB_PAGE)) {
+        if (found.isEmpty() && m_source->kind() != QLatin1String(SourceDescription::WEB_PAGE)) {
             found = people(SourceDescription::INSTITUTION);
         }
         return found;
@@ -276,9 +298,9 @@ private:
                               person.role == QLatin1String(SourceDescription::INSTITUTION));
     }
 
-    const SourceDescription& m_source;
+    const SourceDescription* m_source;  ///< Not null: the description outlives the writer
     QString m_title;
-    const Words& m_words;
+    const Words* m_words;  ///< Not null: one of the words of the languages
     bool m_rich;
 };
 
@@ -303,6 +325,51 @@ QString pnLocation(const Writer& w) {
     return url.isEmpty() ? QString() : word(w.words().available) + QLatin1Char(' ') + url;
 }
 
+
+// ---------------------------------------------------------------------------------------------
+// The parts every style has
+// ---------------------------------------------------------------------------------------------
+
+/// The writer of the entry of one kind of source
+using KindEntry = QString (*)(const Writer&);
+
+/// The entry of the kind of the source: the first of @p kinds that is it, else @p otherwise
+QString entryOfKind(const Writer& w, std::initializer_list<std::pair<const char*, KindEntry>> kinds,
+                    KindEntry otherwise) {
+    for (const auto& [kind, write] : kinds) {
+        if (isKind(w, kind)) {
+            return write(w);
+        }
+    }
+    return otherwise(w);
+}
+
+/// "Kraków: Oficyna Oaza, 2011": the place, the publisher and the year
+QString placedAndDated(const Writer& w) {
+    return joined({placeAndPublisher(w), w.value(SourceDescription::YEAR)}, QStringLiteral(", "));
+}
+
+/// The year, "b.r." without one
+QString yearOrNoDate(const Writer& w) {
+    const QString year = w.value(SourceDescription::YEAR);
+    return year.isEmpty() ? word(w.words().noDate) : year;
+}
+
+/// The edition as the entry has it: "Wyd. 2", "2nd ed."
+QString editionOf(const Writer& w, bool lower = false) {
+    return w.text(editionText(w.raw(SourceDescription::EDITION), w.words(), lower));
+}
+
+/// The owners of a web page (its institutions), else the name of the site
+QString siteOf(const Writer& w) {
+    QStringList owners;
+    for (const SourcePerson& person : w.people(SourceDescription::INSTITUTION)) {
+        owners << w.text(person.name.simplified());
+    }
+    return owners.isEmpty() ? w.value(SourceDescription::CONTAINER)
+                            : owners.join(QStringLiteral(", "));
+}
+
 // ---------------------------------------------------------------------------------------------
 // PN-ISO 690
 // ---------------------------------------------------------------------------------------------
@@ -312,7 +379,7 @@ QString pnNames(const Writer& w, const QList<SourcePerson>& people) {
     for (const SourcePerson& person : people) {
         names << w.inverted(person, false, true);
     }
-    if (names.size() > 3) {
+    if (names.size() > MOST_NAMED) {
         return names.first() + QLatin1Char(' ') + word(w.words().others);
     }
     return names.join(QStringLiteral(", "));
@@ -333,106 +400,105 @@ QString pnPeopleAfter(const Writer& w, const char* role, const char* before) {
     for (const SourcePerson& person : w.people(role)) {
         names << w.direct(person, false);
     }
-    if (names.isEmpty()) {
-        return {};
-    }
-    return word(before) + QLatin1Char(' ') + names.join(QStringLiteral(", "));
+    return labelled(before, names.join(QStringLiteral(", ")));
+}
+
+QString pnAuthors(const Writer& w) {
+    return pnNames(w, w.authors());
+}
+
+/// The title in italics with its form in brackets: "Atlas [rękopis]"
+QString pnTitled(const Writer& w) {
+    return w.italic(w.title()) +
+           enclosed(w.value(SourceDescription::FORM), QStringLiteral(" ["), QStringLiteral("]"));
+}
+
+QString pnChapter(const Writer& w) {
+    const Words& words = w.words();
+    const QString in = joined({word(words.in), pnEditors(w)}, QStringLiteral(" "));
+    const QString published =
+        joined({placeAndPublisher(w), w.value(SourceDescription::YEAR),
+                labelled(words.pages, w.value(SourceDescription::PAGES))},
+               QStringLiteral(", "));
+    return sentences({pnAuthors(w), w.text(w.title()), in,
+                      w.italic(w.raw(SourceDescription::CONTAINER)), editionOf(w), published,
+                      enclosed(w.value(SourceDescription::ISBN), QStringLiteral("ISBN "), {})});
+}
+
+QString pnArticle(const Writer& w) {
+    const Words& words = w.words();
+    const QString where = joined({w.value(SourceDescription::YEAR),
+                                  labelled(words.volume, w.value(SourceDescription::VOLUME)),
+                                  labelled(words.issue, w.value(SourceDescription::ISSUE)),
+                                  labelled(words.pages, w.value(SourceDescription::PAGES))},
+                                 QStringLiteral(", "));
+    return sentences({pnAuthors(w), w.text(w.title()), w.italic(w.raw(SourceDescription::CONTAINER)),
+                      where,
+                      enclosed(w.value(SourceDescription::ISSN), QStringLiteral("ISSN "), {}),
+                      pnLocation(w)});
+}
+
+QString pnWebPage(const Writer& w) {
+    const Words& words = w.words();
+    const QString when = enclosed(labelled(words.accessed, w.value(SourceDescription::ACCESSED)),
+                                  QStringLiteral("["), QStringLiteral("]"));
+    const QString publishedIn =
+        joined({joined({siteOf(w), w.value(SourceDescription::PUBLISHED)}, QStringLiteral(", ")),
+                when},
+               QStringLiteral(" "));
+    return sentences({pnAuthors(w), w.italic(w.title()) + QLatin1Char(' ') + word(words.online),
+                      publishedIn, pnLocation(w)});
+}
+
+QString pnArchive(const Writer& w) {
+    const Words& words = w.words();
+    const QString where =
+        joined({w.value(SourceDescription::CONTAINER),
+                labelled(words.fonds, w.value(SourceDescription::FONDS)),
+                labelled(words.signature, w.value(SourceDescription::SIGNATURE))},
+               QStringLiteral(", "));
+    return sentences(
+        {pnAuthors(w), pnTitled(w), w.value(SourceDescription::YEAR), where, pnLocation(w)});
+}
+
+/// A talk, a film or a recording, and a source of another kind
+QString pnRecording(const Writer& w) {
+    const Words& words = w.words();
+    return sentences({pnAuthors(w), pnTitled(w),
+                      pnPeopleAfter(w, SourceDescription::INTERVIEWER, words.interviewed),
+                      pnPeopleAfter(w, SourceDescription::DIRECTOR, words.directed),
+                      placedAndDated(w), pnLocation(w)});
+}
+
+QString pnThesis(const Writer& w) {
+    return sentences({pnAuthors(w), w.italic(w.fullTitle()), w.value(SourceDescription::FORM),
+                      placedAndDated(w),
+                      pnPeopleAfter(w, SourceDescription::SUPERVISOR, w.words().supervised),
+                      pnLocation(w)});
+}
+
+/// A book; the editors stand for the authors of a book without them
+QString pnBook(const Writer& w) {
+    const QString authors = pnAuthors(w);
+    return sentences(
+        {authors.isEmpty() ? pnEditors(w) : authors, w.italic(w.fullTitle()),
+         pnPeopleAfter(w, SourceDescription::TRANSLATOR, w.words().translated), editionOf(w),
+         placedAndDated(w),
+         enclosed(w.value(SourceDescription::SERIES), QStringLiteral("("), QStringLiteral(")")),
+         enclosed(w.value(SourceDescription::ISBN), QStringLiteral("ISBN "), {}), pnLocation(w)});
 }
 
 QString pnEntry(const Writer& w) {
-    const Words& words = w.words();
-    const QString authors = pnNames(w, w.authors());
-    const QString year = w.value(SourceDescription::YEAR);
-    const QString edition = w.text(editionText(w.raw(SourceDescription::EDITION), words));
-    const QString translators = pnPeopleAfter(w, SourceDescription::TRANSLATOR, words.translated);
-    const QString pages = w.value(SourceDescription::PAGES);
-    const QString form = w.value(SourceDescription::FORM);
-    // The title in italics with its form in brackets: [rękopis]
-    const QString titled = form.isEmpty()
-                               ? w.italic(w.title())
-                               : w.italic(w.title()) + QStringLiteral(" [") + form +
-                                     QLatin1Char(']');
-
-    if (isKind(w, SourceDescription::CHAPTER)) {
-        const QString in = joined({word(words.in), pnEditors(w)}, QStringLiteral(" "));
-        const QString published =
-            joined({placeAndPublisher(w), year,
-                    pages.isEmpty() ? QString() : word(words.pages) + QLatin1Char(' ') + pages},
-                   QStringLiteral(", "));
-        return sentences({authors, w.text(w.title()), in,
-                          w.italic(w.raw(SourceDescription::CONTAINER)), edition, published,
-                          w.value(SourceDescription::ISBN).isEmpty()
-                              ? QString()
-                              : QStringLiteral("ISBN ") + w.value(SourceDescription::ISBN)});
-    }
-    if (isKind(w, SourceDescription::ARTICLE)) {
-        const QString volume = w.value(SourceDescription::VOLUME);
-        const QString issue = w.value(SourceDescription::ISSUE);
-        const QString where = joined(
-            {year, volume.isEmpty() ? QString() : word(words.volume) + QLatin1Char(' ') + volume,
-             issue.isEmpty() ? QString() : word(words.issue) + QLatin1Char(' ') + issue,
-             pages.isEmpty() ? QString() : word(words.pages) + QLatin1Char(' ') + pages},
-            QStringLiteral(", "));
-        const QString issn = w.value(SourceDescription::ISSN);
-        return sentences({authors, w.text(w.title()), w.italic(w.raw(SourceDescription::CONTAINER)),
-                          where, issn.isEmpty() ? QString() : QStringLiteral("ISSN ") + issn,
-                          pnLocation(w)});
-    }
-    if (isKind(w, SourceDescription::WEB_PAGE)) {
-        QStringList owners;
-        for (const SourcePerson& person : w.people(SourceDescription::INSTITUTION)) {
-            owners << w.text(person.name.simplified());
-        }
-        const QString site = owners.isEmpty() ? w.value(SourceDescription::CONTAINER)
-                                              : owners.join(QStringLiteral(", "));
-        const QString accessed = w.value(SourceDescription::ACCESSED);
-        const QString when =
-            accessed.isEmpty()
-                ? QString()
-                : QLatin1Char('[') + word(words.accessed) + QLatin1Char(' ') + accessed +
-                      QLatin1Char(']');
-        const QString publishedIn =
-            joined({joined({site, w.value(SourceDescription::PUBLISHED)}, QStringLiteral(", ")),
-                    when},
-                   QStringLiteral(" "));
-        return sentences({authors, w.italic(w.title()) + QLatin1Char(' ') + word(words.online),
-                          publishedIn, pnLocation(w)});
-    }
-    if (isKind(w, SourceDescription::ARCHIVE)) {
-        const QString fonds = w.value(SourceDescription::FONDS);
-        const QString signature = w.value(SourceDescription::SIGNATURE);
-        const QString where = joined(
-            {w.value(SourceDescription::CONTAINER),
-             fonds.isEmpty() ? QString() : word(words.fonds) + QLatin1Char(' ') + fonds,
-             signature.isEmpty() ? QString()
-                                 : word(words.signature) + QLatin1Char(' ') + signature},
-            QStringLiteral(", "));
-        return sentences({authors, titled, year, where, pnLocation(w)});
-    }
-    if (isKind(w, SourceDescription::INTERVIEW) || isKind(w, SourceDescription::FILM) ||
-        isKind(w, SourceDescription::OTHER)) {
-        const QString asked =
-            pnPeopleAfter(w, SourceDescription::INTERVIEWER, words.interviewed);
-        const QString directed = pnPeopleAfter(w, SourceDescription::DIRECTOR, words.directed);
-        return sentences({authors, titled, asked, directed,
-                          joined({placeAndPublisher(w), year}, QStringLiteral(", ")),
-                          pnLocation(w)});
-    }
-    if (isKind(w, SourceDescription::THESIS)) {
-        return sentences({authors, w.italic(w.fullTitle()), form,
-                          joined({placeAndPublisher(w), year}, QStringLiteral(", ")),
-                          pnPeopleAfter(w, SourceDescription::SUPERVISOR, words.supervised),
-                          pnLocation(w)});
-    }
-    // A book; the editors stand for the authors of a book without them
-    const QString series = w.value(SourceDescription::SERIES);
-    const QString isbn = w.value(SourceDescription::ISBN);
-    return sentences({authors.isEmpty() ? pnEditors(w) : authors, w.italic(w.fullTitle()),
-                      translators, edition,
-                      joined({placeAndPublisher(w), year}, QStringLiteral(", ")),
-                      series.isEmpty() ? QString() : QLatin1Char('(') + series + QLatin1Char(')'),
-                      isbn.isEmpty() ? QString() : QStringLiteral("ISBN ") + isbn,
-                      pnLocation(w)});
+    return entryOfKind(w,
+                       {{SourceDescription::CHAPTER, pnChapter},
+                        {SourceDescription::ARTICLE, pnArticle},
+                        {SourceDescription::WEB_PAGE, pnWebPage},
+                        {SourceDescription::ARCHIVE, pnArchive},
+                        {SourceDescription::INTERVIEW, pnRecording},
+                        {SourceDescription::FILM, pnRecording},
+                        {SourceDescription::OTHER, pnRecording},
+                        {SourceDescription::THESIS, pnThesis}},
+                       pnBook);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -456,97 +522,96 @@ QString apaDoiOrUrl(const Writer& w) {
     return w.value(SourceDescription::URL);
 }
 
-QString apaEntry(const Writer& w) {
-    const Words& words = w.words();
+/// The authors; the editors stand for the authors of a book without them, not of a chapter
+QString apaAuthors(const Writer& w) {
     QString authors = apaNames(w, w.authors());
     const QList<SourcePerson> editors = w.people(SourceDescription::EDITOR);
-    const bool chapter = isKind(w, SourceDescription::CHAPTER);
-    if (authors.isEmpty() && !editors.isEmpty() && !chapter) {
-        authors = apaNames(w, editors) + QStringLiteral(" (") + word(words.editorWord) +
-                  QStringLiteral(".)");
+    if (!authors.isEmpty() || editors.isEmpty() || isKind(w, SourceDescription::CHAPTER)) {
+        return authors;
     }
-    const QString year = w.value(SourceDescription::YEAR);
-    const QString date = QLatin1Char('(') + (year.isEmpty() ? word(words.noDate) : year) +
-                         QLatin1Char(')');
-    const QString head = joined({authors.isEmpty() ? QString() : dotted(authors), dotted(date)},
-                                QStringLiteral(" "));
-    const QString edition = w.raw(SourceDescription::EDITION);
-    const QString editionPart =
-        edition.isEmpty()
-            ? QString()
-            : QStringLiteral(" (") + w.text(editionText(edition, words, true)) + QLatin1Char(')');
-    const QString pages = w.value(SourceDescription::PAGES);
-    const QString form = w.value(SourceDescription::FORM);
-    const QString formPart = form.isEmpty() ? QString()
-                                            : QStringLiteral(" [") + form + QLatin1Char(']');
+    return apaNames(w, editors) + QStringLiteral(" (") + word(w.words().editorWord) +
+           QStringLiteral(".)");
+}
 
-    if (chapter) {
-        QStringList names;
-        for (const SourcePerson& person : editors) {
-            names << w.direct(person, true);
-        }
-        const QString by = names.isEmpty()
-                               ? QString()
-                               : Writer::list(names, word(words.andWord)) + QStringLiteral(" (") +
-                                     word(words.editorWord) + QStringLiteral(".), ");
-        const QString inBook = word(words.in) + QLatin1Char(' ') + by +
-                               w.italic(w.raw(SourceDescription::CONTAINER)) +
-                               (pages.isEmpty() ? QString()
-                                                : QStringLiteral(" (") + word(words.pages) +
-                                                      QLatin1Char(' ') + pages + QLatin1Char(')'));
-        return joined({head, sentences({w.text(w.title()), inBook,
-                                        w.value(SourceDescription::PUBLISHER)}),
-                       apaDoiOrUrl(w)},
-                      QStringLiteral(" "));
+/// "Wiśniewska, A. (2011)." with @p date in parentheses
+QString apaHead(const Writer& w, const QString& date) {
+    return joined({dotted(apaAuthors(w)), dotted(QLatin1Char('(') + date + QLatin1Char(')'))},
+                  QStringLiteral(" "));
+}
+
+/// The form in brackets: " [rękopis]"
+QString apaForm(const Writer& w) {
+    return enclosed(w.value(SourceDescription::FORM), QStringLiteral(" ["), QStringLiteral("]"));
+}
+
+QString apaChapter(const Writer& w) {
+    const Words& words = w.words();
+    QStringList names;
+    for (const SourcePerson& person : w.people(SourceDescription::EDITOR)) {
+        names << w.direct(person, true);
     }
-    if (isKind(w, SourceDescription::ARTICLE)) {
-        const QString volume = w.raw(SourceDescription::VOLUME);
-        const QString issue = w.value(SourceDescription::ISSUE);
-        const QString journal = joined(
-            {w.italic(w.raw(SourceDescription::CONTAINER)),
-             w.italic(volume) +
-                 (issue.isEmpty() ? QString() : QLatin1Char('(') + issue + QLatin1Char(')')),
-             pages},
-            QStringLiteral(", "));
-        return joined({head, sentences({w.text(w.title()), journal}), apaDoiOrUrl(w)},
-                      QStringLiteral(" "));
-    }
-    if (isKind(w, SourceDescription::WEB_PAGE)) {
-        QStringList owners;
-        for (const SourcePerson& person : w.people(SourceDescription::INSTITUTION)) {
-            owners << w.text(person.name.simplified());
-        }
-        const QString site = owners.isEmpty() ? w.value(SourceDescription::CONTAINER)
-                                              : owners.join(QStringLiteral(", "));
-        const QString published = w.value(SourceDescription::PUBLISHED);
-        const QString when = QLatin1Char('(') +
-                             (published.isEmpty() ? (year.isEmpty() ? word(words.noDate) : year)
-                                                  : published) +
-                             QLatin1Char(')');
-        const QString webHead = joined(
-            {authors.isEmpty() ? QString() : dotted(authors), dotted(when)}, QStringLiteral(" "));
-        return joined({webHead, sentences({w.italic(w.title()), site}),
-                       w.value(SourceDescription::URL)},
-                      QStringLiteral(" "));
-    }
-    if (isKind(w, SourceDescription::ARCHIVE)) {
-        const QString where = joined({w.value(SourceDescription::FONDS),
-                                      w.value(SourceDescription::SIGNATURE)},
-                                     QStringLiteral(", "));
-        return joined(
-            {head,
-             sentences({w.italic(w.title()) + formPart,
-                        joined({w.value(SourceDescription::CONTAINER),
-                                where.isEmpty() ? QString()
-                                                : QLatin1Char('(') + where + QLatin1Char(')')},
-                               QStringLiteral(" "))}),
-             apaDoiOrUrl(w)},
-            QStringLiteral(" "));
-    }
-    return joined({head, sentences({w.italic(w.fullTitle(true)) + editionPart + formPart,
-                                    w.value(SourceDescription::PUBLISHER)}),
+    const QString by =
+        enclosed(Writer::list(names, word(words.andWord)), QString(),
+                 QStringLiteral(" (") + word(words.editorWord) + QStringLiteral(".), "));
+    const QString inBook =
+        word(words.in) + QLatin1Char(' ') + by + w.italic(w.raw(SourceDescription::CONTAINER)) +
+        enclosed(labelled(words.pages, w.value(SourceDescription::PAGES)), QStringLiteral(" ("),
+                 QStringLiteral(")"));
+    return joined({apaHead(w, yearOrNoDate(w)),
+                   sentences({w.text(w.title()), inBook, w.value(SourceDescription::PUBLISHER)}),
                    apaDoiOrUrl(w)},
                   QStringLiteral(" "));
+}
+
+QString apaArticle(const Writer& w) {
+    const QString journal =
+        joined({w.italic(w.raw(SourceDescription::CONTAINER)),
+                w.italic(w.raw(SourceDescription::VOLUME)) +
+                    enclosed(w.value(SourceDescription::ISSUE), QStringLiteral("("),
+                             QStringLiteral(")")),
+                w.value(SourceDescription::PAGES)},
+               QStringLiteral(", "));
+    return joined({apaHead(w, yearOrNoDate(w)), sentences({w.text(w.title()), journal}),
+                   apaDoiOrUrl(w)},
+                  QStringLiteral(" "));
+}
+
+QString apaWebPage(const Writer& w) {
+    const QString published = w.value(SourceDescription::PUBLISHED);
+    return joined({apaHead(w, published.isEmpty() ? yearOrNoDate(w) : published),
+                   sentences({w.italic(w.title()), siteOf(w)}), w.value(SourceDescription::URL)},
+                  QStringLiteral(" "));
+}
+
+QString apaArchive(const Writer& w) {
+    const QString where =
+        joined({w.value(SourceDescription::FONDS), w.value(SourceDescription::SIGNATURE)},
+               QStringLiteral(", "));
+    const QString held =
+        joined({w.value(SourceDescription::CONTAINER),
+                enclosed(where, QStringLiteral("("), QStringLiteral(")"))},
+               QStringLiteral(" "));
+    return joined({apaHead(w, yearOrNoDate(w)), sentences({w.italic(w.title()) + apaForm(w), held}),
+                   apaDoiOrUrl(w)},
+                  QStringLiteral(" "));
+}
+
+QString apaBook(const Writer& w) {
+    const QString edition = enclosed(editionOf(w, true), QStringLiteral(" ("), QStringLiteral(")"));
+    return joined({apaHead(w, yearOrNoDate(w)),
+                   sentences({w.italic(w.fullTitle(true)) + edition + apaForm(w),
+                              w.value(SourceDescription::PUBLISHER)}),
+                   apaDoiOrUrl(w)},
+                  QStringLiteral(" "));
+}
+
+QString apaEntry(const Writer& w) {
+    return entryOfKind(w,
+                       {{SourceDescription::CHAPTER, apaChapter},
+                        {SourceDescription::ARTICLE, apaArticle},
+                        {SourceDescription::WEB_PAGE, apaWebPage},
+                        {SourceDescription::ARCHIVE, apaArchive}},
+                       apaBook);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -670,381 +735,78 @@ QString harvardNames(const Writer& w, const QList<SourcePerson>& people) {
     for (const SourcePerson& person : people) {
         names << w.inverted(person, true);
     }
-    if (names.size() > 3) {
+    if (names.size() > MOST_NAMED) {
         return names.first() + QLatin1Char(' ') + word(w.words().others);
     }
     return Writer::list(names, word(w.words().andWord));
 }
 
-QString harvardEntry(const Writer& w) {
+/// "Wiśniewska, A. (2011)"
+QString harvardHead(const Writer& w) {
+    return joined({harvardNames(w, w.authors()),
+                   QLatin1Char('(') + yearOrNoDate(w) + QLatin1Char(')')},
+                  QStringLiteral(" "));
+}
+
+QString harvardPages(const Writer& w) {
+    return labelled(w.words().pages, w.value(SourceDescription::PAGES));
+}
+
+QString harvardChapter(const Writer& w) {
     const Words& words = w.words();
-    const QString year = w.value(SourceDescription::YEAR);
-    const QString authors = harvardNames(w, w.authors());
-    const QString head = joined({authors, QLatin1Char('(') +
-                                              (year.isEmpty() ? word(words.noDate) : year) +
-                                              QLatin1Char(')')},
-                                QStringLiteral(" "));
-    const QString pages = w.value(SourceDescription::PAGES);
-    const QString pagesText =
-        pages.isEmpty() ? QString() : word(words.pages) + QLatin1Char(' ') + pages;
-    if (isKind(w, SourceDescription::CHAPTER)) {
-        const QString editors = harvardNames(w, w.people(SourceDescription::EDITOR));
-        const QString inBook = joined(
-            {word(words.in), editors.isEmpty() ? QString()
-                                               : editors + QStringLiteral(" (") +
-                                                     word(words.editorShort) + QLatin1Char(')'),
-             w.italic(w.raw(SourceDescription::CONTAINER))},
-            QStringLiteral(" "));
-        return sentences({head + QLatin1Char(' ') + w.quoted(w.title()) + QLatin1Char(',') +
-                              QLatin1Char(' ') + inBook,
-                          joined({placeAndPublisher(w), pagesText}, QStringLiteral(", "))});
-    }
-    if (isKind(w, SourceDescription::ARTICLE)) {
-        const QString volume = w.value(SourceDescription::VOLUME);
-        const QString issue = w.value(SourceDescription::ISSUE);
-        const QString journal = joined(
-            {w.italic(w.raw(SourceDescription::CONTAINER)),
-             volume + (issue.isEmpty() ? QString() : QLatin1Char('(') + issue + QLatin1Char(')')),
-             pagesText},
-            QStringLiteral(", "));
-        return sentences({head + QLatin1Char(' ') + w.quoted(w.title()) + QLatin1Char(','),
-                          journal, apaDoiOrUrl(w)});
-    }
-    if (isKind(w, SourceDescription::WEB_PAGE)) {
-        const QString url = w.value(SourceDescription::URL);
-        const QString accessed = w.value(SourceDescription::ACCESSED);
-        return sentences(
-            {head + QLatin1Char(' ') + w.italic(w.title()), w.value(SourceDescription::CONTAINER),
-             url.isEmpty() ? QString()
-                           : word(words.available) + QLatin1Char(' ') + url +
-                                 (accessed.isEmpty()
-                                      ? QString()
-                                      : QStringLiteral(" (") + word(words.accessed) +
-                                            QStringLiteral(": ") + accessed + QLatin1Char(')'))});
-    }
+    const QString editors =
+        enclosed(harvardNames(w, w.people(SourceDescription::EDITOR)), QString(),
+                 QStringLiteral(" (") + word(words.editorShort) + QLatin1Char(')'));
+    const QString inBook =
+        joined({word(words.in), editors, w.italic(w.raw(SourceDescription::CONTAINER))},
+               QStringLiteral(" "));
+    return sentences({harvardHead(w) + QLatin1Char(' ') + w.quoted(w.title()) +
+                          QStringLiteral(", ") + inBook,
+                      joined({placeAndPublisher(w), harvardPages(w)}, QStringLiteral(", "))});
+}
+
+QString harvardArticle(const Writer& w) {
+    const QString journal =
+        joined({w.italic(w.raw(SourceDescription::CONTAINER)),
+                w.value(SourceDescription::VOLUME) +
+                    enclosed(w.value(SourceDescription::ISSUE), QStringLiteral("("),
+                             QStringLiteral(")")),
+                harvardPages(w)},
+               QStringLiteral(", "));
+    return sentences({harvardHead(w) + QLatin1Char(' ') + w.quoted(w.title()) + QLatin1Char(','),
+                      journal, apaDoiOrUrl(w)});
+}
+
+QString harvardWebPage(const Writer& w) {
+    const Words& words = w.words();
+    const QString accessed =
+        enclosed(w.value(SourceDescription::ACCESSED),
+                 QStringLiteral(" (") + word(words.accessed) + QStringLiteral(": "),
+                 QStringLiteral(")"));
+    const QString available = enclosed(w.value(SourceDescription::URL),
+                                       word(words.available) + QLatin1Char(' '), accessed);
+    return sentences({harvardHead(w) + QLatin1Char(' ') + w.italic(w.title()),
+                      w.value(SourceDescription::CONTAINER), available});
+}
+
+/// A book: the subtitle after a colon, in small letters
+QString harvardBook(const Writer& w) {
     QString title = w.title();
     const QString subtitle = w.raw(SourceDescription::SUBTITLE);
     if (!subtitle.isEmpty()) {
         title += QStringLiteral(": ") + subtitle.at(0).toLower() + subtitle.mid(1);
     }
-    return sentences({head + QLatin1Char(' ') + w.italic(title),
-                      w.value(SourceDescription::FORM),
-                      w.text(editionText(w.raw(SourceDescription::EDITION), words)),
-                      placeAndPublisher(w), apaDoiOrUrl(w)});
+    return sentences({harvardHead(w) + QLatin1Char(' ') + w.italic(title),
+                      w.value(SourceDescription::FORM), editionOf(w), placeAndPublisher(w),
+                      apaDoiOrUrl(w)});
 }
 
-// ---------------------------------------------------------------------------------------------
-// BibTeX and RIS
-// ---------------------------------------------------------------------------------------------
-
-/// The people of a BibTeX field: "Wiśniewska, Anna and Nowak, Jan"
-QList<SourcePerson> bibtexPeople(const QString& names, const char* role) {
-    QList<SourcePerson> people;
-    static const QRegularExpression separator(QStringLiteral("\\s+and\\s+"),
-                                              QRegularExpression::CaseInsensitiveOption);
-    for (const QString& name : names.split(separator, Qt::SkipEmptyParts)) {
-        SourcePerson person;
-        person.name = name.simplified();
-        if (qstrcmp(role, SourceDescription::AUTHOR) != 0) {
-            person.role = QString::fromLatin1(role);
-        }
-        people << person;
-    }
-    return people;
-}
-
-/// @p text with the accents of LaTeX written as letters: "Zieli{\\'n}ska" is "Zielińska"
-QString withoutLatexAccents(QString text) {
-    static const QList<std::pair<QRegularExpression, QString>> letters = {
-        {QRegularExpression(QStringLiteral("\\\\l(?![A-Za-z])\\s?")), QStringLiteral("\u0142")},
-        {QRegularExpression(QStringLiteral("\\\\L(?![A-Za-z])\\s?")), QStringLiteral("\u0141")},
-        {QRegularExpression(QStringLiteral("\\\\ss(?![A-Za-z])\\s?")), QStringLiteral("\u00DF")},
-        {QRegularExpression(QStringLiteral("\\\\o(?![A-Za-z])\\s?")), QStringLiteral("\u00F8")},
-        {QRegularExpression(QStringLiteral("\\\\O(?![A-Za-z])\\s?")), QStringLiteral("\u00D8")}};
-    for (const auto& [pattern, letter] : letters) {
-        text.replace(pattern, letter);
-    }
-    // An accent over a letter: \'n, \'{n}, {\'n}, \k{a}, \c c
-    static const QRegularExpression accent(
-        QStringLiteral("\\\\(['`^\"~.=]|[kcuvH](?=[\\s{]))\\s*\\{?([A-Za-z])\\}?"));
-    static const QMap<QString, QChar> marks = {
-        {QStringLiteral("'"), QChar(0x0301)}, {QStringLiteral("`"), QChar(0x0300)},
-        {QStringLiteral("^"), QChar(0x0302)}, {QStringLiteral("\""), QChar(0x0308)},
-        {QStringLiteral("~"), QChar(0x0303)}, {QStringLiteral("."), QChar(0x0307)},
-        {QStringLiteral("="), QChar(0x0304)}, {QStringLiteral("k"), QChar(0x0328)},
-        {QStringLiteral("c"), QChar(0x0327)}, {QStringLiteral("u"), QChar(0x0306)},
-        {QStringLiteral("v"), QChar(0x030C)}, {QStringLiteral("H"), QChar(0x030B)}};
-    QString result;
-    qsizetype last = 0;
-    QRegularExpressionMatchIterator matches = accent.globalMatch(text);
-    while (matches.hasNext()) {
-        const QRegularExpressionMatch match = matches.next();
-        result += text.mid(last, match.capturedStart() - last);
-        result += match.captured(2) + marks.value(match.captured(1));
-        last = match.capturedEnd();
-    }
-    result += text.mid(last);
-    return result.normalized(QString::NormalizationForm_C);
-}
-
-/// The value of a BibTeX field without its braces and quotes
-QString bibtexValue(QString value) {
-    value = value.trimmed();
-    if (value.endsWith(QLatin1Char(','))) {
-        value.chop(1);
-        value = value.trimmed();
-    }
-    if ((value.startsWith(QLatin1Char('{')) && value.endsWith(QLatin1Char('}'))) ||
-        (value.startsWith(QLatin1Char('"')) && value.endsWith(QLatin1Char('"')))) {
-        value = value.mid(1, value.size() - 2);
-    }
-    value = withoutLatexAccents(value);
-    value.remove(QLatin1Char('{'));
-    value.remove(QLatin1Char('}'));
-    value.replace(QStringLiteral("--"), QStringLiteral("–"));
-    return value.simplified();
-}
-
-/// The fields of a BibTeX record: name -> value, the names in small letters
-QMap<QString, QString> bibtexFields(const QString& body) {
-    QMap<QString, QString> fields;
-    qsizetype i = 0;
-    const qsizetype size = body.size();
-    while (i < size) {
-        // The name, up to "="
-        const qsizetype equals = body.indexOf(QLatin1Char('='), i);
-        if (equals < 0) {
-            break;
-        }
-        const QString name = body.mid(i, equals - i).trimmed().toLower();
-        qsizetype j = equals + 1;
-        while (j < size && body.at(j).isSpace()) {
-            ++j;
-        }
-        // The value: in braces (nested), in quotes, or a word up to the comma
-        const qsizetype end = [&body, j, size]() -> qsizetype {
-            if (j < size && body.at(j) == QLatin1Char('{')) {
-                int depth = 0;
-                for (qsizetype at = j; at < size; ++at) {
-                    if (body.at(at) == QLatin1Char('{')) {
-                        ++depth;
-                    } else if (body.at(at) == QLatin1Char('}') && --depth == 0) {
-                        return at + 1;
-                    }
-                }
-                return size;
-            }
-            if (j < size && body.at(j) == QLatin1Char('"')) {
-                const qsizetype quote = body.indexOf(QLatin1Char('"'), j + 1);
-                return quote < 0 ? size : quote + 1;
-            }
-            const qsizetype comma = body.indexOf(QLatin1Char(','), j);
-            return comma < 0 ? size : comma;
-        }();
-        fields.insert(name.section(QLatin1Char(','), -1).trimmed(),
-                      bibtexValue(body.mid(j, end - j)));
-        const qsizetype comma = body.indexOf(QLatin1Char(','), end);
-        if (comma < 0) {
-            break;
-        }
-        i = comma + 1;
-    }
-    return fields;
-}
-
-std::optional<SourceDescription> parseBibtex(const QString& text) {
-    static const QRegularExpression head(QStringLiteral("@\\s*([A-Za-z]+)\\s*[{(]\\s*[^,]*,"));
-    const QRegularExpressionMatch match = head.match(text);
-    if (!match.hasMatch()) {
-        return std::nullopt;
-    }
-    const QString type = match.captured(1).toLower();
-    qsizetype end = text.lastIndexOf(QLatin1Char('}'));
-    if (end <= match.capturedEnd()) {
-        end = text.size();
-    }
-    const QMap<QString, QString> fields =
-        bibtexFields(text.mid(match.capturedEnd(), end - match.capturedEnd()));
-
-    SourceDescription source;
-    if (type == QLatin1String("article")) {
-        source.type = QString::fromLatin1(SourceDescription::ARTICLE);
-    } else if (type == QLatin1String("incollection") || type == QLatin1String("inbook") ||
-               type == QLatin1String("inproceedings")) {
-        source.type = QString::fromLatin1(SourceDescription::CHAPTER);
-    } else if (type.endsWith(QLatin1String("thesis"))) {
-        source.type = QString::fromLatin1(SourceDescription::THESIS);
-    } else if (type == QLatin1String("online") || type == QLatin1String("electronic") ||
-               (type == QLatin1String("misc") && fields.contains(QStringLiteral("url")))) {
-        source.type = QString::fromLatin1(SourceDescription::WEB_PAGE);
-    } else if (type == QLatin1String("book")) {
-        source.type = QString::fromLatin1(SourceDescription::BOOK);
-    } else {
-        source.type = QString::fromLatin1(SourceDescription::OTHER);
-    }
-    source.people << bibtexPeople(fields.value(QStringLiteral("author")), SourceDescription::AUTHOR)
-                  << bibtexPeople(fields.value(QStringLiteral("editor")), SourceDescription::EDITOR)
-                  << bibtexPeople(fields.value(QStringLiteral("translator")),
-                                  SourceDescription::TRANSLATOR);
-    const auto take = [&fields, &source](const char* from, const char* to) {
-        const QString value = fields.value(QString::fromLatin1(from));
-        if (!value.isEmpty() && source.value(to).isEmpty()) {
-            source.setValue(QString::fromLatin1(to), value);
-        }
-    };
-    take("title", SourceDescription::TITLE);
-    take("subtitle", SourceDescription::SUBTITLE);
-    take("booktitle", SourceDescription::CONTAINER);
-    take("journal", SourceDescription::CONTAINER);
-    take("journaltitle", SourceDescription::CONTAINER);
-    take("edition", SourceDescription::EDITION);
-    take("address", SourceDescription::PLACE);
-    take("location", SourceDescription::PLACE);
-    take("publisher", SourceDescription::PUBLISHER);
-    take("school", SourceDescription::PUBLISHER);
-    take("institution", SourceDescription::PUBLISHER);
-    take("year", SourceDescription::YEAR);
-    take("date", SourceDescription::YEAR);
-    take("volume", SourceDescription::VOLUME);
-    take("number", SourceDescription::ISSUE);
-    take("pages", SourceDescription::PAGES);
-    take("series", SourceDescription::SERIES);
-    take("isbn", SourceDescription::ISBN);
-    take("issn", SourceDescription::ISSN);
-    take("doi", SourceDescription::DOI);
-    take("url", SourceDescription::URL);
-    take("urldate", SourceDescription::ACCESSED);
-    take("howpublished", SourceDescription::FORM);
-    take("language", SourceDescription::LANGUAGE);
-    if (source.type == QLatin1String(SourceDescription::THESIS) &&
-        source.value(SourceDescription::FORM).isEmpty()) {
-        take("type", SourceDescription::FORM);
-    }
-    if (source.people.isEmpty() && source.values.isEmpty()) {
-        return std::nullopt;
-    }
-    return source;
-}
-
-std::optional<SourceDescription> parseRis(const QString& text) {
-    static const QRegularExpression line(QStringLiteral("^([A-Z][A-Z0-9])  -(?: (.*))?$"));
-    SourceDescription source;
-    QString type;
-    QString startPage;
-    QString endPage;
-    QString number;
-    bool started = false;
-    for (const QString& each : text.split(QLatin1Char('\n'))) {
-        const QRegularExpressionMatch match = line.match(each.trimmed());
-        if (!match.hasMatch()) {
-            continue;
-        }
-        const QString tag = match.captured(1);
-        const QString value = match.captured(2).trimmed();
-        if (tag == QLatin1String("TY")) {
-            if (started) {
-                break;
-            }
-            started = true;
-            type = value.toUpper();
-            continue;
-        }
-        if (!started) {
-            continue;
-        }
-        if (tag == QLatin1String("ER")) {
-            break;
-        }
-        if (value.isEmpty()) {
-            continue;
-        }
-        SourcePerson person;
-        person.name = value.simplified();
-        if (tag == QLatin1String("AU") || tag == QLatin1String("A1")) {
-            source.people << person;
-        } else if (tag == QLatin1String("ED") || tag == QLatin1String("A2") ||
-                   tag == QLatin1String("A3")) {
-            person.role = QString::fromLatin1(SourceDescription::EDITOR);
-            source.people << person;
-        } else if (tag == QLatin1String("A4")) {
-            person.role = QString::fromLatin1(SourceDescription::TRANSLATOR);
-            source.people << person;
-        } else if (tag == QLatin1String("SP")) {
-            startPage = value;
-        } else if (tag == QLatin1String("EP")) {
-            endPage = value;
-        } else if (tag == QLatin1String("SN")) {
-            number = value;
-        } else {
-            static const QMap<QString, const char*> fields = {
-                {QStringLiteral("TI"), SourceDescription::TITLE},
-                {QStringLiteral("T1"), SourceDescription::TITLE},
-                {QStringLiteral("BT"), SourceDescription::CONTAINER},
-                {QStringLiteral("T2"), SourceDescription::CONTAINER},
-                {QStringLiteral("JO"), SourceDescription::CONTAINER},
-                {QStringLiteral("JF"), SourceDescription::CONTAINER},
-                {QStringLiteral("T3"), SourceDescription::SERIES},
-                {QStringLiteral("ET"), SourceDescription::EDITION},
-                {QStringLiteral("CY"), SourceDescription::PLACE},
-                {QStringLiteral("PB"), SourceDescription::PUBLISHER},
-                {QStringLiteral("PY"), SourceDescription::YEAR},
-                {QStringLiteral("Y1"), SourceDescription::YEAR},
-                {QStringLiteral("DA"), SourceDescription::YEAR},
-                {QStringLiteral("VL"), SourceDescription::VOLUME},
-                {QStringLiteral("IS"), SourceDescription::ISSUE},
-                {QStringLiteral("DO"), SourceDescription::DOI},
-                {QStringLiteral("UR"), SourceDescription::URL},
-                {QStringLiteral("Y2"), SourceDescription::ACCESSED},
-                {QStringLiteral("M3"), SourceDescription::FORM},
-                {QStringLiteral("LA"), SourceDescription::LANGUAGE}};
-            const auto field = fields.constFind(tag);
-            if (field != fields.cend() && source.value(field.value()).isEmpty()) {
-                QString shown = value;
-                // "2011/05/01/" is the year 2011
-                if (tag == QLatin1String("PY") || tag == QLatin1String("Y1")) {
-                    shown = value.section(QLatin1Char('/'), 0, 0);
-                }
-                source.setValue(QString::fromLatin1(field.value()), shown);
-            }
-        }
-    }
-    if (!started) {
-        return std::nullopt;
-    }
-    static const QMap<QString, const char*> kinds = {
-        {QStringLiteral("BOOK"), SourceDescription::BOOK},
-        {QStringLiteral("EBOOK"), SourceDescription::BOOK},
-        {QStringLiteral("EDBOOK"), SourceDescription::BOOK},
-        {QStringLiteral("CHAP"), SourceDescription::CHAPTER},
-        {QStringLiteral("ECHAP"), SourceDescription::CHAPTER},
-        {QStringLiteral("JOUR"), SourceDescription::ARTICLE},
-        {QStringLiteral("EJOUR"), SourceDescription::ARTICLE},
-        {QStringLiteral("MGZN"), SourceDescription::ARTICLE},
-        {QStringLiteral("NEWS"), SourceDescription::ARTICLE},
-        {QStringLiteral("ELEC"), SourceDescription::WEB_PAGE},
-        {QStringLiteral("WEB"), SourceDescription::WEB_PAGE},
-        {QStringLiteral("BLOG"), SourceDescription::WEB_PAGE},
-        {QStringLiteral("MANSCPT"), SourceDescription::ARCHIVE},
-        {QStringLiteral("PCOMM"), SourceDescription::INTERVIEW},
-        {QStringLiteral("MPCT"), SourceDescription::FILM},
-        {QStringLiteral("VIDEO"), SourceDescription::FILM},
-        {QStringLiteral("SOUND"), SourceDescription::FILM},
-        {QStringLiteral("THES"), SourceDescription::THESIS}};
-    source.type = QString::fromLatin1(kinds.value(type, SourceDescription::OTHER));
-    if (!startPage.isEmpty()) {
-        source.setValue(QString::fromLatin1(SourceDescription::PAGES),
-                        endPage.isEmpty() ? startPage : startPage + QStringLiteral("–") + endPage);
-    }
-    if (!number.isEmpty()) {
-        const bool serial = source.type == QLatin1String(SourceDescription::ARTICLE);
-        source.setValue(QString::fromLatin1(serial ? SourceDescription::ISSN
-                                                   : SourceDescription::ISBN),
-                        number);
-    }
-    if (source.people.isEmpty() && source.values.isEmpty()) {
-        return std::nullopt;
-    }
-    return source;
+QString harvardEntry(const Writer& w) {
+    return entryOfKind(w,
+                       {{SourceDescription::CHAPTER, harvardChapter},
+                        {SourceDescription::ARTICLE, harvardArticle},
+                        {SourceDescription::WEB_PAGE, harvardWebPage}},
+                       harvardBook);
 }
 
 }  // namespace
@@ -1120,9 +882,7 @@ QString Bibliography::reference(const SourceDescription& source, const QString& 
                                 const QString& page, const QString& form, int number,
                                 const QString& language) {
     const Words& words = wordsFor(language);
-    const QString pageText = page.trimmed().isEmpty()
-                                 ? QString()
-                                 : word(words.page) + QLatin1Char(' ') + page.trimmed();
+    const QString pageText = labelled(words.page, page.trimmed());
     if (form == QLatin1String(NUMBER)) {
         return QLatin1Char('[') +
                joined({QString::number(number), pageText}, QStringLiteral(", ")) +
@@ -1152,21 +912,9 @@ QString Bibliography::reference(const SourceDescription& source, const QString& 
 }
 
 QString Bibliography::reference(const QuoteSource& quote, const QString& language) {
-    const Words& words = wordsFor(language);
-    const QString page = quote.page.trimmed();
     return joined({quote.author.simplified(), quote.work.simplified(),
-                   page.isEmpty() ? QString() : word(words.page) + QLatin1Char(' ') + page},
+                   labelled(wordsFor(language).page, quote.page.trimmed())},
                   QStringLiteral(", "));
-}
-
-std::optional<SourceDescription> Bibliography::parse(const QString& text) {
-    const QString trimmed = text.trimmed();
-    if (trimmed.startsWith(QLatin1Char('@')) || trimmed.contains(QRegularExpression(
-                                                     QStringLiteral("^\\s*@\\s*[A-Za-z]+\\s*[{(]"),
-                                                     QRegularExpression::MultilineOption))) {
-        return parseBibtex(trimmed);
-    }
-    return parseRis(text);
 }
 
 }  // namespace kalahari::core

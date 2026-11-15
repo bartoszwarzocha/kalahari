@@ -6,6 +6,7 @@
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/source_description.h>
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
@@ -791,60 +792,73 @@ QString dateTimeText(const QDateTime& time) {
 
 QJsonArray elementsToJson(const QList<ProjectElement>& elements);
 
+/// @p source as the "source" object of an element, the fields the program does not know kept
+QJsonObject sourceToJson(const SourceDescription& source) {
+    QJsonObject data = source.extra;
+    setOrRemove(data, "type", source.type);
+    QJsonArray people;
+    for (const SourcePerson& person : source.people) {
+        QJsonObject each = person.extra;
+        each.insert(QLatin1String("name"), person.name);
+        setOrRemove(each, "role", person.role);
+        people.append(each);
+    }
+    if (people.isEmpty()) {
+        data.remove(QLatin1String("people"));
+    } else {
+        data.insert(QLatin1String("people"), people);
+    }
+    for (auto value = source.values.cbegin(); value != source.values.cend(); ++value) {
+        data.insert(value.key(), value.value());
+    }
+    setOrRemove(data, "bibliography", source.bibliography);
+    return data;
+}
+
+/// @p bookmarks as the "bookmarks" array of an element
+QJsonArray bookmarksToJson(const QList<PageBookmark>& bookmarks) {
+    QJsonArray array;
+    for (const PageBookmark& bookmark : bookmarks) {
+        QJsonObject each = bookmark.extra;
+        each.insert(QLatin1String("page"), bookmark.page);
+        setOrRemove(each, "note", bookmark.note);
+        array.append(each);
+    }
+    return array;
+}
+
+/// @p quote as the "quote" object of an element
+QJsonObject quoteToJson(const QuoteSource& quote) {
+    QJsonObject data = quote.extra;
+    setOrRemove(data, "source", quote.source);
+    setOrRemove(data, "page", quote.page);
+    setOrRemove(data, "author", quote.author);
+    setOrRemove(data, "work", quote.work);
+    return data;
+}
+
 /// The description of a source, the bookmarks, the page shown last and the source of a quote
 /// of @p element in @p json
 void writeSource(QJsonObject& json, const ProjectElement& element) {
-    const SourceDescription& source = element.source;
-    if (source.isEmpty()) {
+    if (element.source.isEmpty()) {
         json.remove(QLatin1String("source"));
     } else {
-        QJsonObject data = source.extra;
-        setOrRemove(data, "type", source.type);
-        QJsonArray people;
-        for (const SourcePerson& person : source.people) {
-            QJsonObject each = person.extra;
-            each.insert(QLatin1String("name"), person.name);
-            setOrRemove(each, "role", person.role);
-            people.append(each);
-        }
-        if (people.isEmpty()) {
-            data.remove(QLatin1String("people"));
-        } else {
-            data.insert(QLatin1String("people"), people);
-        }
-        for (auto value = source.values.cbegin(); value != source.values.cend(); ++value) {
-            data.insert(value.key(), value.value());
-        }
-        setOrRemove(data, "bibliography", source.bibliography);
-        json.insert(QLatin1String("source"), data);
+        json.insert(QLatin1String("source"), sourceToJson(element.source));
     }
     if (element.bookmarks.isEmpty()) {
         json.remove(QLatin1String("bookmarks"));
     } else {
-        QJsonArray bookmarks;
-        for (const PageBookmark& bookmark : element.bookmarks) {
-            QJsonObject each = bookmark.extra;
-            each.insert(QLatin1String("page"), bookmark.page);
-            setOrRemove(each, "note", bookmark.note);
-            bookmarks.append(each);
-        }
-        json.insert(QLatin1String("bookmarks"), bookmarks);
+        json.insert(QLatin1String("bookmarks"), bookmarksToJson(element.bookmarks));
     }
     if (element.lastPage > 0) {
         json.insert(QLatin1String("lastPage"), element.lastPage);
     } else {
         json.remove(QLatin1String("lastPage"));
     }
-    const QuoteSource& quote = element.quote;
-    if (quote.isEmpty()) {
+    if (element.quote.isEmpty()) {
         json.remove(QLatin1String("quote"));
     } else {
-        QJsonObject data = quote.extra;
-        setOrRemove(data, "source", quote.source);
-        setOrRemove(data, "page", quote.page);
-        setOrRemove(data, "author", quote.author);
-        setOrRemove(data, "work", quote.work);
-        json.insert(QLatin1String("quote"), data);
+        json.insert(QLatin1String("quote"), quoteToJson(element.quote));
     }
 }
 

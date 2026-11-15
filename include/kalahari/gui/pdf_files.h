@@ -13,6 +13,7 @@
 #include <QSize>
 #include <QString>
 
+#include <initializer_list>
 #include <optional>
 
 class QWidget;
@@ -73,10 +74,10 @@ public:
     /// @brief What the side panel of a preview shows first: BOOKMARKS (at first: the
     /// bookmarks, the contents of the file without them), CONTENTS, THUMBNAILS or HIDDEN
     static constexpr const char* SIDE_SETTING = "materials.pdf.side";
-    static constexpr const char* BOOKMARKS = "bookmarks";
-    static constexpr const char* CONTENTS = "contents";
-    static constexpr const char* THUMBNAILS = "thumbnails";
-    static constexpr const char* HIDDEN = "hidden";
+    static constexpr const char* BOOKMARKS = "bookmarks";    ///< The bookmarks
+    static constexpr const char* CONTENTS = "contents";      ///< The contents of the file
+    static constexpr const char* THUMBNAILS = "thumbnails";  ///< The pages small
+    static constexpr const char* HIDDEN = "hidden";          ///< No side panel
 
     /// @brief Whether a preview opens at the page shown last (a bool, true at first)
     static constexpr const char* LAST_PAGE_SETTING = "materials.pdf.openAtLastPage";

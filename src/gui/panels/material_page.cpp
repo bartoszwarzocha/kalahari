@@ -74,6 +74,9 @@ constexpr int LINK_ROLE = Qt::UserRole;
 /// Size of the pictures of the materials of an element
 constexpr int MATERIAL_ICON = 40;
 
+/// Space between the groups of the card
+constexpr int GROUP_SPACING = 11;
+
 /// Size the picture of the card is read at, before it is fitted to the panel
 const QSize THUMBNAIL_BOUNDS(960, 2 * MaterialPage::MAXIMUM_THUMBNAIL_HEIGHT);
 
@@ -163,6 +166,19 @@ private:
         return NavigatorPanel::linksOf(event->mimeData());
     }
 };
+
+/// Show @p box with @p element when @p shown, hide it otherwise; @p box may be null (a group
+/// only the full card has)
+template <typename Box>
+void showBoxIf(Box* box, bool shown, const core::ProjectElement& element) {
+    if (box == nullptr) {
+        return;
+    }
+    box->setVisible(shown);
+    if (shown) {
+        box->showMaterial(element);
+    }
+}
 
 } // namespace
 
@@ -498,16 +514,16 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
         // links under them
         auto* grid = new QGridLayout(this);
         grid->setContentsMargins(0, 0, 0, 0);
-        grid->setSpacing(11);
+        grid->setSpacing(GROUP_SPACING);
         grid->addWidget(m_infoGroup, 0, 0, 1, 2);
         auto* left = new QVBoxLayout();
-        left->setSpacing(11);
+        left->setSpacing(GROUP_SPACING);
         left->addWidget(m_sourceBox);
         left->addWidget(m_entryBox);
         left->addWidget(descriptionGroup, 1);
         left->addWidget(m_quoteBox);
         auto* right = new QVBoxLayout();
-        right->setSpacing(11);
+        right->setSpacing(GROUP_SPACING);
         right->addWidget(m_coverGroup);
         right->addWidget(m_bookmarksBox);
         right->addWidget(m_quotesBox);
@@ -522,7 +538,7 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     } else {
         auto* layout = new QVBoxLayout(this);
         layout->setContentsMargins(0, 0, 0, 0);
-        layout->setSpacing(11);
+        layout->setSpacing(GROUP_SPACING);
         layout->addWidget(m_infoGroup);
         layout->addWidget(descriptionGroup);
         layout->addWidget(m_quoteBox);
@@ -569,7 +585,7 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
                 return;
             }
             // The style of the bibliography and the form of the references of the Settings
-            if (key.rfind("materials.sources.", 0) == 0) {
+            if (key.starts_with("materials.sources.")) {
                 QMetaObject::invokeMethod(
                     page,
                     [page]() {
@@ -791,38 +807,18 @@ void MaterialPage::showSourceParts(const core::ProjectElement& element) {
     // and on the short card once it is a source; the quotes from it once it is one or has some
     const bool describable = SourceNames::canDescribe(m_book, element);
     const bool source = describable && !element.source.isEmpty();
-    if (m_sourceBox != nullptr) {
-        m_sourceBox->setVisible(describable);
-        if (describable) {
-            m_sourceBox->showMaterial(element);
-        }
-    }
-    const bool entry = m_full ? describable : source;
-    m_entryBox->setVisible(entry);
-    if (entry) {
-        m_entryBox->showMaterial(element);
-    }
-    if (m_quotesBox != nullptr) {
-        const bool quotes = source || !m_book.quotesOf(element.id).isEmpty();
-        m_quotesBox->setVisible(quotes);
-        if (quotes) {
-            m_quotesBox->showMaterial(element);
-        }
-    }
+    showBoxIf(m_sourceBox, describable, element);
+    showBoxIf(m_entryBox, m_full ? describable : source, element);
+    showBoxIf(m_quotesBox,
+              m_quotesBox != nullptr && (source || !m_book.quotesOf(element.id).isEmpty()),
+              element);
     // The bookmarks of a PDF, or of a file that has some
     const bool pdf =
         QFileInfo(element.file).suffix().compare(QLatin1String("pdf"), Qt::CaseInsensitive) == 0;
-    const bool bookmarks = !element.bookmarks.isEmpty() || (!element.file.isEmpty() && pdf);
-    m_bookmarksBox->setVisible(bookmarks);
-    if (bookmarks) {
-        m_bookmarksBox->showMaterial(element);
-    }
+    showBoxIf(m_bookmarksBox, !element.bookmarks.isEmpty() || (!element.file.isEmpty() && pdf),
+              element);
     // A quote: where it comes from, under its words
-    const bool quote = SourceNames::isQuote(m_book, element);
-    m_quoteBox->setVisible(quote);
-    if (quote) {
-        m_quoteBox->showMaterial(element);
-    }
+    showBoxIf(m_quoteBox, SourceNames::isQuote(m_book, element), element);
 }
 
 void MaterialPage::setDownloading(const QString& elementId, bool downloading) {

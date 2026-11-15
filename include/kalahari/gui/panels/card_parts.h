@@ -3,22 +3,27 @@
 
 /// @file card_parts.h
 /// @brief The small parts of the cards of the materials: the buttons of their lists, the grey
-/// sentences, the heights of their lists and the keys their lists take
+/// sentences, the heights of their lists, the keys their lists take, their tables and the
+/// layouts of their groups
 
 #ifndef KALAHARI_GUI_PANELS_CARD_PARTS_H
 #define KALAHARI_GUI_PANELS_CARD_PARTS_H
 
 #include "kalahari/core/art_provider.h"
 
+#include <QAbstractItemView>
 #include <QString>
+#include <QStringList>
 
 class QAbstractButton;
-class QAbstractItemView;
+class QFormLayout;
+class QGroupBox;
 class QHBoxLayout;
 class QKeyEvent;
 class QLabel;
 class QTableWidget;
 class QToolButton;
+class QVBoxLayout;
 class QWidget;
 
 namespace kalahari::gui::card {
@@ -54,6 +59,24 @@ void cutOffChildren(QWidget* widget);
 /// @brief Whether @p key is Enter without modifiers, which opens the current row of a list also
 /// on macOS, where a list edits it
 [[nodiscard]] bool isOpenKey(const QKeyEvent* key);
+
+/// @brief A table of a card: one row selected; an @p editable one edits its cells with F2, a
+/// double-click or by typing
+[[nodiscard]] QTableWidget* cardTable(QWidget* parent, const char* name,
+                                      const QString& accessibleName, const QStringList& columns,
+                                      bool editable);
+
+/// @brief The keys of a table that edits: none in a book open read-only
+[[nodiscard]] QAbstractItemView::EditTriggers editTriggers(bool readOnly);
+
+/// @brief Whether a cell of @p view is being edited: its editor has the keys
+[[nodiscard]] bool isEditing(const QAbstractItemView* view);
+
+/// @brief The layout of group @p group of a card, with its margins
+[[nodiscard]] QVBoxLayout* groupLayout(QGroupBox* group);
+
+/// @brief A form of a group of a card: the labels at the left of their fields
+[[nodiscard]] QFormLayout* groupForm();
 
 }  // namespace kalahari::gui::card
 

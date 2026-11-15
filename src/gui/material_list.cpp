@@ -13,6 +13,7 @@
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/source_description.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -258,6 +259,30 @@ void setCoverTexts(MaterialRow& row, const core::ProjectElement& element) {
     set(MaterialList::COVER_LICENSE, cover.license);
 }
 
+/// Where @p quote comes from, as the column of the source of the quotes shows it: the short
+/// name of its source card (or its author and work) and its page
+QString quoteSourceText(const core::ProjectManager& book, const core::QuoteSource& quote) {
+    QString from;
+    if (const core::ProjectElement* material =
+            quote.source.isEmpty() ? nullptr : book.findElement(quote.source)) {
+        from = SourceNames::shortName(material->source, material->title);
+    } else {
+        QStringList parts;
+        for (const QString& part : {quote.author, quote.work}) {
+            if (!part.isEmpty()) {
+                parts << part;
+            }
+        }
+        from = parts.join(QStringLiteral(", "));
+    }
+    if (from.isEmpty() || quote.page.isEmpty()) {
+        return from;
+    }
+    //: The source of a quote in the list of the quotes: %1 the source, %2 the page. In
+    //: Polish: %1, s. %2
+    return MaterialList::tr("%1, p. %2").arg(from, quote.page);
+}
+
 /// What a source shows in the columns of the sources, and a quote in that of its source
 void setSourceTexts(const core::ProjectManager& book, MaterialRow& row,
                     const core::ProjectElement& element) {
@@ -277,26 +302,7 @@ void setSourceTexts(const core::ProjectManager& book, MaterialRow& row,
                                                     : QStringLiteral("–"));
         row.order.insert(QString::fromLatin1(MaterialList::SOURCE_PLACES), places);
     }
-    const core::QuoteSource& quote = element.quote;
-    QString from;
-    if (const core::ProjectElement* material =
-            quote.source.isEmpty() ? nullptr : book.findElement(quote.source)) {
-        from = SourceNames::shortName(material->source, material->title);
-    } else {
-        QStringList parts;
-        for (const QString& part : {quote.author, quote.work}) {
-            if (!part.isEmpty()) {
-                parts << part;
-            }
-        }
-        from = parts.join(QStringLiteral(", "));
-    }
-    if (!from.isEmpty() && !quote.page.isEmpty()) {
-        //: The source of a quote in the list of the quotes: %1 the source, %2 the page. In
-        //: Polish: %1, s. %2
-        from = MaterialList::tr("%1, p. %2").arg(from, quote.page);
-    }
-    set(MaterialList::QUOTE_SOURCE, from);
+    set(MaterialList::QUOTE_SOURCE, quoteSourceText(book, element.quote));
 }
 
 /// The row of @p element, of kind @p kind

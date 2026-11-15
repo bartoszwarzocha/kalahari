@@ -6,8 +6,13 @@
 
 #include "kalahari/gui/panels/card_parts.h"
 
+#include "kalahari/core/art_provider.h"
+
 #include <QAbstractButton>
 #include <QAbstractItemView>
+#include <QApplication>
+#include <QFormLayout>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QKeyEvent>
@@ -16,6 +21,7 @@
 #include <QStyle>
 #include <QTableWidget>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 #include <algorithm>
 
@@ -27,6 +33,14 @@ namespace {
 constexpr int MINIMUM_ROWS = 2;
 /// Rows a list shows at most; the rest scroll
 constexpr int MAXIMUM_ROWS = 8;
+
+/// The margins of a group of a card: at its sides and bottom, and under its title
+constexpr int GROUP_MARGIN = 11;
+constexpr int GROUP_TOP_MARGIN = 6;
+/// The space between the parts of a group
+constexpr int GROUP_SPACING = 6;
+/// The space between the buttons of a list
+constexpr int BUTTON_SPACING = 2;
 
 }  // namespace
 
@@ -53,7 +67,7 @@ QToolButton* listButton(QWidget* parent, const char* iconId, const QString& tool
 QHBoxLayout* buttonRow(QToolButton* add, QToolButton* remove) {
     auto* row = new QHBoxLayout();
     row->setContentsMargins(0, 0, 0, 0);
-    row->setSpacing(2);
+    row->setSpacing(BUTTON_SPACING);
     row->addStretch();
     row->addWidget(add);
     if (remove != nullptr) {
@@ -73,7 +87,7 @@ QLabel* hintLabel(QWidget* parent, const QString& text, const char* name) {
 int listHeight(const QAbstractItemView* view, int rows, int rowHeight, int header) {
     const int shown = std::clamp(rows, MINIMUM_ROWS, MAXIMUM_ROWS);
     const int frame = view->style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-    return shown * rowHeight + header + 2 * frame + 2;
+    return (shown * rowHeight) + header + (2 * frame) + 2;
 }
 
 void fitRows(QTableWidget* table) {
@@ -90,11 +104,57 @@ void cutOffChildren(QWidget* widget) {
 }
 
 bool isListKey(const QKeyEvent* key, int which) {
-    return key->key() == which && (key->modifiers() & ~Qt::KeypadModifier) == Qt::NoModifier;
+    Qt::KeyboardModifiers modifiers = key->modifiers();
+    modifiers.setFlag(Qt::KeypadModifier, false);
+    return key->key() == which && modifiers == Qt::NoModifier;
 }
 
 bool isOpenKey(const QKeyEvent* key) {
     return isListKey(key, Qt::Key_Return) || isListKey(key, Qt::Key_Enter);
+}
+
+QTableWidget* cardTable(QWidget* parent, const char* name, const QString& accessibleName,
+                        const QStringList& columns, bool editable) {
+    auto* table = new QTableWidget(0, static_cast<int>(columns.size()), parent);
+    table->setObjectName(QString::fromLatin1(name));
+    table->setAccessibleName(accessibleName);
+    table->setHorizontalHeaderLabels(columns);
+    table->verticalHeader()->hide();
+    table->horizontalHeader()->setStretchLastSection(true);
+    table->setSelectionMode(QAbstractItemView::SingleSelection);
+    table->setSelectionBehavior(editable ? QAbstractItemView::SelectItems
+                                         : QAbstractItemView::SelectRows);
+    table->setEditTriggers(editTriggers(!editable));
+    table->setWordWrap(false);
+    return table;
+}
+
+QAbstractItemView::EditTriggers editTriggers(bool readOnly) {
+    if (readOnly) {
+        return QAbstractItemView::NoEditTriggers;
+    }
+    return QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed |
+           QAbstractItemView::AnyKeyPressed;
+}
+
+bool isEditing(const QAbstractItemView* view) {
+    const QWidget* focus = QApplication::focusWidget();
+    return focus != nullptr && focus != view && view->isAncestorOf(focus);
+}
+
+QVBoxLayout* groupLayout(QGroupBox* group) {
+    auto* layout = new QVBoxLayout(group);
+    layout->setContentsMargins(GROUP_MARGIN, GROUP_TOP_MARGIN, GROUP_MARGIN, GROUP_MARGIN);
+    layout->setSpacing(GROUP_SPACING);
+    return layout;
+}
+
+QFormLayout* groupForm() {
+    auto* form = new QFormLayout();
+    form->setContentsMargins(0, 0, 0, 0);
+    form->setSpacing(GROUP_SPACING);
+    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    return form;
 }
 
 }  // namespace kalahari::gui::card

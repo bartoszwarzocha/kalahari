@@ -8,8 +8,8 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/project_manager.h"
-#include "kalahari/core/source_description.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/source_description.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/link_dialog.h"
@@ -114,7 +114,7 @@ MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
                 QMetaObject::invokeMethod(self, "onTreeSettingChanged", Qt::QueuedConnection);
             } else if (key == MaterialList::HIDDEN_SETTING) {
                 QMetaObject::invokeMethod(self, "onHiddenSettingChanged", Qt::QueuedConnection);
-            } else if (key.rfind(COVER_SETTINGS, 0) == 0 || key.rfind(SOURCE_SETTINGS, 0) == 0) {
+            } else if (key.starts_with(COVER_SETTINGS) || key.starts_with(SOURCE_SETTINGS)) {
                 // The unit and the targets of the texts of the cover; the style of the entries
                 QMetaObject::invokeMethod(self, "refresh", Qt::QueuedConnection);
             }

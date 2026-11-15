@@ -3,8 +3,8 @@
 
 /// @file source_boxes.h
 /// @brief The groups of the card of a material that is a source: its bibliographic
-/// description, how the bibliography shows it, its bookmarks and the quotes from it; and the
-/// group of a quote that says where it comes from
+/// description (source_description_box.cpp), how the bibliography shows it, its bookmarks and
+/// the quotes from it; and the group of a quote that says where it comes from (source_boxes.cpp)
 
 #ifndef KALAHARI_GUI_PANELS_SOURCE_BOXES_H
 #define KALAHARI_GUI_PANELS_SOURCE_BOXES_H
@@ -44,6 +44,7 @@ class SourceDescriptionBox : public QGroupBox {
     Q_OBJECT
 
 public:
+    /// @brief The group of the descriptions of the materials of @p book
     explicit SourceDescriptionBox(core::ProjectManager& book, QWidget* parent = nullptr);
 
     /// @brief Show the description of @p element; the field with the keys keeps what is typed
@@ -52,11 +53,17 @@ public:
     /// @brief The description the card shows now, as it would be saved
     [[nodiscard]] core::SourceDescription shownSource() const;
 
+    /// @brief The list of the kinds of source
     [[nodiscard]] QComboBox* kindBox() const { return m_kindBox; }
+    /// @brief The table of the people: a name and what each did
     [[nodiscard]] QTableWidget* peopleTable() const { return m_peopleTable; }
+    /// @brief "+" of the people
     [[nodiscard]] QToolButton* addPersonButton() const { return m_addPersonButton; }
+    /// @brief "-" of the people
     [[nodiscard]] QToolButton* removePersonButton() const { return m_removePersonButton; }
+    /// @brief Paste Description (BibTeX, RIS)
     [[nodiscard]] QPushButton* pasteButton() const { return m_pasteButton; }
+    /// @brief Fill In from File, shown for a PDF file
     [[nodiscard]] QPushButton* fillButton() const { return m_fillButton; }
 
     /// @brief The field of @p field (core::SourceDescription::TITLE...)
@@ -96,6 +103,12 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    /// @brief The kinds of source in their list, that of the description chosen
+    void fillKinds();
+
+    /// @brief The people of the description in the table
+    void fillPeople();
+
     /// @brief The fields of the kind chosen, with their names
     void showKind();
 
@@ -132,6 +145,7 @@ class BibliographyEntryBox : public QGroupBox {
 
 public:
     /// @param compact The short card: the entry in the style of the book and Copy Entry
+    /// @brief The group of the entries of the materials of @p book
     explicit BibliographyEntryBox(core::ProjectManager& book, QWidget* parent = nullptr,
                                   bool compact = false);
 
@@ -144,10 +158,15 @@ public:
     /// @brief The entry shown, as plain text
     [[nodiscard]] QString entryText() const;
 
+    /// @brief The list of the styles, hidden on the short card
     [[nodiscard]] QComboBox* styleBox() const { return m_styleBox; }
+    /// @brief The entry, with its italics
     [[nodiscard]] QLabel* entryLabel() const { return m_entryLabel; }
+    /// @brief In the bibliography: when linked with the text, always or never
     [[nodiscard]] QComboBox* inclusionBox() const { return m_inclusionBox; }
+    /// @brief Copy Entry
     [[nodiscard]] QPushButton* copyButton() const { return m_copyButton; }
+    /// @brief The gear, which opens Settings > Materials
     [[nodiscard]] QToolButton* settingsButton() const { return m_settingsButton; }
 
 public slots:
@@ -165,6 +184,9 @@ signals:
     void message(const QString& text);
 
 private:
+    /// @brief Save whether the bibliography has the source, as its list says
+    void saveInclusion();
+
     /// @brief The styles, that of the book marked and chosen when @p chooseBook
     void fillStyles(bool chooseBook);
 
@@ -193,14 +215,19 @@ class BookmarksBox : public QGroupBox {
     Q_OBJECT
 
 public:
+    /// @brief The group of the bookmarks of the materials of @p book
     explicit BookmarksBox(core::ProjectManager& book, QWidget* parent = nullptr);
 
     /// @brief Show the bookmarks of @p element
     void showMaterial(const core::ProjectElement& element);
 
+    /// @brief The table of the bookmarks: a page and a note each
     [[nodiscard]] QTableWidget* table() const { return m_table; }
+    /// @brief "+" of the bookmarks
     [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
+    /// @brief "-" of the bookmarks
     [[nodiscard]] QToolButton* removeButton() const { return m_removeButton; }
+    /// @brief The eye: the page in the preview
     [[nodiscard]] QToolButton* showButton() const { return m_showButton; }
 
 public slots:
@@ -250,12 +277,15 @@ class SourceQuotesBox : public QGroupBox {
     Q_OBJECT
 
 public:
+    /// @brief The group of the quotes from the materials of @p book
     explicit SourceQuotesBox(core::ProjectManager& book, QWidget* parent = nullptr);
 
     /// @brief Show the quotes from @p element
     void showMaterial(const core::ProjectElement& element);
 
+    /// @brief The table of the quotes: a page and the words each
     [[nodiscard]] QTableWidget* table() const { return m_table; }
+    /// @brief "+": a new quote from the source
     [[nodiscard]] QToolButton* addButton() const { return m_addButton; }
 
 signals:
@@ -269,6 +299,9 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    /// @brief Open the quote of row @p row, when there is one
+    void openQuote(int row);
+
     core::ProjectManager& m_book;
     QString m_elementId;
     QTableWidget* m_table = nullptr;
@@ -286,6 +319,7 @@ class QuoteSourceBox : public QGroupBox {
     Q_OBJECT
 
 public:
+    /// @brief The group of where the quotes of @p book come from
     explicit QuoteSourceBox(core::ProjectManager& book, QWidget* parent = nullptr);
 
     /// @brief Show where quote @p element comes from; the field with the keys keeps what is
@@ -295,13 +329,21 @@ public:
     /// @brief Where the quote comes from, as the card shows it
     [[nodiscard]] core::QuoteSource shownQuote() const;
 
+    /// @brief The list of the sources, "No source" first
     [[nodiscard]] QComboBox* sourceBox() const { return m_sourceBox; }
+    /// @brief The page of the quote
     [[nodiscard]] QLineEdit* pageEdit() const { return m_pageEdit; }
+    /// @brief The author of a quote without a source
     [[nodiscard]] QLineEdit* authorEdit() const { return m_authorEdit; }
+    /// @brief The work of a quote without a source
     [[nodiscard]] QLineEdit* workEdit() const { return m_workEdit; }
+    /// @brief Open Source: the card of the source
     [[nodiscard]] QPushButton* openSourceButton() const { return m_openSourceButton; }
+    /// @brief Show Page: the page in the preview of the file of the source
     [[nodiscard]] QPushButton* showPageButton() const { return m_showPageButton; }
+    /// @brief The author and the work from the card of the source
     [[nodiscard]] QLabel* fromSourceLabel() const { return m_fromSourceLabel; }
+    /// @brief The reference to the quote in the text
     [[nodiscard]] QLabel* referenceLabel() const { return m_referenceLabel; }
 
 public slots:
@@ -318,6 +360,10 @@ signals:
 private:
     /// @brief The sources of the book in the list, with that of the quote chosen
     void fillSources(const QString& chosen);
+
+    /// @brief The name of a source of the quote that is no source any more: @p material
+    /// without its description, or nullptr for one that is gone
+    [[nodiscard]] static QString lostSourceName(const core::ProjectElement* material);
 
     /// @brief The fields that the source chosen asks for, the sentence and the reference
     void updateShown();

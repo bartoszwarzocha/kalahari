@@ -15,6 +15,7 @@
 #include <kalahari/core/package_card.h>
 #include <kalahari/core/resource_paths.h>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/core/source_description.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
 #include <kalahari/editor/clipboard_handler.h>
@@ -2690,7 +2691,7 @@ QString ProjectManager::bookBibliographyStyle() const {
 
 bool ProjectManager::setBookBibliographyStyle(const QString& style) {
     ProjectBook* current = book();
-    if (!current) {
+    if (current == nullptr) {
         Logger::getInstance().warn("setBookBibliographyStyle: No project is open");
         return false;
     }

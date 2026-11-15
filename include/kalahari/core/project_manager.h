@@ -52,6 +52,7 @@
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/project_lock.h"
+#include "kalahari/core/source_description.h"
 #include "kalahari/core/backup_manager.h"
 #include "kalahari/core/text_statistics.h"
 
@@ -804,21 +805,21 @@ public:
     bool setQuoteSource(const QString& elementId, const QuoteSource& quote);
 
     /// @brief The materials with a bibliographic description, in the order of the Workshop
-    QList<const ProjectElement*> sources() const;
+    [[nodiscard]] QList<const ProjectElement*> sources() const;
 
     /// @brief The quotes of the Workshop whose source is material @p elementId, in its order
-    QList<const ProjectElement*> quotesOf(const QString& elementId) const;
+    [[nodiscard]] QList<const ProjectElement*> quotesOf(const QString& elementId) const;
 
     /// @brief How many links with elements of the book material @p elementId and the quotes
     /// from it have: the places of the text where it is used
-    int placesInText(const QString& elementId) const;
+    [[nodiscard]] int placesInText(const QString& elementId) const;
 
     /// @brief The style of the book's bibliography: its own (ProjectBook::bibliographyStyle),
     /// else the Settings' one (Bibliography::settingsStyle())
-    QString bibliographyStyle() const;
+    [[nodiscard]] QString bibliographyStyle() const;
 
     /// @brief The book's own style of bibliography; empty: none, or no project
-    QString bookBibliographyStyle() const;
+    [[nodiscard]] QString bookBibliographyStyle() const;
 
     /// @brief Give the book its own style of bibliography (empty: the Settings' one) and save
     /// the .klh file (sourcesChanged())
@@ -826,7 +827,7 @@ public:
     bool setBookBibliographyStyle(const QString& style);
 
     /// @brief The language of the text of the book ("pl"); empty without a project
-    QString bookLanguage() const;
+    [[nodiscard]] QString bookLanguage() const;
 
     // =========================================================================
     // Paragraph Styles of the Books

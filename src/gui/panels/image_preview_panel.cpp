@@ -10,6 +10,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/gui/panels/preview_panel.h"
 
 #include <QAction>
 #include <QGraphicsPixmapItem>

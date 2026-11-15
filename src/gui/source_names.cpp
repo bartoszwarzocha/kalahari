@@ -8,11 +8,15 @@
 
 #include "kalahari/core/bibliography.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/source_description.h"
 #include "kalahari/editor/auto_correct.h"
 #include "kalahari/gui/kind_names.h"
+
+#include <QHash>
+#include <QLatin1String>
 
 #include <algorithm>
 #include <iterator>
@@ -116,142 +120,146 @@ QString SourceNames::roleName(const QString& role) {
     return role;
 }
 
+namespace {
+
+bool isKindOf(const QString& kind, const char* each) {
+    return kind == QLatin1String(each);
+}
+
+QString titleLabel(const QString& kind) {
+    if (isKindOf(kind, SourceDescription::CHAPTER)) {
+        //: In Polish: Tytuł rozdziału:
+        return SourceNames::tr("Chapter title:");
+    }
+    if (isKindOf(kind, SourceDescription::ARTICLE)) {
+        //: In Polish: Tytuł artykułu:
+        return SourceNames::tr("Article title:");
+    }
+    if (isKindOf(kind, SourceDescription::WEB_PAGE)) {
+        //: In Polish: Tytuł strony:
+        return SourceNames::tr("Page title:");
+    }
+    if (isKindOf(kind, SourceDescription::ARCHIVE)) {
+        //: In Polish: Tytuł lub opis:
+        return SourceNames::tr("Title or description:");
+    }
+    //: The title of a source. In Polish: Tytuł:
+    return SourceNames::tr("Title:");
+}
+
+QString containerLabel(const QString& kind) {
+    if (isKindOf(kind, SourceDescription::CHAPTER)) {
+        //: The book of a chapter. In Polish: Tytuł książki:
+        return SourceNames::tr("Book title:");
+    }
+    if (isKindOf(kind, SourceDescription::ARTICLE)) {
+        //: In Polish: Czasopismo:
+        return SourceNames::tr("Journal:");
+    }
+    if (isKindOf(kind, SourceDescription::WEB_PAGE)) {
+        //: The web site of a page. In Polish: Witryna:
+        return SourceNames::tr("Site:");
+    }
+    //: The archive of a document. In Polish: Archiwum:
+    return SourceNames::tr("Archive:");
+}
+
+QString placeLabel(const QString& kind) {
+    if (isKindOf(kind, SourceDescription::INTERVIEW) || isKindOf(kind, SourceDescription::FILM)) {
+        //: Where a talk took place, where a film was made. In Polish: Miejsce:
+        return SourceNames::tr("Place:");
+    }
+    //: In Polish: Miejsce wydania:
+    return SourceNames::tr("Place of publication:");
+}
+
+QString publisherLabel(const QString& kind) {
+    if (isKindOf(kind, SourceDescription::THESIS)) {
+        //: In Polish: Uczelnia:
+        return SourceNames::tr("University:");
+    }
+    if (isKindOf(kind, SourceDescription::FILM)) {
+        //: Who made a film or a recording. In Polish: Wytwórnia:
+        return SourceNames::tr("Producer:");
+    }
+    //: In Polish: Wydawnictwo:
+    return SourceNames::tr("Publisher:");
+}
+
+QString yearLabel(const QString& kind) {
+    if (isKindOf(kind, SourceDescription::ARCHIVE) || isKindOf(kind, SourceDescription::INTERVIEW)) {
+        //: In Polish: Data:
+        return SourceNames::tr("Date:");
+    }
+    //: The year of a source. In Polish: Rok:
+    return SourceNames::tr("Year:");
+}
+
+QString pagesLabel(const QString& kind) {
+    if (isKindOf(kind, SourceDescription::CHAPTER) || isKindOf(kind, SourceDescription::ARTICLE)) {
+        //: The pages of a chapter or an article: 41–58. In Polish: Strony:
+        return SourceNames::tr("Pages:");
+    }
+    //: How many pages a book has. In Polish: Liczba stron:
+    return SourceNames::tr("Number of pages:");
+}
+
+QString formLabel(const QString& kind) {
+    if (isKindOf(kind, SourceDescription::THESIS)) {
+        //: Bachelor's, master's, doctoral. In Polish: Rodzaj pracy:
+        return SourceNames::tr("Kind of thesis:");
+    }
+    //: What a source is: a manuscript, a sound recording of 48 minutes. In Polish: Postać:
+    return SourceNames::tr("Form:");
+}
+
+/// The labels of the fields whose label is the same for every kind of source
+QHash<QString, QString> sameLabels() {
+    QHash<QString, QString> labels;
+    //: In Polish: Podtytuł:
+    labels.insert(QLatin1String(SourceDescription::SUBTITLE), SourceNames::tr("Subtitle:"));
+    //: In Polish: Wydanie:
+    labels.insert(QLatin1String(SourceDescription::EDITION), SourceNames::tr("Edition:"));
+    //: The volume of a journal. In Polish: Tom:
+    labels.insert(QLatin1String(SourceDescription::VOLUME), SourceNames::tr("Volume:"));
+    //: The issue of a journal. In Polish: Numer:
+    labels.insert(QLatin1String(SourceDescription::ISSUE), SourceNames::tr("Issue:"));
+    //: In Polish: Seria:
+    labels.insert(QLatin1String(SourceDescription::SERIES), SourceNames::tr("Series:"));
+    labels.insert(QLatin1String(SourceDescription::ISBN), QStringLiteral("ISBN:"));
+    labels.insert(QLatin1String(SourceDescription::ISSN), QStringLiteral("ISSN:"));
+    labels.insert(QLatin1String(SourceDescription::DOI), QStringLiteral("DOI:"));
+    //: The web address of a source. In Polish: Adres:
+    labels.insert(QLatin1String(SourceDescription::URL), SourceNames::tr("Address:"));
+    //: When a web page was published. In Polish: Opublikowano:
+    labels.insert(QLatin1String(SourceDescription::PUBLISHED), SourceNames::tr("Published:"));
+    //: When the writer read a web page. In Polish: Dostęp:
+    labels.insert(QLatin1String(SourceDescription::ACCESSED), SourceNames::tr("Accessed:"));
+    //: The fonds of an archive. In Polish: Zespół:
+    labels.insert(QLatin1String(SourceDescription::FONDS), SourceNames::tr("Fonds:"));
+    //: The call number of a document in an archive. In Polish: Sygnatura:
+    labels.insert(QLatin1String(SourceDescription::SIGNATURE), SourceNames::tr("Call number:"));
+    //: In Polish: Język:
+    labels.insert(QLatin1String(SourceDescription::LANGUAGE), SourceNames::tr("Language:"));
+    return labels;
+}
+
+}  // namespace
+
 QString SourceNames::fieldLabel(const QString& field, const QString& kind) {
-    const auto is = [&kind](const char* each) { return kind == QLatin1String(each); };
-    if (field == QLatin1String(SourceDescription::TITLE)) {
-        if (is(SourceDescription::CHAPTER)) {
-            //: In Polish: Tytuł rozdziału:
-            return tr("Chapter title:");
-        }
-        if (is(SourceDescription::ARTICLE)) {
-            //: In Polish: Tytuł artykułu:
-            return tr("Article title:");
-        }
-        if (is(SourceDescription::WEB_PAGE)) {
-            //: In Polish: Tytuł strony:
-            return tr("Page title:");
-        }
-        if (is(SourceDescription::ARCHIVE)) {
-            //: In Polish: Tytuł lub opis:
-            return tr("Title or description:");
-        }
-        //: The title of a source. In Polish: Tytuł:
-        return tr("Title:");
+    using KindLabel = QString (*)(const QString&);
+    static const QHash<QString, KindLabel> byKind = {
+        {QLatin1String(SourceDescription::TITLE), titleLabel},
+        {QLatin1String(SourceDescription::CONTAINER), containerLabel},
+        {QLatin1String(SourceDescription::PLACE), placeLabel},
+        {QLatin1String(SourceDescription::PUBLISHER), publisherLabel},
+        {QLatin1String(SourceDescription::YEAR), yearLabel},
+        {QLatin1String(SourceDescription::PAGES), pagesLabel},
+        {QLatin1String(SourceDescription::FORM), formLabel}};
+    if (const auto label = byKind.constFind(field); label != byKind.cend()) {
+        return label.value()(kind);
     }
-    if (field == QLatin1String(SourceDescription::SUBTITLE)) {
-        //: In Polish: Podtytuł:
-        return tr("Subtitle:");
-    }
-    if (field == QLatin1String(SourceDescription::CONTAINER)) {
-        if (is(SourceDescription::CHAPTER)) {
-            //: The book of a chapter. In Polish: Tytuł książki:
-            return tr("Book title:");
-        }
-        if (is(SourceDescription::ARTICLE)) {
-            //: In Polish: Czasopismo:
-            return tr("Journal:");
-        }
-        if (is(SourceDescription::WEB_PAGE)) {
-            //: The web site of a page. In Polish: Witryna:
-            return tr("Site:");
-        }
-        //: The archive of a document. In Polish: Archiwum:
-        return tr("Archive:");
-    }
-    if (field == QLatin1String(SourceDescription::EDITION)) {
-        //: In Polish: Wydanie:
-        return tr("Edition:");
-    }
-    if (field == QLatin1String(SourceDescription::PLACE)) {
-        if (is(SourceDescription::INTERVIEW) || is(SourceDescription::FILM)) {
-            //: Where a talk took place, where a film was made. In Polish: Miejsce:
-            return tr("Place:");
-        }
-        //: In Polish: Miejsce wydania:
-        return tr("Place of publication:");
-    }
-    if (field == QLatin1String(SourceDescription::PUBLISHER)) {
-        if (is(SourceDescription::THESIS)) {
-            //: In Polish: Uczelnia:
-            return tr("University:");
-        }
-        if (is(SourceDescription::FILM)) {
-            //: Who made a film or a recording. In Polish: Wytwórnia:
-            return tr("Producer:");
-        }
-        //: In Polish: Wydawnictwo:
-        return tr("Publisher:");
-    }
-    if (field == QLatin1String(SourceDescription::YEAR)) {
-        if (is(SourceDescription::ARCHIVE) || is(SourceDescription::INTERVIEW)) {
-            //: In Polish: Data:
-            return tr("Date:");
-        }
-        //: The year of a source. In Polish: Rok:
-        return tr("Year:");
-    }
-    if (field == QLatin1String(SourceDescription::VOLUME)) {
-        //: The volume of a journal. In Polish: Tom:
-        return tr("Volume:");
-    }
-    if (field == QLatin1String(SourceDescription::ISSUE)) {
-        //: The issue of a journal. In Polish: Numer:
-        return tr("Issue:");
-    }
-    if (field == QLatin1String(SourceDescription::PAGES)) {
-        if (is(SourceDescription::CHAPTER) || is(SourceDescription::ARTICLE)) {
-            //: The pages of a chapter or an article: 41–58. In Polish: Strony:
-            return tr("Pages:");
-        }
-        //: How many pages a book has. In Polish: Liczba stron:
-        return tr("Number of pages:");
-    }
-    if (field == QLatin1String(SourceDescription::SERIES)) {
-        //: In Polish: Seria:
-        return tr("Series:");
-    }
-    if (field == QLatin1String(SourceDescription::ISBN)) {
-        return QStringLiteral("ISBN:");
-    }
-    if (field == QLatin1String(SourceDescription::ISSN)) {
-        return QStringLiteral("ISSN:");
-    }
-    if (field == QLatin1String(SourceDescription::DOI)) {
-        return QStringLiteral("DOI:");
-    }
-    if (field == QLatin1String(SourceDescription::URL)) {
-        //: The web address of a source. In Polish: Adres:
-        return tr("Address:");
-    }
-    if (field == QLatin1String(SourceDescription::PUBLISHED)) {
-        //: When a web page was published. In Polish: Opublikowano:
-        return tr("Published:");
-    }
-    if (field == QLatin1String(SourceDescription::ACCESSED)) {
-        //: When the writer read a web page. In Polish: Dostęp:
-        return tr("Accessed:");
-    }
-    if (field == QLatin1String(SourceDescription::FONDS)) {
-        //: The fonds of an archive. In Polish: Zespół:
-        return tr("Fonds:");
-    }
-    if (field == QLatin1String(SourceDescription::SIGNATURE)) {
-        //: The call number of a document in an archive. In Polish: Sygnatura:
-        return tr("Call number:");
-    }
-    if (field == QLatin1String(SourceDescription::FORM)) {
-        if (is(SourceDescription::THESIS)) {
-            //: Bachelor's, master's, doctoral. In Polish: Rodzaj pracy:
-            return tr("Kind of thesis:");
-        }
-        //: What a source is: a manuscript, a sound recording of 48 minutes. In Polish: Postać:
-        return tr("Form:");
-    }
-    if (field == QLatin1String(SourceDescription::LANGUAGE)) {
-        //: In Polish: Język:
-        return tr("Language:");
-    }
-    return field + QLatin1Char(':');
+    return sameLabels().value(field, field + QLatin1Char(':'));
 }
 
 QString SourceNames::inclusionName(const QString& inclusion) {
@@ -270,7 +278,8 @@ QString SourceNames::inclusionName(const QString& inclusion) {
 
 QString SourceNames::referenceExample(const QString& form) {
     SourceDescription example;
-    example.people << core::SourcePerson{QStringLiteral("Anna Wiśniewska"), {}, {}};
+    example.people << core::SourcePerson{
+        .name = QStringLiteral("Anna Wiśniewska"), .role = {}, .extra = {}};
     example.setValue(QString::fromLatin1(SourceDescription::TITLE),
                      QStringLiteral("Atlas pustyń świata"));
     example.setValue(QString::fromLatin1(SourceDescription::YEAR), QStringLiteral("2011"));
@@ -318,7 +327,7 @@ QString SourceNames::referenceTo(const core::ProjectManager& book, const QString
     }
     // The number of the source in the bibliography, for the form "[1, s. 45]"
     const QList<const core::ProjectElement*> sources = book.sources();
-    const auto at = std::find(sources.cbegin(), sources.cend(), source);
+    const auto at = std::ranges::find(sources, source);
     const int number =
         at != sources.cend() ? static_cast<int>(std::distance(sources.cbegin(), at)) + 1 : 1;
     return core::Bibliography::reference(source->source, source->title, page,

@@ -709,7 +709,7 @@ TEST_CASE("Settings dialog: the Materials page chooses how pages and PDF files o
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string pagesBefore =
         settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, "browser");
-    const std::string pdfBefore = settings.get<std::string>(PdfFiles::OPEN_SETTING, "preview");
+    const auto pdfBefore = settings.get<std::string>(PdfFiles::OPEN_SETTING, "preview");
     settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, "browser");
     settings.set<std::string>(PdfFiles::OPEN_SETTING, "preview");
 

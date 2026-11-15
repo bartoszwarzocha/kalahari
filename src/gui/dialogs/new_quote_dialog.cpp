@@ -8,6 +8,7 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 #include <QComboBox>
 #include <QDialogButtonBox>

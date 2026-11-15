@@ -59,7 +59,8 @@ set(KALAHARI_CORE_SOURCES
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/source_description.cpp # The bibliographic description of a source, its bookmarks
-    core/bibliography.cpp       # The entries of a bibliography, references, BibTeX and RIS
+    core/bibliography.cpp       # The entries of a bibliography and the references in the text
+    core/bibliography_records.cpp  # The descriptions pasted as BibTeX and RIS
     core/link_roles.cpp         # The roles of links, and the paragraph a link names
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
@@ -339,6 +340,7 @@ set(KALAHARI_SOURCES
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
     gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
+    gui/panels/source_description_box.cpp  # SourceDescriptionBox - the description of a source on its card
     gui/panels/preview_panel.cpp  # PreviewPanel - what the window asks of a preview of a file
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
@@ -570,7 +572,9 @@ set(KALAHARI_SOURCES
 if(KALAHARI_PDF_AVAILABLE)
     list(APPEND KALAHARI_SOURCES
         gui/panels/pdf_preview_panel.cpp  # PdfPreviewPanel - a PDF on a tab: pages, side panel, search
+        gui/panels/pdf_preview_parts.cpp  # PdfPreviewPanel - its tool bar, side panel, selection bar
         gui/panels/pdf_pages_view.cpp     # PdfPagesView - the pages of a PDF, drawn by the program
+        gui/panels/pdf_pages_layout.cpp   # PdfPagesView - the rows, the zoom and the page shown
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_preview_panel.h  # with Q_OBJECT
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_pages_view.h     # with Q_OBJECT
     )

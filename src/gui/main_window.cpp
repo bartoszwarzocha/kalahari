@@ -530,7 +530,7 @@ MainWindow::MainWindow(QWidget* parent)
     // Source Settings... of Sources and the gears of the entries of the sources: Settings >
     // Materials
     const auto openSourceSettings = [this]() {
-        if (m_settingsCoordinator) {
+        if (m_settingsCoordinator != nullptr) {
             m_settingsCoordinator->openSettingsPage(
                 QString::fromLatin1(SettingsDialog::MATERIALS_PAGE));
         }

@@ -29,10 +29,10 @@ public:
     /// @name Styles of a bibliography
     /// @{
     static constexpr const char* PN_ISO_690 = "pn-iso-690";  ///< The default
-    static constexpr const char* APA = "apa";
-    static constexpr const char* CHICAGO = "chicago";
-    static constexpr const char* MLA = "mla";
-    static constexpr const char* HARVARD = "harvard";
+    static constexpr const char* APA = "apa";  ///< The American Psychological Association
+    static constexpr const char* CHICAGO = "chicago";  ///< Chicago, notes and bibliography
+    static constexpr const char* MLA = "mla";          ///< The Modern Language Association
+    static constexpr const char* HARVARD = "harvard";  ///< Harvard, author and date
     /// @}
 
     /// @name Forms of a reference in the text

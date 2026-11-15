@@ -10,7 +10,6 @@
 #pragma once
 
 #include <QObject>
-#include <QPointer>
 #include <QString>
 #include <QMap>
 #include <QList>
@@ -56,6 +55,7 @@ class PreviewPanel;
 
 namespace dialogs {
 class NewFileDialog;
+class NewQuoteDialog;
 }
 
 /// @brief Coordinates navigator panel interactions
@@ -453,7 +453,7 @@ private:
     QList<MaterialCardPanel*> materialCards() const;
 
     /// @brief The previews of the materials, in the book window and in windows of their own
-    QList<PreviewPanel*> previews() const;
+    [[nodiscard]] QList<PreviewPanel*> previews() const;
 
     /// @brief The preview of material @p elementId brought to the front: the one open, else a
     /// new tab; nullptr when the program has none for its file (a PDF file then opens in the
@@ -465,6 +465,15 @@ private:
     /// @return Its id; empty when it could not be made (the writer is told why)
     QString addQuote(const QString& sourceId, const QString& text, const QString& page,
                      const QStringList& links);
+
+    /// @brief The quote the writer described in @p dialog, from source @p sourceId: linked
+    /// with chapter @p chapter (of element @p chapterElement; both nullptr when no chapter is
+    /// open) or with what the writer chooses, and typed into that chapter when asked
+    void addQuoteFrom(const dialogs::NewQuoteDialog& dialog, const QString& sourceId,
+                      EditorPanel* chapter, const core::ProjectElement* chapterElement);
+
+    /// @brief The editor of the chapter in front last, while it is open; none when it is closed
+    [[nodiscard]] EditorPanel* lastChapter() const;
 
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
@@ -493,8 +502,9 @@ private:
     /// window
     QSet<QString> m_askedDownloads;
 
-    /// @brief The chapter in front last: New Quote links the quote with it and inserts it there
-    QPointer<EditorPanel> m_lastChapter;
+    /// @brief The element of the chapter in front last: New Quote links the quote with it and
+    /// inserts it there
+    QString m_lastChapterId;
 
     core::ProjectManager& m_book;  ///< The book of its window
     CommandRegistry& m_commands;  ///< The commands of its window

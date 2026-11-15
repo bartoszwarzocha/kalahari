@@ -473,6 +473,7 @@ private:
 class MaterialsPage : public SettingsPage {
     Q_OBJECT
 public:
+    /// @brief The page with the settings as they are
     explicit MaterialsPage(QWidget* parent = nullptr);
 
 signals:
@@ -482,9 +483,9 @@ signals:
 private:
     /// @brief One choice of a setting: its value, its button and the note under it
     struct Choice {
-        const char* value = nullptr;
-        QRadioButton* button = nullptr;
-        QString note;  ///< Empty: none
+        const char* value = nullptr;     ///< The value of the setting it chooses
+        QRadioButton* button = nullptr;  ///< Its button
+        QString note;                    ///< Empty: none
     };
 
     /// @brief A row @p label of @p form with the choices of setting @p key, bound to it; the

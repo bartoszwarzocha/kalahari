@@ -13,7 +13,15 @@
 
 #include <QJsonDocument>
 
-using namespace kalahari::core;
+#include <optional>
+
+using kalahari::core::Bibliography;
+using kalahari::core::BookProject;
+using kalahari::core::PersonName;
+using kalahari::core::ProjectElement;
+using kalahari::core::QuoteSource;
+using kalahari::core::SourceDescription;
+using kalahari::core::SourcePerson;
 
 namespace {
 
@@ -35,7 +43,8 @@ QByteArray projectWith(const QByteArray& elements, const QByteArray& book = {}) 
 }
 
 SourcePerson person(const char* name, const char* role = "") {
-    return SourcePerson{QString::fromUtf8(name), QString::fromLatin1(role), {}};
+    return SourcePerson{
+        .name = QString::fromUtf8(name), .role = QString::fromLatin1(role), .extra = {}};
 }
 
 /// The book of the examples: "Atlas pustyń świata"
@@ -349,7 +358,7 @@ TEST_CASE("Sources: references in the text", "[core][sources][bibliography]") {
                                   QStringLiteral("en")) ==
           QStringLiteral("(Wiśniewska and Nowak 2011, p. 9)"));
     // Without an author: the title; without a year: "b.r."
-    SourceDescription untitled;
+    const SourceDescription untitled;
     CHECK(Bibliography::reference(untitled, QStringLiteral("Mapa"), QString(),
                                   QString::fromLatin1(Bibliography::AUTHOR_YEAR), 1, pl) ==
           QStringLiteral("(Mapa b.r.)"));

@@ -57,9 +57,13 @@ public:
     [[nodiscard]] bool insertIntoChapter() const { return m_insert; }
 
     // The parts, for the tests
+    /// @brief The field of the words of the quote
     [[nodiscard]] QPlainTextEdit* textEdit() const { return m_textEdit; }
+    /// @brief The field of its page
     [[nodiscard]] QLineEdit* pageEdit() const { return m_pageEdit; }
+    /// @brief What it is linked with
     [[nodiscard]] QComboBox* linkBox() const { return m_linkBox; }
+    /// @brief Create and Insert into Chapter
     [[nodiscard]] QPushButton* insertButton() const { return m_insertButton; }
 
 private:

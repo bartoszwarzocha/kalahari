@@ -122,7 +122,7 @@ public:
     QToolButton* planButton() const { return m_planButton; }
 
     /// @brief Copy Entries of the list Sources; hidden in the other lists
-    QToolButton* entriesButton() const { return m_entriesButton; }
+    [[nodiscard]] QToolButton* entriesButton() const { return m_entriesButton; }
 
     /// @brief Group by Kind of the list of the cover; hidden in the other lists
     QToolButton* groupsButton() const { return m_groupsButton; }

@@ -1445,7 +1445,7 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
 void NavigatorPanel::refreshSourcesCount() {
     const QString list = QString::fromLatin1(MaterialList::SOURCES);
     const QString id = WORKSHOP_ID_PREFIX + list;
-    for (QTreeWidgetItemIterator it(m_treeWidget); *it; ++it) {
+    for (QTreeWidgetItemIterator it(m_treeWidget); *it != nullptr; ++it) {
         if ((*it)->data(0, Qt::UserRole).toString() == id) {
             setCount(*it, MaterialList::countOf(m_book, list));
             m_treeWidget->viewport()->update();

@@ -239,6 +239,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
     ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/bibliography_records.cpp
     ${CMAKE_SOURCE_DIR}/src/core/link_roles.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
@@ -490,6 +491,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_page.cpp             # The card of a material in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_parts.cpp                # The small parts of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/source_boxes.cpp              # The groups of the card of a source
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/source_description_box.cpp    # The description of a source
     ${CMAKE_SOURCE_DIR}/src/gui/panels/preview_panel.cpp             # A preview of a file
     ${CMAKE_SOURCE_DIR}/src/gui/panels/image_preview_panel.cpp       # The preview of a material's picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_list.cpp                    # The lists of the materials
@@ -689,7 +691,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
 if(KALAHARI_PDF_AVAILABLE)
     list(APPEND TEST_SOURCES
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_panel.cpp  # A PDF on a tab
+        ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_parts.cpp  # Its bars and side panel
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_view.cpp     # The pages of a PDF
+        ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_layout.cpp   # Their rows and zoom
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_preview_panel.h  # with Q_OBJECT
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_pages_view.h     # with Q_OBJECT
         gui/test_pdf_preview.cpp  # The preview of a PDF: pages, side panel, search, selection

@@ -2,20 +2,22 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file source_boxes.cpp
-/// @brief The groups of the card of a material that is a source, and of a quote
+/// @brief The groups of the card of a material that is a source (how the bibliography shows it,
+/// its bookmarks and its quotes) and of a quote; the bibliographic description is in
+/// source_description_box.cpp
 
 #include "kalahari/gui/panels/source_boxes.h"
 
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/bibliography.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/source_description.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
 
-#include <QAbstractItemDelegate>
-#include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
 #include <QEvent>
@@ -39,7 +41,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
-#include <iterator>
+#include <initializer_list>
 #include <utility>
 
 namespace kalahari::gui {
@@ -47,8 +49,13 @@ namespace kalahari::gui {
 namespace {
 
 using card::buttonRow;
+using card::cardTable;
+using card::editTriggers;
 using card::fitRows;
+using card::groupForm;
+using card::groupLayout;
 using card::hintLabel;
+using card::isEditing;
 using card::isListKey;
 using card::isOpenKey;
 using card::keepIcon;
@@ -56,17 +63,11 @@ using card::listButton;
 using core::Bibliography;
 using core::SourceDescription;
 
-/// The columns of the people of a source
-constexpr int NAME_COLUMN = 0;
-constexpr int ROLE_COLUMN = 1;
-
 /// The columns of the bookmarks and of the quotes
 constexpr int PAGE_COLUMN = 0;
 constexpr int NOTE_COLUMN = 1;
 
-/// What a person did (SourceDescription::AUTHOR...; empty: the author), in the role's cell
-constexpr int ROLE_ROLE = Qt::UserRole;
-/// The fields of a person or a bookmark this version does not know, in the first cell
+/// The fields of a bookmark this version does not know, in the first cell
 constexpr int EXTRA_ROLE = Qt::UserRole + 1;
 /// The quote of a row of the quotes
 constexpr int ID_ROLE = Qt::UserRole + 2;
@@ -74,114 +75,12 @@ constexpr int ID_ROLE = Qt::UserRole + 2;
 /// The last page a bookmark can have
 constexpr int MAXIMUM_PAGE = 99999;
 
-/// The fields of the descriptions before the fields of the kind: the kind and the people
-constexpr int FIXED_ROWS = 2;
-
-/// A table of the card: one row selected, its cells edited with F2 or by typing
-QTableWidget* cardTable(QWidget* parent, const char* name, const QString& accessibleName,
-                        const QStringList& columns, bool editable) {
-    auto* table = new QTableWidget(0, static_cast<int>(columns.size()), parent);
-    table->setObjectName(QString::fromLatin1(name));
-    table->setAccessibleName(accessibleName);
-    table->setHorizontalHeaderLabels(columns);
-    table->verticalHeader()->hide();
-    table->horizontalHeader()->setStretchLastSection(true);
-    table->setSelectionMode(QAbstractItemView::SingleSelection);
-    table->setSelectionBehavior(editable ? QAbstractItemView::SelectItems
-                                         : QAbstractItemView::SelectRows);
-    table->setEditTriggers(editable ? QAbstractItemView::DoubleClicked |
-                                          QAbstractItemView::EditKeyPressed |
-                                          QAbstractItemView::AnyKeyPressed
-                                    : QAbstractItemView::NoEditTriggers);
-    table->setWordWrap(false);
-    return table;
-}
-
-/// The keys of a table that edits: none in a book open read-only
-QAbstractItemView::EditTriggers editTriggers(bool readOnly) {
-    return readOnly ? QAbstractItemView::NoEditTriggers
-                    : QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed |
-                          QAbstractItemView::AnyKeyPressed;
-}
-
-/// Whether a cell of @p view is being edited: its editor has the keys
-bool isEditing(const QAbstractItemView* view) {
-    const QWidget* focus = QApplication::focusWidget();
-    return focus != nullptr && focus != view && view->isAncestorOf(focus);
-}
-
-/// A group of the card, with its margins
-QVBoxLayout* groupLayout(QGroupBox* group) {
-    auto* layout = new QVBoxLayout(group);
-    layout->setContentsMargins(11, 6, 11, 11);
-    layout->setSpacing(6);
-    return layout;
-}
-
-/// A form of a group: the labels at the left of their fields
-QFormLayout* groupForm() {
-    auto* form = new QFormLayout();
-    form->setContentsMargins(0, 0, 0, 0);
-    form->setSpacing(6);
-    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    return form;
-}
-
-/// The role of a person: a list of what a person of a source can have done
-class RoleDelegate : public QStyledItemDelegate {
-public:
-    using QStyledItemDelegate::QStyledItemDelegate;
-
-    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option,
-                          const QModelIndex& index) const override {
-        if (index.column() != ROLE_COLUMN) {
-            return QStyledItemDelegate::createEditor(parent, option, index);
-        }
-        auto* box = new QComboBox(parent);
-        box->setObjectName(QStringLiteral("sourceRoleEditor"));
-        for (const QString& role : SourceDescription::roles()) {
-            box->addItem(SourceNames::roleName(role), role);
-        }
-        return box;
-    }
-
-    void setEditorData(QWidget* editor, const QModelIndex& index) const override {
-        auto* box = qobject_cast<QComboBox*>(editor);
-        if (box == nullptr) {
-            QStyledItemDelegate::setEditorData(editor, index);
-            return;
-        }
-        const QString role = roleOf(index);
-        int at = box->findData(role);
-        if (at < 0) {
-            box->addItem(SourceNames::roleName(role), role);
-            at = box->count() - 1;
-        }
-        box->setCurrentIndex(at);
-    }
-
-    void setModelData(QWidget* editor, QAbstractItemModel* model,
-                      const QModelIndex& index) const override {
-        const auto* box = qobject_cast<QComboBox*>(editor);
-        if (box == nullptr) {
-            QStyledItemDelegate::setModelData(editor, model, index);
-            return;
-        }
-        const QString role = box->currentData().toString();
-        if (role == roleOf(index)) {
-            return;
-        }
-        model->setItemData(index, {{Qt::DisplayRole, SourceNames::roleName(role)},
-                                   {ROLE_ROLE, role}});
-    }
-
-private:
-    /// The role of the person of @p index: the author for none
-    static QString roleOf(const QModelIndex& index) {
-        const QString role = index.data(ROLE_ROLE).toString();
-        return role.isEmpty() ? QString::fromLatin1(SourceDescription::AUTHOR) : role;
-    }
-};
+/// The margin around the entry of a source
+constexpr int ENTRY_MARGIN = 6;
+/// The space between a field and its button
+constexpr int ROW_SPACING = 6;
+/// The letters the list of the sources of a quote has room for at least
+constexpr int SOURCE_LETTERS = 16;
 
 /// The page of a bookmark: from 1 to MAXIMUM_PAGE
 class PageDelegate : public QStyledItemDelegate {
@@ -222,487 +121,17 @@ QString sourceTitle(const core::ProjectElement& element) {
 }  // namespace
 
 // =============================================================================
-// SourceDescriptionBox
-// =============================================================================
-
-SourceDescriptionBox::SourceDescriptionBox(core::ProjectManager& book, QWidget* parent)
-    : QGroupBox(parent), m_book(book) {
-    setObjectName(QStringLiteral("sourceDescription"));
-    //: The group of the card of a material with its author, title, publisher... In Polish:
-    //: Opis bibliograficzny
-    setTitle(tr("Bibliographic Description"));
-    QVBoxLayout* layout = groupLayout(this);
-    m_form = groupForm();
-    layout->addLayout(m_form);
-
-    m_kindBox = new QComboBox(this);
-    m_kindBox->setObjectName(QStringLiteral("sourceKindBox"));
-    //: In Polish: Rodzaj źródła:
-    m_form->addRow(tr("Kind of source:"), m_kindBox);
-
-    // The people: a name and what each did
-    auto* people = new QWidget(this);
-    auto* peopleLayout = new QVBoxLayout(people);
-    peopleLayout->setContentsMargins(0, 0, 0, 0);
-    peopleLayout->setSpacing(4);
-    //: In Polish: Dodaj osobę (Insert)
-    m_addPersonButton = listButton(people, "common.add", tr("Add Person (Insert)"),
-                                   "sourceAddPerson");
-    //: In Polish: Usuń osobę (Delete)
-    m_removePersonButton = listButton(people, "common.remove", tr("Remove Person (Delete)"),
-                                      "sourceRemovePerson");
-    peopleLayout->addLayout(buttonRow(m_addPersonButton, m_removePersonButton));
-    m_peopleTable = cardTable(people, "sourcePeopleTable",
-                              //: In Polish: Osoby źródła
-                              tr("People of the source"),
-                              //: The columns of the people of a source. In Polish: Imię i
-                              //: nazwisko
-                              {tr("Name"),
-                               //: What a person of a source did. In Polish: Rola
-                               tr("Role")},
-                              true);
-    m_peopleTable->horizontalHeader()->setSectionResizeMode(NAME_COLUMN, QHeaderView::Stretch);
-    m_peopleTable->horizontalHeader()->setSectionResizeMode(ROLE_COLUMN,
-                                                            QHeaderView::ResizeToContents);
-    m_peopleTable->setItemDelegate(new RoleDelegate(m_peopleTable));
-    //: In Polish: Nazwisko z imieniem („Anna Wiśniewska” albo „Wiśniewska, Anna”) albo
-    //: nazwa instytucji
-    m_peopleTable->setToolTip(tr("A name (\"Anna Wiśniewska\" or \"Wiśniewska, Anna\") or the "
-                                 "name of an institution"));
-    m_peopleTable->installEventFilter(this);
-    peopleLayout->addWidget(m_peopleTable);
-    //: In Polish: Brak osób. „+” albo Insert dodaje autora, redakcję, tłumaczenie...
-    m_noPeopleLabel = hintLabel(people,
-                                tr("No people. \"+\" or Insert adds an author, an editor, a "
-                                   "translator..."),
-                                "sourceNoPeople");
-    peopleLayout->addWidget(m_noPeopleLabel);
-    //: The authors, editors, translators of a source. In Polish: Osoby:
-    m_form->addRow(tr("People:"), people);
-
-    // The fields of every kind; showKind() puts those of the kind chosen in the form
-    for (const QString& field : SourceDescription::allFields()) {
-        auto* edit = new QLineEdit(this);
-        edit->setObjectName(QStringLiteral("sourceField_") + field);
-        auto* label = new QLabel(this);
-        label->setBuddy(edit);
-        m_edits.insert(field, edit);
-        m_labels.insert(field, label);
-        edit->hide();
-        label->hide();
-        connect(edit, &QLineEdit::editingFinished, this, &SourceDescriptionBox::save);
-    }
-
-    //: In Polish: Wklej opis (BibTeX, RIS)
-    m_pasteButton = new QPushButton(tr("Paste Description (BibTeX, RIS)"), this);
-    m_pasteButton->setObjectName(QStringLiteral("sourcePasteButton"));
-    keepIcon(m_pasteButton, QStringLiteral("edit.paste"), core::IconContext::Button);
-    //: In Polish: Wkleja opis skopiowany z katalogu biblioteki albo z programu do bibliografii
-    m_pasteButton->setToolTip(tr("Pastes a description copied from a library catalog or from a "
-                                 "bibliography manager"));
-    //: In Polish: Uzupełnij z pliku
-    m_fillButton = new QPushButton(tr("Fill In from File"), this);
-    m_fillButton->setObjectName(QStringLiteral("sourceFillButton"));
-    keepIcon(m_fillButton, QStringLiteral("material.pdf"), core::IconContext::Button);
-    //: In Polish: Wpisuje w puste pola tytuł, autorów, rok i liczbę stron zapisane w pliku PDF
-    m_fillButton->setToolTip(tr("Fills the empty fields with the title, the authors, the year "
-                                "and the pages the PDF file has"));
-    m_fillButton->hide();
-    auto* pasteRow = new QHBoxLayout();
-    pasteRow->addWidget(m_pasteButton);
-    pasteRow->addWidget(m_fillButton);
-    pasteRow->addStretch(1);
-    layout->addLayout(pasteRow);
-
-    connect(m_kindBox, &QComboBox::activated, this, [this]() {
-        showKind();
-        save();
-    });
-    connect(m_addPersonButton, &QToolButton::clicked, this, &SourceDescriptionBox::addPerson);
-    connect(m_removePersonButton, &QToolButton::clicked, this,
-            &SourceDescriptionBox::removePerson);
-    connect(m_pasteButton, &QPushButton::clicked, this, &SourceDescriptionBox::pasteDescription);
-    connect(m_fillButton, &QPushButton::clicked, this, &SourceDescriptionBox::fillFromFile);
-    connect(m_peopleTable, &QTableWidget::itemChanged, this, [this]() {
-        if (!m_updating) {
-            save();
-        }
-    });
-    connect(m_peopleTable, &QTableWidget::currentCellChanged, this,
-            &SourceDescriptionBox::updateButtons);
-    // A new person left without a name goes
-    connect(m_peopleTable->itemDelegate(), &QAbstractItemDelegate::closeEditor, this,
-            [this](QWidget*, QAbstractItemDelegate::EndEditHint hint) {
-                if (hint == QAbstractItemDelegate::EditNextItem ||
-                    hint == QAbstractItemDelegate::EditPreviousItem) {
-                    return;
-                }
-                const int row = m_peopleTable->currentRow();
-                const QTableWidgetItem* name =
-                    row >= 0 ? m_peopleTable->item(row, NAME_COLUMN) : nullptr;
-                if (row >= 0 && (name == nullptr || name->text().trimmed().isEmpty())) {
-                    m_peopleTable->removeRow(row);
-                    fitRows(m_peopleTable);
-                    save();
-                    updateButtons();
-                }
-            });
-    // The description changed elsewhere: on the other card of the material, or pasted
-    connect(&m_book, &core::ProjectManager::sourcesChanged, this, [this]() {
-        if (const core::ProjectElement* element = m_book.findElement(m_elementId)) {
-            showMaterial(*element);
-        }
-    });
-    showKind();
-    updateButtons();
-}
-
-void SourceDescriptionBox::showMaterial(const core::ProjectElement& element) {
-    const bool other = element.id != m_elementId;
-    m_elementId = element.id;
-    m_materialKind = SourceNames::baseKindOf(m_book, element);
-    m_pdf = PdfFiles::previewAvailable() && PdfFiles::isPdf(m_book.filePathOf(element));
-    m_source = element.source;
-    m_updating = true;
-
-    // The kinds, with one this version does not know as it is written
-    QString kind = m_source.type;
-    if (kind.isEmpty()) {
-        kind = m_source.isEmpty() ? SourceDescription::kindFor(m_materialKind)
-                                  : QString::fromLatin1(SourceDescription::BOOK);
-    }
-    {
-        const QSignalBlocker blocker(m_kindBox);
-        m_kindBox->clear();
-        for (const QString& each : SourceDescription::kinds()) {
-            m_kindBox->addItem(SourceNames::kindName(each), each);
-        }
-        if (m_kindBox->findData(kind) < 0) {
-            m_kindBox->addItem(SourceNames::kindName(kind), kind);
-        }
-        m_kindBox->setCurrentIndex(m_kindBox->findData(kind));
-    }
-
-    // The people, unless the table shows them as they are or edits one
-    if (other || (!isEditing(m_peopleTable) && shownSource().people != m_source.people)) {
-        m_peopleTable->setRowCount(0);
-        for (const core::SourcePerson& person : m_source.people) {
-            const int row = m_peopleTable->rowCount();
-            m_peopleTable->insertRow(row);
-            auto* name = new QTableWidgetItem(person.name);
-            name->setData(EXTRA_ROLE, person.extra);
-            m_peopleTable->setItem(row, NAME_COLUMN, name);
-            auto* role = new QTableWidgetItem(SourceNames::roleName(person.role));
-            role->setData(ROLE_ROLE, person.role);
-            m_peopleTable->setItem(row, ROLE_COLUMN, role);
-        }
-    }
-    fitRows(m_peopleTable);
-
-    for (auto it = m_edits.cbegin(); it != m_edits.cend(); ++it) {
-        if (other || !it.value()->hasFocus()) {
-            it.value()->setText(m_source.values.value(it.key()));
-        }
-    }
-    // An empty title is the title of the material
-    m_edits.value(QString::fromLatin1(SourceDescription::TITLE))->setPlaceholderText(element.title);
-
-    const bool readOnly = m_book.isReadOnly();
-    m_kindBox->setEnabled(!readOnly);
-    m_peopleTable->setEditTriggers(editTriggers(readOnly));
-    for (QLineEdit* edit : std::as_const(m_edits)) {
-        edit->setReadOnly(readOnly);
-    }
-    showKind();
-    m_updating = false;
-    updateButtons();
-}
-
-core::SourceDescription SourceDescriptionBox::shownSource() const {
-    SourceDescription source = m_source;
-    source.type = m_kindBox->currentData().toString();
-    source.people.clear();
-    for (int row = 0; row < m_peopleTable->rowCount(); ++row) {
-        const QTableWidgetItem* name = m_peopleTable->item(row, NAME_COLUMN);
-        const QTableWidgetItem* role = m_peopleTable->item(row, ROLE_COLUMN);
-        if (name == nullptr || name->text().trimmed().isEmpty()) {
-            continue;
-        }
-        source.people << core::SourcePerson{name->text().trimmed(),
-                                            role != nullptr ? role->data(ROLE_ROLE).toString()
-                                                            : QString(),
-                                            name->data(EXTRA_ROLE).toJsonObject()};
-    }
-    for (auto it = m_edits.cbegin(); it != m_edits.cend(); ++it) {
-        source.setValue(it.key(), it.value()->text());
-    }
-    // The kind alone makes no source
-    if (source.people.isEmpty() && source.values.isEmpty() && source.bibliography.isEmpty() &&
-        source.extra.isEmpty()) {
-        source.type.clear();
-    }
-    return source;
-}
-
-bool SourceDescriptionBox::isFieldShown(const QString& field) const {
-    const QLineEdit* edit = m_edits.value(field);
-    return edit != nullptr && m_form->indexOf(edit) >= 0;
-}
-
-void SourceDescriptionBox::showKind() {
-    const QString kind = m_kindBox->currentData().toString();
-    if (kind == m_shownKind && m_form->rowCount() > FIXED_ROWS) {
-        return;
-    }
-    m_shownKind = kind;
-    const QStringList fields = SourceDescription::fieldsOf(kind);
-    // The rows of the fields go and come back in the order of the kind
-    while (m_form->rowCount() > FIXED_ROWS) {
-        const QFormLayout::TakeRowResult row = m_form->takeRow(FIXED_ROWS);
-        for (QLayoutItem* item : {row.labelItem, row.fieldItem}) {
-            if (item != nullptr && item->widget() != nullptr) {
-                item->widget()->hide();
-            }
-            delete item;
-        }
-    }
-    QWidget* previous = m_peopleTable;
-    for (const QString& field : fields) {
-        QLineEdit* edit = m_edits.value(field);
-        QLabel* label = m_labels.value(field);
-        if (edit == nullptr || label == nullptr) {
-            continue;
-        }
-        label->setText(SourceNames::fieldLabel(field, kind));
-        m_form->addRow(label, edit);
-        label->show();
-        edit->show();
-        setTabOrder(previous, edit);
-        previous = edit;
-    }
-    setTabOrder(previous, m_pasteButton);
-    setTabOrder(m_pasteButton, m_fillButton);
-}
-
-void SourceDescriptionBox::updateButtons() {
-    const bool editable = !m_elementId.isEmpty() && !m_book.isReadOnly();
-    m_addPersonButton->setEnabled(editable);
-    m_removePersonButton->setEnabled(editable && m_peopleTable->currentRow() >= 0 &&
-                                     m_peopleTable->rowCount() > 0);
-    m_pasteButton->setEnabled(editable);
-    m_fillButton->setVisible(m_pdf);
-    m_fillButton->setEnabled(editable && m_pdf);
-    const bool none = m_peopleTable->rowCount() == 0;
-    m_peopleTable->setVisible(!none);
-    m_noPeopleLabel->setVisible(none);
-}
-
-void SourceDescriptionBox::addPerson() {
-    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
-        return;
-    }
-    const bool wasUpdating = m_updating;
-    m_updating = true;
-    const int row = m_peopleTable->rowCount();
-    m_peopleTable->insertRow(row);
-    m_peopleTable->setItem(row, NAME_COLUMN, new QTableWidgetItem());
-    auto* role = new QTableWidgetItem(SourceNames::roleName(QString()));
-    role->setData(ROLE_ROLE, QString());
-    m_peopleTable->setItem(row, ROLE_COLUMN, role);
-    m_updating = wasUpdating;
-    fitRows(m_peopleTable);
-    updateButtons();
-    m_peopleTable->setFocus(Qt::OtherFocusReason);
-    m_peopleTable->setCurrentCell(row, NAME_COLUMN);
-    m_peopleTable->editItem(m_peopleTable->item(row, NAME_COLUMN));
-}
-
-void SourceDescriptionBox::removePerson() {
-    const int row = m_peopleTable->currentRow();
-    if (row < 0 || row >= m_peopleTable->rowCount() || m_book.isReadOnly()) {
-        return;
-    }
-    const QTableWidgetItem* name = m_peopleTable->item(row, NAME_COLUMN);
-    if (name != nullptr && !name->text().trimmed().isEmpty() &&
-        //: In Polish: Usuń osobę
-        !dialogs::MessageDialog::confirm(this, tr("Remove Person"),
-                                         //: %1: the name. In Polish: Usunąć „%1” z opisu?
-                                         tr("Remove \"%1\" from the description?")
-                                             .arg(name->text().trimmed()),
-                                         //: In Polish: &Usuń
-                                         tr("&Remove"))) {
-        return;
-    }
-    const bool wasUpdating = m_updating;
-    m_updating = true;
-    m_peopleTable->removeRow(row);
-    m_updating = wasUpdating;
-    fitRows(m_peopleTable);
-    save();
-    updateButtons();
-    if (m_peopleTable->rowCount() > 0) {
-        m_peopleTable->setCurrentCell(std::min(row, m_peopleTable->rowCount() - 1), NAME_COLUMN);
-        m_peopleTable->setFocus(Qt::OtherFocusReason);
-    }
-}
-
-void SourceDescriptionBox::pasteDescription() {
-    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
-        return;
-    }
-    const QClipboard* clipboard = QGuiApplication::clipboard();
-    const std::optional<SourceDescription> pasted =
-        Bibliography::parse(clipboard != nullptr ? clipboard->text() : QString());
-    //: In Polish: Wklej opis
-    const QString title = tr("Paste Description");
-    if (!pasted) {
-        dialogs::MessageDialog::information(
-            this, title,
-            //: In Polish: Schowek nie ma opisu w formacie BibTeX ani RIS. Skopiuj opis źródła z
-            //: katalogu biblioteki (eksport BibTeX albo RIS) albo z programu do bibliografii.
-            tr("The clipboard has no description in BibTeX or RIS. Copy the description of the "
-               "source from a library catalog (export as BibTeX or RIS) or from a bibliography "
-               "manager."));
-        return;
-    }
-    const SourceDescription shown = shownSource();
-    if (!shown.isEmpty() &&
-        !dialogs::MessageDialog::confirm(
-            this, title,
-            //: In Polish: Zastąpić opis bibliograficzny opisem ze schowka?
-            tr("Replace the bibliographic description with the one from the clipboard?"),
-            //: In Polish: &Zastąp
-            tr("&Replace"))) {
-        return;
-    }
-    // Whether the bibliography has it, and what this version does not know, stay
-    SourceDescription source = *pasted;
-    source.bibliography = shown.bibliography;
-    source.extra = shown.extra;
-    if (!m_book.setSource(m_elementId, source)) {
-        //: In Polish: Nie zapisano opisu bibliograficznego
-        dialogs::MessageDialog::warning(this, tr("Bibliographic Description Not Saved"),
-                                        tr("Failed to save changes."));
-        return;
-    }
-    if (const core::ProjectElement* element = m_book.findElement(m_elementId)) {
-        showMaterial(*element);
-    }
-    emit changed(m_elementId);
-    //: In Polish: Wklejono opis bibliograficzny
-    emit message(tr("Bibliographic description pasted"));
-}
-
-void SourceDescriptionBox::fillFromFile() {
-    const core::ProjectElement* element = m_book.findElement(m_elementId);
-    if (element == nullptr || m_book.isReadOnly() || !m_pdf) {
-        return;
-    }
-    //: In Polish: Uzupełnij z pliku
-    const QString title = tr("Fill In from File");
-    const std::optional<PdfMetaData> meta = PdfFiles::metaData(m_book.filePathOf(*element));
-    if (!meta) {
-        dialogs::MessageDialog::warning(
-            this, title,
-            //: In Polish: Nie da się odczytać pliku PDF. Może być uszkodzony albo chroniony
-            //: hasłem.
-            tr("The PDF file cannot be read. It may be damaged or protected with a password."));
-        return;
-    }
-    // Only the empty fields: what the writer typed stays
-    SourceDescription source = shownSource();
-    const QString kind = m_kindBox->currentData().toString();
-    bool filled = false;
-    const auto fill = [&source, &filled](const char* field, const QString& text) {
-        if (source.value(field).isEmpty() && !text.isEmpty()) {
-            source.setValue(QString::fromLatin1(field), text);
-            filled = true;
-        }
-    };
-    fill(SourceDescription::TITLE, meta->title);
-    fill(SourceDescription::YEAR, meta->year);
-    // The pages of a whole work; of a chapter or an article they are its range in the book
-    if (meta->pages > 0 && (kind == QLatin1String(SourceDescription::BOOK) ||
-                            kind == QLatin1String(SourceDescription::THESIS))) {
-        fill(SourceDescription::PAGES, QString::number(meta->pages));
-    }
-    // The authors, one after another with ";" as the files keep several
-    if (source.people.isEmpty() && !meta->author.isEmpty()) {
-        for (const QString& name : meta->author.split(QLatin1Char(';'), Qt::SkipEmptyParts)) {
-            if (!name.trimmed().isEmpty()) {
-                source.people << core::SourcePerson{
-                    name.trimmed(), QString::fromLatin1(SourceDescription::AUTHOR), {}};
-                filled = true;
-            }
-        }
-    }
-    if (!filled) {
-        dialogs::MessageDialog::information(
-            this, title,
-            //: In Polish: Nie ma czego uzupełnić: plik nie ma tytułu, autora ani roku albo opis
-            //: już je ma.
-            tr("Nothing to fill in: the file has no title, author or year, or the description "
-               "has them already."));
-        return;
-    }
-    source.type = kind;
-    if (!m_book.setSource(m_elementId, source)) {
-        dialogs::MessageDialog::warning(this, tr("Bibliographic Description Not Saved"),
-                                        tr("Failed to save changes."));
-        return;
-    }
-    if (const core::ProjectElement* updated = m_book.findElement(m_elementId)) {
-        showMaterial(*updated);
-    }
-    emit changed(m_elementId);
-    //: In Polish: Uzupełniono opis z pliku
-    emit message(tr("Description filled in from the file"));
-}
-
-void SourceDescriptionBox::save() {
-    if (m_updating || m_elementId.isEmpty() || m_book.isReadOnly()) {
-        return;
-    }
-    const SourceDescription source = shownSource();
-    if (source == m_source) {
-        return;
-    }
-    if (!m_book.setSource(m_elementId, source)) {
-        dialogs::MessageDialog::warning(this, tr("Bibliographic Description Not Saved"),
-                                        tr("Failed to save changes."));
-        return;
-    }
-    m_source = source;
-    emit changed(m_elementId);
-}
-
-bool SourceDescriptionBox::eventFilter(QObject* watched, QEvent* event) {
-    // Insert and Delete of the people; the same keys of the window's commands wait while the
-    // table has the keys. A cell being edited has them itself.
-    if (watched == m_peopleTable &&
-        (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress)) {
-        auto* key = static_cast<QKeyEvent*>(event);
-        const bool insert = isListKey(key, Qt::Key_Insert);
-        const bool remove = isListKey(key, Qt::Key_Delete);
-        if (insert || remove) {
-            if (event->type() == QEvent::ShortcutOverride) {
-                key->accept();
-                return true;
-            }
-            insert ? addPerson() : removePerson();
-            return true;
-        }
-    }
-    return QGroupBox::eventFilter(watched, event);
-}
-
-// =============================================================================
 // BibliographyEntryBox
 // =============================================================================
 
 BibliographyEntryBox::BibliographyEntryBox(core::ProjectManager& book, QWidget* parent,
                                            bool compact)
-    : QGroupBox(parent), m_book(book), m_compact(compact) {
+    : QGroupBox(parent),
+      m_book(book),
+      m_compact(compact),
+      m_styleBox(new QComboBox(this)),
+      m_entryLabel(new QLabel(this)),
+      m_inclusionBox(new QComboBox(this)) {
     setObjectName(compact ? QStringLiteral("bibliographyEntryShort")
                           : QStringLiteral("bibliographyEntry"));
     //: The group with the entry of a source in the bibliography. In Polish: Tak wygląda w
@@ -711,7 +140,6 @@ BibliographyEntryBox::BibliographyEntryBox(core::ProjectManager& book, QWidget* 
     QVBoxLayout* layout = groupLayout(this);
 
     auto* styleForm = groupForm();
-    m_styleBox = new QComboBox(this);
     m_styleBox->setObjectName(QStringLiteral("bibliographyStyleBox"));
     //: In Polish: Wybór pokazuje zapis w innej normie; normę książki zmienisz we
     //: Właściwościach książki.
@@ -721,21 +149,19 @@ BibliographyEntryBox::BibliographyEntryBox(core::ProjectManager& book, QWidget* 
     styleForm->addRow(tr("Style:"), m_styleBox);
     layout->addLayout(styleForm);
 
-    m_entryLabel = new QLabel(this);
     m_entryLabel->setObjectName(QStringLiteral("bibliographyEntryLabel"));
     m_entryLabel->setWordWrap(true);
     m_entryLabel->setTextFormat(Qt::RichText);
     m_entryLabel->setTextInteractionFlags(Qt::TextSelectableByMouse |
                                           Qt::TextSelectableByKeyboard);
     m_entryLabel->setFrameShape(QFrame::StyledPanel);
-    m_entryLabel->setMargin(6);
+    m_entryLabel->setMargin(ENTRY_MARGIN);
     m_entryLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     //: In Polish: Zapis w bibliografii
     m_entryLabel->setAccessibleName(tr("Entry in the bibliography"));
     layout->addWidget(m_entryLabel);
 
     auto* inclusionForm = groupForm();
-    m_inclusionBox = new QComboBox(this);
     m_inclusionBox->setObjectName(QStringLiteral("bibliographyInclusionBox"));
     for (const char* inclusion : {SourceDescription::LINKED, SourceDescription::ALWAYS,
                                   SourceDescription::NEVER}) {
@@ -770,31 +196,33 @@ BibliographyEntryBox::BibliographyEntryBox(core::ProjectManager& book, QWidget* 
     connect(m_copyButton, &QPushButton::clicked, this, &BibliographyEntryBox::copyEntry);
     connect(m_settingsButton, &QToolButton::clicked, this,
             &BibliographyEntryBox::requestSettings);
-    connect(m_inclusionBox, &QComboBox::activated, this, [this]() {
-        if (m_elementId.isEmpty() || m_book.isReadOnly() || m_source.isEmpty()) {
-            return;
-        }
-        SourceDescription source = m_source;
-        const QString inclusion = m_inclusionBox->currentData().toString();
-        source.bibliography =
-            inclusion == QLatin1String(SourceDescription::LINKED) ? QString() : inclusion;
-        if (source == m_source) {
-            return;
-        }
-        if (!m_book.setSource(m_elementId, source)) {
-            dialogs::MessageDialog::warning(this, tr("Bibliographic Description Not Saved"),
-                                            tr("Failed to save changes."));
-            return;
-        }
-        m_source = source;
-        emit changed(m_elementId);
-    });
+    connect(m_inclusionBox, &QComboBox::activated, this, &BibliographyEntryBox::saveInclusion);
     // The description or the style of the book changed
     connect(&m_book, &core::ProjectManager::sourcesChanged, this, [this]() {
         if (const core::ProjectElement* element = m_book.findElement(m_elementId)) {
             showMaterial(*element);
         }
     });
+}
+
+void BibliographyEntryBox::saveInclusion() {
+    if (m_elementId.isEmpty() || m_book.isReadOnly() || m_source.isEmpty()) {
+        return;
+    }
+    SourceDescription source = m_source;
+    const QString inclusion = m_inclusionBox->currentData().toString();
+    source.bibliography =
+        inclusion == QLatin1String(SourceDescription::LINKED) ? QString() : inclusion;
+    if (source == m_source) {
+        return;
+    }
+    if (!m_book.setSource(m_elementId, source)) {
+        dialogs::MessageDialog::warning(this, tr("Bibliographic Description Not Saved"),
+                                        tr("Failed to save changes."));
+        return;
+    }
+    m_source = source;
+    emit changed(m_elementId);
 }
 
 void BibliographyEntryBox::showMaterial(const core::ProjectElement& element) {
@@ -1098,12 +526,8 @@ SourceQuotesBox::SourceQuotesBox(core::ProjectManager& book, QWidget* parent)
             emit requestNewQuote(m_elementId);
         }
     });
-    connect(m_table, &QTableWidget::itemActivated, this, [this](const QTableWidgetItem* item) {
-        const QTableWidgetItem* first = m_table->item(item->row(), PAGE_COLUMN);
-        if (first != nullptr) {
-            emit requestOpenQuote(first->data(ID_ROLE).toString());
-        }
-    });
+    connect(m_table, &QTableWidget::itemActivated, this,
+            [this](const QTableWidgetItem* item) { openQuote(item->row()); });
     // A quote got this source or lost it
     connect(&m_book, &core::ProjectManager::sourcesChanged, this, [this]() {
         if (const core::ProjectElement* element = m_book.findElement(m_elementId)) {
@@ -1141,16 +565,18 @@ void SourceQuotesBox::showMaterial(const core::ProjectElement& element) {
     m_addButton->setEnabled(!m_book.isReadOnly());
 }
 
+void SourceQuotesBox::openQuote(int row) {
+    if (const QTableWidgetItem* first = row >= 0 ? m_table->item(row, PAGE_COLUMN) : nullptr) {
+        emit requestOpenQuote(first->data(ID_ROLE).toString());
+    }
+}
+
 bool SourceQuotesBox::eventFilter(QObject* watched, QEvent* event) {
     if (watched == m_table &&
         (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress)) {
         auto* key = static_cast<QKeyEvent*>(event);
         if (event->type() == QEvent::KeyPress && isOpenKey(key)) {
-            const int row = m_table->currentRow();
-            if (const QTableWidgetItem* first =
-                    row >= 0 ? m_table->item(row, PAGE_COLUMN) : nullptr) {
-                emit requestOpenQuote(first->data(ID_ROLE).toString());
-            }
+            openQuote(m_table->currentRow());
             return true;
         }
         if (isListKey(key, Qt::Key_Insert)) {
@@ -1172,24 +598,29 @@ bool SourceQuotesBox::eventFilter(QObject* watched, QEvent* event) {
 // =============================================================================
 
 QuoteSourceBox::QuoteSourceBox(core::ProjectManager& book, QWidget* parent)
-    : QGroupBox(parent), m_book(book) {
+    : QGroupBox(parent),
+      m_book(book),
+      m_form(groupForm()),
+      m_pageEdit(new QLineEdit(this)),
+      m_authorEdit(new QLineEdit(this)),
+      m_workEdit(new QLineEdit(this)),
+      m_referenceLabel(new QLabel(this)) {
     setObjectName(QStringLiteral("quoteSource"));
     //: Where a quote comes from. In Polish: Skąd
     setTitle(tr("Where It Comes From"));
     QVBoxLayout* layout = groupLayout(this);
-    m_form = groupForm();
     layout->addLayout(m_form);
 
     auto* sourceRow = new QWidget(this);
     auto* sourceLayout = new QHBoxLayout(sourceRow);
     sourceLayout->setContentsMargins(0, 0, 0, 0);
-    sourceLayout->setSpacing(6);
+    sourceLayout->setSpacing(ROW_SPACING);
     m_sourceBox = new QComboBox(sourceRow);
     m_sourceBox->setObjectName(QStringLiteral("quoteSourceBox"));
     //: In Polish: Materiały z opisem bibliograficznym
     m_sourceBox->setToolTip(tr("The materials with a bibliographic description"));
     m_sourceBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    m_sourceBox->setMinimumContentsLength(16);
+    m_sourceBox->setMinimumContentsLength(SOURCE_LETTERS);
     //: In Polish: Otwórz źródło
     m_openSourceButton = new QPushButton(tr("Open Source"), sourceRow);
     m_openSourceButton->setObjectName(QStringLiteral("quoteOpenSourceButton"));
@@ -1199,14 +630,13 @@ QuoteSourceBox::QuoteSourceBox(core::ProjectManager& book, QWidget* parent)
     //: In Polish: Źródło:
     m_form->addRow(tr("Source:"), sourceRow);
 
-    m_pageEdit = new QLineEdit(this);
     m_pageEdit->setObjectName(QStringLiteral("quotePageEdit"));
     //: The page of a quote, as the writer puts it. In Polish: 45, xii albo 41–42
     m_pageEdit->setPlaceholderText(tr("45, xii or 41–42"));
     auto* pageRow = new QWidget(this);
     auto* pageLayout = new QHBoxLayout(pageRow);
     pageLayout->setContentsMargins(0, 0, 0, 0);
-    pageLayout->setSpacing(6);
+    pageLayout->setSpacing(ROW_SPACING);
     m_pageEdit->setParent(pageRow);
     //: In Polish: Pokaż stronę
     m_showPageButton = new QPushButton(tr("Show Page"), pageRow);
@@ -1220,18 +650,15 @@ QuoteSourceBox::QuoteSourceBox(core::ProjectManager& book, QWidget* parent)
     auto* pageLabel = new QLabel(tr("Page:"), this);
     pageLabel->setBuddy(m_pageEdit);
     m_form->addRow(pageLabel, pageRow);
-    m_authorEdit = new QLineEdit(this);
     m_authorEdit->setObjectName(QStringLiteral("quoteAuthorEdit"));
     //: Who said a quote without a source. In Polish: Autor:
     m_form->addRow(tr("Author:"), m_authorEdit);
-    m_workEdit = new QLineEdit(this);
     m_workEdit->setObjectName(QStringLiteral("quoteWorkEdit"));
     //: Where a quote without a source was said. In Polish: Dzieło:
     m_form->addRow(tr("Work:"), m_workEdit);
     m_fromSourceLabel = hintLabel(this, QString(), "quoteFromSourceLabel");
     //: In Polish: Autor, dzieło:
     m_form->addRow(tr("Author, work:"), m_fromSourceLabel);
-    m_referenceLabel = new QLabel(this);
     m_referenceLabel->setObjectName(QStringLiteral("quoteReferenceLabel"));
     m_referenceLabel->setTextFormat(Qt::PlainText);
     m_referenceLabel->setWordWrap(true);
@@ -1321,10 +748,10 @@ void QuoteSourceBox::fillSources(const QString& chosen) {
     QList<const core::ProjectElement*> sources = m_book.sources();
     sources.removeIf(
         [this](const core::ProjectElement* each) { return each->id == m_elementId; });
-    std::sort(sources.begin(), sources.end(),
-              [](const core::ProjectElement* left, const core::ProjectElement* right) {
-                  return QString::localeAwareCompare(sourceTitle(*left), sourceTitle(*right)) < 0;
-              });
+    std::ranges::sort(sources, [](const core::ProjectElement* left,
+                                  const core::ProjectElement* right) {
+        return QString::localeAwareCompare(sourceTitle(*left), sourceTitle(*right)) < 0;
+    });
     const QSignalBlocker blocker(m_sourceBox);
     m_sourceBox->clear();
     //: The choice of a quote that comes from no material. In Polish: Bez źródła – autor i
@@ -1334,16 +761,19 @@ void QuoteSourceBox::fillSources(const QString& chosen) {
         m_sourceBox->addItem(SourceNames::shortName(source->source, source->title), source->id);
     }
     if (!chosen.isEmpty() && m_sourceBox->findData(chosen) < 0) {
-        const core::ProjectElement* material = m_book.findElement(chosen);
-        m_sourceBox->addItem(material != nullptr
-                                 //: A source of a quote whose description was emptied: %1 its
-                                 //: title. In Polish: %1 (bez opisu bibliograficznego)
-                                 ? tr("%1 (no bibliographic description)").arg(material->title)
-                                 //: In Polish: Nie ma już tego źródła
-                                 : tr("The source is gone"),
-                             chosen);
+        m_sourceBox->addItem(lostSourceName(m_book.findElement(chosen)), chosen);
     }
     m_sourceBox->setCurrentIndex(std::max(m_sourceBox->findData(chosen), 0));
+}
+
+QString QuoteSourceBox::lostSourceName(const core::ProjectElement* material) {
+    if (material == nullptr) {
+        //: In Polish: Nie ma już tego źródła
+        return tr("The source is gone");
+    }
+    //: A source of a quote whose description was emptied: %1 its title. In Polish: %1 (bez
+    //: opisu bibliograficznego)
+    return tr("%1 (no bibliographic description)").arg(material->title);
 }
 
 void QuoteSourceBox::updateShown() {
@@ -1369,14 +799,15 @@ void QuoteSourceBox::updateShown() {
             authors << person.name;
         }
         const QString title = sourceTitle(*source);
-        m_fromSourceLabel->setText(
-            authors.isEmpty()
-                //: The author and the work of a quote from a source: %1 its title. In
-                //: Polish: z karty źródła: „%1”
-                ? tr("From the card of the source: “%1”").arg(title)
-                //: %1 the authors, %2 the title. In Polish: z karty źródła: %1, „%2”
-                : tr("From the card of the source: %1, “%2”")
-                      .arg(authors.join(QStringLiteral(", ")), title));
+        if (authors.isEmpty()) {
+            //: The author and the work of a quote from a source: %1 its title. In Polish: z
+            //: karty źródła: „%1”
+            m_fromSourceLabel->setText(tr("From the card of the source: “%1”").arg(title));
+        } else {
+            //: %1 the authors, %2 the title. In Polish: z karty źródła: %1, „%2”
+            m_fromSourceLabel->setText(tr("From the card of the source: %1, “%2”")
+                                           .arg(authors.join(QStringLiteral(", ")), title));
+        }
         reference = SourceNames::referenceTo(m_book, quote.source, quote.page);
     } else if (none) {
         reference = Bibliography::reference(quote, language);

@@ -8,11 +8,16 @@
 #include "document_window.h"
 
 #include "kalahari/core/material_kinds.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/source_description.h"
+#include "kalahari/gui/copy_target.h"
 #include "kalahari/gui/dialogs/new_quote_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/material_page.h"
+#include "kalahari/gui/panels/pdf_pages_view.h"
 #include "kalahari/gui/panels/pdf_preview_panel.h"
 #include "kalahari/gui/panels/source_boxes.h"
 #include "kalahari/gui/pdf_files.h"
@@ -36,8 +41,8 @@
 #include <QPdfWriter>
 #include <QPlainTextEdit>
 #include <QPushButton>
-#include <QTableWidget>
 #include <QTabWidget>
+#include <QTableWidget>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
@@ -46,11 +51,14 @@
 #include <cstdio>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 
 #include "test_support/window_parts.h"
 
-using namespace kalahari;
+namespace core = kalahari::core;
+namespace gui = kalahari::gui;
+namespace test = kalahari::test;
 using gui::PdfFiles;
 using gui::PdfPagesView;
 using gui::PdfPreviewPanel;
@@ -58,10 +66,12 @@ using gui::PdfPreviewPanel;
 namespace {
 
 /// The words on the second page of pdfFile()
-const QString PROVERB = QStringLiteral("The caravan goes as fast as its slowest camel.");
+QString proverb() {
+    return QStringLiteral("The caravan goes as fast as its slowest camel.");
+}
 
 /// A PDF file of @p pages pages of A5 at 72 points to the inch, titled "Atlas of the Deserts":
-/// each page says its number, and the second one has PROVERB under it
+/// each page says its number, and the second one has proverb() under it
 QByteArray pdfFile(int pages = 3) {
     QBuffer buffer;
     REQUIRE(buffer.open(QIODevice::WriteOnly));
@@ -80,7 +90,7 @@ QByteArray pdfFile(int pages = 3) {
             }
             painter.drawText(QPointF(40, 80), QStringLiteral("Page %1 of the atlas").arg(page));
             if (page == 2) {
-                painter.drawText(QPointF(40, 120), PROVERB);
+                painter.drawText(QPointF(40, 120), proverb());
             }
         }
     }
@@ -129,14 +139,15 @@ QString addPublication(core::ProjectManager& pm, const QString& title, const QBy
 core::SourceDescription atlas() {
     core::SourceDescription source;
     source.type = QString::fromLatin1(core::SourceDescription::BOOK);
-    source.people << core::SourcePerson{QStringLiteral("Anna Wiśniewska"), {}, {}};
+    source.people << core::SourcePerson{
+        .name = QStringLiteral("Anna Wiśniewska"), .role = {}, .extra = {}};
     source.setValue(QString::fromLatin1(core::SourceDescription::TITLE),
                     QStringLiteral("Atlas pustyń świata"));
     source.setValue(QString::fromLatin1(core::SourceDescription::YEAR), QStringLiteral("2011"));
     return source;
 }
 
-/// Select PROVERB on page 2 of pdfFile() as the mouse does from the margin at its left to the
+/// Select proverb() on page 2 of pdfFile() as the mouse does from the margin at its left to the
 /// margin at its right, in the middle of its line
 void selectProverb(PdfPagesView* view) {
     const QRectF text = view->document()->getAllText(1).boundingRectangle();
@@ -183,11 +194,14 @@ struct UsualPdfSettings {
             settings.set<bool>(PdfFiles::LAST_PAGE_SETTING, lastPage);
         } catch (...) {
             // A destructor may not throw: the later tests then find the settings of this one
-            std::fputs("UsualPdfSettings: the settings of the test stay\n", stderr);
+            static_cast<void>(
+                std::fputs("UsualPdfSettings: the settings of the test stay\n", stderr));
         }
     }
     UsualPdfSettings(const UsualPdfSettings&) = delete;
     UsualPdfSettings& operator=(const UsualPdfSettings&) = delete;
+    UsualPdfSettings(UsualPdfSettings&&) = delete;
+    UsualPdfSettings& operator=(UsualPdfSettings&&) = delete;
 };
 
 /// The programs that open files, in place of the system's until the test ends
@@ -203,6 +217,8 @@ struct TestFileOpener {
     ~TestFileOpener() { gui::setFileOpenerForTests({}); }
     TestFileOpener(const TestFileOpener&) = delete;
     TestFileOpener& operator=(const TestFileOpener&) = delete;
+    TestFileOpener(TestFileOpener&&) = delete;
+    TestFileOpener& operator=(TestFileOpener&&) = delete;
 };
 
 /// Once the window of New Quote shows, @p answer answers it
@@ -415,17 +431,17 @@ TEST_CASE("PDF preview: the selection is copied, copied with the reference and m
     selectProverb(view);
     REQUIRE(view->hasSelection());
     CHECK(view->selectionPage() == 1);
-    CHECK(view->selectedText().simplified() == PROVERB);
+    CHECK(view->selectedText().simplified() == proverb());
     CHECK(view->canCopyHere());
     view->copyHere();
-    CHECK(QGuiApplication::clipboard()->text().simplified() == PROVERB);
+    CHECK(QGuiApplication::clipboard()->text().simplified() == proverb());
 
     // With the reference: the quotation marks of the book's language
     const QString reference = gui::SourceNames::referenceTo(pm, id, QStringLiteral("2"));
     CHECK(reference == QStringLiteral("(Wiśniewska 2011, p. 2)"));
     preview.copyWithReference();
     CHECK(QGuiApplication::clipboard()->text() ==
-          QStringLiteral("“") + PROVERB + QStringLiteral("” ") + reference);
+          QStringLiteral("“") + proverb() + QStringLiteral("” ") + reference);
 
     // A quote of it, from its page
     QStringList quote;
@@ -434,7 +450,7 @@ TEST_CASE("PDF preview: the selection is copied, copied with the reference and m
                          quote = {source, text, page};
                      });
     preview.createQuote();
-    CHECK(quote == QStringList{id, PROVERB, QStringLiteral("2")});
+    CHECK(quote == QStringList{id, proverb(), QStringLiteral("2")});
 
     // Esc takes the selection away
     QKeyEvent escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
@@ -464,7 +480,11 @@ TEST_CASE("PDF preview: the bookmarks of the material, at the page shown and of 
     CHECK(preview.bookmarksList()->topLevelItemCount() == 0);
     int changed = 0;
     QObject::connect(&preview, &gui::PreviewPanel::materialChanged, &preview,
-                     [&changed, &id](const QString& material) { changed += material == id; });
+                     [&changed, &id](const QString& material) {
+                         if (material == id) {
+                             ++changed;
+                         }
+                     });
 
     // At the page shown, with its note to write
     preview.view()->setCurrentPage(2);
@@ -484,7 +504,7 @@ TEST_CASE("PDF preview: the bookmarks of the material, at the page shown and of 
     preview.addBookmark();
     REQUIRE(pm.findElement(id)->bookmarks.size() == 2);
     CHECK(pm.findElement(id)->bookmarks.at(1).page == 2);
-    CHECK(pm.findElement(id)->bookmarks.at(1).note == PROVERB);
+    CHECK(pm.findElement(id)->bookmarks.at(1).note == proverb());
     CHECK(preview.bookmarksList()->currentItem() == preview.bookmarksList()->topLevelItem(1));
 
     // The note changed in the list
@@ -569,7 +589,7 @@ TEST_CASE("New Quote window: the words, the page and what the quote is linked wi
           "[gui][materials][pdf]") {
     gui::registerAllIcons();
     using gui::dialogs::NewQuoteDialog;
-    NewQuoteDialog dialog(QStringLiteral("  The caravan goes.  "), QStringLiteral("45"),
+    const NewQuoteDialog dialog(QStringLiteral("  The caravan goes.  "), QStringLiteral("45"),
                           QStringLiteral("Atlas pustyń świata – Wiśniewska, 2011"),
                           QStringLiteral("Atlas"), QStringLiteral("The Storm"), true);
     CHECK(dialog.text() == QStringLiteral("The caravan goes."));
@@ -598,8 +618,8 @@ TEST_CASE("New Quote window: the words, the page and what the quote is linked wi
     CHECK(dialog.insertIntoChapter());
 
     // Without a chapter open: no link with it, and nowhere to insert
-    NewQuoteDialog alone(QStringLiteral("The caravan"), QString(), QStringLiteral("Atlas"),
-                         QStringLiteral("Atlas"), QString(), true);
+    const NewQuoteDialog alone(QStringLiteral("The caravan"), QString(), QStringLiteral("Atlas"),
+                               QStringLiteral("Atlas"), QString(), true);
     CHECK(alone.linkBox()->count() == 2);
     CHECK(alone.link() == NewQuoteDialog::Link::None);
     CHECK_FALSE(alone.insertButton()->isEnabled());
@@ -671,11 +691,11 @@ TEST_CASE("PDF preview: a quote from the selection, linked with the chapter and 
         shownChapter = dialog.linkBox()->currentText();
         dialog.acceptButton()->click();
     });
-    window.navigator.onRequestQuoteFromPreview(id, PROVERB, QStringLiteral("2"));
+    window.navigator.onRequestQuoteFromPreview(id, proverb(), QStringLiteral("2"));
     CHECK(shownChapter == QStringLiteral("The Storm (open)"));
     QList<const core::ProjectElement*> quotes = pm.quotesOf(id);
     REQUIRE(quotes.size() == 1);
-    CHECK(quotes.first()->description == PROVERB);
+    CHECK(quotes.first()->description == proverb());
     CHECK(quotes.first()->quote.page == QStringLiteral("2"));
     CHECK(quotes.first()->linkTargets() == QStringList{novel.chapterId});
     CHECK(qobject_cast<PdfPreviewPanel*>(window.tabs->currentWidget()) != nullptr);
@@ -686,17 +706,17 @@ TEST_CASE("PDF preview: a quote from the selection, linked with the chapter and 
             static_cast<int>(gui::dialogs::NewQuoteDialog::Link::None)));
         dialog.insertButton()->click();
     });
-    window.navigator.onRequestQuoteFromPreview(id, PROVERB, QStringLiteral("2"));
+    window.navigator.onRequestQuoteFromPreview(id, proverb(), QStringLiteral("2"));
     quotes = pm.quotesOf(id);
     REQUIRE(quotes.size() == 2);
     CHECK(quotes.last()->linkTargets().isEmpty());
     CHECK(window.tabs->currentWidget() == chapter);
     CHECK(chapter->getBookEditor()->plainText().contains(
-        gui::SourceNames::quotedWithReference(pm, id, PROVERB, QStringLiteral("2"))));
+        gui::SourceNames::quotedWithReference(pm, id, proverb(), QStringLiteral("2"))));
 
     // Given up: no quote
     whenNewQuote([](gui::dialogs::NewQuoteDialog& dialog) { dialog.reject(); });
-    window.navigator.onRequestQuoteFromPreview(id, PROVERB, QStringLiteral("2"));
+    window.navigator.onRequestQuoteFromPreview(id, proverb(), QStringLiteral("2"));
     CHECK(pm.quotesOf(id).size() == 2);
 }
 
@@ -743,7 +763,7 @@ TEST_CASE("PDF file on the card: its first page, its pages, Show Page and Fill I
     CHECK(shown == QStringList{id, QStringLiteral("2")});
 
     // Fill In from File: the title of the file in the empty field
-    gui::SourceDescriptionBox* description = page.findChild<gui::SourceDescriptionBox*>();
+    auto* description = page.findChild<gui::SourceDescriptionBox*>();
     REQUIRE(description != nullptr);
     REQUIRE_FALSE(description->fillButton()->isHidden());
     description->fillFromFile();

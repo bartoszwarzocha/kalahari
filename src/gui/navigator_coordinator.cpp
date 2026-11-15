@@ -110,6 +110,12 @@ QString projectFilePath(const core::ProjectManager& book, const QString& file) {
 /// How long the status bar says what the quick ways added
 constexpr int MATERIALS_MESSAGE_MS = 6000;
 
+/// How long the status bar says that a quote was added
+constexpr int QUOTE_MESSAGE_MS = 2000;
+
+/// How long the status bar says that a file has not the page asked for
+constexpr int NO_PAGE_MESSAGE_MS = 3000;
+
 /// @p picture as a PNG file
 QByteArray pngOf(const QImage& picture) {
     QByteArray data;
@@ -170,16 +176,13 @@ NavigatorCoordinator::NavigatorCoordinator(core::ProjectManager& book, CommandRe
     if (m_centralTabs != nullptr) {
         connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
                 [this](QWidget* page) {
-                    // clang-analyzer takes the shared reference count of the QPointer for a
-                    // use after free
-                    // NOLINTBEGIN(clang-analyzer-cplusplus.NewDelete)
-                    if (auto* editor = qobject_cast<EditorPanel*>(page);
-                        editor != nullptr &&
-                        m_book.findElement(editor->property("elementId").toString()) !=
-                            nullptr) {
-                        m_lastChapter = editor;
+                    if (const auto* editor = qobject_cast<EditorPanel*>(page);
+                        editor != nullptr) {
+                        const QString elementId = editor->property("elementId").toString();
+                        if (m_book.findElement(elementId) != nullptr) {
+                            m_lastChapterId = elementId;
+                        }
                     }
-                    // NOLINTEND(clang-analyzer-cplusplus.NewDelete)
                 });
     }
 
@@ -1610,6 +1613,19 @@ void NavigatorCoordinator::onRequestNewQuote(const QString& sourceId) {
     onRequestOpenMaterialCard(elementId, true);
 }
 
+EditorPanel* NavigatorCoordinator::lastChapter() const {
+    if (m_centralTabs == nullptr || m_lastChapterId.isEmpty()) {
+        return nullptr;
+    }
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* editor = qobject_cast<EditorPanel*>(page);
+        if (editor != nullptr && editor->property("elementId").toString() == m_lastChapterId) {
+            return editor;
+        }
+    }
+    return nullptr;
+}
+
 void NavigatorCoordinator::onRequestQuoteFromPreview(const QString& sourceId, const QString& text,
                                                      const QString& page) {
     auto& pm = m_book;
@@ -1618,20 +1634,27 @@ void NavigatorCoordinator::onRequestQuoteFromPreview(const QString& sourceId, co
         return;
     }
     // The chapter in front last, while it is open
-    EditorPanel* chapter = m_lastChapter.data();
+    EditorPanel* chapter = lastChapter();
     const core::ProjectElement* chapterElement =
-        chapter != nullptr ? pm.findElement(chapter->property("elementId").toString()) : nullptr;
+        chapter != nullptr ? pm.findElement(m_lastChapterId) : nullptr;
     if (chapterElement == nullptr) {
         chapter = nullptr;
     }
-    auto* window = qobject_cast<QWidget*>(parent());
     dialogs::NewQuoteDialog dialog(
         text, page, SourceNames::shortName(source->source, source->title), source->title,
         chapterElement != nullptr ? chapterElement->title : QString(),
-        chapter != nullptr && !chapter->getBookEditor()->isReadOnly(), window);
-    if (dialog.exec() != QDialog::Accepted) {
-        return;
+        chapter != nullptr && !chapter->getBookEditor()->isReadOnly(),
+        qobject_cast<QWidget*>(parent()));
+    if (dialog.exec() == QDialog::Accepted) {
+        addQuoteFrom(dialog, sourceId, chapter, chapterElement);
     }
+}
+
+void NavigatorCoordinator::addQuoteFrom(const dialogs::NewQuoteDialog& dialog,
+                                        const QString& sourceId, EditorPanel* chapter,
+                                        const core::ProjectElement* chapterElement) {
+    auto& pm = m_book;
+    auto* window = qobject_cast<QWidget*>(parent());
     const QString words = dialog.text();
     const QString quotePage = dialog.page();
     QStringList links;
@@ -1696,7 +1719,7 @@ QString NavigatorCoordinator::addQuote(const QString& sourceId, const QString& t
     }
     showAdded(elementId, quote.title);
     m_statusBar->showMessage(core::fillWords(tr("{Kind} added: %1"), nouns).arg(quote.title),
-                             2000);
+                             QUOTE_MESSAGE_MS);
     // The source shows it among its quotes
     onMaterialChanged(elementId);
     emit documentModified();
@@ -1930,7 +1953,8 @@ void NavigatorCoordinator::onRequestShowPage(const QString& elementId, const QSt
     if (PreviewPanel* preview = openPreview(elementId)) {
         if (!preview->showPage(page)) {
             //: %1: the page the writer asked for. In Polish: W pliku nie ma strony %1
-            m_statusBar->showMessage(tr("The file has no page %1").arg(page), 3000);
+            m_statusBar->showMessage(tr("The file has no page %1").arg(page),
+                                     NO_PAGE_MESSAGE_MS);
         }
         preview->setFocus(Qt::OtherFocusReason);
     }

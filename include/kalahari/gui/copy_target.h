@@ -42,6 +42,8 @@ protected:
     CopyTarget() = default;
     CopyTarget(const CopyTarget&) = default;
     CopyTarget& operator=(const CopyTarget&) = default;
+    CopyTarget(CopyTarget&&) = default;
+    CopyTarget& operator=(CopyTarget&&) = default;
 };
 
 }  // namespace kalahari::gui

@@ -8,6 +8,8 @@
 
 #include "kalahari/core/material_kinds.h"
 
+#include <initializer_list>
+
 namespace kalahari::core {
 
 bool SourceDescription::isEmpty() const {
@@ -155,17 +157,18 @@ bool QuoteSource::isEmpty() const {
 PersonName PersonName::of(const QString& name, bool institution) {
     const QString simplified = name.simplified();
     if (institution) {
-        return {simplified, {}};
+        return {.family = simplified, .given = {}};
     }
     const qsizetype comma = simplified.indexOf(QLatin1Char(','));
     if (comma >= 0) {
-        return {simplified.left(comma).trimmed(), simplified.mid(comma + 1).trimmed()};
+        return {.family = simplified.left(comma).trimmed(),
+                .given = simplified.mid(comma + 1).trimmed()};
     }
     const qsizetype space = simplified.lastIndexOf(QLatin1Char(' '));
     if (space < 0) {
-        return {simplified, {}};
+        return {.family = simplified, .given = {}};
     }
-    return {simplified.mid(space + 1), simplified.left(space)};
+    return {.family = simplified.mid(space + 1), .given = simplified.left(space)};
 }
 
 QString PersonName::initials() const {

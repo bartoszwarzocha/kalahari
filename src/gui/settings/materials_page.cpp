@@ -23,6 +23,7 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/pdf_files.h"
+#include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/source_names.h"
 
 #include <QCheckBox>
@@ -37,6 +38,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <string>
 #include <utility>
 
 namespace kalahari::gui {
@@ -49,6 +51,9 @@ using json = nlohmann::json;
 constexpr const char* CARD = "card";
 constexpr const char* SYSTEM = "system";
 constexpr const char* BROWSER = "browser";
+
+/// @brief The zoom of the pages at their size, in percent
+constexpr int ACTUAL_PERCENT = 100;
 
 /// @brief Half a line between two settings of a group, more than between the choices of one
 void addGap(QFormLayout* form) {
@@ -81,11 +86,9 @@ void MaterialsPage::addChoices(QFormLayout* form, const QString& label, const ch
     form->addRow(caption, box);
     addGap(form);
 
-    std::string setting(key);
-    std::string fallback(choices.front().value);
     Binding binding;
-    binding.key = [setting]() { return setting; };
-    binding.stored = [setting, fallback]() {
+    binding.key = [setting = std::string(key)]() { return setting; };
+    binding.stored = [setting = std::string(key), fallback = std::string(choices.front().value)]() {
         return json(core::SettingsManager::getInstance().get<std::string>(setting, fallback));
     };
     binding.shown = [choices]() {
@@ -105,7 +108,7 @@ void MaterialsPage::addChoices(QFormLayout* form, const QString& label, const ch
         }
         chosen->setChecked(true);
     };
-    binding.store = [setting](const json& value) {
+    binding.store = [setting = std::string(key)](const json& value) {
         core::SettingsManager::getInstance().set<std::string>(setting, value.get<std::string>());
     };
     bindCustom(std::move(binding));
@@ -229,7 +232,7 @@ void MaterialsPage::addPdfPreview() {
     m_pdfZoom->addItem(tr("Page width (recommended)"), QString::fromLatin1(PdfFiles::PAGE_WIDTH));
     //: In Polish: Cała strona
     m_pdfZoom->addItem(tr("Whole page"), QString::fromLatin1(PdfFiles::WHOLE_PAGE));
-    m_pdfZoom->addItem(tr("%1%").arg(100), QString::fromLatin1(PdfFiles::ACTUAL));
+    m_pdfZoom->addItem(tr("%1%").arg(ACTUAL_PERCENT), QString::fromLatin1(PdfFiles::ACTUAL));
     //: In Polish: Jak ostatnio
     m_pdfZoom->addItem(tr("As last time"), QString::fromLatin1(PdfFiles::LAST));
     //: In Polish: Powiększenie:

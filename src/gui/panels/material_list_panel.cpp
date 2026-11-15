@@ -8,6 +8,7 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/bibliography.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/kind_words.h"

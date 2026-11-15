@@ -59,7 +59,7 @@ public:
     QString problem() const;
 
     /// @brief Zoom: 1 is 100%
-    double zoom() const override { return m_zoom; }
+    [[nodiscard]] double zoom() const override { return m_zoom; }
 
     /// @brief Whether the picture fits the window, also when the window changes its size
     bool fitsWindow() const { return m_fit; }
