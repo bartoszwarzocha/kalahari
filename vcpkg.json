@@ -38,6 +38,12 @@
           "name": "qttools",
           "version>=": "6.5.0",
           "default-features": false
+        },
+        {
+          "name": "qtwebengine",
+          "default-features": false,
+          "features": ["pdf"],
+          "platform": "(windows & x64 & !static) | osx"
         }
       ]
     }
