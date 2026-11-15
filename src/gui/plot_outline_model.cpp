@@ -39,8 +39,21 @@ QString oneLine(const QString& text) {
 PlotOutlineModel::PlotOutlineModel(QObject* parent) : QAbstractTableModel(parent) {}
 
 void PlotOutlineModel::setBands(const QList<PlotBand>& bands) {
+    m_bands = bands;
+    fill();
+}
+
+void PlotOutlineModel::setShowScenes(bool show) {
+    if (m_showScenes == show) {
+        return;
+    }
+    m_showScenes = show;
+    fill();
+}
+
+void PlotOutlineModel::fill() {
     QList<Row> rows;
-    for (const PlotBand& band : bands) {
+    for (const PlotBand& band : m_bands) {
         if (!band.partId.isEmpty()) {
             Row row;
             row.part = true;
@@ -54,6 +67,11 @@ void PlotOutlineModel::setBands(const QList<PlotBand>& bands) {
             Row row;
             row.card = card;
             rows << row;
+            for (qsizetype s = 0; m_showScenes && s < card.scenes.size(); ++s) {
+                Row scene;
+                scene.card = card.scenes.at(s);
+                rows << scene;
+            }
         }
     }
     // The same rows only change their cells: the table keeps its cell and its editor
@@ -142,14 +160,20 @@ QVariant PlotOutlineModel::data(const QModelIndex& index, int role) const {
         return {};
     }
     const PlotCard& card = row.card;
+    // A scene without a title shows its name, quietly
+    const bool unnamed = card.isScene() && card.title.isEmpty() && column == TitleColumn;
     switch (role) {
     case Qt::DisplayRole:
     case Qt::AccessibleTextRole:
         switch (column) {
         case NumberColumn:
+            if (card.isScene()) {
+                return QStringLiteral("%1.%2").arg(QLocale().toString(card.number),
+                                                   QLocale().toString(card.scene + 1));
+            }
             return card.number;
         case TitleColumn:
-            return card.title;
+            return unnamed ? card.kindName : card.title;
         case DescriptionColumn:
             return oneLine(card.description);
         case PovColumn:
@@ -190,6 +214,18 @@ QVariant PlotOutlineModel::data(const QModelIndex& index, int role) const {
         }
         if (column == TitleColumn && !card.kindName.isEmpty()) {
             return card.kindName;
+        }
+        break;
+    case Qt::ForegroundRole:
+        if (unnamed) {
+            return QPalette().brush(QPalette::PlaceholderText);
+        }
+        break;
+    case Qt::FontRole:
+        if (unnamed) {
+            QFont font;
+            font.setItalic(true);
+            return font;
         }
         break;
     default:
@@ -254,8 +290,8 @@ bool PlotOutlineModel::setData(const QModelIndex& index, const QVariant& value, 
     if (text == data(index, Qt::EditRole).toString()) {
         return false;
     }
-    // A text keeps its title
-    if (index.column() == TitleColumn && text.isEmpty()) {
+    // A text keeps its title; a scene may have none
+    if (index.column() == TitleColumn && text.isEmpty() && !card.isScene()) {
         return false;
     }
     emit cellEdited(card.id, index.column(), text);

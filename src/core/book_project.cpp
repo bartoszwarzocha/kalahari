@@ -39,6 +39,10 @@ const BookPart BOOK_PARTS[] = {
     {BookPlace::Back, "back", &ProjectBook::backElements},
 };
 
+/// The fields of the plot of a scene (ScenePlot::toAttributes()), in the order they are written
+constexpr const char* SCENE_FIELDS[] = {"title", "description", "pov",   "place",
+                                        "time",  "color",       "status"};
+
 const BookPart& bookPart(BookPlace place) {
     const auto* found = std::find_if(std::begin(BOOK_PARTS), std::end(BOOK_PARTS),
                                      [place](const BookPart& part) { return part.place == place; });
@@ -388,6 +392,20 @@ void readPlot(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.place = plotFields.string("place");
     data.time = plotFields.string("time");
     data.color = plotFields.string("color");
+    // The first scene of the text, before any scene break
+    if (const QJsonValue opening = plotFields.take("opening"); opening.isObject()) {
+        Fields openingFields(opening.toObject(), plotFields.path("opening"), problems);
+        QMap<QString, QString> attributes;
+        for (const char* key : SCENE_FIELDS) {
+            if (const QString value = openingFields.string(key); !value.isEmpty()) {
+                attributes.insert(QLatin1String(key), value);
+            }
+        }
+        data.opening = ScenePlot::fromAttributes(attributes);
+        data.opening.extra = openingFields.rest();
+    } else if (!opening.isUndefined()) {
+        plotFields.problem("opening", QStringLiteral("must be an object"));
+    }
     data.extra = plotFields.rest();
 }
 
@@ -819,6 +837,16 @@ QJsonObject elementToJson(const ProjectElement& element) {
         setOrRemove(data, "place", plot.place);
         setOrRemove(data, "time", plot.time);
         setOrRemove(data, "color", plot.color);
+        if (plot.opening.isEmpty()) {
+            data.remove(QLatin1String("opening"));
+        } else {
+            QJsonObject opening = plot.opening.extra;
+            const QMap<QString, QString> attributes = plot.opening.toAttributes();
+            for (const char* key : SCENE_FIELDS) {
+                setOrRemove(opening, key, attributes.value(QLatin1String(key)));
+            }
+            data.insert(QLatin1String("opening"), opening);
+        }
         json.insert(QLatin1String("plot"), data);
     }
     return json;
@@ -1122,6 +1150,36 @@ bool containsKind(const QList<KindRef>& kinds, const KindRef& ref) {
 }
 
 }  // namespace
+
+// =============================================================================
+// ScenePlot
+// =============================================================================
+
+QMap<QString, QString> ScenePlot::toAttributes() const {
+    const QString* const values[] = {&title, &description, &pov, &place, &time, &color, &status};
+    QMap<QString, QString> attributes;
+    for (size_t i = 0; i < std::size(SCENE_FIELDS); ++i) {
+        if (!values[i]->isEmpty()) {
+            attributes.insert(QLatin1String(SCENE_FIELDS[i]), *values[i]);
+        }
+    }
+    return attributes;
+}
+
+const QStringList& ScenePlot::fieldNames() {
+    static const QStringList NAMES(std::cbegin(SCENE_FIELDS), std::cend(SCENE_FIELDS));
+    return NAMES;
+}
+
+ScenePlot ScenePlot::fromAttributes(const QMap<QString, QString>& attributes) {
+    ScenePlot plot;
+    QString* const values[] = {&plot.title, &plot.description, &plot.pov,   &plot.place,
+                               &plot.time,  &plot.color,       &plot.status};
+    for (size_t i = 0; i < std::size(SCENE_FIELDS); ++i) {
+        *values[i] = attributes.value(QLatin1String(SCENE_FIELDS[i]));
+    }
+    return plot;
+}
 
 // =============================================================================
 // Names of the parts of a book

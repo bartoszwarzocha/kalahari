@@ -47,6 +47,7 @@
 #include "kalahari/core/archive_problem.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/chapter_document.h"
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/package_card.h"
 // OpenSpec #00041: SQLite Project Database
@@ -731,6 +732,23 @@ public:
     ///         file cannot be written; the element keeps its description and plot then
     bool setPlot(const QString& elementId, const QString& description, const ElementPlot& plot);
 
+    /// @brief The scenes of text element @p elementId of a book (ChapterDocument::kmlScenes()),
+    /// the first with the plot of the .klh file (ElementPlot::opening)
+    /// @param kml The text with changes its file does not have (an editor's); none: the text
+    ///        of its chapter file
+    /// @return None for another element
+    QList<KmlScene> scenesOf(const QString& elementId,
+                             const std::optional<QString>& kml = std::nullopt) const;
+
+    /// @brief Give scene @p scene (from 0) of text element @p elementId of a book the plot
+    /// @p plot: the first scene in the .klh file, another in the chapter file, at its break
+    ///
+    /// The text of an open editor changes there (editor::BookEditor), not here: its file
+    /// would lose it when the editor saves its text.
+    /// @return false when the project has no such text or scene, the text has changes its
+    ///         file does not have (setChapterContent()), or a file cannot be written
+    bool setScenePlot(const QString& elementId, int scene, const ScenePlot& plot);
+
     /// @brief Give element @p elementId the writer's own fields @p fields, in this order, and
     /// save the .klh file
     /// @return false when the project has no such element or the file cannot be written; the
@@ -1070,6 +1088,7 @@ private:
         bool loaded = false;   ///< content holds the text
         bool dirty = false;    ///< content is not saved
         WordTally words;       ///< Words of the text of the chapter file
+        QList<KmlScene> scenes;  ///< Scenes of the text of the chapter file, with their words
         /// Words of the text in its editor, with changes that are not saved
         std::optional<WordTally> editorWords;
         QString notes;         ///< Notes of the chapter file

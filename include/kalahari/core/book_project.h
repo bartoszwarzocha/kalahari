@@ -121,6 +121,7 @@
 #include <QDateTime>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
 #include <QString>
 #include <QStringList>
 #include <QVariantMap>
@@ -160,6 +161,41 @@ struct ElementLink {
     bool operator==(const ElementLink&) const = default;
 };
 
+/// @brief What the plot board says of a scene of a text: the card of the scene
+///
+/// A scene is the text of a chapter from its start or from a scene break to the next break. A
+/// break keeps what it says of the scene after it as its attributes in the KML of the text
+/// (toAttributes()), so it goes with its text; the first scene, before any break, has it in the
+/// .klh file (ElementPlot::opening).
+struct ScenePlot {
+    QString title;        ///< Its title; empty: none ("Scene 2" on its card)
+    QString description;  ///< Its short description
+    QString pov;          ///< Point of view
+    QString place;        ///< Place of the action
+    QString time;         ///< Time of the action
+    QString color;        ///< Own color of its card, a name of PlotColors ("blue")
+    QString status;       ///< "draft", "revision" or "final"; empty: as its text
+    QJsonObject extra;    ///< Fields of "opening" this version does not know, saved back
+
+    /// @brief Whether it says nothing
+    bool isEmpty() const {
+        return title.isEmpty() && description.isEmpty() && pov.isEmpty() && place.isEmpty() &&
+               time.isEmpty() && color.isEmpty() && status.isEmpty() && extra.isEmpty();
+    }
+
+    /// @brief Its fields with text by their names: "title", "description", "pov", "place",
+    /// "time", "color", "status" (the attributes of a scene break, the fields of "opening")
+    QMap<QString, QString> toAttributes() const;
+
+    /// @brief The plot of a scene from its fields by their names (toAttributes())
+    static ScenePlot fromAttributes(const QMap<QString, QString>& attributes);
+
+    /// @brief The names of its fields in the order they are written
+    static const QStringList& fieldNames();
+
+    bool operator==(const ScenePlot&) const = default;
+};
+
 /// @brief What the plot board says of a text element of a book: whose eyes the reader sees it
 /// with, where and when it happens, and the color of its card
 ///
@@ -170,12 +206,13 @@ struct ElementPlot {
     QString place;      ///< Place of the action; empty: not said
     QString time;       ///< Time of the action; empty: not said
     QString color;      ///< Own color of its card, a name of PlotColors ("blue"); empty: none
+    ScenePlot opening;  ///< Of the first scene of its text, before any scene break ("opening")
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
     /// @brief Whether it says nothing: the file has no "plot"
     bool isEmpty() const {
         return pov.isEmpty() && place.isEmpty() && time.isEmpty() && color.isEmpty() &&
-               extra.isEmpty();
+               opening.isEmpty() && extra.isEmpty();
     }
 
     bool operator==(const ElementPlot&) const = default;

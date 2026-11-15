@@ -16,6 +16,8 @@
 #include <QStringList>
 #include <QWidget>
 
+#include <optional>
+
 class QComboBox;
 class QLabel;
 class QMenu;
@@ -32,9 +34,10 @@ class PlotOutlineModel;
 /// @brief The plot board on its tab: the cards of the texts of the book (PlotBoardView) or
 /// the outline, the same texts in a table (PlotOutlineModel)
 ///
-/// Over them: Board | Outline, the arrangement of the cards (Columns | Grid), their size, what
-/// colors them, and how many texts and words the book has; the choices are kept in the
-/// settings (PlotBoard::LAYOUT_SETTING...). Under them a bar says what was just done, with Undo.
+/// Over them: Board | Outline, Scenes (the scenes of the texts shown or not), the arrangement of
+/// the cards (Columns | Grid), their size, what colors them, and how many texts and words the
+/// book has; the choices are kept in the settings (PlotBoard::LAYOUT_SETTING...). Under them a
+/// bar says what was just done, with Undo.
 ///
 /// The keys of the outline are those of the board where a table allows them: the arrows go
 /// from cell to cell, F2 or a letter edits a cell, Tab goes to the next one, Enter keeps it
@@ -69,10 +72,11 @@ public:
     /// @brief Give the keys to the board or the outline, whichever is shown
     void focusView();
 
-    /// @brief The text chosen on the board or in the outline; empty: none
+    /// @brief The card chosen on the board or in the outline: a text or a scene
+    /// (PlotBoard::sceneId()); empty: none
     [[nodiscard]] QString currentCard() const;
 
-    /// @brief Choose text @p elementId on the board and in the outline
+    /// @brief Choose card @p elementId (a text or a scene) on the board and in the outline
     bool setCurrentCard(const QString& elementId);
 
     /// @brief Card @p elementId marked to move (Ctrl+X); empty: none
@@ -90,8 +94,11 @@ public:
     /// @brief Read the look of the board from the settings again, with the theme's colors
     void applySettings();
 
-    /// @brief The menu of text @p elementId, as the menu key opens it
+    /// @brief The menu of card @p elementId (a text or a scene), as the menu key opens it
     [[nodiscard]] QMenu* cardMenu(const QString& elementId);
+
+    /// @brief The card @p elementId shown: a text or a scene; nullopt: none
+    [[nodiscard]] std::optional<PlotCard> card(const QString& elementId) const;
 
     /// @brief The board, the outline and its model
     [[nodiscard]] PlotBoardView* board() const { return m_board; }
@@ -155,6 +162,7 @@ private:
     InfoBar* m_infoBar = nullptr;
     QToolButton* m_boardButton = nullptr;
     QToolButton* m_outlineButton = nullptr;
+    QToolButton* m_scenesButton = nullptr;
     QLabel* m_layoutLabel = nullptr;
     QToolButton* m_columnsButton = nullptr;
     QToolButton* m_gridButton = nullptr;

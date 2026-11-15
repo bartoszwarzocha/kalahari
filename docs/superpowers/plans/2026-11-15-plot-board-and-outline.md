@@ -45,7 +45,47 @@ action, words, state. Everything works from the keyboard, in both themes, in the
 
 Scenes from the scene breaks of the texts (variant C by default): the cards of the scenes under the card
 of their chapter, a scene moved with its text, planned scenes added on the board; variants A and B in
-Settings.
+Settings. Three pull requests:
+
+### 2a – the scenes of the texts on the board (this branch)
+
+- **A scene** is the text of a chapter from its start or from a scene break (`<scene-break/>`, at the
+  level of the paragraphs) to the next break. A text without breaks is one scene and has no cards of
+  scenes.
+- **What a scene says**: title, description, point of view, place and time of the action, color and
+  state. A break keeps them as its attributes (`<scene-break title="…" description="…" pov="…" place="…"
+  time="…" color="…" status="…"/>`), so they move with its text, also when it is cut and pasted in the
+  editor; the editor reads and writes them (`SCENE_ATTRIBUTES_PROPERTY` on the character of the break).
+  The first scene has no break: its fields are in the `.klh` file, `"plot": { "opening": {…} }`. A scene
+  without a state has the state of its text.
+- **The book** (`core`): `ChapterDocument::kmlScenes()` – the scenes of a KML with their words (the
+  words of the scenes add up to those of the text), `withScenePlot()` – the KML with the fields of a
+  break changed; `ProjectManager::scenesOf()` from the files (read with the words), `setScenePlot()` for
+  a text whose file has its text (the first scene in the `.klh` file, the others in the chapter file).
+  An open text with unsaved changes gives its scenes from its editor, and the fields of its scenes
+  change in its editor, where Ctrl+Z also undoes them.
+- **The board**: the cards of the scenes under the card of their text in Columns, in a drawer under
+  the card in Grid (Space opens and closes it, the card says "▸ 3 scenes"); "Scenes" in the header of the
+  board shows or hides them (`plotBoard.showScenes`). A scene card: "Scene 2" with its words and state,
+  its title, description, point of view, place and time. The arrows go through the scenes; F2 edits a
+  scene, Enter opens its text at the scene, the menu gives it a state and a color, Ctrl+Z undoes it.
+- **The outline**: the scenes as rows under their text, edited in the cells.
+- Until 2b a scene card moved, added, cut or deleted says that scenes are moved, added and deleted in
+  the text, in the editor; Ctrl+V on a scene card puts the text marked after its text.
+
+### 2b – scenes moved and added
+
+Ctrl+Up and Ctrl+Down (Columns) or Ctrl+Left and Ctrl+Right (the drawer) move a scene with its text, also
+to the next or the previous text; Ctrl+X and Ctrl+V and the mouse too; Insert adds a scene break after
+the scene, Alt+Insert a scene at the end of the text; Delete asks "Delete Scene". One undo step on the
+board.
+
+### 2c – scenes in the plan
+
+Variant C (default): planned scenes beside the scenes of the text, with a dashed frame, in the `.klh`
+file; Enter on a planned scene ("Write the Scene") puts a scene break with its fields at its place in
+the text and opens the text there. Variant A (only the scenes of the text) and B (only planned scenes)
+in Settings > Plot Board (`plotBoard.scenes`).
 
 ## Stage 3 – settings and the other panels
 

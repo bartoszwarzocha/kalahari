@@ -1919,6 +1919,71 @@ TEST_CASE("ProjectManager keeps the description and the plot of the texts of the
     CHECK(savedChapter->plot == plot);
 }
 
+TEST_CASE("ProjectManager gives the scenes of a text and keeps what they say",
+          "[project_manager][plot][scenes]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Scenes", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+
+    // A new text is one scene
+    REQUIRE(pm.scenesOf(chapter).size() == 1);
+    CHECK(pm.scenesOf("nothing").isEmpty());
+
+    // Its scenes are those of its file, with their words
+    pm.setChapterContent(chapter, "<kml><p>One two</p><scene-break title=\"Night\"/>"
+                                  "<p>Three four five</p></kml>");
+    REQUIRE(pm.saveChapterContent(chapter));
+    QList<KmlScene> scenes = pm.scenesOf(chapter);
+    REQUIRE(scenes.size() == 2);
+    CHECK(scenes.at(0).words.words == 2);
+    CHECK(scenes.at(1).words.words == 3);
+    CHECK(scenes.at(1).plot.title == "Night");
+    // An editor's text with changes gives its own
+    const QList<KmlScene> unsaved =
+        pm.scenesOf(chapter, QString("<kml><p>a</p><scene-break/><p>b</p><scene-break/></kml>"));
+    CHECK(unsaved.size() == 3);
+
+    // The first scene keeps its plot in the .klh file, the others at their breaks
+    ScenePlot opening;
+    opening.title = "Evening";
+    opening.pov = "Anna";
+    REQUIRE(pm.setScenePlot(chapter, 0, opening));
+    CHECK(pm.findElement(chapter)->plot.opening == opening);
+    CHECK(pm.scenesOf(chapter).at(0).plot == opening);
+    CHECK(unsaved.at(0).plot.isEmpty());
+    CHECK(pm.scenesOf(chapter, QString("<kml><p>a</p></kml>")).at(0).plot == opening);
+    ScenePlot night;
+    night.title = "The Night";
+    night.description = "The storm comes.";
+    night.status = "revision";
+    REQUIRE(pm.setScenePlot(chapter, 1, night));
+    CHECK(pm.scenesOf(chapter).at(1).plot == night);
+    CHECK(pm.chapterText(chapter).contains("<scene-break title=\"The Night\" "
+                                           "description=\"The storm comes.\" "
+                                           "status=\"revision\"/>"));
+    CHECK(pm.loadChapterContent(chapter).contains("The Night"));
+    CHECK_FALSE(pm.setScenePlot(chapter, 2, night));  // no such scene
+
+    // A text with changes its file does not have keeps them: its editor changes the scene
+    pm.setChapterContent(chapter, "<kml><p>Changed</p><scene-break/></kml>");
+    CHECK_FALSE(pm.setScenePlot(chapter, 1, ScenePlot()));
+    pm.discardChapterContent(chapter);
+
+    // Read again with the book
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    scenes = pm.scenesOf(chapter);
+    REQUIRE(scenes.size() == 2);
+    CHECK(scenes.at(0).plot == opening);
+    CHECK(scenes.at(1).plot == night);
+    CHECK(scenes.at(1).words.words == 3);
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps how a material is linked, and a link follows its paragraph",
           "[project_manager][links]") {
     QTemporaryDir dir;

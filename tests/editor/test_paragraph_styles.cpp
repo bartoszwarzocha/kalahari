@@ -813,3 +813,62 @@ TEST_CASE("Objects: selecting a word and a paragraph", "[editor][objects]") {
     editor->selectParagraph();
     REQUIRE(editor->selectedText() == QStringLiteral("one two"));
 }
+
+TEST_CASE("Objects: a scene break keeps what it says of its scene", "[editor][objects][scenes]") {
+    const QString text = kml(QStringLiteral(
+        "<p>a</p><scene-break title=\"Night &amp; day\" description=\"One&#10;two\" "
+        "pov=\"Anna\" status=\"final\" unknown=\"left out\"/><p>b</p><scene-break/><p>c</p>"));
+
+    SECTION("read and written in the order of their names, the others left out") {
+        auto editor = editorWith(text);
+        CHECK(editor->toKml().toStdString() ==
+              kml(QStringLiteral("<p>a</p><scene-break title=\"Night &amp; day\" "
+                                 "description=\"One&#10;two\" pov=\"Anna\" status=\"final\"/>"
+                                 "<p>b</p><scene-break/><p>c</p>"))
+                  .toStdString());
+        const SceneBreakAttributes first = editor->sceneAttributes(1);
+        CHECK(first.value(QStringLiteral("title")).toStdString() == "Night & day");
+        CHECK(first.value(QStringLiteral("description")).toStdString() == "One\ntwo");
+        CHECK(first.size() == 4);
+        CHECK(editor->sceneAttributes(2).isEmpty());
+        CHECK(editor->sceneAttributes(3).isEmpty());
+    }
+
+    SECTION("changed as one undo step") {
+        auto editor = editorWith(text);
+        SceneBreakAttributes changed;
+        changed.insert(QStringLiteral("title"), QStringLiteral("Morning"));
+        changed.insert(QStringLiteral("place"), QStringLiteral("The harbour"));
+        REQUIRE(editor->setSceneAttributes(2, changed));
+        CHECK(editor->sceneAttributes(2) == changed);
+        CHECK(editor->toKml().contains(
+            QStringLiteral("<scene-break title=\"Morning\" place=\"The harbour\"/><p>c</p>")));
+        CHECK(editor->isModified());
+        editor->undo();
+        CHECK(editor->sceneAttributes(2).isEmpty());
+        CHECK_FALSE(editor->isModified());
+        CHECK_FALSE(editor->setSceneAttributes(3, changed));  // no such break
+    }
+
+    SECTION("copied and pasted with its break") {
+        auto editor = editorWith(text);
+        select(*editor, {0, 1}, {2, 0});
+        const std::unique_ptr<QMimeData> copied = editor->createMimeDataFromSelection();
+        editor->clearSelection();
+        editor->setCursorPosition({4, 1});
+        editor->insertFromMimeData(copied.get());
+        REQUIRE(sceneBreakBlock(*editor->textDocument(), 3).isValid());
+        CHECK(editor->sceneAttributes(3) == editor->sceneAttributes(1));
+    }
+
+    SECTION("the cursor goes to the start of a scene") {
+        auto editor = editorWith(text, {4, 1});
+        REQUIRE(editor->goToScene(1));
+        CHECK(editor->cursorPosition() == CursorPosition{2, 0});
+        REQUIRE(editor->goToScene(0));
+        CHECK(editor->cursorPosition() == CursorPosition{0, 0});
+        REQUIRE(editor->goToScene(2));
+        CHECK(editor->cursorPosition() == CursorPosition{4, 0});
+        CHECK_FALSE(editor->goToScene(3));
+    }
+}

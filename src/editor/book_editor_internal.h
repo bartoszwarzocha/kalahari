@@ -119,7 +119,9 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
         }
 
         if (const TextObject object = model.paragraphObject(i); object != TextObject::None) {
-            cursor.insertText(QString(QChar::ObjectReplacementCharacter), objectCharFormat(object));
+            QTextCharFormat objectFormat = objectCharFormat(object);
+            setSceneBreakAttributes(objectFormat, model.paragraphSceneAttributes(i));
+            cursor.insertText(QString(QChar::ObjectReplacementCharacter), objectFormat);
             continue;
         }
 

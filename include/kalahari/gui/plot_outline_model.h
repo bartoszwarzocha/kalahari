@@ -18,18 +18,21 @@
 
 namespace kalahari::gui {
 
-/// @brief The rows of the outline: each part over its texts, and the texts outside the parts
+/// @brief The rows of the outline: each part over its texts, and the texts outside the parts,
+/// each text over the rows of its scenes (setShowScenes())
 ///
-/// The cells of a text can be edited: its title, description, point of view, place, time and
-/// state. The model changes nothing itself: an edit asks for the change (cellEdited()), and
-/// whoever shows the model gives it the texts again when the book has it.
+/// The cells of a text and of a scene can be edited: its title, description, point of view,
+/// place, time and state; a scene may have no title. The model changes nothing itself: an edit
+/// asks for the change (cellEdited()), and whoever shows the model gives it the texts again
+/// when the book has it.
 class PlotOutlineModel : public QAbstractTableModel {
     Q_OBJECT
 
 public:
     /// @brief The columns
     enum Column {
-        NumberColumn,       ///< The place of the text among the texts of the board
+        NumberColumn,       ///< The place of the text among the texts of the board; "3.2"
+                            ///< for the second scene of the third text
         TitleColumn,        ///< Its title; of a part, the part's
         DescriptionColumn,  ///< Its short description
         PovColumn,          ///< Point of view
@@ -51,10 +54,13 @@ public:
     /// @brief Whether the book is open read-only: no cell can be edited
     void setReadOnly(bool readOnly);
 
-    /// @brief The row of the text or the part @p id; -1: none
+    /// @brief Show the rows of the scenes of the texts under the rows of the texts, or not
+    void setShowScenes(bool show);
+
+    /// @brief The row of the text, the scene (PlotBoard::sceneId()) or the part @p id; -1: none
     [[nodiscard]] int rowOf(const QString& id) const;
 
-    /// @brief The id of the text of row @p row; empty for a part's row or no row
+    /// @brief The id of the text or the scene of row @p row; empty for a part's row or no row
     [[nodiscard]] QString cardIdAt(int row) const;
 
     [[nodiscard]] int rowCount(const QModelIndex& parent = QModelIndex()) const override;
@@ -66,21 +72,26 @@ public:
     bool setData(const QModelIndex& index, const QVariant& value, int role) override;
 
 signals:
-    /// @brief The writer changed cell @p column (Column) of text @p elementId to @p value
+    /// @brief The writer changed cell @p column (Column) of text or scene @p elementId to
+    /// @p value
     void cellEdited(const QString& elementId, int column, const QString& value);
 
 private:
-    /// @brief A row: a part, or a text
+    /// @brief A row: a part, a text or a scene
     struct Row {
         bool part = false;
         QString partTitle;   ///< Of a part
         int partTexts = 0;   ///< Of a part: its texts
         int partWords = 0;   ///< Of a part: the words of its texts
         QString partId;
-        PlotCard card;       ///< Of a text
+        PlotCard card;       ///< Of a text or a scene
     };
+    void fill();
+
+    QList<PlotBand> m_bands;
     QList<Row> m_rows;
     bool m_readOnly = false;
+    bool m_showScenes = true;
 };
 
 /// @brief The editors of the cells of the outline: a list of the states, and the points of

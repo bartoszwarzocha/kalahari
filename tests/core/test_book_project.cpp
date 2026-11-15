@@ -447,7 +447,9 @@ TEST_CASE("Book project: the description and the plot of a text on the plot boar
               { "id": "e3", "kind": "kalahari.base:chapter", "title": "Chapter 1",
                 "description": "Amara joins the caravan.",
                 "plot": { "pov": "Amara", "place": "Dakhla", "time": "Day 1", "color": "teal",
-                          "arc": "A" } } ] },
+                          "arc": "A",
+                          "opening": { "title": "The Market", "description": "She pays too much.",
+                                       "status": "final", "mood": "loud" } } } ] },
             { "id": "e4", "kind": "kalahari.base:chapter", "title": "Chapter 2" } ] }
       ]
     })";
@@ -461,6 +463,12 @@ TEST_CASE("Book project: the description and the plot of a text on the plot boar
     CHECK(chapter->plot.color == QStringLiteral("teal"));
     // A field of the plot this version does not know is kept
     CHECK(chapter->plot.extra.keys() == QStringList{QStringLiteral("arc")});
+    // The first scene of the text, before any scene break, with its own fields
+    CHECK(chapter->plot.opening.title == QStringLiteral("The Market"));
+    CHECK(chapter->plot.opening.description == QStringLiteral("She pays too much."));
+    CHECK(chapter->plot.opening.status == QStringLiteral("final"));
+    CHECK(chapter->plot.opening.pov.isEmpty());
+    CHECK(chapter->plot.opening.extra.keys() == QStringList{QStringLiteral("mood")});
     CHECK_FALSE(chapter->plot.isEmpty());
     // Written back, the text has the same fields
     const auto chapterOf = [](const QJsonObject& json) {
@@ -1587,6 +1595,14 @@ TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
          withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
                           "plot": { "pov": 3 } })"),
          "books[0].main[0].plot.pov: must be a text"},
+        {"a first scene that is not an object",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "opening": "The Market" } })"),
+         "books[0].main[0].plot.opening: must be an object"},
+        {"a title of the first scene that is not a text",
+         withElement(R"({ "id": "e1", "kind": "kalahari.base:chapter",
+                          "plot": { "opening": { "title": 1 } } })"),
+         "books[0].main[0].plot.opening.title: must be a text"},
         {"a web address that is not a text",
          withElement(R"({ "id": "e1", "kind": "kalahari.base:material", "url": 7 })"),
          "books[0].main[0].url: must be a web address"},

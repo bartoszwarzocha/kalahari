@@ -52,6 +52,15 @@ QString toQString(const std::filesystem::path& path) {
     return QString::fromStdWString(path.wstring());
 }
 
+/// The scenes of text @p kml, whose words are @p words: a text without scene breaks is one
+/// scene, whose words need not be counted again
+QList<KmlScene> scenesWith(const QString& kml, const WordTally& words) {
+    if (!kml.contains(QLatin1String("<scene-break"))) {
+        return {KmlScene{ScenePlot(), words}};
+    }
+    return ChapterDocument::kmlScenes(kml);
+}
+
 /// @p title as a file or folder name: characters that file systems do not allow become "_"
 QString safeFileName(const QString& title) {
     static const QRegularExpression invalid(QStringLiteral("[<>:\"/\\\\|?*]"));
@@ -2159,6 +2168,7 @@ QString ProjectManager::addUnassignedFile(const QString& file, const KindRef& ki
     ElementState& state = m_elementStates[element.id];
     state.notes = chapter->notes();
     state.words = chapter->wordTally();
+    state.scenes = scenesWith(chapter->kml(), state.words);
     if (!writeChapterFile(element, std::nullopt)) {
         logger.warn("addUnassignedFile: The title of {} is not in its chapter file",
                     element.id.toStdString());
@@ -2433,6 +2443,65 @@ bool ProjectManager::setPlot(const QString& elementId, const QString& descriptio
     });
 }
 
+QList<KmlScene> ProjectManager::scenesOf(const QString& elementId,
+                                         const std::optional<QString>& kml) const {
+    const ProjectElement* element = findElement(elementId);
+    const std::optional<ElementPlace> place =
+        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
+    if (!place || place->place == BookPlace::Workshop || formOf(*element) != ElementForm::Text) {
+        return {};
+    }
+    QList<KmlScene> scenes = kml ? ChapterDocument::kmlScenes(*kml)
+                                 : m_elementStates.value(elementId).scenes;
+    if (scenes.isEmpty()) {
+        scenes.append(KmlScene());  // no file yet: one empty scene
+    }
+    scenes.first().plot = element->plot.opening;
+    return scenes;
+}
+
+bool ProjectManager::setScenePlot(const QString& elementId, int scene, const ScenePlot& plot) {
+    auto& logger = Logger::getInstance();
+    const ProjectElement* element = findElement(elementId);
+    const std::optional<ElementPlace> place =
+        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
+    if (!place || place->place == BookPlace::Workshop || formOf(*element) != ElementForm::Text ||
+        scene < 0) {
+        logger.warn("setScenePlot: No scene {} of a text of a book: {}", scene,
+                    elementId.toStdString());
+        return false;
+    }
+    if (scene == 0) {
+        ElementPlot changed = element->plot;
+        changed.opening = plot;
+        return changeDetails("setScenePlot", elementId,
+                             [&changed](ProjectElement& each) { each.plot = changed; });
+    }
+    if (refusesChange("setScenePlot")) {
+        return false;
+    }
+    if (m_elementStates.value(elementId).dirty) {
+        logger.warn("setScenePlot: '{}' has changes its file does not have",
+                    element->title.toStdString());
+        return false;
+    }
+    const QString kml = chapterText(elementId);
+    const QString changed = ChapterDocument::withScenePlot(kml, scene, plot);
+    if (changed.isEmpty()) {
+        logger.warn("setScenePlot: '{}' has no scene {}", element->title.toStdString(), scene);
+        return false;
+    }
+    // A copy: writing the file may change the states of the elements
+    const ProjectElement text = *element;
+    if (!writeChapterFile(text, changed)) {
+        return false;
+    }
+    if (ElementState* state = stateOf(elementId); state != nullptr && state->loaded) {
+        state->content = changed;
+    }
+    return true;
+}
+
 bool ProjectManager::setFields(const QString& elementId, const QList<ElementField>& fields) {
     return changeDetails("setFields", elementId,
                          [&fields](ProjectElement& element) { element.fields = fields; });
@@ -2693,6 +2762,7 @@ QString ProjectManager::loadChapterContent(const QString& elementId) {
     state.loaded = true;
     state.dirty = false;
     state.words = chapter->wordTally();
+    state.scenes = scenesWith(state.content, state.words);
     state.editorWords.reset();
     state.notes = chapter->notes();
     logger.debug("Loaded .kchapter for element: {} ({} chars)", elementId.toStdString(),
@@ -3165,6 +3235,7 @@ void ProjectManager::loadElementStates() {
                         path.toStdString());
         } else if (std::optional<ChapterDocument> chapter = ChapterDocument::load(path)) {
             state.words = chapter->wordTally();
+            state.scenes = scenesWith(chapter->kml(), state.words);
             state.notes = chapter->notes();
         }
         m_elementStates.insert(element->id, state);
@@ -3221,6 +3292,7 @@ bool ProjectManager::writeChapterFile(const ProjectElement& element,
     // its KML), or the text it had
     ElementState& state = m_elementStates[element.id];
     state.words = kml ? ChapterDocument::kmlWordTally(*kml) : chapter.wordTally();
+    state.scenes = scenesWith(kml ? *kml : chapter.kml(), state.words);
     if (kml) {
         state.editorWords.reset();  // the file has the text of the editor now
     }

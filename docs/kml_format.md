@@ -136,8 +136,20 @@ the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, 
 | `<scene-break/>` | A scene break (Insert > Scene Break, also in the Book menu) |
 | `<page-break/>` | A page break (Insert > Page Break, Ctrl+Enter) |
 
-- Each is a block of its own between paragraphs, not inside one. Its attributes and its
-  content are ignored, and the editor writes the empty element.
+- Each is a block of its own between paragraphs, not inside one. Its content is ignored, and
+  the editor writes the empty element; of a scene break it keeps the attributes below, and
+  ignores the others.
+- A scene break says what the plot board shows of the scene after it: `title`,
+  `description`, `pov` (point of view), `place`, `time` (of the action), `color` (own color
+  of its card: `blue`, `teal`, `green`, `amber`, `rose`, `violet`) and `status` (`draft`,
+  `revision`, `final`; none: the state of its text). The editor writes them in this order,
+  each only with text; a line break in a description is written `&#10;`. The first scene of
+  a text, before any break, keeps the same fields in the `.klh` file (`"plot"` /
+  `"opening"`).
+
+  ```xml
+  <scene-break title="Night" pov="Anna" description="The storm comes." status="revision"/>
+  ```
 - In the editor each is one character in a paragraph of its own: the cursor passes it with
   one key press, and Backspace or Delete removes it whole.
 - A scene break looks as the setting `editor.sceneBreak.style` says (three asterisks, an

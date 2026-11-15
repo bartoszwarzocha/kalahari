@@ -23,6 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   done on the board. Book > Outline (Ctrl+Shift+L) shows the same texts in a table under their
   parts, edited in the cells. The description and the plot of a text are kept in the `.klh`
   file (`"description"`, `"plot"`); the colors are in the themes (`editor.plot*`).
+- **The scenes of the texts on the plot board** - 2026-11-15. A text with scene breaks has a
+  card of each scene: under its card in Columns, in a drawer under its row in Grid (Space or
+  a click on "3 scenes" opens and closes it), and a row under its row in the outline (the
+  Scenes switch over the board shows or hides them). A scene has a title, a description, a
+  point of view, a place and time of the action, a state and a color, edited as a text's (F2,
+  the menu, the cells of the outline) and undone with Ctrl+Z; Enter opens the text at the
+  scene. A text without its own point of view shows those of its scenes. What a scene says is
+  kept in the attributes of its scene break (`<scene-break title="..." pov="..."/>`), of the
+  first scene in the `.klh` file (`"plot"` / `"opening"`); an open text takes the change in its
+  editor, to be saved with it.
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

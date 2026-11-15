@@ -815,3 +815,64 @@ TEST_CASE("ChapterDocument format constants", "[core][chapter_document]") {
         CHECK(QString::fromLatin1(ChapterDocument::FORMAT_TYPE) == "chapter");
     }
 }
+
+TEST_CASE("ChapterDocument: the scenes of a text", "[core][chapter_document][scenes]") {
+    SECTION("a text without scene breaks is one scene with all its words") {
+        const QString kml = QStringLiteral("<kml><p>One two three</p><p>four</p></kml>");
+        const QList<KmlScene> scenes = ChapterDocument::kmlScenes(kml);
+        REQUIRE(scenes.size() == 1);
+        CHECK(scenes.at(0).words == ChapterDocument::kmlWordTally(kml));
+        CHECK(scenes.at(0).plot.isEmpty());
+    }
+
+    SECTION("the breaks split it, each says what it keeps of its scene") {
+        const QString kml = QStringLiteral(
+            "<kml><annotations><annotation id=\"a1\" kind=\"todo\">Check</annotation>"
+            "</annotations><p>One <b>two</b><footnote id=\"f1\">A note</footnote></p>\n  "
+            "<scene-break title=\"Night &amp; day\" description=\"Line one&#10;line two\" "
+            "pov=\"Anna\" place=\"The harbour\" time=\"October\" color=\"rose\" "
+            "status=\"final\" other=\"kept out\"/>"
+            "<p>Three four five</p><ol><li>six</li></ol><scene-break></scene-break>"
+            "<p>seven</p></kml>");
+        const QList<KmlScene> scenes = ChapterDocument::kmlScenes(kml);
+        REQUIRE(scenes.size() == 3);
+        CHECK(scenes.at(0).words.words == 2);
+        CHECK(scenes.at(0).words.noteWords == 2);
+        CHECK(scenes.at(1).words.words == 4);
+        CHECK(scenes.at(2).words.words == 1);
+        // The words of the scenes are those of the text
+        const WordTally all = ChapterDocument::kmlWordTally(kml);
+        CHECK(scenes.at(0).words.words + scenes.at(1).words.words + scenes.at(2).words.words ==
+              all.words);
+        CHECK(scenes.at(0).plot.isEmpty());
+        const ScenePlot& night = scenes.at(1).plot;
+        CHECK(night.title.toStdString() == "Night & day");
+        CHECK(night.description.toStdString() == "Line one\nline two");
+        CHECK(night.pov.toStdString() == "Anna");
+        CHECK(night.place.toStdString() == "The harbour");
+        CHECK(night.time.toStdString() == "October");
+        CHECK(night.color.toStdString() == "rose");
+        CHECK(night.status.toStdString() == "final");
+        CHECK(scenes.at(2).plot.isEmpty());
+    }
+
+    SECTION("a break changed says the new plot, the rest of the text stays") {
+        const QString kml =
+            QStringLiteral("<kml><p>a</p><scene-break title=\"Old\"/><p>b</p><scene-break/>"
+                           "<p>c</p></kml>");
+        ScenePlot plot;
+        plot.title = QStringLiteral("Morning <after>");
+        plot.description = QStringLiteral("Two\nlines");
+        plot.status = QStringLiteral("revision");
+        const QString second = ChapterDocument::withScenePlot(kml, 2, plot);
+        CHECK(second.toStdString() ==
+              "<kml><p>a</p><scene-break title=\"Old\"/><p>b</p><scene-break title=\"Morning "
+              "&lt;after&gt;\" description=\"Two&#10;lines\" status=\"revision\"/><p>c</p></kml>");
+        CHECK(ChapterDocument::kmlScenes(second).at(2).plot == plot);
+        CHECK(ChapterDocument::withScenePlot(kml, 1, ScenePlot()).toStdString() ==
+              "<kml><p>a</p><scene-break/><p>b</p><scene-break/><p>c</p></kml>");
+        // No such break
+        CHECK(ChapterDocument::withScenePlot(kml, 3, plot).isEmpty());
+        CHECK(ChapterDocument::withScenePlot(kml, 0, plot).isEmpty());
+    }
+}

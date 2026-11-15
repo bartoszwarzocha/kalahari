@@ -10,10 +10,12 @@
 
 #include "kalahari/core/book_project.h"
 
+#include <QHash>
 #include <QObject>
 #include <QString>
 
 #include <functional>
+#include <optional>
 
 class QStatusBar;
 class QTabWidget;
@@ -24,6 +26,10 @@ class QWidget;
 namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
+
+namespace kalahari::editor {
+class BookEditor;
+}  // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -44,6 +50,12 @@ struct PlotCardEdit;
 /// elsewhere (the Navigator, the Properties panel), a text added or deleted, forgets what can
 /// be undone, since the places the board remembers may be no more. Opening a text, a text
 /// added or deleted and the properties are those of the Navigator (NavigatorCoordinator).
+///
+/// The cards of the scenes of a text show what its scene breaks say, also in a text open with
+/// changes not saved; what the board changes of a scene goes to the scene break in the editor
+/// of an open text (to be saved with the text), else to its file, and of the first scene to
+/// the .klh file (core::ProjectManager::setScenePlot()). Enter on a scene opens its text at the
+/// scene; a scene changed in the editor since is not undone on the board.
 class PlotBoardCoordinator : public QObject {
     Q_OBJECT
 
@@ -124,6 +136,30 @@ private:
     void redo();
     void showProperties(const QString& elementId, bool keys);
 
+    /// @name The scenes of the texts
+    /// @{
+    /// @brief Give scene @p cardId (PlotBoard::sceneId()) @p plot and remember it to be undone;
+    /// @p message says what was done
+    void changeSceneWithUndo(const QString& cardId, const core::ScenePlot& plot,
+                             const QString& message, const QString& undoText);
+    /// @brief Give scene @p scene of text @p textId @p plot when it still says @p before: in
+    /// the editor of the text when it is open, else in the book
+    /// @return false when the scene says something else now (m_changedElsewhere), or the book
+    ///         could not take the change
+    bool changeScene(const QString& textId, int scene, const core::ScenePlot& before,
+                     const core::ScenePlot& plot);
+    /// @brief What scene @p scene of text @p textId says now, also in its open editor;
+    /// nullopt: the text has no such scene
+    [[nodiscard]] std::optional<core::ScenePlot> scenePlotOf(const QString& textId,
+                                                             int scene) const;
+    /// @brief Tell the writer that a scene is moved, added and deleted in the editor
+    void sceneInEditor();
+    /// @brief The KML of the open texts with changes not saved, by the ids of their elements
+    [[nodiscard]] QHash<QString, QString> unsavedTexts() const;
+    /// @brief The editor of text @p elementId open in a tab; nullptr: none
+    [[nodiscard]] editor::BookEditor* editorOf(const QString& elementId) const;
+    /// @}
+
     /// @brief Move text @p elementId to @p place (in its list without it) and remember it to
     /// be undone
     void moveWithUndo(const QString& elementId, const core::ElementPlace& place);
@@ -142,11 +178,15 @@ private:
 
     /// @brief What a card of text @p elementId shows that the writer can change
     [[nodiscard]] CardText cardTextOf(const QString& elementId) const;
+    /// @brief The title of text @p elementId; of a scene card, its title or "The Storm, Scene 2"
     [[nodiscard]] QString titleOf(const QString& elementId) const;
     /// @brief Say @p message under the board; @p canUndo: with Undo
     void say(const QString& message, bool canUndo = false);
     /// @brief Tell the writer that the book could not take a change
     void notSaved();
+    /// @brief Tell the writer that a scene undone or done again changed in the editor since,
+    /// else that the book could not take the change
+    void changedOrNotSaved();
     [[nodiscard]] QWidget* window() const;
 
     core::ProjectManager& m_book;  ///< The book of its window
@@ -160,6 +200,7 @@ private:
     QString m_marked;     ///< The text marked to move (Ctrl+X)
     bool m_stale = false;  ///< The board behind another tab missed a change of the book
     int m_ownChanges = 0;  ///< > 0 while the board changes the book itself
+    bool m_changedElsewhere = false;  ///< The scene undone last was changed in the editor
 };
 
 }  // namespace kalahari::gui

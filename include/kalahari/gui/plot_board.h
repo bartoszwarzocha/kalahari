@@ -12,12 +12,14 @@
 
 #include <QColor>
 #include <QCoreApplication>
+#include <QHash>
 #include <QList>
 #include <QString>
 #include <QStringList>
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace kalahari::core {
@@ -27,10 +29,10 @@ class ProjectManager;
 namespace kalahari::gui {
 
 /// @brief A text of the main section of the book as a card of the plot board and a row of the
-/// outline
+/// outline, or a scene of such a text
 struct PlotCard {
-    QString id;               ///< Id of the element
-    QString kindName;         ///< Name of its kind: "Chapter", "Prologue"
+    QString id;               ///< Id of the element; of a scene PlotBoard::sceneId()
+    QString kindName;         ///< Name of its kind: "Chapter", "Prologue"; of a scene "Scene 2"
     QString iconId;           ///< ArtProvider id of its icon
     QString title;            ///< Its title
     QString description;      ///< Its short description (core::ProjectElement::description)
@@ -39,6 +41,16 @@ struct PlotCard {
     int words = 0;            ///< Words of its text (core::ProjectManager::wordCount())
     QString partId;           ///< The part it is in; empty: outside the parts
     int number = 0;           ///< Its place among the cards of the board, from 1
+    QString textId;           ///< Of a scene: its text; empty for a text
+    int scene = -1;           ///< Of a scene: its place in its text, from 0; -1 for a text
+    QList<PlotCard> scenes;   ///< Of a text with scene breaks: its scenes; none: one scene
+
+    /// @brief Whether it is a scene of a text
+    [[nodiscard]] bool isScene() const { return scene >= 0; }
+
+    /// @brief The points of view of its scenes, each once in their order: those of a text
+    /// without its own
+    [[nodiscard]] QStringList scenePovs() const;
 
     bool operator==(const PlotCard&) const = default;
 };
@@ -78,6 +90,9 @@ public:
     static constexpr const char* LAYOUT_SETTING = "plotBoard.layout";
     static constexpr const char* LAYOUT_COLUMNS = "columns";
     static constexpr const char* LAYOUT_GRID = "grid";
+    /// Whether the board shows the scenes of the texts (in Grid: with their drawers open) and
+    /// the outline their rows
+    static constexpr const char* SCENES_SETTING = "plotBoard.showScenes";
     /// The size of the cards: SIZE_SMALL, SIZE_MEDIUM or SIZE_LARGE
     static constexpr const char* SIZE_SETTING = "plotBoard.cardSize";
     static constexpr const char* SIZE_SMALL = "small";
@@ -93,11 +108,30 @@ public:
     /// @}
 
     /// @brief The texts of the main section of the open book in bands: each part with its
-    /// texts, and the texts outside the parts between them; none without a book
-    [[nodiscard]] static QList<PlotBand> bandsOf(const core::ProjectManager& book);
+    /// texts, and the texts outside the parts between them, each text with its scenes; none
+    /// without a book
+    /// @param unsaved The texts (KML) of the open texts with changes their files do not have,
+    ///        by the ids of their elements: their scenes are those of these texts
+    [[nodiscard]] static QList<PlotBand> bandsOf(const core::ProjectManager& book,
+                                                 const QHash<QString, QString>& unsaved = {});
 
-    /// @brief The cards of @p bands one after another
+    /// @brief The cards of the texts of @p bands one after another
     [[nodiscard]] static QList<PlotCard> cardsOf(const QList<PlotBand>& bands);
+
+    /// @brief The cards of @p bands one after another, each text followed by its scenes
+    [[nodiscard]] static QList<PlotCard> allCardsOf(const QList<PlotBand>& bands);
+
+    /// @brief The id of the card of scene @p scene (from 0) of text @p textId
+    [[nodiscard]] static QString sceneId(const QString& textId, int scene);
+
+    /// @brief The text and the scene of card @p cardId (sceneId()); nullopt for a text's card
+    [[nodiscard]] static std::optional<std::pair<QString, int>> sceneOf(const QString& cardId);
+
+    /// @brief The name of scene @p scene (from 0) on its card: "Scene 1"
+    [[nodiscard]] static QString sceneName(int scene);
+
+    /// @brief "3 scenes" in the program's language
+    [[nodiscard]] static QString scenesText(int scenes);
 
     /// @brief The place of the main section @p steps places before (less than 0) or after the
     /// place of text @p elementId, among the places its kind can be; as far as it can go

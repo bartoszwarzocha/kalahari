@@ -1937,6 +1937,25 @@
         <extracomment>In Polish: Fioletowy</extracomment>
         <translation>Fioletowy</translation>
     </message>
+    <message>
+        <source>Scene %1</source>
+        <extracomment>The kind of a card of a scene on the plot board; %1 its number in its text. In Polish: Scena %1</extracomment>
+        <translation>Scena %1</translation>
+    </message>
+    <message>
+        <source>1 scene</source>
+        <extracomment>The scenes of a text on its card on the plot board. In Polish: 1 scena</extracomment>
+        <translation>1 scena</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n scenes</source>
+        <extracomment>In Polish: %n scena / sceny / scen</extracomment>
+        <translation>
+            <numerusform>%n scena</numerusform>
+            <numerusform>%n sceny</numerusform>
+            <numerusform>%n scen</numerusform>
+        </translation>
+    </message>
 </context>
 <context>
     <name>ProgramFolders</name>
@@ -10563,6 +10582,21 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>In Polish: Nie udało się zapisać zmian.</extracomment>
         <translation>Nie udało się zapisać zmian.</translation>
     </message>
+    <message>
+        <source>%1, %2</source>
+        <extracomment>A scene without a title in what is said under the plot board; %1 the title of its text, %2 "Scene 2". In Polish: %1, %2</extracomment>
+        <translation>%1, %2</translation>
+    </message>
+    <message>
+        <source>Scenes are moved, added and deleted in the text, in the editor.</source>
+        <extracomment>Under the plot board after a scene card was to be moved, added, cut or deleted. In Polish: Sceny przenosi się, dodaje i usuwa w tekście, w edytorze.</extracomment>
+        <translation>Sceny przenosi się, dodaje i usuwa w tekście, w edytorze.</translation>
+    </message>
+    <message>
+        <source>The scene changed in the editor: the board cannot undo that.</source>
+        <extracomment>Under the plot board after Ctrl+Z or Ctrl+Y on a scene changed in the editor since. In Polish: Scena zmieniła się w edytorze: tablica tego nie cofnie.</extracomment>
+        <translation>Scena zmieniła się w edytorze: tablica tego nie cofnie.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardPanel</name>
@@ -10698,6 +10732,16 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <extracomment>In Polish: &amp;Właściwości</extracomment>
         <translation>&amp;Właściwości</translation>
     </message>
+    <message>
+        <source>Scenes</source>
+        <extracomment>The switch over the plot board: the scenes of the texts shown or not. In Polish: Sceny</extracomment>
+        <translation>Sceny</translation>
+    </message>
+    <message>
+        <source>The scenes of the texts: under their cards, in the drawers of the grid and in rows of the outline</source>
+        <extracomment>In Polish: Sceny tekstów: pod ich kartami, w szufladach siatki i w wierszach konspektu</extracomment>
+        <translation>Sceny tekstów: pod ich kartami, w szufladach siatki i w wierszach konspektu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardView</name>
@@ -10745,6 +10789,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>No description – F2</source>
         <extracomment>A card of the plot board without a description. In Polish: Bez opisu – F2</extracomment>
         <translation>Bez opisu – F2</translation>
+    </message>
+    <message>
+        <source>Scenes – %1</source>
+        <extracomment>Over the scenes of a text in its drawer on the plot board; %1 the title of the text. In Polish: Sceny – %1</extracomment>
+        <translation>Sceny – %1</translation>
     </message>
 </context>
 <context>

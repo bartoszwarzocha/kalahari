@@ -34,6 +34,9 @@ constexpr std::array<const char*, 9> COLOR_KEYS{{"plotDraft", "plotRevision", "p
 /// @brief How many colors come before the writer's own in COLOR_KEYS
 constexpr std::size_t STATUS_COLORS = 3;
 
+/// @brief What joins the id of a text and the number of its scene in the id of a scene's card
+constexpr char SCENE_MARK = '#';
+
 /// @brief The titles of the elements of the Workshop of kind @p kindId, each once, sorted
 QStringList workshopTitles(const core::ProjectManager& book, const QString& kindId) {
     QStringList titles;
@@ -73,6 +76,20 @@ core::ElementPlace withoutElement(const core::BookProject& project, const QStrin
 }  // namespace
 
 // =============================================================================
+// PlotCard
+// =============================================================================
+
+QStringList PlotCard::scenePovs() const {
+    QStringList povs;
+    for (const PlotCard& each : scenes) {
+        if (!each.plot.pov.isEmpty() && !povs.contains(each.plot.pov)) {
+            povs << each.plot.pov;
+        }
+    }
+    return povs;
+}
+
+// =============================================================================
 // PlotBand
 // =============================================================================
 
@@ -88,13 +105,15 @@ int PlotBand::words() const {
 // PlotBoard
 // =============================================================================
 
-QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book) {
+QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book,
+                                   const QHash<QString, QString>& unsaved) {
     QList<PlotBand> bands;
     const core::BookProject* project = book.project();
     if (project == nullptr || project->books.isEmpty()) {
         return bands;
     }
     const QString language = programLanguage();
+    const core::WordCountRules rules = core::wordCountRules();
     int number = 0;
     const auto cardOf = [&](const core::ProjectElement& element, const QString& partId) {
         PlotCard card;
@@ -108,6 +127,30 @@ QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book) {
         card.words = book.wordCount(element.id);
         card.partId = partId;
         card.number = ++number;
+        // Its scenes, when it has scene breaks
+        const auto own = unsaved.constFind(element.id);
+        const QList<core::KmlScene> scenes =
+            book.scenesOf(element.id, own != unsaved.cend() ? std::optional<QString>(*own)
+                                                             : std::nullopt);
+        for (qsizetype i = 0; scenes.size() > 1 && i < scenes.size(); ++i) {
+            const core::ScenePlot& plot = scenes.at(i).plot;
+            PlotCard scene;
+            scene.id = sceneId(element.id, int(i));
+            scene.kindName = sceneName(int(i));
+            scene.title = plot.title;
+            scene.description = plot.description;
+            scene.plot.pov = plot.pov;
+            scene.plot.place = plot.place;
+            scene.plot.time = plot.time;
+            scene.plot.color = plot.color;
+            scene.status = plot.status.isEmpty() ? card.status : plot.status;
+            scene.words = scenes.at(i).words.wordsUnder(rules);
+            scene.partId = partId;
+            scene.number = card.number;
+            scene.textId = element.id;
+            scene.scene = int(i);
+            card.scenes << scene;
+        }
         return card;
     };
     // The texts of a part, also those of the groups inside it
@@ -146,6 +189,47 @@ QList<PlotCard> PlotBoard::cardsOf(const QList<PlotBand>& bands) {
         cards << band.cards;
     }
     return cards;
+}
+
+QList<PlotCard> PlotBoard::allCardsOf(const QList<PlotBand>& bands) {
+    QList<PlotCard> cards;
+    for (const PlotBand& band : bands) {
+        for (const PlotCard& card : band.cards) {
+            cards << card << card.scenes;
+        }
+    }
+    return cards;
+}
+
+QString PlotBoard::sceneId(const QString& textId, int scene) {
+    return textId + QLatin1Char(SCENE_MARK) + QString::number(scene);
+}
+
+std::optional<std::pair<QString, int>> PlotBoard::sceneOf(const QString& cardId) {
+    const qsizetype mark = cardId.lastIndexOf(QLatin1Char(SCENE_MARK));
+    if (mark <= 0) {
+        return std::nullopt;
+    }
+    bool number = false;
+    const int scene = cardId.mid(mark + 1).toInt(&number);
+    if (!number || scene < 0) {
+        return std::nullopt;
+    }
+    return std::make_pair(cardId.left(mark), scene);
+}
+
+QString PlotBoard::sceneName(int scene) {
+    //: The kind of a card of a scene on the plot board; %1 its number in its text. In Polish:
+    //: Scena %1
+    return tr("Scene %1").arg(scene + 1);
+}
+
+QString PlotBoard::scenesText(int scenes) {
+    return scenes == 1
+               //: The scenes of a text on its card on the plot board. In Polish: 1 scena
+               ? tr("1 scene")
+               //: In Polish: %n scena / sceny / scen
+               : tr("%n scenes", nullptr, scenes);
 }
 
 std::optional<core::ElementPlace> PlotBoard::stepPlace(const core::ProjectManager& book,

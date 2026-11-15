@@ -135,6 +135,15 @@ bool KmlDocumentModel::loadKml(const QString& kml)
                 // A horizontal line or a break: a block of its own, without content
                 Paragraph para;
                 para.object = object;
+                if (object == TextObject::SceneBreak) {
+                    const QXmlStreamAttributes attributes = reader.attributes();
+                    for (const QString& name : sceneBreakAttributeNames()) {
+                        if (const QString value = attributes.value(name).toString();
+                            !value.isEmpty()) {
+                            para.sceneAttributes.insert(name, value);
+                        }
+                    }
+                }
                 m_paragraphs.push_back(std::move(para));
                 reader.skipCurrentElement();
                 reader.readNext();
@@ -280,6 +289,14 @@ TextObject KmlDocumentModel::paragraphObject(size_t index) const
         return TextObject::None;
     }
     return m_paragraphs[index].object;
+}
+
+SceneBreakAttributes KmlDocumentModel::paragraphSceneAttributes(size_t index) const
+{
+    if (index >= m_paragraphs.size()) {
+        return {};
+    }
+    return m_paragraphs[index].sceneAttributes;
 }
 
 ParagraphFormat KmlDocumentModel::paragraphOwnFormat(size_t index) const

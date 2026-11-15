@@ -20,6 +20,58 @@
 namespace kalahari {
 namespace core {
 
+namespace {
+
+/// @brief An element of the root element of a KML: a paragraph, a list, a break...
+struct TopElement {
+    QString name;
+    qsizetype start = 0;  ///< Its first character in the KML
+    qsizetype end = 0;    ///< The character after it
+    QXmlStreamAttributes attributes;
+};
+
+/// @brief The elements of the root element of @p content (with its root element:
+///        KmlFormatRegistry::withRootElement()), in their order; those read before an error
+QList<TopElement> topElementsOf(const QString& content)
+{
+    QList<TopElement> elements;
+    QXmlStreamReader reader(content);
+    if (!reader.readNextStartElement()) {
+        return elements;  // no root element
+    }
+    qsizetype before = static_cast<qsizetype>(reader.characterOffset());
+    while (!reader.atEnd()) {
+        const QXmlStreamReader::TokenType token = reader.readNext();
+        if (token == QXmlStreamReader::EndElement || token == QXmlStreamReader::Invalid) {
+            break;  // the end of the root element, or an error
+        }
+        if (token == QXmlStreamReader::StartElement) {
+            // After text the reader is past the "<" of the element already
+            qsizetype start = before;
+            if (start >= content.size() || content.at(start) != QLatin1Char('<')) {
+                start = content.lastIndexOf(QLatin1Char('<'), start);
+            }
+            TopElement element{reader.name().toString(), start, 0, reader.attributes()};
+            reader.skipCurrentElement();
+            if (reader.hasError()) {
+                break;
+            }
+            element.end = static_cast<qsizetype>(reader.characterOffset());
+            elements.append(element);
+        }
+        before = static_cast<qsizetype>(reader.characterOffset());
+    }
+    return elements;
+}
+
+/// @brief Whether an element of the root is a scene break
+bool isSceneBreak(const TopElement& element)
+{
+    return element.name == QLatin1String("scene-break");
+}
+
+}  // namespace
+
 // =============================================================================
 // Construction
 // =============================================================================
@@ -585,6 +637,63 @@ WordTally ChapterDocument::kmlWordTally(const QString& kml)
         tally.noteDashes += words.dashes;
     }
     return tally;
+}
+
+QList<KmlScene> ChapterDocument::kmlScenes(const QString& kml)
+{
+    // Without a break the text is one scene: its words are counted as those of the text
+    if (!kml.contains(QLatin1String("<scene-break"))) {
+        return {KmlScene{ScenePlot(), kmlWordTally(kml)}};
+    }
+    const QString content = editor::KmlFormatRegistry::withRootElement(kml);
+    QList<KmlScene> scenes{KmlScene()};
+    QString text;  // the elements of the scene so far
+    const auto finishScene = [&scenes, &text]() {
+        scenes.last().words = kmlWordTally(QStringLiteral("<kml>") + text +
+                                           QStringLiteral("</kml>"));
+        text.clear();
+    };
+    for (const TopElement& element : topElementsOf(content)) {
+        if (isSceneBreak(element)) {
+            finishScene();
+            QMap<QString, QString> attributes;
+            for (const QXmlStreamAttribute& attribute : element.attributes) {
+                attributes.insert(attribute.name().toString(), attribute.value().toString());
+            }
+            scenes.append(KmlScene{ScenePlot::fromAttributes(attributes), WordTally()});
+        } else {
+            text += QStringView(content).mid(element.start, element.end - element.start);
+        }
+    }
+    finishScene();
+    return scenes;
+}
+
+QString ChapterDocument::withScenePlot(const QString& kml, int scene, const ScenePlot& plot)
+{
+    if (scene < 1) {
+        return QString();
+    }
+    QString content = editor::KmlFormatRegistry::withRootElement(kml);
+    int breaks = 0;
+    for (const TopElement& element : topElementsOf(content)) {
+        if (!isSceneBreak(element) || ++breaks < scene) {
+            continue;
+        }
+        QString written = QStringLiteral("<scene-break");
+        const QMap<QString, QString> attributes = plot.toAttributes();
+        for (const QString& name : ScenePlot::fieldNames()) {
+            if (const auto value = attributes.constFind(name); value != attributes.cend()) {
+                written += QLatin1Char(' ') + name + QStringLiteral("=\"") +
+                           editor::KmlFormatRegistry::escapeXmlAttribute(*value) +
+                           QLatin1Char('"');
+            }
+        }
+        written += QStringLiteral("/>");
+        content.replace(element.start, element.end - element.start, written);
+        return content;
+    }
+    return QString();
 }
 
 } // namespace core

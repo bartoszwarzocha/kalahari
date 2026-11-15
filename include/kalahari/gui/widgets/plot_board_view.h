@@ -14,6 +14,7 @@
 #include <QList>
 #include <QPoint>
 #include <QRect>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 
@@ -36,6 +37,8 @@ struct PlotCardEdit {
 /// words and state, its title, its description and its point of view, place and time of the
 /// action, in a color as the board says (PlotColors::ofCard()). In columns the parts are side
 /// by side, each over its texts; in a grid the texts are in rows under the title of their part.
+/// The scenes of a text are under its card in columns, and in a drawer under its row in a grid,
+/// which Space or a click on "3 scenes" opens and closes (setShowScenes() opens all of them).
 ///
 /// The keys: the arrows go to the card in their direction, Home and End to the first and the
 /// last card; Ctrl with an arrow moves the card (in a grid Ctrl+Up and Ctrl+Down by a row);
@@ -96,6 +99,19 @@ public:
 
     /// @brief Show @p fields on the cards
     void setFields(const Fields& fields);
+
+    /// @brief Show the scenes of the texts: under their cards in columns; in a grid with the
+    /// drawers of all texts open (each one opens and closes on its own then)
+    void setShowScenes(bool show);
+    [[nodiscard]] bool showsScenes() const { return m_showScenes; }
+
+    /// @brief Whether the board shows the scenes of text @p textId (in a grid: its drawer is
+    /// open)
+    [[nodiscard]] bool scenesShown(const QString& textId) const;
+
+    /// @brief In a grid open the drawer of the scenes of text @p textId, or close it
+    /// @return false in columns, and for a text without scenes
+    bool toggleScenes(const QString& textId);
 
     /// @brief Color the cards as @p colorBy says (PlotBoard::COLOR_STATUS...) with @p colors
     void setColoring(const QString& colorBy, const PlotColors& colors);
@@ -191,8 +207,16 @@ private:
     /// @brief A card where it is on the board, in the coordinates of the contents
     struct CardPlace {
         QString id;
-        int band = 0;   ///< Its band in m_bands
-        int index = 0;  ///< Its place in the band
+        int band = 0;    ///< Its band in m_bands
+        int index = 0;   ///< Its place in the band; of a scene, its text's
+        int scene = -1;  ///< Of a scene: its place among the scenes of its text
+        int column = 0;  ///< In columns: the column of its text, from 0
+        QRect rect;
+    };
+    /// @brief The drawer of the scenes of a text in a grid
+    struct DrawerPlace {
+        QString textId;
+        QString title;  ///< Of its text
         QRect rect;
     };
     /// @brief A band where it is on the board
@@ -213,7 +237,7 @@ private:
     /// @brief The keys of the board: what a key does, or nothing for a key of others
     enum class Key {
         None, Left, Right, Up, Down, First, Last, MoveBack, MoveForward, MoveUp, MoveDown,
-        Open, Edit, Add, Delete, Cut, Paste, CancelCut, Undo, Redo, Properties, Menu
+        Open, Edit, Add, Delete, Cut, Paste, CancelCut, Undo, Redo, Properties, Menu, Scenes
     };
     [[nodiscard]] Key keyOf(const QKeyEvent* event) const;
     void doKey(Key key);
@@ -222,6 +246,13 @@ private:
     [[nodiscard]] QSize cardSizePixels() const;
     [[nodiscard]] const CardPlace* placeOf(const QString& elementId) const;
     [[nodiscard]] const PlotCard* cardOf(const QString& elementId) const;
+    [[nodiscard]] const PlotCard& cardOfPlace(const CardPlace& place) const;
+    /// @brief In a grid, where "3 scenes" is on the card of a text with scenes; empty: nowhere
+    [[nodiscard]] QRect scenesNoteRect(const CardPlace& place) const;
+    [[nodiscard]] QString scenesNote(const PlotCard& card) const;
+    void layOutColumns(const QSize& card, int header);
+    void layOutGrid(const QSize& card, int header);
+    void paintDrawer(QPainter& painter, const DrawerPlace& drawer) const;
     [[nodiscard]] const CardPlace* cardAt(const QPoint& contentsPos) const;
     [[nodiscard]] QPoint contentsPos(const QPoint& viewportPos) const;
     [[nodiscard]] QString neighbour(Key key) const;
@@ -239,6 +270,9 @@ private:
     QList<PlotBand> m_bands;
     QList<CardPlace> m_cards;
     QList<BandPlace> m_bandPlaces;
+    QList<DrawerPlace> m_drawers;
+    bool m_showScenes = true;
+    QSet<QString> m_toggled;  ///< In a grid: the texts whose drawers are not as m_showScenes
     QSize m_contentsSize;
     Arrangement m_arrangement = Arrangement::Columns;
     CardSize m_cardSize = CardSize::Medium;

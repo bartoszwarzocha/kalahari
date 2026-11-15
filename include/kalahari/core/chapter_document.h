@@ -38,6 +38,7 @@
 
 #pragma once
 
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/text_statistics.h>
 
 #include <QString>
@@ -45,10 +46,21 @@
 #include <QJsonArray>
 #include <QDateTime>
 #include <QColor>
+#include <QList>
 #include <optional>
 
 namespace kalahari {
 namespace core {
+
+/// @brief A scene of a text: its text from its start or from a scene break (<scene-break/>,
+///        a paragraph of the text) to the next break
+struct KmlScene {
+    ScenePlot plot;   ///< What its break says of it (ScenePlot::toAttributes()); the first
+                      ///< scene has nothing here (ElementPlot::opening)
+    WordTally words;  ///< The words of its text, with the texts of its notes
+
+    bool operator==(const KmlScene&) const = default;
+};
 
 /// @brief Chapter document with JSON+KML storage
 ///
@@ -243,6 +255,16 @@ public:
     ///        them: of its paragraphs (kmlToPlainText()) and of the texts of its footnotes and
     ///        endnotes (WordTally::noteWords)
     static WordTally kmlWordTally(const QString& kml);
+
+    /// @brief The scenes of a text's KML in their order, with their words: the scenes of a
+    ///        text add up to its words (kmlWordTally()); a text without scene breaks is one
+    ///        scene
+    static QList<KmlScene> kmlScenes(const QString& kml);
+
+    /// @brief The KML with the break of scene @p scene (from 1: the first break) saying
+    ///        @p plot of it; the rest of the text as it was
+    /// @return Empty when the text has no such break
+    static QString withScenePlot(const QString& kml, int scene, const ScenePlot& plot);
 
 private:
     /// @brief Recalculate statistics from current content

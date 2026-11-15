@@ -241,6 +241,17 @@ void PlotBoardPanel::buildHeader(QWidget* header) {
         setSetting(PlotBoard::VIEW_SETTING, PlotBoard::VIEW_OUTLINE);
     });
 
+    // The scenes of the texts, on the board and in the outline
+    //: The switch over the plot board: the scenes of the texts shown or not. In Polish: Sceny
+    m_scenesButton = switchButton(tr("Scenes"), "plotBoardScenes", header);
+    //: In Polish: Sceny tekstów: pod ich kartami, w szufladach siatki i w wierszach konspektu
+    m_scenesButton->setToolTip(tr("The scenes of the texts: under their cards, in the drawers "
+                                  "of the grid and in rows of the outline"));
+    flow->addWidget(m_scenesButton);
+    connect(m_scenesButton, &QToolButton::clicked, this, [](bool checked) {
+        core::SettingsManager::getInstance().set<bool>(PlotBoard::SCENES_SETTING, checked);
+    });
+
     // Columns | Grid
     //: How the cards of the plot board are arranged. In Polish: Układ:
     m_layoutLabel = new QLabel(tr("Layout:"), header);
@@ -419,6 +430,10 @@ void PlotBoardPanel::applySettings() {
                              ? PlotBoardView::CardSize::Large
                              : PlotBoardView::CardSize::Medium);
     m_board->setColoring(setting(PlotBoard::COLOR_SETTING), PlotColors::current());
+    const bool scenes =
+        core::SettingsManager::getInstance().get<bool>(PlotBoard::SCENES_SETTING, true);
+    m_board->setShowScenes(scenes);
+    m_model->setShowScenes(scenes);
     updateSwitches();
 }
 
@@ -426,6 +441,7 @@ void PlotBoardPanel::updateSwitches() {
     const bool outline = m_stack->currentWidget() == m_outline;
     m_boardButton->setChecked(!outline);
     m_outlineButton->setChecked(outline);
+    m_scenesButton->setChecked(m_board->showsScenes());
     // The look of the cards is the board's
     for (QWidget* widget : {static_cast<QWidget*>(m_layoutLabel),
                             static_cast<QWidget*>(m_columnsButton),
@@ -458,14 +474,22 @@ void PlotBoardPanel::updateTotals() {
                                         PlotBoard::wordsText(words)));
 }
 
+std::optional<PlotCard> PlotBoardPanel::card(const QString& elementId) const {
+    if (elementId.isEmpty()) {
+        return std::nullopt;
+    }
+    for (const PlotCard& each : PlotBoard::allCardsOf(m_bands)) {
+        if (each.id == elementId) {
+            return each;
+        }
+    }
+    return std::nullopt;
+}
+
 void PlotBoardPanel::onOutlineEdited(const QString& elementId, int column,
                                      const QString& value) {
-    const QList<PlotCard> cards = PlotBoard::cardsOf(m_bands);
-    const auto found = std::find_if(cards.cbegin(), cards.cend(),
-                                    [&elementId](const PlotCard& card) {
-                                        return card.id == elementId;
-                                    });
-    if (found == cards.cend()) {
+    const std::optional<PlotCard> found = card(elementId);
+    if (!found) {
         return;
     }
     if (column == PlotOutlineModel::StatusColumn) {
@@ -497,13 +521,11 @@ void PlotBoardPanel::onOutlineEdited(const QString& elementId, int column,
 
 QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
     m_menu->clear();
-    const QList<PlotCard> cards = PlotBoard::cardsOf(m_bands);
-    const auto found = std::find_if(cards.cbegin(), cards.cend(),
-                                    [&elementId](const PlotCard& card) {
-                                        return card.id == elementId;
-                                    });
-    const bool card = found != cards.cend();
-    const bool changing = card && !m_readOnly;
+    const std::optional<PlotCard> found = card(elementId);
+    const bool shown = found.has_value();
+    const bool changing = shown && !m_readOnly;
+    // A scene is moved, added and deleted in its text, in the editor
+    const bool text = !shown || !found->isScene();
     const auto add = [this](const QString& text, const QString& keys, bool enabled,
                             const std::function<void()>& run) {
         QAction* action = m_menu->addAction(text);
@@ -516,24 +538,25 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
         return action;
     };
     //: The menu of a card of the plot board. In Polish: &Otwórz
-    add(tr("&Open"), QStringLiteral("Return"), card, [this, elementId]() {
+    add(tr("&Open"), QStringLiteral("Return"), shown, [this, elementId]() {
         emit openRequested(elementId);
     });
     //: In Polish: &Edytuj kartę
     add(tr("&Edit Card"), QStringLiteral("F2"), changing,
         [this, elementId]() { editCard(elementId); });
     //: A new text of the same kind right after the card. In Polish: &Nowa karta za nią
-    add(tr("&New Card After It"), QStringLiteral("Ins"), !m_readOnly, [this, elementId]() {
+    add(tr("&New Card After It"), QStringLiteral("Ins"), !m_readOnly && text, [this, elementId]() {
         emit addRequested(elementId);
     });
     m_menu->addSeparator();
     //: In Polish: Wy&tnij
-    add(tr("Cu&t"), QStringLiteral("Ctrl+X"), changing, [this, elementId]() {
+    add(tr("Cu&t"), QStringLiteral("Ctrl+X"), changing && text, [this, elementId]() {
         emit cutRequested(elementId);
     });
     //: In Polish: Wklej &za nią
     add(tr("&Paste After It"), QStringLiteral("Ctrl+V"),
-        changing && !m_board->markedCard().isEmpty() && m_board->markedCard() != elementId,
+        changing && text && !m_board->markedCard().isEmpty() &&
+            m_board->markedCard() != elementId,
         [this, elementId]() { emit pasteRequested(elementId); });
     m_menu->addSeparator();
 
@@ -546,7 +569,7 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
         const QString code = QString::fromLatin1(status);
         QAction* action = states->addAction(PlotBoard::statusName(code));
         action->setCheckable(true);
-        action->setChecked(card && found->status == code);
+        action->setChecked(shown && found->status == code);
         stateGroup->addAction(action);
         connect(action, &QAction::triggered, this, [this, elementId, code]() {
             emit statusRequested(elementId, code);
@@ -570,7 +593,7 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
             action->setIcon(QIcon(swatch));
         }
         action->setCheckable(true);
-        action->setChecked(card && found->plot.color == name);
+        action->setChecked(shown && found->plot.color == name);
         colorGroup->addAction(action);
         connect(action, &QAction::triggered, this, [this, elementId, name]() {
             emit colorRequested(elementId, name);
@@ -578,11 +601,11 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
     }
     m_menu->addSeparator();
     //: In Polish: &Usuń z książki…
-    add(tr("&Delete from Book..."), QStringLiteral("Del"), changing, [this, elementId]() {
+    add(tr("&Delete from Book..."), QStringLiteral("Del"), changing && text, [this, elementId]() {
         emit deleteRequested(elementId);
     });
     //: In Polish: &Właściwości
-    add(tr("P&roperties"), QStringLiteral("Alt+Return"), card, [this, elementId]() {
+    add(tr("P&roperties"), QStringLiteral("Alt+Return"), shown, [this, elementId]() {
         emit propertiesRequested(elementId);
     });
     return m_menu;

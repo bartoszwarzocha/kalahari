@@ -11,9 +11,11 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/navigator_coordinator.h"
+#include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/plot_board_panel.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/widgets/plot_board_view.h"
@@ -163,7 +165,7 @@ void PlotBoardCoordinator::refreshNow() {
     m_panel->setReadOnly(m_book.isReadOnly());
     m_panel->setSuggestions(PlotBoard::povSuggestions(m_book),
                             PlotBoard::placeSuggestions(m_book));
-    m_panel->setBands(PlotBoard::bandsOf(m_book));
+    m_panel->setBands(PlotBoard::bandsOf(m_book, unsavedTexts()));
     m_panel->setMarkedCard(m_marked);
     updateTab();
 }
@@ -193,8 +195,11 @@ void PlotBoardCoordinator::forget() {
 }
 
 void PlotBoardCoordinator::connectBoard(PlotBoardPanel* panel) {
-    connect(panel, &PlotBoardPanel::currentCardChanged, this, [this](const QString& elementId) {
-        // The text chosen shows in the Properties panel, as one chosen in the Navigator
+    connect(panel, &PlotBoardPanel::currentCardChanged, this, [this](const QString& cardId) {
+        // The text chosen shows in the Properties panel, as one chosen in the Navigator; for a
+        // scene, its text
+        const auto scene = PlotBoard::sceneOf(cardId);
+        const QString elementId = scene ? scene->first : cardId;
         if (!elementId.isEmpty() && m_book.findElement(elementId) != nullptr) {
             m_navigator->onRequestProperties(elementId);
         }
@@ -237,13 +242,42 @@ void PlotBoardCoordinator::updateTab() {
 // =============================================================================
 
 void PlotBoardCoordinator::open(const QString& elementId) {
-    if (const core::ProjectElement* element = m_book.findElement(elementId)) {
-        m_navigator->onElementSelected(elementId, element->title);
+    // A scene: its text, at the scene
+    const auto scene = PlotBoard::sceneOf(elementId);
+    const QString textId = scene ? scene->first : elementId;
+    const core::ProjectElement* element = m_book.findElement(textId);
+    if (element == nullptr) {
+        return;
+    }
+    m_navigator->onElementSelected(textId, element->title);
+    if (scene) {
+        if (editor::BookEditor* text = editorOf(textId)) {
+            text->goToScene(scene->second);
+        }
     }
 }
 
 void PlotBoardCoordinator::edit(const QString& elementId, const PlotCardEdit& edit) {
-    if (m_book.isReadOnly() || m_book.findElement(elementId) == nullptr) {
+    if (m_book.isReadOnly()) {
+        return;
+    }
+    if (const auto scene = PlotBoard::sceneOf(elementId)) {
+        std::optional<core::ScenePlot> plot = scenePlotOf(scene->first, scene->second);
+        if (!plot) {
+            return;
+        }
+        // A scene may have no title
+        plot->title = edit.title.trimmed();
+        plot->description = edit.description;
+        plot->pov = edit.plot.pov;
+        plot->place = edit.plot.place;
+        plot->time = edit.plot.time;
+        const QString name = titleOf(PlotBoard::sceneId(scene->first, scene->second));
+        changeSceneWithUndo(elementId, *plot, tr("The card \"%1\" changed.").arg(name),
+                            tr("change of the card \"%1\"").arg(name));
+        return;
+    }
+    if (m_book.findElement(elementId) == nullptr) {
         return;
     }
     CardText text = cardTextOf(elementId);
@@ -263,6 +297,19 @@ void PlotBoardCoordinator::edit(const QString& elementId, const PlotCardEdit& ed
 }
 
 void PlotBoardCoordinator::setStatus(const QString& elementId, const QString& status) {
+    if (const auto scene = PlotBoard::sceneOf(elementId)) {
+        std::optional<core::ScenePlot> plot = scenePlotOf(scene->first, scene->second);
+        if (m_book.isReadOnly() || !plot) {
+            return;
+        }
+        plot->status = status;
+        const QString name = titleOf(elementId);
+        changeSceneWithUndo(
+            elementId, *plot,
+            tr("\"%1\" is now in the state: %2.").arg(name, PlotBoard::statusName(status)),
+            tr("the state of \"%1\"").arg(name));
+        return;
+    }
     const core::ProjectElement* element = m_book.findElement(elementId);
     if (m_book.isReadOnly() || element == nullptr) {
         return;
@@ -288,25 +335,41 @@ void PlotBoardCoordinator::setStatus(const QString& elementId, const QString& st
 }
 
 void PlotBoardCoordinator::setColor(const QString& elementId, const QString& color) {
-    if (m_book.isReadOnly() || m_book.findElement(elementId) == nullptr) {
+    const auto scene = PlotBoard::sceneOf(elementId);
+    if (m_book.isReadOnly() ||
+        m_book.findElement(scene ? scene->first : elementId) == nullptr) {
+        return;
+    }
+    const QString name = titleOf(elementId);
+    const QString message =
+        color.isEmpty()
+            //: Under the plot board; %1 the title. In Polish: Karta „%1” nie ma już koloru.
+            ? tr("The card \"%1\" has no color now.").arg(name)
+            //: Under the plot board; %1 the title, %2 the color ("Blue"). In Polish: Karta
+            //: „%1” ma teraz kolor: %2.
+            : tr("The card \"%1\" is now: %2.").arg(name, PlotColors::ownTitle(color));
+    //: What Undo undoes on the plot board, after "Undone:"; %1 the title. In Polish: kolor
+    //: karty „%1”
+    const QString undoText = tr("the color of the card \"%1\"").arg(name);
+    if (scene) {
+        std::optional<core::ScenePlot> plot = scenePlotOf(scene->first, scene->second);
+        if (plot) {
+            plot->color = color;
+            changeSceneWithUndo(elementId, *plot, message, undoText);
+        }
         return;
     }
     CardText text = cardTextOf(elementId);
     text.plot.color = color;
-    const QString message =
-        color.isEmpty()
-            //: Under the plot board; %1 the title. In Polish: Karta „%1” nie ma już koloru.
-            ? tr("The card \"%1\" has no color now.").arg(text.title)
-            //: Under the plot board; %1 the title, %2 the color ("Blue"). In Polish: Karta
-            //: „%1” ma teraz kolor: %2.
-            : tr("The card \"%1\" is now: %2.").arg(text.title, PlotColors::ownTitle(color));
-    //: What Undo undoes on the plot board, after "Undone:"; %1 the title. In Polish: kolor
-    //: karty „%1”
-    changeWithUndo(elementId, text, message, tr("the color of the card \"%1\"").arg(text.title));
+    changeWithUndo(elementId, text, message, undoText);
 }
 
 void PlotBoardCoordinator::move(const QString& elementId, int steps) {
     if (m_book.isReadOnly() || steps == 0) {
+        return;
+    }
+    if (PlotBoard::sceneOf(elementId)) {
+        sceneInEditor();
         return;
     }
     const std::optional<core::ElementPlace> place =
@@ -325,6 +388,10 @@ void PlotBoardCoordinator::dropBeside(const QString& elementId, const QString& a
     if (m_book.isReadOnly()) {
         return;
     }
+    if (PlotBoard::sceneOf(elementId) || PlotBoard::sceneOf(anchorId)) {
+        sceneInEditor();
+        return;
+    }
     const std::optional<core::ElementPlace> place =
         PlotBoard::placeBeside(m_book, elementId, anchorId, after);
     if (!place) {
@@ -340,6 +407,10 @@ void PlotBoardCoordinator::dropInPart(const QString& elementId, const QString& p
     if (m_book.isReadOnly()) {
         return;
     }
+    if (PlotBoard::sceneOf(elementId)) {
+        sceneInEditor();
+        return;
+    }
     const std::optional<core::ElementPlace> place =
         PlotBoard::placeInPart(m_book, elementId, partId, false);
     if (!place) {
@@ -352,6 +423,10 @@ void PlotBoardCoordinator::dropInPart(const QString& elementId, const QString& p
 void PlotBoardCoordinator::add(const QString& afterId) {
     core::BookProject* project = m_book.project();
     if (project == nullptr || m_book.isReadOnly()) {
+        return;
+    }
+    if (PlotBoard::sceneOf(afterId)) {
+        sceneInEditor();
         return;
     }
     // A text of the kind of the card, right after it; without a card, a text of the main kind
@@ -401,7 +476,14 @@ void PlotBoardCoordinator::add(const QString& afterId) {
 }
 
 void PlotBoardCoordinator::remove(const QString& elementId) {
-    if (m_book.isReadOnly() || m_book.findElement(elementId) == nullptr) {
+    if (m_book.isReadOnly()) {
+        return;
+    }
+    if (PlotBoard::sceneOf(elementId)) {
+        sceneInEditor();
+        return;
+    }
+    if (m_book.findElement(elementId) == nullptr) {
         return;
     }
     // The Navigator asks first and says where the files go
@@ -412,7 +494,14 @@ void PlotBoardCoordinator::remove(const QString& elementId) {
 }
 
 void PlotBoardCoordinator::cut(const QString& elementId) {
-    if (m_book.isReadOnly() || m_book.findElement(elementId) == nullptr || m_panel == nullptr) {
+    if (m_book.isReadOnly() || m_panel == nullptr) {
+        return;
+    }
+    if (PlotBoard::sceneOf(elementId)) {
+        sceneInEditor();
+        return;
+    }
+    if (m_book.findElement(elementId) == nullptr) {
         return;
     }
     m_marked = elementId;
@@ -432,13 +521,16 @@ void PlotBoardCoordinator::paste(const QString& afterId) {
     if (m_panel != nullptr) {
         m_panel->setMarkedCard(QString());
     }
-    if (afterId.isEmpty() || afterId == marked || m_book.findElement(marked) == nullptr) {
+    // After a scene: after its text
+    const auto scene = PlotBoard::sceneOf(afterId);
+    const QString textId = scene ? scene->first : afterId;
+    if (textId.isEmpty() || textId == marked || m_book.findElement(marked) == nullptr) {
         if (m_panel != nullptr) {
             m_panel->showMessage(QString(), false);
         }
         return;
     }
-    dropBeside(marked, afterId, true);
+    dropBeside(marked, textId, true);
 }
 
 void PlotBoardCoordinator::cancelCut() {
@@ -458,10 +550,11 @@ void PlotBoardCoordinator::undo() {
     }
     const QString text = m_undo->undoText();
     const auto* change = static_cast<const BoardChange*>(m_undo->command(m_undo->index() - 1));
+    m_changedElsewhere = false;
     m_undo->undo();
     if (!change->done()) {
         m_undo->clear();
-        notSaved();
+        changedOrNotSaved();
         return;
     }
     //: Under the plot board after Ctrl+Z; %1 what was undone ("moving \"Chapter 3\""). In
@@ -478,17 +571,21 @@ void PlotBoardCoordinator::redo() {
     }
     const QString text = m_undo->redoText();
     const auto* change = static_cast<const BoardChange*>(m_undo->command(m_undo->index()));
+    m_changedElsewhere = false;
     m_undo->redo();
     if (!change->done()) {
         m_undo->clear();
-        notSaved();
+        changedOrNotSaved();
         return;
     }
     //: Under the plot board after Ctrl+Y; %1 what was done again. In Polish: Przywrócono: %1.
     say(tr("Redone: %1.").arg(text), true);
 }
 
-void PlotBoardCoordinator::showProperties(const QString& elementId, bool keys) {
+void PlotBoardCoordinator::showProperties(const QString& cardId, bool keys) {
+    // A scene: its text
+    const auto scene = PlotBoard::sceneOf(cardId);
+    const QString elementId = scene ? scene->first : cardId;
     if (m_book.findElement(elementId) == nullptr) {
         return;
     }
@@ -608,6 +705,111 @@ bool PlotBoardCoordinator::changeStatus(const QString& elementId, const QString&
 }
 
 // =============================================================================
+// The scenes of the texts
+// =============================================================================
+
+void PlotBoardCoordinator::changeSceneWithUndo(const QString& cardId,
+                                               const core::ScenePlot& plot,
+                                               const QString& message,
+                                               const QString& undoText) {
+    const auto scene = PlotBoard::sceneOf(cardId);
+    if (!scene) {
+        return;
+    }
+    const QString textId = scene->first;
+    const int number = scene->second;
+    const std::optional<core::ScenePlot> before = scenePlotOf(textId, number);
+    if (!before || *before == plot) {
+        return;
+    }
+    if (!changeScene(textId, number, *before, plot)) {
+        notSaved();
+        return;
+    }
+    m_undo->push(new BoardChange(
+        undoText,
+        [this, textId, number, before, plot]() {
+            return changeScene(textId, number, plot, *before);
+        },
+        [this, textId, number, before, plot]() {
+            return changeScene(textId, number, *before, plot);
+        }));
+    if (m_panel != nullptr) {
+        m_panel->setCurrentCard(cardId);
+    }
+    say(message, true);
+}
+
+bool PlotBoardCoordinator::changeScene(const QString& textId, int scene,
+                                       const core::ScenePlot& before,
+                                       const core::ScenePlot& plot) {
+    const std::optional<core::ScenePlot> now = scenePlotOf(textId, scene);
+    if (!now || *now != before) {
+        // The text was changed in the editor since: the scene may be another one now
+        m_changedElsewhere = true;
+        return false;
+    }
+    bool saved = false;
+    ++m_ownChanges;
+    editor::BookEditor* text = scene > 0 ? editorOf(textId) : nullptr;
+    if (text != nullptr) {
+        // The open text keeps it with its other changes, until it is saved
+        saved = text->setSceneAttributes(scene, plot.toAttributes());
+    } else {
+        saved = m_book.setScenePlot(textId, scene, plot);
+    }
+    --m_ownChanges;
+    refreshNow();
+    if (m_panel != nullptr) {
+        m_panel->setCurrentCard(PlotBoard::sceneId(textId, scene));
+    }
+    return saved;
+}
+
+std::optional<core::ScenePlot> PlotBoardCoordinator::scenePlotOf(const QString& textId,
+                                                                 int scene) const {
+    const editor::BookEditor* text = editorOf(textId);
+    const QList<core::KmlScene> scenes = m_book.scenesOf(
+        textId, text != nullptr ? std::optional<QString>(text->toKml()) : std::nullopt);
+    if (scene < 0 || scene >= scenes.size()) {
+        return std::nullopt;
+    }
+    return scenes.at(scene).plot;
+}
+
+void PlotBoardCoordinator::sceneInEditor() {
+    //: Under the plot board after a scene card was to be moved, added, cut or deleted. In
+    //: Polish: Sceny przenosi się, dodaje i usuwa w tekście, w edytorze.
+    say(tr("Scenes are moved, added and deleted in the text, in the editor."));
+}
+
+QHash<QString, QString> PlotBoardCoordinator::unsavedTexts() const {
+    QHash<QString, QString> texts;
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        const auto* panel = qobject_cast<EditorPanel*>(page);
+        const QString elementId = page->property("elementId").toString();
+        if (panel != nullptr && !elementId.isEmpty() && panel->getBookEditor() != nullptr &&
+            panel->getBookEditor()->isModified()) {
+            texts.insert(elementId, panel->getBookEditor()->toKml());
+        }
+    }
+    return texts;
+}
+
+editor::BookEditor* PlotBoardCoordinator::editorOf(const QString& elementId) const {
+    if (elementId.isEmpty()) {
+        return nullptr;
+    }
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        if (auto* panel = qobject_cast<EditorPanel*>(page);
+            panel != nullptr && page->property("elementId").toString() == elementId) {
+            return panel->getBookEditor();
+        }
+    }
+    return nullptr;
+}
+
+// =============================================================================
 // Helpers
 // =============================================================================
 
@@ -620,6 +822,15 @@ PlotBoardCoordinator::CardText PlotBoardCoordinator::cardTextOf(const QString& e
 }
 
 QString PlotBoardCoordinator::titleOf(const QString& elementId) const {
+    if (const auto scene = PlotBoard::sceneOf(elementId)) {
+        const std::optional<core::ScenePlot> plot = scenePlotOf(scene->first, scene->second);
+        if (plot && !plot->title.isEmpty()) {
+            return plot->title;
+        }
+        //: A scene without a title in what is said under the plot board; %1 the title of its
+        //: text, %2 "Scene 2". In Polish: %1, %2
+        return tr("%1, %2").arg(titleOf(scene->first), PlotBoard::sceneName(scene->second));
+    }
     const core::ProjectElement* element = m_book.findElement(elementId);
     return element != nullptr ? element->title : QString();
 }
@@ -628,6 +839,18 @@ void PlotBoardCoordinator::say(const QString& message, bool canUndo) {
     if (m_panel != nullptr) {
         m_panel->showMessage(message, canUndo);
     }
+}
+
+void PlotBoardCoordinator::changedOrNotSaved() {
+    if (m_changedElsewhere) {
+        m_changedElsewhere = false;
+        //: Under the plot board after Ctrl+Z or Ctrl+Y on a scene changed in the editor since.
+        //: In Polish: Scena zmieniła się w edytorze: tablica tego nie cofnie.
+        say(tr("The scene changed in the editor: the board cannot undo that."));
+        refresh();
+        return;
+    }
+    notSaved();
 }
 
 void PlotBoardCoordinator::notSaved() {

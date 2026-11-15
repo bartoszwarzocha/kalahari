@@ -102,6 +102,12 @@ public:
     /// @return The object; None for a paragraph of text or if index is out of range
     TextObject paragraphObject(size_t index) const;
 
+    /// @brief What a scene break says of the scene after it: its attributes (title,
+    ///        description...; sceneBreakAttributeNames())
+    /// @param index Paragraph index (0-based)
+    /// @return None for a break without them, any other paragraph, or if index is out of range
+    SceneBreakAttributes paragraphSceneAttributes(size_t index) const;
+
     /// @brief The paragraph's own formatting: indents, spacing, line spacing, breaks
     /// @param index Paragraph index (0-based)
     /// @return The parts its attributes set; none if index is out of range
@@ -166,6 +172,7 @@ private:
         AnnotationList startAnnotations;        ///< Annotations on the paragraph's start
         QString style;                          ///< Id of its style (empty: Normal)
         TextObject object = TextObject::None;   ///< The object it is (None: text)
+        SceneBreakAttributes sceneAttributes;   ///< Of a scene break: what it says of its scene
         ParagraphFormat format;                 ///< Its own formatting
         std::optional<ListItem> list;           ///< Its place in a list
         std::optional<TableCellPlace> cell;     ///< Its cell in a table
