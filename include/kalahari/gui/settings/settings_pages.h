@@ -419,7 +419,8 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
-/// @brief Editor > Clippings: what Cut to Clippings and Insert > Clipping from the Workshop do
+/// @brief Editor > Clippings: what Cut to Clippings and Insert > Clipping from the Workshop do,
+/// and whether scissors are beside the paragraphs clippings were cut from
 class EditorClippingsPage : public SettingsPage {
     Q_OBJECT
 public:

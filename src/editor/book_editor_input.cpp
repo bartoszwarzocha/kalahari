@@ -1489,18 +1489,9 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         menu.addAction(action);
     }
 
-    // The materials linked with the paragraph, whose mark is beside it: from the keyboard too
-    const QList<ParagraphMark> marks = paragraphMarks();
-    const auto marked =
-        std::find_if(marks.cbegin(), marks.cend(),
-                     [&pos](const ParagraphMark& mark) { return mark.paragraph == pos.paragraph; });
-    if (marked != marks.cend()) {
-        menu.addSeparator();
-        //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
-        //: mate&riały
-        addParagraphMarkItems(*menu.addMenu(m_paragraphMarkIcon, tr("Linked Mate&rials")),
-                              *marked);
-    }
+    // The materials linked with the paragraph and the clippings cut from it, whose marks are
+    // beside it: from the keyboard too
+    addParagraphMarkMenus(menu, pos.paragraph);
 
     // Color mode toggle
     menu.addSeparator();

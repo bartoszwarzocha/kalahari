@@ -16,19 +16,29 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_types.h"
+#include "kalahari/gui/clipping_texts.h"
 #include "kalahari/gui/clippings_coordinator.h"
 #include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/clipping_dialogs.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
+#include "kalahari/gui/material_list.h"
+#include "kalahari/gui/material_list_coordinator.h"
+#include "kalahari/gui/panels/clipping_origin_box.h"
+#include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "test_support/window_parts.h"
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <QAction>
 #include <QCheckBox>
+#include <QDateTime>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -37,6 +47,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QRadioButton>
@@ -44,6 +55,7 @@
 #include <QTextBlock>
 #include <QTextDocument>
 #include <QTimer>
+#include <QToolButton>
 
 #include <algorithm>
 #include <functional>
@@ -201,6 +213,7 @@ void useDefaultSettings() {
     choose(Clippings::INSERT_SETTING, Clippings::INSERT_WINDOW);
     choose(Clippings::AFTER_INSERT_SETTING, Clippings::AFTER_INSERT_KEEP);
     core::SettingsManager::getInstance().set<bool>(Clippings::KEEP_WORDS_SETTING, false);
+    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, false);
 }
 
 /// Run @p command; the first window of the program it shows goes to @p answer, which closes it
@@ -1267,7 +1280,12 @@ TEST_CASE("Settings > Editor > Clippings: the choices, written only when changed
     // What they are, with the keys of the commands that have them
     auto* intro = page.findChild<QLabel*>(QStringLiteral("clippingsIntro"));
     REQUIRE(intro != nullptr);
-    CHECK(intro->text().contains(QStringLiteral("(Edit > Cut to Clippings, Ctrl+Shift+X)")));
+    // The keys as the system names them (on macOS with its symbols)
+    const auto keysText = [](const gui::KeyboardShortcut& keys) {
+        return keys.toQKeySequence().toString(QKeySequence::NativeText);
+    };
+    CHECK(intro->text().contains(
+        QStringLiteral("(Edit > Cut to Clippings, %1)").arg(keysText(cut.shortcut))));
     CHECK(intro->text().contains(QStringLiteral("(Insert > Clipping from the Workshop)")));
 
     // The defaults
@@ -1293,10 +1311,11 @@ TEST_CASE("Settings > Editor > Clippings: the choices, written only when changed
     CHECK(chosen(Clippings::AFTER_INSERT_SETTING) == Clippings::AFTER_INSERT_REMOVE);
 
     // The keys changed: the text follows
-    commands.getCommand(ClippingsCoordinator::CUT_COMMAND)->shortcut =
-        gui::KeyboardShortcut(Qt::Key_K, Qt::ControlModifier | Qt::AltModifier);
+    const gui::KeyboardShortcut changed(Qt::Key_K, Qt::ControlModifier | Qt::AltModifier);
+    commands.getCommand(ClippingsCoordinator::CUT_COMMAND)->shortcut = changed;
     emit commands.shortcutsChanged();
-    CHECK(intro->text().contains(QStringLiteral("(Edit > Cut to Clippings, Ctrl+Alt+K)")));
+    CHECK(intro->text().contains(
+        QStringLiteral("(Edit > Cut to Clippings, %1)").arg(keysText(changed))));
 
     // A value the page does not know shows the first choice
     choose(Clippings::CUT_SETTING, "unknown");
@@ -1305,7 +1324,467 @@ TEST_CASE("Settings > Editor > Clippings: the choices, written only when changed
     CHECK(radio(other, "clippingsCutAtOnce")->isChecked());
     choose(Clippings::CUT_SETTING, Clippings::CUT_AT_ONCE);
 
+    // The scissors beside the paragraphs: off by default, written when turned on
+    auto* marks = page.findChild<QCheckBox*>(QStringLiteral("clippingsMarks"));
+    REQUIRE(marks != nullptr);
+    CHECK(marks->text() == QStringLiteral("&Draw scissors where a fragment was cut"));
+    page.load();
+    CHECK_FALSE(marks->isChecked());
+    marks->setChecked(true);
+    CHECK(page.apply() == std::vector<std::string>{Clippings::MARKS_SETTING});
+    CHECK(core::SettingsManager::getInstance().get<bool>(Clippings::MARKS_SETTING, false));
+    useDefaultSettings();
+
     // The Settings dialog opens at the page (the gears of the windows)
     gui::SettingsDialog dialog(test::book(), commands, nullptr);
     CHECK(dialog.openPage(QString::fromLatin1(ClippingsCoordinator::SETTINGS_PAGE)));
+}
+
+namespace {
+
+/// The list of the clippings (MaterialList)
+QString clippingsList() {
+    return QStringLiteral("kalahari.base:") + QString::fromLatin1(Clippings::KIND);
+}
+
+/// The ids of @p columns
+QStringList idsOf(const QList<gui::MaterialColumn>& columns) {
+    QStringList ids;
+    for (const gui::MaterialColumn& column : columns) {
+        ids << column.id;
+    }
+    return ids;
+}
+
+/// The action of @p menu with text @p text; null: none
+QAction* actionOf(const QMenu& menu, const QString& text) {
+    const QList<QAction*> actions = menu.actions();
+    const auto found = std::ranges::find_if(
+        actions, [&text](const QAction* action) { return action->text() == text; });
+    return found == actions.end() ? nullptr : *found;
+}
+
+/// The program's opener of the Settings dialog for the time of a test: the pages it opens
+class Opener {
+public:
+    Opener() {
+        gui::dialogs::KalahariDialog::setSettingsOpener(
+            [this](QWidget* /*over*/, const QString& page) { m_pages << page; });
+    }
+    ~Opener() { gui::dialogs::KalahariDialog::setSettingsOpener(nullptr); }
+    Opener(const Opener&) = delete;
+    Opener& operator=(const Opener&) = delete;
+    Opener(Opener&&) = delete;
+    Opener& operator=(Opener&&) = delete;
+
+    /// The pages opened
+    [[nodiscard]] const QStringList& pages() const { return m_pages; }
+
+private:
+    QStringList m_pages;
+};
+
+/// The tabs and the panels of a window with the lists of the materials, connected to the
+/// clippings as the main window connects them
+struct ClippingLists {
+    Window window;
+    Clips clips{window};
+    gui::MaterialListCoordinator lists{test::book(), window.tabs, &window.navigator,
+                                       &window.statusBar, [](bool /*keys*/) {}};
+
+    ClippingLists() { clips.coordinator().connectPanels(window.properties, &lists); }
+};
+
+}  // namespace
+
+TEST_CASE("Clippings list: the columns, the rows and the order", "[gui][clippings]") {
+    ClippingBook clipped;
+    OpenNovel& book = clipped.book();
+    Window window;
+    Clips clips(window);
+    BookEditor* storm = open(window, clipped.storm());
+    storm->setSelection(rained());
+    const QString clippingId =
+        clips.coordinator().cutAs(storm, QString(), QStringLiteral("Too  wet."));
+    REQUIRE_FALSE(clippingId.isEmpty());
+    const QString list = clippingsList();
+    using gui::MaterialList;
+
+    // Its columns, the time of the cut first, the last cut on top
+    CHECK(MaterialList::isClippings(list));
+    CHECK_FALSE(MaterialList::isClippings(QString()));
+    const QList<gui::MaterialColumn> columns = MaterialList::columnsOf(book.pm, list);
+    CHECK(idsOf(columns) == QStringList{QStringLiteral("title"), QStringLiteral("from"),
+                                        QStringLiteral("cut"), QStringLiteral("words"),
+                                        QStringLiteral("note"), QStringLiteral("inserted"),
+                                        QStringLiteral("modified"), QStringLiteral("links")});
+    CHECK(MaterialList::shownColumns(book.pm, list) ==
+          QStringList{QStringLiteral("title"), QStringLiteral("from"), QStringLiteral("cut"),
+                      QStringLiteral("words"), QStringLiteral("note"),
+                      QStringLiteral("inserted")});
+    CHECK(MaterialList::firstSortOf(list) == QStringLiteral("cut"));
+    CHECK(MaterialList::firstSortOrderOf(list) == Qt::DescendingOrder);
+    CHECK(MaterialList::firstSortOrderOf(QString()) == Qt::AscendingOrder);
+    // Inserted is shown at first only where a clipping inserted stays in the Workshop
+    choose(Clippings::AFTER_INSERT_SETTING, Clippings::AFTER_INSERT_REMOVE);
+    CHECK_FALSE(MaterialList::shownColumns(book.pm, list).contains(QStringLiteral("inserted")));
+    useDefaultSettings();
+
+    // Its row: where it comes from, when it was cut, its note
+    QList<gui::MaterialRow> rows = MaterialList::rowsOf(book.pm, list);
+    REQUIRE(rows.size() == 1);
+    const gui::MaterialRow& row = rows.first();
+    CHECK(row.clipping);
+    CHECK(row.originLive);
+    CHECK(row.texts.value(QStringLiteral("from")) == QStringLiteral("The Storm"));
+    CHECK_FALSE(row.texts.value(QStringLiteral("cut")).isEmpty());
+    CHECK(row.order.value(QStringLiteral("cut")).typeId() == QMetaType::QDateTime);
+    CHECK(row.texts.value(QStringLiteral("note")) == QStringLiteral("Too wet."));
+    CHECK_FALSE(row.texts.contains(QStringLiteral("inserted")));
+    CHECK(row.search.contains(QStringLiteral("the storm")));
+
+    // Inserted: when
+    REQUIRE(clips.coordinator().insertAt(open(window, clipped.calm()), clippingId));
+    rows = MaterialList::rowsOf(book.pm, list);
+    REQUIRE(rows.size() == 1);
+    CHECK_FALSE(rows.first().texts.value(QStringLiteral("inserted")).isEmpty());
+    CHECK(rows.first().order.value(QStringLiteral("inserted")).typeId() == QMetaType::QDateTime);
+
+    // Another material is not a clipping
+    const QString byHand = book.pm.addClipping(
+        QStringLiteral("Loose"), QStringLiteral("<kml><p>Loose.</p></kml>"), core::ClippingData());
+    rows = MaterialList::rowsOf(book.pm, list);
+    REQUIRE(rows.size() == 2);
+    for (const gui::MaterialRow& each : rows) {
+        CHECK(each.clipping);
+        CHECK(each.originLive == (each.id == clippingId));
+    }
+    for (const gui::MaterialRow& note :
+         MaterialList::rowsOf(book.pm, QStringLiteral("kalahari.base:work_note"))) {
+        CHECK_FALSE(note.clipping);
+    }
+    CHECK_FALSE(byHand.isEmpty());
+}
+
+TEST_CASE("Clippings: what the lists and the Properties say of a clipping", "[gui][clippings]") {
+    using gui::ClippingTexts;
+    core::ClippingOrigin origin;
+    CHECK(ClippingTexts::placeText(origin).isEmpty());
+    origin.element = QStringLiteral("gone");
+    origin.title = QStringLiteral("Prologue");
+    CHECK(ClippingTexts::placeText(origin).isEmpty());  // no paragraph
+    origin.paragraph = 3;
+    CHECK(ClippingTexts::placeText(origin) == QStringLiteral("the start of paragraph 3"));
+    origin.before = QStringLiteral("one two  three four five ");
+    CHECK(ClippingTexts::placeText(origin) ==
+          QStringLiteral("paragraph 3, after \"…two three four five\""));
+    CHECK(ClippingTexts::lastWords(QStringLiteral(" a b "), 4) == QStringLiteral("a b"));
+
+    core::ClippingData data;
+    CHECK(ClippingTexts::insertedText(data).isEmpty());
+    data.inserted.append({.element = QStringLiteral("x"),
+                          .at = QDateTime::currentDateTimeUtc(),
+                          .extra = {}});
+    CHECK_FALSE(ClippingTexts::insertedText(data).isEmpty());
+
+    // Where it comes from, and what Restore to Its Place does
+    CHECK(ClippingTexts::restoreToolTip({}) ==
+          QStringLiteral("This clipping was added by hand: it has no place it came from"));
+    CHECK(ClippingTexts::restoreToolTip({.title = QStringLiteral("A (deleted)"), .live = false}) ==
+          QStringLiteral("The text it was cut from is no longer in the book"));
+    CHECK(ClippingTexts::restoreToolTip({.title = QStringLiteral("A"), .live = true}) ==
+          QStringLiteral("Insert it where it was cut from, in \"A\""));
+    const OpenNovel book(QStringLiteral("Texts"));
+    data.origin = origin;
+    const gui::ClippingFrom gone = ClippingTexts::fromOf(book.pm, data);
+    CHECK(gone.title == QStringLiteral("Prologue (deleted)"));
+    CHECK_FALSE(gone.live);
+    data.origin.element = book.chapterId;
+    const gui::ClippingFrom live = ClippingTexts::fromOf(book.pm, data);
+    CHECK(live.title == QStringLiteral("The Storm"));
+    CHECK(live.live);
+    CHECK(ClippingTexts::fromOf(book.pm, core::ClippingData()).title.isEmpty());
+}
+
+TEST_CASE("Clippings list: Restore to Its Place, Go to Its Place and the gear",
+          "[gui][clippings]") {
+    ClippingBook clipped;
+    OpenNovel& book = clipped.book();
+    ClippingLists window;
+    Clips& clips = window.clips;
+    BookEditor* storm = open(window.window, clipped.storm());
+    storm->setSelection(rained());
+    const QString clippingId = clips.coordinator().cut(storm);
+    REQUIRE_FALSE(clippingId.isEmpty());
+    open(window.window, clipped.calm());  // another text in front
+
+    gui::MaterialListPanel* panel = window.lists.openList(clippingsList(), true);
+    REQUIRE(panel != nullptr);
+    REQUIRE(panel->selectMaterial(clippingId));
+    QToolButton* restore = panel->restoreButton();
+    CHECK_FALSE(restore->isHidden());
+    CHECK(restore->text() == QStringLiteral("Restore to Its Place"));
+    CHECK(restore->isEnabled());
+    CHECK(restore->toolTip() ==
+          QStringLiteral("Insert it where it was cut from, in \"The Storm\""));
+    CHECK(panel->settingsButton()->toolTip() == QStringLiteral("Clipping Settings"));
+
+    // The menu of its row
+    {
+        QMenu menu;
+        panel->fillMenu(menu);
+        QAction* go = actionOf(menu, QStringLiteral("&Go to Its Place"));
+        REQUIRE(go != nullptr);
+        REQUIRE(actionOf(menu, QStringLiteral("Restore to Its &Place")) != nullptr);
+        CHECK(go->isEnabled());
+        go->trigger();
+    }
+    CHECK(window.window.tabs->currentWidget()->property("elementId").toString() ==
+          clipped.storm());
+    CHECK(storm->cursorPosition() == at(1, RAINED_FIRST));
+
+    // Restore to Its Place: the clipping is in its place again
+    open(window.window, clipped.calm());
+    REQUIRE(panel->selectMaterial(clippingId));
+    restore->click();
+    CHECK(storm->toKml() == asWritten(stormKml()));
+    CHECK(dataOf(book, clippingId).inserted.size() == 1);
+
+    // The gear: Settings > Editor > Clippings; without the program's opener, the settings of
+    // the materials
+    int materialSettings = 0;
+    QObject::connect(&window.lists, &gui::MaterialListCoordinator::settingsRequested,
+                     [&materialSettings]() { ++materialSettings; });
+    {
+        const Opener opener;
+        panel->settingsButton()->click();
+        CHECK(opener.pages() ==
+              QStringList{QString::fromLatin1(gui::SettingsDialog::CLIPPINGS_PAGE)});
+        CHECK(materialSettings == 0);
+    }
+    panel->settingsButton()->click();
+    CHECK(materialSettings == 1);
+
+    // A clipping added by hand has no place to go to
+    const QString byHand = book.pm.addClipping(
+        QStringLiteral("Loose"), QStringLiteral("<kml><p>Loose.</p></kml>"), core::ClippingData());
+    REQUIRE_FALSE(byHand.isEmpty());
+    panel->refresh();
+    REQUIRE(panel->selectMaterial(byHand));
+    CHECK_FALSE(restore->isEnabled());
+    CHECK(restore->toolTip() ==
+          QStringLiteral("This clipping was added by hand: it has no place it came from"));
+    {
+        QMenu menu;
+        panel->fillMenu(menu);
+        const QAction* go = actionOf(menu, QStringLiteral("&Go to Its Place"));
+        REQUIRE(go != nullptr);
+        CHECK_FALSE(go->isEnabled());
+    }
+
+    // Another list has neither the button nor the commands
+    panel->setList(QStringLiteral("kalahari.base:work_note"));
+    CHECK(restore->isHidden());
+    CHECK(panel->settingsButton()->toolTip() == QStringLiteral("Material Settings"));
+    {
+        const Opener opener;
+        panel->settingsButton()->click();
+        CHECK(opener.pages().isEmpty());
+        CHECK(materialSettings == 2);
+    }
+}
+
+TEST_CASE("Properties: the origin of a clipping, Go to Its Place and Restore to Its Place",
+          "[gui][clippings]") {
+    ClippingBook clipped;
+    OpenNovel& book = clipped.book();
+    ClippingLists window;
+    Clips& clips = window.clips;
+    BookEditor* storm = open(window.window, clipped.storm());
+    storm->setSelection(rained());
+    const QString clippingId = clips.coordinator().cut(storm);
+    REQUIRE_FALSE(clippingId.isEmpty());
+    open(window.window, clipped.calm());
+
+    gui::PropertiesPanel* properties = window.window.properties;
+    properties->showChapterProperties(clippingId);
+    const gui::ClippingOriginBox* origin = properties->clippingOrigin();
+    REQUIRE(origin != nullptr);
+    CHECK_FALSE(origin->isHidden());
+    CHECK(origin->clippingId() == clippingId);
+    CHECK(origin->title() == QStringLiteral("Origin"));
+    CHECK(origin->fromLabel()->text() == QStringLiteral("<a href=\"origin\">The Storm</a>"));
+    CHECK(origin->placeLabel()->text() == QStringLiteral("paragraph 2, after \"It\""));
+    CHECK_FALSE(origin->cutLabel()->text().isEmpty());
+    CHECK(origin->insertedLabel()->text() == QStringLiteral("no"));
+    CHECK_FALSE(origin->insertedLabel()->isHidden());
+    CHECK(origin->goButton()->isEnabled());
+    CHECK(origin->goButton()->toolTip() ==
+          QStringLiteral("Open \"The Storm\" at the place it was cut from"));
+    CHECK(origin->restoreButton()->isEnabled());
+
+    // The link and Go to Its Place: the text at the place
+    emit origin->fromLabel()->linkActivated(QStringLiteral("origin"));
+    CHECK(window.window.tabs->currentWidget()->property("elementId").toString() ==
+          clipped.storm());
+    open(window.window, clipped.calm());
+    origin->goButton()->click();
+    CHECK(window.window.tabs->currentWidget()->property("elementId").toString() ==
+          clipped.storm());
+    CHECK(storm->cursorPosition() == at(1, RAINED_FIRST));
+
+    // Restore to Its Place, then it says when it was inserted
+    origin->restoreButton()->click();
+    CHECK(storm->toKml() == asWritten(stormKml()));
+    properties->showChapterProperties(clippingId);
+    CHECK(origin->insertedLabel()->text() != QStringLiteral("no"));
+
+    // With a clipping inserted that goes, Inserted is shown only once it was inserted
+    choose(Clippings::AFTER_INSERT_SETTING, Clippings::AFTER_INSERT_REMOVE);
+    const QString byHand = book.pm.addClipping(
+        QStringLiteral("Loose"), QStringLiteral("<kml><p>Loose.</p></kml>"), core::ClippingData());
+    REQUIRE_FALSE(byHand.isEmpty());
+    properties->showChapterProperties(byHand);
+    CHECK(origin->fromLabel()->text() == QStringLiteral("added by hand"));
+    CHECK(origin->placeLabel()->isHidden());
+    CHECK(origin->cutLabel()->isHidden());
+    CHECK(origin->insertedLabel()->isHidden());
+    CHECK_FALSE(origin->goButton()->isEnabled());
+    CHECK_FALSE(origin->restoreButton()->isEnabled());
+    useDefaultSettings();
+
+    // The text it came from deleted: its title then
+    const std::optional<core::ProjectElement> removed = book.pm.removeElement(clipped.storm());
+    REQUIRE(removed.has_value());
+    window.window.navigator.closeTabsOf(removed.value_or(core::ProjectElement()));
+    QCoreApplication::processEvents();
+    properties->showChapterProperties(clippingId);
+    CHECK(origin->fromLabel()->text() == QStringLiteral("The Storm (deleted)"));
+    CHECK_FALSE(origin->goButton()->isEnabled());
+    CHECK(origin->goButton()->toolTip() ==
+          QStringLiteral("The text it was cut from is no longer in the book"));
+
+    // Another element has no origin
+    properties->showChapterProperties(clipped.calm());
+    CHECK(origin->isHidden());
+    CHECK(origin->clippingId().isEmpty());
+}
+
+namespace {
+
+/// The scissors beside the paragraphs of @p text
+QList<editor::ParagraphMark> scissorsOf(const BookEditor& text) {
+    QList<editor::ParagraphMark> scissors;
+    for (const editor::ParagraphMark& mark : text.paragraphMarks()) {
+        if (mark.kind == editor::ParagraphMarkKind::Clippings) {
+            scissors << mark;
+        }
+    }
+    return scissors;
+}
+
+/// The events waiting now, and those they post, done
+void settle() {
+    for (int i = 0; i < 3; ++i) {
+        QCoreApplication::processEvents();
+    }
+}
+
+}  // namespace
+
+TEST_CASE("Clippings: the scissors beside the paragraph a clipping was cut from, when the "
+          "settings say so",
+          "[gui][clippings][marks]") {
+    ClippingBook clipped;
+    OpenNovel& book = clipped.book();
+    Window window;
+    Clips clips(window);
+    QStringList shown;
+    gui::ParagraphMarksCoordinator marks(test::book(), window.tabs,
+                                         [&shown](const QString& id) { shown << id; });
+    clips.coordinator().connectMarks(marks);
+    BookEditor* storm = open(window, clipped.storm());
+    storm->setSelection(rained());
+    const QString rainedId = clips.coordinator().cut(storm);
+    REQUIRE_FALSE(rainedId.isEmpty());
+    settle();
+
+    // Off by default: none
+    CHECK(scissorsOf(*storm).isEmpty());
+    CHECK(gui::ParagraphMarksCoordinator::clippingMarksOf(book.pm, clipped.storm(), *storm)
+              .isEmpty());
+
+    // Turned on: beside the paragraph it was cut from, with its words and when it was cut
+    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, true);
+    settle();
+    QList<editor::ParagraphMark> scissors = scissorsOf(*storm);
+    REQUIRE(scissors.size() == 1);
+    CHECK(scissors.first().paragraph == 1);
+    CHECK(scissors.first().ids == QStringList{rainedId});
+    REQUIRE(scissors.first().titles.size() == 1);
+    const QString title = scissors.first().titles.first();
+    CAPTURE(title.toStdString());
+    CHECK(title.startsWith(QStringLiteral("\"rained\" (1 word")));
+    CHECK(title.contains(QStringLiteral(", today, ")));
+    // Another text, and a text of a file of its own, have none
+    const BookEditor* calm = open(window, clipped.calm());
+    settle();
+    CHECK(scissorsOf(*calm).isEmpty());
+    CHECK(gui::ParagraphMarksCoordinator::clippingMarksOf(book.pm, QString(), *storm).isEmpty());
+
+    // A second cut from the paragraph: one mark naming both, the newest first; a cut from
+    // another paragraph has its own; a clipping added by hand has none, one without the time
+    // of its cut says its words alone
+    storm = open(window, clipped.storm());
+    storm->setSelection({.start = at(1, 0), .end = at(1, 2)});  // "It"
+    const QString itId = clips.coordinator().cut(storm);
+    REQUIRE_FALSE(itId.isEmpty());
+    storm->setSelection({.start = at(0, 4), .end = at(0, 9)});
+    const QString stormId = clips.coordinator().cut(storm);  // "storm"
+    REQUIRE_FALSE(stormId.isEmpty());
+    REQUIRE_FALSE(book.pm.addClipping(QStringLiteral("Loose"),
+                                      QStringLiteral("<kml><p>Loose.</p></kml>"),
+                                      core::ClippingData())
+                      .isEmpty());
+    core::ClippingData untimed;
+    untimed.origin = {.element = clipped.storm(),
+                      .title = QStringLiteral("The Storm"),
+                      .paragraph = 1,
+                      .before = {},
+                      .after = {},
+                      .cut = {},
+                      .extra = {}};
+    const QString untimedId = book.pm.addClipping(
+        QStringLiteral("Untimed"), QStringLiteral("<kml><p>Thunder.</p></kml>"), untimed);
+    REQUIRE_FALSE(untimedId.isEmpty());
+    marks.refresh();  // added to the book, not shown in the Navigator yet
+    scissors = scissorsOf(*storm);
+    REQUIRE(scissors.size() == 2);
+    CHECK(scissors.at(0).paragraph == 0);
+    CHECK(scissors.at(0).ids == (QStringList{stormId, untimedId}));
+    REQUIRE(scissors.at(0).titles.size() == 2);
+    CHECK(scissors.at(0).titles.at(1).startsWith(QStringLiteral("\"Untimed\" (1 word")));
+    CHECK_FALSE(scissors.at(0).titles.at(1).contains(QStringLiteral("today")));
+    CHECK(scissors.at(1).paragraph == 1);
+    CHECK(scissors.at(1).ids == (QStringList{itId, rainedId}));
+
+    // Show Clipping shows it in the Properties panel; Restore Here puts it back, and its
+    // scissors go: it is inserted
+    emit storm->paragraphMarkClicked(rainedId);
+    CHECK(shown == QStringList{rainedId});
+    storm->undo();  // "storm" back
+    storm->undo();  // "It" back
+    settle();
+    emit storm->clippingRestoreRequested(rainedId);
+    settle();
+    CHECK(storm->toKml() == asWritten(stormKml()));
+    for (const editor::ParagraphMark& mark : scissorsOf(*storm)) {
+        CHECK_FALSE(mark.ids.contains(rainedId));
+    }
+
+    // Turned off: none
+    core::SettingsManager::getInstance().set<bool>(Clippings::MARKS_SETTING, false);
+    settle();
+    CHECK(scissorsOf(*storm).isEmpty());
+    useDefaultSettings();
 }

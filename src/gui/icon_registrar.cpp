@@ -121,6 +121,10 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.quickInsert", "resources/icons/twotone/text_snippet.svg", "Quick Insert");
     iconRegistry.registerIcon("insert.clipping", "resources/icons/twotone/outbox.svg",
                               "Clipping from the Workshop");
+    iconRegistry.registerIcon("clipping.restore", "resources/icons/twotone/input.svg",
+                              "Restore to Its Place");
+    iconRegistry.registerIcon("clipping.showOrigin", "resources/icons/twotone/place.svg",
+                              "Go to Its Place");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
     iconRegistry.registerIcon("insert.horizontalLine", "resources/icons/twotone/horizontal_rule.svg", "Insert Horizontal Line");

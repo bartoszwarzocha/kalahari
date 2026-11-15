@@ -316,11 +316,13 @@ std::map<std::string, json> buildDefaults() {
         // small window first ("window"), without a selection the paragraph with the cursor
         // ("paragraph") or nothing ("nothing"); Insert > Clipping opens the window with the
         // preview ("window") or the list at the cursor ("list"); a clipping inserted stays
-        // marked as inserted ("keep") or goes from the Workshop ("remove")
+        // marked as inserted ("keep") or goes from the Workshop ("remove"); the editor shows
+        // scissors beside the paragraphs clippings were cut from (true) or not
         {"editor.clippings.cut", "atOnce"},
         {"editor.clippings.noSelection", "paragraph"},
         {"editor.clippings.insert", "window"},
         {"editor.clippings.afterInsert", "keep"},
+        {"editor.clippings.marks", false},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},

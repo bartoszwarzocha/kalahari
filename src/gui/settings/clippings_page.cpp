@@ -5,7 +5,8 @@
 /// @brief Settings page: Editor > Clippings
 ///
 /// Cut to Clippings and Insert > Clipping from the Workshop read these settings each time
-/// (ClippingsCoordinator); the counting of the words of a cut is on Statistics and Goals >
+/// (ClippingsCoordinator), the scissors beside the paragraphs follow theirs at once
+/// (ParagraphMarksCoordinator); the counting of the words of a cut is on Statistics and Goals >
 /// Counting.
 
 #include "kalahari/core/clipping.h"
@@ -15,6 +16,7 @@
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/settings/settings_pages.h"
 
+#include <QCheckBox>
 #include <QFormLayout>
 #include <QKeySequence>
 #include <QLabel>
@@ -135,6 +137,21 @@ EditorClippingsPage::EditorClippingsPage(CommandRegistry& commands, QWidget* par
                      "again.")}});
     afterInsert.front()->setObjectName(QStringLiteral("clippingsAfterInsertKeep"));
     afterInsert.back()->setObjectName(QStringLiteral("clippingsAfterInsertRemove"));
+
+    // In the text: the scissors beside the paragraphs clippings were cut from
+    //: A group of Settings > Editor > Clippings. In Polish: W tekście
+    QFormLayout* inText = addGroup(tr("In the Text"));
+    //: In Polish: &Rysuj nożyczki w miejscach wycięć
+    QCheckBox* marks = addCheckBox(
+        inText, tr("&Draw scissors where a fragment was cut"), Clippings::MARKS_SETTING);
+    marks->setObjectName(QStringLiteral("clippingsMarks"));
+    //: Under "Draw scissors". In Polish: Jak spinacze materiałów: kliknięcie
+    //: albo menu akapitu pokazuje wycinek albo przywraca go w tym miejscu. Rysowane w kolorze
+    //: tekstu.
+    QLabel* marksNote = addNote(inText, tr("As the paperclips of the materials: a click or the "
+                                           "menu of the paragraph shows the clipping or "
+                                           "restores it there. Drawn in the color of the text."));
+    alignWithText(marksNote, marks);
 
     //: In Polish: Czy wycięcie zmniejsza słowa dnia, ustawia się w Statystyki i cele > Liczenie.
     addNote(pageLayout(), tr("Whether a cut lowers the words of the day is set in Statistics "

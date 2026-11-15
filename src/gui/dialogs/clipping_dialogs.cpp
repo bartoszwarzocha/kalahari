@@ -11,6 +11,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/editor/quick_insert.h"
+#include "kalahari/gui/clipping_texts.h"
 #include "kalahari/gui/clippings_coordinator.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/version_texts.h"
@@ -127,18 +128,9 @@ void chooseFirst(QListWidget* list) {
 
 /// @brief What Restore to the Place It Came From does with @p clipping, or why it cannot
 QString restoreToolTip(const ClippingEntry& clipping) {
-    if (clipping.fromId.isEmpty()) {
-        //: In Polish: Ten wycinek dodano ręcznie: nie ma pierwotnego miejsca
-        return InsertClippingDialog::tr(
-            "This clipping was added by hand: it has no place it came from");
-    }
-    if (clipping.originGone) {
-        //: In Polish: Tekstu, z którego go wycięto, nie ma już w książce
-        return InsertClippingDialog::tr("The text it was cut from is no longer in the book");
-    }
-    //: %1: the title of the text. In Polish: Wstaw go tam, skąd go wycięto, w „%1”
-    return InsertClippingDialog::tr("Insert it where it was cut from, in \"%1\"")
-        .arg(clipping.from);
+    return ClippingTexts::restoreToolTip(
+        {.title = clipping.fromId.isEmpty() ? QString() : clipping.from,
+         .live = !clipping.fromId.isEmpty() && !clipping.originGone});
 }
 
 }  // namespace

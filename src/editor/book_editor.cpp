@@ -501,19 +501,9 @@ bool BookEditor::event(QEvent* event)
             QToolTip::showText(help->globalPos(), tip, this);
             return true;
         }
-        // The mark beside a paragraph: the titles of the materials linked with it
+        // The mark beside a paragraph: the materials linked with it, the clippings cut from it
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
-            //: The tooltip of the paperclip beside a paragraph, over the titles of the
-            //: materials. In Polish: Powiązane materiały
-            QStringList lines{
-                QStringLiteral("<b>%1</b>").arg(tr("Linked materials").toHtmlEscaped())};
-            for (const QString& title : marked->titles) {
-                lines << title.toHtmlEscaped();
-            }
-            QToolTip::showText(help->globalPos(),
-                               QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
-                                   .arg(lines.join(QStringLiteral("<br>"))),
-                               this);
+            QToolTip::showText(help->globalPos(), paragraphMarkToolTip(*marked), this);
             return true;
         }
         // A note's number: its name and its text, as the frame shows them
@@ -1077,6 +1067,7 @@ void BookEditor::replaceWithKml(const QString& kml)
     cursor.setBlockCharFormat(QTextCharFormat());  // nothing left of the old first paragraph
     appendParagraphs(cursor, content);
     cursor.endEditBlock();
+    m_paragraphMarks.clear();
     anchorParagraphMarks(marks);
     syncParagraphMarks();
 

@@ -39,7 +39,10 @@ namespace kalahari::gui {
 
 class CommandRegistry;
 class EditorPanel;
+class MaterialListCoordinator;
+class ParagraphMarksCoordinator;
 class NavigatorCoordinator;
+class PropertiesPanel;
 
 /// @brief A clipping as the window and the list of Insert > Clipping show it
 struct ClippingEntry {
@@ -134,6 +137,14 @@ public:
     /// @brief Give Cut to Clippings and Insert > Clipping their actions and the reasons why
     ///        they are greyed out (their states follow the keys: EditCoordinator)
     void connectCommands();
+
+    /// @brief Restore to Its Place and Go to Its Place of the group Origin of @p properties
+    ///        and of the lists of @p lists do it here (either may be null)
+    void connectPanels(PropertiesPanel* properties, MaterialListCoordinator* lists) const;
+
+    /// @brief Restore Here of the scissors of @p marks does it here; the scissors follow the
+    ///        clippings cut, inserted and gone (the Navigator shows those changes)
+    void connectMarks(ParagraphMarksCoordinator& marks);
 
     // =========================================================================
     // Cut to Clippings
@@ -287,7 +298,8 @@ private:
     /// @brief Follow the undo of @p text and its document: its steps undone and redone
     void follow(editor::BookEditor* text);
 
-    /// @brief Stop following @p text, and forget its steps (its document is another one)
+    /// @brief Stop following @p text, and forget its steps (its document is another one);
+    ///        the texts destroyed too (null: only those)
     void unfollow(const editor::BookEditor* text);
 
     /// @brief The text of @p text changed: its steps undone or redone take their clippings

@@ -7,6 +7,7 @@
 #include "kalahari/gui/material_list.h"
 
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/clipping.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/material_kinds.h"
@@ -357,6 +358,7 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
             }
         }
     }
+    MaterialList::setClippingTexts(row, book, element);
     set(MaterialList::DETAILS, detailsOf(row, row.text ? QString() : baseKindOf(kind)));
     row.copy = MaterialList::copyTextOf(book, element.id);
 
@@ -495,6 +497,10 @@ bool MaterialList::isCover(const QString& list) {
     return CoverNames::isCoverKind(kindOfList(list));
 }
 
+bool MaterialList::isClippings(const QString& list) {
+    return baseKindOf(kindOfList(list)) == QLatin1String(core::Clippings::KIND);
+}
+
 QString MaterialList::nameOf(const QString& list) {
     if (list.isEmpty()) {
         //: The list of all the materials of the Workshop, the working notes too, on a tab. In
@@ -548,6 +554,8 @@ QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
                 //: A summary of a material in All Materials. In Polish: Szczegóły
                 << column(DETAILS, tr("Details")) << column(LINKS, links)
                 << column(DESCRIPTION, description, false) << column(MODIFIED, modified, false);
+    } else if (kindId == QLatin1String(core::Clippings::KIND)) {
+        columns << clippingColumns();
     } else if (kind && !kind.kind->isMaterial()) {
         //: The words of a working note. In Polish: Słowa
         columns << column(TITLE, title) << column(WORDS, tr("Words"))
@@ -643,8 +651,15 @@ QString MaterialList::firstSortOf(const QString& list) {
     if (kindId == QLatin1String(core::MaterialKinds::COVER)) {
         return QString::fromLatin1(COVER_TEXT);
     }
+    if (kindId == QLatin1String(core::Clippings::KIND)) {
+        return QString::fromLatin1(CLIPPING_CUT);
+    }
     return kindId == QLatin1String(core::MaterialKinds::QUOTE) ? QString::fromLatin1(QUOTE)
                                                                 : QString::fromLatin1(TITLE);
+}
+
+Qt::SortOrder MaterialList::firstSortOrderOf(const QString& list) {
+    return isClippings(list) ? Qt::DescendingOrder : Qt::AscendingOrder;
 }
 
 QList<MaterialRow> MaterialList::rowsOf(const core::ProjectManager& book, const QString& list) {

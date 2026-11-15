@@ -276,6 +276,10 @@ void MaterialListCoordinator::connectList(MaterialListPanel* panel) {
     connect(panel, &MaterialListPanel::requestShowKind, this, &MaterialListCoordinator::showKind);
     connect(panel, &MaterialListPanel::requestSettings, this,
             &MaterialListCoordinator::settingsRequested);
+    connect(panel, &MaterialListPanel::requestRestore, this,
+            &MaterialListCoordinator::clippingRestoreRequested);
+    connect(panel, &MaterialListPanel::requestShowOrigin, this,
+            &MaterialListCoordinator::clippingOriginRequested);
     connect(panel, &MaterialListPanel::message, this,
             [this](const QString& text) { m_statusBar->showMessage(text, MESSAGE_TIMEOUT); });
 }

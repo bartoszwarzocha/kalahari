@@ -15,12 +15,16 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/editor/quick_insert.h"
+#include "kalahari/gui/clipping_texts.h"
 #include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/clipping_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/material_list_coordinator.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/version_texts.h"
 
@@ -128,6 +132,32 @@ void ClippingsCoordinator::connectCommands() {
         command->disabledReason = [this]() {
             return whyNotInsert(m_textWithKeys ? m_textWithKeys() : nullptr);
         };
+    }
+}
+
+void ClippingsCoordinator::connectPanels(PropertiesPanel* properties,
+                                         MaterialListCoordinator* lists) const {
+    // What they did, or why not, the notices under the texts and the status bar say
+    if (properties != nullptr) {
+        connect(properties, &PropertiesPanel::requestClippingRestore, this,
+                &ClippingsCoordinator::restore);
+        connect(properties, &PropertiesPanel::requestClippingOrigin, this,
+                &ClippingsCoordinator::showOrigin);
+    }
+    if (lists != nullptr) {
+        connect(lists, &MaterialListCoordinator::clippingRestoreRequested, this,
+                &ClippingsCoordinator::restore);
+        connect(lists, &MaterialListCoordinator::clippingOriginRequested, this,
+                &ClippingsCoordinator::showOrigin);
+    }
+}
+
+void ClippingsCoordinator::connectMarks(ParagraphMarksCoordinator& marks) {
+    connect(&marks, &ParagraphMarksCoordinator::clippingRestoreRequested, this,
+            &ClippingsCoordinator::restore);
+    if (m_navigator != nullptr) {
+        connect(m_navigator, &NavigatorCoordinator::refreshNavigatorRequested, &marks,
+                &ParagraphMarksCoordinator::refreshSoon);
     }
 }
 
@@ -704,17 +734,10 @@ ClippingEntry ClippingsCoordinator::entryOf(const core::ProjectElement& clipping
     entry.id = clipping.id;
     entry.title = clipping.title;
     entry.inserted = !data.inserted.isEmpty();
-    if (!core::isEmpty(data.origin)) {
-        entry.fromId = data.origin.element;
-        if (const core::ProjectElement* from = m_book.findElement(data.origin.element)) {
-            entry.from = from->title;
-        } else {
-            entry.originGone = true;
-            //: Where a clipping comes from: a text deleted since. %1: its title then. In
-            //: Polish: %1 (usunięty)
-            entry.from = tr("%1 (deleted)").arg(data.origin.title);
-        }
-    }
+    entry.fromId = data.origin.element;
+    const ClippingFrom from = ClippingTexts::fromOf(m_book, data);
+    entry.from = from.title;
+    entry.originGone = !entry.fromId.isEmpty() && !from.live;
     entry.cut = data.origin.cut;
     entry.words = m_book.wordCount(clipping.id);
     entry.note = m_book.notes(clipping.id).trimmed();

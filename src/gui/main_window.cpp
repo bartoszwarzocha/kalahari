@@ -780,6 +780,9 @@ MainWindow::MainWindow(QWidget* parent)
             .window = this},
         this);
     m_clippingsCoordinator->connectCommands();
+    m_clippingsCoordinator->connectPanels(m_dockCoordinator->propertiesPanel(),
+                                          m_materialListCoordinator);
+    m_clippingsCoordinator->connectMarks(*m_paragraphMarksCoordinator);
     m_editCoordinator->addTextCommands(
         {ClippingsCoordinator::CUT_COMMAND}, [this](const editor::BookEditor& text) {
             return m_clippingsCoordinator->canCut(text);

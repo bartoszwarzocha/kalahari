@@ -21,9 +21,11 @@
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/text_highlight.h>
 #include <QIcon>
+#include <QMap>
 #include <QObject>
 #include <QPolygonF>
 #include <QRect>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -316,9 +318,12 @@ public:
     /// @return std::nullopt when no mark is there
     std::optional<AnnotationMark> annotationMarkDetailsAt(const QPointF& point) const;
 
-    /// @brief Set the marks beside the paragraphs and the icon they show, drawn in the color
-    ///        of the text (repaint only)
-    void setParagraphMarks(std::vector<ParagraphMark> marks, const QIcon& icon);
+    /// @brief Set the marks beside the paragraphs and the icons the marks of each kind show,
+    ///        drawn in the color of the text (repaint only)
+    /// @param marks The marks; those of one paragraph side by side, the first nearest to the
+    ///        text
+    void setParagraphMarks(std::vector<ParagraphMark> marks,
+                           const QMap<ParagraphMarkKind, QIcon>& icons);
 
     /// @brief The marks beside the paragraphs
     const std::vector<ParagraphMark>& paragraphMarks() const { return m_paragraphMarks; }
@@ -330,7 +335,8 @@ public:
     /// @brief Where the mark beside a paragraph is drawn, in widget coordinates: in the left
     ///        margin, beside its first line, left of the numbers on the margin when they are
     ///        shown (empty for a paragraph not laid out)
-    QRectF paragraphMarkRect(size_t paragraph) const;
+    /// @param slot Which of the marks of the paragraph: 0 nearest to the text, 1 left of it
+    QRectF paragraphMarkRect(std::size_t paragraph, std::size_t slot = 0) const;
 
     /// @brief Show where dragged text would be dropped (std::nullopt hides it)
     ///
@@ -706,7 +712,8 @@ private:
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
     PageDecorator m_pageDecorator;               ///< Draws on the pages besides their lines
     std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs
-    QIcon m_paragraphMarkIcon;                       ///< What they show
+    std::vector<size_t> m_paragraphMarkSlots;        ///< The slot of each (paragraphMarkRect())
+    QMap<ParagraphMarkKind, QIcon> m_paragraphMarkIcons;  ///< What the marks of each kind show
 
     // The numbers on the margin painted last: they went on from what was counted before
     // their first paragraph (marginNumbersOutdated())

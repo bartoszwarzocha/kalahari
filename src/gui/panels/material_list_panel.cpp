@@ -835,13 +835,14 @@ void MaterialListPanel::createLayout() {
     m_columnsButton = button("materialListColumns", false);
     m_groupsButton = button("materialListGroups", true);
     m_settingsButton = button("materialListSettings", false);
+    m_restoreButton = button("materialListRestore", true);
     m_tableButton->setCheckable(true);
     m_tilesButton->setCheckable(true);
     m_planButton->setCheckable(true);
     m_groupsButton->setCheckable(true);
     m_addMenu = new QMenu(m_addButton);
-    for (QToolButton* tool : {m_addButton, m_editButton, m_linkButton, m_copyButton,
-                              m_deleteButton}) {
+    for (QToolButton* tool : {m_addButton, m_editButton, m_restoreButton, m_linkButton,
+                              m_copyButton, m_deleteButton}) {
         toolsLayout->addWidget(tool);
     }
     auto* viewSeparator = separator(tools);
@@ -1139,7 +1140,8 @@ void MaterialListPanel::createCommands() {
             showGroups(groups);
         }
     });
-    connect(m_settingsButton, &QToolButton::clicked, this, [this]() { emit requestSettings(); });
+    connect(m_settingsButton, &QToolButton::clicked, this, &MaterialListPanel::openSettings);
+    createClippingCommands();
     connect(m_columnsButton, &QToolButton::clicked, this, [this]() {
         showColumnsMenu(m_columnsButton->mapToGlobal(QPoint(0, m_columnsButton->height())));
     });
@@ -1182,6 +1184,7 @@ void MaterialListPanel::refreshIcons() {
     m_planButton->setIcon(iconOf("materials.coverPlan"));
     m_groupsButton->setIcon(iconOf("materials.groups"));
     m_settingsButton->setIcon(iconOf("dock.settings"));
+    m_restoreButton->setIcon(iconOf("clipping.restore"));
     m_showKindButton->setIcon(iconOf("materials.showKind"));
     {
         const int size = art.getIconSize(core::IconContext::Dialog);
@@ -1453,6 +1456,7 @@ void MaterialListPanel::fillMenu(QMenu& menu) {
                         [this, id]() { emit requestCoverState(id, QString()); });
             }
         }
+        addClippingItems(menu, *row);
         menu.addSeparator();
         //: In Polish: &Kopiuj
         QAction* copy = menu.addAction(
@@ -1692,7 +1696,7 @@ void MaterialListPanel::restoreState() {
         state.sortColumn.isEmpty() ? MaterialList::firstSortOf(m_list) : state.sortColumn;
     const int column = columnOf(sortColumn);
     m_table->sortByColumn(column >= 0 ? column : std::max(0, m_model->titleColumn()),
-                          state.kept ? state.sortOrder : Qt::AscendingOrder);
+                          state.kept ? state.sortOrder : MaterialList::firstSortOrderOf(m_list));
     applyFilters();
     if (!state.current.isEmpty()) {
         selectMaterial(state.current);
@@ -1826,6 +1830,7 @@ void MaterialListPanel::updateCommands() {
     m_copyButton->setEnabled(row != nullptr && !row->copy.isEmpty());
     m_linkButton->setEnabled(row != nullptr && !row->text && changing);
     m_deleteButton->setEnabled(row != nullptr && changing);
+    updateClippingCommands(row);
 }
 
 void MaterialListPanel::updateHeading() {

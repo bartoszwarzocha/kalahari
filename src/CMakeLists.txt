@@ -209,6 +209,8 @@ set(KALAHARI_SOURCES
     gui/material_downloader.cpp  # MaterialDownloader - the title of a page, the copy of a picture
     gui/link_names.cpp  # The titles, icons and places of the links of a material
     gui/material_list.cpp  # MaterialList - the lists of the materials: their kinds, columns and rows
+    gui/material_list_clippings.cpp  # MaterialList - the columns of the clippings
+    gui/clipping_texts.cpp  # What the program says of a clipping
     gui/version_texts.cpp  # What the program says of a version of a text
     gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
     gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
@@ -231,6 +233,7 @@ set(KALAHARI_SOURCES
     gui/document_windows.cpp  # The texts of the book window in its tabs and in windows of their own
     gui/annotations_coordinator.cpp  # AnnotationsCoordinator - annotation commands and the Annotations panel
     gui/paragraph_marks_coordinator.cpp  # ParagraphMarksCoordinator - paperclips of linked paragraphs
+    gui/paragraph_marks_clippings.cpp  # ParagraphMarksCoordinator - scissors of the clippings
     gui/writing_stats_coordinator.cpp  # WritingStatsCoordinator - the statistics bar and goals
     gui/writing_awards_tracker.cpp  # WritingAwardsTracker - the badges and challenges won
     gui/writing_stats_model.cpp  # WritingStatsModel - the statistics of writing shown
@@ -338,6 +341,8 @@ set(KALAHARI_SOURCES
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
+    gui/panels/material_list_panel_clippings.cpp  # MaterialListPanel - the commands of the clippings
+    gui/panels/clipping_origin_box.cpp  # ClippingOriginBox - where a clipping comes from, in the Properties
     gui/panels/paragraph_panel.cpp
     gui/panels/search_panel.cpp
     gui/panels/spelling_issue_list.cpp  # Spelling and Grammar panel: the cards, made only in view
@@ -535,6 +540,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/clipping_origin_box.h  # ClippingOriginBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/spelling_issue_list.h  # SpellingIssueCard, SpellingIssueList with Q_OBJECT
