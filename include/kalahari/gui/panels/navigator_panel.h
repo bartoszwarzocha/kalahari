@@ -447,6 +447,10 @@ signals:
     /// @param elementId Element ID
     void requestVersionHistory(const QString& elementId);
 
+    /// @brief Request to show element @p elementId of the main section on the plot board
+    /// (Show on the Plot Board): a text, a part, or the book (empty)
+    void requestShowOnPlotBoard(const QString& elementId);
+
     /// @brief Request to show section properties (aggregate statistics)
     /// @param sectionType Section type ("section_frontmatter", "section_body", "section_backmatter")
     void requestSectionProperties(const QString& sectionType);
@@ -513,6 +517,10 @@ private slots:
     /// @brief Show context menu at position
     /// @param pos Position in widget coordinates
     void showContextMenu(const QPoint& pos);
+
+    /// @brief Add Show on the Plot Board to @p menu for element @p elementId (empty: the
+    /// book): only an element of the main section has a card there, followed by a separator
+    void addPlotBoardAction(QMenu& menu, const QString& elementId);
 
     // Context menu action handlers
     void onContextMenuOpen();

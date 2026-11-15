@@ -8,6 +8,7 @@
 #ifndef KALAHARI_GUI_PANELS_PLOT_BOARD_PANEL_H
 #define KALAHARI_GUI_PANELS_PLOT_BOARD_PANEL_H
 
+#include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/widgets/plot_board_view.h"
 
@@ -48,7 +49,10 @@ class PlotOutlineModel;
 /// from cell to cell, F2 or a letter edits a cell, Tab goes to the next one, Enter keeps it
 /// and Esc leaves it; Enter on a cell not edited opens the text, Ctrl+Up and Ctrl+Down move
 /// its row. The panel asks for every change of the book: PlotBoardCoordinator makes it.
-class PlotBoardPanel : public QWidget {
+///
+/// Edit > Undo, Redo, Cut, Paste and Delete work on it as its keys do (EditTarget), outside a
+/// field being written in.
+class PlotBoardPanel : public QWidget, public EditTarget {
     Q_OBJECT
 
 public:
@@ -118,6 +122,19 @@ public:
     /// @brief The model of the outline
     [[nodiscard]] PlotOutlineModel* outlineModel() const { return m_model; }
 
+    /// @brief Whether a change of the board can be undone (@p canUndo) and one undone done
+    /// again (@p canRedo): Edit > Undo and Redo
+    void setUndoState(bool canUndo, bool canRedo);
+
+    /// @name Edit > Undo, Redo, Cut, Paste and Delete on the board and in the outline
+    /// @{
+    [[nodiscard]] bool takesEdit(EditCommand command) const override;
+    [[nodiscard]] bool canEditHere(EditCommand command) const override;
+    void editHere(EditCommand command) override;
+    QMetaObject::Connection followEditStates(QObject* receiver,
+                                             std::function<void()> changed) override;
+    /// @}
+
 signals:
     /// @brief The text chosen on the board or in the outline changed; empty: none
     void currentCardChanged(const QString& elementId);
@@ -160,6 +177,8 @@ signals:
     /// @brief The settings show other scenes (PlotBoard::SCENES_VARIANT_SETTING): the board is
     /// to be filled again
     void scenesVariantChanged();
+    /// @brief What Edit > Undo, Redo, Cut, Paste and Delete can do may have changed
+    void editStatesChanged();
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -194,6 +213,8 @@ private:
 
     QList<PlotBand> m_bands;
     bool m_readOnly = false;
+    bool m_canUndo = false;  ///< setUndoState()
+    bool m_canRedo = false;  ///< setUndoState()
     QStackedWidget* m_stack = nullptr;
     PlotBoardView* m_board = nullptr;
     QTableView* m_outline = nullptr;

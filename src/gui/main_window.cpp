@@ -21,6 +21,7 @@
 #include "kalahari/gui/auto_correct_coordinator.h"
 #include "kalahari/gui/special_character_coordinator.h"
 #include "kalahari/gui/edit_coordinator.h"
+#include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/versions_coordinator.h"
 #include "kalahari/gui/style_coordinator.h"
 #include "kalahari/gui/book_export_coordinator.h"
@@ -528,6 +529,9 @@ MainWindow::MainWindow(QWidget* parent)
             }
         },
         this);
+    // Show on the Plot Board in the menu of the book, a part and a text of the Navigator
+    connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowOnPlotBoard,
+            m_plotBoardCoordinator, &PlotBoardCoordinator::showOnBoard);
     // Hide Kind in the menu of a kind of the Navigator; Kind Settings... there and the gear of
     // a list: the materials in Settings > Navigator
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestHideKind,
@@ -1779,21 +1783,21 @@ void MainWindow::onExit() {
 
 void MainWindow::onUndo() {
     core::Logger::getInstance().info("Action triggered: Undo");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Undo)) {
+    if (editToTell(EditCoordinator::Edit::Undo)) {
         statusBar()->showMessage(tr("Undo performed"), 2000);
     }
 }
 
 void MainWindow::onRedo() {
     core::Logger::getInstance().info("Action triggered: Redo");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Redo)) {
+    if (editToTell(EditCoordinator::Edit::Redo)) {
         statusBar()->showMessage(tr("Redo performed"), 2000);
     }
 }
 
 void MainWindow::onCut() {
     core::Logger::getInstance().info("Action triggered: Cut");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Cut)) {
+    if (editToTell(EditCoordinator::Edit::Cut)) {
         statusBar()->showMessage(tr("Cut to clipboard"), 2000);
     }
 }
@@ -1807,9 +1811,17 @@ void MainWindow::onCopy() {
 
 void MainWindow::onPaste() {
     core::Logger::getInstance().info("Action triggered: Paste");
-    if (m_editCoordinator && m_editCoordinator->execute(EditCoordinator::Edit::Paste)) {
+    if (editToTell(EditCoordinator::Edit::Paste)) {
         statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
     }
+}
+
+bool MainWindow::editToTell(EditCommand edit) {
+    if (m_editCoordinator == nullptr) {
+        return false;
+    }
+    const bool saysItself = m_editCoordinator->saysItself(edit);
+    return m_editCoordinator->execute(edit) && !saysItself;
 }
 
 void MainWindow::onSelectAll() {

@@ -10196,6 +10196,11 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>Opens Settings &gt; Navigator at the kinds of materials. In Polish: Ustawienia &amp;typów...</extracomment>
         <translation>Ustawienia &amp;typów...</translation>
     </message>
+    <message>
+        <source>Show on the Plot &amp;Board</source>
+        <extracomment>The command of the book, a part and a text of the main section in the Navigator: the plot board with its card chosen. In Polish: Pokaż na &amp;tablicy fabuły</extracomment>
+        <translation>Pokaż na &amp;tablicy fabuły</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CentralTabs</name>
@@ -11063,6 +11068,54 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>Cancel</source>
         <extracomment>In Polish: Anuluj</extracomment>
         <translation>Anuluj</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotFieldsBox</name>
+    <message>
+        <source>Plot Board</source>
+        <extracomment>The group of the Properties panel with what the plot board says of a text. In Polish: Tablica fabuły</extracomment>
+        <translation>Tablica fabuły</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <extracomment>The short description of a text on its card of the plot board. In Polish: Opis:</extracomment>
+        <translation>Opis:</translation>
+    </message>
+    <message>
+        <source>Point of view:</source>
+        <extracomment>In Polish: Punkt widzenia:</extracomment>
+        <translation>Punkt widzenia:</translation>
+    </message>
+    <message>
+        <source>Place:</source>
+        <extracomment>In Polish: Miejsce:</extracomment>
+        <translation>Miejsce:</translation>
+    </message>
+    <message>
+        <source>Suggestions from the character and place cards of the Workshop; any text can be written.</source>
+        <extracomment>The note under the point of view and the place. In Polish: Podpowiedzi z kart postaci i miejsc w Warsztacie; można wpisać dowolny tekst.</extracomment>
+        <translation>Podpowiedzi z kart postaci i miejsc w Warsztacie; można wpisać dowolny tekst.</translation>
+    </message>
+    <message>
+        <source>e.g. Day 3, dawn</source>
+        <extracomment>An example of the time of the action. In Polish: np. Dzień 3, świt</extracomment>
+        <translation>np. Dzień 3, świt</translation>
+    </message>
+    <message>
+        <source>Time of the action:</source>
+        <extracomment>In Polish: Czas akcji:</extracomment>
+        <translation>Czas akcji:</translation>
+    </message>
+    <message>
+        <source>Card color:</source>
+        <extracomment>The own color of the card of a text on the plot board. In Polish: Kolor karty:</extracomment>
+        <translation>Kolor karty:</translation>
+    </message>
+    <message>
+        <source>No Color</source>
+        <extracomment>A card without an own color. In Polish: Bez koloru</extracomment>
+        <translation>Bez koloru</translation>
     </message>
 </context>
 <context>

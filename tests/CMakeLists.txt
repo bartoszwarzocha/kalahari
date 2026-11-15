@@ -307,6 +307,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/menu_builder.cpp            # The menus of the commands: the File menu, the titles and order for the shortcuts list
     ${CMAKE_SOURCE_DIR}/src/gui/navigator_coordinator.cpp   # Navigator commands on the open project
     ${CMAKE_SOURCE_DIR}/src/gui/panels/properties_panel.cpp # Properties panel of the Navigator commands
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_fields_box.cpp  # Its group of the plot of a text
     ${CMAKE_SOURCE_DIR}/src/gui/panels/paragraph_panel.cpp  # Paragraph and Styles panel
     # GUI dependencies for FindReplaceBar and the GUI tests
     ${CMAKE_SOURCE_DIR}/src/core/art_provider.cpp          # ArtProvider for icons
@@ -561,6 +562,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/navigator_coordinator.h  # NavigatorCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h  # PropertiesPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_fields_box.h  # PlotFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/editor_panel.h  # EditorPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT

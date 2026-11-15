@@ -343,6 +343,7 @@ set(KALAHARI_SOURCES
     gui/panels/log_panel.cpp
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
+    gui/panels/plot_fields_box.cpp   # PlotFieldsBox - the plot of a text in the Properties panel
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
@@ -543,6 +544,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/navigator_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_fields_box.h  # PlotFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT

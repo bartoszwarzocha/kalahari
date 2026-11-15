@@ -56,6 +56,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   what it says and the annotations anchored in it along (one anchored also in the text it
   leaves goes as a copy); into an empty text it comes in place of its empty scene. One Ctrl+Z
   undoes it in both texts, also when one of them is open in the editor.
+- **The plot board in the Edit menu, the Navigator and the Properties panel** - 2026-11-15.
+  Edit > Undo, Redo, Cut, Paste and Delete work on the board and in the outline as their keys
+  do (Copy in the outline copies the cell); in a field of a card being edited they are the
+  field's. "Show on the Plot Board" in the menu of the book, a part and a text of the main
+  section in the Navigator opens the board with the card of the text, or of the first text of
+  the part, chosen. The Properties panel of a text of the main section has the group "Plot
+  Board": its description, point of view, place, time of the action and card color, with the
+  characters and places of the Workshop suggested; a field keeps what was written when the
+  keys leave it, and a change on the board shows there at once.
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

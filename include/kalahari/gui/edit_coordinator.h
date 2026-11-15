@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "kalahari/gui/edit_target.h"
+
 #include <QMetaObject>
 #include <QObject>
 
@@ -37,7 +39,8 @@ namespace kalahari::gui {
 /// more than one. Where what the writer does is a step of the text's undo history, Undo and
 /// Redo work on the text: in the Annotations panel (done, removed), in the Spelling and Grammar
 /// panel (a suggestion put in place) and in the find bar (Replace, Replace All), outside their
-/// fields. Elsewhere (a button, the Dashboard) the commands do nothing.
+/// fields. A view with commands of its own (EditTarget: the plot board) does them itself,
+/// outside its fields. Elsewhere (a button, the Dashboard) the commands do nothing.
 ///
 /// The commands are enabled where they can do something: they follow the keys from element
 /// to element, the element's selection and text, and the clipboard.
@@ -50,7 +53,7 @@ class EditCoordinator : public QObject {
 
 public:
     /// @brief The commands, in the order of the Edit menu
-    enum class Edit { Undo, Redo, Cut, Copy, Paste, Delete, SelectAll };
+    using Edit = EditCommand;
 
     /// @brief The book's text in front (nullptr: none)
     using EditorInFront = std::function<editor::BookEditor*()>;
@@ -88,6 +91,10 @@ public:
     /// @brief Do a command on the element with the keys
     bool execute(Edit edit) { return execute(edit, focusedElement()); }
 
+    /// @brief Whether the view with the keys does @p edit itself (EditTarget), and says what
+    /// it did
+    [[nodiscard]] bool saysItself(Edit edit) const;
+
     /// @brief Enable the commands again, as the element with the keys allows
     void updateStates();
 
@@ -108,12 +115,23 @@ private:
 
     /// @brief What a command works on, for the element with the keys
     [[nodiscard]] Target targetOf(QWidget* element) const;
+    /// @brief The field, the book's text or the list @p element is; none of them: nothing
+    [[nodiscard]] static Target elementTargetOf(QWidget* element);
+    /// @brief The book's text whose undo history what is done in @p element is a step of
+    /// (the find bar, the Annotations and the Spelling and Grammar panels); nullptr: none
+    [[nodiscard]] editor::BookEditor* historyOf(QWidget* element) const;
+    /// @brief Whether @p edit can do something in the field or the book's text of @p target
+    [[nodiscard]] static bool fieldCan(const Target& target, Edit edit);
+    /// @brief Do @p edit in the field or the book's text of @p target
+    static void fieldDoOn(const Target& target, Edit edit);
 
     /// @brief Remember the element that had the keys last, outside the menus and toolbars
     void setLastFocus(QWidget* element);
 
     /// @brief Follow the changes of the element with the keys that enable or disable commands
     void follow(QWidget* element);
+    /// @brief Follow the changes of the field, the list or the view of @p target
+    void followElement(const Target& target);
 
     /// @brief Follow no element and no text
     void stopFollowing();

@@ -132,9 +132,30 @@ in Settings > Plot Board (`plotBoard.scenes`).
 
 ## Stage 3 – settings and the other panels
 
-Settings > Plot Board (the page came with 2c, with the scenes and the colors): the fields of the cards, the front and back sections, the
-renumbering of "Chapter N" after a move; the plot fields in the Properties panel; "Show on the Plot Board"
-in the Navigator; Edit > Undo and Redo of the menu working on the board.
+### 3a – the Edit menu, the Navigator and the Properties panel (done)
+
+- Edit > Undo, Redo, Cut, Paste and Delete work on the board and in the outline as their keys do:
+  `PlotBoardPanel` is an `EditTarget` (`include/kalahari/gui/edit_target.h`), which
+  `EditCoordinator` asks, as it asks a field, outside a field being written in (a field of the
+  card editor keeps its own commands). Copy and Select All stay the outline's (the text of a
+  cell); the status bar says nothing of a command the board says itself under it.
+- "Show on the Plot Board" in the menu of the book, a part and a text of the main section in the
+  Navigator (`PlotBoardCoordinator::showOnBoard()`): the board with the card of the text, or of the
+  first text of the part, chosen, with the keys.
+- The Properties panel of a text of the main section: the group "Plot Board" (`PlotFieldsBox`)
+  with its description, point of view, place, time of the action and card color; the characters
+  and places of the Workshop suggested; saved through `ProjectManager::setPlot()` when the keys
+  leave a field, and filled again when the book changes elsewhere. A scene is changed on the
+  board and in the outline.
+
+### 3b – Settings > Plot Board
+
+The page came with 2c, with the scenes and the colors. To add, as in the mockup: the view the
+board opens on, the layout and the size of the cards, the scenes shown; the front and back
+sections shown on the board (a preview only); the fields shown on the cards; what colors the
+cards, as a strip or a tint, and the background of the board; the columns of the outline; the
+numbers in the titles ("Chapter 3") after a move: offered on the bar under the board (the
+default), at once, or never, only the number changing.
 
 ## Every stage
 

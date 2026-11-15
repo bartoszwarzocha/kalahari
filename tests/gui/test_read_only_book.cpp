@@ -333,9 +333,11 @@ TEST_CASE("Read-only book: the Navigator's menus open and show, and change nothi
         return reader.items();
     };
 
-    // A chapter opens and shows its versions and its properties, only read
+    // A chapter opens and shows its versions, its card on the plot board and its properties,
+    // only read
     const QList<MenuItem> chapter = menuOf(itemOf(*tree, Qt::UserRole, novel.chapterId));
-    CHECK(textsOf(chapter, true) == QStringList{"Open", "Version History...", "Properties..."});
+    CHECK(textsOf(chapter, true) == QStringList{"Open", "Version History...",
+                                                "Show on the Plot Board", "Properties..."});
     CHECK(textsOf(chapter, false) ==
           QStringList{"Add...", "Add Chapter...", "Rename...", "Delete...", "Move...",
                       "Move to Start", "Move Up", "Move Down", "Move to End", "Set Status"});
@@ -343,7 +345,8 @@ TEST_CASE("Read-only book: the Navigator's menus open and show, and change nothi
 
     // The book's item: its properties are changed in the Book Properties window
     const QList<MenuItem> book = menuOf(itemOf(*tree, Qt::UserRole + 1, QStringLiteral("book")));
-    CHECK(textsOf(book, true) == QStringList{"Expand All", "Collapse All"});
+    CHECK(textsOf(book, true) ==
+          QStringList{"Show on the Plot Board", "Expand All", "Collapse All"});
     CHECK(textsOf(book, false) == QStringList{"Add...", "Add Chapter...", "Add Part...",
                                               "Rename...", "Show Sections", "Book Properties..."});
     CHECK(greyedSayWhy(book));

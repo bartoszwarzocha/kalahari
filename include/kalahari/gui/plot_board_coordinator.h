@@ -106,6 +106,11 @@ public:
     /// @brief The board open on its tab; none
     [[nodiscard]] PlotBoardPanel* board() const;
 
+    /// @brief Show element @p elementId of the book on the board, with the keys there (Show on
+    /// the Plot Board in the Navigator): a text with its card chosen, a part with the card of
+    /// its first text; empty: the board as it was
+    void showOnBoard(const QString& elementId);
+
     /// @brief What can be undone and done again on the board
     [[nodiscard]] QUndoStack* undoStack() const { return m_undo; }
 

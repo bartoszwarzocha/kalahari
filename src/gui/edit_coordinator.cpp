@@ -9,6 +9,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/paste_target.h"
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
@@ -257,6 +258,30 @@ bool listCan(const QAbstractItemView& list, Edit edit) {
     }
 }
 
+/// Copy, Paste and Select All in a list (listCan() allows no other)
+void listDo(QAbstractItemView& list, Edit edit) {
+    if (edit == Edit::Copy) {
+        QGuiApplication::clipboard()->setText(currentItemText(list));
+    } else if (edit == Edit::Paste) {
+        dynamic_cast<PasteTarget&>(list).pasteHere();  // listCan() asked it
+    } else {
+        list.selectAll();
+    }
+}
+
+/// The view with commands of its own that @p element is in, up to its window; nullptr: none
+EditTarget* ownEditsOf(QWidget* element) {
+    for (QWidget* part = element; part != nullptr; part = part->parentWidget()) {
+        if (auto* own = dynamic_cast<EditTarget*>(part)) {
+            return own;
+        }
+        if (part->isWindow()) {
+            break;
+        }
+    }
+    return nullptr;
+}
+
 }  // namespace
 
 /// What the commands work on for an element: one of these, or nothing
@@ -267,6 +292,14 @@ struct EditCoordinator::Target {
     QAbstractItemView* list = nullptr;
     editor::BookEditor* book = nullptr;     ///< The book's text: every command
     editor::BookEditor* history = nullptr;  ///< The text's undo history only: Undo and Redo
+    EditTarget* own = nullptr;  ///< A view that does the commands it takes itself
+
+    /// Whether it is a field or the book's text, where the commands are theirs
+    [[nodiscard]] bool isField() const {
+        return line != nullptr || text != nullptr || plainText != nullptr || book != nullptr;
+    }
+    /// Whether the view does @p edit itself
+    [[nodiscard]] bool ownTakes(Edit edit) const { return own != nullptr && own->takesEdit(edit); }
 };
 
 EditCoordinator::EditCoordinator(CommandRegistry& commands, EditorInFront editorInFront,
@@ -353,53 +386,58 @@ QWidget* EditCoordinator::focusedElement() const {
 }
 
 EditCoordinator::Target EditCoordinator::targetOf(QWidget* element) const {
-    Target target;
     if (element == nullptr) {
+        return {};
+    }
+    Target target = elementTargetOf(element);
+    if (target.isField()) {
         return target;
     }
+    // Outside a field, a view with commands of its own does them (the plot board, also in
+    // its outline); what is done in a panel may be a step of the text's undo history
+    target.own = ownEditsOf(element);
+    if (target.list == nullptr) {
+        target.history = historyOf(element);
+    }
+    return target;
+}
+
+EditCoordinator::Target EditCoordinator::elementTargetOf(QWidget* element) {
+    Target target;
     if (QLineEdit* line = lineOf(element)) {
         target.line = line;
-        return target;
-    }
-    if (auto* text = qobject_cast<QTextEdit*>(element)) {
+    } else if (auto* text = qobject_cast<QTextEdit*>(element)) {
         target.text = text;
-        return target;
-    }
-    if (auto* plainText = qobject_cast<QPlainTextEdit*>(element)) {
+    } else if (auto* plainText = qobject_cast<QPlainTextEdit*>(element)) {
         target.plainText = plainText;
-        return target;
-    }
-    if (auto* book = qobject_cast<editor::BookEditor*>(element)) {
+    } else if (auto* book = qobject_cast<editor::BookEditor*>(element)) {
         target.book = book;
-        return target;
+    } else {
+        target.list = qobject_cast<QAbstractItemView*>(element);
     }
-    if (auto* list = qobject_cast<QAbstractItemView*>(element)) {
-        target.list = list;
-        return target;
-    }
+    return target;
+}
 
+editor::BookEditor* EditCoordinator::historyOf(QWidget* element) const {
     // What is done in the find bar and in the Annotations and the Spelling and Grammar panels
     // are steps of the text's undo history: the text in the find bar's book, the one in front
     // for the panels
     for (QWidget* part = element; part != nullptr; part = part->parentWidget()) {
         if (qobject_cast<editor::FindReplaceBar*>(part) != nullptr) {
-            target.history = qobject_cast<editor::BookEditor*>(part->parentWidget());
-            break;
+            return qobject_cast<editor::BookEditor*>(part->parentWidget());
         }
         if (qobject_cast<AnnotationsPanel*>(part) != nullptr ||
             qobject_cast<SpellingPanel*>(part) != nullptr) {
-            target.history = m_editorInFront ? m_editorInFront() : nullptr;
-            break;
+            return m_editorInFront ? m_editorInFront() : nullptr;
         }
         if (part->isWindow()) {
             break;
         }
     }
-    return target;
+    return nullptr;
 }
 
-bool EditCoordinator::canDo(Edit edit, QWidget* element) const {
-    const Target target = targetOf(element);
+bool EditCoordinator::fieldCan(const Target& target, Edit edit) {
     if (target.line != nullptr) {
         return lineCan(*target.line, edit);
     }
@@ -409,24 +447,10 @@ bool EditCoordinator::canDo(Edit edit, QWidget* element) const {
     if (target.plainText != nullptr) {
         return textCan(*target.plainText, edit);
     }
-    if (target.book != nullptr) {
-        return bookCan(*target.book, edit);
-    }
-    if (target.history != nullptr) {
-        return (edit == Edit::Undo && target.history->canUndo()) ||
-               (edit == Edit::Redo && target.history->canRedo());
-    }
-    if (target.list != nullptr) {
-        return listCan(*target.list, edit);
-    }
-    return false;
+    return target.book != nullptr && bookCan(*target.book, edit);
 }
 
-bool EditCoordinator::execute(Edit edit, QWidget* element) {
-    if (!canDo(edit, element)) {
-        return false;
-    }
-    const Target target = targetOf(element);
+void EditCoordinator::fieldDoOn(const Target& target, Edit edit) {
     if (target.line != nullptr) {
         fieldDo(*target.line, edit);
     } else if (target.text != nullptr) {
@@ -435,16 +459,41 @@ bool EditCoordinator::execute(Edit edit, QWidget* element) {
         fieldDo(*target.plainText, edit);
     } else if (target.book != nullptr) {
         bookDo(*target.book, edit);
+    }
+}
+
+bool EditCoordinator::saysItself(Edit edit) const {
+    return targetOf(focusedElement()).ownTakes(edit);
+}
+
+bool EditCoordinator::canDo(Edit edit, QWidget* element) const {
+    const Target target = targetOf(element);
+    if (target.isField()) {
+        return fieldCan(target, edit);
+    }
+    if (target.ownTakes(edit)) {
+        return target.own->canEditHere(edit);
+    }
+    if (target.history != nullptr) {
+        return (edit == Edit::Undo && target.history->canUndo()) ||
+               (edit == Edit::Redo && target.history->canRedo());
+    }
+    return target.list != nullptr && listCan(*target.list, edit);
+}
+
+bool EditCoordinator::execute(Edit edit, QWidget* element) {
+    if (!canDo(edit, element)) {
+        return false;
+    }
+    const Target target = targetOf(element);
+    if (target.isField()) {
+        fieldDoOn(target, edit);
+    } else if (target.ownTakes(edit)) {
+        target.own->editHere(edit);
     } else if (target.history != nullptr) {
         bookDo(*target.history, edit);  // Undo or Redo: canDo() allows no other
     } else if (target.list != nullptr) {
-        if (edit == Edit::Copy) {
-            QGuiApplication::clipboard()->setText(currentItemText(*target.list));
-        } else if (edit == Edit::Paste) {
-            dynamic_cast<PasteTarget&>(*target.list).pasteHere();  // canDo() asked it
-        } else {
-            target.list->selectAll();
-        }
+        listDo(*target.list, edit);
     }
     updateStates();
     return true;
@@ -471,6 +520,26 @@ void EditCoordinator::follow(QWidget* element) {
     m_followed = element;
     m_followedText = text;
 
+    const auto update = [this]() { updateStates(); };
+    followElement(target);
+    if (auto* book = qobject_cast<editor::BookEditor*>(text)) {
+        m_connections.push_back(
+            connect(book, &editor::BookEditor::selectionChanged, this, update));
+        m_connections.push_back(connect(book, &editor::BookEditor::contentChanged, this, update));
+        m_connections.push_back(
+            connect(book, &editor::BookEditor::documentChanged, this, update));
+    }
+
+    const auto forget = [this]() { stopFollowing(); };
+    if (element != nullptr) {
+        m_connections.push_back(connect(element, &QObject::destroyed, this, forget));
+    }
+    if (text != nullptr && text != element) {
+        m_connections.push_back(connect(text, &QObject::destroyed, this, forget));
+    }
+}
+
+void EditCoordinator::followElement(const Target& target) {
     const auto update = [this]() { updateStates(); };
     const auto add = [this](const QMetaObject::Connection& connection) {
         m_connections.push_back(connection);
@@ -499,18 +568,8 @@ void EditCoordinator::follow(QWidget* element) {
             add(connect(model, &QAbstractItemModel::dataChanged, this, update));
         }
     }
-    if (auto* book = qobject_cast<editor::BookEditor*>(text)) {
-        add(connect(book, &editor::BookEditor::selectionChanged, this, update));
-        add(connect(book, &editor::BookEditor::contentChanged, this, update));
-        add(connect(book, &editor::BookEditor::documentChanged, this, update));
-    }
-
-    const auto forget = [this]() { stopFollowing(); };
-    if (element != nullptr) {
-        add(connect(element, &QObject::destroyed, this, forget));
-    }
-    if (text != nullptr && text != element) {
-        add(connect(text, &QObject::destroyed, this, forget));
+    if (target.own != nullptr) {
+        add(target.own->followEditStates(this, update));
     }
 }
 

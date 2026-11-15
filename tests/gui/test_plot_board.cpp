@@ -5,6 +5,7 @@
 /// @brief The plot board and the outline of the book: the cards of the texts, the places they
 /// move to, the cells of the outline, the keys, and what Ctrl+Z undoes
 
+#include "context_menu_reader.h"
 #include "document_window.h"
 
 #include "kalahari/core/book_project.h"
@@ -15,9 +16,13 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/plot_board_panel.h"
+#include "kalahari/gui/panels/plot_fields_box.h"
+#include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/plot_board_coordinator.h"
 #include "kalahari/gui/plot_outline_model.h"
@@ -28,6 +33,10 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QAbstractItemModel>
+#include <QComboBox>
+#include <QCompleter>
+#include <QFocusEvent>
 #include <QFont>
 #include <QKeyEvent>
 #include <QLineEdit>
@@ -36,6 +45,9 @@
 #include <QPushButton>
 #include <QTableView>
 #include <QTimer>
+#include <QToolButton>
+#include <QTreeWidget>
+#include <QTreeWidgetItemIterator>
 #include <QUndoStack>
 
 #include <algorithm>
@@ -1618,5 +1630,279 @@ TEST_CASE("Plot board: a scene of a text moved to another text with its annotati
         CHECK(edited() == "2 3 1");
         CHECK(hasNote(editor->toKml()));
         CHECK(calmWords() == "1 2");
+    }
+}
+
+namespace {
+
+/// The item of element @p elementId (empty: of the type @p type) in the tree of @p navigator
+QTreeWidgetItem* navigatorItem(const gui::NavigatorPanel& navigator, const QString& elementId,
+                               const QString& type = QString()) {
+    auto* tree = navigator.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    tree->expandAll();
+    for (QTreeWidgetItemIterator it(tree); *it != nullptr; ++it) {
+        const bool found = elementId.isEmpty()
+                               ? (*it)->data(0, Qt::UserRole + 1).toString() == type
+                               : (*it)->data(0, Qt::UserRole).toString() == elementId;
+        if (found) {
+            return *it;
+        }
+    }
+    return nullptr;
+}
+
+/// The texts of the menu of @p item of @p navigator; with @p choose, the item beginning with
+/// it is chosen
+QStringList navigatorMenu(gui::NavigatorPanel& navigator, QTreeWidgetItem* item,
+                          const QString& choose = QString()) {
+    REQUIRE(item != nullptr);
+    auto* tree = navigator.findChild<QTreeWidget*>();
+    tree->scrollToItem(item);
+    test::ContextMenuReader reader(&navigator);
+    if (!choose.isEmpty()) {
+        reader.chooseItem(choose);
+    }
+    emit tree->customContextMenuRequested(tree->visualItemRect(item).center());
+    REQUIRE(reader.menusRead() == 1);
+    QStringList texts;
+    for (const test::MenuItem& entry : reader.items()) {
+        texts << entry.text;
+    }
+    return texts;
+}
+
+/// The text of Show on the Plot Board in the Navigator
+const QString& showOnBoardText() {
+    static const QString TEXT = QStringLiteral("Show on the Plot &Board");
+    return TEXT;
+}
+
+}  // namespace
+
+TEST_CASE("Plot board: the Edit menu works on the board and in the outline",
+          "[gui][plotboard][edit]") {
+    using Edit = gui::EditCoordinator::Edit;
+    gui::registerAllIcons();
+    StormBoard s;
+    gui::PlotBoardView* board = s.board;
+    gui::PlotBoardPanel* panel = s.panel;
+    gui::EditCoordinator edits(test::commands(), []() -> editor::BookEditor* { return nullptr; });
+    const auto shown = [board]() { return boardOf(board->bands()); };
+    REQUIRE(shown() == "Chapter 1, The Storm | Part One: The Calm");
+
+    SECTION("Undo and Redo undo and redo a change of the board, as Ctrl+Z and Ctrl+Y") {
+        CHECK_FALSE(edits.canDo(Edit::Undo, board));
+        CHECK_FALSE(edits.canDo(Edit::Redo, board));
+        press(board, Qt::Key_Right, Qt::ControlModifier);
+        CHECK(shown() == "Chapter 1 | Part One: The Storm, The Calm");
+        CHECK(edits.canDo(Edit::Undo, board));
+        CHECK(edits.execute(Edit::Undo, board));
+        CHECK(shown() == "Chapter 1, The Storm | Part One: The Calm");
+        CHECK(panel->message() == QStringLiteral("Undone: moving \"The Storm\"."));
+        CHECK_FALSE(edits.canDo(Edit::Undo, board));
+        CHECK(edits.canDo(Edit::Redo, board));
+        CHECK(edits.execute(Edit::Redo, board));
+        CHECK(shown() == "Chapter 1 | Part One: The Storm, The Calm");
+        // Also from the switches over the board
+        auto* switchButton = panel->findChild<QToolButton*>();
+        REQUIRE(switchButton != nullptr);
+        CHECK(edits.execute(Edit::Undo, switchButton));
+        CHECK(shown() == "Chapter 1, The Storm | Part One: The Calm");
+    }
+
+    SECTION("Cut marks the card, Paste moves it after the card chosen, Delete deletes it") {
+        CHECK_FALSE(edits.canDo(Edit::Paste, board));
+        CHECK(edits.canDo(Edit::Cut, board));
+        CHECK(edits.execute(Edit::Cut, board));
+        CHECK(board->markedCard() == s.storm);
+        // Not after itself
+        CHECK_FALSE(edits.canDo(Edit::Paste, board));
+        REQUIRE(board->setCurrentCard(s.book.calm));
+        CHECK(edits.canDo(Edit::Paste, board));
+        CHECK(edits.execute(Edit::Paste, board));
+        CHECK(shown() == "Chapter 1 | Part One: The Calm, The Storm");
+        CHECK(board->markedCard().isEmpty());
+
+        // A scene asks first
+        using gui::dialogs::MessageDialog;
+        REQUIRE(board->setCurrentCard(s.night));
+        QString asked;
+        CHECK(answering([&edits, board]() { edits.execute(Edit::Delete, board); },
+                        MessageDialog::Answer::Accept, &asked));
+        CHECK(asked.contains(QStringLiteral("Delete the scene \"Night\" with its text?")));
+        CHECK(s.words() == "2 1");
+    }
+
+    SECTION("a book open read-only: Undo and Redo only") {
+        panel->setReadOnly(true);
+        CHECK_FALSE(edits.canDo(Edit::Cut, board));
+        CHECK_FALSE(edits.canDo(Edit::Delete, board));
+        board->setMarkedCard(s.book.calm);
+        CHECK_FALSE(edits.canDo(Edit::Paste, board));
+        panel->setReadOnly(false);
+        CHECK(edits.canDo(Edit::Paste, board));
+    }
+
+    SECTION("Copy and Select All are not the board's; a field of the card edited has its own") {
+        CHECK_FALSE(edits.canDo(Edit::Copy, board));
+        CHECK_FALSE(edits.canDo(Edit::SelectAll, board));
+        press(board, Qt::Key_Right, Qt::ControlModifier);
+        press(board, Qt::Key_F2);
+        const gui::PlotCardEditor* editor = board->cardEditor();
+        REQUIRE(editor != nullptr);
+        QLineEdit* title = editor->titleEdit();
+        CHECK_FALSE(edits.canDo(Edit::Undo, title));
+        title->insert(QStringLiteral("!"));
+        CHECK(edits.execute(Edit::Undo, title));
+        CHECK(title->text() == QStringLiteral("The Storm"));
+        // The board's change stays
+        CHECK(shown() == "Chapter 1 | Part One: The Storm, The Calm");
+        CHECK(edits.canDo(Edit::SelectAll, title));
+    }
+
+    SECTION("in the outline: Undo, Cut and Paste as on the board, Copy copies the cell") {
+        REQUIRE(s.boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true) == panel);
+        QTableView* outline = panel->outline();
+        press(board, Qt::Key_Right, Qt::ControlModifier);
+        REQUIRE(panel->setCurrentCard(s.storm));
+        CHECK(edits.canDo(Edit::Undo, outline));
+        CHECK(edits.canDo(Edit::Copy, outline));
+        CHECK(edits.execute(Edit::Undo, outline));
+        CHECK(shown() == "Chapter 1, The Storm | Part One: The Calm");
+        CHECK(edits.execute(Edit::Cut, outline));
+        CHECK(board->markedCard() == s.storm);
+        REQUIRE(panel->setCurrentCard(s.book.calm));
+        CHECK(edits.execute(Edit::Paste, outline));
+        CHECK(shown() == "Chapter 1 | Part One: The Calm, The Storm");
+    }
+}
+
+TEST_CASE("Plot board: Show on the Plot Board in the Navigator", "[gui][plotboard]") {
+    gui::registerAllIcons();
+    StormBoard s;
+    auto& pm = s.pm;
+    const QList<core::KindRef> backKinds = pm.textKindsFor(core::BookPlace::Back);
+    REQUIRE_FALSE(backKinds.isEmpty());
+    const QString afterword =
+        pm.addElement(backKinds.first(), QStringLiteral("Afterword"), core::BookPlace::Back);
+    REQUIRE_FALSE(afterword.isEmpty());
+    s.window.navigator.refreshNavigator();
+    gui::NavigatorPanel& navigator = *s.window.navigatorPanel;
+    QObject::connect(&navigator, &gui::NavigatorPanel::requestShowOnPlotBoard, &s.boards,
+                     &gui::PlotBoardCoordinator::showOnBoard);
+    s.window.window.setAttribute(Qt::WA_DontShowOnScreen);
+    s.window.window.resize(600, 900);
+    s.window.window.show();
+    REQUIRE(s.board->setCurrentCard(s.book.first));
+
+    SECTION("a text: its card") {
+        const QStringList texts =
+            navigatorMenu(navigator, navigatorItem(navigator, s.storm), QStringLiteral("Show on"));
+        CHECK(texts.contains(showOnBoardText()));
+        CHECK(s.board->currentCard() == s.storm);
+        CHECK(s.window.tabs->currentWidget() == s.panel);
+    }
+
+    SECTION("a part: the card of its first text") {
+        CHECK(navigatorMenu(navigator, navigatorItem(navigator, s.book.part),
+                            QStringLiteral("Show on"))
+                  .contains(showOnBoardText()));
+        CHECK(s.board->currentCard() == s.book.calm);
+    }
+
+    SECTION("the book: the board as it was") {
+        CHECK(navigatorMenu(navigator, navigatorItem(navigator, QString(), QStringLiteral("book")),
+                            QStringLiteral("Show on"))
+                  .contains(showOnBoardText()));
+        CHECK(s.board->currentCard() == s.book.first);
+        CHECK(s.window.tabs->currentWidget() == s.panel);
+    }
+
+    SECTION("a text outside the main section has no card") {
+        const QStringList texts = navigatorMenu(navigator, navigatorItem(navigator, afterword));
+        CHECK_FALSE(texts.contains(showOnBoardText()));
+    }
+}
+
+TEST_CASE("Plot board: the plot of a text in the Properties panel", "[gui][plotboard]") {
+    gui::registerAllIcons();
+    StormBoard s;
+    auto& pm = s.pm;
+    addWorkshopCard("character", QStringLiteral("Anna"));
+    gui::PropertiesPanel& properties = *s.window.properties;
+    auto* box = properties.findChild<gui::PlotFieldsBox*>();
+    REQUIRE(box != nullptr);
+    auto* description = box->findChild<QPlainTextEdit*>(QStringLiteral("plotDescriptionEdit"));
+    auto* pov = box->findChild<QLineEdit*>(QStringLiteral("plotPovEdit"));
+    auto* place = box->findChild<QLineEdit*>(QStringLiteral("plotPlaceEdit"));
+    auto* time = box->findChild<QLineEdit*>(QStringLiteral("plotTimeEdit"));
+    auto* color = box->findChild<QComboBox*>(QStringLiteral("plotColorCombo"));
+    REQUIRE(description != nullptr);
+    REQUIRE(pov != nullptr);
+    REQUIRE(place != nullptr);
+    REQUIRE(time != nullptr);
+    REQUIRE(color != nullptr);
+
+    // The card chosen on the board shows in the Properties panel
+    press(s.board, Qt::Key_Right);
+    const QString chosen = PlotBoard::textOf(s.board->currentCard());
+    REQUIRE_FALSE(chosen.isEmpty());
+    CHECK(box->elementId() == chosen);
+    CHECK_FALSE(box->isHidden());
+
+    properties.showChapterProperties(s.storm);
+    CHECK(box->elementId() == s.storm);
+    REQUIRE(pov->completer() != nullptr);
+    CHECK(pov->completer()->model()->rowCount() == 1);
+
+    SECTION("a field keeps what was written when the keys leave it, and the board shows it") {
+        pov->setText(QStringLiteral("Anna"));
+        emit pov->editingFinished();
+        place->setText(QStringLiteral(" The harbour "));
+        emit place->editingFinished();
+        time->setText(QStringLiteral("Day 3, dawn"));
+        emit time->editingFinished();
+        description->setPlainText(QStringLiteral("Everything breaks."));
+        QFocusEvent out(QEvent::FocusOut);
+        QCoreApplication::sendEvent(description, &out);
+        color->setCurrentIndex(color->findData(QStringLiteral("rose")));
+        emit color->activated(color->currentIndex());
+
+        const core::ProjectElement* element = pm.findElement(s.storm);
+        REQUIRE(element != nullptr);
+        CHECK(element->description == QStringLiteral("Everything breaks."));
+        CHECK(element->plot.pov == QStringLiteral("Anna"));
+        CHECK(element->plot.place == QStringLiteral("The harbour"));
+        CHECK(element->plot.time == QStringLiteral("Day 3, dawn"));
+        CHECK(element->plot.color == QStringLiteral("rose"));
+        QCoreApplication::processEvents();
+        CHECK(s.panel->card(s.storm)->plot.pov == QStringLiteral("Anna"));
+    }
+
+    SECTION("a change on the board shows in the fields") {
+        REQUIRE(s.board->setCurrentCard(s.storm));
+        press(s.board, Qt::Key_F2);
+        const gui::PlotCardEditor* editor = s.board->cardEditor();
+        REQUIRE(editor != nullptr);
+        editor->povEdit()->setText(QStringLiteral("Ben"));
+        editor->descriptionEdit()->setPlainText(QStringLiteral("Calm before."));
+        press(editor->titleEdit(), Qt::Key_Return, Qt::ControlModifier);
+        CHECK(pov->text() == QStringLiteral("Ben"));
+        CHECK(description->toPlainText() == QStringLiteral("Calm before."));
+        press(s.board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(pov->text().isEmpty());
+    }
+
+    SECTION("only a text of the main section has them") {
+        const QList<core::KindRef> backKinds = pm.textKindsFor(core::BookPlace::Back);
+        REQUIRE_FALSE(backKinds.isEmpty());
+        const QString afterword =
+            pm.addElement(backKinds.first(), QStringLiteral("Afterword"), core::BookPlace::Back);
+        properties.showChapterProperties(afterword);
+        CHECK(box->isHidden());
+        CHECK(box->elementId().isEmpty());
+        properties.showChapterProperties(s.storm);
+        CHECK_FALSE(box->isHidden());
     }
 }

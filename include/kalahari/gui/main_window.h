@@ -27,6 +27,7 @@
 #include <optional>
 #include <filesystem>
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/toolbar_manager.h"
 
 class QColor;
@@ -307,6 +308,11 @@ private slots:
 
     /// @brief Slot for Edit > Select All action
     void onSelectAll();
+
+    /// @brief Do @p edit on the element with the keys
+    /// @return Whether the status bar is to say what it did: it did something, and not in a
+    ///         view that says it itself (the plot board)
+    bool editToTell(EditCommand edit);
 
     /// @brief Slot for Edit > Find... (search bar of the current editor)
     void onFind();

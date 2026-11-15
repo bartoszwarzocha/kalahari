@@ -149,6 +149,20 @@ PlotBoardPanel* PlotBoardCoordinator::board() const {
     return m_panel;
 }
 
+void PlotBoardCoordinator::showOnBoard(const QString& elementId) {
+    PlotBoardPanel* panel = openBoard(QString(), true);
+    if (panel == nullptr || elementId.isEmpty() || panel->setCurrentCard(elementId)) {
+        return;
+    }
+    // A part: the card of its first text
+    for (const PlotBand& band : panel->bands()) {
+        if (band.partId == elementId && !band.cards.isEmpty()) {
+            panel->setCurrentCard(band.cards.constFirst().id);
+            return;
+        }
+    }
+}
+
 void PlotBoardCoordinator::refresh() {
     m_refreshTimer->start();
 }
@@ -199,6 +213,13 @@ void PlotBoardCoordinator::forget() {
 }
 
 void PlotBoardCoordinator::connectBoard(PlotBoardPanel* panel) {
+    // Edit > Undo and Redo follow what can be undone
+    const auto undoState = [this, panel]() {
+        panel->setUndoState(m_undo->canUndo(), m_undo->canRedo());
+    };
+    connect(m_undo, &QUndoStack::canUndoChanged, panel, undoState);
+    connect(m_undo, &QUndoStack::canRedoChanged, panel, undoState);
+    undoState();
     connect(panel, &PlotBoardPanel::currentCardChanged, this, [this](const QString& cardId) {
         // The text chosen shows in the Properties panel, as one chosen in the Navigator; for a
         // scene, its text

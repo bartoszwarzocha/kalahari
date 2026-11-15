@@ -1647,7 +1647,8 @@ may have them too.
   across the texts moves it to another text, Delete deletes it at once (Ctrl+Z brings it
   back). In the outline (Book > Outline) the same keys where a table allows
   them; F2 or typing edits a cell (in the board and the outline only, before the commands
-  with these keys).
+  with these keys). Edit > Undo, Redo, Cut, Paste and Delete do there what their keys do;
+  "Show on the Plot Board" in the Navigator (the book, a part, a text) chooses the card.
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
   edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
   Esc – back to the text.

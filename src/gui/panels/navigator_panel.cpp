@@ -2271,6 +2271,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
         menu.addSeparator();
         addVersionHistoryAction();
+        addPlotBoardAction(menu, elementId);
         addPropertiesAction();
 
     } else if (elementType == "book_file") {
@@ -2290,6 +2291,7 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         menu.addSeparator();
         addMoveActions();
         menu.addSeparator();
+        addPlotBoardAction(menu, elementId);
         // The statistics of the group, in the Properties panel brought to the front
         QAction* propertiesAction = menu.addAction(
             artProvider.getIcon("view.properties", core::IconContext::Menu),
@@ -2334,6 +2336,9 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
             changing << showSectionsAction;
         }
         menu.addSeparator();
+        if (projectOpen) {
+            addPlotBoardAction(menu, QString());
+        }
 
         // The icon of Book > Book Properties...
         QAction* propertiesAction = menu.addAction(
@@ -2531,6 +2536,24 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
 
     // Clear stored item after menu closes
     m_contextMenuItem = nullptr;
+}
+
+void NavigatorPanel::addPlotBoardAction(QMenu& menu, const QString& elementId) {
+    const core::BookProject* project = m_book.project();
+    const std::optional<core::ElementPlace> place =
+        project != nullptr && !elementId.isEmpty() ? project->placeOf(elementId) : std::nullopt;
+    if (!elementId.isEmpty() && (!place || place->place != core::BookPlace::Main)) {
+        return;
+    }
+    // The icon of Book > Plot Board
+    const QAction* action = menu.addAction(
+        core::ArtProvider::getInstance().getIcon("view.plotBoard", core::IconContext::Menu),
+        //: The command of the book, a part and a text of the main section in the Navigator:
+        //: the plot board with its card chosen. In Polish: Pokaż na &tablicy fabuły
+        tr("Show on the Plot &Board"));
+    connect(action, &QAction::triggered, this,
+            [this, elementId]() { emit requestShowOnPlotBoard(elementId); });
+    menu.addSeparator();
 }
 
 void NavigatorPanel::onContextMenuOpen() {

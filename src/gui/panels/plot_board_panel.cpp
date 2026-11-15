@@ -9,6 +9,7 @@
 
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/plot_outline_model.h"
 #include "kalahari/gui/widgets/flow_layout.h"
@@ -36,6 +37,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 
 namespace kalahari::gui {
 
@@ -295,6 +297,7 @@ void PlotBoardPanel::connectBoard() {
             m_outline->setCurrentIndex(m_model->index(row, PlotOutlineModel::TITLE_COLUMN));
         }
         emit currentCardChanged(id);
+        emit editStatesChanged();
     });
     connect(m_board, &PlotBoardView::openRequested, this, &PlotBoardPanel::openRequested);
     connect(m_board, &PlotBoardView::editRequested, this, &PlotBoardPanel::editCard);
@@ -484,12 +487,14 @@ void PlotBoardPanel::setBands(const QList<PlotBand>& bands) {
         m_outline->setCurrentIndex(m_model->index(row, PlotOutlineModel::TITLE_COLUMN));
     }
     updateTotals();
+    emit editStatesChanged();
 }
 
 void PlotBoardPanel::setReadOnly(bool readOnly) {
     m_readOnly = readOnly;
     m_board->setReadOnly(readOnly);
     m_model->setReadOnly(readOnly);
+    emit editStatesChanged();
 }
 
 void PlotBoardPanel::setSuggestions(const QStringList& povs, const QStringList& places) {
@@ -507,6 +512,7 @@ void PlotBoardPanel::showView(const QString& view) {
         setCurrentCard(current);
     }
     updateSwitches();
+    emit editStatesChanged();
 }
 
 QString PlotBoardPanel::view() const {
@@ -542,6 +548,65 @@ bool PlotBoardPanel::setCurrentCard(const QString& elementId) {
 
 void PlotBoardPanel::setMarkedCard(const QString& elementId) {
     m_board->setMarkedCard(elementId);
+    emit editStatesChanged();
+}
+
+void PlotBoardPanel::setUndoState(bool canUndo, bool canRedo) {
+    m_canUndo = canUndo;
+    m_canRedo = canRedo;
+    emit editStatesChanged();
+}
+
+bool PlotBoardPanel::takesEdit(EditCommand command) const {
+    // Copy and Select All stay the outline's own (the text of a cell), and do nothing on the
+    // board
+    return command != EditCommand::Copy && command != EditCommand::SelectAll;
+}
+
+bool PlotBoardPanel::canEditHere(EditCommand command) const {
+    const QString current = currentCard();
+    const bool changing = card(current).has_value() && !m_readOnly;
+    switch (command) {
+    case EditCommand::Undo:
+        return m_canUndo;
+    case EditCommand::Redo:
+        return m_canRedo;
+    case EditCommand::Cut:
+    case EditCommand::Delete:
+        return changing;
+    case EditCommand::Paste:
+        return changing && canPasteAfter(current);
+    default:
+        return false;
+    }
+}
+
+void PlotBoardPanel::editHere(EditCommand command) {
+    const QString current = currentCard();
+    switch (command) {
+    case EditCommand::Undo:
+        emit undoRequested();
+        break;
+    case EditCommand::Redo:
+        emit redoRequested();
+        break;
+    case EditCommand::Cut:
+        emit cutRequested(current);
+        break;
+    case EditCommand::Paste:
+        emit pasteRequested(current);
+        break;
+    case EditCommand::Delete:
+        emit deleteRequested(current);
+        break;
+    default:
+        break;
+    }
+}
+
+QMetaObject::Connection PlotBoardPanel::followEditStates(QObject* receiver,
+                                                         std::function<void()> changed) {
+    return connect(this, &PlotBoardPanel::editStatesChanged, receiver, std::move(changed));
 }
 
 bool PlotBoardPanel::editCard(const QString& elementId) {
