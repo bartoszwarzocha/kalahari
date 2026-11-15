@@ -85,7 +85,8 @@ public:
 
     /// @brief The export of @p choice: the texts of the book as the program has them, the
     ///        styles, the page and the options
-    [[nodiscard]] editor::BookExport bookExport(const dialogs::ExportBookDialog::Choice& choice) const;
+    [[nodiscard]] editor::BookExport bookExport(
+        const dialogs::ExportBookDialog::Choice& choice) const;
 
     /// @brief The page of the settings of the pages (Settings > Editor > Pages and Margins)
     static editor::ExportPage pageOfSettings();

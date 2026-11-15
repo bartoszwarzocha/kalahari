@@ -140,7 +140,8 @@ public:
         return std::max(28, qRound(QFontMetrics(font).height() * 2.4));
     }
 
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex&) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex&) const override
     {
         return cellSize(option.font);
     }
@@ -320,7 +321,8 @@ public:
         return 6 + metrics.height() + 4 + BAR_HEIGHT + 4 + small.height() + 6 + GAP;
     }
 
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex&) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex&) const override
     {
         return {200, rowHeight(option.font)};
     }

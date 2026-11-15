@@ -77,7 +77,7 @@ public:
     /// @return true if dev mode is active, false otherwise
     [[nodiscard]] bool isDevMode() const { return m_devMode; }
 
-
+public slots:
     /// @brief Slot for diagnostic mode changed from SettingsDialog
     /// @param enabled true if diagnostic mode enabled, false otherwise
     void onDiagModeChanged(bool enabled);

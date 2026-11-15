@@ -47,32 +47,32 @@ int indexOf(const QList<NewElementChoice>& choices,
 
 } // anonymous namespace
 
-AddToBookDialog::Book AddToBookDialog::openBook(const core::ProjectManager& pm,
+AddToBookDialog::Book AddToBookDialog::openBook(const core::ProjectManager& projects,
                                                 const QString& path) {
     Book book;
-    const core::BookProject* project = pm.project();
-    const core::ProjectBook* projectBook = pm.book();
+    const core::BookProject* project = projects.project();
+    const core::ProjectBook* projectBook = projects.book();
     if (!project || !projectBook) {
         return book;
     }
 
     // Each text kind the book has a place for, once, in reading order, with the place it takes
     // in the first part of the book or group that can have it
-    const auto addKinds = [&pm, &book](core::BookPlace place, const QString& groupId) {
-        for (const core::KindRef& kind : pm.textKindsFor(place, groupId)) {
+    const auto addKinds = [&projects, &book](core::BookPlace place, const QString& groupId) {
+        for (const core::KindRef& kind : projects.textKindsFor(place, groupId)) {
             const auto same = [&kind](const NewElementChoice& choice) {
                 return choice.kind.kind == kind.kind;
             };
             if (std::none_of(book.choices.cbegin(), book.choices.cend(), same)) {
-                book.choices.append({kind, QString(), pm.newPlaceOf(kind, place, groupId)});
+                book.choices.append({kind, QString(), projects.newPlaceOf(kind, place, groupId)});
             }
         }
     };
     const std::function<void(core::BookPlace, const QList<core::ProjectElement>&)> addGroups =
-        [&pm, &addKinds, &addGroups](core::BookPlace place,
+        [&projects, &addKinds, &addGroups](core::BookPlace place,
                                      const QList<core::ProjectElement>& elements) {
             for (const core::ProjectElement& element : elements) {
-                if (pm.formOf(element) == core::ElementForm::Group) {
+                if (projects.formOf(element) == core::ElementForm::Group) {
                     addKinds(place, element.id);
                     addGroups(place, element.elements);
                 }
@@ -98,7 +98,7 @@ AddToBookDialog::Book AddToBookDialog::openBook(const core::ProjectManager& pm,
                                         return choice.kind.kind->id == named;
                                     });
     if (current < 0) {
-        const core::KindRef main = pm.mainTextKind();
+        const core::KindRef main = projects.mainTextKind();
         current = indexOf(book.choices, [&main](const NewElementChoice& choice) {
             return choice.kind.kind == main.kind;
         });

@@ -14,7 +14,6 @@ namespace kalahari::gui {
 
 AssistantPanel::AssistantPanel(QWidget* parent)
     : QWidget(parent)
-     
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("AssistantPanel constructor called");

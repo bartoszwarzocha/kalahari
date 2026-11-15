@@ -23,7 +23,6 @@ namespace kalahari::gui {
 
 namespace {
 
-
 /// @brief The widget of the area, around the content
 ///
 /// QScrollArea makes its widget as high as the widget's height for the width of the area:
@@ -57,7 +56,6 @@ private:
 FittingScrollArea::FittingScrollArea(QWidget* content, QWidget* parent)
     : QScrollArea(parent)
     , m_content(content)
-     
 {
     setFrameShape(QFrame::NoFrame);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);

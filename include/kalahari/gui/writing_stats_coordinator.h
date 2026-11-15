@@ -126,8 +126,8 @@ private slots:
     /// @brief Show or hide the bar as the setting says (called by name from the listener of
     /// the settings)
     void applyBarVisibility();
-private:
 
+private:
     /// @brief A book was opened: its record, its goals and the collector of its editors
     void onProjectOpened();
     /// @brief The book is closing: the summary of the session, then the record goes on in the

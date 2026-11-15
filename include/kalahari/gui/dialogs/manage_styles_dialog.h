@@ -62,7 +62,7 @@ public:
     [[nodiscard]] QPushButton* deleteButton() const { return m_deleteButton; }
     [[nodiscard]] QPushButton* resetButton() const { return m_resetButton; }
 
-
+public slots:
     /// @brief New...: a new style based on the one selected
     void newStyle();
 

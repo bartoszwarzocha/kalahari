@@ -148,7 +148,7 @@ public:
     void finishWriting(const editor::BookEditor* editor = nullptr);
 
     /// @brief The open frame (nullptr: none)
-    NoteFrame* frame() const { return m_frame; }
+    [[nodiscard]] NoteFrame* frame() const { return m_frame; }
 
 private:
     /// @brief The note written in the frame
@@ -175,7 +175,7 @@ private:
 
     /// @brief The notes of a text not open: from its file or its unsaved text, kept until they
     ///        change
-    const CachedText& savedText(const QString& elementId) const;
+    [[nodiscard]] const CachedText& savedText(const QString& elementId) const;
 
     /// @brief The context of the text at @p index of @p texts (-1: a text of the book outside
     ///        its parts, numbered alone in the book's formats)

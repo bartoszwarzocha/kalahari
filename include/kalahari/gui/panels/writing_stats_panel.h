@@ -105,7 +105,7 @@ public:
     /// put under a panel that scrolls, always in view; until then it is at the panel's foot
     QWidget* takeFooter();
 
-
+public slots:
     /// @brief Count everything again and show it
     void refresh();
 

@@ -127,8 +127,8 @@ public:
 private slots:
     /// @brief The settings of the repetitions changed (called by name, queued)
     void onSettingsChanged();
-private:
 
+private:
     /// @brief A text counted: a chapter of the book or the document in front
     struct Text {
         QString elementId;                ///< Its element in the book (empty: none)

@@ -791,8 +791,7 @@ DetachedWindow::DetachedWindow(DocumentWindows& owner, QMainWindow& bookWindow)
       m_bookWindow(bookWindow),
       m_tabs(new QTabWidget(this)),
       m_pageLabel(new QLabel(this)),
-      m_zoomLabel(new QLabel(this))
-      {
+      m_zoomLabel(new QLabel(this)) {
     setAttribute(Qt::WA_DeleteOnClose);
     setAttribute(Qt::WA_QuitOnClose, false);  // the program ends with the book window
     setObjectName(QStringLiteral("detachedWindow"));

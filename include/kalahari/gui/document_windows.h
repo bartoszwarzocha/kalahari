@@ -270,7 +270,7 @@ public:
     /// @brief None: its toolbars are those of the book window, whose menu shows them
     QMenu* createPopupMenu() override;
 
-
+public slots:
     /// @brief Show the menus and the toolbars of the look in the settings
     void applyLook();
 
@@ -288,7 +288,7 @@ private:
     QList<QToolBar*> m_toolbars;  ///< Mirrors of the toolbars of the book window
     QLabel* m_pageLabel;
     QLabel* m_zoomLabel;
-    StatusBarStatistics* m_statistics{nullptr};
+    StatusBarStatistics* m_statistics = nullptr;
     const QWidget* m_followed = nullptr;  ///< The page whose editor the status bar follows
     QList<QMetaObject::Connection> m_followConnections;  ///< To its editor
     int m_settingsListener = -1;

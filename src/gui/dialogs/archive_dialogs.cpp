@@ -501,20 +501,20 @@ void ArchiveDialog::bringIntoView(QWidget* widget)
 // ExportArchiveDialog
 // =============================================================================
 
-ExportArchiveDialog::Book ExportArchiveDialog::openBook(const core::ProjectManager& pm)
+ExportArchiveDialog::Book ExportArchiveDialog::openBook(const core::ProjectManager& projects)
 {
     Book book;
-    if (const core::ProjectBook* projectBook = pm.book()) {
+    if (const core::ProjectBook* projectBook = projects.book()) {
         book.title = projectBook->title;
     }
-    for (const auto& [id, status] : pm.getIncompleteElements()) {
-        if (const core::ProjectElement* element = pm.findElement(id)) {
+    for (const auto& [id, status] : projects.getIncompleteElements()) {
+        if (const core::ProjectElement* element = projects.findElement(id)) {
             book.unready.append(
-                {element->title, status, NavigatorPanel::iconIdOf(pm.bookTypes(), *element)});
+                {element->title, status, NavigatorPanel::iconIdOf(projects.bookTypes(), *element)});
         }
     }
-    book.backups = static_cast<int>(pm.databaseBackups().size());
-    book.versions = pm.versionCount();
+    book.backups = static_cast<int>(projects.databaseBackups().size());
+    book.versions = projects.versionCount();
     return book;
 }
 

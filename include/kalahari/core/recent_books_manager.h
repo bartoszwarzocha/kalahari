@@ -87,7 +87,7 @@ public:
     /// that are still there, in their order, or without them (or with "last") the book opened
     /// last (lastOpenedBook())
     /// @return Their .klh files; empty for none
-    QStringList booksToOpenAtStart() const;
+    [[nodiscard]] QStringList booksToOpenAtStart() const;
 
     /// @brief Maximum number of recent files to store
     static constexpr int MAX_RECENT_FILES = 10;

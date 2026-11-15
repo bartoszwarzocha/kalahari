@@ -61,10 +61,10 @@ private:
     /// @brief Update the button and hex label to reflect current color
     void updateColorDisplay();
 
-    QLabel* m_label{nullptr};            ///< Label showing color name
-    QPushButton* m_colorButton{nullptr}; ///< Button showing color preview
-    QLabel* m_hexLabel{nullptr};         ///< Label showing hex code (e.g., "#FF0000")
-    QColor m_color;             ///< Current color value
+    QLabel* m_label = nullptr;             ///< Label showing color name
+    QPushButton* m_colorButton = nullptr;  ///< Button showing color preview
+    QLabel* m_hexLabel = nullptr;          ///< Label showing hex code (e.g., "#FF0000")
+    QColor m_color;                        ///< Current color value
 };
 
 } // namespace kalahari::gui

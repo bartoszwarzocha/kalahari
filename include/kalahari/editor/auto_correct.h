@@ -126,7 +126,7 @@ struct AutoCorrection {
     QString text;
 
     LearnedException learns = LearnedException::None;  ///< The list undoing it adds to
-    QString exception;  ///< What that list gets: the abbreviation with its period ("godz."),
+    QString exception{};  ///< What that list gets: the abbreviation with its period ("godz."),
                           ///< or the word as typed ("PCs")
     bool capsLock = false;  ///< The word was typed with Caps Lock on by mistake
 

@@ -118,7 +118,7 @@ public:
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
 
-
+public slots:
     /// @brief OK: write the changed settings, then close; a value that cannot be written
     /// keeps the dialog open on its page
     void accept() override;
@@ -166,8 +166,8 @@ private:
 
     void onApply();
 
-    QTreeWidget* m_navTree{nullptr};
-    QStackedWidget* m_pageStack{nullptr};
+    QTreeWidget* m_navTree = nullptr;
+    QStackedWidget* m_pageStack = nullptr;
     bool m_diagnosticMode;
     editor::SpellCheckService* m_spelling;  ///< The dictionary of the editors (not owned)
     GrammarCoordinator* m_grammar;          ///< The grammar of the editors (not owned)

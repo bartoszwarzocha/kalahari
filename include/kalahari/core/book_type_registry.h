@@ -97,7 +97,8 @@ public:
     /// @brief Kinds of package @p packageId that can be inside a group of kind @p groupKindId
     ///
     /// Kinds of the package's lists, in the order main, front, back, Workshop.
-    [[nodiscard]] QList<KindRef> kindsInside(const QString& packageId, const QString& groupKindId) const;
+    [[nodiscard]] QList<KindRef> kindsInside(const QString& packageId,
+                                             const QString& groupKindId) const;
 
     /// @brief Elements that a new book of type @p packageId starts with
     [[nodiscard]] QList<StartElement> startElements(const QString& packageId) const;
@@ -126,7 +127,8 @@ private:
     /// Whether one of @p kindNames, as @p package sees it, is @p kind
     bool namesKind(const BookTypePackage& package, const QStringList& kindNames,
                    const ElementKind* kind) const;
-    [[nodiscard]] QList<KindRef> kindsInside(const BookTypePackage& package, const QString& groupKindId) const;
+    [[nodiscard]] QList<KindRef> kindsInside(const BookTypePackage& package,
+                                             const QString& groupKindId) const;
     bool validate(const BookTypePackage& package, QHash<QString, CheckState>& states);
     /// Drop the packages that use or name kinds of packages which were not loaded
     void dropDependents(QHash<QString, CheckState>& states);

@@ -169,8 +169,8 @@ signals:
 private slots:
     /// @brief An answer of the server (or a request dropped)
     void onReply(QNetworkReply* reply);
-private:
 
+private:
     /// @brief Send the requests that wait, while fewer than the limit are being checked
     void sendWaiting();
 

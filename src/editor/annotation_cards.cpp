@@ -97,7 +97,9 @@ struct Metrics {
     [[nodiscard]] qreal headerHeight() const {
         return std::max(HEADER * em, QFontMetricsF(small).height());
     }
-    [[nodiscard]] qreal lineCardHeight() const { return (2.0 * LINE_PAD + LINE_FONT * LINE_HEIGHT) * em; }
+    [[nodiscard]] qreal lineCardHeight() const {
+        return (2.0 * LINE_PAD + LINE_FONT * LINE_HEIGHT) * em;
+    }
     [[nodiscard]] qreal linkHeight() const { return LINK_FONT * LINE_HEIGHT * em; }
 };
 

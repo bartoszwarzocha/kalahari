@@ -118,7 +118,7 @@ public:
     /// @brief The languages the server checks (pl-PL, en-US...), once it answers
     [[nodiscard]] QStringList languages() const { return m_languages; }
 
-
+public slots:
     /// @brief Start the server, or connect to the one started outside; nothing while it runs
     ///        or starts
     void start();

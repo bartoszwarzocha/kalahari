@@ -128,7 +128,8 @@ public:
         painter->restore();
     }
 
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override {
         QStyleOptionViewItem atWidth = option;
         atWidth.rect = QRect(0, 0, m_view->viewport()->width(), 0);
         return QSize(atWidth.rect.width(), cardOf(atWidth, index).height);

@@ -371,7 +371,8 @@ private:
 
     /// @brief The matches in a line of text (a paragraph, or one of a note): their offsets
     ///        and lengths, in order
-    [[nodiscard]] std::vector<std::pair<qsizetype, qsizetype>> matchesIn(const QString& original) const;
+    [[nodiscard]] std::vector<std::pair<qsizetype, qsizetype>> matchesIn(
+        const QString& original) const;
 
     /// @brief Bring the matches up to date with an edit of the document
     ///

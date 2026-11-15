@@ -11,7 +11,8 @@
 /// OpenSpec #00038 Phase 4: Dock/panel management delegated to DockCoordinator.
 /// OpenSpec #00038 Phase 7: Document operations delegated to DocumentCoordinator.
 
-#pragma once
+#ifndef KALAHARI_GUI_MAIN_WINDOW_H
+#define KALAHARI_GUI_MAIN_WINDOW_H
 
 #include <QMainWindow>
 #include <QAction>
@@ -41,11 +42,11 @@ namespace kalahari {
 namespace core {
     class ProjectManager;
     struct Theme;  // Forward declaration for Theme (Task #00023)
-}
+} // namespace core
 
 namespace editor {
 class BookEditor;
-}
+} // namespace editor
 
 namespace gui {
 
@@ -89,7 +90,7 @@ class WritingStatsCoordinator;
 class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
-}
+} // namespace utils
 
 /// @brief Main application window
 ///
@@ -624,3 +625,5 @@ private:
 
 } // namespace gui
 } // namespace kalahari
+
+#endif  // KALAHARI_GUI_MAIN_WINDOW_H

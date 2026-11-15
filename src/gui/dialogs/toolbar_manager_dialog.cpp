@@ -31,8 +31,7 @@ using namespace kalahari::gui::dialogs;
 
 ToolbarManagerDialog::ToolbarManagerDialog(ToolbarManager* manager, QWidget* parent)
     : KalahariDialog(parent)
-    , 
-     m_toolbarManager(manager)
+    , m_toolbarManager(manager)
 {
     setHeading(tr("Customize Toolbars"),
                //: The heading of the Customize Toolbars window. In Polish: Wybierz pasek

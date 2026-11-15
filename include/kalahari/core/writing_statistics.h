@@ -216,7 +216,7 @@ public:
     /// words written and deleted in a minute of writing than usually. Unknown with less than
     /// TEMPERATURE_HISTORY_MINUTES of writing in those days.
     [[nodiscard]] WritingTemperature temperature(const QDateTime& now, int windowMinutes = 30,
-                                   int historyDays = 28) const;
+                                                 int historyDays = 28) const;
 
     /// @brief The time of writing in the days before today that the temperature needs
     static constexpr int TEMPERATURE_HISTORY_MINUTES = 60;

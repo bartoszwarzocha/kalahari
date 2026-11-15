@@ -35,10 +35,8 @@ namespace kalahari::gui {
 
 LogPanel::LogPanel(QWidget* parent, bool diagnosticMode)
     : QWidget(parent)
-    , 
-     m_sink(std::make_shared<core::LogPanelSink>())
+    , m_sink(std::make_shared<core::LogPanelSink>())
     , m_diagnosticMode(diagnosticMode)
-     
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("LogPanel: Creating enhanced log panel (diagnosticMode={})", diagnosticMode);

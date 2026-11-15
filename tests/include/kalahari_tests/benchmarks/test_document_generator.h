@@ -61,10 +61,10 @@ public:
 
     /// @brief Get actual word count of last generated document
     /// @return Word count
-    [[nodiscard]] [[nodiscard]] int lastWordCount() const { return m_lastWordCount; }
+    [[nodiscard]] int lastWordCount() const { return m_lastWordCount; }
 
     /// @brief Get the configuration
-    [[nodiscard]] [[nodiscard]] const Config& config() const { return m_config; }
+    [[nodiscard]] const Config& config() const { return m_config; }
 
     /// @brief Save generated document to file
     /// @param content Document content

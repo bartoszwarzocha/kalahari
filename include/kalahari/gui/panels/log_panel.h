@@ -111,8 +111,8 @@ private slots:
 
     /// @brief Handle Clear Log toolbar button
     void onClearLog();
-private:
 
+private:
     /// @brief Setup panel layout (log display + toolbar)
     void setupLayout();
 
@@ -136,8 +136,9 @@ private:
     // UI Components
     // ========================================================================
 
-    QTextEdit* m_logEdit{nullptr};           ///< Log display (rich text for colors)
-    ToolButtonColumns* m_toolBar{nullptr};   ///< Buttons at the side, wrapping into columns when low
+    QTextEdit* m_logEdit = nullptr;          ///< Log display (rich text for colors)
+    ToolButtonColumns* m_toolBar = nullptr;  ///< Buttons at the side, wrapping into columns when
+                                             ///< low
 
     // ========================================================================
     // Log Sink
@@ -157,7 +158,7 @@ private:
     // ========================================================================
 
     bool m_diagnosticMode;              ///< Show all levels vs INFO+ only
-    bool m_isDarkTheme{false};                 ///< Current theme (for colors)
+    bool m_isDarkTheme = false;         ///< Current theme (for colors)
 
     // ========================================================================
     // Cached Colors (Task #00027 - performance fix)
@@ -181,7 +182,7 @@ private:
     bool m_needsRebuild = false;        ///< Flag: UI needs sync when visible
     QTimer m_updateTimer;               ///< Timer for batched UI updates (100ms)
 
-
+private slots:
     /// @brief Deferred UI update (called by timer)
     void onDeferredUpdate();
 

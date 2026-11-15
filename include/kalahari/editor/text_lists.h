@@ -164,7 +164,9 @@ struct ListItem {
     bool numbered = true;        ///< False: no number or bullet
 
     /// @brief The format of the item's level
-    [[nodiscard]] const ListLevel& levelFormat() const { return definition.levels[static_cast<size_t>(level)]; }
+    [[nodiscard]] const ListLevel& levelFormat() const {
+        return definition.levels[static_cast<size_t>(level)];
+    }
 
     bool operator==(const ListItem&) const = default;
 };

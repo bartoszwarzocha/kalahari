@@ -159,7 +159,7 @@ private:
     void updatePreview();
 
     QComboBox* m_iconStyle;
-    QHBoxLayout* m_previewLayout{nullptr};
+    QHBoxLayout* m_previewLayout = nullptr;
     QColor m_primary;
     QColor m_secondary;
 };

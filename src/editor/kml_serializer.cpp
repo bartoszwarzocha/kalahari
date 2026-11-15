@@ -117,10 +117,7 @@ QString annotationElement(const Annotation& annotation)
 // Constructor
 // =============================================================================
 
-KmlSerializer::KmlSerializer()
-     
-{
-}
+KmlSerializer::KmlSerializer() = default;
 
 // =============================================================================
 // Public Serialization Methods

@@ -48,7 +48,7 @@ public:
 
     /// @brief Element @p elementId of the book open in @p projects, and the book
     /// without it; no sections when the book has no element @p elementId
-    static Book openBook(const core::ProjectManager& pm, const QString& elementId);
+    static Book openBook(const core::ProjectManager& projects, const QString& elementId);
 
     /// @brief Create the dialog
     /// @param book The element and the book without it

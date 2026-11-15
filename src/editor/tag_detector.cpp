@@ -21,7 +21,6 @@ const QRegularExpression TagDetector::s_tagPattern(
 
 TagDetector::TagDetector(QObject* parent)
     : QObject(parent)
-     
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("TagDetector constructor called");

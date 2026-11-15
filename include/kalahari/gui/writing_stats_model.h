@@ -115,11 +115,11 @@ public:
     /// @brief The writer's rules (Settings > Statistics and Goals)
     [[nodiscard]] const core::WritingRules& rules() const { return m_rules; }
 
-
+public slots:
     /// @brief Take the rules of the settings again (called by name when they change)
     void reloadRules();
-public:
 
+public:
     /// @brief The record the daily and weekly goals count, with what is not saved yet: of all
     /// the books or of the open one
     [[nodiscard]] core::WritingStatistics goalStatistics() const;

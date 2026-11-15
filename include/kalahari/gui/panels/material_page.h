@@ -164,7 +164,7 @@ public:
     [[nodiscard]] QLineEdit* coverLicenseEdit() const { return m_coverLicenseEdit; }
     [[nodiscard]] QLineEdit* coverAboutEdit() const { return m_coverAboutEdit; }
 
-
+public slots:
     /// @brief Add a field at the end, with the keys in its name
     void addField();
 
@@ -392,7 +392,7 @@ public:
     [[nodiscard]] QToolButton* removeButton() const { return m_removeButton; }
     [[nodiscard]] QLabel* emptyLabel() const { return m_emptyLabel; }
 
-
+public slots:
     /// @brief Open Link with the materials of the Workshop and link what is checked there
     void editMaterials();
 

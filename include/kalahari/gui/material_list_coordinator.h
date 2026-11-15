@@ -73,7 +73,7 @@ public:
     /// @brief The list on the tab in front; none when another tab is in front
     [[nodiscard]] MaterialListPanel* currentList() const;
 
-
+public slots:
     /// @brief Fill the lists again from the open book: the one in front at once, the others
     /// when they come to the front
     void refresh();
@@ -97,8 +97,8 @@ private slots:
     /// @brief The kinds hidden (MaterialList::HIDDEN_SETTING) changed: the Navigator and the
     /// lists are built again
     void onHiddenSettingChanged();
-private:
 
+private:
     void refreshNow();
     void connectList(MaterialListPanel* panel);
     void updateTab(MaterialListPanel* panel);

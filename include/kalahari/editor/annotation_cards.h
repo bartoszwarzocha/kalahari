@@ -152,7 +152,9 @@ public:
     /// @brief The card the mouse is on, and its part (empty id: none)
     void setHovered(const QString& id, std::optional<AnnotationCardPart> part);
     [[nodiscard]] const QString& hovered() const { return m_hovered; }
-    [[nodiscard]] const std::optional<AnnotationCardPart>& hoveredPart() const { return m_hoveredPart; }
+    [[nodiscard]] const std::optional<AnnotationCardPart>& hoveredPart() const {
+        return m_hoveredPart;
+    }
 
     /// @brief The card of the annotation gone to (empty: none): it is outlined
     void setSelected(const QString& id) { m_selected = id; }
@@ -166,14 +168,15 @@ public:
     /// @param block The paragraph
     /// @param top Where its cards start: under its text and its spacing
     /// @param width The width of its text
-    [[nodiscard]] std::vector<AnnotationCardBox> cardsOf(const QTextBlock& block, qreal top, qreal width) const;
+    [[nodiscard]] std::vector<AnnotationCardBox> cardsOf(const QTextBlock& block, qreal top,
+                                                         qreal width) const;
 
     /// @brief The room a paragraph's cards take under it (0: none)
     [[nodiscard]] qreal spaceBelow(const QTextBlock& block, qreal width) const;
 
     /// @brief The card (and its part) at a point of a paragraph
-    [[nodiscard]] std::optional<AnnotationCardHit> hitTest(const QTextBlock& block, qreal top, qreal width,
-                                             const QPointF& point) const;
+    [[nodiscard]] std::optional<AnnotationCardHit> hitTest(const QTextBlock& block, qreal top,
+                                                           qreal width, const QPointF& point) const;
 
     /// @brief Draw a paragraph's cards
     void paint(QPainter* painter, const QTextBlock& block, qreal top, qreal width) const;

@@ -144,11 +144,11 @@ private:
     /// @brief Show @p message in the status bar for a while
     void say(const QString& message) const;
 
-
+private slots:
     /// @brief Enable the commands for the tab in front
     void updateCommandStates() const;
-private:
 
+private:
     QTabWidget* m_centralTabs;
     ChapterOpener m_openChapter;
     NoticeShower m_showNotice;

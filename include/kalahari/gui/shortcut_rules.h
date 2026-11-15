@@ -54,11 +54,11 @@ struct FixedKeys {
     QString reason;                                 ///< Why a command cannot have them
                                                     ///< (%1: the keys)
     std::string allowedFor;                         ///< The one command that may have them
-    QString summary;                           ///< The keys as the list shows them, when
+    QString summary = {};                           ///< The keys as the list shows them, when
                                                     ///< a list of them all would not do
-    QStringList keyReasons;                    ///< Why, key by key, in the order of keys
+    QStringList keyReasons = {};                    ///< Why, key by key, in the order of keys
                                                     ///< (in place of reason)
-    QString brief;                             ///< Why, in a few words, for a summary
+    QString brief = {};                             ///< Why, in a few words, for a summary
 
     /// @brief Whether the keys are among these
     [[nodiscard]] bool covers(QKeyCombination pressed) const;
@@ -88,7 +88,7 @@ struct KeyCheck {
     };
     Result result = Result::Allowed;
     QString reason;      ///< Why (Warning, Refused)
-    QString brief;  ///< Why, in a few words, for a summary (Refused)
+    QString brief = {};  ///< Why, in a few words, for a summary (Refused)
 };
 
 /// @brief The rules of the keys of the commands on one system
@@ -106,7 +106,7 @@ public:
     [[nodiscard]] std::vector<FixedKeyGroup> fixedGroups() const;
 
     /// @brief Whether a command may have the keys
-    /// @param keys The keys (keypad or not makes no difference)
+    /// @param pressed The keys pressed (keypad or not makes no difference)
     /// @param commandId The command (only Exit may have the key that closes the window)
     [[nodiscard]] KeyCheck check(QKeyCombination pressed, const std::string& commandId) const;
 

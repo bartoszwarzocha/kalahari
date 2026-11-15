@@ -456,7 +456,8 @@ public:
         painter->restore();
     }
 
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override
     {
         if (!index.data(HEADING_ROLE).toBool()) {
             return QStyledItemDelegate::sizeHint(option, index);

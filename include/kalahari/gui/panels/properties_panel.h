@@ -96,7 +96,7 @@ public:
     [[nodiscard]] LinkedMaterialsBox* sectionMaterials() const { return m_sectionMaterials; }
     [[nodiscard]] LinkedMaterialsBox* partMaterials() const { return m_partMaterials; }
 
-
+public slots:
     /// @brief Show project properties view
     ///
     /// Switches to project properties page and populates fields from
@@ -377,41 +377,43 @@ private:
     void showBookType(const core::BookProject& project, const core::ProjectBook& book);
 
     // Main widget
-    QStackedWidget* m_stackedWidget{nullptr};
+    QStackedWidget* m_stackedWidget = nullptr;
 
     // No Project Page
-    QLabel* m_noProjectLabel{nullptr};
+    QLabel* m_noProjectLabel = nullptr;
 
     // Project Page widgets
     QLabel* m_projectTypeIcon = nullptr;   ///< Icon of the book's type (showBookType())
     QLabel* m_projectTypeLabel = nullptr;  ///< Name of the book's type: "Novel", "Novel (not in
                                            ///< the program)"
-    QLineEdit* m_projectTitleEdit{nullptr};
-    QLineEdit* m_projectAuthorEdit{nullptr};
-    QComboBox* m_projectLanguageCombo{nullptr};
-    QLineEdit* m_projectGenreEdit{nullptr};
-    QFormLayout* m_projectInfoLayout{nullptr};          ///< Rows of the book's information
-    SectionsComboBox* m_projectSectionsCombo{nullptr};  ///< The sections of the book, or none
-    SectionNamesEdit* m_projectSectionNames{nullptr};   ///< Own names of the sections
-    QLabel* m_projectChaptersTitle{nullptr};  ///< "Total Chapters:", "Total Stories:": the main texts
-    QLabel* m_projectChaptersLabel{nullptr};
-    QLabel* m_projectWordsLabel{nullptr};
-    QLabel* m_projectCreatedLabel{nullptr};
-    QLabel* m_projectModifiedLabel{nullptr};
-    QLabel* m_projectDraftCountLabel{nullptr};
-    QLabel* m_projectRevisionCountLabel{nullptr};
-    QLabel* m_projectFinalCountLabel{nullptr};
+    QLineEdit* m_projectTitleEdit = nullptr;
+    QLineEdit* m_projectAuthorEdit = nullptr;
+    QComboBox* m_projectLanguageCombo = nullptr;
+    QLineEdit* m_projectGenreEdit = nullptr;
+    QFormLayout* m_projectInfoLayout = nullptr;          ///< Rows of the book's information
+    SectionsComboBox* m_projectSectionsCombo = nullptr;  ///< The sections of the book, or none
+    SectionNamesEdit* m_projectSectionNames = nullptr;   ///< Own names of the sections
+    QLabel* m_projectChaptersTitle = nullptr;  ///< "Total Chapters:", "Total Stories:": the main
+                                               ///< texts
+    QLabel* m_projectChaptersLabel = nullptr;
+    QLabel* m_projectWordsLabel = nullptr;
+    QLabel* m_projectCreatedLabel = nullptr;
+    QLabel* m_projectModifiedLabel = nullptr;
+    QLabel* m_projectDraftCountLabel = nullptr;
+    QLabel* m_projectRevisionCountLabel = nullptr;
+    QLabel* m_projectFinalCountLabel = nullptr;
 
     // Chapter Page widgets: a text element of any kind, or a file of the book outside its
     // text, which has only its title and its words
-    QGroupBox* m_chapterInfoGroup{nullptr};  ///< "Chapter Information", "Story Information"
-    QFormLayout* m_chapterInfoLayout{nullptr};  ///< Rows of the element's information
-    QLineEdit* m_chapterTitleEdit{nullptr};
-    QLabel* m_chapterWordCountLabel{nullptr};
-    QComboBox* m_chapterStatusCombo{nullptr};
-    QCheckBox* m_chapterFirstPageLeft{nullptr};  ///< The text starts on a left page (mirror margins)
-    QGroupBox* m_chapterNotesGroup{nullptr};
-    QTextEdit* m_chapterNotesEdit{nullptr};
+    QGroupBox* m_chapterInfoGroup = nullptr;  ///< "Chapter Information", "Story Information"
+    QFormLayout* m_chapterInfoLayout = nullptr;  ///< Rows of the element's information
+    QLineEdit* m_chapterTitleEdit = nullptr;
+    QLabel* m_chapterWordCountLabel = nullptr;
+    QComboBox* m_chapterStatusCombo = nullptr;
+    QCheckBox* m_chapterFirstPageLeft = nullptr;  ///< The text starts on a left page (mirror
+                                                  ///< margins)
+    QGroupBox* m_chapterNotesGroup = nullptr;
+    QTextEdit* m_chapterNotesEdit = nullptr;
     LinkedMaterialsBox* m_chapterMaterials = nullptr;  ///< The materials of the element
     QGroupBox* m_chapterVersionsGroup = nullptr;  ///< The versions of the text (showVersions())
     QLabel* m_versionsCountLabel = nullptr;       ///< How many, and when the last one was kept
@@ -424,41 +426,42 @@ private:
     QVBoxLayout* m_editorPageLayout = nullptr;   ///< The Editor page, for the versions group
 
     // Section Page widgets
-    QLabel* m_sectionTitleLabel{nullptr};
-    QLabel* m_sectionChapterCountTitle{nullptr};  ///< "Chapters:", "Stories:", or "Elements:" outside
-                                         ///< the main one
-    QLabel* m_sectionChapterCountLabel{nullptr};
-    QLabel* m_sectionWordCountLabel{nullptr};
-    QLabel* m_sectionDraftCountLabel{nullptr};
-    QLabel* m_sectionRevisionCountLabel{nullptr};
-    QLabel* m_sectionFinalCountLabel{nullptr};
+    QLabel* m_sectionTitleLabel = nullptr;
+    QLabel* m_sectionChapterCountTitle = nullptr;  ///< "Chapters:", "Stories:", or "Elements:"
+                                                   ///< outside the main one
+    QLabel* m_sectionChapterCountLabel = nullptr;
+    QLabel* m_sectionWordCountLabel = nullptr;
+    QLabel* m_sectionDraftCountLabel = nullptr;
+    QLabel* m_sectionRevisionCountLabel = nullptr;
+    QLabel* m_sectionFinalCountLabel = nullptr;
     LinkedMaterialsBox* m_sectionMaterials = nullptr;  ///< The materials of the section
 
     // Part Page widgets
-    QLabel* m_partTitleLabel{nullptr};
-    QLabel* m_partChapterCountTitle{nullptr};  ///< "Chapters:", "Stories:": the main texts of the book
-    QLabel* m_partChapterCountLabel{nullptr};
-    QLabel* m_partWordCountLabel{nullptr};
-    QLabel* m_partDraftCountLabel{nullptr};
-    QLabel* m_partRevisionCountLabel{nullptr};
-    QLabel* m_partFinalCountLabel{nullptr};
+    QLabel* m_partTitleLabel = nullptr;
+    QLabel* m_partChapterCountTitle = nullptr;  ///< "Chapters:", "Stories:": the main texts of the
+                                                ///< book
+    QLabel* m_partChapterCountLabel = nullptr;
+    QLabel* m_partWordCountLabel = nullptr;
+    QLabel* m_partDraftCountLabel = nullptr;
+    QLabel* m_partRevisionCountLabel = nullptr;
+    QLabel* m_partFinalCountLabel = nullptr;
     LinkedMaterialsBox* m_partMaterials = nullptr;  ///< The materials of the part
     // The card of a material
     MaterialPage* m_materialPage = nullptr;
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
-    QLabel* m_editorTitleLabel{nullptr};           ///< "Selection" or "Document"
-    QLabel* m_editorWordCountLabel{nullptr};       ///< Word count
-    QLabel* m_editorCharCountLabel{nullptr};       ///< Character count (with spaces)
-    QLabel* m_editorCharNoSpaceLabel{nullptr};     ///< Character count (without spaces)
-    QLabel* m_editorParagraphCountLabel{nullptr};  ///< Paragraph count
-    QLabel* m_editorReadingTimeLabel{nullptr};     ///< Estimated reading time
+    QLabel* m_editorTitleLabel = nullptr;           ///< "Selection" or "Document"
+    QLabel* m_editorWordCountLabel = nullptr;       ///< Word count
+    QLabel* m_editorCharCountLabel = nullptr;       ///< Character count (with spaces)
+    QLabel* m_editorCharNoSpaceLabel = nullptr;     ///< Character count (without spaces)
+    QLabel* m_editorParagraphCountLabel = nullptr;  ///< Paragraph count
+    QLabel* m_editorReadingTimeLabel = nullptr;     ///< Estimated reading time
 
     // State tracking
     QString m_currentChapterId;    ///< Currently displayed chapter ID
     QString m_currentSectionType;  ///< Currently displayed section type
     QString m_currentPartId;       ///< Currently displayed part ID
-    bool m_isUpdating{false};             ///< Flag to prevent recursive updates
+    bool m_isUpdating = false;     ///< Flag to prevent recursive updates
 
     // Active editor tracking (OpenSpec #00042 Task 7.4)
     EditorPanel* m_activeEditorPanel{nullptr};  ///< Currently tracked editor panel

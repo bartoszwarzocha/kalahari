@@ -410,7 +410,8 @@ struct BookProject {
 
     /// @brief Elements of @p place: of a part of book @p book, or of the Workshop
     QList<ProjectElement>& elementsIn(BookPlace place, qsizetype book = 0);
-    [[nodiscard]] const QList<ProjectElement>& elementsIn(BookPlace place, qsizetype book = 0) const;
+    [[nodiscard]] const QList<ProjectElement>& elementsIn(BookPlace place,
+                                                          qsizetype book = 0) const;
 
     /// @brief Elements of book @p book in reading order, each group before the elements inside it
     [[nodiscard]] QList<const ProjectElement*> readingOrder(qsizetype book = 0) const;
@@ -430,7 +431,8 @@ struct BookProject {
 
     /// @brief Section of book @p book that link @p link names (sectionLink()); nullopt when it
     /// names none of them
-    [[nodiscard]] std::optional<BookPlace> linkedSection(const QString& link, qsizetype book = 0) const;
+    [[nodiscard]] std::optional<BookPlace> linkedSection(const QString& link,
+                                                         qsizetype book = 0) const;
 
     /// @brief Whether link @p link names an element of the project or a section of its book
     [[nodiscard]] bool hasLinkTarget(const QString& link) const;
@@ -465,7 +467,7 @@ struct BookProject {
     /// @return The places; empty when the project has no element @p elementId, and for a file
     ///         of a book outside its text
     [[nodiscard]] QList<ElementPlace> movePlacesOf(const BookTypeRegistry& registry,
-                                     const QString& elementId) const;
+                                                   const QString& elementId) const;
 
     /// @brief Move element @p elementId, with the elements inside it, to @p to, one of
     /// movePlacesOf()
@@ -489,7 +491,7 @@ struct BookProject {
 
     /// @brief Kinds the project offers inside a group of kind @p groupKindId
     [[nodiscard]] QList<KindRef> kindsInside(const BookTypeRegistry& registry,
-                               const QString& groupKindId) const;
+                                             const QString& groupKindId) const;
 
     /// @brief Kind of @p element, also when the project no longer offers it; none when
     /// @p registry does not have it

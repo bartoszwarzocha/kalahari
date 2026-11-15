@@ -37,7 +37,7 @@ public:
     /// @brief The label of the days in a row
     [[nodiscard]] QLabel* streakLabel() const { return m_streak; }
 
-
+public slots:
     /// @brief Show what the statistics have now, as the setting says
     void update();
 

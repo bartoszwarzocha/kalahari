@@ -75,10 +75,12 @@ public:
     FakeLanguageTool& operator=(const FakeLanguageTool&) = delete;
 
     /// @brief The address of the server
-    [[nodiscard]] [[nodiscard]] QString url() const { return QStringLiteral("http://127.0.0.1:%1").arg(m_server.serverPort()); }
+    [[nodiscard]] QString url() const {
+        return QStringLiteral("http://127.0.0.1:%1").arg(m_server.serverPort());
+    }
 
     /// @brief The port the server listens on
-    [[nodiscard]] [[nodiscard]] int port() const { return m_server.serverPort(); }
+    [[nodiscard]] int port() const { return m_server.serverPort(); }
 
     /// @brief Answer GET /v2/languages with this body (empty: English and Polish)
     void setLanguagesAnswer(const QByteArray& body) { m_languagesAnswer = body; }
@@ -113,23 +115,23 @@ public:
     void close() { m_server.close(); }
 
     /// @brief How many requests came
-    [[nodiscard]] [[nodiscard]] int requests() const { return static_cast<int>(m_texts.size()); }
+    [[nodiscard]] int requests() const { return static_cast<int>(m_texts.size()); }
 
     /// @brief How many answers are kept (hold())
-    [[nodiscard]] [[nodiscard]] int heldAnswers() const { return static_cast<int>(m_held.size()); }
+    [[nodiscard]] int heldAnswers() const { return static_cast<int>(m_held.size()); }
 
     /// @brief The texts checked, in the order they came
-    [[nodiscard]] [[nodiscard]] QStringList texts() const { return m_texts; }
+    [[nodiscard]] QStringList texts() const { return m_texts; }
 
     /// @brief The language of the last request
-    [[nodiscard]] [[nodiscard]] QString lastLanguage() const { return m_lastLanguage; }
+    [[nodiscard]] QString lastLanguage() const { return m_lastLanguage; }
 
     /// @brief The account of the last request (username, apiKey); empty: none
-    [[nodiscard]] [[nodiscard]] QString lastUsername() const { return m_lastUsername; }
-    [[nodiscard]] [[nodiscard]] QString lastApiKey() const { return m_lastApiKey; }
+    [[nodiscard]] QString lastUsername() const { return m_lastUsername; }
+    [[nodiscard]] QString lastApiKey() const { return m_lastApiKey; }
 
     /// @brief How many times the languages were asked for
-    [[nodiscard]] [[nodiscard]] int languageRequests() const { return m_languageRequests; }
+    [[nodiscard]] int languageRequests() const { return m_languageRequests; }
 
 private:
     /// @brief Answer a request once it came whole (and take it from what came)
@@ -193,7 +195,7 @@ private:
     }
 
     /// @brief The issues of a text, as LanguageTool gives them
-    [[nodiscard]] [[nodiscard]] QJsonObject answerFor(const QString& text) const {
+    [[nodiscard]] QJsonObject answerFor(const QString& text) const {
         QJsonArray matches;
         for (const FakeIssue& issue : m_issues) {
             for (qsizetype at = text.indexOf(issue.phrase); at >= 0;

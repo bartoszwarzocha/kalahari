@@ -170,7 +170,9 @@ public:
 
     /// @brief Get the current statistics collector
     /// @return Pointer to StatisticsCollector, or nullptr if not set
-    [[nodiscard]] editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
+    [[nodiscard]] editor::StatisticsCollector* statisticsCollector() const {
+        return m_statisticsCollector;
+    }
 
     /// @brief What New File made with a book open
     struct NewFile {
@@ -185,7 +187,7 @@ public:
         QString title;  ///< Its title
     };
 
-
+public slots:
     /// @brief Handle element selection in navigator
     /// @param elementId Element ID of selected item
     /// @param elementTitle Display title of selected item

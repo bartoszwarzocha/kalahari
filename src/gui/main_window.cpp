@@ -215,7 +215,6 @@ MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
     , m_book(std::make_unique<core::ProjectManager>())
     , m_commands(std::make_unique<CommandRegistry>())
-     
 {
     auto& logger = core::Logger::getInstance();
     logger.info("MainWindow constructor called");

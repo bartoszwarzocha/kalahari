@@ -114,7 +114,8 @@ public:
     // =========================================================================
 
     void recordSessionStats(const SessionStats& stats);
-    [[nodiscard]] QList<SessionStats> getStatsBetween(const QDateTime& from, const QDateTime& to) const;
+    [[nodiscard]] QList<SessionStats> getStatsBetween(const QDateTime& from,
+                                                      const QDateTime& to) const;
     [[nodiscard]] AggregatedStats getAggregatedStats() const;
 
     // =========================================================================

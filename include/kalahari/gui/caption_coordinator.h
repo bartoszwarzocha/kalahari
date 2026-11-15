@@ -162,7 +162,7 @@ private:
 
     /// @brief The captions of a text not open: from its file or its unsaved text, kept until
     ///        they change
-    const CachedText& savedText(const QString& elementId) const;
+    [[nodiscard]] const CachedText& savedText(const QString& elementId) const;
 
     /// @brief The context of the text at @p index of @p texts
     [[nodiscard]] editor::CaptionContext contextAt(const std::vector<BookText>& texts,

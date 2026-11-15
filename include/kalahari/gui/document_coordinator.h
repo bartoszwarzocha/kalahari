@@ -203,7 +203,7 @@ public:
     /// @return The reason, for its tooltip and the status bar; empty while Save All saves
     [[nodiscard]] QString whyNotSaveAll() const;
 
-
+public slots:
     // =========================================================================
     // Document operations
     // =========================================================================
@@ -321,7 +321,9 @@ public:
     /// The StatisticsCollector tracks writing statistics (words written/deleted,
     /// active time) and saves them to the project database. It automatically
     /// starts a session when a project is opened and ends it when closed.
-    [[nodiscard]] editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector.get(); }
+    [[nodiscard]] editor::StatisticsCollector* statisticsCollector() const {
+        return m_statisticsCollector.get();
+    }
 
 signals:
     /// @brief Emitted when a document is opened

@@ -175,8 +175,8 @@ private slots:
 
     /// @brief Close the bar
     void onClose();
-private:
 
+private:
     /// @brief Setup UI components
     void setupUi();
 

@@ -26,7 +26,7 @@ QString readOnlyReason();
 /// it."; empty while no book is open in it or the book is not read-only
 ///
 /// The type and the packages are named after the book's cards of them, or after their ids.
-QString readOnlyBookMessage(const core::ProjectManager& pm);
+QString readOnlyBookMessage(const core::ProjectManager& book);
 
 } // namespace gui
 } // namespace kalahari

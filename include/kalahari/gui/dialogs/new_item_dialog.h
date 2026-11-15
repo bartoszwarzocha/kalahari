@@ -251,51 +251,51 @@ private:
     // ========================================================================
 
     /// @brief Large template icon (64x64)
-    QLabel* m_iconLabel{nullptr};
+    QLabel* m_iconLabel = nullptr;
 
     /// @brief Template name (bold)
-    QLabel* m_titleLabel{nullptr};
+    QLabel* m_titleLabel = nullptr;
 
     /// @brief Rich text description with features
-    QLabel* m_descriptionLabel{nullptr};
+    QLabel* m_descriptionLabel = nullptr;
 
     // ========================================================================
     // Template Grid Widgets (RIGHT)
     // ========================================================================
 
     /// @brief Template list with icon mode
-    QListWidget* m_templateList{nullptr};
+    QListWidget* m_templateList = nullptr;
 
     /// @brief Optional search filter (future use)
-    QLineEdit* m_searchEdit{nullptr};
+    QLineEdit* m_searchEdit = nullptr;
 
     // ========================================================================
     // Details Group Widgets (BOTTOM)
     // ========================================================================
 
     /// @brief Project title / file name input
-    QLineEdit* m_nameEdit{nullptr};
+    QLineEdit* m_nameEdit = nullptr;
 
     /// @brief Author input (project mode only)
-    QLineEdit* m_authorEdit{nullptr};
+    QLineEdit* m_authorEdit = nullptr;
 
     /// @brief Language selection (project mode only)
-    QComboBox* m_languageCombo{nullptr};
+    QComboBox* m_languageCombo = nullptr;
 
     /// @brief Project location input (project mode only)
-    QLineEdit* m_locationEdit{nullptr};
+    QLineEdit* m_locationEdit = nullptr;
 
     /// @brief Browse folder button (project mode only)
-    QPushButton* m_browseBtn{nullptr};
+    QPushButton* m_browseBtn = nullptr;
 
     /// @brief Create subfolder checkbox (project mode only)
-    QCheckBox* m_subfolderCheck{nullptr};
+    QCheckBox* m_subfolderCheck = nullptr;
 
     /// @brief Label for author row
-    QLabel* m_authorLabel{nullptr};
+    QLabel* m_authorLabel = nullptr;
 
     /// @brief Label for language row
-    QLabel* m_languageLabel{nullptr};
+    QLabel* m_languageLabel = nullptr;
 
     /// @brief Sections: a set of names, own names or no sections (project mode only)
     SectionsComboBox* m_sectionsCombo = nullptr;
@@ -307,13 +307,13 @@ private:
     SectionNamesEdit* m_sectionNames = nullptr;
 
     /// @brief Label for location row
-    QLabel* m_locationLabel{nullptr};
+    QLabel* m_locationLabel = nullptr;
 
     /// @brief Icon of the folder line: a warning when the book cannot be made in the folder
-    QLabel* m_folderIcon{nullptr};
+    QLabel* m_folderIcon = nullptr;
 
     /// @brief Folder line: the folder the book will be in, or why it cannot be made there
-    QLabel* m_folderLabel{nullptr};
+    QLabel* m_folderLabel = nullptr;
 };
 
 } // namespace kalahari::gui::dialogs

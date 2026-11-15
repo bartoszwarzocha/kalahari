@@ -95,7 +95,7 @@ public:
     /// @brief The button that returns to the New Book window
     [[nodiscard]] QPushButton* backButton() const { return m_backButton; }
 
-
+public slots:
     /// @brief Create Book or Skip: asks about the open book, then closes the window; Cancel
     /// of the question keeps it open
     void accept() override;

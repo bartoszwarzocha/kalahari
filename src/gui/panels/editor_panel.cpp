@@ -104,8 +104,7 @@ constexpr int AUTO_CORRECT_MESSAGE_MS = 5000;
 
 EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
-    , 
-     m_book(book)
+    , m_book(book)
     , m_commands(commands)
 {
     auto& logger = core::Logger::getInstance();

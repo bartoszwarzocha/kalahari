@@ -94,7 +94,7 @@ public:
     /// @brief The side of the panels the settings put the tabs on
     [[nodiscard]] static PanelTabBar::Side sideSetting();
 
-
+public slots:
     /// @brief Bring the tabs up to date with the window's layout now (they follow it by
     ///        themselves a moment after it changes)
     void refresh();

@@ -76,7 +76,7 @@ public:
     /// @brief The button that copies the failure (Page::Failed)
     [[nodiscard]] QPushButton* copyButton() const { return m_copyButton; }
 
-
+public slots:
     /// @brief The button of the page: start, download in the background, finish or try again
     void accept() override;
 

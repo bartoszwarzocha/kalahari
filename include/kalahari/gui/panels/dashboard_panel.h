@@ -165,51 +165,54 @@ private:
     static QPixmap bookIconPixmap(const QLabel* label, int size);
 
     // Main layout components
-    QScrollArea* m_scrollArea{nullptr};         ///< Scroll area for content
-    QWidget* m_contentWidget{nullptr};          ///< Main content container
-    QVBoxLayout* m_mainLayout{nullptr};         ///< Main vertical layout
+    QScrollArea* m_scrollArea = nullptr;  ///< Scroll area for content
+    QWidget* m_contentWidget = nullptr;   ///< Main content container
+    QVBoxLayout* m_mainLayout = nullptr;  ///< Main vertical layout
 
     // Header components
     DashboardHeaderLayout* m_headerLayout = nullptr;  ///< The logo beside the texts, or above them
-    QLabel* m_logoLabel{nullptr};               ///< Application logo (at most 256x256)
-    QLabel* m_titleLabel{nullptr};              ///< "Welcome to Kalahari"
-    QLabel* m_taglineLabel{nullptr};            ///< Tagline text
+    QLabel* m_logoLabel = nullptr;     ///< Application logo (at most 256x256)
+    QLabel* m_titleLabel = nullptr;    ///< "Welcome to Kalahari"
+    QLabel* m_taglineLabel = nullptr;  ///< Tagline text
 
     // Shortcuts section
-    QFrame* m_shortcutsFrame{nullptr};          ///< Shortcuts container frame
-    QLabel* m_shortcutsTitleLabel{nullptr};     ///< "KEYBOARD SHORTCUTS"
+    QFrame* m_shortcutsFrame = nullptr;       ///< Shortcuts container frame
+    QLabel* m_shortcutsTitleLabel = nullptr;  ///< "KEYBOARD SHORTCUTS"
     DashboardHintsLayout* m_shortcutsLayout = nullptr;  ///< In a row, or one under another
     std::vector<QLabel*> m_shortcutLabels;  ///< The keys and the name of each command
 
     // Main content columns
-    QWidget* m_columnsWidget{nullptr};          ///< Container for columns
-    QFrame* m_newsColumn{nullptr};              ///< News column
-    QFrame* m_recentFilesColumn{nullptr};       ///< Recent files column
-    QWidget* m_columnDivider{nullptr};           ///< Divider between columns (QWidget for reliable styling)
-    QLabel* m_newsIcon{nullptr};                ///< News column icon
-    QLabel* m_newsTitle{nullptr};               ///< News column title
-    QLabel* m_filesIcon{nullptr};               ///< Files column icon
-    QLabel* m_filesTitle{nullptr};              ///< Files column title
-    QVBoxLayout* m_newsListLayout{nullptr};     ///< Layout for news items
-    QVBoxLayout* m_filesListLayout{nullptr};    ///< Layout for file cards
-    QWidget* m_newsListWidget{nullptr};         ///< Container for news items
-    QWidget* m_filesListWidget{nullptr};        ///< Container for file cards
+    QWidget* m_columnsWidget = nullptr;        ///< Container for columns
+    QFrame* m_newsColumn = nullptr;            ///< News column
+    QFrame* m_recentFilesColumn = nullptr;     ///< Recent files column
+    QWidget* m_columnDivider = nullptr;        ///< Divider between columns (QWidget for reliable
+                                               ///< styling)
+    QLabel* m_newsIcon = nullptr;              ///< News column icon
+    QLabel* m_newsTitle = nullptr;             ///< News column title
+    QLabel* m_filesIcon = nullptr;             ///< Files column icon
+    QLabel* m_filesTitle = nullptr;            ///< Files column title
+    QVBoxLayout* m_newsListLayout = nullptr;   ///< Layout for news items
+    QVBoxLayout* m_filesListLayout = nullptr;  ///< Layout for file cards
+    QWidget* m_newsListWidget = nullptr;       ///< Container for news items
+    QWidget* m_filesListWidget = nullptr;      ///< Container for file cards
 
     // Footer
-    QCheckBox* m_autoLoadCheckbox{nullptr};     ///< Auto-load last project checkbox
-    QLabel* m_autoLoadLabel = nullptr;  ///< Its text, which wraps (a QCheckBox cannot)
-    int m_autoLoadSubscription = -1;    ///< The checkbox following its setting (SettingsManager)
+    QCheckBox* m_autoLoadCheckbox = nullptr;  ///< Auto-load last project checkbox
+    QLabel* m_autoLoadLabel = nullptr;        ///< Its text, which wraps (a QCheckBox cannot)
+    int m_autoLoadSubscription = -1;          ///< The checkbox following its setting
+                                              ///< (SettingsManager)
 
     // Cached recent file cards for click handling
     std::vector<std::pair<QWidget*, QString>> m_fileCards;  ///< Card widget -> file path
 
     // Responsive layout state
-    bool m_singleColumnMode{false};               ///< True if in single column layout
-    QGridLayout* m_columnsGridLayout{nullptr};      ///< Grid layout for columns (stored for reorganization)
+    bool m_singleColumnMode = false;             ///< True if in single column layout
+    QGridLayout* m_columnsGridLayout = nullptr;  ///< Grid layout for columns (stored for
+                                                 ///< reorganization)
 
     // Section visibility state (from settings)
-    bool m_showNews{true};                       ///< Show news column (from settings)
-    bool m_showRecentFiles{true};                ///< Show recent files column (from settings)
+    bool m_showNews = true;                ///< Show news column (from settings)
+    bool m_showRecentFiles = true;         ///< Show recent files column (from settings)
 
     /// @brief Get max items to display from settings
     /// @return Number of items (3-9, default 5)

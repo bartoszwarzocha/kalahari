@@ -31,7 +31,7 @@ public:
     OtherProgram& operator=(const OtherProgram&) = delete;
 
     /// @brief Its PID; 0 when it does not run
-    [[nodiscard]] [[nodiscard]] qint64 pid() const { return m_process.processId(); }
+    [[nodiscard]] qint64 pid() const { return m_process.processId(); }
 
     /// @brief End it at once, as a program that crashes
     void stop() {

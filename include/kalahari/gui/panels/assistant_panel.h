@@ -32,7 +32,7 @@ public:
     ~AssistantPanel() override = default;
 
 private:
-    QLabel* m_placeholderLabel{nullptr};
+    QLabel* m_placeholderLabel = nullptr;
 };
 
 } // namespace kalahari::gui

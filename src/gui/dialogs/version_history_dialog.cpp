@@ -122,7 +122,8 @@ public:
         painter->restore();
     }
 
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override {
         // As wide as the list, as high as the lines wrapped to it
         const auto* view = qobject_cast<const QAbstractItemView*>(option.widget);
         const int rowWidth = view != nullptr ? view->viewport()->width() : option.rect.width();

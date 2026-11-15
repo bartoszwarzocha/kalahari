@@ -38,7 +38,6 @@ SettingsDialog::SettingsDialog(const core::ProjectManager& book, CommandRegistry
                                QWidget* parent, bool diagnosticMode,
                                editor::SpellCheckService* spelling, GrammarCoordinator* grammar)
     : KalahariDialog(parent),
-      
       m_diagnosticMode(diagnosticMode),
       m_spelling(spelling),
       m_grammar(grammar),

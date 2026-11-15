@@ -194,7 +194,7 @@ public:
     /// @brief Whether the label or checkbox of a setting is bold: the style's own setting
     [[nodiscard]] bool isMarkedOwn(const QString& property) const;
 
-
+public slots:
     /// @brief Font...: Format > Font for the style (the short window)
     void editFont();
 

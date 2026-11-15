@@ -39,8 +39,8 @@ public:
 private:
     std::string m_id;
     std::string m_version;
-    bool m_init_called{false};
-    bool m_activate_called{false};
+    bool m_init_called = false;
+    bool m_activate_called = false;
 };
 
 class TestExporter : public IExporter {
@@ -60,7 +60,7 @@ public:
 
 private:
     std::string m_id;
-    bool m_init_called{false};
+    bool m_init_called = false;
 };
 
 class TestAssistant : public IAssistant {
@@ -81,7 +81,7 @@ public:
 
 private:
     std::string m_id;
-    int m_message_count{0};
+    int m_message_count = 0;
 };
 
 // =============================================================================

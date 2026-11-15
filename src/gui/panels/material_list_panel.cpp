@@ -255,7 +255,8 @@ public:
         painter->restore();
     }
 
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override {
         Q_UNUSED(option);
         Q_UNUSED(index);
         return {TILE_WIDTH, TILE_HEIGHT};
@@ -398,7 +399,8 @@ public:
         return parent.isValid() ? 0 : static_cast<int>(m_columns.size());
     }
 
-    [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation, int role) const override {
+    [[nodiscard]] QVariant headerData(int section, Qt::Orientation orientation,
+                                      int role) const override {
         if (orientation != Qt::Horizontal || section < 0 || section >= m_columns.size()) {
             return {};
         }
@@ -551,7 +553,8 @@ public:
     [[nodiscard]] bool groups() const { return m_groups; }
 
 protected:
-    [[nodiscard]] bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override {
+    [[nodiscard]] bool filterAcceptsRow(int sourceRow,
+                                        const QModelIndex& sourceParent) const override {
         Q_UNUSED(sourceParent);
         const auto* model = static_cast<const MaterialListModel*>(sourceModel());
         const MaterialRow* row = model->rowAt(sourceRow);

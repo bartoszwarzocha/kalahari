@@ -69,7 +69,7 @@ public:
     /// @brief The kinds and the parts of the book open in @p projects, for file
     /// @p path: the kind chosen at the start is the one its name says ("chapter_004.kchapter":
     /// a chapter), else the main text kind of the book
-    static Book openBook(const core::ProjectManager& pm, const QString& path);
+    static Book openBook(const core::ProjectManager& projects, const QString& path);
 
     /// @brief Create the dialog
     /// @param file The file

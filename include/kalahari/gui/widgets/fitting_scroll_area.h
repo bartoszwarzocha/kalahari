@@ -89,15 +89,17 @@ private:
     /// @brief Keep no widget in view
     void stopKeeping();
 
-    static constexpr int DEFAULT_MINIMUM_LINES = 6;  ///< Height of the area in a lowered dialog, in lines
+    /// @brief Height of the area in a lowered dialog, in lines
+    static constexpr int DEFAULT_MINIMUM_LINES = 6;
 
-    QWidget* m_content;  ///< The content, inside the area's widget
-    int m_minimumLines{DEFAULT_MINIMUM_LINES};  ///< Height of the area in a lowered window, in lines
-    bool m_droppingBar = false;               ///< Taking away the scroll bar just now
-    QWidget* m_kept = nullptr;                ///< The widget kept in view; nullptr: none
-    QWidget* m_keptFirst = nullptr;           ///< Its part in view first, in a lower area
-    QMetaObject::Connection m_keptGone;       ///< Keeps no widget once the widget is deleted
-    QMetaObject::Connection m_keptFirstGone;  ///< The same for its part
+    QWidget* m_content;                          ///< The content, inside the area's widget
+    int m_minimumLines = DEFAULT_MINIMUM_LINES;  ///< Height of the area in a lowered window, in
+                                                 ///< lines
+    bool m_droppingBar = false;                  ///< Taking away the scroll bar just now
+    QWidget* m_kept = nullptr;                   ///< The widget kept in view; nullptr: none
+    QWidget* m_keptFirst = nullptr;              ///< Its part in view first, in a lower area
+    QMetaObject::Connection m_keptGone;          ///< Keeps no widget once the widget is deleted
+    QMetaObject::Connection m_keptFirstGone;     ///< The same for its part
 };
 
 } // namespace kalahari::gui

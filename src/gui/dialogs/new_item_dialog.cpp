@@ -64,7 +64,6 @@ const kalahari::core::SectionNameSet& sectionNameSet(const QString& id) {
 NewItemDialog::NewItemDialog(NewItemMode mode, QWidget* parent)
     : KalahariDialog(parent)
     , m_mode(mode)
-     
 {
     // The heading: the title of the window and what it makes
     if (m_mode == NewItemMode::Project) {

@@ -32,7 +32,6 @@ using namespace kalahari::core;
 
 IconDownloaderDialog::IconDownloaderDialog(QWidget* parent)
     : KalahariDialog(parent)
-     
 {
     setupUi();
 

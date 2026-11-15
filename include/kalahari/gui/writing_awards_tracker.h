@@ -89,7 +89,8 @@ public:
     [[nodiscard]] const QList<core::WritingChallenge>& challenges() const { return m_challenges; }
 
     /// @brief How far @p challenge is today
-    [[nodiscard]] core::ChallengeProgress challengeProgress(const core::WritingChallenge& challenge) const;
+    [[nodiscard]] core::ChallengeProgress challengeProgress(
+        const core::WritingChallenge& challenge) const;
 
     /// @brief Set a new challenge; it turns the challenges on (the setting stats.challenges)
     /// @return Its number; 0 when it cannot be kept

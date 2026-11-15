@@ -92,10 +92,10 @@ public:
 private slots:
     /// @brief The settings of the panel or of the checking changed (called by name, queued)
     void onSettingsChanged();
-private:
 
+private:
     // The text in front
-    editor::BookEditor* currentEditor() const;
+    [[nodiscard]] editor::BookEditor* currentEditor() const;
     void onCurrentTabChanged();
     void onCursorMoved(const editor::CursorPosition& position);
     void scheduleRefresh();
@@ -115,7 +115,7 @@ private:
     bool isDone(editor::TextIssueKind kind, int checked, int paragraphs);
 
     /// @brief The place of the editor's cursor in its whole text
-    int cursorPlace(const editor::BookEditor& editor) const;
+    [[nodiscard]] int cursorPlace(const editor::BookEditor& editor) const;
 
     // What the writer does in the panel
     void selectInEditor(const SpellingPanelIssue& issue);

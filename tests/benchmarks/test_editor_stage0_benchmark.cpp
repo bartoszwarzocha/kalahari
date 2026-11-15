@@ -627,7 +627,7 @@ TEST_CASE("Stage0 benchmark: editor operations on a 150k-word document",
     // the system clipboard would overwrite what the user has there
     rows.push_back({QStringLiteral("Select All"), timeMs([&] { editor.selectAll(); }), QString()});
     rows.push_back({QStringLiteral("Copy (cały dokument)"),
-                    timeMs([&] { editor.createMimeDataFromSelection(); }),
+                    timeMs([&] { static_cast<void>(editor.createMimeDataFromSelection()); }),
                     QStringLiteral("dane dla schowka (KML, HTML, tekst), bez zapisu do schowka")});
     rows.push_back({QStringLiteral("paintEvent z zaznaczonym całym dokumentem"),
                     timeMs([&] { paint(editor); }), QString()});
@@ -802,7 +802,7 @@ TEST_CASE("Tables benchmark: the Table menu on a 150k-word chapter with tables",
         REQUIRE(cells.has_value());
         CHECK(cells->rows() > 50);
         rows.push_back({QStringLiteral("Kopiowanie zaznaczonych komórek"),
-                        timeMs([&] { editor.createMimeDataFromSelection(); }),
+                        timeMs([&] { static_cast<void>(editor.createMimeDataFromSelection()); }),
                         QStringLiteral("%1 wierszy; dane dla schowka (KML, HTML, tekst)")
                             .arg(cells->rows())});
     }

@@ -54,7 +54,10 @@ public:
         setMinimumHeight(captionHeight() * 2 + PLOT_HEIGHT);
     }
 
-    [[nodiscard]] QSize sizeHint() const override { return {420, captionHeight() * 2 + PLOT_HEIGHT}; }
+    [[nodiscard]] QSize sizeHint() const override
+    {
+        return {420, captionHeight() * 2 + PLOT_HEIGHT};
+    }
 
 protected:
     void paintEvent(QPaintEvent* /*event*/) override

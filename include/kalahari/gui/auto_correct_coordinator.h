@@ -60,8 +60,8 @@ public:
 private slots:
     /// @brief Give the command the tooltip of the settings as they are now
     void updateToolTip();
-private:
 
+private:
     QStatusBar* m_statusBar;
     int m_settingsListener = 0;  ///< The subscription to the settings
     CommandRegistry& m_commands;  ///< The commands of its window

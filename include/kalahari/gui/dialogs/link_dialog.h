@@ -134,7 +134,8 @@ private:
 
     /// @brief The first paragraph of @p paragraphs (from 1) with the words of quote
     /// @p material; 0 when it is no quote or no paragraph has them
-    [[nodiscard]] int paragraphOfQuote(const QString& material, const QStringList& paragraphs) const;
+    [[nodiscard]] int paragraphOfQuote(const QString& material,
+                                       const QStringList& paragraphs) const;
 
     Mode m_mode;
     QString m_link;

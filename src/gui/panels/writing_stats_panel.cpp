@@ -330,7 +330,8 @@ class ViewDelegate : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
 
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& /*index*/) const override
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& /*index*/) const override
     {
         const int lines = 2 * option.fontMetrics.height();
         return {WritingStatsPanel::MINI_WIDTH * 2,
@@ -405,7 +406,10 @@ public:
         update();
     }
 
-    [[nodiscard]] QSize sizeHint() const override { return {200, captionHeight() * 2 + plotHeight()}; }
+    [[nodiscard]] QSize sizeHint() const override
+    {
+        return {200, captionHeight() * 2 + plotHeight()};
+    }
     [[nodiscard]] QSize minimumSizeHint() const override { return {120, sizeHint().height()}; }
 
 protected:
@@ -477,7 +481,10 @@ protected:
     }
 
 private:
-    [[nodiscard]] int captionHeight() const { return QFontMetrics(scaledFont(font(), 0.85)).height() + 2; }
+    [[nodiscard]] int captionHeight() const
+    {
+        return QFontMetrics(scaledFont(font(), 0.85)).height() + 2;
+    }
     [[nodiscard]] int plotHeight() const { return WritingStatsPanel::GRAPH_HEIGHT; }
 
     [[nodiscard]] QRectF plot() const
@@ -591,7 +598,10 @@ public:
         const auto rows = (m_cells.size() + columns - 1) / columns;
         return int(rows) * cellHeight() + int(rows - 1) * GAP;
     }
-    [[nodiscard]] QSize sizeHint() const override { return {NUMBER_WIDTH * 3, heightForWidth(NUMBER_WIDTH * 3)}; }
+    [[nodiscard]] QSize sizeHint() const override
+    {
+        return {NUMBER_WIDTH * 3, heightForWidth(NUMBER_WIDTH * 3)};
+    }
     [[nodiscard]] QSize minimumSizeHint() const override
     {
         int width = 0;
@@ -742,7 +752,10 @@ public:
     }
 
     [[nodiscard]] bool hasHeightForWidth() const override { return true; }
-    [[nodiscard]] int heightForWidth(int width) const override { return const_cast<StatsDetails*>(this)->place(width, false); }
+    [[nodiscard]] int heightForWidth(int width) const override
+    {
+        return const_cast<StatsDetails*>(this)->place(width, false);
+    }
     [[nodiscard]] QSize sizeHint() const override { return {200, heightForWidth(200)}; }
     [[nodiscard]] QSize minimumSizeHint() const override { return {80, heightForWidth(80)}; }
 
@@ -899,7 +912,10 @@ protected:
 private:
     static constexpr int PADDING = 12;
 
-    [[nodiscard]] int circle(int width) const { return std::max(40, std::min(CIRCLE, width - 2 * PADDING)); }
+    [[nodiscard]] int circle(int width) const
+    {
+        return std::max(40, std::min(CIRCLE, width - 2 * PADDING));
+    }
 
     /// @brief The first line a little larger and bold, the others smaller
     [[nodiscard]] QFont fontOf(int line) const

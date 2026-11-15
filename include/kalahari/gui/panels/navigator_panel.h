@@ -146,7 +146,7 @@ public:
     /// @brief The icon of @p element of the book open in @p book: of its kind, as the program
     /// has it or, for a kind the program does not have, as the book's card of its package shows
     /// it (core::ProjectManager::packageCard()); else of its form
-    static QIcon iconOf(const core::ProjectManager& pm, const core::ProjectElement& element,
+    static QIcon iconOf(const core::ProjectManager& book, const core::ProjectElement& element,
                         core::IconContext context);
 
     /// @brief Show the book as one open read-only (core::ProjectManager::isReadOnly()), or as
@@ -216,7 +216,7 @@ public:
     static bool isWorkshopItem(const QTreeWidgetItem* item);
 
     /// @brief Whether @p item is a material of the Workshop of the book open in @p book
-    static bool isMaterialItem(const core::ProjectManager& pm, const QTreeWidgetItem* item);
+    static bool isMaterialItem(const core::ProjectManager& book, const QTreeWidgetItem* item);
 
     /// @brief The format of the dragged nodes of the tree that a material can be linked with:
     /// their links, one in a line (linkOf())
@@ -682,7 +682,8 @@ private:
     /// @param text Item text; not compared for the items the tree has one of: the document,
     ///        its sections and "Other Files", whose names change
     /// @return Tree item or nullptr if not found
-    [[nodiscard]] QTreeWidgetItem* findItemByTypeAndText(const QString& elementType, const QString& text) const;
+    [[nodiscard]] QTreeWidgetItem* findItemByTypeAndText(const QString& elementType,
+                                                         const QString& text) const;
 
     /// @brief Recursive helper for findItemByTypeAndText (OpenSpec #00034 Phase F)
     QTreeWidgetItem* findItemByTypeAndTextRecursive(QTreeWidgetItem* parent,
@@ -698,8 +699,8 @@ private:
         OtherFiles    ///< Show items in "Other Files" section
     };
 
-    QTreeWidget* m_treeWidget{nullptr};
-    QTreeWidgetItem* m_otherFilesItem{nullptr};  ///< "Other Files" section (always at bottom)
+    QTreeWidget* m_treeWidget = nullptr;
+    QTreeWidgetItem* m_otherFilesItem = nullptr;  ///< "Other Files" section (always at bottom)
     QMap<QString, QTreeWidgetItem*> m_standaloneFiles;  ///< path -> tree item
     /// Key -> name of the new files that have no file yet (addNewFile())
     QHash<QString, QString> m_newFileNames;
@@ -711,24 +712,24 @@ private:
     QString m_projectFolder;                      ///< The files are relative to it
 
     // Search/filter components
-    QComboBox* m_typeFilter{nullptr};             ///< Type filter combo box
-    FilterType m_currentFilterType{FilterType::All};      ///< Current type filter
-    QLineEdit* m_searchEdit{nullptr};             ///< Filter input field
-    QToolButton* m_clearButton{nullptr};          ///< Clear filter button
-    QToolButton* m_addButton = nullptr;  ///< Add... on the current node
-    QToolButton* m_expandAllButton{nullptr};      ///< Expand all tree items button
-    QToolButton* m_collapseAllButton{nullptr};    ///< Collapse all tree items button
-    QTimer* m_filterDebounceTimer{nullptr};       ///< Debounce timer for filter (300ms)
+    QComboBox* m_typeFilter = nullptr;                 ///< Type filter combo box
+    FilterType m_currentFilterType = FilterType::All;  ///< Current type filter
+    QLineEdit* m_searchEdit = nullptr;                 ///< Filter input field
+    QToolButton* m_clearButton = nullptr;              ///< Clear filter button
+    QToolButton* m_addButton = nullptr;                ///< Add... on the current node
+    QToolButton* m_expandAllButton = nullptr;          ///< Expand all tree items button
+    QToolButton* m_collapseAllButton = nullptr;        ///< Collapse all tree items button
+    QTimer* m_filterDebounceTimer = nullptr;           ///< Debounce timer for filter (300ms)
 
     // Context menu
-    QTreeWidgetItem* m_contextMenuItem{nullptr};  ///< Item for current context menu (temporary)
+    QTreeWidgetItem* m_contextMenuItem = nullptr;  ///< Item for current context menu (temporary)
 
     // Editor synchronization (OpenSpec #00034 Phase C)
-    QTreeWidgetItem* m_highlightedItem{nullptr};  ///< Currently highlighted item (nullptr if none)
-    QColor m_highlightColor;             ///< Theme-aware highlight color (with alpha)
+    QTreeWidgetItem* m_highlightedItem = nullptr;  ///< Currently highlighted item (nullptr if none)
+    QColor m_highlightColor;                       ///< Theme-aware highlight color (with alpha)
 
     // Icon size tracking for dynamic updates
-    int m_currentIconSize{0};               ///< Current icon size (to detect changes)
+    int m_currentIconSize = 0;           ///< Current icon size (to detect changes)
 
     bool m_readOnly = false;             ///< The book is open read-only (setReadOnly())
 

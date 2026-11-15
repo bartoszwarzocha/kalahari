@@ -55,8 +55,8 @@ private slots:
 
     /// @brief Handle download progress
     void onDownloadProgress(int current, int total, const QString& url);
-private:
 
+private:
     /// @brief Setup UI widgets
     void setupUi();
 
@@ -79,27 +79,27 @@ private:
     void checkDownloadComplete();
 
     // UI Widgets
-    QLineEdit* m_iconNameEdit{nullptr};
-    QCheckBox* m_twotoneCheckBox{nullptr};
-    QCheckBox* m_roundedCheckBox{nullptr};
-    QCheckBox* m_outlinedCheckBox{nullptr};
-    QLineEdit* m_sourceUrlEdit{nullptr};
+    QLineEdit* m_iconNameEdit = nullptr;
+    QCheckBox* m_twotoneCheckBox = nullptr;
+    QCheckBox* m_roundedCheckBox = nullptr;
+    QCheckBox* m_outlinedCheckBox = nullptr;
+    QLineEdit* m_sourceUrlEdit = nullptr;
     QComboBox* m_themeCombo;
-    QProgressBar* m_progressBar{nullptr};
-    QLabel* m_statusLabel{nullptr};
-    QTextEdit* m_errorDisplay{nullptr};
-    QSvgWidget* m_previewWidget{nullptr};
+    QProgressBar* m_progressBar = nullptr;
+    QLabel* m_statusLabel = nullptr;
+    QTextEdit* m_errorDisplay = nullptr;
+    QSvgWidget* m_previewWidget = nullptr;
 
     // Core components
-    core::IconDownloader* m_downloader{nullptr};
-    core::SvgConverter* m_converter{nullptr};
+    core::IconDownloader* m_downloader = nullptr;
+    core::SvgConverter* m_converter = nullptr;
 
     // State
     QString m_currentIconName;
-    int m_totalDownloads{0};
-    int m_completedDownloads{0};
-    int m_failedDownloads{0};
-    bool m_isDownloading{false};
+    int m_totalDownloads = 0;
+    int m_completedDownloads = 0;
+    int m_failedDownloads = 0;
+    bool m_isDownloading = false;
 };
 
 } // namespace gui

@@ -218,8 +218,8 @@ private slots:
     /// @brief The words typed and not counted yet are counted now: a change that is not
     /// typed follows (a paste, or text moved to or from another text)
     void countPendingChange();
-private:
 
+private:
     /// @brief Called when editor content changes
     void onContentChanged();
 

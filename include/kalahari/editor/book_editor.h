@@ -131,7 +131,7 @@ public:
 
     /// @brief Get document content as KML markup
     /// @return KML string representing document state
-    QString toKml() const;
+    [[nodiscard]] QString toKml() const;
 
     /// @brief Load document content from KML markup
     /// @param kml The KML string to load
@@ -167,7 +167,7 @@ public:
     /// Only the content counts, not the edits made: a letter, a sentence or a paragraph
     /// typed and deleted again, an edit undone or formatting given and taken back leave the
     /// content as it was, so it is not modified.
-    bool isModified() const;
+    [[nodiscard]] bool isModified() const;
 
     /// @brief Mark the content now as the saved content (after saving it)
     void setUnmodified();
@@ -178,47 +178,47 @@ public:
 
     /// @brief Get the number of paragraphs in the document
     /// @return Paragraph count from QTextDocument
-    size_t paragraphCount() const;
+    [[nodiscard]] size_t paragraphCount() const;
 
     /// @brief Get the plain text of a specific paragraph
     /// @param index Paragraph index (0-based)
     /// @return Plain text of the paragraph, or empty if index out of range
-    QString paragraphPlainText(size_t index) const;
+    [[nodiscard]] QString paragraphPlainText(size_t index) const;
 
     /// @brief Get the full plain text of the document
     /// @return Concatenation of all paragraph texts with newlines; no-break spaces and the
     ///         line breaks in the paragraphs (QChar::LineSeparator) stay, as in
     ///         ChapterDocument::kmlToPlainText(); an object (a horizontal line, a break) is an
     ///         empty line
-    QString plainText() const;
+    [[nodiscard]] QString plainText() const;
 
     /// @brief Get total character count in the document
     /// @return Characters with spaces, without the paragraph and line breaks, cached per
     ///         paragraph like wordCount()
-    size_t characterCount() const;
+    [[nodiscard]] size_t characterCount() const;
 
     /// @brief Get total word count in the document
     /// @return Word count as defined by core::countText(). Counts are cached per
     ///         paragraph, so only paragraphs edited since the last call are counted.
-    size_t wordCount() const;
+    [[nodiscard]] size_t wordCount() const;
 
     /// @brief Get character count without spaces
     /// @return Non-space character count, cached per paragraph like wordCount()
-    size_t characterCountNoSpaces() const;
+    [[nodiscard]] size_t characterCountNoSpaces() const;
 
     /// @brief The word, character and paragraph counts of the whole text, in one pass over
     ///        the paragraphs' cached counts
     ///
     /// The paragraphs are those with text (core::countText()); paragraphCount() counts the
     /// empty ones too.
-    core::TextCounts textCounts() const;
+    [[nodiscard]] core::TextCounts textCounts() const;
 
     /// @brief The word, character and paragraph counts of the selected text (zeros without
     ///        one)
     ///
     /// A word cut by an edge of the selection counts as a word, and a paragraph as a
     /// paragraph when the selection has some of its text, as in Word and LibreOffice.
-    core::TextCounts selectionCounts() const;
+    [[nodiscard]] core::TextCounts selectionCounts() const;
 
     /// @brief Set what the counts take for a word (the settings' choice)
     ///
@@ -226,12 +226,12 @@ public:
     void setWordCountRules(const core::WordCountRules& rules);
 
     /// @brief What the counts take for a word
-    const core::WordCountRules& wordCountRules() const { return m_wordCountRules; }
+    [[nodiscard]] const core::WordCountRules& wordCountRules() const { return m_wordCountRules; }
 
     /// @brief Get the underlying QTextDocument (read-only for accessibility)
     /// @return Pointer to the QTextDocument, or nullptr if not initialized
     /// @note This is primarily for accessibility interfaces (screen readers)
-    QTextDocument* textDocument() const;
+    [[nodiscard]] QTextDocument* textDocument() const;
 
     // =========================================================================
     // Scrolling
@@ -239,11 +239,11 @@ public:
 
     /// @brief Get the vertical scrollbar
     /// @return Pointer to the vertical scrollbar
-    QScrollBar* verticalScrollBar() const;
+    [[nodiscard]] QScrollBar* verticalScrollBar() const;
 
     /// @brief Get the current scroll offset
     /// @return Current scroll position in pixels
-    qreal scrollOffset() const;
+    [[nodiscard]] qreal scrollOffset() const;
 
     /// @brief Set the scroll offset
     /// @param offset New scroll position in pixels
@@ -264,7 +264,7 @@ public:
     /// @brief Check if smooth scrolling is enabled
     /// @return true if smooth scrolling is enabled
     /// @note Smooth scrolling is disabled by default for stability
-    bool isSmoothScrollingEnabled() const;
+    [[nodiscard]] bool isSmoothScrollingEnabled() const;
 
     /// @brief Enable or disable smooth scrolling
     /// @param enabled true to enable smooth scrolling
@@ -272,7 +272,7 @@ public:
 
     /// @brief Get smooth scrolling animation duration
     /// @return Animation duration in milliseconds
-    int smoothScrollDuration() const;
+    [[nodiscard]] int smoothScrollDuration() const;
 
     /// @brief Set smooth scrolling animation duration
     /// @param duration Animation duration in milliseconds
@@ -284,7 +284,7 @@ public:
 
     /// @brief Get the current cursor position
     /// @return The cursor position in the document
-    CursorPosition cursorPosition() const;
+    [[nodiscard]] CursorPosition cursorPosition() const;
 
     /// @brief Set the cursor position
     /// @param position The new cursor position
@@ -297,7 +297,7 @@ public:
 
     /// @brief Check if the cursor is currently visible (blink state)
     /// @return true if cursor should be drawn
-    bool isCursorVisible() const;
+    [[nodiscard]] bool isCursorVisible() const;
 
     /// @brief Enable or disable cursor blinking
     /// @param enabled true to enable blinking
@@ -305,11 +305,11 @@ public:
 
     /// @brief Check if cursor blinking is enabled
     /// @return true if cursor blinking is enabled
-    bool isCursorBlinkingEnabled() const;
+    [[nodiscard]] bool isCursorBlinkingEnabled() const;
 
     /// @brief Get the cursor blink interval
     /// @return Blink interval in milliseconds
-    int cursorBlinkInterval() const;
+    [[nodiscard]] int cursorBlinkInterval() const;
 
     /// @brief Set the cursor blink interval
     /// @param interval Blink interval in milliseconds
@@ -331,7 +331,7 @@ public:
     /// @brief The height of the cursor line in the view, as a part of the view's height
     /// @return The top of the line: 0 at the top edge of the view, 1 at its bottom edge, less
     ///         or more for a line above or below the view
-    qreal cursorLineViewHeight() const;
+    [[nodiscard]] qreal cursorLineViewHeight() const;
 
     /// @brief Scroll the cursor line to @p height in the view (see cursorLineViewHeight())
     ///
@@ -426,7 +426,7 @@ public:
 
     /// @brief Get the current selection
     /// @return The selection range (may be empty)
-    SelectionRange selection() const;
+    [[nodiscard]] SelectionRange selection() const;
 
     /// @brief Set the selection range
     /// @param range The new selection range
@@ -437,11 +437,11 @@ public:
 
     /// @brief Check if there is an active selection
     /// @return true if selection is not empty
-    bool hasSelection() const;
+    [[nodiscard]] bool hasSelection() const;
 
     /// @brief Get the selected text
     /// @return The selected text, or empty string if no selection
-    QString selectedText() const;
+    [[nodiscard]] QString selectedText() const;
 
     /// @brief Select all text in the document (Ctrl+A)
     void selectAll();
@@ -529,7 +529,7 @@ public:
     void setAutoCorrect(const AutoCorrectOptions& options);
 
     /// @brief What autocorrect changes in the text as it is typed
-    const AutoCorrectOptions& autoCorrect() const { return m_autoCorrect; }
+    [[nodiscard]] const AutoCorrectOptions& autoCorrect() const { return m_autoCorrect; }
 
     /// @brief Where the editor asks for the language of its text when autocorrect puts in
     ///        quotation marks: an ISO 639 code, with or without a country ("pl", "pl_PL").
@@ -556,11 +556,11 @@ public:
 
     /// @brief Check if undo is available
     /// @return true if there are commands to undo
-    bool canUndo() const;
+    [[nodiscard]] bool canUndo() const;
 
     /// @brief Check if redo is available
     /// @return true if there are commands to redo
-    bool canRedo() const;
+    [[nodiscard]] bool canRedo() const;
 
     /// @brief Undo the last command
     void undo();
@@ -608,7 +608,7 @@ public:
 
     /// @brief Clipboard content of the selection: KML (native), HTML and plain text
     /// @return New MIME data, or nullptr without a selection
-    std::unique_ptr<QMimeData> createMimeDataFromSelection() const;
+    [[nodiscard]] std::unique_ptr<QMimeData> createMimeDataFromSelection() const;
 
     /// @brief Insert MIME data at the cursor, replacing the selection, as one undo step
     ///
@@ -624,7 +624,7 @@ public:
     void setPasteMode(PasteMode mode);
 
     /// @brief How text from other programs is pasted and dropped
-    PasteMode pasteMode() const { return m_pasteMode; }
+    [[nodiscard]] PasteMode pasteMode() const { return m_pasteMode; }
 
     /// @brief Insert dropped MIME data at a position and select it, as one undo step
     ///
@@ -639,7 +639,7 @@ public:
 
     /// @brief Check if paste is available
     /// @return true if clipboard has compatible content
-    bool canPaste() const;
+    [[nodiscard]] bool canPaste() const;
 
     // =========================================================================
     // Formatting (Phase 7.2)
@@ -664,18 +664,18 @@ public:
     void toggleStrikethrough();
 
     /// @brief Whether all of the selection is bold, or the text typed at the cursor would be
-    bool isBold() const;
+    [[nodiscard]] bool isBold() const;
 
     /// @brief Whether all of the selection is italic, or the text typed at the cursor would be
-    bool isItalic() const;
+    [[nodiscard]] bool isItalic() const;
 
     /// @brief Whether all of the selection is underlined, or the text typed at the cursor
     ///        would be
-    bool isUnderline() const;
+    [[nodiscard]] bool isUnderline() const;
 
     /// @brief Whether all of the selection is struck through, or the text typed at the cursor
     ///        would be
-    bool isStrikethrough() const;
+    [[nodiscard]] bool isStrikethrough() const;
 
     /// @brief Take off the formatting given by hand (Format > Clear Formatting), as one undo
     ///        step
@@ -704,11 +704,11 @@ public:
 
     /// @brief The font family of the text typed at the cursor
     /// @return Its own family, or the editor's
-    QString currentFontFamily() const;
+    [[nodiscard]] QString currentFontFamily() const;
 
     /// @brief The font size of the text typed at the cursor
     /// @return Its own size in points, or the editor's
-    int currentFontSize() const;
+    [[nodiscard]] int currentFontSize() const;
 
     // =========================================================================
     // More of the character formatting (character_format.h): on the selection, the word
@@ -727,15 +727,15 @@ public:
 
     /// @brief Whether all of the selection has the format, or the text typed at the cursor
     ///        would have it
-    bool isSuperscript() const;
-    bool isSubscript() const;
-    bool isSmallCaps() const;
-    bool isAllCaps() const;
+    [[nodiscard]] bool isSuperscript() const;
+    [[nodiscard]] bool isSubscript() const;
+    [[nodiscard]] bool isSmallCaps() const;
+    [[nodiscard]] bool isAllCaps() const;
 
     /// @brief The character formatting of the selection, else of the text typed at the
     ///        cursor (Format > Font): a part not the same in all of the selection has no
     ///        value; the font and size are the editor's where the text has none of its own
-    CharacterFormat shownCharacterFormat() const;
+    [[nodiscard]] CharacterFormat shownCharacterFormat() const;
 
     /// @brief Format > Font and the color submenus: give the parts of @p changes that have a
     ///        value to the selection, the word with the cursor or the text typed next
@@ -776,7 +776,7 @@ public:
 
     /// @brief Get the alignment the current paragraph is shown with
     /// @return Its own alignment, else the one of its style, else DEFAULT_PARAGRAPH_ALIGNMENT
-    Qt::Alignment currentAlignment() const;
+    [[nodiscard]] Qt::Alignment currentAlignment() const;
 
     // =========================================================================
     // Paragraph styles and the objects of the text (a horizontal line, the scene and page
@@ -791,14 +791,14 @@ public:
 
     /// @brief How many paragraphs of the text are in each style (Normal: NORMAL_STYLE_ID), as
     ///        paragraphStyleCounts() counts them in KML
-    QHash<QString, int> paragraphStyleCounts() const;
+    [[nodiscard]] QHash<QString, int> paragraphStyleCounts() const;
 
     /// @brief The formatting the paragraph at the cursor has of its own, over its style, as
     ///        the properties of a style (paragraph_styles.h): its own indents, spacing, line
     ///        spacing (a multiple), breaks and alignment, and the font, size, bold, italic and
     ///        underline all of its text has of its own; the size in the points of the styles
     /// @return Nothing at an object or without a text
-    QVariantMap ownStyleProperties() const;
+    [[nodiscard]] QVariantMap ownStyleProperties() const;
 
     /// @brief Give the paragraphs of the cursor or the selection the style @p styleId without
     ///        their own formatting of the properties @p taken, as one undo step: a new style
@@ -812,11 +812,11 @@ public:
     void setParagraphStyles(const ParagraphStyleSet& styles);
 
     /// @brief The styles of the book
-    const ParagraphStyleSet& paragraphStyles() const { return m_paragraphStyles; }
+    [[nodiscard]] const ParagraphStyleSet& paragraphStyles() const { return m_paragraphStyles; }
 
     /// @brief The style of the paragraph at the cursor: the id its format has (also of a
     ///        style the book does not have); empty at an object
-    QString currentParagraphStyle() const;
+    [[nodiscard]] QString currentParagraphStyle() const;
 
     /// @brief Put the paragraph at the cursor, or the selected ones, in a style, as one undo
     ///        step; the objects among them stay as they are
@@ -826,11 +826,11 @@ public:
     ///
     /// Without a selection the style of the paragraph at the cursor (currentParagraphStyle()).
     /// The objects among the paragraphs do not count; a selection of objects only has none.
-    QString selectedParagraphStyle() const;
+    [[nodiscard]] QString selectedParagraphStyle() const;
 
     /// @brief The object at the cursor (a horizontal line, a break); None in a paragraph of
     ///        text
-    TextObject currentObject() const;
+    [[nodiscard]] TextObject currentObject() const;
 
     /// @brief Insert an object at the cursor, replacing the selection, as one undo step
     ///
@@ -856,14 +856,14 @@ public:
 
     /// @brief The kind of the list item at the cursor; nothing outside a list and for an
     ///        item without a number or bullet
-    std::optional<ListKind> currentListKind() const;
+    [[nodiscard]] std::optional<ListKind> currentListKind() const;
 
     /// @brief The list item at the cursor (also one without a number); nothing outside a list
-    std::optional<ListItem> currentListItem() const;
+    [[nodiscard]] std::optional<ListItem> currentListItem() const;
 
     /// @brief The number of the list item at the cursor; -1 outside a list and for an item
     ///        without a number
-    int currentListNumber() const;
+    [[nodiscard]] int currentListNumber() const;
 
     /// @brief Format > Increase Indent: the list items go one level down (Tab), the other
     ///        paragraphs a step of the indent (1.25 cm) to the right
@@ -882,7 +882,7 @@ public:
     void continueNumbering();
 
     /// @brief Whether Continue Numbering changes the item at the cursor
-    bool canContinueNumbering() const;
+    [[nodiscard]] bool canContinueNumbering() const;
 
     /// @brief Set Numbering Value: the item at the cursor gets the number, the next ones go
     ///        on from it
@@ -895,7 +895,7 @@ public:
 
     /// @brief The formatting the paragraph at the cursor is shown with, in points: its own
     ///        over its style's (Format > Paragraph)
-    ParagraphFormat shownParagraphFormat() const;
+    [[nodiscard]] ParagraphFormat shownParagraphFormat() const;
 
     /// @brief Format > Paragraph: give the parts of @p changes that have a value to the
     ///        paragraph at the cursor, or the selected ones, and the alignment, if given
@@ -914,7 +914,7 @@ public:
     /// dialog edits it. Else the selection, which becomes a link; its text can be changed
     /// only within one paragraph and without objects. Without either, a new link goes in at
     /// the cursor.
-    LinkTarget linkTarget() const;
+    [[nodiscard]] LinkTarget linkTarget() const;
 
     /// @brief Make the text of a target a link to an address, as one undo step
     ///
@@ -933,7 +933,7 @@ public:
     bool removeLink(const LinkTarget& target);
 
     /// @brief The link of the character under a point of the widget
-    std::optional<TextLink> linkAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<TextLink> linkAt(const QPointF& widgetPos) const;
 
     // =========================================================================
     // Notes: footnotes and endnotes (text_footnotes.h, book_editor_notes.cpp)
@@ -949,21 +949,21 @@ public:
     QString insertNote(NoteKind kind);
 
     /// @brief The note with an id at its place (std::nullopt: none)
-    std::optional<NotePlace> noteOf(const QString& id) const;
+    [[nodiscard]] std::optional<NotePlace> noteOf(const QString& id) const;
 
     /// @brief The number a note shows ("3", "ii"); empty: no note with the id
-    QString noteNumber(const QString& id) const;
+    [[nodiscard]] QString noteNumber(const QString& id) const;
 
     /// @brief The note whose number is at the cursor: just before it, or selected alone
     ///        (std::nullopt: none)
-    std::optional<NotePlace> noteAtCursor() const;
+    [[nodiscard]] std::optional<NotePlace> noteAtCursor() const;
 
     /// @brief The note whose number or text is at a point of the widget (std::nullopt: none)
-    std::optional<NotePlace> noteAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<NotePlace> noteAt(const QPointF& widgetPos) const;
 
     /// @brief The place of a note's text under a point of the widget, as a range of no length
     ///        (std::nullopt: none there, or the text of another text's endnote)
-    std::optional<NoteRange> notePlaceAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<NoteRange> notePlaceAt(const QPointF& widgetPos) const;
 
     /// @brief Give a note the text written in its frame (KML of its paragraphs), as one undo
     ///        step
@@ -985,7 +985,7 @@ public:
     /// @brief Where a note's text is in the editor: under its paragraph (or table) or after
     ///        the last paragraph in the continuous views, at the bottom of its page or after
     ///        the last line in the page view (its first part); empty when it is not laid out
-    QRectF noteRect(const QString& id) const;
+    [[nodiscard]] QRectF noteRect(const QString& id) const;
 
     /// @brief The frame over a note in the continuous views makes room for itself: the note
     ///        takes @p height pixels of the editor under its paragraph; 0: its own height
@@ -1008,7 +1008,7 @@ public:
     bool selectNoteRange(const NoteRange& range);
 
     /// @brief The range of a note's text shown selected (selectNoteRange()); std::nullopt: none
-    const std::optional<NoteRange>& noteSelection() const { return m_noteSelection; }
+    [[nodiscard]] const std::optional<NoteRange>& noteSelection() const { return m_noteSelection; }
 
     /// @brief Put @p text in the place of a range of a note's text (a word chosen for a
     ///        misspelled one), in the formatting of its first character, as one undo step
@@ -1017,7 +1017,7 @@ public:
 
     /// @brief The font a note's text is written in, in its frame: the text's, as tall as the
     ///        editor shows it now
-    QFont noteFrameFont() const;
+    [[nodiscard]] QFont noteFrameFont() const;
 
     /// @brief The name of a note with its number, in its frame, its tooltip and its menu
     ///        ("Footnote 3", "Endnote ii")
@@ -1029,10 +1029,10 @@ public:
     void setFootnoteContext(const FootnoteContext& context);
 
     /// @brief What setFootnoteContext() gave (by default: 1, 2, 3 and i, ii, iii from 1)
-    const FootnoteContext& footnoteContext() const;
+    [[nodiscard]] const FootnoteContext& footnoteContext() const;
 
     /// @brief The notes of the text, in text order (notesChanged())
-    std::vector<Footnote> noteList() const;
+    [[nodiscard]] std::vector<Footnote> noteList() const;
 
     // =========================================================================
     // Images (text_images.h, image_store.h)
@@ -1048,7 +1048,7 @@ public:
     void setImagesFolder(const QString& folder);
 
     /// @brief The book's main folder of the images; empty: none
-    QString imagesFolder() const;
+    [[nodiscard]] QString imagesFolder() const;
 
     /// @brief The text is saved in another folder (Save As of a file): the files of its images
     ///        are copied into that folder's folder of images, which the images name from now
@@ -1056,11 +1056,11 @@ public:
     void moveImagesFolder(const QString& folder);
 
     /// @brief The files of the images: their sizes and pictures
-    const std::shared_ptr<ImageStore>& imageStore() const { return m_imageStore; }
+    [[nodiscard]] const std::shared_ptr<ImageStore>& imageStore() const { return m_imageStore; }
 
     /// @brief Whether an image can be inserted: the text can be changed and has a folder
     ///        for its images
-    bool canInsertImage() const;
+    [[nodiscard]] bool canInsertImage() const;
 
     /// @brief Insert > Image...: copy a file into the folder of images and insert its image
     ///        at the cursor, replacing the selection, as one undo step
@@ -1077,7 +1077,7 @@ public:
     ///        the file's when it has more dots per inch at its width in the text than
     ///        NewImageOptions::maxDpi; 0: the file as it is (no limit, a drawing, a file that
     ///        is not an image, a text not laid out yet)
-    int newImageCopyWidth(const QString& path) const;
+    [[nodiscard]] int newImageCopyWidth(const QString& path) const;
 
     /// @brief Insert a picture (pasted, a screenshot) saved as a PNG file in the folder of
     ///        images, as insertImageFile() inserts a file
@@ -1087,17 +1087,17 @@ public:
     bool insertImage(const ImageProperties& image);
 
     /// @brief The image the selection is (exactly one image): its position in the document
-    std::optional<int> selectedImage() const;
+    [[nodiscard]] std::optional<int> selectedImage() const;
 
     /// @brief The image under a point of the widget: its position in the document
-    std::optional<int> imagePositionAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<int> imagePositionAt(const QPointF& widgetPos) const;
 
     /// @brief Select the image at a position of the document (its character)
     void selectImage(int position);
 
     /// @brief The rectangle of the image at a position, in the widget (laid out, in view or
     ///        not); std::nullopt: no image there
-    std::optional<QRectF> imageRect(int position) const;
+    [[nodiscard]] std::optional<QRectF> imageRect(int position) const;
 
     /// @brief Give the image at a position other properties, as one undo step
     /// @return false when there is no image there, nothing changes, or in a read-only text
@@ -1144,11 +1144,11 @@ public:
 
     /// @brief Whether the image at a position can be cropped in the text (startImageCrop()):
     ///        the picture of its file is there and the text can be changed
-    bool canCropImage(int position) const;
+    [[nodiscard]] bool canCropImage(int position) const;
 
     /// @brief The crop of the sides, as the image is shown, that the marks set while the
     ///        image is being cropped in the text; std::nullopt: none is
-    std::optional<ImageCrop> imageCropInProgress() const;
+    [[nodiscard]] std::optional<ImageCrop> imageCropInProgress() const;
 
     /// @brief Stop cropping in the text
     /// @param crop true: the image gets the crop of the marks (Enter); false: it stays as
@@ -1168,15 +1168,15 @@ public:
 
     /// @brief The caption of the image at a position: the text of the paragraph after the
     ///        image's in the style Caption; std::nullopt without one
-    std::optional<QString> imageCaption(int position) const;
+    [[nodiscard]] std::optional<QString> imageCaption(int position) const;
 
     /// @brief The file of the image at a position, a path on the disk; empty: none
-    QString imageFilePath(int position) const;
+    [[nodiscard]] QString imageFilePath(int position) const;
 
     /// @brief What the window Image Properties shows of the image at a position: its
     ///        properties, its file and the widths it is measured against;
     ///        std::nullopt: no image there
-    std::optional<ImagePropertiesData> imagePropertiesData(int position) const;
+    [[nodiscard]] std::optional<ImagePropertiesData> imagePropertiesData(int position) const;
 
     /// @brief Give the image the properties of the window Image Properties, as one undo
     ///        step: with a new file, the file copied into the folder of images (and without
@@ -1200,7 +1200,7 @@ public:
 
     /// @brief Set how a new image goes into the text
     void setNewImageOptions(const NewImageOptions& options) { m_newImageOptions = options; }
-    const NewImageOptions& newImageOptions() const { return m_newImageOptions; }
+    [[nodiscard]] const NewImageOptions& newImageOptions() const { return m_newImageOptions; }
 
     // =========================================================================
     // Captions, cross-references and the list of figures
@@ -1210,21 +1210,21 @@ public:
     ///        it (CaptionContext); the fields and the lists of figures that show something else
     ///        then are drawn anew
     void setCaptionContext(const CaptionContext& context);
-    const CaptionContext& captionContext() const;
+    [[nodiscard]] const CaptionContext& captionContext() const;
 
     /// @brief The numbers of the text's fields in the book around it
-    const CaptionNumbers& captionNumbers() const;
+    [[nodiscard]] const CaptionNumbers& captionNumbers() const;
 
     /// @brief The numbered captions of the text, in text order (captionsChanged())
-    std::vector<CaptionEntry> captionEntries() const;
+    [[nodiscard]] std::vector<CaptionEntry> captionEntries() const;
 
     /// @brief The image a caption command acts on: the selected one, the one just before the
     ///        cursor, or the one whose caption the cursor is in; std::nullopt: none
-    std::optional<int> captionTargetImage() const;
+    [[nodiscard]] std::optional<int> captionTargetImage() const;
 
     /// @brief The caption of the image at a position (ImageCaption::shown false without one);
     ///        std::nullopt: no image there
-    std::optional<ImageCaption> imageCaptionOf(int position) const;
+    [[nodiscard]] std::optional<ImageCaption> imageCaptionOf(int position) const;
 
     /// @brief Insert Caption: give the image at a position this caption, as one undo step; a
     ///        numbered caption keeps the id of its number (its cross-references stay) and its
@@ -1236,7 +1236,7 @@ public:
 
     /// @brief The number a caption of a label has, or would get, at the image at a position
     ///        ("3", "2.3"): the hint of the windows
-    QString captionNumberAt(int position, const QString& label) const;
+    [[nodiscard]] QString captionNumberAt(int position, const QString& label) const;
 
     /// @brief Insert > Cross-Reference: a cross-reference at the cursor, in place of the
     ///        selection, as one undo step
@@ -1260,7 +1260,7 @@ public:
 
     /// @brief Where Ctrl+click goes at a point of the widget; std::nullopt: no cross-reference
     ///        that is a link there, nor a row of a list of figures
-    std::optional<CaptionLink> captionLinkAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<CaptionLink> captionLinkAt(const QPointF& widgetPos) const;
 
     /// @brief Asks before a numbered caption that cross-references may name goes (with its
     ///        image, or taken off it); gets the ids of its numbers, true lets it go
@@ -1272,14 +1272,14 @@ public:
     }
 
     /// @brief The cross-references of the text that name a caption of these ids
-    int crossReferenceCount(const QSet<QString>& ids) const;
+    [[nodiscard]] int crossReferenceCount(const QSet<QString>& ids) const;
 
     // =========================================================================
     // Annotations: comments, TODOs and notes
     // =========================================================================
 
     /// @brief The annotations of the chapter, in text order (by where they end)
-    std::vector<AnnotationPlace> annotations() const;
+    [[nodiscard]] std::vector<AnnotationPlace> annotations() const;
 
     /// @brief Anchor a new annotation to the selection, or to the cursor's place without one
     ///
@@ -1304,24 +1304,24 @@ public:
 
     /// @brief The selection, or the cursor's place without one, as a cursor of the document
     /// (a null cursor without a document)
-    QTextCursor selectionCursor() const;
+    [[nodiscard]] QTextCursor selectionCursor() const;
 
     /// @brief Where a place of the text is in the editor: a caret's rectangle, as tall as
     /// the place's line
     /// @param position The place (a position in the document)
     /// @param afterText true: the place ends the text before it (as a fragment's end): at
     ///        the end of a wrapped line it is there, not at the start of the next line
-    QRectF placeRect(int position, bool afterText) const;
+    [[nodiscard]] QRectF placeRect(int position, bool afterText) const;
 
     /// @brief The text column in the editor: from the text's left edge to its right edge,
     /// as tall as the editor
     /// @param y A widget y: the column of the page there (mirror margins shift the text of
     ///        every other page)
-    QRectF textColumnRect(double y) const;
+    [[nodiscard]] QRectF textColumnRect(double y) const;
 
     /// @brief The annotation whose mark is at a point of the editor
     /// @return Its id; empty when no mark is there
-    QString annotationMarkAt(const QPointF& point) const;
+    [[nodiscard]] QString annotationMarkAt(const QPointF& point) const;
 
     /// @brief Show marks beside paragraphs, in the left margin of the page: the paperclips
     /// of the materials linked with them
@@ -1335,11 +1335,11 @@ public:
 
     /// @brief The marks beside the paragraphs, with the paragraphs they are at now, in the
     /// order of the text
-    QList<ParagraphMark> paragraphMarks() const;
+    [[nodiscard]] QList<ParagraphMark> paragraphMarks() const;
 
     /// @brief The mark beside a paragraph at a point of the editor
     /// @return std::nullopt when no mark is there
-    std::optional<ParagraphMark> paragraphMarkAt(const QPointF& point) const;
+    [[nodiscard]] std::optional<ParagraphMark> paragraphMarkAt(const QPointF& point) const;
 
     /// @brief Give an annotation new data (kind, text, state...), one undo step
     /// @param annotation The annotation's new data; its id says which one it is
@@ -1361,7 +1361,7 @@ public:
     /// A plain text file keeps none: no annotation is added to it, and text pasted or
     /// dropped into it comes without them. A read-only text (isReadOnly()) keeps its
     /// annotations, but takes no new ones and does not change them.
-    bool annotationsAllowed() const;
+    [[nodiscard]] bool annotationsAllowed() const;
 
     /// @brief Let the text take annotations or not (see annotationsAllowed())
     ///
@@ -1378,13 +1378,13 @@ public:
     /// Distraction-Free when the settings show them there. The page view shows the marks
     /// only. Without cards a click on a mark opens the annotation's frame at its place; with
     /// them it collapses or expands the card, and the frame lies over the card.
-    bool showsAnnotationCards() const;
+    [[nodiscard]] bool showsAnnotationCards() const;
 
     /// @brief Whether an annotation of a kind has a card now (the kinds of the settings)
-    bool showsAnnotationCard(AnnotationKind kind) const;
+    [[nodiscard]] bool showsAnnotationCard(AnnotationKind kind) const;
 
     /// @brief Whether an annotation's card is collapsed: its mark alone, or a line
-    bool isAnnotationCollapsed(const QString& id) const;
+    [[nodiscard]] bool isAnnotationCollapsed(const QString& id) const;
 
     /// @brief Collapse or expand an annotation's card
     void setAnnotationCollapsed(const QString& id, bool collapsed);
@@ -1395,7 +1395,7 @@ public:
     /// @brief Where an annotation's card is in the editor
     /// @param id The annotation; empty: the room of a new one written in the frame
     /// @return Empty when it has no card shown (collapsed to its mark, or no cards)
-    QRectF annotationCardRect(const QString& id) const;
+    [[nodiscard]] QRectF annotationCardRect(const QString& id) const;
 
     /// @brief An annotation is written in the frame over its card: the card makes room for
     ///        the frame; a new one's room comes among the cards of the paragraph of its mark,
@@ -1422,12 +1422,12 @@ public:
     /// nothing or are greyed out, Find and Replace opens as Find, and dragged text is copied,
     /// not moved. A change the writer asks for says that it was refused (changeRefused()).
     /// Content loaded with fromKml() shows as it is.
-    bool isReadOnly() const { return m_readOnly; }
+    [[nodiscard]] bool isReadOnly() const { return m_readOnly; }
 
     /// @brief Whether what is inserted goes into a cell of a table: the cursor, or the start
     ///        of the selection, is in one. A cell holds only text: the objects of the Insert
     ///        menu and tables are not inserted there.
-    bool isInTable() const;
+    [[nodiscard]] bool isInTable() const;
 
     /// @brief The most columns and rows of a table Insert > Table makes
     static constexpr int MAX_INSERTED_TABLE_COLUMNS = 20;
@@ -1457,12 +1457,12 @@ public:
     ///
     /// Such a selection is shown as its cells; Delete and Backspace clear them, typing and
     /// pasting clear them and go into the first one, and copying copies them as a table.
-    std::optional<TableCellRange> selectedCellRange() const;
+    [[nodiscard]] std::optional<TableCellRange> selectedCellRange() const;
 
     /// @brief The cells the Table menu changes: the selected ones (selectedCellRange()), else
     ///        the cell of the cursor (of the start of the selection); std::nullopt outside a
     ///        table
-    std::optional<TableCellRange> tableCells() const;
+    [[nodiscard]] std::optional<TableCellRange> tableCells() const;
 
     /// @brief Table > Insert > Rows Above, Rows Below: as many rows as the cells are high,
     ///        of the cells of the first or the last of their rows; the cursor stays
@@ -1491,19 +1491,19 @@ public:
     void selectTablePart(TablePart part);
 
     /// @brief Whether Table > Merge Cells merges: more than one cell is selected
-    bool canMergeTableCells() const;
+    [[nodiscard]] bool canMergeTableCells() const;
 
     /// @brief Table > Merge Cells: the selected cells become one, with their paragraphs
     void mergeTableCells();
 
     /// @brief Whether Table > Split Cells... splits: in a table, a selection of cells to
     ///        merge first or the cursor's cell
-    bool canSplitTableCells() const;
+    [[nodiscard]] bool canSplitTableCells() const;
 
     /// @brief The paragraphs of the cell Table > Split Cells... splits, which can go into
     ///        the new cells: of the cursor's cell, or (@p mergeFirst) of the selected cells
     ///        merged, an empty cell adding none
-    int splitCellParagraphs(bool mergeFirst) const;
+    [[nodiscard]] int splitCellParagraphs(bool mergeFirst) const;
 
     /// @brief Table > Split Cells...: the cursor's cell into @p columns by @p rows cells
     ///        (1 to MAX_SPLIT_CELLS); with @p mergeFirst the selected cells merged first
@@ -1520,11 +1520,11 @@ public:
 
     /// @brief Whether Table > Repeat Header Rows is checked: the rows of the cells are header
     ///        rows, repeated at the top of each page the table goes on to
-    bool isTableHeader() const;
+    [[nodiscard]] bool isTableHeader() const;
 
     /// @brief Whether Table > Repeat Header Rows can change: the first row of the cells is a
     ///        header row or the first row after them (header rows are the first rows)
-    bool canChangeTableHeader() const;
+    [[nodiscard]] bool canChangeTableHeader() const;
 
     /// @brief Table > Repeat Header Rows: the rows of the cells, and those above them, become
     ///        header rows (@p header), or they and the rows below them stop being
@@ -1543,10 +1543,10 @@ public:
     ///        else the rows under its header; outside a table, the selected paragraphs, else
     ///        the items of the cursor's list
     /// @return std::nullopt when there is nothing to sort (see sortRefusal())
-    std::optional<SortSubject> sortSubject() const;
+    [[nodiscard]] std::optional<SortSubject> sortSubject() const;
 
     /// @brief Why Table > Sort... is greyed out; empty when it is not
-    QString sortRefusal() const;
+    [[nodiscard]] QString sortRefusal() const;
 
     /// @brief Table > Sort...: sort what sortSubject() names, by the options; the language
     ///        is the text's (setTextLanguage()) when the options have none
@@ -1562,11 +1562,11 @@ public:
     /// @brief The texts of the paragraphs Table > Convert > Text to Table... turns into a
     ///        table: the selected ones, else the cursor's; empty in a table, or with an
     ///        object among them
-    QStringList paragraphsForTable() const;
+    [[nodiscard]] QStringList paragraphsForTable() const;
 
     /// @brief Whether there are paragraphs for Text to Table... (paragraphsForTable()), without
     ///        taking their texts
-    bool canConvertTextToTable() const;
+    [[nodiscard]] bool canConvertTextToTable() const;
 
     /// @brief Table > Convert > Text to Table...: the paragraphs of paragraphsForTable()
     ///        become a table (textToTable()); the cursor goes to its first cell
@@ -1574,7 +1574,7 @@ public:
 
     /// @brief The texts of the cells of the cursor's table by row, a cell's paragraphs
     ///        separated by line breaks (QChar::LineSeparator), for Table to Text...
-    std::vector<QStringList> tableTexts() const;
+    [[nodiscard]] std::vector<QStringList> tableTexts() const;
 
     /// @brief Table > Convert > Table to Text...: the cursor's table becomes paragraphs
     ///        (tableToText()); the cursor goes to the first of them
@@ -1582,7 +1582,7 @@ public:
 
     /// @brief What Table > Table Properties... shows: the cursor's table, its rows, columns
     ///        and the cells (tableCells()); std::nullopt outside a table
-    std::optional<TablePropertiesData> tablePropertiesData() const;
+    [[nodiscard]] std::optional<TablePropertiesData> tablePropertiesData() const;
 
     /// @brief Table > Table Properties...: give the table, its rows and columns the
     ///        properties, and the cells their own when they changed (cellChanged)
@@ -1690,7 +1690,7 @@ public:
 
     /// @brief Get the current view mode
     /// @return Current view mode
-    ViewMode viewMode() const;
+    [[nodiscard]] ViewMode viewMode() const;
 
     /// @brief Set the view mode
     /// @param mode The new view mode
@@ -1701,7 +1701,7 @@ public:
     void setViewMode(ViewMode mode);
 
     /// @brief Whether typewriter scrolling is on (in any view mode)
-    bool isTypewriterEnabled() const;
+    [[nodiscard]] bool isTypewriterEnabled() const;
 
     /// @brief Turn typewriter scrolling on or off
     ///
@@ -1714,7 +1714,7 @@ public:
     void setTypewriterEnabled(bool enabled);
 
     /// @brief Whether Focus is on (in any view mode)
-    bool isFocusModeEnabled() const;
+    [[nodiscard]] bool isFocusModeEnabled() const;
 
     /// @brief Turn Focus on or off
     ///
@@ -1725,7 +1725,7 @@ public:
     void setFocusModeEnabled(bool enabled);
 
     /// @brief Whether Distraction-Free writing is on (in any view mode)
-    bool isDistractionFree() const;
+    [[nodiscard]] bool isDistractionFree() const;
 
     /// @brief Turn Distraction-Free writing on or off
     ///
@@ -1746,7 +1746,7 @@ public:
 
     /// @brief Get current zoom factor
     /// @return Zoom factor (1.0 = 100%)
-    double zoomFactor() const;
+    [[nodiscard]] double zoomFactor() const;
 
     /// @brief Set zoom factor
     /// @param factor Zoom factor (1.0 = 100%, range 0.25-4.0)
@@ -1758,7 +1758,7 @@ public:
     void setPaperScale(double scale);
 
     /// @brief Widget pixels per layout pixel at zoom 100% (setPaperScale())
-    double paperScale() const;
+    [[nodiscard]] double paperScale() const;
 
     /// @brief The paper scale of a screen: its physical DPI over its logical DPI (the one
     ///        the text is laid out with), or 1 where its reported size gives no likely ratio
@@ -1793,7 +1793,7 @@ public:
     void setKeepsPageWidth(bool keeps);
 
     /// @brief Whether the page keeps the width of the view (setKeepsPageWidth())
-    bool keepsPageWidth() const;
+    [[nodiscard]] bool keepsPageWidth() const;
 
     /// @brief Zoom in by one step (+10%)
     void zoomIn();
@@ -1810,11 +1810,11 @@ public:
 
     /// @brief Get the current page number (1-based)
     /// @return Current page number, or 0 if no document
-    int currentPage() const;
+    [[nodiscard]] int currentPage() const;
 
     /// @brief Get the total number of pages
     /// @return Total page count, or 0 if no document
-    int totalPages() const;
+    [[nodiscard]] int totalPages() const;
 
     /// @brief Navigate to a specific page
     /// @param page The page number (1-based)
@@ -1832,7 +1832,7 @@ public:
 
     /// @brief Get the current appearance settings
     /// @return Current editor appearance configuration
-    const EditorAppearance& appearance() const;
+    [[nodiscard]] const EditorAppearance& appearance() const;
 
     // =========================================================================
     // Spelling
@@ -1849,7 +1849,7 @@ public:
     void setSpellCheckService(SpellCheckService* service);
 
     /// @brief The dictionary the spelling is checked with, or nullptr
-    SpellCheckService* spellCheckService() const;
+    [[nodiscard]] SpellCheckService* spellCheckService() const;
 
     /// @brief Check the spelling of every paragraph again
     ///
@@ -1857,7 +1857,7 @@ public:
     void requestSpellCheck();
 
     /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
-    bool isSpellCheckPending() const;
+    [[nodiscard]] bool isSpellCheckPending() const;
 
     /// @brief What goToNextIssue() did
     enum class IssueSearch {
@@ -1882,7 +1882,7 @@ public:
     IssueSearch goToNextIssue();
 
     /// @brief Whether a search of goToNextIssue() waits for the grammar of a paragraph
-    bool isSearchingIssue() const { return m_issueSearch.active; }
+    [[nodiscard]] bool isSearchingIssue() const { return m_issueSearch.active; }
 
     // =========================================================================
     // Grammar
@@ -1899,7 +1899,7 @@ public:
     void setGrammarCheckService(GrammarCheckService* service);
 
     /// @brief The checking of the grammar, or nullptr
-    GrammarCheckService* grammarCheckService() const;
+    [[nodiscard]] GrammarCheckService* grammarCheckService() const;
 
     /// @brief Check the grammar of the paragraphs again
     ///
@@ -1907,7 +1907,7 @@ public:
     void requestGrammarCheck();
 
     /// @brief Whether the grammar check has paragraphs to send or answers to wait for
-    bool isGrammarCheckPending() const;
+    [[nodiscard]] bool isGrammarCheckPending() const;
 
     /// @brief Check the grammar of the whole text, not only of the paragraphs in view and
     ///        around them
@@ -1919,7 +1919,7 @@ public:
     void setWholeTextGrammar(bool whole);
 
     /// @brief Whether the grammar of the whole text is checked (setWholeTextGrammar())
-    bool isWholeTextGrammar() const { return m_wholeTextGrammar; }
+    [[nodiscard]] bool isWholeTextGrammar() const { return m_wholeTextGrammar; }
 
     // =========================================================================
     // Issues: the misspelled words and the grammar issues together
@@ -1930,7 +1930,7 @@ public:
     ///
     /// Where a misspelled word and a grammar issue start at one place, the word comes first,
     /// as goToNextIssue() goes. issuesChanged() tells when the list changes.
-    std::vector<TextIssue> textIssues() const;
+    [[nodiscard]] std::vector<TextIssue> textIssues() const;
 
     /// @brief How much of the text is checked: its paragraphs with text, and how many of
     ///        them have their spelling checked and their grammar known
@@ -1941,7 +1941,7 @@ public:
     };
 
     /// @brief How much of the text is checked (see CheckProgress)
-    CheckProgress checkProgress() const;
+    [[nodiscard]] CheckProgress checkProgress() const;
 
     /// @brief Select an issue in the text, with the cursor at its end, and scroll to it
     /// @return false when the text there is not the issue's any more
@@ -1985,7 +1985,7 @@ public:
 
     /// @brief Get the search engine for find/replace operations
     /// @return Pointer to the SearchEngine
-    SearchEngine* searchEngine() const;
+    [[nodiscard]] SearchEngine* searchEngine() const;
 
     /// @brief Show the find bar (find-only mode)
     ///
@@ -2047,7 +2047,7 @@ public:
 
     /// @brief Get current editor color mode
     /// @return Current color mode
-    EditorColorMode editorColorMode() const { return m_appearance.colorMode; }
+    [[nodiscard]] EditorColorMode editorColorMode() const { return m_appearance.colorMode; }
 
     // =========================================================================
     // Size Hints
@@ -2058,13 +2058,13 @@ public:
     ///
     /// Returns a reasonable minimum size that allows basic text display
     /// (approximately 200x100 pixels).
-    QSize minimumSizeHint() const override;
+    [[nodiscard]] QSize minimumSizeHint() const override;
 
     /// @brief Get preferred size hint
     /// @return Preferred size for the widget
     ///
     /// Returns a comfortable editing size (approximately 600x400 pixels).
-    QSize sizeHint() const override;
+    [[nodiscard]] QSize sizeHint() const override;
 
 signals:
     /// @brief The writer tried to change a read-only text (isReadOnly()): typed or deleted in
@@ -2399,7 +2399,7 @@ public:
     /// @return Value for the queried property
     ///
     /// Provides information to IME about cursor position, selection, etc.
-    QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
+    [[nodiscard]] QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
 private slots:
     /// @brief Handle scrollbar value change
@@ -2412,8 +2412,8 @@ private slots:
 
     /// @brief Handle cursor blink timer timeout
     void onCursorBlinkTimeout();
-private:
 
+private:
     /// @brief Setup internal components
     void setupComponents();
 
@@ -2443,7 +2443,7 @@ private:
 
     /// @brief The paragraphs of text (not the objects) of the selection, or the one at the
     ///        cursor
-    std::vector<QTextBlock> selectedTextBlocks() const;
+    [[nodiscard]] std::vector<QTextBlock> selectedTextBlocks() const;
 
     /// @brief Give blocks new formats as one undo step that brings back the cursor and
     ///        selection it was made with; nothing to change, no step
@@ -2455,7 +2455,7 @@ private:
 
     /// @brief Whether Tab and Shift+Tab change the levels of list items here: at the start of
     ///        an item, or with a selection of paragraphs that are all list items
-    bool tabChangesListLevel() const;
+    [[nodiscard]] bool tabChangesListLevel() const;
 
     /// @brief Enter in an empty list item: the item goes one level up, or out of its list
     /// @return false where Enter starts a new paragraph
@@ -2493,17 +2493,17 @@ private:
 
     /// @brief Where the cards of a paragraph start, in its coordinates: under its text and
     ///        its spacing (-1: it has no cards)
-    qreal annotationCardsTop(const QTextBlock& block) const;
+    [[nodiscard]] qreal annotationCardsTop(const QTextBlock& block) const;
 
     /// @brief The room of the frame over a card follows its height in pixels at the zoom now
     void fitAnnotationCardWriting();
 
     /// @brief The paragraph whose cards an annotation's card is among (empty id: a new one
     ///        written in the frame; invalid: none)
-    QTextBlock annotationCardBlock(const QString& id) const;
+    [[nodiscard]] QTextBlock annotationCardBlock(const QString& id) const;
 
     /// @brief The card at a point of the editor, and its part
-    std::optional<AnnotationCardHit> annotationCardAt(const QPointF& point) const;
+    [[nodiscard]] std::optional<AnnotationCardHit> annotationCardAt(const QPointF& point) const;
 
     /// @brief The mouse moved: the card under it shows its menu button, and its fragment is
     ///        highlighted (as the settings say)
@@ -2515,14 +2515,14 @@ private:
     bool pressAnnotationCard(const QPointF& point);
 
     /// @brief The tooltip of the part of a card at a point (empty: none)
-    QString annotationCardToolTip(const QPointF& point) const;
+    [[nodiscard]] QString annotationCardToolTip(const QPointF& point) const;
 
     /// @brief Scroll a card into view (as much of it as the view shows; its top first)
     void scrollToAnnotationCard(const QString& id);
 
     /// @brief The annotation not done whose fragment or place is at a place of the text: the
     ///        shortest one around it (empty: none)
-    QString annotationAt(const CursorPosition& position) const;
+    [[nodiscard]] QString annotationAt(const CursorPosition& position) const;
 
     /// @brief The items of an annotation, in the text's menu or a card's
     /// @param forCard The menu of its card: also Card Appearance and Colors...
@@ -2566,7 +2566,7 @@ private:
 
     /// @brief The zoom at which the page with the gap on both sides fills the width left
     ///        of the scroll bar; 0 while the page has no size
-    double pageWidthZoom() const;
+    [[nodiscard]] double pageWidthZoom() const;
 
     /// @brief Apply setKeepsPageWidth(), and shrinkToPageWidthOnFirstShow() while it waits
     ///        for the first paint
@@ -2613,7 +2613,7 @@ private:
 
     /// @brief Scroll room above and below the text, in document units
     /// @return {topPadding, bottomPadding}, as computed by the render pipeline
-    std::pair<double, double> getScrollPadding() const;
+    [[nodiscard]] std::pair<double, double> getScrollPadding() const;
 
     /// @brief Start smooth scroll animation to target offset
     /// @param targetOffset Target scroll offset
@@ -2637,7 +2637,7 @@ private:
     /// going to a place). A change of the view or of a setting moves a cursor line that is in
     /// the view at most (typewriter scrolling, a view mode): a cursor scrolled out of the view
     /// stays out of it.
-    bool isCursorLineInView() const;
+    [[nodiscard]] bool isCursorLineInView() const;
 
     /// @brief Scroll so that the line of @p position has its top at @p top of the view
     ///        (widget coordinates)
@@ -2653,7 +2653,7 @@ private:
     /// range does. Below a text shorter than a page, and on a last page the text does not
     /// fill, the range goes on over blank paper: the position stops short of it, at the start
     /// of the document when the text with its margins fits in the view.
-    qreal textEndScrollPosition() const;
+    [[nodiscard]] qreal textEndScrollPosition() const;
 
     /// @brief Scroll the line with the cursor to the typewriter focus height
     /// @param animate Animate a short scroll (when smooth typewriter scrolling is on); a
@@ -2662,12 +2662,12 @@ private:
 
     /// @brief Get the Y coordinate of the cursor in document coordinates
     /// @return The Y position of the cursor line in the document
-    qreal getCursorDocumentY() const;
+    [[nodiscard]] qreal getCursorDocumentY() const;
 
     /// @brief Validate and clamp cursor position to valid range
     /// @param position The position to validate
     /// @return Validated position within document bounds
-    CursorPosition validateCursorPosition(const CursorPosition& position) const;
+    [[nodiscard]] CursorPosition validateCursorPosition(const CursorPosition& position) const;
 
     /// @brief Repaint the area of the text cursor (the whole widget in Page Mode)
     void updateCursorArea();
@@ -2681,12 +2681,12 @@ private:
     ///
     /// Uses QTextDocument and ViewportManager for efficient position calculation.
     /// Page Mode delegates to EditorRenderPipeline::positionFromPoint() (Phase 13.5)
-    CursorPosition positionFromPoint(const QPointF& widgetPos) const;
+    [[nodiscard]] CursorPosition positionFromPoint(const QPointF& widgetPos) const;
 
     // Drag and drop of text (stage 3)
 
     /// @brief Whether a widget point is over the selected text (a press there may drag it)
-    bool isOverSelectedText(const QPointF& widgetPos) const;
+    [[nodiscard]] bool isOverSelectedText(const QPointF& widgetPos) const;
 
     /// @brief The pointer's shape at a widget point, the mouse buttons up: a hand over an
     ///        annotation's mark and, with Ctrl, over a link; an arrow over the selected text
@@ -2701,11 +2701,11 @@ private:
 
     /// @brief The table of the edge being dragged, found again by where it starts: nullptr
     ///        without a drag, or once the text has no table starting there
-    QTextTable* columnDragTable() const;
+    [[nodiscard]] QTextTable* columnDragTable() const;
 
     /// @brief The edge between two columns at a widget point, within a few pixels of it, in a
     ///        text that can change (dragging it sets the widths of the two columns)
-    std::optional<ColumnEdge> columnEdgeAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<ColumnEdge> columnEdgeAt(const QPointF& widgetPos) const;
 
     /// @brief The edge being dragged follows the mouse, between the edges next to it
     void dragColumnEdge(const QPointF& widgetPos);
@@ -2728,7 +2728,7 @@ private:
     };
 
     /// @brief The handle of the selected image at a widget point, in a text that can change
-    std::optional<ImageCorner> imageHandleAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<ImageCorner> imageHandleAt(const QPointF& widgetPos) const;
 
     /// @brief The handle of a corner of an image's rectangle, in the widget
     static QRectF imageHandleRect(const QRectF& image, ImageCorner corner);
@@ -2746,11 +2746,11 @@ private:
     void finishImageResize();
 
     /// @brief What the label beside a resized image says: its new width in its unit
-    QString imageWidthLabel(int position, qreal widgetWidth) const;
+    [[nodiscard]] QString imageWidthLabel(int position, qreal widgetWidth) const;
 
     /// @brief The size of a label beside an image: the width of an image being resized,
     ///        what the keys of cropping do
-    QSizeF imageLabelSize(const QString& label) const;
+    [[nodiscard]] QSizeF imageLabelSize(const QString& label) const;
 
     /// @brief Draw a label beside an image at a widget point (its top left corner), moved
     ///        inside the view where it would leave it
@@ -2768,18 +2768,18 @@ private:
 
     /// @brief The image being cropped as it still is in the text: std::nullopt (and the
     ///        cropping dropped) when it has changed or gone
-    const ImageCropping* imageCropping() const;
+    [[nodiscard]] const ImageCropping* imageCropping() const;
 
     /// @brief The whole picture of the image being cropped (its crop taken off) and the part
     ///        of it the marks keep, in the widget
-    std::optional<std::pair<QRectF, QRectF>> imageCropRects() const;
+    [[nodiscard]] std::optional<std::pair<QRectF, QRectF>> imageCropRects() const;
 
     /// @brief The sides whose mark is at a widget point (a corner's: two of them); 0: none
-    int imageCropSidesAt(const QPointF& widgetPos) const;
+    [[nodiscard]] int imageCropSidesAt(const QPointF& widgetPos) const;
 
     /// @brief The pointer over the image being cropped: arrows over a mark, the arrow over
     ///        the picture; std::nullopt elsewhere or with no image being cropped
-    std::optional<Qt::CursorShape> imageCropPointerAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<Qt::CursorShape> imageCropPointerAt(const QPointF& widgetPos) const;
 
     /// @brief A press of the left button while an image is being cropped: on a mark it
     ///        starts dragging it, elsewhere on the image it does nothing, outside the image
@@ -2816,18 +2816,19 @@ private:
 
     /// @brief The note whose text is at a point of the widget: its id; empty: none (or an
     ///        endnote of another text: bookEndnoteAt())
-    QString noteTextAt(const QPointF& widgetPos) const;
+    [[nodiscard]] QString noteTextAt(const QPointF& widgetPos) const;
 
     /// @brief The endnote of another text whose text is at a point of the widget: its text and
     ///        its id there (std::nullopt: none)
-    std::optional<std::pair<QString, QString>> bookEndnoteAt(const QPointF& widgetPos) const;
+    [[nodiscard]] std::optional<std::pair<QString, QString>> bookEndnoteAt(
+        const QPointF& widgetPos) const;
 
     /// @brief Compare the notes with the ones announced, once the edits of a step are done
     ///        (notesChanged())
     void checkNotesSoon();
 
     /// @brief Whether a position lies in the selection, its ends included
-    bool isInSelection(const CursorPosition& position) const;
+    [[nodiscard]] bool isInSelection(const CursorPosition& position) const;
 
     /// @brief Whether insertFromMimeData() can insert the content: Kalahari's text, text, and
     ///        with a folder of images a picture or files of pictures
@@ -2862,7 +2863,7 @@ private:
     void stopAutoScroll();
 
     /// @brief Pixels to scroll at the last mouse position (negative: up; 0: none)
-    double autoScrollStep() const;
+    [[nodiscard]] double autoScrollStep() const;
 
     /// @brief Scroll one step and follow the mouse with the selection or the drop caret
     void onAutoScrollTimeout();
@@ -2872,7 +2873,7 @@ private:
 
     /// @brief Whether the spelling and grammar of a block are checked: a paragraph of text in a
     ///        style with checking (not Code, not an object)
-    bool isCheckedParagraph(const QTextBlock& block) const;
+    [[nodiscard]] bool isCheckedParagraph(const QTextBlock& block) const;
 
     /// @brief Check the spelling and grammar of paragraphs again, as their style changed
     void checkParagraphsAgain(const std::vector<QTextBlock>& blocks);
@@ -2897,8 +2898,8 @@ private:
     ///        where a table is next to it: the cell above or below in the column under
     ///        @p x (layout coordinates), or the paragraph before or after the table
     /// @return std::nullopt where it goes to the paragraph before or after @p block
-    std::optional<int> verticalNeighbourInTable(const QTextBlock& block, bool up,
-                                                qreal x) const;
+    [[nodiscard]] std::optional<int> verticalNeighbourInTable(const QTextBlock& block, bool up,
+                                                              qreal x) const;
 
     /// @brief Backspace or Delete at a break at a table: cells do not join, nor a cell and
     ///        the paragraph next to the table; an empty paragraph next to a table goes
@@ -2920,7 +2921,7 @@ private:
     void checkCaptionsSoon();
 
     /// @brief The format of the character at a position
-    QTextCharFormat captionNumberCharFormat(int position) const;
+    [[nodiscard]] QTextCharFormat captionNumberCharFormat(int position) const;
 
     /// @brief Whether a caption's numbers may go: none, or the confirmation lets them
     bool confirmCaptionRemoval(const QTextBlock& caption);
@@ -2971,16 +2972,16 @@ private:
 
     /// @brief The blocks of the paragraphs the selection covers (a selection ending at the
     ///        start of a paragraph does not cover it), or the cursor's: the first and the last
-    std::pair<int, int> selectedBlockRange() const;
+    [[nodiscard]] std::pair<int, int> selectedBlockRange() const;
 
     /// @brief The paragraphs outside tables Table > Sort... sorts: the selected ones (more
     ///        than one), else the items of the cursor's list; std::nullopt for none, or with
     ///        an object or a table among them
-    std::optional<std::pair<int, int>> sortedParagraphs() const;
+    [[nodiscard]] std::optional<std::pair<int, int>> sortedParagraphs() const;
 
     /// @brief The rows of a table Table > Sort... sorts, all its columns (see sortSubject());
     ///        std::nullopt for fewer than two, or rows with cells spanning rows
-    std::optional<TableCellRange> sortedRows() const;
+    [[nodiscard]] std::optional<TableCellRange> sortedRows() const;
 
     /// @brief Select word at cursor position (Phase 3.11)
     void selectWordAtCursor();
@@ -2992,7 +2993,7 @@ private:
     /// @param paraIndex Paragraph index
     /// @param offset Character offset within paragraph
     /// @return Pair of (start, end) offsets for the word
-    std::pair<int, int> findWordBoundaries(int paraIndex, int offset) const;
+    [[nodiscard]] std::pair<int, int> findWordBoundaries(int paraIndex, int offset) const;
 
     /// @brief Extend selection with shift key (Phase 3.12)
     /// @param newCursor The new cursor position
@@ -3005,14 +3006,15 @@ private:
     /// @brief Where a move of the keys of the text by words, lines on the screen or
     ///        paragraphs takes the cursor from a position (the position itself for any
     ///        other action)
-    CursorPosition textKeyTarget(TextKeyAction action, const CursorPosition& from) const;
+    [[nodiscard]] CursorPosition textKeyTarget(TextKeyAction action,
+                                               const CursorPosition& from) const;
 
     /// @brief The start of the line on the screen a position is on
-    CursorPosition lineStartOf(const CursorPosition& position) const;
+    [[nodiscard]] CursorPosition lineStartOf(const CursorPosition& position) const;
 
     /// @brief The end of the line on the screen a position is on (before the space a
     ///        wrapped line breaks at)
-    CursorPosition lineEndOf(const CursorPosition& position) const;
+    [[nodiscard]] CursorPosition lineEndOf(const CursorPosition& position) const;
 
     /// @brief The height of the view below the find/replace bar over its top, in document
     ///        units (the whole view while the bar is closed)
@@ -3089,10 +3091,10 @@ private:
 
     /// @brief Whether all of the selection has an inline format, or the text typed at the
     ///        cursor would have it
-    bool hasFormat(InlineFormat formatType) const;
+    [[nodiscard]] bool hasFormat(InlineFormat formatType) const;
 
     /// @brief Whether every character of a range has an inline format
-    bool rangeHasFormat(const SelectionRange& range, InlineFormat formatType) const;
+    [[nodiscard]] bool rangeHasFormat(const SelectionRange& range, InlineFormat formatType) const;
 
     /// @brief Whether a character format has an inline format
     static bool formatHas(const QTextCharFormat& format, InlineFormat formatType);
@@ -3100,7 +3102,7 @@ private:
     /// @brief The text a character format given now goes on: the selection, or the word the
     ///        cursor is inside of (not at its start or end)
     /// @return None elsewhere: the format goes on the text typed next
-    std::optional<SelectionRange> formatRange() const;
+    [[nodiscard]] std::optional<SelectionRange> formatRange() const;
 
     /// @brief Merge a character format into a range, as one undo step
     ///
@@ -3109,28 +3111,28 @@ private:
 
     /// @brief The format given without a selection for the text typed next, while the
     ///        cursor is at its place with no selection (else an empty format)
-    QTextCharFormat pendingFormat() const;
+    [[nodiscard]] QTextCharFormat pendingFormat() const;
 
     /// @brief Make a format the one of the text typed next at the cursor's place
     void setPendingFormat(const QTextCharFormat& format);
 
     /// @brief The format the cursor's place gives typed text (insertionFormat())
-    QTextCharFormat placeFormat() const;
+    [[nodiscard]] QTextCharFormat placeFormat() const;
 
     /// @brief The format of the text typed at the cursor: the place's with the pending one
-    QTextCharFormat typingFormat() const;
+    [[nodiscard]] QTextCharFormat typingFormat() const;
 
     /// @brief The font family text with a format shows: its own, or the editor's
-    QString fontFamilyOf(const QTextCharFormat& format) const;
+    [[nodiscard]] QString fontFamilyOf(const QTextCharFormat& format) const;
 
     /// @brief The font size text with a format shows: its own, or the editor's
-    int fontSizeOf(const QTextCharFormat& format) const;
+    [[nodiscard]] int fontSizeOf(const QTextCharFormat& format) const;
 
     /// @brief The font size text with a format shows, in points with their fraction
-    qreal fontPointSizeOf(const QTextCharFormat& format) const;
+    [[nodiscard]] qreal fontPointSizeOf(const QTextCharFormat& format) const;
 
     /// @brief The character formatting text with a format shows (shownCharacterFormat())
-    CharacterFormat characterFormatOf(const QTextCharFormat& format) const;
+    [[nodiscard]] CharacterFormat characterFormatOf(const QTextCharFormat& format) const;
 
     /// @brief A piece of text with the format it gets; of an empty paragraph, the format
     ///        typed text gets there (its block's character format)
@@ -3157,22 +3159,26 @@ private:
 
     /// @brief The pending format with which the text typed at the cursor has @p wanted: the
     ///        parts in which it differs from the place's
-    QTextCharFormat pendingFor(const QTextCharFormat& wanted) const;
+    [[nodiscard]] QTextCharFormat pendingFor(const QTextCharFormat& wanted) const;
 
-    QScrollBar* m_verticalScrollBar{nullptr};                        ///< Vertical scrollbar
+    QScrollBar* m_verticalScrollBar = nullptr;              ///< Vertical scrollbar
     QScrollBar* m_horizontalScrollBar = nullptr;            ///< Horizontal scrollbar (zoomed pages)
     int m_lastCurrentPage = -1;                             ///< Page number last emitted
     int m_lastTotalPages = -1;                              ///< Page count last emitted
-    QVariantAnimation* m_scrollAnimation{nullptr};                   ///< Smooth scroll animation
+    QVariantAnimation* m_scrollAnimation = nullptr;         ///< Smooth scroll animation
     bool m_pointerMovesCursor = false;                      ///< A mouse or drop event moves the cursor
                                                             ///< (typewriter scrolling leaves the view)
 
-    static constexpr int DEFAULT_SMOOTH_SCROLL_DURATION = 150;     ///< Default smooth scroll duration (ms)
-    static constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;      ///< Default cursor blink interval (ms)
+    /// @brief Default smooth scroll duration in milliseconds
+    static constexpr int DEFAULT_SMOOTH_SCROLL_DURATION = 150;
+    /// @brief Default cursor blink interval in milliseconds
+    static constexpr int DEFAULT_CURSOR_BLINK_INTERVAL = 500;
 
-    bool m_smoothScrollingEnabled{false};                          ///< Enable smooth scrolling
-    int m_smoothScrollDuration{DEFAULT_SMOOTH_SCROLL_DURATION};    ///< Smooth scroll animation duration (ms)
-    bool m_updatingScrollBar{false};                               ///< Flag to prevent scroll signal loops
+    bool m_smoothScrollingEnabled = false;                  ///< Enable smooth scrolling; disabled
+                                                            ///< by default for stability in tests
+    /// Smooth scroll animation duration (ms)
+    int m_smoothScrollDuration = DEFAULT_SMOOTH_SCROLL_DURATION;
+    bool m_updatingScrollBar = false;                       ///< Flag to prevent scroll signal loops
     bool m_paintingWholeView = false;                       ///< A paint of the whole view runs
     bool m_shrinkOnFirstShow = false;                       ///< shrinkToPageWidthOnFirstShow() waits
                                                             ///< for the first paint
@@ -3181,15 +3187,16 @@ private:
                                                             ///< first paint (none below 0)
 
     // Cursor state (Phase 3.4 + 3.5)
-    CursorPosition m_cursorPosition;                        ///< Current cursor position
-    QTimer* m_cursorBlinkTimer{nullptr};                             ///< Timer for cursor blinking
-    bool m_cursorVisible{true};                                   ///< Current blink state (visible/hidden)
-    bool m_cursorBlinkingEnabled{true};                           ///< Enable cursor blinking
-    int m_cursorBlinkInterval{DEFAULT_CURSOR_BLINK_INTERVAL};     ///< Blink interval in milliseconds
+    CursorPosition m_cursorPosition;                            ///< Current cursor position
+    QTimer* m_cursorBlinkTimer = nullptr;                       ///< Timer for cursor blinking
+    bool m_cursorVisible = true;                                ///< Current blink state
+                                                                ///< (visible/hidden)
+    bool m_cursorBlinkingEnabled = true;                        ///< Enable cursor blinking
+    int m_cursorBlinkInterval = DEFAULT_CURSOR_BLINK_INTERVAL;  ///< Blink interval in milliseconds
 
     // Cursor navigation state (Phase 3.6/3.7/3.8)
-    qreal m_preferredCursorX{0.0};                               ///< Preferred X position for vertical movement
-    bool m_preferredCursorXValid{false};                           ///< Is m_preferredCursorX valid?
+    qreal m_preferredCursorX = 0.0;                         ///< Preferred X position for vertical movement
+    bool m_preferredCursorXValid = false;                   ///< Is m_preferredCursorX valid?
     CursorPosition m_preferredCursorXPosition;              ///< Cursor position the last vertical move gave
                                                             ///< (m_preferredCursorX holds only there)
 
@@ -3212,11 +3219,11 @@ private:
     // Selection state (Phase 3.10)
     SelectionRange m_selection;                             ///< Current selection range
     CursorPosition m_selectionAnchor;                       ///< Anchor point for selection
-    bool m_isDragging{false};                                      ///< Is mouse drag selection in progress?
+    bool m_isDragging = false;                              ///< Is mouse drag selection in progress?
 
     // Click tracking for double/triple click (Phase 3.11)
-    QTimer* m_clickTimer{nullptr};                                   ///< Timer for click counting
-    int m_clickCount{0};                                       ///< Number of consecutive clicks
+    QTimer* m_clickTimer = nullptr;                         ///< Timer for click counting
+    int m_clickCount = 0;                                   ///< Number of consecutive clicks
     QPointF m_lastClickPos;                                 ///< Position of last click
     static constexpr int MULTI_CLICK_INTERVAL = 400;        ///< Max interval between clicks (ms)
     static constexpr qreal MULTI_CLICK_DISTANCE = 5.0;      ///< Max distance for multi-click
@@ -3278,11 +3285,11 @@ private:
     void updateNoteIssueMarks();
 
     /// @brief Whether the selection is the number of a note alone
-    bool isNoteNumberSelected(const QString& id) const;
+    [[nodiscard]] bool isNoteNumberSelected(const QString& id) const;
 
     /// @brief Scroll a rectangle of the widget into view, the cursor's line kept in view when
     ///        both fit (a note's text, a range of it)
-    void scrollToShow(const QRectF& note);
+    void scrollToShow(const QRectF& rect);
     AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
     qreal m_cardWritingHeight = 0.0;    ///< The frame over a card: its height (editor pixels)
     QString m_pressedCard;              ///< The card the last press went to (a double click edits it)
@@ -3294,7 +3301,7 @@ private:
     // IME composition state (Phase 4.5/4.6/4.7)
     QString m_preeditString;                                ///< Current IME preedit/composition string
     CursorPosition m_preeditStart;                          ///< Start position of preedit text
-    bool m_hasComposition{false};                                  ///< Is composition in progress?
+    bool m_hasComposition = false;                          ///< Is composition in progress?
 
     // Undo/Redo: QTextDocument's native undo is the single source of truth
     // (text AND formatting) — see undo()/redo(). No separate QUndoStack.
@@ -3333,7 +3340,7 @@ private:
     std::optional<LearnableChange> m_learnableChange;
 
     /// @brief What autocorrect changes, with the abbreviations of the text's language
-    AutoCorrectOptions autoCorrectForText() const;
+    [[nodiscard]] AutoCorrectOptions autoCorrectForText() const;
 
     /// @brief Make the change autocorrect has for the character typed right before the
     ///        cursor, as an undo step of its own (see typeText())
@@ -3450,17 +3457,19 @@ private:
 
     /// @brief The misspelled word at a place of a note's text (also right after it)
     /// @return The word and its range in the note's text, or an empty word
-    std::tuple<QString, int, int> getMisspelledNoteWordAt(const NoteRange& place) const;
+    [[nodiscard]] std::tuple<QString, int, int> getMisspelledNoteWordAt(
+        const NoteRange& place) const;
 
     /// @brief The grammar issue at a place of a note's text (also right after it), its start
     ///        in the note's text (std::nullopt: none)
-    std::optional<GrammarError> getNoteGrammarErrorAt(const NoteRange& place) const;
+    [[nodiscard]] std::optional<GrammarError> getNoteGrammarErrorAt(const NoteRange& place) const;
 
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
     /// @param offset Character offset within paragraph (also right after the word)
     /// @return The misspelled word and its range, or empty if no error at position
-    std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset) const;
+    [[nodiscard]] std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex,
+                                                                    int offset) const;
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
     ///        put in its place, Ignore All, Add to Dictionary
@@ -3497,7 +3506,7 @@ private:
     void noteIssuesChanged();
 
     /// @brief Whether the text at an issue's place is still the issue's
-    bool isIssueAt(const TextIssue& issue) const;
+    [[nodiscard]] bool isIssueAt(const TextIssue& issue) const;
 
     /// @brief Select a range, with the cursor at its end, and scroll to it
     void selectRange(const CursorPosition& start, const CursorPosition& end);
@@ -3532,7 +3541,7 @@ private:
 
     /// @brief Whether the grammar of a paragraph is known (checked, or nothing to check), the
     ///        texts of its notes' too
-    bool isGrammarKnown(const QTextBlock& block) const;
+    [[nodiscard]] bool isGrammarKnown(const QTextBlock& block) const;
 
     /// @brief Send the paragraphs due after @p delayMs, unless they go sooner
     void scheduleGrammarCheck(int delayMs);
@@ -3575,7 +3584,7 @@ private:
     /// @param paraIndex Paragraph index
     /// @param offset Character offset within paragraph (also right after the issue)
     /// @return The issue, or nullopt when there is none
-    std::optional<GrammarError> getGrammarErrorAt(int paraIndex, int offset) const;
+    [[nodiscard]] std::optional<GrammarError> getGrammarErrorAt(int paraIndex, int offset) const;
 
     /// @brief Put on the context menu what is offered for a grammar issue: what is
     ///        wrong, what to put in its place, Ignore This Rule
@@ -3636,10 +3645,10 @@ private:
     void checkModified();
 
     /// @brief Whether the content differs from the saved one, compared in full when needed
-    bool differsFromSaved() const;
+    [[nodiscard]] bool differsFromSaved() const;
 
     /// @brief The saved content as toKml() writes it
-    const QString& savedKml() const;
+    [[nodiscard]] const QString& savedKml() const;
 
     /// @brief Set what modifiedChanged() says, saying it when it changes
     void setModifiedState(bool modified);
@@ -3656,12 +3665,12 @@ private:
     /// @brief Calculate absolute character position from cursor position
     /// @param pos Cursor position (paragraph + offset)
     /// @return Absolute character offset in the document (0-based)
-    int calculateAbsolutePosition(const CursorPosition& pos) const;
+    [[nodiscard]] int calculateAbsolutePosition(const CursorPosition& pos) const;
 
     /// @brief Calculate cursor position from absolute character position
     /// @param absolutePos Absolute character offset in the document (0-based)
     /// @return Cursor position (paragraph + offset)
-    CursorPosition calculateCursorPosition(int absolutePos) const;
+    [[nodiscard]] CursorPosition calculateCursorPosition(int absolutePos) const;
 
     // =========================================================================
     // Find/Replace (Phase 9.4-9.6)
@@ -3721,7 +3730,7 @@ private:
 
     /// @brief The place of @p end, where the text put in by a replacement ends (after
     /// Replace All, the last replacement in the text), or the cursor for -1 (nothing replaced)
-    CursorPosition replacedTextEnd(int end) const;
+    [[nodiscard]] CursorPosition replacedTextEnd(int end) const;
 };
 
 }  // namespace kalahari::editor

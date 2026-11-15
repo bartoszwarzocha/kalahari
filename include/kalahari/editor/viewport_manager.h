@@ -276,8 +276,8 @@ private slots:
 
     /// @brief Keep the anchored text in place after blocks changed height
     void onBlockGeometryChanged(int firstBlock);
-private:
 
+private:
     /// @brief Update visible range from current scroll position
     void updateVisibleRange();
 

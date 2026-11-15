@@ -146,7 +146,8 @@ public:
     /// @brief The first issue listed that starts at or after a place of the text, if any
     /// @param noteStart At a note's number (@p position): the first of its text's issues that
     ///        starts at or after this place of the note's text, else one after the number
-    [[nodiscard]] std::optional<SpellingPanelIssue> issueFrom(int position, int noteStart = -1) const;
+    [[nodiscard]] std::optional<SpellingPanelIssue> issueFrom(int position,
+                                                              int noteStart = -1) const;
 
     /// @brief Give the keys to the panel: to the list, else to the button that turns the
     ///        checking on, else to the panel itself

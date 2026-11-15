@@ -267,7 +267,7 @@ public:
 
     /// @brief What the window says about the book open in @p projects, without its changes
     /// that are not saved, which the caller knows
-    static Book openBook(const core::ProjectManager& pm);
+    static Book openBook(const core::ProjectManager& projects);
 
     /// @brief Create the window
     /// @param book What the window says about the book

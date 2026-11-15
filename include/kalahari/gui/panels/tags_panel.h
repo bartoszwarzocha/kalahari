@@ -76,7 +76,7 @@ public:
     /// @return Current TagDetector, or nullptr if none set
     [[nodiscard]] editor::TagDetector* tagDetector() const { return m_detector; }
 
-
+public slots:
     /// @brief Refresh the tags list from the detector
     ///
     /// Re-reads all tags and updates the tree.
@@ -152,20 +152,20 @@ private:
     /// @return true if the tag should be shown
     [[nodiscard]] bool passesFilter(editor::TagType type) const;
 
-    QTreeWidget* m_tagsTree{nullptr};           ///< Tree widget showing tags
-    QComboBox* m_filterCombo{nullptr};          ///< Filter combo box
-    QLabel* m_emptyLabel{nullptr};              ///< Label shown when no tags
-    QLabel* m_countLabel{nullptr};              ///< Label showing total count
+    QTreeWidget* m_tagsTree = nullptr;   ///< Tree widget showing tags
+    QComboBox* m_filterCombo = nullptr;  ///< Filter combo box
+    QLabel* m_emptyLabel = nullptr;      ///< Label shown when no tags
+    QLabel* m_countLabel = nullptr;      ///< Label showing total count
 
-    editor::BookEditor* m_editor{nullptr};      ///< Current BookEditor (not owned)
-    editor::TagDetector* m_detector{nullptr};   ///< Current TagDetector (not owned)
-    bool m_ownsDetector{false};               ///< Whether we created the detector
+    editor::BookEditor* m_editor = nullptr;     ///< Current BookEditor (not owned)
+    editor::TagDetector* m_detector = nullptr;  ///< Current TagDetector (not owned)
+    bool m_ownsDetector = false;                ///< Whether we created the detector
 
     /// @brief Map from TagType to its tree item
     QMap<int, QTreeWidgetItem*> m_typeGroupItems;
 
     /// @brief Current filter (-1 = all, 0-4 = specific type)
-    int m_currentFilter{-1};
+    int m_currentFilter = -1;
 };
 
 } // namespace kalahari::gui

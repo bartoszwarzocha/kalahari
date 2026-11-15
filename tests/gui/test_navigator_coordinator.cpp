@@ -154,10 +154,10 @@ Answer acceptWith(const QString& text) {
 
 /// @brief What the writer chooses in the Add Element window
 struct AddChoice {
-    QString kind;   ///< The id of the kind of the tile ("prologue"); empty: the first one
-    QString title;  ///< The title; empty: the one the window proposes
-    std::optional<core::ElementPlace> place;  ///< The place; none: the one proposed
-    QString status;  ///< "draft", "revision" or "final"; empty: the one proposed
+    QString kind = {};   ///< The id of the kind of the tile ("prologue"); empty: the first one
+    QString title = {};  ///< The title; empty: the one the window proposes
+    std::optional<core::ElementPlace> place = {};  ///< The place; none: the one proposed
+    QString status = {};  ///< "draft", "revision" or "final"; empty: the one proposed
     bool take = true;  ///< A new group takes the elements that close the main section
 };
 

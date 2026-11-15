@@ -412,7 +412,6 @@ bool writeWhole(const QString& path, const QByteArray& data) {
 
 ProjectManager::ProjectManager(QObject* parent)
     : QObject(parent)
-     
 {
     Logger::getInstance().info("ProjectManager initialized");
 }

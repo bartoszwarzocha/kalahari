@@ -37,11 +37,11 @@ const core::ProjectElement* findIn(const QList<core::ProjectElement>& elements,
 
 } // anonymous namespace
 
-MoveElementDialog::Book MoveElementDialog::openBook(const core::ProjectManager& pm,
+MoveElementDialog::Book MoveElementDialog::openBook(const core::ProjectManager& projects,
                                                     const QString& elementId) {
     Book book;
-    const core::BookProject* project = pm.project();
-    const core::ProjectBook* projectBook = pm.book();
+    const core::BookProject* project = projects.project();
+    const core::ProjectBook* projectBook = projects.book();
     if (!project || !projectBook) {
         return book;
     }

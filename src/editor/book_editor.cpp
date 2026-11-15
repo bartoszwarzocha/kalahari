@@ -164,17 +164,13 @@ void invalidateParagraphCounts(const QTextDocument* doc, int from, int charsAdde
 
 BookEditor::BookEditor(QWidget* parent)
     : QWidget(parent)
-    , 
-     m_cursorPosition{0, 0}
-    , 
-     m_selection{}
+    , m_cursorPosition{0, 0}
+    , m_selection{}
     , m_selectionAnchor{0, 0}
-    , 
-     m_lastClickPos(0.0, 0.0)
-    , 
-     m_preeditStart{0, 0}
-    , 
-     m_textBuffer(nullptr)
+    , m_lastClickPos(0.0, 0.0)
+    , m_preeditStart{0, 0}
+    // The QTextDocument is created by fromKml(), or empty by the first edit
+    , m_textBuffer(nullptr)
 {
     // Enable input method support
     setAttribute(Qt::WA_InputMethodEnabled, true);

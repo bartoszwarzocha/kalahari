@@ -207,8 +207,8 @@ private slots:
     /// @brief Handle paragraph removed signal from BookEditor
     /// @param paragraphIndex Index of the removed paragraph
     void onParagraphRemoved(int paragraphIndex);
-private:
 
+private:
 
     // =========================================================================
     // Internal Methods

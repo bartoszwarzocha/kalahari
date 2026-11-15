@@ -39,18 +39,18 @@ public:
     void setFolder(const QString& folder);
 
     /// @brief The book's main folder; empty: none
-    const QString& folder() const { return m_folder; }
+    [[nodiscard]] const QString& folder() const { return m_folder; }
 
     /// @brief Whether the store has a folder: images can be shown and added
-    bool hasFolder() const { return !m_folder.isEmpty(); }
+    [[nodiscard]] bool hasFolder() const { return !m_folder.isEmpty(); }
 
     /// @brief The file of a source, a path on the disk; empty when the store has no folder
     ///        or the source is not one of the book's folder (isSafeImageSource())
-    QString filePath(const QString& source) const;
+    [[nodiscard]] QString filePath(const QString& source) const;
 
     /// @brief The size of the image of a source in its pixels (an SVG: its own size);
     ///        std::nullopt: the file is missing or is not an image the editor reads
-    std::optional<QSize> pixelSize(const QString& source) const;
+    [[nodiscard]] std::optional<QSize> pixelSize(const QString& source) const;
 
     /// @brief The size of the image of a file in its pixels (an SVG: its own size);
     ///        std::nullopt: it is missing or is not an image the editor reads
@@ -58,16 +58,16 @@ public:
 
     /// @brief The picture of a source in these pixels; null: the file is missing or is not
     ///        an image
-    QImage picture(const QString& source, const QSize& pixels) const;
+    [[nodiscard]] QImage picture(const QString& source, const QSize& pixels) const;
 
     /// @brief The picture of an image as it is shown, in these pixels: its file's picture
     ///        cropped, turned, mirrored and recolored (shownPicture()); null: the file is
     ///        missing or is not an image
-    QImage shownImage(const ImageProperties& image, const QSize& pixels) const;
+    [[nodiscard]] QImage shownImage(const ImageProperties& image, const QSize& pixels) const;
 
     /// @brief The pixels an image has of its own: those of its file cropped and turned;
     ///        std::nullopt: the file is missing or is not an image
-    std::optional<QSize> shownPixelSize(const ImageProperties& image) const;
+    [[nodiscard]] std::optional<QSize> shownPixelSize(const ImageProperties& image) const;
 
     /// @brief Copy a file into the book's folder of images
     /// @param maxWidth A copy of a picture wider than these pixels gets them, in proportion,

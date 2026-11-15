@@ -95,7 +95,7 @@ private:
 
     std::filesystem::path m_archive_path;    ///< Original .kplugin file path
     std::filesystem::path m_extracted_dir;   ///< Temporary directory with extracted files
-    bool m_is_valid{false};                         ///< Extraction success flag
+    bool m_is_valid = false;                 ///< Extraction success flag
     std::string m_error;                     ///< Why extraction failed, for the writer
 };
 

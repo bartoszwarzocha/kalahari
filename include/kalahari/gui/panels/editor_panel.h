@@ -67,7 +67,7 @@ public:
     /// @return Current editor content as plain text
     ///
     /// Extracts plain text from KML document.
-    QString getText() const;
+    [[nodiscard]] QString getText() const;
 
     /// @brief Set the folder the images of the text name their files in: the book's main
     ///        folder, or the folder of a file outside a book; empty: none (an image cannot be
@@ -96,11 +96,11 @@ public:
     /// @return Current editor content as HTML
     ///
     /// Converts KML to HTML for export.
-    QString getContent() const;
+    [[nodiscard]] QString getContent() const;
 
     /// @brief Whether the text differs from the text loaded or last saved (see
     ///        editor::BookEditor::isModified())
-    bool isModified() const;
+    [[nodiscard]] bool isModified() const;
 
     /// @brief Mark the text now as the saved text (after saving it)
     void setUnmodified();
@@ -109,13 +109,13 @@ public:
     ///        SpellingCoordinator::wantedLanguage() (the book's, unless the settings name
     ///        another), of a file outside the book defaultLanguage() (the program's, unless
     ///        the settings name another)
-    QString textLanguage() const;
+    [[nodiscard]] QString textLanguage() const;
 
     /// @brief The paragraph styles of the text: of a chapter of the book those of the book's
     ///        type (of the package "Base" in a book without a type) with the book's own and
     ///        changed styles (ProjectManager::paragraphStyles()), of a file outside the book
     ///        those of "Base"; the names in the program's language
-    editor::ParagraphStyleSet paragraphStyles() const;
+    [[nodiscard]] editor::ParagraphStyleSet paragraphStyles() const;
 
     /// @brief Get the underlying BookEditor widget
     /// @return Pointer to BookEditor widget
@@ -125,11 +125,11 @@ public:
 
     /// @brief Get the underlying BookEditor widget (const)
     /// @return Const pointer to BookEditor widget
-    const editor::BookEditor* getBookEditor() const { return m_bookEditor; }
+    [[nodiscard]] const editor::BookEditor* getBookEditor() const { return m_bookEditor; }
 
     /// @brief Quick insert in the text: the list that @ and # typed at the start of a word open,
     ///        and Insert > Quick Insert...
-    editor::QuickInsertController* quickInsert() const { return m_quickInsert; }
+    [[nodiscard]] editor::QuickInsertController* quickInsert() const { return m_quickInsert; }
 
     // =========================================================================
     // Statistics Integration (OpenSpec #00042 Task 7.7)
@@ -146,7 +146,9 @@ public:
 
     /// @brief Get the current statistics collector
     /// @return Pointer to StatisticsCollector, or nullptr if not set
-    editor::StatisticsCollector* statisticsCollector() const { return m_statisticsCollector; }
+    [[nodiscard]] editor::StatisticsCollector* statisticsCollector() const {
+        return m_statisticsCollector;
+    }
 
     /// @brief Give the editor the editor settings ("editor." keys, with the defaults of the
     ///        settings schema)
@@ -271,11 +273,11 @@ private:
     /// @note Safe to call from any thread
     void scheduleSettings();
 
-    editor::BookEditor* m_bookEditor{nullptr};                     ///< The BookEditor widget
+    editor::BookEditor* m_bookEditor = nullptr;             ///< The BookEditor widget
     editor::QuickInsertController* m_quickInsert{nullptr};  ///< Quick insert in the text
-    int m_settingsListener{0};                            ///< SettingsManager::subscribe() id
-    std::atomic<bool> m_settingsPending{false};           ///< scheduleSettings() waits for the
-                                                          ///< event loop
+    int m_settingsListener{0};                              ///< SettingsManager::subscribe() id
+    std::atomic<bool> m_settingsPending{false};             ///< scheduleSettings() waits for the
+                                                            ///< event loop
 
     /// @brief Statistics collector for tracking writing stats (OpenSpec #00042 Task 7.7)
     editor::StatisticsCollector* m_statisticsCollector{nullptr};

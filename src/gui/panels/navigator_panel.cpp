@@ -336,7 +336,8 @@ public:
         painter->restore();
     }
 
-    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const override {
+    [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& option,
+                                 const QModelIndex& index) const override {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         const QVariant count = index.data(COUNT_ROLE);
         if (count.isValid()) {
@@ -589,8 +590,7 @@ namespace kalahari::gui {
 
 NavigatorPanel::NavigatorPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
-    , 
-     m_book(book)
+    , m_book(book)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorPanel constructor called");
@@ -1206,11 +1206,11 @@ QString NavigatorPanel::iconIdOf(const core::BookTypeRegistry& registry,
     return formIconId(core::BookProject::formOf(registry, element));
 }
 
-QIcon NavigatorPanel::iconOf(const core::ProjectManager& pm, const core::ProjectElement& element,
+QIcon NavigatorPanel::iconOf(const core::ProjectManager& book, const core::ProjectElement& element,
                              core::IconContext context) {
-    const core::BookTypeRegistry& registry = pm.bookTypes();
+    const core::BookTypeRegistry& registry = book.bookTypes();
     const core::PackageCard* card = element.hasKind() && !core::BookProject::kindOf(registry, element)
-                                        ? pm.packageCard(element.kind.packageId)
+                                        ? book.packageCard(element.kind.packageId)
                                         : nullptr;
     return core::ArtProvider::getInstance().getPackageIcon(iconIdOf(registry, element, card), card,
                                                            context);
@@ -1429,12 +1429,12 @@ bool NavigatorPanel::isWorkshopItem(const QTreeWidgetItem* item) {
     return item && item->data(0, WORKSHOP_ROLE).toBool();
 }
 
-bool NavigatorPanel::isMaterialItem(const core::ProjectManager& pm, const QTreeWidgetItem* item) {
+bool NavigatorPanel::isMaterialItem(const core::ProjectManager& book, const QTreeWidgetItem* item) {
     if (!isWorkshopItem(item) || typeOf(item) != QLatin1String("window_element")) {
         return false;
     }
-    const core::ProjectElement* element = pm.findElement(item->data(0, Qt::UserRole).toString());
-    return element && pm.isMaterial(*element);
+    const core::ProjectElement* element = book.findElement(item->data(0, Qt::UserRole).toString());
+    return element && book.isMaterial(*element);
 }
 
 QString NavigatorPanel::linkOf(const core::ProjectManager& book, const QTreeWidgetItem* item) {

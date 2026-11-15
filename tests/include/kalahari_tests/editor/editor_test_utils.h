@@ -131,11 +131,11 @@ public:
     PopupMenuKey(const PopupMenuKey&) = delete;
     PopupMenuKey& operator=(const PopupMenuKey&) = delete;
 
-    [[nodiscard]] [[nodiscard]] [[nodiscard]] int menusShown() const { return m_menusShown; }
+    [[nodiscard]] int menusShown() const { return m_menusShown; }
     /// The first menu took the key ahead of the program's shortcuts
-    [[nodiscard]] [[nodiscard]] [[nodiscard]] bool keyTaken() const { return m_keyTaken; }
+    [[nodiscard]] bool keyTaken() const { return m_keyTaken; }
     /// The first menu was still open after the key
-    [[nodiscard]] [[nodiscard]] [[nodiscard]] bool stayedOpen() const { return m_stayedOpen; }
+    [[nodiscard]] bool stayedOpen() const { return m_stayedOpen; }
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override {
@@ -220,7 +220,7 @@ public:
     LaidOutBlockCounter(const LaidOutBlockCounter&) = delete;
     LaidOutBlockCounter& operator=(const LaidOutBlockCounter&) = delete;
 
-    [[nodiscard]] [[nodiscard]] [[nodiscard]] int count() const { return m_count; }
+    [[nodiscard]] int count() const { return m_count; }
 
 private:
     QMetaObject::Connection m_connection;

@@ -107,8 +107,8 @@ public:
 private:
     int m_columns;
     int m_rows;
-    int m_minimumColumns{1};
-    int m_minimumRows{1};
+    int m_minimumColumns = 1;
+    int m_minimumRows = 1;
     QSize m_cell{32, 32};
     CharacterCellDelegate* m_delegate = nullptr;
 };

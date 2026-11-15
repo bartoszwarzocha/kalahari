@@ -207,8 +207,8 @@ signals:
 private slots:
     /// @brief The dictionary loaded in the background is ready
     void onLoaderFinished();
-private:
 
+private:
     struct OwnWords;  ///< The writer's own words, shared by services (shareOwnWordsWith())
 
     /// @brief Load the dictionary wanted in the background, unless it is loaded or loading

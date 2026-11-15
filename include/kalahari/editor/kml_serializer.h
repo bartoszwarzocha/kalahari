@@ -197,7 +197,7 @@ private:
     // Members
     // =========================================================================
 
-    bool m_indented{false};  ///< Whether to produce indented (pretty-printed) output
+    bool m_indented = false;  ///< Whether to produce indented (pretty-printed) output
 };
 
 } // namespace kalahari::editor

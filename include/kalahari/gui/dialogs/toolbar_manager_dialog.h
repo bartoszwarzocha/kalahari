@@ -238,46 +238,46 @@ private:
     // ========================================================================
 
     /// @brief Left panel - list of toolbars
-    QListWidget* m_toolbarList{nullptr};
+    QListWidget* m_toolbarList = nullptr;
 
     /// @brief Center panel - category filter dropdown
-    QComboBox* m_categoryCombo{nullptr};
+    QComboBox* m_categoryCombo = nullptr;
 
     /// @brief Center panel - search filter input
-    QLineEdit* m_searchFilter{nullptr};
+    QLineEdit* m_searchFilter = nullptr;
 
     /// @brief Center panel - available commands tree
-    QTreeWidget* m_availableCommands{nullptr};
+    QTreeWidget* m_availableCommands = nullptr;
 
     /// @brief Right panel - current toolbar commands
-    QListWidget* m_currentToolbar{nullptr};
+    QListWidget* m_currentToolbar = nullptr;
 
     /// @brief Move command up button
-    QPushButton* m_moveUpBtn{nullptr};
+    QPushButton* m_moveUpBtn = nullptr;
 
     /// @brief Move command down button
-    QPushButton* m_moveDownBtn{nullptr};
+    QPushButton* m_moveDownBtn = nullptr;
 
     /// @brief Remove command button
-    QPushButton* m_removeBtn{nullptr};
+    QPushButton* m_removeBtn = nullptr;
 
     /// @brief Add separator button
-    QPushButton* m_separatorBtn{nullptr};
+    QPushButton* m_separatorBtn = nullptr;
 
     /// @brief Add command button (center panel)
-    QPushButton* m_addCommandBtn{nullptr};
+    QPushButton* m_addCommandBtn = nullptr;
 
     /// @brief New toolbar button
-    QPushButton* m_newToolbarBtn{nullptr};
+    QPushButton* m_newToolbarBtn = nullptr;
 
     /// @brief Delete toolbar button
-    QPushButton* m_deleteToolbarBtn{nullptr};
+    QPushButton* m_deleteToolbarBtn = nullptr;
 
     /// @brief Rename toolbar button
-    QPushButton* m_renameToolbarBtn{nullptr};
+    QPushButton* m_renameToolbarBtn = nullptr;
 
     /// @brief Reset to defaults button
-    QPushButton* m_resetBtn{nullptr};
+    QPushButton* m_resetBtn = nullptr;
 
     // ========================================================================
     // State
@@ -296,7 +296,7 @@ private:
     QMap<QString, QString> m_toolbarNames;
 
     /// @brief Track modification state
-    bool m_modified{false};
+    bool m_modified = false;
 
     /// @brief Built-in toolbar IDs
     QStringList m_builtInToolbarIds;

@@ -189,8 +189,8 @@ private slots:
     /// @brief Handle TTS engine state change
     /// @param state New state as int (platform-specific)
     void onEngineStateChanged(int state);
-private:
 
+private:
     /// @brief Initialize TTS engine
     void initializeTts();
 

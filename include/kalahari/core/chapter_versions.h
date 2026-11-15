@@ -59,14 +59,14 @@ std::optional<VersionOrigin> versionOriginNamed(const QString& name);
 
 /// @brief One version of the text of a file, as index.json lists it
 struct ChapterVersion {
-    QString file;       ///< Its file in the folder of the versions: 2026-10-21_145210.kml
-    QDateTime created;  ///< When it was kept (UTC)
+    QString file = {};       ///< Its file in the folder of the versions: 2026-10-21_145210.kml
+    QDateTime created = {};  ///< When it was kept (UTC)
     VersionOrigin origin = VersionOrigin::Manual;  ///< Why it was kept
-    QString name;         ///< What the writer wrote about it; empty: nothing
-    QString found;        ///< ReplaceAll: the text that was replaced
-    QString replacement;  ///< ReplaceAll: the text put in its place
+    QString name = {};         ///< What the writer wrote about it; empty: nothing
+    QString found = {};        ///< ReplaceAll: the text that was replaced
+    QString replacement = {};  ///< ReplaceAll: the text put in its place
     int replaced = 0;          ///< ReplaceAll: how many times
-    QDateTime restored;   ///< Restore: when the version brought back was kept (UTC)
+    QDateTime restored = {};   ///< Restore: when the version brought back was kept (UTC)
     WordTally words = {};      ///< Words of its text, under any rules of counting (tallyWords())
 
     /// @brief Whether the program kept it by itself, so that it goes when there are too many
@@ -205,7 +205,8 @@ private:
 
     /// @brief Name of a new .kml file for a version kept at @p created: its local time, with
     /// _2, _3… when the folder or @p listed has that name already
-    [[nodiscard]] QString newVersionFile(const QDateTime& created, const QList<ChapterVersion>& listed) const;
+    [[nodiscard]] QString newVersionFile(const QDateTime& created,
+                                         const QList<ChapterVersion>& listed) const;
 
     QString m_file;    ///< The file, relative to the folder of the book
     QString m_folder;  ///< Absolute path of the folder of its versions

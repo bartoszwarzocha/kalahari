@@ -32,7 +32,6 @@ static constexpr int IsGroupRole = Qt::UserRole + 4;
 
 TagsPanel::TagsPanel(QWidget* parent)
     : QWidget(parent)
-     
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("TagsPanel constructor called");

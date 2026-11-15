@@ -81,7 +81,7 @@ public:
     /// @brief The label of the zoom on the bar: "75%"
     [[nodiscard]] QLabel* zoomLabel() const { return m_zoomLabel; }
 
-
+public slots:
     /// @brief Read the file again and show it, keeping the zoom and the negative
     void reload();
 

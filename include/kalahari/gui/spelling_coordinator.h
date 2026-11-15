@@ -112,7 +112,7 @@ public:
     /// @brief The file the writer's own words are kept in, next to the settings
     static QString userDictionaryFile();
 
-
+public slots:
     /// @brief Check with the dictionaries of the languages wanted now, or turn the checking
     ///        off as the setting says (after the settings or the book's language change)
     void updateDictionary();

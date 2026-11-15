@@ -42,7 +42,10 @@ public:
     using QTreeWidget::QTreeWidget;
 
     /// Height of a row, before the list has rows to measure
-    [[nodiscard]] int rowHeight() const { return qMax(fontMetrics().height() + 6, iconSize().height() + 4); }
+    [[nodiscard]] int rowHeight() const
+    {
+        return qMax(fontMetrics().height() + 6, iconSize().height() + 4);
+    }
 
     /// Rows the list shows when there is room for them
     void setRows(int rows) {

@@ -141,8 +141,7 @@ private:
 
 DashboardPanel::DashboardPanel(CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
-    , 
-     m_commands(commands)
+    , m_commands(commands)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel constructor called");

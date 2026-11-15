@@ -220,7 +220,7 @@ public:
     bool createProject(const NewProject& project, QStringList* problems = nullptr);
 
     /// @brief Create a new project without opening it: the open project stays open
-    /// @param project The project, as createProject() takes it
+    /// @param request The project, as createProject() takes it
     /// @param problems Gets what is wrong when the project cannot be created, one line each
     /// @return The project's .klh file; empty when the project cannot be created, and then
     ///         nothing of it is left in the folder
@@ -401,10 +401,12 @@ public:
     ///
     /// The kinds the project offers there, without those whose elements reached the kind's
     /// limit in the book.
-    [[nodiscard]] QList<KindRef> kindsFor(BookPlace place, const QString& groupId = QString()) const;
+    [[nodiscard]] QList<KindRef> kindsFor(BookPlace place,
+                                          const QString& groupId = QString()) const;
 
     /// @brief Text kinds of kindsFor()
-    [[nodiscard]] QList<KindRef> textKindsFor(BookPlace place, const QString& groupId = QString()) const;
+    [[nodiscard]] QList<KindRef> textKindsFor(BookPlace place,
+                                              const QString& groupId = QString()) const;
 
     /// @brief Kind of a new chapter in @p place, or inside group @p groupId: the main text kind
     /// of the type when it can be there, else the first of textKindsFor()
@@ -485,7 +487,8 @@ public:
     /// before it.
     /// @return The place; nullopt when the project has no element @p elementId, it is a file of
     ///         the book outside its text, or @p kind cannot be added to its list
-    [[nodiscard]] std::optional<ElementPlace> newPlaceAfter(const QString& elementId, const KindRef& kind) const;
+    [[nodiscard]] std::optional<ElementPlace> newPlaceAfter(const QString& elementId,
+                                                            const KindRef& kind) const;
 
     /// @brief A free file for a copy of file @p sourcePath in the Workshop, relative to the
     /// project: workshop/<its name>, or workshop/<its base name>_2.<its suffix>, _3... when an
@@ -537,7 +540,8 @@ public:
     /// A kind of the start (a prologue) goes first, a kind of the end (an epilogue) last, and
     /// any other kind last before the elements of the kinds of the end: a new chapter goes
     /// before the epilogue.
-    [[nodiscard]] qsizetype newIndexIn(const QList<ProjectElement>& elements, const KindRef& kind) const;
+    [[nodiscard]] qsizetype newIndexIn(const QList<ProjectElement>& elements,
+                                       const KindRef& kind) const;
 
     /// @brief Place that a new element of @p kind takes in @p place of the book, or in group
     /// @p groupId, when the writer does not choose it
@@ -547,7 +551,7 @@ public:
     /// body, also when they are at the end of a part: a new chapter goes before the epilogue
     /// that ends the last part, if the chapter can be in that part.
     [[nodiscard]] ElementPlace newPlaceOf(const KindRef& kind, BookPlace place,
-                            const QString& groupId = QString()) const;
+                                          const QString& groupId = QString()) const;
 
     /// @brief Add a chapter or text file as a new text element of @p kind
     ///
@@ -1135,12 +1139,12 @@ private:
     // Member Variables
     // =========================================================================
 
-    WorkMode m_workMode{WorkMode::NoDocument};                          ///< Current work mode
-    std::unique_ptr<BookProject> m_project;       ///< Open project
-    QHash<QString, ElementState> m_elementStates; ///< Text element id -> its state
-    std::filesystem::path m_projectPath;          ///< Project root folder path
-    std::filesystem::path m_manifestPath;         ///< Path to .klh manifest file
-    bool m_isDirty{false};                               ///< The .klh file has unsaved changes
+    WorkMode m_workMode = WorkMode::NoDocument;    ///< Current work mode
+    std::unique_ptr<BookProject> m_project;        ///< Open project
+    QHash<QString, ElementState> m_elementStates;  ///< Text element id -> its state
+    std::filesystem::path m_projectPath;           ///< Project root folder path
+    std::filesystem::path m_manifestPath;          ///< Path to .klh manifest file
+    bool m_isDirty = false;                        ///< The .klh file has unsaved changes
     OpenFailure m_lastOpenFailure = OpenFailure::None;  ///< Of the last openProject()
 
     QStringList m_missingPackages;                ///< Of the open book: it is read-only

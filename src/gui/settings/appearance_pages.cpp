@@ -307,8 +307,7 @@ std::pair<QColor, QColor> ThemePage::iconColors() const {
 IconsPage::IconsPage(QWidget* parent)
     : SettingsPage(parent)
     , m_iconStyle(new QComboBox())
-    , 
-     m_primary(core::ArtProvider::getInstance().getPrimaryColor())
+    , m_primary(core::ArtProvider::getInstance().getPrimaryColor())
     , m_secondary(core::ArtProvider::getInstance().getSecondaryColor())
 {
     auto& artProvider = core::ArtProvider::getInstance();

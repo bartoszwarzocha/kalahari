@@ -96,8 +96,7 @@ void focusInPage(QWidget* widget) {
 
 PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
-    , 
-     m_book(book)
+    , m_book(book)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel constructor called");

@@ -141,7 +141,7 @@ public:
     }
 
     [[nodiscard]] QSize sizeHint(const QStyleOptionViewItem& /*option*/,
-                   const QModelIndex& /*index*/) const override
+                                 const QModelIndex& /*index*/) const override
     {
         return {SWATCH_CELL, SWATCH_CELL};
     }

@@ -124,12 +124,18 @@ public:
         add(QStringLiteral("empty/notes.txt"), "notes");
     }
 
-    [[nodiscard]] QString java() const { return path(QStringLiteral("jdk-21/bin/") + javaProgramName()); }
-    [[nodiscard]] QString oldJava() const { return path(QStringLiteral("jdk-11/bin/") + javaProgramName()); }
+    [[nodiscard]] QString java() const {
+        return path(QStringLiteral("jdk-21/bin/") + javaProgramName());
+    }
+    [[nodiscard]] QString oldJava() const {
+        return path(QStringLiteral("jdk-11/bin/") + javaProgramName());
+    }
     [[nodiscard]] QString languageTool() const { return path(QStringLiteral("LanguageTool-6.6")); }
     [[nodiscard]] QString emptyFolder() const { return path(QStringLiteral("empty")); }
     [[nodiscard]] QString notJava() const { return path(QStringLiteral("empty/notes.txt")); }
-    [[nodiscard]] QString missing(const QString& name) const { return path(QStringLiteral("missing/") + name); }
+    [[nodiscard]] QString missing(const QString& name) const {
+        return path(QStringLiteral("missing/") + name);
+    }
 
 private:
     [[nodiscard]] QString path(const QString& name) const {

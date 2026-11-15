@@ -115,19 +115,23 @@ public:
     ///        current text
     /// @param index Paragraph index (0-based)
     /// @note Sources without checks have none
-    [[nodiscard]] virtual std::vector<TextHighlight> paragraphHighlights(size_t /*index*/) const { return {}; }
+    [[nodiscard]] virtual std::vector<TextHighlight> paragraphHighlights(size_t /*index*/) const {
+        return {};
+    }
 
     /// @brief The marks of the annotations of a paragraph (see annotationMarksIn())
     /// @param index Paragraph index (0-based)
     /// @note Sources without annotations have none
-    [[nodiscard]] virtual std::vector<AnnotationMark> paragraphAnnotationMarks(size_t /*index*/) const {
+    [[nodiscard]] virtual std::vector<AnnotationMark> paragraphAnnotationMarks(
+        size_t /*index*/) const {
         return {};
     }
 
     /// @brief The formatting marks of a paragraph (see formattingMarksOf())
     /// @param index Paragraph index (0-based)
     /// @note Sources without them have none
-    [[nodiscard]] virtual std::vector<FormattingMark> paragraphFormattingMarks(size_t /*index*/) const {
+    [[nodiscard]] virtual std::vector<FormattingMark> paragraphFormattingMarks(
+        size_t /*index*/) const {
         return {};
     }
 
@@ -135,7 +139,9 @@ public:
     ///        (character_format.h)
     /// @param index Paragraph index (0-based)
     /// @note Sources without formats have none
-    [[nodiscard]] virtual std::vector<ColoredText> paragraphColors(size_t /*index*/) const { return {}; }
+    [[nodiscard]] virtual std::vector<ColoredText> paragraphColors(size_t /*index*/) const {
+        return {};
+    }
 
     /// @brief Draw the number or bullet of a list item in the paragraph's coordinates (its
     ///        top left at the painter's origin), in the painter's pen unless it has a color
@@ -191,13 +197,18 @@ public:
 
     /// @brief Paragraph under a point (document coordinates): in a row of a table, the
     ///        paragraph of the cell under it
-    [[nodiscard]] virtual size_t paragraphAt(const QPointF& point) const { return paragraphAtY(point.y()); }
+    [[nodiscard]] virtual size_t paragraphAt(const QPointF& point) const {
+        return paragraphAtY(point.y());
+    }
 
     /// @brief The tables with a paragraph among [first, last], as their grids are drawn
-    [[nodiscard]] virtual std::vector<TableGrid> tablesIn(size_t /*first*/, size_t /*last*/) const { return {}; }
+    [[nodiscard]] virtual std::vector<TableGrid> tablesIn(size_t /*first*/, size_t /*last*/) const {
+        return {};
+    }
 
     /// @brief The cells a selection selects whole; nothing for a selection of text
-    [[nodiscard]] virtual std::optional<TableCellSelection> cellSelection(const SelectionRange& /*selection*/) const {
+    [[nodiscard]] virtual std::optional<TableCellSelection> cellSelection(
+        const SelectionRange& /*selection*/) const {
         return std::nullopt;
     }
 
@@ -299,7 +310,8 @@ public:
     [[nodiscard]] size_t firstParagraphAtY(double y) const override;
     [[nodiscard]] size_t paragraphAt(const QPointF& point) const override;
     [[nodiscard]] std::vector<TableGrid> tablesIn(size_t first, size_t last) const override;
-    [[nodiscard]] std::optional<TableCellSelection> cellSelection(const SelectionRange& selection) const override;
+    [[nodiscard]] std::optional<TableCellSelection> cellSelection(
+        const SelectionRange& selection) const override;
     [[nodiscard]] QPointF fromRepeatedHeader(const QPointF& point) const override;
 
     void setTextWidth(double width) override;

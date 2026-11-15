@@ -81,7 +81,9 @@ public:
 
     /// @brief The minutes of the day at the left and the right edges of the data of the graph
     /// (now in the middle: before the start and after the end of the day too)
-    [[nodiscard]] std::pair<double, double> shownMinutes() const { return {m_fromMinute, m_toMinute}; }
+    [[nodiscard]] std::pair<double, double> shownMinutes() const {
+        return {m_fromMinute, m_toMinute};
+    }
 
     /// @brief Now, in minutes from the start of the writing day
     [[nodiscard]] qint64 nowMinute() const { return m_nowMinute; }

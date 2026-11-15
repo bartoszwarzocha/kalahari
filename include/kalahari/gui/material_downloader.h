@@ -73,7 +73,9 @@ public:
     void fetchPicture(const QString& elementId, const QUrl& url);
 
     /// @brief Whether a download for material @p elementId is on its way
-    [[nodiscard]] bool isFetching(const QString& elementId) const { return m_fetching.contains(elementId); }
+    [[nodiscard]] bool isFetching(const QString& elementId) const {
+        return m_fetching.contains(elementId);
+    }
 
     /// @brief The title of page @p html: its <title>, with the characters its entities name,
     /// in the charset @p contentType or the page's <meta> gives, else in UTF-8; empty when it

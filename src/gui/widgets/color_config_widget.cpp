@@ -16,8 +16,7 @@ namespace kalahari::gui {
 
 ColorConfigWidget::ColorConfigWidget(const QString& label, QWidget* parent)
     : QWidget(parent)
-    , 
-     m_color(Qt::black)
+    , m_color(Qt::black)
 {
     // Create horizontal layout with 40/60 split for label/controls
     QHBoxLayout* layout = new QHBoxLayout(this);

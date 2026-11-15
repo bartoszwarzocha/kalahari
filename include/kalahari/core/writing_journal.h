@@ -69,7 +69,7 @@ public:
     /// @brief The record of the days of the calendar from @p from to @p to, of all the books or
     /// of one
     [[nodiscard]] QList<WritingActivity> activity(const QDate& from, const QDate& to,
-                                    const QString& bookId = {}) const;
+                                                  const QString& bookId = {}) const;
 
     /// @brief The badges won by the writer and in the months (EarnedBadge::scope), by date
     [[nodiscard]] QList<EarnedBadge> badges() const;
