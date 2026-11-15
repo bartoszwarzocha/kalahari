@@ -1105,6 +1105,10 @@ signals:
     /// @brief A bibliographic description, the source of a quote or the style of the book's
     /// bibliography changed (setSource(), setQuoteSource(), setBookBibliographyStyle())
     void sourcesChanged();
+
+    /// @brief Element @p elementId got another title (renameElement())
+    void elementRenamed(const QString& elementId);
+
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted
     void versionsChanged(const QString& elementId);
