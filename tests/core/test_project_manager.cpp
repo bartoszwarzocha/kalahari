@@ -6,6 +6,7 @@
 /// and the data of their chapter files
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/file_trash.h>
@@ -1861,7 +1862,7 @@ TEST_CASE("ProjectManager keeps the description, own fields, links and turn of a
 
 TEST_CASE("ProjectManager keeps the description and the plot of the texts of the book",
           "[project_manager][plot]") {
-    QTemporaryDir dir;
+    const QTemporaryDir dir;
     auto& pm = projects();
     REQUIRE(pm.createProject(dir.path(), "Plot", "Author", "en", true, "kalahari.novel"));
     const QString manifest = pm.getManifestPath();
@@ -1921,7 +1922,7 @@ TEST_CASE("ProjectManager keeps the description and the plot of the texts of the
 
 TEST_CASE("ProjectManager gives the scenes of a text and keeps what they say",
           "[project_manager][plot][scenes]") {
-    QTemporaryDir dir;
+    const QTemporaryDir dir;
     auto& pm = projects();
     REQUIRE(pm.createProject(dir.path(), "Scenes", "Author", "en", true, "kalahari.novel"));
     const QString manifest = pm.getManifestPath();
@@ -1986,7 +1987,7 @@ TEST_CASE("ProjectManager gives the scenes of a text and keeps what they say",
 
 TEST_CASE("ProjectManager takes a text with its scenes moved, added or deleted",
           "[project_manager][plot][scenes]") {
-    QTemporaryDir dir;
+    const QTemporaryDir dir;
     auto& pm = projects();
     REQUIRE(pm.createProject(dir.path(), "Moves", "Author", "en", true, "kalahari.novel"));
     const QString manifest = pm.getManifestPath();
@@ -2000,7 +2001,8 @@ TEST_CASE("ProjectManager takes a text with its scenes moved, added or deleted",
     opening.title = "Evening";
     REQUIRE(pm.setScenePlot(chapter, 0, opening));
 
-    const SceneText text{pm.chapterText(chapter), pm.findElement(chapter)->plot.opening};
+    const SceneText text{.kml = pm.chapterText(chapter),
+                         .opening = pm.findElement(chapter)->plot.opening};
     const std::optional<SceneText> moved = ChapterDocument::withSceneMoved(text, 1, 0);
     REQUIRE(moved.has_value());
     REQUIRE(pm.setSceneText(chapter, *moved));

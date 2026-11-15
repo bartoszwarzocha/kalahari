@@ -178,14 +178,14 @@ struct ScenePlot {
     QJsonObject extra;    ///< Fields of "opening" this version does not know, saved back
 
     /// @brief Whether it says nothing
-    bool isEmpty() const {
+    [[nodiscard]] bool isEmpty() const {
         return title.isEmpty() && description.isEmpty() && pov.isEmpty() && place.isEmpty() &&
                time.isEmpty() && color.isEmpty() && status.isEmpty() && extra.isEmpty();
     }
 
     /// @brief Its fields with text by their names: "title", "description", "pov", "place",
     /// "time", "color", "status" (the attributes of a scene break, the fields of "opening")
-    QMap<QString, QString> toAttributes() const;
+    [[nodiscard]] QMap<QString, QString> toAttributes() const;
 
     /// @brief The plot of a scene from its fields by their names (toAttributes())
     static ScenePlot fromAttributes(const QMap<QString, QString>& attributes);
@@ -210,7 +210,7 @@ struct ElementPlot {
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
     /// @brief Whether it says nothing: the file has no "plot"
-    bool isEmpty() const {
+    [[nodiscard]] bool isEmpty() const {
         return pov.isEmpty() && place.isEmpty() && time.isEmpty() && color.isEmpty() &&
                opening.isEmpty() && extra.isEmpty();
     }

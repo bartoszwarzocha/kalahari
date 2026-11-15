@@ -490,6 +490,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/plot_outline_model.cpp               # The outline of the book
     ${CMAKE_SOURCE_DIR}/src/gui/panels/plot_board_panel.cpp          # The tab of the plot board
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view.cpp          # The cards of the texts
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view_input.cpp    # Its keys and the mouse
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view_layout.cpp   # Where the cards are
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_board_view_paint.cpp    # The cards painted
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/plot_card_editor.cpp         # A card edited (F2)
     ${CMAKE_SOURCE_DIR}/src/gui/version_texts.cpp                    # What the program says of a version
     ${CMAKE_SOURCE_DIR}/src/gui/versions_coordinator.cpp             # Save Version and Version History

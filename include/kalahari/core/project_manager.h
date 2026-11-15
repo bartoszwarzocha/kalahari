@@ -737,8 +737,8 @@ public:
     /// @param kml The text with changes its file does not have (an editor's); none: the text
     ///        of its chapter file
     /// @return None for another element
-    QList<KmlScene> scenesOf(const QString& elementId,
-                             const std::optional<QString>& kml = std::nullopt) const;
+    [[nodiscard]] QList<KmlScene> scenesOf(const QString& elementId,
+                                           const std::optional<QString>& kml = std::nullopt) const;
 
     /// @brief Give scene @p scene (from 0) of text element @p elementId of a book the plot
     /// @p plot: the first scene in the .klh file, another in the chapter file, at its break
@@ -1164,6 +1164,17 @@ private:
     /// @brief Whether the open book is read-only, so that @p what does not change it; the log
     /// says so
     bool refusesChange(const char* what) const;
+
+    /// @brief Text element @p elementId of a book (not of the Workshop); nullptr: none
+    [[nodiscard]] const ProjectElement* bookTextOf(const QString& elementId) const;
+
+    /// @brief Whether @p what can write the chapter file of text @p element: the book is not
+    /// read-only and the text has no changes its file does not have; the log says why not
+    [[nodiscard]] bool canWriteText(const char* what, const ProjectElement& element) const;
+
+    /// @brief Write @p kml to the chapter file of text @p element, and keep it as the text
+    /// loaded
+    bool writeText(const ProjectElement& element, const QString& kml);
 
     /// @brief List that a new element of @p kind goes to: @p place of the book, or group
     /// @p groupId; nullptr, with the reason in the log, when the kind cannot be there

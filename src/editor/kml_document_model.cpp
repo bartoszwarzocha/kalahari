@@ -8,6 +8,7 @@
 
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/editor/kml_format_registry.h"
+#include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/text_captions.h"
 #include "kalahari/editor/text_footnotes.h"
 #include "kalahari/editor/text_images.h"

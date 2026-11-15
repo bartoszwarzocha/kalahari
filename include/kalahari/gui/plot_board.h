@@ -83,28 +83,28 @@ public:
     /// @{
     /// The board or the outline, the one shown last: VIEW_BOARD or VIEW_OUTLINE
     static constexpr const char* VIEW_SETTING = "plotBoard.view";
-    static constexpr const char* VIEW_BOARD = "board";
-    static constexpr const char* VIEW_OUTLINE = "outline";
+    static constexpr const char* VIEW_BOARD = "board";      ///< The board of the cards
+    static constexpr const char* VIEW_OUTLINE = "outline";  ///< The outline: a table
     /// The layout of the cards: LAYOUT_COLUMNS (the parts side by side) or LAYOUT_GRID (the
     /// cards in rows under the titles of the parts)
     static constexpr const char* LAYOUT_SETTING = "plotBoard.layout";
-    static constexpr const char* LAYOUT_COLUMNS = "columns";
-    static constexpr const char* LAYOUT_GRID = "grid";
+    static constexpr const char* LAYOUT_COLUMNS = "columns";  ///< The parts side by side
+    static constexpr const char* LAYOUT_GRID = "grid";        ///< The cards in rows
     /// Whether the board shows the scenes of the texts (in Grid: with their drawers open) and
     /// the outline their rows
     static constexpr const char* SCENES_SETTING = "plotBoard.showScenes";
     /// The size of the cards: SIZE_SMALL, SIZE_MEDIUM or SIZE_LARGE
     static constexpr const char* SIZE_SETTING = "plotBoard.cardSize";
-    static constexpr const char* SIZE_SMALL = "small";
-    static constexpr const char* SIZE_MEDIUM = "medium";
-    static constexpr const char* SIZE_LARGE = "large";
+    static constexpr const char* SIZE_SMALL = "small";    ///< Small cards
+    static constexpr const char* SIZE_MEDIUM = "medium";  ///< Medium cards
+    static constexpr const char* SIZE_LARGE = "large";    ///< Large cards
     /// What colors the cards: COLOR_STATUS, COLOR_POV (a color for each point of view),
     /// COLOR_OWN (the writer's own color of each card) or COLOR_NONE
     static constexpr const char* COLOR_SETTING = "plotBoard.colorBy";
-    static constexpr const char* COLOR_STATUS = "status";
-    static constexpr const char* COLOR_POV = "pov";
-    static constexpr const char* COLOR_OWN = "own";
-    static constexpr const char* COLOR_NONE = "none";
+    static constexpr const char* COLOR_STATUS = "status";  ///< By the state of the text
+    static constexpr const char* COLOR_POV = "pov";        ///< By the point of view
+    static constexpr const char* COLOR_OWN = "own";        ///< By the own color of the card
+    static constexpr const char* COLOR_NONE = "none";      ///< Without colors
     /// @}
 
     /// @brief The texts of the main section of the open book in bands: each part with its

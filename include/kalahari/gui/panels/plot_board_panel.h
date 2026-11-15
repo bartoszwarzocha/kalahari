@@ -11,19 +11,24 @@
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/widgets/plot_board_view.h"
 
+#include <QList>
 #include <QPoint>
 #include <QString>
 #include <QStringList>
 #include <QWidget>
 
+#include <functional>
 #include <optional>
 
+class QAction;
 class QComboBox;
+class QKeyEvent;
 class QLabel;
 class QMenu;
 class QStackedWidget;
 class QTableView;
 class QToolButton;
+class QVBoxLayout;
 
 namespace kalahari::gui {
 
@@ -47,17 +52,21 @@ class PlotBoardPanel : public QWidget {
     Q_OBJECT
 
 public:
+    /// @brief The tab without texts, its look from the settings
     explicit PlotBoardPanel(QWidget* parent = nullptr);
     ~PlotBoardPanel() override;
 
     PlotBoardPanel(const PlotBoardPanel&) = delete;
     PlotBoardPanel& operator=(const PlotBoardPanel&) = delete;
+    PlotBoardPanel(PlotBoardPanel&&) = delete;
+    PlotBoardPanel& operator=(PlotBoardPanel&&) = delete;
 
     /// @brief Show @p bands on the board and in the outline
     void setBands(const QList<PlotBand>& bands);
 
     /// @brief Whether the book is open read-only: nothing can be changed
     void setReadOnly(bool readOnly);
+    /// @brief Whether the book is open read-only
     [[nodiscard]] bool isReadOnly() const { return m_readOnly; }
 
     /// @brief The points of view and the places the editors suggest
@@ -100,9 +109,11 @@ public:
     /// @brief The card @p elementId shown: a text or a scene; nullopt: none
     [[nodiscard]] std::optional<PlotCard> card(const QString& elementId) const;
 
-    /// @brief The board, the outline and its model
+    /// @brief The board of the cards
     [[nodiscard]] PlotBoardView* board() const { return m_board; }
+    /// @brief The outline: the table of the texts
     [[nodiscard]] QTableView* outline() const { return m_outline; }
+    /// @brief The model of the outline
     [[nodiscard]] PlotOutlineModel* outlineModel() const { return m_model; }
 
 signals:
@@ -138,8 +149,9 @@ signals:
     void pasteRequested(const QString& afterId);
     /// @brief Forget the text marked (Esc)
     void cutCancelled();
-    /// @brief Undo or redo the last change of the board
+    /// @brief Undo the last change of the board
     void undoRequested();
+    /// @brief Redo the last change of the board undone
     void redoRequested();
     /// @brief Show the text in the Properties panel with the keys there (Alt+Enter)
     void propertiesRequested(const QString& elementId);
@@ -150,6 +162,20 @@ protected:
 
 private:
     void buildHeader(QWidget* header);
+    /// @brief The board and the outline in a stack, and the bar under them
+    void buildBody(QVBoxLayout* layout);
+    void connectBoard();
+    void connectOutline();
+    /// @brief The look follows the settings and the theme
+    void followSettings();
+    QAction* addMenuAction(const QString& text, const QString& keys, bool enabled,
+                           const std::function<void()>& run);
+    /// @brief The states of the card in the menu
+    void addStateMenu(const QString& elementId, const std::optional<PlotCard>& found);
+    /// @brief The own colors of the card in the menu
+    void addColorMenu(const QString& elementId, const std::optional<PlotCard>& found);
+    /// @brief Whether the card marked can go after card @p elementId
+    [[nodiscard]] bool canPasteAfter(const QString& elementId) const;
     void updateTotals();
     void updateSwitches();
     void onOutlineEdited(const QString& elementId, int column, const QString& value);
@@ -157,6 +183,9 @@ private:
     /// @brief Whether a key of the outline is the board's (false: the table's own key), and
     /// with @p run, do what it does
     bool outlineKey(const QKeyEvent* key, bool run);
+    /// @brief Whether the outline takes key @p action of the board
+    [[nodiscard]] bool takesKey(PlotBoardView::Key action) const;
+    void doOutlineKey(PlotBoardView::Key action);
 
     QList<PlotBand> m_bands;
     bool m_readOnly = false;

@@ -7,12 +7,26 @@
 
 #include "kalahari/gui/plot_outline_model.h"
 
+#include "kalahari/gui/plot_board.h"
+
+#include <QAbstractItemModel>
+#include <QAbstractTableModel>
 #include <QComboBox>
 #include <QCompleter>
 #include <QFont>
 #include <QLineEdit>
+#include <QList>
 #include <QLocale>
+#include <QModelIndex>
+#include <QObject>
 #include <QPalette>
+#include <QString>
+#include <QStringList>
+#include <QStyledItemDelegate>
+#include <QVariant>
+#include <QWidget>
+
+#include <algorithm>
 
 namespace kalahari::gui {
 
@@ -28,6 +42,98 @@ const QStringList& statuses() {
 /// @brief A description in one line of a cell
 QString oneLine(const QString& text) {
     return text.simplified();
+}
+
+using Model = PlotOutlineModel;
+
+/// @brief Whether cell @p column of @p card is the title of a scene without one: it shows the
+/// name of the scene, quietly
+bool isUnnamed(const PlotCard& card, int column) {
+    return column == Model::TITLE_COLUMN && card.isScene() && card.title.isEmpty();
+}
+
+/// @brief Where the text of cell @p column is: the numbers on the right
+QVariant alignmentOf(int column) {
+    if (column == Model::WORDS_COLUMN || column == Model::NUMBER_COLUMN) {
+        return QVariant::fromValue(Qt::AlignRight | Qt::AlignVCenter);
+    }
+    return QVariant::fromValue(Qt::AlignLeft | Qt::AlignVCenter);
+}
+
+/// @brief The cells of @p card that look as they are edited: its description in one line,
+/// its point of view, place and time
+QVariant plainTextOf(const PlotCard& card, int column) {
+    switch (column) {
+    case Model::DESCRIPTION_COLUMN:
+        return oneLine(card.description);
+    case Model::POV_COLUMN:
+        return card.plot.pov;
+    case Model::PLACE_COLUMN:
+        return card.plot.place;
+    case Model::TIME_COLUMN:
+        return card.plot.time;
+    default:
+        break;
+    }
+    return {};
+}
+
+/// @brief The number of @p card: "3" for the third text, "3.2" for its second scene
+QVariant numberOf(const PlotCard& card) {
+    if (card.isScene()) {
+        return QStringLiteral("%1.%2").arg(QLocale().toString(card.number),
+                                           QLocale().toString(card.scene + 1));
+    }
+    return card.number;
+}
+
+/// @brief What cell @p column of @p card shows
+QVariant shownTextOf(const PlotCard& card, int column) {
+    switch (column) {
+    case Model::NUMBER_COLUMN:
+        return numberOf(card);
+    case Model::TITLE_COLUMN:
+        return isUnnamed(card, column) ? card.kindName : card.title;
+    case Model::WORDS_COLUMN:
+        return QLocale().toString(card.words);
+    case Model::STATUS_COLUMN:
+        return PlotBoard::statusName(card.status);
+    default:
+        break;
+    }
+    return plainTextOf(card, column);
+}
+
+/// @brief What the editor of cell @p column of @p card starts with
+QVariant editTextOf(const PlotCard& card, int column) {
+    switch (column) {
+    case Model::TITLE_COLUMN:
+        return card.title;
+    case Model::STATUS_COLUMN:
+        return card.status;
+    default:
+        break;
+    }
+    return plainTextOf(card, column);
+}
+
+/// @brief The tip of cell @p column of @p card: its whole description, the kind of a title
+QVariant toolTipOf(const PlotCard& card, int column) {
+    if (column == Model::DESCRIPTION_COLUMN && !card.description.isEmpty()) {
+        return card.description;
+    }
+    if (column == Model::TITLE_COLUMN && !card.kindName.isEmpty()) {
+        return card.kindName;
+    }
+    return {};
+}
+
+/// @brief @p font in bold or in italics
+QFont fontOf(bool bold, bool italic) {
+    QFont font;
+    font.setBold(bold);
+    font.setItalic(italic);
+    return font;
 }
 
 }  // namespace
@@ -51,7 +157,7 @@ void PlotOutlineModel::setShowScenes(bool show) {
     fill();
 }
 
-void PlotOutlineModel::fill() {
+QList<PlotOutlineModel::Row> PlotOutlineModel::rowsOf() const {
     QList<Row> rows;
     for (const PlotBand& band : m_bands) {
         if (!band.partId.isEmpty()) {
@@ -59,7 +165,7 @@ void PlotOutlineModel::fill() {
             row.part = true;
             row.partId = band.partId;
             row.partTitle = band.title;
-            row.partTexts = int(band.cards.size());
+            row.partTexts = static_cast<int>(band.cards.size());
             row.partWords = band.words();
             rows << row;
         }
@@ -74,23 +180,26 @@ void PlotOutlineModel::fill() {
             }
         }
     }
+    return rows;
+}
+
+void PlotOutlineModel::fill() {
+    const QList<Row> rows = rowsOf();
     // The same rows only change their cells: the table keeps its cell and its editor
-    bool sameRows = rows.size() == m_rows.size();
-    for (qsizetype i = 0; sameRows && i < rows.size(); ++i) {
-        sameRows = rows.at(i).part == m_rows.at(i).part &&
-                   rows.at(i).partId == m_rows.at(i).partId &&
-                   rows.at(i).card.id == m_rows.at(i).card.id;
-    }
-    if (sameRows) {
+    const bool sameRows = std::ranges::equal(rows, m_rows, [](const Row& one, const Row& other) {
+        return one.part == other.part && one.partId == other.partId &&
+               one.card.id == other.card.id;
+    });
+    if (!sameRows) {
+        beginResetModel();
         m_rows = rows;
-        if (!m_rows.isEmpty()) {
-            emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1));
-        }
+        endResetModel();
         return;
     }
-    beginResetModel();
     m_rows = rows;
-    endResetModel();
+    if (!m_rows.isEmpty()) {
+        emit dataChanged(index(0, 0), index(rowCount() - 1, COLUMN_COUNT - 1));
+    }
 }
 
 void PlotOutlineModel::setReadOnly(bool readOnly) {
@@ -101,7 +210,7 @@ int PlotOutlineModel::rowOf(const QString& id) const {
     for (qsizetype i = 0; i < m_rows.size(); ++i) {
         const Row& row = m_rows.at(i);
         if ((row.part && row.partId == id) || (!row.part && row.card.id == id)) {
-            return int(i);
+            return static_cast<int>(i);
         }
     }
     return -1;
@@ -115,11 +224,11 @@ QString PlotOutlineModel::cardIdAt(int row) const {
 }
 
 int PlotOutlineModel::rowCount(const QModelIndex& parent) const {
-    return parent.isValid() ? 0 : int(m_rows.size());
+    return parent.isValid() ? 0 : static_cast<int>(m_rows.size());
 }
 
 int PlotOutlineModel::columnCount(const QModelIndex& parent) const {
-    return parent.isValid() ? 0 : ColumnCount;
+    return parent.isValid() ? 0 : COLUMN_COUNT;
 }
 
 QVariant PlotOutlineModel::data(const QModelIndex& index, int role) const {
@@ -127,107 +236,55 @@ QVariant PlotOutlineModel::data(const QModelIndex& index, int role) const {
         return {};
     }
     const Row& row = m_rows.at(index.row());
-    const int column = index.column();
-    if (role == ID_ROLE) {
+    switch (role) {
+    case ID_ROLE:
         return row.part ? row.partId : row.card.id;
-    }
-    if (role == PART_ROLE) {
+    case PART_ROLE:
         return row.part;
+    case Qt::TextAlignmentRole:
+        return alignmentOf(index.column());
+    default:
+        break;
     }
-    if (role == Qt::TextAlignmentRole) {
-        if (column == WordsColumn || column == NumberColumn) {
-            return QVariant::fromValue(Qt::AlignRight | Qt::AlignVCenter);
+    return row.part ? partData(row, index.column(), role)
+                    : cardData(row.card, index.column(), role);
+}
+
+QVariant PlotOutlineModel::partData(const Row& row, int column, int role) {
+    switch (role) {
+    case Qt::FontRole:
+        return fontOf(true, false);
+    case Qt::BackgroundRole:
+        return QPalette().brush(QPalette::AlternateBase);
+    case Qt::DisplayRole:
+    case Qt::AccessibleTextRole:
+        if (column == TITLE_COLUMN) {
+            return row.partTitle;
         }
-        return QVariant::fromValue(Qt::AlignLeft | Qt::AlignVCenter);
+        if (column == WORDS_COLUMN) {
+            return QLocale().toString(row.partWords);
+        }
+        break;
+    default:
+        break;
     }
-    if (row.part) {
-        if (role == Qt::FontRole) {
-            QFont font;
-            font.setBold(true);
-            return font;
-        }
-        if (role == Qt::BackgroundRole) {
-            return QPalette().brush(QPalette::AlternateBase);
-        }
-        if (role == Qt::DisplayRole || role == Qt::AccessibleTextRole) {
-            if (column == TitleColumn) {
-                return row.partTitle;
-            }
-            if (column == WordsColumn) {
-                return QLocale().toString(row.partWords);
-            }
-        }
-        return {};
-    }
-    const PlotCard& card = row.card;
-    // A scene without a title shows its name, quietly
-    const bool unnamed = card.isScene() && card.title.isEmpty() && column == TitleColumn;
+    return {};
+}
+
+QVariant PlotOutlineModel::cardData(const PlotCard& card, int column, int role) {
     switch (role) {
     case Qt::DisplayRole:
     case Qt::AccessibleTextRole:
-        switch (column) {
-        case NumberColumn:
-            if (card.isScene()) {
-                return QStringLiteral("%1.%2").arg(QLocale().toString(card.number),
-                                                   QLocale().toString(card.scene + 1));
-            }
-            return card.number;
-        case TitleColumn:
-            return unnamed ? card.kindName : card.title;
-        case DescriptionColumn:
-            return oneLine(card.description);
-        case PovColumn:
-            return card.plot.pov;
-        case PlaceColumn:
-            return card.plot.place;
-        case TimeColumn:
-            return card.plot.time;
-        case WordsColumn:
-            return QLocale().toString(card.words);
-        case StatusColumn:
-            return PlotBoard::statusName(card.status);
-        default:
-            break;
-        }
-        break;
+        return shownTextOf(card, column);
     case Qt::EditRole:
-        switch (column) {
-        case TitleColumn:
-            return card.title;
-        case DescriptionColumn:
-            return oneLine(card.description);
-        case PovColumn:
-            return card.plot.pov;
-        case PlaceColumn:
-            return card.plot.place;
-        case TimeColumn:
-            return card.plot.time;
-        case StatusColumn:
-            return card.status;
-        default:
-            break;
-        }
-        break;
+        return editTextOf(card, column);
     case Qt::ToolTipRole:
-        if (column == DescriptionColumn && !card.description.isEmpty()) {
-            return card.description;
-        }
-        if (column == TitleColumn && !card.kindName.isEmpty()) {
-            return card.kindName;
-        }
-        break;
+        return toolTipOf(card, column);
     case Qt::ForegroundRole:
-        if (unnamed) {
-            return QPalette().brush(QPalette::PlaceholderText);
-        }
-        break;
+        return isUnnamed(card, column) ? QVariant(QPalette().brush(QPalette::PlaceholderText))
+                                       : QVariant();
     case Qt::FontRole:
-        if (unnamed) {
-            QFont font;
-            font.setItalic(true);
-            return font;
-        }
-        break;
+        return isUnnamed(card, column) ? QVariant(fontOf(false, true)) : QVariant();
     default:
         break;
     }
@@ -238,29 +295,34 @@ QVariant PlotOutlineModel::headerData(int section, Qt::Orientation orientation, 
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole) {
         return QAbstractTableModel::headerData(section, orientation, role);
     }
-    switch (section) {
-    case NumberColumn:
+    const QString title = columnTitle(section);
+    return title.isEmpty() ? QVariant() : QVariant(title);
+}
+
+QString PlotOutlineModel::columnTitle(int column) {
+    switch (column) {
+    case NUMBER_COLUMN:
         //: A column of the outline: the number of the text. In Polish: Nr
         return tr("No.");
-    case TitleColumn:
+    case TITLE_COLUMN:
         //: In Polish: Tytuł
         return tr("Title");
-    case DescriptionColumn:
+    case DESCRIPTION_COLUMN:
         //: In Polish: Opis
         return tr("Description");
-    case PovColumn:
+    case POV_COLUMN:
         //: In Polish: Punkt widzenia
         return tr("Point of View");
-    case PlaceColumn:
+    case PLACE_COLUMN:
         //: In Polish: Miejsce
         return tr("Place");
-    case TimeColumn:
+    case TIME_COLUMN:
         //: In Polish: Czas akcji
         return tr("Time of the Action");
-    case WordsColumn:
+    case WORDS_COLUMN:
         //: In Polish: Słowa
         return tr("Words");
-    case StatusColumn:
+    case STATUS_COLUMN:
         //: In Polish: Stan
         return tr("State");
     default:
@@ -274,7 +336,7 @@ Qt::ItemFlags PlotOutlineModel::flags(const QModelIndex& index) const {
         return Qt::NoItemFlags;
     }
     Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
-    const bool editable = index.column() != NumberColumn && index.column() != WordsColumn;
+    const bool editable = index.column() != NUMBER_COLUMN && index.column() != WORDS_COLUMN;
     if (!m_rows.at(index.row()).part && editable && !m_readOnly) {
         flags |= Qt::ItemIsEditable;
     }
@@ -293,7 +355,7 @@ bool PlotOutlineModel::setData(const QModelIndex& index, const QVariant& value, 
         return false;
     }
     // A text keeps its title; a scene may have none
-    if (index.column() == TitleColumn && text.isEmpty() && !scene) {
+    if (index.column() == TITLE_COLUMN && text.isEmpty() && !scene) {
         return false;
     }
     emit cellEdited(id, index.column(), text);
@@ -313,7 +375,7 @@ void PlotOutlineDelegate::setSuggestions(const QStringList& povs, const QStringL
 
 QWidget* PlotOutlineDelegate::createEditor(QWidget* parent, const QStyleOptionViewItem& option,
                                            const QModelIndex& index) const {
-    if (index.column() == PlotOutlineModel::StatusColumn) {
+    if (index.column() == PlotOutlineModel::STATUS_COLUMN) {
         auto* states = new QComboBox(parent);
         for (const QString& status : statuses()) {
             states->addItem(PlotBoard::statusName(status), status);
@@ -322,10 +384,7 @@ QWidget* PlotOutlineDelegate::createEditor(QWidget* parent, const QStyleOptionVi
     }
     QWidget* editor = QStyledItemDelegate::createEditor(parent, option, index);
     auto* line = qobject_cast<QLineEdit*>(editor);
-    const QStringList& suggestions = index.column() == PlotOutlineModel::PovColumn ? m_povs
-                                     : index.column() == PlotOutlineModel::PlaceColumn
-                                         ? m_places
-                                         : QStringList();
+    const QStringList suggestions = suggestionsFor(index.column());
     if (line != nullptr && !suggestions.isEmpty()) {
         auto* completer = new QCompleter(suggestions, line);
         completer->setCaseSensitivity(Qt::CaseInsensitive);
@@ -333,6 +392,16 @@ QWidget* PlotOutlineDelegate::createEditor(QWidget* parent, const QStyleOptionVi
         line->setCompleter(completer);
     }
     return editor;
+}
+
+QStringList PlotOutlineDelegate::suggestionsFor(int column) const {
+    if (column == PlotOutlineModel::POV_COLUMN) {
+        return m_povs;
+    }
+    if (column == PlotOutlineModel::PLACE_COLUMN) {
+        return m_places;
+    }
+    return {};
 }
 
 void PlotOutlineDelegate::setEditorData(QWidget* editor, const QModelIndex& index) const {

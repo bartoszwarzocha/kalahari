@@ -8,6 +8,10 @@
 #include "kalahari/gui/plot_board_coordinator.h"
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/chapter_document.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
@@ -27,6 +31,7 @@
 #include <QUndoStack>
 
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -71,6 +76,64 @@ private:
     bool m_done = true;
 };
 
+/// @brief Where a text added after a card goes, of what kind
+struct NewText {
+    core::KindRef kind;        ///< Of the card after which it goes, else the main one
+    core::ElementPlace place;  ///< Right after the card, else at the end (index -1)
+    QString afterTitle;        ///< The title of the card; empty: at the end of the book
+};
+
+/// @brief Where a text added after card @p afterId of @p book goes: a text of the kind of the
+/// card right after it; without a card, a text of the main kind of the book at the end of its
+/// main section
+NewText newTextAfter(const core::ProjectManager& book, const QString& afterId) {
+    NewText text;
+    const core::ProjectElement* after = book.findElement(afterId);
+    const std::optional<core::ElementPlace> afterPlace =
+        after != nullptr && book.project() != nullptr ? book.project()->placeOf(afterId)
+                                                      : std::nullopt;
+    if (after == nullptr || !afterPlace || afterPlace->place != core::BookPlace::Main) {
+        text.kind = book.mainTextKind();
+        text.place.index = -1;
+        return text;
+    }
+    // The element is no more where it was once the book has another one: its title is kept
+    text.afterTitle = after->title;
+    text.kind = book.kindOf(*after);
+    text.place = *afterPlace;
+    ++text.place.index;
+    return text;
+}
+
+/// @brief Ask over @p window whether to delete scene @p name (the @p first one of its text)
+/// with its text or its break only
+dialogs::MessageDialog::Answer askDeleteScene(QWidget* window, const QString& name, bool first) {
+    return dialogs::MessageDialog::ask(
+        window,
+        //: The title of the question. In Polish: Usuń scenę
+        PlotBoardCoordinator::tr("Delete Scene"),
+        (first
+             //: %1 the scene. In Polish: Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na
+             //: tablicy ją przywróci. (new paragraph) Zachowaj tekst usuwa tylko podział
+             //: sceny: następna scena dołączy do tej.
+             ? PlotBoardCoordinator::tr(
+                   "Delete the scene \"%1\" with its text? Ctrl+Z on the board brings it "
+                   "back.\n\nKeep the Text removes only the scene break: the next scene joins "
+                   "this one.")
+             //: %1 the scene. In Polish: Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na
+             //: tablicy ją przywróci. (new paragraph) Zachowaj tekst usuwa tylko podział
+             //: sceny: jej tekst dołączy do poprzedniej sceny.
+             : PlotBoardCoordinator::tr(
+                   "Delete the scene \"%1\" with its text? Ctrl+Z on the board brings it "
+                   "back.\n\nKeep the Text removes only the scene break: its text joins the "
+                   "scene before it."))
+            .arg(name),
+        //: In Polish: &Usuń z tekstem
+        PlotBoardCoordinator::tr("&Delete with Text"),
+        //: In Polish: &Zachowaj tekst
+        PlotBoardCoordinator::tr("&Keep the Text"));
+}
+
 }  // namespace
 
 PlotBoardCoordinator::PlotBoardCoordinator(core::ProjectManager& book, QTabWidget* centralTabs,
@@ -82,11 +145,10 @@ PlotBoardCoordinator::PlotBoardCoordinator(core::ProjectManager& book, QTabWidge
       m_centralTabs(centralTabs),
       m_navigator(navigator),
       m_statusBar(statusBar),
-      m_showProperties(std::move(showProperties)) {
-    m_undo = new QUndoStack(this);
-
+      m_showProperties(std::move(showProperties)),
+      m_undo(new QUndoStack(this)),
+      m_refreshTimer(new QTimer(this)) {
     // Many changes at once (a text moved: the book, the Navigator) fill the board once
-    m_refreshTimer = new QTimer(this);
     m_refreshTimer->setSingleShot(true);
     m_refreshTimer->setInterval(0);
     connect(m_refreshTimer, &QTimer::timeout, this, &PlotBoardCoordinator::refreshNow);
@@ -401,16 +463,8 @@ void PlotBoardCoordinator::dropBeside(const QString& elementId, const QString& a
     if (m_book.isReadOnly()) {
         return;
     }
-    const auto scene = PlotBoard::sceneOf(elementId);
-    const auto anchor = PlotBoard::sceneOf(anchorId);
-    if (scene && anchor && scene->first == anchor->first) {
-        // Among the scenes of its text: the place of the anchor in the list without it
-        const int at = anchor->second > scene->second ? anchor->second - 1 : anchor->second;
-        moveScene(scene->first, scene->second, after ? at + 1 : at);
-        return;
-    }
-    if (scene || anchor) {
-        sceneInEditor();
+    if (PlotBoard::sceneOf(elementId).has_value() || PlotBoard::sceneOf(anchorId).has_value()) {
+        dropSceneBeside(elementId, anchorId, after);
         return;
     }
     const std::optional<core::ElementPlace> place =
@@ -422,6 +476,19 @@ void PlotBoardCoordinator::dropBeside(const QString& elementId, const QString& a
         return;
     }
     moveWithUndo(elementId, *place);
+}
+
+void PlotBoardCoordinator::dropSceneBeside(const QString& cardId, const QString& anchorId,
+                                           bool after) {
+    const auto scene = PlotBoard::sceneOf(cardId);
+    const auto anchor = PlotBoard::sceneOf(anchorId);
+    if (!scene || !anchor || scene->first != anchor->first) {
+        sceneInEditor();
+        return;
+    }
+    // Among the scenes of its text: the place of the anchor in the list without it
+    const int at = anchor->second > scene->second ? anchor->second - 1 : anchor->second;
+    moveScene(scene->first, scene->second, after ? at + 1 : at);
 }
 
 void PlotBoardCoordinator::dropInPart(const QString& elementId, const QString& partId) {
@@ -442,8 +509,7 @@ void PlotBoardCoordinator::dropInPart(const QString& elementId, const QString& p
 }
 
 void PlotBoardCoordinator::add(const QString& afterId) {
-    core::BookProject* project = m_book.project();
-    if (project == nullptr || m_book.isReadOnly()) {
+    if (m_book.project() == nullptr || m_book.isReadOnly()) {
         return;
     }
     if (const auto scene = PlotBoard::sceneOf(afterId)) {
@@ -453,30 +519,14 @@ void PlotBoardCoordinator::add(const QString& afterId) {
                    tr("Added a scene after \"%1\".").arg(titleOf(afterId)));
         return;
     }
-    // A text of the kind of the card, right after it; without a card, a text of the main kind
-    // of the book at the end of its main section
-    const core::ProjectElement* after = m_book.findElement(afterId);
-    const std::optional<core::ElementPlace> afterPlace =
-        after != nullptr ? project->placeOf(afterId) : std::nullopt;
-    // The element is no more where it was once the book has another one: its title is kept
-    QString afterTitle;
-    core::KindRef kind;
-    core::ElementPlace place;
-    if (after != nullptr && afterPlace && afterPlace->place == core::BookPlace::Main) {
-        afterTitle = after->title;
-        kind = m_book.kindOf(*after);
-        place = *afterPlace;
-        ++place.index;
-    } else {
-        kind = m_book.mainTextKind();
-        place.index = -1;
-    }
-    if (!kind || !core::ProjectManager::canAdd(kind)) {
+    const NewText text = newTextAfter(m_book, afterId);
+    if (!text.kind || !core::ProjectManager::canAdd(text.kind)) {
         return;
     }
-    const QString title = m_book.defaultTitle(kind);
+    const QString title = m_book.defaultTitle(text.kind);
     // The places the board remembers move: what can be undone is forgotten (onProjectChanged)
-    const QString added = m_book.addElement(kind, title, place.place, place.groupId, place.index);
+    const QString added =
+        m_book.addElement(text.kind, title, text.place.place, text.place.groupId, text.place.index);
     if (added.isEmpty()) {
         core::Logger::getInstance().error("PlotBoardCoordinator: Failed to add '{}'",
                                           title.toStdString());
@@ -490,10 +540,10 @@ void PlotBoardCoordinator::add(const QString& afterId) {
     }
     m_panel->setCurrentCard(added);
     m_panel->editCard(added);
-    say(!afterTitle.isEmpty()
+    say(!text.afterTitle.isEmpty()
             //: Under the plot board after Insert; %1 the title of the new text, %2 the card it
             //: is after. In Polish: Dodano „%1” za „%2”.
-            ? tr("Added \"%1\" after \"%2\".").arg(title, afterTitle)
+            ? tr(R"(Added "%1" after "%2".)").arg(title, text.afterTitle)
             //: Under the plot board after Insert with no card; %1 the title of the new text.
             //: In Polish: Dodano „%1” na końcu książki.
             : tr("Added \"%1\" at the end of the book.").arg(title));
@@ -552,21 +602,12 @@ void PlotBoardCoordinator::paste(const QString& afterId) {
     if (m_panel != nullptr) {
         m_panel->setMarkedCard(QString());
     }
-    const auto scene = PlotBoard::sceneOf(afterId);
     if (const auto markedScene = PlotBoard::sceneOf(marked)) {
-        // A scene: after a scene of its text, or first after the card of its text
-        if (afterId == markedScene->first) {
-            moveScene(markedScene->first, markedScene->second, 0);
-        } else if (scene && scene->first == markedScene->first && afterId != marked) {
-            dropBeside(marked, afterId, true);
-        } else if (afterId == marked) {
-            say(QString());
-        } else {
-            sceneInEditor();
-        }
+        pasteScene(marked, markedScene->first, markedScene->second, afterId);
         return;
     }
     // After a scene: after its text
+    const auto scene = PlotBoard::sceneOf(afterId);
     const QString textId = scene ? scene->first : afterId;
     if (textId.isEmpty() || textId == marked || m_book.findElement(marked) == nullptr) {
         if (m_panel != nullptr) {
@@ -575,6 +616,21 @@ void PlotBoardCoordinator::paste(const QString& afterId) {
         return;
     }
     dropBeside(marked, textId, true);
+}
+
+void PlotBoardCoordinator::pasteScene(const QString& marked, const QString& textId, int scene,
+                                      const QString& afterId) {
+    // A scene: after a scene of its text, or first after the card of its text
+    const auto after = PlotBoard::sceneOf(afterId);
+    if (afterId == textId) {
+        moveScene(textId, scene, 0);
+    } else if (afterId == marked) {
+        say(QString());
+    } else if (after && after->first == textId) {
+        dropBeside(marked, afterId, true);
+    } else {
+        sceneInEditor();
+    }
 }
 
 void PlotBoardCoordinator::cancelCut() {
@@ -881,66 +937,57 @@ void PlotBoardCoordinator::addSceneAt(const QString& textId, int at, const QStri
 void PlotBoardCoordinator::removeScene(const QString& textId, int scene) {
     const std::optional<core::SceneText> text = sceneTextOf(textId);
     const int count = sceneCount(textId);
+    // A text with one scene has no scene break to delete
     if (!text || scene < 0 || scene >= count || count < 2) {
         return;
     }
-    const QString name = titleOf(PlotBoard::sceneId(textId, scene));
     using dialogs::MessageDialog;
-    const MessageDialog::Answer answer = MessageDialog::ask(
-        window(),
-        //: The title of the question. In Polish: Usuń scenę
-        tr("Delete Scene"),
-        (scene == 0
-             //: %1 the scene. In Polish: Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na
-             //: tablicy ją przywróci. (new paragraph) Zachowaj tekst usuwa tylko podział
-             //: sceny: następna scena dołączy do tej.
-             ? tr("Delete the scene \"%1\" with its text? Ctrl+Z on the board brings it "
-                  "back.\n\nKeep the Text removes only the scene break: the next scene joins "
-                  "this one.")
-             //: %1 the scene. In Polish: Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na
-             //: tablicy ją przywróci. (new paragraph) Zachowaj tekst usuwa tylko podział
-             //: sceny: jej tekst dołączy do poprzedniej sceny.
-             : tr("Delete the scene \"%1\" with its text? Ctrl+Z on the board brings it "
-                  "back.\n\nKeep the Text removes only the scene break: its text joins the scene "
-                  "before it."))
-            .arg(name),
-        //: In Polish: &Usuń z tekstem
-        tr("&Delete with Text"),
-        //: In Polish: &Zachowaj tekst
-        tr("&Keep the Text"));
-    if (answer == MessageDialog::Answer::Cancel) {
-        if (m_panel != nullptr) {
-            m_panel->focusView();
-        }
-        return;
+    const MessageDialog::Answer answer =
+        askDeleteScene(window(), titleOf(PlotBoard::sceneId(textId, scene)), scene == 0);
+    if (answer != MessageDialog::Answer::Cancel) {
+        deleteScene(textId, *text, scene, answer == MessageDialog::Answer::Alternative);
     }
-    const bool keepText = answer == MessageDialog::Answer::Alternative;
+    // The keys go back to the board after the question
+    if (m_panel != nullptr) {
+        m_panel->focusView();
+    }
+}
+
+void PlotBoardCoordinator::deleteScene(const QString& textId, const core::SceneText& text,
+                                       int scene, bool keepText) {
     const std::optional<core::SceneText> changed =
-        core::ChapterDocument::withoutScene(*text, scene, keepText);
+        core::ChapterDocument::withoutScene(text, scene, keepText);
     if (!changed) {
         notSaved();
         return;
     }
-    // The scene beside is chosen; the text when it has one scene now
-    const int left = count - 1;
-    const int chosen = keepText ? std::max(scene - 1, 0) : std::min(scene, left - 1);
-    const QString cardId = left > 1 ? PlotBoard::sceneId(textId, chosen) : textId;
-    changeScenes(textId, *changed, cardId,
-                 keepText
+    const QString name = titleOf(PlotBoard::sceneId(textId, scene));
+    const QString cardId = cardAfterRemoving(textId, scene, sceneCount(textId), keepText);
+    if (keepText) {
+        changeScenes(textId, *changed, cardId,
                      //: Under the plot board; %1 the scene. In Polish: „%1” połączono ze
                      //: sceną obok.
-                     ? tr("\"%1\" is joined with the scene beside it.").arg(name)
-                     //: Under the plot board; %1 the scene. In Polish: Usunięto „%1”.
-                     : tr("Deleted \"%1\".").arg(name),
-                 keepText
+                     tr("\"%1\" is joined with the scene beside it.").arg(name),
                      //: What Undo undoes on the plot board, after "Undone:". In Polish:
                      //: połączenie „%1”
-                     ? tr("joining \"%1\"").arg(name)
-                     //: In Polish: usunięcie „%1”
-                     : tr("deleting \"%1\"").arg(name));
-    if (m_panel != nullptr) {
-        m_panel->focusView();
+                     tr("joining \"%1\"").arg(name));
+        return;
     }
+    changeScenes(textId, *changed, cardId,
+                 //: Under the plot board; %1 the scene. In Polish: Usunięto „%1”.
+                 tr("Deleted \"%1\".").arg(name),
+                 //: In Polish: usunięcie „%1”
+                 tr("deleting \"%1\"").arg(name));
+}
+
+QString PlotBoardCoordinator::cardAfterRemoving(const QString& textId, int scene, int count,
+                                                bool keepText) {
+    // The scene beside is chosen; the text when it has one scene now
+    const int left = count - 1;
+    if (left < 2) {
+        return textId;
+    }
+    return PlotBoard::sceneId(textId, keepText ? std::max(scene - 1, 0) : std::min(scene, left - 1));
 }
 
 void PlotBoardCoordinator::changeScenes(const QString& textId, const core::SceneText& wanted,
@@ -1008,7 +1055,8 @@ bool PlotBoardCoordinator::replaceSceneText(const QString& textId,
         saved = m_book.setSceneText(textId, wanted);
     }
     --m_ownChanges;
-    if (const std::optional<core::SceneText> after = sceneTextOf(textId); after && now) {
+    if (const std::optional<core::SceneText> after = sceneTextOf(textId);
+        after && now != nullptr) {
         *now = *after;
     }
     refreshNow();
@@ -1021,13 +1069,14 @@ std::optional<core::SceneText> PlotBoardCoordinator::sceneTextOf(const QString& 
         return std::nullopt;
     }
     const editor::BookEditor* text = editorOf(textId);
-    return core::SceneText{text != nullptr ? text->toKml() : m_book.chapterText(textId),
-                           element->plot.opening};
+    return core::SceneText{
+        .kml = text != nullptr ? text->toKml() : m_book.chapterText(textId),
+        .opening = element->plot.opening};
 }
 
 int PlotBoardCoordinator::sceneCount(const QString& textId) const {
     const std::optional<core::SceneText> text = sceneTextOf(textId);
-    return text ? int(core::ChapterDocument::kmlScenes(text->kml).size()) : 0;
+    return text ? static_cast<int>(core::ChapterDocument::kmlScenes(text->kml).size()) : 0;
 }
 
 QHash<QString, QString> PlotBoardCoordinator::unsavedTexts() const {
@@ -1065,7 +1114,8 @@ PlotBoardCoordinator::CardText PlotBoardCoordinator::cardTextOf(const QString& e
     if (element == nullptr) {
         return {};
     }
-    return CardText{element->title, element->description, element->plot};
+    return CardText{.title = element->title, .description = element->description,
+                    .plot = element->plot};
 }
 
 QString PlotBoardCoordinator::titleOf(const QString& elementId) const {
@@ -1076,9 +1126,13 @@ QString PlotBoardCoordinator::titleOf(const QString& elementId) const {
         }
         //: A scene without a title in what is said under the plot board; %1 the title of its
         //: text, %2 "Scene 2". In Polish: %1, %2
-        return tr("%1, %2").arg(titleOf(scene->first), PlotBoard::sceneName(scene->second));
+        return tr("%1, %2").arg(textTitleOf(scene->first), PlotBoard::sceneName(scene->second));
     }
-    const core::ProjectElement* element = m_book.findElement(elementId);
+    return textTitleOf(elementId);
+}
+
+QString PlotBoardCoordinator::textTitleOf(const QString& textId) const {
+    const core::ProjectElement* element = m_book.findElement(textId);
     return element != nullptr ? element->title : QString();
 }
 

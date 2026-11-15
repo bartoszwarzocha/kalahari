@@ -25,6 +25,7 @@
 #include <QThread>
 
 #include <filesystem>
+#include <optional>
 
 using namespace kalahari::core;
 
@@ -885,11 +886,12 @@ TEST_CASE("ChapterDocument: the scenes of a text moved, added and deleted",
     night.title = QStringLiteral("Night");
     night.pov = QStringLiteral("Anna");
     const SceneText text{
-        QStringLiteral("<kml><annotations><annotation id=\"a1\" kind=\"note\">N</annotation>"
-                       "</annotations><h1>Chapter One</h1><p>One</p>"
-                       "<scene-break title=\"Night\" pov=\"Anna\"/><p>Two</p><scene-break/>"
-                       "<p>Three</p></kml>"),
-        opening};
+        .kml = QStringLiteral(
+            "<kml><annotations><annotation id=\"a1\" kind=\"note\">N</annotation>"
+            "</annotations><h1>Chapter One</h1><p>One</p>"
+            "<scene-break title=\"Night\" pov=\"Anna\"/><p>Two</p><scene-break/>"
+            "<p>Three</p></kml>"),
+        .opening = opening};
     const auto plotsOf = [](const SceneText& changed) {
         QStringList titles;
         for (const KmlScene& scene : ChapterDocument::kmlScenes(changed.kml)) {
@@ -938,7 +940,8 @@ TEST_CASE("ChapterDocument: the scenes of a text moved, added and deleted",
         CHECK(last->kml.endsWith(QStringLiteral("<p>Three</p><scene-break/><p></p></kml>")));
         // A text without breaks gets its second scene
         const std::optional<SceneText> plain =
-            ChapterDocument::withSceneAdded(SceneText{QStringLiteral("<kml><p>a</p></kml>"), {}}, 1);
+            ChapterDocument::withSceneAdded(
+                SceneText{.kml = QStringLiteral("<kml><p>a</p></kml>"), .opening = {}}, 1);
         REQUIRE(plain.has_value());
         CHECK(plain->kml.toStdString() == "<kml><p>a</p><scene-break/><p></p></kml>");
         CHECK(ChapterDocument::withSceneAdded(SceneText{QStringLiteral("<kml/>"), {}}, 1)->kml

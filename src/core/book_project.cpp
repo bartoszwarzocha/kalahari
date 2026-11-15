@@ -16,6 +16,7 @@
 #include <QUrl>
 #include <QUuid>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <functional>
 #include <iterator>
@@ -39,9 +40,22 @@ const BookPart BOOK_PARTS[] = {
     {BookPlace::Back, "back", &ProjectBook::backElements},
 };
 
+/// @brief A field of the plot of a scene: its key and where ScenePlot keeps it
+struct SceneField {
+    const char* key;             ///< Key in the .klh file and attribute of a scene break
+    QString ScenePlot::*member;  ///< The field of ScenePlot
+};
+
 /// The fields of the plot of a scene (ScenePlot::toAttributes()), in the order they are written
-constexpr const char* SCENE_FIELDS[] = {"title", "description", "pov",   "place",
-                                        "time",  "color",       "status"};
+constexpr std::array<SceneField, 7> SCENE_FIELDS{{
+    {.key = "title", .member = &ScenePlot::title},
+    {.key = "description", .member = &ScenePlot::description},
+    {.key = "pov", .member = &ScenePlot::pov},
+    {.key = "place", .member = &ScenePlot::place},
+    {.key = "time", .member = &ScenePlot::time},
+    {.key = "color", .member = &ScenePlot::color},
+    {.key = "status", .member = &ScenePlot::status},
+}};
 
 const BookPart& bookPart(BookPlace place) {
     const auto* found = std::find_if(std::begin(BOOK_PARTS), std::end(BOOK_PARTS),
@@ -396,9 +410,9 @@ void readPlot(Fields& fields, ProjectElement& element, QStringList& problems) {
     if (const QJsonValue opening = plotFields.take("opening"); opening.isObject()) {
         Fields openingFields(opening.toObject(), plotFields.path("opening"), problems);
         QMap<QString, QString> attributes;
-        for (const char* key : SCENE_FIELDS) {
-            if (const QString value = openingFields.string(key); !value.isEmpty()) {
-                attributes.insert(QLatin1String(key), value);
+        for (const SceneField& field : SCENE_FIELDS) {
+            if (const QString value = openingFields.string(field.key); !value.isEmpty()) {
+                attributes.insert(QLatin1String(field.key), value);
             }
         }
         data.opening = ScenePlot::fromAttributes(attributes);
@@ -842,8 +856,8 @@ QJsonObject elementToJson(const ProjectElement& element) {
         } else {
             QJsonObject opening = plot.opening.extra;
             const QMap<QString, QString> attributes = plot.opening.toAttributes();
-            for (const char* key : SCENE_FIELDS) {
-                setOrRemove(opening, key, attributes.value(QLatin1String(key)));
+            for (const SceneField& field : SCENE_FIELDS) {
+                setOrRemove(opening, field.key, attributes.value(QLatin1String(field.key)));
             }
             data.insert(QLatin1String("opening"), opening);
         }
@@ -1156,27 +1170,30 @@ bool containsKind(const QList<KindRef>& kinds, const KindRef& ref) {
 // =============================================================================
 
 QMap<QString, QString> ScenePlot::toAttributes() const {
-    const QString* const values[] = {&title, &description, &pov, &place, &time, &color, &status};
     QMap<QString, QString> attributes;
-    for (size_t i = 0; i < std::size(SCENE_FIELDS); ++i) {
-        if (!values[i]->isEmpty()) {
-            attributes.insert(QLatin1String(SCENE_FIELDS[i]), *values[i]);
+    for (const SceneField& field : SCENE_FIELDS) {
+        if (const QString& value = this->*field.member; !value.isEmpty()) {
+            attributes.insert(QLatin1String(field.key), value);
         }
     }
     return attributes;
 }
 
 const QStringList& ScenePlot::fieldNames() {
-    static const QStringList NAMES(std::cbegin(SCENE_FIELDS), std::cend(SCENE_FIELDS));
+    static const QStringList NAMES = [] {
+        QStringList names;
+        for (const SceneField& field : SCENE_FIELDS) {
+            names << QLatin1String(field.key);
+        }
+        return names;
+    }();
     return NAMES;
 }
 
 ScenePlot ScenePlot::fromAttributes(const QMap<QString, QString>& attributes) {
     ScenePlot plot;
-    QString* const values[] = {&plot.title, &plot.description, &plot.pov,   &plot.place,
-                               &plot.time,  &plot.color,       &plot.status};
-    for (size_t i = 0; i < std::size(SCENE_FIELDS); ++i) {
-        *values[i] = attributes.value(QLatin1String(SCENE_FIELDS[i]));
+    for (const SceneField& field : SCENE_FIELDS) {
+        plot.*field.member = attributes.value(QLatin1String(field.key));
     }
     return plot;
 }

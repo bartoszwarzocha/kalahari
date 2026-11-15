@@ -7,12 +7,13 @@
 
 #include "kalahari/gui/panels/plot_board_panel.h"
 
-#include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/plot_outline_model.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/widgets/info_bar.h"
+#include "kalahari/gui/widgets/plot_board_view.h"
 
 #include <QAbstractItemView>
 #include <QActionGroup>
@@ -29,6 +30,11 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <functional>
+#include <optional>
 #include <string>
 
 namespace kalahari::gui {
@@ -59,25 +65,100 @@ QToolButton* switchButton(const QString& text, const char* name, QWidget* parent
     return button;
 }
 
+constexpr int HEADER_SPACING = 6;       ///< Between the switches over the board
+constexpr int HEADER_LINE_SPACING = 4;  ///< Between their lines, when they wrap
+constexpr int HEADER_MARGIN_X = 8;      ///< On the left and right of the switches
+constexpr int HEADER_MARGIN_Y = 6;      ///< Over and under them
+constexpr int SWATCH_SIZE = 12;         ///< Of a color in the menu Card Color
+
+// The widths of the columns of the outline in average characters
+constexpr int NUMBER_CHARACTERS = 5;   ///< The number of a text
+constexpr int TITLE_CHARACTERS = 24;   ///< Its title
+constexpr int SHORT_CHARACTERS = 14;   ///< Its point of view, time and state
+constexpr int PLACE_CHARACTERS = 18;   ///< Its place
+constexpr int WORDS_CHARACTERS = 9;    ///< Its words
+constexpr int OTHER_CHARACTERS = 40;   ///< The others
+
 /// @brief The width of a column of the outline in average characters
 int charactersOf(int column) {
     switch (column) {
-    case PlotOutlineModel::NumberColumn:
-        return 5;
-    case PlotOutlineModel::TitleColumn:
-        return 24;
-    case PlotOutlineModel::PovColumn:
-    case PlotOutlineModel::TimeColumn:
-    case PlotOutlineModel::StatusColumn:
-        return 14;
-    case PlotOutlineModel::PlaceColumn:
-        return 18;
-    case PlotOutlineModel::WordsColumn:
-        return 9;
+    case PlotOutlineModel::NUMBER_COLUMN:
+        return NUMBER_CHARACTERS;
+    case PlotOutlineModel::TITLE_COLUMN:
+        return TITLE_CHARACTERS;
+    case PlotOutlineModel::POV_COLUMN:
+    case PlotOutlineModel::TIME_COLUMN:
+    case PlotOutlineModel::STATUS_COLUMN:
+        return SHORT_CHARACTERS;
+    case PlotOutlineModel::PLACE_COLUMN:
+        return PLACE_CHARACTERS;
+    case PlotOutlineModel::WORDS_COLUMN:
+        return WORDS_CHARACTERS;
     default:
         break;
     }
-    return 40;
+    return OTHER_CHARACTERS;
+}
+
+/// @brief The size of the cards a setting names (PlotBoard::SIZE_SMALL...)
+PlotBoardView::CardSize cardSizeOf(const QString& size) {
+    if (size == QLatin1String(PlotBoard::SIZE_SMALL)) {
+        return PlotBoardView::CardSize::Small;
+    }
+    if (size == QLatin1String(PlotBoard::SIZE_LARGE)) {
+        return PlotBoardView::CardSize::Large;
+    }
+    return PlotBoardView::CardSize::Medium;
+}
+
+using Key = PlotBoardView::Key;
+
+/// @brief A key of the outline that asks for something with the card chosen
+struct CardRequest {
+    constexpr CardRequest(Key requestKey, void (PlotBoardPanel::*requestSignal)(const QString&))
+        : key(requestKey), signal(requestSignal) {}
+
+    Key key;                                        ///< The key
+    void (PlotBoardPanel::*signal)(const QString&);  ///< What it asks for, with the card
+};
+
+/// @brief A key of the outline that asks for something with the whole board
+struct BoardRequest {
+    constexpr BoardRequest(Key requestKey, void (PlotBoardPanel::*requestSignal)())
+        : key(requestKey), signal(requestSignal) {}
+
+    Key key;                          ///< The key
+    void (PlotBoardPanel::*signal)();  ///< What it asks for
+};
+
+/// @brief The keys of the board the outline takes for the card chosen; Enter on a cell edited
+/// is the cell's
+constexpr std::array<CardRequest, 7> CARD_REQUESTS{{
+    {Key::Open, &PlotBoardPanel::openRequested},
+    {Key::Properties, &PlotBoardPanel::propertiesRequested},
+    {Key::Add, &PlotBoardPanel::addRequested},
+    {Key::AddScene, &PlotBoardPanel::addSceneRequested},
+    {Key::Delete, &PlotBoardPanel::deleteRequested},
+    {Key::Cut, &PlotBoardPanel::cutRequested},
+    {Key::Paste, &PlotBoardPanel::pasteRequested},
+}};
+
+/// @brief The keys of the board the outline takes for the whole board
+constexpr std::array<BoardRequest, 3> BOARD_REQUESTS{{
+    {Key::Undo, &PlotBoardPanel::undoRequested},
+    {Key::Redo, &PlotBoardPanel::redoRequested},
+    {Key::CancelCut, &PlotBoardPanel::cutCancelled},
+}};
+
+/// @brief The request of @p key in @p requests; nullptr: none
+template <typename Request, std::size_t COUNT>
+const Request* requestOf(const std::array<Request, COUNT>& requests, Key key) {
+    for (const Request& request : requests) {
+        if (request.key == key) {
+            return &request;
+        }
+    }
+    return nullptr;
 }
 
 }  // namespace
@@ -92,7 +173,23 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
     header->setObjectName(QStringLiteral("plotBoardHeader"));
     buildHeader(header);
     layout->addWidget(header);
+    buildBody(layout);
+    connectBoard();
+    connectOutline();
+    followSettings();
 
+    applySettings();
+    for (int column = 0; column < PlotOutlineModel::COLUMN_COUNT; ++column) {
+        if (column != PlotOutlineModel::DESCRIPTION_COLUMN) {
+            m_outline->setColumnWidth(column,
+                                      m_outline->fontMetrics().averageCharWidth() *
+                                          charactersOf(column));
+        }
+    }
+    showView(setting(PlotBoard::VIEW_SETTING));
+}
+
+void PlotBoardPanel::buildBody(QVBoxLayout* layout) {
     m_stack = new QStackedWidget(this);
     m_board = new PlotBoardView(m_stack);
     m_outline = new QTableView(m_stack);
@@ -113,7 +210,7 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
     m_outline->verticalHeader()->hide();
     m_outline->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
     m_outline->horizontalHeader()->setStretchLastSection(false);
-    m_outline->horizontalHeader()->setSectionResizeMode(PlotOutlineModel::DescriptionColumn,
+    m_outline->horizontalHeader()->setSectionResizeMode(PlotOutlineModel::DESCRIPTION_COLUMN,
                                                         QHeaderView::Stretch);
     m_outline->setContextMenuPolicy(Qt::CustomContextMenu);
     m_outline->installEventFilter(this);
@@ -125,14 +222,17 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
     m_infoBar->setObjectName(QStringLiteral("plotBoardInfoBar"));
     m_infoBar->hide();
     layout->addWidget(m_infoBar);
+    connect(m_infoBar, &InfoBar::actionClicked, this, &PlotBoardPanel::undoRequested);
+    connect(m_infoBar, &InfoBar::dismissed, m_infoBar, &QWidget::hide);
 
     m_menu = new QMenu(this);
+}
 
-    // The board
+void PlotBoardPanel::connectBoard() {
     connect(m_board, &PlotBoardView::currentCardChanged, this, [this](const QString& id) {
         const int row = m_model->rowOf(id);
         if (row >= 0 && m_stack->currentWidget() == m_board) {
-            m_outline->setCurrentIndex(m_model->index(row, PlotOutlineModel::TitleColumn));
+            m_outline->setCurrentIndex(m_model->index(row, PlotOutlineModel::TITLE_COLUMN));
         }
         emit currentCardChanged(id);
     });
@@ -157,8 +257,9 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
     connect(m_board, &PlotBoardView::propertiesRequested, this,
             &PlotBoardPanel::propertiesRequested);
     connect(m_board, &PlotBoardView::menuRequested, this, &PlotBoardPanel::showMenu);
+}
 
-    // The outline
+void PlotBoardPanel::connectOutline() {
     connect(m_model, &PlotOutlineModel::cellEdited, this, &PlotBoardPanel::onOutlineEdited);
     connect(m_outline->selectionModel(), &QItemSelectionModel::currentChanged, this,
             [this](const QModelIndex& current) {
@@ -169,11 +270,9 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
             });
     connect(m_outline, &QTableView::doubleClicked, this, [this](const QModelIndex& index) {
         // A double-click edits the cells that can be edited, and opens the text on the others
-        if (!(m_model->flags(index) & Qt::ItemIsEditable)) {
-            const QString id = m_model->cardIdAt(index.row());
-            if (!id.isEmpty()) {
-                emit openRequested(id);
-            }
+        const QString id = m_model->cardIdAt(index.row());
+        if (!m_model->flags(index).testFlag(Qt::ItemIsEditable) && !id.isEmpty()) {
+            emit openRequested(id);
         }
     });
     connect(m_outline, &QTableView::customContextMenuRequested, this, [this](const QPoint& pos) {
@@ -183,38 +282,28 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
         }
         showMenu(m_model->cardIdAt(index.row()), m_outline->viewport()->mapToGlobal(pos));
     });
+}
 
-    connect(m_infoBar, &InfoBar::actionClicked, this, &PlotBoardPanel::undoRequested);
-    connect(m_infoBar, &InfoBar::dismissed, m_infoBar, &QWidget::hide);
-
+void PlotBoardPanel::followSettings() {
     // The look follows the settings, also when another window changes them
     m_settingsListener = core::SettingsManager::getInstance().subscribe(
         [self = QPointer<PlotBoardPanel>(this)](const std::string& key) {
-            if (self != nullptr && key.rfind(SETTINGS_PREFIX, 0) == 0) {
-                QMetaObject::invokeMethod(
-                    self.data(),
-                    [self]() {
-                        if (self != nullptr) {
-                            self->applySettings();
-                        }
-                    },
-                    Qt::QueuedConnection);
+            if (self == nullptr || !key.starts_with(SETTINGS_PREFIX)) {
+                return;
             }
+            QMetaObject::invokeMethod(
+                self.data(),
+                [self]() {
+                    if (self != nullptr) {
+                        self->applySettings();
+                    }
+                },
+                Qt::QueuedConnection);
         });
     auto& themes = core::ThemeManager::getInstance();
     connect(&themes, &core::ThemeManager::themeChanged, this, &PlotBoardPanel::applySettings);
     connect(&themes, &core::ThemeManager::editorColorsChanged, this,
             &PlotBoardPanel::applySettings);
-
-    applySettings();
-    for (int column = 0; column < PlotOutlineModel::ColumnCount; ++column) {
-        if (column != PlotOutlineModel::DescriptionColumn) {
-            m_outline->setColumnWidth(column,
-                                      m_outline->fontMetrics().averageCharWidth() *
-                                          charactersOf(column));
-        }
-    }
-    showView(setting(PlotBoard::VIEW_SETTING));
 }
 
 PlotBoardPanel::~PlotBoardPanel() {
@@ -222,8 +311,8 @@ PlotBoardPanel::~PlotBoardPanel() {
 }
 
 void PlotBoardPanel::buildHeader(QWidget* header) {
-    auto* flow = new FlowLayout(header, 6, 4);
-    flow->setContentsMargins(8, 6, 8, 6);
+    auto* flow = new FlowLayout(header, HEADER_SPACING, HEADER_LINE_SPACING);
+    flow->setContentsMargins(HEADER_MARGIN_X, HEADER_MARGIN_Y, HEADER_MARGIN_X, HEADER_MARGIN_Y);
 
     // Board | Outline
     //: The switch of the tab of the plot board: the cards. In Polish: Tablica
@@ -332,7 +421,7 @@ void PlotBoardPanel::setBands(const QList<PlotBand>& bands) {
     const int row = m_model->rowOf(m_board->currentCard().isEmpty() ? current
                                                                     : m_board->currentCard());
     if (row >= 0 && !m_outline->currentIndex().isValid()) {
-        m_outline->setCurrentIndex(m_model->index(row, PlotOutlineModel::TitleColumn));
+        m_outline->setCurrentIndex(m_model->index(row, PlotOutlineModel::TITLE_COLUMN));
     }
     updateTotals();
 }
@@ -385,7 +474,7 @@ bool PlotBoardPanel::setCurrentCard(const QString& elementId) {
     if (row >= 0) {
         const int column = m_outline->currentIndex().isValid()
                                ? m_outline->currentIndex().column()
-                               : int(PlotOutlineModel::TitleColumn);
+                               : PlotOutlineModel::TITLE_COLUMN;
         m_outline->setCurrentIndex(m_model->index(row, column));
     }
     return found;
@@ -400,7 +489,7 @@ bool PlotBoardPanel::editCard(const QString& elementId) {
         return m_board->editCard(elementId, m_povs, m_places);
     }
     const int row = m_model->rowOf(elementId);
-    const QModelIndex title = m_model->index(row, PlotOutlineModel::TitleColumn);
+    const QModelIndex title = m_model->index(row, PlotOutlineModel::TITLE_COLUMN);
     if (row < 0 || !(m_model->flags(title) & Qt::ItemIsEditable)) {
         return false;
     }
@@ -426,12 +515,7 @@ void PlotBoardPanel::applySettings() {
     m_board->setArrangement(layout == QLatin1String(PlotBoard::LAYOUT_GRID)
                                 ? PlotBoardView::Arrangement::Grid
                                 : PlotBoardView::Arrangement::Columns);
-    const QString size = setting(PlotBoard::SIZE_SETTING);
-    m_board->setCardSize(size == QLatin1String(PlotBoard::SIZE_SMALL)
-                             ? PlotBoardView::CardSize::Small
-                         : size == QLatin1String(PlotBoard::SIZE_LARGE)
-                             ? PlotBoardView::CardSize::Large
-                             : PlotBoardView::CardSize::Medium);
+    m_board->setCardSize(cardSizeOf(setting(PlotBoard::SIZE_SETTING)));
     m_board->setColoring(setting(PlotBoard::COLOR_SETTING), PlotColors::current());
     const bool scenes =
         core::SettingsManager::getInstance().get<bool>(PlotBoard::SCENES_SETTING, true);
@@ -473,7 +557,7 @@ void PlotBoardPanel::updateTotals() {
     }
     //: The texts and the words of the book over the plot board; %1 the texts ("7 texts"), %2
     //: the words. In Polish: %1 · %2
-    m_totals->setText(tr("%1 · %2").arg(PlotBoard::textsText(int(cards.size())),
+    m_totals->setText(tr("%1 · %2").arg(PlotBoard::textsText(static_cast<int>(cards.size())),
                                         PlotBoard::wordsText(words)));
 }
 
@@ -495,25 +579,26 @@ void PlotBoardPanel::onOutlineEdited(const QString& elementId, int column,
     if (!found) {
         return;
     }
-    if (column == PlotOutlineModel::StatusColumn) {
+    if (column == PlotOutlineModel::STATUS_COLUMN) {
         emit statusRequested(elementId, value);
         return;
     }
-    PlotCardEdit edit{found->title, found->description, found->plot};
+    PlotCardEdit edit{.title = found->title, .description = found->description,
+                      .plot = found->plot};
     switch (column) {
-    case PlotOutlineModel::TitleColumn:
+    case PlotOutlineModel::TITLE_COLUMN:
         edit.title = value;
         break;
-    case PlotOutlineModel::DescriptionColumn:
+    case PlotOutlineModel::DESCRIPTION_COLUMN:
         edit.description = value;
         break;
-    case PlotOutlineModel::PovColumn:
+    case PlotOutlineModel::POV_COLUMN:
         edit.plot.pov = value;
         break;
-    case PlotOutlineModel::PlaceColumn:
+    case PlotOutlineModel::PLACE_COLUMN:
         edit.plot.place = value;
         break;
-    case PlotOutlineModel::TimeColumn:
+    case PlotOutlineModel::TIME_COLUMN:
         edit.plot.time = value;
         break;
     default:
@@ -522,70 +607,97 @@ void PlotBoardPanel::onOutlineEdited(const QString& elementId, int column,
     emit editFinished(elementId, edit);
 }
 
+QAction* PlotBoardPanel::addMenuAction(const QString& text, const QString& keys, bool enabled,
+                                       const std::function<void()>& run) {
+    QAction* action = m_menu->addAction(text);
+    if (!keys.isEmpty()) {
+        action->setShortcut(QKeySequence(keys));
+        action->setShortcutVisibleInContextMenu(true);
+    }
+    action->setEnabled(enabled);
+    connect(action, &QAction::triggered, this, run);
+    return action;
+}
+
+bool PlotBoardPanel::canPasteAfter(const QString& elementId) const {
+    const QString marked = m_board->markedCard();
+    return !m_readOnly && !marked.isEmpty() && marked != elementId;
+}
+
 QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
     m_menu->clear();
     const std::optional<PlotCard> found = card(elementId);
     const bool shown = found.has_value();
     const bool changing = shown && !m_readOnly;
     const bool scene = shown && found->isScene();
-    const auto add = [this](const QString& text, const QString& keys, bool enabled,
-                            const std::function<void()>& run) {
-        QAction* action = m_menu->addAction(text);
-        if (!keys.isEmpty()) {
-            action->setShortcut(QKeySequence(keys));
-            action->setShortcutVisibleInContextMenu(true);
-        }
-        action->setEnabled(enabled);
-        connect(action, &QAction::triggered, this, run);
-        return action;
-    };
     //: The menu of a card of the plot board. In Polish: &Otwórz
-    add(tr("&Open"), QStringLiteral("Return"), shown, [this, elementId]() {
-        emit openRequested(elementId);
-    });
+    addMenuAction(tr("&Open"), QStringLiteral("Return"), shown,
+                  [this, elementId]() { emit openRequested(elementId); });
     //: In Polish: &Edytuj kartę
-    add(tr("&Edit Card"), QStringLiteral("F2"), changing,
-        [this, elementId]() { editCard(elementId); });
-    add(scene
-            //: A new scene right after the card of a scene. In Polish: &Nowa scena za nią
-            ? tr("&New Scene After It")
-            //: A new text of the same kind right after the card. In Polish: &Nowa karta za nią
-            : tr("&New Card After It"),
-        QStringLiteral("Ins"), !m_readOnly, [this, elementId]() { emit addRequested(elementId); });
+    addMenuAction(tr("&Edit Card"), QStringLiteral("F2"), changing,
+                  [this, elementId]() { editCard(elementId); });
+    addMenuAction(scene
+                      //: A new scene right after the card of a scene. In Polish: &Nowa scena za
+                      //: nią
+                      ? tr("&New Scene After It")
+                      //: A new text of the same kind right after the card. In Polish: &Nowa
+                      //: karta za nią
+                      : tr("&New Card After It"),
+                  QStringLiteral("Ins"), !m_readOnly,
+                  [this, elementId]() { emit addRequested(elementId); });
     //: A new scene at the end of the text of the card. In Polish: Nowa scena n&a końcu tekstu
-    add(tr("New Scene &at the End of the Text"), QStringLiteral("Alt+Ins"), changing,
-        [this, elementId]() { emit addSceneRequested(elementId); });
+    addMenuAction(tr("New Scene &at the End of the Text"), QStringLiteral("Alt+Ins"), changing,
+                  [this, elementId]() { emit addSceneRequested(elementId); });
     m_menu->addSeparator();
     //: In Polish: Wy&tnij
-    add(tr("Cu&t"), QStringLiteral("Ctrl+X"), changing, [this, elementId]() {
-        emit cutRequested(elementId);
-    });
+    addMenuAction(tr("Cu&t"), QStringLiteral("Ctrl+X"), changing,
+                  [this, elementId]() { emit cutRequested(elementId); });
     //: In Polish: Wklej &za nią
-    add(tr("&Paste After It"), QStringLiteral("Ctrl+V"),
-        changing && !m_board->markedCard().isEmpty() && m_board->markedCard() != elementId,
-        [this, elementId]() { emit pasteRequested(elementId); });
+    addMenuAction(tr("&Paste After It"), QStringLiteral("Ctrl+V"),
+                  shown && canPasteAfter(elementId),
+                  [this, elementId]() { emit pasteRequested(elementId); });
     m_menu->addSeparator();
+    addStateMenu(elementId, found);
+    addColorMenu(elementId, found);
+    m_menu->addSeparator();
+    addMenuAction(scene
+                      //: The menu of the card of a scene. In Polish: &Usuń scenę…
+                      ? tr("&Delete Scene...")
+                      //: In Polish: &Usuń z książki…
+                      : tr("&Delete from Book..."),
+                  QStringLiteral("Del"), changing,
+                  [this, elementId]() { emit deleteRequested(elementId); });
+    //: In Polish: &Właściwości
+    addMenuAction(tr("P&roperties"), QStringLiteral("Alt+Return"), shown,
+                  [this, elementId]() { emit propertiesRequested(elementId); });
+    return m_menu;
+}
 
+void PlotBoardPanel::addStateMenu(const QString& elementId, const std::optional<PlotCard>& found) {
     //: In Polish: &Stan
     QMenu* states = m_menu->addMenu(tr("&State"));
-    states->setEnabled(changing);
-    auto* stateGroup = new QActionGroup(states);
-    stateGroup->setExclusive(true);
+    states->setEnabled(found.has_value() && !m_readOnly);
+    const QString current = found.has_value() ? found->status : QString();
+    auto* group = new QActionGroup(states);
+    group->setExclusive(true);
     for (const char* status : {"draft", "revision", "final"}) {
         const QString code = QString::fromLatin1(status);
         QAction* action = states->addAction(PlotBoard::statusName(code));
         action->setCheckable(true);
-        action->setChecked(shown && found->status == code);
-        stateGroup->addAction(action);
-        connect(action, &QAction::triggered, this, [this, elementId, code]() {
-            emit statusRequested(elementId, code);
-        });
+        action->setChecked(found.has_value() && current == code);
+        group->addAction(action);
+        connect(action, &QAction::triggered, this,
+                [this, elementId, code]() { emit statusRequested(elementId, code); });
     }
+}
+
+void PlotBoardPanel::addColorMenu(const QString& elementId, const std::optional<PlotCard>& found) {
     //: In Polish: &Kolor karty
     QMenu* colors = m_menu->addMenu(tr("Card &Color"));
-    colors->setEnabled(changing);
-    auto* colorGroup = new QActionGroup(colors);
-    colorGroup->setExclusive(true);
+    colors->setEnabled(found.has_value() && !m_readOnly);
+    const QString current = found.has_value() ? found->plot.color : QString();
+    auto* group = new QActionGroup(colors);
+    group->setExclusive(true);
     QStringList names{QString()};
     names << PlotColors::ownNames();
     const PlotColors palette = PlotColors::current();
@@ -594,29 +706,16 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
         QAction* action = colors->addAction(name.isEmpty() ? tr("No Color")
                                                            : PlotColors::ownTitle(name));
         if (!name.isEmpty()) {
-            QPixmap swatch(12, 12);
+            QPixmap swatch(SWATCH_SIZE, SWATCH_SIZE);
             swatch.fill(palette.ofOwn(name));
             action->setIcon(QIcon(swatch));
         }
         action->setCheckable(true);
-        action->setChecked(shown && found->plot.color == name);
-        colorGroup->addAction(action);
-        connect(action, &QAction::triggered, this, [this, elementId, name]() {
-            emit colorRequested(elementId, name);
-        });
+        action->setChecked(found.has_value() && current == name);
+        group->addAction(action);
+        connect(action, &QAction::triggered, this,
+                [this, elementId, name]() { emit colorRequested(elementId, name); });
     }
-    m_menu->addSeparator();
-    add(scene
-            //: The menu of the card of a scene. In Polish: &Usuń scenę…
-            ? tr("&Delete Scene...")
-            //: In Polish: &Usuń z książki…
-            : tr("&Delete from Book..."),
-        QStringLiteral("Del"), changing, [this, elementId]() { emit deleteRequested(elementId); });
-    //: In Polish: &Właściwości
-    add(tr("P&roperties"), QStringLiteral("Alt+Return"), shown, [this, elementId]() {
-        emit propertiesRequested(elementId);
-    });
-    return m_menu;
 }
 
 void PlotBoardPanel::showMenu(const QString& elementId, const QPoint& globalPos) {
@@ -643,90 +742,47 @@ bool PlotBoardPanel::eventFilter(QObject* watched, QEvent* event) {
 }
 
 bool PlotBoardPanel::outlineKey(const QKeyEvent* key, bool run) {
-    const Qt::KeyboardModifiers modifiers = key->modifiers() & ~Qt::KeypadModifier;
-    const bool plain = modifiers == Qt::NoModifier;
-    const bool control = modifiers == Qt::ControlModifier;
+    const Key action = PlotBoardView::boardKey(key);
+    if (!takesKey(action)) {
+        return false;
+    }
+    if (run) {
+        doOutlineKey(action);
+    }
+    return true;
+}
+
+bool PlotBoardPanel::takesKey(PlotBoardView::Key action) const {
+    // Esc forgets a card marked; else it is the table's, as the arrows, F2 and Space are
+    if (action == Key::CancelCut) {
+        return !m_board->markedCard().isEmpty();
+    }
+    return action == Key::MoveUp || action == Key::MoveDown || action == Key::Menu ||
+           requestOf(CARD_REQUESTS, action) != nullptr ||
+           requestOf(BOARD_REQUESTS, action) != nullptr;
+}
+
+void PlotBoardPanel::doOutlineKey(PlotBoardView::Key action) {
     const QString id = m_model->cardIdAt(m_outline->currentIndex().row());
-    const bool changing = !m_readOnly && !id.isEmpty();
-    switch (key->key()) {
-    case Qt::Key_Return:
-    case Qt::Key_Enter:
-        if (plain || modifiers == Qt::AltModifier) {
-            if (run && !id.isEmpty()) {
-                if (plain) {
-                    emit openRequested(id);
-                } else {
-                    emit propertiesRequested(id);
-                }
-            }
-            return true;
+    if (const CardRequest* cardRequest = requestOf(CARD_REQUESTS, action)) {
+        if (PlotBoardView::keyAllowed(action, m_readOnly, id, m_board->markedCard())) {
+            emit(this->*cardRequest->signal)(id);
         }
-        return false;
-    case Qt::Key_Up:
-    case Qt::Key_Down:
-        if (control && run && changing) {
-            emit moveRequested(id, key->key() == Qt::Key_Up ? -1 : 1);
-        }
-        return control;
-    case Qt::Key_Insert:
-        if (plain && run && !m_readOnly) {
-            emit addRequested(id);
-        } else if (modifiers == Qt::AltModifier && run && changing) {
-            emit addSceneRequested(id);
-        }
-        return plain || modifiers == Qt::AltModifier;
-    case Qt::Key_Delete:
-        if (plain && run && changing) {
-            emit deleteRequested(id);
-        }
-        return plain;
-    case Qt::Key_X:
-        if (control && run && changing) {
-            emit cutRequested(id);
-        }
-        return control;
-    case Qt::Key_V:
-        if (control && run && !m_readOnly && !m_board->markedCard().isEmpty()) {
-            emit pasteRequested(id);
-        }
-        return control;
-    case Qt::Key_Z:
-    case Qt::Key_Y: {
-        const bool undo = key->key() == Qt::Key_Z && control;
-        const bool redo = (key->key() == Qt::Key_Y && control) ||
-                          (key->key() == Qt::Key_Z &&
-                           modifiers == (Qt::ControlModifier | Qt::ShiftModifier));
-        if (run && undo) {
-            emit undoRequested();
-        } else if (run && redo) {
-            emit redoRequested();
-        }
-        return undo || redo;
+        return;
     }
-    case Qt::Key_Escape:
-        if (plain && !m_board->markedCard().isEmpty()) {
-            if (run) {
-                emit cutCancelled();
-            }
-            return true;
-        }
-        return false;
-    case Qt::Key_Menu:
-    case Qt::Key_F10:
-        if ((key->key() == Qt::Key_Menu && plain) ||
-            (key->key() == Qt::Key_F10 && modifiers == Qt::ShiftModifier)) {
-            if (run) {
-                const QRect cell = m_outline->visualRect(m_outline->currentIndex());
-                showMenu(id, m_outline->viewport()->mapToGlobal(cell.isValid() ? cell.center()
-                                                                               : QPoint()));
-            }
-            return true;
-        }
-        return false;
-    default:
-        break;
+    if (const BoardRequest* boardRequest = requestOf(BOARD_REQUESTS, action)) {
+        emit(this->*boardRequest->signal)();
+        return;
     }
-    return false;
+    if (action == Key::Menu) {
+        const QRect cell = m_outline->visualRect(m_outline->currentIndex());
+        showMenu(id, m_outline->viewport()->mapToGlobal(cell.isValid() ? cell.center() : QPoint()));
+        return;
+    }
+    // Ctrl+Up and Ctrl+Down move the row
+    if (!m_readOnly && !id.isEmpty()) {
+        emit moveRequested(id, action == Key::MoveUp ? -1 : 1);
+    }
 }
 
 void PlotBoardPanel::changeEvent(QEvent* event) {

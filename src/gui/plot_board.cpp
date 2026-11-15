@@ -7,16 +7,31 @@
 
 #include "kalahari/gui/plot_board.h"
 
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/chapter_document.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/text_statistics.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/gui/kind_names.h"
 
+#include <QColor>
+#include <QHash>
+#include <QList>
 #include <QLocale>
 #include <QPalette>
+#include <QString>
+#include <QStringList>
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <functional>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace kalahari::gui {
 
@@ -55,8 +70,8 @@ QStringList workshopTitles(const core::ProjectManager& book, const QString& kind
         };
     collect(project->workshop.elements);
     titles.removeDuplicates();
-    std::sort(titles.begin(), titles.end(), [](const QString& a, const QString& b) {
-        return QString::localeAwareCompare(a, b) < 0;
+    std::ranges::sort(titles, [](const QString& one, const QString& other) {
+        return QString::localeAwareCompare(one, other) < 0;
     });
     return titles;
 }
@@ -71,6 +86,84 @@ core::ElementPlace withoutElement(const core::BookProject& project, const QStrin
         --place.index;
     }
     return place;
+}
+
+/// @brief What the cards of the texts of a book are made from
+struct CardSource {
+    const core::ProjectManager* book = nullptr;          ///< The book
+    const QHash<QString, QString>* unsaved = nullptr;    ///< The texts of the open texts with
+                                                         ///< changes, by their ids
+    QString language;                                    ///< Of the names of the kinds
+    core::WordCountRules rules;                          ///< Of the words of the scenes
+};
+
+/// @brief The card of scene @p index of the text of card @p text
+PlotCard sceneCard(const PlotCard& text, const core::KmlScene& scene, int index,
+                   const core::WordCountRules& rules) {
+    const core::ScenePlot& plot = scene.plot;
+    PlotCard card;
+    card.id = PlotBoard::sceneId(text.id, index);
+    card.kindName = PlotBoard::sceneName(index);
+    card.title = plot.title;
+    card.description = plot.description;
+    card.plot.pov = plot.pov;
+    card.plot.place = plot.place;
+    card.plot.time = plot.time;
+    card.plot.color = plot.color;
+    card.status = plot.status.isEmpty() ? text.status : plot.status;
+    card.words = scene.words.wordsUnder(rules);
+    card.partId = text.partId;
+    card.number = text.number;
+    card.textId = text.id;
+    card.scene = index;
+    return card;
+}
+
+/// @brief The card of text @p element of part @p partId, the @p number -th of the board, with
+/// its scenes when it has scene breaks
+PlotCard textCard(const CardSource& source, const core::ProjectElement& element,
+                  const QString& partId, int number) {
+    const core::ProjectManager& book = *source.book;
+    PlotCard card;
+    card.id = element.id;
+    const core::KindRef kind = book.kindOf(element);
+    card.kindName = kind ? kind.kind->name.text(source.language) : QString();
+    card.title = element.title;
+    card.description = element.description;
+    card.plot = element.plot;
+    card.status = core::ProjectManager::statusOf(element);
+    card.words = book.wordCount(element.id);
+    card.partId = partId;
+    card.number = number;
+    // The scenes of the text the writer sees: of an open text with changes, its own
+    const auto own = source.unsaved->constFind(element.id);
+    const QList<core::KmlScene> scenes =
+        book.scenesOf(element.id, own != source.unsaved->cend() ? std::optional<QString>(*own)
+                                                                 : std::nullopt);
+    if (scenes.size() > 1) {
+        for (qsizetype i = 0; i < scenes.size(); ++i) {
+            card.scenes << sceneCard(card, scenes.at(i), static_cast<int>(i), source.rules);
+        }
+    }
+    return card;
+}
+
+/// @brief Put the texts of @p elements, also those of the groups among them, on @p band;
+/// @p number is the number of the last text of the board
+void collectTexts(const CardSource& source, const QList<core::ProjectElement>& elements,
+                  PlotBand& band, int& number) {
+    const std::function<void(const QList<core::ProjectElement>&)> collect =
+        [&](const QList<core::ProjectElement>& list) {
+            for (const core::ProjectElement& element : list) {
+                const core::ElementForm form = source.book->formOf(element);
+                if (form == core::ElementForm::Text) {
+                    band.cards << textCard(source, element, band.partId, ++number);
+                } else if (form == core::ElementForm::Group) {
+                    collect(element.elements);
+                }
+            }
+        };
+    collect(elements);
 }
 
 }  // namespace
@@ -107,77 +200,31 @@ int PlotBand::words() const {
 
 QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book,
                                    const QHash<QString, QString>& unsaved) {
-    QList<PlotBand> bands;
     const core::BookProject* project = book.project();
     if (project == nullptr || project->books.isEmpty()) {
-        return bands;
+        return {};
     }
-    const QString language = programLanguage();
-    const core::WordCountRules rules = core::wordCountRules();
+    CardSource source;
+    source.book = &book;
+    source.unsaved = &unsaved;
+    source.language = programLanguage();
+    source.rules = core::wordCountRules();
+    QList<PlotBand> bands;
     int number = 0;
-    const auto cardOf = [&](const core::ProjectElement& element, const QString& partId) {
-        PlotCard card;
-        card.id = element.id;
-        const core::KindRef kind = book.kindOf(element);
-        card.kindName = kind ? kind.kind->name.text(language) : QString();
-        card.title = element.title;
-        card.description = element.description;
-        card.plot = element.plot;
-        card.status = core::ProjectManager::statusOf(element);
-        card.words = book.wordCount(element.id);
-        card.partId = partId;
-        card.number = ++number;
-        // Its scenes, when it has scene breaks
-        const auto own = unsaved.constFind(element.id);
-        const QList<core::KmlScene> scenes =
-            book.scenesOf(element.id, own != unsaved.cend() ? std::optional<QString>(*own)
-                                                             : std::nullopt);
-        for (qsizetype i = 0; scenes.size() > 1 && i < scenes.size(); ++i) {
-            const core::ScenePlot& plot = scenes.at(i).plot;
-            PlotCard scene;
-            scene.id = sceneId(element.id, int(i));
-            scene.kindName = sceneName(int(i));
-            scene.title = plot.title;
-            scene.description = plot.description;
-            scene.plot.pov = plot.pov;
-            scene.plot.place = plot.place;
-            scene.plot.time = plot.time;
-            scene.plot.color = plot.color;
-            scene.status = plot.status.isEmpty() ? card.status : plot.status;
-            scene.words = scenes.at(i).words.wordsUnder(rules);
-            scene.partId = partId;
-            scene.number = card.number;
-            scene.textId = element.id;
-            scene.scene = int(i);
-            card.scenes << scene;
-        }
-        return card;
-    };
-    // The texts of a part, also those of the groups inside it
-    const std::function<void(const QList<core::ProjectElement>&, PlotBand&)> collect =
-        [&](const QList<core::ProjectElement>& elements, PlotBand& band) {
-            for (const core::ProjectElement& element : elements) {
-                const core::ElementForm form = book.formOf(element);
-                if (form == core::ElementForm::Text) {
-                    band.cards << cardOf(element, band.partId);
-                } else if (form == core::ElementForm::Group) {
-                    collect(element.elements, band);
-                }
-            }
-        };
     for (const core::ProjectElement& element : project->books.constFirst().mainElements) {
         const core::ElementForm form = book.formOf(element);
         if (form == core::ElementForm::Group) {
             PlotBand band;
             band.partId = element.id;
             band.title = element.title;
-            collect(element.elements, band);
+            collectTexts(source, element.elements, band, number);
             bands << band;
         } else if (form == core::ElementForm::Text) {
+            // The texts outside the parts one after another in a band
             if (bands.isEmpty() || !bands.constLast().partId.isEmpty()) {
                 bands << PlotBand{};
             }
-            bands.last().cards << cardOf(element, QString());
+            bands.last().cards << textCard(source, element, QString(), ++number);
         }
     }
     return bands;
@@ -291,7 +338,8 @@ std::optional<core::ElementPlace> PlotBoard::placeInPart(const core::ProjectMana
         !project->placeOf(elementId)) {
         return std::nullopt;
     }
-    core::ElementPlace place{core::BookPlace::Main, partId, atEnd ? part->elements.size() : 0};
+    core::ElementPlace place{.place = core::BookPlace::Main, .groupId = partId,
+                             .index = atEnd ? part->elements.size() : 0};
     place = withoutElement(*project, elementId, place);
     if (!book.canMoveTo(elementId, place)) {
         return std::nullopt;
@@ -395,7 +443,7 @@ PlotColors PlotColors::current() {
     colors.revision = themes.editorColor(COLOR_KEYS[1], palette.color(QPalette::Highlight));
     colors.finished = themes.editorColor(COLOR_KEYS[2], palette.color(QPalette::Link));
     for (std::size_t i = STATUS_COLORS; i < COLOR_KEYS.size(); ++i) {
-        colors.own << themes.editorColor(COLOR_KEYS[i], fallback);
+        colors.own << themes.editorColor(COLOR_KEYS.at(i), fallback);
     }
     return colors;
 }
@@ -448,8 +496,8 @@ QStringList povsOf(const QList<PlotCard>& cards) {
             povs << pov;
         }
     }
-    std::sort(povs.begin(), povs.end(), [](const QString& a, const QString& b) {
-        return QString::localeAwareCompare(a, b) < 0;
+    std::ranges::sort(povs, [](const QString& one, const QString& other) {
+        return QString::localeAwareCompare(one, other) < 0;
     });
     return povs;
 }

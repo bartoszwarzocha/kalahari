@@ -106,7 +106,7 @@ public:
     ///        description...; sceneBreakAttributeNames())
     /// @param index Paragraph index (0-based)
     /// @return None for a break without them, any other paragraph, or if index is out of range
-    SceneBreakAttributes paragraphSceneAttributes(size_t index) const;
+    [[nodiscard]] SceneBreakAttributes paragraphSceneAttributes(size_t index) const;
 
     /// @brief The paragraph's own formatting: indents, spacing, line spacing, breaks
     /// @param index Paragraph index (0-based)

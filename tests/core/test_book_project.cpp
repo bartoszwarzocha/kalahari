@@ -17,6 +17,7 @@
 #include <QTimeZone>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace kalahari::core;
@@ -1384,6 +1385,9 @@ TEST_CASE("Book project: kinds of packages that are not installed", "[core][book
 
 TEST_CASE("Book project: a .klh file with problems", "[core][bookproject]") {
     struct Broken {
+        Broken(const char* name, QByteArray text, const char* message)
+            : what(name), json(std::move(text)), problem(message) {}
+
         const char* what;
         QByteArray json;
         const char* problem;

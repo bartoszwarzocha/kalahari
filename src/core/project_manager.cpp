@@ -6,6 +6,7 @@
 
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/link_roles.h>
 #include <kalahari/core/logger.h>
@@ -16,6 +17,7 @@
 #include <kalahari/core/settings_manager.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
+#include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/clipboard_handler.h>
 
 #include <QDateTime>
@@ -56,7 +58,7 @@ QString toQString(const std::filesystem::path& path) {
 /// scene, whose words need not be counted again
 QList<KmlScene> scenesWith(const QString& kml, const WordTally& words) {
     if (!kml.contains(QLatin1String("<scene-break"))) {
-        return {KmlScene{ScenePlot(), words}};
+        return {KmlScene{.plot = ScenePlot(), .words = words}};
     }
     return ChapterDocument::kmlScenes(kml);
 }
@@ -2460,15 +2462,42 @@ QList<KmlScene> ProjectManager::scenesOf(const QString& elementId,
     return scenes;
 }
 
-bool ProjectManager::setScenePlot(const QString& elementId, int scene, const ScenePlot& plot) {
-    auto& logger = Logger::getInstance();
+const ProjectElement* ProjectManager::bookTextOf(const QString& elementId) const {
     const ProjectElement* element = findElement(elementId);
-    const std::optional<ElementPlace> place =
-        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
-    if (!place || place->place == BookPlace::Workshop || formOf(*element) != ElementForm::Text ||
-        scene < 0) {
-        logger.warn("setScenePlot: No scene {} of a text of a book: {}", scene,
-                    elementId.toStdString());
+    if (element == nullptr || formOf(*element) != ElementForm::Text) {
+        return nullptr;
+    }
+    const std::optional<ElementPlace> place = m_project->placeOf(elementId);
+    return place && place->place != BookPlace::Workshop ? element : nullptr;
+}
+
+bool ProjectManager::canWriteText(const char* what, const ProjectElement& element) const {
+    if (refusesChange(what)) {
+        return false;
+    }
+    if (m_elementStates.value(element.id).dirty) {
+        Logger::getInstance().warn("{}: '{}' has changes its file does not have", what,
+                                   element.title.toStdString());
+        return false;
+    }
+    return true;
+}
+
+bool ProjectManager::writeText(const ProjectElement& element, const QString& kml) {
+    if (!writeChapterFile(element, kml)) {
+        return false;
+    }
+    if (ElementState* state = stateOf(element.id); state != nullptr && state->loaded) {
+        state->content = kml;
+    }
+    return true;
+}
+
+bool ProjectManager::setScenePlot(const QString& elementId, int scene, const ScenePlot& plot) {
+    const ProjectElement* element = bookTextOf(elementId);
+    if (element == nullptr || scene < 0) {
+        Logger::getInstance().warn("setScenePlot: No scene {} of a text of a book: {}", scene,
+                                   elementId.toStdString());
         return false;
     }
     if (scene == 0) {
@@ -2477,62 +2506,35 @@ bool ProjectManager::setScenePlot(const QString& elementId, int scene, const Sce
         return changeDetails("setScenePlot", elementId,
                              [&changed](ProjectElement& each) { each.plot = changed; });
     }
-    if (refusesChange("setScenePlot")) {
+    if (!canWriteText("setScenePlot", *element)) {
         return false;
     }
-    if (m_elementStates.value(elementId).dirty) {
-        logger.warn("setScenePlot: '{}' has changes its file does not have",
-                    element->title.toStdString());
-        return false;
-    }
-    const QString kml = chapterText(elementId);
-    const QString changed = ChapterDocument::withScenePlot(kml, scene, plot);
+    const QString changed = ChapterDocument::withScenePlot(chapterText(elementId), scene, plot);
     if (changed.isEmpty()) {
-        logger.warn("setScenePlot: '{}' has no scene {}", element->title.toStdString(), scene);
+        Logger::getInstance().warn("setScenePlot: '{}' has no scene {}",
+                                   element->title.toStdString(), scene);
         return false;
     }
-    // A copy: writing the file may change the states of the elements
-    const ProjectElement text = *element;
-    if (!writeChapterFile(text, changed)) {
-        return false;
-    }
-    if (ElementState* state = stateOf(elementId); state != nullptr && state->loaded) {
-        state->content = changed;
-    }
-    return true;
+    return writeText(*element, changed);
 }
 
 bool ProjectManager::setSceneText(const QString& elementId, const SceneText& text) {
-    auto& logger = Logger::getInstance();
-    const ProjectElement* element = findElement(elementId);
-    const std::optional<ElementPlace> place =
-        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
-    if (!place || place->place == BookPlace::Workshop || formOf(*element) != ElementForm::Text) {
-        logger.warn("setSceneText: Not a text of a book: {}", elementId.toStdString());
+    const ProjectElement* element = bookTextOf(elementId);
+    if (element == nullptr) {
+        Logger::getInstance().warn("setSceneText: Not a text of a book: {}",
+                                   elementId.toStdString());
         return false;
     }
-    if (refusesChange("setSceneText")) {
+    if (!canWriteText("setSceneText", *element)) {
         return false;
     }
-    if (m_elementStates.value(elementId).dirty) {
-        logger.warn("setSceneText: '{}' has changes its file does not have",
-                    element->title.toStdString());
+    if (chapterText(elementId) != text.kml && !writeText(*element, text.kml)) {
         return false;
     }
-    // A copy: writing the file may change the states of the elements
-    const ProjectElement written = *element;
-    if (chapterText(elementId) != text.kml) {
-        if (!writeChapterFile(written, text.kml)) {
-            return false;
-        }
-        if (ElementState* state = stateOf(elementId); state != nullptr && state->loaded) {
-            state->content = text.kml;
-        }
-    }
-    if (written.plot.opening == text.opening) {
+    if (element->plot.opening == text.opening) {
         return true;
     }
-    ElementPlot changed = written.plot;
+    ElementPlot changed = element->plot;
     changed.opening = text.opening;
     return changeDetails("setSceneText", elementId,
                          [&changed](ProjectElement& each) { each.plot = changed; });

@@ -297,6 +297,9 @@ set(KALAHARI_SOURCES
     gui/widgets/color_menu.cpp             # The submenus Font Color and Highlight Color
     gui/widgets/info_bar.cpp  # InfoBar - a message across the text area, with a button
     gui/widgets/plot_board_view.cpp  # PlotBoardView - the cards of the texts of the book
+    gui/widgets/plot_board_view_input.cpp  # PlotBoardView - its keys, the mouse, a card dragged
+    gui/widgets/plot_board_view_layout.cpp  # PlotBoardView - where the cards are
+    gui/widgets/plot_board_view_paint.cpp  # PlotBoardView - the cards painted
     gui/widgets/plot_card_editor.cpp  # PlotCardEditor - a card of the plot board edited (F2)
     gui/widgets/cover_plan.cpp  # CoverPlan - the plan of the cover with its materials in their places
     gui/widgets/wrapping_label.cpp  # A label that wraps only where its line does not fit

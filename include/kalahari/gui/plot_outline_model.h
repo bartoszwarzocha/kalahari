@@ -15,6 +15,7 @@
 #include <QString>
 #include <QStringList>
 #include <QStyledItemDelegate>
+#include <QVariant>
 
 namespace kalahari::gui {
 
@@ -29,23 +30,23 @@ class PlotOutlineModel : public QAbstractTableModel {
     Q_OBJECT
 
 public:
-    /// @brief The columns
-    enum Column {
-        NumberColumn,       ///< The place of the text among the texts of the board; "3.2"
-                            ///< for the second scene of the third text
-        TitleColumn,        ///< Its title; of a part, the part's
-        DescriptionColumn,  ///< Its short description
-        PovColumn,          ///< Point of view
-        PlaceColumn,        ///< Place of the action
-        TimeColumn,         ///< Time of the action
-        WordsColumn,        ///< Its words; of a part, the words of its texts
-        StatusColumn,       ///< Its state
-        ColumnCount
-    };
+    // The columns
+    /// @brief The place of the text among the texts of the board; "3.2" for the second scene
+    /// of the third text
+    static constexpr int NUMBER_COLUMN = 0;
+    static constexpr int TITLE_COLUMN = 1;        ///< Its title; of a part, the part's
+    static constexpr int DESCRIPTION_COLUMN = 2;  ///< Its short description
+    static constexpr int POV_COLUMN = 3;          ///< Point of view
+    static constexpr int PLACE_COLUMN = 4;        ///< Place of the action
+    static constexpr int TIME_COLUMN = 5;         ///< Time of the action
+    static constexpr int WORDS_COLUMN = 6;        ///< Its words; of a part, the words of its texts
+    static constexpr int STATUS_COLUMN = 7;       ///< Its state
+    static constexpr int COLUMN_COUNT = 8;        ///< How many columns the outline has
 
     static constexpr int ID_ROLE = Qt::UserRole + 1;    ///< The id of the text or the part
     static constexpr int PART_ROLE = Qt::UserRole + 2;  ///< Whether the row is a part's
 
+    /// @brief An outline without rows
     explicit PlotOutlineModel(QObject* parent = nullptr);
 
     /// @brief Show @p bands
@@ -72,8 +73,8 @@ public:
     bool setData(const QModelIndex& index, const QVariant& value, int role) override;
 
 signals:
-    /// @brief The writer changed cell @p column (Column) of text or scene @p elementId to
-    /// @p value
+    /// @brief The writer changed cell @p column (TITLE_COLUMN...) of text or scene @p elementId
+    /// to @p value
     void cellEdited(const QString& elementId, int column, const QString& value);
 
 private:
@@ -86,7 +87,15 @@ private:
         QString partId;
         PlotCard card;       ///< Of a text or a scene
     };
+    /// @brief The rows of the bands shown
+    [[nodiscard]] QList<Row> rowsOf() const;
     void fill();
+    /// @brief What cell @p column of the row of a part shows in @p role
+    [[nodiscard]] static QVariant partData(const Row& row, int column, int role);
+    /// @brief What cell @p column of the row of @p card shows in @p role
+    [[nodiscard]] static QVariant cardData(const PlotCard& card, int column, int role);
+    /// @brief The title of @p column; empty: none
+    [[nodiscard]] static QString columnTitle(int column);
 
     QList<PlotBand> m_bands;
     QList<Row> m_rows;
@@ -100,6 +109,7 @@ class PlotOutlineDelegate : public QStyledItemDelegate {
     Q_OBJECT
 
 public:
+    /// @brief The editors without suggestions
     explicit PlotOutlineDelegate(QObject* parent = nullptr);
 
     /// @brief The points of view and the places suggested
@@ -112,6 +122,9 @@ public:
                       const QModelIndex& index) const override;
 
 private:
+    /// @brief The points of view or the places suggested in @p column; empty: none
+    [[nodiscard]] QStringList suggestionsFor(int column) const;
+
     QStringList m_povs;
     QStringList m_places;
 };

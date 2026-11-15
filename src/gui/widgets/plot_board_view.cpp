@@ -3,137 +3,62 @@
 
 /// @file plot_board_view.cpp
 /// @brief The cards of the plot board: the texts of the book in the order of the book, in
-/// columns of the parts or in rows, moved with the keys or the mouse
+/// columns of the parts or in rows, moved with the keys or the mouse. Its keys and the mouse,
+/// where the cards are and how they are painted are in plot_board_view_*.cpp.
 
 #include "kalahari/gui/widgets/plot_board_view.h"
 
-#include "kalahari/core/art_provider.h"
+#include "kalahari/gui/plot_board.h"
+#include "kalahari/gui/widgets/plot_board_view_internal.h"
 #include "kalahari/gui/widgets/plot_card_editor.h"
 
+#include <QAbstractScrollArea>
 #include <QAccessible>
 #include <QApplication>
-#include <QContextMenuEvent>
-#include <QDrag>
+#include <QEvent>
 #include <QFocusEvent>
+#include <QFrame>
 #include <QHelpEvent>
 #include <QKeyEvent>
-#include <QMimeData>
-#include <QMouseEvent>
-#include <QPainter>
-#include <QPainterPath>
+#include <QList>
+#include <QPalette>
+#include <QPoint>
+#include <QRect>
+#include <QResizeEvent>
 #include <QScrollBar>
-#include <QTextLayout>
+#include <QSize>
+#include <QString>
+#include <QStringList>
 #include <QToolTip>
+#include <QWidget>
 
 #include <algorithm>
-#include <cmath>
-#include <limits>
 
 namespace kalahari::gui {
 
+using board_view::DEFAULT_HEIGHT;
+using board_view::DEFAULT_WIDTH;
+using board_view::MARGIN;
+using board_view::SCROLL_STEP;
+using board_view::textOfCard;
+
 namespace {
 
-constexpr int MARGIN = 12;       ///< Around the cards
-constexpr int GAP = 10;          ///< Between two cards
-constexpr int BAND_GAP = 22;     ///< Between two parts
-constexpr int PADDING = 8;       ///< Inside a card
-constexpr int STRIP = 4;         ///< The color of a card at its top
-constexpr int LINE_GAP = 3;      ///< Between the lines of a card
-constexpr int RADIUS = 4;        ///< Of the corners of a card
-constexpr int SCROLL_STEP = 24;  ///< A step of the scroll bars
-constexpr int SCENE_INDENT = 14; ///< Of the cards of the scenes under their text, in columns
-constexpr int DRAWER_PADDING = 8;  ///< Inside the drawer of the scenes of a text, in a grid
-
-/// @brief The width of a card in average characters of the font
-int widthInCharacters(PlotBoardView::CardSize size) {
-    switch (size) {
-    case PlotBoardView::CardSize::Small:
-        return 22;
-    case PlotBoardView::CardSize::Large:
-        return 36;
-    case PlotBoardView::CardSize::Medium:
-        break;
+/// @brief The kind and the title of @p card, as the screen reader says them
+QString nameOf(const PlotCard& card) {
+    if (card.kindName.isEmpty()) {
+        return card.title;
     }
-    return 28;
-}
-
-/// @brief The lines of the description on a card
-int descriptionLines(PlotBoardView::CardSize size) {
-    switch (size) {
-    case PlotBoardView::CardSize::Small:
-        return 2;
-    case PlotBoardView::CardSize::Large:
-        return 5;
-    case PlotBoardView::CardSize::Medium:
-        break;
+    if (card.title.isEmpty()) {
+        return card.kindName;
     }
-    return 3;
-}
-
-/// @brief The lines of the title on a card
-int titleLines(PlotBoardView::CardSize size) {
-    return size == PlotBoardView::CardSize::Large ? 2 : 1;
-}
-
-/// @brief The font of the small lines of a card: its kind and state, its plot
-QFont smallFont(const QFont& font) {
-    QFont small = font;
-    small.setPointSizeF(font.pointSizeF() * 0.86);
-    return small;
-}
-
-QFont boldFont(const QFont& font) {
-    QFont bold = font;
-    bold.setBold(true);
-    return bold;
-}
-
-/// @brief Draw @p text in at most @p maxLines lines of @p width from @p topLeft, the last line
-/// ending in an ellipsis when the text is longer
-/// @return The height drawn
-int drawWrapped(QPainter& painter, const QPoint& topLeft, int width, const QString& text,
-                int maxLines) {
-    const QFontMetrics metrics(painter.font());
-    QTextLayout layout(text, painter.font());
-    QTextOption option;
-    option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-    layout.setTextOption(option);
-    layout.beginLayout();
-    int y = 0;
-    int lines = 0;
-    while (lines < maxLines) {
-        QTextLine line = layout.createLine();
-        if (!line.isValid()) {
-            break;
-        }
-        line.setLineWidth(width);
-        ++lines;
-        const bool last = lines == maxLines;
-        const int end = line.textStart() + line.textLength();
-        const QString lineText = text.mid(line.textStart(), line.textLength());
-        if (last && end < text.size()) {
-            // The rest of the text does not fit: the last line ends in an ellipsis
-            const QString rest = text.mid(line.textStart()).simplified();
-            painter.drawText(QPoint(topLeft.x(), topLeft.y() + y + metrics.ascent()),
-                             metrics.elidedText(rest, Qt::ElideRight, width));
-        } else {
-            painter.drawText(QPoint(topLeft.x(), topLeft.y() + y + metrics.ascent()),
-                             lineText.trimmed());
-        }
-        y += metrics.lineSpacing();
-    }
-    layout.endLayout();
-    return y;
-}
-
-/// @brief The color of the text that says less: the words, the plot
-QColor quietColor(const QPalette& palette) {
-    return palette.color(QPalette::PlaceholderText);
+    return QStringLiteral("%1: %2").arg(card.kindName, card.title);
 }
 
 }  // namespace
 
-PlotBoardView::PlotBoardView(QWidget* parent) : QAbstractScrollArea(parent) {
+PlotBoardView::PlotBoardView(QWidget* parent)
+    : QAbstractScrollArea(parent), m_colors(PlotColors::current()) {
     setObjectName(QStringLiteral("plotBoardView"));
     setFocusPolicy(Qt::StrongFocus);
     setFrameShape(QFrame::NoFrame);
@@ -146,7 +71,6 @@ PlotBoardView::PlotBoardView(QWidget* parent) : QAbstractScrollArea(parent) {
     //: The cards of the texts of the book on the plot board, for the screen reader. In
     //: Polish: Tablica fabuły
     setAccessibleName(tr("Plot Board"));
-    m_colors = PlotColors::current();
 }
 
 PlotBoardView::~PlotBoardView() = default;
@@ -154,17 +78,9 @@ PlotBoardView::~PlotBoardView() = default;
 void PlotBoardView::setBands(const QList<PlotBand>& bands) {
     // The card at the place of the one chosen, when the board no longer has it; for a scene,
     // its text
-    const std::optional<std::pair<QString, int>> scene = PlotBoard::sceneOf(m_current);
-    const QString currentText = scene ? scene->first : m_current;
-    const QList<PlotCard> before = PlotBoard::cardsOf(m_bands);
-    qsizetype at = -1;
-    for (qsizetype i = 0; i < before.size(); ++i) {
-        if (before.at(i).id == currentText) {
-            at = i;
-        }
-    }
+    const QString currentText = textOfCard(m_current);
+    const qsizetype at = indexOfText(currentText);
     m_bands = bands;
-    const QList<PlotCard> cards = PlotBoard::cardsOf(m_bands);
     m_povs = povsOf(PlotBoard::allCardsOf(m_bands));
     relayout();
     if (m_editor != nullptr && placeOf(m_editor->elementId()) == nullptr) {
@@ -174,15 +90,43 @@ void PlotBoardView::setBands(const QList<PlotBand>& bands) {
         m_marked.clear();
     }
     if (!m_current.isEmpty() && placeOf(m_current) == nullptr) {
-        const QString previous = m_current;
-        m_current = placeOf(currentText) != nullptr ? currentText
-                    : cards.isEmpty()
-                        ? QString()
-                        : cards.at(std::clamp<qsizetype>(at, 0, cards.size() - 1)).id;
-        if (m_current != previous) {
-            const QString current = m_current;
-            emit currentCardChanged(current);
+        setCurrent(placeOf(currentText) != nullptr ? currentText : textAt(at));
+    }
+    placeEditor();
+    viewport()->update();
+}
+
+qsizetype PlotBoardView::indexOfText(const QString& textId) const {
+    const QList<PlotCard> texts = PlotBoard::cardsOf(m_bands);
+    for (qsizetype i = 0; i < texts.size(); ++i) {
+        if (texts.at(i).id == textId) {
+            return i;
         }
+    }
+    return -1;
+}
+
+QString PlotBoardView::textAt(qsizetype at) const {
+    const QList<PlotCard> texts = PlotBoard::cardsOf(m_bands);
+    if (texts.isEmpty()) {
+        return {};
+    }
+    return texts.at(std::clamp<qsizetype>(at, 0, texts.size() - 1)).id;
+}
+
+void PlotBoardView::setCurrent(const QString& elementId) {
+    if (m_current == elementId) {
+        return;
+    }
+    m_current = elementId;
+    // A copy: whoever takes the signal may choose another card
+    const QString current = m_current;
+    emit currentCardChanged(current);
+}
+
+void PlotBoardView::showCurrent() {
+    if (const CardPlace* place = placeOf(m_current)) {
+        ensureVisible(place->rect);
     }
     placeEditor();
     viewport()->update();
@@ -194,11 +138,7 @@ void PlotBoardView::setArrangement(Arrangement arrangement) {
     }
     m_arrangement = arrangement;
     relayout();
-    if (const CardPlace* place = placeOf(m_current)) {
-        ensureVisible(place->rect);
-    }
-    placeEditor();
-    viewport()->update();
+    showCurrent();
 }
 
 void PlotBoardView::setCardSize(CardSize size) {
@@ -207,11 +147,7 @@ void PlotBoardView::setCardSize(CardSize size) {
     }
     m_cardSize = size;
     relayout();
-    if (const CardPlace* place = placeOf(m_current)) {
-        ensureVisible(place->rect);
-    }
-    placeEditor();
-    viewport()->update();
+    showCurrent();
 }
 
 void PlotBoardView::setFields(const Fields& fields) {
@@ -229,9 +165,7 @@ void PlotBoardView::setShowScenes(bool show) {
     relayout();
     // The card of a scene hidden: its text is chosen
     if (placeOf(m_current) == nullptr) {
-        if (const auto scene = PlotBoard::sceneOf(m_current)) {
-            choose(scene->first);
-        }
+        choose(textOfCard(m_current));
     }
     placeEditor();
     viewport()->update();
@@ -252,11 +186,8 @@ bool PlotBoardView::toggleScenes(const QString& textId) {
     relayout();
     if (placeOf(m_current) == nullptr) {
         choose(textId);  // a scene of the drawer closed: its text
-    } else if (const CardPlace* place = placeOf(m_current)) {
-        ensureVisible(place->rect);
     }
-    placeEditor();
-    viewport()->update();
+    showCurrent();
     return true;
 }
 
@@ -281,29 +212,11 @@ void PlotBoardView::setMarkedCard(const QString& elementId) {
 }
 
 bool PlotBoardView::setCurrentCard(const QString& elementId) {
-    const CardPlace* place = placeOf(elementId);
-    if (place == nullptr) {
+    if (placeOf(elementId) == nullptr) {
         return false;
     }
     choose(elementId);
     return true;
-}
-
-QRect PlotBoardView::cardRect(const QString& elementId) const {
-    const CardPlace* place = placeOf(elementId);
-    if (place == nullptr) {
-        return {};
-    }
-    return place->rect.translated(-horizontalScrollBar()->value(), -verticalScrollBar()->value());
-}
-
-int PlotBoardView::cardsPerRow() const {
-    if (m_arrangement == Arrangement::Columns) {
-        return std::max<int>(1, int(PlotBoard::cardsOf(m_bands).size()));
-    }
-    const int width = cardSizePixels().width();
-    const int available = std::max(width, viewport()->width() - 2 * MARGIN);
-    return std::max(1, (available + GAP) / (width + GAP));
 }
 
 bool PlotBoardView::editCard(const QString& elementId, const QStringList& povs,
@@ -324,35 +237,40 @@ bool PlotBoardView::editCard(const QString& elementId, const QStringList& povs,
     return true;
 }
 
+QStringList PlotBoardView::plotTexts(const PlotCard& card) {
+    QStringList texts;
+    if (!card.plot.pov.isEmpty()) {
+        //: Read by the screen reader on a card of the plot board. In Polish: Punkt widzenia: %1
+        texts << tr("Point of view: %1").arg(card.plot.pov);
+    }
+    if (!card.plot.place.isEmpty()) {
+        //: In Polish: Miejsce: %1
+        texts << tr("Place: %1").arg(card.plot.place);
+    }
+    if (!card.plot.time.isEmpty()) {
+        //: In Polish: Czas akcji: %1
+        texts << tr("Time of the action: %1").arg(card.plot.time);
+    }
+    return texts;
+}
+
 QString PlotBoardView::spokenText(const QString& elementId) const {
     const PlotCard* card = cardOf(elementId);
     if (card == nullptr) {
         return {};
     }
-    QStringList parts;
-    parts << (card->kindName.isEmpty()  ? card->title
-              : card->title.isEmpty() ? card->kindName
-                                      : QStringLiteral("%1: %2").arg(card->kindName, card->title));
-    parts << PlotBoard::statusName(card->status) << PlotBoard::wordsText(card->words);
+    QStringList parts{nameOf(*card), PlotBoard::statusName(card->status),
+                      PlotBoard::wordsText(card->words)};
     if (!card->description.isEmpty()) {
         parts << card->description;
     }
-    if (!card->plot.pov.isEmpty()) {
-        //: Read by the screen reader on a card of the plot board. In Polish: Punkt widzenia: %1
-        parts << tr("Point of view: %1").arg(card->plot.pov);
-    } else if (const QStringList povs = card->scenePovs(); !povs.isEmpty()) {
+    // A text without its own point of view has those of its scenes
+    if (const QStringList povs = card->scenePovs(); card->plot.pov.isEmpty() && !povs.isEmpty()) {
         parts << tr("Point of view: %1").arg(povs.join(QStringLiteral(", ")));
     }
-    if (!card->plot.place.isEmpty()) {
-        //: In Polish: Miejsce: %1
-        parts << tr("Place: %1").arg(card->plot.place);
-    }
-    if (!card->plot.time.isEmpty()) {
-        //: In Polish: Czas akcji: %1
-        parts << tr("Time of the action: %1").arg(card->plot.time);
-    }
+    parts << plotTexts(*card);
     if (!card->scenes.isEmpty()) {
-        parts << PlotBoard::scenesText(int(card->scenes.size()));
+        parts << PlotBoard::scenesText(static_cast<int>(card->scenes.size()));
     }
     if (card->id == m_marked) {
         //: A card marked to move with Ctrl+X. In Polish: Wycięta – Ctrl+V wstawia ją za
@@ -362,265 +280,25 @@ QString PlotBoardView::spokenText(const QString& elementId) const {
     return parts.join(QStringLiteral(". "));
 }
 
+QString PlotBoardView::toolTipOf(const PlotCard& card) {
+    QStringList lines{QStringLiteral("<b>%1</b>").arg(
+        (card.title.isEmpty() ? card.kindName : card.title).toHtmlEscaped())};
+    if (!card.description.isEmpty()) {
+        lines << card.description.toHtmlEscaped();
+    }
+    QStringList plot = plotTexts(card);
+    if (!plot.isEmpty()) {
+        for (QString& text : plot) {
+            text = text.toHtmlEscaped();
+        }
+        lines << plot.join(QStringLiteral("<br>"));
+    }
+    return QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
+        .arg(lines.join(QStringLiteral("<br>")));
+}
+
 QSize PlotBoardView::sizeHint() const {
-    return {640, 360};
-}
-
-// =============================================================================
-// Layout
-// =============================================================================
-
-QSize PlotBoardView::cardSizePixels() const {
-    const QFontMetrics metrics(font());
-    const QFontMetrics small(smallFont(font()));
-    const QFontMetrics bold(boldFont(font()));
-    const int width = std::max(120, metrics.averageCharWidth() * widthInCharacters(m_cardSize));
-    int height = 2 * PADDING + STRIP + small.height();
-    height += LINE_GAP + bold.lineSpacing() * titleLines(m_cardSize);
-    if (m_fields.description) {
-        height += LINE_GAP + metrics.lineSpacing() * descriptionLines(m_cardSize);
-    }
-    if (m_fields.pov || m_fields.place || m_fields.time) {
-        height += LINE_GAP + small.height();
-    }
-    return {width, height};
-}
-
-void PlotBoardView::relayout() {
-    m_cards.clear();
-    m_bandPlaces.clear();
-    m_drawers.clear();
-    const QSize card = cardSizePixels();
-    const int header = QFontMetrics(boldFont(font())).height() + 8;
-    if (m_arrangement == Arrangement::Columns) {
-        layOutColumns(card, header);
-    } else {
-        layOutGrid(card, header);
-    }
-    updateScrollBars();
-}
-
-void PlotBoardView::layOutColumns(const QSize& card, int header) {
-    int x = MARGIN;
-    const int top = MARGIN;
-    const int cardsTop = top + header + 6;
-    int bottom = cardsTop + card.height();
-    int column = 0;
-    for (int b = 0; b < m_bands.size(); ++b) {
-        const PlotBand& band = m_bands.at(b);
-        const int count = int(band.cards.size());
-        const int width = count > 0 ? count * card.width() + (count - 1) * GAP : card.width();
-        int bandBottom = cardsTop + card.height();
-        for (int i = 0; i < count; ++i, ++column) {
-            const PlotCard& text = band.cards.at(i);
-            const int left = x + i * (card.width() + GAP);
-            m_cards << CardPlace{text.id, b, i, -1, column,
-                                 QRect(left, cardsTop, card.width(), card.height())};
-            // Its scenes under it, a little to the right
-            int y = cardsTop + card.height() + GAP;
-            for (int s = 0; m_showScenes && s < text.scenes.size(); ++s) {
-                m_cards << CardPlace{text.scenes.at(s).id, b, i, s, column,
-                                     QRect(left + SCENE_INDENT, y, card.width() - SCENE_INDENT,
-                                           card.height())};
-                bandBottom = y + card.height();
-                y += card.height() + GAP;
-            }
-        }
-        BandPlace place;
-        place.band = b;
-        place.header = QRect(x, top, width, header);
-        place.area = QRect(x, cardsTop, width, bandBottom - cardsTop);
-        m_bandPlaces << place;
-        bottom = std::max(bottom, bandBottom);
-        x += width + BAND_GAP;
-    }
-    m_contentsSize = QSize(std::max(x - BAND_GAP + MARGIN, 0), bottom + MARGIN);
-}
-
-void PlotBoardView::layOutGrid(const QSize& card, int header) {
-    const int perRow = cardsPerRow();
-    const int available = std::max(card.width(), viewport()->width() - 2 * MARGIN);
-    const int label = QFontMetrics(smallFont(font())).height() + 4;
-    const int perDrawerRow =
-        std::max(1, (available - 2 * DRAWER_PADDING + GAP) / (card.width() + GAP));
-    int y = MARGIN;
-    for (int b = 0; b < m_bands.size(); ++b) {
-        const PlotBand& band = m_bands.at(b);
-        BandPlace place;
-        place.band = b;
-        if (!band.partId.isEmpty()) {
-            place.header = QRect(MARGIN, y, available, header);
-            y += header + 6;
-        }
-        const int top = y;
-        int rowTop = y;
-        int column = 0;
-        int bottom = y + card.height();  // an empty part has the place of a card
-        const int count = int(band.cards.size());
-        for (int i = 0; i < count; ++i) {
-            if (column == perRow) {
-                column = 0;
-                rowTop += card.height() + GAP;
-            }
-            const PlotCard& text = band.cards.at(i);
-            const QRect rect(MARGIN + column * (card.width() + GAP), rowTop, card.width(),
-                             card.height());
-            m_cards << CardPlace{text.id, b, i, -1, 0, rect};
-            bottom = rect.bottom() + 1;
-            ++column;
-            if (text.scenes.isEmpty() || !scenesShown(text.id)) {
-                continue;
-            }
-            // The drawer of its scenes under its row, as wide as the board; the texts after
-            // it go on under the drawer
-            const int scenes = int(text.scenes.size());
-            const int rows = (scenes + perDrawerRow - 1) / perDrawerRow;
-            const int drawerTop = rowTop + card.height() + GAP;
-            const int height =
-                DRAWER_PADDING + label + rows * (card.height() + GAP) - GAP + DRAWER_PADDING;
-            m_drawers << DrawerPlace{text.id, text.title,
-                                     QRect(MARGIN, drawerTop, available, height)};
-            for (int s = 0; s < scenes; ++s) {
-                const int left =
-                    MARGIN + DRAWER_PADDING + (s % perDrawerRow) * (card.width() + GAP);
-                const int sceneTop = drawerTop + DRAWER_PADDING + label +
-                                     (s / perDrawerRow) * (card.height() + GAP);
-                m_cards << CardPlace{text.scenes.at(s).id, b, i, s, 0,
-                                     QRect(left, sceneTop, card.width(), card.height())};
-            }
-            bottom = drawerTop + height;
-            rowTop = bottom + GAP - (card.height() + GAP);  // the next card starts a row
-            column = perRow;
-        }
-        place.area = QRect(MARGIN, top, count > 0 ? available : card.width(), bottom - top);
-        m_bandPlaces << place;
-        y = bottom + BAND_GAP;
-    }
-    m_contentsSize = QSize(available + 2 * MARGIN, std::max(y - BAND_GAP + MARGIN, 0));
-}
-
-void PlotBoardView::updateScrollBars() {
-    const QSize area = viewport()->size();
-    horizontalScrollBar()->setRange(0, std::max(0, m_contentsSize.width() - area.width()));
-    horizontalScrollBar()->setPageStep(area.width());
-    verticalScrollBar()->setRange(0, std::max(0, m_contentsSize.height() - area.height()));
-    verticalScrollBar()->setPageStep(area.height());
-}
-
-const PlotBoardView::CardPlace* PlotBoardView::placeOf(const QString& elementId) const {
-    if (elementId.isEmpty()) {
-        return nullptr;
-    }
-    for (const CardPlace& place : m_cards) {
-        if (place.id == elementId) {
-            return &place;
-        }
-    }
-    return nullptr;
-}
-
-const PlotCard* PlotBoardView::cardOf(const QString& elementId) const {
-    const CardPlace* place = placeOf(elementId);
-    if (place == nullptr) {
-        return nullptr;
-    }
-    return &cardOfPlace(*place);
-}
-
-const PlotCard& PlotBoardView::cardOfPlace(const CardPlace& place) const {
-    const PlotCard& text = m_bands.at(place.band).cards.at(place.index);
-    return place.scene >= 0 ? text.scenes.at(place.scene) : text;
-}
-
-QString PlotBoardView::scenesNote(const PlotCard& card) const {
-    if (card.scenes.isEmpty() || (m_arrangement == Arrangement::Columns && m_showScenes)) {
-        return {};
-    }
-    QString scenes = PlotBoard::scenesText(int(card.scenes.size()));
-    if (m_arrangement == Arrangement::Columns) {
-        return scenes;
-    }
-    // In a grid it opens and closes the drawer
-    return (scenesShown(card.id) ? QStringLiteral("\u25BE ") : QStringLiteral("\u25B8 ")) +
-           scenes;
-}
-
-QRect PlotBoardView::scenesNoteRect(const CardPlace& place) const {
-    const QString note = place.scene < 0 ? scenesNote(cardOfPlace(place)) : QString();
-    if (note.isEmpty()) {
-        return {};
-    }
-    const QFontMetrics metrics(smallFont(font()));
-    const QRect inner = place.rect.adjusted(PADDING, PADDING + STRIP, -PADDING, -PADDING);
-    const int width = metrics.horizontalAdvance(note) + 4;
-    return {inner.right() - width + 1, inner.bottom() - metrics.height() + 1, width,
-            metrics.height()};
-}
-
-const PlotBoardView::CardPlace* PlotBoardView::cardAt(const QPoint& contentsPos) const {
-    for (const CardPlace& place : m_cards) {
-        if (place.rect.contains(contentsPos)) {
-            return &place;
-        }
-    }
-    return nullptr;
-}
-
-QPoint PlotBoardView::contentsPos(const QPoint& viewportPos) const {
-    return viewportPos + QPoint(horizontalScrollBar()->value(), verticalScrollBar()->value());
-}
-
-QString PlotBoardView::neighbour(Key key) const {
-    if (m_cards.isEmpty()) {
-        return {};
-    }
-    const CardPlace* current = placeOf(m_current);
-    if (current == nullptr || key == Key::First) {
-        return m_cards.constFirst().id;
-    }
-    if (key == Key::Last) {
-        return m_cards.constLast().id;
-    }
-    const qsizetype at = current - m_cards.constData();
-    if ((key == Key::Left || key == Key::Right) && m_arrangement == Arrangement::Columns) {
-        // The column beside, the card nearest in height (a scene beside a scene)
-        const int column = current->column + (key == Key::Left ? -1 : 1);
-        const CardPlace* best = nullptr;
-        for (const CardPlace& place : m_cards) {
-            if (place.column == column &&
-                (best == nullptr || std::abs(place.rect.top() - current->rect.top()) <
-                                        std::abs(best->rect.top() - current->rect.top()))) {
-                best = &place;
-            }
-        }
-        return best != nullptr ? best->id : QString();
-    }
-    if (key == Key::Left) {
-        return at > 0 ? m_cards.at(at - 1).id : QString();
-    }
-    if (key == Key::Right) {
-        return at + 1 < m_cards.size() ? m_cards.at(at + 1).id : QString();
-    }
-    // Up and Down: the nearest row above or below, the card nearest to the middle of this one
-    const QRect from = current->rect;
-    const CardPlace* best = nullptr;
-    int bestRow = 0;
-    int bestDistance = std::numeric_limits<int>::max();
-    for (const CardPlace& place : m_cards) {
-        const bool beyond = key == Key::Up ? place.rect.bottom() < from.top()
-                                           : place.rect.top() > from.bottom();
-        if (!beyond) {
-            continue;
-        }
-        const int row = key == Key::Up ? -place.rect.bottom() : place.rect.top();
-        const int distance = std::abs(place.rect.center().x() - from.center().x());
-        if (best == nullptr || row < bestRow || (row == bestRow && distance < bestDistance)) {
-            best = &place;
-            bestRow = row;
-            bestDistance = distance;
-        }
-    }
-    return best != nullptr ? best->id : QString();
+    return {DEFAULT_WIDTH, DEFAULT_HEIGHT};
 }
 
 void PlotBoardView::choose(const QString& elementId) {
@@ -630,9 +308,7 @@ void PlotBoardView::choose(const QString& elementId) {
     }
     ensureVisible(place->rect);
     if (m_current != elementId) {
-        m_current = elementId;
-        const QString current = m_current;
-        emit currentCardChanged(current);
+        setCurrent(elementId);
         tellScreenReader();
     }
     viewport()->update();
@@ -663,263 +339,6 @@ void PlotBoardView::tellScreenReader() {
 }
 
 // =============================================================================
-// Painting
-// =============================================================================
-
-void PlotBoardView::paintEvent(QPaintEvent* /*event*/) {
-    QPainter painter(viewport());
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.translate(-horizontalScrollBar()->value(), -verticalScrollBar()->value());
-    const QRect shown(QPoint(horizontalScrollBar()->value(), verticalScrollBar()->value()),
-                      viewport()->size());
-
-    if (m_bands.isEmpty()) {
-        painter.setPen(quietColor(palette()));
-        //: The plot board of a book without texts in its main section (Body). In Polish: W
-        //: tekście głównym książki nie ma jeszcze rozdziałów. Insert dodaje rozdział.
-        painter.drawText(shown.adjusted(MARGIN, MARGIN, -MARGIN, -MARGIN),
-                         Qt::AlignCenter | Qt::TextWordWrap,
-                         tr("The main section of the book has no texts yet. Insert adds a "
-                            "chapter."));
-        return;
-    }
-    for (const BandPlace& band : m_bandPlaces) {
-        if (band.header.isValid() || band.area.intersects(shown)) {
-            paintBandHeader(painter, band);
-        }
-    }
-    for (const DrawerPlace& drawer : m_drawers) {
-        if (drawer.rect.intersects(shown)) {
-            paintDrawer(painter, drawer);
-        }
-    }
-    for (const CardPlace& place : m_cards) {
-        if (place.rect.intersects(shown)) {
-            paintCard(painter, place);
-        }
-    }
-    if (m_drop.isValid() && m_drop.marker.isValid()) {
-        painter.fillRect(m_drop.marker, palette().color(QPalette::Highlight));
-    }
-}
-
-void PlotBoardView::paintBandHeader(QPainter& painter, const BandPlace& place) const {
-    const PlotBand& band = m_bands.at(place.band);
-    if (band.partId.isEmpty()) {
-        return;
-    }
-    const QPalette& colors = palette();
-    // The title of the part and the words of its texts, over a line
-    if (place.header.isValid()) {
-        painter.setFont(smallFont(font()));
-        //: The texts and the words of a part on the plot board; %1 the texts ("3 texts"), %2
-        //: the words. In Polish: %1 · %2
-        const QString count =
-            tr("%1 · %2").arg(PlotBoard::textsText(int(band.cards.size())),
-                             PlotBoard::wordsText(band.words()));
-        const int countWidth = painter.fontMetrics().horizontalAdvance(count);
-        painter.setPen(quietColor(colors));
-        painter.drawText(place.header.adjusted(0, 0, -2, -4), Qt::AlignRight | Qt::AlignBottom,
-                         count);
-        painter.setFont(boldFont(font()));
-        painter.setPen(colors.color(QPalette::WindowText));
-        const QRect titleRect = place.header.adjusted(2, 0, -countWidth - 12, -4);
-        painter.drawText(titleRect, Qt::AlignLeft | Qt::AlignBottom,
-                         painter.fontMetrics().elidedText(band.title, Qt::ElideRight,
-                                                          titleRect.width()));
-        painter.fillRect(QRect(place.header.left(), place.header.bottom() - 1,
-                               place.header.width(), 2),
-                         colors.color(QPalette::Mid));
-    }
-    if (band.cards.isEmpty()) {
-        // An empty part: the place a card can be dropped on
-        const QRect empty = place.area.adjusted(1, 1, -1, -1);
-        QPen pen(colors.color(QPalette::Mid));
-        pen.setStyle(Qt::DashLine);
-        painter.setPen(pen);
-        painter.setBrush(Qt::NoBrush);
-        painter.drawRoundedRect(empty, RADIUS, RADIUS);
-        QFont italic = font();
-        italic.setItalic(true);
-        painter.setFont(italic);
-        painter.setPen(quietColor(colors));
-        //: A part without texts on the plot board. In Polish: Pusta część
-        painter.drawText(empty, Qt::AlignCenter | Qt::TextWordWrap, tr("Empty part"));
-    }
-}
-
-void PlotBoardView::paintDrawer(QPainter& painter, const DrawerPlace& drawer) const {
-    const QPalette& colors = palette();
-    painter.save();
-    QPainterPath shape;
-    shape.addRoundedRect(QRectF(drawer.rect), RADIUS, RADIUS);
-    painter.fillPath(shape, colors.color(QPalette::AlternateBase));
-    painter.fillRect(QRect(drawer.rect.left(), drawer.rect.top(), 3, drawer.rect.height()),
-                     colors.color(QPalette::Highlight));
-    const QFont small = smallFont(font());
-    painter.setFont(small);
-    painter.setPen(quietColor(colors));
-    const QRect label(drawer.rect.left() + DRAWER_PADDING, drawer.rect.top() + DRAWER_PADDING / 2,
-                      drawer.rect.width() - 2 * DRAWER_PADDING, QFontMetrics(small).height() + 4);
-    //: Over the scenes of a text in its drawer on the plot board; %1 the title of the text. In
-    //: Polish: Sceny – %1
-    painter.drawText(label, Qt::AlignLeft | Qt::AlignVCenter,
-                     QFontMetrics(small).elidedText(tr("Scenes – %1").arg(drawer.title),
-                                                    Qt::ElideRight, label.width()));
-    painter.restore();
-}
-
-void PlotBoardView::paintCard(QPainter& painter, const CardPlace& place) const {
-    const PlotCard& card = cardOfPlace(place);
-    const QPalette& colors = palette();
-    const QRect rect = place.rect;
-    const bool current = card.id == m_current;
-    const bool marked = card.id == m_marked;
-
-    painter.save();
-    if (marked) {
-        painter.setOpacity(0.55);
-    }
-    QPainterPath shape;
-    shape.addRoundedRect(QRectF(rect).adjusted(0.5, 0.5, -0.5, -0.5), RADIUS, RADIUS);
-    painter.fillPath(shape, colors.color(QPalette::Base));
-    const QColor own = m_colors.ofCard(card, m_colorBy, m_povs);
-    if (own.isValid()) {
-        painter.save();
-        painter.setClipPath(shape);
-        painter.fillRect(QRect(rect.left(), rect.top(), rect.width(), STRIP), own);
-        painter.restore();
-    }
-    QPen border(colors.color(QPalette::Mid));
-    if (marked) {
-        border.setStyle(Qt::DashLine);
-    }
-    painter.setPen(border);
-    painter.setBrush(Qt::NoBrush);
-    painter.drawPath(shape);
-
-    const QRect inner = rect.adjusted(PADDING, PADDING + STRIP, -PADDING, -PADDING);
-    int y = inner.top();
-
-    // The kind and the words; the state on the right
-    const QFont small = smallFont(font());
-    painter.setFont(small);
-    const QFontMetrics smallMetrics(small);
-    int stateWidth = 0;
-    if (m_fields.status) {
-        const QString state = PlotBoard::statusName(card.status);
-        const int dot = smallMetrics.height() / 2;
-        stateWidth = smallMetrics.horizontalAdvance(state) + dot + 4;
-        const QRect stateRect(inner.right() - stateWidth + 1, y, stateWidth, smallMetrics.height());
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(m_colors.ofStatus(card.status));
-        const int dotTop = y + (smallMetrics.height() - dot) / 2;
-        painter.drawEllipse(QRect(stateRect.left(), dotTop, dot, dot));
-        painter.setPen(quietColor(colors));
-        painter.drawText(stateRect.adjusted(dot + 4, 0, 0, 0), Qt::AlignLeft | Qt::AlignVCenter,
-                         state);
-    }
-    QString kind = card.kindName;
-    if (m_fields.words) {
-        const QString words = PlotBoard::wordsText(card.words);
-        kind = kind.isEmpty() ? words : QStringLiteral("%1 · %2").arg(kind, words);
-    }
-    painter.setPen(quietColor(colors));
-    const int kindWidth = inner.width() - stateWidth - (stateWidth > 0 ? 6 : 0);
-    painter.drawText(QRect(inner.left(), y, kindWidth, smallMetrics.height()),
-                     Qt::AlignLeft | Qt::AlignVCenter,
-                     smallMetrics.elidedText(kind, Qt::ElideRight, kindWidth));
-    y += smallMetrics.height() + LINE_GAP;
-
-    // The title
-    painter.setFont(boldFont(font()));
-    painter.setPen(colors.color(QPalette::Text));
-    y += drawWrapped(painter, QPoint(inner.left(), y), inner.width(), card.title,
-                     titleLines(m_cardSize));
-    y = std::max(y, inner.top() + smallMetrics.height() + LINE_GAP +
-                        QFontMetrics(boldFont(font())).lineSpacing());
-
-    // The description, or where it goes
-    if (m_fields.description) {
-        y += LINE_GAP;
-        QFont text = font();
-        if (card.description.isEmpty()) {
-            text.setItalic(true);
-            painter.setFont(text);
-            painter.setPen(quietColor(colors));
-            if (!m_readOnly) {
-                //: A card of the plot board without a description. In Polish: Bez opisu – F2
-                painter.drawText(QPoint(inner.left(), y + QFontMetrics(text).ascent()),
-                                 tr("No description – F2"));
-            }
-        } else {
-            painter.setFont(text);
-            painter.setPen(colors.color(QPalette::Text));
-            drawWrapped(painter, QPoint(inner.left(), y), inner.width(), card.description,
-                        descriptionLines(m_cardSize));
-        }
-    }
-
-    // The scenes of a text, when they are not shown under it, at the bottom right
-    int right = inner.right();
-    if (const QString note = scenesNote(card); !note.isEmpty()) {
-        painter.setFont(small);
-        painter.setPen(m_arrangement == Arrangement::Grid ? colors.color(QPalette::Link)
-                                                          : quietColor(colors));
-        const QRect noteRect = scenesNoteRect(place);
-        painter.drawText(noteRect, Qt::AlignRight | Qt::AlignVCenter, note);
-        right = noteRect.left() - 6;
-    }
-
-    // The point of view, the place and the time at the bottom; a text without its own point of
-    // view has those of its scenes, in italics
-    if (m_fields.pov || m_fields.place || m_fields.time) {
-        QFont italic = small;
-        italic.setItalic(true);
-        painter.setPen(quietColor(colors));
-        const int lineTop = inner.bottom() - smallMetrics.height() + 1;
-        const int iconSize = std::max(8, smallMetrics.height() - 3);
-        int x = inner.left();
-        const auto item = [&](bool shown, const char* icon, const QString& text, bool derived) {
-            if (!shown || text.isEmpty() || x >= right - iconSize) {
-                return;
-            }
-            painter.setFont(derived ? italic : small);
-            const QFontMetrics metrics(painter.font());
-            const QPixmap pixmap =
-                core::ArtProvider::getInstance().getPixmap(QString::fromLatin1(icon), iconSize);
-            painter.drawPixmap(QRect(x, lineTop + (smallMetrics.height() - iconSize) / 2,
-                                     iconSize, iconSize),
-                               pixmap);
-            x += iconSize + 3;
-            const int room = right - x;
-            const QString shownText = metrics.elidedText(text, Qt::ElideRight, room);
-            painter.drawText(QRect(x, lineTop, room, smallMetrics.height()),
-                             Qt::AlignLeft | Qt::AlignVCenter, shownText);
-            x += metrics.horizontalAdvance(shownText) + 10;
-        };
-        const bool derived = card.plot.pov.isEmpty();
-        item(m_fields.pov, "plotBoard.pov",
-             derived ? card.scenePovs().join(QStringLiteral(", ")) : card.plot.pov, derived);
-        item(m_fields.place, "plotBoard.place", card.plot.place, false);
-        item(m_fields.time, "plotBoard.time", card.plot.time, false);
-    }
-    painter.restore();
-
-    // The card chosen
-    if (current) {
-        QColor ring = colors.color(QPalette::Highlight);
-        if (!hasFocus() && (m_editor == nullptr || !m_editor->isAncestorOf(focusWidget()))) {
-            ring.setAlphaF(0.5F);
-        }
-        QPen pen(ring, 2);
-        painter.setPen(pen);
-        painter.setBrush(Qt::NoBrush);
-        painter.drawRoundedRect(QRectF(rect).adjusted(-1, -1, 1, 1), RADIUS + 1, RADIUS + 1);
-    }
-}
-
-// =============================================================================
 // Events
 // =============================================================================
 
@@ -934,40 +353,19 @@ bool PlotBoardView::event(QEvent* event) {
 }
 
 bool PlotBoardView::viewportEvent(QEvent* event) {
-    if (event->type() == QEvent::ToolTip) {
-        auto* help = static_cast<QHelpEvent*>(event);
-        const CardPlace* place = cardAt(contentsPos(help->pos()));
-        if (place == nullptr) {
-            QToolTip::hideText();
-            event->ignore();
-            return true;
-        }
-        const PlotCard& card = cardOfPlace(*place);
-        QStringList lines{QStringLiteral("<b>%1</b>").arg(
-            (card.title.isEmpty() ? card.kindName : card.title).toHtmlEscaped())};
-        if (!card.description.isEmpty()) {
-            lines << card.description.toHtmlEscaped();
-        }
-        QStringList plot;
-        if (!card.plot.pov.isEmpty()) {
-            plot << tr("Point of view: %1").arg(card.plot.pov.toHtmlEscaped());
-        }
-        if (!card.plot.place.isEmpty()) {
-            plot << tr("Place: %1").arg(card.plot.place.toHtmlEscaped());
-        }
-        if (!card.plot.time.isEmpty()) {
-            plot << tr("Time of the action: %1").arg(card.plot.time.toHtmlEscaped());
-        }
-        if (!plot.isEmpty()) {
-            lines << plot.join(QStringLiteral("<br>"));
-        }
-        QToolTip::showText(help->globalPos(),
-                           QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
-                               .arg(lines.join(QStringLiteral("<br>"))),
-                           viewport(), cardRect(place->id));
+    if (event->type() != QEvent::ToolTip) {
+        return QAbstractScrollArea::viewportEvent(event);
+    }
+    const auto* help = static_cast<QHelpEvent*>(event);
+    const CardPlace* place = cardAt(contentsPos(help->pos()));
+    if (place == nullptr) {
+        QToolTip::hideText();
+        event->ignore();
         return true;
     }
-    return QAbstractScrollArea::viewportEvent(event);
+    QToolTip::showText(help->globalPos(), toolTipOf(cardOfPlace(*place)), viewport(),
+                       cardRect(place->id));
+    return true;
 }
 
 void PlotBoardView::resizeEvent(QResizeEvent* event) {
@@ -1006,400 +404,6 @@ void PlotBoardView::focusOutEvent(QFocusEvent* event) {
     viewport()->update();
 }
 
-PlotBoardView::Key PlotBoardView::keyOf(const QKeyEvent* event) const {
-    const Qt::KeyboardModifiers modifiers = event->modifiers() & ~Qt::KeypadModifier;
-    const bool plain = modifiers == Qt::NoModifier;
-    const bool control = modifiers == Qt::ControlModifier;
-    switch (event->key()) {
-    case Qt::Key_Left:
-        return plain ? Key::Left : control ? Key::MoveBack : Key::None;
-    case Qt::Key_Right:
-        return plain ? Key::Right : control ? Key::MoveForward : Key::None;
-    case Qt::Key_Up:
-        return plain ? Key::Up : control ? Key::MoveUp : Key::None;
-    case Qt::Key_Down:
-        return plain ? Key::Down : control ? Key::MoveDown : Key::None;
-    case Qt::Key_Home:
-        return plain ? Key::First : Key::None;
-    case Qt::Key_End:
-        return plain ? Key::Last : Key::None;
-    case Qt::Key_Return:
-    case Qt::Key_Enter:
-        return plain ? Key::Open : modifiers == Qt::AltModifier ? Key::Properties : Key::None;
-    case Qt::Key_F2:
-        return plain ? Key::Edit : Key::None;
-    case Qt::Key_Insert:
-        return plain ? Key::Add : modifiers == Qt::AltModifier ? Key::AddScene : Key::None;
-    case Qt::Key_Delete:
-        return plain ? Key::Delete : Key::None;
-    case Qt::Key_X:
-        return control ? Key::Cut : Key::None;
-    case Qt::Key_V:
-        return control ? Key::Paste : Key::None;
-    case Qt::Key_Z:
-        return control                                                ? Key::Undo
-               : modifiers == (Qt::ControlModifier | Qt::ShiftModifier) ? Key::Redo
-                                                                        : Key::None;
-    case Qt::Key_Y:
-        return control ? Key::Redo : Key::None;
-    case Qt::Key_Escape:
-        return plain && !m_marked.isEmpty() ? Key::CancelCut : Key::None;
-    case Qt::Key_Menu:
-        return plain ? Key::Menu : Key::None;
-    case Qt::Key_Space:
-        return plain && m_arrangement == Arrangement::Grid ? Key::Scenes : Key::None;
-    case Qt::Key_F10:
-        return modifiers == Qt::ShiftModifier ? Key::Menu : Key::None;
-    default:
-        break;
-    }
-    return Key::None;
-}
-
-void PlotBoardView::keyPressEvent(QKeyEvent* event) {
-    const Key key = keyOf(event);
-    if (key == Key::None) {
-        QAbstractScrollArea::keyPressEvent(event);
-        return;
-    }
-    event->accept();
-    doKey(key);
-}
-
-void PlotBoardView::doKey(Key key) {
-    // The card the key is for: whoever takes the request may choose another one
-    const QString current = m_current;
-    const bool changing = !m_readOnly && !current.isEmpty();
-    switch (key) {
-    case Key::Left:
-    case Key::Right:
-    case Key::Up:
-    case Key::Down:
-    case Key::First:
-    case Key::Last: {
-        const QString target = neighbour(key);
-        if (!target.isEmpty()) {
-            choose(target);
-        }
-        break;
-    }
-    case Key::MoveBack:
-    case Key::MoveForward:
-        // A scene in columns: to the text beside
-        if (changing && m_arrangement == Arrangement::Columns && PlotBoard::sceneOf(m_current)) {
-            emit moveToTextRequested(current, key == Key::MoveBack ? -1 : 1);
-        } else if (changing) {
-            emit moveRequested(current, key == Key::MoveBack ? -1 : 1);
-        }
-        break;
-    case Key::MoveUp:
-    case Key::MoveDown: {
-        // In columns the scenes of a text are under it; in a grid a text moves by a row, and a
-        // scene of a drawer to the text above or below
-        const int direction = key == Key::MoveUp ? -1 : 1;
-        if (!changing) {
-            break;
-        }
-        if (!PlotBoard::sceneOf(m_current)) {
-            if (m_arrangement == Arrangement::Grid) {
-                emit moveRequested(current, direction * cardsPerRow());
-            }
-        } else if (m_arrangement == Arrangement::Columns) {
-            emit moveRequested(current, direction);
-        } else {
-            emit moveToTextRequested(current, direction);
-        }
-        break;
-    }
-    case Key::Scenes: {
-        // The drawer of the text of the card, or of the scene
-        const auto scene = PlotBoard::sceneOf(m_current);
-        toggleScenes(scene ? scene->first : m_current);
-        break;
-    }
-    case Key::Open:
-        if (!m_current.isEmpty()) {
-            emit openRequested(current);
-        }
-        break;
-    case Key::Edit:
-        if (changing) {
-            emit editRequested(current);
-        }
-        break;
-    case Key::Add:
-        if (!m_readOnly) {
-            emit addRequested(current);
-        }
-        break;
-    case Key::AddScene:
-        if (changing) {
-            emit addSceneRequested(current);
-        }
-        break;
-    case Key::Delete:
-        if (changing) {
-            emit deleteRequested(current);
-        }
-        break;
-    case Key::Cut:
-        if (changing) {
-            emit cutRequested(current);
-        }
-        break;
-    case Key::Paste:
-        if (!m_readOnly && !m_marked.isEmpty()) {
-            emit pasteRequested(current);
-        }
-        break;
-    case Key::CancelCut:
-        emit cutCancelled();
-        break;
-    case Key::Undo:
-        if (!m_readOnly) {
-            emit undoRequested();
-        }
-        break;
-    case Key::Redo:
-        if (!m_readOnly) {
-            emit redoRequested();
-        }
-        break;
-    case Key::Properties:
-        if (!m_current.isEmpty()) {
-            emit propertiesRequested(current);
-        }
-        break;
-    case Key::Menu: {
-        const QRect rect = cardRect(m_current);
-        const QPoint at = rect.isValid() ? rect.center() : viewport()->rect().center();
-        emit menuRequested(current, viewport()->mapToGlobal(at));
-        break;
-    }
-    case Key::None:
-        break;
-    }
-}
-
-void PlotBoardView::mousePressEvent(QMouseEvent* event) {
-    if (m_editor != nullptr) {
-        // A click beside the card edited keeps what was written
-        closeEditor(true);
-    }
-    setFocus(Qt::MouseFocusReason);
-    const QPoint pos = contentsPos(event->position().toPoint());
-    const CardPlace* place = cardAt(pos);
-    if (place != nullptr && event->button() == Qt::LeftButton &&
-        scenesNoteRect(*place).contains(pos)) {
-        // "3 scenes" opens and closes the drawer
-        const QString textId = place->id;
-        choose(textId);
-        toggleScenes(textId);
-        event->accept();
-        return;
-    }
-    if (place != nullptr) {
-        choose(place->id);
-    }
-    if (event->button() == Qt::LeftButton && place != nullptr) {
-        m_pressed = place->id;
-        m_pressPos = event->position().toPoint();
-    }
-    event->accept();
-}
-
-void PlotBoardView::mouseMoveEvent(QMouseEvent* event) {
-    if ((event->buttons() & Qt::LeftButton) == 0 || m_pressed.isEmpty() || m_readOnly) {
-        return;
-    }
-    if ((event->position().toPoint() - m_pressPos).manhattanLength() <
-        QApplication::startDragDistance()) {
-        return;
-    }
-    startDrag();
-}
-
-void PlotBoardView::mouseReleaseEvent(QMouseEvent* event) {
-    m_pressed.clear();
-    event->accept();
-}
-
-void PlotBoardView::mouseDoubleClickEvent(QMouseEvent* event) {
-    const CardPlace* place = cardAt(contentsPos(event->position().toPoint()));
-    if (place != nullptr && event->button() == Qt::LeftButton) {
-        // The cards are made again when the text opens
-        const QString id = place->id;
-        emit openRequested(id);
-    }
-    event->accept();
-}
-
-void PlotBoardView::contextMenuEvent(QContextMenuEvent* event) {
-    if (event->reason() == QContextMenuEvent::Keyboard) {
-        doKey(Key::Menu);
-        event->accept();
-        return;
-    }
-    const CardPlace* place = cardAt(contentsPos(event->pos()));
-    if (place != nullptr) {
-        choose(place->id);
-    }
-    emit menuRequested(place != nullptr ? place->id : QString(), event->globalPos());
-    event->accept();
-}
-
-void PlotBoardView::startDrag() {
-    const QString dragged = m_pressed;
-    m_pressed.clear();
-    const QRect rect = cardRect(dragged);
-    auto* mime = new QMimeData;
-    mime->setData(QString::fromLatin1(CARD_MIME_TYPE), dragged.toUtf8());
-    auto* drag = new QDrag(this);
-    drag->setMimeData(mime);
-    if (rect.isValid()) {
-        drag->setPixmap(viewport()->grab(rect));
-        drag->setHotSpot(m_pressPos - rect.topLeft());
-    }
-    drag->exec(Qt::MoveAction);
-    m_drop = {};
-    viewport()->update();
-}
-
-PlotBoardView::DropTarget PlotBoardView::dropTargetAt(const QPoint& pos,
-                                                      const QString& dragged) const {
-    DropTarget target;
-    if (const auto scene = PlotBoard::sceneOf(dragged)) {
-        return sceneDropTargetAt(pos, dragged, scene->first);
-    }
-    // Before or after the card under the mouse, or the nearest card of its row
-    for (const CardPlace& place : m_cards) {
-        const QRect near = place.rect.adjusted(-GAP / 2 - 1, -GAP / 2, GAP / 2 + 1, GAP / 2);
-        if (place.scene >= 0 || !near.contains(pos)) {
-            continue;
-        }
-        if (place.id == dragged) {
-            return target;
-        }
-        target.anchorId = place.id;
-        target.after = pos.x() > place.rect.center().x();
-        const int x = target.after ? place.rect.right() + GAP / 2 : place.rect.left() - GAP / 2;
-        target.marker = QRect(x - 1, place.rect.top(), 3, place.rect.height());
-        return target;
-    }
-    for (const BandPlace& band : m_bandPlaces) {
-        const PlotBand& shown = m_bands.at(band.band);
-        // The title of a part, or an empty part: at its start
-        if (!shown.partId.isEmpty() &&
-            (band.header.contains(pos) || (shown.cards.isEmpty() && band.area.contains(pos)))) {
-            target.partId = shown.partId;
-            target.marker = QRect(band.area.left(), band.area.top() - 4, band.area.width(), 3);
-            return target;
-        }
-        // Beyond the last card of a band: after it
-        if (band.area.adjusted(0, 0, GAP, 0).contains(pos) && !shown.cards.isEmpty()) {
-            const QString last = shown.cards.constLast().id;
-            if (last == dragged) {
-                return target;
-            }
-            const CardPlace* place = placeOf(last);
-            target.anchorId = last;
-            target.after = true;
-            target.marker = QRect(place->rect.right() + GAP / 2 - 1, place->rect.top(), 3,
-                                  place->rect.height());
-            return target;
-        }
-    }
-    return target;
-}
-
-PlotBoardView::DropTarget PlotBoardView::sceneDropTargetAt(const QPoint& pos,
-                                                           const QString& dragged,
-                                                           const QString& textId) const {
-    // Before or after a scene of the same text: in columns above or below it, in a drawer on
-    // its left or right
-    DropTarget target;
-    const bool columns = m_arrangement == Arrangement::Columns;
-    for (const CardPlace& place : m_cards) {
-        const QRect near = place.rect.adjusted(-GAP / 2 - 1, -GAP / 2, GAP / 2 + 1, GAP / 2);
-        if (place.scene < 0 || !near.contains(pos)) {
-            continue;
-        }
-        const auto scene = PlotBoard::sceneOf(place.id);
-        if (place.id == dragged || !scene || scene->first != textId) {
-            return target;
-        }
-        target.anchorId = place.id;
-        if (columns) {
-            target.after = pos.y() > place.rect.center().y();
-            const int y = target.after ? place.rect.bottom() + GAP / 2 : place.rect.top() - GAP / 2;
-            target.marker = QRect(place.rect.left(), y - 1, place.rect.width(), 3);
-        } else {
-            target.after = pos.x() > place.rect.center().x();
-            const int x = target.after ? place.rect.right() + GAP / 2 : place.rect.left() - GAP / 2;
-            target.marker = QRect(x - 1, place.rect.top(), 3, place.rect.height());
-        }
-        return target;
-    }
-    return target;
-}
-
-void PlotBoardView::dragEnterEvent(QDragEnterEvent* event) {
-    if (!m_readOnly && event->source() == this &&
-        event->mimeData()->hasFormat(QString::fromLatin1(CARD_MIME_TYPE))) {
-        event->acceptProposedAction();
-        return;
-    }
-    event->ignore();
-}
-
-void PlotBoardView::dragMoveEvent(QDragMoveEvent* event) {
-    const QString dragged =
-        QString::fromUtf8(event->mimeData()->data(QString::fromLatin1(CARD_MIME_TYPE)));
-    const QPoint pos = event->position().toPoint();
-    m_drop = dropTargetAt(contentsPos(pos), dragged);
-    // Near the edges the board scrolls
-    if (pos.x() < MARGIN * 2) {
-        horizontalScrollBar()->setValue(horizontalScrollBar()->value() - SCROLL_STEP);
-    } else if (pos.x() > viewport()->width() - MARGIN * 2) {
-        horizontalScrollBar()->setValue(horizontalScrollBar()->value() + SCROLL_STEP);
-    }
-    if (pos.y() < MARGIN * 2) {
-        verticalScrollBar()->setValue(verticalScrollBar()->value() - SCROLL_STEP);
-    } else if (pos.y() > viewport()->height() - MARGIN * 2) {
-        verticalScrollBar()->setValue(verticalScrollBar()->value() + SCROLL_STEP);
-    }
-    if (m_drop.isValid()) {
-        event->acceptProposedAction();
-    } else {
-        event->ignore();
-    }
-    viewport()->update();
-}
-
-void PlotBoardView::dragLeaveEvent(QDragLeaveEvent* event) {
-    m_drop = {};
-    viewport()->update();
-    event->accept();
-}
-
-void PlotBoardView::dropEvent(QDropEvent* event) {
-    const QString dragged =
-        QString::fromUtf8(event->mimeData()->data(QString::fromLatin1(CARD_MIME_TYPE)));
-    const DropTarget target = dropTargetAt(contentsPos(event->position().toPoint()), dragged);
-    m_drop = {};
-    viewport()->update();
-    if (!target.isValid() || dragged.isEmpty()) {
-        event->ignore();
-        return;
-    }
-    event->acceptProposedAction();
-    if (!target.anchorId.isEmpty()) {
-        emit dropBesideRequested(dragged, target.anchorId, target.after);
-    } else {
-        emit dropInPartRequested(dragged, target.partId);
-    }
-}
-
 // =============================================================================
 // The editor of a card
 // =============================================================================
@@ -1436,10 +440,8 @@ void PlotBoardView::placeEditor() {
     const int width = std::max(rect.width(), hint.width());
     const int height = hint.height();
     const QRect area = viewport()->rect();
-    int x = std::min(rect.left(), area.right() - width);
-    x = std::max(x, area.left());
-    int y = std::min(rect.top(), area.bottom() - height);
-    y = std::max(y, area.top());
+    const int x = std::max(std::min(rect.left(), area.right() - width), area.left());
+    const int y = std::max(std::min(rect.top(), area.bottom() - height), area.top());
     m_editor->setGeometry(x, y, width, height);
 }
 

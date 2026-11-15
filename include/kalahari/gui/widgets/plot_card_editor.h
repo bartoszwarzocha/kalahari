@@ -46,11 +46,15 @@ public:
     /// @brief What the fields have now
     [[nodiscard]] PlotCardEdit edit() const;
 
-    /// @brief The fields
+    /// @brief The field of the title
     [[nodiscard]] QLineEdit* titleEdit() const { return m_title; }
+    /// @brief The field of the description
     [[nodiscard]] QPlainTextEdit* descriptionEdit() const { return m_description; }
+    /// @brief The field of the point of view
     [[nodiscard]] QLineEdit* povEdit() const { return m_pov; }
+    /// @brief The field of the place of the action
     [[nodiscard]] QLineEdit* placeEdit() const { return m_place; }
+    /// @brief The field of the time of the action
     [[nodiscard]] QLineEdit* timeEdit() const { return m_time; }
 
     /// @brief The keys go to the title, all of it chosen

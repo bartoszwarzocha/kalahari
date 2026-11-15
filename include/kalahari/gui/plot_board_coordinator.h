@@ -84,6 +84,8 @@ public:
 
     PlotBoardCoordinator(const PlotBoardCoordinator&) = delete;
     PlotBoardCoordinator& operator=(const PlotBoardCoordinator&) = delete;
+    PlotBoardCoordinator(PlotBoardCoordinator&&) = delete;
+    PlotBoardCoordinator& operator=(PlotBoardCoordinator&&) = delete;
 
     /// @brief Show the board on its tab, in front
     /// @param view PlotBoard::VIEW_BOARD or VIEW_OUTLINE, kept as the one shown last; empty:
@@ -142,7 +144,12 @@ private:
     void cancelCut();
     void undo();
     void redo();
-    void showProperties(const QString& elementId, bool keys);
+    void showProperties(const QString& cardId, bool keys);
+    /// @brief Move scene @p cardId dropped before or after scene @p anchorId of its text
+    void dropSceneBeside(const QString& cardId, const QString& anchorId, bool after);
+    /// @brief Move scene @p scene of text @p textId, marked (@p marked), after card @p afterId
+    void pasteScene(const QString& marked, const QString& textId, int scene,
+                    const QString& afterId);
 
     /// @name The scenes of the texts
     /// @{
@@ -170,6 +177,14 @@ private:
     /// @brief Ask whether to delete scene @p scene of text @p textId with its text or its break
     /// only, and do it
     void removeScene(const QString& textId, int scene);
+    /// @brief Delete scene @p scene of text @p textId (now @p text) with its text, or its
+    /// break only (@p keepText)
+    void deleteScene(const QString& textId, const core::SceneText& text, int scene,
+                     bool keepText);
+    /// @brief The card chosen after scene @p scene of the @p count scenes of text @p textId is
+    /// deleted: the scene beside, or the text when it has one scene then
+    [[nodiscard]] static QString cardAfterRemoving(const QString& textId, int scene, int count,
+                                                   bool keepText);
     /// @brief Give text @p textId @p wanted, remember it to be undone and choose card
     /// @p cardId; @p message says what was done
     void changeScenes(const QString& textId, const core::SceneText& wanted,
@@ -210,6 +225,8 @@ private:
     [[nodiscard]] CardText cardTextOf(const QString& elementId) const;
     /// @brief The title of text @p elementId; of a scene card, its title or "The Storm, Scene 2"
     [[nodiscard]] QString titleOf(const QString& elementId) const;
+    /// @brief The title of text @p textId; empty: no such text
+    [[nodiscard]] QString textTitleOf(const QString& textId) const;
     /// @brief Say @p message under the board; @p canUndo: with Undo
     void say(const QString& message, bool canUndo = false);
     /// @brief Tell the writer that the book could not take a change

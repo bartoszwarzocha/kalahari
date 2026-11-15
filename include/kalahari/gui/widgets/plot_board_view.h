@@ -15,10 +15,14 @@
 #include <QPoint>
 #include <QRect>
 #include <QSet>
+#include <QSize>
 #include <QString>
 #include <QStringList>
 
+#include <cstdint>
+
 class QKeyEvent;
+class QPainter;
 
 namespace kalahari::gui {
 
@@ -65,7 +69,40 @@ public:
     };
 
     /// @brief How large the cards are
-    enum class CardSize { Small, Medium, Large };
+    enum class CardSize {
+        Small,   ///< Narrow, with two lines of the description
+        Medium,  ///< Three lines of the description
+        Large    ///< Wide, with two lines of the title and five of the description
+    };
+
+    /// @brief What a key does on the board and in the outline (boardKey()), whatever the
+    /// board shows: the steps first, then the moves, then the rest
+    enum class Key : std::uint8_t {
+        None,         ///< A key of others
+        Left,         ///< To the card on the left (Left)
+        Right,        ///< To the card on the right (Right)
+        Up,           ///< To the card above (Up)
+        Down,         ///< To the card below (Down)
+        First,        ///< To the first card (Home)
+        Last,         ///< To the last card (End)
+        MoveBack,     ///< Move the card back (Ctrl+Left)
+        MoveForward,  ///< Move the card forward (Ctrl+Right)
+        MoveUp,       ///< Move the card up (Ctrl+Up)
+        MoveDown,     ///< Move the card down (Ctrl+Down)
+        Open,         ///< Open its text in the editor (Enter)
+        Edit,         ///< Edit the card on the board (F2)
+        Add,          ///< Add a text after it (Insert)
+        AddScene,     ///< Add a scene at the end of its text (Alt+Insert)
+        Delete,       ///< Delete it (Delete)
+        Cut,          ///< Mark it to move (Ctrl+X)
+        Paste,        ///< Move the card marked after it (Ctrl+V)
+        CancelCut,    ///< Forget the card marked (Esc)
+        Undo,         ///< Undo a change of the board (Ctrl+Z)
+        Redo,         ///< Redo a change of the board (Ctrl+Y, Ctrl+Shift+Z)
+        Properties,   ///< Show it in the Properties panel (Alt+Enter)
+        Menu,         ///< Open its menu (the menu key, Shift+F10)
+        Scenes        ///< Open or close the drawer of its scenes (Space)
+    };
 
     /// @brief What the cards show besides their title
     struct Fields {
@@ -80,11 +117,25 @@ public:
     /// @brief The type of the drag of a card: its id
     static constexpr const char* CARD_MIME_TYPE = "application/x-kalahari-plot-card";
 
+    /// @brief An empty board, with the colors of the cards from the settings
     explicit PlotBoardView(QWidget* parent = nullptr);
     ~PlotBoardView() override;
 
     PlotBoardView(const PlotBoardView&) = delete;
     PlotBoardView& operator=(const PlotBoardView&) = delete;
+    PlotBoardView(PlotBoardView&&) = delete;
+    PlotBoardView& operator=(PlotBoardView&&) = delete;
+
+    /// @brief What @p event does on the board, whatever the board shows; Key::None for a key
+    /// of others
+    [[nodiscard]] static Key boardKey(const QKeyEvent* event);
+
+    /// @brief Whether @p key may ask for what it does now: Enter and Alt+Enter need card
+    /// @p cardId chosen; F2, Alt+Insert, Delete and Ctrl+X need it in a book that can be changed
+    /// (not @p readOnly); Insert needs such a book, and Ctrl+V a card @p marked too; the other
+    /// keys may always
+    [[nodiscard]] static bool keyAllowed(Key key, bool readOnly, const QString& cardId,
+                                         const QString& marked);
 
     /// @brief Show @p bands; the card chosen stays chosen while the board has it, else the
     /// card at its place is chosen
@@ -95,10 +146,12 @@ public:
 
     /// @brief Arrange the cards as @p arrangement says
     void setArrangement(Arrangement arrangement);
+    /// @brief How the cards are arranged
     [[nodiscard]] Arrangement arrangement() const { return m_arrangement; }
 
     /// @brief Make the cards @p size large
     void setCardSize(CardSize size);
+    /// @brief How large the cards are
     [[nodiscard]] CardSize cardSize() const { return m_cardSize; }
 
     /// @brief Show @p fields on the cards
@@ -107,6 +160,7 @@ public:
     /// @brief Show the scenes of the texts: under their cards in columns; in a grid with the
     /// drawers of all texts open (each one opens and closes on its own then)
     void setShowScenes(bool show);
+    /// @brief Whether the board shows the scenes of the texts (setShowScenes())
     [[nodiscard]] bool showsScenes() const { return m_showScenes; }
 
     /// @brief Whether the board shows the scenes of text @p textId (in a grid: its drawer is
@@ -125,6 +179,7 @@ public:
 
     /// @brief Card @p elementId marked to move (Ctrl+X); empty: none
     void setMarkedCard(const QString& elementId);
+    /// @brief The card marked to move (Ctrl+X); empty: none
     [[nodiscard]] QString markedCard() const { return m_marked; }
 
     /// @brief The card chosen; empty: none
@@ -186,8 +241,9 @@ signals:
     void pasteRequested(const QString& afterId);
     /// @brief Forget the card marked (Esc)
     void cutCancelled();
-    /// @brief Undo (Ctrl+Z) or redo (Ctrl+Y) a change of the board
+    /// @brief Undo a change of the board (Ctrl+Z)
     void undoRequested();
+    /// @brief Redo a change of the board (Ctrl+Y)
     void redoRequested();
     /// @brief Show the card in the Properties panel, with the keys there (Alt+Enter)
     void propertiesRequested(const QString& elementId);
@@ -217,22 +273,22 @@ protected:
 private:
     /// @brief A card where it is on the board, in the coordinates of the contents
     struct CardPlace {
-        QString id;
+        QString id;      ///< The id of the card
         int band = 0;    ///< Its band in m_bands
         int index = 0;   ///< Its place in the band; of a scene, its text's
         int scene = -1;  ///< Of a scene: its place among the scenes of its text
         int column = 0;  ///< In columns: the column of its text, from 0
-        QRect rect;
+        QRect rect;      ///< Where it is
     };
     /// @brief The drawer of the scenes of a text in a grid
     struct DrawerPlace {
-        QString textId;
-        QString title;  ///< Of its text
-        QRect rect;
+        QString textId;  ///< Its text
+        QString title;   ///< Of its text
+        QRect rect;      ///< Where it is
     };
     /// @brief A band where it is on the board
     struct BandPlace {
-        int band = 0;
+        int band = 0;  ///< Its band in m_bands
         QRect header;  ///< Its title; empty for texts outside the parts
         QRect area;    ///< Its cards, or the place of an empty part
     };
@@ -244,40 +300,106 @@ private:
         QRect marker;      ///< Where the mark is drawn, in the coordinates of the contents
         [[nodiscard]] bool isValid() const { return !anchorId.isEmpty() || !partId.isEmpty(); }
     };
-
-    /// @brief The keys of the board: what a key does, or nothing for a key of others
-    enum class Key {
-        None, Left, Right, Up, Down, First, Last, MoveBack, MoveForward, MoveUp, MoveDown,
-        Open, Edit, Add, AddScene, Delete, Cut, Paste, CancelCut, Undo, Redo, Properties, Menu,
-        Scenes
+    /// @brief The rows of a grid
+    struct GridRows {
+        QSize card;            ///< The size of a card
+        int header = 0;        ///< The height of the title of a part
+        int width = 0;         ///< The width of the rows
+        int perRow = 1;        ///< The cards in a row
+        int perDrawerRow = 1;  ///< The cards of the scenes in a row of a drawer
+        int label = 0;         ///< The height of the label of a drawer
     };
+
+    // The keys and the mouse (plot_board_view_input.cpp)
     [[nodiscard]] Key keyOf(const QKeyEvent* event) const;
     void doKey(Key key);
+    /// @brief Move card @p cardId with Ctrl and an arrow
+    void moveByKey(Key key, const QString& cardId);
+    /// @brief The keys for the whole board: the drawers, the menu, the mark, undo and redo
+    void doBoardKey(Key key, const QString& cardId);
+    [[nodiscard]] QString neighbour(Key key) const;
+    /// @brief The card on the left (@p step less than 0) or on the right of @p current
+    [[nodiscard]] QString sideNeighbour(const CardPlace& current, int step) const;
+    /// @brief The card above (@p step less than 0) or below @p current
+    [[nodiscard]] QString rowNeighbour(const CardPlace& current, int step) const;
+    void startDrag();
+    /// @brief The first card of a text (@p scene false) or of a scene near @p pos
+    [[nodiscard]] const CardPlace* cardNear(const QPoint& pos, bool scene) const;
+    /// @brief Whether a card dropped at @p pos goes to the start of the part of @p band
+    [[nodiscard]] bool dropsInPart(const BandPlace& band, const QPoint& pos) const;
+    /// @brief Before or after @p place: on its left or right, or above or below (@p vertical)
+    [[nodiscard]] static DropTarget besideCard(const CardPlace& place, bool after, bool vertical);
+    [[nodiscard]] DropTarget dropTargetAt(const QPoint& pos, const QString& dragged) const;
+    /// @brief Where scene @p dragged of text @p textId goes: beside another scene of its text
+    [[nodiscard]] DropTarget sceneDropTargetAt(const QPoint& pos, const QString& dragged,
+                                               const QString& textId) const;
+    /// @brief Where a text dropped on a part or beyond the last card of a band goes
+    [[nodiscard]] DropTarget bandDropTargetAt(const QPoint& pos, const QString& dragged) const;
+    /// @brief Scroll the board while a card is dragged near its edges
+    void scrollNear(const QPoint& pos);
 
+    // Where the cards are (plot_board_view_layout.cpp)
     void relayout();
     [[nodiscard]] QSize cardSizePixels() const;
+    void layOutColumns(const QSize& card, int header);
+    /// @brief Put text @p text and its scenes under it in a column
+    /// @return The bottom of the column
+    int layOutColumn(const CardPlace& text, const QSize& card);
+    void layOutGrid(const QSize& card, int header);
+    /// @brief Put the title and the cards of band @p band in rows from @p top
+    /// @return The bottom of the band
+    int layOutGridBand(int band, int top, const GridRows& rows);
+    /// @brief Put the drawer of the scenes of text @p text from @p top
+    /// @return The bottom of the drawer
+    int layOutDrawer(const CardPlace& text, int top, const GridRows& rows);
+    void updateScrollBars();
     [[nodiscard]] const CardPlace* placeOf(const QString& elementId) const;
     [[nodiscard]] const PlotCard* cardOf(const QString& elementId) const;
     [[nodiscard]] const PlotCard& cardOfPlace(const CardPlace& place) const;
     /// @brief In a grid, where "3 scenes" is on the card of a text with scenes; empty: nowhere
     [[nodiscard]] QRect scenesNoteRect(const CardPlace& place) const;
     [[nodiscard]] QString scenesNote(const PlotCard& card) const;
-    void layOutColumns(const QSize& card, int header);
-    void layOutGrid(const QSize& card, int header);
-    void paintDrawer(QPainter& painter, const DrawerPlace& drawer) const;
-    [[nodiscard]] const CardPlace* cardAt(const QPoint& contentsPos) const;
+    [[nodiscard]] const CardPlace* cardAt(const QPoint& pos) const;
     [[nodiscard]] QPoint contentsPos(const QPoint& viewportPos) const;
-    [[nodiscard]] QString neighbour(Key key) const;
+
+    // The cards painted (plot_board_view_paint.cpp)
+    void paintEmptyBoard(QPainter& painter, const QRect& shown) const;
+    void paintBands(QPainter& painter, const QRect& shown) const;
+    void paintBandHeader(QPainter& painter, const BandPlace& place) const;
+    void paintPartTitle(QPainter& painter, const QRect& header, const PlotBand& band) const;
+    void paintEmptyPart(QPainter& painter, const QRect& area) const;
+    void paintDrawer(QPainter& painter, const DrawerPlace& drawer) const;
+    void paintCard(QPainter& painter, const CardPlace& place) const;
+    void paintCardFrame(QPainter& painter, const PlotCard& card, const QRect& rect) const;
+    /// @return Where the title goes
+    int paintCardHead(QPainter& painter, const PlotCard& card, const QRect& inner) const;
+    /// @return The width of the state
+    int paintCardState(QPainter& painter, const PlotCard& card, const QRect& inner) const;
+    /// @return Where the description goes
+    int paintCardTitle(QPainter& painter, const PlotCard& card, const QRect& inner,
+                       int top) const;
+    void paintCardDescription(QPainter& painter, const PlotCard& card, const QRect& inner,
+                              int top) const;
+    /// @return Where the line of the plot ends: before "3 scenes", else at @p right
+    int paintScenesNote(QPainter& painter, const CardPlace& place, int right) const;
+    void paintPlotLine(QPainter& painter, const PlotCard& card, const QRect& inner,
+                       int right) const;
+    void paintCurrentRing(QPainter& painter, const QRect& rect) const;
+
+    // The rest (plot_board_view.cpp)
+    /// @brief The place of text @p textId among the texts of the board; -1: none
+    [[nodiscard]] qsizetype indexOfText(const QString& textId) const;
+    /// @brief The text at place @p at among the texts of the board, or the nearest one
+    [[nodiscard]] QString textAt(qsizetype at) const;
+    /// @brief Make card @p elementId the card chosen, and say so
+    void setCurrent(const QString& elementId);
+    /// @brief The card chosen on the screen and the editor at its card, after a change
+    void showCurrent();
+    /// @brief The point of view, the place and the time of @p card in words
+    [[nodiscard]] static QStringList plotTexts(const PlotCard& card);
+    [[nodiscard]] static QString toolTipOf(const PlotCard& card);
     void choose(const QString& elementId);
     void ensureVisible(const QRect& rect);
-    void updateScrollBars();
-    void paintCard(QPainter& painter, const CardPlace& place) const;
-    void paintBandHeader(QPainter& painter, const BandPlace& band) const;
-    [[nodiscard]] DropTarget dropTargetAt(const QPoint& contentsPos, const QString& dragged) const;
-    /// @brief Where scene @p dragged of text @p textId goes: beside another scene of its text
-    [[nodiscard]] DropTarget sceneDropTargetAt(const QPoint& contentsPos, const QString& dragged,
-                                               const QString& textId) const;
-    void startDrag();
     void closeEditor(bool save);
     void placeEditor();
     void tellScreenReader();

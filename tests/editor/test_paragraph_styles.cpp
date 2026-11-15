@@ -852,23 +852,23 @@ TEST_CASE("Objects: a scene break keeps what it says of its scene", "[editor][ob
 
     SECTION("copied and pasted with its break") {
         auto editor = editorWith(text);
-        select(*editor, {0, 1}, {2, 0});
+        select(*editor, {.paragraph = 0, .offset = 1}, {.paragraph = 2, .offset = 0});
         const std::unique_ptr<QMimeData> copied = editor->createMimeDataFromSelection();
         editor->clearSelection();
-        editor->setCursorPosition({4, 1});
+        editor->setCursorPosition({.paragraph = 4, .offset = 1});
         editor->insertFromMimeData(copied.get());
         REQUIRE(sceneBreakBlock(*editor->textDocument(), 3).isValid());
         CHECK(editor->sceneAttributes(3) == editor->sceneAttributes(1));
     }
 
     SECTION("the cursor goes to the start of a scene") {
-        auto editor = editorWith(text, {4, 1});
+        auto editor = editorWith(text, {.paragraph = 4, .offset = 1});
         REQUIRE(editor->goToScene(1));
-        CHECK(editor->cursorPosition() == CursorPosition{2, 0});
+        CHECK(editor->cursorPosition() == CursorPosition{.paragraph = 2, .offset = 0});
         REQUIRE(editor->goToScene(0));
-        CHECK(editor->cursorPosition() == CursorPosition{0, 0});
+        CHECK(editor->cursorPosition() == CursorPosition{.paragraph = 0, .offset = 0});
         REQUIRE(editor->goToScene(2));
-        CHECK(editor->cursorPosition() == CursorPosition{4, 0});
+        CHECK(editor->cursorPosition() == CursorPosition{.paragraph = 4, .offset = 0});
         CHECK_FALSE(editor->goToScene(3));
     }
 }

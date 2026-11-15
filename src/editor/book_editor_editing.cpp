@@ -773,7 +773,7 @@ bool BookEditor::goToScene(int scene)
         }
         paragraph = block.next().isValid() ? block.blockNumber() + 1 : block.blockNumber();
     }
-    setCursorPosition({paragraph, 0});
+    setCursorPosition({.paragraph = paragraph, .offset = 0});
     centerCursorInView();
     return true;
 }

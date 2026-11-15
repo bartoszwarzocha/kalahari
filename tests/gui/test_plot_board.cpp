@@ -7,6 +7,9 @@
 
 #include "document_window.h"
 
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
@@ -42,7 +45,10 @@
 
 #include "test_support/window_parts.h"
 
-using namespace kalahari;
+namespace core = kalahari::core;
+namespace editor = kalahari::editor;
+namespace gui = kalahari::gui;
+namespace test = kalahari::test;
 using gui::PlotBoard;
 using gui::PlotCard;
 
@@ -77,8 +83,8 @@ std::string boardOfBook() {
 /// The card of text @p id of the open book
 PlotCard cardOf(const QString& id) {
     const QList<PlotCard> cards = PlotBoard::cardsOf(PlotBoard::bandsOf(test::book()));
-    const auto found = std::find_if(cards.cbegin(), cards.cend(),
-                                    [&id](const PlotCard& card) { return card.id == id; });
+    const auto found =
+        std::ranges::find_if(cards, [&id](const PlotCard& card) { return card.id == id; });
     REQUIRE(found != cards.cend());
     return *found;
 }
@@ -108,12 +114,10 @@ bool takesKey(QWidget* widget, Qt::Key key, Qt::KeyboardModifiers modifiers = Qt
 
 /// The item of @p menu whose text is @p text; nullptr: none
 QAction* actionOf(const QMenu& menu, const QString& text) {
-    for (QAction* action : menu.actions()) {
-        if (action->text() == text) {
-            return action;
-        }
-    }
-    return nullptr;
+    const QList<QAction*> actions = menu.actions();
+    const auto found = std::ranges::find_if(
+        actions, [&text](const QAction* action) { return action->text() == text; });
+    return found != actions.cend() ? *found : nullptr;
 }
 
 /// A character or a place of the Workshop titled @p title, as the cards of the Workshop are
@@ -163,11 +167,13 @@ public:
             core::SettingsManager::getInstance().set<std::string>(m_key, m_value);
         } catch (...) {
             // A destructor may not throw: the later tests then find the setting of this one
-            std::fputs("KeptSetting: the setting of the test stays\n", stderr);
+            (void)std::fputs("KeptSetting: the setting of the test stays\n", stderr);
         }
     }
     KeptSetting(const KeptSetting&) = delete;
     KeptSetting& operator=(const KeptSetting&) = delete;
+    KeptSetting(KeptSetting&&) = delete;
+    KeptSetting& operator=(KeptSetting&&) = delete;
 
 private:
     const char* m_key;
@@ -183,11 +189,13 @@ public:
         try {
             core::SettingsManager::getInstance().set<bool>(m_key, m_value);
         } catch (...) {
-            std::fputs("KeptSwitch: the setting of the test stays\n", stderr);
+            (void)std::fputs("KeptSwitch: the setting of the test stays\n", stderr);
         }
     }
     KeptSwitch(const KeptSwitch&) = delete;
     KeptSwitch& operator=(const KeptSwitch&) = delete;
+    KeptSwitch(KeptSwitch&&) = delete;
+    KeptSwitch& operator=(KeptSwitch&&) = delete;
 
 private:
     const char* m_key;
@@ -429,15 +437,15 @@ TEST_CASE("Plot board: the outline shows the parts over their texts and asks for
     CHECK(model.cardIdAt(2).isEmpty());
     CHECK(model.rowOf(book.part) == 2);
     CHECK(model.rowOf(book.calm) == 3);
-    CHECK(model.index(2, Column::TitleColumn).data().toString() == QStringLiteral("Part One"));
-    CHECK(model.index(2, Column::TitleColumn).data(Column::PART_ROLE).toBool());
-    CHECK(model.index(3, Column::NumberColumn).data().toInt() == 3);
-    CHECK(model.index(3, Column::StatusColumn).data().toString() == QStringLiteral("Draft"));
+    CHECK(model.index(2, Column::TITLE_COLUMN).data().toString() == QStringLiteral("Part One"));
+    CHECK(model.index(2, Column::TITLE_COLUMN).data(Column::PART_ROLE).toBool());
+    CHECK(model.index(3, Column::NUMBER_COLUMN).data().toInt() == 3);
+    CHECK(model.index(3, Column::STATUS_COLUMN).data().toString() == QStringLiteral("Draft"));
 
     // A part's row and the counted cells cannot be edited
-    CHECK_FALSE(model.flags(model.index(2, Column::TitleColumn)) & Qt::ItemIsEditable);
-    CHECK_FALSE(model.flags(model.index(3, Column::WordsColumn)) & Qt::ItemIsEditable);
-    CHECK(model.flags(model.index(3, Column::PovColumn)) & Qt::ItemIsEditable);
+    CHECK_FALSE(model.flags(model.index(2, Column::TITLE_COLUMN)) & Qt::ItemIsEditable);
+    CHECK_FALSE(model.flags(model.index(3, Column::WORDS_COLUMN)) & Qt::ItemIsEditable);
+    CHECK(model.flags(model.index(3, Column::POV_COLUMN)) & Qt::ItemIsEditable);
 
     // An edit asks for the change and keeps the cell as the book has it
     QStringList edited;
@@ -445,20 +453,20 @@ TEST_CASE("Plot board: the outline shows the parts over their texts and asks for
                      [&edited](const QString& id, int column, const QString& value) {
                          edited << QStringLiteral("%1 %2 %3").arg(id).arg(column).arg(value);
                      });
-    CHECK(model.setData(model.index(3, Column::PovColumn), QStringLiteral(" Anna "),
+    CHECK(model.setData(model.index(3, Column::POV_COLUMN), QStringLiteral(" Anna "),
                         Qt::EditRole));
     CHECK(edited ==
-          QStringList{QStringLiteral("%1 %2 Anna").arg(book.calm).arg(Column::PovColumn)});
-    CHECK(model.index(3, Column::PovColumn).data().toString().isEmpty());
+          QStringList{QStringLiteral("%1 %2 Anna").arg(book.calm).arg(Column::POV_COLUMN)});
+    CHECK(model.index(3, Column::POV_COLUMN).data().toString().isEmpty());
 
     // A text keeps its title, and the same text is no change
-    CHECK_FALSE(model.setData(model.index(3, Column::TitleColumn), QString(), Qt::EditRole));
-    CHECK_FALSE(model.setData(model.index(3, Column::TitleColumn), QStringLiteral("The Calm"),
+    CHECK_FALSE(model.setData(model.index(3, Column::TITLE_COLUMN), QString(), Qt::EditRole));
+    CHECK_FALSE(model.setData(model.index(3, Column::TITLE_COLUMN), QStringLiteral("The Calm"),
                               Qt::EditRole));
     CHECK(edited.size() == 1);
 
     model.setReadOnly(true);
-    CHECK_FALSE(model.flags(model.index(3, Column::PovColumn)) & Qt::ItemIsEditable);
+    CHECK_FALSE(model.flags(model.index(3, Column::POV_COLUMN)) & Qt::ItemIsEditable);
 }
 
 TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z undoes it",
@@ -526,7 +534,7 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
 
     SECTION("F2 edits the card on the board, Ctrl+Enter keeps it, Ctrl+Z undoes it") {
         press(board, Qt::Key_F2);
-        gui::PlotCardEditor* editor = board->cardEditor();
+        const gui::PlotCardEditor* editor = board->cardEditor();
         REQUIRE(editor != nullptr);
         CHECK(editor->titleEdit()->text() == QStringLiteral("The Storm"));
         editor->titleEdit()->setText(QStringLiteral("The Great Storm"));
@@ -559,8 +567,8 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
     }
 
     SECTION("the menu of the card gives it a state and a color") {
-        QMenu* menu = panel->cardMenu(storm);
-        QAction* states = actionOf(*menu, QStringLiteral("&State"));
+        const QMenu* menu = panel->cardMenu(storm);
+        const QAction* states = actionOf(*menu, QStringLiteral("&State"));
         REQUIRE(states != nullptr);
         QAction* revision = actionOf(*states->menu(), QStringLiteral("Revision"));
         REQUIRE(revision != nullptr);
@@ -571,7 +579,7 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
               QStringLiteral("\"The Storm\" is now in the state: Revision."));
 
         menu = panel->cardMenu(storm);
-        QAction* colors = actionOf(*menu, QStringLiteral("Card &Color"));
+        const QAction* colors = actionOf(*menu, QStringLiteral("Card &Color"));
         REQUIRE(colors != nullptr);
         QAction* teal = actionOf(*colors->menu(), QStringLiteral("Teal"));
         REQUIRE(teal != nullptr);
@@ -661,10 +669,10 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
 
         // A cell edited asks for the change of the book
         const int row = model->rowOf(calm);
-        const QModelIndex place = model->index(row, gui::PlotOutlineModel::PlaceColumn);
+        const QModelIndex place = model->index(row, gui::PlotOutlineModel::PLACE_COLUMN);
         REQUIRE(model->setData(place, QStringLiteral("The lighthouse"), Qt::EditRole));
         CHECK(pm.findElement(calm)->plot.place == QStringLiteral("The lighthouse"));
-        CHECK(model->index(row, gui::PlotOutlineModel::PlaceColumn).data().toString() ==
+        CHECK(model->index(row, gui::PlotOutlineModel::PLACE_COLUMN).data().toString() ==
               QStringLiteral("The lighthouse"));
     }
 }
@@ -674,7 +682,7 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
     gui::registerAllIcons();
     StormBoard scenes;
     auto& settings = core::SettingsManager::getInstance();
-    PlotNovel& book = scenes.book;
+    const PlotNovel& book = scenes.book;
     auto& pm = scenes.pm;
     const QString& storm = scenes.storm;
     const QString& first = scenes.first;
@@ -772,7 +780,7 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
     SECTION("F2 edits a scene, the menu gives it a state, Ctrl+Z undoes it") {
         REQUIRE(board->setCurrentCard(night));
         press(board, Qt::Key_F2);
-        gui::PlotCardEditor* editor = board->cardEditor();
+        const gui::PlotCardEditor* editor = board->cardEditor();
         REQUIRE(editor != nullptr);
         CHECK(editor->titleEdit()->text() == QStringLiteral("Night"));
         editor->descriptionEdit()->setPlainText(QStringLiteral("The storm comes."));
@@ -788,7 +796,7 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
         CHECK(cardOf(storm).scenePovs() == QStringList{QStringLiteral("Anna")});
 
         // The first scene keeps what it says in the .klh file
-        QMenu* menu = panel->cardMenu(first);
+        const QMenu* menu = panel->cardMenu(first);
         const auto enabled = [menu](const char* text) {
             const QAction* action = actionOf(*menu, QString::fromLatin1(text));
             return action != nullptr && action->isEnabled();
@@ -799,7 +807,7 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
         CHECK(enabled("&Delete Scene..."));
         CHECK(actionOf(*menu, QStringLiteral("&New Card After It")) == nullptr);
         CHECK(actionOf(*menu, QStringLiteral("&Delete from Book...")) == nullptr);
-        QAction* states = actionOf(*menu, QStringLiteral("&State"));
+        const QAction* states = actionOf(*menu, QStringLiteral("&State"));
         REQUIRE(states != nullptr);
         QAction* finished = actionOf(*states->menu(), QStringLiteral("Final"));
         REQUIRE(finished != nullptr);
@@ -827,23 +835,23 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
         CHECK(model->rowOf(first) == row + 1);
         CHECK(model->rowOf(night) == row + 2);
         CHECK(model->cardIdAt(row + 3) == last);
-        CHECK(model->index(row + 2, gui::PlotOutlineModel::NumberColumn).data().toString() ==
+        CHECK(model->index(row + 2, gui::PlotOutlineModel::NUMBER_COLUMN).data().toString() ==
               QStringLiteral("2.2"));
         // A scene without a title shows its name
-        const QModelIndex unnamed = model->index(row + 1, gui::PlotOutlineModel::TitleColumn);
+        const QModelIndex unnamed = model->index(row + 1, gui::PlotOutlineModel::TITLE_COLUMN);
         CHECK(unnamed.data().toString() == QStringLiteral("Scene 1"));
         CHECK(unnamed.data(Qt::EditRole).toString().isEmpty());
 
-        const QModelIndex title = model->index(row + 3, gui::PlotOutlineModel::TitleColumn);
+        const QModelIndex title = model->index(row + 3, gui::PlotOutlineModel::TITLE_COLUMN);
         REQUIRE(model->setData(title, QStringLiteral("Morning"), Qt::EditRole));
         CHECK(plotOf(2).title == QStringLiteral("Morning"));
         // A scene may have no title
         REQUIRE(model->setData(
-            model->index(model->rowOf(last), gui::PlotOutlineModel::TitleColumn), QString(),
+            model->index(model->rowOf(last), gui::PlotOutlineModel::TITLE_COLUMN), QString(),
             Qt::EditRole));
         CHECK(plotOf(2).title.isEmpty());
         const QModelIndex state =
-            model->index(model->rowOf(night), gui::PlotOutlineModel::StatusColumn);
+            model->index(model->rowOf(night), gui::PlotOutlineModel::STATUS_COLUMN);
         REQUIRE(model->setData(state, QStringLiteral("revision"), Qt::EditRole));
         CHECK(plotOf(1).status == QStringLiteral("revision"));
     }
@@ -967,7 +975,7 @@ TEST_CASE("Plot board: the scenes of a text moved, added and deleted on the boar
         const QString added = PlotBoard::sceneId(storm, 2);
         CHECK(board->currentCard() == added);
         CHECK(panel->message() == QStringLiteral("Added a scene after \"Night\"."));
-        gui::PlotCardEditor* editor = board->cardEditor();
+        const gui::PlotCardEditor* editor = board->cardEditor();
         REQUIRE(editor != nullptr);
         editor->titleEdit()->setText(QStringLiteral("Dawn"));
         press(editor->titleEdit(), Qt::Key_Return, Qt::ControlModifier);
@@ -1098,16 +1106,16 @@ TEST_CASE("Plot board: the scenes of a text moved, added and deleted on the boar
     SECTION("the outline adds and deletes the scenes with the keys of the board") {
         REQUIRE(s.boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true) == panel);
         QTableView* outline = panel->outline();
-        gui::PlotOutlineModel* model = panel->outlineModel();
+        const gui::PlotOutlineModel* model = panel->outlineModel();
         outline->setCurrentIndex(
-            model->index(model->rowOf(s.night), gui::PlotOutlineModel::TitleColumn));
+            model->index(model->rowOf(s.night), gui::PlotOutlineModel::TITLE_COLUMN));
         CHECK(takesKey(outline, Qt::Key_Insert, Qt::AltModifier));
         press(outline, Qt::Key_Insert, Qt::AltModifier);
         CHECK(s.words() == "2 3 1 0");
         CHECK(model->rowOf(PlotBoard::sceneId(storm, 3)) >= 0);
         QCoreApplication::processEvents();
         outline->setCurrentIndex(
-            model->index(model->rowOf(s.night), gui::PlotOutlineModel::TitleColumn));
+            model->index(model->rowOf(s.night), gui::PlotOutlineModel::TITLE_COLUMN));
         CHECK(answering([outline]() { press(outline, Qt::Key_Delete); },
                         MessageDialog::Answer::Accept));
         CHECK(s.words() == "2 1 0");

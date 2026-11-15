@@ -6,6 +6,7 @@
 ///
 /// OpenSpec #00035: KChapter Document Format
 
+#include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
@@ -13,12 +14,13 @@
 #include <kalahari/editor/text_footnotes.h>
 
 #include <QFile>
-#include <QStringList>
 #include <QJsonDocument>
 #include <QSaveFile>
+#include <QStringList>
 #include <QXmlStreamReader>
 
 #include <algorithm>
+#include <optional>
 
 namespace kalahari {
 namespace core {
@@ -42,7 +44,7 @@ QList<TopElement> topElementsOf(const QString& content)
     if (!reader.readNextStartElement()) {
         return elements;  // no root element
     }
-    qsizetype before = static_cast<qsizetype>(reader.characterOffset());
+    auto before = static_cast<qsizetype>(reader.characterOffset());
     while (!reader.atEnd()) {
         const QXmlStreamReader::TokenType token = reader.readNext();
         if (token == QXmlStreamReader::EndElement || token == QXmlStreamReader::Invalid) {
@@ -54,7 +56,8 @@ QList<TopElement> topElementsOf(const QString& content)
             if (start >= content.size() || content.at(start) != QLatin1Char('<')) {
                 start = content.lastIndexOf(QLatin1Char('<'), start);
             }
-            TopElement element{reader.name().toString(), start, 0, reader.attributes()};
+            TopElement element{.name = reader.name().toString(), .start = start, .end = 0,
+                               .attributes = reader.attributes()};
             reader.skipCurrentElement();
             if (reader.hasError()) {
                 break;
@@ -71,6 +74,16 @@ QList<TopElement> topElementsOf(const QString& content)
 bool isSceneBreak(const TopElement& element)
 {
     return element.name == QLatin1String("scene-break");
+}
+
+/// @brief What scene break @p element says of the scene after it
+ScenePlot plotOfBreak(const TopElement& element)
+{
+    QMap<QString, QString> attributes;
+    for (const QXmlStreamAttribute& attribute : element.attributes) {
+        attributes.insert(attribute.name().toString(), attribute.value().toString());
+    }
+    return ScenePlot::fromAttributes(attributes);
 }
 
 /// @brief A scene break saying @p plot of its scene, as the editor writes it
@@ -110,32 +123,49 @@ struct SceneParts {
     }
 };
 
-/// @brief @p text cut at its scene breaks; nullopt for a KML that cannot be read
-std::optional<SceneParts> scenePartsOf(const SceneText& text)
+/// @brief A KML read to its end, with its root element
+struct WholeKml {
+    QString content;        ///< With its root element; an empty <kml/> as <kml></kml>
+    qsizetype rootEnd = 0;  ///< The character after the start tag of the root element
+};
+
+/// @brief @p kml with its root element, read to its end; nullopt for a KML that cannot be
+///        read, since what comes after an error would be lost
+std::optional<WholeKml> wholeKmlOf(const QString& kml)
 {
-    QString content = editor::KmlFormatRegistry::withRootElement(text.kml);
-    // The whole text must be read: what comes after an error would be lost
-    QXmlStreamReader check(content);
+    WholeKml whole{.content = editor::KmlFormatRegistry::withRootElement(kml), .rootEnd = 0};
+    QXmlStreamReader check(whole.content);
     if (!check.readNextStartElement()) {
         return std::nullopt;
     }
     const QString root = check.name().toString();
-    auto rootEnd = static_cast<qsizetype>(check.characterOffset());
+    whole.rootEnd = static_cast<qsizetype>(check.characterOffset());
     while (!check.atEnd()) {
         check.readNext();
     }
-    if (check.hasError() || rootEnd < 2) {
+    if (check.hasError() || whole.rootEnd < 2) {
         return std::nullopt;
     }
-    if (content.at(rootEnd - 2) == QLatin1Char('/')) {
+    if (whole.content.at(whole.rootEnd - 2) == QLatin1Char('/')) {
         // <kml/>: the root element gets its end
-        content = content.left(rootEnd - 2) + QStringLiteral("></") + root + QLatin1Char('>') +
-                  content.mid(rootEnd);
-        --rootEnd;
+        whole.content = whole.content.left(whole.rootEnd - 2) + QStringLiteral("></") + root +
+                        QLatin1Char('>') + whole.content.mid(whole.rootEnd);
+        --whole.rootEnd;
     }
+    return whole;
+}
+
+/// @brief @p text cut at its scene breaks; nullopt for a KML that cannot be read
+std::optional<SceneParts> scenePartsOf(const SceneText& text)
+{
+    const std::optional<WholeKml> whole = wholeKmlOf(text.kml);
+    if (!whole) {
+        return std::nullopt;
+    }
+    const QString& content = whole->content;
     const QList<TopElement> elements = topElementsOf(content);
     // The annotations and the headings at the start of the text stay there
-    qsizetype bodyStart = rootEnd;
+    qsizetype bodyStart = whole->rootEnd;
     qsizetype first = 0;
     static const QStringList HEAD{QStringLiteral("annotations"), QStringLiteral("h1"),
                                   QStringLiteral("h2"), QStringLiteral("h3")};
@@ -148,16 +178,11 @@ std::optional<SceneParts> scenePartsOf(const SceneText& text)
     parts.plots << text.opening;
     for (qsizetype i = first; i < elements.size(); ++i) {
         const TopElement& element = elements.at(i);
-        if (!isSceneBreak(element)) {
-            continue;
+        if (isSceneBreak(element)) {
+            parts.bodies << content.mid(bodyStart, element.start - bodyStart);
+            parts.plots << plotOfBreak(element);
+            bodyStart = element.end;
         }
-        parts.bodies << content.mid(bodyStart, element.start - bodyStart);
-        QMap<QString, QString> attributes;
-        for (const QXmlStreamAttribute& attribute : element.attributes) {
-            attributes.insert(attribute.name().toString(), attribute.value().toString());
-        }
-        parts.plots << ScenePlot::fromAttributes(attributes);
-        bodyStart = element.end;
     }
     const qsizetype tailStart =
         std::max(bodyStart, elements.isEmpty() ? bodyStart : elements.constLast().end);
@@ -739,7 +764,7 @@ QList<KmlScene> ChapterDocument::kmlScenes(const QString& kml)
 {
     // Without a break the text is one scene: its words are counted as those of the text
     if (!kml.contains(QLatin1String("<scene-break"))) {
-        return {KmlScene{ScenePlot(), kmlWordTally(kml)}};
+        return {KmlScene{.plot = ScenePlot(), .words = kmlWordTally(kml)}};
     }
     const QString content = editor::KmlFormatRegistry::withRootElement(kml);
     QList<KmlScene> scenes{KmlScene()};
@@ -752,11 +777,7 @@ QList<KmlScene> ChapterDocument::kmlScenes(const QString& kml)
     for (const TopElement& element : topElementsOf(content)) {
         if (isSceneBreak(element)) {
             finishScene();
-            QMap<QString, QString> attributes;
-            for (const QXmlStreamAttribute& attribute : element.attributes) {
-                attributes.insert(attribute.name().toString(), attribute.value().toString());
-            }
-            scenes.append(KmlScene{ScenePlot::fromAttributes(attributes), WordTally()});
+            scenes.append(KmlScene{.plot = plotOfBreak(element), .words = WordTally()});
         } else {
             text += QStringView(content).mid(element.start, element.end - element.start);
         }
@@ -768,7 +789,7 @@ QList<KmlScene> ChapterDocument::kmlScenes(const QString& kml)
 QString ChapterDocument::withScenePlot(const QString& kml, int scene, const ScenePlot& plot)
 {
     if (scene < 1) {
-        return QString();
+        return {};
     }
     QString content = editor::KmlFormatRegistry::withRootElement(kml);
     int breaks = 0;
@@ -779,7 +800,7 @@ QString ChapterDocument::withScenePlot(const QString& kml, int scene, const Scen
         content.replace(element.start, element.end - element.start, sceneBreakKml(plot));
         return content;
     }
-    return QString();
+    return {};
 }
 
 std::optional<SceneText> ChapterDocument::withSceneMoved(const SceneText& text, int from,
