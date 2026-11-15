@@ -28,8 +28,10 @@ Checks: >
 
 WarningsAsErrors: '*'
 
-# Only report problems in Kalahari headers, not in Qt or other dependencies
-HeaderFilterRegex: 'include/kalahari/.*'
+# Only report problems in Kalahari headers (the program's, the tests' shared ones and the
+# internal ones in src/), not in Qt or other dependencies; both path separators, because
+# clang writes the paths of includes on Windows with both
+HeaderFilterRegex: '(include[/\\]kalahari|include[/\\]kalahari_tests|src)[/\\].*'
 
 CheckOptions:
   - key: modernize-use-override.IgnoreDestructors
