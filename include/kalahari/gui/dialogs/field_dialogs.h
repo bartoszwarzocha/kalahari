@@ -4,7 +4,8 @@
 /// @file field_dialogs.h
 /// @brief The windows of the fields: Insert > Date && Time... and Insert > Field...
 
-#pragma once
+#ifndef KALAHARI_GUI_DIALOGS_FIELD_DIALOGS_H
+#define KALAHARI_GUI_DIALOGS_FIELD_DIALOGS_H
 
 #include "kalahari/editor/text_fields.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
@@ -141,3 +142,5 @@ QString fieldFormatText(editor::FieldType type, const QString& format, const QDa
                         const QString& language);
 
 }  // namespace kalahari::gui::dialogs
+
+#endif  // KALAHARI_GUI_DIALOGS_FIELD_DIALOGS_H
