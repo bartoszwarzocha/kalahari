@@ -30,6 +30,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
@@ -162,12 +163,18 @@ def main() -> int:
         return result.returncode, result.stdout + result.stderr
 
     failed = False
+    started = time.monotonic()
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        for returncode, output in pool.map(run, sorted(chosen)):
+        futures = [pool.submit(run, unit) for unit in sorted(chosen)]
+        for done, future in enumerate(concurrent.futures.as_completed(futures), start=1):
+            returncode, output = future.result()
             text = "\n".join(line for line in output.splitlines() if not SUMMARY.match(line))
             if text.strip():
                 print(text.strip(), flush=True)
             failed = failed or returncode != 0
+            if done % 25 == 0 or done == len(futures):
+                minutes = (time.monotonic() - started) / 60
+                print(f"clang-tidy: {done}/{len(futures)} units, {minutes:.0f} min", flush=True)
     return 1 if failed else 0
 
 

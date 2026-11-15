@@ -153,9 +153,10 @@ jobs:
   analysis:
     name: Sanitizers, Coverage & clang-tidy
     runs-on: ubuntu-24.04
-    # Build ~30 min, tests ~12 min; clang-tidy of a pull request that changes hundreds of
-    # files (a clean-up of the whole code) takes over an hour on the runner's 4 cores
-    timeout-minutes: 150
+    # Build ~45 min, tests ~20 min; clang-tidy of a pull request that changes hundreds of
+    # files (a clean-up of the whole code) takes about two hours on the runner's 4 cores
+    # (344 translation units: not done after 82 minutes)
+    timeout-minutes: 240
 
     steps:
     - name: Checkout code
