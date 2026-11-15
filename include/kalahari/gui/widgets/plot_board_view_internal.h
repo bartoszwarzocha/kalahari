@@ -55,6 +55,8 @@ constexpr double SMALL_FONT_SCALE = 0.86;   ///< Of the small lines: the kind, t
 constexpr double MARKED_OPACITY = 0.55;     ///< Of a card marked to move (Ctrl+X)
 constexpr float PLANNED_OPACITY = 0.6F;     ///< Of a scene in the plan among the scenes written
 constexpr double HALF_PIXEL = 0.5;          ///< The border of a card on the middle of a pixel
+constexpr double TINT_SHARE = 0.22;         ///< Of the color of a card in its background
+constexpr double READABLE_CONTRAST = 4.5;   ///< Of the texts on the background of the board
 constexpr float QUIET_RING_ALPHA = 0.5F;    ///< The ring of the card chosen without the keys
 
 constexpr int DEFAULT_WIDTH = 640;   ///< The size the board asks for

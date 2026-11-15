@@ -32,6 +32,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QRegularExpression>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QAbstractButton>
@@ -462,12 +463,72 @@ TEST_CASE("Settings dialog: the Plot Board page chooses the scenes of the board"
     CHECK(dialog.hasChanges());
     CHECK(dialog.applyChanges() == QStringList{QStringLiteral("plotBoard.scenes")});
     CHECK(settings.get<std::string>("plotBoard.scenes") == "plan");
-    // The colors of the cards are those of the theme
+    // The colors of the cards and the backgrounds of the board are those of the theme
     auto* stack = dialog.findChild<QStackedWidget*>();
     REQUIRE(stack != nullptr);
-    CHECK(stack->currentWidget()->findChildren<kalahari::gui::ColorConfigWidget*>().size() == 10);
+    CHECK(stack->currentWidget()->findChildren<kalahari::gui::ColorConfigWidget*>().size() == 12);
 
     settings.set<std::string>("plotBoard.scenes", before);
+}
+
+TEST_CASE("Settings dialog: the Plot Board page chooses the view, the cards and the outline",
+          "[gui][settings][plotboard]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const auto startView = settings.get<std::string>("plotBoard.startView", "last");
+    const auto background = settings.get<std::string>("plotBoard.background", "theme");
+    const bool time = settings.get<bool>("plotBoard.fields.time", false);
+    const bool words = settings.get<bool>("plotBoard.outline.words", true);
+    settings.set<std::string>("plotBoard.startView", "last");
+    settings.set<std::string>("plotBoard.background", "parquet");  // unknown: the theme's
+    settings.set<bool>("plotBoard.fields.time", false);
+    settings.set<bool>("plotBoard.outline.words", true);
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    auto* last = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_startLast"));
+    auto* outline = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_startOutline"));
+    auto* theme = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_backgroundTheme"));
+    auto* cork = dialog.findChild<QRadioButton*>(QStringLiteral("plotBoard_backgroundCork"));
+    auto* timeField = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.fields.time"));
+    auto* wordsColumn = dialog.findChild<QCheckBox*>(QStringLiteral("plotBoard.outline.words"));
+    REQUIRE(last != nullptr);
+    REQUIRE(outline != nullptr);
+    REQUIRE(theme != nullptr);
+    REQUIRE(cork != nullptr);
+    REQUIRE(timeField != nullptr);
+    REQUIRE(wordsColumn != nullptr);
+    CHECK(last->isChecked());
+    CHECK(theme->isChecked());
+    CHECK_FALSE(timeField->isChecked());
+    CHECK(wordsColumn->isChecked());
+    // Seven fields of the cards, seven columns of the outline besides the title
+    CHECK(dialog.findChildren<QCheckBox*>(QRegularExpression(
+                                              QStringLiteral("^plotBoard\\.fields\\.")))
+              .size() == 7);
+    CHECK(dialog.findChildren<QCheckBox*>(QRegularExpression(
+                                              QStringLiteral("^plotBoard\\.outline\\.")))
+              .size() == 7);
+    CHECK_FALSE(dialog.hasChanges());
+
+    outline->click();
+    cork->click();
+    timeField->click();
+    wordsColumn->click();
+    CHECK(dialog.hasChanges());
+    const QStringList applied = dialog.applyChanges();
+    CHECK(applied.contains(QStringLiteral("plotBoard.startView")));
+    CHECK(applied.contains(QStringLiteral("plotBoard.background")));
+    CHECK(applied.contains(QStringLiteral("plotBoard.fields.time")));
+    CHECK(applied.contains(QStringLiteral("plotBoard.outline.words")));
+    CHECK(settings.get<std::string>("plotBoard.startView") == "outline");
+    CHECK(settings.get<std::string>("plotBoard.background") == "cork");
+    CHECK(settings.get<bool>("plotBoard.fields.time"));
+    CHECK_FALSE(settings.get<bool>("plotBoard.outline.words"));
+
+    settings.set<std::string>("plotBoard.startView", startView);
+    settings.set<std::string>("plotBoard.background", background);
+    settings.set<bool>("plotBoard.fields.time", time);
+    settings.set<bool>("plotBoard.outline.words", words);
 }
 
 TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in the menus",

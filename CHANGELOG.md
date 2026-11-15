@@ -65,6 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Board": its description, point of view, place, time of the action and card color, with the
   characters and places of the Workshop suggested; a field keeps what was written when the
   keys leave it, and a change on the board shows there at once.
+- **Settings > Plot Board: the view, the cards, the colors and the outline** - 2026-11-15. The
+  page chooses the view a new tab of the board opens on (the board, the outline or the one used
+  last), the layout and the size of the cards, the scenes shown, what the cards show besides
+  their titles (the time of the action is off by default), whether the color of a card is a
+  strip at its top or its background, what is under the cards (the color of the theme, cork or
+  a color of one's own, both kept for each theme) and the columns of the outline, which the
+  button "Table Columns" over the outline chooses too.
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

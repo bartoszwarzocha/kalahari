@@ -1648,7 +1648,9 @@ may have them too.
   back). In the outline (Book > Outline) the same keys where a table allows
   them; F2 or typing edits a cell (in the board and the outline only, before the commands
   with these keys). Edit > Undo, Redo, Cut, Paste and Delete do there what their keys do;
-  "Show on the Plot Board" in the Navigator (the book, a part, a text) chooses the card.
+  "Show on the Plot Board" in the Navigator (the book, a part, a text) chooses the card. The
+  button "Table Columns" over the outline (Tab to it, Space) chooses the columns it shows, as
+  Settings > Plot Board does with the rest of the look of the board.
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
   edit, Space – done or resolved, Delete – delete, the Menu key or Shift+F10 – its menu,
   Esc – back to the text.

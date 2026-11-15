@@ -6,11 +6,13 @@
 /// painted
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/theme.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/widgets/plot_board_view.h"
 #include "kalahari/gui/widgets/plot_board_view_internal.h"
 #include "kalahari/gui/widgets/plot_card_editor.h"
 
+#include <QBrush>
 #include <QColor>
 #include <QFont>
 #include <QFontMetrics>
@@ -20,6 +22,8 @@
 #include <QPen>
 #include <QPixmap>
 #include <QPoint>
+#include <QPointF>
+#include <QRandomGenerator>
 #include <QRect>
 #include <QRectF>
 #include <QScrollBar>
@@ -29,6 +33,8 @@
 #include <QWidget>
 
 #include <algorithm>
+#include <array>
+#include <cstdint>
 
 namespace kalahari::gui {
 
@@ -54,13 +60,44 @@ using board_view::PLANNED_OPACITY;
 using board_view::quietColor;
 using board_view::QUIET_RING_ALPHA;
 using board_view::RADIUS;
+using board_view::READABLE_CONTRAST;
 using board_view::RING_WIDTH;
 using board_view::smallFont;
 using board_view::STATE_GAP;
 using board_view::STRIP;
+using board_view::TINT_SHARE;
 using board_view::titleLines;
 
 namespace {
+
+// The cork under the cards: a tile of its color with darker and lighter grains
+constexpr int CORK_TILE = 64;              ///< The side of the tile
+constexpr int CORK_GRAINS = 140;           ///< The grains of a tile
+constexpr std::uint32_t CORK_SEED = 7;     ///< The same grains on every board
+constexpr int CORK_DARKER = 116;           ///< The darker grains (QColor::darker())
+constexpr int CORK_LIGHTER = 108;          ///< The lighter grains (QColor::lighter())
+constexpr double CORK_GRAIN_MIN = 0.5;     ///< The smallest grain, its radius in pixels
+constexpr double CORK_GRAIN_RANGE = 0.9;   ///< How much larger a grain can be
+constexpr int CORK_LIGHT_SHARE = 3;        ///< One grain in this many is lighter
+
+/// @brief The tile of the cork of color @p cork
+QPixmap corkTile(const QColor& cork) {
+    QPixmap tile(CORK_TILE, CORK_TILE);
+    tile.fill(cork);
+    QPainter painter(&tile);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(Qt::NoPen);
+    QRandomGenerator grains(CORK_SEED);
+    const std::array<QColor, 2> shades{cork.darker(CORK_DARKER), cork.lighter(CORK_LIGHTER)};
+    for (int grain = 0; grain < CORK_GRAINS; ++grain) {
+        const QPointF at(grains.bounded(static_cast<double>(CORK_TILE)),
+                         grains.bounded(static_cast<double>(CORK_TILE)));
+        const double radius = CORK_GRAIN_MIN + grains.bounded(CORK_GRAIN_RANGE);
+        painter.setBrush(shades.at(grain % CORK_LIGHT_SHARE == 0 ? 1 : 0));
+        painter.drawEllipse(at, radius, radius);
+    }
+    return tile;
+}
 
 /// @brief Draw @p text in at most @p maxLines lines of @p width from @p topLeft, the last line
 /// ending in an ellipsis when the text is longer
@@ -147,8 +184,42 @@ void PlotBoardView::paintEvent(QPaintEvent* /*event*/) {
     }
 }
 
+void PlotBoardView::updateBackground() {
+    if (m_background == Background::Theme) {
+        // All the colors of the board's, and so of the window
+        viewport()->setPalette(QPalette());
+        return;
+    }
+    QPalette under;
+    if (m_background == Background::Cork) {
+        under.setBrush(QPalette::Window, QBrush(corkTile(m_colors.cork)));
+    } else {
+        under.setColor(QPalette::Window, m_colors.background);
+    }
+    viewport()->setPalette(under);
+}
+
+QColor PlotBoardView::boardTextColor(bool quiet) const {
+    const QPalette& colors = palette();
+    if (m_background == Background::Theme) {
+        return quiet ? quietColor(colors) : colors.color(QPalette::WindowText);
+    }
+    // Of the colors of the theme, the one that reads best on the background
+    const QColor under =
+        m_background == Background::Cork ? m_colors.cork : m_colors.background;
+    QColor best = colors.color(QPalette::WindowText);
+    if (core::contrastRatio(best, under) < READABLE_CONTRAST) {
+        for (const QPalette::ColorRole role : {QPalette::Window, QPalette::Base}) {
+            if (core::contrastRatio(colors.color(role), under) > core::contrastRatio(best, under)) {
+                best = colors.color(role);
+            }
+        }
+    }
+    return best;
+}
+
 void PlotBoardView::paintEmptyBoard(QPainter& painter, const QRect& shown) const {
-    painter.setPen(quietColor(palette()));
+    painter.setPen(boardTextColor(true));
     //: The plot board of a book without texts in its main section (Body). In Polish: W
     //: tekście głównym książki nie ma jeszcze rozdziałów. Insert dodaje rozdział.
     painter.drawText(shown.adjusted(MARGIN, MARGIN, -MARGIN, -MARGIN),
@@ -198,11 +269,11 @@ void PlotBoardView::paintPartTitle(QPainter& painter, const QRect& header,
     const QString count = tr("%1 · %2").arg(
         PlotBoard::textsText(static_cast<int>(band.cards.size())), PlotBoard::wordsText(band.words()));
     const int countWidth = painter.fontMetrics().horizontalAdvance(count);
-    painter.setPen(quietColor(colors));
+    painter.setPen(boardTextColor(true));
     painter.drawText(header.adjusted(0, 0, -2, -LABEL_PADDING), Qt::AlignRight | Qt::AlignBottom,
                      count);
     painter.setFont(boldFont(font()));
-    painter.setPen(colors.color(QPalette::WindowText));
+    painter.setPen(boardTextColor(false));
     const QRect titleRect = header.adjusted(2, 0, -countWidth - HEADER_TITLE_GAP, -LABEL_PADDING);
     painter.drawText(
         titleRect, Qt::AlignLeft | Qt::AlignBottom,
@@ -223,7 +294,7 @@ void PlotBoardView::paintEmptyPart(QPainter& painter, const QRect& area) const {
     QFont italic = font();
     italic.setItalic(true);
     painter.setFont(italic);
-    painter.setPen(quietColor(colors));
+    painter.setPen(boardTextColor(true));
     //: A part without texts on the plot board. In Polish: Pusta część
     painter.drawText(empty, Qt::AlignCenter | Qt::TextWordWrap, tr("Empty part"));
 }
@@ -281,14 +352,18 @@ void PlotBoardView::paintCardFrame(QPainter& painter, const PlotCard& card, cons
     QPainterPath shape;
     shape.addRoundedRect(QRectF(rect).adjusted(HALF_PIXEL, HALF_PIXEL, -HALF_PIXEL, -HALF_PIXEL),
                          RADIUS, RADIUS);
-    // A scene in the plan is lighter than the scenes written
+    // The color of the card as its background, or in a strip at its top
+    const QColor own = m_colors.ofCard(card, m_colorBy, m_povs);
     QColor base = colors.color(QPalette::Base);
+    if (m_tint && own.isValid()) {
+        base = core::mixedColor(base, own, TINT_SHARE);
+    }
+    // A scene in the plan is lighter than the scenes written
     if (planned) {
         base.setAlphaF(PLANNED_OPACITY);
     }
     painter.fillPath(shape, base);
-    // The color of the card in a strip at its top
-    if (const QColor own = m_colors.ofCard(card, m_colorBy, m_povs); own.isValid()) {
+    if (!m_tint && own.isValid()) {
         painter.save();
         painter.setClipPath(shape);
         painter.fillRect(QRect(rect.left(), rect.top(), rect.width(), STRIP), own);

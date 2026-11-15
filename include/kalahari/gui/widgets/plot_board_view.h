@@ -11,6 +11,7 @@
 #include "kalahari/gui/plot_board.h"
 
 #include <QAbstractScrollArea>
+#include <QColor>
 #include <QList>
 #include <QPoint>
 #include <QRect>
@@ -39,7 +40,9 @@ struct PlotCardEdit {
 ///
 /// The cards are the texts of the main section of the book (PlotBand), each with its kind, its
 /// words and state, its title, its description and its point of view, place and time of the
-/// action, in a color as the board says (PlotColors::ofCard()). In columns the parts are side
+/// action, in a color as the board says (PlotColors::ofCard()): a strip at its top or its
+/// background (setTint()); under the cards the window of the theme, cork or the writer's color
+/// (setBackground()). setFields() says what the cards show. In columns the parts are side
 /// by side, each over its texts; in a grid the texts are in rows under the title of their part.
 /// The scenes of a text are under its card in columns, and in a drawer under its row in a grid,
 /// which Space or a click on "3 scenes" opens and closes (setShowScenes() opens all of them).
@@ -113,6 +116,17 @@ public:
         bool time = false;        ///< The time of the action
         bool words = true;        ///< The words of the text
         bool status = true;       ///< The state of the text
+        bool scenes = true;       ///< "3 scenes" on a text whose scenes are not shown
+
+        /// @brief Whether both show the same fields
+        bool operator==(const Fields&) const = default;
+    };
+
+    /// @brief What is under the cards
+    enum class Background : std::uint8_t {
+        Theme,  ///< The window of the theme
+        Cork,   ///< Cork (PlotColors::cork)
+        Own     ///< The writer's color (PlotColors::background)
     };
 
     /// @brief The type of the drag of a card: its id
@@ -157,6 +171,8 @@ public:
 
     /// @brief Show @p fields on the cards
     void setFields(const Fields& fields);
+    /// @brief What the cards show besides their title
+    [[nodiscard]] const Fields& fields() const { return m_fields; }
 
     /// @brief Show the scenes of the texts: under their cards in columns; in a grid with the
     /// drawers of all texts open (each one opens and closes on its own then)
@@ -174,6 +190,16 @@ public:
 
     /// @brief Color the cards as @p colorBy says (PlotBoard::COLOR_STATUS...) with @p colors
     void setColoring(const QString& colorBy, const PlotColors& colors);
+
+    /// @brief The color of a card as its background (@p tint), or in a strip at its top
+    void setTint(bool tint);
+    /// @brief Whether the color of a card is its background (setTint())
+    [[nodiscard]] bool tints() const { return m_tint; }
+
+    /// @brief Put @p background under the cards, in the colors of setColoring()
+    void setBackground(Background background);
+    /// @brief What is under the cards
+    [[nodiscard]] Background background() const { return m_background; }
 
     /// @brief Whether the book is open read-only: the keys and the mouse change nothing
     void setReadOnly(bool readOnly);
@@ -391,6 +417,9 @@ private:
     void paintPlotLine(QPainter& painter, const PlotCard& card, const QRect& inner,
                        int right) const;
     void paintCurrentRing(QPainter& painter, const QRect& rect) const;
+    /// @brief The color of the texts on the board between the cards (@p quiet: of the notes),
+    /// readable on its background
+    [[nodiscard]] QColor boardTextColor(bool quiet) const;
 
     // The rest (plot_board_view.cpp)
     /// @brief The place of text @p textId among the texts of the board; -1: none
@@ -409,6 +438,8 @@ private:
     void closeEditor(bool save);
     void placeEditor();
     void tellScreenReader();
+    /// @brief The background of the viewport, of the theme or setBackground()
+    void updateBackground();
 
     QList<PlotBand> m_bands;
     QList<CardPlace> m_cards;
@@ -422,6 +453,8 @@ private:
     Fields m_fields;
     QString m_colorBy = QString::fromLatin1(PlotBoard::COLOR_STATUS);
     PlotColors m_colors;
+    bool m_tint = false;  ///< setTint()
+    Background m_background = Background::Theme;
     QStringList m_povs;  ///< The points of view of the cards, for their colors
     bool m_readOnly = false;
     QString m_current;

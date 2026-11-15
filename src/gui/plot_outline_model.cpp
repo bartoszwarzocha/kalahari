@@ -28,6 +28,8 @@
 #include <QWidget>
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 
 namespace kalahari::gui {
 
@@ -328,6 +330,16 @@ QVariant PlotOutlineModel::headerData(int section, Qt::Orientation orientation, 
     }
     const QString title = columnTitle(section);
     return title.isEmpty() ? QVariant() : QVariant(title);
+}
+
+const char* PlotOutlineModel::columnName(int column) {
+    // In the order of the columns; the title has none
+    static constexpr std::array<const char*, COLUMN_COUNT> NAMES{
+        {"number", nullptr, PlotBoard::FIELD_DESCRIPTION, PlotBoard::FIELD_POV,
+         PlotBoard::FIELD_PLACE, PlotBoard::FIELD_TIME, PlotBoard::FIELD_WORDS,
+         PlotBoard::FIELD_STATUS}};
+    return column >= 0 && column < COLUMN_COUNT ? NAMES.at(static_cast<std::size_t>(column))
+                                                : nullptr;
 }
 
 QString PlotOutlineModel::columnTitle(int column) {

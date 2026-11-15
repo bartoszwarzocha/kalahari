@@ -151,9 +151,12 @@ void PlotBoardView::setCardSize(CardSize size) {
 }
 
 void PlotBoardView::setFields(const Fields& fields) {
+    if (m_fields == fields) {
+        return;
+    }
     m_fields = fields;
     relayout();
-    viewport()->update();
+    showCurrent();
 }
 
 void PlotBoardView::setShowScenes(bool show) {
@@ -194,6 +197,18 @@ bool PlotBoardView::toggleScenes(const QString& textId) {
 void PlotBoardView::setColoring(const QString& colorBy, const PlotColors& colors) {
     m_colorBy = colorBy;
     m_colors = colors;
+    updateBackground();
+    viewport()->update();
+}
+
+void PlotBoardView::setTint(bool tint) {
+    m_tint = tint;
+    viewport()->update();
+}
+
+void PlotBoardView::setBackground(Background background) {
+    m_background = background;
+    updateBackground();
     viewport()->update();
 }
 

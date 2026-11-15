@@ -3,32 +3,26 @@
 
 /// @file plot_board_panel.cpp
 /// @brief The tab of the plot board in the middle of the window: the board of the cards or the
-/// outline, the switches of their look, and what was just done
+/// outline, and what was just done; the switches over them and the look from the settings are
+/// in plot_board_panel_header.cpp
 
 #include "kalahari/gui/panels/plot_board_panel.h"
 
 #include "kalahari/core/settings_manager.h"
-#include "kalahari/core/theme_manager.h"
 #include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/plot_board.h"
 #include "kalahari/gui/plot_outline_model.h"
-#include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/widgets/info_bar.h"
 #include "kalahari/gui/widgets/plot_board_view.h"
 
 #include <QAbstractItemView>
 #include <QActionGroup>
-#include <QButtonGroup>
-#include <QComboBox>
 #include <QEvent>
 #include <QHeaderView>
 #include <QKeyEvent>
-#include <QLabel>
 #include <QMenu>
-#include <QPointer>
 #include <QStackedWidget>
 #include <QTableView>
-#include <QToolButton>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -43,35 +37,7 @@ namespace kalahari::gui {
 
 namespace {
 
-/// @brief The beginning of the keys of the settings of the board
-constexpr const char* SETTINGS_PREFIX = "plotBoard.";
-
-/// @brief A setting of the board as text
-QString setting(const char* key) {
-    return QString::fromStdString(
-        core::SettingsManager::getInstance().get<std::string>(key, std::string()));
-}
-
-void setSetting(const char* key, const char* value) {
-    core::SettingsManager::getInstance().set<std::string>(key, value);
-}
-
-/// @brief A switch of the header: a button that stays down while its choice is on
-QToolButton* switchButton(const QString& text, const char* name, QWidget* parent) {
-    auto* button = new QToolButton(parent);
-    button->setObjectName(QString::fromLatin1(name));
-    button->setText(text);
-    button->setCheckable(true);
-    button->setAutoRaise(true);
-    button->setToolButtonStyle(Qt::ToolButtonTextOnly);
-    return button;
-}
-
-constexpr int HEADER_SPACING = 6;       ///< Between the switches over the board
-constexpr int HEADER_LINE_SPACING = 4;  ///< Between their lines, when they wrap
-constexpr int HEADER_MARGIN_X = 8;      ///< On the left and right of the switches
-constexpr int HEADER_MARGIN_Y = 6;      ///< Over and under them
-constexpr int SWATCH_SIZE = 12;         ///< Of a color in the menu Card Color
+constexpr int SWATCH_SIZE = 12;  ///< Of a color in the menu Card Color
 
 // The widths of the columns of the outline in average characters
 constexpr int NUMBER_CHARACTERS = 5;   ///< The number of a text
@@ -100,17 +66,6 @@ int charactersOf(int column) {
         break;
     }
     return OTHER_CHARACTERS;
-}
-
-/// @brief The size of the cards a setting names (PlotBoard::SIZE_SMALL...)
-PlotBoardView::CardSize cardSizeOf(const QString& size) {
-    if (size == QLatin1String(PlotBoard::SIZE_SMALL)) {
-        return PlotBoardView::CardSize::Small;
-    }
-    if (size == QLatin1String(PlotBoard::SIZE_LARGE)) {
-        return PlotBoardView::CardSize::Large;
-    }
-    return PlotBoardView::CardSize::Medium;
 }
 
 using Key = PlotBoardView::Key;
@@ -248,7 +203,7 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
                                           charactersOf(column));
         }
     }
-    showView(setting(PlotBoard::VIEW_SETTING));
+    showView(PlotBoard::startView());
 }
 
 void PlotBoardPanel::buildBody(QVBoxLayout* layout) {
@@ -347,133 +302,8 @@ void PlotBoardPanel::connectOutline() {
     });
 }
 
-void PlotBoardPanel::followSettings() {
-    // The look follows the settings, also when another window changes them
-    m_settingsListener = core::SettingsManager::getInstance().subscribe(
-        [self = QPointer<PlotBoardPanel>(this)](const std::string& key) {
-            if (self == nullptr || !key.starts_with(SETTINGS_PREFIX)) {
-                return;
-            }
-            QMetaObject::invokeMethod(
-                self.data(),
-                [self]() {
-                    if (self != nullptr) {
-                        self->applySettings();
-                    }
-                },
-                Qt::QueuedConnection);
-        });
-    auto& themes = core::ThemeManager::getInstance();
-    connect(&themes, &core::ThemeManager::themeChanged, this, &PlotBoardPanel::applySettings);
-    connect(&themes, &core::ThemeManager::editorColorsChanged, this,
-            &PlotBoardPanel::applySettings);
-}
-
 PlotBoardPanel::~PlotBoardPanel() {
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
-}
-
-void PlotBoardPanel::buildHeader(QWidget* header) {
-    auto* flow = new FlowLayout(header, HEADER_SPACING, HEADER_LINE_SPACING);
-    flow->setContentsMargins(HEADER_MARGIN_X, HEADER_MARGIN_Y, HEADER_MARGIN_X, HEADER_MARGIN_Y);
-
-    // Board | Outline
-    //: The switch of the tab of the plot board: the cards. In Polish: Tablica
-    m_boardButton = switchButton(tr("Board"), "plotBoardShowBoard", header);
-    //: The switch: the table of the texts. In Polish: Konspekt
-    m_outlineButton = switchButton(tr("Outline"), "plotBoardShowOutline", header);
-    auto* views = new QButtonGroup(header);
-    views->addButton(m_boardButton);
-    views->addButton(m_outlineButton);
-    flow->addWidget(m_boardButton);
-    flow->addWidget(m_outlineButton);
-    connect(m_boardButton, &QToolButton::clicked, this, [this]() {
-        showView(QString::fromLatin1(PlotBoard::VIEW_BOARD));
-        setSetting(PlotBoard::VIEW_SETTING, PlotBoard::VIEW_BOARD);
-    });
-    connect(m_outlineButton, &QToolButton::clicked, this, [this]() {
-        showView(QString::fromLatin1(PlotBoard::VIEW_OUTLINE));
-        setSetting(PlotBoard::VIEW_SETTING, PlotBoard::VIEW_OUTLINE);
-    });
-
-    // The scenes of the texts, on the board and in the outline
-    //: The switch over the plot board: the scenes of the texts shown or not. In Polish: Sceny
-    m_scenesButton = switchButton(tr("Scenes"), "plotBoardScenes", header);
-    //: In Polish: Sceny tekstów: pod ich kartami, w szufladach siatki i w wierszach konspektu
-    m_scenesButton->setToolTip(tr("The scenes of the texts: under their cards, in the drawers "
-                                  "of the grid and in rows of the outline"));
-    flow->addWidget(m_scenesButton);
-    connect(m_scenesButton, &QToolButton::clicked, this, [](bool checked) {
-        core::SettingsManager::getInstance().set<bool>(PlotBoard::SCENES_SETTING, checked);
-    });
-
-    // Columns | Grid
-    //: How the cards of the plot board are arranged. In Polish: Układ:
-    m_layoutLabel = new QLabel(tr("Layout:"), header);
-    //: The parts side by side, each over its texts. In Polish: Kolumny
-    m_columnsButton = switchButton(tr("Columns"), "plotBoardColumns", header);
-    //: The texts in rows under the titles of their parts. In Polish: Siatka
-    m_gridButton = switchButton(tr("Grid"), "plotBoardGrid", header);
-    auto* layouts = new QButtonGroup(header);
-    layouts->addButton(m_columnsButton);
-    layouts->addButton(m_gridButton);
-    flow->addWidget(m_layoutLabel);
-    flow->addWidget(m_columnsButton);
-    flow->addWidget(m_gridButton);
-    connect(m_columnsButton, &QToolButton::clicked, this,
-            []() { setSetting(PlotBoard::LAYOUT_SETTING, PlotBoard::LAYOUT_COLUMNS); });
-    connect(m_gridButton, &QToolButton::clicked, this,
-            []() { setSetting(PlotBoard::LAYOUT_SETTING, PlotBoard::LAYOUT_GRID); });
-
-    // Small | Medium | Large
-    //: The size of the cards of the plot board. In Polish: Karty:
-    m_sizeLabel = new QLabel(tr("Cards:"), header);
-    //: In Polish: Małe
-    m_smallButton = switchButton(tr("Small"), "plotBoardSmall", header);
-    //: In Polish: Średnie
-    m_mediumButton = switchButton(tr("Medium"), "plotBoardMedium", header);
-    //: In Polish: Duże
-    m_largeButton = switchButton(tr("Large"), "plotBoardLarge", header);
-    auto* sizes = new QButtonGroup(header);
-    sizes->addButton(m_smallButton);
-    sizes->addButton(m_mediumButton);
-    sizes->addButton(m_largeButton);
-    flow->addWidget(m_sizeLabel);
-    flow->addWidget(m_smallButton);
-    flow->addWidget(m_mediumButton);
-    flow->addWidget(m_largeButton);
-    connect(m_smallButton, &QToolButton::clicked, this,
-            []() { setSetting(PlotBoard::SIZE_SETTING, PlotBoard::SIZE_SMALL); });
-    connect(m_mediumButton, &QToolButton::clicked, this,
-            []() { setSetting(PlotBoard::SIZE_SETTING, PlotBoard::SIZE_MEDIUM); });
-    connect(m_largeButton, &QToolButton::clicked, this,
-            []() { setSetting(PlotBoard::SIZE_SETTING, PlotBoard::SIZE_LARGE); });
-
-    // What colors the cards
-    //: What colors the cards of the plot board. In Polish: &Kolory:
-    auto* colorLabel = new QLabel(tr("&Colors:"), header);
-    m_colorBy = new QComboBox(header);
-    m_colorBy->setObjectName(QStringLiteral("plotBoardColorBy"));
-    colorLabel->setBuddy(m_colorBy);
-    //: In Polish: według stanu
-    m_colorBy->addItem(tr("by state"), QString::fromLatin1(PlotBoard::COLOR_STATUS));
-    //: In Polish: według punktu widzenia
-    m_colorBy->addItem(tr("by point of view"), QString::fromLatin1(PlotBoard::COLOR_POV));
-    //: In Polish: własne kolory kart
-    m_colorBy->addItem(tr("own colors of the cards"), QString::fromLatin1(PlotBoard::COLOR_OWN));
-    //: In Polish: bez kolorów
-    m_colorBy->addItem(tr("none"), QString::fromLatin1(PlotBoard::COLOR_NONE));
-    flow->addWidget(colorLabel);
-    flow->addWidget(m_colorBy);
-    connect(m_colorBy, &QComboBox::activated, this, [this](int index) {
-        core::SettingsManager::getInstance().set<std::string>(
-            PlotBoard::COLOR_SETTING, m_colorBy->itemData(index).toString().toStdString());
-    });
-
-    m_totals = new QLabel(header);
-    m_totals->setObjectName(QStringLiteral("plotBoardTotals"));
-    m_totals->setForegroundRole(QPalette::PlaceholderText);
-    flow->addWidget(m_totals);
 }
 
 void PlotBoardPanel::setBands(const QList<PlotBand>& bands) {
@@ -633,65 +463,6 @@ void PlotBoardPanel::showMessage(const QString& message, bool canUndo) {
 
 QString PlotBoardPanel::message() const {
     return m_infoBar->isHidden() ? QString() : m_infoBar->message();
-}
-
-void PlotBoardPanel::applySettings() {
-    const QString layout = setting(PlotBoard::LAYOUT_SETTING);
-    m_board->setArrangement(layout == QLatin1String(PlotBoard::LAYOUT_GRID)
-                                ? PlotBoardView::Arrangement::Grid
-                                : PlotBoardView::Arrangement::Columns);
-    m_board->setCardSize(cardSizeOf(setting(PlotBoard::SIZE_SETTING)));
-    m_board->setColoring(setting(PlotBoard::COLOR_SETTING), PlotColors::current());
-    const bool scenes =
-        core::SettingsManager::getInstance().get<bool>(PlotBoard::SCENES_SETTING, true);
-    m_board->setShowScenes(scenes);
-    m_model->setShowScenes(scenes);
-    updateSwitches();
-    // Other scenes are other cards
-    if (const QString variant = PlotBoard::scenesVariant(); variant != m_scenesVariant) {
-        const bool changed = !m_scenesVariant.isEmpty();
-        m_scenesVariant = variant;
-        if (changed) {
-            emit scenesVariantChanged();
-        }
-    }
-}
-
-void PlotBoardPanel::updateSwitches() {
-    const bool outline = m_stack->currentWidget() == m_outline;
-    m_boardButton->setChecked(!outline);
-    m_outlineButton->setChecked(outline);
-    m_scenesButton->setChecked(m_board->showsScenes());
-    // The look of the cards is the board's
-    for (QWidget* widget : {static_cast<QWidget*>(m_layoutLabel),
-                            static_cast<QWidget*>(m_columnsButton),
-                            static_cast<QWidget*>(m_gridButton),
-                            static_cast<QWidget*>(m_sizeLabel),
-                            static_cast<QWidget*>(m_smallButton),
-                            static_cast<QWidget*>(m_mediumButton),
-                            static_cast<QWidget*>(m_largeButton)}) {
-        widget->setVisible(!outline);
-    }
-    const bool grid = m_board->arrangement() == PlotBoardView::Arrangement::Grid;
-    m_columnsButton->setChecked(!grid);
-    m_gridButton->setChecked(grid);
-    m_smallButton->setChecked(m_board->cardSize() == PlotBoardView::CardSize::Small);
-    m_mediumButton->setChecked(m_board->cardSize() == PlotBoardView::CardSize::Medium);
-    m_largeButton->setChecked(m_board->cardSize() == PlotBoardView::CardSize::Large);
-    const int color = m_colorBy->findData(setting(PlotBoard::COLOR_SETTING));
-    m_colorBy->setCurrentIndex(std::max(0, color));
-}
-
-void PlotBoardPanel::updateTotals() {
-    const QList<PlotCard> cards = PlotBoard::cardsOf(m_bands);
-    int words = 0;
-    for (const PlotCard& card : cards) {
-        words += card.words;
-    }
-    //: The texts and the words of the book over the plot board; %1 the texts ("7 texts"), %2
-    //: the words. In Polish: %1 · %2
-    m_totals->setText(tr("%1 · %2").arg(PlotBoard::textsText(static_cast<int>(cards.size())),
-                                        PlotBoard::wordsText(words)));
 }
 
 std::optional<PlotCard> PlotBoardPanel::card(const QString& elementId) const {

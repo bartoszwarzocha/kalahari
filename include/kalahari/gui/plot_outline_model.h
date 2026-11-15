@@ -58,6 +58,14 @@ public:
     /// @brief Show the rows of the scenes of the texts under the rows of the texts, or not
     void setShowScenes(bool show);
 
+    /// @brief The name of @p column in its setting (PlotBoard::outlineSetting()): "number",
+    /// "description", "pov", "place", "time", "words", "status"; nullptr for the title, which
+    /// is always shown, and for no column
+    [[nodiscard]] static const char* columnName(int column);
+
+    /// @brief The title of @p column; empty: none
+    [[nodiscard]] static QString columnTitle(int column);
+
     /// @brief The row of the text, the scene (PlotBoard::sceneId()) or the part @p id; -1: none
     [[nodiscard]] int rowOf(const QString& id) const;
 
@@ -94,8 +102,6 @@ private:
     [[nodiscard]] static QVariant partData(const Row& row, int column, int role);
     /// @brief What cell @p column of the row of @p card shows in @p role
     [[nodiscard]] static QVariant cardData(const PlotCard& card, int column, int role);
-    /// @brief The title of @p column; empty: none
-    [[nodiscard]] static QString columnTitle(int column);
 
     QList<PlotBand> m_bands;
     QList<Row> m_rows;

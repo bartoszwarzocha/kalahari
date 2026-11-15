@@ -103,6 +103,8 @@
     "plotGreen": "#3E8E3B",
     "plotAmber": "#B7790A",
     "plotRose": "#C2416F",
-    "plotViolet": "#7A5BBF"
+    "plotViolet": "#7A5BBF",
+    "plotCork": "#C9A27A",
+    "plotBackground": "#E9E3D5"
   }
 }

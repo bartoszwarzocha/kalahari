@@ -4,29 +4,207 @@
 /// @file plot_board_page.cpp
 /// @brief Settings page: Plot Board
 ///
-/// Which scenes the plot board and the outline show: the scenes of the texts and those in
-/// their plans (the default), the scenes of the texts only, or those in the plans only
-/// (PlotBoard::SCENES_VARIANT_SETTING). The board follows the setting at once. The colors of
-/// the cards are those of the theme: kept for each theme, as the other colors of the editor.
+/// The view a new tab of the board opens on, the layout and the size of the cards, the scenes
+/// shown and which scenes there are: the scenes of the texts and those in their plans (the
+/// default), the scenes of the texts only, or those in the plans only
+/// (PlotBoard::SCENES_VARIANT_SETTING); what the cards show; what colors them, as a strip at
+/// their top or as their background, and what is under them; the columns of the outline. The
+/// board follows the settings at once. The colors are those of the theme: kept for each theme,
+/// as the other colors of the editor.
 
+#include "kalahari/core/settings_manager.h"
+#include "kalahari/core/settings_schema.h"
 #include "kalahari/gui/plot_board.h"
+#include "kalahari/gui/plot_outline_model.h"
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/settings/settings_pages.h"
+#include "kalahari/gui/widgets/flow_layout.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QFormLayout>
+#include <QLabel>
+#include <QRadioButton>
 #include <QString>
 #include <QStringList>
+#include <QWidget>
 
+#include <nlohmann/json_fwd.hpp>
+
+#include <algorithm>
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace kalahari::gui {
 
+namespace {
+
+constexpr int CHOICE_SPACING = 12;  ///< Between the radio buttons and check boxes of a row
+constexpr int CHOICE_LINES = 4;     ///< Between their lines, when they wrap
+
+/// @brief A row of a form for radio buttons or check boxes, wrapping when it is narrow
+FlowLayout* rowLayout(QWidget* row) {
+    auto* flow = new FlowLayout(row, CHOICE_SPACING, CHOICE_LINES);
+    flow->setContentsMargins(0, 0, 0, 0);
+    return flow;
+}
+
+/// @brief Radio buttons with the values of the setting they choose
+using ChoiceButtons = std::vector<std::pair<QRadioButton*, std::string>>;
+
+/// @brief The value of the radio button of @p buttons that is checked; the first one's when
+/// none is
+std::string chosenOf(const ChoiceButtons& buttons) {
+    for (const auto& [button, value] : buttons) {
+        if (button->isChecked()) {
+            return value;
+        }
+    }
+    return buttons.front().second;
+}
+
+/// @brief Check the radio button of @p buttons with value @p value of setting @p key; a value
+/// the program does not know shows as the default of the setting
+void choose(const ChoiceButtons& buttons, std::string value, const char* key) {
+    const auto known = [&value](const auto& button) { return button.second == value; };
+    if (std::ranges::none_of(buttons, known)) {
+        const nlohmann::json* fallback = core::settings_schema::defaultValue(key);
+        value = fallback != nullptr && fallback->is_string() ? fallback->get<std::string>()
+                                                             : buttons.front().second;
+    }
+    for (const auto& [button, name] : buttons) {
+        button->setChecked(name == value);
+    }
+}
+
+/// @brief The name of what a card and the outline show, in a row of check boxes
+QString fieldName(const char* field) {
+    const std::string name(field);
+    if (name == PlotBoard::FIELD_DESCRIPTION) {
+        //: A field of the cards and a column of the outline in Settings > Plot Board. In
+        //: Polish: opis
+        return PlotBoardPage::tr("description");
+    }
+    if (name == PlotBoard::FIELD_POV) {
+        //: In Polish: punkt widzenia
+        return PlotBoardPage::tr("point of view");
+    }
+    if (name == PlotBoard::FIELD_PLACE) {
+        //: In Polish: miejsce
+        return PlotBoardPage::tr("place");
+    }
+    if (name == PlotBoard::FIELD_TIME) {
+        //: In Polish: czas akcji
+        return PlotBoardPage::tr("time of the action");
+    }
+    //: In Polish: stan
+    return PlotBoardPage::tr("state");
+}
+
+}  // namespace
+
 PlotBoardPage::PlotBoardPage(QWidget* parent) : SettingsPage(parent) {
+    addViewGroup();
+    addScenesGroup();
+    addCardsGroup();
+    addColorsGroup();
+    addOutlineGroup();
+    pageLayout()->addStretch();
+}
+
+void PlotBoardPage::addChoices(QFormLayout* form, const QString& label, const char* key,
+                               const std::vector<Choice>& choices) {
+    auto* row = new QWidget();
+    FlowLayout* flow = rowLayout(row);
+    ChoiceButtons buttons;
+    for (const Choice& choice : choices) {
+        auto* button = new QRadioButton(choice.text, row);
+        button->setObjectName(QStringLiteral("plotBoard_%1").arg(QLatin1String(choice.name)));
+        flow->addWidget(button);
+        buttons.emplace_back(button, choice.value);
+    }
+    auto* title = new QLabel(label);
+    title->setBuddy(buttons.front().first);
+    form->addRow(title, row);
+
+    auto& settings = core::SettingsManager::getInstance();
+    Binding binding;
+    binding.key = [key]() { return std::string(key); };
+    binding.stored = [&settings, key]() {
+        return nlohmann::json(settings.get<std::string>(key, std::string()));
+    };
+    binding.shown = [buttons]() { return nlohmann::json(chosenOf(buttons)); };
+    binding.show = [buttons, key](const nlohmann::json& value) {
+        choose(buttons, value.is_string() ? value.get<std::string>() : std::string(), key);
+    };
+    binding.store = [&settings, key](const nlohmann::json& value) {
+        settings.set<std::string>(key, value.get<std::string>());
+    };
+    bindCustom(std::move(binding));
+}
+
+void PlotBoardPage::addChecks(QFormLayout* form, const QString& label,
+                              const std::vector<std::pair<QString, std::string>>& checks) {
+    auto* row = new QWidget();
+    FlowLayout* flow = rowLayout(row);
+    QCheckBox* first = nullptr;
+    for (const auto& [text, key] : checks) {
+        auto* check = new QCheckBox(text, row);
+        check->setObjectName(QString::fromStdString(key));
+        flow->addWidget(check);
+        bind(check, key);
+        if (first == nullptr) {
+            first = check;
+        }
+    }
+    auto* title = new QLabel(label);
+    title->setBuddy(first);
+    form->addRow(title, row);
+}
+
+void PlotBoardPage::addViewGroup() {
+    //: A group of Settings > Plot Board. In Polish: Widok
+    QFormLayout* view = addGroup(tr("View"));
+    //: The view a new tab of the plot board opens on. In Polish: Otwieraj na:
+    addChoices(view, tr("Open on:"), PlotBoard::START_VIEW_SETTING,
+               {//: In Polish: tablicy
+                {tr("the board"), PlotBoard::VIEW_BOARD, "startBoard"},
+                //: In Polish: konspekcie
+                {tr("the outline"), PlotBoard::VIEW_OUTLINE, "startOutline"},
+                //: In Polish: ostatnio używanym
+                {tr("the view used last"), PlotBoard::START_LAST, "startLast"}});
+    //: The note under the view a tab opens on. In Polish: Książka > Tablica fabuły i Książka >
+    //: Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy
+    //: fabuły” w Nawigatorze.
+    addNote(view, tr("Book > Plot Board and Book > Outline open their own views; this is how "
+                     "the tab opens from Show on the Plot Board in the Navigator."));
+    //: In Polish: Układ tablicy:
+    addChoices(view, tr("Layout of the board:"), PlotBoard::LAYOUT_SETTING,
+               {//: The parts side by side. In Polish: kolumny
+                {tr("columns"), PlotBoard::LAYOUT_COLUMNS, "columns"},
+                //: The cards in rows. In Polish: siatka
+                {tr("grid"), PlotBoard::LAYOUT_GRID, "grid"}});
+    //: In Polish: Rozmiar kart:
+    addChoices(view, tr("Size of the cards:"), PlotBoard::SIZE_SETTING,
+               {//: In Polish: małe
+                {tr("small"), PlotBoard::SIZE_SMALL, "small"},
+                //: In Polish: średnie
+                {tr("medium"), PlotBoard::SIZE_MEDIUM, "medium"},
+                //: In Polish: duże
+                {tr("large"), PlotBoard::SIZE_LARGE, "large"}});
+}
+
+void PlotBoardPage::addScenesGroup() {
     //: A group of Settings > Plot Board. In Polish: Sceny
     QFormLayout* scenes = addGroup(tr("Scenes"));
+    //: In Polish: Pokazuj sceny pod tekstami
+    addCheckBox(scenes, tr("Show the scenes under the texts"), PlotBoard::SCENES_SETTING)
+        ->setObjectName(QStringLiteral("plotBoardShowScenes"));
+    //: The note under Show the scenes under the texts. In Polish: W siatce – w otwartych
+    //: szufladach pod rzędami kart.
+    addNote(scenes, tr("In the grid: in the drawers under the rows of the cards, open."));
     auto* variant = new QComboBox();
     variant->setObjectName(QStringLiteral("plotBoardScenes"));
     //: Which scenes the plot board shows. In Polish: tekstów i w ich planach
@@ -48,9 +226,62 @@ PlotBoardPage::PlotBoardPage(QWidget* parent) : SettingsPage(parent) {
                "only in the file of the book, in a dashed frame: they have no text, no words "
                "and no state, and Enter on such a card beside the scenes of the text puts a "
                "scene break with its description at its place and opens the text there."));
+}
 
-    //: A group of Settings > Plot Board. In Polish: Kolory kart
-    QFormLayout* colors = addGroup(tr("Colors of the Cards"));
+void PlotBoardPage::addCardsGroup() {
+    //: A group of Settings > Plot Board. In Polish: Karty
+    QFormLayout* cards = addGroup(tr("Cards"));
+    std::vector<std::pair<QString, std::string>> fields;
+    for (const char* field : {PlotBoard::FIELD_DESCRIPTION, PlotBoard::FIELD_POV,
+                              PlotBoard::FIELD_PLACE, PlotBoard::FIELD_TIME}) {
+        fields.emplace_back(fieldName(field), PlotBoard::fieldSetting(field));
+    }
+    //: In Polish: liczbę słów
+    fields.emplace_back(tr("number of words"), PlotBoard::fieldSetting(PlotBoard::FIELD_WORDS));
+    fields.emplace_back(fieldName(PlotBoard::FIELD_STATUS),
+                        PlotBoard::fieldSetting(PlotBoard::FIELD_STATUS));
+    //: In Polish: liczbę scen
+    fields.emplace_back(tr("number of scenes"),
+                        PlotBoard::fieldSetting(PlotBoard::FIELD_SCENES));
+    //: What the cards of the plot board show besides their titles. In Polish: Na kartach
+    //: widać:
+    addChecks(cards, tr("The cards show:"), fields);
+    //: In Polish: Ile linii opisu mieści karta, zależy od jej rozmiaru. Liczba scen jest na
+    //: karcie tekstu, którego scen nie widać pod nim; w siatce otwiera i zamyka ich szufladę
+    //: (także Spacja).
+    addNote(cards, tr("How many lines of the description a card holds depends on its size. "
+                      "The number of scenes is on the card of a text whose scenes are not "
+                      "shown under it; in the grid it opens and closes their drawer (also "
+                      "Space)."));
+}
+
+void PlotBoardPage::addColorsGroup() {
+    //: A group of Settings > Plot Board. In Polish: Kolory
+    QFormLayout* colors = addGroup(tr("Colors"));
+    //: In Polish: Koloruj karty:
+    addChoices(colors, tr("Color the cards:"), PlotBoard::COLOR_SETTING,
+               {//: In Polish: według stanu
+                {tr("by state"), PlotBoard::COLOR_STATUS, "colorStatus"},
+                //: In Polish: według punktu widzenia
+                {tr("by point of view"), PlotBoard::COLOR_POV, "colorPov"},
+                //: In Polish: własnym kolorem karty
+                {tr("by the own color of the card"), PlotBoard::COLOR_OWN, "colorOwn"},
+                //: In Polish: bez kolorów
+                {tr("without colors"), PlotBoard::COLOR_NONE, "colorNone"}});
+    //: Where the color of a card is. In Polish: Kolor na karcie:
+    addChoices(colors, tr("Color on the card:"), PlotBoard::COLOR_PLACE_SETTING,
+               {//: In Polish: pasek u góry
+                {tr("a strip at the top"), PlotBoard::COLOR_STRIP, "strip"},
+                //: In Polish: tło karty
+                {tr("the background of the card"), PlotBoard::COLOR_TINT, "tint"}});
+    //: What is under the cards. In Polish: Tło tablicy:
+    addChoices(colors, tr("Background of the board:"), PlotBoard::BACKGROUND_SETTING,
+               {//: In Polish: kolor motywu
+                {tr("the color of the theme"), PlotBoard::BACKGROUND_THEME, "backgroundTheme"},
+                //: In Polish: korek
+                {tr("cork"), PlotBoard::BACKGROUND_CORK, "backgroundCork"},
+                //: In Polish: własny kolor
+                {tr("own color"), PlotBoard::BACKGROUND_OWN, "backgroundOwn"}});
     //: In Polish: Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma
     //: swoje kolory: to są kolory bieżącego motywu.
     addNote(colors, tr("The colors of the states of the texts, of the scenes in the plan and "
@@ -68,9 +299,39 @@ PlotBoardPage::PlotBoardPage(QWidget* parent) : SettingsPage(parent) {
                               : PlotColors::ownTitle(PlotColors::ownNames().value(own)),
                       keys.at(i));
     }
+    //: The color of the cork under the cards. In Polish: Korek
+    addThemeColor(colors, tr("Cork"), PlotColors::CORK_KEY);
+    //: The writer's own background of the board. In Polish: Własne tło
+    addThemeColor(colors, tr("Own Background"), PlotColors::BACKGROUND_KEY);
     addRestoreColorsButton(colors);
+}
 
-    pageLayout()->addStretch();
+void PlotBoardPage::addOutlineGroup() {
+    //: A group of Settings > Plot Board. In Polish: Konspekt
+    QFormLayout* outline = addGroup(tr("Outline"));
+    std::vector<std::pair<QString, std::string>> columns;
+    for (int column = 0; column < PlotOutlineModel::COLUMN_COUNT; ++column) {
+        const char* name = PlotOutlineModel::columnName(column);
+        if (name == nullptr) {
+            continue;  // the title, always shown
+        }
+        QString text;
+        if (column == PlotOutlineModel::NUMBER_COLUMN) {
+            //: A column of the outline: the number of the text. In Polish: numer
+            text = tr("number");
+        } else if (column == PlotOutlineModel::WORDS_COLUMN) {
+            //: A column of the outline. In Polish: słowa
+            text = tr("words");
+        } else {
+            text = fieldName(name);
+        }
+        columns.emplace_back(text, PlotBoard::outlineSetting(name));
+    }
+    //: The columns the outline shows. In Polish: Kolumny:
+    addChecks(outline, tr("Columns:"), columns);
+    //: In Polish: Tytuł widać zawsze. Kolumny wybiera też przycisk „Kolumny” nad konspektem.
+    addNote(outline, tr("The title is always shown. The button Table Columns over the outline "
+                        "chooses the columns too."));
 }
 
 }  // namespace kalahari::gui

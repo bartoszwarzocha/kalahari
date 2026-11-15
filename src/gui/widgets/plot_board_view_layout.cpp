@@ -244,7 +244,8 @@ const PlotCard& PlotBoardView::cardOfPlace(const CardPlace& place) const {
 }
 
 QString PlotBoardView::scenesNote(const PlotCard& card) const {
-    if (card.scenes.isEmpty() || (m_arrangement == Arrangement::Columns && m_showScenes)) {
+    if (!m_fields.scenes || card.scenes.isEmpty() ||
+        (m_arrangement == Arrangement::Columns && m_showScenes)) {
         return {};
     }
     QString scenes = PlotBoard::scenesText(static_cast<int>(card.scenes.size()));

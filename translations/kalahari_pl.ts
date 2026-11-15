@@ -10744,9 +10744,109 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
 <context>
     <name>kalahari::gui::PlotBoardPage</name>
     <message>
+        <source>description</source>
+        <extracomment>A field of the cards and a column of the outline in Settings &gt; Plot Board. In Polish: opis</extracomment>
+        <translation>opis</translation>
+    </message>
+    <message>
+        <source>point of view</source>
+        <extracomment>In Polish: punkt widzenia</extracomment>
+        <translation>punkt widzenia</translation>
+    </message>
+    <message>
+        <source>place</source>
+        <extracomment>In Polish: miejsce</extracomment>
+        <translation>miejsce</translation>
+    </message>
+    <message>
+        <source>time of the action</source>
+        <extracomment>In Polish: czas akcji</extracomment>
+        <translation>czas akcji</translation>
+    </message>
+    <message>
+        <source>state</source>
+        <extracomment>In Polish: stan</extracomment>
+        <translation>stan</translation>
+    </message>
+    <message>
+        <source>View</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Widok</extracomment>
+        <translation>Widok</translation>
+    </message>
+    <message>
+        <source>Open on:</source>
+        <extracomment>The view a new tab of the plot board opens on. In Polish: Otwieraj na:</extracomment>
+        <translation>Otwieraj na:</translation>
+    </message>
+    <message>
+        <source>the board</source>
+        <extracomment>In Polish: tablicy</extracomment>
+        <translation>tablicy</translation>
+    </message>
+    <message>
+        <source>the outline</source>
+        <extracomment>In Polish: konspekcie</extracomment>
+        <translation>konspekcie</translation>
+    </message>
+    <message>
+        <source>the view used last</source>
+        <extracomment>In Polish: ostatnio używanym</extracomment>
+        <translation>ostatnio używanym</translation>
+    </message>
+    <message>
+        <source>Book &gt; Plot Board and Book &gt; Outline open their own views; this is how the tab opens from Show on the Plot Board in the Navigator.</source>
+        <extracomment>The note under the view a tab opens on. In Polish: Książka &gt; Tablica fabuły i Książka &gt; Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy fabuły” w Nawigatorze.</extracomment>
+        <translation>Książka &gt; Tablica fabuły i Książka &gt; Konspekt otwierają swój widok; tak otwiera się karta z polecenia „Pokaż na tablicy fabuły” w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>Layout of the board:</source>
+        <extracomment>In Polish: Układ tablicy:</extracomment>
+        <translation>Układ tablicy:</translation>
+    </message>
+    <message>
+        <source>columns</source>
+        <extracomment>The parts side by side. In Polish: kolumny</extracomment>
+        <translation>kolumny</translation>
+    </message>
+    <message>
+        <source>grid</source>
+        <extracomment>The cards in rows. In Polish: siatka</extracomment>
+        <translation>siatka</translation>
+    </message>
+    <message>
+        <source>Size of the cards:</source>
+        <extracomment>In Polish: Rozmiar kart:</extracomment>
+        <translation>Rozmiar kart:</translation>
+    </message>
+    <message>
+        <source>small</source>
+        <extracomment>In Polish: małe</extracomment>
+        <translation>małe</translation>
+    </message>
+    <message>
+        <source>medium</source>
+        <extracomment>In Polish: średnie</extracomment>
+        <translation>średnie</translation>
+    </message>
+    <message>
+        <source>large</source>
+        <extracomment>In Polish: duże</extracomment>
+        <translation>duże</translation>
+    </message>
+    <message>
         <source>Scenes</source>
         <extracomment>A group of Settings &gt; Plot Board. In Polish: Sceny</extracomment>
         <translation>Sceny</translation>
+    </message>
+    <message>
+        <source>Show the scenes under the texts</source>
+        <extracomment>In Polish: Pokazuj sceny pod tekstami</extracomment>
+        <translation>Pokazuj sceny pod tekstami</translation>
+    </message>
+    <message>
+        <source>In the grid: in the drawers under the rows of the cards, open.</source>
+        <extracomment>The note under Show the scenes under the texts. In Polish: W siatce – w otwartych szufladach pod rzędami kart.</extracomment>
+        <translation>W siatce – w otwartych szufladach pod rzędami kart.</translation>
     </message>
     <message>
         <source>of the texts and in their plans</source>
@@ -10774,9 +10874,129 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <translation>Sceny tekstu to jego fragmenty między podziałami sceny (Wstaw &gt; Podział sceny): przeniesienie karty przenosi tekst sceny. Sceny w planie są tylko w pliku książki, w przerywanej ramce: nie mają tekstu, słów ani stanu, a Enter na takiej karcie obok scen tekstu wstawia w jej miejscu podział sceny z jej opisem i otwiera tam tekst.</translation>
     </message>
     <message>
-        <source>Colors of the Cards</source>
-        <extracomment>A group of Settings &gt; Plot Board. In Polish: Kolory kart</extracomment>
-        <translation>Kolory kart</translation>
+        <source>Cards</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Karty</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>number of words</source>
+        <extracomment>In Polish: liczbę słów</extracomment>
+        <translation>liczbę słów</translation>
+    </message>
+    <message>
+        <source>number of scenes</source>
+        <extracomment>In Polish: liczbę scen</extracomment>
+        <translation>liczbę scen</translation>
+    </message>
+    <message>
+        <source>The cards show:</source>
+        <extracomment>What the cards of the plot board show besides their titles. In Polish: Na kartach widać:</extracomment>
+        <translation>Na kartach widać:</translation>
+    </message>
+    <message>
+        <source>How many lines of the description a card holds depends on its size. The number of scenes is on the card of a text whose scenes are not shown under it; in the grid it opens and closes their drawer (also Space).</source>
+        <extracomment>In Polish: Ile linii opisu mieści karta, zależy od jej rozmiaru. Liczba scen jest na karcie tekstu, którego scen nie widać pod nim; w siatce otwiera i zamyka ich szufladę (także Spacja).</extracomment>
+        <translation>Ile linii opisu mieści karta, zależy od jej rozmiaru. Liczba scen jest na karcie tekstu, którego scen nie widać pod nim; w siatce otwiera i zamyka ich szufladę (także Spacja).</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Kolory</extracomment>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Color the cards:</source>
+        <extracomment>In Polish: Koloruj karty:</extracomment>
+        <translation>Koloruj karty:</translation>
+    </message>
+    <message>
+        <source>by state</source>
+        <extracomment>In Polish: według stanu</extracomment>
+        <translation>według stanu</translation>
+    </message>
+    <message>
+        <source>by point of view</source>
+        <extracomment>In Polish: według punktu widzenia</extracomment>
+        <translation>według punktu widzenia</translation>
+    </message>
+    <message>
+        <source>by the own color of the card</source>
+        <extracomment>In Polish: własnym kolorem karty</extracomment>
+        <translation>własnym kolorem karty</translation>
+    </message>
+    <message>
+        <source>without colors</source>
+        <extracomment>In Polish: bez kolorów</extracomment>
+        <translation>bez kolorów</translation>
+    </message>
+    <message>
+        <source>Color on the card:</source>
+        <extracomment>Where the color of a card is. In Polish: Kolor na karcie:</extracomment>
+        <translation>Kolor na karcie:</translation>
+    </message>
+    <message>
+        <source>a strip at the top</source>
+        <extracomment>In Polish: pasek u góry</extracomment>
+        <translation>pasek u góry</translation>
+    </message>
+    <message>
+        <source>the background of the card</source>
+        <extracomment>In Polish: tło karty</extracomment>
+        <translation>tło karty</translation>
+    </message>
+    <message>
+        <source>Background of the board:</source>
+        <extracomment>What is under the cards. In Polish: Tło tablicy:</extracomment>
+        <translation>Tło tablicy:</translation>
+    </message>
+    <message>
+        <source>the color of the theme</source>
+        <extracomment>In Polish: kolor motywu</extracomment>
+        <translation>kolor motywu</translation>
+    </message>
+    <message>
+        <source>cork</source>
+        <extracomment>In Polish: korek</extracomment>
+        <translation>korek</translation>
+    </message>
+    <message>
+        <source>own color</source>
+        <extracomment>In Polish: własny kolor</extracomment>
+        <translation>własny kolor</translation>
+    </message>
+    <message>
+        <source>Cork</source>
+        <extracomment>The color of the cork under the cards. In Polish: Korek</extracomment>
+        <translation>Korek</translation>
+    </message>
+    <message>
+        <source>Own Background</source>
+        <extracomment>The writer's own background of the board. In Polish: Własne tło</extracomment>
+        <translation>Własne tło</translation>
+    </message>
+    <message>
+        <source>Outline</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Konspekt</extracomment>
+        <translation>Konspekt</translation>
+    </message>
+    <message>
+        <source>number</source>
+        <extracomment>A column of the outline: the number of the text. In Polish: numer</extracomment>
+        <translation>numer</translation>
+    </message>
+    <message>
+        <source>words</source>
+        <extracomment>A column of the outline. In Polish: słowa</extracomment>
+        <translation>słowa</translation>
+    </message>
+    <message>
+        <source>Columns:</source>
+        <extracomment>The columns the outline shows. In Polish: Kolumny:</extracomment>
+        <translation>Kolumny:</translation>
+    </message>
+    <message>
+        <source>The title is always shown. The button Table Columns over the outline chooses the columns too.</source>
+        <extracomment>In Polish: Tytuł widać zawsze. Kolumny wybiera też przycisk „Kolumny” nad konspektem.</extracomment>
+        <translation>Tytuł widać zawsze. Kolumny wybiera też przycisk „Kolumny” nad konspektem.</translation>
     </message>
     <message>
         <source>The colors of the states of the texts, of the scenes in the plan and the own colors of the cards. Each theme has its own colors: these are the colors of the current theme.</source>
@@ -10857,6 +11077,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>none</source>
         <extracomment>In Polish: bez kolorów</extracomment>
         <translation>bez kolorów</translation>
+    </message>
+    <message>
+        <source>Table Columns</source>
+        <extracomment>The button over the outline with the columns it shows. In Polish: Kolumny</extracomment>
+        <translation>Kolumny</translation>
     </message>
     <message>
         <source>&amp;Undo</source>

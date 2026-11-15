@@ -41,9 +41,10 @@ class PlotOutlineModel;
 /// the outline, the same texts in a table (PlotOutlineModel)
 ///
 /// Over them: Board | Outline, Scenes (the scenes of the texts shown or not), the arrangement of
-/// the cards (Columns | Grid), their size, what colors them, and how many texts and words the
-/// book has; the choices are kept in the settings (PlotBoard::LAYOUT_SETTING...). Under them a
-/// bar says what was just done, with Undo.
+/// the cards (Columns | Grid), their size, what colors them, over the outline the columns it
+/// shows, and how many texts and words the book has; the choices are kept in the settings
+/// (PlotBoard::LAYOUT_SETTING...), with what the cards show and how they are colored (Settings
+/// > Plot Board). Under them a bar says what was just done, with Undo.
 ///
 /// The keys of the outline are those of the board where a table allows them: the arrows go
 /// from cell to cell, F2 or a letter edits a cell, Tab goes to the next one, Enter keeps it
@@ -202,6 +203,10 @@ private:
     [[nodiscard]] bool canPasteAfter(const QString& elementId) const;
     void updateTotals();
     void updateSwitches();
+    /// @brief The button over the outline with the menu of the columns it shows
+    [[nodiscard]] QToolButton* buildColumnsButton(QWidget* header);
+    /// @brief The columns of the outline as the settings say (PlotBoard::OUTLINE_SETTING)
+    void applyOutlineColumns();
     void onOutlineEdited(const QString& elementId, int column, const QString& value);
     void showMenu(const QString& elementId, const QPoint& globalPos);
     /// @brief Whether a key of the outline is the board's (false: the table's own key), and
@@ -232,6 +237,7 @@ private:
     QToolButton* m_mediumButton = nullptr;
     QToolButton* m_largeButton = nullptr;
     QComboBox* m_colorBy = nullptr;
+    QToolButton* m_outlineColumnsButton = nullptr;  ///< buildColumnsButton()
     QLabel* m_totals = nullptr;
     QMenu* m_menu = nullptr;
     QStringList m_povs;

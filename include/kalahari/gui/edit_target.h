@@ -17,7 +17,15 @@ class QObject;
 namespace kalahari::gui {
 
 /// @brief The commands of the Edit menu, in its order
-enum class EditCommand { Undo, Redo, Cut, Copy, Paste, Delete, SelectAll };
+enum class EditCommand {
+    Undo,      ///< Edit > Undo (Ctrl+Z)
+    Redo,      ///< Edit > Redo (Ctrl+Y)
+    Cut,       ///< Edit > Cut (Ctrl+X)
+    Copy,      ///< Edit > Copy (Ctrl+C)
+    Paste,     ///< Edit > Paste (Ctrl+V)
+    Delete,    ///< Edit > Delete (Delete)
+    SelectAll  ///< Edit > Select All (Ctrl+A)
+};
 
 /// @brief A view with commands of the Edit menu of its own: EditCoordinator asks it, as it
 /// asks a text field, whether a command is enabled and what it does

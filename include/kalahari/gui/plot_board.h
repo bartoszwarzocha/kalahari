@@ -90,6 +90,10 @@ public:
     static constexpr const char* VIEW_SETTING = "plotBoard.view";
     static constexpr const char* VIEW_BOARD = "board";      ///< The board of the cards
     static constexpr const char* VIEW_OUTLINE = "outline";  ///< The outline: a table
+    /// The view a new tab opens on when no view is asked for: VIEW_BOARD, VIEW_OUTLINE or
+    /// START_LAST (the one shown last, VIEW_SETTING)
+    static constexpr const char* START_VIEW_SETTING = "plotBoard.startView";
+    static constexpr const char* START_LAST = "last";  ///< The view shown last
     /// The layout of the cards: LAYOUT_COLUMNS (the parts side by side) or LAYOUT_GRID (the
     /// cards in rows under the titles of the parts)
     static constexpr const char* LAYOUT_SETTING = "plotBoard.layout";
@@ -116,11 +120,44 @@ public:
     static constexpr const char* COLOR_POV = "pov";        ///< By the point of view
     static constexpr const char* COLOR_OWN = "own";        ///< By the own color of the card
     static constexpr const char* COLOR_NONE = "none";      ///< Without colors
+    /// Where the color of a card is: COLOR_STRIP (a strip at its top) or COLOR_TINT (its
+    /// background)
+    static constexpr const char* COLOR_PLACE_SETTING = "plotBoard.colorPlace";
+    static constexpr const char* COLOR_STRIP = "strip";  ///< A strip at the top of the card
+    static constexpr const char* COLOR_TINT = "tint";    ///< The background of the card
+    /// The background of the board: BACKGROUND_THEME (the window's), BACKGROUND_CORK or
+    /// BACKGROUND_OWN (PlotColors::background)
+    static constexpr const char* BACKGROUND_SETTING = "plotBoard.background";
+    static constexpr const char* BACKGROUND_THEME = "theme";  ///< The color of the theme
+    static constexpr const char* BACKGROUND_CORK = "cork";    ///< Cork (PlotColors::cork)
+    static constexpr const char* BACKGROUND_OWN = "own";      ///< PlotColors::background
+    /// What the cards show besides their title: FIELDS_SETTING followed by the name of a
+    /// field (FIELD_DESCRIPTION...), true or false (fieldSetting())
+    static constexpr const char* FIELDS_SETTING = "plotBoard.fields.";
+    static constexpr const char* FIELD_DESCRIPTION = "description";  ///< The description
+    static constexpr const char* FIELD_POV = "pov";                  ///< The point of view
+    static constexpr const char* FIELD_PLACE = "place";              ///< The place
+    static constexpr const char* FIELD_TIME = "time";                ///< The time of the action
+    static constexpr const char* FIELD_WORDS = "words";              ///< The words
+    static constexpr const char* FIELD_STATUS = "status";            ///< The state
+    static constexpr const char* FIELD_SCENES = "scenes";            ///< "3 scenes"
+    /// The columns of the outline shown: OUTLINE_SETTING followed by the name of a column
+    /// (PlotOutlineModel::columnName()), true or false; the title is always shown
+    static constexpr const char* OUTLINE_SETTING = "plotBoard.outline.";
     /// @}
 
     /// @brief Which scenes there are (SCENES_VARIANT_SETTING): SCENES_BOTH, SCENES_TEXT or
     /// SCENES_PLAN
     [[nodiscard]] static QString scenesVariant();
+
+    /// @brief The view a new tab opens on (START_VIEW_SETTING): VIEW_BOARD or VIEW_OUTLINE
+    [[nodiscard]] static QString startView();
+
+    /// @brief The key of the setting of field @p field (FIELD_DESCRIPTION...) of the cards
+    [[nodiscard]] static std::string fieldSetting(const char* field);
+
+    /// @brief The key of the setting of the column named @p column of the outline
+    [[nodiscard]] static std::string outlineSetting(const char* column);
 
     /// @brief The texts of the main section of the open book in bands: each part with its
     /// texts, and the texts outside the parts between them, each text with its scenes; none
@@ -234,15 +271,22 @@ public:
 ///
 /// The theme files have them with the other colors of the editor (core::ThemeManager::
 /// editorColor()): the colors of the three states, and the six colors the writer gives a card
-/// or that the points of view take in turn.
+/// or that the points of view take in turn; and the two backgrounds of the board.
 struct PlotColors {
     QColor draft;     ///< A text in the draft state
     QColor revision;  ///< A text in revision
     QColor finished;  ///< A finished text
     QColor planned;   ///< A scene in the plan of its text
     QList<QColor> own;  ///< The writer's colors, in the order of ownNames()
+    QColor cork;        ///< The cork under the cards (PlotBoard::BACKGROUND_CORK)
+    QColor background;  ///< The writer's background of the board (PlotBoard::BACKGROUND_OWN)
 
-    /// @brief The keys of the colors in the theme files: "plotDraft"...
+    /// @brief The key of the cork in the theme files
+    static constexpr const char* CORK_KEY = "plotCork";
+    /// @brief The key of the writer's background of the board in the theme files
+    static constexpr const char* BACKGROUND_KEY = "plotBackground";
+
+    /// @brief The keys of the colors of the cards in the theme files: "plotDraft"...
     [[nodiscard]] static const std::vector<std::string>& keys();
 
     /// @brief The names of the writer's colors in the .klh file (core::ElementPlot::color):

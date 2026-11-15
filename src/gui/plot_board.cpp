@@ -262,6 +262,23 @@ QString PlotBoard::scenesVariant() {
     return QString::fromLatin1(SCENES_BOTH);
 }
 
+QString PlotBoard::startView() {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto start = settings.get<std::string>(START_VIEW_SETTING, START_LAST);
+    const auto view = start == VIEW_BOARD || start == VIEW_OUTLINE
+                          ? start
+                          : settings.get<std::string>(VIEW_SETTING, VIEW_BOARD);
+    return QString::fromLatin1(view == VIEW_OUTLINE ? VIEW_OUTLINE : VIEW_BOARD);
+}
+
+std::string PlotBoard::fieldSetting(const char* field) {
+    return std::string(FIELDS_SETTING) + field;
+}
+
+std::string PlotBoard::outlineSetting(const char* column) {
+    return std::string(OUTLINE_SETTING) + column;
+}
+
 QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book,
                                    const QHash<QString, QString>& unsaved,
                                    const QString& variant) {
@@ -612,6 +629,8 @@ PlotColors PlotColors::current() {
     for (std::size_t i = STATUS_COLORS; i < COLOR_KEYS.size(); ++i) {
         colors.own << themes.editorColor(COLOR_KEYS.at(i), fallback);
     }
+    colors.cork = themes.editorColor(CORK_KEY, palette.color(QPalette::Window));
+    colors.background = themes.editorColor(BACKGROUND_KEY, palette.color(QPalette::Window));
     return colors;
 }
 

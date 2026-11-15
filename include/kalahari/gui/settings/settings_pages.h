@@ -431,14 +431,44 @@ private:
     void addCardSettings();
 };
 
-/// @brief Plot Board: which scenes the plot board and the outline show (those of the texts,
-/// those in their plans, or both: PlotBoard::SCENES_VARIANT_SETTING) and the colors of the
-/// cards in the theme
+/// @brief Plot Board: the view a new tab opens on, the layout and the size of the cards, the
+/// scenes shown and which scenes there are (those of the texts, those in their plans, or
+/// both: PlotBoard::SCENES_VARIANT_SETTING); what the cards show; what colors them, as a strip
+/// or their background, the background of the board and the colors of the theme; the columns
+/// of the outline
 class PlotBoardPage : public SettingsPage {
     Q_OBJECT
 public:
     /// @brief The page with its fields bound to their settings
     explicit PlotBoardPage(QWidget* parent = nullptr);
+
+private:
+    /// @brief A radio button of a row: its text and the value of the setting it chooses
+    struct Choice {
+        QString text;              ///< What it says
+        const char* value = "";    ///< The value of the setting
+        const char* name = "";     ///< The end of its object name
+    };
+
+    /// @brief A row @p label of radio buttons @p choices bound to setting @p key; a value the
+    /// program does not know shows as the first choice
+    void addChoices(QFormLayout* form, const QString& label, const char* key,
+                    const std::vector<Choice>& choices);
+
+    /// @brief A row @p label of check boxes, each with its text and the key of its setting
+    void addChecks(QFormLayout* form, const QString& label,
+                   const std::vector<std::pair<QString, std::string>>& checks);
+
+    /// @brief View: the view a tab opens on, the layout and the size of the cards
+    void addViewGroup();
+    /// @brief Scenes: shown under the texts or not, and which scenes there are
+    void addScenesGroup();
+    /// @brief Cards: what they show besides their titles
+    void addCardsGroup();
+    /// @brief Colors: what colors the cards and where, the background, the theme's colors
+    void addColorsGroup();
+    /// @brief Outline: its columns besides the title
+    void addOutlineGroup();
 };
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,

@@ -148,14 +148,32 @@ in Settings > Plot Board (`plotBoard.scenes`).
   leave a field, and filled again when the book changes elsewhere. A scene is changed on the
   board and in the outline.
 
-### 3b – Settings > Plot Board
+### 3b – Settings > Plot Board (done)
 
-The page came with 2c, with the scenes and the colors. To add, as in the mockup: the view the
-board opens on, the layout and the size of the cards, the scenes shown; the front and back
-sections shown on the board (a preview only); the fields shown on the cards; what colors the
-cards, as a strip or a tint, and the background of the board; the columns of the outline; the
-numbers in the titles ("Chapter 3") after a move: offered on the bar under the board (the
-default), at once, or never, only the number changing.
+The page came with 2c, with the scenes and the colors; now, as in the mockup, in five groups:
+
+- View: the view a new tab opens on (`plotBoard.startView`: the board, the outline or the one
+  used last, the default; Book > Plot Board and Book > Outline open their own), the layout and
+  the size of the cards.
+- Scenes: shown under the texts or not, and which scenes there are (2c).
+- Cards: what they show besides their titles (`plotBoard.fields.*`: description, point of
+  view, place, time of the action (off by default), words, state, the number of scenes; the
+  view had `PlotBoardView::Fields` since stage 1).
+- Colors: what colors the cards, as a strip at their top (the default) or their background
+  (`plotBoard.colorPlace`), the background of the board (`plotBoard.background`: the theme's,
+  cork or the writer's own; theme colors `plotCork` and `plotBackground`), and the colors of
+  the theme.
+- Outline: its columns besides the title (`plotBoard.outline.*`); the button "Table Columns"
+  over the outline chooses them too. Without the description the last column takes the room.
+
+`PlotBoardPanel` keeps its switches and the look from the settings in
+`plot_board_panel_header.cpp`.
+
+### 3c – the front and back sections, the numbers in the titles
+
+As in the mockup: the front and back sections shown on the board (a preview only, Settings >
+Plot Board > View); the numbers in the titles ("Chapter 3") after a move: offered on the bar
+under the board (the default), at once, or never, only the number changing.
 
 ## Every stage
 

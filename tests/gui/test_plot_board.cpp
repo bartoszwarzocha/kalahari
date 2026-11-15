@@ -31,18 +31,27 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QAbstractItemModel>
 #include <QAction>
 #include <QApplication>
-#include <QAbstractItemModel>
+#include <QBrush>
+#include <QColor>
 #include <QComboBox>
 #include <QCompleter>
+#include <QCoreApplication>
 #include <QFocusEvent>
 #include <QFont>
+#include <QHeaderView>
+#include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMenu>
+#include <QPalette>
+#include <QPixmap>
 #include <QPlainTextEdit>
+#include <QPoint>
 #include <QPushButton>
+#include <QRect>
 #include <QTableView>
 #include <QTimer>
 #include <QToolButton>
@@ -1904,5 +1913,171 @@ TEST_CASE("Plot board: the plot of a text in the Properties panel", "[gui][plotb
         CHECK(box->elementId().isEmpty());
         properties.showChapterProperties(s.storm);
         CHECK_FALSE(box->isHidden());
+    }
+}
+
+namespace {
+
+/// The color of the pixel of the board at @p pos of its viewport
+QColor pixelOf(const gui::PlotBoardView* board, const QPoint& pos) {
+    return board->viewport()->grab().toImage().pixelColor(pos);
+}
+
+/// Show the window of @p scenes large enough for the cards, to see their pixels
+void showBoard(StormBoard& scenes) {
+    constexpr int WIDTH = 1000;
+    constexpr int HEIGHT = 700;
+    scenes.window.window.setCentralWidget(scenes.window.tabs);
+    scenes.window.window.resize(WIDTH, HEIGHT);
+    scenes.window.window.show();
+    QCoreApplication::processEvents();
+    REQUIRE(scenes.board->setCurrentCard(scenes.storm));
+    REQUIRE(scenes.board->viewport()->rect().contains(scenes.board->cardRect(scenes.storm)));
+}
+
+}  // namespace
+
+TEST_CASE("Plot board: the look of the board and the outline from Settings > Plot Board",
+          "[gui][plotboard]") {
+    const KeptSetting colorBy{PlotBoard::COLOR_SETTING};
+    const KeptSetting colorPlace{PlotBoard::COLOR_PLACE_SETTING};
+    const KeptSetting background{PlotBoard::BACKGROUND_SETTING};
+    const KeptSetting startView{PlotBoard::START_VIEW_SETTING};
+    const std::string descriptionKey = PlotBoard::fieldSetting(PlotBoard::FIELD_DESCRIPTION);
+    const std::string timeKey = PlotBoard::fieldSetting(PlotBoard::FIELD_TIME);
+    const std::string wordsKey = PlotBoard::outlineSetting(
+        gui::PlotOutlineModel::columnName(gui::PlotOutlineModel::WORDS_COLUMN));
+    const KeptSwitch description{descriptionKey.c_str()};
+    const KeptSwitch time{timeKey.c_str()};
+    const std::string descriptionColumnKey = PlotBoard::outlineSetting(
+        gui::PlotOutlineModel::columnName(gui::PlotOutlineModel::DESCRIPTION_COLUMN));
+    const KeptSwitch words{wordsKey.c_str()};
+    const KeptSwitch descriptionColumn{descriptionColumnKey.c_str()};
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<std::string>(PlotBoard::COLOR_SETTING, PlotBoard::COLOR_STATUS);
+    settings.set<std::string>(PlotBoard::COLOR_PLACE_SETTING, PlotBoard::COLOR_STRIP);
+    settings.set<std::string>(PlotBoard::BACKGROUND_SETTING, PlotBoard::BACKGROUND_THEME);
+    settings.set<bool>(descriptionKey, true);
+    settings.set<bool>(timeKey, false);
+    settings.set<bool>(wordsKey, true);
+    settings.set<bool>(descriptionColumnKey, true);
+    StormBoard scenes;
+    gui::PlotBoardPanel* panel = scenes.panel;
+    const gui::PlotBoardView* board = scenes.board;
+    QCoreApplication::processEvents();
+
+    SECTION("the fields of the cards") {
+        CHECK(board->fields().description);
+        CHECK_FALSE(board->fields().time);
+        const int tall = board->cardRect(scenes.storm).height();
+        settings.set<bool>(descriptionKey, false);
+        settings.set<bool>(timeKey, true);
+        QCoreApplication::processEvents();
+        CHECK_FALSE(board->fields().description);
+        CHECK(board->fields().time);
+        // Without the lines of the description the cards are lower
+        CHECK(board->cardRect(scenes.storm).height() < tall);
+    }
+
+    SECTION("the color of a card in a strip at its top or as its background") {
+        showBoard(scenes);
+        const QRect rect = board->cardRect(scenes.storm);
+        REQUIRE(rect.isValid());
+        const QColor base = board->palette().color(QPalette::Base);
+        const QColor draft = gui::PlotColors::current().ofStatus(QStringLiteral("draft"));
+        const QPoint strip(rect.center().x(), rect.top() + 2);
+        const QPoint inside(rect.right() - 4, rect.center().y());
+        CHECK_FALSE(board->tints());
+        CHECK(pixelOf(board, strip) == draft);
+        CHECK(pixelOf(board, inside) == base);
+
+        settings.set<std::string>(PlotBoard::COLOR_PLACE_SETTING, PlotBoard::COLOR_TINT);
+        QCoreApplication::processEvents();
+        CHECK(board->tints());
+        const QColor tinted = pixelOf(board, inside);
+        CHECK(tinted != base);
+        CHECK(pixelOf(board, strip) == tinted);
+    }
+
+    SECTION("the background of the board: the theme's, cork or the writer's own") {
+        showBoard(scenes);
+        const QColor window = board->palette().color(QPalette::Window);
+        CHECK(board->background() == gui::PlotBoardView::Background::Theme);
+        CHECK(board->viewport()->palette().color(QPalette::Window) == window);
+
+        settings.set<std::string>(PlotBoard::BACKGROUND_SETTING, PlotBoard::BACKGROUND_CORK);
+        QCoreApplication::processEvents();
+        CHECK(board->background() == gui::PlotBoardView::Background::Cork);
+        CHECK_FALSE(board->viewport()->palette().brush(QPalette::Window).texture().isNull());
+
+        settings.set<std::string>(PlotBoard::BACKGROUND_SETTING, PlotBoard::BACKGROUND_OWN);
+        QCoreApplication::processEvents();
+        CHECK(board->background() == gui::PlotBoardView::Background::Own);
+        CHECK(board->viewport()->palette().color(QPalette::Window) ==
+              gui::PlotColors::current().background);
+        // Under the cards, beyond the last of them
+        CHECK(pixelOf(board, QPoint(board->viewport()->width() - 2,
+                                    board->viewport()->height() - 2)) ==
+              gui::PlotColors::current().background);
+
+        settings.set<std::string>(PlotBoard::BACKGROUND_SETTING, PlotBoard::BACKGROUND_THEME);
+        QCoreApplication::processEvents();
+        CHECK(board->viewport()->palette().color(QPalette::Window) == window);
+    }
+
+    SECTION("the columns of the outline, also from the button over it") {
+        using Model = gui::PlotOutlineModel;
+        auto* columns = panel->findChild<QToolButton*>(QStringLiteral("plotBoardOutlineColumns"));
+        REQUIRE(columns != nullptr);
+        CHECK(columns->isHidden());
+        panel->showView(QString::fromLatin1(PlotBoard::VIEW_OUTLINE));
+        CHECK_FALSE(columns->isHidden());
+        QTableView* outline = panel->outline();
+        REQUIRE(panel->setCurrentCard(scenes.storm));
+        const int row = outline->currentIndex().row();
+        outline->setCurrentIndex(panel->outlineModel()->index(row, Model::WORDS_COLUMN));
+        CHECK_FALSE(outline->isColumnHidden(Model::WORDS_COLUMN));
+
+        settings.set<bool>(wordsKey, false);
+        QCoreApplication::processEvents();
+        CHECK(outline->isColumnHidden(Model::WORDS_COLUMN));
+        CHECK_FALSE(outline->isColumnHidden(Model::TITLE_COLUMN));
+        // The cell chosen was in the column hidden: the title of its row
+        CHECK(outline->currentIndex().column() == Model::TITLE_COLUMN);
+        CHECK(outline->currentIndex().row() == row);
+
+        // The menu of the button has the columns but the title, as the settings say
+        const QList<QAction*> actions = columns->menu()->actions();
+        CHECK(actions.size() == Model::COLUMN_COUNT - 1);
+        const auto wordsAction = std::ranges::find_if(actions, [](const QAction* action) {
+            return action->data().toInt() == Model::WORDS_COLUMN;
+        });
+        REQUIRE(wordsAction != actions.cend());
+        CHECK_FALSE((*wordsAction)->isChecked());
+        (*wordsAction)->trigger();
+        QCoreApplication::processEvents();
+        CHECK(settings.get<bool>(wordsKey));
+        CHECK_FALSE(outline->isColumnHidden(Model::WORDS_COLUMN));
+
+        // The description takes the room left; without it the last column
+        CHECK_FALSE(outline->horizontalHeader()->stretchLastSection());
+        settings.set<bool>(descriptionColumnKey, false);
+        QCoreApplication::processEvents();
+        CHECK(outline->isColumnHidden(Model::DESCRIPTION_COLUMN));
+        CHECK(outline->horizontalHeader()->stretchLastSection());
+    }
+
+    SECTION("the view a new tab opens on") {
+        settings.set<std::string>(PlotBoard::VIEW_SETTING, PlotBoard::VIEW_OUTLINE);
+        settings.set<std::string>(PlotBoard::START_VIEW_SETTING, PlotBoard::START_LAST);
+        CHECK(PlotBoard::startView() == QLatin1String(PlotBoard::VIEW_OUTLINE));
+        const gui::PlotBoardPanel last;
+        CHECK(last.view() == QLatin1String(PlotBoard::VIEW_OUTLINE));
+        settings.set<std::string>(PlotBoard::START_VIEW_SETTING, PlotBoard::VIEW_BOARD);
+        const gui::PlotBoardPanel onBoard;
+        CHECK(onBoard.view() == QLatin1String(PlotBoard::VIEW_BOARD));
+        settings.set<std::string>(PlotBoard::VIEW_SETTING, PlotBoard::VIEW_BOARD);
+        settings.set<std::string>(PlotBoard::START_VIEW_SETTING, PlotBoard::VIEW_OUTLINE);
+        CHECK(PlotBoard::startView() == QLatin1String(PlotBoard::VIEW_OUTLINE));
     }
 }
