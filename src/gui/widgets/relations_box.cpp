@@ -29,6 +29,8 @@
 #include <QMenu>
 #include <QPalette>
 #include <QSet>
+#include <QString>
+#include <QStringList>
 #include <QToolButton>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -50,29 +52,6 @@ constexpr int GROUP_INDENT = 12;
 constexpr int NAME_COLUMN = 0;
 constexpr int CARD_COLUMN = 1;
 constexpr int NOTE_COLUMN = 2;
-
-/// What a key does in the list of the relations
-enum class RelationKey {
-    None,    ///< Nothing of the list
-    Add,     ///< Insert: a new relation
-    Remove,  ///< Delete: the relation goes
-    Change,  ///< F2: the window Relation for it
-    Show     ///< Enter: the other card
-};
-
-/// What @p key does in the list
-RelationKey keyOf(const QKeyEvent* key) {
-    if (card::isListKey(key, Qt::Key_Insert)) {
-        return RelationKey::Add;
-    }
-    if (card::isListKey(key, Qt::Key_Delete)) {
-        return RelationKey::Remove;
-    }
-    if (card::isListKey(key, Qt::Key_F2)) {
-        return RelationKey::Change;
-    }
-    return card::isOpenKey(key) ? RelationKey::Show : RelationKey::None;
-}
 
 /// The items of @p list in its order, each group before its rows
 QList<QTreeWidgetItem*> itemsOf(const QTreeWidget* list) {
@@ -199,8 +178,7 @@ void RelationsBox::refresh() {
     updateButtons();
 }
 
-void RelationsBox::addGroups(const core::CardRelations& relations) {
-    // The groups in the order of the kinds of the Workshop
+QStringList RelationsBox::groupKinds(const core::CardRelations& relations) const {
     QStringList kinds;
     if (const core::BookProject* project = m_book.project()) {
         for (const core::KindRef& kind :
@@ -214,7 +192,12 @@ void RelationsBox::addGroups(const core::CardRelations& relations) {
             kinds << relations.kindOf(*other);
         }
     }
-    for (const QString& kind : kinds) {
+    return kinds;
+}
+
+void RelationsBox::addGroups(const core::CardRelations& relations) {
+    // The groups in the order of the kinds of the Workshop
+    for (const QString& kind : groupKinds(relations)) {
         QTreeWidgetItem* group = nullptr;
         for (int i = 0; i < m_shown.size(); ++i) {
             const core::ProjectElement* other = m_book.findElement(m_shown.at(i).otherId);
@@ -378,37 +361,35 @@ void RelationsBox::updateButtons() {
     m_removeButton->setEnabled(writable && currentRelation().has_value());
 }
 
+std::function<void()> RelationsBox::keyAction(const QKeyEvent* key) {
+    if (card::isListKey(key, Qt::Key_Insert)) {
+        return [this]() { addRelation(); };
+    }
+    if (card::isListKey(key, Qt::Key_Delete)) {
+        return [this]() { removeRelation(); };
+    }
+    if (card::isListKey(key, Qt::Key_F2)) {
+        return [this]() { changeRelation(); };
+    }
+    const std::optional<core::ShownRelation> relation = currentRelation();
+    if (card::isOpenKey(key) && relation.has_value()) {
+        return [this, otherId = relation->otherId]() { emit requestShowCard(otherId); };
+    }
+    return {};
+}
+
 bool RelationsBox::eventFilter(QObject* watched, QEvent* event) {
-    const bool key =
-        event->type() == QEvent::KeyPress || event->type() == QEvent::ShortcutOverride;
-    if (watched != m_list || !key) {
+    if (watched != m_list || !card::isKeyEvent(event)) {
         return QGroupBox::eventFilter(watched, event);
     }
-    const RelationKey action = keyOf(static_cast<const QKeyEvent*>(event));
-    if (action == RelationKey::None ||
-        (action == RelationKey::Show && !currentRelation().has_value())) {
+    const std::function<void()> action = keyAction(static_cast<const QKeyEvent*>(event));
+    if (!action) {
         return QGroupBox::eventFilter(watched, event);
     }
     // The same keys of the window's commands wait while the list has the keys
     event->accept();
-    if (event->type() != QEvent::KeyPress) {
-        return true;
-    }
-    switch (action) {
-    case RelationKey::Add:
-        addRelation();
-        break;
-    case RelationKey::Remove:
-        removeRelation();
-        break;
-    case RelationKey::Change:
-        changeRelation();
-        break;
-    case RelationKey::Show:
-        emit requestShowCard(currentRelation()->otherId);
-        break;
-    case RelationKey::None:
-        break;
+    if (event->type() == QEvent::KeyPress) {
+        action();
     }
     return true;
 }

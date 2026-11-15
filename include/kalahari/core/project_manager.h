@@ -1235,6 +1235,12 @@ private:
     bool changeDetails(const char* what, const QString& elementId,
                        const std::function<void(ProjectElement&)>& change);
 
+    /// @brief The links of @p links that element @p elementId keeps (setLinks()): only to what
+    /// the project has, not to the element itself, each once (the first); between two cards
+    /// each relation once
+    [[nodiscard]] QList<ElementLink> linksToKeep(const QString& elementId,
+                                                 const QList<ElementLink>& links) const;
+
     /// @brief Change the open project with @p change and save the .klh file; @p what names the
     /// change in the log
     /// @return false when no project is open, the book is open read-only or the file cannot be

@@ -93,7 +93,12 @@ public:
                                   QObject* parent = nullptr);
 
     /// @brief Destructor
-    ~NavigatorCoordinator() override = default;
+    ~NavigatorCoordinator() override;
+
+    NavigatorCoordinator(const NavigatorCoordinator&) = delete;
+    NavigatorCoordinator& operator=(const NavigatorCoordinator&) = delete;
+    NavigatorCoordinator(NavigatorCoordinator&&) = delete;
+    NavigatorCoordinator& operator=(NavigatorCoordinator&&) = delete;
 
     /// @brief Get the current element ID being edited
     [[nodiscard]] QString currentElementId() const { return m_currentElementId; }
@@ -136,6 +141,11 @@ public:
 
     /// @brief Refresh navigator with the open project, keeping its expanded items
     void refreshNavigator();
+
+    /// @brief The Navigator built again when a card stands under another card in its tree
+    /// now, or no longer, or the setting of the trees changed (NavigatorPanel::cardTreesChanged()),
+    /// keeping its current item
+    void refreshCardTrees();
 
     /// @brief Close the editor tabs of @p element and of the elements inside it
     void closeTabsOf(const core::ProjectElement& element);
@@ -518,6 +528,7 @@ private:
     /// inserts it there
     QString m_lastChapterId;
 
+    int m_settingsListener = 0;    ///< core::SettingsManager::subscribe() id
     core::ProjectManager& m_book;  ///< The book of its window
     CommandRegistry& m_commands;  ///< The commands of its window
 };

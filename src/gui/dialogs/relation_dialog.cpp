@@ -90,6 +90,16 @@ QString shownOn(const QString& card, const QString& name, const QString& other) 
              other.toHtmlEscaped());
 }
 
+/// The new card of @p choice in the Workshop of @p book, of the kind and with the title it
+/// says; empty when it was not added
+QString addCard(core::ProjectManager& book, const RelationChoice& choice) {
+    const std::optional<core::KindReference> reference = core::KindReference::parse(choice.newKind);
+    const core::KindRef kind =
+        reference ? book.bookTypes().findKind(reference->packageId, reference->kindId)
+                  : core::KindRef();
+    return kind ? book.addElement(kind, choice.newTitle, core::BookPlace::Workshop) : QString();
+}
+
 }  // namespace
 
 RelationDialog::RelationDialog(const core::ProjectManager& book, const QString& cardId,
@@ -509,13 +519,7 @@ QString saveRelation(core::ProjectManager& book, const QString& cardId,
                      const std::optional<core::ShownRelation>& edited, QWidget* parent) {
     QString otherId = choice.otherId;
     if (otherId.isEmpty()) {
-        const std::optional<core::KindReference> reference =
-            core::KindReference::parse(choice.newKind);
-        const core::KindRef kind =
-            reference ? book.bookTypes().findKind(reference->packageId, reference->kindId)
-                      : core::KindRef();
-        otherId = kind ? book.addElement(kind, choice.newTitle, core::BookPlace::Workshop)
-                       : QString();
+        otherId = addCard(book, choice);
         if (otherId.isEmpty()) {
             //: In Polish: Nie dodano karty
             MessageDialog::warning(parent, RelationDialog::tr("Card Not Added"),

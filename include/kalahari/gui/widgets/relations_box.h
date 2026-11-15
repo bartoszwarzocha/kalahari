@@ -12,10 +12,12 @@
 #include <QGroupBox>
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 #include <optional>
 
+class QKeyEvent;
 class QLabel;
 class QMenu;
 class QToolButton;
@@ -103,6 +105,14 @@ private:
 
     /// @brief Rows of the relations in groups of the kinds of the other cards
     void addGroups(const core::CardRelations& relations);
+
+    /// @brief The kinds of the groups: those of the Workshop in its order, then those of the
+    /// other cards the program does not have
+    [[nodiscard]] QStringList groupKinds(const core::CardRelations& relations) const;
+
+    /// @brief What @p key does in the list: Insert adds a relation, Delete takes it out, F2
+    /// changes it, Enter shows the other card; nothing for another key
+    [[nodiscard]] std::function<void()> keyAction(const QKeyEvent* key);
 
     /// @brief Open the window Relation for @p edited, or for a new relation
     void openRelation(const std::optional<core::ShownRelation>& edited);

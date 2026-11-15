@@ -10,6 +10,9 @@
 #include <QGroupBox>
 #include <QString>
 
+#include <functional>
+
+class QKeyEvent;
 class QLabel;
 class QMenu;
 class QToolButton;
@@ -94,6 +97,10 @@ private:
 
     /// @brief Make the row of chapter @p chapterId the current one
     void selectChapter(const QString& chapterId);
+
+    /// @brief What @p key does in the list: Insert and F2 open Link, Delete takes the chapter
+    /// out, Enter opens it; nothing for another key
+    [[nodiscard]] std::function<void()> keyAction(const QKeyEvent* key);
 
     QString m_cardId;
     QTreeWidget* m_list = nullptr;

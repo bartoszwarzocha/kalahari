@@ -33,6 +33,30 @@ constexpr int NOTE_ICON_SIZE = 16;      ///< Size of the icon of a note
 constexpr int NOTE_SPACING = 8;         ///< Between the icon of a note and its sentence
 constexpr int COPIED_NOTICE_MS = 2000;  ///< How long Copy says "Copied"
 
+/// Key @p key typed in a list goes to its filter @p filter: Backspace, a letter, a digit or a
+/// sign, also with Shift; whether it went there
+bool typeInFilter(const QKeyEvent& key, Qt::KeyboardModifiers modifiers, QLineEdit* filter) {
+    if (key.key() == Qt::Key_Backspace && modifiers == Qt::NoModifier) {
+        filter->backspace();
+        return true;
+    }
+    const QString text = key.text();
+    const bool letter = !text.isEmpty() && text.at(0).isPrint() && !text.at(0).isSpace() &&
+                        (modifiers & ~Qt::ShiftModifier) == Qt::NoModifier;
+    if (letter) {
+        filter->insert(text);
+    }
+    return letter;
+}
+
+/// Whether @p key, with @p modifiers, chooses in a list: the arrows up and down, Page Up and
+/// Page Down, without other keys
+bool choosesInList(const QKeyEvent& key, Qt::KeyboardModifiers modifiers) {
+    const int code = key.key();
+    return modifiers == Qt::NoModifier && (code == Qt::Key_Down || code == Qt::Key_Up ||
+                                           code == Qt::Key_PageDown || code == Qt::Key_PageUp);
+}
+
 } // anonymous namespace
 
 void RowList::setRows(int rows) {
@@ -63,21 +87,9 @@ bool takeFilterKeys(const QObject* watched, const QEvent* event, QLineEdit* filt
     const auto* key = static_cast<const QKeyEvent*>(event);
     const Qt::KeyboardModifiers modifiers = key->modifiers() & ~Qt::KeypadModifier;
     if (watched == list) {
-        if (key->key() == Qt::Key_Backspace && modifiers == Qt::NoModifier) {
-            filter->backspace();
-            return true;
-        }
-        const QString text = key->text();
-        const bool letter = !text.isEmpty() && text.at(0).isPrint() && !text.at(0).isSpace() &&
-                            (modifiers & ~Qt::ShiftModifier) == Qt::NoModifier;
-        if (letter) {
-            filter->insert(text);
-        }
-        return letter;
+        return typeInFilter(*key, modifiers, filter);
     }
-    const bool choosing = key->key() == Qt::Key_Down || key->key() == Qt::Key_Up ||
-                          key->key() == Qt::Key_PageDown || key->key() == Qt::Key_PageUp;
-    if (watched != filter || modifiers != Qt::NoModifier || !choosing) {
+    if (watched != filter || !choosesInList(*key, modifiers)) {
         return false;
     }
     list->setFocus(Qt::OtherFocusReason);

@@ -36,6 +36,7 @@
 #include <functional>
 #include <iterator>
 #include <numeric>
+#include <utility>
 
 namespace kalahari {
 namespace gui {
@@ -367,8 +368,9 @@ void LinkDialog::fillTargets(const QString& material) {
         return;
     }
     const core::ProjectElement* element = project->findElement(material);
-    const QStringList links = element ? element->linkTargets() : QStringList();
+    QStringList links;
     if (element != nullptr) {
+        links = element->linkTargets();
         for (const core::ElementLink& each : element->links) {
             m_links.insert(each.to, each);
         }
@@ -390,16 +392,7 @@ void LinkDialog::fillTargets(const QString& material) {
                     ? checkItem(m_book, bookItem, section, links.contains(section))
                     : groupItem(bookItem, linkTitle(m_book, section),
                                 linkIcon(m_book, section, core::IconContext::TreeView));
-            const std::function<void(QTreeWidgetItem*, const QList<core::ProjectElement>&)> add =
-                [&](QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements) {
-                    for (const core::ProjectElement& each : elements) {
-                        QTreeWidgetItem* item =
-                            checkItem(m_book, parent, each.id, links.contains(each.id));
-                        add(item, each.elements);
-                        item->setExpanded(true);
-                    }
-                };
-            add(sectionItem, project->elementsIn(place, index));
+            addElementTargets(sectionItem, project->elementsIn(place, index), links);
             sectionItem->setExpanded(true);
         }
         bookItem->setExpanded(true);
@@ -419,6 +412,25 @@ void LinkDialog::fillTargets(const QString& material) {
         }
     }
     workshopItem->setExpanded(true);
+}
+
+void LinkDialog::addElementTargets(QTreeWidgetItem* parent,
+                                   const QList<core::ProjectElement>& elements,
+                                   const QStringList& links) {
+    QList<std::pair<QTreeWidgetItem*, const QList<core::ProjectElement>*>> waiting{
+        {parent, &elements}};
+    QList<QTreeWidgetItem*> added;
+    while (!waiting.isEmpty()) {
+        const auto [at, list] = waiting.takeFirst();
+        for (const core::ProjectElement& each : *list) {
+            QTreeWidgetItem* item = checkItem(m_book, at, each.id, links.contains(each.id));
+            waiting.append({item, &each.elements});
+            added << item;
+        }
+    }
+    for (QTreeWidgetItem* item : added) {
+        item->setExpanded(true);
+    }
 }
 
 void LinkDialog::fillMaterials(const QString& link) {

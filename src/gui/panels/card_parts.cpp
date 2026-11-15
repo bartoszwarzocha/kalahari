@@ -17,6 +17,7 @@
 #include <QAbstractButton>
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QEvent>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -108,6 +109,10 @@ void cutOffChildren(QWidget* widget) {
     for (const QObject* child : widget->findChildren<QObject*>()) {
         child->disconnect(widget);
     }
+}
+
+bool isKeyEvent(const QEvent* event) {
+    return event->type() == QEvent::KeyPress || event->type() == QEvent::ShortcutOverride;
 }
 
 bool isListKey(const QKeyEvent* key, int which) {

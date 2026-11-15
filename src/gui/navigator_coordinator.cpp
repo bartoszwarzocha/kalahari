@@ -28,6 +28,7 @@
 #include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/material_source.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/section_words.h"
@@ -50,11 +51,15 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QImage>
+#include <QMetaObject>
+#include <QPointer>
 #include <QUrl>
 #include <algorithm>
 #include <chrono>
 #include <optional>
+#include <string>
 #include <utility>
 
 namespace kalahari {
@@ -178,8 +183,24 @@ NavigatorCoordinator::NavigatorCoordinator(core::ProjectManager& book, CommandRe
                 });
     }
 
+    // A card under another card in its tree: the relations of the cards, or the setting of the
+    // trees, which may change on another thread
+    connect(&m_book, &core::ProjectManager::linksChanged, this,
+            &NavigatorCoordinator::refreshCardTrees);
+    m_settingsListener = core::SettingsManager::getInstance().subscribe(
+        [self = QPointer<NavigatorCoordinator>(this)](const std::string& key) {
+            if (self != nullptr && key == NavigatorPanel::CARDS_TREE_SETTING) {
+                QMetaObject::invokeMethod(self, &NavigatorCoordinator::refreshCardTrees,
+                                          Qt::QueuedConnection);
+            }
+        });
+
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorCoordinator created");
+}
+
+NavigatorCoordinator::~NavigatorCoordinator() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
 
 bool NavigatorCoordinator::isChapterDirty(const QString& elementId) const {
@@ -259,6 +280,18 @@ void NavigatorCoordinator::refreshNavigator() {
         m_navigatorPanel->setUnassignedFiles(pm.unassignedFiles(), pm.getProjectPath());
     }
     emit refreshNavigatorRequested();
+}
+
+void NavigatorCoordinator::refreshCardTrees() {
+    if (m_navigatorPanel == nullptr || !m_navigatorPanel->cardTreesChanged()) {
+        return;
+    }
+    // The cards that stand elsewhere show there, and the current item stays
+    const QHash<QString, QString> before = m_navigatorPanel->cardTrees();
+    const QString current = m_navigatorPanel->currentElementId();
+    refreshNavigator();
+    m_navigatorPanel->showMovedCards(before);
+    m_navigatorPanel->restoreCurrentElement(current);
 }
 
 void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
@@ -442,9 +475,9 @@ CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
     connect(page, &CardPage::requestSettings, this,
             &NavigatorCoordinator::cardSettingsRequested);
     // The other card of a relation: its full card; a chapter of the card in its editor
-    const auto open = [this](const QString& elementId) {
-        if (const core::ProjectElement* element = m_book.findElement(elementId)) {
-            onElementSelected(elementId, element->title);
+    const auto open = [this](const QString& otherId) {
+        if (const core::ProjectElement* element = m_book.findElement(otherId)) {
+            onElementSelected(otherId, element->title);
         }
     };
     connect(page, &CardPage::requestOpenCard, this, open);

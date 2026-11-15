@@ -12,11 +12,15 @@
 #include "kalahari/core/card_data.h"
 #include "kalahari/core/project_manager.h"
 
+#include <QHash>
 #include <QList>
+#include <QSet>
 #include <QString>
+#include <QStringList>
 
 #include <algorithm>
 #include <optional>
+#include <ranges>
 
 namespace kalahari::core {
 
@@ -28,16 +32,16 @@ QList<const ProjectElement*> cardsOf(const ProjectManager& book,
                                      const QList<ProjectElement>& elements) {
     QList<const ProjectElement*> cards;
     QList<const ProjectElement*> waiting;  // the next one last
-    for (auto each = elements.crbegin(); each != elements.crend(); ++each) {
-        waiting << &*each;
+    for (const ProjectElement& each : std::views::reverse(elements)) {
+        waiting << &each;
     }
     while (!waiting.isEmpty()) {
         const ProjectElement* element = waiting.takeLast();
         if (book.isCard(*element)) {
             cards << element;
         }
-        for (auto each = element->elements.crbegin(); each != element->elements.crend(); ++each) {
-            waiting << &*each;
+        for (const ProjectElement& each : std::views::reverse(element->elements)) {
+            waiting << &each;
         }
     }
     return cards;
@@ -69,6 +73,24 @@ RelationInfo infoOf(const OwnRelation& relation) {
     info.otherKind = relation.otherKind;
     info.own = &relation;
     return info;
+}
+
+/// The cards of @p above (the card above, by the card) whose way up comes back to them: those
+/// in a circle
+QStringList inCircles(const QHash<QString, QString>& above) {
+    QStringList circle;
+    for (auto it = above.cbegin(); it != above.cend(); ++it) {
+        QSet<QString> passed;
+        QString at = it.value();
+        while (at != it.key() && above.contains(at) && !passed.contains(at)) {
+            passed.insert(at);
+            at = above.value(at);
+        }
+        if (at == it.key()) {
+            circle << at;
+        }
+    }
+    return circle;
 }
 
 }  // namespace
@@ -246,6 +268,35 @@ const ProjectElement* CardRelations::fieldCard(const ProjectElement& card,
     return nullptr;
 }
 
+const CardField* CardRelations::treeField(const ElementKind& kind) {
+    const auto found =
+        std::find_if(kind.fields.cbegin(), kind.fields.cend(), [&kind](const CardField& field) {
+            return field.type == CardFieldType::Card && field.cardKind == kind.id &&
+                   !field.relation.isEmpty();
+        });
+    return found == kind.fields.cend() ? nullptr : &*found;
+}
+
+QHash<QString, QString> CardRelations::treeOf(const QList<const ProjectElement*>& cards,
+                                              const CardField& field) const {
+    QSet<QString> ids;
+    for (const ProjectElement* card : cards) {
+        ids.insert(card->id);
+    }
+    QHash<QString, QString> above;
+    for (const ProjectElement* card : cards) {
+        const ProjectElement* named = fieldCard(*card, field);
+        if (named != nullptr && named->id != card->id && ids.contains(named->id)) {
+            above.insert(card->id, named->id);
+        }
+    }
+
+    for (const QString& id : inCircles(above)) {
+        above.remove(id);
+    }
+    return above;
+}
+
 const ProjectElement* CardRelations::cardTitled(const QString& title, const QString& kind) const {
     const QString wanted = title.trimmed();
     if (wanted.isEmpty()) {
@@ -287,6 +338,25 @@ QList<ProjectElement*> workshopOf(BookProject& project) {
         }
     }
     return all;
+}
+
+/// The name of own relation @p id of @p relations; empty when there is none
+QString ownName(const QList<OwnRelation>& relations, const QString& id) {
+    const auto found = std::find_if(relations.cbegin(), relations.cend(),
+                                    [&id](const OwnRelation& each) { return each.id == id; });
+    return found == relations.cend() ? QString() : found->name;
+}
+
+/// The own relation of @p relations of a card of kind @p kind with a card of kind
+/// @p otherKind named @p name, whose inverse is named @p inverseName; empty when there is none
+QString sameOwn(const QList<OwnRelation>& relations, const QString& kind,
+                const QString& otherKind, const QString& name, const QString& inverseName) {
+    const auto found =
+        std::find_if(relations.cbegin(), relations.cend(), [&](const OwnRelation& each) {
+            return each.kind == kind && each.otherKind == otherKind && each.name == name &&
+                   ownName(relations, each.inverse) == inverseName;
+        });
+    return found == relations.cend() ? QString() : found->id;
 }
 
 }  // namespace
@@ -362,22 +432,15 @@ QString ownRelation(QList<OwnRelation>& relations, const QString& kind, const QS
                     const QString& name, const QString& inverseName) {
     const QString forward = name.trimmed();
     const QString backward = inverseName.trimmed();
-    const auto named = [&relations](const QString& id) {
-        const auto found = std::find_if(relations.cbegin(), relations.cend(),
-                                        [&id](const OwnRelation& each) { return each.id == id; });
-        return found == relations.cend() ? QString() : found->name;
-    };
-    for (const OwnRelation& relation : relations) {
-        if (relation.kind == kind && relation.otherKind == otherKind && relation.name == forward &&
-            named(relation.inverse) == backward) {
-            return relation.id;
-        }
+    if (const QString known = sameOwn(relations, kind, otherKind, forward, backward);
+        !known.isEmpty()) {
+        return known;
     }
     // The next free numbers
     int number = 1;
-    const auto nextId = [&named, &number]() {
+    const auto nextId = [&relations, &number]() {
         QString id = QLatin1String(OwnRelation::ID_PREFIX) + QString::number(number);
-        while (!named(id).isEmpty()) {
+        while (!ownName(relations, id).isEmpty()) {
             id = QLatin1String(OwnRelation::ID_PREFIX) + QString::number(++number);
         }
         ++number;

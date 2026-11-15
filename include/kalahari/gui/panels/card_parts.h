@@ -16,6 +16,7 @@
 #include <QStringList>
 
 class QAbstractButton;
+class QEvent;
 class QFormLayout;
 class QGroupBox;
 class QHBoxLayout;
@@ -57,6 +58,10 @@ void fitRows(QTableWidget* table);
 /// deletes them after the class of @p widget is gone, and a field with the keys finishes its
 /// editing then.
 void cutOffChildren(QWidget* widget);
+
+/// @brief Whether @p event is a key pressed, or a key that the window's commands would take
+/// (QEvent::ShortcutOverride)
+[[nodiscard]] bool isKeyEvent(const QEvent* event);
 
 /// @brief Whether @p key is @p which without modifiers: Insert or Delete of a list
 [[nodiscard]] bool isListKey(const QKeyEvent* key, int which);

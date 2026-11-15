@@ -466,7 +466,8 @@ private:
 
 /// @brief Cards: the colors of the cards of characters, locations and items – the dot of the
 /// color of a card beside its name in the Navigator (core::CardColors::NAVIGATOR_DOT_SETTING)
-/// and the palette that new cards take their colors from (core::CardColors::PALETTE_SETTING)
+/// and the palette that new cards take their colors from (core::CardColors::PALETTE_SETTING);
+/// the locations in the Navigator, in a tree or in a list (NavigatorPanel::CARDS_TREE_SETTING)
 class CardsPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -479,9 +480,20 @@ public:
     /// @brief Restore Defaults of the palette
     [[nodiscard]] QPushButton* restorePaletteButton() const { return m_restorePalette; }
 
+    /// @brief The locations in the Navigator: in a tree, each under the one it is part of
+    [[nodiscard]] QRadioButton* treeButton() const { return m_tree; }
+
+    /// @brief The locations in the Navigator: in alphabetical order
+    [[nodiscard]] QRadioButton* listButton() const { return m_list; }
+
 private:
+    /// @brief The group Navigator: the locations in a tree or in a list
+    void addNavigatorGroup();
+
     PaletteEdit* m_palette = nullptr;
     QPushButton* m_restorePalette = nullptr;
+    QRadioButton* m_tree = nullptr;
+    QRadioButton* m_list = nullptr;
 };
 
 /// @brief Materials: how a picture, a page or a picture on the web and a PDF file open

@@ -546,7 +546,8 @@ void CardPage::showCard(const QString& elementId) {
     if (m_full) {
         m_chapters->showCard(elementId);
         //: The materials of a card without any. In Polish: Z kartą nie są powiązane żadne
-        //: materiały. „+” albo Insert je powiąże, a plik albo obraz upuszczony na kartę doda.
+        //: materiały. „+” albo Insert je powiąże, a plik albo obraz upuszczony na kartę doda
+        //: nowy materiał.
         m_materials->showLinked(elementId,
                                 tr("No materials are linked with the card. \"+\" or Insert "
                                    "links them; a file or a picture dropped on the card adds "
@@ -1030,25 +1031,33 @@ bool CardPage::dropMaterials(const IncomingMaterials& incoming, const QPoint& at
         return false;
     }
     // One picture on the portrait: the portrait
-    const bool onPortrait = m_portrait->rect().contains(m_portrait->mapFrom(this, at));
-    const qsizetype count = incoming.files.size() + incoming.addresses.size() +
-                            (incoming.picture.isNull() ? 0 : 1);
-    if (onPortrait && count == 1 && incoming.files.size() == 1 &&
-        core::MaterialKinds::ofFile(incoming.files.first()) ==
-            QLatin1String(core::MaterialKinds::PICTURE)) {
-        addPortraitFile(incoming.files.first());
-        return true;
-    }
-    if (onPortrait && count == 1 && !incoming.picture.isNull()) {
-        const QDateTime now = QDateTime::currentDateTime();
-        core::NewMaterial material;
-        material.title = IncomingMaterials::pictureTitle(now);
-        material.fileName = IncomingMaterials::pictureFileName(now);
-        material.data = IncomingMaterials::pngOf(incoming.picture);
-        addPortrait(material);
+    if (m_portrait->rect().contains(m_portrait->mapFrom(this, at)) && dropPortrait(incoming)) {
         return true;
     }
     emit requestAddMaterials(incoming, m_elementId);
+    return true;
+}
+
+bool CardPage::dropPortrait(const IncomingMaterials& incoming) {
+    const qsizetype count = incoming.files.size() + incoming.addresses.size() +
+                            (incoming.picture.isNull() ? 0 : 1);
+    if (count != 1) {
+        return false;
+    }
+    if (incoming.files.size() == 1 && core::MaterialKinds::ofFile(incoming.files.first()) ==
+                                          QLatin1String(core::MaterialKinds::PICTURE)) {
+        addPortraitFile(incoming.files.first());
+        return true;
+    }
+    if (incoming.picture.isNull()) {
+        return false;
+    }
+    const QDateTime now = QDateTime::currentDateTime();
+    core::NewMaterial material;
+    material.title = IncomingMaterials::pictureTitle(now);
+    material.fileName = IncomingMaterials::pictureFileName(now);
+    material.data = IncomingMaterials::pngOf(incoming.picture);
+    addPortrait(material);
     return true;
 }
 

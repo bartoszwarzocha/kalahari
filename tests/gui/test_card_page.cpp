@@ -20,12 +20,14 @@
 #include "kalahari/gui/dialogs/relation_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_source.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/panels/material_page.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/widgets/card_chapters_box.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/gui/widgets/palette_edit.h"
@@ -52,6 +54,7 @@
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QStringListModel>
 #include <QTableWidget>
 #include <QTimer>
@@ -1247,6 +1250,82 @@ TEST_CASE("Card: the Navigator shows the color of a card beside its name, as the
           QColor(QStringLiteral("#123456")));
 }
 
+TEST_CASE("Card: the Navigator puts a location under the one it is part of, or all of them in "
+          "a list, as the settings say",
+          "[gui][cards][navigator]") {
+    gui::registerAllIcons();
+    test::OpenNovel novel(QStringLiteral("Rain"));
+    auto& pm = novel.pm;
+    const ChangedSetting<std::string> trees(gui::NavigatorPanel::CARDS_TREE_SETTING, "tree");
+    const QString parent = QStringLiteral("parent");
+    const QString warsaw = addCard(pm, "location", QStringLiteral("Warsaw"));
+    const QString zoliborz = addCard(pm, "location", QStringLiteral("Zoliborz"));
+    const QString mokotow = addCard(pm, "location", QStringLiteral("Mokotow"));
+    const QString krakow = addCard(pm, "location", QStringLiteral("Krakow"));
+    REQUIRE(pm.setCardFieldText(zoliborz, parent, QStringLiteral("Warsaw")));
+    REQUIRE(pm.setCardFieldText(mokotow, parent, QStringLiteral("Warsaw")));
+    test::Window window;
+    QTreeWidget* tree = window.navigatorPanel->tree();
+    const auto itemOf = [tree](const QString& id) {
+        QTreeWidgetItem* item = navigatorItem(tree, id);
+        REQUIRE(item != nullptr);
+        return item;
+    };
+    const auto titlesUnder = [](const QTreeWidgetItem* item) {
+        QStringList titles;
+        for (int i = 0; i < item->childCount(); ++i) {
+            titles << item->child(i)->text(0);
+        }
+        return titles;
+    };
+
+    // The districts under their city, open, in alphabetical order; the cities in the group
+    QTreeWidgetItem* group = itemOf(warsaw)->parent();
+    REQUIRE(group != nullptr);
+    CHECK(group->data(0, Qt::UserRole + 1).toString() == QStringLiteral("workshop_group"));
+    CHECK(itemOf(krakow)->parent() == group);
+    CHECK(itemOf(zoliborz)->parent() == itemOf(warsaw));
+    CHECK(itemOf(warsaw)->isExpanded());
+    CHECK(itemOf(warsaw)->indexOfChild(itemOf(mokotow)) == 0);
+    CHECK(itemOf(warsaw)->indexOfChild(itemOf(zoliborz)) == 1);
+
+    // Another city in the field: the district goes there at once, still the current item
+    tree->setCurrentItem(itemOf(zoliborz));
+    REQUIRE(pm.setCardFieldText(zoliborz, parent, QStringLiteral("Krakow")));
+    CHECK(itemOf(zoliborz)->parent() == itemOf(krakow));
+    CHECK(tree->currentItem() == itemOf(zoliborz));
+
+    // A new name: its place among the others under its city
+    const QString wola = addCard(pm, "location", QStringLiteral("Wola"));
+    REQUIRE(pm.setCardFieldText(wola, parent, QStringLiteral("Warsaw")));
+    window.navigator.refreshNavigator();
+    CHECK(itemOf(warsaw)->indexOfChild(itemOf(wola)) == 1);
+    REQUIRE(pm.renameElement(wola, QStringLiteral("Bemowo")));
+    window.navigatorPanel->refreshItem(wola);
+    CHECK(itemOf(warsaw)->indexOfChild(itemOf(wola)) == 0);
+    CHECK(itemOf(warsaw)->indexOfChild(itemOf(mokotow)) == 1);
+
+    // The list in the settings: all of them in the group in alphabetical order, and the tree
+    // again
+    core::SettingsManager::getInstance().set<std::string>(gui::NavigatorPanel::CARDS_TREE_SETTING,
+                                                         "list");
+    QCoreApplication::processEvents();
+    group = itemOf(warsaw)->parent();
+    CHECK(itemOf(zoliborz)->parent() == group);
+    CHECK(itemOf(wola)->parent() == group);
+    CHECK(itemOf(warsaw)->childCount() == 0);
+    const QStringList all{QStringLiteral("Bemowo"), QStringLiteral("Krakow"),
+                          QStringLiteral("Mokotow"), QStringLiteral("Warsaw"),
+                          QStringLiteral("Zoliborz")};
+    CHECK(titlesUnder(group) == all);
+    core::SettingsManager::getInstance().set<std::string>(gui::NavigatorPanel::CARDS_TREE_SETTING,
+                                                         "tree");
+    QCoreApplication::processEvents();
+    CHECK(titlesUnder(itemOf(warsaw)) ==
+          QStringList{QStringLiteral("Bemowo"), QStringLiteral("Mokotow")});
+    CHECK(titlesUnder(itemOf(krakow)) == QStringList{QStringLiteral("Zoliborz")});
+}
+
 TEST_CASE("Palette: swatches changed with a click, taken out with Delete, added with Insert or "
           "\"+\"",
           "[gui][cards][settings]") {
@@ -1322,6 +1401,7 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
     const ChangedSetting<json> palette(core::CardColors::PALETTE_SETTING,
                                        json::array({"#111111", "#222222"}));
     const ChangedSetting<bool> dots(core::CardColors::NAVIGATOR_DOT_SETTING, true);
+    const ChangedSetting<std::string> trees(gui::NavigatorPanel::CARDS_TREE_SETTING, "tree");
 
     gui::CardsPage page;
     page.load();
@@ -1354,6 +1434,21 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
     CHECK(page.isChanged());
     page.apply();
     CHECK(core::CardColors::palette() == core::CardColors::defaultPalette().mid(1));
+
+    // The locations in the Navigator: a tree, or an alphabetical list
+    REQUIRE(page.treeButton() != nullptr);
+    REQUIRE(page.listButton() != nullptr);
+    CHECK(page.treeButton()->isChecked());
+    CHECK_FALSE(page.listButton()->isChecked());
+    page.listButton()->setChecked(true);
+    CHECK(page.isChanged());
+    page.apply();
+    CHECK(core::SettingsManager::getInstance().get<std::string>(
+              gui::NavigatorPanel::CARDS_TREE_SETTING, "tree") == "list");
+    CHECK_FALSE(gui::NavigatorPanel::cardsInTrees());
+    page.treeButton()->setChecked(true);
+    page.apply();
+    CHECK(gui::NavigatorPanel::cardsInTrees());
 }
 
 }  // namespace kalahari

@@ -287,6 +287,11 @@ private:
     /// portrait
     void addPortrait(core::NewMaterial material);
 
+    /// @brief One picture dropped on the portrait, a file or a picture of the clipboard of a
+    /// program, becomes the portrait
+    /// @return Whether it did; false for anything else
+    bool dropPortrait(const IncomingMaterials& incoming);
+
     /// @brief Set as Portrait in @p menu, the menu of material @p materialId of the card,
     /// when it is a picture
     void addPortraitAction(QMenu* menu, const QString& materialId);

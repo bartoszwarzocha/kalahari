@@ -9,6 +9,7 @@
 #include "test_support/window_parts.h"
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/material_kinds.h"
@@ -23,7 +24,6 @@
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/widgets/card_chapters_box.h"
 
-#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <QAction>
@@ -534,7 +534,7 @@ TEST_CASE("Card: on its tab, the chapters open, the dropped files are its materi
     test::OpenNovel novel(QStringLiteral("Rain"));
     auto& pm = novel.pm;
     const QString anna = addCard(pm, "character", QStringLiteral("Anna"));
-    QList<core::ElementLink> links{pm.newLink(anna, novel.chapterId)};
+    const QList<core::ElementLink> links{pm.newLink(anna, novel.chapterId)};
     REQUIRE(pm.setLinks(anna, links));
     const QTemporaryDir files;
     REQUIRE(files.isValid());

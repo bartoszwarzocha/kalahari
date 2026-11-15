@@ -10,6 +10,7 @@
 #include "test_support/window_parts.h"
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/project_manager.h"

@@ -24,6 +24,7 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/card_data.h"
+#include "kalahari/core/card_relations.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/package_card.h"
@@ -65,6 +66,7 @@
 #include <QTimerEvent>
 #include <algorithm>
 #include <functional>
+#include <utility>
 
 
 namespace {
@@ -118,6 +120,13 @@ bool isContainerType(const QString& type) {
 bool isWorkshopNode(const QString& type) {
     return type == QLatin1String("workshop") || type == QLatin1String("workshop_shelf") ||
            type == QLatin1String("workshop_group");
+}
+
+/// Whether @p item is a card with cards under it in its tree: the only element of the Workshop
+/// with a text and elements under it
+bool isCardAbove(const QTreeWidgetItem* item) {
+    return item->childCount() > 0 && item->data(0, WORKSHOP_ROLE).toBool() &&
+           item->data(0, Qt::UserRole + 1).toString() == QLatin1String("text_element");
 }
 
 /// @p text of a command of a menu with its keys @p keys in the column of the keys, unless the
@@ -854,6 +863,7 @@ void NavigatorPanel::clearDocument() {
     m_unassignedExpanded = true;
     m_projectFolder.clear();
     m_standaloneFiles.clear();
+    m_cardTrees.clear();
     //: The header of the Navigator while no book is open. In Polish: Żadna książka nie jest
     //: otwarta
     m_treeWidget->setHeaderLabel(tr("No book is open"));
@@ -1275,54 +1285,168 @@ QString NavigatorPanel::iconIdOf(const core::KindRef& kind) {
 void NavigatorPanel::addElementItems(QTreeWidgetItem* parent,
                                      const QList<core::ProjectElement>& elements,
                                      const core::BookTypeRegistry& registry, bool workshop) {
-    const core::ProjectManager& pm = m_book;
-
-    for (const core::ProjectElement& element : elements) {
-        const core::ElementForm form = core::BookProject::formOf(registry, element);
-        // A kind the program does not have shows its icon on the book's card of its package
-        const bool cardKind = element.hasKind() && !core::BookProject::kindOf(registry, element);
-        const QString iconId = iconIdOf(
-            registry, element, cardKind ? pm.packageCard(element.kind.packageId) : nullptr);
-
-        // The elements of the Workshop are in alphabetical order: they are dragged only to the
-        // links of a material
-        QString itemType;
-        Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
-        switch (form) {
-        case core::ElementForm::Text:
-            itemType = QStringLiteral("text_element");
-            break;
-        case core::ElementForm::Group:
-            itemType = QStringLiteral("group_element");
-            flags |= Qt::ItemIsDropEnabled;  // Takes the drops of its elements
-            break;
-        case core::ElementForm::Window:
-            itemType = QStringLiteral("window_element");
-            break;
-        }
-
-        // The elements of the Workshop have no status
-        QTreeWidgetItem* item = new QTreeWidgetItem(parent);
-        item->setText(0, getDisplayTitle(element, form == core::ElementForm::Text && !workshop,
-                                         m_modifiedElements.contains(element.id)));
-        item->setData(0, Qt::UserRole, element.id);
-        item->setData(0, Qt::UserRole + 1, itemType);
-        item->setData(0, WORKSHOP_ROLE, workshop);
-        item->setData(0, ICON_ROLE, iconId);
-        item->setData(0, KIND_ROLE, element.kind.toString());
-        item->setData(0, TITLE_ROLE, element.title);
-        if (cardKind) {
-            item->setData(0, CARD_ROLE, element.kind.packageId);
-        }
-        showCardColor(item, element);
-        item->setIcon(0, itemIcon(item, iconId));
-        item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
-
-        if (form == core::ElementForm::Group) {
-            addElementItems(item, element.elements, registry, workshop);
-            item->setExpanded(true);  // Expand groups by default
+    // The elements of each group under its item, the groups open
+    QList<std::pair<QTreeWidgetItem*, const QList<core::ProjectElement>*>> waiting{
+        {parent, &elements}};
+    QList<QTreeWidgetItem*> groups;
+    while (!waiting.isEmpty()) {
+        const auto [at, list] = waiting.takeFirst();
+        for (const core::ProjectElement& element : *list) {
+            QTreeWidgetItem* item = addElementItem(at, element, registry, workshop);
+            if (core::BookProject::formOf(registry, element) == core::ElementForm::Group) {
+                waiting.append({item, &element.elements});
+                groups << item;
+            }
         }
     }
+    for (QTreeWidgetItem* group : groups) {
+        group->setExpanded(true);
+    }
+}
+
+QTreeWidgetItem* NavigatorPanel::addElementItem(QTreeWidgetItem* parent,
+                                                const core::ProjectElement& element,
+                                                const core::BookTypeRegistry& registry,
+                                                bool workshop) {
+    const core::ProjectManager& pm = m_book;
+    const core::ElementForm form = core::BookProject::formOf(registry, element);
+    // A kind the program does not have shows its icon on the book's card of its package
+    const bool cardKind = element.hasKind() && !core::BookProject::kindOf(registry, element);
+    const QString iconId = iconIdOf(
+        registry, element, cardKind ? pm.packageCard(element.kind.packageId) : nullptr);
+
+    // The elements of the Workshop are in alphabetical order: they are dragged only to the
+    // links of a material
+    QString itemType;
+    Qt::ItemFlags flags = Qt::ItemIsDragEnabled;
+    switch (form) {
+    case core::ElementForm::Text:
+        itemType = QStringLiteral("text_element");
+        break;
+    case core::ElementForm::Group:
+        itemType = QStringLiteral("group_element");
+        flags |= Qt::ItemIsDropEnabled;  // Takes the drops of its elements
+        break;
+    case core::ElementForm::Window:
+        itemType = QStringLiteral("window_element");
+        break;
+    }
+
+    // The elements of the Workshop have no status
+    auto* item = new QTreeWidgetItem(parent);
+    item->setText(0, getDisplayTitle(element, form == core::ElementForm::Text && !workshop,
+                                     m_modifiedElements.contains(element.id)));
+    item->setData(0, Qt::UserRole, element.id);
+    item->setData(0, Qt::UserRole + 1, itemType);
+    item->setData(0, WORKSHOP_ROLE, workshop);
+    item->setData(0, ICON_ROLE, iconId);
+    item->setData(0, KIND_ROLE, element.kind.toString());
+    item->setData(0, TITLE_ROLE, element.title);
+    if (cardKind) {
+        item->setData(0, CARD_ROLE, element.kind.packageId);
+    }
+    showCardColor(item, element);
+    item->setIcon(0, itemIcon(item, iconId));
+    item->setFlags((item->flags() & ~Qt::ItemIsDragEnabled & ~Qt::ItemIsDropEnabled) | flags);
+    return item;
+}
+
+void NavigatorPanel::addGroupElements(QTreeWidgetItem* item, const core::KindRef& kind,
+                                      const QList<core::ProjectElement>& elements,
+                                      bool material, const core::BookTypeRegistry& registry) {
+    if (kind && kind.kind->isCard()) {
+        addCardItems(item, elements, registry);
+    } else if (!material || materialsExpandable()) {
+        addElementItems(item, elements, registry, true);
+    }
+}
+
+void NavigatorPanel::addCardItems(QTreeWidgetItem* parent,
+                                  const QList<core::ProjectElement>& cards,
+                                  const core::BookTypeRegistry& registry) {
+    // The cards under each card, in the order of @p cards; under none: the top ones
+    QHash<QString, QList<const core::ProjectElement*>> under;
+    for (const core::ProjectElement& card : cards) {
+        under[m_cardTrees.value(card.id)].append(&card);
+    }
+    QList<std::pair<QTreeWidgetItem*, QString>> waiting{{parent, QString()}};
+    QList<QTreeWidgetItem*> added;
+    while (!waiting.isEmpty()) {
+        const auto [at, aboveId] = waiting.takeFirst();
+        for (const core::ProjectElement* card : under.value(aboveId)) {
+            QTreeWidgetItem* item = addElementItem(at, *card, registry, true);
+            waiting.append({item, card->id});
+            added << item;
+        }
+    }
+    // The cards with cards under them open
+    for (QTreeWidgetItem* item : added) {
+        item->setExpanded(item->childCount() > 0);
+    }
+}
+
+QHash<QString, QString> NavigatorPanel::cardTreesOf(const core::BookProject& project) const {
+    QHash<QString, QString> trees;
+    if (!cardsInTrees()) {
+        return trees;
+    }
+    // The cards of the Workshop by their kinds that have trees
+    QHash<const core::ElementKind*, QList<const core::ProjectElement*>> kinds;
+    const core::BookTypeRegistry& registry = m_book.bookTypes();
+    for (const core::ProjectElement& element : project.workshop.elements) {
+        const core::KindRef kind = core::BookProject::kindOf(registry, element);
+        if (kind && kind.kind->isCard() &&
+            core::CardRelations::treeField(*kind.kind) != nullptr) {
+            kinds[kind.kind].append(&element);
+        }
+    }
+    const core::CardRelations relations(m_book);
+    for (auto it = kinds.cbegin(); it != kinds.cend(); ++it) {
+        trees.insert(relations.treeOf(it.value(), *core::CardRelations::treeField(*it.key())));
+    }
+    return trees;
+}
+
+QString NavigatorPanel::currentElementId() const {
+    const QTreeWidgetItem* item = m_treeWidget->currentItem();
+    return item != nullptr && isElementType(typeOf(item))
+               ? item->data(0, Qt::UserRole).toString()
+               : QString();
+}
+
+void NavigatorPanel::restoreCurrentElement(const QString& elementId) {
+    QTreeWidgetItem* item = findItemByElementId(elementId);
+    if (item == nullptr) {
+        return;
+    }
+    {
+        const QSignalBlocker blocker(m_treeWidget);
+        m_treeWidget->setCurrentItem(item);
+    }
+    updateAddButton();
+}
+
+void NavigatorPanel::showMovedCards(const QHash<QString, QString>& before) {
+    for (auto it = m_cardTrees.cbegin(); it != m_cardTrees.cend(); ++it) {
+        if (before.value(it.key()) == it.value()) {
+            continue;
+        }
+        const QTreeWidgetItem* item = findItemByElementId(it.key());
+        for (QTreeWidgetItem* above = item != nullptr ? item->parent() : nullptr; above != nullptr;
+             above = above->parent()) {
+            above->setExpanded(true);
+        }
+    }
+}
+
+bool NavigatorPanel::cardTreesChanged() const {
+    const core::BookProject* project = m_book.project();
+    return project != nullptr && cardTreesOf(*project) != m_cardTrees;
+}
+
+bool NavigatorPanel::cardsInTrees() {
+    return core::SettingsManager::getInstance().get<std::string>(CARDS_TREE_SETTING, "tree") !=
+           "list";
 }
 
 void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
@@ -1367,8 +1491,9 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         group->elements.append(element);
     }
 
-    // The elements in alphabetical order of their titles
+    // The elements in alphabetical order of their titles; the cards of some kinds in trees
     const QCollator collator = workshopOrder(project);
+    m_cardTrees = cardTreesOf(project);
 
     // The working notes and the materials are in Materials, and, grouped, the groups of cards
     // in Libraries, each where its first group would be
@@ -1437,9 +1562,7 @@ void NavigatorPanel::addWorkshopItems(QTreeWidgetItem* workshopItem,
         // The kinds of the Materials show their lists on tabs; their materials are under them
         // only when the settings say so, collapsed at first
         const bool material = item->parent() == materials;
-        if (!material || materialsExpandable()) {
-            addElementItems(item, group.elements, registry, true);
-        }
+        addGroupElements(item, group.kind, group.elements, material, registry);
         item->setExpanded(!material);
         if (material) {
             setCount(item, group.elements.size());
@@ -3229,7 +3352,10 @@ void NavigatorPanel::refreshItem(const QString& elementId) {
                                      m_modifiedElements.contains(elementId)));
     item->setData(0, TITLE_ROLE, element->title);
     showCardColor(item, *element);
-    if (item->parent() && typeOf(item->parent()) == QLatin1String("workshop_group")) {
+    // In a group of the Workshop, or under a card of its tree
+    if (const QTreeWidgetItem* parent = item->parent();
+        parent != nullptr &&
+        (typeOf(parent) == QLatin1String("workshop_group") || isCardAbove(parent))) {
         placeInWorkshopGroup(item);
     }
 
@@ -3467,14 +3593,14 @@ void NavigatorPanel::setExpandedItemIds(const QStringList& ids) {
     expandItemsById(ids);
 
     // A list saved before the book and the Workshop had nodes of their own opens them, and
-    // the groups of the Workshop, as a new book shows them: the kinds of the Materials stay
-    // collapsed
+    // the groups of the Workshop and the cards with cards under them, as a new book shows
+    // them: the kinds of the Materials stay collapsed
     if (!ids.contains(WORKSHOP_LAYOUT)) {
         const std::function<void(QTreeWidgetItem*)> open = [&open](QTreeWidgetItem* item) {
             const QString type = typeOf(item);
             const std::optional<QString> list = materialListOf(item);
             if (type == QLatin1String("book") ||
-                (isWorkshopNode(type) && (!list || list->isEmpty()))) {
+                (isWorkshopNode(type) && (!list || list->isEmpty())) || isCardAbove(item)) {
                 item->setExpanded(true);
             }
             for (int i = 0; i < item->childCount(); ++i) {

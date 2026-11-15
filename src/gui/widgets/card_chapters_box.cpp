@@ -31,6 +31,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -44,25 +45,6 @@ constexpr int CHAPTER_ROLE = Qt::UserRole;
 constexpr int CHAPTER_COLUMN = 0;
 constexpr int ROLE_COLUMN = 1;
 constexpr int NOTE_COLUMN = 2;
-
-/// What a key does in the list of the chapters
-enum class ChapterKey {
-    None,    ///< Nothing of the list
-    Edit,    ///< Insert or F2: the window Link
-    Remove,  ///< Delete: the chapter goes
-    Open     ///< Enter: the chapter
-};
-
-/// What @p key does in the list
-ChapterKey keyOf(const QKeyEvent* key) {
-    if (card::isListKey(key, Qt::Key_Insert) || card::isListKey(key, Qt::Key_F2)) {
-        return ChapterKey::Edit;
-    }
-    if (card::isListKey(key, Qt::Key_Delete)) {
-        return ChapterKey::Remove;
-    }
-    return card::isOpenKey(key) ? ChapterKey::Open : ChapterKey::None;
-}
 
 /// The elements of the books of @p project in reading order
 QList<const core::ProjectElement*> bookElements(const core::BookProject& project) {
@@ -295,34 +277,31 @@ void CardChaptersBox::updateButtons() {
     m_removeButton->setEnabled(writable && !currentChapter().isEmpty());
 }
 
+std::function<void()> CardChaptersBox::keyAction(const QKeyEvent* key) {
+    if (card::isListKey(key, Qt::Key_Insert) || card::isListKey(key, Qt::Key_F2)) {
+        return [this]() { editChapters(); };
+    }
+    if (card::isListKey(key, Qt::Key_Delete)) {
+        return [this]() { removeChapter(); };
+    }
+    if (const QString chapter = currentChapter(); card::isOpenKey(key) && !chapter.isEmpty()) {
+        return [this, chapter]() { emit requestOpenChapter(chapter); };
+    }
+    return {};
+}
+
 bool CardChaptersBox::eventFilter(QObject* watched, QEvent* event) {
-    const bool key =
-        event->type() == QEvent::KeyPress || event->type() == QEvent::ShortcutOverride;
-    if (watched != m_list || !key) {
+    if (watched != m_list || !card::isKeyEvent(event)) {
         return QGroupBox::eventFilter(watched, event);
     }
-    const ChapterKey action = keyOf(static_cast<const QKeyEvent*>(event));
-    if (action == ChapterKey::None ||
-        (action == ChapterKey::Open && currentChapter().isEmpty())) {
+    const std::function<void()> action = keyAction(static_cast<const QKeyEvent*>(event));
+    if (!action) {
         return QGroupBox::eventFilter(watched, event);
     }
     // The same keys of the window's commands wait while the list has the keys
     event->accept();
-    if (event->type() != QEvent::KeyPress) {
-        return true;
-    }
-    switch (action) {
-    case ChapterKey::Edit:
-        editChapters();
-        break;
-    case ChapterKey::Remove:
-        removeChapter();
-        break;
-    case ChapterKey::Open:
-        emit requestOpenChapter(currentChapter());
-        break;
-    case ChapterKey::None:
-        break;
+    if (event->type() == QEvent::KeyPress) {
+        action();
     }
     return true;
 }

@@ -12,6 +12,7 @@
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/search_engine.h"
 #include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"

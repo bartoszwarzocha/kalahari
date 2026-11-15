@@ -12,6 +12,7 @@
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/card_data.h"
 
+#include <QHash>
 #include <QList>
 #include <QString>
 
@@ -123,6 +124,20 @@ public:
     /// names none
     [[nodiscard]] const ProjectElement* fieldCard(const ProjectElement& card,
                                                   const CardField& field) const;
+
+    /// @brief The field that puts the cards of kind @p kind in a tree: its first field of the
+    /// type "card" that names a card of the same kind by a relation (the part of a location);
+    /// nullptr when it has none
+    [[nodiscard]] static const CardField* treeField(const ElementKind& kind);
+
+    /// @brief The card each card of @p cards stands under in their tree by field @p field: the
+    /// card that the field names (fieldCard()), when it is one of @p cards too
+    ///
+    /// The cards of a circle (A part of B, B part of A) stand under none, so that each card is
+    /// in the tree once; the cards under them stay there.
+    /// @return The id of the card above, by the id of the card; a card under none is not there
+    [[nodiscard]] QHash<QString, QString> treeOf(const QList<const ProjectElement*>& cards,
+                                                 const CardField& field) const;
 
     /// @brief The card of kind @p kind ("kalahari.base:location") whose title is @p title, with
     /// no regard to the case of the letters and the spaces at its ends; nullptr when there is

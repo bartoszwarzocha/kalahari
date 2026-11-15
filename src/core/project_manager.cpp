@@ -7,7 +7,9 @@
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/book_type_package.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/card_relations.h>
 #include <kalahari/core/bibliography.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/link_roles.h>
@@ -2503,31 +2505,35 @@ bool ProjectManager::setLinks(const QString& elementId, const QList<ElementLink>
         Logger::getInstance().warn("setLinks: No project is open");
         return false;
     }
-    // Only what the project has, without the element itself, each once: the first; a card has
-    // several relations with another card, each once
+    const QList<ElementLink> kept = linksToKeep(elementId, links);
     const ProjectElement* element = findElement(elementId);
-    const bool card = element != nullptr && isCard(*element);
-    ProjectElement kept;
-    for (const ElementLink& link : links) {
-        const ProjectElement* target = findElement(link.to);
-        const bool relation = card && target != nullptr && isCard(*target);
-        const bool known = std::any_of(kept.links.cbegin(), kept.links.cend(),
-                                       [&link, relation](const ElementLink& each) {
-                                           return each.to == link.to &&
-                                                  (!relation || each.role == link.role);
-                                       });
-        if (link.to != elementId && !known && m_project->hasLinkTarget(link.to)) {
-            kept.links << link;
-        }
-    }
-    const bool changed = element != nullptr && element->links != kept.links;
-    const bool saved = changeDetails("setLinks", elementId, [&kept](ProjectElement& each) {
-        each.links = kept.links;
-    });
+    const bool changed = element != nullptr && element->links != kept;
+    const bool saved = changeDetails("setLinks", elementId,
+                                     [&kept](ProjectElement& each) { each.links = kept; });
     if (saved && changed) {
         emit linksChanged();
     }
     return saved;
+}
+
+QList<ElementLink> ProjectManager::linksToKeep(const QString& elementId,
+                                               const QList<ElementLink>& links) const {
+    // A card has several relations with another card, each once
+    const ProjectElement* element = findElement(elementId);
+    const bool card = element != nullptr && isCard(*element);
+    QList<ElementLink> kept;
+    for (const ElementLink& link : links) {
+        const ProjectElement* target = findElement(link.to);
+        const bool relation = card && target != nullptr && isCard(*target);
+        const bool known =
+            std::any_of(kept.cbegin(), kept.cend(), [&link, relation](const ElementLink& each) {
+                return each.to == link.to && (!relation || each.role == link.role);
+            });
+        if (link.to != elementId && !known && m_project->hasLinkTarget(link.to)) {
+            kept << link;
+        }
+    }
+    return kept;
 }
 
 bool ProjectManager::setLinks(const QString& elementId, const QStringList& targets) {

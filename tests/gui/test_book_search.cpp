@@ -409,7 +409,7 @@ TEST_CASE("Find in Book: the line around a match in the Search panel", "[gui][se
 
 TEST_CASE("Find in Book: the name of a card, as whole words in any letters",
           "[gui][search][book]") {
-    SearchedBook book;
+    const SearchedBook book;
     Window window;
     Search search(window);
     search.panel.setOptions({.caseSensitive = true, .useRegex = true});

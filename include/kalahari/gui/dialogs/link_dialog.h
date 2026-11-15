@@ -117,6 +117,11 @@ private:
     /// @brief The book and the Workshop, for a material; the book, for a card
     void fillTargets(const QString& material);
 
+    /// @brief The items of @p elements and of the elements inside them under @p parent,
+    /// checked when @p links has them
+    void addElementTargets(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
+                           const QStringList& links);
+
     /// @brief The materials of the Workshop, for an element or a section
     void fillMaterials(const QString& link);
 
@@ -150,7 +155,7 @@ private:
 
     /// @brief Whether the links are of the material or the card of the dialog with what the
     /// items name (Targets, Chapters), not of the materials with the element of the dialog
-    bool linksOut() const { return m_mode != Mode::Materials; }
+    [[nodiscard]] bool linksOut() const { return m_mode != Mode::Materials; }
 
     Mode m_mode;
     QString m_link;

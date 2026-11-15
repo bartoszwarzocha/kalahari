@@ -431,7 +431,7 @@ public:
     QToolButton* removeButton() const { return m_removeButton; }
     QLabel* emptyLabel() const { return m_emptyLabel; }
     /// @brief The menu of a row, filled when it opens
-    QMenu* rowMenu() const { return m_menu; }
+    [[nodiscard]] QMenu* rowMenu() const { return m_menu; }
 
 public slots:
     /// @brief Open Link with the materials of the Workshop and link what is checked there

@@ -17,6 +17,7 @@
 #include "test_support/window_parts.h"
 
 #include <QFile>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -419,6 +420,55 @@ TEST_CASE("Card relations: a card in the chapters, beside its relations",
     CHECK(shownOf(pm, anna) == QStringList{QStringLiteral("brat: Jan")});
     REQUIRE(pm.findElement(anna)->linkTo(storm) != nullptr);
     CHECK(pm.findElement(anna)->linkTo(storm)->role == QStringLiteral("pov"));
+
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("Card relations: the locations in a tree, each under the one it is part of",
+          "[core][cards][project_manager]") {
+    const QTemporaryDir dir;
+    auto& pm = kalahari::test::book();
+    openBook(pm, dir);
+    const QString poland = addCard(pm, "location", QStringLiteral("Polska"));
+    const QString warsaw = addCard(pm, "location", QStringLiteral("Warszawa"));
+    const QString zoliborz = addCard(pm, "location", QStringLiteral("Żoliborz"));
+    const QString river = addCard(pm, "location", QStringLiteral("Wisła"));
+    const QString shore = addCard(pm, "location", QStringLiteral("Brzeg"));
+    const QString bridge = addCard(pm, "location", QStringLiteral("Most"));
+    const QString parent = QStringLiteral("parent");
+
+    // The field of the locations that names a location; the characters and the items have none
+    const auto kindOf = [&pm](const char* kindId) {
+        return pm.bookTypes().findKind(QStringLiteral("kalahari.base"),
+                                       QString::fromLatin1(kindId));
+    };
+    const kalahari::core::CardField* field = CardRelations::treeField(*kindOf("location").kind);
+    REQUIRE(field != nullptr);
+    CHECK(field->id == parent);
+    CHECK(CardRelations::treeField(*kindOf("character").kind) == nullptr);
+    CHECK(CardRelations::treeField(*kindOf("item").kind) == nullptr);
+
+    // Żoliborz in Warszawa in Polska, by the field or by the inverse relation; the river and
+    // its shore in a circle stand under none, the bridge under the river stays there
+    REQUIRE(pm.setCardFieldText(warsaw, parent, QStringLiteral("Polska")));
+    REQUIRE(pm.addRelation(warsaw, zoliborz, QStringLiteral("contains"), QString()));
+    REQUIRE(pm.setCardFieldText(river, parent, QStringLiteral("Brzeg")));
+    REQUIRE(pm.setCardFieldText(shore, parent, QStringLiteral("Wisła")));
+    REQUIRE(pm.setCardFieldText(bridge, parent, QStringLiteral("Wisła")));
+    const auto cardsOf = [&pm](const QStringList& ids) {
+        QList<const ProjectElement*> cards;
+        for (const QString& id : ids) {
+            cards << pm.findElement(id);
+        }
+        return cards;
+    };
+    const CardRelations relations = pm.cardRelations();
+    CHECK(relations.treeOf(cardsOf({poland, warsaw, zoliborz, river, shore, bridge}), *field) ==
+          QHash<QString, QString>{{warsaw, poland}, {zoliborz, warsaw}, {bridge, river}});
+
+    // A location that is not one of the cards given puts none under it
+    CHECK(relations.treeOf(cardsOf({warsaw, zoliborz, bridge}), *field) ==
+          QHash<QString, QString>{{zoliborz, warsaw}});
 
     REQUIRE(pm.closeProject(false));
 }

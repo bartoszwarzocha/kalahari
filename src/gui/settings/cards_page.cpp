@@ -7,10 +7,12 @@
 /// The colors of the cards of characters, locations and items: whether the Navigator shows
 /// the color of a card beside its name, and the palette that new cards take their colors from,
 /// the color that the fewest cards of the book have first. A changed palette does not change
-/// the colors the cards have.
+/// the colors the cards have. The locations in the Navigator: in a tree, each under the one it
+/// is part of, or in alphabetical order.
 
 #include "kalahari/core/card_data.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/widgets/palette_edit.h"
@@ -19,6 +21,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QVBoxLayout>
 
 #include <nlohmann/json.hpp>
@@ -32,6 +35,10 @@ namespace kalahari::gui {
 namespace {
 
 using json = nlohmann::json;
+
+/// The values of NavigatorPanel::CARDS_TREE_SETTING
+constexpr const char* TREE = "tree";
+constexpr const char* LIST = "list";
 
 /// @p colors as the setting keeps them, a list of "#rrggbb"
 json jsonOf(const QStringList& colors) {
@@ -104,6 +111,51 @@ CardsPage::CardsPage(QWidget* parent) : SettingsPage(parent) {
         core::SettingsManager::getInstance().set<json>(core::CardColors::PALETTE_SETTING, value);
     };
     bindCustom(std::move(palette));
+
+    addNavigatorGroup();
+}
+
+void CardsPage::addNavigatorGroup() {
+    //: Settings > Cards: the group of how the cards are in the Navigator. In Polish: Nawigator
+    QFormLayout* navigator = addGroup(tr("Navigator"));
+    //: The locations in the Navigator, each under the location it is part of. In Polish:
+    //: Drzewo według miejsca nadrzędnego
+    m_tree = new QRadioButton(tr("A tree: each location under the one it is part of"));
+    m_tree->setObjectName(QStringLiteral("cardsNavigatorTree"));
+    //: In Polish: Lista alfabetyczna
+    m_list = new QRadioButton(tr("An alphabetical list"));
+    m_list->setObjectName(QStringLiteral("cardsNavigatorList"));
+    auto* choices = new QWidget();
+    auto* choicesLayout = new QVBoxLayout(choices);
+    choicesLayout->setContentsMargins(0, 0, 0, 0);
+    choicesLayout->addWidget(m_tree);
+    //: In Polish: Na przykład Żoliborz pod Warszawą. Tak samo są ułożone karty innych rodzajów,
+    //: których pole wskazuje kartę tego samego rodzaju.
+    alignWithText(addNote(choicesLayout,
+                          tr("For example, a district under its city. The cards of other "
+                             "kinds whose field names a card of the same kind are in trees as "
+                             "well.")),
+                  m_tree);
+    choicesLayout->addWidget(m_list);
+    //: The label of the choice between a tree and a list of the locations. In Polish: Miejsca
+    //: w Nawigatorze:
+    auto* label = new QLabel(tr("Locations in the Navigator:"));
+    label->setBuddy(m_tree);
+    navigator->addRow(label, choices);
+
+    Binding tree;
+    tree.key = []() { return std::string(NavigatorPanel::CARDS_TREE_SETTING); };
+    tree.stored = []() { return json(NavigatorPanel::cardsInTrees() ? TREE : LIST); };
+    tree.shown = [this]() { return json(m_list->isChecked() ? LIST : TREE); };
+    tree.show = [this](const json& value) {
+        const bool list = value.is_string() && value.get<std::string>() == LIST;
+        (list ? m_list : m_tree)->setChecked(true);
+    };
+    tree.store = [](const json& value) {
+        core::SettingsManager::getInstance().set<std::string>(NavigatorPanel::CARDS_TREE_SETTING,
+                                                             value.get<std::string>());
+    };
+    bindCustom(std::move(tree));
 }
 
 }  // namespace kalahari::gui
