@@ -18,11 +18,17 @@
 class QTabWidget;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari::editor {
 class BookEditor;
 }
 
 namespace kalahari::gui {
+
+class CommandRegistry;
 
 /// @brief Gives every open text what its fields show and inserts the fields
 ///
@@ -55,11 +61,14 @@ public:
     /// @brief The setting of Update Automatically, as it was last
     static constexpr const char* DATE_AS_FIELD_KEY = "editor.fields.dateAsField";
 
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the book window (DocumentWindows gives all the texts)
     /// @param textWithKeys The text the commands act on
     /// @param window Over which the windows open, which has the keys of the date and the time
     /// @param parent Parent object
-    FieldCoordinator(QTabWidget* centralTabs, TextWithKeys textWithKeys, QWidget* window,
+    FieldCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                     QTabWidget* centralTabs, TextWithKeys textWithKeys, QWidget* window,
                      QObject* parent = nullptr);
 
     FieldCoordinator(const FieldCoordinator&) = delete;
@@ -100,8 +109,8 @@ public:
 
     /// @brief The names of the fields in the window, for a text of the book: its title and its
     ///        words named after its kind ("Chapter Title"), in the order of editor::FIELD_TYPES
-    [[nodiscard]] static std::array<QString, editor::FIELD_TYPES.size()> fieldNames(
-        const QString& elementId);
+    [[nodiscard]] std::array<QString, editor::FIELD_TYPES.size()> fieldNames(
+        const QString& elementId) const;
 
     /// @brief Why the field window cannot insert in @p editor (read-only, a plain text file);
     ///        empty: it can
@@ -131,6 +140,8 @@ private:
     TextWithKeys m_textWithKeys;
     QWidget* m_window = nullptr;
     QList<editor::BookEditor*> m_attached;
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;   ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

@@ -740,8 +740,8 @@ MainWindow::MainWindow(QWidget* parent)
     // plain text file either (it keeps no fields). The fields of every open text show the
     // book's title, author and language as the Properties panel changes them
     m_fieldCoordinator = new FieldCoordinator(
-        m_dockCoordinator->centralTabs(), [this]() { return m_editCoordinator->textWithKeys(); },
-        this, this);
+        *m_book, *m_commands, m_dockCoordinator->centralTabs(),
+        [this]() { return m_editCoordinator->textWithKeys(); }, this, this);
     m_fieldCoordinator->connectCommands();
     connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::bookChanged,
             m_fieldCoordinator, &FieldCoordinator::refresh);
@@ -758,7 +758,7 @@ MainWindow::MainWindow(QWidget* parent)
         });
     for (const char* id : {FieldCoordinator::DATE_TIME_COMMAND, FieldCoordinator::DATE_COMMAND,
                            FieldCoordinator::TIME_COMMAND, FieldCoordinator::FIELD_COMMAND}) {
-        if (Command* command = CommandRegistry::getInstance().getCommand(id)) {
+        if (Command* command = commands().getCommand(id)) {
             const bool field = std::string(id) == FieldCoordinator::FIELD_COMMAND;
             command->disabledReason = [this, field]() {
                 const editor::BookEditor* text = m_editCoordinator->textWithKeys();

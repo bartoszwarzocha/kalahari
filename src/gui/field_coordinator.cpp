@@ -33,9 +33,9 @@ bool isDateOnly(const QString& format)
 }
 
 /// The keys of a command as the writer has them ("Alt+Shift+D"); empty: none
-QString keysOf(const char* id)
+QString keysOf(const CommandRegistry& commands, const char* id)
 {
-    const Command* command = CommandRegistry::getInstance().getCommand(id);
+    const Command* command = commands.getCommand(id);
     return command != nullptr && !command->shortcut.isEmpty()
                ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
                : QString();
@@ -43,18 +43,20 @@ QString keysOf(const char* id)
 
 }  // namespace
 
-FieldCoordinator::FieldCoordinator(QTabWidget* centralTabs, TextWithKeys textWithKeys,
+FieldCoordinator::FieldCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                   QTabWidget* centralTabs, TextWithKeys textWithKeys,
                                    QWidget* window, QObject* parent)
     : QObject(parent),
       m_centralTabs(centralTabs),
       m_textWithKeys(std::move(textWithKeys)),
-      m_window(window)
+      m_window(window),
+      m_book(book),
+      m_commands(commands)
 {
     // Another book: other values
-    auto& projects = core::ProjectManager::getInstance();
-    connect(&projects, &core::ProjectManager::projectOpened, this, &FieldCoordinator::refresh);
-    connect(&projects, &core::ProjectManager::projectClosed, this, &FieldCoordinator::refresh);
-    connect(&projects, &core::ProjectManager::elementRenamed, this, &FieldCoordinator::refresh);
+    connect(&m_book, &core::ProjectManager::projectOpened, this, &FieldCoordinator::refresh);
+    connect(&m_book, &core::ProjectManager::projectClosed, this, &FieldCoordinator::refresh);
+    connect(&m_book, &core::ProjectManager::elementRenamed, this, &FieldCoordinator::refresh);
 
     // A text opened, closed or brought to the front: its fields show what is now
     if (m_centralTabs != nullptr) {
@@ -67,7 +69,7 @@ FieldCoordinator::FieldCoordinator(QTabWidget* centralTabs, TextWithKeys textWit
 
 void FieldCoordinator::connectCommands()
 {
-    auto& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = m_commands;
     const auto connectCommand = [&registry](const char* id, std::function<void()> execute) {
         if (Command* command = registry.getCommand(id)) {
             command->execute = std::move(execute);
@@ -97,11 +99,10 @@ editor::FieldContext FieldCoordinator::contextFor(const QString& elementId,
                                                   const QString& fileTitle) const
 {
     editor::FieldContext context;
-    const auto& projects = core::ProjectManager::getInstance();
     const core::ProjectElement* element =
-        elementId.isEmpty() ? nullptr : projects.findElement(elementId);
+        elementId.isEmpty() ? nullptr : m_book.findElement(elementId);
     // A text of the book: its values; a file outside it has none, and the program's language
-    if (const core::ProjectBook* book = projects.book(); book != nullptr && element != nullptr) {
+    if (const core::ProjectBook* book = m_book.book(); book != nullptr && element != nullptr) {
         context.bookTitle = book->title;
         context.author = book->author;
         context.language = book->language;
@@ -186,18 +187,18 @@ QString FieldCoordinator::dateFormatOfKeys()
 }
 
 std::array<QString, editor::FIELD_TYPES.size()> FieldCoordinator::fieldNames(
-    const QString& elementId)
+    const QString& elementId) const
 {
     std::array<QString, editor::FIELD_TYPES.size()> names;
     for (size_t i = 0; i < editor::FIELD_TYPES.size(); ++i) {
         names.at(i) = editor::fieldTypeTitle(editor::FIELD_TYPES.at(i));
     }
     const core::ProjectElement* element =
-        elementId.isEmpty() ? nullptr : core::ProjectManager::getInstance().findElement(elementId);
+        elementId.isEmpty() ? nullptr : m_book.findElement(elementId);
     if (element == nullptr) {
         return names;
     }
-    const core::KindWords words = wordsOf(*element);
+    const core::KindWords words = wordsOf(m_book, *element);
     const QHash<QString, core::KindWords> kind{{QStringLiteral("kind"), words}};
     //: A field: the title of the text it is in, named after its kind ("Chapter Title"). In
     //: Polish: Tytuł {kind:genitive}
@@ -234,8 +235,8 @@ void FieldCoordinator::insertDateTime()
     data.format = QString::fromStdString(settings.get<std::string>(DATE_FORMAT_KEY, "long"));
     data.asField = settings.get<bool>(DATE_AS_FIELD_KEY, false);
     data.whyNoField = editor->annotationsAllowed() ? QString() : whyNoField(*editor);
-    data.dateKeys = keysOf(DATE_COMMAND);
-    data.timeKeys = keysOf(TIME_COMMAND);
+    data.dateKeys = keysOf(m_commands, DATE_COMMAND);
+    data.timeKeys = keysOf(m_commands, TIME_COMMAND);
     dialogs::DateTimeDialog dialog(data, m_window);
     if (dialog.exec() != QDialog::Accepted) {
         return;
