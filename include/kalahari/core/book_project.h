@@ -175,7 +175,8 @@ struct ScenePlot {
     QString time;         ///< Time of the action
     QString color;        ///< Own color of its card, a name of PlotColors ("blue")
     QString status;       ///< "draft", "revision" or "final"; empty: as its text
-    QJsonObject extra;    ///< Fields of "opening" this version does not know, saved back
+    QJsonObject extra;    ///< Fields of "opening" (or of a scene in the plan) this version
+                          ///< does not know, saved back
 
     /// @brief Whether it says nothing
     [[nodiscard]] bool isEmpty() const {
@@ -196,6 +197,18 @@ struct ScenePlot {
     bool operator==(const ScenePlot&) const = default;
 };
 
+/// @brief A scene in the plan of a text: what the writer means to write there, before the text
+/// has it
+///
+/// The plot board shows it among the scenes of the text; once it is written, a scene break
+/// with what it says takes its place in the text.
+struct PlannedScene {
+    ScenePlot plot;  ///< What it says; it has no state ("In the Plan") until it is written
+    int after = 0;   ///< How many scenes of the text come before it: 0 before the first one
+
+    bool operator==(const PlannedScene&) const = default;
+};
+
 /// @brief What the plot board says of a text element of a book: whose eyes the reader sees it
 /// with, where and when it happens, and the color of its card
 ///
@@ -207,12 +220,13 @@ struct ElementPlot {
     QString time;       ///< Time of the action; empty: not said
     QString color;      ///< Own color of its card, a name of PlotColors ("blue"); empty: none
     ScenePlot opening;  ///< Of the first scene of its text, before any scene break ("opening")
+    QList<PlannedScene> planned;  ///< The scenes in its plan ("planned"), in their order
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
     /// @brief Whether it says nothing: the file has no "plot"
     [[nodiscard]] bool isEmpty() const {
         return pov.isEmpty() && place.isEmpty() && time.isEmpty() && color.isEmpty() &&
-               opening.isEmpty() && extra.isEmpty();
+               opening.isEmpty() && planned.isEmpty() && extra.isEmpty();
     }
 
     bool operator==(const ElementPlot&) const = default;

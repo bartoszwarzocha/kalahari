@@ -42,8 +42,13 @@ struct PlotCard {
     QString partId;           ///< The part it is in; empty: outside the parts
     int number = 0;           ///< Its place among the cards of the board, from 1
     QString textId;           ///< Of a scene: its text; empty for a text
-    int scene = -1;           ///< Of a scene: its place in its text, from 0; -1 for a text
-    QList<PlotCard> scenes;   ///< Of a text with scene breaks: its scenes; none: one scene
+    int scene = -1;           ///< Of a scene: its place in its text, from 0; of a scene in the
+                              ///< plan, its place in the plan; -1 for a text
+    bool planned = false;     ///< A scene in the plan of its text (core::PlannedScene): it has
+                              ///< no text, no words and no state yet
+    QList<PlotCard> scenes;   ///< Of a text: the scenes the board shows, in their order (those
+                              ///< of a text with scene breaks, those in its plan); none: one
+                              ///< scene
 
     /// @brief Whether it is a scene of a text
     [[nodiscard]] bool isScene() const { return scene >= 0; }
@@ -93,6 +98,12 @@ public:
     /// Whether the board shows the scenes of the texts (in Grid: with their drawers open) and
     /// the outline their rows
     static constexpr const char* SCENES_SETTING = "plotBoard.showScenes";
+    /// Which scenes there are: SCENES_BOTH (the scenes of the texts and those in their plans),
+    /// SCENES_TEXT (those of the texts) or SCENES_PLAN (those in the plans only)
+    static constexpr const char* SCENES_VARIANT_SETTING = "plotBoard.scenes";
+    static constexpr const char* SCENES_BOTH = "both";  ///< The plan and the text
+    static constexpr const char* SCENES_TEXT = "text";  ///< The scenes of the texts
+    static constexpr const char* SCENES_PLAN = "plan";  ///< The scenes in the plans only
     /// The size of the cards: SIZE_SMALL, SIZE_MEDIUM or SIZE_LARGE
     static constexpr const char* SIZE_SETTING = "plotBoard.cardSize";
     static constexpr const char* SIZE_SMALL = "small";    ///< Small cards
@@ -107,13 +118,19 @@ public:
     static constexpr const char* COLOR_NONE = "none";      ///< Without colors
     /// @}
 
+    /// @brief Which scenes there are (SCENES_VARIANT_SETTING): SCENES_BOTH, SCENES_TEXT or
+    /// SCENES_PLAN
+    [[nodiscard]] static QString scenesVariant();
+
     /// @brief The texts of the main section of the open book in bands: each part with its
     /// texts, and the texts outside the parts between them, each text with its scenes; none
     /// without a book
     /// @param unsaved The texts (KML) of the open texts with changes their files do not have,
     ///        by the ids of their elements: their scenes are those of these texts
+    /// @param variant Which scenes there are (SCENES_BOTH...); empty: scenesVariant()
     [[nodiscard]] static QList<PlotBand> bandsOf(const core::ProjectManager& book,
-                                                 const QHash<QString, QString>& unsaved = {});
+                                                 const QHash<QString, QString>& unsaved = {},
+                                                 const QString& variant = QString());
 
     /// @brief The cards of the texts of @p bands one after another
     [[nodiscard]] static QList<PlotCard> cardsOf(const QList<PlotBand>& bands);
@@ -124,11 +141,54 @@ public:
     /// @brief The id of the card of scene @p scene (from 0) of text @p textId
     [[nodiscard]] static QString sceneId(const QString& textId, int scene);
 
-    /// @brief The text and the scene of card @p cardId (sceneId()); nullopt for a text's card
+    /// @brief The text and the scene of card @p cardId (sceneId()); nullopt for another card
     [[nodiscard]] static std::optional<std::pair<QString, int>> sceneOf(const QString& cardId);
+
+    /// @brief The id of the card of scene @p index (from 0) in the plan of text @p textId
+    [[nodiscard]] static QString plannedId(const QString& textId, int index);
+
+    /// @brief The text and the place in its plan of card @p cardId (plannedId()); nullopt for
+    /// another card
+    [[nodiscard]] static std::optional<std::pair<QString, int>> plannedOf(const QString& cardId);
+
+    /// @brief The text of card @p cardId: of a card of a scene, its text
+    [[nodiscard]] static QString textOf(const QString& cardId);
+
+    /// @brief A scene of a text where the board shows it: a scene of the text, or one in its
+    /// plan
+    struct SceneSlot {
+        bool planned = false;  ///< A scene in the plan
+        int index = 0;         ///< Its place among the scenes of the text, or in the plan
+
+        bool operator==(const SceneSlot&) const = default;
+    };
+
+    /// @brief The place of card @p cardId among the scenes of its text: a scene of the text
+    /// (sceneId()) or one in its plan (plannedId()); with index -1 for another card
+    [[nodiscard]] static SceneSlot slotOf(const QString& cardId);
+
+    /// @brief The id of the card of the scene of text @p textId at @p slot
+    [[nodiscard]] static QString slotId(const QString& textId, const SceneSlot& slot);
+
+    /// @brief The scenes of a text with @p written scenes and the scenes @p planned in its
+    /// plan in the order of the board: each scene in the plan after the scenes of the text it
+    /// comes after (core::PlannedScene::after), in the order of the plan
+    [[nodiscard]] static QList<SceneSlot> sceneOrder(int written,
+                                                     const QList<core::PlannedScene>& planned);
+
+    /// @brief The plan @p planned in order @p order (sceneOrder() rearranged): each scene in
+    /// the plan comes after the scenes of the text before it; without them in @p order (the
+    /// scenes in the plans only), the scenes keep the places in the text the plan had, in
+    /// their new order
+    [[nodiscard]] static QList<core::PlannedScene> planInOrder(
+        const QList<SceneSlot>& order, const QList<core::PlannedScene>& planned);
 
     /// @brief The name of scene @p scene (from 0) on its card: "Scene 1"
     [[nodiscard]] static QString sceneName(int scene);
+
+    /// @brief "In the Plan": the name and the state of a scene in the plan, among the scenes
+    /// of its text
+    [[nodiscard]] static QString plannedName();
 
     /// @brief "3 scenes" in the program's language
     [[nodiscard]] static QString scenesText(int scenes);
@@ -179,6 +239,7 @@ struct PlotColors {
     QColor draft;     ///< A text in the draft state
     QColor revision;  ///< A text in revision
     QColor finished;  ///< A finished text
+    QColor planned;   ///< A scene in the plan of its text
     QList<QColor> own;  ///< The writer's colors, in the order of ownNames()
 
     /// @brief The keys of the colors in the theme files: "plotDraft"...
@@ -196,6 +257,9 @@ struct PlotColors {
 
     /// @brief The color of status @p status; invalid for no status
     [[nodiscard]] QColor ofStatus(const QString& status) const;
+
+    /// @brief The color of the state of card @p card: of a scene in the plan, planned
+    [[nodiscard]] QColor ofStatus(const PlotCard& card) const;
 
     /// @brief The writer's color named @p name; invalid for no color
     [[nodiscard]] QColor ofOwn(const QString& name) const;

@@ -359,6 +359,8 @@ private:
     /// @brief In a grid, where "3 scenes" is on the card of a text with scenes; empty: nowhere
     [[nodiscard]] QRect scenesNoteRect(const CardPlace& place) const;
     [[nodiscard]] QString scenesNote(const PlotCard& card) const;
+    /// @brief Whether the card of @p place is a scene in the plan among scenes of its text
+    [[nodiscard]] bool isPlanBesideText(const CardPlace& place) const;
     [[nodiscard]] const CardPlace* cardAt(const QPoint& pos) const;
     [[nodiscard]] QPoint contentsPos(const QPoint& viewportPos) const;
 
@@ -370,7 +372,9 @@ private:
     void paintEmptyPart(QPainter& painter, const QRect& area) const;
     void paintDrawer(QPainter& painter, const DrawerPlace& drawer) const;
     void paintCard(QPainter& painter, const CardPlace& place) const;
-    void paintCardFrame(QPainter& painter, const PlotCard& card, const QRect& rect) const;
+    /// @param planned A scene in the plan among the scenes of its text: a dashed frame
+    void paintCardFrame(QPainter& painter, const PlotCard& card, const QRect& rect,
+                        bool planned) const;
     /// @return Where the title goes
     int paintCardHead(QPainter& painter, const PlotCard& card, const QRect& inner) const;
     /// @return The width of the state
@@ -378,8 +382,9 @@ private:
     /// @return Where the description goes
     int paintCardTitle(QPainter& painter, const PlotCard& card, const QRect& inner,
                        int top) const;
+    /// @param planned A scene in the plan among the scenes of its text: in italics
     void paintCardDescription(QPainter& painter, const PlotCard& card, const QRect& inner,
-                              int top) const;
+                              int top, bool planned) const;
     /// @return Where the line of the plot ends: before "3 scenes", else at @p right
     int paintScenesNote(QPainter& painter, const CardPlace& place, int right) const;
     void paintPlotLine(QPainter& painter, const PlotCard& card, const QRect& inner,

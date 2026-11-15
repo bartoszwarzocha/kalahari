@@ -1956,6 +1956,11 @@
             <numerusform>%n scen</numerusform>
         </translation>
     </message>
+    <message>
+        <source>In the Plan</source>
+        <extracomment>The kind and the state of a card of a scene in the plan of its text, on the plot board and in the outline. In Polish: W planie</extracomment>
+        <translation>W planie</translation>
+    </message>
 </context>
 <context>
     <name>ProgramFolders</name>
@@ -10675,6 +10680,104 @@ Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sc
         <extracomment>In Polish: usunięcie „%1”</extracomment>
         <translation>usunięcie „%1”</translation>
     </message>
+    <message>
+        <source>&quot;%1&quot; is in the plan: it gets a state once it is written.</source>
+        <extracomment>Under the plot board after a state was given to a scene in the plan; %1 the scene. In Polish: „%1” jest w planie: stan dostanie po napisaniu.</extracomment>
+        <translation>„%1” jest w planie: stan dostanie po napisaniu.</translation>
+    </message>
+    <message>
+        <source>Added a scene in the plan after &quot;%1&quot;.</source>
+        <extracomment>Under the plot board after Insert on a scene; %1 the scene. In Polish: Dodano scenę w planie za „%1”.</extracomment>
+        <translation>Dodano scenę w planie za „%1”.</translation>
+    </message>
+    <message>
+        <source>Added a scene in the plan at the end of &quot;%1&quot;.</source>
+        <extracomment>Under the plot board after Alt+Insert; %1 the title of the text. In Polish: Dodano scenę w planie na końcu „%1”.</extracomment>
+        <translation>Dodano scenę w planie na końcu „%1”.</translation>
+    </message>
+    <message>
+        <source>a scene in the plan</source>
+        <extracomment>A scene in the plan without a title in what is said under the plot board, after the title of its text (&quot;The Storm, a scene in the plan&quot;). In Polish: scena w planie</extracomment>
+        <translation>scena w planie</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is a scene of the text now.</source>
+        <extracomment>Under the plot board after Enter on a scene in the plan; %1 the scene. In Polish: „%1” jest teraz sceną tekstu.</extracomment>
+        <translation>„%1” jest teraz sceną tekstu.</translation>
+    </message>
+    <message>
+        <source>writing &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the scene. In Polish: napisanie „%1”</extracomment>
+        <translation>napisanie „%1”</translation>
+    </message>
+    <message>
+        <source>adding a scene to the plan of &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of the text. In Polish: dodanie sceny do planu „%1”</extracomment>
+        <translation>dodanie sceny do planu „%1”</translation>
+    </message>
+    <message>
+        <source>Deleted &quot;%1&quot; from the plan.</source>
+        <extracomment>Under the plot board after Delete on a scene in the plan; %1 the scene. In Polish: Usunięto „%1” z planu.</extracomment>
+        <translation>Usunięto „%1” z planu.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; moved to &quot;%2&quot;.</source>
+        <extracomment>Under the plot board after a scene in the plan moved to another text; %1 the scene, %2 the title of the text. In Polish: „%1” przeniesiono do „%2”.</extracomment>
+        <translation>„%1” przeniesiono do „%2”.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is in the first text of the board.</source>
+        <extracomment>Under the plot board: a scene in the plan of the first text moved back; %1 the scene. In Polish: „%1” jest w pierwszym tekście tablicy.</extracomment>
+        <translation>„%1” jest w pierwszym tekście tablicy.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is in the last text of the board.</source>
+        <extracomment>In Polish: „%1” jest w ostatnim tekście tablicy.</extracomment>
+        <translation>„%1” jest w ostatnim tekście tablicy.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PlotBoardPage</name>
+    <message>
+        <source>Scenes</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Sceny</extracomment>
+        <translation>Sceny</translation>
+    </message>
+    <message>
+        <source>of the texts and in their plans</source>
+        <extracomment>Which scenes the plot board shows. In Polish: tekstów i w ich planach</extracomment>
+        <translation>tekstów i w ich planach</translation>
+    </message>
+    <message>
+        <source>of the texts only</source>
+        <extracomment>In Polish: tylko tekstów</extracomment>
+        <translation>tylko tekstów</translation>
+    </message>
+    <message>
+        <source>in the plans only</source>
+        <extracomment>In Polish: tylko w planach</extracomment>
+        <translation>tylko w planach</translation>
+    </message>
+    <message>
+        <source>Scenes on the board:</source>
+        <extracomment>In Polish: Sceny na tablicy:</extracomment>
+        <translation>Sceny na tablicy:</translation>
+    </message>
+    <message>
+        <source>The scenes of a text are its parts between the scene breaks (Insert &gt; Scene Break): moving a card moves the text of the scene. The scenes in the plan are only in the file of the book, in a dashed frame: they have no text, no words and no state, and Enter on such a card beside the scenes of the text puts a scene break with its description at its place and opens the text there.</source>
+        <extracomment>The note under the choice of the scenes. In Polish: Sceny tekstu to jego fragmenty między podziałami sceny (Wstaw &gt; Podział sceny): przeniesienie karty przenosi tekst sceny. Sceny w planie są tylko w pliku książki, w przerywanej ramce: nie mają tekstu, słów ani stanu, a Enter na takiej karcie obok scen tekstu wstawia w jej miejscu podział sceny z jej opisem i otwiera tam tekst.</extracomment>
+        <translation>Sceny tekstu to jego fragmenty między podziałami sceny (Wstaw &gt; Podział sceny): przeniesienie karty przenosi tekst sceny. Sceny w planie są tylko w pliku książki, w przerywanej ramce: nie mają tekstu, słów ani stanu, a Enter na takiej karcie obok scen tekstu wstawia w jej miejscu podział sceny z jej opisem i otwiera tam tekst.</translation>
+    </message>
+    <message>
+        <source>Colors of the Cards</source>
+        <extracomment>A group of Settings &gt; Plot Board. In Polish: Kolory kart</extracomment>
+        <translation>Kolory kart</translation>
+    </message>
+    <message>
+        <source>The colors of the states of the texts, of the scenes in the plan and the own colors of the cards. Each theme has its own colors: these are the colors of the current theme.</source>
+        <extracomment>In Polish: Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</extracomment>
+        <translation>Kolory stanów tekstów, scen w planie i własne kolory kart. Każdy motyw ma swoje kolory: to są kolory bieżącego motywu.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardPanel</name>
@@ -10835,6 +10938,26 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <extracomment>The menu of the card of a scene. In Polish: &amp;Usuń scenę…</extracomment>
         <translation>&amp;Usuń scenę…</translation>
     </message>
+    <message>
+        <source>&amp;New Scene in the Plan After It</source>
+        <extracomment>A new scene in the plan of the text, right after the card of a scene. In Polish: &amp;Nowa scena w planie za nią</extracomment>
+        <translation>&amp;Nowa scena w planie za nią</translation>
+    </message>
+    <message>
+        <source>New Scene in the Plan &amp;at the End of the Text</source>
+        <extracomment>A new scene at the end of the plan of the text of the card. In Polish: Nowa scena w planie n&amp;a końcu tekstu</extracomment>
+        <translation>Nowa scena w planie n&amp;a końcu tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Write the Scene</source>
+        <extracomment>The menu of a card of a scene in the plan: a scene break with what it says at its place in the text. In Polish: Na&amp;pisz scenę</extracomment>
+        <translation>Na&amp;pisz scenę</translation>
+    </message>
+    <message>
+        <source>&amp;Delete from the Plan</source>
+        <extracomment>The menu of the card of a scene in the plan. In Polish: &amp;Usuń z planu</extracomment>
+        <translation>&amp;Usuń z planu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::PlotBoardView</name>
@@ -10887,6 +11010,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>Scenes – %1</source>
         <extracomment>Over the scenes of a text in its drawer on the plot board; %1 the title of the text. In Polish: Sceny – %1</extracomment>
         <translation>Sceny – %1</translation>
+    </message>
+    <message>
+        <source>Enter writes it in the text</source>
+        <extracomment>Read by the screen reader on a card of a scene in the plan beside the scenes of its text, after &quot;In the Plan: The Storm&quot;. In Polish: Enter wpisuje ją do tekstu</extracomment>
+        <translation>Enter wpisuje ją do tekstu</translation>
     </message>
 </context>
 <context>
@@ -11818,6 +11946,11 @@ Folder kopii zapasowych bazy i liczbę zachowywanych kopii ustawisz na stronie �
         <source>Images</source>
         <extracomment>Settings &gt; Editor &gt; Images: new images, the captions of new books. In Polish: Obrazy</extracomment>
         <translation>Obrazy</translation>
+    </message>
+    <message>
+        <source>Plot Board</source>
+        <extracomment>Settings &gt; Plot Board: the scenes on the board, the colors of the cards. In Polish: Tablica fabuły</extracomment>
+        <translation>Tablica fabuły</translation>
     </message>
 </context>
 <context>

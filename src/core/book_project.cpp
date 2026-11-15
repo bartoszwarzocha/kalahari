@@ -389,6 +389,45 @@ void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = coverFields.rest();
 }
 
+/// What a scene says (the first scene of a text, a scene in the plan), from the fields of
+/// @p fields that have it; the fields this version does not know are kept
+ScenePlot readScenePlot(Fields& fields) {
+    QMap<QString, QString> attributes;
+    for (const SceneField& field : SCENE_FIELDS) {
+        if (const QString value = fields.string(field.key); !value.isEmpty()) {
+            attributes.insert(QLatin1String(field.key), value);
+        }
+    }
+    ScenePlot plot = ScenePlot::fromAttributes(attributes);
+    plot.extra = fields.rest();
+    return plot;
+}
+
+/// The scenes in the plan of a text, from list @p planned of field @p field
+QList<PlannedScene> readPlanned(const QJsonArray& planned, const QString& field,
+                                QStringList& problems) {
+    QList<PlannedScene> scenes;
+    for (qsizetype i = 0; i < planned.size(); ++i) {
+        const QString itemField = QStringLiteral("%1[%2]").arg(field).arg(i);
+        if (!planned.at(i).isObject()) {
+            addProblem(problems, itemField, QStringLiteral("must be an object"));
+            continue;
+        }
+        Fields sceneFields(planned.at(i).toObject(), itemField, problems);
+        PlannedScene scene;
+        if (const QJsonValue after = sceneFields.take("after"); !after.isUndefined()) {
+            scene.after = isWholeNumber(after) ? after.toInt(-1) : -1;
+            if (scene.after < 0) {
+                sceneFields.problem("after", QStringLiteral("must be a whole number, 0 or more"));
+                scene.after = 0;
+            }
+        }
+        scene.plot = readScenePlot(sceneFields);
+        scenes << scene;
+    }
+    return scenes;
+}
+
 /// What the plot board says of a text of a book, with the fields of "plot" this version does
 /// not know
 void readPlot(Fields& fields, ProjectElement& element, QStringList& problems) {
@@ -409,17 +448,11 @@ void readPlot(Fields& fields, ProjectElement& element, QStringList& problems) {
     // The first scene of the text, before any scene break
     if (const QJsonValue opening = plotFields.take("opening"); opening.isObject()) {
         Fields openingFields(opening.toObject(), plotFields.path("opening"), problems);
-        QMap<QString, QString> attributes;
-        for (const SceneField& field : SCENE_FIELDS) {
-            if (const QString value = openingFields.string(field.key); !value.isEmpty()) {
-                attributes.insert(QLatin1String(field.key), value);
-            }
-        }
-        data.opening = ScenePlot::fromAttributes(attributes);
-        data.opening.extra = openingFields.rest();
+        data.opening = readScenePlot(openingFields);
     } else if (!opening.isUndefined()) {
         plotFields.problem("opening", QStringLiteral("must be an object"));
     }
+    data.planned = readPlanned(plotFields.array("planned"), plotFields.path("planned"), problems);
     data.extra = plotFields.rest();
 }
 
@@ -752,6 +785,43 @@ QString dateTimeText(const QDateTime& time) {
 
 QJsonArray elementsToJson(const QList<ProjectElement>& elements);
 
+/// What a scene says (the first scene of a text, a scene in the plan), with the fields this
+/// version does not know
+QJsonObject scenePlotToJson(const ScenePlot& plot) {
+    QJsonObject json = plot.extra;
+    const QMap<QString, QString> attributes = plot.toAttributes();
+    for (const SceneField& field : SCENE_FIELDS) {
+        setOrRemove(json, field.key, attributes.value(QLatin1String(field.key)));
+    }
+    return json;
+}
+
+/// What the plot board says of a text ("plot"), with the fields this version does not know
+QJsonObject plotToJson(const ElementPlot& plot) {
+    QJsonObject json = plot.extra;
+    setOrRemove(json, "pov", plot.pov);
+    setOrRemove(json, "place", plot.place);
+    setOrRemove(json, "time", plot.time);
+    setOrRemove(json, "color", plot.color);
+    if (plot.opening.isEmpty()) {
+        json.remove(QLatin1String("opening"));
+    } else {
+        json.insert(QLatin1String("opening"), scenePlotToJson(plot.opening));
+    }
+    if (plot.planned.isEmpty()) {
+        json.remove(QLatin1String("planned"));
+    } else {
+        QJsonArray planned;
+        for (const PlannedScene& scene : plot.planned) {
+            QJsonObject item = scenePlotToJson(scene.plot);
+            item.insert(QLatin1String("after"), scene.after);
+            planned.append(item);
+        }
+        json.insert(QLatin1String("planned"), planned);
+    }
+    return json;
+}
+
 QJsonObject elementToJson(const ProjectElement& element) {
     QJsonObject json = element.extra;
     json.insert(QLatin1String("id"), element.id);
@@ -842,26 +912,10 @@ QJsonObject elementToJson(const ProjectElement& element) {
         }
         json.insert(QLatin1String("cover"), data);
     }
-    const ElementPlot& plot = element.plot;
-    if (plot.isEmpty()) {
+    if (element.plot.isEmpty()) {
         json.remove(QLatin1String("plot"));
     } else {
-        QJsonObject data = plot.extra;
-        setOrRemove(data, "pov", plot.pov);
-        setOrRemove(data, "place", plot.place);
-        setOrRemove(data, "time", plot.time);
-        setOrRemove(data, "color", plot.color);
-        if (plot.opening.isEmpty()) {
-            data.remove(QLatin1String("opening"));
-        } else {
-            QJsonObject opening = plot.opening.extra;
-            const QMap<QString, QString> attributes = plot.opening.toAttributes();
-            for (const SceneField& field : SCENE_FIELDS) {
-                setOrRemove(opening, field.key, attributes.value(QLatin1String(field.key)));
-            }
-            data.insert(QLatin1String("opening"), opening);
-        }
-        json.insert(QLatin1String("plot"), data);
+        json.insert(QLatin1String("plot"), plotToJson(element.plot));
     }
     return json;
 }

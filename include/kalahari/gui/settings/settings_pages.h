@@ -431,6 +431,15 @@ private:
     void addCardSettings();
 };
 
+/// @brief Plot Board: which scenes the plot board and the outline show (those of the texts,
+/// those in their plans, or both: PlotBoard::SCENES_VARIANT_SETTING) and the colors of the
+/// cards in the theme
+class PlotBoardPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit PlotBoardPage(QWidget* parent = nullptr);
+};
+
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
 /// what the top of the Add Element window chooses from, what the Materials show and where a
 /// list of materials opens, how a material opens, and whether its links name paragraphs; the

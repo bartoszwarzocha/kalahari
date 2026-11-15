@@ -63,6 +63,8 @@ public:
 
     /// @brief Show @p bands on the board and in the outline
     void setBands(const QList<PlotBand>& bands);
+    /// @brief The bands shown
+    [[nodiscard]] const QList<PlotBand>& bands() const { return m_bands; }
 
     /// @brief Whether the book is open read-only: nothing can be changed
     void setReadOnly(bool readOnly);
@@ -155,6 +157,9 @@ signals:
     void redoRequested();
     /// @brief Show the text in the Properties panel with the keys there (Alt+Enter)
     void propertiesRequested(const QString& elementId);
+    /// @brief The settings show other scenes (PlotBoard::SCENES_VARIANT_SETTING): the board is
+    /// to be filled again
+    void scenesVariantChanged();
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -211,6 +216,8 @@ private:
     QStringList m_povs;
     QStringList m_places;
     int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
+    /// Which scenes the settings showed last (PlotBoard::scenesVariant())
+    QString m_scenesVariant;
 };
 
 }  // namespace kalahari::gui

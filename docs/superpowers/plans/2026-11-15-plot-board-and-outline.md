@@ -91,16 +91,43 @@ break only (Keep the Text: its text joins the scene before it). One undo step on
   its text, and a move across two texts, one open and one closed, needs one undo step of both; that
   comes with 2c.
 
-### 2c – scenes in the plan
+### 2c – scenes in the plan (done; a scene of a text moved to another text: next)
 
 Variant C (default): planned scenes beside the scenes of the text, with a dashed frame, in the `.klh`
 file; Enter on a planned scene ("Write the Scene") puts a scene break with its fields at its place in
 the text and opens the text there. Variant A (only the scenes of the text) and B (only planned scenes)
 in Settings > Plot Board (`plotBoard.scenes`).
 
+- **The book** (`core`): `ElementPlot::planned`, a list of `PlannedScene` (a `ScenePlot` without a
+  state and `after`, how many scenes of the text come before it), in the `.klh` file as
+  `"plot": { "planned": [ {…, "after": 2} ] }`; `ChapterDocument::withSceneAdded()` takes the fields of
+  the new scene.
+- **The order**: `PlotBoard::sceneOrder()` puts each scene in the plan after the scenes of the text it
+  comes after, in the order of the plan; `planInOrder()` gives the plan of an order rearranged (each
+  scene after the scenes of the text before it; without them, in B, the places the plan had). A card of
+  a scene in the plan is `<text>#p<n>`.
+- **The board**: in C a scene in the plan is "In the Plan", in a dashed frame, lighter than the
+  scenes written, its description in italics, without words and a state; colored by state, it has the
+  color of the plan (`editor.plotPlanned`). In B the scenes of the plan are "Scene 1"… with a full
+  frame, without words and a state. Insert adds a scene in the plan after a
+  scene (Insert on the card of a text still adds a text), Alt+Insert one at the end of the text; F2 and
+  the color change it; Ctrl with the arrows, Ctrl+X and Ctrl+V and the mouse move it among the scenes
+  of its text, and to another text (Ctrl with the arrows across the texts: to the end of the text
+  before, to the start of the text after); Delete deletes it at once; a state is not given to it.
+  A scene of the text moved past a scene in the plan changes only the plan; moved past a scene of the
+  text, the text, and the plan keeps the places of its scenes. Enter in C writes it (in a text not
+  written yet, the first scene in the plan is the text itself), in B opens the text. Each of these is
+  one Ctrl+Z on the board.
+- **The outline**: a row of each scene in the plan ("–" for the number and the words, the state "In
+  the Plan", in italics in C), edited in its cells.
+- **Settings > Plot Board**: the scenes (`plotBoard.scenes`: `both`, `text`, `plan`) and the colors of
+  the cards of the theme (the states, the scenes in the plan, the own colors).
+- **Next (2c-2)**: a scene of a text moved to another text with its annotations, one undo step across
+  an open and a closed text.
+
 ## Stage 3 – settings and the other panels
 
-Settings > Plot Board: the colors per theme, the fields of the cards, the front and back sections, the
+Settings > Plot Board (the page came with 2c, with the scenes and the colors): the fields of the cards, the front and back sections, the
 renumbering of "Chapter N" after a move; the plot fields in the Properties panel; "Show on the Plot Board"
 in the Navigator; Edit > Undo and Redo of the menu working on the board.
 

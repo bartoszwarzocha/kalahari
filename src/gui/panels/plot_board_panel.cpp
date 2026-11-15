@@ -161,6 +161,66 @@ const Request* requestOf(const std::array<Request, COUNT>& requests, Key key) {
     return nullptr;
 }
 
+/// @brief What the items of the menu of a card say, by what the card is
+struct CardMenuTexts {
+    QString open;         ///< Return
+    bool writes = false;  ///< Return writes a scene in the plan in its text
+    QString add;          ///< Insert
+    QString addAtEnd;     ///< Alt+Insert
+    QString remove;       ///< Delete
+};
+
+/// @brief What Insert and Alt+Insert on card @p card say
+void addTextsOf(const std::optional<PlotCard>& card, CardMenuTexts& texts) {
+    if (PlotBoard::scenesVariant() == QLatin1String(PlotBoard::SCENES_TEXT)) {
+        texts.add = card && card->isScene()
+                        //: A new scene right after the card of a scene. In Polish: &Nowa scena
+                        //: za nią
+                        ? PlotBoardPanel::tr("&New Scene After It")
+                        //: A new text of the same kind right after the card. In Polish: &Nowa
+                        //: karta za nią
+                        : PlotBoardPanel::tr("&New Card After It");
+        //: A new scene at the end of the text of the card. In Polish: Nowa scena n&a końcu
+        //: tekstu
+        texts.addAtEnd = PlotBoardPanel::tr("New Scene &at the End of the Text");
+        return;
+    }
+    texts.add = card && card->isScene()
+                    //: A new scene in the plan of the text, right after the card of a scene.
+                    //: In Polish: &Nowa scena w planie za nią
+                    ? PlotBoardPanel::tr("&New Scene in the Plan After It")
+                    : PlotBoardPanel::tr("&New Card After It");
+    //: A new scene at the end of the plan of the text of the card. In Polish: Nowa scena w
+    //: planie n&a końcu tekstu
+    texts.addAtEnd = PlotBoardPanel::tr("New Scene in the Plan &at the End of the Text");
+}
+
+/// @brief What the items of the menu of card @p card say
+CardMenuTexts menuTextsOf(const std::optional<PlotCard>& card) {
+    CardMenuTexts texts;
+    const bool planned = card && card->planned;
+    texts.writes =
+        planned && PlotBoard::scenesVariant() == QLatin1String(PlotBoard::SCENES_BOTH);
+    texts.open = texts.writes
+                     //: The menu of a card of a scene in the plan: a scene break with what it
+                     //: says at its place in the text. In Polish: Na&pisz scenę
+                     ? PlotBoardPanel::tr("&Write the Scene")
+                     //: The menu of a card of the plot board. In Polish: &Otwórz
+                     : PlotBoardPanel::tr("&Open");
+    addTextsOf(card, texts);
+    if (planned) {
+        //: The menu of the card of a scene in the plan. In Polish: &Usuń z planu
+        texts.remove = PlotBoardPanel::tr("&Delete from the Plan");
+    } else {
+        texts.remove = card && card->isScene()
+                           //: The menu of the card of a scene. In Polish: &Usuń scenę…
+                           ? PlotBoardPanel::tr("&Delete Scene...")
+                           //: In Polish: &Usuń z książki…
+                           : PlotBoardPanel::tr("&Delete from Book...");
+    }
+    return texts;
+}
+
 }  // namespace
 
 PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
@@ -522,6 +582,14 @@ void PlotBoardPanel::applySettings() {
     m_board->setShowScenes(scenes);
     m_model->setShowScenes(scenes);
     updateSwitches();
+    // Other scenes are other cards
+    if (const QString variant = PlotBoard::scenesVariant(); variant != m_scenesVariant) {
+        const bool changed = !m_scenesVariant.isEmpty();
+        m_scenesVariant = variant;
+        if (changed) {
+            emit scenesVariantChanged();
+        }
+    }
 }
 
 void PlotBoardPanel::updateSwitches() {
@@ -629,24 +697,15 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
     const std::optional<PlotCard> found = card(elementId);
     const bool shown = found.has_value();
     const bool changing = shown && !m_readOnly;
-    const bool scene = shown && found->isScene();
-    //: The menu of a card of the plot board. In Polish: &Otwórz
-    addMenuAction(tr("&Open"), QStringLiteral("Return"), shown,
+    const CardMenuTexts texts = menuTextsOf(found);
+    addMenuAction(texts.open, QStringLiteral("Return"), shown && (!texts.writes || !m_readOnly),
                   [this, elementId]() { emit openRequested(elementId); });
     //: In Polish: &Edytuj kartę
     addMenuAction(tr("&Edit Card"), QStringLiteral("F2"), changing,
                   [this, elementId]() { editCard(elementId); });
-    addMenuAction(scene
-                      //: A new scene right after the card of a scene. In Polish: &Nowa scena za
-                      //: nią
-                      ? tr("&New Scene After It")
-                      //: A new text of the same kind right after the card. In Polish: &Nowa
-                      //: karta za nią
-                      : tr("&New Card After It"),
-                  QStringLiteral("Ins"), !m_readOnly,
+    addMenuAction(texts.add, QStringLiteral("Ins"), !m_readOnly,
                   [this, elementId]() { emit addRequested(elementId); });
-    //: A new scene at the end of the text of the card. In Polish: Nowa scena n&a końcu tekstu
-    addMenuAction(tr("New Scene &at the End of the Text"), QStringLiteral("Alt+Ins"), changing,
+    addMenuAction(texts.addAtEnd, QStringLiteral("Alt+Ins"), changing,
                   [this, elementId]() { emit addSceneRequested(elementId); });
     m_menu->addSeparator();
     //: In Polish: Wy&tnij
@@ -660,12 +719,7 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
     addStateMenu(elementId, found);
     addColorMenu(elementId, found);
     m_menu->addSeparator();
-    addMenuAction(scene
-                      //: The menu of the card of a scene. In Polish: &Usuń scenę…
-                      ? tr("&Delete Scene...")
-                      //: In Polish: &Usuń z książki…
-                      : tr("&Delete from Book..."),
-                  QStringLiteral("Del"), changing,
+    addMenuAction(texts.remove, QStringLiteral("Del"), changing,
                   [this, elementId]() { emit deleteRequested(elementId); });
     //: In Polish: &Właściwości
     addMenuAction(tr("P&roperties"), QStringLiteral("Alt+Return"), shown,
@@ -676,7 +730,8 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
 void PlotBoardPanel::addStateMenu(const QString& elementId, const std::optional<PlotCard>& found) {
     //: In Polish: &Stan
     QMenu* states = m_menu->addMenu(tr("&State"));
-    states->setEnabled(found.has_value() && !m_readOnly);
+    // A scene in the plan gets a state once it is written
+    states->setEnabled(found.has_value() && !m_readOnly && !found->planned);
     const QString current = found.has_value() ? found->status : QString();
     auto* group = new QActionGroup(states);
     group->setExclusive(true);

@@ -444,6 +444,32 @@ TEST_CASE("Settings dialog: the Annotations page has the author and the size of 
     }
 }
 
+TEST_CASE("Settings dialog: the Plot Board page chooses the scenes of the board",
+          "[gui][settings][plotboard]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const auto before = settings.get<std::string>("plotBoard.scenes", "both");
+    settings.set<std::string>("plotBoard.scenes", "both");
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Plot Board"));
+    auto* scenes = dialog.findChild<QComboBox*>(QStringLiteral("plotBoardScenes"));
+    REQUIRE(scenes != nullptr);
+    CHECK(scenes->currentData().toString() == QStringLiteral("both"));
+    CHECK(scenes->count() == 3);
+    CHECK_FALSE(dialog.hasChanges());
+
+    scenes->setCurrentIndex(scenes->findData(QStringLiteral("plan")));
+    CHECK(dialog.hasChanges());
+    CHECK(dialog.applyChanges() == QStringList{QStringLiteral("plotBoard.scenes")});
+    CHECK(settings.get<std::string>("plotBoard.scenes") == "plan");
+    // The colors of the cards are those of the theme
+    auto* stack = dialog.findChild<QStackedWidget*>();
+    REQUIRE(stack != nullptr);
+    CHECK(stack->currentWidget()->findChildren<kalahari::gui::ColorConfigWidget*>().size() == 10);
+
+    settings.set<std::string>("plotBoard.scenes", before);
+}
+
 TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in the menus",
           "[gui][settings]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();

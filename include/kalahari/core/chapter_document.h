@@ -287,8 +287,9 @@ public:
     static std::optional<SceneText> withSceneMoved(const SceneText& text, int from, int to);
 
     /// @brief @p text with a new scene with an empty paragraph at place @p at of its scenes
-    ///        (0: the first, the number of its scenes: the last)
-    static std::optional<SceneText> withSceneAdded(const SceneText& text, int at);
+    ///        (0: the first, the number of its scenes: the last), saying @p plot
+    static std::optional<SceneText> withSceneAdded(const SceneText& text, int at,
+                                                   const ScenePlot& plot = {});
 
     /// @brief @p text without scene @p scene: with its text, or (@p keepText) without its
     ///        break, its text joined to the scene before it (the first scene: the next one

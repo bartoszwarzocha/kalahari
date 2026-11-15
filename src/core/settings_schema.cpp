@@ -230,12 +230,14 @@ std::map<std::string, json> buildDefaults() {
         // "medium", "large"); what colors them: the state ("status"), the point of view
         // ("pov"), the writer's own colors ("own") or nothing ("none"); whether the board
         // shows the scenes of the texts (in a grid: with their drawers open) and the outline
-        // their rows
+        // their rows; which scenes there are: those of the texts and those in their plans
+        // ("both"), those of the texts ("text") or those in the plans only ("plan")
         {"plotBoard.view", "board"},
         {"plotBoard.layout", "columns"},
         {"plotBoard.cardSize", "medium"},
         {"plotBoard.colorBy", "status"},
         {"plotBoard.showScenes", true},
+        {"plotBoard.scenes", "both"},
 
         // New projects
         {"project.defaultAuthor", ""},

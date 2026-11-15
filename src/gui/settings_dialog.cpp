@@ -149,6 +149,10 @@ void SettingsDialog::createNavigationTree() {
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     m_pageItems[NAVIGATOR_PAGE] =
         addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    //: Settings > Plot Board: the scenes on the board, the colors of the cards. In Polish:
+    //: Tablica fabuły
+    m_pageItems[PLOT_BOARD_PAGE] =
+        addPage(nullptr, tr("Plot Board"), []() { return new PlotBoardPage(); });
     //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
     //: and the colors. In Polish: Statystyki i cele
     QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));

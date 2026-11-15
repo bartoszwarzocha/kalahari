@@ -28,6 +28,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QFont>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMenu>
@@ -40,8 +41,10 @@
 #include <algorithm>
 #include <cstdio>
 #include <functional>
+#include <initializer_list>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "test_support/window_parts.h"
 
@@ -281,6 +284,7 @@ bool answering(const std::function<void()>& command, gui::dialogs::MessageDialog
 struct StormBoard {
     KeptSetting view{PlotBoard::VIEW_SETTING};
     KeptSetting layout{PlotBoard::LAYOUT_SETTING};
+    KeptSetting variant{PlotBoard::SCENES_VARIANT_SETTING};
     KeptSwitch scenes{PlotBoard::SCENES_SETTING};
     PlotNovel book;
     core::ProjectManager& pm = book.pm;
@@ -294,9 +298,11 @@ struct StormBoard {
     gui::PlotBoardPanel* panel = nullptr;
     gui::PlotBoardView* board = nullptr;
 
-    StormBoard() {
+    /// @param scenesVariant Which scenes there are (PlotBoard::SCENES_TEXT...)
+    explicit StormBoard(const char* scenesVariant = PlotBoard::SCENES_TEXT) {
         auto& settings = core::SettingsManager::getInstance();
         settings.set<std::string>(PlotBoard::LAYOUT_SETTING, PlotBoard::LAYOUT_COLUMNS);
+        settings.set<std::string>(PlotBoard::SCENES_VARIANT_SETTING, scenesVariant);
         settings.set<bool>(PlotBoard::SCENES_SETTING, true);
         pm.setChapterContent(storm, QString::fromLatin1(STORM_SCENES));
         REQUIRE(pm.saveChapterContent(storm));
@@ -1119,5 +1125,311 @@ TEST_CASE("Plot board: the scenes of a text moved, added and deleted on the boar
         CHECK(answering([outline]() { press(outline, Qt::Key_Delete); },
                         MessageDialog::Answer::Accept));
         CHECK(s.words() == "2 1 0");
+    }
+}
+
+namespace {
+
+/// The places in the text of the scenes in plan @p plan: "0 1 1 3"
+std::string aftersOf(const QList<core::PlannedScene>& plan) {
+    QStringList shown;
+    for (const core::PlannedScene& scene : plan) {
+        shown << QString::number(scene.after);
+    }
+    return shown.join(QLatin1Char(' ')).toStdString();
+}
+
+/// A plan of scenes after @p afters scenes of their text, titled "P0", "P1"...
+QList<core::PlannedScene> planOf(std::initializer_list<int> afters) {
+    QList<core::PlannedScene> plan;
+    for (const int after : afters) {
+        core::PlannedScene scene;
+        scene.after = after;
+        scene.plot.title = QStringLiteral("P%1").arg(plan.size());
+        plan << scene;
+    }
+    return plan;
+}
+
+/// The kinds of the scene cards of text @p textId on @p board ("Scene 1, In the Plan")
+std::string shownKinds(const gui::PlotBoardView& board, const QString& textId) {
+    QStringList shown;
+    for (const PlotCard& card : PlotBoard::cardsOf(board.bands())) {
+        for (const PlotCard& scene : card.id == textId ? card.scenes : QList<PlotCard>()) {
+            shown << (scene.title.isEmpty() ? scene.kindName
+                                            : QStringLiteral("%1 %2").arg(scene.kindName,
+                                                                          scene.title));
+        }
+    }
+    return shown.join(QStringLiteral(", ")).toStdString();
+}
+
+/// Give text @p textId of @p pm plan @p plan, as the .klh file has it
+void setPlan(core::ProjectManager& pm, const QString& textId,
+             const QList<core::PlannedScene>& plan) {
+    const core::ProjectElement* element = pm.findElement(textId);
+    REQUIRE(element != nullptr);
+    core::ElementPlot plot = element->plot;
+    plot.planned = plan;
+    REQUIRE(pm.setPlot(textId, element->description, plot));
+    // The board fills itself again a moment later
+    QCoreApplication::processEvents();
+}
+
+}  // namespace
+
+TEST_CASE("Plot board: the order of the scenes of a text and of those in its plan",
+          "[gui][plotboard][plan]") {
+    using Slot = PlotBoard::SceneSlot;
+    // One at the start of the text, two after its first scene, one beyond its end
+    const QList<core::PlannedScene> plan = planOf({1, 0, 1, 9});
+    QList<Slot> order = PlotBoard::sceneOrder(3, plan);
+    CHECK(order == QList<Slot>{{.planned = true, .index = 1}, {.planned = false, .index = 0},
+                               {.planned = true, .index = 0}, {.planned = true, .index = 2},
+                               {.planned = false, .index = 1}, {.planned = false, .index = 2},
+                               {.planned = true, .index = 3}});
+    // The plan in the order of the board: each scene after the scenes of the text before it
+    CHECK(aftersOf(PlotBoard::planInOrder(order, plan)) == "0 1 1 3");
+    order.move(6, 0);
+    const QList<core::PlannedScene> moved = PlotBoard::planInOrder(order, plan);
+    CHECK(aftersOf(moved) == "0 0 1 1");
+    CHECK(moved.at(0).plot.title == QStringLiteral("P3"));
+
+    // Without the scenes of the text, the places of the plan in their new order
+    QList<Slot> planOnly = PlotBoard::sceneOrder(0, plan);
+    CHECK(planOnly == QList<Slot>{{.planned = true, .index = 0}, {.planned = true, .index = 1},
+                                  {.planned = true, .index = 2}, {.planned = true, .index = 3}});
+    planOnly.move(3, 0);
+    const QList<core::PlannedScene> reordered = PlotBoard::planInOrder(planOnly, plan);
+    CHECK(aftersOf(reordered) == "0 1 1 9");
+    CHECK(reordered.at(0).plot.title == QStringLiteral("P3"));
+
+    // The ids of the cards
+    const QString planned = PlotBoard::plannedId(QStringLiteral("t1"), 2);
+    CHECK(PlotBoard::plannedOf(planned) == std::make_pair(QStringLiteral("t1"), 2));
+    CHECK_FALSE(PlotBoard::sceneOf(planned).has_value());
+    CHECK_FALSE(PlotBoard::plannedOf(PlotBoard::sceneId(QStringLiteral("t1"), 2)).has_value());
+    CHECK(PlotBoard::textOf(planned) == QStringLiteral("t1"));
+    CHECK(PlotBoard::textOf(QStringLiteral("t1")) == QStringLiteral("t1"));
+    CHECK(PlotBoard::slotOf(planned) == Slot{.planned = true, .index = 2});
+    CHECK(PlotBoard::slotOf(QStringLiteral("t1")).index == -1);
+    CHECK(PlotBoard::slotId(QStringLiteral("t1"), Slot{.planned = true, .index = 2}) == planned);
+}
+
+TEST_CASE("Plot board: the scenes in the plans of the texts on the board",
+          "[gui][plotboard][scenes][plan]") {
+    gui::registerAllIcons();
+    StormBoard s(PlotBoard::SCENES_BOTH);
+    auto& pm = s.pm;
+    auto& settings = core::SettingsManager::getInstance();
+    const QString& storm = s.storm;
+    const QString& calm = s.book.calm;
+    gui::PlotBoardPanel* panel = s.panel;
+    gui::PlotBoardView* board = s.board;
+    const auto plan = [&pm, &storm]() { return pm.findElement(storm)->plot.planned; };
+    const auto setVariant = [&settings](const char* variant) {
+        settings.set<std::string>(PlotBoard::SCENES_VARIANT_SETTING, variant);
+        // The board follows the setting a moment later
+        QCoreApplication::processEvents();
+        QCoreApplication::processEvents();
+    };
+
+    SECTION("the variants show the scenes of the text, those in its plan, or both") {
+        setPlan(pm, storm, planOf({1, 9}));
+        CHECK(shownKinds(*board, storm) ==
+              "Scene 1, In the Plan P0, Scene 2 Night, Scene 3, In the Plan P1");
+        const PlotCard card = cardOf(storm);
+        REQUIRE(card.scenes.size() == 5);
+        CHECK(card.scenes.at(1).planned);
+        CHECK(card.scenes.at(1).id == PlotBoard::plannedId(storm, 0));
+        CHECK(card.scenes.at(1).words == 0);
+        // A text of one scene shows it beside its plan
+        setPlan(pm, calm, planOf({0}));
+        CHECK(shownKinds(*board, calm) == "In the Plan P0, Scene 1");
+
+        setVariant(PlotBoard::SCENES_TEXT);
+        CHECK(shownKinds(*board, storm) == "Scene 1, Scene 2 Night, Scene 3");
+        CHECK(shownKinds(*board, calm).empty());
+        setVariant(PlotBoard::SCENES_PLAN);
+        CHECK(shownKinds(*board, storm) == "Scene 1 P0, Scene 2 P1");
+        CHECK(shownKinds(*board, calm) == "Scene 1 P0");
+        setVariant(PlotBoard::SCENES_BOTH);
+        CHECK(shownKinds(*board, storm) ==
+              "Scene 1, In the Plan P0, Scene 2 Night, Scene 3, In the Plan P1");
+    }
+
+    SECTION("Insert adds a scene in the plan and edits its card, Ctrl+Z undoes it") {
+        REQUIRE(board->setCurrentCard(s.night));
+        press(board, Qt::Key_Insert);
+        REQUIRE(plan().size() == 1);
+        CHECK(plan().at(0).after == 2);
+        const QString added = PlotBoard::plannedId(storm, 0);
+        CHECK(board->currentCard() == added);
+        CHECK(panel->message() == QStringLiteral("Added a scene in the plan after \"Night\"."));
+        // The text stays as it is
+        CHECK(s.words() == "2 3 1");
+        const gui::PlotCardEditor* editor = board->cardEditor();
+        REQUIRE(editor != nullptr);
+        editor->titleEdit()->setText(QStringLiteral("Dawn"));
+        press(editor->titleEdit(), Qt::Key_Return, Qt::ControlModifier);
+        CHECK(plan().at(0).plot.title == QStringLiteral("Dawn"));
+        CHECK(shownKinds(*board, storm) == "Scene 1, Scene 2 Night, In the Plan Dawn, Scene 3");
+
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(plan().at(0).plot.title.isEmpty());
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(plan().isEmpty());
+        CHECK(panel->message() ==
+              QStringLiteral("Undone: adding a scene to the plan of \"The Storm\"."));
+        press(board, Qt::Key_Y, Qt::ControlModifier);
+        press(board, Qt::Key_Y, Qt::ControlModifier);
+        CHECK(plan().size() == 1);
+        CHECK(plan().at(0).plot.title == QStringLiteral("Dawn"));
+
+        // Alt+Insert: at the end of the text; from the card of a text too
+        REQUIRE(board->setCurrentCard(calm));
+        press(board, Qt::Key_Insert, Qt::AltModifier);
+        REQUIRE(pm.findElement(calm)->plot.planned.size() == 1);
+        CHECK(pm.findElement(calm)->plot.planned.at(0).after == 1);
+        CHECK(board->currentCard() == PlotBoard::plannedId(calm, 0));
+        CHECK(panel->message() ==
+              QStringLiteral("Added a scene in the plan at the end of \"The Calm\"."));
+        REQUIRE(board->cardEditor() != nullptr);
+        press(board->cardEditor()->titleEdit(), Qt::Key_Escape);
+        CHECK(pm.scenesOf(calm).size() == 1);
+    }
+
+    SECTION("a scene in the plan moves among the scenes, to another text, and is deleted") {
+        setPlan(pm, storm, planOf({1}));
+        const QString p0 = PlotBoard::plannedId(storm, 0);
+        REQUIRE(board->setCurrentCard(p0));
+        press(board, Qt::Key_Down, Qt::ControlModifier);
+        CHECK(aftersOf(plan()) == "2");
+        CHECK(s.words() == "2 3 1");
+        CHECK(board->currentCard() == p0);
+        CHECK(panel->message() == QStringLiteral("\"P0\" moved."));
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(aftersOf(plan()) == "1");
+        // A scene of the text moves past it: the text does not change
+        REQUIRE(board->setCurrentCard(s.first));
+        press(board, Qt::Key_Down, Qt::ControlModifier);
+        CHECK(aftersOf(plan()) == "0");
+        CHECK(s.words() == "2 3 1");
+        CHECK(shownKinds(*board, storm) == "In the Plan P0, Scene 1, Scene 2 Night, Scene 3");
+        // and then past a scene of the text: the text changes, the plan keeps its place
+        press(board, Qt::Key_Down, Qt::ControlModifier);
+        CHECK(s.words() == "3 2 1");
+        CHECK(aftersOf(plan()) == "0");
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(aftersOf(plan()) == "1");
+
+        // A drop and Ctrl+X with Ctrl+V among the scenes of its text
+        emit panel->dropBesideRequested(p0, s.last, true);
+        CHECK(aftersOf(plan()) == "3");
+        REQUIRE(board->setCurrentCard(p0));
+        press(board, Qt::Key_X, Qt::ControlModifier);
+        REQUIRE(board->setCurrentCard(storm));
+        press(board, Qt::Key_V, Qt::ControlModifier);
+        CHECK(aftersOf(plan()) == "0");
+
+        // Ctrl+Right in columns: to the start of the text after it
+        REQUIRE(board->setCurrentCard(p0));
+        press(board, Qt::Key_Right, Qt::ControlModifier);
+        CHECK(plan().isEmpty());
+        REQUIRE(pm.findElement(calm)->plot.planned.size() == 1);
+        CHECK(pm.findElement(calm)->plot.planned.at(0).plot.title == QStringLiteral("P0"));
+        CHECK(board->currentCard() == PlotBoard::plannedId(calm, 0));
+        CHECK(panel->message() == QStringLiteral("\"P0\" moved to \"The Calm\"."));
+        press(board, Qt::Key_Right, Qt::ControlModifier);
+        CHECK(panel->message() == QStringLiteral("\"P0\" is in the last text of the board."));
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(aftersOf(plan()) == "0");
+        CHECK(pm.findElement(calm)->plot.planned.isEmpty());
+
+        // Delete: at once, Ctrl+Z brings it back
+        REQUIRE(board->setCurrentCard(p0));
+        press(board, Qt::Key_Delete);
+        CHECK(plan().isEmpty());
+        CHECK(panel->message() == QStringLiteral("Deleted \"P0\" from the plan."));
+        CHECK(board->currentCard() == s.first);
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(plan().size() == 1);
+    }
+
+    SECTION("Enter writes a scene in the plan in its text and opens the text there") {
+        setPlan(pm, storm, planOf({2}));
+        const QString p0 = PlotBoard::plannedId(storm, 0);
+        REQUIRE(board->setCurrentCard(p0));
+        // The menu says so, and a scene in the plan has no state
+        const QMenu* menu = panel->cardMenu(p0);
+        REQUIRE(actionOf(*menu, QStringLiteral("&Write the Scene")) != nullptr);
+        REQUIRE(actionOf(*menu, QStringLiteral("&Delete from the Plan")) != nullptr);
+        CHECK_FALSE(actionOf(*menu, QStringLiteral("&State"))->isEnabled());
+        emit panel->statusRequested(p0, QStringLiteral("final"));
+        CHECK(panel->message() ==
+              QStringLiteral("\"P0\" is in the plan: it gets a state once it is written."));
+
+        press(board, Qt::Key_Return);
+        CHECK(s.words() == "2 3 0 1");
+        CHECK(s.titleOf(2) == QStringLiteral("P0"));
+        CHECK(pm.scenesOf(storm).at(2).plot.status == QStringLiteral("draft"));
+        CHECK(plan().isEmpty());
+        auto* text = qobject_cast<gui::EditorPanel*>(s.window.tabs->currentWidget());
+        REQUIRE(text != nullptr);
+        CHECK(text->property("elementId").toString() == storm);
+
+        // Ctrl+Z on the board takes the scene out of the text and back to the plan
+        REQUIRE(s.boards.openBoard(QString(), true) == panel);
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(wordsOf(core::ChapterDocument::kmlScenes(text->getBookEditor()->toKml())) ==
+              "2 3 1");
+        CHECK(aftersOf(plan()) == "2");
+    }
+
+    SECTION("the first scene in the plan of a text not written yet is the text") {
+        setPlan(pm, calm, planOf({1, 1}));
+        REQUIRE(board->setCurrentCard(PlotBoard::plannedId(calm, 0)));
+        press(board, Qt::Key_Return);
+        REQUIRE(pm.scenesOf(calm).size() == 1);
+        CHECK(pm.findElement(calm)->plot.opening.title == QStringLiteral("P0"));
+        REQUIRE(pm.findElement(calm)->plot.planned.size() == 1);
+        CHECK(pm.findElement(calm)->plot.planned.at(0).plot.title == QStringLiteral("P1"));
+        CHECK(pm.findElement(calm)->plot.planned.at(0).after == 1);
+    }
+
+    SECTION("in the plan only, Enter opens the text and the scenes move in the plan") {
+        setPlan(pm, storm, planOf({1, 2}));
+        setVariant(PlotBoard::SCENES_PLAN);
+        const QString p1 = PlotBoard::plannedId(storm, 1);
+        REQUIRE(board->setCurrentCard(p1));
+        CHECK(actionOf(*panel->cardMenu(p1), QStringLiteral("&Open")) != nullptr);
+        press(board, Qt::Key_Up, Qt::ControlModifier);
+        CHECK(plan().at(0).plot.title == QStringLiteral("P1"));
+        CHECK(aftersOf(plan()) == "1 2");
+        CHECK(board->currentCard() == PlotBoard::plannedId(storm, 0));
+        CHECK(s.words() == "2 3 1");
+        press(board, Qt::Key_Return);
+        CHECK(s.words() == "2 3 1");
+        CHECK(qobject_cast<gui::EditorPanel*>(s.window.tabs->currentWidget()) != nullptr);
+    }
+
+    SECTION("the outline has a row of each scene in the plan, edited in its cells") {
+        setPlan(pm, storm, planOf({1}));
+        REQUIRE(s.boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true) == panel);
+        gui::PlotOutlineModel* model = panel->outlineModel();
+        const int row = model->rowOf(PlotBoard::plannedId(storm, 0));
+        REQUIRE(row >= 0);
+        using Model = gui::PlotOutlineModel;
+        CHECK(model->index(row, Model::NUMBER_COLUMN).data().toString() == QStringLiteral("–"));
+        CHECK(model->index(row, Model::WORDS_COLUMN).data().toString() == QStringLiteral("–"));
+        CHECK(model->index(row, Model::STATUS_COLUMN).data().toString() ==
+              QStringLiteral("In the Plan"));
+        CHECK_FALSE(model->flags(model->index(row, Model::STATUS_COLUMN)) & Qt::ItemIsEditable);
+        CHECK(model->index(row, Model::TITLE_COLUMN).data(Qt::FontRole).value<QFont>().italic());
+        CHECK(model->setData(model->index(row, Model::PLACE_COLUMN),
+                             QVariant(QStringLiteral("The well")), Qt::EditRole));
+        CHECK(plan().at(0).plot.place == QStringLiteral("The well"));
     }
 }

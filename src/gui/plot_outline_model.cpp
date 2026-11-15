@@ -11,6 +11,7 @@
 
 #include <QAbstractItemModel>
 #include <QAbstractTableModel>
+#include <QChar>
 #include <QComboBox>
 #include <QCompleter>
 #include <QFont>
@@ -46,6 +47,16 @@ QString oneLine(const QString& text) {
 
 using Model = PlotOutlineModel;
 
+/// @brief What a cell shows that has nothing to show: the words and the number of a scene in
+/// the plan
+constexpr char16_t NOTHING = u'\u2013';
+
+/// @brief Whether @p card is a scene in the plan beside the scenes of its text: its row is in
+/// italics, without a number
+bool isPlanBesideText(const PlotCard& card) {
+    return card.planned && PlotBoard::scenesVariant() == QLatin1String(PlotBoard::SCENES_BOTH);
+}
+
 /// @brief Whether cell @p column of @p card is the title of a scene without one: it shows the
 /// name of the scene, quietly
 bool isUnnamed(const PlotCard& card, int column) {
@@ -80,6 +91,9 @@ QVariant plainTextOf(const PlotCard& card, int column) {
 
 /// @brief The number of @p card: "3" for the third text, "3.2" for its second scene
 QVariant numberOf(const PlotCard& card) {
+    if (isPlanBesideText(card)) {
+        return QString(QChar(NOTHING));
+    }
     if (card.isScene()) {
         return QStringLiteral("%1.%2").arg(QLocale().toString(card.number),
                                            QLocale().toString(card.scene + 1));
@@ -95,9 +109,9 @@ QVariant shownTextOf(const PlotCard& card, int column) {
     case Model::TITLE_COLUMN:
         return isUnnamed(card, column) ? card.kindName : card.title;
     case Model::WORDS_COLUMN:
-        return QLocale().toString(card.words);
+        return card.planned ? QString(QChar(NOTHING)) : QLocale().toString(card.words);
     case Model::STATUS_COLUMN:
-        return PlotBoard::statusName(card.status);
+        return card.planned ? PlotBoard::plannedName() : PlotBoard::statusName(card.status);
     default:
         break;
     }
@@ -281,10 +295,12 @@ QVariant PlotOutlineModel::cardData(const PlotCard& card, int column, int role) 
     case Qt::ToolTipRole:
         return toolTipOf(card, column);
     case Qt::ForegroundRole:
-        return isUnnamed(card, column) ? QVariant(QPalette().brush(QPalette::PlaceholderText))
-                                       : QVariant();
+        return isUnnamed(card, column) || (card.planned && column == STATUS_COLUMN)
+                   ? QVariant(QPalette().brush(QPalette::PlaceholderText))
+                   : QVariant();
     case Qt::FontRole:
-        return isUnnamed(card, column) ? QVariant(fontOf(false, true)) : QVariant();
+        return isUnnamed(card, column) || isPlanBesideText(card) ? QVariant(fontOf(false, true))
+                                                                 : QVariant();
     default:
         break;
     }
@@ -336,8 +352,11 @@ Qt::ItemFlags PlotOutlineModel::flags(const QModelIndex& index) const {
         return Qt::NoItemFlags;
     }
     Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable;
-    const bool editable = index.column() != NUMBER_COLUMN && index.column() != WORDS_COLUMN;
-    if (!m_rows.at(index.row()).part && editable && !m_readOnly) {
+    const Row& row = m_rows.at(index.row());
+    // A scene in the plan gets a state once it is written
+    const bool editable = index.column() != NUMBER_COLUMN && index.column() != WORDS_COLUMN &&
+                          (index.column() != STATUS_COLUMN || !row.card.planned);
+    if (!row.part && editable && !m_readOnly) {
         flags |= Qt::ItemIsEditable;
     }
     return flags;

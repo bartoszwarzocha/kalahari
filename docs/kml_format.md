@@ -145,7 +145,10 @@ the base pack, with the styles `normal`, `heading_1`, `heading_2`, `heading_3`, 
   `revision`, `final`; none: the state of its text). The editor writes them in this order,
   each only with text; a line break in a description is written `&#10;`. The first scene of
   a text, before any break, keeps the same fields in the `.klh` file (`"plot"` /
-  `"opening"`).
+  `"opening"`). The scenes in the plan of a text, not written yet, are only in the `.klh`
+  file (`"plot"` / `"planned"`: a list of the same fields, without `status`, each with
+  `"after"`, how many scenes of the text come before it); Write the Scene on the plot board
+  puts a break with its fields at its place in the text.
 
   ```xml
   <scene-break title="Night" pov="Anna" description="The storm comes." status="revision"/>

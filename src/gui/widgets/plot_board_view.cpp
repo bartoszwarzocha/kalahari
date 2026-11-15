@@ -259,8 +259,15 @@ QString PlotBoardView::spokenText(const QString& elementId) const {
     if (card == nullptr) {
         return {};
     }
-    QStringList parts{nameOf(*card), PlotBoard::statusName(card->status),
-                      PlotBoard::wordsText(card->words)};
+    QStringList parts{nameOf(*card)};
+    if (const CardPlace* place = placeOf(elementId); place != nullptr && isPlanBesideText(*place)) {
+        //: Read by the screen reader on a card of a scene in the plan beside the scenes of its
+        //: text, after "In the Plan: The Storm". In Polish: Enter wpisuje ją do tekstu
+        parts << tr("Enter writes it in the text");
+    } else if (!card->planned) {
+        // A scene in the plan has no state and no words
+        parts << PlotBoard::statusName(card->status) << PlotBoard::wordsText(card->words);
+    }
     if (!card->description.isEmpty()) {
         parts << card->description;
     }

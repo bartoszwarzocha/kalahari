@@ -53,6 +53,7 @@ constexpr int RING_WIDTH = 2;       ///< The ring of the card chosen
 
 constexpr double SMALL_FONT_SCALE = 0.86;   ///< Of the small lines: the kind, the plot
 constexpr double MARKED_OPACITY = 0.55;     ///< Of a card marked to move (Ctrl+X)
+constexpr double PLANNED_OPACITY = 0.6;     ///< Of a scene in the plan among the scenes written
 constexpr double HALF_PIXEL = 0.5;          ///< The border of a card on the middle of a pixel
 constexpr float QUIET_RING_ALPHA = 0.5F;    ///< The ring of the card chosen without the keys
 
@@ -116,15 +117,14 @@ inline QColor quietColor(const QPalette& palette) {
     return palette.color(QPalette::PlaceholderText);
 }
 
-/// @brief Whether card @p cardId is the card of a scene
+/// @brief Whether card @p cardId is the card of a scene: written or in the plan
 inline bool isScene(const QString& cardId) {
-    return PlotBoard::sceneOf(cardId).has_value();
+    return PlotBoard::sceneOf(cardId).has_value() || PlotBoard::plannedOf(cardId).has_value();
 }
 
 /// @brief The text of card @p cardId: of a scene, the text of the scene; else the card itself
 inline QString textOfCard(const QString& cardId) {
-    const std::optional<std::pair<QString, int>> scene = PlotBoard::sceneOf(cardId);
-    return scene.has_value() ? scene->first : cardId;
+    return PlotBoard::textOf(cardId);
 }
 
 }  // namespace kalahari::gui::board_view

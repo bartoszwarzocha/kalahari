@@ -816,14 +816,15 @@ std::optional<SceneText> ChapterDocument::withSceneMoved(const SceneText& text, 
     return parts->joined();
 }
 
-std::optional<SceneText> ChapterDocument::withSceneAdded(const SceneText& text, int at)
+std::optional<SceneText> ChapterDocument::withSceneAdded(const SceneText& text, int at,
+                                                         const ScenePlot& plot)
 {
     std::optional<SceneParts> parts = scenePartsOf(text);
     if (!parts || at < 0 || at > parts->bodies.size()) {
         return std::nullopt;
     }
     parts->bodies.insert(at, QStringLiteral("<p></p>"));
-    parts->plots.insert(at, ScenePlot());
+    parts->plots.insert(at, plot);
     return parts->joined();
 }
 

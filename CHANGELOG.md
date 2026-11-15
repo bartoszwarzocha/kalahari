@@ -41,6 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   card is edited at once; Ctrl+Z undoes each of these. An open text takes the change in its
   editor, as one step of its own Ctrl+Z. A scene moves to another text in the editor, with Cut
   and Paste.
+- **Scenes in the plan on the plot board** - 2026-11-15. Beside the scenes of a text the board
+  shows the scenes planned for it, not written yet, in a dashed frame ("In the Plan"): Insert
+  adds one after a scene, Alt+Insert one at the end of the text, F2 edits it, Ctrl with the
+  arrows, Ctrl+X and Ctrl+V or the mouse move it among the scenes of its text or to another
+  text, Delete deletes it; Enter writes it: a scene break with its title and description comes
+  at its place in the text, and the text opens there. Each of these is undone with Ctrl+Z. The
+  outline has a row of each. The plan is kept in the `.klh` file (`"plot"` / `"planned"`).
+  Settings > Plot Board (new) chooses the scenes: of the texts and in their plans (the
+  default), of the texts only, or in the plans only, and the colors of the cards.
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

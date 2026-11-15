@@ -1640,7 +1640,11 @@ may have them too.
   color change the scene; Ctrl with Up and Down in Columns, with Left and Right in the drawer
   – move the scene among the scenes of its text (Ctrl+X and Ctrl+V, the mouse too), Insert –
   a new scene after it, Alt+Insert – a new scene at the end of the text (also on the card of
-  a text), Delete – delete it with its text or its break only. In the outline (Book > Outline) the same keys where a table allows
+  a text), Delete – delete it with its text or its break only. With the scenes in the plan
+  (Settings > Plot Board, the default), Insert and Alt+Insert add a scene in the plan, Enter on
+  a scene in the plan writes it in the text and opens the text there, Ctrl with the arrows
+  across the texts moves it to another text, Delete deletes it at once (Ctrl+Z brings it
+  back). In the outline (Book > Outline) the same keys where a table allows
   them; F2 or typing edits a cell (in the board and the outline only, before the commands
   with these keys).
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –

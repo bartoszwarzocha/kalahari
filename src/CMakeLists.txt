@@ -235,6 +235,9 @@ set(KALAHARI_SOURCES
     gui/material_list_coordinator.cpp  # MaterialListCoordinator - the lists of the materials on tabs
     gui/plot_board.cpp  # PlotBoard - what the plot board shows of the book, where its cards move
     gui/plot_board_coordinator.cpp  # PlotBoardCoordinator - the plot board on its tab, its changes
+    gui/plot_board_coordinator_arrange.cpp  # PlotBoardCoordinator - cards moved, added, cut
+    gui/plot_board_coordinator_plan.cpp  # PlotBoardCoordinator - the scenes moved, the plans
+    gui/plot_board_coordinator_scenes.cpp  # PlotBoardCoordinator - the scenes changed
     gui/plot_outline_model.cpp  # PlotOutlineModel - the outline: the texts of the book in a table
     gui/edit_coordinator.cpp  # EditCoordinator - clipboard and undo on the element with the keys
     gui/paragraph_style_menu.cpp  # ParagraphStyleMenu - Format > Text Style shows the text's styles
@@ -279,6 +282,7 @@ set(KALAHARI_SOURCES
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
+    gui/settings/plot_board_page.cpp  # Settings > Plot Board
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
     gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts

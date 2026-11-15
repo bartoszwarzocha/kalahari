@@ -256,6 +256,14 @@ QString PlotBoardView::scenesNote(const PlotCard& card) const {
            scenes;
 }
 
+bool PlotBoardView::isPlanBesideText(const CardPlace& place) const {
+    if (place.scene < 0 || !cardOfPlace(place).planned) {
+        return false;
+    }
+    const QList<PlotCard>& scenes = m_bands.at(place.band).cards.at(place.index).scenes;
+    return std::ranges::any_of(scenes, [](const PlotCard& scene) { return !scene.planned; });
+}
+
 QRect PlotBoardView::scenesNoteRect(const CardPlace& place) const {
     const QString note = place.scene < 0 ? scenesNote(cardOfPlace(place)) : QString();
     if (note.isEmpty()) {

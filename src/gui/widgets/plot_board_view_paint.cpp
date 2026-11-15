@@ -50,6 +50,7 @@ using board_view::MARKED_OPACITY;
 using board_view::MIN_ICON;
 using board_view::NOTE_GAP;
 using board_view::PADDING;
+using board_view::PLANNED_OPACITY;
 using board_view::quietColor;
 using board_view::QUIET_RING_ALPHA;
 using board_view::RADIUS;
@@ -256,11 +257,12 @@ void PlotBoardView::paintCard(QPainter& painter, const CardPlace& place) const {
     if (card.id == m_marked) {
         painter.setOpacity(MARKED_OPACITY);
     }
-    paintCardFrame(painter, card, place.rect);
+    const bool planned = isPlanBesideText(place);
+    paintCardFrame(painter, card, place.rect, planned);
     const int titleTop = paintCardHead(painter, card, inner);
     const int descriptionTop = paintCardTitle(painter, card, inner, titleTop) + LINE_GAP;
     if (m_fields.description) {
-        paintCardDescription(painter, card, inner, descriptionTop);
+        paintCardDescription(painter, card, inner, descriptionTop, planned);
     }
     // The scenes of a text, when they are not shown under it, at the bottom right
     const int right = paintScenesNote(painter, place, inner.right());
@@ -273,13 +275,18 @@ void PlotBoardView::paintCard(QPainter& painter, const CardPlace& place) const {
     }
 }
 
-void PlotBoardView::paintCardFrame(QPainter& painter, const PlotCard& card,
-                                   const QRect& rect) const {
+void PlotBoardView::paintCardFrame(QPainter& painter, const PlotCard& card, const QRect& rect,
+                                   bool planned) const {
     const QPalette& colors = palette();
     QPainterPath shape;
     shape.addRoundedRect(QRectF(rect).adjusted(HALF_PIXEL, HALF_PIXEL, -HALF_PIXEL, -HALF_PIXEL),
                          RADIUS, RADIUS);
-    painter.fillPath(shape, colors.color(QPalette::Base));
+    // A scene in the plan is lighter than the scenes written
+    QColor base = colors.color(QPalette::Base);
+    if (planned) {
+        base.setAlphaF(PLANNED_OPACITY);
+    }
+    painter.fillPath(shape, base);
     // The color of the card in a strip at its top
     if (const QColor own = m_colors.ofCard(card, m_colorBy, m_povs); own.isValid()) {
         painter.save();
@@ -288,7 +295,7 @@ void PlotBoardView::paintCardFrame(QPainter& painter, const PlotCard& card,
         painter.restore();
     }
     QPen border(colors.color(QPalette::Mid));
-    if (card.id == m_marked) {
+    if (card.id == m_marked || planned) {
         border.setStyle(Qt::DashLine);
     }
     painter.setPen(border);
@@ -298,13 +305,16 @@ void PlotBoardView::paintCardFrame(QPainter& painter, const PlotCard& card,
 
 int PlotBoardView::paintCardHead(QPainter& painter, const PlotCard& card,
                                  const QRect& inner) const {
-    // The kind and the words; the state on the right
+    // The kind and the words; the state on the right (a scene in the plan has none yet: its
+    // kind says it)
     const QFont small = smallFont(font());
     const QFontMetrics metrics(small);
     painter.setFont(small);
-    const int stateWidth = m_fields.status ? paintCardState(painter, card, inner) : 0;
+    const int stateWidth =
+        m_fields.status && !card.planned ? paintCardState(painter, card, inner) : 0;
     QString kind = card.kindName;
-    if (m_fields.words) {
+    // A scene in the plan has no words yet
+    if (m_fields.words && !card.planned) {
         const QString words = PlotBoard::wordsText(card.words);
         kind = kind.isEmpty() ? words : QStringLiteral("%1 · %2").arg(kind, words);
     }
@@ -344,9 +354,10 @@ int PlotBoardView::paintCardTitle(QPainter& painter, const PlotCard& card, const
 }
 
 void PlotBoardView::paintCardDescription(QPainter& painter, const PlotCard& card,
-                                         const QRect& inner, int top) const {
+                                         const QRect& inner, int top, bool planned) const {
     QFont text = font();
     if (!card.description.isEmpty()) {
+        text.setItalic(planned);
         painter.setFont(text);
         painter.setPen(palette().color(QPalette::Text));
         drawWrapped(painter, QPoint(inner.left(), top), inner.width(), card.description,

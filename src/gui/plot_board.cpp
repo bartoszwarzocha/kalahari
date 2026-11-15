@@ -12,6 +12,7 @@
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/chapter_document.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/core/text_statistics.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/gui/kind_names.h"
@@ -42,15 +43,19 @@ constexpr const char* CHARACTER_KIND = "character";
 constexpr const char* LOCATION_KIND = "location";
 
 /// @brief The keys of the colors in the theme files, in the order of PlotColors
-constexpr std::array<const char*, 9> COLOR_KEYS{{"plotDraft", "plotRevision", "plotFinal",
-                                                 "plotBlue", "plotTeal", "plotGreen",
-                                                 "plotAmber", "plotRose", "plotViolet"}};
+constexpr std::array<const char*, 10> COLOR_KEYS{
+    {"plotDraft", "plotRevision", "plotFinal", "plotPlanned", "plotBlue", "plotTeal",
+     "plotGreen", "plotAmber", "plotRose", "plotViolet"}};
 
 /// @brief How many colors come before the writer's own in COLOR_KEYS
-constexpr std::size_t STATUS_COLORS = 3;
+constexpr std::size_t STATUS_COLORS = 4;
 
 /// @brief What joins the id of a text and the number of its scene in the id of a scene's card
 constexpr char SCENE_MARK = '#';
+
+/// @brief What comes before the number of a scene in the plan in the id of its card, after
+/// SCENE_MARK
+constexpr char PLANNED_MARK = 'p';
 
 /// @brief The titles of the elements of the Workshop of kind @p kindId, each once, sorted
 QStringList workshopTitles(const core::ProjectManager& book, const QString& kindId) {
@@ -95,6 +100,7 @@ struct CardSource {
                                                          ///< changes, by their ids
     QString language;                                    ///< Of the names of the kinds
     core::WordCountRules rules;                          ///< Of the words of the scenes
+    QString variant;                                     ///< Which scenes there are
 };
 
 /// @brief The card of scene @p index of the text of card @p text
@@ -119,8 +125,61 @@ PlotCard sceneCard(const PlotCard& text, const core::KmlScene& scene, int index,
     return card;
 }
 
+/// @brief The card of scene @p index in the plan of the text of card @p text, named
+/// @p kindName
+PlotCard plannedCard(const PlotCard& text, const core::PlannedScene& scene, int index,
+                     const QString& kindName) {
+    const core::ScenePlot& plot = scene.plot;
+    PlotCard card;
+    card.id = PlotBoard::plannedId(text.id, index);
+    card.kindName = kindName;
+    card.title = plot.title;
+    card.description = plot.description;
+    card.plot.pov = plot.pov;
+    card.plot.place = plot.place;
+    card.plot.time = plot.time;
+    card.plot.color = plot.color;
+    card.partId = text.partId;
+    card.number = text.number;
+    card.textId = text.id;
+    card.scene = index;
+    card.planned = true;
+    return card;
+}
+
+/// @brief The cards of the scenes of the text of card @p text that the board shows: the
+/// scenes @p written of its text and those @p planned in its plan, as @p variant says
+QList<PlotCard> sceneCards(const PlotCard& text, const QList<core::KmlScene>& written,
+                           const QList<core::PlannedScene>& planned, const QString& variant,
+                           const core::WordCountRules& rules) {
+    QList<PlotCard> cards;
+    if (variant == QLatin1String(PlotBoard::SCENES_PLAN)) {
+        // Only the plan: its scenes are the scenes of the text, numbered
+        const QList<PlotBoard::SceneSlot> order = PlotBoard::sceneOrder(0, planned);
+        for (qsizetype i = 0; i < order.size(); ++i) {
+            const int index = order.at(i).index;
+            cards << plannedCard(text, planned.at(index), index,
+                                 PlotBoard::sceneName(static_cast<int>(i)));
+        }
+        return cards;
+    }
+    const bool withPlan = variant != QLatin1String(PlotBoard::SCENES_TEXT) && !planned.isEmpty();
+    // A text of one scene has no cards of scenes, unless its plan has some
+    if (!withPlan && written.size() < 2) {
+        return cards;
+    }
+    const QList<PlotBoard::SceneSlot> order = PlotBoard::sceneOrder(
+        static_cast<int>(written.size()), withPlan ? planned : QList<core::PlannedScene>());
+    for (const PlotBoard::SceneSlot& slot : order) {
+        cards << (slot.planned ? plannedCard(text, planned.at(slot.index), slot.index,
+                                             PlotBoard::plannedName())
+                               : sceneCard(text, written.at(slot.index), slot.index, rules));
+    }
+    return cards;
+}
+
 /// @brief The card of text @p element of part @p partId, the @p number -th of the board, with
-/// its scenes when it has scene breaks
+/// the cards of its scenes
 PlotCard textCard(const CardSource& source, const core::ProjectElement& element,
                   const QString& partId, int number) {
     const core::ProjectManager& book = *source.book;
@@ -140,11 +199,7 @@ PlotCard textCard(const CardSource& source, const core::ProjectElement& element,
     const QList<core::KmlScene> scenes =
         book.scenesOf(element.id, own != source.unsaved->cend() ? std::optional<QString>(*own)
                                                                  : std::nullopt);
-    if (scenes.size() > 1) {
-        for (qsizetype i = 0; i < scenes.size(); ++i) {
-            card.scenes << sceneCard(card, scenes.at(i), static_cast<int>(i), source.rules);
-        }
-    }
+    card.scenes = sceneCards(card, scenes, element.plot.planned, source.variant, source.rules);
     return card;
 }
 
@@ -198,8 +253,18 @@ int PlotBand::words() const {
 // PlotBoard
 // =============================================================================
 
+QString PlotBoard::scenesVariant() {
+    auto& settings = core::SettingsManager::getInstance();
+    const auto variant = settings.get<std::string>(SCENES_VARIANT_SETTING, SCENES_BOTH);
+    if (variant == SCENES_TEXT || variant == SCENES_PLAN) {
+        return QString::fromStdString(variant);
+    }
+    return QString::fromLatin1(SCENES_BOTH);
+}
+
 QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book,
-                                   const QHash<QString, QString>& unsaved) {
+                                   const QHash<QString, QString>& unsaved,
+                                   const QString& variant) {
     const core::BookProject* project = book.project();
     if (project == nullptr || project->books.isEmpty()) {
         return {};
@@ -209,6 +274,7 @@ QList<PlotBand> PlotBoard::bandsOf(const core::ProjectManager& book,
     source.unsaved = &unsaved;
     source.language = programLanguage();
     source.rules = core::wordCountRules();
+    source.variant = variant.isEmpty() ? scenesVariant() : variant;
     QList<PlotBand> bands;
     int number = 0;
     for (const core::ProjectElement& element : project->books.constFirst().mainElements) {
@@ -265,10 +331,110 @@ std::optional<std::pair<QString, int>> PlotBoard::sceneOf(const QString& cardId)
     return std::make_pair(cardId.left(mark), scene);
 }
 
+QString PlotBoard::plannedId(const QString& textId, int index) {
+    return textId + QLatin1Char(SCENE_MARK) + QLatin1Char(PLANNED_MARK) + QString::number(index);
+}
+
+std::optional<std::pair<QString, int>> PlotBoard::plannedOf(const QString& cardId) {
+    const qsizetype mark = cardId.lastIndexOf(QLatin1Char(SCENE_MARK));
+    if (mark <= 0 || cardId.mid(mark + 1, 1) != QLatin1Char(PLANNED_MARK)) {
+        return std::nullopt;
+    }
+    bool number = false;
+    const int index = cardId.mid(mark + 2).toInt(&number);
+    if (!number || index < 0) {
+        return std::nullopt;
+    }
+    return std::make_pair(cardId.left(mark), index);
+}
+
+QString PlotBoard::textOf(const QString& cardId) {
+    if (const auto scene = sceneOf(cardId)) {
+        return scene->first;
+    }
+    if (const auto planned = plannedOf(cardId)) {
+        return planned->first;
+    }
+    return cardId;
+}
+
+PlotBoard::SceneSlot PlotBoard::slotOf(const QString& cardId) {
+    if (const auto planned = plannedOf(cardId)) {
+        return SceneSlot{.planned = true, .index = planned->second};
+    }
+    if (const auto scene = sceneOf(cardId)) {
+        return SceneSlot{.planned = false, .index = scene->second};
+    }
+    return SceneSlot{.planned = false, .index = -1};
+}
+
+QString PlotBoard::slotId(const QString& textId, const SceneSlot& slot) {
+    return slot.planned ? plannedId(textId, slot.index) : sceneId(textId, slot.index);
+}
+
+QList<PlotBoard::SceneSlot> PlotBoard::sceneOrder(int written,
+                                                  const QList<core::PlannedScene>& planned) {
+    // The scenes in the plan by the scenes of the text before them, in the order of the plan
+    QList<int> byPlace(planned.size());
+    for (qsizetype i = 0; i < planned.size(); ++i) {
+        byPlace[i] = static_cast<int>(i);
+    }
+    std::ranges::stable_sort(byPlace, [&planned, written](int one, int other) {
+        return std::min(planned.at(one).after, written) <
+               std::min(planned.at(other).after, written);
+    });
+    QList<SceneSlot> order;
+    qsizetype next = 0;
+    for (int scene = 0; scene <= written; ++scene) {
+        while (next < byPlace.size() &&
+               std::min(planned.at(byPlace.at(next)).after, written) <= scene) {
+            order << SceneSlot{.planned = true, .index = byPlace.at(next)};
+            ++next;
+        }
+        if (scene < written) {
+            order << SceneSlot{.planned = false, .index = scene};
+        }
+    }
+    return order;
+}
+
+QList<core::PlannedScene> PlotBoard::planInOrder(const QList<SceneSlot>& order,
+                                                 const QList<core::PlannedScene>& planned) {
+    const bool withText =
+        std::ranges::any_of(order, [](const SceneSlot& slot) { return !slot.planned; });
+    // Without the scenes of the text: the places the plan had, in the order of the scenes
+    QList<int> places;
+    for (const core::PlannedScene& scene : planned) {
+        places << scene.after;
+    }
+    std::ranges::sort(places);
+    QList<core::PlannedScene> plan;
+    int written = 0;
+    for (const SceneSlot& slot : order) {
+        if (!slot.planned) {
+            ++written;
+            continue;
+        }
+        if (slot.index < 0 || slot.index >= planned.size()) {
+            continue;
+        }
+        core::PlannedScene scene = planned.at(slot.index);
+        scene.after = withText ? written : places.value(plan.size(), scene.after);
+        plan << scene;
+    }
+    return plan;
+}
+
 QString PlotBoard::sceneName(int scene) {
     //: The kind of a card of a scene on the plot board; %1 its number in its text. In Polish:
     //: Scena %1
     return tr("Scene %1").arg(scene + 1);
+}
+
+QString PlotBoard::plannedName() {
+    //: The kind and the state of a card of a scene in the plan of its text, on the plot board
+    //: and in the outline. In Polish: W planie
+    return tr("In the Plan");
 }
 
 QString PlotBoard::scenesText(int scenes) {
@@ -442,6 +608,7 @@ PlotColors PlotColors::current() {
     colors.draft = themes.editorColor(COLOR_KEYS[0], fallback);
     colors.revision = themes.editorColor(COLOR_KEYS[1], palette.color(QPalette::Highlight));
     colors.finished = themes.editorColor(COLOR_KEYS[2], palette.color(QPalette::Link));
+    colors.planned = themes.editorColor(COLOR_KEYS[3], fallback);
     for (std::size_t i = STATUS_COLORS; i < COLOR_KEYS.size(); ++i) {
         colors.own << themes.editorColor(COLOR_KEYS.at(i), fallback);
     }
@@ -461,6 +628,10 @@ QColor PlotColors::ofStatus(const QString& status) const {
     return {};
 }
 
+QColor PlotColors::ofStatus(const PlotCard& card) const {
+    return card.planned ? planned : ofStatus(card.status);
+}
+
 QColor PlotColors::ofOwn(const QString& name) const {
     const qsizetype index = ownNames().indexOf(name);
     return index >= 0 && index < own.size() ? own.at(index) : QColor();
@@ -477,7 +648,7 @@ QColor PlotColors::ofPov(const QString& pov, const QStringList& povs) const {
 QColor PlotColors::ofCard(const PlotCard& card, const QString& colorBy,
                           const QStringList& povs) const {
     if (colorBy == QLatin1String(PlotBoard::COLOR_STATUS)) {
-        return ofStatus(card.status);
+        return ofStatus(card);
     }
     if (colorBy == QLatin1String(PlotBoard::COLOR_POV)) {
         return ofPov(card.plot.pov, povs);

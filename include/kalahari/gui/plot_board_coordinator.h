@@ -10,8 +10,10 @@
 
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/chapter_document.h"
+#include "kalahari/gui/plot_board.h"
 
 #include <QHash>
+#include <QList>
 #include <QObject>
 #include <QString>
 
@@ -62,6 +64,12 @@ struct PlotCardEdit;
 /// a text, and one is deleted with its text or with its break only: the text changes at once,
 /// in its editor when it is open (one step of its Ctrl+Z), and one Ctrl+Z on the board undoes
 /// it. A scene moves to another text in the editor: its annotations and notes go with it.
+///
+/// The scenes in the plans of the texts (core::PlannedScene, PlotBoard::SCENES_VARIANT_SETTING)
+/// are in the .klh file: they are added, edited, moved (also to another text) and deleted
+/// there, each one Ctrl+Z on the board. Enter on a scene in the plan beside the scenes of its
+/// text writes it: a scene break with what it says comes at its place in the text, and the text
+/// opens there.
 class PlotBoardCoordinator : public QObject {
     Q_OBJECT
 
@@ -119,6 +127,21 @@ private:
         bool operator==(const CardText&) const = default;
     };
 
+    /// @brief What the scenes of a text are: its text with its first scene, and its plan
+    struct ScenesState {
+        core::SceneText text;
+        QList<core::PlannedScene> plan;
+
+        bool operator==(const ScenesState&) const = default;
+    };
+
+    /// @brief A change of the scenes of text @p textId from @p before to @p wanted
+    struct ScenesChange {
+        QString textId;
+        ScenesState before;
+        ScenesState wanted;
+    };
+
     void refreshNow();
     void connectBoard(PlotBoardPanel* panel);
     void updateTab();
@@ -137,6 +160,9 @@ private:
     void dropBeside(const QString& elementId, const QString& anchorId, bool after);
     void dropInPart(const QString& elementId, const QString& partId);
     void add(const QString& afterId);
+    /// @brief Insert on the card of scene @p cardId: a scene after it, in the plan when the
+    /// board shows the plans
+    void addAfterScene(const QString& cardId);
     void addScene(const QString& cardId);
     void remove(const QString& elementId);
     void cut(const QString& elementId);
@@ -169,8 +195,10 @@ private:
                                                              int scene) const;
     /// @brief Tell the writer that a scene moves to another text in the editor
     void sceneInEditor();
-    /// @brief Move scene @p from of text @p textId to place @p to of its scenes without it
-    void moveScene(const QString& textId, int from, int to);
+    /// @brief Move the scene of text @p textId at @p slot to place @p to of the scenes the board
+    /// shows (without it): a scene of the text moves in its text, and the scenes in the plan
+    /// keep their places among the others
+    void placeScene(const QString& textId, const PlotBoard::SceneSlot& slot, int to);
     /// @brief Add a scene at place @p at of the scenes of text @p textId and edit its card;
     /// @p message says where it is
     void addSceneAt(const QString& textId, int at, const QString& message);
@@ -187,22 +215,80 @@ private:
                                                    bool keepText);
     /// @brief Give text @p textId @p wanted, remember it to be undone and choose card
     /// @p cardId; @p message says what was done
-    void changeScenes(const QString& textId, const core::SceneText& wanted,
-                      const QString& cardId, const QString& message, const QString& undoText);
-    /// @brief Give text @p textId @p wanted when it is still @p expected: in its editor when it
-    /// is open, else in the book; @p now gets what it is then
+    /// @return Whether the book took the change
+    bool changeScenes(const QString& textId, const ScenesState& wanted, const QString& cardId,
+                      const QString& message, const QString& undoText);
+    /// @brief Make @p changes (of one text or two), remember them as one step to be undone and
+    /// choose card @p cardId; @p message says what was done
+    /// @return Whether the book took the changes
+    bool changeScenes(QList<ScenesChange> changes, const QString& cardId, const QString& message,
+                      const QString& undoText);
+    /// @brief Make @p changes from what the texts are now, @p from (in the order of the
+    /// changes), to what they want, or back (@p back, the last one first) to what they were
+    /// before; @p now gets what each text is then
+    /// @return false when a text is something else now, or the book could not take a change
+    bool replaceAll(const QList<ScenesChange>& changes, const QList<ScenesState>& from, bool back,
+                    QList<ScenesState>& now);
+    /// @brief Forget the scene marked to move (Ctrl+X) when @p changes change its text
+    void forgetMarkedOf(const QList<ScenesChange>& changes);
+    /// @brief Give text @p textId @p wanted when what changes is still @p expected: its text in
+    /// its editor when it is open, else in the book, its plan in the book; @p now gets what it
+    /// is then
     /// @return false when it is something else now (m_changedElsewhere), or the book could not
     ///         take the change
-    bool replaceSceneText(const QString& textId, const core::SceneText& expected,
-                          const core::SceneText& wanted, core::SceneText* now);
+    bool replaceScenes(const QString& textId, const ScenesState& expected,
+                       const ScenesState& wanted, ScenesState& now);
+    /// @brief Whether what changes from @p expected to @p wanted is still as @p expected in
+    /// @p current: the text may have changed in its editor since a change of its plan
+    [[nodiscard]] static bool isAsExpected(const ScenesState& current,
+                                           const ScenesState& expected,
+                                           const ScenesState& wanted);
+    /// @brief Give text @p textId, now @p current, @p wanted: in its editor when it is open,
+    /// else in the book
+    bool writeSceneText(const QString& textId, const core::SceneText& current,
+                        const core::SceneText& wanted);
+    /// @brief Give text @p textId plan @p plan in the book
+    bool writePlan(const QString& textId, const QList<core::PlannedScene>& plan);
     /// @brief Text @p textId and its first scene as they are now, also in its open editor
     [[nodiscard]] std::optional<core::SceneText> sceneTextOf(const QString& textId) const;
+    /// @brief The scenes of text @p textId as they are now: its text and its plan
+    [[nodiscard]] std::optional<ScenesState> scenesStateOf(const QString& textId) const;
+    /// @brief The scenes of text @p state in the order of the board, as its variant shows them
+    [[nodiscard]] static QList<PlotBoard::SceneSlot> orderOf(const ScenesState& state);
     /// @brief How many scenes text @p textId has now
     [[nodiscard]] int sceneCount(const QString& textId) const;
     /// @brief The KML of the open texts with changes not saved, by the ids of their elements
     [[nodiscard]] QHash<QString, QString> unsavedTexts() const;
     /// @brief The editor of text @p elementId open in a tab; nullptr: none
     [[nodiscard]] editor::BookEditor* editorOf(const QString& elementId) const;
+    /// @}
+
+    /// @name The scenes in the plans of the texts
+    /// @{
+    /// @brief Write scene @p index of the plan of text @p textId: a scene break with what it
+    /// says at its place in the text; the text opens there
+    void writePlanned(const QString& textId, int index);
+    /// @brief Give scene @p index of the plan of text @p textId what card editor @p edit says
+    void editPlanned(const QString& textId, int index, const PlotCardEdit& edit);
+    /// @brief Give scene @p index of the plan of text @p textId its own color @p color
+    void colorPlanned(const QString& textId, int index, const QString& color,
+                      const QString& message, const QString& undoText);
+    /// @brief Add a scene to the plan of text @p textId at place @p at of the scenes the board
+    /// shows, and edit its card; @p message says where it is
+    void addPlanned(const QString& textId, int at, const QString& message);
+    /// @brief Delete scene @p index from the plan of text @p textId
+    void removePlanned(const QString& textId, int index);
+    /// @brief Move scene @p index of the plan of text @p textId to the plan of text @p targetId,
+    /// at place @p at of the scenes the board shows there
+    void movePlanned(const QString& textId, int index, const QString& targetId, int at);
+    /// @brief Move scene @p index of the plan of text @p textId to the text before
+    /// (@p direction less than 0: at its end) or after (at its start)
+    void movePlannedToText(const QString& textId, int index, int direction);
+    /// @brief Move the scene in the plan marked (@p marked) after card @p afterId
+    void pastePlanned(const QString& marked, const QString& afterId);
+    /// @brief The text of the board before (@p direction less than 0) or after text @p textId;
+    /// empty: none
+    [[nodiscard]] QString textBeside(const QString& textId, int direction) const;
     /// @}
 
     /// @brief Move text @p elementId to @p place (in its list without it) and remember it to
@@ -212,6 +298,10 @@ private:
     /// @p message says what was done
     void changeWithUndo(const QString& elementId, const CardText& text, const QString& message,
                         const QString& undoText);
+    /// @brief Remember a change made on the board, @p undoText after "Undone:": Ctrl+Z calls
+    /// @p undoIt and Ctrl+Y @p redoIt, each false when the book could not take it
+    void pushChange(const QString& undoText, std::function<bool()> undoIt,
+                    std::function<bool()> redoIt);
 
     /// @name The changes of the book, done and undone
     /// @return false when the book could not take the change
