@@ -103,7 +103,7 @@ bool openBenchmarkBook(kalahari::core::ProjectManager& book, const QString& proj
 /// it; none when the book has no such text
 const kalahari::core::ProjectElement* benchmarkChapter(const kalahari::core::ProjectManager& book,
                                                        const QString& chapterTitle) {
-    const kalahari::core::BookProject* project = book.project();
+    const kalahari::core::BookProject* const project = book.project();
     if (project == nullptr) {
         return nullptr;
     }
@@ -120,7 +120,8 @@ const kalahari::core::ProjectElement* benchmarkChapter(const kalahari::core::Pro
 /// (benchmarkChapter())
 void openBenchmarkChapter(kalahari::gui::MainWindow& window, const QString& chapterTitle) {
     auto& logger = kalahari::core::Logger::getInstance();
-    const kalahari::core::ProjectElement* chapter = benchmarkChapter(window.book(), chapterTitle);
+    const kalahari::core::ProjectElement* const chapter =
+        benchmarkChapter(window.book(), chapterTitle);
     if (chapter == nullptr) {
         logger.warn("Benchmark: Chapter not found: {}", chapterTitle.toStdString());
         return;

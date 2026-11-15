@@ -39,13 +39,13 @@ QList<SettingsCoordinator*>& liveCoordinators() {
 
 /// One of the settings @p keys begins with @p prefix
 bool anyBeginsWith(const QStringList& keys, const QString& prefix) {
-    return std::any_of(keys.cbegin(), keys.cend(),
-                       [&prefix](const QString& key) { return key.startsWith(prefix); });
+    return std::ranges::any_of(keys,
+                               [&prefix](const QString& key) { return key.startsWith(prefix); });
 }
 
 /// One of the settings @p keys is a color of the Log panel of a theme
 bool anyLogColor(const QStringList& keys) {
-    return std::any_of(keys.cbegin(), keys.cend(), [](const QString& key) {
+    return std::ranges::any_of(keys, [](const QString& key) {
         return key.startsWith(QStringLiteral("themes.")) && key.contains(QStringLiteral(".log."));
     });
 }

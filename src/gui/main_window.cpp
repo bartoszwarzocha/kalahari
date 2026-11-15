@@ -3456,7 +3456,7 @@ MainWindow* MainWindow::openNewWindow(const QString& book) {
 }
 
 MainWindow* MainWindow::openBookInNewWindow(const QString& manifest) {
-    MainWindow* window = openNewWindow(manifest);
+    MainWindow* const window = openNewWindow(manifest);
     // Once it is shown, as from the recent books
     QTimer::singleShot(0, window, [window, manifest]() {
         if (window->m_documentCoordinator != nullptr) {
@@ -3537,7 +3537,7 @@ bool MainWindow::saveAllOf(const QList<MainWindow*>& windows) {
 
 QStringList MainWindow::openBooksOf(const QList<MainWindow*>& windows) {
     QStringList books;
-    for (const MainWindow* window : windows) {
+    for (const MainWindow* const window : windows) {
         if (window->book().isProjectOpen()) {
             books << window->book().getManifestPath();
         }

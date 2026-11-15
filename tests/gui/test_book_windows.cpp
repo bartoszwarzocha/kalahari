@@ -222,7 +222,7 @@ MainWindow* opened(MainWindow* window, const QString& manifest) {
 /// Island open in @p first, then Desert in a new window; that window
 MainWindow* withTwoBooks(MainWindow* first, const TestBooks& books) {
     REQUIRE(opened(first, books.island()) == first);
-    MainWindow* second = opened(first, books.desert());
+    MainWindow* const second = opened(first, books.desert());
     REQUIRE(second != nullptr);
     REQUIRE(second != first);
     return second;
@@ -237,7 +237,7 @@ MainWindow* newWindowByMenu(const MainWindow& window) {
 
 /// A second window of the program after the first window of @p windows
 MainWindow* secondWindow(const Windows& windows) {
-    MainWindow* second = windows.first()->openNewWindow();
+    MainWindow* const second = windows.first()->openNewWindow();
     REQUIRE(MainWindow::windows().size() == 2);
     return second;
 }
@@ -373,7 +373,7 @@ QList<QTabBar*> panelTabBarsOf(const MainWindow& window) {
 QList<QTabBar*> tabBarsWithUnused(const MainWindow& window) {
     REQUIRE(waitFor([&window]() {
         const QList<QTabBar*> bars = panelTabBarsOf(window);
-        return std::any_of(bars.cbegin(), bars.cend(), [](const QTabBar* bar) {
+        return std::ranges::any_of(bars, [](const QTabBar* bar) {
             return bar->isHidden() && bar->count() == 0;
         });
     }));
@@ -388,7 +388,7 @@ struct TabBarsGone {
 
 /// Count in @p counts the tab bars @p bars of @p window as they are deleted
 void countGone(MainWindow* window, const QList<QTabBar*>& bars, TabBarsGone& counts) {
-    for (QTabBar* bar : bars) {
+    for (QTabBar* const bar : bars) {
         QObject::connect(bar, &QObject::destroyed, bar, [window, &counts]() {
             ++counts.gone;
             if (qobject_cast<QMainWindow*>(static_cast<QObject*>(window)) != nullptr) {
@@ -452,7 +452,7 @@ TEST_CASE("Book windows: the first window is the only one", "[gui][windows][book
 TEST_CASE("Book windows: Window > New Window opens another window with the Dashboard",
           "[gui][windows][book-windows]") {
     const Windows windows;
-    MainWindow* second = newWindowByMenu(*windows.first());
+    MainWindow* const second = newWindowByMenu(*windows.first());
     CHECK(second->isVisible());
     CHECK(second->testAttribute(Qt::WA_DeleteOnClose));
     CHECK_FALSE(second->book().isProjectOpen());
@@ -462,8 +462,8 @@ TEST_CASE("Book windows: Window > New Window opens another window with the Dashb
 TEST_CASE("Book windows: each window has its own book and commands",
           "[gui][windows][book-windows]") {
     const Windows windows;
-    MainWindow* first = windows.first();
-    MainWindow* second = newWindowByMenu(*first);
+    MainWindow* const first = windows.first();
+    MainWindow* const second = newWindowByMenu(*first);
     CHECK(&second->book() != &first->book());
     CHECK(&second->commands() != &first->commands());
     CHECK(gui::CommandRegistry::registries().contains(&first->commands()));
@@ -473,7 +473,7 @@ TEST_CASE("Book windows: each window has its own book and commands",
 TEST_CASE("Book windows: the Window menu of each window lists the windows of the program",
           "[gui][windows][book-windows]") {
     const Windows windows;
-    MainWindow* second = newWindowByMenu(*windows.first());
+    MainWindow* const second = newWindowByMenu(*windows.first());
     const QStringList menu = windowMenu(*windows.first());
     CHECK(menu.first() == gui::DocumentWindows::tr("Ne&w Window"));
     CHECK(menu.contains(QStringLiteral("&1 Kalahari")));
@@ -495,7 +495,7 @@ TEST_CASE("Book windows: the tab bars of the docked panels go after the parts of
     // one has one no longer used, which Qt 6.8 and later deletes with the layout of the
     // window. Deleted with the parts of the window, it was deleted twice.
     const Windows windows;
-    MainWindow* second = secondWindow(windows);
+    MainWindow* const second = secondWindow(windows);
     const QList<QTabBar*> bars = tabBarsWithUnused(*second);
     REQUIRE_FALSE(bars.isEmpty());
 
@@ -512,7 +512,7 @@ TEST_CASE("Book windows: another book opens in a new window, the first one keeps
     const TestBooks books;
     const Windows windows;
     MainWindow* first = windows.first();
-    MainWindow* second = withTwoBooks(first, books);
+    MainWindow* const second = withTwoBooks(first, books);
     CHECK(MainWindow::windows().size() == 2);
     CHECK(first->book().isProjectOpen());
     CHECK(QFileInfo(first->book().getManifestPath()) == QFileInfo(books.island()));
@@ -533,7 +533,7 @@ TEST_CASE("Book windows: a book open in another window comes to the front with i
     const TestBooks books;
     const Windows windows;
     MainWindow* first = windows.first();
-    MainWindow* second = withTwoBooks(first, books);
+    MainWindow* const second = withTwoBooks(first, books);
     open(second, books.island());
     REQUIRE(saysAlreadyOpen(*first));
     CHECK(infoBarText(*first).contains(
@@ -559,7 +559,7 @@ TEST_CASE("Book windows: the book closes, so does what the info bar said of it",
           "[gui][windows][book-windows]") {
     const TestBooks books;
     const Windows windows;
-    MainWindow* first = windows.first();
+    MainWindow* const first = windows.first();
     open(withTwoBooks(first, books), books.island());
     REQUIRE(saysAlreadyOpen(*first));
     first->book().closeProject(false);
@@ -655,8 +655,8 @@ TEST_CASE("Book windows: File > Exit asks one question that names every unsaved 
           "[gui][windows][book-windows]") {
     const TestBooks books;
     const Windows windows;
-    MainWindow* first = windows.first();
-    MainWindow* second = withTwoBooks(first, books);
+    MainWindow* const first = windows.first();
+    MainWindow* const second = withTwoBooks(first, books);
     first->book().setDirty(true);
     second->book().setDirty(true);
     QStringList said;
@@ -671,7 +671,7 @@ TEST_CASE("Book windows: File > Exit keeps the books of every window for the nex
           "[gui][windows][book-windows]") {
     const TestBooks books;
     const Windows windows;
-    MainWindow* second = withTwoBooks(windows.first(), books);
+    MainWindow* const second = withTwoBooks(windows.first(), books);
     windows.first()->book().setDirty(true);
     second->book().setDirty(true);
     // The book of the window that asked goes last: it is in front at the next start
@@ -716,10 +716,10 @@ TEST_CASE("Book windows: at startup all the books of the last work open, each in
     const Setting<std::string> all(core::RecentBooksManager::STARTUP_BOOKS_KEY, "all");
     CHECK(core::RecentBooksManager::getInstance().booksToOpenAtStart() ==
           QStringList{books.island(), books.desert()});
-    MainWindow* first = startingWindow();
+    MainWindow* const first = startingWindow();
     const Windows windows;  // deletes the windows; its own first one opens nothing
     CHECK(waitForBook(books.island()) == first);
-    MainWindow* second = waitForBook(books.desert());
+    MainWindow* const second = waitForBook(books.desert());
     CHECK(second != nullptr);
     CHECK(second != first);
     CHECK(MainWindow::windows().size() == 3);
@@ -733,7 +733,7 @@ TEST_CASE("Book windows: at startup only the book of the last work opened last",
     const Setting<std::string> last(core::RecentBooksManager::STARTUP_BOOKS_KEY, "last");
     CHECK(core::RecentBooksManager::getInstance().booksToOpenAtStart() ==
           QStringList{books.desert()});
-    MainWindow* first = startingWindow();
+    MainWindow* const first = startingWindow();
     const Windows windows;
     CHECK(waitForBook(books.desert()) == first);
     QApplication::processEvents();
@@ -757,7 +757,7 @@ TEST_CASE("Book windows: a book of the last work gone since does not open at sta
 TEST_CASE("Book windows: the settings applied in one window show in every window",
           "[gui][windows][book-windows]") {
     const Windows windows;
-    MainWindow* second = secondWindow(windows);
+    MainWindow* const second = secondWindow(windows);
     auto* firstSettings = windows.first()->findChild<gui::SettingsCoordinator*>();
     REQUIRE(firstSettings != nullptr);
     CHECK(gui::SettingsCoordinator::coordinators().size() == 2);
@@ -791,7 +791,7 @@ TEST_CASE("Book windows: a word added to the dictionary in one window is known i
 TEST_CASE("Book windows: keys given to a character in one window work in the other",
           "[gui][windows][book-windows]") {
     const Windows windows;
-    MainWindow* second = secondWindow(windows);
+    MainWindow* const second = secondWindow(windows);
     auto* characters = windows.first()->findChild<gui::SpecialCharacterCoordinator*>();
     REQUIRE(characters != nullptr);
     const gui::KeyboardShortcut keys(Qt::Key_F7, Qt::ControlModifier);
@@ -833,7 +833,7 @@ void openFirstText(MainWindow& window) {
     const core::ProjectManager& book = window.book();
     const core::BookProject* project = book.project();
     REQUIRE(project != nullptr);
-    for (const core::ProjectElement* element : project->readingOrder()) {
+    for (const core::ProjectElement* const element : project->readingOrder()) {
         if (book.formOf(*element) == core::ElementForm::Text) {
             window.openChapter(element->id, element->title);
             return;
@@ -961,11 +961,11 @@ TEST_CASE("Book windows: a new window of a book takes the layout the book kept",
     keepLayoutWithNavigator(books.island(), false);
     const Windows windows;
     MainWindow* first = windows.first();
-    MainWindow* island = first->openBookInNewWindow(books.island());
+    MainWindow* const island = first->openBookInNewWindow(books.island());
     REQUIRE(waitForBook(books.island()) == island);
     CHECK(navigatorOf(*island)->isHidden());
     // A book without a layout of its own takes the one of the window it came from
-    MainWindow* desert = first->openBookInNewWindow(books.desert());
+    MainWindow* const desert = first->openBookInNewWindow(books.desert());
     REQUIRE(waitForBook(books.desert()) == desert);
     CHECK_FALSE(navigatorOf(*desert)->isHidden());
 }
@@ -980,7 +980,7 @@ TEST_CASE("Book windows: a book keeps the layout of its window as it leaves the 
     navigatorOf(*first)->hide();
     first->book().closeProject(false);
     navigatorOf(*first)->show();
-    MainWindow* again = first->openBookInNewWindow(books.island());
+    MainWindow* const again = first->openBookInNewWindow(books.island());
     REQUIRE(waitForBook(books.island()) == again);
     CHECK(navigatorOf(*again)->isHidden());
     CHECK_FALSE(navigatorOf(*first)->isHidden());
@@ -1010,11 +1010,11 @@ TEST_CASE("Book windows: at startup each book of the last work takes the layout 
     core::RecentBooksManager::setOpenBooks({books.island(), books.desert()});
     const Setting<bool> autoLoad("startup.autoLoadLastProject", true);
     const Setting<std::string> all(core::RecentBooksManager::STARTUP_BOOKS_KEY, "all");
-    MainWindow* first = startingWindow();
+    MainWindow* const first = startingWindow();
     const Windows windows;  // deletes the windows; its own first one opens nothing
     REQUIRE(waitForBook(books.island()) == first);
     CHECK(navigatorOf(*first)->isHidden());
-    MainWindow* desert = waitForBook(books.desert());
+    MainWindow* const desert = waitForBook(books.desert());
     REQUIRE(desert != nullptr);
     CHECK_FALSE(navigatorOf(*desert)->isHidden());
 }
@@ -1023,7 +1023,7 @@ TEST_CASE("Book windows: at startup the book of the command line takes the layou
           "[gui][windows][book-windows]") {
     const TestBooks books;
     keepLayoutWithNavigator(books.island(), false);
-    MainWindow* first = startingWindow(books.island());
+    MainWindow* const first = startingWindow(books.island());
     const Windows windows;
     REQUIRE(waitForBook(books.island()) == first);
     CHECK(navigatorOf(*first)->isHidden());
