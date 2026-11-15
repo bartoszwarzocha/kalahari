@@ -6,6 +6,7 @@
 /// and the data of their chapter files
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/file_trash.h>
@@ -278,7 +279,7 @@ QList<Entry> entriesOfFolder(const QString& path, QChar separator) {
 
 TEST_CASE("ProjectManager keeps the dictionary of the book in its folder",
           "[project_manager][dictionary]") {
-    QTemporaryDir dir;
+    const QTemporaryDir dir;
     auto& pm = projects();
     const auto addWord = [](const QString& word) {
         return [word](BookDictionary& dictionary) { dictionary.addWord(word); };

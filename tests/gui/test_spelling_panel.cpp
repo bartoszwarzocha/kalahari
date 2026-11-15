@@ -354,7 +354,8 @@ struct Desk {
 
     /// Open a document with a text in KML in a tab of its own, in front; with
     /// @p elementId, as a chapter of the book
-    editor::BookEditor* openKml(const QString& kml, const QString& elementId = {}) {
+    [[nodiscard]] editor::BookEditor* openKml(const QString& kml,
+                                              const QString& elementId = {}) const {
         auto* document = new EditorPanel(kalahari::test::book(), kalahari::test::commands());
         document->setContent(kml);
         if (!elementId.isEmpty()) {
@@ -1226,11 +1227,11 @@ TEST_CASE("Spelling panel: a fix chosen in the panel goes to the text, and the n
 TEST_CASE("Spelling panel: in a chapter, the departures from the rules of the book with the "
           "misspelled words, a word added to the book's dictionary",
           "[gui][spelling-panel][coordinator][dictionary]") {
-    KeptSettings kept;
+    const KeptSettings kept;
     setDefaults();
     auto& projects = test::book();
     REQUIRE(projects.closeProject(false));
-    QTemporaryDir folder;
+    const QTemporaryDir folder;
     REQUIRE(folder.isValid());
     REQUIRE(projects.createProject(folder.path(), QStringLiteral("Dictionary Test"),
                                    QStringLiteral("Author"), QStringLiteral("en"), true));
@@ -1240,16 +1241,16 @@ TEST_CASE("Spelling panel: in a chapter, the departures from the rules of the bo
     rule.allForms = false;
     REQUIRE(projects.changeBookDictionary(
         [&rule](core::BookDictionary& dictionary) { dictionary.putRule(rule); }));
-    Commands commands;
+    const Commands commands;
     {
         Desk desk;
         desk.openPanel();
-        desk.openKml(kmlOf({QStringLiteral("Kirran wrote an email."),
-                            QStringLiteral("Vael answered.")}),
-                     QStringLiteral("chapter-1"));
+        REQUIRE(desk.openKml(kmlOf({QStringLiteral("Kirran wrote an email."),
+                                    QStringLiteral("Vael answered.")}),
+                             QStringLiteral("chapter-1")) != nullptr);
         REQUIRE(desk.lists({QStringLiteral("spelling 1 Kirran"), QStringLiteral("rule 1 email"),
                             QStringLiteral("spelling 2 Vael")}));
-        QToolButton* rules = desk.panel->kindButton(TextIssueKind::BookRule);
+        const QToolButton* rules = desk.panel->kindButton(TextIssueKind::BookRule);
         CHECK(desk.panel->isKindChecked(TextIssueKind::BookRule));
         CHECK(rules->isVisibleTo(desk.panel));
         CHECK(rules->text() == QStringLiteral("Rules 1"));
@@ -1257,7 +1258,7 @@ TEST_CASE("Spelling panel: in a chapter, the departures from the rules of the bo
         // The button adds the word to the book's dictionary: right in the chapters from now
         // on, and the issue after it is selected
         desk.panel->selectIssue(desk.panel->shownIssues().at(0).key);
-        SpellingIssueCard* card = desk.panel->list()->selectedCard();
+        const SpellingIssueCard* card = desk.panel->list()->selectedCard();
         REQUIRE(card != nullptr);
         REQUIRE(card->actionButtons().size() == 3);
         REQUIRE(card->actionButtons().at(1)->text() == QStringLiteral("Add to Book Dictionary"));

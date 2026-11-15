@@ -6,6 +6,7 @@
 ///        grammar issue, made only for the cards in view
 
 #include "kalahari/gui/panels/spelling_issue_list.h"
+#include "kalahari/editor/text_issue.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 
@@ -518,8 +519,8 @@ SpellingIssueCard::SpellingIssueCard(QWidget* parent)
     connect(more, &QAbstractButton::clicked, this, [this, more]() {
         QMenu menu(this);
         const bool toBook = !m_addPlaces.bookFirst;
-        QAction* other = menu.addAction(toBook ? tr("Add to Book Dictionary")
-                                               : tr("Add to Your Words (All Books)"));
+        const QAction* other = menu.addAction(toBook ? tr("Add to Book Dictionary")
+                                                     : tr("Add to Your Words (All Books)"));
         bool chosen = false;
         connect(other, &QAction::triggered, &menu, [&chosen]() { chosen = true; });
         menu.exec(more->mapToGlobal(QPoint(0, more->height())));

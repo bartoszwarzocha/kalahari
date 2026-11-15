@@ -93,7 +93,7 @@ bool addForms(const QuickInsertItem& item, const QString& letters, const Compare
     for (const QuickInsertForm& form : item.forms) {
         const Fit fit = fitOf(compare(form.text), letters);
         if (fit != Fit::None) {
-            found.append({fit, formItem(item, form)});
+            found.append({.fit = fit, .item = formItem(item, form)});
             added = true;
         }
     }
@@ -107,14 +107,14 @@ void addMatches(const QuickInsertItem& item, const QString& lower, const QString
     const Compared asTyped = [](const QString& text) { return text.toLower(); };
     const Compared withoutMarks = [](const QString& text) { return foldForSearch(text); };
     if (const Fit fit = fitOf(asTyped(item.name), lower); fit != Fit::None) {
-        found.append({fit, item});
+        found.append({.fit = fit, .item = item});
         return;
     }
     if (addForms(item, lower, asTyped, found)) {
         return;
     }
     if (const Fit fit = fitOf(withoutMarks(item.name), folded); fit != Fit::None) {
-        found.append({fit, item});
+        found.append({.fit = fit, .item = item});
         return;
     }
     addForms(item, folded, withoutMarks, found);

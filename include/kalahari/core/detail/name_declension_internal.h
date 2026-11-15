@@ -5,8 +5,8 @@
 /// @brief What the source files of NameDeclension share (not part of its API): the cells a
 ///        Polish model gives a word, and the models
 
-#ifndef KALAHARI_CORE_NAME_DECLENSION_INTERNAL_H
-#define KALAHARI_CORE_NAME_DECLENSION_INTERNAL_H
+#ifndef KALAHARI_CORE_DETAIL_NAME_DECLENSION_INTERNAL_H
+#define KALAHARI_CORE_DETAIL_NAME_DECLENSION_INTERNAL_H
 
 #include <kalahari/core/name_declension.h>
 
@@ -82,4 +82,4 @@ inline constexpr std::size_t POLISH_MODEL_COUNT = static_cast<std::size_t>(Polis
 
 }  // namespace kalahari::core::declension
 
-#endif  // KALAHARI_CORE_NAME_DECLENSION_INTERNAL_H
+#endif  // KALAHARI_CORE_DETAIL_NAME_DECLENSION_INTERNAL_H

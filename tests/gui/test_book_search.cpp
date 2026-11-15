@@ -784,7 +784,7 @@ TEST_CASE("Search panel: the keys, the options, and the tree kept as it was",
 
 TEST_CASE("Find in Book: all forms (Alt+M), without Replace All in Book",
           "[gui][search][book][forms]") {
-    SearchedBook book;
+    const SearchedBook book;
     Window window;
     Search search(window);
     QStringList asked;
@@ -817,7 +817,7 @@ TEST_CASE("Find in Book: all forms (Alt+M), without Replace All in Book",
     CHECK(search.coordinator.whyNotReplace().isEmpty());
 
     // Alt+M turns it on in the panel, as on the find bar
-    QLineEdit* field = widgetNamed<QLineEdit>(search.panel, QStringLiteral("Find in Book"));
+    auto* field = widgetNamed<QLineEdit>(search.panel, QStringLiteral("Find in Book"));
     REQUIRE(field != nullptr);
     const QKeyCombination formsKey = editor::FindReplaceBar::optionKeys().at(3);
     press(field, formsKey.key(), formsKey.keyboardModifiers());

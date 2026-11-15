@@ -14,8 +14,10 @@
 #include <QTextCursor>
 #include <QRegularExpression>
 #include <algorithm>
+#include <functional>
 #include <iterator>
 #include <utility>
+#include <vector>
 
 namespace kalahari::editor {
 

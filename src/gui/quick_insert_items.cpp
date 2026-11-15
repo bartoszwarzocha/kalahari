@@ -8,8 +8,10 @@
 
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/name_declension.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/editor/quick_insert.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/name_labels.h"
 
@@ -18,6 +20,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -92,7 +95,7 @@ void addCell(const QStringList& cell, const QString& label, QList<FormCases>& fo
         }
         const auto found = std::ranges::find(forms, form, &FormCases::text);
         if (found == forms.end()) {
-            forms.append({form, {label}});
+            forms.append({.text = form, .cases = {label}});
         } else if (!found->cases.contains(label)) {
             found->cases.append(label);
         }
@@ -254,7 +257,7 @@ QList<editor::QuickInsertForm> quickInsertForms(const core::NameVariant& variant
     QList<editor::QuickInsertForm> forms;
     forms.reserve(found.size());
     for (const FormCases& form : found) {
-        forms.append({form.text, form.cases.join(QStringLiteral(", "))});
+        forms.append({.text = form.text, .cases = form.cases.join(QStringLiteral(", "))});
     }
     return forms;
 }

@@ -41,6 +41,10 @@ constexpr int INPUT_MAXIMUM_WIDTH = 360;
 /// @brief The space between the field and the groups of buttons
 constexpr int GROUP_SPACING = 8;
 
+/// @brief The buttons' width (the narrowest one for the option of the forms) and height
+constexpr int BUTTON_WIDTH = 28;
+constexpr int BUTTON_HEIGHT = 24;
+
 } // anonymous namespace
 
 // =============================================================================
@@ -112,19 +116,19 @@ void FindReplaceBar::setupUi()
     m_caseSensitiveBtn = new QToolButton(options);
     m_caseSensitiveBtn->setText(tr("Aa"));
     m_caseSensitiveBtn->setCheckable(true);
-    m_caseSensitiveBtn->setFixedSize(28, 24);
+    m_caseSensitiveBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     optionsLayout->addWidget(m_caseSensitiveBtn);
 
     m_wholeWordBtn = new QToolButton(options);
     m_wholeWordBtn->setText(tr("W"));
     m_wholeWordBtn->setCheckable(true);
-    m_wholeWordBtn->setFixedSize(28, 24);
+    m_wholeWordBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     optionsLayout->addWidget(m_wholeWordBtn);
 
     m_regexBtn = new QToolButton(options);
     m_regexBtn->setText(tr(".*"));
     m_regexBtn->setCheckable(true);
-    m_regexBtn->setFixedSize(28, 24);
+    m_regexBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     optionsLayout->addWidget(m_regexBtn);
 
     m_allFormsBtn = new QToolButton(options);
@@ -132,8 +136,8 @@ void FindReplaceBar::setupUi()
     //: Odm
     m_allFormsBtn->setText(tr("Forms"));
     m_allFormsBtn->setCheckable(true);
-    m_allFormsBtn->setMinimumWidth(28);
-    m_allFormsBtn->setFixedHeight(24);
+    m_allFormsBtn->setMinimumWidth(BUTTON_WIDTH);
+    m_allFormsBtn->setFixedHeight(BUTTON_HEIGHT);
     optionsLayout->addWidget(m_allFormsBtn);
 
     findItems->addWidget(options);
@@ -147,13 +151,13 @@ void FindReplaceBar::setupUi()
     m_prevBtn = new QToolButton(navigation);
     m_prevBtn->setIcon(art.getIcon("navigation.up", core::IconContext::Button));
     m_prevBtn->setToolTip(tr("Previous Match (Shift+Enter)"));
-    m_prevBtn->setFixedSize(28, 24);
+    m_prevBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     navigationLayout->addWidget(m_prevBtn);
 
     m_nextBtn = new QToolButton(navigation);
     m_nextBtn->setIcon(art.getIcon("navigation.down", core::IconContext::Button));
     m_nextBtn->setToolTip(tr("Next Match (Enter)"));
-    m_nextBtn->setFixedSize(28, 24);
+    m_nextBtn->setFixedSize(BUTTON_WIDTH, BUTTON_HEIGHT);
     navigationLayout->addWidget(m_nextBtn);
 
     // Separator
@@ -173,7 +177,7 @@ void FindReplaceBar::setupUi()
     //: The gear of the find bar: Settings > Editor > Colors, with the colors of the hits
     m_settingsBtn->setToolTip(tr("Colors of the Search Hits"));
     m_settingsBtn->setAccessibleName(m_settingsBtn->toolTip());
-    m_settingsBtn->setFixedSize(24, 24);
+    m_settingsBtn->setFixedSize(BUTTON_HEIGHT, BUTTON_HEIGHT);
     m_settingsBtn->setAutoRaise(true);
     findRow->addWidget(m_settingsBtn, 0, Qt::AlignTop);
 
@@ -181,7 +185,7 @@ void FindReplaceBar::setupUi()
     m_closeBtn = new QToolButton(this);
     m_closeBtn->setIcon(art.getIcon("dock.close", core::IconContext::Button));
     m_closeBtn->setToolTip(tr("Close (Escape)"));
-    m_closeBtn->setFixedSize(24, 24);
+    m_closeBtn->setFixedSize(BUTTON_HEIGHT, BUTTON_HEIGHT);
     m_closeBtn->setAutoRaise(true);
     findRow->addWidget(m_closeBtn, 0, Qt::AlignTop);
 
@@ -211,12 +215,12 @@ void FindReplaceBar::setupUi()
 
     m_replaceBtn = new QPushButton(tr("Replace"), replaceButtons);
     m_replaceBtn->setToolTip(tr("Replace Current Match"));
-    m_replaceBtn->setFixedHeight(24);
+    m_replaceBtn->setFixedHeight(BUTTON_HEIGHT);
     replaceButtonsLayout->addWidget(m_replaceBtn);
 
     m_replaceAllBtn = new QPushButton(tr("Replace All"), replaceButtons);
     m_replaceAllBtn->setToolTip(tr("Replace All Matches"));
-    m_replaceAllBtn->setFixedHeight(24);
+    m_replaceAllBtn->setFixedHeight(BUTTON_HEIGHT);
     replaceButtonsLayout->addWidget(m_replaceAllBtn);
 
     replaceRow->addWidget(replaceButtons);

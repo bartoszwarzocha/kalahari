@@ -13,7 +13,7 @@
 
 namespace kalahari::core {
 class BookDictionary;
-}
+}  // namespace kalahari::core
 
 namespace kalahari::editor {
 

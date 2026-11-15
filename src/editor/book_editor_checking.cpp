@@ -9,6 +9,8 @@
 #include <kalahari/editor/grammar_check_service.h>
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/spell_check_service.h>
+#include <kalahari/editor/text_highlight.h>
+#include <kalahari/editor/text_issue.h>
 #include <QAction>
 #include <QElapsedTimer>
 #include <QFont>
@@ -25,6 +27,7 @@
 #include <algorithm>
 #include <optional>
 #include <cstddef>
+#include <functional>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -249,12 +252,15 @@ std::vector<TextHighlight> spellingIssuesOf(const SpellCheckService& service,
                        deviation.start < error.startPos + error.length;
             });
         if (!covered) {
-            issues.push_back({error.startPos, error.length, HighlightKind::Spelling});
+            issues.push_back({.start = error.startPos,
+                              .length = error.length,
+                              .kind = HighlightKind::Spelling});
         }
     }
     for (const core::RuleDeviation& deviation : std::as_const(deviations)) {
-        issues.push_back({static_cast<int>(deviation.start), static_cast<int>(deviation.length),
-                          HighlightKind::BookRule});
+        issues.push_back({.start = static_cast<int>(deviation.start),
+                          .length = static_cast<int>(deviation.length),
+                          .kind = HighlightKind::BookRule});
     }
     std::ranges::stable_sort(issues, std::ranges::less{}, &TextHighlight::start);
     return issues;
@@ -373,7 +379,9 @@ std::pair<std::vector<TextHighlight>, std::vector<GrammarError>> grammarIssuesOf
             sentenceUnfinished(text, error.startPos + error.length)) {
             continue;
         }
-        issues.push_back({error.startPos, error.length, HighlightKind::Grammar});
+        issues.push_back({.start = error.startPos,
+                          .length = error.length,
+                          .kind = HighlightKind::Grammar});
         kept.push_back(error);
     }
     return {std::move(issues), std::move(kept)};

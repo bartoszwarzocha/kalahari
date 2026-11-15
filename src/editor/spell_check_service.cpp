@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -32,6 +33,9 @@
 namespace kalahari::editor {
 
 namespace {
+
+/// @brief The typographic apostrophe (’): the dictionaries know the words with the plain one
+constexpr QChar TYPOGRAPHIC_APOSTROPHE = u'\u2019';
 
 // =============================================================================
 // Dictionary files
@@ -701,7 +705,7 @@ QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestio
         return result;
     }
     QString asked = word;
-    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
     const bool capitalizedWord = isCapitalized(asked);
     const auto suggest = [this, &asked](const QString& misspelled, bool capitalize) {
         QStringList found;
@@ -801,7 +805,7 @@ QStringList SpellCheckService::stems(const QString& word) const
         return result;
     }
     QString asked = word;
-    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
     for (const std::string& stem : m_hunspell->stem(toDictionary(asked))) {
         result.append(fromDictionary(stem));
     }
@@ -820,7 +824,7 @@ QStringList SpellCheckService::relatedForms(const QString& word) const
         m_expanderDictionary = m_dictionary;
     }
     QString asked = word;
-    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
     return m_expander->relatedForms(asked);
 }
 
@@ -831,7 +835,7 @@ bool SpellCheckService::isWordCorrect(const QString& word) const
     }
     // The dictionaries know the typewriter apostrophe (don't)
     QString asked = word;
-    asked.replace(QChar(0x2019), QLatin1Char('\''));
+    asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
     return m_hunspell->spell(toDictionary(asked));
 }
 
@@ -854,7 +858,7 @@ bool SpellCheckService::isOwnWord(const QString& word) const
 
     // With an ending after an apostrophe (Kalahari's)
     for (qsizetype i = 1; i < word.size(); ++i) {
-        if (word[i] == QLatin1Char('\'') || word[i] == QChar(0x2019)) {
+        if (word[i] == QLatin1Char('\'') || word[i] == TYPOGRAPHIC_APOSTROPHE) {
             return knownInAnyCase(word.left(i));
         }
     }

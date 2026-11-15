@@ -4,8 +4,10 @@
 /// @file name_declension_polish.cpp
 /// @brief The Polish models of declension: the forms each gives a word
 
-#include "name_declension_internal.h"
+#include <kalahari/core/detail/name_declension_internal.h>
+#include <kalahari/core/name_declension.h>
 
+#include <QString>
 #include <QStringView>
 
 #include <algorithm>

@@ -22,7 +22,7 @@ class QTimer;
 
 namespace kalahari::core {
 class AffixExpander;
-}
+}  // namespace kalahari::core
 
 namespace kalahari::editor {
 

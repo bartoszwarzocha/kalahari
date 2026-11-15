@@ -5,8 +5,10 @@
 /// @brief The words the program shows for the names of the book's dictionary
 
 #include "kalahari/gui/name_labels.h"
+#include "kalahari/core/name_declension.h"
 
 #include <QCoreApplication>
+#include <QString>
 
 #include <array>
 #include <cstddef>

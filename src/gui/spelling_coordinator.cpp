@@ -26,6 +26,7 @@
 #include <QTimer>
 #include <QVariant>
 
+#include <functional>
 #include <string>
 #include <utility>
 

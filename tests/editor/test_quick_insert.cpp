@@ -27,22 +27,32 @@ QuickInsertItem card(const QString& name) {
 }
 
 QuickInsertItem fragment(const QString& name, const QString& text) {
-    return {QuickInsertSource::Fragment, name, text, text, QStringLiteral("Text Fragments"),
-            QString(), {}};
+    return {.source = QuickInsertSource::Fragment,
+            .name = name,
+            .text = text,
+            .detail = text,
+            .group = QStringLiteral("Text Fragments"),
+            .owner = QString(),
+            .forms = {}};
 }
 
 /// A name of the book's dictionary with its forms; @p owner: the name it is another name of
 QuickInsertItem name(const QString& text, const QList<QuickInsertForm>& forms,
                      const QString& owner = {}) {
     const QString detail = owner.isEmpty() ? QStringLiteral("character") : owner;
-    return {QuickInsertSource::Name, text, text, detail, QStringLiteral("Characters"), owner,
-            forms};
+    return {.source = QuickInsertSource::Name,
+            .name = text,
+            .text = text,
+            .detail = detail,
+            .group = QStringLiteral("Characters"),
+            .owner = owner,
+            .forms = forms};
 }
 
 /// Anna Wolska, and Anna, her first name alone
 QList<QuickInsertItem> annaWolska() {
     const auto form = [](const char* text, const char* cases) {
-        return QuickInsertForm{QString::fromUtf8(text), QString::fromUtf8(cases)};
+        return QuickInsertForm{.text = QString::fromUtf8(text), .cases = QString::fromUtf8(cases)};
     };
     return {name(QStringLiteral("Anna Wolska"),
                  {form("Anna Wolska", "nominative"), form("Anny Wolskiej", "genitive"),
@@ -330,10 +340,10 @@ TEST_CASE("Quick insert: Right shows the forms of a name, Left the list again",
           "[editor][quickinsert]") {
     Fixture f({QStringLiteral("Czy ktoś widział ")});
     f.cards = annaWolska();
-    f.editor->setCursorPosition({0, 17});
+    f.editor->setCursorPosition({.paragraph = 0, .offset = 17});
     f.type(QStringLiteral("@an"));
     REQUIRE(f.quick->isOpen());
-    QuickInsertList* list = f.quick->list();
+    const QuickInsertList* list = f.quick->list();
     CHECK(list->hasForms());
     CHECK_FALSE(list->showsForms());
 
@@ -376,7 +386,7 @@ TEST_CASE("Quick insert: Right shows the forms of a name, Left the list again",
 TEST_CASE("Quick insert: without forms Right and Left move the cursor in the text",
           "[editor][quickinsert]") {
     Fixture f({QStringLiteral("zapytał ")});
-    f.editor->setCursorPosition({0, 8});
+    f.editor->setCursorPosition({.paragraph = 0, .offset = 8});
     f.type(QStringLiteral("@an"));
     REQUIRE(f.quick->isOpen());
     CHECK_FALSE(f.quick->list()->hasForms());

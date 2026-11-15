@@ -764,10 +764,11 @@ void checkTextMenus(bool shown, QStringList& problems) {
         editor::BookEditor booked;
         test::resizeWidget(booked, QSize(600, 400));
         booked.fromKml(test::kmlOf({QStringLiteral("The chaptre of an email.")}));
-        booked.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
-                                          registry.getAction(QStringLiteral("edit.copy")),
-                                          registry.getAction(QStringLiteral("edit.paste")),
-                                          registry.getAction(QStringLiteral("edit.selectAll"))});
+        booked.setContextMenuEditActions(
+            {.cut = registry.getAction(QStringLiteral("edit.cut")),
+             .copy = registry.getAction(QStringLiteral("edit.copy")),
+             .paste = registry.getAction(QStringLiteral("edit.paste")),
+             .selectAll = registry.getAction(QStringLiteral("edit.selectAll"))});
         booked.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
                                       registry.getAction(QStringLiteral("insert.todo")),
                                       registry.getAction(QStringLiteral("insert.note"))});

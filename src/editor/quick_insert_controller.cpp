@@ -6,6 +6,7 @@
 
 #include <kalahari/editor/quick_insert_controller.h>
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/editor/quick_insert.h>
 
 #include <QApplication>
 #include <QFocusEvent>

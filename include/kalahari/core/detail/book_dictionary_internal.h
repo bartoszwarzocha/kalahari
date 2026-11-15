@@ -5,8 +5,8 @@
 /// @brief What the source files of BookDictionary share (not part of its API): the words of a
 ///        text as the dictionary reads them, the places that go against the rules, new ids
 
-#ifndef KALAHARI_CORE_BOOK_DICTIONARY_INTERNAL_H
-#define KALAHARI_CORE_BOOK_DICTIONARY_INTERNAL_H
+#ifndef KALAHARI_CORE_DETAIL_BOOK_DICTIONARY_INTERNAL_H
+#define KALAHARI_CORE_DETAIL_BOOK_DICTIONARY_INTERNAL_H
 
 #include <kalahari/core/book_dictionary.h>
 
@@ -55,4 +55,4 @@ struct TextWord {
 
 }  // namespace kalahari::core::dictionary
 
-#endif  // KALAHARI_CORE_BOOK_DICTIONARY_INTERNAL_H
+#endif  // KALAHARI_CORE_DETAIL_BOOK_DICTIONARY_INTERNAL_H

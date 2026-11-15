@@ -9,8 +9,10 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/theme.h"
 #include "kalahari/core/theme_manager.h"
+#include "kalahari/editor/text_issue.h"
 #include "kalahari/gui/issue_colors.h"
 #include "kalahari/gui/panels/annotation_colors.h"
+#include "kalahari/gui/panels/spelling_issue_list.h"
 #include "kalahari/gui/widgets/flow_layout.h"
 #include "kalahari/gui/widgets/wrapping_label.h"
 
@@ -30,8 +32,9 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
-#include <iterator>
+#include <array>
 #include <cstddef>
+#include <iterator>
 #include <utility>
 
 namespace kalahari::gui {

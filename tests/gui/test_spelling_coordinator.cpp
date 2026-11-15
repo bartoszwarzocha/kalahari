@@ -429,7 +429,7 @@ TEST_CASE("Spelling coordinator: a document outside the book is checked in the d
 
 TEST_CASE("Spelling coordinator: the chapters are checked with the book's dictionary",
           "[gui][spelling][dictionary]") {
-    KeptSpellingSettings kept;
+    const KeptSpellingSettings kept;
     auto& settings = KeptSpellingSettings::settings();
     settings.set<bool>(ENABLED_KEY, true);
     settings.set<std::string>(LANGUAGE_KEY, "");
@@ -444,7 +444,7 @@ TEST_CASE("Spelling coordinator: the chapters are checked with the book's dictio
     {
         SpellingCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(), &tabs,
                                         &statusBar);
-        QTemporaryDir folder;
+        const QTemporaryDir folder;
         REQUIRE(folder.isValid());
         REQUIRE(projects.createProject(folder.path(), QStringLiteral("Dictionary Test"),
                                        QStringLiteral("Author"), QStringLiteral("en"), true));

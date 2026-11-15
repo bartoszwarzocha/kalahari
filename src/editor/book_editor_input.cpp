@@ -7,6 +7,7 @@
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/book_dictionary.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_tables.h>
 #include <QAbstractTextDocumentLayout>
 #include <QAction>

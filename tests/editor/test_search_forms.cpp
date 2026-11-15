@@ -9,17 +9,23 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <kalahari/core/book_dictionary.h>
+#include <kalahari/core/name_declension.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/search_engine.h>
 #include <kalahari/editor/search_forms.h>
 #include <kalahari/editor/spell_check_service.h>
 
+#include <QList>
 #include <QPushButton>
+#include <QStringList>
 #include <QTextDocument>
 #include <QToolButton>
 
 #include "editor_test_utils.h"
+
+#include <algorithm>
+#include <vector>
 
 using kalahari::core::BookDictionary;
 using kalahari::core::makeName;
@@ -46,12 +52,11 @@ QStringList textsOf(const std::vector<SearchMatch>& matches) {
 
 /// The option of all forms of a find bar
 QToolButton* formsOption(const FindReplaceBar& bar) {
-    for (QToolButton* button : bar.findChildren<QToolButton*>()) {
-        if (button->text() == QStringLiteral("Forms")) {
-            return button;
-        }
-    }
-    return nullptr;
+    const QList<QToolButton*> buttons = bar.findChildren<QToolButton*>();
+    const auto found = std::ranges::find_if(buttons, [](const QToolButton* button) {
+        return button->text() == QStringLiteral("Forms");
+    });
+    return found != buttons.end() ? *found : nullptr;
 }
 
 /// A dictionary of the book with the name Anna Wolska
@@ -158,8 +163,8 @@ TEST_CASE("Search of all forms: the option of the find bar, without Replace All"
 
     QToolButton* forms = formsOption(bar);
     REQUIRE(forms != nullptr);
-    QPushButton* replaceAll = nullptr;
-    for (QPushButton* button : bar.findChildren<QPushButton*>()) {
+    const QPushButton* replaceAll = nullptr;
+    for (const QPushButton* button : bar.findChildren<QPushButton*>()) {
         if (button->text() == QStringLiteral("Replace All")) {
             replaceAll = button;
         }

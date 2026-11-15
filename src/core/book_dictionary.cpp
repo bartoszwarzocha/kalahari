@@ -7,11 +7,12 @@
 
 #include <kalahari/core/book_dictionary.h>
 
-#include "book_dictionary_internal.h"
+#include <kalahari/core/detail/book_dictionary_internal.h>
 
 #include <kalahari/core/name_declension.h>
 
 #include <algorithm>
+#include <functional>
 #include <utility>
 
 namespace kalahari::core {

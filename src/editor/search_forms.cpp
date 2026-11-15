@@ -15,11 +15,14 @@ namespace kalahari::editor {
 
 namespace {
 
+/// @brief The typographic apostrophe (’), joining a word as the plain one does
+constexpr QChar TYPOGRAPHIC_APOSTROPHE = u'\u2019';
+
 /// @brief Whether @p text is one word: letters, also joined by hyphens and apostrophes
 bool isOneWord(const QString& text) {
     return !text.isEmpty() && text.front().isLetter() && std::ranges::all_of(text, [](QChar c) {
                return c.isLetter() || c == QLatin1Char('-') || c == QLatin1Char('\'') ||
-                      c == QChar(0x2019);  // ’
+                      c == TYPOGRAPHIC_APOSTROPHE;
            });
 }
 

@@ -6,14 +6,13 @@
 
 #include <kalahari/core/name_declension.h>
 
-#include "name_declension_internal.h"
+#include <kalahari/core/detail/name_declension_internal.h>
 
 #include <QRegularExpression>
 #include <QSet>
 
 #include <algorithm>
 #include <array>
-#include <cstddef>
 #include <utility>
 
 namespace kalahari::core {

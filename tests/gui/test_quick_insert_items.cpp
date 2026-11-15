@@ -8,8 +8,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/name_declension.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/editor/quick_insert.h>
 #include <kalahari/gui/dialogs/quick_insert_item_dialog.h>
 #include <kalahari/gui/quick_insert_items.h>
 #include <kalahari/gui/settings/settings_pages.h>
@@ -376,11 +378,12 @@ TEST_CASE("Quick insert items: the names of the book dictionary with their other
 
 TEST_CASE("Quick insert items: @ offers the names of the book dictionary before the cards",
           "[gui][quickinsert][dictionary]") {
-    QuickInsertSettings settings;
-    QTemporaryDir dir;
+    const QuickInsertSettings settings;
+    const QTemporaryDir dir;
     REQUIRE(dir.isValid());
     auto& pm = test::book();
-    pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     REQUIRE(pm.createProject(dir.path(), QStringLiteral("Names"), QStringLiteral("Author"),
                              QStringLiteral("pl"), false, QStringLiteral("kalahari.novel")));
     REQUIRE(pm.project() != nullptr);

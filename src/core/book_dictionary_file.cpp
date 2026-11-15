@@ -6,11 +6,13 @@
 
 #include <kalahari/core/book_dictionary.h>
 
-#include "book_dictionary_internal.h"
+#include <kalahari/core/detail/book_dictionary_internal.h>
+#include <kalahari/core/name_declension.h>
 
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QJsonParseError>
 #include <QSaveFile>
 
