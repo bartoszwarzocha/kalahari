@@ -59,6 +59,7 @@ set(KALAHARI_CORE_SOURCES
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
+    core/card_data.cpp          # The cards of the Workshop: the values of their fields, colors
     core/link_roles.cpp         # The roles of links, and the paragraph a link names
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
@@ -334,6 +335,8 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
+    gui/widgets/list_parts.cpp    # The buttons, sentences, heights and keys of the lists of the cards
+    gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
     gui/panels/paragraph_panel.cpp
@@ -532,6 +535,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT

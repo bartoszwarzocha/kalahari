@@ -103,43 +103,6 @@ bool DatabaseSchemaManager::createSchema()
         )
     )")) return false;
 
-    // Character library
-    if (!execSql(R"(
-        CREATE TABLE characters (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            color TEXT,
-            notes TEXT,
-            created_at TEXT,
-            modified_at TEXT
-        )
-    )")) return false;
-
-    // Location library
-    if (!execSql(R"(
-        CREATE TABLE locations (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            notes TEXT,
-            created_at TEXT,
-            modified_at TEXT
-        )
-    )")) return false;
-
-    // Item library
-    if (!execSql(R"(
-        CREATE TABLE items (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            notes TEXT,
-            created_at TEXT,
-            modified_at TEXT
-        )
-    )")) return false;
-
     // Session statistics
     if (!execSql(R"(
         CREATE TABLE session_stats (

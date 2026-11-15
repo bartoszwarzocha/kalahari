@@ -40,6 +40,8 @@ class ProjectManager;
 namespace kalahari {
 namespace gui {
 
+class OwnFieldsBox;
+
 /// @brief The card of a material: short in the Properties panel, what the writer checks and
 /// changes while writing; full on a tab beside the chapters (MaterialCardPanel), the place to
 /// work on it
@@ -132,9 +134,9 @@ public:
     /// @brief Give the keys to the description
     void focusDescription();
     QPlainTextEdit* descriptionEdit() const { return m_descriptionEdit; }
-    QTableWidget* fieldsTable() const { return m_fieldsTable; }
-    QToolButton* addFieldButton() const { return m_addFieldButton; }
-    QToolButton* removeFieldButton() const { return m_removeFieldButton; }
+    QTableWidget* fieldsTable() const;
+    QToolButton* addFieldButton() const;
+    QToolButton* removeFieldButton() const;
     QTreeWidget* linksList() const { return m_linksList; }
     QToolButton* addLinkButton() const { return m_addLinkButton; }
     QToolButton* removeLinkButton() const { return m_removeLinkButton; }
@@ -217,9 +219,6 @@ private:
     /// program does not show a picture it cannot read.
     QString updateThumbnail();
 
-    /// @brief The fields of the material in the table
-    void fillFields(const core::ProjectElement& element);
-
     /// @brief The links of the material in the list
     void fillLinks(const core::ProjectElement& element);
 
@@ -229,14 +228,8 @@ private:
     /// @brief Save the description from its field
     void saveDescription();
 
-    /// @brief Save the fields of the table, in its order
-    void saveFields();
-
     /// @brief Save @p links as the links of the material
     void saveLinks(const QList<core::ElementLink>& links);
-
-    /// @brief The fields that the table shows
-    QList<core::ElementField> tableFields() const;
 
     /// @brief The buttons follow the rows and a book open read-only
     void updateButtons();
@@ -283,7 +276,6 @@ private:
     QString m_thumbnailKey;      ///< The file, turn and time of change it was read for
     QString m_thumbnailError;    ///< Why it could not be read
     bool m_updating = false;     ///< The fields are being filled: no saving
-    QList<core::ElementField> m_fields;  ///< The fields as saved, with what the table hides
 
     QGroupBox* m_infoGroup = nullptr;
     QToolButton* m_thumbnail = nullptr;
@@ -299,10 +291,7 @@ private:
     QLabel* m_pathLabel = nullptr;
     QLabel* m_addressLabel = nullptr;
     QPlainTextEdit* m_descriptionEdit = nullptr;
-    QTableWidget* m_fieldsTable = nullptr;
-    QLabel* m_noFieldsLabel = nullptr;
-    QToolButton* m_addFieldButton = nullptr;
-    QToolButton* m_removeFieldButton = nullptr;
+    OwnFieldsBox* m_fieldsBox = nullptr;
     QTreeWidget* m_linksList = nullptr;
     QLabel* m_noLinksLabel = nullptr;
     QToolButton* m_addLinkButton = nullptr;

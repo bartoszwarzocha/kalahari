@@ -776,6 +776,28 @@ public:
                        QStringList* drafts = nullptr);
 
     // =========================================================================
+    // Cards of the Workshop (characters, locations, items)
+    // =========================================================================
+
+    /// @brief Whether @p element is a card: a text element of a kind of cards
+    /// (ElementKind::isCard())
+    bool isCard(const ProjectElement& element) const;
+
+    /// @brief Give card @p elementId the data @p card (the values of its fields, its color and
+    /// its portraits) and save the .klh file; cardChanged() tells of a change
+    /// @return false when the project has no such card or the file cannot be written; the
+    ///         card keeps its data then
+    bool setCard(const QString& elementId, const CardData& card);
+
+    /// @brief Give field @p fieldId of card @p elementId the value @p value (empty: none) and
+    /// save the .klh file, as setCard()
+    bool setCardValue(const QString& elementId, const QString& fieldId, const QString& value);
+
+    /// @brief The color of a new card: the next of the palette of the Settings
+    /// (CardColors::next()) after the colors of the cards of the project
+    QString newCardColor() const;
+
+    // =========================================================================
     // Paragraph Styles of the Books
     // =========================================================================
 
@@ -1051,6 +1073,10 @@ signals:
 
     /// @brief Element @p elementId got another title (renameElement())
     void elementRenamed(const QString& elementId);
+
+    /// @brief What card @p elementId has beside its text changed: the values of its fields,
+    /// its color or its portraits (setCard(), or a picture of a portrait deleted)
+    void cardChanged(const QString& elementId);
 
     /// @brief The versions of the text of element @p elementId changed: one was kept (and the
     /// oldest that the program kept by itself may have gone), renamed or deleted

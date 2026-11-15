@@ -48,8 +48,11 @@
 ///   "workshop": {
 ///     "grouped": false,
 ///     "elements": [
-///       { "id": "e4", "kind": "kalahari.base:character", "title": "Anna",
-///         "file": "workshop/character_001.json" },
+///       { "id": "e4", "kind": "kalahari.base:character", "title": "Anna Wolska",
+///         "file": "workshop/character_001.kchapter", "status": "draft",
+///         "description": "Kartografka z Warszawy.",
+///         "card": { "values": { "role": "main", "age": "29" }, "color": "#c0504d",
+///                   "portraits": [{ "image": "e9" }] } },
 ///       { "id": "e7", "kind": "kalahari.base:material", "title": "mapa",
 ///         "file": "workshop/mapa.png", "description": "Mapa okolic oazy.",
 ///         "fields": [{ "name": "Skala", "value": "1 : 50 000" }],
@@ -97,7 +100,10 @@
 ///   saved once, with the element that has it; an element deleted from the project leaves the
 ///   links. "view" has how its picture is shown: "rotation", 0, 90, 180 or 270 degrees
 ///   clockwise. A material of the cover has what it is and where it goes in "cover"
-///   (CoverData). None of these: the element has none.
+///   (CoverData). A card (a character, a location, an item: a text element of a kind of
+///   cards) has its short description ("In short") as its description and in "card" the
+///   values of the fields of its kind, its color and its portraits, pictures of the materials
+///   (CardData); its text is its long description. None of these: the element has none.
 /// - A material is a copy of a file in the Workshop's folder ("file"), a web address ("url":
 ///   a page, or a picture on the web, whose copy in the book is then its file), or neither of
 ///   them: a paper book, a talk or a quotation that its description and fields tell of.
@@ -112,6 +118,7 @@
 #pragma once
 
 #include <kalahari/core/book_type_registry.h>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/cover_material.h>
 #include <QByteArray>
 #include <QDateTime>
@@ -170,7 +177,8 @@ struct ProjectElement {
                                      ///< the file "firstPage": "left", without it a right page
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a
-                                     ///< text of its own (a material); empty: none
+                                     ///< text of its own (a material), or the short one of a
+                                     ///< card ("In short"); empty: none
     QList<ElementField> fields;      ///< The writer's own fields, in the writer's order
     QList<ElementLink> links;        ///< What it is about: elements and sections, each
                                      ///< once, in the order linked
@@ -178,6 +186,9 @@ struct ProjectElement {
                                      ///< 90, 180 or 270 degrees
     CoverData cover;                 ///< Of a material of the cover: what it is and where
                                      ///< it goes; empty: none
+    CardData card;                   ///< Of a card (a character, a location, an item): the
+                                     ///< values of its fields, its color and its portraits;
+                                     ///< empty: none
     QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
     QJsonObject extra;               ///< Fields this version does not know, saved back
 

@@ -86,6 +86,61 @@ QList<const ProjectElement*> allElements(const BookProject& project) {
     return all;
 }
 
+/// The colors of the cards of @p project, as many times as cards have them
+QStringList cardColorsOf(const BookProject& project) {
+    QStringList colors;
+    for (const ProjectElement* each : allElements(project)) {
+        if (!each->card.color.isEmpty()) {
+            colors << each->card.color;
+        }
+    }
+    return colors;
+}
+
+/// What the elements of a project lost with elements removed from it, with what they had
+struct Unlinked {
+    QList<std::pair<QString, QList<ElementLink>>> links;       ///< Elements and their links
+    QList<std::pair<QString, QList<CardPortrait>>> portraits;  ///< Cards and their portraits
+};
+
+/// The elements of @p project lose their links to the elements @p removedIds, and the cards
+/// the portraits that are their pictures
+Unlinked unlinkRemoved(BookProject& project, const QSet<QString>& removedIds) {
+    const auto removedLink = [&removedIds](const ElementLink& link) {
+        return removedIds.contains(link.to);
+    };
+    const auto removedPortrait = [&removedIds](const CardPortrait& portrait) {
+        return removedIds.contains(portrait.image);
+    };
+    Unlinked unlinked;
+    for (const ProjectElement* each : allElements(project)) {
+        if (std::any_of(each->links.cbegin(), each->links.cend(), removedLink)) {
+            unlinked.links.append({each->id, each->links});
+        }
+        const QList<CardPortrait>& portraits = each->card.portraits;
+        if (std::any_of(portraits.cbegin(), portraits.cend(), removedPortrait)) {
+            unlinked.portraits.append({each->id, portraits});
+        }
+    }
+    for (const auto& [linkedId, links] : unlinked.links) {
+        project.findElement(linkedId)->links.removeIf(removedLink);
+    }
+    for (const auto& [cardId, portraits] : unlinked.portraits) {
+        project.findElement(cardId)->card.portraits.removeIf(removedPortrait);
+    }
+    return unlinked;
+}
+
+/// The elements of @p project get back what unlinkRemoved() took
+void relink(BookProject& project, const Unlinked& unlinked) {
+    for (const auto& [linkedId, links] : unlinked.links) {
+        project.findElement(linkedId)->links = links;
+    }
+    for (const auto& [cardId, portraits] : unlinked.portraits) {
+        project.findElement(cardId)->card.portraits = portraits;
+    }
+}
+
 /// Elements of @p kind in @p project
 qsizetype countOf(const BookTypeRegistry& registry, const BookProject& project,
                   const KindRef& kind) {
@@ -564,6 +619,9 @@ QString ProjectManager::createProjectWithoutOpening(const NewProject& request,
         element.id = project.newElementId();
         element.kind = KindReference{kind.package->id, kind.kind->id};
         element.title = kind.kind->defaultTitle(request.language, ++numbers[kind.kind]);
+        if (kind.kind->isCard()) {
+            element.card.color = CardColors::next(CardColors::palette(), cardColorsOf(project));
+        }
         return element;
     };
 
@@ -1416,6 +1474,9 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     element.id = m_project->newElementId();
     element.kind = KindReference{kind.package->id, kind.kind->id};
     element.title = title;
+    if (kind.kind->isCard()) {
+        element.card.color = newCardColor();
+    }
     if (kind.kind->form == ElementForm::Text) {
         element.file = newChapterFile(kind, place);
         element.status = status.isEmpty() ? QStringLiteral("draft") : status;
@@ -1968,34 +2029,22 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
     QList<const ProjectElement*> removed{&element};
     appendAll(element.elements, removed);
 
-    // The links to the element and to the elements inside it go with it
+    // The links to the element and to the elements inside it go with it, and so do the
+    // portraits of cards that are their pictures
     QSet<QString> removedIds;
     for (const ProjectElement* gone : removed) {
         removedIds.insert(gone->id);
     }
-    const auto removedLink = [&removedIds](const ElementLink& link) {
-        return removedIds.contains(link.to);
-    };
-    QList<std::pair<QString, QList<ElementLink>>> unlinked;  // Elements and their links before
-    for (const ProjectElement* each : allElements(*m_project)) {
-        if (std::any_of(each->links.cbegin(), each->links.cend(), removedLink)) {
-            unlinked.append({each->id, each->links});
-        }
-    }
-    for (const auto& [linkedId, links] : unlinked) {
-        m_project->findElement(linkedId)->links.removeIf(removedLink);
-    }
+    const Unlinked unlinked = unlinkRemoved(*m_project, removedIds);
 
     if (!saveManifest()) {
-        for (const auto& [linkedId, links] : unlinked) {
-            m_project->findElement(linkedId)->links = links;
-        }
+        relink(*m_project, unlinked);
         list->insert(index, element);
         return std::nullopt;
     }
 
     // The program forgets the element and the elements inside it; their files stay
-    bool linksGone = !unlinked.isEmpty();
+    bool linksGone = !unlinked.links.isEmpty();
     for (const ProjectElement* gone : removed) {
         m_elementStates.remove(gone->id);
         linksGone = linksGone || !gone->links.isEmpty();
@@ -2004,6 +2053,9 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
                                element.title.toStdString(), elementId.toStdString());
     if (linksGone) {
         emit linksChanged();
+    }
+    for (const auto& card : unlinked.portraits) {
+        emit cardChanged(card.first);
     }
     return element;
 }
@@ -2499,6 +2551,48 @@ bool ProjectManager::setRotation(const QString& elementId, int rotation) {
 bool ProjectManager::setCover(const QString& elementId, const CoverData& cover) {
     return changeDetails("setCover", elementId,
                          [&cover](ProjectElement& element) { element.cover = cover; });
+}
+
+bool ProjectManager::isCard(const ProjectElement& element) const {
+    const KindRef kind = kindOf(element);
+    return kind && kind.kind->isCard();
+}
+
+bool ProjectManager::setCard(const QString& elementId, const CardData& card) {
+    const ProjectElement* element = findElement(elementId);
+    if (element != nullptr && !isCard(*element)) {
+        Logger::getInstance().warn("setCard: {} is not a card", elementId.toStdString());
+        return false;
+    }
+    const bool changed = element != nullptr && element->card != card;
+    const bool saved = changeDetails("setCard", elementId,
+                                     [&card](ProjectElement& each) { each.card = card; });
+    if (saved && changed) {
+        emit cardChanged(elementId);
+    }
+    return saved;
+}
+
+bool ProjectManager::setCardValue(const QString& elementId, const QString& fieldId,
+                                  const QString& value) {
+    const ProjectElement* element = findElement(elementId);
+    if (element == nullptr) {
+        Logger::getInstance().warn("setCardValue: Element not found: {}",
+                                   elementId.toStdString());
+        return false;
+    }
+    CardData card = element->card;
+    if (value.isEmpty()) {
+        card.values.remove(fieldId);
+    } else {
+        card.values.insert(fieldId, value);
+    }
+    return setCard(elementId, card);
+}
+
+QString ProjectManager::newCardColor() const {
+    return CardColors::next(CardColors::palette(),
+                            m_project ? cardColorsOf(*m_project) : QStringList());
 }
 
 bool ProjectManager::setCoverState(const QString& elementId, const QString& state,

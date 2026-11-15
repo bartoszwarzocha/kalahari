@@ -216,7 +216,7 @@
       "title": { "pl": "Oś czasu %n", "en": "Timeline %n" }
     },
     "character": {
-      "form": "window", "editor": "card", "places": ["workshop"], "icon": "template.character",
+      "form": "text", "editor": "card", "places": ["workshop"], "icon": "template.character",
       "workshopGroup": "libraries",
       "name": { "pl": "Postać", "en": "Character" },
       "plural": { "pl": "Postacie", "en": "Characters" },
@@ -226,10 +226,43 @@
                 "instrumental": "postacią", "locative": "postaci", "genitivePlural": "postaci" },
         "en": { "singular": "character", "plural": "characters", "indefinite": "a character" }
       },
-      "title": { "pl": "Postać %n", "en": "Character %n" }
+      "title": { "pl": "Postać %n", "en": "Character %n" },
+      "fields": [
+        { "id": "role", "type": "choice", "subtitle": true,
+          "name": { "pl": "Rola", "en": "Role" }, "show": ["card", "properties", "list"],
+          "choices": [
+            { "id": "main", "name": { "pl": "główna", "en": "main" } },
+            { "id": "supporting", "name": { "pl": "drugoplanowa", "en": "supporting" } },
+            { "id": "minor", "name": { "pl": "epizodyczna", "en": "minor" } },
+            { "id": "background", "name": { "pl": "w tle", "en": "background" } } ] },
+        { "id": "gender", "type": "choice", "name": { "pl": "Płeć", "en": "Gender" },
+          "show": ["card"],
+          "choices": [
+            { "id": "woman", "name": { "pl": "kobieta", "en": "woman" } },
+            { "id": "man", "name": { "pl": "mężczyzna", "en": "man" } },
+            { "id": "other", "name": { "pl": "inna", "en": "other" } },
+            { "id": "unknown", "name": { "pl": "nie podano", "en": "not given" } } ] },
+        { "id": "age", "name": { "pl": "Wiek", "en": "Age" },
+          "show": ["card", "properties", "list"] },
+        { "id": "occupation", "name": { "pl": "Zawód", "en": "Occupation" },
+          "show": ["card", "properties", "list"] },
+        { "id": "appearance", "type": "longText", "name": { "pl": "Wygląd", "en": "Appearance" },
+          "show": ["card"] },
+        { "id": "personality", "type": "longText",
+          "name": { "pl": "Charakter", "en": "Personality" }, "show": ["card"] },
+        { "id": "goal", "name": { "pl": "Cel", "en": "Goal" }, "show": ["card", "properties"] },
+        { "id": "origin", "type": "card", "card": "location",
+          "name": { "pl": "Pochodzenie", "en": "Origin" } },
+        { "id": "motivation", "type": "longText",
+          "name": { "pl": "Motywacja", "en": "Motivation" } },
+        { "id": "secret", "type": "longText", "name": { "pl": "Tajemnica", "en": "Secret" } },
+        { "id": "change", "type": "longText",
+          "name": { "pl": "Przemiana w opowieści", "en": "Change in the story" } },
+        { "id": "speech", "name": { "pl": "Sposób mówienia", "en": "Way of speaking" } }
+      ]
     },
     "location": {
-      "form": "window", "editor": "card", "places": ["workshop"], "icon": "template.location",
+      "form": "text", "editor": "card", "places": ["workshop"], "icon": "template.location",
       "workshopGroup": "libraries",
       "name": { "pl": "Miejsce", "en": "Location" },
       "plural": { "pl": "Miejsca", "en": "Locations" },
@@ -239,10 +272,37 @@
                 "instrumental": "miejscem", "locative": "miejscu", "genitivePlural": "miejsc" },
         "en": { "singular": "location", "plural": "locations", "indefinite": "a location" }
       },
-      "title": { "pl": "Miejsce %n", "en": "Location %n" }
+      "title": { "pl": "Miejsce %n", "en": "Location %n" },
+      "fields": [
+        { "id": "type", "type": "choice", "subtitle": true,
+          "name": { "pl": "Rodzaj", "en": "Type" }, "show": ["card", "properties", "list"],
+          "choices": [
+            { "id": "land", "name": { "pl": "kraina", "en": "land" } },
+            { "id": "city", "name": { "pl": "miasto", "en": "city" } },
+            { "id": "village", "name": { "pl": "wieś", "en": "village" } },
+            { "id": "district", "name": { "pl": "dzielnica", "en": "district" } },
+            { "id": "building", "name": { "pl": "budynek", "en": "building" } },
+            { "id": "room", "name": { "pl": "pomieszczenie", "en": "room" } },
+            { "id": "outdoors", "name": { "pl": "plener", "en": "outdoors" } },
+            { "id": "other", "name": { "pl": "inne", "en": "other" } } ] },
+        { "id": "parent", "type": "card", "card": "location",
+          "name": { "pl": "Miejsce nadrzędne", "en": "Part of" },
+          "show": ["card", "properties", "list"] },
+        { "id": "appearance", "type": "longText", "name": { "pl": "Wygląd", "en": "Appearance" },
+          "show": ["card"] },
+        { "id": "senses", "type": "longText",
+          "name": { "pl": "Odgłosy i zapachy", "en": "Sounds and smells" }, "show": ["card"] },
+        { "id": "mood", "name": { "pl": "Nastrój", "en": "Mood" },
+          "show": ["card", "properties", "list"] },
+        { "id": "ruler", "type": "card", "card": "character",
+          "name": { "pl": "Kto tu rządzi", "en": "Who rules here" } },
+        { "id": "climate", "name": { "pl": "Klimat i pora roku", "en": "Climate and season" } },
+        { "id": "history", "type": "longText",
+          "name": { "pl": "Historia miejsca", "en": "History of the place" } }
+      ]
     },
     "item": {
-      "form": "window", "editor": "card", "places": ["workshop"], "icon": "book.newItem",
+      "form": "text", "editor": "card", "places": ["workshop"], "icon": "book.newItem",
       "workshopGroup": "libraries",
       "name": { "pl": "Przedmiot", "en": "Item" },
       "plural": { "pl": "Przedmioty", "en": "Items" },
@@ -253,7 +313,23 @@
                 "genitivePlural": "przedmiotów" },
         "en": { "singular": "item", "plural": "items", "indefinite": "an item" }
       },
-      "title": { "pl": "Przedmiot %n", "en": "Item %n" }
+      "title": { "pl": "Przedmiot %n", "en": "Item %n" },
+      "fields": [
+        { "id": "type", "subtitle": true, "name": { "pl": "Rodzaj", "en": "Type" },
+          "show": ["card", "properties", "list"] },
+        { "id": "owner", "type": "card", "card": "character",
+          "name": { "pl": "Właściciel", "en": "Owner" }, "show": ["card", "properties", "list"] },
+        { "id": "place", "type": "card", "card": "location",
+          "name": { "pl": "Gdzie jest", "en": "Where it is" },
+          "show": ["card", "properties", "list"] },
+        { "id": "appearance", "type": "longText", "name": { "pl": "Wygląd", "en": "Appearance" },
+          "show": ["card"] },
+        { "id": "meaning", "type": "longText", "name": { "pl": "Znaczenie", "en": "Meaning" },
+          "show": ["card"] },
+        { "id": "origin", "name": { "pl": "Pochodzenie", "en": "Origin" } },
+        { "id": "power", "type": "longText",
+          "name": { "pl": "Moc lub działanie", "en": "Power or effect" } }
+      ]
     },
     "material": {
       "form": "window", "editor": "material", "places": ["workshop"], "icon": "common.attachFile",

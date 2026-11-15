@@ -27,9 +27,6 @@ struct QuickInsert {
 
 namespace {
 
-/// @brief The kinds of the cards: their elements open in the card editor
-constexpr const char* CARD_EDITOR = "card";
-
 /// @brief The kind of an item in the settings: "fragment" or "character"
 std::string kindName(editor::QuickInsertSource source) {
     return source == editor::QuickInsertSource::Character ? "character" : "fragment";
@@ -50,8 +47,10 @@ void addCards(const QList<core::ProjectElement>& elements, const core::BookTypeR
     const QString language = programLanguage();
     for (const core::ProjectElement& element : elements) {
         const core::KindRef kind = core::BookProject::kindOf(registry, element);
-        if (kind && kind.kind->form == core::ElementForm::Window &&
-            kind.kind->editor == QLatin1String(CARD_EDITOR) && !element.title.trimmed().isEmpty()) {
+        // The cards of characters, locations and items, and the kinds of cards still to come,
+        // such as the sources of non-fiction
+        if (kind && kind.kind->editor == QLatin1String(core::ElementKind::CARD_EDITOR) &&
+            !element.title.trimmed().isEmpty()) {
             const QString title = element.title.trimmed();
             cards.append({editor::QuickInsertSource::Card, title, title,
                           wordsOf(kind).form(QStringLiteral("singular")),

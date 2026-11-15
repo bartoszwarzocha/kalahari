@@ -12,6 +12,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonValue>
+#include <QRegularExpression>
 #include <QSaveFile>
 #include <QUrl>
 #include <QUuid>
@@ -48,6 +49,12 @@ const BookPart& bookPart(BookPlace place) {
 
 void addProblem(QStringList& problems, const QString& field, const QString& message) {
     problems << field + QStringLiteral(": ") + message;
+}
+
+/// A color of a card: "#RRGGBB"
+bool isColor(const QString& text) {
+    static const QRegularExpression color(QStringLiteral("^#[0-9A-Fa-f]{6}$"));
+    return color.match(text).hasMatch();
 }
 
 bool isWholeNumber(const QJsonValue& value) {
@@ -371,6 +378,65 @@ void readCover(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = coverFields.rest();
 }
 
+/// The portraits of a card: [{"image": "e31", "label": "youth"}]
+QList<CardPortrait> readPortraits(Fields& fields, QStringList& problems) {
+    QList<CardPortrait> portraits;
+    const QJsonArray array = fields.array("portraits");
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("portraits")).arg(i);
+        if (!array.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with \"image\""));
+            continue;
+        }
+        Fields entry(array.at(i).toObject(), path, problems);
+        CardPortrait portrait;
+        portrait.image = entry.string("image", true);
+        portrait.label = entry.string("label");
+        portrait.extra = entry.rest();
+        if (!portrait.image.isEmpty()) {
+            portraits << portrait;
+        }
+    }
+    return portraits;
+}
+
+/// What a card has beside its text: the values of its fields, its color and its portraits,
+/// with the fields of "card" this version does not know
+void readCard(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue card = fields.take("card");
+    if (card.isUndefined()) {
+        return;
+    }
+    if (!card.isObject()) {
+        fields.problem("card", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields cardFields(card.toObject(), fields.path("card"), problems);
+    CardData& data = element.card;
+    const QJsonValue values = cardFields.take("values");
+    if (values.isObject()) {
+        const QJsonObject object = values.toObject();
+        for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
+            if (it.value().isString()) {
+                data.values.insert(it.key(), it.value().toString());
+            } else {
+                cardFields.problem("values",
+                                   QStringLiteral("'%1' must be a text").arg(it.key()));
+            }
+        }
+    } else if (!values.isUndefined()) {
+        cardFields.problem("values", QStringLiteral("must be an object of fields and their "
+                                                    "values"));
+    }
+    data.color = cardFields.string("color");
+    if (!data.color.isEmpty() && !isColor(data.color)) {
+        cardFields.problem("color", QStringLiteral("must be a color such as \"#c0392b\""));
+        data.color.clear();
+    }
+    data.portraits = readPortraits(cardFields, problems);
+    data.extra = cardFields.rest();
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -406,6 +472,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     element.links = readLinks(fields, problems);
     readView(fields, element, problems);
     readCover(fields, element, problems);
+    readCard(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -699,6 +766,34 @@ QString dateTimeText(const QDateTime& time) {
 
 QJsonArray elementsToJson(const QList<ProjectElement>& elements);
 
+/// What a card has beside its text, as "card" saves it
+QJsonObject cardToJson(const CardData& card) {
+    QJsonObject data = card.extra;
+    if (card.values.isEmpty()) {
+        data.remove(QLatin1String("values"));
+    } else {
+        QJsonObject values;
+        for (auto it = card.values.constBegin(); it != card.values.constEnd(); ++it) {
+            values.insert(it.key(), it.value());
+        }
+        data.insert(QLatin1String("values"), values);
+    }
+    setOrRemove(data, "color", card.color);
+    if (card.portraits.isEmpty()) {
+        data.remove(QLatin1String("portraits"));
+    } else {
+        QJsonArray portraits;
+        for (const CardPortrait& portrait : card.portraits) {
+            QJsonObject each = portrait.extra;
+            each.insert(QLatin1String("image"), portrait.image);
+            setOrRemove(each, "label", portrait.label);
+            portraits.append(each);
+        }
+        data.insert(QLatin1String("portraits"), portraits);
+    }
+    return data;
+}
+
 QJsonObject elementToJson(const ProjectElement& element) {
     QJsonObject json = element.extra;
     json.insert(QLatin1String("id"), element.id);
@@ -788,6 +883,11 @@ QJsonObject elementToJson(const ProjectElement& element) {
             }
         }
         json.insert(QLatin1String("cover"), data);
+    }
+    if (element.card.isEmpty()) {
+        json.remove(QLatin1String("card"));
+    } else {
+        json.insert(QLatin1String("card"), cardToJson(element.card));
     }
     return json;
 }
@@ -1207,8 +1307,8 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            file == other.file && url == other.url && status == other.status &&
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
-           rotation == other.rotation && cover == other.cover && viewExtra == other.viewExtra &&
-           extra == other.extra;
+           rotation == other.rotation && cover == other.cover && card == other.card &&
+           viewExtra == other.viewExtra && extra == other.extra;
 }
 
 // =============================================================================

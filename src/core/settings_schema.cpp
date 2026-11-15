@@ -223,6 +223,13 @@ std::map<std::string, json> buildDefaults() {
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
         {"navigator.addCommands", "named"},
+        // The cards of the Workshop (characters, locations, items): the palette that new cards
+        // take their colors from, in order (CardColors::next()), and whether the Navigator
+        // shows the color of a card beside its name
+        {"cards.palette", json::array({"#c0504d", "#7e57c2", "#2e9e6a", "#d4a017", "#3a8fc9",
+                                       "#8d7b6a", "#b04a8f", "#e07b39", "#4f6fd1", "#6b9e2e",
+                                       "#1f9aa5", "#a35d3d"})},
+        {"cards.navigatorColorDot", true},
 
         // New projects
         {"project.defaultAuthor", ""},

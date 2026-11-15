@@ -264,6 +264,167 @@ QMap<QString, KindWords> readWords(const QJsonValue& value, const QString& field
     return words;
 }
 
+/// The values of a field of the cards with a list: [{"id": "main", "name": {...}}]
+QList<CardFieldChoice> readChoices(const QJsonValue& value, const QString& field,
+                                   QStringList& problems) {
+    QList<CardFieldChoice> choices;
+    if (!value.isArray() || value.toArray().isEmpty()) {
+        addProblem(problems, field,
+                   QStringLiteral("a field with a list needs the values to choose from, e.g. "
+                                  "[{\"id\": \"main\", \"name\": {\"en\": \"main\"}}]"));
+        return choices;
+    }
+    const QJsonArray array = value.toArray();
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString choiceField = QStringLiteral("%1[%2]").arg(field).arg(i);
+        const QJsonObject object = array.at(i).toObject();
+        if (!array.at(i).isObject()) {
+            addProblem(problems, choiceField, QStringLiteral("must be an object"));
+            continue;
+        }
+        checkKeys(object, choiceField, {"id", "name"}, problems);
+        CardFieldChoice choice;
+        choice.id = object.value(QStringLiteral("id")).toString();
+        choice.name = readText(object.value(QStringLiteral("name")),
+                               choiceField + QStringLiteral(".name"), true, problems);
+        const bool taken = std::any_of(choices.cbegin(), choices.cend(),
+                                       [&choice](const CardFieldChoice& each) {
+                                           return each.id == choice.id;
+                                       });
+        if (!isIdentifier(choice.id)) {
+            addProblem(problems, choiceField + QStringLiteral(".id"),
+                       QStringLiteral("must be an id: lowercase letters, digits and _"));
+        } else if (taken) {
+            addProblem(problems, choiceField + QStringLiteral(".id"),
+                       QStringLiteral("'%1' is listed twice").arg(choice.id));
+        } else {
+            choices << choice;
+        }
+    }
+    return choices;
+}
+
+/// Where a field of the cards is shown: ["card", "properties", "list"]
+void readShown(const QJsonValue& value, const QString& field, CardField& cardField,
+               QStringList& problems) {
+    if (value.isUndefined()) {
+        return;
+    }
+    const QStringList places =
+        readIdList(value, field, isIdentifier, QStringLiteral("place of a field"), true, problems);
+    for (const QString& place : places) {
+        if (place == QLatin1String("card")) {
+            cardField.onCard = true;
+        } else if (place == QLatin1String("properties")) {
+            cardField.inProperties = true;
+        } else if (place == QLatin1String("list")) {
+            cardField.inList = true;
+        } else {
+            addProblem(problems, field,
+                       QStringLiteral("'%1' is not \"card\", \"properties\" or \"list\"")
+                           .arg(place));
+        }
+    }
+}
+
+/// A field of the cards of a kind
+std::optional<CardField> readCardField(const QJsonValue& value, const QString& field,
+                                       QStringList& problems) {
+    if (!value.isObject()) {
+        addProblem(problems, field, QStringLiteral("must be an object"));
+        return std::nullopt;
+    }
+    const QJsonObject object = value.toObject();
+    checkKeys(object, field, {"id", "type", "name", "show", "subtitle", "choices", "card"},
+              problems);
+    CardField cardField;
+    cardField.id = object.value(QStringLiteral("id")).toString();
+    if (!isIdentifier(cardField.id)) {
+        addProblem(problems, field + QStringLiteral(".id"),
+                   QStringLiteral("must be an id: lowercase letters, digits and _"));
+        return std::nullopt;
+    }
+    cardField.name =
+        readText(object.value(QStringLiteral("name")), field + QStringLiteral(".name"), true,
+                 problems);
+    const QJsonValue type = object.value(QStringLiteral("type"));
+    const auto readType = type.isUndefined() ? std::optional<CardFieldType>(CardFieldType::Text)
+                                             : CardField::typeFromName(type.toString());
+    if (!readType) {
+        addProblem(problems, field + QStringLiteral(".type"),
+                   QStringLiteral("must be \"text\", \"longText\", \"choice\" or \"card\""));
+    } else {
+        cardField.type = *readType;
+    }
+    readShown(object.value(QStringLiteral("show")), field + QStringLiteral(".show"), cardField,
+              problems);
+
+    const QJsonValue subtitle = object.value(QStringLiteral("subtitle"));
+    if (!subtitle.isUndefined() && !subtitle.isBool()) {
+        addProblem(problems, field + QStringLiteral(".subtitle"),
+                   QStringLiteral("must be true or false"));
+    }
+    cardField.subtitle = subtitle.toBool();
+
+    const QJsonValue choices = object.value(QStringLiteral("choices"));
+    if (cardField.type == CardFieldType::Choice) {
+        cardField.choices = readChoices(choices, field + QStringLiteral(".choices"), problems);
+    } else if (!choices.isUndefined()) {
+        addProblem(problems, field + QStringLiteral(".choices"),
+                   QStringLiteral("only a field of the type \"choice\" has values to choose "
+                                  "from"));
+    }
+
+    const QJsonValue card = object.value(QStringLiteral("card"));
+    if (cardField.type == CardFieldType::Card) {
+        if (!card.isString() || !isIdentifier(card.toString())) {
+            addProblem(problems, field + QStringLiteral(".card"),
+                       QStringLiteral("a field of the type \"card\" needs the id of the kind "
+                                      "of the cards it names, e.g. \"location\""));
+        } else {
+            cardField.cardKind = card.toString();
+        }
+    } else if (!card.isUndefined()) {
+        addProblem(problems, field + QStringLiteral(".card"),
+                   QStringLiteral("only a field of the type \"card\" names a kind of cards"));
+    }
+    return cardField;
+}
+
+/// The fields of the cards of a kind, each id once and one subtitle at most
+QList<CardField> readCardFields(const QJsonValue& value, const QString& field,
+                                QStringList& problems) {
+    QList<CardField> fields;
+    if (!value.isArray()) {
+        addProblem(problems, field, QStringLiteral("must be a list of fields"));
+        return fields;
+    }
+    const QJsonArray array = value.toArray();
+    for (qsizetype i = 0; i < array.size(); ++i) {
+        const QString fieldName = QStringLiteral("%1[%2]").arg(field).arg(i);
+        std::optional<CardField> cardField = readCardField(array.at(i), fieldName, problems);
+        if (!cardField) {
+            continue;
+        }
+        const QString& fieldId = cardField->id;
+        if (std::any_of(fields.cbegin(), fields.cend(),
+                        [&fieldId](const CardField& each) { return each.id == fieldId; })) {
+            addProblem(problems, fieldName + QStringLiteral(".id"),
+                       QStringLiteral("'%1' is listed twice").arg(fieldId));
+            continue;
+        }
+        if (cardField->subtitle &&
+            std::any_of(fields.cbegin(), fields.cend(),
+                        [](const CardField& each) { return each.subtitle; })) {
+            addProblem(problems, fieldName + QStringLiteral(".subtitle"),
+                       QStringLiteral("only one field of a kind is the subtitle"));
+            cardField->subtitle = false;
+        }
+        fields << *cardField;
+    }
+    return fields;
+}
+
 std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
                                     const QString& directory, QStringList& problems) {
     const QString field = QStringLiteral("kinds.") + id;
@@ -285,7 +446,7 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     checkKeys(object, field,
               {"form", "name", "plural", "words", "icon", "places", "limit", "title",
                "numbering", "template", "position", "first", "editor", "generated",
-               "settings", "workshopGroup", "retired"},
+               "settings", "workshopGroup", "retired", "fields"},
               problems);
 
     ElementKind kind;
@@ -419,9 +580,24 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
         } else {
             kind.editor = editor.toString();
         }
+    } else if (kind.form == ElementForm::Text &&
+               editor.toString() == QLatin1String(ElementKind::CARD_EDITOR)) {
+        kind.editor = editor.toString();
     } else if (!editor.isUndefined()) {
         addProblem(problems, field + QStringLiteral(".editor"),
-                   QStringLiteral("only a window kind has an editor"));
+                   QStringLiteral("only a window kind has an editor, and a text kind the "
+                                  "editor of cards, \"card\""));
+    }
+
+    const QJsonValue fields = object.value(QStringLiteral("fields"));
+    if (!fields.isUndefined()) {
+        if (kind.isCard()) {
+            kind.fields = readCardFields(fields, field + QStringLiteral(".fields"), problems);
+        } else {
+            addProblem(problems, field + QStringLiteral(".fields"),
+                       QStringLiteral("only a kind of cards (a text kind with the editor "
+                                      "\"card\") has fields"));
+        }
     }
 
     const QJsonValue generated = object.value(QStringLiteral("generated"));
@@ -764,6 +940,49 @@ std::optional<KindReference> KindReference::parse(const QString& text) {
 
 QString KindReference::toString() const {
     return packageId.isEmpty() ? kindId : packageId + QLatin1Char(':') + kindId;
+}
+
+const CardFieldChoice* CardField::choice(const QString& choiceId) const {
+    const auto found =
+        std::find_if(choices.cbegin(), choices.cend(),
+                     [&choiceId](const CardFieldChoice& each) { return each.id == choiceId; });
+    return found == choices.cend() ? nullptr : &*found;
+}
+
+QString CardField::typeName(CardFieldType type) {
+    switch (type) {
+    case CardFieldType::LongText:
+        return QStringLiteral("longText");
+    case CardFieldType::Choice:
+        return QStringLiteral("choice");
+    case CardFieldType::Card:
+        return QStringLiteral("card");
+    case CardFieldType::Text:
+        break;
+    }
+    return QStringLiteral("text");
+}
+
+std::optional<CardFieldType> CardField::typeFromName(const QString& name) {
+    for (const CardFieldType type : {CardFieldType::Text, CardFieldType::LongText,
+                                     CardFieldType::Choice, CardFieldType::Card}) {
+        if (name == typeName(type)) {
+            return type;
+        }
+    }
+    return std::nullopt;
+}
+
+const CardField* ElementKind::field(const QString& fieldId) const {
+    const auto found = std::find_if(fields.cbegin(), fields.cend(),
+                                    [&fieldId](const CardField& each) { return each.id == fieldId; });
+    return found == fields.cend() ? nullptr : &*found;
+}
+
+const CardField* ElementKind::subtitleField() const {
+    const auto found = std::find_if(fields.cbegin(), fields.cend(),
+                                    [](const CardField& each) { return each.subtitle; });
+    return found == fields.cend() ? nullptr : &*found;
 }
 
 bool ElementKind::allows(BookPlace place) const {
