@@ -26,6 +26,7 @@
 #include <QTableView>
 #include <QUndoStack>
 
+#include <algorithm>
 #include <cstdio>
 #include <optional>
 #include <string>
@@ -66,13 +67,11 @@ std::string boardOfBook() {
 
 /// The card of text @p id of the open book
 PlotCard cardOf(const QString& id) {
-    for (const PlotCard& card : PlotBoard::cardsOf(PlotBoard::bandsOf(test::book()))) {
-        if (card.id == id) {
-            return card;
-        }
-    }
-    FAIL("No card of " << id.toStdString());
-    return {};
+    const QList<PlotCard> cards = PlotBoard::cardsOf(PlotBoard::bandsOf(test::book()));
+    const auto found = std::find_if(cards.cbegin(), cards.cend(),
+                                    [&id](const PlotCard& card) { return card.id == id; });
+    REQUIRE(found != cards.cend());
+    return *found;
 }
 
 /// Move text @p id of the open book @p steps places, as the board does

@@ -1014,10 +1014,10 @@ void PlotBoardView::startDrag() {
     const QString dragged = m_pressed;
     m_pressed.clear();
     const QRect rect = cardRect(dragged);
-    auto* data = new QMimeData;
-    data->setData(QString::fromLatin1(CARD_MIME_TYPE), dragged.toUtf8());
+    auto* mime = new QMimeData;
+    mime->setData(QString::fromLatin1(CARD_MIME_TYPE), dragged.toUtf8());
     auto* drag = new QDrag(this);
-    drag->setMimeData(data);
+    drag->setMimeData(mime);
     if (rect.isValid()) {
         drag->setPixmap(viewport()->grab(rect));
         drag->setHotSpot(m_pressPos - rect.topLeft());
@@ -1046,17 +1046,17 @@ PlotBoardView::DropTarget PlotBoardView::dropTargetAt(const QPoint& pos,
         return target;
     }
     for (const BandPlace& band : m_bandPlaces) {
-        const PlotBand& data = m_bands.at(band.band);
+        const PlotBand& shown = m_bands.at(band.band);
         // The title of a part, or an empty part: at its start
-        if (!data.partId.isEmpty() &&
-            (band.header.contains(pos) || (data.cards.isEmpty() && band.area.contains(pos)))) {
-            target.partId = data.partId;
+        if (!shown.partId.isEmpty() &&
+            (band.header.contains(pos) || (shown.cards.isEmpty() && band.area.contains(pos)))) {
+            target.partId = shown.partId;
             target.marker = QRect(band.area.left(), band.area.top() - 4, band.area.width(), 3);
             return target;
         }
         // Beyond the last card of a band: after it
-        if (band.area.adjusted(0, 0, GAP, 0).contains(pos) && !data.cards.isEmpty()) {
-            const QString last = data.cards.constLast().id;
+        if (band.area.adjusted(0, 0, GAP, 0).contains(pos) && !shown.cards.isEmpty()) {
+            const QString last = shown.cards.constLast().id;
             if (last == dragged) {
                 return target;
             }
