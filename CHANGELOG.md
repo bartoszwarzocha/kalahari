@@ -24,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   books were open at closing: All or Only the last one). The windows share the settings
   (applied in all of them at once), one LanguageTool server, the words of the user
   dictionary and the keys given to characters.
+- **Each book opens again in the layout of its window** - 2026-11-15. A book window keeps its
+  place, its size and its panels and toolbars for its book when it closes or its book closes;
+  the window of that book takes them the next time it opens in a window of its own: at the
+  next start (each of the books of the last work, or the book of the command line) and with
+  In a New Window. A book without one takes the layout of the window it came from, as before.
+  The 20 books whose windows closed last keep theirs.
 - **Export of the book to Word (DOCX) and Markdown** - 2026-11-13. File > Export > DOCX... and
   Markdown... open one window, "Export Book", with four tabs that fit a screen of 1366x768 at
   150% without scrolling (File, Texts, Layout, Annotations and Images; the progress and the

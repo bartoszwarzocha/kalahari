@@ -81,13 +81,13 @@ public:
     static constexpr const char* OPEN_BOOKS_KEY = "startup.openBooks";
 
     /// @brief Keep @p manifests as the books open when the program ends (OPEN_BOOKS_KEY)
-    void setOpenBooks(const QStringList& manifests);
+    static void setOpenBooks(const QStringList& manifests);
 
     /// @brief The books to open at startup, as STARTUP_BOOKS_KEY says: those of the last work
     /// that are still there, in their order, or without them (or with "last") the book opened
     /// last (lastOpenedBook())
     /// @return Their .klh files; empty for none
-    QStringList booksToOpenAtStart() const;
+    [[nodiscard]] QStringList booksToOpenAtStart() const;
 
     /// @brief Maximum number of recent files to store
     static constexpr int MAX_RECENT_FILES = 10;

@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file open_book_dialog.cpp
 /// @brief The question "Opening a Book": where a book goes when another one is open in the
 /// window
 
 #include "kalahari/gui/dialogs/open_book_dialog.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/settings_dialog.h"
 
 #include <QCheckBox>
@@ -10,9 +14,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 OpenBookDialog::OpenBookDialog(const QString& openBook, const QString& otherBook,
                                QWidget* parent)
@@ -60,6 +62,4 @@ bool OpenBookDialog::remembersChoice() const
     return m_rememberBox->isChecked();
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+}  // namespace kalahari::gui::dialogs

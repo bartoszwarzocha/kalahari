@@ -14,6 +14,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <cstdint>
 #include <functional>
 #include <memory>
 
@@ -357,7 +358,7 @@ private:
     void openBook(const QString& manifest);
 
     /// @brief Where a book goes while another one is open in the window
-    enum class Place {
+    enum class Place : std::uint8_t {
         NewWindow,        ///< A new window: the open book stays
         ThisWindowAsked,  ///< In place of the open book, as the writer answered the question
         ThisWindow,       ///< In place of the open book, as the settings say (or one window)
@@ -368,6 +369,11 @@ private:
     /// settings say (OTHER_BOOK_KEY), or as the writer answers the question Opening a Book over
     /// @p parent (none: the window); ThisWindow without other windows
     Place placeForBook(const QString& name, QWidget* parent = nullptr);
+
+    /// @brief With a book open in the window, the book of @p manifest is to open in its place
+    /// now: it can be opened, the settings or the writer put it here (placeForBook()), and the
+    /// open book agreed to close; false when the book went to a new window or nothing opens
+    bool opensInPlaceOfOpenBook(const QString& manifest);
 
     /// @brief Before the open book closes for another one: asks about its unsaved changes, over
     /// @p parent

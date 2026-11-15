@@ -115,6 +115,18 @@ signals:
     void disableDiagnosticModeRequested();
 
 private:
+    /// @brief Refresh the Log panel of this window for the settings @p changedKeys: the size
+    ///        of its buffer, its colors
+    void applyToLogPanel(const QStringList& changedKeys);
+
+    /// @brief Refresh the Dashboard and the Navigator of this window, and the place of the
+    ///        Paragraph and Styles panel, for the settings @p changedKeys
+    void applyToPanels(const QStringList& changedKeys);
+
+    /// @brief Refresh the tabs of the panels and the tabs in the middle of this window for the
+    ///        settings @p changedKeys
+    void applyToTabs(const QStringList& changedKeys);
+
     QMainWindow* m_mainWindow;
     DockCoordinator* m_dockCoordinator;
     QStatusBar* m_statusBar;

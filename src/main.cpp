@@ -31,6 +31,7 @@
 #include "kalahari/core/cmd_line_parser.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/utils/icon_downloader.h"
 #include "kalahari/core/utils/svg_converter.h"
 #include "kalahari/editor/book_editor.h"
@@ -40,10 +41,97 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/widget_keys.h"
 
+#include <algorithm>
+#include <cstdio>
+#include <string>
+
 namespace {
 
 /// The log file of the program, in its working folder
 constexpr const char* LOG_FILE = "kalahari.log";
+
+/// The benchmark (--benchmark) starts this long after the event loop
+constexpr int BENCHMARK_START_DELAY_MS = 500;
+
+/// The benchmark waits this long for the chapter it opened
+constexpr unsigned int BENCHMARK_CHAPTER_WAIT_MS = 500;
+
+/// The benchmark waits this long for the book it opened
+constexpr unsigned int BENCHMARK_BOOK_WAIT_MS = 200;
+
+/// The book (.klh file) of @p projectPath given to the benchmark: the file itself, or the first
+/// .klh file of the folder; empty when the folder has none
+QString benchmarkManifest(const QString& projectPath) {
+    const QFileInfo path(QDir::current().absoluteFilePath(projectPath));
+    if (!path.isDir()) {
+        return path.absoluteFilePath();
+    }
+    const QDir folder(path.absoluteFilePath());
+    const QStringList manifests = folder.entryList({QStringLiteral("*.klh")}, QDir::Files);
+    return manifests.isEmpty() ? QString() : folder.absoluteFilePath(manifests.first());
+}
+
+/// Write @p message and a new line to the error output
+void printError(const std::string& message) {
+    (void)std::fputs((message + '\n').c_str(), stderr);
+}
+
+/// Open the book @p projectPath (benchmarkManifest()) in @p book for the benchmark
+/// @return false: it could not be opened, as the log and the error output say
+bool openBenchmarkBook(kalahari::core::ProjectManager& book, const QString& projectPath) {
+    auto& logger = kalahari::core::Logger::getInstance();
+    const QString manifest = benchmarkManifest(projectPath);
+    if (manifest.isEmpty()) {
+        logger.error("Benchmark: No .klh file found in: {}", projectPath.toStdString());
+        printError("Error: No .klh manifest in: " + projectPath.toStdString());
+        return false;
+    }
+    logger.info("Benchmark: Opening project: {}", manifest.toStdString());
+    if (!book.openProject(manifest)) {
+        logger.error("Benchmark: Failed to open project: {}", manifest.toStdString());
+        printError("Error: Failed to open project: " + manifest.toStdString());
+        return false;
+    }
+    // The book loads fully
+    QApplication::processEvents();
+    QThread::msleep(BENCHMARK_BOOK_WAIT_MS);
+    QApplication::processEvents();
+    return true;
+}
+
+/// The first text of @p book, in reading order, whose title is @p chapterTitle or begins with
+/// it; none when the book has no such text
+const kalahari::core::ProjectElement* benchmarkChapter(const kalahari::core::ProjectManager& book,
+                                                       const QString& chapterTitle) {
+    const kalahari::core::BookProject* project = book.project();
+    if (project == nullptr) {
+        return nullptr;
+    }
+    const QList<const kalahari::core::ProjectElement*> texts = project->readingOrder();
+    const auto isChapter = [&book, &chapterTitle](const kalahari::core::ProjectElement* text) {
+        return book.formOf(*text) == kalahari::core::ElementForm::Text &&
+               text->title.startsWith(chapterTitle);
+    };
+    const auto found = std::ranges::find_if(texts, isChapter);
+    return found != texts.end() ? *found : nullptr;
+}
+
+/// Open the chapter @p chapterTitle of the book of @p window for the benchmark
+/// (benchmarkChapter())
+void openBenchmarkChapter(kalahari::gui::MainWindow& window, const QString& chapterTitle) {
+    auto& logger = kalahari::core::Logger::getInstance();
+    const kalahari::core::ProjectElement* chapter = benchmarkChapter(window.book(), chapterTitle);
+    if (chapter == nullptr) {
+        logger.warn("Benchmark: Chapter not found: {}", chapterTitle.toStdString());
+        return;
+    }
+    logger.info("Benchmark: Opening chapter: {} (matched: {})", chapterTitle.toStdString(),
+                chapter->title.toStdString());
+    window.openChapter(chapter->id, chapter->title);
+    QApplication::processEvents();
+    QThread::msleep(BENCHMARK_CHAPTER_WAIT_MS);
+    QApplication::processEvents();
+}
 
 } // anonymous namespace
 
@@ -359,73 +447,20 @@ int main(int argc, char *argv[]) {
         QString chapterTitle = cmdLine.getOptionValue("chapter");
 
         // Schedule benchmark execution after event loop starts
-        QTimer::singleShot(500, &window, [&window, projectPath, chapterTitle, &logger, &app]() {
+        QTimer::singleShot(BENCHMARK_START_DELAY_MS, &window, [&window, projectPath, chapterTitle,
+                                                               &logger, &app]() {
             auto& pm = window.book();
 
             // Open project if specified (and not already open)
-            if (!projectPath.isEmpty() && !pm.isProjectOpen()) {
-                QString absPath = QDir::current().absoluteFilePath(projectPath);
-
-                // If path is a directory, look for .klh file inside
-                QFileInfo pathInfo(absPath);
-                if (pathInfo.isDir()) {
-                    QDir projectDir(absPath);
-                    QStringList klhFiles = projectDir.entryList(QStringList() << "*.klh", QDir::Files);
-                    if (!klhFiles.isEmpty()) {
-                        absPath = projectDir.absoluteFilePath(klhFiles.first());
-                        logger.info("Benchmark: Found manifest: {}", absPath.toStdString());
-                    } else {
-                        logger.error("Benchmark: No .klh file found in: {}", absPath.toStdString());
-                        fprintf(stderr, "Error: No .klh manifest in: %s\n", absPath.toUtf8().constData());
-                        app.exit(1);
-                        return;
-                    }
-                }
-
-                logger.info("Benchmark: Opening project: {}", absPath.toStdString());
-
-                if (!pm.openProject(absPath)) {
-                    logger.error("Benchmark: Failed to open project: {}", absPath.toStdString());
-                    fprintf(stderr, "Error: Failed to open project: %s\n", absPath.toUtf8().constData());
-                    app.exit(1);
-                    return;
-                }
-
-                // Wait for project to fully load
-                QApplication::processEvents();
-                QThread::msleep(200);
-                QApplication::processEvents();
+            if (!projectPath.isEmpty() && !pm.isProjectOpen() &&
+                !openBenchmarkBook(pm, projectPath)) {
+                QCoreApplication::exit(1);
+                return;
             }
 
             // Open chapter if specified
             if (!chapterTitle.isEmpty() && pm.isProjectOpen()) {
-                if (const kalahari::core::BookProject* project = pm.project()) {
-                    QString foundId;
-                    QString foundTitle;
-
-                    // The first text element of the book, in reading order, whose title is
-                    // the chapter's title or begins with it
-                    for (const kalahari::core::ProjectElement* element : project->readingOrder()) {
-                        if (pm.formOf(*element) == kalahari::core::ElementForm::Text &&
-                            element->title.startsWith(chapterTitle)) {
-                            foundId = element->id;
-                            foundTitle = element->title;
-                            break;
-                        }
-                    }
-
-                    if (!foundId.isEmpty()) {
-                        logger.info("Benchmark: Opening chapter: {} (matched: {})",
-                                    chapterTitle.toStdString(), foundTitle.toStdString());
-                        // Use public openChapter method
-                        window.openChapter(foundId, foundTitle);
-                        QApplication::processEvents();
-                        QThread::msleep(500);
-                        QApplication::processEvents();
-                    } else {
-                        logger.warn("Benchmark: Chapter not found: {}", chapterTitle.toStdString());
-                    }
-                }
+                openBenchmarkChapter(window, chapterTitle);
             }
 
             // Get current editor and run benchmark

@@ -53,9 +53,9 @@ GeneralPage::GeneralPage(QWidget* parent)
         addField(startup, tr("When several books were open at closing:"), startupBooks,
                  core::RecentBooksManager::STARTUP_BOOKS_KEY);
     // Only for the books opened at startup
-    const auto followAutoLoad = [startupBooks, startupBooksLabel](bool on) {
-        startupBooks->setEnabled(on);
-        startupBooksLabel->setEnabled(on);
+    const auto followAutoLoad = [startupBooks, startupBooksLabel](bool enabled) {
+        startupBooks->setEnabled(enabled);
+        startupBooksLabel->setEnabled(enabled);
     };
     connect(autoLoad, &QCheckBox::toggled, this, followAutoLoad);
     followAutoLoad(autoLoad->isChecked());

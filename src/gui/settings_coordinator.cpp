@@ -37,6 +37,19 @@ QList<SettingsCoordinator*>& liveCoordinators() {
     return coordinators;
 }
 
+/// One of the settings @p keys begins with @p prefix
+bool anyBeginsWith(const QStringList& keys, const QString& prefix) {
+    return std::any_of(keys.cbegin(), keys.cend(),
+                       [&prefix](const QString& key) { return key.startsWith(prefix); });
+}
+
+/// One of the settings @p keys is a color of the Log panel of a theme
+bool anyLogColor(const QStringList& keys) {
+    return std::any_of(keys.cbegin(), keys.cend(), [](const QString& key) {
+        return key.startsWith(QStringLiteral("themes.")) && key.contains(QStringLiteral(".log."));
+    });
+}
+
 }  // namespace
 
 SettingsCoordinator::SettingsCoordinator(const core::ProjectManager& book,
@@ -177,58 +190,64 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
 }
 
 void SettingsCoordinator::applyInWindow(const QStringList& changedKeys) {
-    auto& logger = core::Logger::getInstance();
-    const auto changed = [&changedKeys](const QString& prefix) {
-        return std::any_of(changedKeys.cbegin(), changedKeys.cend(),
-                           [&prefix](const QString& key) { return key.startsWith(prefix); });
-    };
+    applyToLogPanel(changedKeys);
+    applyToPanels(changedKeys);
+    applyToTabs(changedKeys);
+    // The editors follow the editor settings by themselves (EditorPanel)
+}
 
+void SettingsCoordinator::applyToLogPanel(const QStringList& changedKeys) {
     // Log panel: buffer size and colors (theme switch or per-theme log colors, not the editor
     // colors kept for each theme as well)
     LogPanel* logPanel = m_dockCoordinator->logPanel();
-    if (logPanel && changed(QStringLiteral("log.bufferSize"))) {
+    if (logPanel == nullptr) {
+        return;
+    }
+    if (anyBeginsWith(changedKeys, QStringLiteral("log.bufferSize"))) {
         const int bufferSize = core::SettingsManager::getInstance().get<int>("log.bufferSize");
         logPanel->setMaxBufferSize(static_cast<size_t>(bufferSize));
-        logger.info("SettingsCoordinator: Log buffer size updated to {}", bufferSize);
+        core::Logger::getInstance().info("SettingsCoordinator: Log buffer size updated to {}",
+                                         bufferSize);
     }
-    const bool logColorChanged =
-        std::any_of(changedKeys.cbegin(), changedKeys.cend(), [](const QString& key) {
-            return key.startsWith(QStringLiteral("themes.")) &&
-                   key.contains(QStringLiteral(".log."));
-        });
-    if (logPanel && (changed(QStringLiteral("appearance.theme")) || logColorChanged)) {
+    if (anyBeginsWith(changedKeys, QStringLiteral("appearance.theme")) ||
+        anyLogColor(changedKeys)) {
         logPanel->applyThemeColors();
     }
+}
 
+void SettingsCoordinator::applyToPanels(const QStringList& changedKeys) {
     // Dashboard: only its own options (it follows theme changes by itself)
     DashboardPanel* dashboardPanel = m_dockCoordinator->dashboardPanel();
-    if (dashboardPanel && changed(QStringLiteral("dashboard."))) {
+    if (dashboardPanel != nullptr && anyBeginsWith(changedKeys, QStringLiteral("dashboard."))) {
         dashboardPanel->onSettingsChanged();
     }
 
     // Navigator: the "+" button on the project's node follows the Add Element window
     NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
-    if (navigatorPanel && changed(QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING))) {
+    if (navigatorPanel != nullptr &&
+        anyBeginsWith(changedKeys, QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING))) {
         navigatorPanel->onSettingsChanged();
     }
 
     // The Paragraph and Styles panel moved to its other place: it shows there, in front
-    if (changed(QString::fromLatin1(DockCoordinator::PARAGRAPH_PLACE_KEY))) {
+    if (anyBeginsWith(changedKeys, QString::fromLatin1(DockCoordinator::PARAGRAPH_PLACE_KEY))) {
         m_dockCoordinator->placeParagraphPanel(true);
     }
+}
 
+void SettingsCoordinator::applyToTabs(const QStringList& changedKeys) {
     // The tabs of the panels: what they show, their rows, their side
-    if (changed(QStringLiteral("panels.tab")) && m_dockCoordinator->panelTabs() != nullptr) {
+    if (anyBeginsWith(changedKeys, QStringLiteral("panels.tab")) &&
+        m_dockCoordinator->panelTabs() != nullptr) {
         m_dockCoordinator->panelTabs()->applySettings();
     }
 
     // The tabs in the middle of the window: one row or more
     auto* centralTabs = qobject_cast<CentralTabs*>(m_dockCoordinator->centralTabs());
-    if (changed(QString::fromLatin1(CentralTabs::ROWS_KEY)) && centralTabs != nullptr) {
+    if (anyBeginsWith(changedKeys, QString::fromLatin1(CentralTabs::ROWS_KEY)) &&
+        centralTabs != nullptr) {
         centralTabs->applySettings();
     }
-
-    // The editors follow the editor settings by themselves (EditorPanel)
 }
 
 } // namespace gui

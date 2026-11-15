@@ -242,6 +242,7 @@ set(KALAHARI_SOURCES
     gui/book_texts.cpp  # The texts of the book in reading order, the saved text of one not open
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
     gui/book_export_coordinator.cpp  # BookExportCoordinator - the export of the book to DOCX and Markdown
+    gui/book_window_layouts.cpp  # The layout of the window of each book, kept for the next time
     gui/footnote_coordinator.cpp  # FootnoteCoordinator - Insert > Footnote, Endnote and the frame of a note
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
     gui/book_search_coordinator.cpp  # BookSearchCoordinator - Find in Book and Replace All in Book

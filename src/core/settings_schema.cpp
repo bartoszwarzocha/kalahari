@@ -27,6 +27,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.maximized", false},
         {"window.geometry", ""},  // QMainWindow::saveGeometry() as base64
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
+        // The layout of the window of each book, the book whose window closed last first:
+        // {"book": its .klh file, "geometry", "state"} (gui/book_window_layouts.h)
+        {"window.books", json::array()},
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
         // The Statistics panel has its place in the saved layout: a layout saved before it

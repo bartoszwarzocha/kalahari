@@ -32,6 +32,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <memory>
 #include <string>
 
 namespace kalahari::gui {

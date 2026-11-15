@@ -22,10 +22,13 @@
 #include <QByteArray>
 #include <QList>
 #include <QMap>
+#include <QString>
+#include <QStringList>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <filesystem>
+#include "kalahari/gui/book_window_layouts.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/toolbar_manager.h"
 
@@ -202,9 +205,12 @@ public:
 
     /// @brief Window > New Window: a new book window with the Dashboard, its panels and bars
     /// as in this one, a little lower and to the right; it closes and is deleted on its own
-    MainWindow* openNewWindow();
+    /// @param book The book the window opens for (openBookInNewWindow()): the window takes the
+    /// layout the book had last in place of the one of this window, if it has one
+    MainWindow* openNewWindow(const QString& book = QString());
 
-    /// @brief Open the book of @p manifest in a new window (openNewWindow())
+    /// @brief Open the book of @p manifest in a new window (openNewWindow()), in the layout its
+    /// window had last (bookWindowLayout()), if it has one
     MainWindow* openBookInNewWindow(const QString& manifest);
 
     /// @brief File > Exit: close every book window, asking once about the unsaved changes of
@@ -480,15 +486,54 @@ private:
 
     /// @brief The layout of the window a new window came from (openNewWindow()): taken in place
     /// of the saved one when it is shown first
-    struct Layout {
-        QByteArray geometry;
-        QByteArray state;
-    };
-    std::optional<Layout> m_layoutFrom;
+    std::optional<WindowLayout> m_layoutFrom;
+
+    /// The book a new window opens for (openBookInNewWindow()): its window takes the layout it
+    /// had last
+    QString m_layoutBook;
 
     /// @brief Restore the size and place of the window and its panels and bars when it is shown
-    /// first: those of the window it came from, or the saved ones
+    /// first: those its book had last, those of the window it came from, or the saved ones
     void restoreLayout();
+
+    /// @brief Restore the place and the size of the window from @p geometry, @p lowerAndRight of
+    /// where they were (a new window of another one), within its screen
+    void restoreGeometryOf(const QByteArray& geometry, bool lowerAndRight);
+
+    /// @brief Restore the bars and the panels of the window from @p state; empty: the layout of
+    /// the first start for the screen of the window
+    void restoreStateOf(const QByteArray& state);
+
+    /// @brief Show the Log panel in the diagnostic and the dev mode only, whatever the layout
+    void showLogPanelForMode();
+
+    /// @brief File > Exit: ask once about the unsaved changes of all @p windows, over @p asking,
+    /// and save them when the writer says so
+    /// @return false: the writer cancelled, or something could not be saved
+    static bool saveChangesOfAll(const QList<MainWindow*>& windows, MainWindow* asking);
+
+    /// @brief The names of what has unsaved changes in @p windows, once each, after keeping what
+    /// is being written there
+    static QStringList unsavedNamesOf(const QList<MainWindow*>& windows);
+
+    /// @brief Save the changes of every one of @p windows
+    /// @return false: something could not be saved; its window comes to the front
+    static bool saveAllOf(const QList<MainWindow*>& windows);
+
+    /// @brief The books open in @p windows (their .klh files), in their order
+    static QStringList openBooksOf(const QList<MainWindow*>& windows);
+
+    /// @brief The book whose layout the window takes when it is shown first: the book it opens
+    /// for, or the first book it opens at startup; empty: none
+    [[nodiscard]] QString layoutBook() const;
+
+    /// @brief The books the first window opens at startup: the file of the command line, or the
+    /// books of the last work when the settings say so (the first one in this window)
+    [[nodiscard]] QStringList booksAtStart() const;
+
+    /// @brief Keep the layout of this window for its book, as the window closes or the book
+    /// leaves it; not when the window is hidden, in Distraction-Free or without a book
+    void keepBookLayout();
 
     /// @brief When shown first: the file of the command line, or the books of the last work
     void openAtStart();

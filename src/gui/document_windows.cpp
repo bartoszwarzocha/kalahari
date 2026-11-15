@@ -42,6 +42,8 @@
 #include <QWidgetAction>
 
 #include <algorithm>
+#include <functional>
+#include <utility>
 
 namespace kalahari {
 namespace gui {
@@ -96,6 +98,8 @@ constexpr const char* NEXT_WINDOW_COMMAND = "window.next";
 constexpr const char* PREVIOUS_WINDOW_COMMAND = "window.previous";
 constexpr const char* SETTINGS_COMMAND = "window.settings";
 constexpr const char* NEW_WINDOW_COMMAND = "window.new";
+/// The place of Window > New Window in its menu: first, before the commands of the tabs
+constexpr int NEW_WINDOW_ORDER = 5;
 
 /// The texts of every book window of the program, in the order the windows were made
 QList<DocumentWindows*>& everyBookWindow() {
@@ -687,7 +691,8 @@ int DocumentWindows::registerCommands(CommandRegistry& registry,
     if (newWindow) {
         add(NEW_WINDOW_COMMAND,
             //: Window menu: a new book window, with the Dashboard. In Polish: N&owe okno
-            QT_TR_NOOP("Ne&w Window"), 5, false, KeyboardShortcut(), newWindow, nullptr);
+            QT_TR_NOOP("Ne&w Window"), NEW_WINDOW_ORDER, false, KeyboardShortcut(), newWindow,
+            nullptr);
     }
     add(MOVE_TAB_COMMAND,
         //: Window menu: the text in front goes to a window of its own. In Polish: &Przenieś

@@ -52,6 +52,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string>
 
 Q_DECLARE_METATYPE(kalahari::core::StandaloneFile)
 
@@ -403,7 +404,7 @@ void DocumentCoordinator::onNewProject() {
 }
 
 QString DocumentCoordinator::openBookTitle() const {
-    const QString title = m_book.book() ? m_book.book()->title : QString();
+    const QString title = m_book.book() != nullptr ? m_book.book()->title : QString();
     return title.isEmpty() ? QFileInfo(m_book.getProjectPath()).fileName() : title;
 }
 
@@ -499,7 +500,7 @@ DocumentCoordinator::Place DocumentCoordinator::placeForBook(const QString& name
         return Place::ThisWindow;
     }
     auto& settings = core::SettingsManager::getInstance();
-    const std::string where = settings.get<std::string>(OTHER_BOOK_KEY, "ask");
+    const auto where = settings.get<std::string>(OTHER_BOOK_KEY, "ask");
     if (where == "new") {
         return Place::NewWindow;
     }
@@ -523,11 +524,10 @@ DocumentCoordinator::Place DocumentCoordinator::placeForBook(const QString& name
 
 void DocumentCoordinator::openBook(const QString& manifest) {
     auto& logger = core::Logger::getInstance();
-    auto& pm = m_book;
 
     // The book of this window is not opened again. The MANIFEST (.klh) path is compared, not
     // getProjectPath() (the project directory), which would never match the .klh file.
-    if (pm.isProjectOpen() && QFileInfo(pm.getManifestPath()) == QFileInfo(manifest)) {
+    if (m_book.isProjectOpen() && QFileInfo(m_book.getManifestPath()) == QFileInfo(manifest)) {
         logger.debug("Project is already open, ignoring: {}", manifest.toStdString());
         return;
     }
@@ -537,36 +537,12 @@ void DocumentCoordinator::openBook(const QString& manifest) {
         return;
     }
 
-    if (pm.isProjectOpen()) {
-        // A book that cannot be opened is reported before anything is done for it: before
-        // the open book is closed, or a window is made
-        if (reportOpenFailure(manifest)) {
-            return;
-        }
-        const Place place = placeForBook(QFileInfo(manifest).completeBaseName());
-        if (place == Place::Cancel) {
-            logger.debug("User cancelled opening new project");
-            return;
-        }
-        if (place == Place::NewWindow) {
-            logger.info("Opening the book in a new window: {}", manifest.toStdString());
-            m_otherWindows.openInNewWindow(manifest);
-            return;
-        }
-        // In place of the open book: its unsaved changes are handled before it closes, and
-        // the writer who has not just chosen it is asked whether to close it
-        if (!agreeToCloseBook(
-                tr("Do you want to save changes to '%1' before opening the selected book?"),
-                place == Place::ThisWindowAsked
-                    ? QString()
-                    : tr("Do you want to close '%1' and open the selected book?"))) {
-            logger.debug("User cancelled opening new project");
-            return;
-        }
+    if (m_book.isProjectOpen() && !opensInPlaceOfOpenBook(manifest)) {
+        return;
     }
 
     QStringList problems;
-    if (pm.openProject(manifest, &problems)) {
+    if (m_book.openProject(manifest, &problems)) {
         // ProjectManager emits projectOpened, which triggers onProjectOpened(); the book is
         // remembered as the one opened last
         logger.info("Opened .klh file as project: {}", manifest.toStdString());
@@ -577,7 +553,39 @@ void DocumentCoordinator::openBook(const QString& manifest) {
     // The book cannot be opened: the message says why. It stays in the recent books, as it
     // may be readable later.
     logger.error("Failed to open .klh file as project: {}", manifest.toStdString());
-    showOpenError(manifest, problems, pm.lastOpenFailure());
+    showOpenError(manifest, problems, m_book.lastOpenFailure());
+}
+
+bool DocumentCoordinator::opensInPlaceOfOpenBook(const QString& manifest) {
+    auto& logger = core::Logger::getInstance();
+    // A book that cannot be opened is reported before anything is done for it: before the open
+    // book is closed, or a window is made
+    if (reportOpenFailure(manifest)) {
+        return false;
+    }
+    const Place place = placeForBook(QFileInfo(manifest).completeBaseName());
+    if (place == Place::Cancel) {
+        logger.debug("User cancelled opening new project");
+        return false;
+    }
+    if (place == Place::NewWindow) {
+        logger.info("Opening the book in a new window: {}", manifest.toStdString());
+        m_otherWindows.openInNewWindow(manifest);
+        return false;
+    }
+    // In place of the open book: its unsaved changes are handled before it closes, and the
+    // writer who has not just chosen it is asked whether to close it
+    const QString closeQuestion =
+        place == Place::ThisWindowAsked
+            ? QString()
+            : tr("Do you want to close '%1' and open the selected book?");
+    if (!agreeToCloseBook(
+            tr("Do you want to save changes to '%1' before opening the selected book?"),
+            closeQuestion)) {
+        logger.debug("User cancelled opening new project");
+        return false;
+    }
+    return true;
 }
 
 void DocumentCoordinator::showOpenError(const QString& path, const QStringList& problems,

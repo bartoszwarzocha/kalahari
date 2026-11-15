@@ -50,7 +50,8 @@ MainWindow orchestrates 7 coordinators:
 - Several book windows: MainWindow::windows() / windowOfBook() / openBookInNewWindow(),
   closeAllWindows() (File > Exit); DocumentWindows::programWindows() (Window menu, Ctrl+F6);
   settings are applied in every window (SettingsCoordinator::coordinators()); one LanguageTool
-  server and one user dictionary for all windows
+  server and one user dictionary for all windows; each book keeps the layout of its window
+  (gui/book_window_layouts.h: bookWindowLayout() / keepBookWindowLayout())
 
 ## MANDATORY Patterns (CORRECT API)
 
