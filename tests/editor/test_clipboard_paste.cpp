@@ -908,7 +908,7 @@ TEST_CASE("Paste Special: where the content of the clipboard comes from",
 TEST_CASE("Paste Special: the forms of the content, each pasted as it alone is",
           "[editor][paste][special]") {
     auto editor = editorWith(kml("<p><i>xy</i></p>"));
-    editor->setCursorPosition({0, 1});  // x|y, in italic text
+    editor->setCursorPosition({.paragraph = 0, .offset = 1});  // x|y, in italic text
     QMimeData other;
     other.setText(QStringLiteral("A B"));
     other.setHtml(QStringLiteral("<p><span style=\"font-family: Arial\">A</span> <b>B</b></p>"));

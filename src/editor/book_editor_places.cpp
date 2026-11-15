@@ -19,6 +19,9 @@
 #include <QTextTable>
 
 #include <algorithm>
+#include <functional>
+#include <utility>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -32,15 +35,68 @@ const KalahariTextDocumentLayout* layoutOf(const QTextDocument* document)
                : nullptr;
 }
 
-/// The tables of a frame and of the frames in it, in text order
-void collectTables(const QTextFrame& frame, std::vector<int>& places)
+/// The positions of the tables of a frame and of the frames in it, in text order
+std::vector<int> tablePositions(const QTextFrame& root)
 {
-    for (const QTextFrame* child : frame.childFrames()) {
-        if (const auto* table = qobject_cast<const QTextTable*>(child)) {
-            places.push_back(table->cellAt(0, 0).firstPosition());
+    std::vector<int> places;
+    std::vector<const QTextFrame*> frames{&root};
+    while (!frames.empty()) {
+        const QTextFrame* const frame = frames.back();
+        frames.pop_back();
+        for (const QTextFrame* child : frame->childFrames()) {
+            if (const auto* table = qobject_cast<const QTextTable*>(child)) {
+                places.push_back(table->cellAt(0, 0).firstPosition());
+            }
+            frames.push_back(child);
         }
-        collectTables(*child, places);
     }
+    std::ranges::sort(places);
+    return places;
+}
+
+/// The positions of the headings of a document
+std::vector<int> headingPositions(const QTextDocument& document)
+{
+    std::vector<int> places;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        if (headingLevelOf(paragraphStyleOf(block.blockFormat())) > 0) {
+            places.push_back(block.position());
+        }
+    }
+    return places;
+}
+
+/// The positions of the notes of a document: after their numbers, as when an endnote is
+/// clicked
+std::vector<int> notePositions(const QTextDocument& document)
+{
+    std::vector<int> places;
+    if (const KalahariTextDocumentLayout* layout = layoutOf(&document)) {
+        for (const NotePlace& note : layout->footnoteNumbers().notes()) {
+            places.push_back(note.position + 1);
+        }
+    }
+    return places;
+}
+
+/// The positions of the annotations of a document, in text order
+std::vector<int> annotationPositions(const QTextDocument& document)
+{
+    std::vector<int> places;
+    for (const AnnotationPlace& place : annotationsIn(document)) {
+        places.push_back(place.start);
+    }
+    std::ranges::stable_sort(places);
+    return places;
+}
+
+/// The outcome of a step of Go To that did not go: @p result, with the @p count places
+GoToOutcome outcomeOf(GoToResult result, int count)
+{
+    GoToOutcome outcome;
+    outcome.result = result;
+    outcome.count = count;
+    return outcome;
 }
 
 }  // namespace
@@ -69,44 +125,25 @@ PlaceNumber placeNumberOf(const QString& text)
 
 std::vector<int> BookEditor::placePositions(PlaceKind kind) const
 {
-    std::vector<int> places;
     const QTextDocument* document = m_textBuffer.get();
     if (document == nullptr) {
-        return places;
+        return {};
     }
     switch (kind) {
         case PlaceKind::Page:
             break;
         case PlaceKind::Heading:
-            for (QTextBlock block = document->begin(); block.isValid(); block = block.next()) {
-                if (headingLevelOf(paragraphStyleOf(block.blockFormat())) > 0) {
-                    places.push_back(block.position());
-                }
-            }
-            break;
+            return headingPositions(*document);
         case PlaceKind::Note:
-            // The cursor goes after the number, as when an endnote is clicked
-            if (const KalahariTextDocumentLayout* layout = layoutOf(document)) {
-                for (const NotePlace& note : layout->footnoteNumbers().notes()) {
-                    places.push_back(note.position + 1);
-                }
-            }
-            break;
+            return notePositions(*document);
         case PlaceKind::Image:
-            places = imagePositions(*document, 0, document->characterCount());
-            break;
+            return imagePositions(*document, 0, document->characterCount());
         case PlaceKind::Table:
-            collectTables(*document->rootFrame(), places);
-            std::sort(places.begin(), places.end());
-            break;
+            return tablePositions(*document->rootFrame());
         case PlaceKind::Annotation:
-            for (const AnnotationPlace& place : annotationsIn(*document)) {
-                places.push_back(place.start);
-            }
-            std::stable_sort(places.begin(), places.end());
-            break;
+            return annotationPositions(*document);
     }
-    return places;
+    return {};
 }
 
 int BookEditor::placeOfCursor() const
@@ -120,9 +157,8 @@ int BookEditor::placesBeforeCursor(PlaceKind kind, const std::vector<int>& place
     const int cursor = placeOfCursor();
     const bool selects = kind == PlaceKind::Image || kind == PlaceKind::Annotation;
     const bool selected = kind == PlaceKind::Image ? selectedImage().has_value() : hasSelection();
-    const auto after = selects && !selected
-                           ? std::lower_bound(places.begin(), places.end(), cursor)
-                           : std::upper_bound(places.begin(), places.end(), cursor);
+    const auto after = selects && !selected ? std::ranges::lower_bound(places, cursor)
+                                            : std::ranges::upper_bound(places, cursor);
     return static_cast<int>(after - places.begin());
 }
 
@@ -130,122 +166,112 @@ int BookEditor::placesBeforeCursor(PlaceKind kind, const std::vector<int>& place
 // Go To
 // =============================================================================
 
+bool BookEditor::atLastPlace(PlaceKind kind, const std::vector<int>& places) const
+{
+    return m_lastPlace.kind == kind && m_lastPlace.index >= 0 &&
+           std::cmp_less(m_lastPlace.index, places.size()) &&
+           m_lastPlace.cursor == calculateAbsolutePosition(m_cursorPosition) &&
+           m_lastPlace.anchor == calculateAbsolutePosition(m_selectionAnchor) &&
+           places[static_cast<size_t>(m_lastPlace.index)] == placeOfCursor();
+}
+
+int BookEditor::adjacentPlace(PlaceKind kind, const std::vector<int>& places, bool next) const
+{
+    if (atLastPlace(kind, places)) {
+        return m_lastPlace.index + (next ? 1 : -1);
+    }
+    if (next) {
+        return placesBeforeCursor(kind, places);
+    }
+    const auto atCursor = std::ranges::lower_bound(places, placeOfCursor());
+    return static_cast<int>(atCursor - places.begin()) - 1;
+}
+
 GoToOutcome BookEditor::goToPlace(PlaceKind kind, const QString& number)
 {
-    GoToOutcome outcome;
     const PlaceNumber wanted = placeNumberOf(number);
-
-    // The pages of the Page Layout view
     if (kind == PlaceKind::Page) {
-        outcome.count = totalPages();
-        if (outcome.count == 0) {
-            outcome.result = GoToResult::NoPlaces;
-            return outcome;
-        }
-        if (!wanted.valid) {
-            outcome.result = GoToResult::Invalid;
-            return outcome;
-        }
-        const int page = wanted.relative ? currentPage() + wanted.value : wanted.value;
-        if (page < 1 || page > outcome.count) {
-            outcome.result = GoToResult::NoNumber;
-            return outcome;
-        }
-        goToPage(page);
-        outcome.ordinal = page;
-        return outcome;
+        return goToPageNumber(wanted);
     }
-
     const std::vector<int> places = placePositions(kind);
-    outcome.count = static_cast<int>(places.size());
+    const int count = static_cast<int>(places.size());
     if (places.empty()) {
-        outcome.result = GoToResult::NoPlaces;
-        return outcome;
+        return outcomeOf(GoToResult::NoPlaces, count);
     }
     // A note by the number it shows, also "iii" or "*"
     if (kind == PlaceKind::Note && !wanted.relative) {
-        const QString shown = number.trimmed();
-        const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
-        if (shown.isEmpty() || layout == nullptr) {
-            outcome.result = GoToResult::Invalid;
-            return outcome;
-        }
-        const FootnoteNumbers& numbers = layout->footnoteNumbers();
-        for (size_t i = 0; i < numbers.notes().size(); ++i) {
-            if (numbers.number(i).compare(shown, Qt::CaseInsensitive) == 0) {
-                return goToPlaceAt(kind, places, static_cast<int>(i));
-            }
-        }
-        outcome.result = GoToResult::NoNumber;
-        return outcome;
+        return goToNoteNumber(places, number.trimmed());
     }
     if (!wanted.valid) {
-        outcome.result = GoToResult::Invalid;
-        return outcome;
+        return outcomeOf(GoToResult::Invalid, count);
     }
-    int index = wanted.value - 1;
-    if (wanted.relative) {
-        // From the place the cursor is at: the one Go To went to, else the last at or before
-        // the cursor (-1: before the first)
-        const int cursor = placeOfCursor();
-        int current = placesBeforeCursor(kind, places) - 1;
-        if (m_lastPlace.kind == kind && m_lastPlace.index >= 0 &&
-            m_lastPlace.index < outcome.count &&
-            m_lastPlace.cursor == calculateAbsolutePosition(m_cursorPosition) &&
-            m_lastPlace.anchor == calculateAbsolutePosition(m_selectionAnchor) &&
-            places[static_cast<size_t>(m_lastPlace.index)] == cursor) {
-            current = m_lastPlace.index;
-        }
-        index = current + wanted.value;
-    }
-    if (index < 0 || index >= outcome.count) {
-        outcome.result = GoToResult::NoNumber;
-        return outcome;
+    // On or back from the place the cursor is at: the one Go To went to, else the last at or
+    // before the cursor (-1: before the first)
+    const int current =
+        atLastPlace(kind, places) ? m_lastPlace.index : placesBeforeCursor(kind, places) - 1;
+    const int index = wanted.relative ? current + wanted.value : wanted.value - 1;
+    if (index < 0 || index >= count) {
+        return outcomeOf(GoToResult::NoNumber, count);
     }
     return goToPlaceAt(kind, places, index);
 }
 
+GoToOutcome BookEditor::goToPageNumber(const PlaceNumber& wanted)
+{
+    if (!wanted.valid && totalPages() > 0) {
+        return outcomeOf(GoToResult::Invalid, totalPages());
+    }
+    return goToPageAt(wanted.relative ? currentPage() + wanted.value : wanted.value,
+                      GoToResult::NoNumber);
+}
+
+GoToOutcome BookEditor::goToPageAt(int page, GoToResult beyond)
+{
+    const int pages = totalPages();
+    if (pages == 0) {
+        return outcomeOf(GoToResult::NoPlaces, pages);
+    }
+    if (page < 1 || page > pages) {
+        return outcomeOf(beyond, pages);
+    }
+    goToPage(page);
+    GoToOutcome outcome = outcomeOf(GoToResult::Done, pages);
+    outcome.ordinal = page;
+    return outcome;
+}
+
+GoToOutcome BookEditor::goToNoteNumber(const std::vector<int>& places, const QString& shown)
+{
+    const int count = static_cast<int>(places.size());
+    const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
+    if (shown.isEmpty() || layout == nullptr) {
+        return outcomeOf(GoToResult::Invalid, count);
+    }
+    const FootnoteNumbers& numbers = layout->footnoteNumbers();
+    for (size_t i = 0; i < numbers.notes().size(); ++i) {
+        if (numbers.number(i).compare(shown, Qt::CaseInsensitive) == 0) {
+            return goToPlaceAt(PlaceKind::Note, places, static_cast<int>(i));
+        }
+    }
+    return outcomeOf(GoToResult::NoNumber, count);
+}
+
 GoToOutcome BookEditor::goToAdjacentPlace(PlaceKind kind, bool next)
 {
-    GoToOutcome outcome;
+    const GoToResult beyond = next ? GoToResult::NoFurther : GoToResult::NoEarlier;
     if (kind == PlaceKind::Page) {
-        outcome.count = totalPages();
-        if (outcome.count == 0) {
-            outcome.result = GoToResult::NoPlaces;
-            return outcome;
-        }
-        const int page = currentPage() + (next ? 1 : -1);
-        if (page < 1 || page > outcome.count) {
-            outcome.result = next ? GoToResult::NoFurther : GoToResult::NoEarlier;
-            return outcome;
-        }
-        goToPage(page);
-        outcome.ordinal = page;
-        return outcome;
+        return goToPageAt(currentPage() + (next ? 1 : -1), beyond);
     }
-
     const std::vector<int> places = placePositions(kind);
-    outcome.count = static_cast<int>(places.size());
+    const int count = static_cast<int>(places.size());
     if (places.empty()) {
-        outcome.result = GoToResult::NoPlaces;
-        return outcome;
+        return outcomeOf(GoToResult::NoPlaces, count);
     }
     // On from the place Go To went to, while the cursor stays there; else the first place after
     // the cursor, or the last before it
-    const int cursor = placeOfCursor();
-    int index = next ? placesBeforeCursor(kind, places)
-                     : static_cast<int>(std::lower_bound(places.begin(), places.end(), cursor) -
-                                        places.begin()) -
-                           1;
-    if (m_lastPlace.kind == kind && m_lastPlace.index >= 0 && m_lastPlace.index < outcome.count &&
-        m_lastPlace.cursor == calculateAbsolutePosition(m_cursorPosition) &&
-        m_lastPlace.anchor == calculateAbsolutePosition(m_selectionAnchor) &&
-        places[static_cast<size_t>(m_lastPlace.index)] == cursor) {
-        index = m_lastPlace.index + (next ? 1 : -1);
-    }
-    if (index < 0 || index >= outcome.count) {
-        outcome.result = next ? GoToResult::NoFurther : GoToResult::NoEarlier;
-        return outcome;
+    const int index = adjacentPlace(kind, places, next);
+    if (index < 0 || index >= count) {
+        return outcomeOf(beyond, count);
     }
     return goToPlaceAt(kind, places, index);
 }
@@ -256,7 +282,7 @@ GoToOutcome BookEditor::goToPlaceAt(PlaceKind kind, const std::vector<int>& plac
     outcome.count = static_cast<int>(places.size());
     outcome.ordinal = index + 1;
     const int position = places[static_cast<size_t>(index)];
-    QTextDocument* document = m_textBuffer.get();
+    QTextDocument* const document = m_textBuffer.get();
     const auto putCursor = [this, document](int at) {
         clearSelection();
         const CursorPosition place = absoluteToCursorPosition(document, at);
@@ -288,18 +314,18 @@ GoToOutcome BookEditor::goToPlaceAt(PlaceKind kind, const std::vector<int>& plac
             for (const AnnotationPlace& place : annotations) {
                 ordered.push_back(&place);
             }
-            std::stable_sort(ordered.begin(), ordered.end(),
-                             [](const AnnotationPlace* a, const AnnotationPlace* b) {
-                                 return a->start < b->start;
-                             });
+            std::ranges::stable_sort(ordered, std::ranges::less{},
+                                     [](const AnnotationPlace* place) { return place->start; });
             goToAnnotation(ordered[static_cast<size_t>(index)]->annotation.id);
             break;
         }
     }
     ensureCursorVisible();
     update();
-    m_lastPlace = {kind, index, calculateAbsolutePosition(m_cursorPosition),
-                   calculateAbsolutePosition(m_selectionAnchor)};
+    m_lastPlace = {.kind = kind,
+                   .index = index,
+                   .cursor = calculateAbsolutePosition(m_cursorPosition),
+                   .anchor = calculateAbsolutePosition(m_selectionAnchor)};
     return outcome;
 }
 

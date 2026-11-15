@@ -96,7 +96,7 @@ TEST_CASE("Go To: the headings by number, on and back, next and previous",
     }
 
     SECTION("On and back from the heading the cursor is under") {
-        editor->setCursorPosition({4, 1});  // c, under Two
+        editor->setCursorPosition({.paragraph = 4, .offset = 1});  // c, under Two
         CHECK(editor->goToPlace(PlaceKind::Heading, QStringLiteral("+2")) == done(4, 4));
         CHECK(paragraphText(*editor) == "Four");
         CHECK(editor->goToPlace(PlaceKind::Heading, QStringLiteral("-3")) == done(1, 4));
@@ -109,7 +109,7 @@ TEST_CASE("Go To: the headings by number, on and back, next and previous",
     }
 
     SECTION("Next and Previous: the heading after the cursor, and the one before") {
-        editor->setCursorPosition({1, 0});  // a
+        editor->setCursorPosition({.paragraph = 1, .offset = 0});  // a
         CHECK(editor->goToAdjacentPlace(PlaceKind::Heading, true) == done(2, 4));
         CHECK(paragraphText(*editor) == "Two");
         CHECK(editor->goToAdjacentPlace(PlaceKind::Heading, true) == done(3, 4));
@@ -118,7 +118,7 @@ TEST_CASE("Go To: the headings by number, on and back, next and previous",
               failed(GoToResult::NoFurther, 4));
         CHECK(paragraphText(*editor) == "Four");
         // From the middle of a section, Previous goes to its heading
-        editor->setCursorPosition({4, 1});  // c, under Two
+        editor->setCursorPosition({.paragraph = 4, .offset = 1});  // c, under Two
         CHECK(editor->goToAdjacentPlace(PlaceKind::Heading, false) == done(2, 4));
         CHECK(editor->goToAdjacentPlace(PlaceKind::Heading, false) == done(1, 4));
         CHECK(editor->goToAdjacentPlace(PlaceKind::Heading, false) ==
@@ -183,13 +183,13 @@ TEST_CASE("Go To: the images selected, the tables at their first cell", "[editor
           failed(GoToResult::NoEarlier, 2));
     // The cursor before an image, which is not selected: Next selects that image
     editor->clearSelection();
-    editor->setCursorPosition({1, 0});
+    editor->setCursorPosition({.paragraph = 1, .offset = 0});
     REQUIRE_FALSE(editor->selectedImage().has_value());
     CHECK(editor->goToAdjacentPlace(PlaceKind::Image, true) == done(1, 2));
     CHECK(*editor->selectedImage() == editor->placePositions(PlaceKind::Image)[0]);
     // and "+1" too
     editor->clearSelection();
-    editor->setCursorPosition({1, 0});
+    editor->setCursorPosition({.paragraph = 1, .offset = 0});
     CHECK(editor->goToPlace(PlaceKind::Image, QStringLiteral("+1")) == done(1, 2));
 
     CHECK(editor->goToAdjacentPlace(PlaceKind::Table, true) == done(1, 2));

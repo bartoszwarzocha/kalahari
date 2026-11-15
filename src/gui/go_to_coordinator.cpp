@@ -7,6 +7,7 @@
 #include "kalahari/gui/go_to_coordinator.h"
 
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/edit_dialogs.h"
 
@@ -56,7 +57,7 @@ void GoToCoordinator::followKeys()
 
 editor::BookEditor* GoToCoordinator::text() const
 {
-    editor::BookEditor* text = m_textWithKeys ? m_textWithKeys() : nullptr;
+    editor::BookEditor* const text = m_textWithKeys ? m_textWithKeys() : nullptr;
     return text != nullptr ? text : m_lastText;
 }
 

@@ -40,7 +40,7 @@ enum class GoToResult {
 
 /// @brief The outcome of a step of Go To
 struct GoToOutcome {
-    GoToResult result = GoToResult::Done;
+    GoToResult result = GoToResult::Done;  ///< What the step did
     int ordinal = 0;  ///< Done: the place's one among the places of its kind, from 1 (a page:
                       ///< its number)
     int count = 0;    ///< The places of the kind in the text (the pages)

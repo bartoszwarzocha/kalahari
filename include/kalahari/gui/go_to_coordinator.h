@@ -16,7 +16,7 @@ class QWidget;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+}  // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -24,7 +24,7 @@ class CommandRegistry;
 
 namespace dialogs {
 class GoToDialog;
-}
+}  // namespace dialogs
 
 /// @brief Opens the window of Go To and gives it the text it goes in
 ///
@@ -48,8 +48,11 @@ public:
     GoToCoordinator(CommandRegistry& commands, TextWithKeys textWithKeys, QWidget* window,
                     QObject* parent = nullptr);
 
+    ~GoToCoordinator() override = default;
     GoToCoordinator(const GoToCoordinator&) = delete;
     GoToCoordinator& operator=(const GoToCoordinator&) = delete;
+    GoToCoordinator(GoToCoordinator&&) = delete;
+    GoToCoordinator& operator=(GoToCoordinator&&) = delete;
 
     /// @brief Give the command its callback
     /// @note Call after the command is registered

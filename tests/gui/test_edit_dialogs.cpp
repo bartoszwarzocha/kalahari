@@ -96,11 +96,14 @@ public:
         try {
             core::SettingsManager::getInstance().set<std::string>(editor::PASTE_MODE_KEY, m_mode);
         } catch (...) {
-            std::fputs("PasteModeKept: the paste mode was not restored\n", stderr);
+            static_cast<void>(
+                std::fputs("PasteModeKept: the paste mode was not restored\n", stderr));
         }
     }
     PasteModeKept(const PasteModeKept&) = delete;
     PasteModeKept& operator=(const PasteModeKept&) = delete;
+    PasteModeKept(PasteModeKept&&) = delete;
+    PasteModeKept& operator=(PasteModeKept&&) = delete;
 
 private:
     std::string m_mode;
@@ -199,7 +202,7 @@ TEST_CASE("Paste Special: Edit > Paste Special... pastes in the form chosen",
     CHECK(command->shortcut.isEmpty());
 
     auto text = editorWith(QStringLiteral("<kml><p>xy</p></kml>"));
-    text->setCursorPosition({0, 1});
+    text->setCursorPosition({.paragraph = 0, .offset = 1});
     auto* data = new QMimeData();
     data->setText(QStringLiteral("A B"));
     data->setHtml(QStringLiteral("<p>A <b>B</b></p>"));

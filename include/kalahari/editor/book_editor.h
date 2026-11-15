@@ -2518,6 +2518,23 @@ private:
     /// @brief Go To: the place @p index of @p places (placePositions()), and the outcome
     GoToOutcome goToPlaceAt(PlaceKind kind, const std::vector<int>& places, int index);
 
+    /// @brief Go To: the page of the number @p wanted, its own or on or back from the page of
+    ///        the cursor
+    GoToOutcome goToPageNumber(const PlaceNumber& wanted);
+
+    /// @brief Go To: page @p page; @p beyond when the text has no such page
+    GoToOutcome goToPageAt(int page, GoToResult beyond);
+
+    /// @brief Go To: the note that shows the number @p shown ("iii", "*") among @p places
+    GoToOutcome goToNoteNumber(const std::vector<int>& places, const QString& shown);
+
+    /// @brief Whether the cursor is still where Go To left it at a place of @p places
+    bool atLastPlace(PlaceKind kind, const std::vector<int>& places) const;
+
+    /// @brief The index in @p places of the next place (@p next) or the one before: on from
+    ///        the place Go To went to while the cursor stays there, else from the cursor
+    int adjacentPlace(PlaceKind kind, const std::vector<int>& places, bool next) const;
+
     /// @brief The place of the cursor for Go To: where the selection starts, else the cursor
     int placeOfCursor() const;
 

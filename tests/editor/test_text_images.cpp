@@ -937,7 +937,7 @@ TEST_CASE("Images: Paste Special pastes the picture of text, or the files of pic
     withText.setText(QStringLiteral("cd"));
     withText.setHtml(QStringLiteral("<p><b>cd</b></p>"));
     auto editor = editorWith(QStringLiteral("<kml><p>ab</p></kml>"), book.path());
-    editor->setCursorPosition({0, 1});
+    editor->setCursorPosition({.paragraph = 0, .offset = 1});
     CHECK(editor->pasteFormsOf(&withText) ==
           std::vector<PasteForm>{PasteForm::Source, PasteForm::Merge, PasteForm::Text,
                                  PasteForm::Image});
@@ -946,7 +946,7 @@ TEST_CASE("Images: Paste Special pastes the picture of text, or the files of pic
           QStringLiteral("<kml><p>ab</p><p align=\"center\"><img src=\"images/image.png\"/></p></kml>"));
     editor->undo();
     CHECK(editor->toKml() == QStringLiteral("<kml><p>ab</p></kml>"));
-    editor->setCursorPosition({0, 1});
+    editor->setCursorPosition({.paragraph = 0, .offset = 1});
     editor->insertInForm(&withText, PasteForm::Text);
     CHECK(editor->toKml() == QStringLiteral("<kml><p>acdb</p></kml>"));
 
@@ -957,7 +957,7 @@ TEST_CASE("Images: Paste Special pastes the picture of text, or the files of pic
     files.setUrls({QUrl::fromLocalFile(red)});
     files.setText(red);
     auto other = editorWith(QStringLiteral("<kml><p>ab</p></kml>"), book.path());
-    other->setCursorPosition({0, 1});
+    other->setCursorPosition({.paragraph = 0, .offset = 1});
     CHECK(other->pasteFormsOf(&files) == std::vector<PasteForm>{PasteForm::Text, PasteForm::Image});
     other->insertInForm(&files, PasteForm::Image);
     CHECK(other->toKml() == QStringLiteral("<kml><p>ab</p><p align=\"center\"><img "

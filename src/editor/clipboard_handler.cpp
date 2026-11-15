@@ -1643,6 +1643,32 @@ QString ClipboardHandler::pasteAsText()
     return QString();
 }
 
+namespace {
+
+/// The program the HTML of the clipboard comes from: the program names itself in the head
+/// (Word also by its namespaces, as Outlook writing Word's HTML), Google Docs marks its
+/// fragment
+ClipboardSource htmlSourceOf(const QString& html)
+{
+    const qsizetype body = html.indexOf(QLatin1String("<body"), 0, Qt::CaseInsensitive);
+    const QString head = (body < 0 ? html : html.left(body)).toLower();
+    if (head.contains(QLatin1String("urn:schemas-microsoft-com:office:word")) ||
+        head.contains(QLatin1String("microsoft word")) ||
+        head.contains(QLatin1String("word.document"))) {
+        return ClipboardSource::Word;
+    }
+    if (head.contains(QLatin1String("libreoffice")) ||
+        head.contains(QLatin1String("openoffice"))) {
+        return ClipboardSource::LibreOffice;
+    }
+    if (html.contains(QLatin1String("docs-internal-guid"))) {
+        return ClipboardSource::GoogleDocs;
+    }
+    return ClipboardSource::Html;
+}
+
+}  // namespace
+
 ClipboardSource ClipboardHandler::sourceOf(const QMimeData* data)
 {
     if (data == nullptr) {
@@ -1655,24 +1681,7 @@ ClipboardSource ClipboardHandler::sourceOf(const QMimeData* data)
     const bool text = data->hasFormat(QStringLiteral("text/plain")) &&
                       !data->text().trimmed().isEmpty();
     if (data->hasHtml() && text) {
-        // The program names itself in the head (Word also by its namespaces, as Outlook
-        // writing Word's HTML), Google Docs marks its fragment
-        const QString html = data->html();
-        const qsizetype body = html.indexOf(QLatin1String("<body"), 0, Qt::CaseInsensitive);
-        const QString head = (body < 0 ? html : html.left(body)).toLower();
-        if (head.contains(QLatin1String("urn:schemas-microsoft-com:office:word")) ||
-            head.contains(QLatin1String("microsoft word")) ||
-            head.contains(QLatin1String("word.document"))) {
-            return ClipboardSource::Word;
-        }
-        if (head.contains(QLatin1String("libreoffice")) ||
-            head.contains(QLatin1String("openoffice"))) {
-            return ClipboardSource::LibreOffice;
-        }
-        if (html.contains(QLatin1String("docs-internal-guid"))) {
-            return ClipboardSource::GoogleDocs;
-        }
-        return ClipboardSource::Html;
+        return htmlSourceOf(data->html());
     }
     if (text) {
         return ClipboardSource::Text;

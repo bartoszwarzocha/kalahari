@@ -8,6 +8,7 @@
 #pragma once
 
 #include <catch2/catch_test_macros.hpp>
+
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 
 #include <QAbstractButton>
@@ -40,7 +41,7 @@ inline QChar accessKey(const QString& text) {
             return text.at(i + 1).toLower();
         }
     }
-    return QChar();
+    return {};
 }
 
 /// The texts with access keys of a window: of the labels with a field, the buttons, the groups,
@@ -48,7 +49,8 @@ inline QChar accessKey(const QString& text) {
 inline QStringList keyTexts(const QWidget& root) {
     QStringList texts;
     for (const QWidget* widget : root.findChildren<QWidget*>()) {
-        if (const auto* label = qobject_cast<const QLabel*>(widget); label && label->buddy()) {
+        if (const auto* label = qobject_cast<const QLabel*>(widget);
+            (label != nullptr) && (label->buddy() != nullptr)) {
             texts << label->text();
         } else if (const auto* button = qobject_cast<const QAbstractButton*>(widget)) {
             texts << button->text();
@@ -119,6 +121,8 @@ public:
     ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
     Polish(const Polish&) = delete;
     Polish& operator=(const Polish&) = delete;
+    Polish(Polish&&) = delete;
+    Polish& operator=(Polish&&) = delete;
 
     [[nodiscard]] bool loaded() const { return m_loaded; }
 
@@ -136,6 +140,8 @@ public:
     ~SettingsOpener() { gui::dialogs::KalahariDialog::setSettingsOpener(nullptr); }
     SettingsOpener(const SettingsOpener&) = delete;
     SettingsOpener& operator=(const SettingsOpener&) = delete;
+    SettingsOpener(SettingsOpener&&) = delete;
+    SettingsOpener& operator=(SettingsOpener&&) = delete;
 };
 
 

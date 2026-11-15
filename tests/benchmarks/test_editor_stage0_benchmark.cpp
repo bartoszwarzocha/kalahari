@@ -1483,8 +1483,9 @@ TEST_CASE("Paste Special and Go To benchmark: a 150k-word chapter with headings 
                   .arg(editor.paragraphCount())
                   .arg(headings)
                   .arg(notes);
-    rows.push_back({QStringLiteral("fromKml – 150k słów z nagłówkami i przypisami"), loadMs,
-                    QString()});
+    rows.push_back({.operation = QStringLiteral("fromKml – 150k słów z nagłówkami i przypisami"),
+                    .ms = loadMs,
+                    .note = QString()});
     REQUIRE(headings > 20);
 
     // -------------------------------------------------------------------------
@@ -1499,9 +1500,11 @@ TEST_CASE("Paste Special and Go To benchmark: a 150k-word chapter with headings 
             }
         });
         CHECK(done == 10);
-        rows.push_back({name, ms, QStringLiteral("%1 ms/krok").arg(ms / 10.0, 0, 'f', 2)});
+        rows.push_back({.operation = name,
+                        .ms = ms,
+                        .note = QStringLiteral("%1 ms/krok").arg(ms / 10.0, 0, 'f', 2)});
     };
-    editor.setCursorPosition({0, 0});
+    editor.setCursorPosition({.paragraph = 0, .offset = 0});
     steps(QStringLiteral("Przejdź do – 10 × Następny nagłówek (Continuous, z paintEvent)"),
           PlaceKind::Heading, true);
     const auto byNumber = [&](const QString& name, PlaceKind kind, const QString& number) {
@@ -1511,13 +1514,13 @@ TEST_CASE("Paste Special and Go To benchmark: a 150k-word chapter with headings 
             paint(editor);
         });
         CHECK(outcome.result == GoToResult::Done);
-        rows.push_back({name, ms, QString()});
+        rows.push_back({.operation = name, .ms = ms, .note = QString()});
     };
     byNumber(QStringLiteral("Przejdź do – nagłówek w połowie tekstu (po numerze)"),
              PlaceKind::Heading, QString::number(headings / 2));
     byNumber(QStringLiteral("Przejdź do – ostatni nagłówek (po numerze)"), PlaceKind::Heading,
              QString::number(headings));
-    editor.setCursorPosition({0, 0});
+    editor.setCursorPosition({.paragraph = 0, .offset = 0});
     steps(QStringLiteral("Przejdź do – 10 × Następny przypis (Continuous, z paintEvent)"),
           PlaceKind::Note, true);
     byNumber(QStringLiteral("Przejdź do – przypis o numerze z końca tekstu"), PlaceKind::Note,
@@ -1546,15 +1549,16 @@ TEST_CASE("Paste Special and Go To benchmark: a 150k-word chapter with headings 
     // 4. Paste Special in the middle of the text: each form, then Undo
     // -------------------------------------------------------------------------
     const int middle = static_cast<int>(editor.paragraphCount() / 2);
-    editor.setCursorPosition({middle, 0});
+    editor.setCursorPosition({.paragraph = middle, .offset = 0});
     editor.setSelection({{middle, 0}, {middle + 40, 0}});
     const std::unique_ptr<QMimeData> copied = editor.createMimeDataFromSelection();
     REQUIRE(copied);
     editor.clearSelection();
     std::vector<PasteForm> forms;
-    rows.push_back({QStringLiteral("Postacie schowka (40 akapitów skopiowanych w Kalahari)"),
-                    timeMs([&] { forms = editor.pasteFormsOf(copied.get()); }),
-                    QStringLiteral("to, co okno pokazuje przy otwarciu")});
+    rows.push_back({.operation =
+                        QStringLiteral("Postacie schowka (40 akapitów skopiowanych w Kalahari)"),
+                    .ms = timeMs([&] { forms = editor.pasteFormsOf(copied.get()); }),
+                    .note = QStringLiteral("to, co okno pokazuje przy otwarciu")});
     CHECK(forms.size() == 4);
     const auto pasteIn = [&](const QString& name, PasteForm form) {
         editor.setCursorPosition({middle + 100, 0});
@@ -1568,8 +1572,9 @@ TEST_CASE("Paste Special and Go To benchmark: a 150k-word chapter with headings 
             paint(editor);
         });
         CHECK(editor.textDocument()->findBlockByNumber(middle + 100).text() == before);
-        rows.push_back({name, ms,
-                        QStringLiteral("cofnięcie %1 ms").arg(undoMs, 0, 'f', 1)});
+        rows.push_back({.operation = name,
+                        .ms = ms,
+                        .note = QStringLiteral("cofnięcie %1 ms").arg(undoMs, 0, 'f', 1)});
     };
     pasteIn(QStringLiteral("Wklej specjalnie – format Kalahari (40 akapitów) + paintEvent"),
             PasteForm::Kalahari);

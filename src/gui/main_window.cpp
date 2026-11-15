@@ -29,6 +29,7 @@
 #include "kalahari/gui/field_coordinator.h"
 #include "kalahari/gui/go_to_coordinator.h"
 #include "kalahari/gui/dialogs/edit_dialogs.h"
+#include "kalahari/editor/clipboard_handler.h"
 #include "kalahari/gui/image_filter_coordinator.h"
 #include "kalahari/gui/paragraph_style_menu.h"
 #include "kalahari/gui/toolbar_keys.h"
@@ -127,6 +128,9 @@ namespace {
 
 /// How long the status bar keeps why the open book is read-only, or why a change was refused
 constexpr int READ_ONLY_MESSAGE_MS = 5000;
+
+/// How long the status bar says that Paste Special pasted
+constexpr int PASTED_MESSAGE_MS = 2000;
 
 /// The commands of the Book menu that add an element of a kind of the Workshop, with the id of
 /// the kind in the base package
@@ -1234,7 +1238,7 @@ void MainWindow::registerCommands() {
     callbacks.onPasteTextOnly = pasteAs(editor::PasteMode::Text);
     callbacks.onPasteSpecial = inText([this](editor::BookEditor& text) {
         if (dialogs::PasteSpecialDialog::pasteInto(text, this)) {
-            statusBar()->showMessage(tr("Pasted from clipboard"), 2000);
+            statusBar()->showMessage(tr("Pasted from clipboard"), PASTED_MESSAGE_MS);
         }
     });
     callbacks.onFind = [this]() { onFind(); };

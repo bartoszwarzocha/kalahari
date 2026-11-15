@@ -28,9 +28,7 @@
 #include <string>
 #include <utility>
 
-namespace kalahari {
-namespace gui {
-namespace dialogs {
+namespace kalahari::gui::dialogs {
 
 namespace {
 
@@ -62,9 +60,9 @@ public:
         setMinimumHeight(linesHeight());
     }
 
-    QSize sizeHint() const override
+    [[nodiscard]] QSize sizeHint() const override
     {
-        return {fontMetrics().averageCharWidth() * m_widthChars + 2 * frameWidth(),
+        return {(fontMetrics().averageCharWidth() * m_widthChars) + (2 * frameWidth()),
                 linesHeight()};
     }
 
@@ -72,7 +70,7 @@ private:
     [[nodiscard]] int linesHeight() const
     {
         const int row = sizeHintForRow(0) > 0 ? sizeHintForRow(0) : fontMetrics().lineSpacing();
-        return row * m_lines + 2 * frameWidth();
+        return (row * m_lines) + (2 * frameWidth());
     }
 
     int m_lines;
@@ -88,6 +86,117 @@ QLabel* hintLabel(QWidget* parent, int lines)
     hint->setAlignment(Qt::AlignLeft | Qt::AlignTop);
     hint->setMinimumHeight(hint->fontMetrics().lineSpacing() * lines);
     return hint;
+}
+
+/// The name of a form of Paste Special in its list
+QString formName(editor::PasteForm form)
+{
+    switch (form) {
+        case editor::PasteForm::Kalahari:
+            //: In Polish: Format Kalahari (z uwagami)
+            return PasteSpecialDialog::tr("Kalahari Format (with annotations)");
+        case editor::PasteForm::Source:
+            //: In Polish: Zachowaj formatowanie źródła
+            return PasteSpecialDialog::tr("Keep Source Formatting");
+        case editor::PasteForm::Merge:
+            //: In Polish: Scal formatowanie
+            return PasteSpecialDialog::tr("Merge Formatting");
+        case editor::PasteForm::Text:
+            //: In Polish: Tylko tekst
+            return PasteSpecialDialog::tr("Text Only");
+        case editor::PasteForm::Image:
+            //: In Polish: Obraz
+            return PasteSpecialDialog::tr("Image");
+    }
+    return {};
+}
+
+/// Why a form of Paste Special is greyed out: the clipboard has no such content
+QString whyNoForm(editor::PasteForm form, const PasteSpecialDialog::Data& data)
+{
+    switch (form) {
+        case editor::PasteForm::Kalahari:
+            //: In Polish: Format Kalahari jest dostępny, gdy tekst skopiowano w Kalahari.
+            return PasteSpecialDialog::tr(
+                "The Kalahari format is there when the text was copied in Kalahari.");
+        case editor::PasteForm::Source:
+        case editor::PasteForm::Merge:
+            //: In Polish: Schowek nie ma tekstu z formatowaniem.
+            return PasteSpecialDialog::tr("The clipboard has no formatted text.");
+        case editor::PasteForm::Text:
+            //: In Polish: Schowek nie ma tekstu.
+            return PasteSpecialDialog::tr("The clipboard has no text.");
+        case editor::PasteForm::Image:
+            //: In Polish: Schowek nie ma obrazu.
+            return data.picture && !data.whyNoImage.isEmpty()
+                       ? data.whyNoImage
+                       : PasteSpecialDialog::tr("The clipboard has no picture.");
+    }
+    return {};
+}
+
+/// What a form of Paste Special keeps; a picture from @p source
+QString formHint(editor::PasteForm form, editor::ClipboardSource source)
+{
+    switch (form) {
+        case editor::PasteForm::Kalahari:
+            //: In Polish: Wszystko, co tekst miał w Kalahari: style, uwagi, przypisy, obrazy
+            //: i pola.
+            return PasteSpecialDialog::tr("Everything the text had in Kalahari: its styles, "
+                                          "annotations, notes, images and fields.");
+        case editor::PasteForm::Source:
+            //: In Polish: Zostają nagłówki, cytaty, akapity, wyróżnienia, listy i tabele,
+            //: a także czcionka, rozmiar, kolor i wyrównanie źródła.
+            return PasteSpecialDialog::tr("Headings, quotes, paragraphs, emphasis, lists and "
+                                          "tables stay, and so do the font, size, color and "
+                                          "alignment of the source.");
+        case editor::PasteForm::Merge:
+            //: In Polish: Zostają nagłówki, cytaty, akapity, wyróżnienia, listy i tabele;
+            //: czcionka, rozmiar i kolor są takie jak w książce.
+            return PasteSpecialDialog::tr("Headings, quotes, paragraphs, emphasis, lists and "
+                                          "tables stay; the font, size and color are those of "
+                                          "the book.");
+        case editor::PasteForm::Text:
+            //: In Polish: Sam tekst z akapitami, w wyglądzie miejsca, do którego trafia.
+            return PasteSpecialDialog::tr("Only the text, with its paragraphs, in the look of "
+                                          "the place it goes to.");
+        case editor::PasteForm::Image:
+            return source == editor::ClipboardSource::ImageFiles
+                       //: In Polish: Pliki obrazów jako obrazy w tekście.
+                       ? PasteSpecialDialog::tr("The files of pictures as images of the text.")
+                       //: In Polish: Obraz ze schowka (np. zrzut ekranu) jako obraz w tekście.
+                       : PasteSpecialDialog::tr("The picture of the clipboard (a screenshot, "
+                                                "say) as an image of the text.");
+    }
+    return {};
+}
+
+/// The form of Paste Special of a paste mode
+editor::PasteForm formOfMode(editor::PasteMode mode)
+{
+    switch (mode) {
+        case editor::PasteMode::Source:
+            return editor::PasteForm::Source;
+        case editor::PasteMode::Text:
+            return editor::PasteForm::Text;
+        case editor::PasteMode::Merge:
+            break;
+    }
+    return editor::PasteForm::Merge;
+}
+
+/// The form chosen first, as Paste gives it: text copied in Kalahari as it was, else in the
+/// form of the paste mode of the setting (@p ofMode), else the first of @p forms; @p none
+/// without forms
+editor::PasteForm firstForm(const std::vector<editor::PasteForm>& forms,
+                            editor::PasteForm ofMode, editor::PasteForm none)
+{
+    for (const editor::PasteForm form : {editor::PasteForm::Kalahari, ofMode}) {
+        if (std::ranges::find(forms, form) != forms.end()) {
+            return form;
+        }
+    }
+    return forms.empty() ? none : forms.front();
 }
 
 }  // namespace
@@ -119,57 +228,7 @@ PasteSpecialDialog::PasteSpecialDialog(Data shown, QWidget* parent)
     source->setTextFormat(Qt::RichText);
     contentLayout()->addWidget(source);
 
-    m_forms = new LinesList(static_cast<int>(PASTE_FORMS.size()), FORMS_WIDTH_CHARS, this);
-    for (const editor::PasteForm form : PASTE_FORMS) {
-        QString name;
-        QString whyNot;
-        switch (form) {
-            case editor::PasteForm::Kalahari:
-                //: In Polish: Format Kalahari (z uwagami)
-                name = tr("Kalahari Format (with annotations)");
-                //: In Polish: Format Kalahari jest dostępny, gdy tekst skopiowano w Kalahari.
-                whyNot = tr("The Kalahari format is there when the text was copied in Kalahari.");
-                break;
-            case editor::PasteForm::Source:
-                //: In Polish: Zachowaj formatowanie źródła
-                name = tr("Keep Source Formatting");
-                //: In Polish: Schowek nie ma tekstu z formatowaniem.
-                whyNot = tr("The clipboard has no formatted text.");
-                break;
-            case editor::PasteForm::Merge:
-                //: In Polish: Scal formatowanie
-                name = tr("Merge Formatting");
-                whyNot = tr("The clipboard has no formatted text.");
-                break;
-            case editor::PasteForm::Text:
-                //: In Polish: Tylko tekst
-                name = tr("Text Only");
-                //: In Polish: Schowek nie ma tekstu.
-                whyNot = tr("The clipboard has no text.");
-                break;
-            case editor::PasteForm::Image:
-                //: In Polish: Obraz
-                name = tr("Image");
-                //: In Polish: Schowek nie ma obrazu.
-                whyNot = m_data.picture && !m_data.whyNoImage.isEmpty()
-                             ? m_data.whyNoImage
-                             : tr("The clipboard has no picture.");
-                break;
-        }
-        auto* item = new QListWidgetItem(name, m_forms);
-        item->setData(Qt::UserRole, static_cast<int>(form));
-        if (std::find(m_data.forms.begin(), m_data.forms.end(), form) == m_data.forms.end()) {
-            item->setFlags(item->flags() & ~(Qt::ItemIsEnabled | Qt::ItemIsSelectable));
-            item->setToolTip(whyNot);
-        }
-    }
-    const auto chosen = std::find(PASTE_FORMS.begin(), PASTE_FORMS.end(), m_data.chosen);
-    m_forms->setCurrentRow(static_cast<int>(chosen - PASTE_FORMS.begin()));
-    //: The list of the forms. In Polish: &Wklej jako
-    addField(tr("Paste &as"), m_forms);
-
-    m_hint = hintLabel(this, HINT_LINES);
-    contentLayout()->addWidget(m_hint);
+    addForms();
     showHint();
 
     acceptButton()->setEnabled(!m_data.forms.empty());
@@ -182,6 +241,26 @@ PasteSpecialDialog::PasteSpecialDialog(Data shown, QWidget* parent)
     m_forms->setFocus();
 }
 
+void PasteSpecialDialog::addForms()
+{
+    m_forms = new LinesList(static_cast<int>(PASTE_FORMS.size()), FORMS_WIDTH_CHARS, this);
+    for (const editor::PasteForm form : PASTE_FORMS) {
+        auto* item = new QListWidgetItem(formName(form), m_forms);
+        item->setData(Qt::UserRole, static_cast<int>(form));
+        if (std::ranges::find(m_data.forms, form) == m_data.forms.end()) {
+            item->setFlags(item->flags() & ~(Qt::ItemIsEnabled | Qt::ItemIsSelectable));
+            item->setToolTip(whyNoForm(form, m_data));
+        }
+    }
+    const auto chosen = std::ranges::find(PASTE_FORMS, m_data.chosen);
+    m_forms->setCurrentRow(static_cast<int>(chosen - PASTE_FORMS.begin()));
+    //: The list of the forms. In Polish: &Wklej jako
+    addField(tr("Paste &as"), m_forms);
+
+    m_hint = hintLabel(this, HINT_LINES);
+    contentLayout()->addWidget(m_hint);
+}
+
 editor::PasteForm PasteSpecialDialog::form() const
 {
     const QListWidgetItem* item = m_forms->currentItem();
@@ -191,43 +270,11 @@ editor::PasteForm PasteSpecialDialog::form() const
 
 void PasteSpecialDialog::showHint()
 {
-    QStringList hint;
-    switch (form()) {
-        case editor::PasteForm::Kalahari:
-            //: In Polish: Wszystko, co tekst miał w Kalahari: style, uwagi, przypisy, obrazy
-            //: i pola.
-            hint << tr("Everything the text had in Kalahari: its styles, annotations, notes, "
-                       "images and fields.");
-            break;
-        case editor::PasteForm::Source:
-            //: In Polish: Zostają nagłówki, cytaty, akapity, wyróżnienia, listy i tabele,
-            //: a także czcionka, rozmiar, kolor i wyrównanie źródła.
-            hint << tr("Headings, quotes, paragraphs, emphasis, lists and tables stay, and so do "
-                       "the font, size, color and alignment of the source.");
-            break;
-        case editor::PasteForm::Merge:
-            //: In Polish: Zostają nagłówki, cytaty, akapity, wyróżnienia, listy i tabele;
-            //: czcionka, rozmiar i kolor są takie jak w książce.
-            hint << tr("Headings, quotes, paragraphs, emphasis, lists and tables stay; the font, "
-                       "size and color are those of the book.");
-            break;
-        case editor::PasteForm::Text:
-            //: In Polish: Sam tekst z akapitami, w wyglądzie miejsca, do którego trafia.
-            hint << tr("Only the text, with its paragraphs, in the look of the place it goes "
-                       "to.");
-            break;
-        case editor::PasteForm::Image:
-            hint << (m_data.source == editor::ClipboardSource::ImageFiles
-                         //: In Polish: Pliki obrazów jako obrazy w tekście.
-                         ? tr("The files of pictures as images of the text.")
-                         //: In Polish: Obraz ze schowka (np. zrzut ekranu) jako obraz w tekście.
-                         : tr("The picture of the clipboard (a screenshot, say) as an image of "
-                              "the text."));
-            break;
-    }
+    const editor::PasteForm chosen = form();
+    QStringList hint{formHint(chosen, m_data.source)};
     const bool fromKalahari = m_data.source == editor::ClipboardSource::Kalahari;
     if (fromKalahari &&
-        (form() == editor::PasteForm::Source || form() == editor::PasteForm::Merge)) {
+        (chosen == editor::PasteForm::Source || chosen == editor::PasteForm::Merge)) {
         //: In Polish: Tekst skopiowany w Kalahari przychodzi bez uwag i obrazów, tak jak
         //: z innego programu.
         hint << tr("Text copied in Kalahari comes without its annotations and images, as from "
@@ -245,9 +292,8 @@ PasteSpecialDialog::Data PasteSpecialDialog::dataFor(const editor::BookEditor& t
     Data shown;
     shown.source = editor::ClipboardHandler::sourceOf(data);
     shown.forms = text.pasteFormsOf(data);
-    shown.picture =
-        data != nullptr &&
-        (data->hasImage() || !editor::ClipboardHandler::pictureFilesOf(*data).isEmpty());
+    shown.picture = data != nullptr && (data->hasImage() ||
+                                        !editor::ClipboardHandler::pictureFilesOf(*data).isEmpty());
     if (shown.picture && !text.isReadOnly() && text.imagesFolder().isEmpty()) {
         //: Why Image is greyed out in a new file. In Polish: Najpierw zapisz plik: jego obrazy
         //: są przechowywane w folderze obok niego
@@ -255,22 +301,10 @@ PasteSpecialDialog::Data PasteSpecialDialog::dataFor(const editor::BookEditor& t
             tr("Save the file first: its images are kept in a folder next to it");
     }
     // As Paste gives it: text copied in Kalahari as it was, else in the mode of the setting
-    const auto has = [&shown](editor::PasteForm form) {
-        return std::find(shown.forms.begin(), shown.forms.end(), form) != shown.forms.end();
-    };
     const editor::PasteMode mode = editor::ClipboardHandler::pasteModeFromId(
         QString::fromStdString(core::SettingsManager::getInstance().get<std::string>(
             editor::PASTE_MODE_KEY, std::string(editor::PASTE_MODE_MERGE))));
-    const editor::PasteForm ofMode = mode == editor::PasteMode::Source ? editor::PasteForm::Source
-                                     : mode == editor::PasteMode::Text ? editor::PasteForm::Text
-                                                                       : editor::PasteForm::Merge;
-    if (has(editor::PasteForm::Kalahari)) {
-        shown.chosen = editor::PasteForm::Kalahari;
-    } else if (has(ofMode)) {
-        shown.chosen = ofMode;
-    } else if (!shown.forms.empty()) {
-        shown.chosen = shown.forms.front();
-    }
+    shown.chosen = firstForm(shown.forms, formOfMode(mode), shown.chosen);
     return shown;
 }
 
@@ -317,7 +351,7 @@ QString PasteSpecialDialog::sourceName(editor::ClipboardSource source)
             //: In Polish: pliki obrazów
             return tr("files of pictures");
     }
-    return QString();
+    return {};
 }
 
 // =============================================================================
@@ -349,7 +383,7 @@ QString kindName(editor::PlaceKind kind)
             //: In Polish: Uwaga
             return GoToDialog::tr("Annotation");
     }
-    return QString();
+    return {};
 }
 
 /// The label of the number of a kind
@@ -375,7 +409,7 @@ QString numberLabel(editor::PlaceKind kind)
             //: In Polish: Nu&mer uwagi
             return GoToDialog::tr("Annotation n&umber");
     }
-    return QString();
+    return {};
 }
 
 /// What the numbers of a kind go to
@@ -415,7 +449,7 @@ QString kindHint(editor::PlaceKind kind)
                                   "on, “-1”: an annotation back. Next and Previous go to the "
                                   "annotation after or before.");
     }
-    return QString();
+    return {};
 }
 
 /// Why Page is greyed out in the views without pages
@@ -423,6 +457,143 @@ QString noPagesText()
 {
     //: In Polish: Strony są widoczne w widoku „Układ strony” (Widok > Tryb widoku).
     return GoToDialog::tr("The pages show in the Page Layout view (View > View Mode).");
+}
+
+/// The sentence of an outcome of Go To at a page
+QString pageOutcomeText(const editor::GoToOutcome& outcome)
+{
+    switch (outcome.result) {
+        case editor::GoToResult::Done:
+            //: Where Go To went. In Polish: Strona %1 z %2
+            return GoToDialog::tr("Page %1 of %2").arg(outcome.ordinal).arg(outcome.count);
+        case editor::GoToResult::NoPlaces:
+            return noPagesText();
+        case editor::GoToResult::NoFurther:
+            //: In Polish: To ostatnia strona tekstu.
+            return GoToDialog::tr("This is the last page of the text.");
+        case editor::GoToResult::NoEarlier:
+            //: In Polish: To pierwsza strona tekstu.
+            return GoToDialog::tr("This is the first page of the text.");
+        default:
+            //: In Polish: Tekst ma %n stronę / strony / stron.
+            return GoToDialog::tr("The text has %n page(s).", nullptr, outcome.count);
+    }
+}
+
+/// The sentence of an outcome of Go To at a heading
+QString headingOutcomeText(const editor::GoToOutcome& outcome)
+{
+    switch (outcome.result) {
+        case editor::GoToResult::Done:
+            //: In Polish: Nagłówek %1 z %2
+            return GoToDialog::tr("Heading %1 of %2").arg(outcome.ordinal).arg(outcome.count);
+        case editor::GoToResult::NoPlaces:
+            //: In Polish: Tekst nie ma nagłówków.
+            return GoToDialog::tr("The text has no headings.");
+        case editor::GoToResult::NoFurther:
+            //: In Polish: Za kursorem nie ma już nagłówka.
+            return GoToDialog::tr("There is no heading after the cursor.");
+        case editor::GoToResult::NoEarlier:
+            //: In Polish: Przed kursorem nie ma nagłówka.
+            return GoToDialog::tr("There is no heading before the cursor.");
+        default:
+            //: In Polish: Tekst ma %n nagłówek / nagłówki / nagłówków.
+            return GoToDialog::tr("The text has %n heading(s).", nullptr, outcome.count);
+    }
+}
+
+/// The sentence of an outcome of Go To at a note
+QString noteOutcomeText(const editor::GoToOutcome& outcome)
+{
+    switch (outcome.result) {
+        case editor::GoToResult::Done:
+            //: %1: the number the note shows, %2 and %3: which one of the notes of
+            //: the text it is. In Polish: Przypis %1 (%2 z %3)
+            return GoToDialog::tr("Note %1 (%2 of %3)")
+                .arg(outcome.number)
+                .arg(outcome.ordinal)
+                .arg(outcome.count);
+        case editor::GoToResult::NoPlaces:
+            //: In Polish: Tekst nie ma przypisów.
+            return GoToDialog::tr("The text has no footnotes or endnotes.");
+        case editor::GoToResult::NoFurther:
+            //: In Polish: Za kursorem nie ma już przypisu.
+            return GoToDialog::tr("There is no note after the cursor.");
+        case editor::GoToResult::NoEarlier:
+            //: In Polish: Przed kursorem nie ma przypisu.
+            return GoToDialog::tr("There is no note before the cursor.");
+        default:
+            //: In Polish: Tekst nie ma przypisu o tym numerze; ma %n przypis / przypisy
+            //: / przypisów.
+            return GoToDialog::tr("The text has no note of this number; it has %n note(s).",
+                      nullptr, outcome.count);
+    }
+}
+
+/// The sentence of an outcome of Go To at an image
+QString imageOutcomeText(const editor::GoToOutcome& outcome)
+{
+    switch (outcome.result) {
+        case editor::GoToResult::Done:
+            //: In Polish: Obraz %1 z %2
+            return GoToDialog::tr("Image %1 of %2").arg(outcome.ordinal).arg(outcome.count);
+        case editor::GoToResult::NoPlaces:
+            //: In Polish: Tekst nie ma obrazów.
+            return GoToDialog::tr("The text has no images.");
+        case editor::GoToResult::NoFurther:
+            //: In Polish: Za kursorem nie ma już obrazu.
+            return GoToDialog::tr("There is no image after the cursor.");
+        case editor::GoToResult::NoEarlier:
+            //: In Polish: Przed kursorem nie ma obrazu.
+            return GoToDialog::tr("There is no image before the cursor.");
+        default:
+            //: In Polish: Tekst ma %n obraz / obrazy / obrazów.
+            return GoToDialog::tr("The text has %n image(s).", nullptr, outcome.count);
+    }
+}
+
+/// The sentence of an outcome of Go To at a table
+QString tableOutcomeText(const editor::GoToOutcome& outcome)
+{
+    switch (outcome.result) {
+        case editor::GoToResult::Done:
+            //: In Polish: Tabela %1 z %2
+            return GoToDialog::tr("Table %1 of %2").arg(outcome.ordinal).arg(outcome.count);
+        case editor::GoToResult::NoPlaces:
+            //: In Polish: Tekst nie ma tabel.
+            return GoToDialog::tr("The text has no tables.");
+        case editor::GoToResult::NoFurther:
+            //: In Polish: Za kursorem nie ma już tabeli.
+            return GoToDialog::tr("There is no table after the cursor.");
+        case editor::GoToResult::NoEarlier:
+            //: In Polish: Przed kursorem nie ma tabeli.
+            return GoToDialog::tr("There is no table before the cursor.");
+        default:
+            //: In Polish: Tekst ma %n tabelę / tabele / tabel.
+            return GoToDialog::tr("The text has %n table(s).", nullptr, outcome.count);
+    }
+}
+
+/// The sentence of an outcome of Go To at an annotation
+QString annotationOutcomeText(const editor::GoToOutcome& outcome)
+{
+    switch (outcome.result) {
+        case editor::GoToResult::Done:
+            //: In Polish: Uwaga %1 z %2
+            return GoToDialog::tr("Annotation %1 of %2").arg(outcome.ordinal).arg(outcome.count);
+        case editor::GoToResult::NoPlaces:
+            //: In Polish: Tekst nie ma uwag.
+            return GoToDialog::tr("The text has no annotations.");
+        case editor::GoToResult::NoFurther:
+            //: In Polish: Za kursorem nie ma już uwagi.
+            return GoToDialog::tr("There is no annotation after the cursor.");
+        case editor::GoToResult::NoEarlier:
+            //: In Polish: Przed kursorem nie ma uwagi.
+            return GoToDialog::tr("There is no annotation before the cursor.");
+        default:
+            //: In Polish: Tekst ma %n uwagę / uwagi / uwag.
+            return GoToDialog::tr("The text has %n annotation(s).", nullptr, outcome.count);
+    }
 }
 
 }  // namespace
@@ -446,6 +617,23 @@ GoToDialog::GoToDialog(TextOf textOf, QWidget* parent)
 
     // The kinds at the left, the number with its hint at the right
     auto* row = new QHBoxLayout();
+    row->addLayout(kindsColumn());
+    row->addLayout(numberColumn(), 1);
+    contentLayout()->addLayout(row);
+
+    m_kinds->setCurrentRow(static_cast<int>(editor::PlaceKind::Heading));
+    showKind();
+    connect(m_kinds, &QListWidget::currentRowChanged, this, [this]() {
+        showKind();
+        m_result->clear();
+    });
+    connect(m_previous, &QPushButton::clicked, this, [this]() { goAdjacent(false); });
+    connect(m_next, &QPushButton::clicked, this, [this]() { goAdjacent(true); });
+    m_number->setFocus();
+}
+
+QVBoxLayout* GoToDialog::kindsColumn()
+{
     auto* kinds = new QVBoxLayout();
     kinds->setSpacing(fontMetrics().lineSpacing() / 4);
     m_kinds = new LinesList(static_cast<int>(editor::PLACE_KINDS.size()), KINDS_WIDTH_CHARS,
@@ -460,8 +648,11 @@ GoToDialog::GoToDialog(TextOf textOf, QWidget* parent)
     kinds->addWidget(kindsLabel);
     kinds->addWidget(m_kinds);
     kinds->addStretch(1);
-    row->addLayout(kinds);
+    return kinds;
+}
 
+QVBoxLayout* GoToDialog::numberColumn()
+{
     auto* number = new QVBoxLayout();
     number->setSpacing(fontMetrics().lineSpacing() / 4);
     m_numberLabel = new QLabel(this);
@@ -480,18 +671,7 @@ GoToDialog::GoToDialog(TextOf textOf, QWidget* parent)
     number->addWidget(m_hint);
     number->addWidget(m_result);
     number->addStretch(1);
-    row->addLayout(number, 1);
-    contentLayout()->addLayout(row);
-
-    m_kinds->setCurrentRow(static_cast<int>(editor::PlaceKind::Heading));
-    showKind();
-    connect(m_kinds, &QListWidget::currentRowChanged, this, [this]() {
-        showKind();
-        m_result->clear();
-    });
-    connect(m_previous, &QPushButton::clicked, this, [this]() { goAdjacent(false); });
-    connect(m_next, &QPushButton::clicked, this, [this]() { goAdjacent(true); });
-    m_number->setFocus();
+    return number;
 }
 
 editor::PlaceKind GoToDialog::kind() const
@@ -504,7 +684,7 @@ editor::PlaceKind GoToDialog::kind() const
 void GoToDialog::setKind(editor::PlaceKind kind)
 {
     const int row = static_cast<int>(kind);
-    if (QListWidgetItem* item = m_kinds->item(row);
+    if (const QListWidgetItem* const item = m_kinds->item(row);
         item != nullptr && (item->flags() & Qt::ItemIsEnabled) != 0) {
         m_kinds->setCurrentRow(row);
     }
@@ -585,131 +765,26 @@ void GoToDialog::showEvent(QShowEvent* event)
 
 QString GoToDialog::outcomeText(editor::PlaceKind kind, const editor::GoToOutcome& outcome)
 {
-    using editor::GoToResult;
-    using editor::PlaceKind;
-    if (outcome.result == GoToResult::Invalid) {
+    if (outcome.result == editor::GoToResult::Invalid) {
         //: In Polish: Wpisz numer, np. 3, +2 albo -1.
-        return kind == PlaceKind::Note ? tr("Type the note's number, as 3, +2 or -1.")
-                                       : tr("Type a number, as 3, +2 or -1.");
+        return kind == editor::PlaceKind::Note ? tr("Type the note's number, as 3, +2 or -1.")
+                                               : tr("Type a number, as 3, +2 or -1.");
     }
     switch (kind) {
-        case PlaceKind::Page:
-            switch (outcome.result) {
-                case GoToResult::Done:
-                    //: Where Go To went. In Polish: Strona %1 z %2
-                    return tr("Page %1 of %2").arg(outcome.ordinal).arg(outcome.count);
-                case GoToResult::NoPlaces:
-                    return noPagesText();
-                case GoToResult::NoFurther:
-                    //: In Polish: To ostatnia strona tekstu.
-                    return tr("This is the last page of the text.");
-                case GoToResult::NoEarlier:
-                    //: In Polish: To pierwsza strona tekstu.
-                    return tr("This is the first page of the text.");
-                default:
-                    //: In Polish: Tekst ma %n stronę / strony / stron.
-                    return tr("The text has %n page(s).", nullptr, outcome.count);
-            }
-        case PlaceKind::Heading:
-            switch (outcome.result) {
-                case GoToResult::Done:
-                    //: In Polish: Nagłówek %1 z %2
-                    return tr("Heading %1 of %2").arg(outcome.ordinal).arg(outcome.count);
-                case GoToResult::NoPlaces:
-                    //: In Polish: Tekst nie ma nagłówków.
-                    return tr("The text has no headings.");
-                case GoToResult::NoFurther:
-                    //: In Polish: Za kursorem nie ma już nagłówka.
-                    return tr("There is no heading after the cursor.");
-                case GoToResult::NoEarlier:
-                    //: In Polish: Przed kursorem nie ma nagłówka.
-                    return tr("There is no heading before the cursor.");
-                default:
-                    //: In Polish: Tekst ma %n nagłówek / nagłówki / nagłówków.
-                    return tr("The text has %n heading(s).", nullptr, outcome.count);
-            }
-        case PlaceKind::Note:
-            switch (outcome.result) {
-                case GoToResult::Done:
-                    //: %1: the number the note shows, %2 and %3: which one of the notes of
-                    //: the text it is. In Polish: Przypis %1 (%2 z %3)
-                    return tr("Note %1 (%2 of %3)")
-                        .arg(outcome.number)
-                        .arg(outcome.ordinal)
-                        .arg(outcome.count);
-                case GoToResult::NoPlaces:
-                    //: In Polish: Tekst nie ma przypisów.
-                    return tr("The text has no footnotes or endnotes.");
-                case GoToResult::NoFurther:
-                    //: In Polish: Za kursorem nie ma już przypisu.
-                    return tr("There is no note after the cursor.");
-                case GoToResult::NoEarlier:
-                    //: In Polish: Przed kursorem nie ma przypisu.
-                    return tr("There is no note before the cursor.");
-                default:
-                    //: In Polish: Tekst nie ma przypisu o tym numerze; ma %n przypis / przypisy
-                    //: / przypisów.
-                    return tr("The text has no note of this number; it has %n note(s).",
-                              nullptr, outcome.count);
-            }
-        case PlaceKind::Image:
-            switch (outcome.result) {
-                case GoToResult::Done:
-                    //: In Polish: Obraz %1 z %2
-                    return tr("Image %1 of %2").arg(outcome.ordinal).arg(outcome.count);
-                case GoToResult::NoPlaces:
-                    //: In Polish: Tekst nie ma obrazów.
-                    return tr("The text has no images.");
-                case GoToResult::NoFurther:
-                    //: In Polish: Za kursorem nie ma już obrazu.
-                    return tr("There is no image after the cursor.");
-                case GoToResult::NoEarlier:
-                    //: In Polish: Przed kursorem nie ma obrazu.
-                    return tr("There is no image before the cursor.");
-                default:
-                    //: In Polish: Tekst ma %n obraz / obrazy / obrazów.
-                    return tr("The text has %n image(s).", nullptr, outcome.count);
-            }
-        case PlaceKind::Table:
-            switch (outcome.result) {
-                case GoToResult::Done:
-                    //: In Polish: Tabela %1 z %2
-                    return tr("Table %1 of %2").arg(outcome.ordinal).arg(outcome.count);
-                case GoToResult::NoPlaces:
-                    //: In Polish: Tekst nie ma tabel.
-                    return tr("The text has no tables.");
-                case GoToResult::NoFurther:
-                    //: In Polish: Za kursorem nie ma już tabeli.
-                    return tr("There is no table after the cursor.");
-                case GoToResult::NoEarlier:
-                    //: In Polish: Przed kursorem nie ma tabeli.
-                    return tr("There is no table before the cursor.");
-                default:
-                    //: In Polish: Tekst ma %n tabelę / tabele / tabel.
-                    return tr("The text has %n table(s).", nullptr, outcome.count);
-            }
-        case PlaceKind::Annotation:
-            switch (outcome.result) {
-                case GoToResult::Done:
-                    //: In Polish: Uwaga %1 z %2
-                    return tr("Annotation %1 of %2").arg(outcome.ordinal).arg(outcome.count);
-                case GoToResult::NoPlaces:
-                    //: In Polish: Tekst nie ma uwag.
-                    return tr("The text has no annotations.");
-                case GoToResult::NoFurther:
-                    //: In Polish: Za kursorem nie ma już uwagi.
-                    return tr("There is no annotation after the cursor.");
-                case GoToResult::NoEarlier:
-                    //: In Polish: Przed kursorem nie ma uwagi.
-                    return tr("There is no annotation before the cursor.");
-                default:
-                    //: In Polish: Tekst ma %n uwagę / uwagi / uwag.
-                    return tr("The text has %n annotation(s).", nullptr, outcome.count);
-            }
+        case editor::PlaceKind::Page:
+            return pageOutcomeText(outcome);
+        case editor::PlaceKind::Heading:
+            return headingOutcomeText(outcome);
+        case editor::PlaceKind::Note:
+            return noteOutcomeText(outcome);
+        case editor::PlaceKind::Image:
+            return imageOutcomeText(outcome);
+        case editor::PlaceKind::Table:
+            return tableOutcomeText(outcome);
+        case editor::PlaceKind::Annotation:
+            return annotationOutcomeText(outcome);
     }
-    return QString();
+    return {};
 }
 
-} // namespace dialogs
-} // namespace gui
-} // namespace kalahari
+}  // namespace kalahari::gui::dialogs
