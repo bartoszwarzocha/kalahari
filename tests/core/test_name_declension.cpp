@@ -17,7 +17,12 @@
 #include <string>
 #include <utility>
 
-using namespace kalahari::core;
+using kalahari::core::AffixExpander;
+using kalahari::core::CASE_COUNT;
+using kalahari::core::FormTable;
+using kalahari::core::GrammaticalCase;
+using kalahari::core::NameDeclension;
+using kalahari::core::NameKind;
 
 namespace {
 

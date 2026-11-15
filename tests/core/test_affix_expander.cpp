@@ -14,7 +14,7 @@
 
 #include <initializer_list>
 
-using namespace kalahari::core;
+using kalahari::core::AffixExpander;
 
 namespace {
 

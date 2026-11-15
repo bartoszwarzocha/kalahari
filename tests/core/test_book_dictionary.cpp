@@ -19,7 +19,19 @@
 #include <initializer_list>
 #include <string>
 
-using namespace kalahari::core;
+using kalahari::core::AffixExpander;
+using kalahari::core::BookDictionary;
+using kalahari::core::DictionaryName;
+using kalahari::core::fillRuleForms;
+using kalahari::core::GrammaticalCase;
+using kalahari::core::makeName;
+using kalahari::core::NameDeclension;
+using kalahari::core::NameKind;
+using kalahari::core::NameVariant;
+using kalahari::core::refreshForms;
+using kalahari::core::RuleDeviation;
+using kalahari::core::SpellingRule;
+using kalahari::core::suggestedWrongSpellings;
 
 namespace {
 

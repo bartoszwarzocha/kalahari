@@ -10,6 +10,7 @@
 #include <QRegularExpression>
 
 #include <algorithm>
+#include <array>
 #include <utility>
 
 namespace kalahari::core {
@@ -36,8 +37,8 @@ constexpr QLatin1String NOTHING("0");
 
 /// Whether @p text is a whole number written with digits
 bool isNumber(const QString& text) {
-    return !text.isEmpty() && std::all_of(text.begin(), text.end(),
-                                          [](QChar character) { return character.isDigit(); });
+    return !text.isEmpty() &&
+           std::ranges::all_of(text, [](QChar character) { return character.isDigit(); });
 }
 
 /// The encoding a SET line names, without hyphens and in upper case ("UTF8", "ISO88591")
@@ -60,6 +61,28 @@ bool endsWord(char byte) {
 void appendOnce(QStringList& list, const QString& text) {
     if (!list.contains(text)) {
         list.append(text);
+    }
+}
+
+/// Where the word of an entry of the .dic file that goes on at @p from ends
+qsizetype wordEnd(const QByteArray& words, qsizetype from) {
+    qsizetype end = from;
+    while (end < words.size() && !endsWord(words.at(end))) {
+        ++end;
+    }
+    return end;
+}
+
+/// A word a form may be a form of, with the flags whose suffixes make the form of it
+using Root = std::pair<QString, QStringList>;
+
+/// Add @p root with @p flag to @p roots: the root once, each of its flags once
+void addRoot(QList<Root>& roots, const QString& root, const QString& flag) {
+    const auto known = std::ranges::find(roots, root, &Root::first);
+    if (known == roots.end()) {
+        roots.append({root, {flag}});
+    } else {
+        appendOnce(known->second, flag);
     }
 }
 
@@ -113,26 +136,35 @@ bool AffixExpander::readAffixFile(const QString& path) {
 void AffixExpander::readAffixLine(const QStringList& fields, bool& aliasesStarted) {
     const QString& keyword = fields.front();
     const QString value = fields.size() > 1 ? fields.at(1) : QString();
-    if (keyword == QLatin1String("FLAG")) {
-        if (value == QLatin1String("long")) {
-            m_flagType = FlagType::Long;
-        } else if (value == QLatin1String("num")) {
-            m_flagType = FlagType::Number;
+    // The flags that mark entries and suffixes
+    const std::array<std::pair<QLatin1String, QString*>, 3> markingFlags{
+        {{QLatin1String("NEEDAFFIX"), &m_needAffix},
+         {QLatin1String("FORBIDDENWORD"), &m_forbidden},
+         {QLatin1String("ONLYINCOMPOUND"), &m_onlyInCompound}}};
+    for (const auto& [name, flag] : markingFlags) {
+        if (keyword == name) {
+            *flag = value;
+            return;
         }
+    }
+    if (keyword == QLatin1String("FLAG")) {
+        readFlagType(value);
     } else if (keyword == QLatin1String("AF") && !value.isEmpty()) {
         // The first AF line gives how many aliases follow; each of the others is one
         if (aliasesStarted) {
             m_aliases.append(flagsOf(value));
         }
         aliasesStarted = true;
-    } else if (keyword == QLatin1String("NEEDAFFIX")) {
-        m_needAffix = value;
-    } else if (keyword == QLatin1String("FORBIDDENWORD")) {
-        m_forbidden = value;
-    } else if (keyword == QLatin1String("ONLYINCOMPOUND")) {
-        m_onlyInCompound = value;
     } else if (keyword == QLatin1String("SFX")) {
         readSuffix(fields);
+    }
+}
+
+void AffixExpander::readFlagType(const QString& value) {
+    if (value == QLatin1String("long")) {
+        m_flagType = FlagType::Long;
+    } else if (value == QLatin1String("num")) {
+        m_flagType = FlagType::Number;
     }
 }
 
@@ -186,22 +218,23 @@ QList<AffixExpander::Entry> AffixExpander::entries(const QString& word) const {
     const QByteArray key = QByteArrayLiteral("\n") + encode(word);
     for (qsizetype at = m_words.indexOf(key); at >= 0; at = m_words.indexOf(key, at + 1)) {
         const qsizetype after = at + key.size();
-        if (after < m_words.size() && !endsWord(m_words.at(after))) {
-            continue;
+        if (wordEnd(m_words, after) != after) {
+            continue;  // a longer word that starts with it
         }
-        Entry entry{.word = word, .flags = {}};
-        if (after < m_words.size() && m_words.at(after) == '/') {
-            qsizetype end = after + 1;
-            while (end < m_words.size() && !endsWord(m_words.at(end))) {
-                ++end;
-            }
-            entry.flags = flagsOf(decode(m_words.mid(after + 1, end - after - 1)));
-        }
+        Entry entry{.word = word, .flags = flagsAt(after)};
         if (m_forbidden.isEmpty() || !entry.flags.contains(m_forbidden)) {
             found.append(std::move(entry));
         }
     }
     return found;
+}
+
+QStringList AffixExpander::flagsAt(qsizetype after) const {
+    if (after >= m_words.size() || m_words.at(after) != '/') {
+        return {};
+    }
+    const qsizetype end = wordEnd(m_words, after + 1);
+    return flagsOf(decode(m_words.mid(after + 1, end - after - 1)));
 }
 
 bool AffixExpander::hasEntry(const QString& word) const {
@@ -229,24 +262,33 @@ QStringList AffixExpander::formsOf(const QString& word) const {
 void AffixExpander::addForms(const QString& word, const QStringList& flags, QStringList& forms,
                              QList<std::pair<QString, QStringList>>* continued) const {
     for (const QString& flag : flags) {
-        const auto suffixes = m_suffixes.constFind(flag);
-        if (suffixes == m_suffixes.constEnd()) {
-            continue;
-        }
-        for (const Suffix& suffix : suffixes.value()) {
-            if (!word.endsWith(suffix.strip) || !matches(word, suffix.condition) ||
-                (!m_onlyInCompound.isEmpty() && suffix.continuation.contains(m_onlyInCompound))) {
-                continue;
-            }
-            const QString form = word.chopped(suffix.strip.size()) + suffix.add;
-            if (m_needAffix.isEmpty() || !suffix.continuation.contains(m_needAffix)) {
-                appendOnce(forms, form);
-            }
-            if (continued != nullptr && !suffix.continuation.isEmpty()) {
-                continued->append({form, suffix.continuation});
-            }
+        if (const auto suffixes = m_suffixes.constFind(flag); suffixes != m_suffixes.constEnd()) {
+            addSuffixForms(word, suffixes.value(), forms, continued);
         }
     }
+}
+
+void AffixExpander::addSuffixForms(const QString& word, const QList<Suffix>& suffixes,
+                                   QStringList& forms,
+                                   QList<std::pair<QString, QStringList>>* continued) const {
+    for (const Suffix& suffix : suffixes) {
+        if (!makesForm(word, suffix)) {
+            continue;
+        }
+        const QString form = word.chopped(suffix.strip.size()) + suffix.add;
+        if (m_needAffix.isEmpty() || !suffix.continuation.contains(m_needAffix)) {
+            appendOnce(forms, form);
+        }
+        if (continued != nullptr && !suffix.continuation.isEmpty()) {
+            continued->append({form, suffix.continuation});
+        }
+    }
+}
+
+bool AffixExpander::makesForm(const QString& word, const Suffix& suffix) const {
+    // A suffix only inside compounds makes no word of its own
+    return word.endsWith(suffix.strip) && matches(word, suffix.condition) &&
+           (m_onlyInCompound.isEmpty() || !suffix.continuation.contains(m_onlyInCompound));
 }
 
 QStringList AffixExpander::entriesOf(const QString& form) const {
@@ -257,39 +299,33 @@ QStringList AffixExpander::entriesOf(const QString& form) const {
     if (hasEntry(form)) {
         found.append(form);
     }
-
-    // The words that one of the suffixes makes this form of: each word looked up once,
-    // with the flags whose suffixes make it
-    QHash<QString, QStringList> roots;
-    QStringList order;
-    for (auto flag = m_suffixes.constBegin(); flag != m_suffixes.constEnd(); ++flag) {
-        for (const Suffix& suffix : flag.value()) {
-            if (!form.endsWith(suffix.add) || form.size() == suffix.add.size()) {
-                continue;
-            }
-            const QString root = form.chopped(suffix.add.size()) + suffix.strip;
-            if (matches(root, suffix.condition)) {
-                if (!roots.contains(root)) {
-                    order.append(root);
-                }
-                appendOnce(roots[root], flag.key());
-            }
-        }
-    }
-    for (const QString& root : std::as_const(order)) {
-        const QStringList& flags = roots.value(root);
+    // Each word looked up once: an entry with one of the flags has the form
+    for (const auto& [root, flags] : rootsOf(form)) {
         const QList<Entry> rootEntries = entries(root);
-        const bool hasFlag =
-            std::any_of(rootEntries.begin(), rootEntries.end(), [&flags](const Entry& entry) {
-                return std::any_of(flags.begin(), flags.end(), [&entry](const QString& flag) {
-                    return entry.flags.contains(flag);
-                });
-            });
+        const bool hasFlag = std::ranges::any_of(rootEntries, [&flags](const Entry& entry) {
+            return std::ranges::any_of(
+                flags, [&entry](const QString& flag) { return entry.flags.contains(flag); });
+        });
         if (hasFlag) {
             appendOnce(found, root);
         }
     }
     return found;
+}
+
+QList<std::pair<QString, QStringList>> AffixExpander::rootsOf(const QString& form) const {
+    QList<Root> roots;
+    for (auto flag = m_suffixes.constBegin(); flag != m_suffixes.constEnd(); ++flag) {
+        for (const Suffix& suffix : flag.value()) {
+            if (form.endsWith(suffix.add) && form.size() != suffix.add.size()) {
+                const QString root = form.chopped(suffix.add.size()) + suffix.strip;
+                if (matches(root, suffix.condition)) {
+                    addRoot(roots, root, flag.key());
+                }
+            }
+        }
+    }
+    return roots;
 }
 
 QStringList AffixExpander::relatedForms(const QString& form) const {

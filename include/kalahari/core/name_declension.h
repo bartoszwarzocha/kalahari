@@ -150,6 +150,10 @@ private:
     [[nodiscard]] static QString polishModel(const QString& word, NameKind kind, bool feminine,
                                              bool first, const DictionaryForms& dictionary);
 
+    /// @brief The model of each word of a Polish name (modelsFor())
+    [[nodiscard]] static QStringList polishModels(const QStringList& words, NameKind kind,
+                                                  const DictionaryForms& dictionary);
+
     Language m_language = Language::Other;  ///< The language of the models
     QString m_code;                         ///< Its code ("pl", "en")
 };

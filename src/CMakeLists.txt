@@ -58,7 +58,10 @@ set(KALAHARI_CORE_SOURCES
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/affix_expander.cpp     # The forms a Hunspell dictionary gives its words
     core/name_declension.cpp    # The forms of names in the grammatical cases
+    core/name_declension_polish.cpp # The Polish models of declension
     core/book_dictionary.cpp    # The dictionary of a book: names, rules of spelling, words
+    core/book_dictionary_rules.cpp # Its words of a text, the places against its rules
+    core/book_dictionary_file.cpp  # Its file
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/link_roles.cpp         # The roles of links, and the paragraph a link names

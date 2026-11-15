@@ -263,6 +263,9 @@ private:
     /// @brief Add the words of @p form to the words of the names
     void addNameWords(const QString& form);
 
+    /// @brief Add the words of the right spellings of @p rule and its wrong spellings
+    void addRuleSpellings(const SpellingRule& rule);
+
     QList<DictionaryName> m_names;  ///< The names
     QList<SpellingRule> m_rules;    ///< The rules
     QStringList m_words;            ///< The words of the book, sorted

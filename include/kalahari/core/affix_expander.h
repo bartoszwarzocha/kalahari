@@ -96,6 +96,9 @@ private:
     /// @param aliasesStarted Whether the first AF line (the count of the aliases) is read
     void readAffixLine(const QStringList& fields, bool& aliasesStarted);
 
+    /// @brief Read the value of the FLAG line: how the file writes the flags
+    void readFlagType(const QString& value);
+
     /// @brief Read an SFX line of the .aff file: a suffix (the line that starts the suffixes
     ///        of a flag gives only their count)
     void readSuffix(const QStringList& fields);
@@ -106,11 +109,26 @@ private:
     /// @brief The entries of @p word in the .dic file
     [[nodiscard]] QList<Entry> entries(const QString& word) const;
 
+    /// @brief The flags of the entry of the .dic file whose word ends at @p after (none
+    ///        without a slash there)
+    [[nodiscard]] QStringList flagsAt(qsizetype after) const;
+
     /// @brief Add the forms of @p word with the suffixes of @p flags to @p forms
     /// @param continued Gets each form whose suffix allows further suffixes, with their
     ///        flags; nullptr: those are not wanted
     void addForms(const QString& word, const QStringList& flags, QStringList& forms,
                   QList<std::pair<QString, QStringList>>* continued) const;
+
+    /// @brief Add the forms of @p word with @p suffixes (those of a flag), as addForms()
+    void addSuffixForms(const QString& word, const QList<Suffix>& suffixes, QStringList& forms,
+                        QList<std::pair<QString, QStringList>>* continued) const;
+
+    /// @brief Whether @p suffix makes a word of @p word (not only a part of a compound)
+    [[nodiscard]] bool makesForm(const QString& word, const Suffix& suffix) const;
+
+    /// @brief The words that one of the suffixes makes @p form of, each once, with the flags
+    ///        whose suffixes make it, in the order found
+    [[nodiscard]] QList<std::pair<QString, QStringList>> rootsOf(const QString& form) const;
 
     /// @brief Whether the end of @p word matches @p condition
     [[nodiscard]] static bool matches(const QString& word,

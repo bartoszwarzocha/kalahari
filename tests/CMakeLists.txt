@@ -238,7 +238,10 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
     ${CMAKE_SOURCE_DIR}/src/core/affix_expander.cpp
     ${CMAKE_SOURCE_DIR}/src/core/name_declension.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/name_declension_polish.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_dictionary.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_rules.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
     ${CMAKE_SOURCE_DIR}/src/core/link_roles.cpp
