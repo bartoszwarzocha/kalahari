@@ -19,8 +19,15 @@ Usage (.github/workflows/ci-linux.yml):
         | python3 .github/scripts/drop_comment_only_hunks.py \\
         | python3 .github/scripts/clang_tidy_changed.py -p build -j 4
 
-Exit status: 1 when clang-tidy fails on a unit, which it does when it reports a warning in
-a changed line (.clang-tidy makes every warning an error); 0 otherwise.
+A finding counts when it is located in the project's code (src/, include/, tests/), and
+every compiler error does (a unit that does not compile is not checked). clang-tidy also
+shows a finding located in a library's header when one of its notes points into a changed
+line: the static analyzer's path through Qt's QWeakPointer (every QPointer) ends in a "use
+of memory after it is freed" inside qsharedpointer_impl.h, which the reference counting rules
+out, and NOLINT cannot reach a line in Qt's header. Such findings are listed as not counted.
+
+Exit status: 1 when a unit has a finding that counts in a changed line (.clang-tidy makes
+every warning an error) or clang-tidy fails on it; 0 otherwise.
 """
 import argparse
 import concurrent.futures
@@ -37,6 +44,9 @@ from typing import Dict, List, Set, Tuple
 SOURCE_SUFFIXES = (".cpp", ".cc", ".cxx", ".c")
 HEADER_SUFFIXES = (".h", ".hpp", ".hxx")
 SUMMARY = re.compile(r"^\d+ warnings? (and \d+ errors? )?generated\.$")
+DIAGNOSTIC = re.compile(r"^(?P<path>.+?):\d+:\d+: (?P<level>warning|error): .*?"
+                        r"(?: \[(?P<checks>[^\]]+)\])?$")
+PROJECT_FOLDERS = ("src", "include", "tests")
 
 
 def changed_lines(diff: str) -> Dict[str, List[Tuple[int, int]]]:
@@ -89,6 +99,39 @@ def read_dependencies(build: Path, objects: Dict[str, str]) -> Dict[str, Set[str
             header = Path(line.strip())
             headers_of[current].add(key(header if header.is_absolute() else build / header))
     return headers_of
+
+
+def in_project(path: str, root: Path) -> bool:
+    """Whether a file named in clang-tidy's output is the project's code."""
+    try:
+        parts = Path(path).resolve().relative_to(root.resolve()).parts
+    except (OSError, ValueError):
+        return False
+    return bool(parts) and parts[0] in PROJECT_FOLDERS
+
+
+def counted(output: str, root: Path) -> Tuple[List[str], List[str]]:
+    """(the blocks of findings that count, the first lines of those that do not) of a unit's
+    clang-tidy output: a block is a finding with its notes and source lines."""
+    blocks: List[Tuple[bool, List[str]]] = []
+    lead: List[str] = []
+    for line in output.splitlines():
+        if SUMMARY.match(line):
+            continue
+        match = DIAGNOSTIC.match(line)
+        if match:
+            checks = match.group("checks") or ""
+            counts = in_project(match.group("path"), root) or "clang-diagnostic-error" in checks
+            blocks.append((counts, [line]))
+        elif blocks:
+            blocks[-1][1].append(line)
+        elif line.strip():
+            lead.append(line)
+    kept = ["\n".join(lines) for counts, lines in blocks if counts]
+    dropped = [lines[0] for counts, lines in blocks if not counts]
+    if kept and lead:
+        kept.insert(0, "\n".join(lead))
+    return kept, dropped
 
 
 def main() -> int:
@@ -168,10 +211,17 @@ def main() -> int:
         futures = [pool.submit(run, unit) for unit in sorted(chosen)]
         for done, future in enumerate(concurrent.futures.as_completed(futures), start=1):
             returncode, output = future.result()
-            text = "\n".join(line for line in output.splitlines() if not SUMMARY.match(line))
-            if text.strip():
-                print(text.strip(), flush=True)
-            failed = failed or returncode != 0
+            kept, dropped = counted(output, root)
+            for line in dropped:
+                print(f"clang-tidy: not counted (outside the project's code): {line}", flush=True)
+            if kept:
+                print("\n".join(kept), flush=True)
+            # 1 with findings: they are judged above; any other failure is clang-tidy's own
+            broken = returncode not in (0, 1) or (returncode == 1 and not kept and not dropped)
+            if broken:
+                print(output.strip(), flush=True)
+                print(f"clang-tidy: exit status {returncode}", flush=True)
+            failed = failed or bool(kept) or broken
             if done % 25 == 0 or done == len(futures):
                 minutes = (time.monotonic() - started) / 60
                 print(f"clang-tidy: {done}/{len(futures)} units, {minutes:.0f} min", flush=True)
