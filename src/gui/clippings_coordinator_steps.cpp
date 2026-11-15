@@ -64,7 +64,10 @@ void ClippingsCoordinator::follow(editor::BookEditor* text) {
                            [this, text]() { textChanged(text); });
     connections << connect(text, &editor::BookEditor::documentChanged, this,
                            [this, text]() { unfollow(text); });
-    connections << connect(text, &QObject::destroyed, this, [this, text]() { unfollow(text); });
+    // Destroyed: forgotten once it is gone and its pointers are null. While it goes it is no
+    // longer a BookEditor, and a pointer to it may not be compared as one.
+    connections << connect(
+        text, &QObject::destroyed, this, [this]() { unfollow(nullptr); }, Qt::QueuedConnection);
     // After the editor counts the new level (it connected first)
     connections << connect(text->textDocument(), &QTextDocument::undoCommandAdded, this,
                            [this, text]() { undoAdded(text); });
@@ -73,7 +76,7 @@ void ClippingsCoordinator::follow(editor::BookEditor* text) {
 
 void ClippingsCoordinator::unfollow(const editor::BookEditor* text) {
     for (qsizetype i = m_followed.size() - 1; i >= 0; --i) {
-        // A text destroyed is null already
+        // The texts destroyed are null
         if (m_followed.at(i).first == text || m_followed.at(i).first == nullptr) {
             for (const QMetaObject::Connection& connection :
                  std::as_const(m_followed.at(i).second)) {
