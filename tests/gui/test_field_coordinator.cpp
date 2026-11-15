@@ -8,7 +8,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include "document_window.h"
+#include "kalahari_tests/gui/document_window.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_types.h"
@@ -21,7 +21,7 @@
 #include "kalahari/gui/field_coordinator.h"
 #include "kalahari/gui/settings/shortcuts_page.h"
 #include "kalahari/gui/settings_dialog.h"
-#include "test_support/window_parts.h"
+#include "kalahari_tests/test_support/window_parts.h"
 
 #include <QAbstractButton>
 #include <QAbstractScrollArea>
