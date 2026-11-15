@@ -180,7 +180,8 @@ void PlotBoardView::setBands(const QList<PlotBand>& bands) {
                         ? QString()
                         : cards.at(std::clamp<qsizetype>(at, 0, cards.size() - 1)).id;
         if (m_current != previous) {
-            emit currentCardChanged(m_current);
+            const QString current = m_current;
+            emit currentCardChanged(current);
         }
     }
     placeEditor();
@@ -630,7 +631,8 @@ void PlotBoardView::choose(const QString& elementId) {
     ensureVisible(place->rect);
     if (m_current != elementId) {
         m_current = elementId;
-        emit currentCardChanged(m_current);
+        const QString current = m_current;
+        emit currentCardChanged(current);
         tellScreenReader();
     }
     viewport()->update();
@@ -1065,7 +1067,9 @@ void PlotBoardView::keyPressEvent(QKeyEvent* event) {
 }
 
 void PlotBoardView::doKey(Key key) {
-    const bool changing = !m_readOnly && !m_current.isEmpty();
+    // The card the key is for: whoever takes the request may choose another one
+    const QString current = m_current;
+    const bool changing = !m_readOnly && !current.isEmpty();
     switch (key) {
     case Key::Left:
     case Key::Right:
@@ -1083,9 +1087,9 @@ void PlotBoardView::doKey(Key key) {
     case Key::MoveForward:
         // A scene in columns: to the text beside
         if (changing && m_arrangement == Arrangement::Columns && PlotBoard::sceneOf(m_current)) {
-            emit moveToTextRequested(m_current, key == Key::MoveBack ? -1 : 1);
+            emit moveToTextRequested(current, key == Key::MoveBack ? -1 : 1);
         } else if (changing) {
-            emit moveRequested(m_current, key == Key::MoveBack ? -1 : 1);
+            emit moveRequested(current, key == Key::MoveBack ? -1 : 1);
         }
         break;
     case Key::MoveUp:
@@ -1098,12 +1102,12 @@ void PlotBoardView::doKey(Key key) {
         }
         if (!PlotBoard::sceneOf(m_current)) {
             if (m_arrangement == Arrangement::Grid) {
-                emit moveRequested(m_current, direction * cardsPerRow());
+                emit moveRequested(current, direction * cardsPerRow());
             }
         } else if (m_arrangement == Arrangement::Columns) {
-            emit moveRequested(m_current, direction);
+            emit moveRequested(current, direction);
         } else {
-            emit moveToTextRequested(m_current, direction);
+            emit moveToTextRequested(current, direction);
         }
         break;
     }
@@ -1115,37 +1119,37 @@ void PlotBoardView::doKey(Key key) {
     }
     case Key::Open:
         if (!m_current.isEmpty()) {
-            emit openRequested(m_current);
+            emit openRequested(current);
         }
         break;
     case Key::Edit:
         if (changing) {
-            emit editRequested(m_current);
+            emit editRequested(current);
         }
         break;
     case Key::Add:
         if (!m_readOnly) {
-            emit addRequested(m_current);
+            emit addRequested(current);
         }
         break;
     case Key::AddScene:
         if (changing) {
-            emit addSceneRequested(m_current);
+            emit addSceneRequested(current);
         }
         break;
     case Key::Delete:
         if (changing) {
-            emit deleteRequested(m_current);
+            emit deleteRequested(current);
         }
         break;
     case Key::Cut:
         if (changing) {
-            emit cutRequested(m_current);
+            emit cutRequested(current);
         }
         break;
     case Key::Paste:
         if (!m_readOnly && !m_marked.isEmpty()) {
-            emit pasteRequested(m_current);
+            emit pasteRequested(current);
         }
         break;
     case Key::CancelCut:
@@ -1163,13 +1167,13 @@ void PlotBoardView::doKey(Key key) {
         break;
     case Key::Properties:
         if (!m_current.isEmpty()) {
-            emit propertiesRequested(m_current);
+            emit propertiesRequested(current);
         }
         break;
     case Key::Menu: {
         const QRect rect = cardRect(m_current);
         const QPoint at = rect.isValid() ? rect.center() : viewport()->rect().center();
-        emit menuRequested(m_current, viewport()->mapToGlobal(at));
+        emit menuRequested(current, viewport()->mapToGlobal(at));
         break;
     }
     case Key::None:
@@ -1223,7 +1227,9 @@ void PlotBoardView::mouseReleaseEvent(QMouseEvent* event) {
 void PlotBoardView::mouseDoubleClickEvent(QMouseEvent* event) {
     const CardPlace* place = cardAt(contentsPos(event->position().toPoint()));
     if (place != nullptr && event->button() == Qt::LeftButton) {
-        emit openRequested(place->id);
+        // The cards are made again when the text opens
+        const QString id = place->id;
+        emit openRequested(id);
     }
     event->accept();
 }

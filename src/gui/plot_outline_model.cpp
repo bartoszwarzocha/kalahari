@@ -285,16 +285,18 @@ bool PlotOutlineModel::setData(const QModelIndex& index, const QVariant& value, 
     if (role != Qt::EditRole || !(flags(index) & Qt::ItemIsEditable)) {
         return false;
     }
-    const PlotCard& card = m_rows.at(index.row()).card;
+    // A copy: the rows are made again while the change is made
+    const QString id = m_rows.at(index.row()).card.id;
+    const bool scene = m_rows.at(index.row()).card.isScene();
     const QString text = value.toString().trimmed();
     if (text == data(index, Qt::EditRole).toString()) {
         return false;
     }
     // A text keeps its title; a scene may have none
-    if (index.column() == TitleColumn && text.isEmpty() && !card.isScene()) {
+    if (index.column() == TitleColumn && text.isEmpty() && !scene) {
         return false;
     }
-    emit cellEdited(card.id, index.column(), text);
+    emit cellEdited(id, index.column(), text);
     return true;
 }
 
