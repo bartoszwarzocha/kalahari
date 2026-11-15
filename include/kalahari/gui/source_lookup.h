@@ -12,7 +12,6 @@
 
 #include <QHash>
 #include <QObject>
-#include <QPointer>
 #include <QString>
 #include <QUrl>
 
@@ -81,7 +80,9 @@ private:
     [[nodiscard]] static QString failureOf(const QNetworkReply* reply, const QString& catalog);
 
     QNetworkAccessManager* m_network = nullptr;
-    QPointer<QNetworkReply> m_reply;     ///< The lookup on its way; none: no lookup
+    /// @brief The lookup on its way; none: no lookup. Its finished() deletes it, after this
+    /// lets it go
+    QNetworkReply* m_reply = nullptr;
     QHash<QString, QString> m_patterns;  ///< Catalog -> the address it is asked at, by the tests
 };
 
