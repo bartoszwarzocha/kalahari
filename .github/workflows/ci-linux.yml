@@ -17,7 +17,7 @@ jobs:
   build:
     name: Linux Build & Test
     runs-on: ubuntu-24.04
-    timeout-minutes: 30  # Fast with all system packages, no vcpkg
+    timeout-minutes: 45  # System packages, no vcpkg: the build takes 19 to 28 minutes on the runner
 
     strategy:
       matrix:
@@ -48,6 +48,7 @@ jobs:
         host: linux
         target: desktop
         arch: linux_gcc_64
+        modules: 'qtpdf'  # The preview of PDF files
         cache: true
 
     - name: Install all dependencies from apt (no vcpkg)
@@ -183,7 +184,7 @@ jobs:
         done
         sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --no-install-recommends \
           build-essential g++ cmake ninja-build pkg-config clang-tidy \
-          qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools \
+          qt6-base-dev qt6-svg-dev qt6-tools-dev qt6-l10n-tools qt6-pdf-dev \
           libgl1-mesa-dev libxkbcommon-dev \
           libspdlog-dev nlohmann-json3-dev libzip-dev zipcmp zipmerge ziptool \
           libcurl4-openssl-dev libhunspell-dev catch2 \

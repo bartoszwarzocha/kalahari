@@ -9,6 +9,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/copy_target.h"
 #include "kalahari/gui/edit_target.h"
 #include "kalahari/gui/paste_target.h"
 #include "kalahari/gui/panels/annotations_panel.h"
@@ -269,6 +270,21 @@ void listDo(QAbstractItemView& list, Edit edit) {
     }
 }
 
+/// Copy and Select All in a view with text to copy (the preview of a PDF file)
+bool copyCan(const CopyTarget& view, Edit edit) {
+    return (edit == Edit::Copy && view.canCopyHere()) ||
+           (edit == Edit::SelectAll && view.canSelectAllHere());
+}
+
+/// Copy or Select All in a view with text to copy (copyCan() allows no other)
+void copyDo(CopyTarget& view, Edit edit) {
+    if (edit == Edit::Copy) {
+        view.copyHere();
+    } else {
+        view.selectAllHere();
+    }
+}
+
 /// The view with commands of its own that @p element is in, up to its window; nullptr: none
 EditTarget* ownEditsOf(QWidget* element) {
     for (QWidget* part = element; part != nullptr; part = part->parentWidget()) {
@@ -290,6 +306,7 @@ struct EditCoordinator::Target {
     QTextEdit* text = nullptr;
     QPlainTextEdit* plainText = nullptr;
     QAbstractItemView* list = nullptr;
+    CopyTarget* copy = nullptr;             ///< A view with text to copy: Copy and Select All
     editor::BookEditor* book = nullptr;     ///< The book's text: every command
     editor::BookEditor* history = nullptr;  ///< The text's undo history only: Undo and Redo
     EditTarget* own = nullptr;  ///< A view that does the commands it takes itself
@@ -396,7 +413,7 @@ EditCoordinator::Target EditCoordinator::targetOf(QWidget* element) const {
     // Outside a field, a view with commands of its own does them (the plot board, also in
     // its outline); what is done in a panel may be a step of the text's undo history
     target.own = ownEditsOf(element);
-    if (target.list == nullptr) {
+    if (target.list == nullptr && target.copy == nullptr) {
         target.history = historyOf(element);
     }
     return target;
@@ -412,8 +429,10 @@ EditCoordinator::Target EditCoordinator::elementTargetOf(QWidget* element) {
         target.plainText = plainText;
     } else if (auto* book = qobject_cast<editor::BookEditor*>(element)) {
         target.book = book;
+    } else if (auto* list = qobject_cast<QAbstractItemView*>(element)) {
+        target.list = list;
     } else {
-        target.list = qobject_cast<QAbstractItemView*>(element);
+        target.copy = dynamic_cast<CopyTarget*>(element);
     }
     return target;
 }
@@ -478,6 +497,9 @@ bool EditCoordinator::canDo(Edit edit, QWidget* element) const {
         return (edit == Edit::Undo && target.history->canUndo()) ||
                (edit == Edit::Redo && target.history->canRedo());
     }
+    if (target.copy != nullptr) {
+        return copyCan(*target.copy, edit);
+    }
     return target.list != nullptr && listCan(*target.list, edit);
 }
 
@@ -494,6 +516,8 @@ bool EditCoordinator::execute(Edit edit, QWidget* element) {
         bookDo(*target.history, edit);  // Undo or Redo: canDo() allows no other
     } else if (target.list != nullptr) {
         listDo(*target.list, edit);
+    } else if (target.copy != nullptr) {
+        copyDo(*target.copy, edit);
     }
     updateStates();
     return true;
@@ -570,6 +594,9 @@ void EditCoordinator::followElement(const Target& target) {
     }
     if (target.own != nullptr) {
         add(target.own->followEditStates(this, update));
+    }
+    if (target.copy != nullptr) {
+        add(target.copy->whenSelectionChanges(this, update));
     }
 }
 

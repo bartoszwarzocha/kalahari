@@ -12,7 +12,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
-#include "kalahari/gui/panels/image_preview_panel.h"
+#include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/plot_board_panel.h"
@@ -2181,7 +2181,7 @@ void DocumentCoordinator::onProjectClosed() {
     for (auto it = pages.crbegin(); it != pages.crend(); ++it) {
         QWidget* widget = *it;
         const bool ofElement = qobject_cast<EditorPanel*>(widget) != nullptr ||
-                               qobject_cast<ImagePreviewPanel*>(widget) != nullptr ||
+                               qobject_cast<PreviewPanel*>(widget) != nullptr ||
                                qobject_cast<MaterialCardPanel*>(widget) != nullptr;
         const bool ofBook = qobject_cast<MaterialListPanel*>(widget) != nullptr ||
                             qobject_cast<PlotBoardPanel*>(widget) != nullptr;

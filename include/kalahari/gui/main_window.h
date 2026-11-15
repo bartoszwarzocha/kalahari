@@ -56,7 +56,7 @@ enum class ImageCommand;  // The commands of the Image menu (command_registrar.h
 // Forward declarations for panels
 class DashboardPanel;
 class EditorPanel;
-class ImagePreviewPanel;
+class PreviewPanel;
 class NavigatorPanel;
 class PropertiesPanel;
 class LogPanel;
@@ -162,7 +162,7 @@ public:
     EditorPanel* getCurrentEditor();
 
     /// @brief The preview of a material in front, or nullptr
-    ImagePreviewPanel* currentPreview();
+    PreviewPanel* currentPreview();
 
     /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
     /// @param elementId Element ID to open (ProjectElement::id)

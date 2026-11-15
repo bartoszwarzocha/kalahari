@@ -150,6 +150,15 @@ void SettingsDialog::createNavigationTree() {
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     m_pageItems[NAVIGATOR_PAGE] =
         addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    //: The page of the materials: how they open, the preview of PDF files and the sources. In
+    //: Polish: Materiały
+    m_pageItems[MATERIALS_PAGE] =
+        addPage(nullptr, tr("Materials"), [this]() {
+            auto* materialsPage = new MaterialsPage();
+            connect(materialsPage, &MaterialsPage::colorsPageAsked, this,
+                    [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
+            return materialsPage;
+        });
     //: Settings > Plot Board: the scenes on the board, the colors of the cards. In Polish:
     //: Tablica fabuły
     m_pageItems[PLOT_BOARD_PAGE] =

@@ -6,6 +6,7 @@
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/source_description.h>
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
@@ -456,6 +457,94 @@ void readPlot(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = plotFields.rest();
 }
 
+/// The bibliographic description of a material that is a source, with the fields of "source"
+/// this version does not know
+void readSource(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue source = fields.take("source");
+    if (source.isUndefined()) {
+        return;
+    }
+    if (!source.isObject()) {
+        fields.problem("source", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields sourceFields(source.toObject(), fields.path("source"), problems);
+    SourceDescription& data = element.source;
+    data.type = sourceFields.string("type");
+    const QJsonArray people = sourceFields.array("people");
+    for (qsizetype i = 0; i < people.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(sourceFields.path("people")).arg(i);
+        if (!people.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with a name"));
+            continue;
+        }
+        Fields personFields(people.at(i).toObject(), path, problems);
+        SourcePerson person;
+        person.name = personFields.string("name");
+        person.role = personFields.string("role");
+        person.extra = personFields.rest();
+        data.people << person;
+    }
+    for (const QString& name : SourceDescription::allFields()) {
+        const QByteArray key = name.toLatin1();
+        data.setValue(name, sourceFields.string(key.constData()));
+    }
+    data.bibliography = sourceFields.string("bibliography");
+    data.extra = sourceFields.rest();
+}
+
+/// The bookmarks of the file of a material and the page shown last
+void readBookmarks(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonArray bookmarks = fields.array("bookmarks");
+    for (qsizetype i = 0; i < bookmarks.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("bookmarks")).arg(i);
+        if (!bookmarks.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with a page"));
+            continue;
+        }
+        Fields bookmarkFields(bookmarks.at(i).toObject(), path, problems);
+        PageBookmark bookmark;
+        const QJsonValue page = bookmarkFields.take("page");
+        const int number = isWholeNumber(page) ? page.toInt(0) : 0;
+        if (number < 1) {
+            bookmarkFields.problem("page", QStringLiteral("must be a whole number, 1 or more"));
+            continue;
+        }
+        bookmark.page = number;
+        bookmark.note = bookmarkFields.string("note");
+        bookmark.extra = bookmarkFields.rest();
+        element.bookmarks << bookmark;
+    }
+    const QJsonValue lastPage = fields.take("lastPage");
+    if (!lastPage.isUndefined()) {
+        const int number = isWholeNumber(lastPage) ? lastPage.toInt(-1) : -1;
+        if (number < 0) {
+            fields.problem("lastPage", QStringLiteral("must be a whole number, 0 or more"));
+        } else {
+            element.lastPage = number;
+        }
+    }
+}
+
+/// Where a quote comes from, with the fields of "quote" this version does not know
+void readQuote(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue quote = fields.take("quote");
+    if (quote.isUndefined()) {
+        return;
+    }
+    if (!quote.isObject()) {
+        fields.problem("quote", QStringLiteral("must be an object"));
+        return;
+    }
+    Fields quoteFields(quote.toObject(), fields.path("quote"), problems);
+    QuoteSource& data = element.quote;
+    data.source = quoteFields.string("source");
+    data.page = quoteFields.string("page");
+    data.author = quoteFields.string("author");
+    data.work = quoteFields.string("work");
+    data.extra = quoteFields.rest();
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -492,6 +581,9 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     readView(fields, element, problems);
     readCover(fields, element, problems);
     readPlot(fields, element, problems);
+    readSource(fields, element, problems);
+    readBookmarks(fields, element, problems);
+    readQuote(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -722,6 +814,7 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
     if (const QJsonValue footnotes = fields.take("footnotes"); !footnotes.isUndefined()) {
         book.footnotes = readFootnotes(footnotes, fields.path("footnotes"), problems);
     }
+    book.bibliographyStyle = fields.string("bibliographyStyle");
     book.extra = fields.rest();
     return book;
 }
@@ -822,6 +915,76 @@ QJsonObject plotToJson(const ElementPlot& plot) {
     return json;
 }
 
+/// @p source as the "source" object of an element, the fields the program does not know kept
+QJsonObject sourceToJson(const SourceDescription& source) {
+    QJsonObject data = source.extra;
+    setOrRemove(data, "type", source.type);
+    QJsonArray people;
+    for (const SourcePerson& person : source.people) {
+        QJsonObject each = person.extra;
+        each.insert(QLatin1String("name"), person.name);
+        setOrRemove(each, "role", person.role);
+        people.append(each);
+    }
+    if (people.isEmpty()) {
+        data.remove(QLatin1String("people"));
+    } else {
+        data.insert(QLatin1String("people"), people);
+    }
+    for (auto value = source.values.cbegin(); value != source.values.cend(); ++value) {
+        data.insert(value.key(), value.value());
+    }
+    setOrRemove(data, "bibliography", source.bibliography);
+    return data;
+}
+
+/// @p bookmarks as the "bookmarks" array of an element
+QJsonArray bookmarksToJson(const QList<PageBookmark>& bookmarks) {
+    QJsonArray array;
+    for (const PageBookmark& bookmark : bookmarks) {
+        QJsonObject each = bookmark.extra;
+        each.insert(QLatin1String("page"), bookmark.page);
+        setOrRemove(each, "note", bookmark.note);
+        array.append(each);
+    }
+    return array;
+}
+
+/// @p quote as the "quote" object of an element
+QJsonObject quoteToJson(const QuoteSource& quote) {
+    QJsonObject data = quote.extra;
+    setOrRemove(data, "source", quote.source);
+    setOrRemove(data, "page", quote.page);
+    setOrRemove(data, "author", quote.author);
+    setOrRemove(data, "work", quote.work);
+    return data;
+}
+
+/// The description of a source, the bookmarks, the page shown last and the source of a quote
+/// of @p element in @p json
+void writeSource(QJsonObject& json, const ProjectElement& element) {
+    if (element.source.isEmpty()) {
+        json.remove(QLatin1String("source"));
+    } else {
+        json.insert(QLatin1String("source"), sourceToJson(element.source));
+    }
+    if (element.bookmarks.isEmpty()) {
+        json.remove(QLatin1String("bookmarks"));
+    } else {
+        json.insert(QLatin1String("bookmarks"), bookmarksToJson(element.bookmarks));
+    }
+    if (element.lastPage > 0) {
+        json.insert(QLatin1String("lastPage"), element.lastPage);
+    } else {
+        json.remove(QLatin1String("lastPage"));
+    }
+    if (element.quote.isEmpty()) {
+        json.remove(QLatin1String("quote"));
+    } else {
+        json.insert(QLatin1String("quote"), quoteToJson(element.quote));
+    }
+}
+
 QJsonObject elementToJson(const ProjectElement& element) {
     QJsonObject json = element.extra;
     json.insert(QLatin1String("id"), element.id);
@@ -917,6 +1080,7 @@ QJsonObject elementToJson(const ProjectElement& element) {
     } else {
         json.insert(QLatin1String("plot"), plotToJson(element.plot));
     }
+    writeSource(json, element);
     return json;
 }
 
@@ -1009,6 +1173,7 @@ QJsonObject bookToJson(const ProjectBook& book) {
     } else {
         json.remove(QLatin1String("footnotes"));
     }
+    setOrRemove(json, "bibliographyStyle", book.bibliographyStyle);
     return json;
 }
 
@@ -1369,6 +1534,8 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
            rotation == other.rotation && cover == other.cover && plot == other.plot &&
+           source == other.source && bookmarks == other.bookmarks &&
+           lastPage == other.lastPage && quote == other.quote &&
            viewExtra == other.viewExtra && extra == other.extra;
 }
 
