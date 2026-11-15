@@ -107,7 +107,11 @@ PlotBoardCoordinator::PlotBoardCoordinator(core::ProjectManager& book, QTabWidge
             &PlotBoardCoordinator::onCurrentTabChanged);
 }
 
-PlotBoardCoordinator::~PlotBoardCoordinator() = default;
+PlotBoardCoordinator::~PlotBoardCoordinator() {
+    // The undo stack, a child, is deleted once this object is only a QObject: it clears itself
+    // then, and what can be undone would reach the board through this object
+    m_undo->disconnect();
+}
 
 PlotBoardPanel* PlotBoardCoordinator::openBoard(const QString& view, bool keys) {
     if (!m_book.isProjectOpen()) {
