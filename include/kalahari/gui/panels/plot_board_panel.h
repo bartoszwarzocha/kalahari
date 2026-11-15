@@ -116,15 +116,21 @@ signals:
     void statusRequested(const QString& elementId, const QString& status);
     /// @brief Give the card its own color @p color (PlotColors::ownNames()); empty: none
     void colorRequested(const QString& elementId, const QString& color);
-    /// @brief Move the text @p steps places back (less than 0) or forward
+    /// @brief Move the text @p steps places back (less than 0) or forward; a scene among the
+    /// scenes of its text
     void moveRequested(const QString& elementId, int steps);
+    /// @brief Move scene @p cardId to the text before (@p direction less than 0) or after
+    void moveToTextRequested(const QString& cardId, int direction);
     /// @brief Move the text before or after text @p anchorId
     void dropBesideRequested(const QString& elementId, const QString& anchorId, bool after);
     /// @brief Move the text to the start of part @p partId
     void dropInPartRequested(const QString& elementId, const QString& partId);
-    /// @brief Add a text after text @p afterId; empty: at the end of the main section
+    /// @brief Add a text after text @p afterId, a scene after scene @p afterId; empty: a text at
+    /// the end of the main section
     void addRequested(const QString& afterId);
-    /// @brief Delete the text from the book
+    /// @brief Add a scene at the end of the text of card @p cardId (Alt+Insert)
+    void addSceneRequested(const QString& cardId);
+    /// @brief Delete the text from the book, or the scene from its text
     void deleteRequested(const QString& elementId);
     /// @brief Mark the text to move (Ctrl+X)
     void cutRequested(const QString& elementId);

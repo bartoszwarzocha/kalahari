@@ -43,13 +43,17 @@ struct PlotCardEdit {
 /// The keys: the arrows go to the card in their direction, Home and End to the first and the
 /// last card; Ctrl with an arrow moves the card (in a grid Ctrl+Up and Ctrl+Down by a row);
 /// Enter opens it, F2 edits it on the board, Insert adds a text after it, Delete deletes it,
-/// Ctrl+X marks it to move and Ctrl+V moves the card marked after it (Esc forgets the mark);
+/// Alt+Insert adds a scene at the end of its text; Ctrl+X marks it to move and Ctrl+V moves the
+/// card marked after it (Esc forgets the mark);
 /// Ctrl+Z and Ctrl+Y undo and redo a change of the board; Alt+Enter shows the card in the
 /// Properties panel; the menu key and Shift+F10 open its menu. The view only asks for the
 /// changes: whoever shows it makes them and gives it the cards again.
 ///
 /// A card dragged with the mouse goes before or after the card it is dropped on, or into the
-/// empty part or at the start of the part whose title it is dropped on.
+/// empty part or at the start of the part whose title it is dropped on; a scene goes before or
+/// after another scene of its text. On a scene the keys move, add and delete scenes of its
+/// text: Ctrl with the arrows along the scenes moves it among them, with the other arrows to
+/// the text beside (moveToTextRequested()), Insert adds a scene after it, Delete deletes it.
 class PlotBoardView : public QAbstractScrollArea {
     Q_OBJECT
 
@@ -159,14 +163,21 @@ signals:
     void editRequested(const QString& elementId);
     /// @brief The writer finished editing the card on the board (Ctrl+Enter)
     void editFinished(const QString& elementId, const kalahari::gui::PlotCardEdit& edit);
-    /// @brief Move the card @p steps places back (less than 0) or forward
+    /// @brief Move the card @p steps places back (less than 0) or forward; a scene among the
+    /// scenes of its text
     void moveRequested(const QString& elementId, int steps);
+    /// @brief Move scene @p cardId to the text before (@p direction less than 0) or after its
+    /// text: Ctrl+Left and Ctrl+Right in columns, Ctrl+Up and Ctrl+Down in a drawer
+    void moveToTextRequested(const QString& cardId, int direction);
     /// @brief Move a card dragged before or after card @p anchorId
     void dropBesideRequested(const QString& elementId, const QString& anchorId, bool after);
     /// @brief Move a card dragged to the start of part @p partId
     void dropInPartRequested(const QString& elementId, const QString& partId);
-    /// @brief Add a text after the card (Insert); empty: at the end of the board
+    /// @brief Add a text after the card (Insert), a scene after the card of a scene; empty: a
+    /// text at the end of the board
     void addRequested(const QString& afterId);
+    /// @brief Add a scene at the end of the text of the card (Alt+Insert)
+    void addSceneRequested(const QString& cardId);
     /// @brief Delete the card's text (Delete)
     void deleteRequested(const QString& elementId);
     /// @brief Mark the card to move (Ctrl+X)
@@ -237,7 +248,8 @@ private:
     /// @brief The keys of the board: what a key does, or nothing for a key of others
     enum class Key {
         None, Left, Right, Up, Down, First, Last, MoveBack, MoveForward, MoveUp, MoveDown,
-        Open, Edit, Add, Delete, Cut, Paste, CancelCut, Undo, Redo, Properties, Menu, Scenes
+        Open, Edit, Add, AddScene, Delete, Cut, Paste, CancelCut, Undo, Redo, Properties, Menu,
+        Scenes
     };
     [[nodiscard]] Key keyOf(const QKeyEvent* event) const;
     void doKey(Key key);
@@ -262,6 +274,9 @@ private:
     void paintCard(QPainter& painter, const CardPlace& place) const;
     void paintBandHeader(QPainter& painter, const BandPlace& band) const;
     [[nodiscard]] DropTarget dropTargetAt(const QPoint& contentsPos, const QString& dragged) const;
+    /// @brief Where scene @p dragged of text @p textId goes: beside another scene of its text
+    [[nodiscard]] DropTarget sceneDropTargetAt(const QPoint& contentsPos, const QString& dragged,
+                                               const QString& textId) const;
     void startDrag();
     void closeEditor(bool save);
     void placeEditor();

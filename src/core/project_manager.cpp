@@ -2502,6 +2502,42 @@ bool ProjectManager::setScenePlot(const QString& elementId, int scene, const Sce
     return true;
 }
 
+bool ProjectManager::setSceneText(const QString& elementId, const SceneText& text) {
+    auto& logger = Logger::getInstance();
+    const ProjectElement* element = findElement(elementId);
+    const std::optional<ElementPlace> place =
+        element != nullptr ? m_project->placeOf(elementId) : std::nullopt;
+    if (!place || place->place == BookPlace::Workshop || formOf(*element) != ElementForm::Text) {
+        logger.warn("setSceneText: Not a text of a book: {}", elementId.toStdString());
+        return false;
+    }
+    if (refusesChange("setSceneText")) {
+        return false;
+    }
+    if (m_elementStates.value(elementId).dirty) {
+        logger.warn("setSceneText: '{}' has changes its file does not have",
+                    element->title.toStdString());
+        return false;
+    }
+    // A copy: writing the file may change the states of the elements
+    const ProjectElement written = *element;
+    if (chapterText(elementId) != text.kml) {
+        if (!writeChapterFile(written, text.kml)) {
+            return false;
+        }
+        if (ElementState* state = stateOf(elementId); state != nullptr && state->loaded) {
+            state->content = text.kml;
+        }
+    }
+    if (written.plot.opening == text.opening) {
+        return true;
+    }
+    ElementPlot changed = written.plot;
+    changed.opening = text.opening;
+    return changeDetails("setSceneText", elementId,
+                         [&changed](ProjectElement& each) { each.plot = changed; });
+}
+
 bool ProjectManager::setFields(const QString& elementId, const QList<ElementField>& fields) {
     return changeDetails("setFields", elementId,
                          [&fields](ProjectElement& element) { element.fields = fields; });

@@ -13,9 +13,12 @@
 #include <kalahari/editor/text_footnotes.h>
 
 #include <QFile>
+#include <QStringList>
 #include <QJsonDocument>
 #include <QSaveFile>
 #include <QXmlStreamReader>
+
+#include <algorithm>
 
 namespace kalahari {
 namespace core {
@@ -68,6 +71,99 @@ QList<TopElement> topElementsOf(const QString& content)
 bool isSceneBreak(const TopElement& element)
 {
     return element.name == QLatin1String("scene-break");
+}
+
+/// @brief A scene break saying @p plot of its scene, as the editor writes it
+QString sceneBreakKml(const ScenePlot& plot)
+{
+    QString written = QStringLiteral("<scene-break");
+    const QMap<QString, QString> attributes = plot.toAttributes();
+    for (const QString& name : ScenePlot::fieldNames()) {
+        if (const auto value = attributes.constFind(name); value != attributes.cend()) {
+            written += QLatin1Char(' ') + name + QStringLiteral("=\"") +
+                       editor::KmlFormatRegistry::escapeXmlAttribute(*value) + QLatin1Char('"');
+        }
+    }
+    written += QStringLiteral("/>");
+    return written;
+}
+
+/// @brief A text cut at its scene breaks
+struct SceneParts {
+    QString head;            ///< Before its first scene: the start of the root element, the
+                             ///< annotations and the headings at its start
+    QList<QString> bodies;   ///< The elements of each scene, without its break
+    QList<ScenePlot> plots;  ///< What each scene says; of the first, SceneText::opening
+    QString tail;            ///< After its last scene: the end of the root element
+
+    /// @brief The text with its scenes
+    [[nodiscard]] SceneText joined() const
+    {
+        SceneText text;
+        text.opening = plots.constFirst();
+        text.kml = head + bodies.constFirst();
+        for (qsizetype i = 1; i < bodies.size(); ++i) {
+            text.kml += sceneBreakKml(plots.at(i)) + bodies.at(i);
+        }
+        text.kml += tail;
+        return text;
+    }
+};
+
+/// @brief @p text cut at its scene breaks; nullopt for a KML that cannot be read
+std::optional<SceneParts> scenePartsOf(const SceneText& text)
+{
+    QString content = editor::KmlFormatRegistry::withRootElement(text.kml);
+    // The whole text must be read: what comes after an error would be lost
+    QXmlStreamReader check(content);
+    if (!check.readNextStartElement()) {
+        return std::nullopt;
+    }
+    const QString root = check.name().toString();
+    auto rootEnd = static_cast<qsizetype>(check.characterOffset());
+    while (!check.atEnd()) {
+        check.readNext();
+    }
+    if (check.hasError() || rootEnd < 2) {
+        return std::nullopt;
+    }
+    if (content.at(rootEnd - 2) == QLatin1Char('/')) {
+        // <kml/>: the root element gets its end
+        content = content.left(rootEnd - 2) + QStringLiteral("></") + root + QLatin1Char('>') +
+                  content.mid(rootEnd);
+        --rootEnd;
+    }
+    const QList<TopElement> elements = topElementsOf(content);
+    // The annotations and the headings at the start of the text stay there
+    qsizetype bodyStart = rootEnd;
+    qsizetype first = 0;
+    static const QStringList HEAD{QStringLiteral("annotations"), QStringLiteral("h1"),
+                                  QStringLiteral("h2"), QStringLiteral("h3")};
+    while (first < elements.size() && HEAD.contains(elements.at(first).name)) {
+        bodyStart = elements.at(first).end;
+        ++first;
+    }
+    SceneParts parts;
+    parts.head = content.left(bodyStart);
+    parts.plots << text.opening;
+    for (qsizetype i = first; i < elements.size(); ++i) {
+        const TopElement& element = elements.at(i);
+        if (!isSceneBreak(element)) {
+            continue;
+        }
+        parts.bodies << content.mid(bodyStart, element.start - bodyStart);
+        QMap<QString, QString> attributes;
+        for (const QXmlStreamAttribute& attribute : element.attributes) {
+            attributes.insert(attribute.name().toString(), attribute.value().toString());
+        }
+        parts.plots << ScenePlot::fromAttributes(attributes);
+        bodyStart = element.end;
+    }
+    const qsizetype tailStart =
+        std::max(bodyStart, elements.isEmpty() ? bodyStart : elements.constLast().end);
+    parts.bodies << content.mid(bodyStart, tailStart - bodyStart);
+    parts.tail = content.mid(tailStart);
+    return parts;
 }
 
 }  // namespace
@@ -680,20 +776,55 @@ QString ChapterDocument::withScenePlot(const QString& kml, int scene, const Scen
         if (!isSceneBreak(element) || ++breaks < scene) {
             continue;
         }
-        QString written = QStringLiteral("<scene-break");
-        const QMap<QString, QString> attributes = plot.toAttributes();
-        for (const QString& name : ScenePlot::fieldNames()) {
-            if (const auto value = attributes.constFind(name); value != attributes.cend()) {
-                written += QLatin1Char(' ') + name + QStringLiteral("=\"") +
-                           editor::KmlFormatRegistry::escapeXmlAttribute(*value) +
-                           QLatin1Char('"');
-            }
-        }
-        written += QStringLiteral("/>");
-        content.replace(element.start, element.end - element.start, written);
+        content.replace(element.start, element.end - element.start, sceneBreakKml(plot));
         return content;
     }
     return QString();
+}
+
+std::optional<SceneText> ChapterDocument::withSceneMoved(const SceneText& text, int from,
+                                                         int to)
+{
+    std::optional<SceneParts> parts = scenePartsOf(text);
+    if (!parts || from < 0 || from >= parts->bodies.size() || to < 0 ||
+        to >= parts->bodies.size()) {
+        return std::nullopt;
+    }
+    parts->bodies.move(from, to);
+    parts->plots.move(from, to);
+    return parts->joined();
+}
+
+std::optional<SceneText> ChapterDocument::withSceneAdded(const SceneText& text, int at)
+{
+    std::optional<SceneParts> parts = scenePartsOf(text);
+    if (!parts || at < 0 || at > parts->bodies.size()) {
+        return std::nullopt;
+    }
+    parts->bodies.insert(at, QStringLiteral("<p></p>"));
+    parts->plots.insert(at, ScenePlot());
+    return parts->joined();
+}
+
+std::optional<SceneText> ChapterDocument::withoutScene(const SceneText& text, int scene,
+                                                       bool keepText)
+{
+    std::optional<SceneParts> parts = scenePartsOf(text);
+    if (!parts || parts->bodies.size() < 2 || scene < 0 || scene >= parts->bodies.size()) {
+        return std::nullopt;
+    }
+    if (keepText) {
+        // The break goes: the text of the scene joins the one before it (the first scene: the
+        // next one joins it)
+        const qsizetype joined = scene == 0 ? 1 : scene;
+        parts->bodies[joined - 1] += parts->bodies.at(joined);
+        parts->bodies.removeAt(joined);
+        parts->plots.removeAt(joined);
+    } else {
+        parts->bodies.removeAt(scene);
+        parts->plots.removeAt(scene);
+    }
+    return parts->joined();
 }
 
 } // namespace core

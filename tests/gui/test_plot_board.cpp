@@ -7,9 +7,11 @@
 
 #include "document_window.h"
 
+#include "kalahari/core/chapter_document.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/paragraph_styles.h"
+#include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/plot_board_panel.h"
@@ -22,15 +24,19 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <QAction>
+#include <QApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMenu>
 #include <QPlainTextEdit>
+#include <QPushButton>
 #include <QTableView>
+#include <QTimer>
 #include <QUndoStack>
 
 #include <algorithm>
 #include <cstdio>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -191,6 +197,123 @@ private:
 /// The text of "The Storm": three scenes, the second titled "Night"
 constexpr const char* STORM_SCENES = "<kml><p>One two</p><scene-break title=\"Night\"/>"
                                      "<p>Three four five</p><scene-break/><p>Six</p></kml>";
+
+/// The words of each scene of @p scenes, in their order: "2 3 1"
+std::string wordsOf(const QList<core::KmlScene>& scenes) {
+    QStringList shown;
+    for (const core::KmlScene& scene : scenes) {
+        shown << QString::number(scene.words.words);
+    }
+    return shown.join(QLatin1Char(' ')).toStdString();
+}
+
+/// The words of each scene card of text @p textId on @p board, in their order: "2 3 1"
+std::string shownWords(const gui::PlotBoardView& board, const QString& textId) {
+    QStringList shown;
+    for (const PlotCard& card : PlotBoard::cardsOf(board.bands())) {
+        for (const PlotCard& scene : card.id == textId ? card.scenes : QList<PlotCard>()) {
+            shown << QString::number(scene.words);
+        }
+    }
+    return shown.join(QLatin1Char(' ')).toStdString();
+}
+
+/// The message window shown now; nullptr: none
+gui::dialogs::MessageDialog* shownMessage() {
+    using gui::dialogs::MessageDialog;
+    if (auto* message = qobject_cast<MessageDialog*>(QApplication::activeModalWidget())) {
+        return message;
+    }
+    for (QWidget* widget : QApplication::topLevelWidgets()) {
+        auto* message = qobject_cast<MessageDialog*>(widget);
+        if (message != nullptr && message->isVisible()) {
+            return message;
+        }
+    }
+    return nullptr;
+}
+
+/// Run @p command and give the message window it shows @p answer: the button of its action,
+/// the other one, or Cancel; @p asked gets what it asks, with its title
+/// @return Whether a message window was shown
+bool answering(const std::function<void()>& command, gui::dialogs::MessageDialog::Answer answer,
+               QString* asked = nullptr) {
+    using gui::dialogs::MessageDialog;
+    bool shown = false;
+    QTimer timer;
+    timer.setInterval(10);
+    QObject::connect(&timer, &QTimer::timeout, [&shown, answer, asked]() {
+        MessageDialog* message = shownMessage();
+        if (message == nullptr) {
+            return;
+        }
+        shown = true;
+        if (asked != nullptr) {
+            *asked = message->clipboardText();
+        }
+        QPushButton* button = message->cancelButton();
+        if (answer == MessageDialog::Answer::Accept) {
+            button = message->acceptButton();
+        } else if (answer == MessageDialog::Answer::Alternative) {
+            button = message->alternativeButton();
+        }
+        if (button != nullptr) {
+            button->click();
+        } else {
+            message->reject();
+        }
+    });
+    timer.start();
+    command();
+    return shown;
+}
+
+/// "The Storm" of a novel with three scenes (STORM_SCENES), on the plot board in columns with
+/// the scenes shown and the card of "The Storm" chosen, until the test ends
+struct StormBoard {
+    KeptSetting view{PlotBoard::VIEW_SETTING};
+    KeptSetting layout{PlotBoard::LAYOUT_SETTING};
+    KeptSwitch scenes{PlotBoard::SCENES_SETTING};
+    PlotNovel book;
+    core::ProjectManager& pm = book.pm;
+    QString storm = book.storm;
+    QString first = PlotBoard::sceneId(storm, 0);
+    QString night = PlotBoard::sceneId(storm, 1);
+    QString last = PlotBoard::sceneId(storm, 2);
+    test::Window window;
+    gui::PlotBoardCoordinator boards{pm, window.tabs, &window.navigator, &window.statusBar,
+                                     [](bool /*keys*/) {}};
+    gui::PlotBoardPanel* panel = nullptr;
+    gui::PlotBoardView* board = nullptr;
+
+    StormBoard() {
+        auto& settings = core::SettingsManager::getInstance();
+        settings.set<std::string>(PlotBoard::LAYOUT_SETTING, PlotBoard::LAYOUT_COLUMNS);
+        settings.set<bool>(PlotBoard::SCENES_SETTING, true);
+        pm.setChapterContent(storm, QString::fromLatin1(STORM_SCENES));
+        REQUIRE(pm.saveChapterContent(storm));
+        panel = boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
+        REQUIRE(panel != nullptr);
+        board = panel->board();
+        REQUIRE(board->setCurrentCard(storm));
+    }
+
+    /// The words of each scene of "The Storm" in its file, in their order: "2 3 1"
+    [[nodiscard]] std::string words() const { return wordsOf(pm.scenesOf(storm)); }
+
+    /// The title of scene @p scene of "The Storm"
+    [[nodiscard]] QString titleOf(int scene) const {
+        return pm.scenesOf(storm).at(scene).plot.title;
+    }
+};
+
+/// What is said under the board when a scene was to go to another text
+const QString& toAnotherText() {
+    static const QString TEXT = QStringLiteral(
+        "A scene moves to another text in the editor: cut it there and paste it in the other "
+        "text.");
+    return TEXT;
+}
 
 }  // namespace
 
@@ -549,20 +672,18 @@ TEST_CASE("Plot board: on its tab the keys move and edit the cards, and Ctrl+Z u
 TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in the outline",
           "[gui][plotboard][scenes]") {
     gui::registerAllIcons();
-    const KeptSetting view(PlotBoard::VIEW_SETTING);
-    const KeptSetting layout(PlotBoard::LAYOUT_SETTING);
-    const KeptSwitch scenes(PlotBoard::SCENES_SETTING);
+    StormBoard scenes;
     auto& settings = core::SettingsManager::getInstance();
-    settings.set<std::string>(PlotBoard::LAYOUT_SETTING, PlotBoard::LAYOUT_COLUMNS);
-    settings.set<bool>(PlotBoard::SCENES_SETTING, true);
-    PlotNovel book;
-    auto& pm = book.pm;
-    const QString& storm = book.storm;
-    pm.setChapterContent(storm, QString::fromLatin1(STORM_SCENES));
-    REQUIRE(pm.saveChapterContent(storm));
-    const QString first = PlotBoard::sceneId(storm, 0);
-    const QString night = PlotBoard::sceneId(storm, 1);
-    const QString last = PlotBoard::sceneId(storm, 2);
+    PlotNovel& book = scenes.book;
+    auto& pm = scenes.pm;
+    const QString& storm = scenes.storm;
+    const QString& first = scenes.first;
+    const QString& night = scenes.night;
+    const QString& last = scenes.last;
+    gui::PlotBoardCoordinator& boards = scenes.boards;
+    gui::PlotBoardPanel* panel = scenes.panel;
+    gui::PlotBoardView* board = scenes.board;
+    const auto plotOf = [&pm, &storm](int scene) { return pm.scenesOf(storm).at(scene).plot; };
 
     SECTION("a text with scene breaks has a card of each scene") {
         const PlotCard card = cardOf(storm);
@@ -603,16 +724,6 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
         CHECK(found);
     }
 
-    test::Window window;
-    gui::PlotBoardCoordinator boards{pm, window.tabs, &window.navigator, &window.statusBar,
-                                     [](bool /*keys*/) {}};
-    gui::PlotBoardPanel* panel =
-        boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_BOARD), true);
-    REQUIRE(panel != nullptr);
-    gui::PlotBoardView* board = panel->board();
-    REQUIRE(board->setCurrentCard(storm));
-    const auto plotOf = [&pm, &storm](int scene) { return pm.scenesOf(storm).at(scene).plot; };
-
     SECTION("in columns the scenes are under the card of their text, and the keys go to them") {
         CHECK(board->showsScenes());
         CHECK(board->cardRect(night).isValid());
@@ -622,13 +733,11 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
         press(board, Qt::Key_Down);
         CHECK(board->currentCard() == night);
         CHECK(board->spokenText(night).startsWith(QStringLiteral("Scene 2: Night. Draft.")));
-        // A scene moves in its text, in the editor
+        // A scene moves to another text in the editor
         press(board, Qt::Key_Right, Qt::ControlModifier);
-        CHECK(panel->message() ==
-              QStringLiteral("Scenes are moved, added and deleted in the text, in the editor."));
+        CHECK(panel->message() == toAnotherText());
         CHECK(boardOfBook() == "Chapter 1, The Storm | Part One: The Calm");
-        press(board, Qt::Key_Delete);
-        CHECK(pm.findElement(storm) != nullptr);
+        CHECK(scenes.words() == "2 3 1");
 
         // Scenes off: the scene chosen gives its place to its text
         settings.set<bool>(PlotBoard::SCENES_SETTING, false);
@@ -680,9 +789,16 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
 
         // The first scene keeps what it says in the .klh file
         QMenu* menu = panel->cardMenu(first);
-        CHECK_FALSE(actionOf(*menu, QStringLiteral("&New Card After It"))->isEnabled());
-        CHECK_FALSE(actionOf(*menu, QStringLiteral("Cu&t"))->isEnabled());
-        CHECK_FALSE(actionOf(*menu, QStringLiteral("&Delete from Book..."))->isEnabled());
+        const auto enabled = [menu](const char* text) {
+            const QAction* action = actionOf(*menu, QString::fromLatin1(text));
+            return action != nullptr && action->isEnabled();
+        };
+        CHECK(enabled("&New Scene After It"));
+        CHECK(enabled("New Scene &at the End of the Text"));
+        CHECK(enabled("Cu&t"));
+        CHECK(enabled("&Delete Scene..."));
+        CHECK(actionOf(*menu, QStringLiteral("&New Card After It")) == nullptr);
+        CHECK(actionOf(*menu, QStringLiteral("&Delete from Book...")) == nullptr);
         QAction* states = actionOf(*menu, QStringLiteral("&State"));
         REQUIRE(states != nullptr);
         QAction* finished = actionOf(*states->menu(), QStringLiteral("Final"));
@@ -735,7 +851,7 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
     SECTION("Enter opens the text at the scene, and the board changes the open text") {
         REQUIRE(board->setCurrentCard(last));
         press(board, Qt::Key_Return);
-        auto* text = qobject_cast<gui::EditorPanel*>(window.tabs->currentWidget());
+        auto* text = qobject_cast<gui::EditorPanel*>(scenes.window.tabs->currentWidget());
         REQUIRE(text != nullptr);
         CHECK(text->property("elementId").toString() == storm);
         editor::BookEditor* editor = text->getBookEditor();
@@ -775,5 +891,225 @@ TEST_CASE("Plot board: the scenes of a text under its card, in a drawer and in t
         CHECK(panel->message() ==
               QStringLiteral("The scene changed in the editor: the board cannot undo that."));
         CHECK_FALSE(boards.undoStack()->canUndo());
+    }
+}
+
+TEST_CASE("Plot board: the scenes of a text moved, added and deleted on the board",
+          "[gui][plotboard][scenes]") {
+    using gui::dialogs::MessageDialog;
+    gui::registerAllIcons();
+    StormBoard s;
+    auto& pm = s.pm;
+    const QString& storm = s.storm;
+    const QString& calm = s.book.calm;
+    gui::PlotBoardPanel* panel = s.panel;
+    gui::PlotBoardView* board = s.board;
+    const auto deleting = [board](MessageDialog::Answer answer, QString* asked = nullptr) {
+        return answering([board]() { press(board, Qt::Key_Delete); }, answer, asked);
+    };
+
+    SECTION("Ctrl+Up and Ctrl+Down move a scene among the scenes of its text, Ctrl+Z undoes it") {
+        REQUIRE(board->setCurrentCard(s.night));
+        CHECK(takesKey(board, Qt::Key_Up, Qt::ControlModifier));
+        press(board, Qt::Key_Up, Qt::ControlModifier);
+        CHECK(s.words() == "3 2 1");
+        // The first scene keeps what it says in the .klh file
+        CHECK(pm.findElement(storm)->plot.opening.title == QStringLiteral("Night"));
+        CHECK(s.titleOf(1).isEmpty());
+        CHECK(pm.chapterText(storm).startsWith(QStringLiteral("<kml><p>Three four five</p>")));
+        CHECK(board->currentCard() == s.first);
+        CHECK(panel->message() == QStringLiteral("\"Night\" moved."));
+        press(board, Qt::Key_Up, Qt::ControlModifier);
+        CHECK(panel->message() == QStringLiteral("\"Night\" is the first scene of its text."));
+        CHECK(s.words() == "3 2 1");
+
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+        CHECK(pm.findElement(storm)->plot.opening.title.isEmpty());
+        CHECK(s.titleOf(1) == QStringLiteral("Night"));
+        CHECK(panel->message() == QStringLiteral("Undone: moving \"Night\"."));
+        press(board, Qt::Key_Y, Qt::ControlModifier);
+        CHECK(s.words() == "3 2 1");
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+
+        // The last scene goes no further; dropped after a scene of its text, it is there
+        REQUIRE(board->setCurrentCard(s.last));
+        press(board, Qt::Key_Down, Qt::ControlModifier);
+        CHECK(panel->message() ==
+              QStringLiteral("\"The Storm, Scene 3\" is the last scene of its text."));
+        press(board, Qt::Key_Up, Qt::ControlModifier);
+        CHECK(s.words() == "2 1 3");
+        emit panel->dropBesideRequested(s.night, s.last, true);
+        CHECK(s.words() == "2 3 1");
+        CHECK(board->currentCard() == s.last);
+        // Beside a scene of another text, in the editor
+        emit panel->dropBesideRequested(s.night, calm, false);
+        CHECK(panel->message() == toAnotherText());
+        CHECK(s.words() == "2 3 1");
+
+        // In the drawer of a grid the scenes move left and right, up and down to other texts
+        core::SettingsManager::getInstance().set<std::string>(PlotBoard::LAYOUT_SETTING,
+                                                              PlotBoard::LAYOUT_GRID);
+        QCoreApplication::processEvents();
+        REQUIRE(board->setCurrentCard(s.night));
+        press(board, Qt::Key_Left, Qt::ControlModifier);
+        CHECK(s.words() == "3 2 1");
+        press(board, Qt::Key_Down, Qt::ControlModifier);
+        CHECK(panel->message() == toAnotherText());
+        CHECK(s.words() == "3 2 1");
+    }
+
+    SECTION("Insert adds a scene after the scene and edits its card, Alt+Insert one at the end") {
+        REQUIRE(board->setCurrentCard(s.night));
+        press(board, Qt::Key_Insert);
+        CHECK(s.words() == "2 3 0 1");
+        const QString added = PlotBoard::sceneId(storm, 2);
+        CHECK(board->currentCard() == added);
+        CHECK(panel->message() == QStringLiteral("Added a scene after \"Night\"."));
+        gui::PlotCardEditor* editor = board->cardEditor();
+        REQUIRE(editor != nullptr);
+        editor->titleEdit()->setText(QStringLiteral("Dawn"));
+        press(editor->titleEdit(), Qt::Key_Return, Qt::ControlModifier);
+        CHECK(s.titleOf(2) == QStringLiteral("Dawn"));
+        CHECK(s.titleOf(3).isEmpty());
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.titleOf(2).isEmpty());
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+        CHECK(panel->message() == QStringLiteral("Undone: adding a scene to \"The Storm\"."));
+
+        // Alt+Insert on the card of a text without scene breaks: its second scene
+        REQUIRE(board->setCurrentCard(calm));
+        CHECK(takesKey(board, Qt::Key_Insert, Qt::AltModifier));
+        press(board, Qt::Key_Insert, Qt::AltModifier);
+        CHECK(pm.scenesOf(calm).size() == 2);
+        CHECK(board->currentCard() == PlotBoard::sceneId(calm, 1));
+        CHECK(panel->message() == QStringLiteral("Added a scene at the end of \"The Calm\"."));
+        REQUIRE(board->cardEditor() != nullptr);
+        press(board->cardEditor()->titleEdit(), Qt::Key_Escape);
+        CHECK(board->cardEditor() == nullptr);
+        // From a scene: at the end of its text
+        REQUIRE(board->setCurrentCard(s.first));
+        press(board, Qt::Key_Insert, Qt::AltModifier);
+        CHECK(s.words() == "2 3 1 0");
+        CHECK(board->currentCard() == PlotBoard::sceneId(storm, 3));
+    }
+
+    SECTION("Delete asks whether to delete the scene with its text or its break only") {
+        REQUIRE(board->setCurrentCard(s.night));
+        QString asked;
+        CHECK(deleting(MessageDialog::Answer::Cancel, &asked));
+        CHECK(asked.contains(QStringLiteral("Delete the scene \"Night\" with its text?")));
+        CHECK(s.words() == "2 3 1");
+
+        CHECK(deleting(MessageDialog::Answer::Accept));
+        CHECK(s.words() == "2 1");
+        // The scene after it takes its place
+        CHECK(board->currentCard() == s.night);
+        CHECK(panel->message() == QStringLiteral("Deleted \"Night\"."));
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+        CHECK(s.titleOf(1) == QStringLiteral("Night"));
+
+        // Keep the Text: its text joins the scene before it
+        REQUIRE(board->setCurrentCard(s.night));
+        CHECK(deleting(MessageDialog::Answer::Alternative));
+        CHECK(s.words() == "5 1");
+        CHECK(board->currentCard() == s.first);
+        CHECK(panel->message() ==
+              QStringLiteral("\"Night\" is joined with the scene beside it."));
+        // The last break gone, the text has no scene cards
+        REQUIRE(board->setCurrentCard(s.night));
+        CHECK(deleting(MessageDialog::Answer::Alternative));
+        CHECK(s.words() == "6");
+        CHECK(board->currentCard() == storm);
+        CHECK(cardOf(storm).scenes.isEmpty());
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+
+        // The first scene deleted: the next one is the first and says what it said
+        REQUIRE(board->setCurrentCard(s.first));
+        CHECK(deleting(MessageDialog::Answer::Accept));
+        CHECK(s.words() == "3 1");
+        CHECK(pm.findElement(storm)->plot.opening.title == QStringLiteral("Night"));
+    }
+
+    SECTION("Ctrl+X and Ctrl+V move a scene after another scene of its text") {
+        REQUIRE(board->setCurrentCard(s.first));
+        press(board, Qt::Key_X, Qt::ControlModifier);
+        CHECK(board->markedCard() == s.first);
+        REQUIRE(board->setCurrentCard(s.last));
+        press(board, Qt::Key_V, Qt::ControlModifier);
+        CHECK(s.words() == "3 1 2");
+        CHECK(pm.findElement(storm)->plot.opening.title == QStringLiteral("Night"));
+        CHECK(board->markedCard().isEmpty());
+        CHECK(board->currentCard() == s.last);
+        // After the card of its text: its first scene
+        press(board, Qt::Key_X, Qt::ControlModifier);
+        REQUIRE(board->setCurrentCard(storm));
+        press(board, Qt::Key_V, Qt::ControlModifier);
+        CHECK(s.words() == "2 3 1");
+        CHECK(board->currentCard() == s.first);
+        // After another text: in the editor
+        REQUIRE(board->setCurrentCard(s.night));
+        press(board, Qt::Key_X, Qt::ControlModifier);
+        REQUIRE(board->setCurrentCard(calm));
+        press(board, Qt::Key_V, Qt::ControlModifier);
+        CHECK(panel->message() == toAnotherText());
+        CHECK(s.words() == "2 3 1");
+    }
+
+    SECTION("a scene of an open text moves in its editor, to be saved with the text") {
+        press(board, Qt::Key_Return);
+        auto* text = qobject_cast<gui::EditorPanel*>(s.window.tabs->currentWidget());
+        REQUIRE(text != nullptr);
+        editor::BookEditor* editor = text->getBookEditor();
+        REQUIRE(editor != nullptr);
+        REQUIRE(s.boards.openBoard(QString(), true) == panel);
+        const QByteArray saved = s.book.novel.chapterFile();
+        const auto edited = [editor]() {
+            return wordsOf(core::ChapterDocument::kmlScenes(editor->toKml()));
+        };
+
+        REQUIRE(board->setCurrentCard(s.last));
+        press(board, Qt::Key_Up, Qt::ControlModifier);
+        CHECK(edited() == "2 1 3");
+        CHECK(shownWords(*board, storm) == "2 1 3");
+        CHECK(editor->isModified());
+        CHECK(s.book.novel.chapterFile() == saved);
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(edited() == "2 3 1");
+        CHECK(shownWords(*board, storm) == "2 3 1");
+
+        // Deleted on the board, Ctrl+Z of the editor brings it back
+        REQUIRE(board->setCurrentCard(s.night));
+        CHECK(deleting(MessageDialog::Answer::Accept));
+        CHECK(edited() == "2 1");
+        editor->undo();
+        CHECK(edited() == "2 3 1");
+        // The board cannot undo it then
+        press(board, Qt::Key_Z, Qt::ControlModifier);
+        CHECK(edited() == "2 3 1");
+        CHECK(s.book.novel.chapterFile() == saved);
+    }
+
+    SECTION("the outline adds and deletes the scenes with the keys of the board") {
+        REQUIRE(s.boards.openBoard(QString::fromLatin1(PlotBoard::VIEW_OUTLINE), true) == panel);
+        QTableView* outline = panel->outline();
+        gui::PlotOutlineModel* model = panel->outlineModel();
+        outline->setCurrentIndex(
+            model->index(model->rowOf(s.night), gui::PlotOutlineModel::TitleColumn));
+        CHECK(takesKey(outline, Qt::Key_Insert, Qt::AltModifier));
+        press(outline, Qt::Key_Insert, Qt::AltModifier);
+        CHECK(s.words() == "2 3 1 0");
+        CHECK(model->rowOf(PlotBoard::sceneId(storm, 3)) >= 0);
+        QCoreApplication::processEvents();
+        outline->setCurrentIndex(
+            model->index(model->rowOf(s.night), gui::PlotOutlineModel::TitleColumn));
+        CHECK(answering([outline]() { press(outline, Qt::Key_Delete); },
+                        MessageDialog::Answer::Accept));
+        CHECK(s.words() == "2 1 0");
     }
 }

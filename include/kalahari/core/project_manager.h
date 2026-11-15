@@ -749,6 +749,15 @@ public:
     ///         file does not have (setChapterContent()), or a file cannot be written
     bool setScenePlot(const QString& elementId, int scene, const ScenePlot& plot);
 
+    /// @brief Give text element @p elementId of a book the text and the first scene of
+    /// @p text: its scenes moved, added or deleted (ChapterDocument::withSceneMoved()...); the
+    /// text goes to its chapter file at once, the first scene to the .klh file
+    ///
+    /// The text of an open editor changes there (editor::BookEditor::replaceWithKml()).
+    /// @return false when the project has no such text, the text has changes its file does
+    ///         not have (setChapterContent()), or a file cannot be written
+    bool setSceneText(const QString& elementId, const SceneText& text);
+
     /// @brief Give element @p elementId the writer's own fields @p fields, in this order, and
     /// save the .klh file
     /// @return false when the project has no such element or the file cannot be written; the

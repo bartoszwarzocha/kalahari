@@ -140,11 +140,14 @@ PlotBoardPanel::PlotBoardPanel(QWidget* parent) : QWidget(parent) {
     connect(m_board, &PlotBoardView::editRequested, this, &PlotBoardPanel::editCard);
     connect(m_board, &PlotBoardView::editFinished, this, &PlotBoardPanel::editFinished);
     connect(m_board, &PlotBoardView::moveRequested, this, &PlotBoardPanel::moveRequested);
+    connect(m_board, &PlotBoardView::moveToTextRequested, this,
+            &PlotBoardPanel::moveToTextRequested);
     connect(m_board, &PlotBoardView::dropBesideRequested, this,
             &PlotBoardPanel::dropBesideRequested);
     connect(m_board, &PlotBoardView::dropInPartRequested, this,
             &PlotBoardPanel::dropInPartRequested);
     connect(m_board, &PlotBoardView::addRequested, this, &PlotBoardPanel::addRequested);
+    connect(m_board, &PlotBoardView::addSceneRequested, this, &PlotBoardPanel::addSceneRequested);
     connect(m_board, &PlotBoardView::deleteRequested, this, &PlotBoardPanel::deleteRequested);
     connect(m_board, &PlotBoardView::cutRequested, this, &PlotBoardPanel::cutRequested);
     connect(m_board, &PlotBoardView::pasteRequested, this, &PlotBoardPanel::pasteRequested);
@@ -524,8 +527,7 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
     const std::optional<PlotCard> found = card(elementId);
     const bool shown = found.has_value();
     const bool changing = shown && !m_readOnly;
-    // A scene is moved, added and deleted in its text, in the editor
-    const bool text = !shown || !found->isScene();
+    const bool scene = shown && found->isScene();
     const auto add = [this](const QString& text, const QString& keys, bool enabled,
                             const std::function<void()>& run) {
         QAction* action = m_menu->addAction(text);
@@ -544,19 +546,23 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
     //: In Polish: &Edytuj kartę
     add(tr("&Edit Card"), QStringLiteral("F2"), changing,
         [this, elementId]() { editCard(elementId); });
-    //: A new text of the same kind right after the card. In Polish: &Nowa karta za nią
-    add(tr("&New Card After It"), QStringLiteral("Ins"), !m_readOnly && text, [this, elementId]() {
-        emit addRequested(elementId);
-    });
+    add(scene
+            //: A new scene right after the card of a scene. In Polish: &Nowa scena za nią
+            ? tr("&New Scene After It")
+            //: A new text of the same kind right after the card. In Polish: &Nowa karta za nią
+            : tr("&New Card After It"),
+        QStringLiteral("Ins"), !m_readOnly, [this, elementId]() { emit addRequested(elementId); });
+    //: A new scene at the end of the text of the card. In Polish: Nowa scena n&a końcu tekstu
+    add(tr("New Scene &at the End of the Text"), QStringLiteral("Alt+Ins"), changing,
+        [this, elementId]() { emit addSceneRequested(elementId); });
     m_menu->addSeparator();
     //: In Polish: Wy&tnij
-    add(tr("Cu&t"), QStringLiteral("Ctrl+X"), changing && text, [this, elementId]() {
+    add(tr("Cu&t"), QStringLiteral("Ctrl+X"), changing, [this, elementId]() {
         emit cutRequested(elementId);
     });
     //: In Polish: Wklej &za nią
     add(tr("&Paste After It"), QStringLiteral("Ctrl+V"),
-        changing && text && !m_board->markedCard().isEmpty() &&
-            m_board->markedCard() != elementId,
+        changing && !m_board->markedCard().isEmpty() && m_board->markedCard() != elementId,
         [this, elementId]() { emit pasteRequested(elementId); });
     m_menu->addSeparator();
 
@@ -600,10 +606,12 @@ QMenu* PlotBoardPanel::cardMenu(const QString& elementId) {
         });
     }
     m_menu->addSeparator();
-    //: In Polish: &Usuń z książki…
-    add(tr("&Delete from Book..."), QStringLiteral("Del"), changing && text, [this, elementId]() {
-        emit deleteRequested(elementId);
-    });
+    add(scene
+            //: The menu of the card of a scene. In Polish: &Usuń scenę…
+            ? tr("&Delete Scene...")
+            //: In Polish: &Usuń z książki…
+            : tr("&Delete from Book..."),
+        QStringLiteral("Del"), changing, [this, elementId]() { emit deleteRequested(elementId); });
     //: In Polish: &Właściwości
     add(tr("P&roperties"), QStringLiteral("Alt+Return"), shown, [this, elementId]() {
         emit propertiesRequested(elementId);
@@ -663,8 +671,10 @@ bool PlotBoardPanel::outlineKey(const QKeyEvent* key, bool run) {
     case Qt::Key_Insert:
         if (plain && run && !m_readOnly) {
             emit addRequested(id);
+        } else if (modifiers == Qt::AltModifier && run && changing) {
+            emit addSceneRequested(id);
         }
-        return plain;
+        return plain || modifiers == Qt::AltModifier;
     case Qt::Key_Delete:
         if (plain && run && changing) {
             emit deleteRequested(id);

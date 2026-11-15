@@ -1984,6 +1984,50 @@ TEST_CASE("ProjectManager gives the scenes of a text and keeps what they say",
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager takes a text with its scenes moved, added or deleted",
+          "[project_manager][plot][scenes]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    REQUIRE(pm.createProject(dir.path(), "Moves", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QString chapter =
+        pm.addElement(pm.chapterKindFor(BookPlace::Main), "Chapter 1", BookPlace::Main);
+    REQUIRE_FALSE(chapter.isEmpty());
+    pm.setChapterContent(chapter, "<kml><p>One two</p><scene-break title=\"Night\"/>"
+                                  "<p>Three four five</p></kml>");
+    REQUIRE(pm.saveChapterContent(chapter));
+    ScenePlot opening;
+    opening.title = "Evening";
+    REQUIRE(pm.setScenePlot(chapter, 0, opening));
+
+    const SceneText text{pm.chapterText(chapter), pm.findElement(chapter)->plot.opening};
+    const std::optional<SceneText> moved = ChapterDocument::withSceneMoved(text, 1, 0);
+    REQUIRE(moved.has_value());
+    REQUIRE(pm.setSceneText(chapter, *moved));
+    CHECK(pm.chapterText(chapter) == moved->kml);
+    CHECK(pm.findElement(chapter)->plot.opening.title == "Night");
+    QList<KmlScene> scenes = pm.scenesOf(chapter);
+    REQUIRE(scenes.size() == 2);
+    CHECK(scenes.at(0).words.words == 3);
+    CHECK(scenes.at(1).plot.title == "Evening");
+    CHECK(pm.wordCount(chapter) == 5);
+
+    // A text with changes its file does not have keeps them
+    pm.setChapterContent(chapter, "<kml><p>Changed</p></kml>");
+    CHECK_FALSE(pm.setSceneText(chapter, text));
+    pm.discardChapterContent(chapter);
+    CHECK_FALSE(pm.setSceneText("nothing", text));
+
+    // Read again with the book
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    scenes = pm.scenesOf(chapter);
+    REQUIRE(scenes.size() == 2);
+    CHECK(scenes.at(0).plot.title == "Night");
+    CHECK(scenes.at(1).plot.title == "Evening");
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps how a material is linked, and a link follows its paragraph",
           "[project_manager][links]") {
     QTemporaryDir dir;

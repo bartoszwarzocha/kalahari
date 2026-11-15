@@ -10588,14 +10588,92 @@ Szczegóły są w dzienniku programu.</translation>
         <translation>%1, %2</translation>
     </message>
     <message>
-        <source>Scenes are moved, added and deleted in the text, in the editor.</source>
-        <extracomment>Under the plot board after a scene card was to be moved, added, cut or deleted. In Polish: Sceny przenosi się, dodaje i usuwa w tekście, w edytorze.</extracomment>
-        <translation>Sceny przenosi się, dodaje i usuwa w tekście, w edytorze.</translation>
-    </message>
-    <message>
         <source>The scene changed in the editor: the board cannot undo that.</source>
         <extracomment>Under the plot board after Ctrl+Z or Ctrl+Y on a scene changed in the editor since. In Polish: Scena zmieniła się w edytorze: tablica tego nie cofnie.</extracomment>
         <translation>Scena zmieniła się w edytorze: tablica tego nie cofnie.</translation>
+    </message>
+    <message>
+        <source>A scene moves to another text in the editor: cut it there and paste it in the other text.</source>
+        <extracomment>Under the plot board after a scene was to be moved to another text. In Polish: Scenę do innego tekstu przenosi się w edytorze: wytnij ją tam i wklej w tamtym tekście.</extracomment>
+        <translation>Scenę do innego tekstu przenosi się w edytorze: wytnij ją tam i wklej w tamtym tekście.</translation>
+    </message>
+    <message>
+        <source>Added a scene after &quot;%1&quot;.</source>
+        <extracomment>Under the plot board after Insert on a scene; %1 the scene. In Polish: Dodano scenę za „%1”.</extracomment>
+        <translation>Dodano scenę za „%1”.</translation>
+    </message>
+    <message>
+        <source>Added a scene at the end of &quot;%1&quot;.</source>
+        <extracomment>Under the plot board after Alt+Insert; %1 the title of the text. In Polish: Dodano scenę na końcu „%1”.</extracomment>
+        <translation>Dodano scenę na końcu „%1”.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the first scene of its text.</source>
+        <extracomment>Under the plot board: a scene at the start of its text moved back; %1 the scene. In Polish: „%1” to pierwsza scena tekstu.</extracomment>
+        <translation>„%1” to pierwsza scena tekstu.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is the last scene of its text.</source>
+        <extracomment>In Polish: „%1” to ostatnia scena tekstu.</extracomment>
+        <translation>„%1” to ostatnia scena tekstu.</translation>
+    </message>
+    <message>
+        <source>adding a scene to &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;; %1 the title of the text. In Polish: dodanie sceny do „%1”</extracomment>
+        <translation>dodanie sceny do „%1”</translation>
+    </message>
+    <message>
+        <source>Delete Scene</source>
+        <extracomment>The title of the question. In Polish: Usuń scenę</extracomment>
+        <translation>Usuń scenę</translation>
+    </message>
+    <message>
+        <source>Delete the scene &quot;%1&quot; with its text? Ctrl+Z on the board brings it back.
+
+Keep the Text removes only the scene break: the next scene joins this one.</source>
+        <extracomment>%1 the scene. In Polish: Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na tablicy ją przywróci. (new paragraph) Zachowaj tekst usuwa tylko podział sceny: następna scena dołączy do tej.</extracomment>
+        <translation>Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na tablicy ją przywróci.
+
+Zachowaj tekst usuwa tylko podział sceny: następna scena dołączy do tej.</translation>
+    </message>
+    <message>
+        <source>Delete the scene &quot;%1&quot; with its text? Ctrl+Z on the board brings it back.
+
+Keep the Text removes only the scene break: its text joins the scene before it.</source>
+        <extracomment>%1 the scene. In Polish: Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na tablicy ją przywróci. (new paragraph) Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sceny.</extracomment>
+        <translation>Usunąć scenę „%1” razem z jej tekstem? Ctrl+Z na tablicy ją przywróci.
+
+Zachowaj tekst usuwa tylko podział sceny: jej tekst dołączy do poprzedniej sceny.</translation>
+    </message>
+    <message>
+        <source>&amp;Delete with Text</source>
+        <extracomment>In Polish: &amp;Usuń z tekstem</extracomment>
+        <translation>&amp;Usuń z tekstem</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the Text</source>
+        <extracomment>In Polish: &amp;Zachowaj tekst</extracomment>
+        <translation>&amp;Zachowaj tekst</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is joined with the scene beside it.</source>
+        <extracomment>Under the plot board; %1 the scene. In Polish: „%1” połączono ze sceną obok.</extracomment>
+        <translation>„%1” połączono ze sceną obok.</translation>
+    </message>
+    <message>
+        <source>Deleted &quot;%1&quot;.</source>
+        <extracomment>Under the plot board; %1 the scene. In Polish: Usunięto „%1”.</extracomment>
+        <translation>Usunięto „%1”.</translation>
+    </message>
+    <message>
+        <source>joining &quot;%1&quot;</source>
+        <extracomment>What Undo undoes on the plot board, after &quot;Undone:&quot;. In Polish: połączenie „%1”</extracomment>
+        <translation>połączenie „%1”</translation>
+    </message>
+    <message>
+        <source>deleting &quot;%1&quot;</source>
+        <extracomment>In Polish: usunięcie „%1”</extracomment>
+        <translation>usunięcie „%1”</translation>
     </message>
 </context>
 <context>
@@ -10741,6 +10819,21 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <source>The scenes of the texts: under their cards, in the drawers of the grid and in rows of the outline</source>
         <extracomment>In Polish: Sceny tekstów: pod ich kartami, w szufladach siatki i w wierszach konspektu</extracomment>
         <translation>Sceny tekstów: pod ich kartami, w szufladach siatki i w wierszach konspektu</translation>
+    </message>
+    <message>
+        <source>&amp;New Scene After It</source>
+        <extracomment>A new scene right after the card of a scene. In Polish: &amp;Nowa scena za nią</extracomment>
+        <translation>&amp;Nowa scena za nią</translation>
+    </message>
+    <message>
+        <source>New Scene &amp;at the End of the Text</source>
+        <extracomment>A new scene at the end of the text of the card. In Polish: Nowa scena n&amp;a końcu tekstu</extracomment>
+        <translation>Nowa scena n&amp;a końcu tekstu</translation>
+    </message>
+    <message>
+        <source>&amp;Delete Scene...</source>
+        <extracomment>The menu of the card of a scene. In Polish: &amp;Usuń scenę…</extracomment>
+        <translation>&amp;Usuń scenę…</translation>
     </message>
 </context>
 <context>

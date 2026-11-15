@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   kept in the attributes of its scene break (`<scene-break title="..." pov="..."/>`), of the
   first scene in the `.klh` file (`"plot"` / `"opening"`); an open text takes the change in its
   editor, to be saved with it.
+- **Scenes moved, added and deleted on the plot board** - 2026-11-15. A scene moves among the
+  scenes of its text with Ctrl and Up or Down in Columns, Left or Right in the drawer of Grid,
+  with Ctrl+X and Ctrl+V or the mouse; Insert adds a scene after it, Alt+Insert one at the end
+  of the text (a text without breaks gets its second scene), Delete asks whether to delete the
+  scene with its text or its break only (its text joins the scene before it). The new scene's
+  card is edited at once; Ctrl+Z undoes each of these. An open text takes the change in its
+  editor, as one step of its own Ctrl+Z. A scene moves to another text in the editor, with Cut
+  and Paste.
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

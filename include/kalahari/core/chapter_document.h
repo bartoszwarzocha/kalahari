@@ -62,6 +62,15 @@ struct KmlScene {
     bool operator==(const KmlScene&) const = default;
 };
 
+/// @brief A text and what its first scene says: what changes when the plot board moves, adds
+///        or deletes a scene of the text
+struct SceneText {
+    QString kml;        ///< The text (KML)
+    ScenePlot opening;  ///< Its first scene (ElementPlot::opening, in the .klh file)
+
+    bool operator==(const SceneText&) const = default;
+};
+
 /// @brief Chapter document with JSON+KML storage
 ///
 /// Provides rich metadata, statistics auto-calculation, and disaster
@@ -265,6 +274,29 @@ public:
     ///        @p plot of it; the rest of the text as it was
     /// @return Empty when the text has no such break
     static QString withScenePlot(const QString& kml, int scene, const ScenePlot& plot);
+
+    /// @name The scenes of a text moved, added and deleted
+    /// A scene goes with its text and what it says: the first scene of the text has no break,
+    /// and what it says is SceneText::opening, so what comes first takes its break off and
+    /// gives what it says to opening, and what was first gets a break. The annotations of the
+    /// text and the headings at its start stay at its start.
+    /// @return nullopt for a KML that cannot be read, and for a scene the text does not have
+    /// @{
+
+    /// @brief @p text with scene @p from at place @p to of its scenes without it (from 0)
+    static std::optional<SceneText> withSceneMoved(const SceneText& text, int from, int to);
+
+    /// @brief @p text with a new scene with an empty paragraph at place @p at of its scenes
+    ///        (0: the first, the number of its scenes: the last)
+    static std::optional<SceneText> withSceneAdded(const SceneText& text, int at);
+
+    /// @brief @p text without scene @p scene: with its text, or (@p keepText) without its
+    ///        break, its text joined to the scene before it (the first scene: the next one
+    ///        joined to it), what the break said lost
+    /// @return nullopt also for a text of one scene
+    static std::optional<SceneText> withoutScene(const SceneText& text, int scene,
+                                                 bool keepText);
+    /// @}
 
 private:
     /// @brief Recalculate statistics from current content

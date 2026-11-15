@@ -9,6 +9,7 @@
 #define KALAHARI_GUI_PLOT_BOARD_COORDINATOR_H
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/chapter_document.h"
 
 #include <QHash>
 #include <QObject>
@@ -56,6 +57,11 @@ struct PlotCardEdit;
 /// of an open text (to be saved with the text), else to its file, and of the first scene to
 /// the .klh file (core::ProjectManager::setScenePlot()). Enter on a scene opens its text at the
 /// scene; a scene changed in the editor since is not undone on the board.
+///
+/// A scene moves among the scenes of its text, a new one comes after a scene or at the end of
+/// a text, and one is deleted with its text or with its break only: the text changes at once,
+/// in its editor when it is open (one step of its Ctrl+Z), and one Ctrl+Z on the board undoes
+/// it. A scene moves to another text in the editor: its annotations and notes go with it.
 class PlotBoardCoordinator : public QObject {
     Q_OBJECT
 
@@ -92,7 +98,7 @@ public:
     /// @brief What can be undone and done again on the board
     [[nodiscard]] QUndoStack* undoStack() const { return m_undo; }
 
-    /// @brief The text marked to move (Ctrl+X); empty: none
+    /// @brief The card marked to move (Ctrl+X), a text or a scene; empty: none
     [[nodiscard]] QString markedCard() const { return m_marked; }
 
 public slots:
@@ -125,9 +131,11 @@ private:
     void setStatus(const QString& elementId, const QString& status);
     void setColor(const QString& elementId, const QString& color);
     void move(const QString& elementId, int steps);
+    void moveToText(const QString& cardId, int direction);
     void dropBeside(const QString& elementId, const QString& anchorId, bool after);
     void dropInPart(const QString& elementId, const QString& partId);
     void add(const QString& afterId);
+    void addScene(const QString& cardId);
     void remove(const QString& elementId);
     void cut(const QString& elementId);
     void paste(const QString& afterId);
@@ -152,8 +160,30 @@ private:
     /// nullopt: the text has no such scene
     [[nodiscard]] std::optional<core::ScenePlot> scenePlotOf(const QString& textId,
                                                              int scene) const;
-    /// @brief Tell the writer that a scene is moved, added and deleted in the editor
+    /// @brief Tell the writer that a scene moves to another text in the editor
     void sceneInEditor();
+    /// @brief Move scene @p from of text @p textId to place @p to of its scenes without it
+    void moveScene(const QString& textId, int from, int to);
+    /// @brief Add a scene at place @p at of the scenes of text @p textId and edit its card;
+    /// @p message says where it is
+    void addSceneAt(const QString& textId, int at, const QString& message);
+    /// @brief Ask whether to delete scene @p scene of text @p textId with its text or its break
+    /// only, and do it
+    void removeScene(const QString& textId, int scene);
+    /// @brief Give text @p textId @p wanted, remember it to be undone and choose card
+    /// @p cardId; @p message says what was done
+    void changeScenes(const QString& textId, const core::SceneText& wanted,
+                      const QString& cardId, const QString& message, const QString& undoText);
+    /// @brief Give text @p textId @p wanted when it is still @p expected: in its editor when it
+    /// is open, else in the book; @p now gets what it is then
+    /// @return false when it is something else now (m_changedElsewhere), or the book could not
+    ///         take the change
+    bool replaceSceneText(const QString& textId, const core::SceneText& expected,
+                          const core::SceneText& wanted, core::SceneText* now);
+    /// @brief Text @p textId and its first scene as they are now, also in its open editor
+    [[nodiscard]] std::optional<core::SceneText> sceneTextOf(const QString& textId) const;
+    /// @brief How many scenes text @p textId has now
+    [[nodiscard]] int sceneCount(const QString& textId) const;
     /// @brief The KML of the open texts with changes not saved, by the ids of their elements
     [[nodiscard]] QHash<QString, QString> unsavedTexts() const;
     /// @brief The editor of text @p elementId open in a tab; nullptr: none
@@ -197,7 +227,7 @@ private:
     PlotBoardPanel* m_panel = nullptr;  ///< The board on its tab; none once it is deleted
     QUndoStack* m_undo = nullptr;
     QTimer* m_refreshTimer = nullptr;
-    QString m_marked;     ///< The text marked to move (Ctrl+X)
+    QString m_marked;     ///< The card marked to move (Ctrl+X): a text or a scene
     bool m_stale = false;  ///< The board behind another tab missed a change of the book
     int m_ownChanges = 0;  ///< > 0 while the board changes the book itself
     bool m_changedElsewhere = false;  ///< The scene undone last was changed in the editor

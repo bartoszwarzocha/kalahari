@@ -1027,7 +1027,7 @@ PlotBoardView::Key PlotBoardView::keyOf(const QKeyEvent* event) const {
     case Qt::Key_F2:
         return plain ? Key::Edit : Key::None;
     case Qt::Key_Insert:
-        return plain ? Key::Add : Key::None;
+        return plain ? Key::Add : modifiers == Qt::AltModifier ? Key::AddScene : Key::None;
     case Qt::Key_Delete:
         return plain ? Key::Delete : Key::None;
     case Qt::Key_X:
@@ -1081,19 +1081,32 @@ void PlotBoardView::doKey(Key key) {
     }
     case Key::MoveBack:
     case Key::MoveForward:
-        if (changing) {
+        // A scene in columns: to the text beside
+        if (changing && m_arrangement == Arrangement::Columns && PlotBoard::sceneOf(m_current)) {
+            emit moveToTextRequested(m_current, key == Key::MoveBack ? -1 : 1);
+        } else if (changing) {
             emit moveRequested(m_current, key == Key::MoveBack ? -1 : 1);
         }
         break;
     case Key::MoveUp:
-    case Key::MoveDown:
-        // In a grid a text by a row; in columns the scenes of a text are under it
-        if (changing && m_arrangement == Arrangement::Grid && !PlotBoard::sceneOf(m_current)) {
-            emit moveRequested(m_current, key == Key::MoveUp ? -cardsPerRow() : cardsPerRow());
-        } else if (changing && PlotBoard::sceneOf(m_current)) {
-            emit moveRequested(m_current, key == Key::MoveUp ? -1 : 1);
+    case Key::MoveDown: {
+        // In columns the scenes of a text are under it; in a grid a text moves by a row, and a
+        // scene of a drawer to the text above or below
+        const int direction = key == Key::MoveUp ? -1 : 1;
+        if (!changing) {
+            break;
+        }
+        if (!PlotBoard::sceneOf(m_current)) {
+            if (m_arrangement == Arrangement::Grid) {
+                emit moveRequested(m_current, direction * cardsPerRow());
+            }
+        } else if (m_arrangement == Arrangement::Columns) {
+            emit moveRequested(m_current, direction);
+        } else {
+            emit moveToTextRequested(m_current, direction);
         }
         break;
+    }
     case Key::Scenes: {
         // The drawer of the text of the card, or of the scene
         const auto scene = PlotBoard::sceneOf(m_current);
@@ -1113,6 +1126,11 @@ void PlotBoardView::doKey(Key key) {
     case Key::Add:
         if (!m_readOnly) {
             emit addRequested(m_current);
+        }
+        break;
+    case Key::AddScene:
+        if (changing) {
+            emit addSceneRequested(m_current);
         }
         break;
     case Key::Delete:
@@ -1179,8 +1197,7 @@ void PlotBoardView::mousePressEvent(QMouseEvent* event) {
     if (place != nullptr) {
         choose(place->id);
     }
-    // A scene moves with its text in the editor
-    if (event->button() == Qt::LeftButton && place != nullptr && place->scene < 0) {
+    if (event->button() == Qt::LeftButton && place != nullptr) {
         m_pressed = place->id;
         m_pressPos = event->position().toPoint();
     }
@@ -1245,6 +1262,9 @@ void PlotBoardView::startDrag() {
 PlotBoardView::DropTarget PlotBoardView::dropTargetAt(const QPoint& pos,
                                                       const QString& dragged) const {
     DropTarget target;
+    if (const auto scene = PlotBoard::sceneOf(dragged)) {
+        return sceneDropTargetAt(pos, dragged, scene->first);
+    }
     // Before or after the card under the mouse, or the nearest card of its row
     for (const CardPlace& place : m_cards) {
         const QRect near = place.rect.adjusted(-GAP / 2 - 1, -GAP / 2, GAP / 2 + 1, GAP / 2);
@@ -1282,6 +1302,37 @@ PlotBoardView::DropTarget PlotBoardView::dropTargetAt(const QPoint& pos,
                                   place->rect.height());
             return target;
         }
+    }
+    return target;
+}
+
+PlotBoardView::DropTarget PlotBoardView::sceneDropTargetAt(const QPoint& pos,
+                                                           const QString& dragged,
+                                                           const QString& textId) const {
+    // Before or after a scene of the same text: in columns above or below it, in a drawer on
+    // its left or right
+    DropTarget target;
+    const bool columns = m_arrangement == Arrangement::Columns;
+    for (const CardPlace& place : m_cards) {
+        const QRect near = place.rect.adjusted(-GAP / 2 - 1, -GAP / 2, GAP / 2 + 1, GAP / 2);
+        if (place.scene < 0 || !near.contains(pos)) {
+            continue;
+        }
+        const auto scene = PlotBoard::sceneOf(place.id);
+        if (place.id == dragged || !scene || scene->first != textId) {
+            return target;
+        }
+        target.anchorId = place.id;
+        if (columns) {
+            target.after = pos.y() > place.rect.center().y();
+            const int y = target.after ? place.rect.bottom() + GAP / 2 : place.rect.top() - GAP / 2;
+            target.marker = QRect(place.rect.left(), y - 1, place.rect.width(), 3);
+        } else {
+            target.after = pos.x() > place.rect.center().x();
+            const int x = target.after ? place.rect.right() + GAP / 2 : place.rect.left() - GAP / 2;
+            target.marker = QRect(x - 1, place.rect.top(), 3, place.rect.height());
+        }
+        return target;
     }
     return target;
 }

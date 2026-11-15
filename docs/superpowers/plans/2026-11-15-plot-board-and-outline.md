@@ -10,7 +10,7 @@ The texts of the book (chapters, prologue, epilogue) as cards with a short descr
 board, and the same texts in a table (the outline): description, point of view, place and time of the
 action, words, state. Everything works from the keyboard, in both themes, in the program's own windows.
 
-## Stage 1 – the board of the texts and the outline (this branch)
+## Stage 1 – the board of the texts and the outline (done)
 
 - **Data** (`core/book_project`): a text keeps its short description (`ProjectElement::description`) and
   its plot (`ElementPlot`: `pov`, `place`, `time`, `color`, unknown fields kept) in the `.klh` file under
@@ -45,9 +45,9 @@ action, words, state. Everything works from the keyboard, in both themes, in the
 
 Scenes from the scene breaks of the texts (variant C by default): the cards of the scenes under the card
 of their chapter, a scene moved with its text, planned scenes added on the board; variants A and B in
-Settings. Three pull requests:
+Settings. Three steps, each a commit of the one pull request of the board:
 
-### 2a – the scenes of the texts on the board (this branch)
+### 2a – the scenes of the texts on the board (done)
 
 - **A scene** is the text of a chapter from its start or from a scene break (`<scene-break/>`, at the
   level of the paragraphs) to the next break. A text without breaks is one scene and has no cards of
@@ -70,15 +70,26 @@ Settings. Three pull requests:
   its title, description, point of view, place and time. The arrows go through the scenes; F2 edits a
   scene, Enter opens its text at the scene, the menu gives it a state and a color, Ctrl+Z undoes it.
 - **The outline**: the scenes as rows under their text, edited in the cells.
-- Until 2b a scene card moved, added, cut or deleted says that scenes are moved, added and deleted in
-  the text, in the editor; Ctrl+V on a scene card puts the text marked after its text.
+- Until 2b a scene card moved, added, cut or deleted said that scenes are moved, added and deleted in
+  the text, in the editor; Ctrl+V on a scene card put the text marked after its text.
 
-### 2b – scenes moved and added
+### 2b – scenes moved and added (done)
 
-Ctrl+Up and Ctrl+Down (Columns) or Ctrl+Left and Ctrl+Right (the drawer) move a scene with its text, also
-to the next or the previous text; Ctrl+X and Ctrl+V and the mouse too; Insert adds a scene break after
-the scene, Alt+Insert a scene at the end of the text; Delete asks "Delete Scene". One undo step on the
-board.
+Ctrl+Up and Ctrl+Down (Columns) or Ctrl+Left and Ctrl+Right (the drawer) move a scene with its text
+among the scenes of its text; Ctrl+X and Ctrl+V and the mouse too; Insert adds a scene break after the
+scene, Alt+Insert a scene at the end of the text; Delete asks "Delete Scene": with its text, or the
+break only (Keep the Text: its text joins the scene before it). One undo step on the board.
+
+- **The book** (`core`): `ChapterDocument::withSceneMoved()`, `withSceneAdded()` and `withoutScene()`
+  take and give a `SceneText` (the KML and the first scene): the first scene goes to the `.klh` file
+  when another one takes its place. `ProjectManager::setSceneText()` writes a closed text and its first
+  scene.
+- **An open text** changes in its editor (`BookEditor::replaceWithKml()`, one step of its Ctrl+Z), to
+  be saved with it; a text changed in the editor since is not undone on the board.
+- **To another text** a scene moves in the editor for now: the board says so (Ctrl with the arrows
+  across the texts, the mouse, Ctrl+V after another text). The annotations of a scene are kept with
+  its text, and a move across two texts, one open and one closed, needs one undo step of both; that
+  comes with 2c.
 
 ### 2c – scenes in the plan
 

@@ -1637,7 +1637,10 @@ may have them too.
   key or Shift+F10 – its menu. The cards of the scenes of a text (Scenes over the board) are
   under its card in Columns, and in a drawer under its row in Grid, which Space opens and
   closes; the arrows go to them, Enter opens the text at the scene, F2, the state and the
-  color change the scene. In the outline (Book > Outline) the same keys where a table allows
+  color change the scene; Ctrl with Up and Down in Columns, with Left and Right in the drawer
+  – move the scene among the scenes of its text (Ctrl+X and Ctrl+V, the mouse too), Insert –
+  a new scene after it, Alt+Insert – a new scene at the end of the text (also on the card of
+  a text), Delete – delete it with its text or its break only. In the outline (Book > Outline) the same keys where a table allows
   them; F2 or typing edits a cell (in the board and the outline only, before the commands
   with these keys).
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –
