@@ -1198,6 +1198,7 @@ void PropertiesPanel::onProjectAuthorChanged() {
     logger.info("PropertiesPanel: Project author changed to: {}", newAuthor.toStdString());
     book->author = newAuthor;
     pm.setDirty(true);
+    emit bookChanged();  // the fields of the author show the new one
 }
 
 void PropertiesPanel::onProjectLanguageChanged(int index) {
