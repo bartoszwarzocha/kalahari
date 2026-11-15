@@ -265,13 +265,15 @@ void press(QWidget* widget, Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::N
 
 /// The shortcut of the page with the keys
 QShortcut* shortcut(const QWidget& page, QKeyCombination keys) {
+    QShortcut* found = nullptr;
     for (QShortcut* each : page.findChildren<QShortcut*>()) {
         if (each->key() == QKeySequence(keys)) {
-            return each;
+            found = each;
+            break;
         }
     }
-    FAIL("No shortcut with the keys");
-    return nullptr;
+    REQUIRE(found != nullptr);
+    return found;
 }
 
 /// Write @p text in place of the text of @p field, as the writer does
