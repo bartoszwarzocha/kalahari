@@ -558,6 +558,10 @@ private:
     /// @brief The group Sources
     void addSources();
 
+    /// @brief The lookup of the descriptions on the web in group @p sources: whether the card
+    /// of a source has it, and the catalog of an ISBN
+    void addLookup(QFormLayout* sources);
+
     QRadioButton* m_openPdfPreview = nullptr;  ///< A PDF file opens on a preview tab
     QComboBox* m_pdfZoom = nullptr;            ///< The zoom the preview opens with
     QComboBox* m_pdfSide = nullptr;            ///< The side panel it opens with

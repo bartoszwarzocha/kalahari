@@ -226,6 +226,11 @@ std::map<std::string, json> buildDefaults() {
         // without its own and the form of a reference in the text (core::Bibliography)
         {"materials.sources.style", "pn-iso-690"},
         {"materials.sources.reference", "authorYear"},
+        // The description of a source from a catalog on the web by its ISBN or DOI: whether
+        // the card of a source has From the Web by ISBN or DOI... (off: nothing goes out) and
+        // the catalog of an ISBN, "googleBooks" or "openLibrary" (core::SourceCatalogs)
+        {"materials.sources.lookup", false},
+        {"materials.sources.isbnCatalog", "googleBooks"},
         // A PDF file opens on a preview tab of the program ("preview") or in the system program
         // ("system"); in a program built without the preview always in the system program
         // (gui::PdfFiles)
@@ -236,13 +241,15 @@ std::map<std::string, json> buildDefaults() {
         // ("invert"); the zoom it opens with ("pageWidth", "wholePage", "actual" or "last", the
         // zoom shown last: "pageWidth", "wholePage" or a number); the side panel it opens with
         // ("bookmarks": the bookmarks, else the contents of the file, "contents", "thumbnails"
-        // or "hidden"); whether it opens at the page shown last
+        // or "hidden"); whether it opens at the page shown last; whether text on the pages
+        // can be highlighted, the highlights kept in the book (the file stays as it is)
         {"materials.pdf.layout", "continuous"},
         {"materials.pdf.dark", "file"},
         {"materials.pdf.zoom", "pageWidth"},
         {"materials.pdf.lastZoom", "pageWidth"},
         {"materials.pdf.side", "bookmarks"},
         {"materials.pdf.openAtLastPage", true},
+        {"materials.pdf.highlights", false},
 
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)

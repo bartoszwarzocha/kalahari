@@ -77,6 +77,10 @@ QString PdfFiles::choice(const char* key, const char* fallback,
     return QString::fromLatin1(fallback);
 }
 
+bool PdfFiles::highlightsOn() {
+    return core::SettingsManager::getInstance().get<bool>(HIGHLIGHTS_SETTING, false);
+}
+
 QImage PdfFiles::firstPage(const QString& path, const QSize& bounds, QString* error) {
 #ifdef KALAHARI_HAS_PDF
     PdfDocument document;

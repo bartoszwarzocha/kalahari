@@ -83,6 +83,10 @@ public:
     /// @brief Whether a preview opens at the page shown last (a bool, true at first)
     static constexpr const char* LAST_PAGE_SETTING = "materials.pdf.openAtLastPage";
 
+    /// @brief Whether text on the pages can be highlighted, the highlights kept in the book (a
+    /// bool, false at first): the PDF file stays as it is
+    static constexpr const char* HIGHLIGHTS_SETTING = "materials.pdf.highlights";
+
     /// @brief Whether the program shows PDF files: it was built with their preview (PDFium)
     [[nodiscard]] static bool previewAvailable();
 
@@ -92,6 +96,9 @@ public:
     /// @brief Whether a PDF opens on a preview tab: the program shows PDFs and the settings
     /// say so
     [[nodiscard]] static bool opensInPreview();
+
+    /// @brief Whether the preview highlights text: the settings say so (HIGHLIGHTS_SETTING)
+    [[nodiscard]] static bool highlightsOn();
 
     /// @brief The value of setting @p key of the preview; @p fallback when it is not one of
     /// @p values

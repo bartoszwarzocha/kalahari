@@ -27875,6 +27875,37 @@ The list of Insert &gt; Clipping at the cursor. In Polish: Wstaw wycinek</extrac
         <extracomment>Under Inverted colors, the last choice of In a dark theme. In Polish: Jasny tekst na ciemnym tle. Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</extracomment>
         <translation>Jasny tekst na ciemnym tle. Zmienia się tylko wygląd na ekranie; plik zostaje bez zmian.</translation>
     </message>
+    <message>
+        <source>Highlights on the pages, kept in the book</source>
+        <extracomment>In Polish: Zakreślenia na stronach, zapisane w książce</extracomment>
+        <translation>Zakreślenia na stronach, zapisane w książce</translation>
+    </message>
+    <message>
+        <source>Highlight in the menu and on the bar of a selection marks the text with a color, and the side panel lists the highlights with their notes next to the bookmarks. The PDF file stays as it is.</source>
+        <extracomment>In Polish: Polecenie „Zakreśl” w menu i na pasku zaznaczenia oznacza tekst kolorem, a panel boczny pokazuje zakreślenia z notatkami obok zakładek. Plik PDF zostaje bez zmian.</extracomment>
+        <translation>Polecenie „Zakreśl” w menu i na pasku zaznaczenia oznacza tekst kolorem, a panel boczny pokazuje zakreślenia z notatkami obok zakładek. Plik PDF zostaje bez zmian.</translation>
+    </message>
+    <message>
+        <source>Descriptions from the web by ISBN and DOI</source>
+        <extracomment>In Polish: Opisy z sieci na podstawie ISBN i DOI</extracomment>
+        <translation>Opisy z sieci na podstawie ISBN i DOI</translation>
+    </message>
+    <message>
+        <source>ISBN catalog:</source>
+        <extracomment>The catalog on the web an ISBN goes to. In Polish: Katalog dla ISBN:</extracomment>
+        <translation>Katalog dla ISBN:</translation>
+    </message>
+    <message>
+        <source>Sends only the number, and only when you ask: an ISBN to the catalog chosen, a DOI to doi.org. Without this option the card of a source has no From the Web by ISBN or DOI... button.</source>
+        <extracomment>In Polish: Wysyła tylko numer i tylko na Twoje polecenie: ISBN do wybranego katalogu, DOI do doi.org. Bez tej opcji karta źródła nie ma przycisku „Opis z sieci (ISBN, DOI)...”.</extracomment>
+        <translation>Wysyła tylko numer i tylko na Twoje polecenie: ISBN do wybranego katalogu, DOI do doi.org. Bez tej opcji karta źródła nie ma przycisku „Opis z sieci (ISBN, DOI)...”.</translation>
+    </message>
+    <message>
+        <source>%1 (recommended)</source>
+        <comment>catalog</comment>
+        <extracomment>%1: the name of a catalog. In Polish: %1 (zalecany)</extracomment>
+        <translation>%1 (zalecany)</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::QuoteSourceBox</name>
@@ -28112,6 +28143,21 @@ The list of Insert &gt; Clipping at the cursor. In Polish: Wstaw wycinek</extrac
         <source>Description filled in from the file</source>
         <extracomment>In Polish: Uzupełniono opis z pliku</extracomment>
         <translation>Uzupełniono opis z pliku</translation>
+    </message>
+    <message>
+        <source>From the Web by ISBN or DOI...</source>
+        <extracomment>In Polish: Opis z sieci (ISBN, DOI)...</extracomment>
+        <translation>Opis z sieci (ISBN, DOI)...</translation>
+    </message>
+    <message>
+        <source>Sends the ISBN or the DOI to a catalog on the web and takes the description of the source from it</source>
+        <extracomment>In Polish: Wysyła numer ISBN albo DOI do katalogu w sieci i bierze z niego opis źródła</extracomment>
+        <translation>Wysyła numer ISBN albo DOI do katalogu w sieci i bierze z niego opis źródła</translation>
+    </message>
+    <message>
+        <source>Bibliographic description filled in from %1</source>
+        <extracomment>%1: the catalog, Google Books, Open Library or doi.org. In Polish: Uzupełniono opis bibliograficzny z %1</extracomment>
+        <translation>Uzupełniono opis bibliograficzny z %1</translation>
     </message>
 </context>
 <context>
@@ -28471,7 +28517,9 @@ In Polish: Panel boczny</extracomment>
         <source>Page</source>
         <extracomment>In Polish: Strona
 ----------
-The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
+The columns of the bookmarks of the preview. In Polish: Strona
+----------
+The columns of the highlights of the preview. In Polish: Strona</extracomment>
         <translation>Strona</translation>
     </message>
     <message>
@@ -28705,6 +28753,71 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <extracomment>In Polish: Wpisz w pole „Szukaj w pliku” co najmniej trzy litery albo naciśnij Enter.</extracomment>
         <translation>Wpisz w pole „Szukaj w pliku” co najmniej trzy litery albo naciśnij Enter.</translation>
     </message>
+    <message>
+        <source>Highlight</source>
+        <extracomment>Marks the selection with a color, as with a highlighter. In Polish: Zakreśl</extracomment>
+        <translation>Zakreśl</translation>
+    </message>
+    <message>
+        <source>Highlights the selection in the color chosen last; the arrow beside it gives the other colors</source>
+        <extracomment>In Polish: Zakreśla zaznaczenie kolorem wybranym ostatnio; strzałka obok otwiera inne kolory</extracomment>
+        <translation>Zakreśla zaznaczenie kolorem wybranym ostatnio; strzałka obok otwiera inne kolory</translation>
+    </message>
+    <message>
+        <source>Change Note</source>
+        <extracomment>In Polish: Zmień notatkę</extracomment>
+        <translation>Zmień notatkę</translation>
+    </message>
+    <message>
+        <source>Delete Highlight</source>
+        <extracomment>In Polish: Usuń zakreślenie</extracomment>
+        <translation>Usuń zakreślenie</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <extracomment>In Polish: Tekst</extracomment>
+        <translation>Tekst</translation>
+    </message>
+    <message>
+        <source>Highlights: Enter goes to the text, Insert highlights the selection, F2 changes the note, Delete takes it away</source>
+        <extracomment>In Polish: Zakreślenia: Enter przechodzi do tekstu, Insert zakreśla zaznaczenie, F2 zmienia notatkę, Delete usuwa</extracomment>
+        <translation>Zakreślenia: Enter przechodzi do tekstu, Insert zakreśla zaznaczenie, F2 zmienia notatkę, Delete usuwa</translation>
+    </message>
+    <message>
+        <source>No highlights. Select text on a page and choose Highlight on the bar over it or in its menu.</source>
+        <extracomment>In Polish: Bez zakreśleń. Zaznacz tekst na stronie i wybierz „Zakreśl” na pasku nad zaznaczeniem albo w jego menu.</extracomment>
+        <translation>Bez zakreśleń. Zaznacz tekst na stronie i wybierz „Zakreśl” na pasku nad zaznaczeniem albo w jego menu.</translation>
+    </message>
+    <message>
+        <source>Highlight in Color</source>
+        <extracomment>The colors to highlight the selection in. In Polish: Zakreśl kolorem</extracomment>
+        <translation>Zakreśl kolorem</translation>
+    </message>
+    <message>
+        <source>Highlight Color</source>
+        <extracomment>The color of a highlight there is. In Polish: Kolor zakreślenia</extracomment>
+        <translation>Kolor zakreślenia</translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <extracomment>The color of the current highlight. In Polish: Kolor</extracomment>
+        <translation>Kolor</translation>
+    </message>
+    <message>
+        <source>Changes the color of the highlight</source>
+        <extracomment>In Polish: Zmienia kolor zakreślenia</extracomment>
+        <translation>Zmienia kolor zakreślenia</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <extracomment>In Polish: Zakreślenia</extracomment>
+        <translation>Zakreślenia</translation>
+    </message>
+    <message>
+        <source>Delete the highlight of page %1 with its note?</source>
+        <extracomment>%1: the page. In Polish: Usunąć zakreślenie ze strony %1 razem z notatką?</extracomment>
+        <translation>Usunąć zakreślenie ze strony %1 razem z notatką?</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::NewQuoteDialog</name>
@@ -28782,6 +28895,77 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <source>The chapter is read-only</source>
         <extracomment>In Polish: Rozdział jest tylko do odczytu</extracomment>
         <translation>Rozdział jest tylko do odczytu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::SourceLookup</name>
+    <message>
+        <source>The answer of the catalog is too large.</source>
+        <extracomment>In Polish: Odpowiedź katalogu jest za duża.</extracomment>
+        <translation>Odpowiedź katalogu jest za duża.</translation>
+    </message>
+    <message>
+        <source>doi.org gave no description of this DOI.</source>
+        <extracomment>In Polish: Serwis doi.org nie podał opisu tego DOI.</extracomment>
+        <translation>Serwis doi.org nie podał opisu tego DOI.</translation>
+    </message>
+    <message>
+        <source>%1 has no book with this ISBN.</source>
+        <extracomment>%1: the name of the catalog, Google Books or Open Library. In Polish: %1 nie ma książki o tym numerze ISBN.</extracomment>
+        <translation>%1 nie ma książki o tym numerze ISBN.</translation>
+    </message>
+    <message>
+        <source>doi.org does not know this DOI.</source>
+        <extracomment>In Polish: Serwis doi.org nie zna tego DOI.</extracomment>
+        <translation>Serwis doi.org nie zna tego DOI.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::SourceLookupDialog</name>
+    <message>
+        <source>From the Web by ISBN or DOI</source>
+        <extracomment>In Polish: Opis z sieci (ISBN, DOI)</extracomment>
+        <translation>Opis z sieci (ISBN, DOI)</translation>
+    </message>
+    <message>
+        <source>The description of the source from a catalog on the web.</source>
+        <extracomment>In Polish: Opis źródła z katalogu w sieci.</extracomment>
+        <translation>Opis źródła z katalogu w sieci.</translation>
+    </message>
+    <message>
+        <source>978-83-… or 10.…/…</source>
+        <extracomment>In Polish: 978-83-… albo 10.…/…</extracomment>
+        <translation>978-83-… albo 10.…/…</translation>
+    </message>
+    <message>
+        <source>&amp;ISBN or DOI</source>
+        <extracomment>In Polish: &amp;ISBN albo DOI</extracomment>
+        <translation>&amp;ISBN albo DOI</translation>
+    </message>
+    <message>
+        <source>Kalahari sends only this number: an ISBN to %1, a DOI to doi.org. The description of the catalog takes the place of the fields it has; the others stay.</source>
+        <extracomment>%1: the catalog of an ISBN, Google Books or Open Library. In Polish: Kalahari wysyła tylko ten numer: ISBN do %1, DOI do doi.org. Pola z opisu katalogu zastępują te na karcie; pozostałe zostają bez zmian.</extracomment>
+        <translation>Kalahari wysyła tylko ten numer: ISBN do %1, DOI do doi.org. Pola z opisu katalogu zastępują te na karcie; pozostałe zostają bez zmian.</translation>
+    </message>
+    <message>
+        <source>Source Settings</source>
+        <extracomment>The settings of the sources. In Polish: Ustawienia źródeł</extracomment>
+        <translation>Ustawienia źródeł</translation>
+    </message>
+    <message>
+        <source>&amp;Look Up</source>
+        <extracomment>In Polish: &amp;Szukaj</extracomment>
+        <translation>&amp;Szukaj</translation>
+    </message>
+    <message>
+        <source>This is neither an ISBN nor a DOI. An ISBN has 10 or 13 digits (the last can be X), a DOI begins with &quot;10.&quot; and has a slash.</source>
+        <extracomment>In Polish: To nie jest ISBN ani DOI. ISBN ma 10 albo 13 cyfr (ostatnia może być X), a DOI zaczyna się od „10.” i zawiera ukośnik.</extracomment>
+        <translation>To nie jest ISBN ani DOI. ISBN ma 10 albo 13 cyfr (ostatnia może być X), a DOI zaczyna się od „10.” i zawiera ukośnik.</translation>
+    </message>
+    <message>
+        <source>Asking %1…</source>
+        <extracomment>%1: the catalog, Google Books, Open Library or doi.org. In Polish: Łączenie z %1…</extracomment>
+        <translation>Łączenie z %1…</translation>
     </message>
 </context>
 <context>
