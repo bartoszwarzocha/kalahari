@@ -423,12 +423,12 @@
         <translation>&amp;Archiwum projektu...</translation>
     </message>
     <message>
-        <source>&amp;PDF</source>
-        <translation>&amp;PDF</translation>
+        <source>&amp;PDF...</source>
+        <translation>&amp;PDF...</translation>
     </message>
     <message>
-        <source>&amp;EPUB</source>
-        <translation>&amp;EPUB</translation>
+        <source>&amp;EPUB...</source>
+        <translation>&amp;EPUB...</translation>
     </message>
     <message>
         <source>&amp;InDesign ICML</source>
@@ -25986,7 +25986,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     <name>kalahari::gui::BookExportCoordinator</name>
     <message>
         <source>Open a book or a text to export</source>
-        <extracomment>The tooltip of File &gt; Export &gt; DOCX and Markdown while they are greyed out. In Polish: Otwórz książkę albo tekst, który chcesz wyeksportować</extracomment>
+        <extracomment>The tooltip of File &gt; Export &gt; DOCX, PDF, Markdown and EPUB while they are greyed out. In Polish: Otwórz książkę albo tekst, który chcesz wyeksportować</extracomment>
         <translation>Otwórz książkę albo tekst, który chcesz wyeksportować</translation>
     </message>
     <message>
@@ -26358,6 +26358,323 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Saves the book &quot;%1&quot; in the format %2.</source>
         <extracomment>The format of a plugin; %1: the title of the book, %2: the format with its extension. In Polish: Zapisuje książkę „%1” w formacie %2.</extracomment>
         <translation>Zapisuje książkę „%1” w formacie %2.</translation>
+    </message>
+    <message>
+        <source>No running head</source>
+        <extracomment>A running head of the export. In Polish: Bez żywej paginy</extracomment>
+        <translation>Bez żywej paginy</translation>
+    </message>
+    <message>
+        <source>Author on the left page, book title on the right one</source>
+        <extracomment>A running head of the export. In Polish: Autor na lewej stronie, tytuł książki na prawej</extracomment>
+        <translation>Autor na lewej stronie, tytuł książki na prawej</translation>
+    </message>
+    <message>
+        <source>Book title on the left, chapter title on the right</source>
+        <extracomment>A running head of the export. In Polish: Tytuł książki na lewej, tytuł rozdziału na prawej</extracomment>
+        <translation>Tytuł książki na lewej, tytuł rozdziału na prawej</translation>
+    </message>
+    <message>
+        <source>Chapter title on both pages</source>
+        <extracomment>A running head of the export. In Polish: Tytuł rozdziału na obu stronach</extracomment>
+        <translation>Tytuł rozdziału na obu stronach</translation>
+    </message>
+    <message>
+        <source>&amp;Running head:</source>
+        <extracomment>The line at the top of the pages of a book. In Polish: Żywa pa&amp;gina:</extracomment>
+        <translation>Żywa pa&amp;gina:</translation>
+    </message>
+    <message>
+        <source>At the top of the pages of the text, without the title pages and without the first pages of the chapters.</source>
+        <extracomment>Under the running head. In Polish: U góry stron tekstu, bez stron tytułowych i bez pierwszych stron rozdziałów.</extracomment>
+        <translation>U góry stron tekstu, bez stron tytułowych i bez pierwszych stron rozdziałów.</translation>
+    </message>
+    <message>
+        <source>Look in the Reader</source>
+        <extracomment>A group of the layout of an EPUB: how the reader shows it. In Polish: Wygląd w czytniku</extracomment>
+        <translation>Wygląd w czytniku</translation>
+    </message>
+    <message>
+        <source>From the &amp;book&apos;s styles: the font, the sizes of the letters, the indents and the spacing</source>
+        <extracomment>In Polish: Ze &amp;stylów książki: czcionka, rozmiary liter, wcięcia i odstępy</extracomment>
+        <translation>Ze &amp;stylów książki: czcionka, rozmiary liter, wcięcia i odstępy</translation>
+    </message>
+    <message>
+        <source>Si&amp;mple: the reader chooses the font and the size of the letters, the indents and the spacing stay</source>
+        <extracomment>In Polish: Prost&amp;y: czcionkę i rozmiar liter dobiera czytnik, zostają wcięcia i odstępy</extracomment>
+        <translation>Prost&amp;y: czcionkę i rozmiar liter dobiera czytnik, zostają wcięcia i odstępy</translation>
+    </message>
+    <message>
+        <source>&amp;Embed the font of the text in the file</source>
+        <extracomment>In Polish: Osadź &amp;czcionkę tekstu w pliku</extracomment>
+        <translation>Osadź &amp;czcionkę tekstu w pliku</translation>
+    </message>
+    <message>
+        <source>Only a font whose licence allows it. The reader can still change it in the e-book reader.</source>
+        <extracomment>Under the embedding of the font. In Polish: Tylko czcionkę, której licencja na to pozwala. Czytelnik i tak może ją zmienić w czytniku.</extracomment>
+        <translation>Tylko czcionkę, której licencja na to pozwala. Czytelnik i tak może ją zmienić w czytniku.</translation>
+    </message>
+    <message>
+        <source>Each text starts on a new page of the e-book reader. The reader divides the pages, so there is no size of the page and there are no page numbers here.</source>
+        <extracomment>Under the layout of an EPUB. In Polish: Każdy tekst zaczyna się na nowej stronie czytnika. Strony dzieli czytnik, więc nie ma tu rozmiaru strony ani numerów stron.</extracomment>
+        <translation>Każdy tekst zaczyna się na nowej stronie czytnika. Strony dzieli czytnik, więc nie ma tu rozmiaru strony ani numerów stron.</translation>
+    </message>
+    <message>
+        <source>Annotations as PDF comm&amp;ents</source>
+        <extracomment>In Polish: &amp;Uwagi jako komentarze PDF</extracomment>
+        <translation>&amp;Uwagi jako komentarze PDF</translation>
+    </message>
+    <message>
+        <source>P&amp;DF</source>
+        <extracomment>A tab of the window of the export: the options of a PDF. In Polish: P&amp;DF</extracomment>
+        <translation>P&amp;DF</translation>
+    </message>
+    <message>
+        <source>Purpose of the File</source>
+        <extracomment>A group of the tab of a PDF: what the file is for. In Polish: Przeznaczenie pliku</extracomment>
+        <translation>Przeznaczenie pliku</translation>
+    </message>
+    <message>
+        <source>For &amp;reading and sending: clickable links, contents and bookmarks</source>
+        <extracomment>A purpose of a PDF. In Polish: Do &amp;czytania i wysłania: klikalne łącza, spis treści i zakładki</extracomment>
+        <translation>Do &amp;czytania i wysłania: klikalne łącza, spis treści i zakładki</translation>
+    </message>
+    <message>
+        <source>For a print s&amp;hop (PDF/X-4): without links, with a color profile</source>
+        <extracomment>A purpose of a PDF. In Polish: Do druku w drukar&amp;ni (PDF/X-4): bez łączy, z profilem kolorów</extracomment>
+        <translation>Do druku w drukar&amp;ni (PDF/X-4): bez łączy, z profilem kolorów</translation>
+    </message>
+    <message>
+        <source>For the &amp;archive (PDF/A-1b): it opens the same in many years</source>
+        <extracomment>A purpose of a PDF. In Polish: Do archi&amp;wum (PDF/A-1b): otworzy się tak samo za wiele lat</extracomment>
+        <translation>Do archi&amp;wum (PDF/A-1b): otworzy się tak samo za wiele lat</translation>
+    </message>
+    <message>
+        <source>This version of the program cannot write such a file: it needs Qt 6.8 or newer.</source>
+        <extracomment>The tooltip of a purpose of a PDF this build cannot write. In Polish: Ta wersja programu nie zapisuje takiego pliku: potrzebuje Qt 6.8 lub nowszego.</extracomment>
+        <translation>Ta wersja programu nie zapisuje takiego pliku: potrzebuje Qt 6.8 lub nowszego.</translation>
+    </message>
+    <message>
+        <source>Boo&amp;kmarks with the titles of the parts, chapters and headings</source>
+        <extracomment>In Polish: &amp;Zakładki z tytułami części, rozdziałów i nagłówków</extracomment>
+        <translation>&amp;Zakładki z tytułami części, rozdziałów i nagłówków</translation>
+    </message>
+    <message>
+        <source>A PDF reader shows them in its panel of bookmarks, as contents beside the pages.</source>
+        <extracomment>Under the bookmarks. In Polish: Czytnik PDF pokazuje je w panelu zakładek, jak spis treści obok stron.</extracomment>
+        <translation>Czytnik PDF pokazuje je w panelu zakładek, jak spis treści obok stron.</translation>
+    </message>
+    <message>
+        <source>Pages in pa&amp;irs, as in an open book</source>
+        <extracomment>In Polish: Strony pa&amp;rami, jak w otwartej książce</extracomment>
+        <translation>Strony pa&amp;rami, jak w otwartej książce</translation>
+    </message>
+    <message>
+        <source>In shades of gray, for &amp;black and white printing</source>
+        <extracomment>In Polish: W &amp;odcieniach szarości – do druku czarno-białego</extracomment>
+        <translation>W &amp;odcieniach szarości – do druku czarno-białego</translation>
+    </message>
+    <message>
+        <source>A PDF reader shows the first page alone, then the left and the right page side by side.</source>
+        <extracomment>Under the pages in pairs. In Polish: Czytnik PDF pokaże pierwszą stronę osobno, a dalej lewą i prawą obok siebie.</extracomment>
+        <translation>Czytnik PDF pokaże pierwszą stronę osobno, a dalej lewą i prawą obok siebie.</translation>
+    </message>
+    <message>
+        <source>The fonts are in the file, so it looks the same everywhere. The title, the author and the language of the file come from the properties of the book.</source>
+        <extracomment>At the end of the tab of a PDF. In Polish: Czcionki są w pliku, więc wygląda on wszędzie tak samo. Tytuł, autor i język pliku – z właściwości książki.</extracomment>
+        <translation>Czcionki są w pliku, więc wygląda on wszędzie tak samo. Tytuł, autor i język pliku – z właściwości książki.</translation>
+    </message>
+    <message>
+        <source>Cover an&amp;d Data</source>
+        <extracomment>A tab of the window of the export: the cover and the data of an EPUB. In Polish: Okła&amp;dka i dane</extracomment>
+        <translation>Okła&amp;dka i dane</translation>
+    </message>
+    <message>
+        <source>%1 (from the materials)</source>
+        <extracomment>The cover of an EPUB: the design chosen in the materials; %1: its title. In Polish: %1 (z materiałów)</extracomment>
+        <translation>%1 (z materiałów)</translation>
+    </message>
+    <message>
+        <source>No cover</source>
+        <extracomment>The cover of an EPUB. In Polish: Bez okładki</extracomment>
+        <translation>Bez okładki</translation>
+    </message>
+    <message>
+        <source>Other &amp;Picture...</source>
+        <extracomment>Chooses another picture of the cover of an EPUB. In Polish: Inny &amp;obraz…</extracomment>
+        <translation>Inny &amp;obraz...</translation>
+    </message>
+    <message>
+        <source>Co&amp;ver:</source>
+        <extracomment>In Polish: Okładk&amp;a:</extracomment>
+        <translation>Okładk&amp;a:</translation>
+    </message>
+    <message>
+        <source>Book Data</source>
+        <extracomment>A group of the tab of an EPUB: the data of the book. In Polish: Dane książki</extracomment>
+        <translation>Dane książki</translation>
+    </message>
+    <message>
+        <source>%1 – %2</source>
+        <translation>%1 – %2</translation>
+    </message>
+    <message>
+        <source>Title and author:</source>
+        <extracomment>In Polish: Tytuł i autor:</extracomment>
+        <translation>Tytuł i autor:</translation>
+    </message>
+    <message>
+        <source>Not set</source>
+        <extracomment>The language of a book that has none. In Polish: Nie ustawiono</extracomment>
+        <translation>Nie ustawiono</translation>
+    </message>
+    <message>
+        <source>Language:</source>
+        <extracomment>In Polish: Język:</extracomment>
+        <translation>Język:</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Brak</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot;</source>
+        <extracomment>A description in quotes; %1: its text. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+    <message>
+        <source>Description:</source>
+        <extracomment>In Polish: Opis:</extracomment>
+        <translation>Opis:</translation>
+    </message>
+    <message>
+        <source>978-...</source>
+        <extracomment>The example of an ISBN in its empty field. In Polish: 978-83-…</extracomment>
+        <translation>978-83-...</translation>
+    </message>
+    <message>
+        <source>&amp;ISBN:</source>
+        <extracomment>In Polish: &amp;ISBN:</extracomment>
+        <translation>&amp;ISBN:</translation>
+    </message>
+    <message>
+        <source>e.g. Dunes Publishing, or empty</source>
+        <extracomment>The example of a publisher in its empty field. In Polish: np. Wydawnictwo Wydmy albo puste</extracomment>
+        <translation>np. Wydawnictwo Wydmy albo puste</translation>
+    </message>
+    <message>
+        <source>P&amp;ublisher:</source>
+        <extracomment>In Polish: W&amp;ydawca:</extracomment>
+        <translation>W&amp;ydawca:</translation>
+    </message>
+    <message>
+        <source>PDF document (.pdf)</source>
+        <extracomment>A format of the list of the window of the export. In Polish: Dokument PDF (.pdf)</extracomment>
+        <translation>Dokument PDF (.pdf)</translation>
+    </message>
+    <message>
+        <source>EPUB e-book (.epub)</source>
+        <extracomment>A format of the list of the window of the export. In Polish: Książka elektroniczna EPUB (.epub)</extracomment>
+        <translation>Książka elektroniczna EPUB (.epub)</translation>
+    </message>
+    <message>
+        <source>The picture of the cover could not be read: the e-book has no cover.</source>
+        <extracomment>After the file of an EPUB. In Polish: Nie udało się odczytać obrazu okładki – e-book jest bez okładki.</extracomment>
+        <translation>Nie udało się odczytać obrazu okładki: e-book jest bez okładki.</translation>
+    </message>
+    <message>
+        <source>The font of the text is not in the file: its licence does not allow it, or the computer does not have it.</source>
+        <extracomment>After the file of an EPUB. In Polish: Czcionki tekstu nie ma w pliku: jej licencja na to nie pozwala albo nie ma jej na komputerze.</extracomment>
+        <translation>Czcionki tekstu nie ma w pliku: jej licencja na to nie pozwala albo nie ma jej na komputerze.</translation>
+    </message>
+    <message>
+        <source>A file for a print shop (PDF/X-4) cannot have comments.</source>
+        <extracomment>Under the annotations as comments of a PDF for a print shop. In Polish: Plik do drukarni (PDF/X-4) nie może mieć komentarzy.</extracomment>
+        <translation>Plik do drukarni (PDF/X-4) nie może mieć komentarzy.</translation>
+    </message>
+    <message>
+        <source>The comments, to-dos and notes of the text, with their authors and dates, as notes beside the text in a PDF reader. Without this option the file has no annotations.</source>
+        <translation>Komentarze, zadania i notatki z tekstu, z autorem i datą, jako notatki przy tekście w czytniku PDF. Bez tej opcji plik nie zawiera uwag.</translation>
+    </message>
+    <message>
+        <source>no cover</source>
+        <translation>bez okładki</translation>
+    </message>
+    <message>
+        <source>the picture cannot be read</source>
+        <translation>nie można odczytać obrazu</translation>
+    </message>
+    <message>
+        <source>The design of the front of the cover chosen in the materials &quot;Cover&quot;.</source>
+        <extracomment>Under the cover of an EPUB from the materials. In Polish: Projekt przodu okładki oznaczony jako wybrany w materiałach „Okładka”.</extracomment>
+        <translation>Projekt przodu okładki oznaczony jako wybrany w materiałach „Okładka”.</translation>
+    </message>
+    <message>
+        <source>The materials &quot;Cover&quot; have no chosen design of the front of the cover.</source>
+        <translation>W materiałach „Okładka” nie wybrano projektu przodu okładki.</translation>
+    </message>
+    <message>
+        <source>The e-book has no cover.</source>
+        <translation>E-book będzie bez okładki.</translation>
+    </message>
+    <message>
+        <source>The picture %1.</source>
+        <extracomment>Under another picture of the cover of an EPUB; %1: its file. In Polish: Obraz %1.</extracomment>
+        <translation>Obraz %1.</translation>
+    </message>
+    <message>
+        <source>Picture of the Cover</source>
+        <extracomment>The title of the system window that chooses the picture of the cover of an EPUB. In Polish: Obraz okładki</extracomment>
+        <translation>Obraz okładki</translation>
+    </message>
+    <message>
+        <source>All Files (*)</source>
+        <translation>Wszystkie pliki (*)</translation>
+    </message>
+    <message>
+        <source>EPUB has no comments: the annotations stay only in the book.</source>
+        <extracomment>In the group of the annotations, for an EPUB. In Polish: EPUB nie ma komentarzy: uwagi zostają tylko w książce.</extracomment>
+        <translation>EPUB nie ma komentarzy: uwagi zostają tylko w książce.</translation>
+    </message>
+    <message>
+        <source>A PDF document has the images in the file itself, with their cropping, rotation, filter, border and shadow.</source>
+        <extracomment>In the group of the images, for a PDF. In Polish: Dokument PDF zawiera obrazy w samym pliku, z ich przycięciem, obrotem, filtrem, ramką i cieniem.</extracomment>
+        <translation>Dokument PDF zawiera obrazy w samym pliku, z ich przycięciem, obrotem, filtrem, ramką i cieniem.</translation>
+    </message>
+    <message>
+        <source>An EPUB e-book has the images in the file itself, with their alternative text for screen readers.</source>
+        <extracomment>In the group of the images, for an EPUB. In Polish: Książka EPUB zawiera obrazy w samym pliku, z tekstem alternatywnym dla czytników ekranu.</extracomment>
+        <translation>Książka EPUB zawiera obrazy w samym pliku, z tekstem alternatywnym dla czytników ekranu.</translation>
+    </message>
+    <message>
+        <source>Saves the text &quot;%1&quot; as a PDF document.</source>
+        <extracomment>%1: the title of the text. In Polish: Zapisuje tekst „%1” jako dokument PDF.</extracomment>
+        <translation>Zapisuje tekst „%1” jako dokument PDF.</translation>
+    </message>
+    <message>
+        <source>Saves the book &quot;%1&quot; as a PDF document.</source>
+        <extracomment>%1: the title of the book. In Polish: Zapisuje książkę „%1” jako dokument PDF.</extracomment>
+        <translation>Zapisuje książkę „%1” jako dokument PDF.</translation>
+    </message>
+    <message>
+        <source>Saves the text &quot;%1&quot; as an e-book in the EPUB format.</source>
+        <extracomment>%1: the title of the text. In Polish: Zapisuje tekst „%1” jako e-book w formacie EPUB.</extracomment>
+        <translation>Zapisuje tekst „%1” jako e-book w formacie EPUB.</translation>
+    </message>
+    <message>
+        <source>Saves the book &quot;%1&quot; as an e-book in the EPUB format.</source>
+        <extracomment>%1: the title of the book. In Polish: Zapisuje książkę „%1” jako e-book w formacie EPUB.</extracomment>
+        <translation>Zapisuje książkę „%1” jako e-book w formacie EPUB.</translation>
+    </message>
+    <message>
+        <source>Change the title, the author and the language in the properties of the book, and the description in the materials &quot;Cover&quot;. Kalahari keeps the ISBN and the publisher in the book. Without an ISBN the file gets a lasting identifier of the book.</source>
+        <extracomment>Under the data of an EPUB. In Polish: Tytuł, autora i język zmienisz we właściwościach książki, a opis – w materiałach „Okładka”. ISBN i wydawcę program zapamięta w książce. Bez ISBN plik dostaje stały identyfikator książki.</extracomment>
+        <translation>Tytuł, autora i język zmienisz we właściwościach książki, a opis – w materiałach „Okładka”. ISBN i wydawcę program zapamięta w książce. Bez ISBN plik dostaje stały identyfikator książki.</translation>
+    </message>
+    <message>
+        <source>This is not an ISBN: an ISBN has 13 digits (or 10) and the right check digit, e.g. 978-3-16-148410-0.</source>
+        <extracomment>Under the data of an EPUB whose ISBN is not one. In Polish: To nie jest ISBN: ma on 13 cyfr (albo 10) i właściwą cyfrę kontrolną, np. 978-3-16-148410-0.</extracomment>
+        <translation>To nie jest ISBN: ma on 13 cyfr (albo 10) i właściwą cyfrę kontrolną, np. 978-3-16-148410-0.</translation>
     </message>
 </context>
 <context>

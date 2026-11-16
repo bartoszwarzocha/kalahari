@@ -27,6 +27,7 @@ struct KindWords;
 
 namespace kalahari::editor {
 class BookEditor;
+struct EditorColors;
 class ParagraphStyleSet;
 class QuickInsertController;
 class StatisticsCollector;
@@ -154,6 +155,11 @@ public:
     /// The one place that reads them. Runs when the panel is created and, once the event
     /// loop runs, after any change of an editor setting.
     void applySettings();
+
+    /// @brief The colors of the editor on both papers: the theme's (the editor's own where the
+    ///        theme has none), the annotations' marks and the waves as "Optimize colors in
+    ///        themes" shows them; also those of the printed pages (PDF, printing)
+    static editor::EditorColors themeColors();
 
     /// @brief Format > Bullets and Numbering...: the window of the formats of the list at the
     ///        cursor (of a new numbered list outside a list); OK gives them to the lists of

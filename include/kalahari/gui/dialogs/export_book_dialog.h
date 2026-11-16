@@ -2,8 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file export_book_dialog.h
-/// @brief File > Export > DOCX and Markdown: the file, the texts of the book and how they look
-/// in it, and the progress and the result of the export in one window
+/// @brief File > Export > DOCX, PDF, Markdown and EPUB: the file, the texts of the book and how
+/// they look in it, and the progress and the result of the export in one window
 
 #pragma once
 
@@ -28,6 +28,7 @@ class QRadioButton;
 class QTabWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
+class QButtonGroup;
 
 namespace kalahari {
 namespace core {
@@ -39,19 +40,24 @@ namespace dialogs {
 
 class RowList;
 
-/// @brief Export of the book to a Word document (DOCX) or to Markdown
+/// @brief Export of the book to a Word document (DOCX), a PDF document, Markdown or an EPUB
+///        e-book
 ///
-/// The options are on four tabs as high as the highest, so the window keeps its size and
-/// nothing in it scrolls: the file, the texts, the layout, and the annotations and the images.
-/// The progress and the result show under the tabs. The command of the menu chooses the
-/// format; the list of the formats can change it, and with it the extension of the name and
-/// the options shown. The list has the program's formats and those of the exporters of the
-/// plugins; a plugin's format with options of its own shows them on a tab of its own. The file goes to a folder that the program remembers, as the archives do. The window
-/// exports the whole book, the texts chosen in its list (which stays in its place and works
-/// with "Chosen texts"), or the text in front, also a file outside the book; without a book
-/// only the text in front. The choices of the
-/// window are kept in the settings (export.*) for the next export. The page comes from the
-/// settings of the pages (Settings > Editor > Pages and Margins, the gear of the window).
+/// The options are on tabs as high as the highest, so the window keeps its size and nothing in
+/// it scrolls: the file, the texts, the layout, and the annotations and the images; a PDF has
+/// its own tab (its purpose, bookmarks, pages in pairs, shades of gray), an EPUB the tab of its
+/// cover and data (the cover, the data of the book, its ISBN and publisher). The progress and
+/// the result show under the tabs. The command of the menu chooses the format; the list of the
+/// formats can change it, and with it the extension of the name and the options shown. The
+/// list has the program's formats and those of the exporters of the plugins; a plugin's format
+/// with options of its own shows them on a tab of its own. The file goes to a folder that the
+/// program remembers, as the archives do. The window exports the whole book, the texts chosen
+/// in its list (which stays in its place and works with "Chosen texts"), or the text in front,
+/// also a file outside the book; without a book only the text in front. The choices of the
+/// window are kept in the settings (export.*) for the next export, those of a format that
+/// differ from the others' for that format (the comments of Word and of a PDF, export.pdf.*,
+/// export.epub.*). The page comes from the settings of the pages (Settings > Editor > Pages and
+/// Margins, the gear of the window).
 class ExportBookDialog : public ArchiveDialog {
     Q_OBJECT
 
@@ -79,6 +85,21 @@ public:
         QList<Row> rows;     ///< Its texts with their sections and groups, in reading order
         QString frontTitle;  ///< The title of the text in front; empty: none
         QString frontId;     ///< Its element; empty: a file outside the book
+        QString author;      ///< The author of the book (the data of an EPUB)
+        QString language;    ///< The name of the language of its text, as the window shows it
+        QString description;  ///< What it is about, from the materials of the cover; empty: none
+        QString coverTitle;  ///< The title of the design of the front of the cover chosen in
+                             ///< the materials of the cover; empty: none
+        QString coverFile;   ///< Its picture; empty: none
+        QString isbn;        ///< The ISBN of its e-book, as the book keeps it; empty: none
+        QString publisher;   ///< Its publisher, as the book keeps it; empty: none
+    };
+
+    /// @brief The cover of an EPUB
+    enum class Cover {
+        Design,  ///< The design of the front chosen in the materials of the cover
+        None,    ///< No cover
+        File,    ///< Another picture, chosen in the window
     };
 
     /// @brief A format of the list of the formats
@@ -90,7 +111,9 @@ public:
 
     /// @brief The ids of the program's own formats
     static constexpr const char* DOCX_ID = "docx";
+    static constexpr const char* PDF_ID = "pdf";
     static constexpr const char* MARKDOWN_ID = "markdown";
+    static constexpr const char* EPUB_ID = "epub";
 
     /// @brief The choices of the window
     struct Choice {
@@ -100,12 +123,22 @@ public:
         Content content = Content::Book;
         QStringList chosen;         ///< Content::Chosen: the ids of the chosen texts
         bool titles = true;         ///< The titles of the Navigator as headings
-        bool newPage = true;        ///< Each text from a new page (DOCX)
-        bool pageNumbers = true;    ///< Page numbers (DOCX)
-        QString fontFamily;         ///< The font of the text (DOCX); empty: the editor's
-        bool comments = false;      ///< The annotations as Word's comments (DOCX)
+        bool newPage = true;        ///< Each text from a new page (DOCX, PDF)
+        bool pageNumbers = true;    ///< Page numbers (DOCX, PDF)
+        QString fontFamily;         ///< The font of the text (DOCX, PDF); empty: the editor's
+        /// At the top of the pages of the texts (DOCX, PDF)
+        editor::RunningHead runningHead = editor::RunningHead::AuthorAndTitle;
+        bool comments = false;      ///< The annotations as the comments of a Word document or
+                                    ///< of a PDF (not one for a print shop)
         bool copyImages = true;     ///< The images copied next to the file (Markdown)
         QString imagesFolder;       ///< The name of their folder (Markdown): "<name> – images"
+        editor::PdfOptions pdf;     ///< The options of a PDF
+        bool bookStyles = true;     ///< EPUB: the look of the book's styles; false: a simple one
+        bool embedFont = false;     ///< EPUB: the font of the text in the file
+        Cover cover = Cover::Design;  ///< EPUB: its cover
+        QString coverImage;         ///< EPUB: the picture of the cover; empty: none
+        QString isbn;               ///< EPUB: its ISBN; empty: none
+        QString publisher;          ///< EPUB: its publisher; empty: none
     };
 
     /// @brief Writes the file @p path as @p choice says; false, with what went wrong in
@@ -128,8 +161,8 @@ public:
     /// @brief The choices of the window now
     Choice choice() const;
 
-    /// @brief The formats the window lists: the program's own (DOCX, Markdown), then those of
-    /// the exporters of the plugins (core::IExporter::getFormats())
+    /// @brief The formats the window lists: the program's own (DOCX, PDF, Markdown, EPUB), then
+    /// those of the exporters of the plugins (core::IExporter::getFormats())
     static QList<Format> formats();
 
     /// @brief The exporter of a plugin that writes the format @p id; null for the program's
@@ -189,13 +222,18 @@ public:
     void checkNone();
     void checkFinal();
 
-    /// @brief The tabs of the window: the file, the texts, the layout, and the annotations and
-    /// the images
+    /// @brief The tabs of the window: the file, the texts, the layout, the annotations and the
+    /// images, the PDF and the cover and data of an EPUB (each shown while its format is
+    /// chosen), and the tabs of the plugins' formats
     QTabWidget* tabs() const { return m_tabs; }
 
+    /// @brief The tab of the options of a PDF, and the tab of the cover and data of an EPUB
+    QWidget* pdfTab() const { return m_pdfTab; }
+    QWidget* epubTab() const { return m_epubTab; }
+
     /// @brief The group of the annotations and the group of the images; each shows the option
-    /// of its format (the comments of Word, the copy of the images of Markdown) and for the
-    /// other format says what it does
+    /// of its format (the comments of Word and of a PDF, the copy of the images of Markdown)
+    /// and for the other formats says what they do
     QGroupBox* notesGroup() const { return m_notesGroup; }
     QGroupBox* imagesGroup() const { return m_imagesGroup; }
 
@@ -204,10 +242,46 @@ public:
     QCheckBox* newPageBox() const { return m_newPageBox; }
     QCheckBox* pageNumbersBox() const { return m_pageNumbersBox; }
     QCheckBox* commentsBox() const { return m_commentsBox; }
+    QCheckBox* pdfCommentsBox() const { return m_pdfCommentsBox; }
     QCheckBox* copyImagesBox() const { return m_copyImagesBox; }
+
+    /// @brief The sentences under the annotations as comments of a PDF, and in the groups of
+    /// the annotations and of the images for a format without their options
+    QString pdfCommentsNote() const;
+    QString notesNote() const;
+    QString imagesNote() const;
 
     /// @brief The choice of the font of the text
     QComboBox* fontBox() const { return m_fontBox; }
+
+    /// @brief The choice of the running head
+    QComboBox* runningHeadBox() const { return m_runningHeadBox; }
+
+    /// @brief The options of a PDF: its purpose, the bookmarks, the pages in pairs, the shades
+    /// of gray
+    QRadioButton* purposeButton(editor::PdfPurpose purpose) const;
+    QCheckBox* bookmarksBox() const { return m_bookmarksBox; }
+    QCheckBox* facingPagesBox() const { return m_facingPagesBox; }
+    QCheckBox* grayscaleBox() const { return m_grayscaleBox; }
+
+    /// @brief The look of an EPUB (the book's styles or a simple one) and its font
+    QRadioButton* bookStylesButton() const { return m_bookStylesButton; }
+    QRadioButton* simpleLookButton() const { return m_simpleLookButton; }
+    QCheckBox* embedFontBox() const { return m_embedFontBox; }
+
+    /// @brief The cover of an EPUB, the sentence under it, and the fields of its ISBN and its
+    /// publisher
+    QComboBox* coverBox() const { return m_coverBox; }
+    QString coverNote() const { return noteText(m_coverNote); }
+    QLineEdit* isbnField() const { return m_isbnField; }
+    QLineEdit* publisherField() const { return m_publisherField; }
+
+    /// @brief The sentence under the data of the book: where they change, or why the ISBN is
+    /// not one
+    QString bookDataNote() const;
+
+    /// @brief Take @p path as the picture of the cover, as Other Picture... does
+    void setCoverFile(const QString& path);
 
     /// @brief The page of the settings, as the window says it: "A5, mirror margins: inner 3 cm,
     /// outer 2 cm"
@@ -233,6 +307,18 @@ private:
 
     /// @brief The fields of the format: the description, the extension, the groups
     void showFormat();
+
+    /// @brief A PDF for a print shop has no comments
+    void showPurpose();
+
+    /// @brief The picture and the sentence of the cover of an EPUB
+    void showCover();
+
+    /// @brief Choose the picture of the cover in the system window
+    void browseCover();
+
+    /// @brief The program's format chosen in the list
+    editor::ExportFormat currentFormat() const;
 
     /// @brief The list of the texts shows with Chosen; the name follows the content until the
     /// writer types it
@@ -300,18 +386,47 @@ private:
     QCheckBox* m_newPageBox = nullptr;
     QCheckBox* m_pageNumbersBox = nullptr;
     QComboBox* m_fontBox = nullptr;
+    QWidget* m_fontRow = nullptr;  ///< The font and the running head
+    QComboBox* m_runningHeadBox = nullptr;
+    FieldNote m_runningHeadNote;
     QLabel* m_pageLabel = nullptr;
     FieldNote m_pageNote;
+    QWidget* m_epubLayout = nullptr;  ///< The look of an EPUB and its font
+    QRadioButton* m_bookStylesButton = nullptr;
+    QRadioButton* m_simpleLookButton = nullptr;
+    QCheckBox* m_embedFontBox = nullptr;
 
     QGroupBox* m_notesGroup = nullptr;
     QCheckBox* m_commentsBox = nullptr;
     QWidget* m_commentsOption = nullptr;  ///< The comments with their remark (Word)
-    QLabel* m_noCommentsNote = nullptr;   ///< Markdown has no comments
+    QCheckBox* m_pdfCommentsBox = nullptr;
+    QLabel* m_pdfCommentsRemark = nullptr;
+    QWidget* m_pdfCommentsOption = nullptr;  ///< The comments with their remark (PDF)
+    QLabel* m_noCommentsNote = nullptr;   ///< Markdown and EPUB have no comments
 
     QGroupBox* m_imagesGroup = nullptr;
     QCheckBox* m_copyImagesBox = nullptr;
     QWidget* m_copyImagesOption = nullptr;  ///< The copy of the images with its remark (Markdown)
-    QLabel* m_imagesInFileNote = nullptr;   ///< A Word document has the images in itself
+    QLabel* m_imagesInFileNote = nullptr;   ///< A Word document, a PDF and an EPUB have the
+                                            ///< images in themselves
+
+    QWidget* m_pdfTab = nullptr;
+    QButtonGroup* m_purposeButtons = nullptr;
+    QCheckBox* m_bookmarksBox = nullptr;
+    QCheckBox* m_facingPagesBox = nullptr;
+    QCheckBox* m_grayscaleBox = nullptr;
+
+    QWidget* m_epubTab = nullptr;
+    QLabel* m_coverPicture = nullptr;  ///< The cover as the reader shows it
+    QComboBox* m_coverBox = nullptr;
+    FieldNote m_coverNote;
+    QString m_coverFile;  ///< The picture chosen with Other Picture...; empty: none
+    QLabel* m_titleAndAuthor = nullptr;
+    QLabel* m_languageLabel = nullptr;
+    QLabel* m_descriptionLabel = nullptr;
+    QLineEdit* m_isbnField = nullptr;
+    QLineEdit* m_publisherField = nullptr;
+    FieldNote m_bookDataNote;
 };
 
 } // namespace dialogs

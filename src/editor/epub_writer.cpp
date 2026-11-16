@@ -1216,13 +1216,13 @@ QString EpubWriter::ncx() const {
 }
 
 QString EpubWriter::identifier() const {
-    QString isbn;
-    for (const QChar ch : m_book.epub.isbn) {
-        if (ch.isDigit() || ch == u'X' || ch == u'x') {
-            isbn += ch.toUpper();
+    if (isIsbn(m_book.epub.isbn)) {
+        QString isbn;
+        for (const QChar ch : m_book.epub.isbn) {
+            if (ch.isDigit() || ch == u'X' || ch == u'x') {
+                isbn += ch.toUpper();
+            }
         }
-    }
-    if (isbn.size() == 10 || isbn.size() == 13) {
         return QStringLiteral("urn:isbn:") + isbn;
     }
     const QString own = m_book.epub.identifier.trimmed();
@@ -1453,6 +1453,44 @@ std::vector<std::pair<QString, QByteArray>> EpubWriter::build(ExportResult* resu
 }
 
 }  // namespace
+
+bool isIsbn(const QString& text) {
+    QList<int> digits;
+    const QString trimmed = text.trimmed();
+    for (qsizetype i = 0; i < trimmed.size(); ++i) {
+        const QChar ch = trimmed.at(i);
+        if (ch.isDigit() && ch.unicode() < 0x80) {
+            digits << ch.digitValue();
+        } else if ((ch == u'X' || ch == u'x') && i + 1 == trimmed.size()) {
+            digits << 10;  // the check digit of an ISBN of 10 digits
+        } else if (ch != u'-' && ch != u' ') {
+            return false;
+        }
+    }
+    if (digits.size() == 13) {
+        // 978 or 979, the digits by 1 and 3 in turn: a sum divisible by 10
+        int sum = 0;
+        for (qsizetype i = 0; i < digits.size(); ++i) {
+            if (digits.at(i) == 10) {
+                return false;
+            }
+            sum += digits.at(i) * (i % 2 == 0 ? 1 : 3);
+        }
+        return sum % 10 == 0;
+    }
+    if (digits.size() == 10) {
+        // The digits by 10, 9... 1: a sum divisible by 11; X (10) only as the last one
+        int sum = 0;
+        for (qsizetype i = 0; i < digits.size(); ++i) {
+            if (digits.at(i) == 10 && i + 1 < digits.size()) {
+                return false;
+            }
+            sum += digits.at(i) * static_cast<int>(10 - i);
+        }
+        return sum % 11 == 0;
+    }
+    return false;
+}
 
 bool exportEpub(const BookExport& book, const QString& path, const ExportProgress& progress, ExportResult* result,
                 ExportProblem* problem) {

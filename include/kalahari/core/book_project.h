@@ -81,6 +81,9 @@
 ///   "perChapter": true }, "endnotes": { "format": "i", "perChapter": false, "place": "book" } }.
 ///   A book without it numbers 1, 2, 3 and i, ii, iii anew in each chapter, the endnotes after
 ///   each text.
+/// - "isbn" and "publisher" are the ISBN and the publisher of the book's e-book, as File >
+///   Export > EPUB was given them last: "isbn": "978-83-01-00000-1", "publisher": "Wydmy".
+///   A book without them has none.
 /// - "sections" is the id of a set of names in the language of the book ("sections": Front
 ///   Section, Main Section, Back Section; "matter": Front Matter, Body, Back Matter;
 ///   "fragments"; "arc"), or the writer's own names:
@@ -324,6 +327,8 @@ struct ProjectBook {
     std::optional<BookFootnotes> footnotes;
     /// The style of its bibliography (Bibliography::PN_ISO_690...); empty: the Settings' one
     QString bibliographyStyle;
+    QString isbn;       ///< The ISBN of its e-book (File > Export > EPUB); empty: none
+    QString publisher;  ///< Its publisher; empty: none
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;

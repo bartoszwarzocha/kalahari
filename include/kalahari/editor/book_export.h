@@ -74,7 +74,8 @@ struct EpubOptions {
     bool embedFont = false;  ///< The font of the text in the file, when its licence allows it
     QString coverImage;      ///< The file of the cover's picture; empty: none
     QString description;     ///< What the book is about (the blurb); empty: none
-    QString isbn;            ///< Empty: the book's identifier is @c identifier
+    QString isbn;            ///< Empty, or not an ISBN (isIsbn()): the book's identifier is
+                             ///< @c identifier
     QString publisher;       ///< Empty: none
     QString identifier;      ///< The book's own lasting identifier (a UUID) when it has no ISBN
     QDateTime modified;      ///< When the book was changed last; invalid: now
@@ -195,6 +196,10 @@ bool exportPdf(const BookExport& book, const QString& path, const ExportProgress
 /// @return false, with what went wrong in @p problem, when it cannot
 bool exportEpub(const BookExport& book, const QString& path, const ExportProgress& progress,
                 ExportResult* result, ExportProblem* problem);
+
+/// @brief Whether @p text is an ISBN: 13 digits (or 10, the last one may be X) with the check
+///        digit of an ISBN, between them hyphens or spaces
+bool isIsbn(const QString& text);
 
 /// @brief Whether the PDF options of this purpose can be written by the Qt the program runs
 ///        with: a file for a print shop (PDF/X-4) and one in shades of gray need Qt 6.8

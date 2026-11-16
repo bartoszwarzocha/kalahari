@@ -268,18 +268,35 @@ std::map<std::string, json> buildDefaults() {
         {"project.lastFolders.insertImage", ""},
         {"project.lastFolders.saveImage", ""},
         {"project.lastFolders.exportBook", ""},
-        // File > Export > DOCX and Markdown: the writer's last choices of the window. What
-        // goes to the file: "book" (the whole book), "chosen" (the texts chosen in the window)
-        // or "front" (the text in front); the titles of the Navigator as headings; each text
-        // from a new page; page numbers; the font of the text (empty: the editor's); the
-        // annotations as Word's comments; the images copied next to a Markdown file
+        // File > Export > DOCX, PDF, Markdown and EPUB: the writer's last choices of the
+        // window. What goes to the file: "book" (the whole book), "chosen" (the texts chosen
+        // in the window) or "front" (the text in front); the titles of the Navigator as
+        // headings; each text from a new page; page numbers; the font of the text (empty: the
+        // editor's); the running head ("none", "authorAndTitle", "titleAndChapter",
+        // "chapter"); the annotations as Word's comments; the images copied next to a
+        // Markdown file
         {"export.content", "book"},
         {"export.titles", true},
         {"export.newPage", true},
         {"export.pageNumbers", true},
         {"export.font", ""},
+        {"export.runningHead", "authorAndTitle"},
         {"export.comments", false},
         {"export.copyImages", true},
+        // A PDF: the annotations as its comments; its purpose ("reading", "printShop" for a
+        // print shop, PDF/X-4, "archive", PDF/A-1b); the bookmarks; the pages in pairs; the
+        // shades of gray
+        {"export.pdf.comments", false},
+        {"export.pdf.purpose", "reading"},
+        {"export.pdf.bookmarks", true},
+        {"export.pdf.facingPages", true},
+        {"export.pdf.grayscale", false},
+        // An EPUB: its look ("book", the book's styles, or "simple"); the font of the text in
+        // the file; its cover ("design", the design chosen in the materials of the cover, or
+        // "none")
+        {"export.epub.look", "book"},
+        {"export.epub.embedFont", false},
+        {"export.epub.cover", "design"},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},

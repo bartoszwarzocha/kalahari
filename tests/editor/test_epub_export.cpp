@@ -69,7 +69,7 @@ TEST_CASE("EPUB: an archive readers open, with the book's data and its reading o
     const QString coverPath = folder.filePath(QStringLiteral("cover.jpg"));
     REQUIRE(cover.save(coverPath, "JPEG"));
     book.epub.coverImage = coverPath;
-    book.epub.isbn = QStringLiteral("978-83-01-00000-1");
+    book.epub.isbn = QStringLiteral("978-3-16-148410-0");
     book.epub.publisher = QStringLiteral("Wydawnictwo Oaza");
     book.epub.description = QStringLiteral("Karawana & burza.");
     book.epub.modified = QDateTime(QDate(2026, 11, 1), QTime(10, 0), QTimeZone::utc());
@@ -108,7 +108,7 @@ TEST_CASE("EPUB: an archive readers open, with the book's data and its reading o
 
     SECTION("The package: the book's data, its identifier, the cover, what it offers to every reader") {
         const QString package = text(entries, "OEBPS/content.opf");
-        CHECK(package.contains(QStringLiteral("<dc:identifier id=\"book-id\">urn:isbn:9788301000001</dc:identifier>")));
+        CHECK(package.contains(QStringLiteral("<dc:identifier id=\"book-id\">urn:isbn:9783161484100</dc:identifier>")));
         CHECK(package.contains(QStringLiteral("<dc:title>Wiatr nad oazą</dc:title>")));
         CHECK(package.contains(QStringLiteral("<dc:creator>Anna Nowak</dc:creator>")));
         CHECK(package.contains(QStringLiteral("<dc:language>pl</dc:language>")));
@@ -135,7 +135,7 @@ TEST_CASE("EPUB: an archive readers open, with the book's data and its reading o
         CHECK(nav.contains(QStringLiteral("<a epub:type=\"cover\" href=\"text/cover.xhtml\">")));
         CHECK(count(nav, QStringLiteral("<li><a href=")) == 4);
         const QString ncx = text(entries, "OEBPS/toc.ncx");
-        CHECK(ncx.contains(QStringLiteral("<meta name=\"dtb:uid\" content=\"urn:isbn:9788301000001\"/>")));
+        CHECK(ncx.contains(QStringLiteral("<meta name=\"dtb:uid\" content=\"urn:isbn:9783161484100\"/>")));
         CHECK(count(ncx, QStringLiteral("<navPoint ")) == 4);
         CHECK(ncx.contains(QStringLiteral("<meta name=\"dtb:depth\" content=\"2\"/>")));
     }
@@ -329,4 +329,30 @@ TEST_CASE("EPUB: the font of the text in the file, when its licence allows it", 
             QFontDatabase::removeApplicationFont(id);
         }
     }
+}
+
+TEST_CASE("EPUB: an ISBN, or the book's own identifier", "[export][epub]") {
+    // 13 digits (or 10, X the last one) with the check digit, hyphens or spaces between them
+    CHECK(isIsbn(QStringLiteral("978-3-16-148410-0")));
+    CHECK(isIsbn(QStringLiteral("978 3 16 148410 0")));
+    CHECK(isIsbn(QStringLiteral("0-306-40615-2")));
+    CHECK(isIsbn(QStringLiteral("080442957X")));
+    CHECK_FALSE(isIsbn(QStringLiteral("978-3-16-148410-1")));
+    CHECK_FALSE(isIsbn(QStringLiteral("0-306-40615-3")));
+    CHECK_FALSE(isIsbn(QStringLiteral("X-306-40615-2")));
+    CHECK_FALSE(isIsbn(QStringLiteral("978-3-16-14841O-0")));
+    CHECK_FALSE(isIsbn(QStringLiteral("12345")));
+    CHECK_FALSE(isIsbn(QString()));
+
+    // A number that is not an ISBN: the identifier of the book
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    BookExport book = sampleBook(folder.path());
+    book.epub.isbn = QStringLiteral("978-3-16-148410-1");
+    book.epub.identifier = QStringLiteral("5f0c3a52-8d1e-4f7a-9b20-6c1d2e3f4a5b");
+    const QString path = folder.filePath(QStringLiteral("book.epub"));
+    const QHash<QString, QByteArray> entries = exported(book, path, nullptr);
+    CHECK(text(entries, "OEBPS/content.opf")
+              .contains(QStringLiteral("<dc:identifier id=\"book-id\">urn:uuid:"
+                                       "5f0c3a52-8d1e-4f7a-9b20-6c1d2e3f4a5b</dc:identifier>")));
 }

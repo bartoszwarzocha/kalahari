@@ -2,8 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file book_export_coordinator.h
-/// @brief File > Export > DOCX and Markdown: the window of the export, and the book as the
-///        program has it (the open texts with their unsaved changes) for the file
+/// @brief File > Export > DOCX, PDF, Markdown and EPUB: the window of the export, and the book
+///        as the program has it (the open texts with their unsaved changes) for the file
 
 #pragma once
 
@@ -35,13 +35,16 @@ class CommandRegistry;
 class EditorPanel;
 class FootnoteCoordinator;
 
-/// @brief Exports the book, some of its texts or the text in front to a Word document or to
-///        Markdown
+/// @brief Exports the book, some of its texts or the text in front to a Word document, a PDF
+///        document, Markdown or an EPUB e-book
 ///
 /// The texts go in reading order, the open ones as their editors have them and the others as
 /// the program keeps them (an unsaved text, else its file), each with the numbers of its
-/// captions and notes in the book around it. The commands work with a book open or a text in
-/// front; without either they are greyed out with the reason.
+/// captions and notes in the book around it. A PDF has the colors of the light paper; an EPUB
+/// the chosen design of the front of the cover and the chosen description of the materials of
+/// the cover, and the ISBN and the publisher the book keeps (given in the window). The commands
+/// work with a book open or a text in front; without either they are greyed out with the
+/// reason.
 class BookExportCoordinator : public QObject {
     Q_OBJECT
 
@@ -65,7 +68,7 @@ public:
     BookExportCoordinator(const BookExportCoordinator&) = delete;
     BookExportCoordinator& operator=(const BookExportCoordinator&) = delete;
 
-    /// @brief Give File > Export > DOCX and Markdown their callbacks and their states
+    /// @brief Give File > Export > DOCX, PDF, Markdown and EPUB their callbacks and their states
     /// @note Call after the commands are registered
     void connectCommands();
 
