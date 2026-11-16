@@ -69,12 +69,14 @@ public:
     KeptSpellingSettings()
         : m_enabled(settings().get<bool>(ENABLED_KEY, true))
         , m_language(settings().get<std::string>(LANGUAGE_KEY, std::string()))
-        , m_program(settings().getLanguage()) {}
+        , m_program(settings().getLanguage())
+        , m_rulesMarked(settings().get<bool>(SpellingCoordinator::MARK_RULES_KEY, true)) {}
     ~KeptSpellingSettings() {
         try {
             settings().set<bool>(ENABLED_KEY, m_enabled);
             settings().set<std::string>(LANGUAGE_KEY, m_language);
             settings().setLanguage(m_program);
+            settings().set<bool>(SpellingCoordinator::MARK_RULES_KEY, m_rulesMarked);
         } catch (...) {
             // Left as the test made them; the next tests set what they need
             std::fputs("The spelling settings could not be given back\n", stderr);
@@ -89,6 +91,7 @@ private:
     bool m_enabled;
     std::string m_language;
     std::string m_program;
+    bool m_rulesMarked;
 };
 
 /// Run the event loop until the coordinator checks with @p dictionary
@@ -432,6 +435,7 @@ TEST_CASE("Spelling coordinator: the chapters are checked with the book's dictio
     const KeptSpellingSettings kept;
     auto& settings = KeptSpellingSettings::settings();
     settings.set<bool>(ENABLED_KEY, true);
+    settings.set<bool>(SpellingCoordinator::MARK_RULES_KEY, true);
     settings.set<std::string>(LANGUAGE_KEY, "");
     settings.setLanguage("en");
     auto& projects = test::book();
@@ -496,6 +500,16 @@ TEST_CASE("Spelling coordinator: the chapters are checked with the book's dictio
             return ruleWaves(*chapterEditor, 0) == QStringList{QStringLiteral("email")};
         }));
         CHECK(ruleWaves(*fileEditor, 0).isEmpty());
+
+        // The setting of the marking, changed in the Settings dialog, reaches the chapters
+        settings.set<bool>(SpellingCoordinator::MARK_RULES_KEY, false);
+        CHECK(waitUntil([chapterEditor]() { return !chapterEditor->areBookRulesMarked(); }));
+        CHECK(ruleWaves(*chapterEditor, 0).isEmpty());
+        settings.set<bool>(SpellingCoordinator::MARK_RULES_KEY, true);
+        CHECK(waitUntil([chapterEditor]() {
+            return ruleWaves(*chapterEditor, 0) == QStringList{QStringLiteral("email")};
+        }));
+
         const QString ruleId = projects.bookDictionary().rules().front().id;
         emit chapterEditor->removeBookRuleAsked(ruleId);
         CHECK(projects.bookDictionary().rules().isEmpty());
@@ -504,7 +518,8 @@ TEST_CASE("Spelling coordinator: the chapters are checked with the book's dictio
         // Without a book: nothing to change, and the status bar says so
         REQUIRE(projects.closeProject(false));
         CHECK_FALSE(coordinator.addToBookDictionary(QStringLiteral("Vael")));
-        CHECK(statusBar.currentMessage() == QStringLiteral("The book's dictionary cannot be saved"));
+        CHECK(statusBar.currentMessage() ==
+              QStringLiteral("The book's dictionary cannot be saved"));
         CHECK(chapterEditor->bookDictionary() == nullptr);
     }
 }

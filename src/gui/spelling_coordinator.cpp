@@ -147,8 +147,7 @@ SpellingCoordinator::SpellingCoordinator(core::ProjectManager& book, CommandRegi
             if (key.rfind("editor.spellCheck.", 0) == 0 || key == "ui.language") {
                 QMetaObject::invokeMethod(this, "updateDictionary", Qt::QueuedConnection);
             } else if (key == MARK_RULES_KEY) {
-                QMetaObject::invokeMethod(
-                    this, [this]() { updateEditors(); }, Qt::QueuedConnection);
+                QMetaObject::invokeMethod(this, "updateEditors", Qt::QueuedConnection);
             }
         });
 

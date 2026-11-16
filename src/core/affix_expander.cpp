@@ -299,13 +299,16 @@ QStringList AffixExpander::entriesOf(const QString& form) const {
     if (hasEntry(form)) {
         found.append(form);
     }
-    // Each word looked up once: an entry with one of the flags has the form
+    // Each word looked up once: an entry with one of the flags has the form. The flags are
+    // captured by a name of their own: clang's analyzer sees a captured structured binding
+    // as uninitialized
     for (const auto& [root, flags] : rootsOf(form)) {
         const QList<Entry> rootEntries = entries(root);
-        const bool hasFlag = std::ranges::any_of(rootEntries, [&flags](const Entry& entry) {
-            return std::ranges::any_of(
-                flags, [&entry](const QString& flag) { return entry.flags.contains(flag); });
-        });
+        const bool hasFlag =
+            std::ranges::any_of(rootEntries, [&wanted = flags](const Entry& entry) {
+                return std::ranges::any_of(
+                    wanted, [&entry](const QString& flag) { return entry.flags.contains(flag); });
+            });
         if (hasFlag) {
             appendOnce(found, root);
         }

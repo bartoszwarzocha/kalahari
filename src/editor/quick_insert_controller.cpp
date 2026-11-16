@@ -171,7 +171,8 @@ void QuickInsertList::fill(const QList<QuickInsertItem>& items, int current) {
 
     if (items.isEmpty()) {
         //: Quick insert: the list after the letters typed in the text (%1, "@xyz") found nothing
-        m_preview->setText(tr("Nothing matches “%1”. The next character closes the list.").arg(m_typed));
+        m_preview->setText(
+            tr("Nothing matches “%1”. The next character closes the list.").arg(m_typed));
         m_tree->hide();
     } else {
         m_tree->show();
