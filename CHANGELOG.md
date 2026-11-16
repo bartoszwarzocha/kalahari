@@ -1514,6 +1514,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The default labels of captions in Polish** - 2026-11-16. The labels that new books and
+  Settings > Editor > Images start with are "Rysunek", "Fotografia", "Ilustracja", "Mapa" and
+  "Schemat" in the Polish program, not "Figure", "Photo", "Illustration", "Map" and "Diagram":
+  the translations now find these texts. A book that already numbers its captions keeps the
+  labels it has.
 - **A paragraph at the top of a page drawn at the bottom of the page before** - 2026-11-13. In
   the Page Layout view a paragraph whose first line went on to the next page could be drawn
   in the margin of the page before, and its page fields showed that page, after its list
