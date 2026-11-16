@@ -391,13 +391,8 @@ TEST_CASE("Central tabs: the list of all the tabs, from its button and with Alt+
                                QStringLiteral("&5 Quotes"), QStringLiteral("&6 Images")});
     CHECK(space.tabs.currentIndex() == 4);
 
-    // In more rows too, and with Alt+Down on the tabs. The tabs have the keys only in an
-    // active window; a system may not make it active (Windows on the test machines, at times)
-    space.tabs.activateWindow();
-    if (!kalahari::test::waitUntil(
-            [&space]() { return QApplication::activeWindow() == &space.tabs; })) {
-        SKIP("the system did not make the test's window active");
-    }
+    // In more rows too, and with Alt+Down on the tabs: the keys of their window, also when the
+    // system does not make it active (Windows on the test machines, at times)
     for (const PanelTabBar::Rows rows : {PanelTabBar::Rows::Single, PanelTabBar::Rows::Wrap}) {
         space.tabs.setRows(rows);
         settle();
@@ -408,7 +403,7 @@ TEST_CASE("Central tabs: the list of all the tabs, from its button and with Alt+
         space.tabs.activateWindow();
         tabs->setFocus(Qt::OtherFocusReason);
         settle();
-        REQUIRE(QApplication::focusWidget() == tabs);
+        REQUIRE(space.tabs.focusWidget() == tabs);
         texts = kalahari::test::runPopupMenu(
             [tabs]() {
                 QKeyEvent override(QEvent::ShortcutOverride, Qt::Key_Down, Qt::AltModifier);
