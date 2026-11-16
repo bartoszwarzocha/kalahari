@@ -21,10 +21,10 @@
 #include "kalahari/gui/field_coordinator.h"
 #include "kalahari/gui/settings/shortcuts_page.h"
 #include "kalahari/gui/settings_dialog.h"
+#include "kalahari_tests/gui/dialog_checks.h"
 #include "test_support/window_parts.h"
 
 #include <QAbstractButton>
-#include <QAbstractScrollArea>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
@@ -34,8 +34,6 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
-#include <QScrollBar>
-#include <QTabBar>
 #include <QTabWidget>
 #include <QTextDocument>
 #include <QTimer>
@@ -45,7 +43,6 @@
 
 #include <cstdio>
 #include <functional>
-#include <map>
 #include <optional>
 #include <string>
 #include <utility>
@@ -57,7 +54,12 @@ using editor::TextField;
 using gui::FieldCoordinator;
 using gui::dialogs::DateTimeDialog;
 using gui::dialogs::FieldDialog;
+using test::checkKeys;
+using test::checkSmallScreen;
+using test::layOut;
 using test::OpenNovel;
+using test::Polish;
+using test::SettingsOpener;
 using test::Window;
 
 namespace {
@@ -203,120 +205,6 @@ QString shownText(const editor::BookEditor& text) {
     }
     return shown;
 }
-
-/// The access key of a text: the letter after a single "&"
-QChar accessKey(const QString& text) {
-    for (qsizetype i = 0; i + 1 < text.size(); ++i) {
-        if (text.at(i) == QLatin1Char('&')) {
-            if (text.at(i + 1) == QLatin1Char('&')) {
-                ++i;
-                continue;
-            }
-            return text.at(i + 1).toLower();
-        }
-    }
-    return {};
-}
-
-/// The texts with access keys of a window: of the labels with a field, the buttons, the groups,
-/// the tabs
-QStringList keyTexts(const QWidget& root) {
-    QStringList texts;
-    for (const QWidget* widget : root.findChildren<QWidget*>()) {
-        if (const auto* label = qobject_cast<const QLabel*>(widget);
-            (label != nullptr) && (label->buddy() != nullptr)) {
-            texts << label->text();
-        } else if (const auto* button = qobject_cast<const QAbstractButton*>(widget)) {
-            texts << button->text();
-        } else if (const auto* group = qobject_cast<const QGroupBox*>(widget)) {
-            texts << group->title();
-        } else if (const auto* tabs = qobject_cast<const QTabBar*>(widget)) {
-            for (int tab = 0; tab < tabs->count(); ++tab) {
-                texts << tabs->tabText(tab);
-            }
-        }
-    }
-    return texts;
-}
-
-/// Each access key of a window once, a Latin letter (Alt does not reach "ś")
-void checkKeys(const QWidget& root) {
-    std::map<QChar, QStringList> byKey;
-    for (const QString& text : keyTexts(root)) {
-        const QChar key = accessKey(text);
-        if (!key.isNull()) {
-            CHECK((key.unicode() < 0x80 && key.isLetterOrNumber()));
-            byKey[key] << text;
-        }
-    }
-    for (const auto& [key, texts] : byKey) {
-        INFO(texts.join(QStringLiteral(" / ")).toStdString());
-        CHECK(texts.size() == 1);
-    }
-}
-
-/// The window laid out as it shows
-void layOut(QWidget& window) {
-    window.show();
-    for (int i = 0; i < 5; ++i) {
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
-        QCoreApplication::processEvents();
-    }
-}
-
-/// 1366x768 at 150%: 911 pixels wide and 460 high (a Mac's larger controls need a few more)
-void checkSmallScreen(const QWidget& window) {
-#ifdef Q_OS_MACOS
-    constexpr int MAX_HEIGHT = 480;
-#else
-    constexpr int MAX_HEIGHT = 460;
-#endif
-    CHECK(window.sizeHint().width() <= 911);
-    CHECK(window.sizeHint().height() <= MAX_HEIGHT);
-    // Nothing in it scrolls: what does not fit goes in tabs
-    for (const QAbstractScrollArea* area : window.findChildren<QAbstractScrollArea*>()) {
-        if (area->isVisible()) {
-            INFO(area->metaObject()->className() << " " << area->accessibleName().toStdString());
-            CHECK(area->verticalScrollBar()->maximum() == 0);
-            CHECK(area->horizontalScrollBar()->maximum() == 0);
-        }
-    }
-}
-
-/// The window in Polish while it lives: the translation the program ships
-class Polish {
-public:
-    Polish() {
-        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
-        if (m_loaded) {
-            QCoreApplication::installTranslator(&m_translator);
-        }
-    }
-    ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
-    Polish(const Polish&) = delete;
-    Polish& operator=(const Polish&) = delete;
-    Polish(Polish&&) = delete;
-    Polish& operator=(Polish&&) = delete;
-
-    [[nodiscard]] bool loaded() const { return m_loaded; }
-
-private:
-    QTranslator m_translator;
-    bool m_loaded = false;
-};
-
-/// The program's way of opening the Settings dialog, until the test ends
-class SettingsOpener {
-public:
-    explicit SettingsOpener(std::function<void(QWidget*, const QString&)> opener) {
-        gui::dialogs::KalahariDialog::setSettingsOpener(std::move(opener));
-    }
-    ~SettingsOpener() { gui::dialogs::KalahariDialog::setSettingsOpener(nullptr); }
-    SettingsOpener(const SettingsOpener&) = delete;
-    SettingsOpener& operator=(const SettingsOpener&) = delete;
-    SettingsOpener(SettingsOpener&&) = delete;
-    SettingsOpener& operator=(SettingsOpener&&) = delete;
-};
 
 }  // namespace
 
