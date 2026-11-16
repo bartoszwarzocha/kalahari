@@ -47,6 +47,8 @@
 
 #include <nlohmann/json_fwd.hpp>
 
+#include <algorithm>
+#include <iterator>
 #include <string>
 
 namespace kalahari {
@@ -74,14 +76,15 @@ void setChoice(const char* key, const char* value) {
 /// The portrait beside the name of the first card of @p list of book @p pm
 QImage listPortrait(const core::ProjectManager& pm, const gui::MaterialListPanel& list) {
     const QList<gui::MaterialColumn> columns = gui::MaterialList::columnsOf(pm, list.list());
-    for (int column = 0; column < columns.size(); ++column) {
-        if (columns.at(column).id == QStringLiteral("title")) {
-            const QModelIndex name = list.rows()->index(0, column);
-            return name.data(Qt::DecorationRole).value<QPixmap>().toImage();
-        }
-    }
-    FAIL("No column of the names");
-    return {};
+    const auto found =
+        std::find_if(columns.cbegin(), columns.cend(), [](const gui::MaterialColumn& column) {
+            return column.id == QStringLiteral("title");
+        });
+    // REQUIRE and not FAIL before a return, which a compiler finds unreachable
+    REQUIRE(found != columns.cend());
+    const QModelIndex name =
+        list.rows()->index(0, static_cast<int>(std::distance(columns.cbegin(), found)));
+    return name.data(Qt::DecorationRole).value<QPixmap>().toImage();
 }
 
 /// Whether @p widget is inside @p ancestor

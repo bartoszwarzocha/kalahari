@@ -40,6 +40,7 @@
 #include <QTreeWidgetItemIterator>
 
 #include <algorithm>
+#include <iterator>
 
 namespace kalahari {
 using gui::CardList;
@@ -67,13 +68,14 @@ QString addCard(const char* kindId, const QString& title) {
 /// The column @p columnId of @p list in its model
 int columnOf(const QString& list, const QString& columnId) {
     const QList<gui::MaterialColumn> columns = MaterialList::columnsOf(test::book(), list);
-    for (int i = 0; i < columns.size(); ++i) {
-        if (columns.at(i).id == columnId) {
-            return i;
-        }
-    }
-    FAIL("No column " << columnId.toStdString());
-    return -1;
+    const auto found =
+        std::find_if(columns.cbegin(), columns.cend(), [&columnId](const gui::MaterialColumn& c) {
+            return c.id == columnId;
+        });
+    // REQUIRE and not FAIL before a return, which a compiler finds unreachable
+    INFO("No column " << columnId.toStdString());
+    REQUIRE(found != columns.cend());
+    return static_cast<int>(std::distance(columns.cbegin(), found));
 }
 
 /// The texts of column @p columnId of the rows @p panel shows, in their order
