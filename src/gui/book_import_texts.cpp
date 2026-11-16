@@ -13,10 +13,12 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSet>
 
 #include <algorithm>
 #include <array>
+#include <functional>
 #include <optional>
 
 namespace kalahari::gui {
@@ -50,6 +52,12 @@ std::optional<core::ElementPlace> placeOfKind(const core::ProjectManager& book, 
         }
     }
     return std::nullopt;
+}
+
+/// Whether a KML text has no characters in it, only its elements
+bool withoutText(const QString& kml) {
+    static const QRegularExpression tags(QStringLiteral("<[^>]*>"));
+    return QString(kml).remove(tags).trimmed().isEmpty();
 }
 
 /// The files of the book's folder of images, by name
@@ -134,30 +142,35 @@ bool addFiles(core::ProjectManager& book, const std::vector<ImportedText>& texts
 }  // namespace
 
 std::vector<editor::KindTitle> importKindTitles(const core::ProjectManager& book) {
-    std::vector<editor::KindTitle> titles;
     const core::BookProject* project = book.project();
     if (!project) {
-        return titles;
+        return {};
     }
-    const core::KindRef main = book.mainTextKind();
-    QSet<QString> seen;
+    QList<core::KindRef> kinds;
     for (const core::BookPlace place : BOOK_PLACES) {
-        for (const core::KindRef& kind : project->kindsIn(book.bookTypes(), place)) {
-            if (!kind || kind.kind->form != core::ElementForm::Text || kind.kind->isCard() || sameKind(kind, main) ||
-                seen.contains(kind.reference())) {
-                continue;
+        kinds += project->kindsIn(book.bookTypes(), place);
+    }
+    return importKindTitles(kinds, book.mainTextKind());
+}
+
+std::vector<editor::KindTitle> importKindTitles(const QList<core::KindRef>& kinds, const core::KindRef& main) {
+    std::vector<editor::KindTitle> titles;
+    QSet<QString> seen;
+    for (const core::KindRef& kind : kinds) {
+        if (!kind || kind.kind->form != core::ElementForm::Text || kind.kind->isCard() || sameKind(kind, main) ||
+            seen.contains(kind.reference())) {
+            continue;
+        }
+        seen.insert(kind.reference());
+        editor::KindTitle title;
+        title.kind = kind.reference();
+        for (const QString& name : kind.kind->name.values) {
+            if (!name.trimmed().isEmpty() && !title.titles.contains(name, Qt::CaseInsensitive)) {
+                title.titles << name;
             }
-            seen.insert(kind.reference());
-            editor::KindTitle title;
-            title.kind = kind.reference();
-            for (const QString& name : kind.kind->name.values) {
-                if (!name.trimmed().isEmpty() && !title.titles.contains(name, Qt::CaseInsensitive)) {
-                    title.titles << name;
-                }
-            }
-            if (!title.titles.isEmpty()) {
-                titles.push_back(std::move(title));
-            }
+        }
+        if (!title.titles.isEmpty()) {
+            titles.push_back(std::move(title));
         }
     }
     return titles;
@@ -201,6 +214,44 @@ bool addImportedTexts(core::ProjectManager& book, const std::vector<ImportedText
         added->elements += ids;
     }
     return done;
+}
+
+void clearNewBookStart(core::ProjectManager& book, const std::vector<ImportedText>& texts) {
+    const core::ProjectBook* first = book.book();
+    if (!first) {
+        return;
+    }
+    QSet<const core::ElementKind*> imported;
+    const std::function<void(const std::vector<ImportedText>&)> collect = [&](const std::vector<ImportedText>& list) {
+        for (const ImportedText& text : list) {
+            if (text.kind) {
+                imported.insert(text.kind.kind);
+            }
+            collect(text.texts);
+        }
+    };
+    collect(texts);
+    const core::KindRef main = book.mainTextKind();
+    QStringList start;
+    for (const QList<core::ProjectElement>* elements : {&first->frontElements, &first->mainElements, &first->backElements}) {
+        for (const core::ProjectElement& element : *elements) {
+            const core::KindRef kind = book.kindOf(element);
+            if (!kind || kind.kind->form != core::ElementForm::Text) {
+                continue;
+            }
+            if (imported.contains(kind.kind) || (sameKind(kind, main) && withoutText(book.chapterText(element.id)))) {
+                start << element.id;
+            }
+        }
+    }
+    for (const QString& id : std::as_const(start)) {
+        book.discardChapterContent(id);
+        if (const std::optional<core::ProjectElement> element = book.removeElement(id)) {
+            for (const QString& file : book.filesOf(*element)) {
+                QFile::remove(file);
+            }
+        }
+    }
 }
 
 bool removeImported(core::ProjectManager& book, const ImportedElements& imported) {

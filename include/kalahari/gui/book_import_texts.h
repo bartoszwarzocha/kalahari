@@ -32,6 +32,9 @@ namespace kalahari::gui {
 ///        main and back part, but its main text kind (a chapter's title is any title)
 std::vector<editor::KindTitle> importKindTitles(const core::ProjectManager& book);
 
+/// @brief The names of @p kinds, as importKindTitles() gives them: the text kinds but @p main
+std::vector<editor::KindTitle> importKindTitles(const QList<core::KindRef>& kinds, const core::KindRef& main);
+
 /// @brief Save the images of an imported document in the book's folder of images
 /// @param written Gets the sources of the files it wrote, not those the folder had already
 ///        (Undo import deletes them); may be nullptr
@@ -75,6 +78,11 @@ struct ImportedElements {
 ///         there, a file that cannot be written): the texts after it are not added
 bool addImportedTexts(core::ProjectManager& book, const std::vector<ImportedText>& texts, const ImportPlace& place,
                       ImportedElements* added);
+
+/// @brief Make room in a new book for the imported texts: the text elements it started with of
+///        the kinds of @p texts go, and so does a text of its main kind with no text in it
+///        ("Chapter 1"), with their files
+void clearNewBookStart(core::ProjectManager& book, const std::vector<ImportedText>& texts);
 
 /// @brief Take out of the book what an import added: its elements with their files, the image
 ///        files it wrote and the paragraph styles it added

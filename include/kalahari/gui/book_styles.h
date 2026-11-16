@@ -27,6 +27,10 @@ QList<core::PackageParagraphStyle> bookTypeStyles(const core::ProjectManager& bo
 /// @brief The styles of the package Base: those of a text outside the book
 QList<core::PackageParagraphStyle> baseStyles();
 
+/// @brief The styles a new book of type @p typeId starts with, the names in the program's
+///        language; those of the package Base for a type the program does not have
+editor::ParagraphStyleSet newBookParagraphStyles(const QString& typeId);
+
 /// @brief The styles of the book open in @p book: its type's with the book's entries over them
 ///        (editor::ParagraphStyleSet::forBook()), the names in the program's language
 editor::ParagraphStyleSet bookParagraphStyles(const core::ProjectManager& book);

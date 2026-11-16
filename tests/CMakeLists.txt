@@ -161,6 +161,8 @@ set(TEST_SOURCES
     gui/test_archive_dialogs.cpp                 # Export and Import Project Archive windows
     gui/test_export_book_dialog.cpp              # File > Export > DOCX and Markdown: the window and the book
     gui/test_book_import_texts.cpp               # The texts of an imported file added to the book, Undo import
+    gui/test_import_book_dialog.cpp              # File > Import > DOCX, Markdown and plain text: the window
+    gui/test_book_import_plan.cpp                # The plan of an import: the texts, their kinds and styles
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_own_windows.cpp                     # Only own windows, on their common base
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
@@ -363,6 +365,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/materials_page.cpp  # Settings > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/import_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/shortcuts_page.cpp  # Settings > Keyboard Shortcuts
     ${CMAKE_SOURCE_DIR}/src/gui/settings/stats_pages.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/shortcut_rules.cpp          # Which keys a command can have
@@ -425,6 +428,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/caption_coordinator.cpp     # The numbered captions of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_export_coordinator.cpp # The export of the book to DOCX and Markdown
     ${CMAKE_SOURCE_DIR}/src/gui/book_import_texts.cpp       # The texts of an imported file added to the book
+    ${CMAKE_SOURCE_DIR}/src/gui/book_import_plan.cpp        # The plan of an import: the texts, kinds, styles
+    ${CMAKE_SOURCE_DIR}/src/gui/book_import_coordinator.cpp # The import of DOCX, Markdown and plain text
     ${CMAKE_SOURCE_DIR}/src/gui/footnote_coordinator.cpp    # Insert > Footnote, Endnote and the frame of a note
     ${CMAKE_SOURCE_DIR}/src/gui/image_filter_coordinator.cpp  # One filter for every image of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_search_coordinator.cpp  # Find in Book and Replace All in Book
@@ -499,6 +504,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/archive_dialogs.cpp          # Export and import of an archive
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/export_book_dialog.cpp       # Export of the book to DOCX and Markdown
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/import_book_dialog.cpp       # Import of DOCX, Markdown and plain text
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/file_preview_dialog.cpp      # The text of a file no element has
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
@@ -681,6 +687,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/export_book_dialog.h  # ExportBookDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/import_book_dialog.h  # ImportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rename_element_dialog.h  # RenameElementDialog with Q_OBJECT
@@ -727,6 +734,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_export_coordinator.h  # BookExportCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_import_coordinator.h  # BookImportCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT

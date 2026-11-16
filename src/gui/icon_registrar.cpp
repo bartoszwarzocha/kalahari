@@ -40,6 +40,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.exit", "resources/icons/twotone/logout.svg", "Exit");
     iconRegistry.registerIcon("file.open.file", "resources/icons/twotone/description.svg", "Open File");
     iconRegistry.registerIcon("file.import.docx", "resources/icons/twotone/upload_file.svg", "Import DOCX");
+    iconRegistry.registerIcon("file.import.markdown", "resources/icons/twotone/article.svg", "Import Markdown");
     iconRegistry.registerIcon("file.import.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Import PDF");
     iconRegistry.registerIcon("file.import.text", "resources/icons/twotone/text_snippet.svg", "Import Text");
     iconRegistry.registerIcon("file.import.scrivener", "resources/icons/twotone/integration_instructions.svg", "Import Scrivener");

@@ -303,6 +303,9 @@ std::vector<ImportPiece> splitAtHeadings(const ImportDocument& document, const S
         }
     }
     close(count);
+    if (pieces.size() == 1) {
+        pieces.front().beforeTitles = false;  // no title after it: the whole text, not a title page
+    }
     return pieces;
 }
 

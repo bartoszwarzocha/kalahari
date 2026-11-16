@@ -45,6 +45,8 @@ const char* lastFolderSetting(Operation operation) {
         return "project.lastFolders.saveImage";
     case Operation::ExportBook:
         return "project.lastFolders.exportBook";
+    case Operation::ImportText:
+        return "project.lastFolders.importText";
     }
     return "";
 }
@@ -69,6 +71,7 @@ QString settingsFolderOf(Operation operation) {
     case Operation::ExportBook:
         return ProgramFolders::exportsFolder();
     case Operation::OpenFile:
+    case Operation::ImportText:
     case Operation::AddMaterial:
     case Operation::InsertImage:
     case Operation::SaveImage:

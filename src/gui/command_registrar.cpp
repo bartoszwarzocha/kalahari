@@ -261,14 +261,16 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                       IconSet(),
                       nullptr);
 
-    // Import submenu
-    REG_CMD("file.import.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX Document..."), "FILE/Import/DOCX Document...", 80, false, 1);
+    // Import submenu: DOCX, Markdown and Plain Text open the window of the import
+    // (BookImportCoordinator)
+    REG_CMD("file.import.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX Document..."), "FILE/Import/DOCX Document...", 80, false, 0);
+    REG_CMD("file.import.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown..."), "FILE/Import/Markdown...", 84, false, 0);
+    REG_CMD("file.import.text", QT_TRANSLATE_NOOP("CommandRegistrar", "Plain &Text..."), "FILE/Import/Plain Text...", 86, true, 0);
     REG_CMD("file.import.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF Reference..."), "FILE/Import/PDF Reference...", 90, false, 2);
-    REG_CMD("file.import.text", QT_TRANSLATE_NOOP("CommandRegistrar", "Plain &Text..."), "FILE/Import/Plain Text...", 100, false, 1);
     REG_CMD("file.import.scrivener", QT_TRANSLATE_NOOP("CommandRegistrar", "&Scrivener Project..."), "FILE/Import/Scrivener Project...", 110, false, 2);
 
     // Import Archive (priority 75 in Import submenu)
-    REG_CMD_TOOL_ICON("file.import.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Import/Project Archive...", 75, false, 0,
+    REG_CMD_TOOL_ICON("file.import.archive", QT_TRANSLATE_NOOP("CommandRegistrar", "Project &Archive..."), "FILE/Import/Project Archive...", 75, true, 0,
                       KeyboardShortcut(),
                       IconSet(),
                       callbacks.onImportArchive);
