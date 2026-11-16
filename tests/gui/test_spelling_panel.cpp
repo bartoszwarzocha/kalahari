@@ -746,7 +746,8 @@ TEST_CASE("Spelling panel: only the cards in view are made, and the selected one
 // The panel
 // =============================================================================
 
-TEST_CASE("Spelling panel: the cards of the book's dictionary", "[gui][spelling-panel][dictionary]") {
+TEST_CASE("Spelling panel: the cards of the book's dictionary",
+          "[gui][spelling-panel][dictionary]") {
     const std::vector<SpellingPanelIssue> issues = sampleIssues();
     SpellingIssueCard card;
     card.resize(360, 240);
@@ -757,14 +758,16 @@ TEST_CASE("Spelling panel: the cards of the book's dictionary", "[gui][spelling-
         SpellingPanelIssue rule = spellingIssue(0, QStringLiteral("Send an email now."),
                                                 QStringLiteral("email"), 0);
         rule.issue.kind = TextIssueKind::BookRule;
-        rule.issue.message = QStringLiteral("Write \u201ce-mail\u201d: As the publisher writes it.");
+        rule.issue.message =
+            QStringLiteral("Write \u201ce-mail\u201d: As the publisher writes it.");
         rule.issue.suggestions = {QStringLiteral("e-mail")};
         card.setIssue(rule);
         card.setSuggestions(rule.issue.suggestions);
         CHECK(says(card, QStringLiteral("Book rule")));
         CHECK(says(card, rule.issue.message));
         CHECK(buttonTexts(card.suggestionButtons(), card) == QStringList{QStringLiteral("e-mail")});
-        CHECK(buttonTexts(card.actionButtons(), card) == QStringList{QStringLiteral("Ignore Word")});
+        CHECK(buttonTexts(card.actionButtons(), card) ==
+              QStringList{QStringLiteral("Ignore Word")});
         int ignored = 0;
         QObject::connect(&card, &SpellingIssueCard::ignoreWordClicked,
                          [&ignored]() { ++ignored; });

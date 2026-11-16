@@ -95,7 +95,8 @@ struct AddPlaces {
 /// suggestions and the actions: "Ignore Word" and "Add to Your Words" for a misspelled word
 /// (in a chapter of the book "Add to Book Dictionary", as the setting says, with an arrow for
 /// the other place: AddPlaces), "Ignore Word" for a place breaking a rule of the book,
-/// "Ignore Rule" for a grammar issue. The suggestions of the selected card are numbered: the keys 1 to 5 choose them.
+/// "Ignore Rule" for a grammar issue. The suggestions of the selected card are numbered: the
+/// keys 1 to 5 choose them.
 /// Their words are never shortened: a button that does not fit in a line goes on to the next
 /// one, and a word wider than the whole line goes on in the next line of its button.
 class SpellingIssueCard : public QFrame {

@@ -8547,8 +8547,9 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Słownik książki</translation>
     </message>
     <message>
-        <source>Mark departures from the book&apos;s spelling rules</source>
-        <translation>Zaznaczaj odstępstwa od zasad pisowni książki</translation>
+        <source>Mark departures from the rules</source>
+        <extracomment>In the group Book Dictionary: a word written otherwise than a spelling rule of the book&apos;s dictionary wants gets a wavy line. In Polish: Zaznaczaj odstępstwa od zasad</extracomment>
+        <translation>Zaznaczaj odstępstwa od zasad</translation>
     </message>
     <message>
         <source>The book&apos;s dictionary</source>
@@ -11844,6 +11845,11 @@ The page of the downloads for the materials with a web address. In Polish: Mater
     <message>
         <source>Regular expression</source>
         <translation>Wyrażenie regularne</translation>
+    </message>
+    <message>
+        <source>All forms</source>
+        <extracomment>The option of the find bar that finds a word in all its forms. In Polish: Wszystkie odmiany</extracomment>
+        <translation>Wszystkie odmiany</translation>
     </message>
     <message>
         <source>Close the bar</source>

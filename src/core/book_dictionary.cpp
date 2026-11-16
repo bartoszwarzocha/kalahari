@@ -211,8 +211,9 @@ void BookDictionary::rebuild() {
     }
     // The longest spellings first: "e mail" before "e"
     for (QList<WrongSpelling>& spellings : m_wrong) {
-        std::ranges::stable_sort(spellings, std::ranges::greater{},
-                                 [](const WrongSpelling& spelling) { return spelling.words.size(); });
+        std::ranges::stable_sort(
+            spellings, std::ranges::greater{},
+            [](const WrongSpelling& spelling) { return spelling.words.size(); });
     }
 }
 

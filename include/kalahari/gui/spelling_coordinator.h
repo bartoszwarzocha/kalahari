@@ -148,11 +148,13 @@ signals:
     ///        spelling rule of the book
     void editRuleAsked(const QString& ruleId);
 
-private:
+private slots:
     /// @brief Give the editors of the documents their dictionaries, and load the one of the
-    ///        documents outside the book when the first of them needs it
+    ///        documents outside the book when the first of them needs it (a slot: the
+    ///        listener of the settings queues it by its name)
     void updateEditors();
 
+private:
     /// @brief The book's dictionary changed: its chapters are checked again
     void onBookDictionaryChanged();
 

@@ -1629,8 +1629,8 @@ void MainWindow::registerCommands() {
         };
     }
 
-    // Find goes to the search of a list of materials, of the preview of a PDF file and of the
-    // book's dictionary too
+    // Find goes to the search of a list of materials, of the book's dictionary and of the
+    // preview of a PDF file too
     if (Command* command = registry.getCommand("edit.find")) {
         command->isEnabled = [this]() {
             const PreviewPanel* preview =
@@ -1932,14 +1932,14 @@ void MainWindow::onFind() {
         list->focusSearch();
         return;
     }
-    if (PreviewPanel* preview = currentPreview(); preview != nullptr && preview->canFind()) {
-        preview->find();
-        return;
-    }
     if (BookDictionaryPanel* dictionary = m_bookDictionaryCoordinator != nullptr
                                               ? m_bookDictionaryCoordinator->currentPanel()
                                               : nullptr) {
         dictionary->focusSearch();
+        return;
+    }
+    if (PreviewPanel* preview = currentPreview(); preview != nullptr && preview->canFind()) {
+        preview->find();
         return;
     }
     EditorPanel* editor = getCurrentEditor();

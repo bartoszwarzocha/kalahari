@@ -135,7 +135,8 @@ TEST_CASE("Search of all forms: the forms of a word of the spelling dictionary",
     CHECK(said.contains(QString::fromUtf8("powiedziała")));
     CHECK(said.contains(QString::fromUtf8("powiedzieli")));
     // At the start of a sentence
-    CHECK(formsToFind(QStringLiteral("Smoka"), nullptr, &spelling).contains(QStringLiteral("smokiem")));
+    CHECK(formsToFind(QStringLiteral("Smoka"), nullptr, &spelling)
+              .contains(QStringLiteral("smokiem")));
     // A name of the book comes first
     const BookDictionary dictionary = annaWolska();
     CHECK_FALSE(formsToFind(QStringLiteral("Anna"), &dictionary, &spelling)
