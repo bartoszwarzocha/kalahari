@@ -97,5 +97,37 @@
                "picture", "document", "publication", "recording", "other_file"],
   "primary":  "poem",
   "start":    ["title_page", "poem"],
-  "styles":   "styles.json"
+  "styles":   "styles.json",
+  "publishingTemplates": [
+    { "id": "collection", "part": "synopsis",
+      "name": { "pl": "Opis tomiku", "en": "About the collection" },
+      "points": [
+        { "id": "motifs",
+          "name": { "pl": "Motywy", "en": "Motifs" },
+          "hint": { "pl": "O czym są wiersze i co je łączy.",
+                    "en": "What the poems are about and what links them." } },
+        { "id": "form",
+          "name": { "pl": "Forma i język", "en": "Form and language" },
+          "hint": { "pl": "Wiersz wolny czy rymowany, jaki język, jaki ton.",
+                    "en": "Free verse or rhyme, what language, what tone." } },
+        { "id": "parts",
+          "name": { "pl": "Układ części", "en": "Order of the parts" },
+          "hint": { "pl": "Jak tomik jest podzielony i dlaczego.",
+                    "en": "How the collection is divided and why." } }
+      ],
+      "target": { "characters": 1800, "words": 300 } },
+    { "id": "poems_about", "part": "pitch",
+      "name": { "pl": "Wiersze o…, w których…", "en": "Poems about… in which…" },
+      "pattern": { "pl": "Wiersze o {theme}, w których {what}.",
+                   "en": "Poems about {theme} in which {what}." },
+      "fields": [
+        { "id": "theme",
+          "name": { "pl": "temat", "en": "theme" },
+          "hint": { "pl": "o czym są wiersze", "en": "what the poems are about" } },
+        { "id": "what",
+          "name": { "pl": "co się dzieje", "en": "what happens" },
+          "hint": { "pl": "co wiersze robią z tematem", "en": "what the poems do with the theme" } }
+      ],
+      "target": { "characters": 200, "words": 35 } }
+  ]
 }

@@ -6,6 +6,7 @@
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/logger.h>
+#include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/source_description.h>
 #include <QFile>
 #include <QFileInfo>
@@ -460,6 +461,20 @@ void readQuote(Fields& fields, ProjectElement& element, QStringList& problems) {
     data.extra = quoteFields.rest();
 }
 
+/// What a text for publishers is, with the fields of "publishing" this version does not know
+void readPublishing(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonValue publishing = fields.take("publishing");
+    if (publishing.isUndefined()) {
+        return;
+    }
+    if (!publishing.isObject()) {
+        fields.problem("publishing", QStringLiteral("must be an object"));
+        return;
+    }
+    element.publishing =
+        PublishingData::fromJson(publishing.toObject(), fields.path("publishing"), problems);
+}
+
 ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& seen,
                            QStringList& problems) {
     ProjectElement element;
@@ -498,6 +513,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     readSource(fields, element, problems);
     readBookmarks(fields, element, problems);
     readQuote(fields, element, problems);
+    readPublishing(fields, element, problems);
     element.extra = fields.rest();
     return element;
 }
@@ -729,6 +745,12 @@ ProjectBook readBook(const QJsonValue& value, const QString& field, Seen& seen,
         book.footnotes = readFootnotes(footnotes, fields.path("footnotes"), problems);
     }
     book.bibliographyStyle = fields.string("bibliographyStyle");
+    if (const QJsonValue set = fields.take("publishingSet"); set.isObject()) {
+        book.publishingSet =
+            PublishingSet::fromJson(set.toObject(), fields.path("publishingSet"), problems);
+    } else if (!set.isUndefined()) {
+        fields.problem("publishingSet", QStringLiteral("must be an object"));
+    }
     book.extra = fields.rest();
     return book;
 }
@@ -953,6 +975,11 @@ QJsonObject elementToJson(const ProjectElement& element) {
         json.insert(QLatin1String("cover"), data);
     }
     writeSource(json, element);
+    if (element.publishing.isEmpty()) {
+        json.remove(QLatin1String("publishing"));
+    } else {
+        json.insert(QLatin1String("publishing"), element.publishing.toJson());
+    }
     return json;
 }
 
@@ -1046,6 +1073,11 @@ QJsonObject bookToJson(const ProjectBook& book) {
         json.remove(QLatin1String("footnotes"));
     }
     setOrRemove(json, "bibliographyStyle", book.bibliographyStyle);
+    if (book.publishingSet) {
+        json.insert(QLatin1String("publishingSet"), book.publishingSet->toJson());
+    } else {
+        json.remove(QLatin1String("publishingSet"));
+    }
     return json;
 }
 
@@ -1374,7 +1406,8 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            description == other.description && fields == other.fields && links == other.links &&
            rotation == other.rotation && cover == other.cover && source == other.source &&
            bookmarks == other.bookmarks && lastPage == other.lastPage && quote == other.quote &&
-           viewExtra == other.viewExtra && extra == other.extra;
+           publishing == other.publishing && viewExtra == other.viewExtra &&
+           extra == other.extra;
 }
 
 // =============================================================================

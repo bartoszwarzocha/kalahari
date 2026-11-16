@@ -30,6 +30,7 @@ set(TEST_SOURCES
     core/test_book_dictionary.cpp     # The dictionary of a book: names, rules of spelling, words
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
+    core/test_publishing_texts.cpp    # The texts for publishers: their data, templates, lengths and the set
     core/test_sources.cpp             # The sources: descriptions in the book, bibliography styles, BibTeX
     core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
     core/test_book_project.cpp        # Book project and its .klh file
@@ -175,6 +176,7 @@ set(TEST_SOURCES
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
+    gui/test_publishing_settings.cpp             # The names of the texts for publishers and their settings
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
     gui/test_source_cards.cpp                    # The cards of the sources and quotes, the list Sources
     gui/test_versions.cpp                        # Versions of the texts: save, history, restore, insert
@@ -252,6 +254,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/publishing_texts.cpp
     ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography_records.cpp
@@ -474,6 +477,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/kind_names.cpp                       # Kinds of elements in sentences
     ${CMAKE_SOURCE_DIR}/src/gui/name_labels.cpp                      # Cases and kinds of names
     ${CMAKE_SOURCE_DIR}/src/gui/cover_names.cpp                      # The materials of the cover in words
+    ${CMAKE_SOURCE_DIR}/src/gui/publishing_names.cpp                 # The texts for publishers in words
     ${CMAKE_SOURCE_DIR}/src/gui/source_names.cpp                     # The sources in words
     ${CMAKE_SOURCE_DIR}/src/gui/pdf_files.cpp                        # PDF files as shown
     ${CMAKE_SOURCE_DIR}/src/gui/quick_insert_items.cpp               # What quick insert offers

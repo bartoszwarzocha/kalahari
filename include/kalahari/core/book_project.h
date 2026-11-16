@@ -75,6 +75,9 @@
 ///   { "labels": ["Rysunek", "Mapa"], "numbering": [{ "label": "Rysunek", "format": "1",
 ///   "perChapter": true, "withChapter": true, "separator": "." }], "reference": "number" }.
 ///   A book without its first caption has none: the Settings give them.
+/// - "publishingSet" has the set of texts for publishers of the book: its parts in the
+///   writer's order, those left out and the versions picked for the set alone
+///   (PublishingSet). A book without it has the set of the Settings.
 /// - "footnotes" has how the book numbers its footnotes and its endnotes ("format" "1", "a",
 ///   "A", "i", "I" or "*", "perChapter") and where its endnotes are ("place": "chapter", after
 ///   each text, or "book", at the end of the book): { "footnotes": { "format": "1",
@@ -100,7 +103,8 @@
 ///   (CoverData). A material that is a source has its bibliographic description in "source"
 ///   (SourceDescription), a material with a file its bookmarks ("bookmarks": a page and a
 ///   note each) and the page shown last ("lastPage"), a quote its source and page in "quote"
-///   (QuoteSource). None of these: the element has none.
+///   (QuoteSource), a text for publishers what it is, its template and its state in
+///   "publishing" (PublishingData). None of these: the element has none.
 /// - A material is a copy of a file in the Workshop's folder ("file"), a web address ("url":
 ///   a page, or a picture on the web, whose copy in the book is then its file), or neither of
 ///   them: a paper book, a talk or a quotation that its description and fields tell of.
@@ -116,6 +120,7 @@
 
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/cover_material.h>
+#include <kalahari/core/publishing_texts.h>
 #include <kalahari/core/source_description.h>
 #include <QByteArray>
 #include <QDateTime>
@@ -188,6 +193,8 @@ struct ProjectElement {
     int lastPage = 0;                ///< Page of its file shown last, from 1; 0: none
     QuoteSource quote;               ///< Of a quote: the source and the page it comes from;
                                      ///< empty: not said
+    PublishingData publishing;       ///< Of a text for publishers: what it is, its
+                                     ///< template and its state; empty: none
     QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
@@ -324,6 +331,9 @@ struct ProjectBook {
     std::optional<BookFootnotes> footnotes;
     /// The style of its bibliography (Bibliography::PN_ISO_690...); empty: the Settings' one
     QString bibliographyStyle;
+    /// Its set of texts for publishers: which texts, in which order and which version of
+    /// each; none: the Settings' set for new books (PublishingSet::defaults())
+    std::optional<PublishingSet> publishingSet;
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;

@@ -470,7 +470,19 @@ private:
     QRadioButton* m_unitWords = nullptr;       ///< In words
     QList<QSpinBox*> m_characterTargets;  ///< The targets of the texts of the cover in characters
     QList<QSpinBox*> m_wordTargets;       ///< In words
+    QRadioButton* m_pointsBeside = nullptr;  ///< The points of a template beside the text
+    QRadioButton* m_pointsInText = nullptr;  ///< In the text, as headings with hints
+    QList<QCheckBox*> m_setBoxes;  ///< The parts of the set of a new book, with their "part"
     const core::ProjectManager& m_book;  ///< The book of its window
+
+    /// @brief The group of the texts for publishers: the target lengths of the texts without
+    /// a template in the unit of the cover, the standard pages of a synopsis, where the points
+    /// of a template are and the parts of the set of a new book (core::PublishingTexts)
+    void addPublishingGroup();
+    /// @brief Where the points of the template of a synopsis are, in @p group
+    void addPointsChoice(QFormLayout* group);
+    /// @brief The parts of the set of a new book, in @p group
+    void addSetChoice(QFormLayout* group);
 };
 
 /// @brief Materials: how a picture, a page or a picture on the web and a PDF file open

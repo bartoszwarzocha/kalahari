@@ -7,12 +7,14 @@
 #include <kalahari/core/book_type_registry.h>
 
 #include <kalahari/core/logger.h>
+#include <kalahari/core/publishing_texts.h>
 #include <QDir>
 #include <QFileInfo>
 #include <QSet>
 #include <algorithm>
 #include <functional>
 #include <iterator>
+#include <optional>
 #include <utility>
 
 namespace kalahari::core {
@@ -570,6 +572,45 @@ QList<PackageCharacterStyle> BookTypeRegistry::characterStyles(const QString& pa
     const BookTypePackage* found = package(packageId);
     return found ? mergeStyles(lineage(*found), &BookTypePackage::characterStyles)
                  : QList<PackageCharacterStyle>{};
+}
+
+QList<PublishingTemplate> BookTypeRegistry::publishingTemplates(const QString& packageId) const {
+    QList<PublishingTemplate> templates;
+    const BookTypePackage* found = package(packageId);
+    if (found == nullptr) {
+        return templates;
+    }
+    // A part with templates of a more specific package does not get those of the packages it
+    // uses: the short stories have their own synopses, not the novel's chapter by chapter
+    QStringList claimed;
+    for (const BookTypePackage* each : lineage(*found)) {
+        QStringList parts;
+        for (const PublishingTemplate& templ : each->publishingTemplates) {
+            if (!claimed.contains(templ.part)) {
+                templates << templ;
+                parts << templ.part;
+            }
+        }
+        claimed << parts;
+    }
+    return templates;
+}
+
+std::optional<PublishingTemplate> BookTypeRegistry::findPublishingTemplate(
+    const QString& reference) const {
+    const qsizetype separator = reference.indexOf(QLatin1Char(':'));
+    const BookTypePackage* found = separator > 0 ? package(reference.left(separator)) : nullptr;
+    if (found == nullptr) {
+        return std::nullopt;
+    }
+    const QString id = reference.mid(separator + 1);
+    const auto templ = std::find_if(
+        found->publishingTemplates.cbegin(), found->publishingTemplates.cend(),
+        [&id](const PublishingTemplate& each) { return each.id == id; });
+    if (templ == found->publishingTemplates.cend()) {
+        return std::nullopt;
+    }
+    return *templ;
 }
 
 }  // namespace kalahari::core

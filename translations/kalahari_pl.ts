@@ -10208,6 +10208,66 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>In Polish: Każdy materiał może mieć własną docelową długość na swojej karcie. Wydawnictwa podają zwykle znaki ze spacjami.</extracomment>
         <translation>Każdy materiał może mieć własną docelową długość na swojej karcie. Wydawnictwa podają zwykle znaki ze spacjami.</translation>
     </message>
+    <message>
+        <source>Texts for Publishers</source>
+        <extracomment>The group of Settings &gt; Navigator of the texts for publishers. In Polish: Teksty dla wydawnictwa</extracomment>
+        <translation>Teksty dla wydawnictwa</translation>
+    </message>
+    <message>
+        <source>For texts without a template; a template has its own target length, and a text can have its own. The unit is that of the cover, because the cover description and the tagline are in both places.</source>
+        <extracomment>In Polish: Dla tekstów bez szablonu; szablon ma własną docelową długość, a tekst może mieć swoją. Jednostka jest ta sama co w Okładce, bo opis na okładkę i hasło są w obu miejscach.</extracomment>
+        <translation>Dla tekstów bez szablonu; szablon ma własną docelową długość, a tekst może mieć swoją. Jednostka jest ta sama co w Okładce, bo opis na okładkę i hasło są w obu miejscach.</translation>
+    </message>
+    <message>
+        <source>in standard pages too</source>
+        <extracomment>Whether the length of a synopsis is also given in standard pages. In Polish: także w stronach znormalizowanych</extracomment>
+        <translation>także w stronach znormalizowanych</translation>
+    </message>
+    <message>
+        <source>Length of a s&amp;ynopsis:</source>
+        <extracomment>In Polish: Długość s&amp;treszczenia:</extracomment>
+        <translation>Długość s&amp;treszczenia:</translation>
+    </message>
+    <message>
+        <source>A standard page has 1800 characters with spaces.</source>
+        <extracomment>In Polish: Strona znormalizowana ma 1800 znaków ze spacjami.</extracomment>
+        <translation>Strona znormalizowana ma 1800 znaków ze spacjami.</translation>
+    </message>
+    <message>
+        <source>beside the text, in the Properties panel</source>
+        <extracomment>Where the points of the template of a synopsis are. In Polish: obok tekstu, w panelu Właściwości</extracomment>
+        <translation>obok tekstu, w panelu Właściwości</translation>
+    </message>
+    <message>
+        <source>in the text, as a skeleton with hints</source>
+        <extracomment>In Polish: w tekście, jako szkielet z podpowiedziami</extracomment>
+        <translation>w tekście, jako szkielet z podpowiedziami</translation>
+    </message>
+    <message>
+        <source>A new synopsis starts empty; the command &quot;Insert Skeleton&quot; puts the points in the text.</source>
+        <extracomment>In Polish: Nowe streszczenie zaczyna się puste; polecenie „Wstaw szkielet” wstawia punkty do tekstu.</extracomment>
+        <translation>Nowe streszczenie zaczyna się puste; polecenie „Wstaw szkielet” wstawia punkty do tekstu.</translation>
+    </message>
+    <message>
+        <source>The command &quot;Remove Headings and Hints&quot; takes the points out of the text.</source>
+        <extracomment>In Polish: Polecenie „Usuń nagłówki i podpowiedzi” usuwa punkty z tekstu.</extracomment>
+        <translation>Polecenie „Usuń nagłówki i podpowiedzi” usuwa punkty z tekstu.</translation>
+    </message>
+    <message>
+        <source>Points of a synopsis &amp;template:</source>
+        <extracomment>In Polish: Punkty &amp;szablonu streszczenia:</extracomment>
+        <translation>Punkty &amp;szablonu streszczenia:</translation>
+    </message>
+    <message>
+        <source>Set in &amp;new books:</source>
+        <extracomment>In Polish: &amp;Zestaw w nowych książkach:</extracomment>
+        <translation>&amp;Zestaw w nowych książkach:</translation>
+    </message>
+    <message>
+        <source>A book changes its own set in the view of the set; its order and its parts are saved in the book.</source>
+        <extracomment>In Polish: Książka zmienia swój zestaw w widoku zestawu; jego kolejność i części zapisują się w książce.</extracomment>
+        <translation>Książka zmienia swój zestaw w widoku zestawu; jego kolejność i części zapisują się w książce.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPanel</name>
@@ -11257,6 +11317,49 @@ Szczegóły są w dzienniku programu.</translation>
         <source>As in the Settings (%1)</source>
         <extracomment>The book follows the style of the Settings: %1 its name. In Polish: Jak w Ustawieniach (%1)</extracomment>
         <translation>Jak w Ustawieniach (%1)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::PublishingNames</name>
+    <message>
+        <source>Sentence about the book</source>
+        <extracomment>A text for publishers: one sentence about who, what happens and what is at stake. In Polish: Zdanie o książce</extracomment>
+        <translation>Zdanie o książce</translation>
+    </message>
+    <message>
+        <source>Synopsis</source>
+        <extracomment>A text for publishers: the whole story with its end. In Polish: Streszczenie</extracomment>
+        <translation>Streszczenie</translation>
+    </message>
+    <message>
+        <source>About the author</source>
+        <extracomment>A part of the set for a publisher: the note about the author of the back part of the book. In Polish: Nota o autorze</extracomment>
+        <translation>Nota o autorze</translation>
+    </message>
+    <message>
+        <source>chosen for the set</source>
+        <extracomment>The state of a text for publishers. In Polish: wybrany do zestawu</extracomment>
+        <translation>wybrany do zestawu</translation>
+    </message>
+    <message>
+        <source>rejected</source>
+        <extracomment>The state of a text for publishers. In Polish: odrzucony</extracomment>
+        <translation>odrzucony</translation>
+    </message>
+    <message>
+        <source>draft</source>
+        <extracomment>The state of a text for publishers, at first. In Polish: roboczy</extracomment>
+        <translation>roboczy</translation>
+    </message>
+    <message>
+        <source>about %1 of a standard page</source>
+        <extracomment>The length of a synopsis in standard pages (1800 characters with spaces), below one: %1 the pages, &quot;0.6&quot;. In Polish: około %1 strony znormalizowanej</extracomment>
+        <translation>około %1 strony znormalizowanej</translation>
+    </message>
+    <message>
+        <source>about %1 standard pages</source>
+        <extracomment>The length of a synopsis in standard pages, more than one: %1 the pages, &quot;2.5&quot;, always with a fraction. In Polish: około %1 strony znormalizowanej</extracomment>
+        <translation>około %1 strony znormalizowanej</translation>
     </message>
 </context>
 <context>

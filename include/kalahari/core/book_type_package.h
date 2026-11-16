@@ -38,10 +38,14 @@
 ///   "workshop": ["mindmap", "timeline", "character", "location", "item", "work_note", "quote"],
 ///   "primary":  "chapter",
 ///   "start":    ["title_page", "chapter"],
-///   "styles":   "styles.json"
+///   "styles":   "styles.json",
+///   "publishingTemplates": [ { "id": "one_page", "part": "synopsis", ... } ]
 /// }
 /// @endcode
 ///
+/// - "publishingTemplates": the templates of the texts for publishers that books of the type
+///   offer: of a synopsis with its points, of a sentence about the book with its pattern
+///   (PublishingTemplate, publishing_texts.h).
 /// - "role": "type" is a book type of the New Book window; "shared" is a package of kinds and
 ///   styles that types use ("kalahari.base").
 /// - "uses": packages whose kinds and styles this package uses. A kind or style of the package
@@ -92,6 +96,8 @@
 #pragma once
 
 #include <kalahari/core/kind_words.h>
+#include <kalahari/core/localized_text.h>
+#include <kalahari/core/publishing_texts.h>
 
 #include <QJsonObject>
 #include <QList>
@@ -102,17 +108,6 @@
 #include <optional>
 
 namespace kalahari::core {
-
-/// @brief Text in several languages
-struct LocalizedText {
-    QMap<QString, QString> values;  ///< Language code ("en", "pl") -> text
-
-    /// @brief Text in @p language: its exact code ("pl_PL"), then the language alone ("pl"),
-    /// then English
-    QString text(const QString& language) const;
-
-    bool isEmpty() const { return values.isEmpty(); }
-};
 
 /// @brief Place of an element in a book project
 enum class BookPlace {
@@ -273,6 +268,7 @@ struct BookTypePackage {
     QString stylesFile;               ///< Styles file, relative to the package folder
     QList<PackageParagraphStyle> paragraphStyles;  ///< Paragraph styles of the styles file
     QList<PackageCharacterStyle> characterStyles;  ///< Character styles of the styles file
+    QList<PublishingTemplate> publishingTemplates;  ///< Templates of the texts for publishers
     QString directory;                ///< Absolute path of the package folder
 
     /// @brief Kind defined by this package (not by the packages it uses), or nullptr

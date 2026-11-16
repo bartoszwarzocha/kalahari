@@ -65,6 +65,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_dictionary_file.cpp  # Its file
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
+    core/publishing_texts.cpp   # The texts for publishers: data, templates, lengths, the set
     core/source_description.cpp # The bibliographic description of a source, its bookmarks
     core/bibliography.cpp       # The entries of a bibliography and the references in the text
     core/bibliography_records.cpp  # The descriptions pasted as BibTeX and RIS
@@ -197,6 +198,7 @@ set(KALAHARI_SOURCES
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
     gui/name_labels.cpp    # The cases and kinds of the names of the book dictionary, in the program's language
     gui/cover_names.cpp    # The materials of the cover in the program's words
+    gui/publishing_names.cpp # The texts for publishers in the program's words
     gui/source_names.cpp   # The sources in the program's words
     gui/pdf_files.cpp      # PDF files: whether the program shows them, their first page and data
     gui/quick_insert_items.cpp  # What the list of quick insert offers: cards, fragments, characters

@@ -5,6 +5,8 @@
 /// @brief Book type packages: reading booktype.json and the styles file
 
 #include <kalahari/core/book_type_package.h>
+#include <kalahari/core/detail/package_json.h>
+#include <kalahari/core/publishing_texts.h>
 
 #include <QDir>
 #include <QFile>
@@ -17,6 +19,7 @@
 #include <cmath>
 #include <initializer_list>
 #include <iterator>
+#include <optional>
 #include <utility>
 
 namespace kalahari::core {
@@ -28,32 +31,9 @@ const char* const PLACE_NAMES[] = {"front", "main", "back", "workshop"};
 /// Names of the groups of the Workshop, from WorkshopGroup::Libraries on
 const char* const WORKSHOP_GROUP_NAMES[] = {"libraries", "resources"};
 
-void addProblem(QStringList& problems, const QString& field, const QString& message) {
-    problems << field + QStringLiteral(": ") + message;
-}
-
 bool matches(const QString& text, const char* pattern) {
     const QRegularExpression expression(QString::fromLatin1(pattern));
     return expression.match(text).hasMatch();
-}
-
-/// Kind, style and window ids: "chapter", "heading_1", "mindmap"
-bool isIdentifier(const QString& text) {
-    return matches(text, "^[a-z][a-z0-9_]*$");
-}
-
-/// Package ids: "kalahari.novel"
-bool isPackageId(const QString& text) {
-    return matches(text, "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$");
-}
-
-/// Kinds in the lists of a package: "chapter", or "kalahari.nonfiction:bibliography"
-bool isKindName(const QString& text) {
-    return KindReference::parse(text).has_value();
-}
-
-bool isVersion(const QString& text) {
-    return matches(text, "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$");
 }
 
 /// "en", "pl", "pt_BR"
@@ -61,9 +41,19 @@ bool isLanguageCode(const QString& text) {
     return matches(text, "^[a-z]{2,3}(_[A-Z]{2})?$");
 }
 
-/// "#RRGGBB" or "#AARRGGBB", as StyleResolver reads them
-bool isColor(const QString& text) {
-    return matches(text, "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$");
+}  // namespace
+
+// Shared with the reading of the templates of the texts for publishers
+// (publishing_texts.cpp): detail/package_json.h
+namespace detail {
+
+void addProblem(QStringList& problems, const QString& field, const QString& message) {
+    problems << field + QStringLiteral(": ") + message;
+}
+
+/// Kind, style and window ids: "chapter", "heading_1", "mindmap"
+bool isIdentifier(const QString& text) {
+    return matches(text, "^[a-z][a-z0-9_]*$");
 }
 
 bool isWholeNumber(const QJsonValue& value) {
@@ -86,29 +76,6 @@ void checkKeys(const QJsonObject& object, const QString& field,
             addProblem(problems, field, QStringLiteral("unknown key '%1'").arg(key));
         }
     }
-}
-
-std::optional<QJsonObject> readJsonObject(const QString& path, const QString& field,
-                                          QStringList& problems) {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        addProblem(problems, field, QStringLiteral("cannot be read"));
-        return std::nullopt;
-    }
-    QJsonParseError error{};
-    const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
-    if (error.error != QJsonParseError::NoError) {
-        addProblem(problems, field,
-                   QStringLiteral("not valid JSON: %1 at character %2")
-                       .arg(error.errorString())
-                       .arg(error.offset));
-        return std::nullopt;
-    }
-    if (!document.isObject()) {
-        addProblem(problems, field, QStringLiteral("must be a JSON object"));
-        return std::nullopt;
-    }
-    return document.object();
 }
 
 LocalizedText readText(const QJsonValue& value, const QString& field, bool required,
@@ -145,6 +112,58 @@ LocalizedText readText(const QJsonValue& value, const QString& field, bool requi
                                   "languages the package does not have"));
     }
     return text;
+}
+
+}  // namespace detail
+
+namespace {
+
+using detail::addProblem;
+using detail::checkKeys;
+using detail::isIdentifier;
+using detail::isWholeNumber;
+using detail::readText;
+
+/// Package ids: "kalahari.novel"
+bool isPackageId(const QString& text) {
+    return matches(text, "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$");
+}
+
+/// Kinds in the lists of a package: "chapter", or "kalahari.nonfiction:bibliography"
+bool isKindName(const QString& text) {
+    return KindReference::parse(text).has_value();
+}
+
+bool isVersion(const QString& text) {
+    return matches(text, "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$");
+}
+
+/// "#RRGGBB" or "#AARRGGBB", as StyleResolver reads them
+bool isColor(const QString& text) {
+    return matches(text, "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$");
+}
+
+std::optional<QJsonObject> readJsonObject(const QString& path, const QString& field,
+                                          QStringList& problems) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        addProblem(problems, field, QStringLiteral("cannot be read"));
+        return std::nullopt;
+    }
+    QJsonParseError error{};
+    const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        addProblem(problems, field,
+                   QStringLiteral("not valid JSON: %1 at character %2")
+                       .arg(error.errorString())
+                       .arg(error.offset));
+        return std::nullopt;
+    }
+    if (!document.isObject()) {
+        addProblem(problems, field, QStringLiteral("must be a JSON object"));
+        return std::nullopt;
+    }
+    return document.object();
 }
 
 /// Optional icon id
@@ -884,7 +903,8 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
     }
     checkKeys(*manifest, manifestFile,
               {"format", "id", "version", "role", "name", "description", "icon", "uses", "kinds",
-               "front", "main", "back", "workshop", "primary", "start", "partsLayer", "styles"},
+               "front", "main", "back", "workshop", "primary", "start", "partsLayer", "styles",
+               "publishingTemplates"},
               problems);
 
     BookTypePackage package;
@@ -1000,6 +1020,9 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
         package.stylesFile = styles.toString();
         readStyles(package.directory, package.stylesFile, package, problems);
     }
+
+    package.publishingTemplates = PublishingTemplate::listFromPackageJson(
+        manifest->value(QStringLiteral("publishingTemplates")), package.id, problems);
 
     if (problems.size() > problemsBefore) {
         return std::nullopt;

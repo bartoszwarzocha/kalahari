@@ -42,6 +42,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "kalahari/core/archive_problem.h"
@@ -53,6 +54,7 @@
 // OpenSpec #00041: SQLite Project Database
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/project_lock.h"
+#include "kalahari/core/publishing_texts.h"
 #include "kalahari/core/source_description.h"
 #include "kalahari/core/backup_manager.h"
 #include "kalahari/core/text_statistics.h"
@@ -139,6 +141,7 @@ struct NewMaterial {
     QStringList links;   ///< What it is about (ProjectElement::links); each link gets the
                          ///< role of its kind (newLink())
     CoverData cover;     ///< Of a material of the cover: what it is and where it goes
+    PublishingData publishing;    ///< Of a text for publishers: what it is, its template
     QString description;          ///< Its description: the words of a quote; empty: none
     SourceDescription source;     ///< Its bibliographic description; empty: none
     QuoteSource quote;            ///< Of a quote: its source and page; empty: none
@@ -781,6 +784,64 @@ public:
                        QStringList* drafts = nullptr);
 
     // =========================================================================
+    // Texts for Publishers
+    // =========================================================================
+
+    /// @brief Give text @p elementId for publishers the data @p data (what it is, its template
+    /// and its state) and save the .klh file
+    /// @return false when the project has no such element or the file cannot be written; the
+    ///         element keeps its data then
+    bool setPublishing(const QString& elementId, const PublishingData& data);
+
+    /// @brief Give text @p elementId for publishers the state @p state
+    /// (PublishingTexts::CHOSEN, REJECTED; empty: a draft) and save the .klh file once
+    ///
+    /// A text chosen for the set takes the place of the one of its part chosen before: that
+    /// one is a draft again.
+    /// @param drafts Gets the texts that are drafts again; may be nullptr
+    /// @return false when the project has no such text or the file cannot be written; the
+    ///         texts keep their states then
+    bool setPublishingState(const QString& elementId, const QString& state,
+                            QStringList* drafts = nullptr);
+
+    /// @brief The book's set of texts for publishers: its own, else that of the Settings
+    /// (PublishingSet::defaults()); the Settings' one without a project
+    [[nodiscard]] PublishingSet publishingSet() const;
+
+    /// @brief Give the book the set of texts for publishers @p set and save the .klh file
+    /// (publishingSetChanged())
+    /// @return false when no project is open, it is read-only or the file cannot be written;
+    ///         the book keeps its set then
+    bool setPublishingSet(const PublishingSet& set);
+
+    /// @brief The parts of the book's set, each with the element of its text
+    /// (PublishingTexts::resolveSet()); none without a project
+    [[nodiscard]] QList<PublishingSetPart> publishingSetParts() const;
+
+    /// @brief The text of text @p elementId for publishers or of another element of the set: its
+    /// paragraphs, one per line, for an element with a text of its own (a chapter file), else
+    /// its description; empty for no element
+    [[nodiscard]] QString publishingTextOf(const QString& elementId) const;
+
+    /// @brief The templates of the texts for publishers of the book: those of its type and of
+    /// the packages the type uses (of all types for a book without a type), then the writer's
+    /// own templates for its type (PublishingTemplate::isFor())
+    [[nodiscard]] QList<PublishingTemplate> publishingTemplates() const;
+
+    /// @brief The template that @p reference names (PublishingTemplate::reference()): of a
+    /// package, or the writer's own one; nullopt for none
+    [[nodiscard]] std::optional<PublishingTemplate> publishingTemplate(
+        const QString& reference) const;
+
+    /// @brief The texts of the main part of the book, in reading order, as their ids and
+    /// titles: the points of a template of each text (PublishingTemplate::pointsFor())
+    [[nodiscard]] QList<std::pair<QString, QString>> mainTexts() const;
+
+    /// @brief The target length of text @p elementId for publishers in words or in characters
+    /// (PublishingTexts::targetOf()); 0 for no element or no target
+    [[nodiscard]] int publishingTargetOf(const QString& elementId, bool words) const;
+
+    // =========================================================================
     // Sources, Bookmarks and Quotes
     // =========================================================================
 
@@ -1124,6 +1185,8 @@ signals:
 
     /// @brief The numbering of the book's notes changed (setBookFootnotes())
     void bookFootnotesChanged();
+    /// @brief The book's set of texts for publishers changed (setPublishingSet())
+    void publishingSetChanged();
     /// @brief The dictionary of the book changed (changeBookDictionary()), or another book with
     ///        its own dictionary opened
     void bookDictionaryChanged();
