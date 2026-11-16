@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file caption_settings.cpp
 /// @brief The settings of new images and of the captions of new books
 
@@ -14,20 +17,19 @@
 
 namespace kalahari::gui {
 
-namespace {
-
-QString translated(const char* text, const char* comment) {
-    return QCoreApplication::translate("CaptionSettings", text, comment);
-}
-
-}  // namespace
-
+// Each label is a literal in its own translate() call, so that lupdate finds it
 QStringList defaultCaptionLabels() {
-    return {translated("Figure", "A label of captions. In Polish: Rysunek"),
-            translated("Photo", "A label of captions. In Polish: Fotografia"),
-            translated("Illustration", "A label of captions. In Polish: Ilustracja"),
-            translated("Map", "A label of captions. In Polish: Mapa"),
-            translated("Diagram", "A label of captions. In Polish: Schemat")};
+    //: A label of captions. In Polish: Rysunek
+    QStringList labels{QCoreApplication::translate("CaptionSettings", "Figure")};
+    //: A label of captions. In Polish: Fotografia
+    labels << QCoreApplication::translate("CaptionSettings", "Photo");
+    //: A label of captions. In Polish: Ilustracja
+    labels << QCoreApplication::translate("CaptionSettings", "Illustration");
+    //: A label of captions. In Polish: Mapa
+    labels << QCoreApplication::translate("CaptionSettings", "Map");
+    //: A label of captions. In Polish: Schemat
+    labels << QCoreApplication::translate("CaptionSettings", "Diagram");
+    return labels;
 }
 
 QStringList settingsCaptionLabels() {
@@ -65,8 +67,8 @@ core::BookCaptions settingsBookCaptions() {
     return captions;
 }
 
-core::BookCaptions currentBookCaptions() {
-    if (const std::optional<core::BookCaptions> own = core::ProjectManager::getInstance().bookCaptions()) {
+core::BookCaptions currentBookCaptions(const core::ProjectManager& book) {
+    if (const std::optional<core::BookCaptions> own = book.bookCaptions()) {
         return *own;
     }
     return settingsBookCaptions();

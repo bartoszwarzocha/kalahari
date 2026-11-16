@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file shortcuts_page.cpp
 /// @brief Settings page: Keyboard Shortcuts
 ///
@@ -382,10 +385,11 @@ std::vector<std::string> pathParts(const std::string& menuPath) {
 // Construction
 // ============================================================================
 
-ShortcutsPage::ShortcutsPage(QWidget* parent)
+ShortcutsPage::ShortcutsPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
     , m_fixedGroups(m_rules.fixedGroups())
-    , m_defaults(CommandRegistry::getInstance().defaultShortcuts())
+    , m_defaults(m_commands.defaultShortcuts())
 {
     createSearch();
     createList();
@@ -662,15 +666,16 @@ void ShortcutsPage::createButtons() {
 }
 
 void ShortcutsPage::buildList() {
-    const std::vector<Command> commands = CommandRegistry::getInstance().getAllCommands();
+    const std::vector<Command> commands = m_commands.getAllCommands();
     QFont groupFont = m_list->font();
     groupFont.setBold(true);
 
     // The commands the menus show and the program runs (or keeps keys for, as F1 for the
-    // help to come), by their menu
+    // help to come), by their menu; a command of keys alone (Alt+Shift+D, the date at once)
+    // under the menu its path names
     std::map<std::string, std::vector<const Command*>> byMenu;
     for (const Command& command : commands) {
-        if (!command.showInMenu || command.menuPath.empty() || !command.isShortcutCustomizable) {
+        if (command.menuPath.empty() || !command.isShortcutCustomizable) {
             continue;
         }
         if (!command.canExecute() && defaultOf(command.id).isEmpty()) {
@@ -1063,7 +1068,7 @@ QString ShortcutsPage::titleOf(const std::string& commandId) const {
     if (const Entry* entry = entryById(commandId)) {
         return entry->menu + PATH_SEPARATOR + entry->label;
     }
-    if (const Command* command = CommandRegistry::getInstance().getCommand(commandId)) {
+    if (const Command* command = m_commands.getCommand(commandId)) {
         return QString::fromStdString(command->label);
     }
     return QString::fromStdString(commandId);

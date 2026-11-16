@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_settings_dialog.cpp
 /// @brief The settings dialog: lazily built pages, their layout and what Apply writes
 
@@ -8,6 +11,7 @@
 #include "kalahari/gui/caption_settings.h"
 #include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/material_list.h"
+#include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/settings/settings_page.h"
@@ -27,6 +31,7 @@
 #include <QLabel>
 #include <QLayout>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScrollArea>
@@ -43,6 +48,7 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -171,7 +177,7 @@ void clearThemeColors(const std::string& theme) {
 }  // anonymous namespace
 
 TEST_CASE("Settings dialog: pages are built when first opened", "[gui][settings]") {
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     auto* stack = dialog.findChild<QStackedWidget*>();
     REQUIRE(stack != nullptr);
     CHECK(stack->count() == 1);  // The page shown first
@@ -183,7 +189,7 @@ TEST_CASE("Settings dialog: pages are built when first opened", "[gui][settings]
 }
 
 TEST_CASE("Settings dialog: the gears of the panels open it at their pages", "[gui][settings]") {
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
 
@@ -241,7 +247,7 @@ TEST_CASE("Settings dialog: no page squeezes its groups", "[gui][settings]") {
     // style (Fusion) on every system: in the macOS style a group whose fields go under their
     // labels in a narrow window measures a height that depends on the widths measured before
     ProgramStyle programStyle;
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(dialog.minimumSize());
     dialog.show();
     openAllPages(dialog);
@@ -293,7 +299,7 @@ TEST_CASE("Settings dialog: every page fits the narrowest window, in English and
             polish.emplace();
             REQUIRE(polish->loaded());
         }
-        SettingsDialog dialog(nullptr);
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         dialog.resize(dialog.minimumSize());
         dialog.show();
         auto* tree = dialog.findChild<QTreeWidget*>();
@@ -327,7 +333,7 @@ TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][setti
     clearThemeColors(theme);
     settings.setLanguage("en");
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openAllPages(dialog);
     CHECK_FALSE(dialog.hasChanges());
 
@@ -369,7 +375,7 @@ TEST_CASE("Settings dialog: Apply writes only the changed options", "[gui][setti
 TEST_CASE("Settings dialog: OK writes the changes and closes, Apply keeps it open", "[gui][settings]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.setLanguage("en");
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     CHECK(dialog.windowTitle() == QStringLiteral("Settings"));
     openAllPages(dialog);
 
@@ -406,7 +412,7 @@ TEST_CASE("Settings dialog: the Annotations page has the author and the size of 
     settings.set<std::string>("annotations.author", "");
     settings.set<int>("editor.annotationMarkSize", 100);
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Annotations"));
     auto* author = dialog.findChild<QLineEdit*>(QStringLiteral("annotationsAuthor"));
     auto* markSize = dialog.findChild<QSpinBox*>(QStringLiteral("annotationsMarkSize"));
@@ -447,7 +453,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
         settings.get<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, "named");
     settings.set<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING, "named");
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Navigator"));
     auto* named = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddNamed"));
     auto* single = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
@@ -464,7 +470,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses the commands that add in 
     CHECK(settings.get<std::string>(NavigatorPanel::ADD_COMMANDS_SETTING) == "single");
 
     // Opened again, the page shows the stored choice
-    SettingsDialog again(nullptr);
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QString(), QStringLiteral("Navigator"));
     auto* singleAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddSingle"));
     REQUIRE(singleAgain != nullptr);
@@ -480,7 +486,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
         settings.get<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, "sections");
     settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, "sections");
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Navigator"));
     auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
     auto* book = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
@@ -509,7 +515,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
     CHECK(NavigatorPanel::addChooser() == kalahari::gui::AddChooser::Book);
 
     // Opened again, the page shows the stored choice
-    SettingsDialog again(nullptr);
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QString(), QStringLiteral("Navigator"));
     auto* bookAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowBook"));
     REQUIRE(bookAgain != nullptr);
@@ -518,39 +524,50 @@ TEST_CASE("Settings dialog: the Navigator page chooses the top of the Add Elemen
     settings.set<std::string>(NavigatorPanel::ADD_WINDOW_SETTING, before);
 }
 
-TEST_CASE("Settings dialog: the Navigator page chooses how a material opens",
-          "[gui][settings]") {
+TEST_CASE("Settings dialog: the Materials page chooses how a material opens",
+          "[gui][settings][materials]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string before =
         settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
     settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
 
-    SettingsDialog dialog(nullptr);
-    openPage(dialog, QString(), QStringLiteral("Navigator"));
-    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
-    auto* system = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Materials"));
+    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPicturesCard"));
+    auto* system = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPicturesSystem"));
     REQUIRE(card != nullptr);
     REQUIRE(system != nullptr);
     CHECK(card->isChecked());
     CHECK_FALSE(system->isChecked());
 
-    // A choice of its own, apart from those of the window and the menus
-    auto* sections = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorAddWindowSections"));
-    REQUIRE(sections != nullptr);
-    const bool sectionsBefore = sections->isChecked();
+    // A choice of its own, apart from those of the pages and of the PDF files
+    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPagesBrowser"));
+    auto* pdfSystem = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPdfSystem"));
+    REQUIRE(browser != nullptr);
+    REQUIRE(pdfSystem != nullptr);
+    const bool browserBefore = browser->isChecked();
+    const bool pdfBefore = pdfSystem->isChecked();
     system->click();
-    CHECK(sections->isChecked() == sectionsBefore);
+    CHECK(browser->isChecked() == browserBefore);
+    CHECK(pdfSystem->isChecked() == pdfBefore);
     CHECK(dialog.applyChanges() ==
           QStringList{QString::fromLatin1(NavigatorPanel::OPEN_MATERIALS_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING) == "system");
 
     // Opened again, the page shows the stored choice
-    SettingsDialog again(nullptr);
-    openPage(again, QString(), QStringLiteral("Navigator"));
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(again, QString(), QStringLiteral("Materials"));
     auto* systemAgain =
-        again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsSystem"));
+        again.findChild<QRadioButton*>(QStringLiteral("materialsOpenPicturesSystem"));
     REQUIRE(systemAgain != nullptr);
     CHECK(systemAgain->isChecked());
+
+    // The Navigator page has them no more
+    openPage(again, QString(), QStringLiteral("Navigator"));
+    CHECK(again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard")) ==
+          nullptr);
+    CHECK(again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser")) ==
+          nullptr);
 
     settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, before);
 }
@@ -562,7 +579,7 @@ TEST_CASE("Settings dialog: the Navigator page says whether links name paragraph
     settings.set<bool>(kalahari::core::LinkRoles::PARAGRAPHS_SETTING, true);
 
     // They do, as usual
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Navigator"));
     auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
     REQUIRE(paragraphs != nullptr);
@@ -575,7 +592,7 @@ TEST_CASE("Settings dialog: the Navigator page says whether links name paragraph
     CHECK_FALSE(kalahari::core::LinkRoles::paragraphsShown());
 
     // Opened again, the page shows it
-    SettingsDialog again(nullptr);
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QString(), QStringLiteral("Navigator"));
     auto* paragraphsAgain =
         again.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
@@ -591,7 +608,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
     auto& settings = kalahari::core::SettingsManager::getInstance();
 
     // The usual ones: the kinds with their numbers, each on a tab of its own
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Navigator"));
     auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
     auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
@@ -622,7 +639,7 @@ TEST_CASE("Settings dialog: the Navigator page chooses what the Materials show a
     CHECK_FALSE(MaterialList::ownTabs());
 
     // Opened again, the page shows the stored choices
-    SettingsDialog again(nullptr);
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QString(), QStringLiteral("Navigator"));
     auto* expandAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
     auto* oneAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOneTab"));
@@ -637,7 +654,7 @@ TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page 
     // Regression: the notes of a setting ran into the next setting, with no more room between
     // two settings than between the choices of one
     ProgramStyle programStyle;
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(900, 700);
     dialog.show();
     openPage(dialog, QString(), QStringLiteral("Navigator"));
@@ -646,15 +663,11 @@ TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page 
     auto* types = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsTypes"));
     auto* expand = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsExpand"));
     auto* own = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorMaterialsOwnTabs"));
-    auto* card = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
-    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser"));
     auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
     auto* paragraphs = dialog.findChild<QCheckBox*>(QStringLiteral("navigatorLinkParagraphs"));
     REQUIRE(types != nullptr);
     REQUIRE(expand != nullptr);
     REQUIRE(own != nullptr);
-    REQUIRE(card != nullptr);
-    REQUIRE(browser != nullptr);
     REQUIRE(link != nullptr);
     REQUIRE(paragraphs != nullptr);
 
@@ -683,9 +696,7 @@ TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page 
 
     const std::vector<std::pair<const QWidget*, const QWidget*>> settings{
         {tree, own->parentWidget()},
-        {own->parentWidget(), card->parentWidget()},
-        {card->parentWidget(), browser->parentWidget()},
-        {browser->parentWidget(), link->parentWidget()},
+        {own->parentWidget(), link->parentWidget()},
         {dropNote, paragraphs}};
     for (const auto& [above, below] : settings) {
         INFO("two settings " << gap(above, below) << " px apart");
@@ -694,53 +705,154 @@ TEST_CASE("Settings dialog: the settings of the Materials on the Navigator page 
     }
 }
 
-TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a drop gives",
-          "[gui][settings]") {
+TEST_CASE("Settings dialog: the Materials page chooses how pages and PDF files open",
+          "[gui][settings][materials]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string pagesBefore =
         settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, "browser");
+    const auto pdfBefore = settings.get<std::string>(PdfFiles::OPEN_SETTING, "preview");
+    settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, "browser");
+    settings.set<std::string>(PdfFiles::OPEN_SETTING, "preview");
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Materials"));
+    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPagesBrowser"));
+    auto* onCard = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPagesCard"));
+    auto* pdfPreview = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPdfPreview"));
+    auto* pdfSystem = dialog.findChild<QRadioButton*>(QStringLiteral("materialsOpenPdfSystem"));
+    REQUIRE(browser != nullptr);
+    REQUIRE(onCard != nullptr);
+    REQUIRE(pdfPreview != nullptr);
+    REQUIRE(pdfSystem != nullptr);
+    // The usual ones: the browser, and the preview of the program
+    CHECK(browser->isChecked());
+    CHECK(pdfPreview->isChecked());
+    CHECK(pdfPreview->isEnabled() == PdfFiles::previewAvailable());
+
+    onCard->click();
+    pdfSystem->click();
+    const QStringList written = dialog.applyChanges();
+    CHECK(written.size() == 2);
+    CHECK(written.contains(QString::fromLatin1(NavigatorPanel::OPEN_PAGES_SETTING)));
+    CHECK(written.contains(QString::fromLatin1(PdfFiles::OPEN_SETTING)));
+    CHECK(settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING) == "card");
+    CHECK(settings.get<std::string>(PdfFiles::OPEN_SETTING) == "system");
+    CHECK_FALSE(PdfFiles::opensInPreview());
+
+    // Opened again, the page shows the stored choices
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(again, QString(), QStringLiteral("Materials"));
+    auto* onCardAgain = again.findChild<QRadioButton*>(QStringLiteral("materialsOpenPagesCard"));
+    auto* systemAgain = again.findChild<QRadioButton*>(QStringLiteral("materialsOpenPdfSystem"));
+    REQUIRE(onCardAgain != nullptr);
+    REQUIRE(systemAgain != nullptr);
+    CHECK(onCardAgain->isChecked());
+    CHECK(systemAgain->isChecked());
+
+    settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, pagesBefore);
+    settings.set<std::string>(PdfFiles::OPEN_SETTING, pdfBefore);
+}
+
+TEST_CASE("Settings dialog: the Materials page sets the preview of PDF files",
+          "[gui][settings][materials]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::map<std::string, std::string> keys{
+        {PdfFiles::LAYOUT_SETTING, "continuous"}, {PdfFiles::DARK_SETTING, "file"},
+        {PdfFiles::ZOOM_SETTING, "pageWidth"}, {PdfFiles::SIDE_SETTING, "bookmarks"}};
+    std::map<std::string, std::string> before;
+    for (const auto& [key, value] : keys) {
+        before[key] = settings.get<std::string>(key, value);
+        settings.set<std::string>(key, value);
+    }
+    const bool lastPageBefore = settings.get<bool>(PdfFiles::LAST_PAGE_SETTING, true);
+    settings.set<bool>(PdfFiles::LAST_PAGE_SETTING, true);
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Materials"));
+    auto* continuous = dialog.findChild<QRadioButton*>(QStringLiteral("materialsPdfContinuous"));
+    auto* two = dialog.findChild<QRadioButton*>(QStringLiteral("materialsPdfTwo"));
+    auto* asFile = dialog.findChild<QRadioButton*>(QStringLiteral("materialsPdfAsFile"));
+    auto* inverted = dialog.findChild<QRadioButton*>(QStringLiteral("materialsPdfInverted"));
+    auto* zoom = dialog.findChild<QComboBox*>(QStringLiteral("materialsPdfZoom"));
+    auto* side = dialog.findChild<QComboBox*>(QStringLiteral("materialsPdfSide"));
+    auto* lastPage = dialog.findChild<QCheckBox*>(QStringLiteral("materialsPdfLastPage"));
+    REQUIRE(continuous != nullptr);
+    REQUIRE(two != nullptr);
+    REQUIRE(asFile != nullptr);
+    REQUIRE(inverted != nullptr);
+    REQUIRE(zoom != nullptr);
+    REQUIRE(side != nullptr);
+    REQUIRE(lastPage != nullptr);
+    // The usual ones: one under another, as in the file, the width of the page, the bookmarks
+    CHECK(continuous->isChecked());
+    CHECK(asFile->isChecked());
+    CHECK(zoom->currentData().toString() == QLatin1String(PdfFiles::PAGE_WIDTH));
+    CHECK(side->currentData().toString() == QLatin1String(PdfFiles::BOOKMARKS));
+    CHECK(lastPage->isChecked());
+    auto* showColors = dialog.findChild<QPushButton*>(QStringLiteral("materialsShowEditorColors"));
+    REQUIRE(showColors != nullptr);
+
+    if (!PdfFiles::previewAvailable()) {
+        // Without the preview of PDF files its settings wait, dimmed
+        CHECK_FALSE(two->isEnabled());
+        CHECK_FALSE(zoom->isEnabled());
+        CHECK_FALSE(lastPage->isEnabled());
+        CHECK_FALSE(showColors->isEnabled());
+        CHECK(dialog.applyChanges().isEmpty());
+    } else {
+        two->click();
+        inverted->click();
+        zoom->setCurrentIndex(zoom->findData(QString::fromLatin1(PdfFiles::LAST)));
+        side->setCurrentIndex(side->findData(QString::fromLatin1(PdfFiles::HIDDEN)));
+        lastPage->click();
+        const QStringList written = dialog.applyChanges();
+        CHECK(written.size() == 5);
+        CHECK(settings.get<std::string>(PdfFiles::LAYOUT_SETTING) == "two");
+        CHECK(settings.get<std::string>(PdfFiles::DARK_SETTING) == "invert");
+        CHECK(settings.get<std::string>(PdfFiles::ZOOM_SETTING) == "last");
+        CHECK(settings.get<std::string>(PdfFiles::SIDE_SETTING) == "hidden");
+        CHECK_FALSE(settings.get<bool>(PdfFiles::LAST_PAGE_SETTING));
+
+        // The colors are those of the editor: its page opens
+        auto* tree = dialog.findChild<QTreeWidget*>();
+        REQUIRE(tree != nullptr);
+        showColors->click();
+        REQUIRE(tree->currentItem() != nullptr);
+        CHECK(tree->currentItem()->text(0) == QStringLiteral("Colors"));
+        REQUIRE(tree->currentItem()->parent() != nullptr);
+        CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+    }
+
+    for (const auto& [key, value] : before) {
+        settings.set<std::string>(key, value);
+    }
+    settings.set<bool>(PdfFiles::LAST_PAGE_SETTING, lastPageBefore);
+}
+
+TEST_CASE("Settings dialog: the Navigator page chooses what a drop gives", "[gui][settings]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string quickBefore =
         settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, "link");
-    const std::string materialsBefore =
-        settings.get<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
-    settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, "browser");
     settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, "link");
-    settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, "card");
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QString(), QStringLiteral("Navigator"));
-    auto* browser = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesBrowser"));
-    auto* onCard = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesCard"));
     auto* link = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsLink"));
     auto* add = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
     auto* window = dialog.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsWindow"));
-    auto* materialsCard =
-        dialog.findChild<QRadioButton*>(QStringLiteral("navigatorOpenMaterialsCard"));
-    REQUIRE(browser != nullptr);
-    REQUIRE(onCard != nullptr);
     REQUIRE(link != nullptr);
     REQUIRE(add != nullptr);
     REQUIRE(window != nullptr);
-    REQUIRE(materialsCard != nullptr);
-    // The usual ones: the browser, and at once with the link
-    CHECK(browser->isChecked());
+    // The usual one: at once with the link
     CHECK(link->isChecked());
     CHECK_FALSE(add->isChecked());
     CHECK_FALSE(window->isChecked());
 
-    // Each row is a choice of its own
-    onCard->click();
     window->click();
-    CHECK(onCard->isChecked());
-    CHECK_FALSE(browser->isChecked());
     CHECK(window->isChecked());
     CHECK_FALSE(link->isChecked());
-    CHECK(materialsCard->isChecked());
-    const QStringList written = dialog.applyChanges();
-    CHECK(written.size() == 2);
-    CHECK(written.contains(QString::fromLatin1(NavigatorPanel::OPEN_PAGES_SETTING)));
-    CHECK(written.contains(QString::fromLatin1(NavigatorPanel::QUICK_MATERIALS_SETTING)));
-    CHECK(settings.get<std::string>(NavigatorPanel::OPEN_PAGES_SETTING) == "card");
+    CHECK(dialog.applyChanges() ==
+          QStringList{QString::fromLatin1(NavigatorPanel::QUICK_MATERIALS_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING) == "window");
     CHECK(NavigatorPanel::quickMaterials() == QStringLiteral("window"));
 
@@ -749,19 +861,14 @@ TEST_CASE("Settings dialog: the Navigator page chooses how pages open and what a
           QStringList{QString::fromLatin1(NavigatorPanel::QUICK_MATERIALS_SETTING)});
     CHECK(settings.get<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING) == "add");
 
-    // Opened again, the page shows the stored choices
-    SettingsDialog again(nullptr);
+    // Opened again, the page shows the stored choice
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QString(), QStringLiteral("Navigator"));
-    auto* onCardAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorOpenPagesCard"));
     auto* addAgain = again.findChild<QRadioButton*>(QStringLiteral("navigatorQuickMaterialsAdd"));
-    REQUIRE(onCardAgain != nullptr);
     REQUIRE(addAgain != nullptr);
-    CHECK(onCardAgain->isChecked());
     CHECK(addAgain->isChecked());
 
-    settings.set<std::string>(NavigatorPanel::OPEN_PAGES_SETTING, pagesBefore);
     settings.set<std::string>(NavigatorPanel::QUICK_MATERIALS_SETTING, quickBefore);
-    settings.set<std::string>(NavigatorPanel::OPEN_MATERIALS_SETTING, materialsBefore);
 }
 
 TEST_CASE("Settings dialog: Network > Materials chooses the downloads of the materials",
@@ -770,7 +877,7 @@ TEST_CASE("Settings dialog: Network > Materials chooses the downloads of the mat
     const std::string before = settings.get<std::string>(MaterialDownloader::SETTING, "ask");
     settings.set<std::string>(MaterialDownloader::SETTING, "ask");
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Network"), QStringLiteral("Materials"));
     auto* ask = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAsk"));
     auto* always = dialog.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAlways"));
@@ -791,7 +898,7 @@ TEST_CASE("Settings dialog: Network > Materials chooses the downloads of the mat
     CHECK(MaterialDownloader::policy() == MaterialDownloader::Policy::Always);
 
     // Opened again, the page shows the stored choice
-    SettingsDialog again(nullptr);
+    SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QStringLiteral("Network"), QStringLiteral("Materials"));
     auto* alwaysAgain = again.findChild<QRadioButton*>(QStringLiteral("networkDownloadsAlways"));
     REQUIRE(alwaysAgain != nullptr);
@@ -842,14 +949,14 @@ TEST_CASE("Settings dialog: Editor > Images sets new images, their copies and th
     {
         const Polish polish;
         REQUIRE(polish.loaded());
-        SettingsDialog dialog(nullptr);
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         openPage(dialog, QStringLiteral("Edytor"), QStringLiteral("Obrazy"));
         auto* stack = dialog.findChild<QStackedWidget*>();
         REQUIRE(stack != nullptr);
         CHECK(sameKeys(*stack->currentWidget()).isEmpty());
     }
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Images"));
     auto* stack = dialog.findChild<QStackedWidget*>();
     REQUIRE(stack != nullptr);
@@ -885,6 +992,53 @@ TEST_CASE("Settings dialog: Editor > Images sets new images, their copies and th
     settings.set<int>(IMAGE_MAX_DPI_KEY, 300);
 }
 
+TEST_CASE("Settings dialog: the default labels of captions are in the program's language",
+          "[gui][settings][images]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const auto labelsBefore =
+        settings.get<nlohmann::json>(CAPTION_LABELS_KEY, nlohmann::json::array());
+    const auto labelBefore = settings.get<std::string>(IMAGE_CAPTION_LABEL_KEY, "");
+    settings.set<nlohmann::json>(CAPTION_LABELS_KEY, nlohmann::json::array());
+    settings.set<std::string>(IMAGE_CAPTION_LABEL_KEY, "");
+
+    const QStringList english{QStringLiteral("Figure"), QStringLiteral("Photo"),
+                              QStringLiteral("Illustration"), QStringLiteral("Map"),
+                              QStringLiteral("Diagram")};
+    CHECK(defaultCaptionLabels() == english);
+    {
+        const Polish polish;
+        REQUIRE(polish.loaded());
+        const QStringList polishLabels{QStringLiteral("Rysunek"), QStringLiteral("Fotografia"),
+                                       QStringLiteral("Ilustracja"), QStringLiteral("Mapa"),
+                                       QStringLiteral("Schemat")};
+        CHECK(defaultCaptionLabels() == polishLabels);
+        // Nothing stored: the settings and a new book have the labels in Polish
+        CHECK(settingsCaptionLabels() == polishLabels);
+        CHECK(settingsBookCaptions().labels == polishLabels);
+
+        // Settings > Editor > Images shows them, and its example of a cross-reference too
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+        openPage(dialog, QStringLiteral("Edytor"), QStringLiteral("Obrazy"));
+        auto* labels = dialog.findChild<QListWidget*>(QStringLiteral("captionLabels"));
+        auto* captionLabel = dialog.findChild<QComboBox*>(QStringLiteral("imageCaptionLabel"));
+        auto* reference = dialog.findChild<QComboBox*>(QStringLiteral("captionReference"));
+        REQUIRE(labels != nullptr);
+        REQUIRE(captionLabel != nullptr);
+        REQUIRE(reference != nullptr);
+        QStringList listed;
+        for (int row = 0; row < labels->count(); ++row) {
+            listed << labels->item(row)->text();
+        }
+        CHECK(listed == polishLabels);
+        CHECK(captionLabel->currentText() == QStringLiteral("Rysunek"));
+        CHECK(reference->findText(QStringLiteral("Etykietę i numer – „Rysunek 2”")) >= 0);
+    }
+    CHECK(settingsCaptionLabels() == english);
+
+    settings.set<nlohmann::json>(CAPTION_LABELS_KEY, labelsBefore);
+    settings.set<std::string>(IMAGE_CAPTION_LABEL_KEY, labelBefore);
+}
+
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string theme = settings.getTheme();
@@ -892,7 +1046,7 @@ TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][setti
     const kalahari::core::Theme themeFile =
         kalahari::core::ThemeManager::getInstance().loadTheme(QString::fromStdString(theme));
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
     ColorConfigWidget* window = colorWidget(dialog, QStringLiteral("General background color for windows and panels"));
     ColorConfigWidget* logInfo = colorWidget(dialog, QStringLiteral("Color for INFO level log messages"));
@@ -914,7 +1068,7 @@ TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][setti
 }
 
 TEST_CASE("Settings dialog: options that need a restart are marked", "[gui][settings]") {
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("General"));
 
     QComboBox* language = nullptr;
@@ -941,7 +1095,7 @@ TEST_CASE("Settings dialog: the notes can be read in every theme", "[gui][settin
     auto& themes = kalahari::core::ThemeManager::getInstance();
     const ThemeRestorer restorer;
     REQUIRE(themes.reloadTheme(QStringLiteral("Light")));
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.show();  // Open while the theme changes
     openAllPages(dialog);
 
@@ -989,7 +1143,7 @@ TEST_CASE("Settings dialog: a missing editor font keeps its name", "[gui][settin
     const int size = settings.get<int>("editor.fontSize");
     settings.set<std::string>("editor.fontFamily", "Kalahari Missing Font");
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Editor"), QStringLiteral("General"));
     CHECK_FALSE(dialog.hasChanges());
 
@@ -1010,7 +1164,7 @@ TEST_CASE("Settings dialog: a missing editor font keeps its name", "[gui][settin
 }
 
 TEST_CASE("Settings dialog: the diagnostic menu is not stored", "[gui][settings]") {
-    SettingsDialog dialog(nullptr, true);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr, true);
     openPage(dialog, QStringLiteral("Advanced"), QStringLiteral("General"));
 
     QCheckBox* diagnostic = nullptr;
@@ -1066,7 +1220,7 @@ TEST_CASE("A length field keeps its stored value in any unit", "[gui][settings]"
 TEST_CASE("Settings dialog: the length unit changes the fields, not the lengths", "[gui][settings]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.set<std::string>("ui.lengthUnit", "mm");
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openAllPages(dialog);
     REQUIRE_FALSE(dialog.hasChanges());
 

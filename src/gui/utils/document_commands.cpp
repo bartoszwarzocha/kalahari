@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file document_commands.cpp
 /// @brief Implementation of the commands that work on the document in front, those of the
 /// open book, and Save with Save As and Save All
@@ -139,7 +142,8 @@ void updateDocumentCommands(CommandRegistry& registry) {
 }
 
 const std::vector<std::string>& openBookCommands() {
-    static const std::vector<std::string> ids = {"file.close", "file.export.archive"};
+    static const std::vector<std::string> ids = {"file.close", "file.export.archive",
+                                                 "book.dictionary"};
     return ids;
 }
 
@@ -148,8 +152,9 @@ void bindToOpenBook(CommandRegistry& registry, const std::function<bool()>& hasB
         if (Command* command = registry.getCommand(id)) {
             command->isEnabled = hasBook;
             command->disabledReason = []() {
-                //: The tooltip of Close Book and of the export of the book's archive while
-                //: they are greyed out. In Polish: Żadna książka nie jest otwarta
+                //: The tooltip of Close Book, of the export of the book's archive and of
+                //: Book Dictionary... while they are greyed out. In Polish: Żadna książka nie
+                //: jest otwarta
                 return QCoreApplication::translate("DocumentCommands", "No book is open");
             };
         }

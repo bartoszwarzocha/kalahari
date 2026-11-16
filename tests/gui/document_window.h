@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file document_window.h
 /// @brief For the tests of the commands of the documents: the main window's tabs and panels
 /// with their coordinators, a book open until the test ends, and the windows the commands show
@@ -40,6 +43,7 @@
 
 #include <cstdio>
 #include <functional>
+#include "test_support/window_parts.h"
 
 namespace kalahari {
 namespace test {
@@ -211,7 +215,7 @@ private:
 /// @brief A new novel with a chapter of its own, open in ProjectManager until the test ends
 struct OpenNovel {
     QTemporaryDir dir;
-    core::ProjectManager& pm = core::ProjectManager::getInstance();
+    core::ProjectManager& pm = test::book();
     QString chapterId;
 
     explicit OpenNovel(const QString& title) {
@@ -250,12 +254,20 @@ struct Window {
     QStatusBar statusBar;
     QMainWindow window;
     QTabWidget* tabs = new QTabWidget(&window);
-    gui::NavigatorPanel* navigatorPanel = new gui::NavigatorPanel(&window);
-    gui::PropertiesPanel* properties = new gui::PropertiesPanel(&window);
-    gui::DashboardPanel* dashboard = new gui::DashboardPanel(&window);
+    gui::NavigatorPanel* navigatorPanel = new gui::NavigatorPanel(kalahari::test::book(), &window);
+    gui::PropertiesPanel* properties = new gui::PropertiesPanel(kalahari::test::book(), &window);
+    gui::DashboardPanel* dashboard = new gui::DashboardPanel(kalahari::test::commands(), &window);
     gui::StandaloneInfoBar* infoBar = new gui::StandaloneInfoBar(&window);
-    gui::NavigatorCoordinator navigator{navigatorPanel, properties, tabs, &statusBar, &window};
+    gui::NavigatorCoordinator navigator{kalahari::test::book(),
+                                        kalahari::test::commands(),
+                                        navigatorPanel,
+                                        properties,
+                                        tabs,
+                                        &statusBar,
+                                        &window};
     gui::DocumentCoordinator documents{
+        kalahari::test::book(),
+        kalahari::test::commands(),
         &window,
         tabs,
         navigatorPanel,

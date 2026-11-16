@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file recent_books_manager.h
 /// @brief Manager for recent books list
 ///
@@ -12,6 +15,8 @@
 
 namespace kalahari {
 namespace core {
+
+class ProjectManager;
 
 /// @brief Manager for recent books list
 ///
@@ -34,6 +39,10 @@ public:
     /// @brief Get singleton instance
     /// @return Reference to the singleton instance
     static RecentBooksManager& getInstance();
+
+    /// @brief Every book @p book opens, or creates and opens, goes to the top of the list and is
+    /// the book opened at startup; each book window gives its book
+    void follow(const ProjectManager& book);
 
     /// @brief Add a file to the recent list
     /// @param filePath Full path to the .klh file
@@ -62,6 +71,23 @@ public:
     /// the writer opened last stays the one opened at startup.
     /// @return Its .klh file; without one on the list the first of the list, empty for none
     QString lastOpenedBook() const;
+
+    /// @brief Which books open at startup, with the option of the last book: "all" (the books
+    /// of the last work, each in its window) or "last" (the book opened last)
+    static constexpr const char* STARTUP_BOOKS_KEY = "startup.books";
+
+    /// @brief The books open when the program ended last (their .klh files, the one in front
+    /// last), for STARTUP_BOOKS_KEY "all"
+    static constexpr const char* OPEN_BOOKS_KEY = "startup.openBooks";
+
+    /// @brief Keep @p manifests as the books open when the program ends (OPEN_BOOKS_KEY)
+    void setOpenBooks(const QStringList& manifests);
+
+    /// @brief The books to open at startup, as STARTUP_BOOKS_KEY says: those of the last work
+    /// that are still there, in their order, or without them (or with "last") the book opened
+    /// last (lastOpenedBook())
+    /// @return Their .klh files; empty for none
+    QStringList booksToOpenAtStart() const;
 
     /// @brief Maximum number of recent files to store
     static constexpr int MAX_RECENT_FILES = 10;

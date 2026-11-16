@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_grammar_components.cpp
 /// @brief Grammar on this computer: what Java and LanguageTool are, the files the program
 ///        downloads, where it puts them and their removal

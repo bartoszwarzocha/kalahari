@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_color_settings.cpp
 /// @brief The colors the writer can change in the Settings dialog: the waves under the
 ///        misspelled words and the grammar issues (and the frames of their cards in the Spelling
@@ -31,6 +34,7 @@
 
 #include <string>
 #include <utility>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 using kalahari::core::SettingsManager;
@@ -169,7 +173,7 @@ TEST_CASE("Settings: the color of the misspelled words, on the Spelling page",
     const std::string setting = settingOf(key);
     REQUIRE(themeColor(key).isValid());
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling"));
     ColorConfigWidget* underline = colorNamed(page, QStringLiteral("Underline"));
     auto* restore = namedChild<QPushButton>(page, QStringLiteral("Restore Default Colors"));
@@ -177,7 +181,7 @@ TEST_CASE("Settings: the color of the misspelled words, on the Spelling page",
     // The theme's color: the frames of the cards in the panel have it too, without a color of
     // their own; the colors optimized by default
     CHECK(underline->color() == themeColor(key));
-    CHECK(colorsOfGroup(page, QStringLiteral("Colors")).size() == 1);
+    CHECK(colorsOfGroup(page, QStringLiteral("Colors")).size() == 2);  // and of the book's rules
     CHECK(optimizeBox(page)->isChecked());
     CHECK_FALSE(dialog.hasChanges());
 
@@ -229,6 +233,34 @@ TEST_CASE("Settings: the color of the misspelled words, on the Spelling page",
     }
 }
 
+TEST_CASE("Settings: the color of the places breaking a rule of the book, on the Spelling page",
+          "[gui][settings][colors]") {
+    const ThemeColorsOnly themeColors;
+    auto& settings = SettingsManager::getInstance();
+    const std::string key = kalahari::editor::issueColorKey(TextIssueKind::BookRule);
+    const std::string setting = settingOf(key);
+    REQUIRE(themeColor(key).isValid());
+
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling"));
+    ColorConfigWidget* rule = colorNamed(page, QStringLiteral("Departure from a book rule"));
+    CHECK(rule->color() == themeColor(key));
+    CHECK(issueColor(TextIssueKind::BookRule) == themeColor(key));
+
+    // Its own color, the misspelled words keep theirs
+    pick(rule, QColor(QStringLiteral("#7a33cc")));
+    CHECK(dialog.applyChanges() == QStringList{QString::fromStdString(setting)});
+    QCoreApplication::processEvents();
+    CHECK(issueColor(TextIssueKind::BookRule) == QColor(QStringLiteral("#7a33cc")));
+    CHECK(issueColor(TextIssueKind::Spelling) ==
+          themeColor(kalahari::editor::issueColorKey(TextIssueKind::Spelling)));
+
+    // The theme's color again
+    pick(rule, themeColor(key));
+    dialog.applyChanges();
+    CHECK_FALSE(settings.hasKey(setting));
+}
+
 TEST_CASE("Settings: the color of the grammar issues, on the Grammar page",
           "[gui][settings][colors]") {
     const ThemeColorsOnly themeColors;
@@ -236,7 +268,7 @@ TEST_CASE("Settings: the color of the grammar issues, on the Grammar page",
     const std::string key = kalahari::editor::issueColorKey(TextIssueKind::Grammar);
     const std::string setting = settingOf(key);
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Grammar"));
     ColorConfigWidget* underline = colorNamed(page, QStringLiteral("Underline"));
     CHECK(underline->color() == themeColor(key));
@@ -265,7 +297,7 @@ TEST_CASE("Settings: the colors of the annotations, on the Annotations page",
     auto& settings = SettingsManager::getInstance();
     auto& themes = ThemeManager::getInstance();
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openPage(dialog, QString(), QStringLiteral("Annotations"));
     const std::pair<const char*, std::string> colors[] = {
         {"Comment", kalahari::editor::annotationColorKey(AnnotationKind::Comment)},
@@ -302,7 +334,7 @@ TEST_CASE("Settings: the colors of the papers, on the Editor > Colors page",
     auto& themes = ThemeManager::getInstance();
     using kalahari::editor::PaperColorKeys;
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Colors"));
     auto* darkPaper = page->findChild<QCheckBox*>(QStringLiteral("editorDarkPaper"));
     REQUIRE(darkPaper != nullptr);
@@ -379,7 +411,7 @@ TEST_CASE("Settings: each theme has its own colors", "[gui][settings][colors]") 
     const std::string firstSetting = ThemeManager::editorColorSetting(first, key);
     const std::string otherSetting = ThemeManager::editorColorSetting(other.toStdString(), key);
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling"));
     ColorConfigWidget* underline = colorNamed(page, QStringLiteral("Underline"));
     pick(underline, QColor(QStringLiteral("#123456")));
@@ -421,7 +453,7 @@ TEST_CASE("Settings: Optimize colors in themes, one setting on three pages",
     auto& themes = ThemeManager::getInstance();
     const std::string optimize = ThemeManager::OPTIMIZE_COLORS_SETTING;
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QCheckBox* spelling =
         optimizeBox(openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling")));
     REQUIRE(spelling->isChecked());
@@ -485,7 +517,7 @@ TEST_CASE("Settings: the options of the Spelling and Grammar panel, on the Spell
         settings.removeKey(key);
     }
 
-    SettingsDialog dialog(nullptr);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     QWidget* page = openPage(dialog, QStringLiteral("Editor"), QStringLiteral("Spelling"));
     auto* fixButtons = page->findChild<QComboBox*>(QStringLiteral("spellingPanelFixButtons"));
     auto* nextIssue = page->findChild<QComboBox*>(QStringLiteral("spellingPanelNextIssue"));
@@ -538,7 +570,7 @@ TEST_CASE("Settings: the selection and the links follow the Primary icon color",
     };
 
     {
-        SettingsDialog dialog(nullptr);
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         QWidget* page = openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
         ColorConfigWidget* primary = colorNamed(page, QStringLiteral("Primary"));
         ColorConfigWidget* highlight = colorNamed(page, QStringLiteral("Highlight"));
@@ -611,7 +643,7 @@ TEST_CASE("Settings: Reset to Theme Defaults removes a stored selection the same
     REQUIRE(themes.reloadTheme(theme));
 
     {
-        SettingsDialog dialog(nullptr);
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         QWidget* page = openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
         ColorConfigWidget* highlight = colorNamed(page, QStringLiteral("Highlight"));
         CHECK(highlight->color() == primary);
@@ -626,7 +658,7 @@ TEST_CASE("Settings: Reset to Theme Defaults removes a stored selection the same
     }
     {
         // Opened again, it follows the Primary color
-        SettingsDialog dialog(nullptr);
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
         QWidget* page = openPage(dialog, QStringLiteral("Appearance"), QStringLiteral("Theme"));
         const QColor green(QStringLiteral("#2e8b57"));
         pick(colorNamed(page, QStringLiteral("Primary")), green);

@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list_panel.cpp
 /// @brief The list of a kind of materials of the Workshop on a tab in the middle of the window
 
 #include "kalahari/gui/panels/material_list_panel.h"
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/bibliography.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/kind_words.h"
@@ -36,6 +41,7 @@
 #include <QListView>
 #include <QLocale>
 #include <QMenu>
+#include <QMimeData>
 #include <QPainter>
 #include <QPixmap>
 #include <QPushButton>
@@ -758,9 +764,9 @@ private:
 // The list
 // =============================================================================
 
-MaterialListPanel::MaterialListPanel(const QString& list, QWidget* parent)
-    : QWidget(parent)
-    , m_list(list) {
+MaterialListPanel::MaterialListPanel(core::ProjectManager& book, const QString& list,
+                                     QWidget* parent)
+    : QWidget(parent), m_list(list), m_book(book) {
     setObjectName(QStringLiteral("materialList"));
     m_model = new MaterialListModel(this);
     m_filter = new MaterialListFilter(this);
@@ -825,6 +831,7 @@ void MaterialListPanel::createLayout() {
     m_editButton = button("materialListEdit", true);
     m_linkButton = button("materialListLink", false);
     m_copyButton = button("materialListCopy", false);
+    m_entriesButton = button("materialListEntries", true);
     m_deleteButton = button("materialListDelete", false);
     m_tableButton = button("materialListTable", false);
     m_tilesButton = button("materialListTiles", false);
@@ -838,7 +845,7 @@ void MaterialListPanel::createLayout() {
     m_groupsButton->setCheckable(true);
     m_addMenu = new QMenu(m_addButton);
     for (QToolButton* tool : {m_addButton, m_editButton, m_linkButton, m_copyButton,
-                              m_deleteButton}) {
+                              m_entriesButton, m_deleteButton}) {
         toolsLayout->addWidget(tool);
     }
     auto* viewSeparator = separator(tools);
@@ -1117,6 +1124,7 @@ void MaterialListPanel::createCommands() {
         }
     });
     connect(m_copyButton, &QToolButton::clicked, this, &MaterialListPanel::copyCurrent);
+    connect(m_entriesButton, &QToolButton::clicked, this, &MaterialListPanel::copyEntries);
     connect(m_deleteButton, &QToolButton::clicked, this, [this]() {
         if (const QString id = currentMaterial(); !id.isEmpty()) {
             emit requestDelete(id);
@@ -1172,6 +1180,7 @@ void MaterialListPanel::refreshIcons() {
     m_editButton->setIcon(iconOf("edit.rename"));
     m_linkButton->setIcon(iconOf("common.link"));
     m_copyButton->setIcon(iconOf("edit.copy"));
+    m_entriesButton->setIcon(iconOf("edit.copy"));
     m_deleteButton->setIcon(iconOf("edit.delete"));
     m_tableButton->setIcon(iconOf("materials.table"));
     m_tilesButton->setIcon(iconOf("materials.tiles"));
@@ -1308,7 +1317,7 @@ void MaterialListPanel::showGroups(bool groups) {
     // The groups say what the materials are: the column Kind waits for the table without them
     if (const int part = columnOf(QString::fromLatin1(MaterialList::COVER_PART)); part >= 0) {
         m_header->setSectionHidden(
-            part, groups || !MaterialList::shownColumns(m_list).contains(
+            part, groups || !MaterialList::shownColumns(m_book, m_list).contains(
                                 QString::fromLatin1(MaterialList::COVER_PART)));
         if (!m_header->isSectionHidden(part) && m_header->sectionSize(part) < 20) {
             m_header->resizeSection(part, widthOf(QString::fromLatin1(MaterialList::COVER_PART)));
@@ -1384,7 +1393,7 @@ QStringList MaterialListPanel::shownColumns() const {
 
 void MaterialListPanel::fillMenu(QMenu& menu) {
     auto& art = core::ArtProvider::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const QModelIndex current = view()->currentIndex();
     const MaterialRow* row = m_model->materialAt(m_filter->mapToSource(current).row());
     const bool changing = !pm.isReadOnly();
@@ -1505,6 +1514,43 @@ void MaterialListPanel::copyCurrent() {
                      .arg(row->texts.value(QString::fromLatin1(MaterialList::TITLE))));
 }
 
+void MaterialListPanel::copyEntries() {
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    if (m_list != QLatin1String(MaterialList::SOURCES) || clipboard == nullptr) {
+        return;
+    }
+    const QString style = m_book.bibliographyStyle();
+    const QString language = m_book.bookLanguage();
+    QStringList texts;
+    QStringList rich;
+    for (int shown = 0; shown < m_filter->rowCount(); ++shown) {
+        const MaterialRow* row = m_model->materialAt(
+            m_filter->mapToSource(m_filter->index(shown, 0)).row());
+        const core::ProjectElement* element =
+            row != nullptr ? m_book.findElement(row->id) : nullptr;
+        if (element == nullptr || element->source.isEmpty()) {
+            continue;
+        }
+        texts << core::Bibliography::entry(element->source, element->title, style, language,
+                                           false);
+        rich << QStringLiteral("<p>%1</p>")
+                    .arg(core::Bibliography::entry(element->source, element->title, style,
+                                                   language, true));
+    }
+    if (texts.isEmpty()) {
+        return;
+    }
+    auto* mime = new QMimeData();
+    mime->setHtml(rich.join(QString()));
+    mime->setText(texts.join(QLatin1Char('\n')));
+    clipboard->setMimeData(mime);
+    const auto count = static_cast<int>(texts.size());
+    //: The status bar after Copy Entries of the list Sources; %1 the style. In Polish:
+    //: Skopiowano zapisy: %n (%1)
+    emit message(MaterialList::tr("Entries copied: %n (%1)", nullptr, count)
+                     .arg(core::Bibliography::styleName(style)));
+}
+
 bool MaterialListPanel::eventFilter(QObject* watched, QEvent* event) {
     if (watched == m_search && event->type() == QEvent::KeyPress) {
         auto* key = static_cast<QKeyEvent*>(event);
@@ -1550,7 +1596,7 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
     if (row == nullptr) {
         return true;
     }
-    const bool changing = !core::ProjectManager::getInstance().isReadOnly();
+    const bool changing = !m_book.isReadOnly();
     switch (what) {
     case ListKey::Edit:
         emit requestEdit(row->id, editsText(*row));
@@ -1580,14 +1626,14 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
 void MaterialListPanel::load() {
     const bool loading = m_loading;
     m_loading = true;
-    m_columns = MaterialList::columnsOf(m_list);
+    m_columns = MaterialList::columnsOf(m_book, m_list);
     const bool pictures = std::any_of(m_columns.cbegin(), m_columns.cend(),
                                       [](const MaterialColumn& column) {
                                           return column.id ==
                                                  QLatin1String(MaterialList::THUMBNAIL);
                                       });
     const bool cover = MaterialList::isCover(m_list);
-    m_model->setContents(m_columns, MaterialList::rowsOf(m_list), !pictures, cover);
+    m_model->setContents(m_columns, MaterialList::rowsOf(m_book, m_list), !pictures, cover);
     m_table->verticalHeader()->setDefaultSectionSize(
         pictures ? THUMBNAIL_ROW : m_table->fontMetrics().height() + 8);
     m_table->setIconSize(pictures ? QSize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT) : QSize(16, 16));
@@ -1698,7 +1744,7 @@ void MaterialListPanel::restoreState() {
 }
 
 void MaterialListPanel::applyColumns() {
-    const QStringList shown = MaterialList::shownColumns(m_list);
+    const QStringList shown = MaterialList::shownColumns(m_book, m_list);
     for (int column = 0; column < m_columns.size(); ++column) {
         m_header->setSectionHidden(column, !shown.contains(m_columns.at(column).id));
     }
@@ -1762,44 +1808,39 @@ void MaterialListPanel::fillLinkedWith() {
     QStringList targets;
     for (int row = 0; row < m_model->rowCount(); ++row) {
         for (const QString& link : m_model->rowAt(row)->links) {
-            if (!targets.contains(link) && !linkTitle(link).isEmpty()) {
+            if (!targets.contains(link) && !linkTitle(m_book, link).isEmpty()) {
                 targets << link;
             }
         }
     }
     QCollator collator;
     collator.setNumericMode(true);
-    std::sort(targets.begin(), targets.end(), [&collator](const QString& a, const QString& b) {
-        return collator.compare(linkTitle(a), linkTitle(b)) < 0;
-    });
+    std::sort(targets.begin(), targets.end(),
+              [this, &collator](const QString& a, const QString& b) {
+                  return collator.compare(linkTitle(m_book, a), linkTitle(m_book, b)) < 0;
+              });
     for (const QString& target : targets) {
-        m_linkedWith->addItem(linkIcon(target, core::IconContext::ComboBox), linkTitle(target),
-                              target);
+        m_linkedWith->addItem(linkIcon(m_book, target, core::IconContext::ComboBox),
+                              linkTitle(m_book, target), target);
     }
     m_linkedWith->setCurrentIndex(std::max(0, m_linkedWith->findData(chosen)));
 }
 
 void MaterialListPanel::updateCommands() {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const MaterialRow* row =
         m_model->materialAt(m_filter->mapToSource(view()->currentIndex()).row());
     const bool changing = pm.isProjectOpen() && !pm.isReadOnly();
     bool canAdd = false;
-    if (m_list.isEmpty()) {
-        for (const QString& kind : MaterialList::kinds()) {
-            const std::optional<core::KindReference> reference = core::KindReference::parse(kind);
-            canAdd = canAdd ||
-                     (reference && core::ProjectManager::canAdd(pm.bookTypes().findKind(
-                                       reference->packageId, reference->kindId)));
-        }
-    } else if (const std::optional<core::KindReference> reference =
-                   core::KindReference::parse(m_list)) {
-        canAdd = core::ProjectManager::canAdd(
-            pm.bookTypes().findKind(reference->packageId, reference->kindId));
+    for (const QString& kind : MaterialList::addKindsOf(m_book, m_list)) {
+        const std::optional<core::KindReference> reference = core::KindReference::parse(kind);
+        canAdd = canAdd ||
+                 (reference && core::ProjectManager::canAdd(pm.bookTypes().findKind(
+                                   reference->packageId, reference->kindId)));
     }
     m_addButton->setEnabled(changing && canAdd);
     const QKeyCombination insert(Qt::NoModifier, Qt::Key_Insert);
-    if (m_list.isEmpty()) {
+    if (m_list.isEmpty() || m_list == QLatin1String(MaterialList::SOURCES)) {
         //: Adds a material in the Add Element window. In Polish: Dodaj...
         m_addButton->setText(MaterialList::tr("Add..."));
     } else {
@@ -1820,6 +1861,21 @@ void MaterialListPanel::updateCommands() {
     }
     m_editButton->setEnabled(row != nullptr);
     m_copyButton->setEnabled(row != nullptr && !row->copy.isEmpty());
+    // Copy Entries of the list Sources: in the style of the book
+    const bool sources = m_list == QLatin1String(MaterialList::SOURCES);
+    m_entriesButton->setVisible(sources);
+    if (sources) {
+        const QString style = core::Bibliography::styleName(pm.bibliographyStyle());
+        //: The list Sources: copies the entries of its sources; %1 the style of the book. In
+        //: Polish: Kopiuj zapisy (%1)
+        m_entriesButton->setText(MaterialList::tr("Copy Entries (%1)").arg(style));
+        //: In Polish: Kopiuje zapisy w bibliografii wszystkich źródeł widocznych na liście,
+        //: w jej kolejności
+        m_entriesButton->setToolTip(MaterialList::tr(
+            "Copies the entries in the bibliography of all the sources the list shows, in its "
+            "order"));
+        m_entriesButton->setEnabled(m_filter->rowCount() > 0);
+    }
     m_linkButton->setEnabled(row != nullptr && !row->text && changing);
     m_deleteButton->setEnabled(row != nullptr && changing);
 }
@@ -1906,7 +1962,7 @@ void MaterialListPanel::keepColumns() {
     // The column Kind of the cover, hidden by the groups, stays where the writer had it
     const QString part = QString::fromLatin1(MaterialList::COVER_PART);
     if (groupsApply() && !shown.contains(part)) {
-        const QStringList before = MaterialList::shownColumns(m_list);
+        const QStringList before = MaterialList::shownColumns(m_book, m_list);
         if (const qsizetype at = before.indexOf(part); at >= 0) {
             shown.insert(std::min(at, shown.size()), part);
         }

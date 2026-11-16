@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_statistics_collector.cpp
 /// @brief Unit tests for StatisticsCollector (OpenSpec #00042 Task 7.17)
 /// Phase 11: Rewritten for QTextDocument-based architecture

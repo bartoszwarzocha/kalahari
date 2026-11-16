@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_formatting_characters.cpp
 /// @brief Insert > Formatting Character: the characters of the typesetting a keyboard does not
 ///        have, with the keys of Word
@@ -16,6 +19,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -44,8 +48,8 @@ QMenu* submenuOf(const QMenu& menu, const QString& name) {
 }  // namespace
 
 TEST_CASE("Formatting characters: the submenu of the Insert menu", "[gui][characters]") {
-    registerAllCommands(CommandCallbacks{});
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    CommandRegistry& registry = kalahari::test::commands();
     QMainWindow window;
     MenuBuilder builder;
     builder.buildMenuBar(registry, &window);
@@ -75,8 +79,8 @@ TEST_CASE("Formatting characters: each command inserts its character", "[gui][ch
     callbacks.onInsertCharacters = [&inserted](const QString& characters) {
         inserted.append(characters);
     };
-    registerAllCommands(callbacks);
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), callbacks);
+    CommandRegistry& registry = kalahari::test::commands();
 
     const std::vector<std::pair<std::string, QString>> commands = {
         {"insert.noBreakSpace", QStringLiteral("\u00A0")},
@@ -98,8 +102,8 @@ TEST_CASE("Formatting characters: each command inserts its character", "[gui][ch
 
 TEST_CASE("Formatting characters: without a text to insert into they are greyed out",
           "[gui][characters]") {
-    registerAllCommands(CommandCallbacks{});
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    CommandRegistry& registry = kalahari::test::commands();
     for (const char* id : {"insert.noBreakSpace", "insert.nonBreakingHyphen",
                            "insert.optionalHyphen", "insert.enDash", "insert.emDash"}) {
         INFO(id);

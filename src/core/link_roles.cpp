@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file link_roles.cpp
 /// @brief How a material is linked with an element: the roles of links, and the paragraph a
 /// link names
 
 #include "kalahari/core/link_roles.h"
 
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/settings_manager.h"
 
@@ -20,6 +24,25 @@ const QStringList& LinkRoles::all() {
         QString::fromLatin1(INSPIRATION), QString::fromLatin1(ILLUSTRATION),
         QString::fromLatin1(TO_CHECK)};
     return roles;
+}
+
+const QStringList& LinkRoles::ofCards() {
+    static const QStringList roles{
+        QString::fromLatin1(POINT_OF_VIEW), QString::fromLatin1(APPEARS),
+        QString::fromLatin1(MENTIONED), QString::fromLatin1(SETTING)};
+    return roles;
+}
+
+QStringList LinkRoles::ofCard(const ElementKind& kind) {
+    if (!kind.chapterRoles.isEmpty()) {
+        return kind.chapterRoles;
+    }
+    return {QString::fromLatin1(APPEARS), QString::fromLatin1(MENTIONED)};
+}
+
+QString LinkRoles::suggestedForCard(const ElementKind& kind) {
+    const QStringList roles = ofCard(kind);
+    return roles.contains(QLatin1String(APPEARS)) ? QString::fromLatin1(APPEARS) : roles.first();
 }
 
 QString LinkRoles::suggestedFor(const QString& kindId) {

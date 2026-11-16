@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file settings_dialog.cpp
 /// @brief Implementation of SettingsDialog
 
@@ -9,6 +12,7 @@
 #include "kalahari/gui/settings/stats_pages.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 
@@ -32,16 +36,18 @@
 namespace kalahari {
 namespace gui {
 
-SettingsDialog::SettingsDialog(QWidget* parent, bool diagnosticMode,
+SettingsDialog::SettingsDialog(const core::ProjectManager& book, CommandRegistry& commands,
+                               QWidget* parent, bool diagnosticMode,
                                editor::SpellCheckService* spelling, GrammarCoordinator* grammar)
-    : KalahariDialog(parent)
-    , m_navTree(nullptr)
-    , m_pageStack(nullptr)
-    , m_diagnosticMode(diagnosticMode)
-    , m_spelling(spelling)
-    , m_grammar(grammar)
-    , m_lengthUnit(currentLengthUnit())
-{
+    : KalahariDialog(parent),
+      m_navTree(nullptr),
+      m_pageStack(nullptr),
+      m_diagnosticMode(diagnosticMode),
+      m_spelling(spelling),
+      m_grammar(grammar),
+      m_lengthUnit(currentLengthUnit()),
+      m_commands(commands),
+      m_book(book) {
     setHeading(tr("Settings"),
                tr("Choose a group on the left; Apply and OK save only the options you changed."));
     setHeadingIcon(QStringLiteral("edit.settings"));
@@ -113,7 +119,9 @@ void SettingsDialog::createNavigationTree() {
 
     QTreeWidgetItem* editor = category(tr("Editor"));
     m_pageItems[WORD_COUNT_PAGE] =
-        addPage(editor, tr("General"), []() { return new EditorGeneralPage(); });
+        addPage(editor, tr("General"), [this]() { return new EditorGeneralPage(m_commands); });
+    m_pageItems[FIELDS_PAGE] = m_pageItems[WORD_COUNT_PAGE];
+    m_pageItems[PASTE_PAGE] = m_pageItems[WORD_COUNT_PAGE];
     m_pageItems[EDITOR_COLORS_PAGE] =
         addPage(editor, tr("Colors"), []() { return new EditorColorsPage(); });
     addPage(editor, tr("Cursor"), []() { return new EditorCursorPage(); });
@@ -128,22 +136,41 @@ void SettingsDialog::createNavigationTree() {
         return imagesPage;
     });
     m_pageItems[SPELLING_PAGE] =
-        addPage(editor, tr("Spelling"), [this]() { return new EditorSpellingPage(m_spelling); });
-    addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_grammar); });
-    addPage(editor, tr("Auto-correct"), []() { return new EditorAutoCorrectPage(); });
+        addPage(editor, tr("Spelling"), [this]() {
+            auto* spellingPage = new EditorSpellingPage(m_spelling, m_book.isProjectOpen());
+            // Open Book Dictionary: OK, then the dictionary on its tab
+            connect(spellingPage, &EditorSpellingPage::bookDictionaryAsked, this, [this]() {
+                accept();
+                m_bookDictionaryAsked = result() == QDialog::Accepted;
+            });
+            return spellingPage;
+        });
+    addPage(editor, tr("Grammar"), [this]() { return new EditorGrammarPage(m_book, m_grammar); });
+    addPage(editor, tr("Auto-correct"), [this]() { return new EditorAutoCorrectPage(m_commands); });
     //: Settings > Editor > Quick Insert: @ and # in the text. In Polish: Szybkie wstawianie
-    addPage(editor, tr("Quick Insert"), []() { return new EditorQuickInsertPage(); });
+    addPage(editor, tr("Quick Insert"), [this]() { return new EditorQuickInsertPage(m_commands); });
     //: Settings > Editor > Repetitions: the words that come back too close. In Polish: Powtórzenia
-    m_pageItems[REPETITIONS_PAGE] =
-        addPage(editor, tr("Repetitions"), []() { return new EditorRepetitionsPage(); });
+    m_pageItems[REPETITIONS_PAGE] = addPage(
+        editor, tr("Repetitions"), [this]() { return new EditorRepetitionsPage(m_commands); });
     //: Settings > Editor > Versions: the versions of the texts. In Polish: Wersje
     m_pageItems[VERSIONS_PAGE] =
-        addPage(editor, tr("Versions"), []() { return new EditorVersionsPage(); });
+        addPage(editor, tr("Versions"), [this]() { return new EditorVersionsPage(m_commands); });
 
     m_pageItems[ANNOTATIONS_PAGE] =
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     m_pageItems[NAVIGATOR_PAGE] =
-        addPage(nullptr, tr("Navigator"), []() { return new NavigatorPage(); });
+        addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    //: Settings > Cards: the cards of characters, locations and items. In Polish: Karty
+    m_pageItems[CARDS_PAGE] = addPage(nullptr, tr("Cards"), []() { return new CardsPage(); });
+    //: The page of the materials: how they open, the preview of PDF files and the sources. In
+    //: Polish: Materiały
+    m_pageItems[MATERIALS_PAGE] =
+        addPage(nullptr, tr("Materials"), [this]() {
+            auto* materialsPage = new MaterialsPage();
+            connect(materialsPage, &MaterialsPage::colorsPageAsked, this,
+                    [this]() { openPage(QString::fromLatin1(EDITOR_COLORS_PAGE)); });
+            return materialsPage;
+        });
     //: Settings > Statistics and Goals: the statistics bar, the panel, the counting of the words
     //: and the colors. In Polish: Statystyki i cele
     QTreeWidgetItem* statistics = category(tr("Statistics and Goals"));
@@ -159,8 +186,8 @@ void SettingsDialog::createNavigationTree() {
     //: In Polish: Kolory
     m_pageItems[STATS_COLORS_PAGE] =
         addPage(statistics, tr("Colors"), []() { return new StatsColorsPage(); });
-    m_pageItems[SHORTCUTS_PAGE] =
-        addPage(nullptr, tr("Keyboard Shortcuts"), []() { return new ShortcutsPage(); });
+    m_pageItems[SHORTCUTS_PAGE] = addPage(nullptr, tr("Keyboard Shortcuts"),
+                                          [this]() { return new ShortcutsPage(m_commands); });
 
     QTreeWidgetItem* files = category(tr("Files"));
     addPage(files, tr("Folders"), []() { return new FoldersPage(); });
@@ -319,6 +346,20 @@ bool SettingsDialog::openPage(const QString& page) {
     if (page == QLatin1String(SHORTCUTS_PAGE)) {
         if (auto* shortcuts = m_pageStack->findChild<ShortcutsPage*>()) {
             shortcuts->setFocus(Qt::OtherFocusReason);
+        }
+    } else if (page == QLatin1String(FIELDS_PAGE) || page == QLatin1String(PASTE_PAGE)) {
+        // The cursor in the gray background of the fields, in the Paste Command, in view
+        const auto built = m_builtPages.find(item->second);
+        auto* scrollArea =
+            built != m_builtPages.end() ? qobject_cast<QScrollArea*>(built->second) : nullptr;
+        const QString name = page == QLatin1String(FIELDS_PAGE) ? QStringLiteral("fieldShading")
+                                                                : QStringLiteral("pasteMode");
+        auto* field = scrollArea != nullptr ? scrollArea->findChild<QWidget*>(name) : nullptr;
+        if (field != nullptr) {
+            field->setFocus(Qt::OtherFocusReason);
+            QTimer::singleShot(0, scrollArea, [scrollArea, field]() {
+                scrollArea->ensureWidgetVisible(field);
+            });
         }
     } else if (page == QLatin1String(MARGIN_NUMBERING_PAGE) ||
                page == QLatin1String(WORD_COUNT_PAGE)) {

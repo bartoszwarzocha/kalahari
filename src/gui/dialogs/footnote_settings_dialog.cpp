@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file footnote_settings_dialog.cpp
 /// @brief Insert > Footnote Layout...: how the book numbers its notes and where its
 ///        endnotes are

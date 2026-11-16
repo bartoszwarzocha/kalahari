@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_panel_coordinator.h
 /// @brief The Spelling and Grammar panel: the issues of the text in front, what the writer
 ///        does with them, and when the panel shows
@@ -18,6 +21,13 @@ class QDockWidget;
 class QTabWidget;
 class QTimer;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari::editor {
 class BookEditor;
 struct CursorPosition;
@@ -36,9 +46,11 @@ class SpellingPanel;
 /// GrammarCoordinator::problem()). The issue selected in the panel is selected in the text, and
 /// a click on an issue in the text selects its card. What the writer chooses in the panel goes
 /// to the text and to the checking: a suggestion takes the issue's place (a step of the undo
-/// history), and Ignore Word, Add to Dictionary and Ignore Rule do what they do in the menu of
-/// the wave; then the issue after it is selected. While the panel shows, the grammar of the
-/// whole text is checked (the setting spellingPanel.grammarScope "whole").
+/// history), and Ignore Word, Add to Book Dictionary, Add to Your Words and Ignore Rule do what
+/// they do in the menu of the wave; then the issue after it is selected. Add Name... and Edit
+/// Rule... ask for the windows of the book's dictionary (addNameAsked(), editRuleAsked()).
+/// While the panel shows, the grammar of the whole text is checked (the setting
+/// spellingPanel.grammarScope "whole").
 ///
 /// Next Spelling or Grammar Issue (F7) shows the issue it finds in the panel (the setting
 /// spellingPanel.nextIssue "panel"), and gives the panel the keys: a closed panel opens, and
@@ -50,13 +62,16 @@ class SpellingPanelCoordinator : public QObject {
 public:
     /// @brief Constructor: the coordinator shows the next issue for the spelling coordinator
     ///        (SpellingCoordinator::setNextIssueHandler())
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param panel The panel
     /// @param dock The panel's dock
     /// @param centralTabs The tabs of the documents
     /// @param spelling The spelling as you type
     /// @param grammar The grammar as you type (may be null)
     /// @param parent Parent object
-    SpellingPanelCoordinator(SpellingPanel* panel, QDockWidget* dock, QTabWidget* centralTabs,
+    SpellingPanelCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                             SpellingPanel* panel, QDockWidget* dock, QTabWidget* centralTabs,
                              SpellingCoordinator* spelling, GrammarCoordinator* grammar,
                              QObject* parent = nullptr);
 
@@ -74,6 +89,19 @@ public:
 
     /// @brief List the issues of the text in front again now
     void refresh();
+
+    /// @brief The setting of where the button of a misspelled word's card adds it in a
+    ///        chapter of the book: "book" (the book's dictionary; the writer's words on the
+    ///        menu of the arrow beside it) or "user" (the other way)
+    static constexpr const char* ADD_TO_KEY = "bookDictionary.panelAddsTo";
+
+signals:
+    /// @brief Add Name... of a misspelled word was chosen in the panel
+    void addNameAsked(const QString& word);
+
+    /// @brief Edit Rule... of a place breaking a spelling rule of the book was clicked in the
+    ///        panel
+    void editRuleAsked(const QString& ruleId);
 
 private slots:
     /// @brief The settings of the panel or of the checking changed (called by name, queued)
@@ -108,6 +136,7 @@ private:
     void selectFrom(int position, int noteStart = -1);  // SpellingPanel::issueFrom()
     void onSuggestionChosen(const SpellingPanelIssue& issue, const QString& suggestion);
     void onIgnoreWord(const SpellingPanelIssue& issue, bool addToDictionary);
+    void onAddToBookDictionary(const SpellingPanelIssue& issue);
     void onIgnoreRule(const SpellingPanelIssue& issue);
     void onMenuRequested(const SpellingPanelIssue& issue, const QPoint& globalPos);
     void onEditorFocusRequested();
@@ -136,6 +165,8 @@ private:
     std::array<bool, 2> m_done{};   ///< The spelling, the grammar checked through (isDone())
     int m_settingsListener{0};
     std::atomic<bool> m_settingsPending{false};  ///< onSettingsChanged() is queued
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

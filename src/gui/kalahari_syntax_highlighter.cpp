@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kalahari_syntax_highlighter.cpp
 /// @brief Syntax highlighter implementation (stub - Task #00007)
 

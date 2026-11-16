@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file tags_panel.h
 /// @brief Tags panel for displaying TODO/FIX/CHECK markers (OpenSpec #00042 Task 7.10)
 ///

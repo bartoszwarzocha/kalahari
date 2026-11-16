@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_new_file.cpp
 /// @brief New File: an element of the open book or an empty text file in the New File window,
 /// or a file outside a book; Open File in the File menu and on the toolbars
@@ -62,6 +65,7 @@
 #include <cstdio>
 #include <functional>
 #include <string>
+#include "test_support/window_parts.h"
 
 /// Qt's own way to press a key over the window's shortcuts, as the system delivers it (Qt
 /// Test presses keys with it; the program does not link Qt Test)
@@ -325,14 +329,14 @@ void click(QWidget& widget, Qt::MouseButton button) {
 
 TEST_CASE("New File: the files first, then the books in the File menu, without an Open submenu",
           "[gui][newfile]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});
-    gui::CommandRegistry& registry = gui::CommandRegistry::getInstance();
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
+    gui::CommandRegistry& registry = test::commands();
     QMainWindow window;
     gui::MenuBuilder builder;
     builder.buildMenuBar(registry, &window);
     QMenu* file = builder.getMenu("FILE");
     REQUIRE(file != nullptr);
-    auto* recentBooks = new gui::RecentBooksMenu(file);
+    auto* recentBooks = new gui::RecentBooksMenu(kalahari::test::commands(), file);
     recentBooks->insertInto(file);
 
     // New File opens a window, so it has an ellipsis; Recent Books follows Open Book
@@ -351,11 +355,11 @@ TEST_CASE("New File: the files first, then the books in the File menu, without a
 
 TEST_CASE("New File: the files first, then the books on the File and Quick Actions toolbars",
           "[gui][newfile]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     gui::registerAllIcons();
-    gui::CommandRegistry& registry = gui::CommandRegistry::getInstance();
+    gui::CommandRegistry& registry = test::commands();
     QMainWindow window;
-    gui::ToolbarManager manager(&window);
+    gui::ToolbarManager manager(kalahari::test::commands(), &window);
     manager.createToolbars(registry);
 
     const QStringList file = manager.getToolbarCommands(QStringLiteral("file"));
@@ -377,8 +381,8 @@ TEST_CASE("New File: the files first, then the books on the File and Quick Actio
 TEST_CASE("New File: the Dashboard names the commands to start with in the order of the File "
           "menu",
           "[gui][newfile]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});
-    gui::DashboardPanel dashboard;
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
+    gui::DashboardPanel dashboard(kalahari::test::commands());
     auto* section = dashboard.findChild<QFrame*>(QStringLiteral("shortcutsFrame"));
     REQUIRE(section != nullptr);
 
@@ -395,7 +399,7 @@ TEST_CASE("New File: the Dashboard names the commands to start with in the order
 TEST_CASE("New File: a toolbar customized before gets Open File once, where the default one "
           "has it, and the new order of the file commands",
           "[gui][newfile]") {
-    gui::registerAllCommands(gui::CommandCallbacks{});
+    gui::registerAllCommands(kalahari::test::commands(), gui::CommandCallbacks{});
     auto& settings = core::SettingsManager::getInstance();
     // The toolbars of the defaults, for each section
     settings.set<std::string>("toolbars.configurations", "{}");
@@ -408,7 +412,7 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
             "toolbars.configurations",
             R"({"builtIn":{"quickActions":["file.new","file.open","file.save","edit.find"],)"
             R"("file":["file.new","file.open","file.save","file.close"]}})");
-        gui::ToolbarManager manager(&window);
+        gui::ToolbarManager manager(kalahari::test::commands(), &window);
         // With the buttons of the versions of a later version, after Find too
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
               "file.new | file.open.file | file.open | file.save | file.saveAs | file.close | "
@@ -420,7 +424,7 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
         QStringList without = manager.getToolbarCommands(quickActions);
         without.removeAll(QStringLiteral("file.open.file"));
         manager.setToolbarCommands(quickActions, without);
-        gui::ToolbarManager next(&window);
+        gui::ToolbarManager next(kalahari::test::commands(), &window);
         CHECK(joined(next.getToolbarCommands(quickActions)) == joined(without));
     }
 
@@ -428,7 +432,7 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
         settings.set<std::string>(
             "toolbars.configurations",
             R"({"builtIn":{"quickActions":["edit.find","file.new.project","file.close"]}})");
-        gui::ToolbarManager manager(&window);
+        gui::ToolbarManager manager(kalahari::test::commands(), &window);
         // After the nearest command before it in the default toolbar that the toolbar has
         // (Save As after New Book), at the start when it has none (Open File)
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
@@ -443,7 +447,7 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
             R"({"builtIn":{"quickActions":["file.new","file.new.project","file.open",)"
             R"("file.open.file","edit.find"],"file":["file.open","file.save","file.open.file"]}})");
         settings.set<int>("toolbars.addedCommands", 1);
-        gui::ToolbarManager manager(&window);
+        gui::ToolbarManager manager(kalahari::test::commands(), &window);
         CHECK(joined(manager.getToolbarCommands(quickActions)) ==
               "file.new | file.open.file | file.new.project | file.open | edit.find | "
               "file.saveVersion | file.versionHistory");
@@ -454,12 +458,12 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
         const QStringList own{QStringLiteral("file.open"), QStringLiteral("file.new"),
                               QStringLiteral("edit.find")};
         manager.setToolbarCommands(quickActions, own);
-        gui::ToolbarManager next(&window);
+        gui::ToolbarManager next(kalahari::test::commands(), &window);
         CHECK(joined(next.getToolbarCommands(quickActions)) == joined(own));
     }
 
     SECTION("toolbars with the defaults stay as they are") {
-        gui::ToolbarManager manager(&window);
+        gui::ToolbarManager manager(kalahari::test::commands(), &window);
         const QStringList quick = manager.getToolbarCommands(quickActions);
         CHECK(quick.count(QStringLiteral("file.open.file")) == 1);
         CHECK(quick.count(QStringLiteral("file.saveAs")) == 1);
@@ -477,7 +481,7 @@ TEST_CASE("New File: a toolbar customized before gets Open File once, where the 
 TEST_CASE("New File: the kinds of the book in its parts, the greyed ones saying why",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
-    NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
+    NewFileDialog dialog(NewFileDialog::openBook(kalahari::test::book()), book.pm.bookTypes());
 
     // The parts of the book have their names in the Navigator. A part (a group) is no file,
     // so it has no tile; a book can have one title page, and the program has no window of
@@ -495,7 +499,7 @@ TEST_CASE("New File: the kinds of the book in its parts, the greyed ones saying 
 TEST_CASE("New File: the chosen kind, the title of the new element and its place",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
-    NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
+    NewFileDialog dialog(NewFileDialog::openBook(kalahari::test::book()), book.pm.bookTypes());
 
     // A chapter at the start, the third one of the book, at the end of the main section
     CHECK(dialog.nameLabel()->text().toStdString() == "Chapter");
@@ -555,7 +559,7 @@ TEST_CASE("New File: the kind, then the title, then the place; the title in view
           "also on a small screen",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
-    NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
+    NewFileDialog dialog(NewFileDialog::openBook(kalahari::test::book()), book.pm.bookTypes());
     dialog.show();
     QCoreApplication::processEvents();
 
@@ -601,7 +605,7 @@ TEST_CASE("New File: the kind, then the title, then the place; the title in view
 TEST_CASE("New File: a click in the proposed title selects it, so that typing replaces it",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
-    NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
+    NewFileDialog dialog(NewFileDialog::openBook(kalahari::test::book()), book.pm.bookTypes());
     QLineEdit* title = dialog.titleEdit();
 
     // The click gives the field the focus, then puts the cursor
@@ -625,8 +629,9 @@ TEST_CASE("New File: an empty text file outside the book, or with it in Other Fi
           "its text",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
-    NewFileDialog dialog(NewFileDialog::openBook(QStringLiteral("Untitled 2")),
-                         book.pm.bookTypes());
+    NewFileDialog dialog(
+        NewFileDialog::openBook(kalahari::test::book(), QStringLiteral("Untitled 2")),
+        book.pm.bookTypes());
 
     // After the parts of the book, the group of the other files
     const QStringList rows = rowsOf(*dialog.kindList());
@@ -730,8 +735,9 @@ TEST_CASE("New File: an empty text file outside the book, or with it in Other Fi
 TEST_CASE("New File: choosing the empty text file moves neither the tiles nor the title",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
-    NewFileDialog dialog(NewFileDialog::openBook(QStringLiteral("Untitled 1")),
-                         book.pm.bookTypes());
+    NewFileDialog dialog(
+        NewFileDialog::openBook(kalahari::test::book(), QStringLiteral("Untitled 1")),
+        book.pm.bookTypes());
     dialog.show();
     // In a low window the content scrolls: its scroll bar comes after the first layout
     QCoreApplication::processEvents();
@@ -750,7 +756,7 @@ TEST_CASE("New File: choosing the empty text file moves neither the tiles nor th
 TEST_CASE("New File: the description of the kind keeps all its lines in a low window",
           "[gui][newfile]") {
     test::OpenNovel book(QStringLiteral("Rain"));
-    NewFileDialog dialog(NewFileDialog::openBook(), book.pm.bookTypes());
+    NewFileDialog dialog(NewFileDialog::openBook(kalahari::test::book()), book.pm.bookTypes());
     dialog.show();
     QCoreApplication::processEvents();
 
@@ -938,7 +944,7 @@ TEST_CASE("New File: an empty text file in the open book goes to Other Files, ou
 
 TEST_CASE("New File: without a book, an untitled file saved where the writer chooses",
           "[gui][newfile]") {
-    REQUIRE_FALSE(core::ProjectManager::getInstance().isProjectOpen());
+    REQUIRE_FALSE(test::book().isProjectOpen());
     test::Window window;
 
     window.documents.onNewDocument();
@@ -1016,7 +1022,7 @@ TEST_CASE("New File: without a book, an untitled file saved where the writer cho
 TEST_CASE("New File: Add to Book puts a new file into the open book at once, asking nothing",
           "[gui][newfile]") {
     test::RecentBooks keepRecentBooks;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QTemporaryDir books;
     REQUIRE(books.isValid());
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
@@ -1105,7 +1111,7 @@ TEST_CASE("New File: a book opened from Recent Books leaves the changed files ou
           "without asking",
           "[gui][newfile]") {
     test::RecentBooks keepRecentBooks;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QTemporaryDir books;
     REQUIRE(books.isValid());
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
@@ -1138,7 +1144,7 @@ TEST_CASE("New File: a book opened from its card on the Dashboard leaves the cha
           "outside it open without asking",
           "[gui][newfile]") {
     test::RecentBooks keepRecentBooks;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QTemporaryDir books;
     REQUIRE(books.isValid());
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
@@ -1227,8 +1233,9 @@ struct KeptMaterialSettings {
 };
 
 /// @brief The kinds of the Workshop of a novel that Add Element can add, in their order
-constexpr const char* WORKSHOP_KINDS = "Working note | Cover | Quote | Web page | Picture | "
-                                       "Document | Publication | Recording | Other file";
+constexpr const char* WORKSHOP_KINDS = "Character | Location | Item | Working note | Cover | "
+                                       "Quote | Web page | Picture | Document | Publication | "
+                                       "Recording | Other file";
 
 /// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
 gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),
@@ -1243,7 +1250,7 @@ gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString
 /// @brief The kinds of Add Element opened on @p target without a choice at its top: those of
 /// the place only
 NewFileDialog::Book withoutChoice(const gui::AddTarget& target) {
-    return NewFileDialog::forAdding(target, gui::AddChooser::None);
+    return NewFileDialog::forAdding(kalahari::test::book(), target, gui::AddChooser::None);
 }
 
 /// @brief The rows of the kinds that can be chosen in the list of @p dialog
@@ -1377,12 +1384,20 @@ TEST_CASE("Add Element: in the Workshop a working note and materials of their ki
         NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
         CHECK(test::textsOf(dialog).contains(
             QStringLiteral("Choose the kind of the new element of the Workshop and its title.")));
-        CHECK(joined(enabledRowsOf(dialog)) ==
-              "# Workshop | Working note | Cover | Quote | Web page | Picture | Document | "
-              "Publication | Recording | Other file");
+        CHECK(joined(enabledRowsOf(dialog)) == std::string("# Workshop | ") + WORKSHOP_KINDS);
         CHECK(rowsOf(*dialog.kindList()).contains(
             QStringLiteral("Mind map (greyed): The program does not have an editor for the mind "
                            "map yet.")));
+        // The first kind that can be made: the cards come first, as in the Navigator
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id == QStringLiteral("character"));
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("Character 1"));
+        CHECK(dialog.placeNote()->text() ==
+              QStringLiteral("In the Workshop the elements are in alphabetical order, so the "
+                             "character goes to the group \"Characters\" at the place of its "
+                             "title."));
+
+        choose(dialog, QStringLiteral("Working note"));
         REQUIRE(dialog.kind());
         CHECK(dialog.kind().kind->id == QStringLiteral("work_note"));
         CHECK(dialog.titleEdit()->text() == QStringLiteral("Note 1"));
@@ -1675,7 +1690,7 @@ QString chosenTileOf(const NewFileDialog& dialog) {
 
 /// @brief Add Element on @p target with the sections of the book and the Workshop at its top
 NewFileDialog::Book bySections(const gui::AddTarget& target) {
-    return NewFileDialog::forAdding(target, gui::AddChooser::Sections);
+    return NewFileDialog::forAdding(kalahari::test::book(), target, gui::AddChooser::Sections);
 }
 
 } // namespace
@@ -1728,7 +1743,7 @@ TEST_CASE("Add Element: the sections of the book and the Workshop at the top, on
         // The Workshop: its kinds without places and statuses
         choiceOf(dialog, QStringLiteral("Workshop"))->click();
         CHECK(joined(enabledRowsOf(dialog)) == WORKSHOP_KINDS);
-        CHECK(chosenTileOf(dialog) == QStringLiteral("Working note"));
+        CHECK(chosenTileOf(dialog) == QStringLiteral("Character"));
         CHECK(dialog.place().place == BookPlace::Workshop);
         CHECK_FALSE(dialog.statusBox()->isVisibleTo(&dialog));
         CHECK(test::textsOf(dialog).contains(
@@ -1820,7 +1835,8 @@ TEST_CASE("Add Element: the book and the Workshop at the top, all sections of th
     const core::BookTypeRegistry& types = book.pm.bookTypes();
 
     NewFileDialog dialog(
-        NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Book), gui::AddChooser::Book),
+        NewFileDialog::forAdding(kalahari::test::book(), addingOn(gui::AddTarget::Scope::Book),
+                                 gui::AddChooser::Book),
         types);
     CHECK(choicesOf(dialog) == QStringList{"&Book", "&Workshop"});
     CHECK(chosenOf(dialog) == QStringLiteral("Book"));
@@ -1833,9 +1849,10 @@ TEST_CASE("Add Element: the book and the Workshop at the top, all sections of th
     CHECK(joined(enabledRowsOf(dialog)) == WORKSHOP_KINDS);
 
     // On the front section the window starts at its first kind
-    NewFileDialog front(NewFileDialog::forAdding(addingOn(gui::AddTarget::Scope::Section,
-                                                          QString(), BookPlace::Front),
-                                                 gui::AddChooser::Book),
+    NewFileDialog front(NewFileDialog::forAdding(
+                            kalahari::test::book(),
+                            addingOn(gui::AddTarget::Scope::Section, QString(), BookPlace::Front),
+                            gui::AddChooser::Book),
                         types);
     CHECK(chosenOf(front) == QStringLiteral("Book"));
     CHECK(chosenTileOf(front) == QStringLiteral("Copyright page"));
@@ -1847,7 +1864,7 @@ TEST_CASE("Add Element: in Polish the sections are chosen with Alt+P, G, K and W
     REQUIRE(polish.load(QStringLiteral(":/i18n/kalahari_pl.qm")));
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     REQUIRE(pm.createProject(dir.path(), QStringLiteral("Deszcz"), QStringLiteral("Autor"),
                              QStringLiteral("pl"), false, QStringLiteral("kalahari.novel")));

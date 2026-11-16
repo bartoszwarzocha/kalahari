@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage3.cpp
 /// @brief Editor Stage 3 (variant A): drag and drop of text, find and replace, cursor
 ///
@@ -1113,6 +1116,7 @@ TEST_CASE("Stage3 find: Tab goes from the search text to the replacement",
     CHECK(order == QStringList{QStringLiteral("Find..."), QStringLiteral("Replace..."),
                                QStringLiteral("Replace"), QStringLiteral("Replace All"),
                                QStringLiteral("Aa"), QStringLiteral("W"), QStringLiteral(".*"),
+                               QStringLiteral("Forms"),
                                QStringLiteral("Previous Match (Shift+Enter)"),
                                QStringLiteral("Next Match (Enter)"),
                                QStringLiteral("Colors of the Search Hits"),
@@ -1186,8 +1190,8 @@ TEST_CASE("Stage3 find: Enter presses the button of the bar with the keys",
 
 TEST_CASE("Stage3 find: the options have the keys their tooltips show",
           "[editor][stage3][search]") {
-    // Alt+C, Alt+W and Alt+R; on macOS Option+Cmd, as Option with a letter types a character
-    // there (Option+C is "ć" on the Polish keyboard)
+    // Alt+C, Alt+W, Alt+R and Alt+M; on macOS Option+Cmd, as Option with a letter types a
+    // character there (Option+C is "ć" on the Polish keyboard)
 #ifdef Q_OS_MACOS
     const Qt::KeyboardModifiers modifiers = Qt::ControlModifier | Qt::AltModifier;
 #else
@@ -1204,9 +1208,9 @@ TEST_CASE("Stage3 find: the options have the keys their tooltips show",
             tooltips << option->toolTip();
         }
     }
-    REQUIRE(tooltips.size() == 3);
+    REQUIRE(tooltips.size() == 4);
 
-    for (const Qt::Key key : {Qt::Key_C, Qt::Key_W, Qt::Key_R}) {
+    for (const Qt::Key key : {Qt::Key_C, Qt::Key_W, Qt::Key_R, Qt::Key_M}) {
         const QKeySequence sequence(QKeyCombination(modifiers, key));
         INFO(sequence.toString(QKeySequence::PortableText).toStdString());
         CHECK(keys.contains(sequence.toString(QKeySequence::PortableText)));

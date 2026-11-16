@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file sections_field.h
 /// @brief Fields of the sections of a book: a set of their names or no sections, and the
 /// writer's own names

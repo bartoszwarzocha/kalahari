@@ -1,11 +1,15 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file quick_insert.h
 /// @brief Quick insert: what the list at the cursor offers and how the typed letters find it
 ///
-/// Typed at the start of a word, @ or # opens a list at the cursor: the names of the cards of
-/// the Workshop (characters, locations, items), the writer's text fragments and typographic
-/// characters (Settings > Editor > Quick Insert says which list each character opens). The
-/// letters typed after it narrow the list, and the item chosen takes the place of the
-/// character and the letters (QuickInsertController).
+/// Typed at the start of a word, @ or # opens a list at the cursor: the names of the book's
+/// dictionary with their forms and the names of the cards of the Workshop (characters,
+/// locations, items), the writer's text fragments and typographic characters (Settings >
+/// Editor > Quick Insert says which list each character opens). The letters typed after it
+/// narrow the list, and the item chosen takes the place of the character and the letters
+/// (QuickInsertController).
 
 #pragma once
 
@@ -17,9 +21,18 @@ namespace kalahari::editor {
 
 /// @brief Where an item of quick insert comes from
 enum class QuickInsertSource {
+    Name,      ///< A name of the book's dictionary, with its forms
     Card,      ///< The name of a card of the Workshop: a character, a location, an item
     Fragment,  ///< A text fragment of the writer
     Character  ///< A typographic character (–, —, …, „”)
+};
+
+/// @brief A form of a name in the list of quick insert
+struct QuickInsertForm {
+    QString text;   ///< The form: "Annę Wolską"
+    QString cases;  ///< The cases it is the form of: "accusative", "dative, locative"
+
+    bool operator==(const QuickInsertForm&) const = default;
 };
 
 /// @brief An item of the list of quick insert
@@ -29,6 +42,8 @@ struct QuickInsertItem {
     QString text;    ///< What is inserted: the name of a card, the text of a fragment
     QString detail;  ///< Shown beside the name: the kind of a card, the text of a fragment
     QString group;   ///< The heading of its group in the list: "Characters", "Text Fragments"
+    QString owner;   ///< The name it is another name of ("Anna Wolska" for "Ania"), or empty
+    QList<QuickInsertForm> forms;  ///< The forms of a name (→ shows them), its own first
 
     bool operator==(const QuickInsertItem&) const = default;
 };
@@ -52,9 +67,18 @@ bool continuesQuickInsertQuery(QChar character);
 ///
 /// A letter typed finds the words of an item's name that start with it, in any case and
 /// without the marks of the letters: "an" finds "Anna Wolska" and "Jan Anioł", "zol" finds
-/// "Żoliborz". The items whose name starts with the letters come first; otherwise the order
-/// of @p items stays. Without letters: all the items.
+/// "Żoliborz". The items whose name is the letters come first, then those whose name starts
+/// with them; otherwise the order of @p items stays. Without letters: all the items.
+///
+/// The letters that the name of an item does not match but one of its forms does find the
+/// form as an item of its own (formItem()): "annę" finds "Annę Wolską". The letters as typed
+/// come before the letters without their marks, so "wolską" finds "Annę Wolską", not "Anna
+/// Wolska".
 QList<QuickInsertItem> matchQuickInsert(const QList<QuickInsertItem>& items, const QString& query);
+
+/// @brief The item that inserts the form @p form of @p item: named by it, with its cases and
+///        the name it is a form of beside it ("accusative · Anna (Anna Wolska)")
+QuickInsertItem formItem(const QuickInsertItem& item, const QuickInsertForm& form);
 
 /// @brief Whether @p text is a pair of marks that enclose a text ("„”", "()", "«»"): inserted,
 ///        it leaves the cursor between them

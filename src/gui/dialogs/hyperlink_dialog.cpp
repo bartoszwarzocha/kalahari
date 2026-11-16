@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file hyperlink_dialog.cpp
 /// @brief Insert > Link... (Ctrl+K): the text of a link and its address
 

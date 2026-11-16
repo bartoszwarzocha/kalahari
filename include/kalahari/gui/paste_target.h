@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file paste_target.h
 /// @brief A view that takes Paste (Ctrl+V) of its own, such as the Navigator, which adds the
 /// materials on the clipboard

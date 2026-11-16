@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file clipboard_handler.cpp
 /// @brief Clipboard operations implementation (OpenSpec #00042 Phase 4.13-4.16)
 
@@ -7,6 +10,7 @@
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/kml_serializer.h>
 #include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
@@ -15,6 +19,7 @@
 #include "book_editor_internal.h"
 #include <QColor>
 #include <QDir>
+#include <QFileInfo>
 #include <QFont>
 #include <QGuiApplication>
 #include <QHash>
@@ -1638,6 +1643,71 @@ QString ClipboardHandler::pasteAsText()
     return QString();
 }
 
+namespace {
+
+/// The program the HTML of the clipboard comes from: the program names itself in the head
+/// (Word also by its namespaces, as Outlook writing Word's HTML), Google Docs marks its
+/// fragment
+ClipboardSource htmlSourceOf(const QString& html)
+{
+    const qsizetype body = html.indexOf(QLatin1String("<body"), 0, Qt::CaseInsensitive);
+    const QString head = (body < 0 ? html : html.left(body)).toLower();
+    if (head.contains(QLatin1String("urn:schemas-microsoft-com:office:word")) ||
+        head.contains(QLatin1String("microsoft word")) ||
+        head.contains(QLatin1String("word.document"))) {
+        return ClipboardSource::Word;
+    }
+    if (head.contains(QLatin1String("libreoffice")) ||
+        head.contains(QLatin1String("openoffice"))) {
+        return ClipboardSource::LibreOffice;
+    }
+    if (html.contains(QLatin1String("docs-internal-guid"))) {
+        return ClipboardSource::GoogleDocs;
+    }
+    return ClipboardSource::Html;
+}
+
+}  // namespace
+
+ClipboardSource ClipboardHandler::sourceOf(const QMimeData* data)
+{
+    if (data == nullptr) {
+        return ClipboardSource::Nothing;
+    }
+    if (data->hasFormat(QString::fromLatin1(MIME_KML))) {
+        return ClipboardSource::Kalahari;
+    }
+    // Text of its own: Qt also reads the paths of copied files as text
+    const bool text = data->hasFormat(QStringLiteral("text/plain")) &&
+                      !data->text().trimmed().isEmpty();
+    if (data->hasHtml() && text) {
+        return htmlSourceOf(data->html());
+    }
+    if (text) {
+        return ClipboardSource::Text;
+    }
+    if (data->hasImage()) {
+        return ClipboardSource::Image;
+    }
+    return pictureFilesOf(*data).isEmpty() ? ClipboardSource::Nothing
+                                           : ClipboardSource::ImageFiles;
+}
+
+QStringList ClipboardHandler::pictureFilesOf(const QMimeData& data)
+{
+    QStringList files;
+    if (!data.hasUrls()) {
+        return files;
+    }
+    for (const QUrl& url : data.urls()) {
+        const QString path = url.isLocalFile() ? url.toLocalFile() : QString();
+        if (!path.isEmpty() && isImageFileName(path) && QFileInfo(path).isFile()) {
+            files << path;
+        }
+    }
+    return files;
+}
+
 // =============================================================================
 // Format Conversion
 // =============================================================================
@@ -1787,7 +1857,8 @@ QString ClipboardHandler::kmlToHtml(const QString& kml, const QString& sceneBrea
                     break;
                 }
                 if (tag == QStringLiteral("caption-number") ||
-                    tag == QStringLiteral("cross-reference")) {
+                    tag == QStringLiteral("cross-reference") ||
+                    (tag == QStringLiteral("field") && textFieldOfKml(reader.attributes()))) {
                     // A field: the text the editor shows
                     if (fieldIndex < items.fields.size() && !items.fields[fieldIndex].isEmpty()) {
                         writer.writeCharacters(items.fields[fieldIndex]);
@@ -2396,7 +2467,9 @@ QString ClipboardHandler::kmlToText(const QString& kml, const QString& sceneBrea
                     reader.skipCurrentElement();  // Not part of the text
                     --depth;
                 } else if (tagName == QStringLiteral("caption-number") ||
-                           tagName == QStringLiteral("cross-reference")) {
+                           tagName == QStringLiteral("cross-reference") ||
+                           (tagName == QStringLiteral("field") &&
+                            textFieldOfKml(reader.attributes()))) {
                     // A field: the text the editor shows
                     if (fieldIndex < items.fields.size()) {
                         text += items.fields[fieldIndex];

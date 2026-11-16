@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file properties_panel.cpp
 /// @brief Contextual properties panel implementation
 ///
@@ -6,6 +9,7 @@
 
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/utils/reading_time.h"
+#include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -15,9 +19,11 @@
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/version_texts.h"
 #include "kalahari/gui/widgets/flow_layout.h"
+#include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/widgets/sections_field.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/bibliography.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
@@ -31,6 +37,7 @@
 #include <QCheckBox>
 #include <QPushButton>
 #include <QComboBox>
+#include <QSignalBlocker>
 #include <QTextEdit>
 #include <QStackedWidget>
 #include <QTimer>
@@ -41,8 +48,6 @@
 #include <QHBoxLayout>
 #include <QScrollArea>
 #include <QEvent>
-#include <QStyle>
-#include <QStyleOptionGroupBox>
 #include <QToolButton>
 #include <QDateTime>
 #include <QListWidget>
@@ -90,9 +95,22 @@ void focusInPage(QWidget* widget) {
     widget->setFocus(Qt::OtherFocusReason);
 }
 
+/// @brief Give the keys to the title @p title of a card, selected
+void focusTitle(QLineEdit* title) {
+    focusInPage(title);
+    title->selectAll();
+}
+
+/// @brief Give the keys to the materials of a section or a part, @p box: its list, or "+"
+/// when it has none
+void focusMaterials(const LinkedMaterialsBox* box) {
+    focusInPage(!box->list()->isHidden() ? static_cast<QWidget*>(box->list())
+                                         : box->addButton());
+}
+
 }  // namespace
 
-PropertiesPanel::PropertiesPanel(QWidget* parent)
+PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
     : QWidget(parent)
     , m_stackedWidget(nullptr)
     , m_noProjectLabel(nullptr)
@@ -141,6 +159,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
     , m_editorReadingTimeLabel(nullptr)
     , m_isUpdating(false)
     , m_activeEditorPanel(nullptr)
+    , m_book(book)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel constructor called");
@@ -168,7 +187,7 @@ PropertiesPanel::PropertiesPanel(QWidget* parent)
         });
 
     // Set initial state based on ProjectManager
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (pm.isProjectOpen()) {
         showProjectProperties();
     } else {
@@ -202,6 +221,7 @@ void PropertiesPanel::setupUI() {
     m_stackedWidget->addWidget(createPartPage());        // Page::Part = 4
     m_stackedWidget->addWidget(createEditorPage());      // Page::Editor = 5
     m_stackedWidget->addWidget(createMaterialPage());    // Page::Material = 6
+    m_stackedWidget->addWidget(createCardPage());        // Page::Card = 7
 
     mainLayout->addWidget(m_stackedWidget);
     setLayout(mainLayout);
@@ -286,6 +306,16 @@ QWidget* PropertiesPanel::createProjectPage() {
     m_projectLanguageCombo->addItem(tr("Chinese"), "zh");
     m_projectLanguageCombo->addItem(tr("Japanese"), "ja");
     infoLayout->addRow(tr("Language:"), m_projectLanguageCombo);
+
+    // The style of the bibliography and of the entries of the sources: the book's own, or
+    // that of the Settings
+    m_projectBibliographyCombo = new QComboBox(infoGroup);
+    m_projectBibliographyCombo->setObjectName(QStringLiteral("projectBibliographyCombo"));
+    //: In Polish: Norma zapisu bibliografii i odnośników tej książki
+    m_projectBibliographyCombo->setToolTip(
+        tr("The style of the bibliography and of the references of this book"));
+    //: The style of the bibliography of the book: PN-ISO 690, APA... In Polish: Bibliografia:
+    infoLayout->addRow(tr("Bibliography:"), m_projectBibliographyCombo);
 
     // Genre
     m_projectGenreEdit = new QLineEdit(infoGroup);
@@ -741,7 +771,7 @@ QWidget* PropertiesPanel::createMaterialPage() {
     QVBoxLayout* layout = new QVBoxLayout(scrollContent);
     layout->setContentsMargins(11, 11, 11, 11);
     layout->setSpacing(11);
-    m_materialPage = new MaterialPage(scrollContent);
+    m_materialPage = new MaterialPage(m_book, scrollContent);
     layout->addWidget(m_materialPage);
     connect(m_materialPage, &MaterialPage::requestPreview, this,
             &PropertiesPanel::requestPreview);
@@ -749,6 +779,10 @@ QWidget* PropertiesPanel::createMaterialPage() {
             &PropertiesPanel::requestOpenWithSystem);
     connect(m_materialPage, &MaterialPage::requestOpenLink, this,
             &PropertiesPanel::requestOpenLink);
+    connect(m_materialPage, &MaterialPage::requestOpenCard, this,
+            &PropertiesPanel::requestOpenMaterialCard);
+    connect(m_materialPage, &MaterialPage::requestSourceSettings, this,
+            &PropertiesPanel::requestSourceSettings);
     connect(m_materialPage, &MaterialPage::requestOpenInBrowser, this,
             &PropertiesPanel::requestOpenInBrowser);
     connect(m_materialPage, &MaterialPage::requestSaveCopy, this,
@@ -766,8 +800,34 @@ QWidget* PropertiesPanel::createMaterialPage() {
     return page;
 }
 
+QWidget* PropertiesPanel::createCardPage() {
+    auto* page = new QWidget();
+    auto* scrollArea = new QScrollArea(page);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    auto* scrollContent = new QWidget();
+    auto* layout = new QVBoxLayout(scrollContent);
+    layout->setContentsMargins(11, 11, 11, 11);
+    m_cardPage = new CardPage(m_book, false, scrollContent);
+    layout->addWidget(m_cardPage);
+    connect(m_cardPage, &CardPage::requestOpenCard, this, &PropertiesPanel::requestOpenCard);
+    connect(m_cardPage, &CardPage::requestSettings, this, &PropertiesPanel::requestCardSettings);
+    connect(m_cardPage, &CardPage::materialAdded, this, &PropertiesPanel::cardMaterialAdded);
+    connect(m_cardPage, &CardPage::requestSelectCard, this, &PropertiesPanel::requestSelectCard);
+    connect(m_cardPage, &CardPage::cardAdded, this, &PropertiesPanel::cardAdded);
+    connect(m_cardPage, &CardPage::requestAddMaterials, this,
+            &PropertiesPanel::requestAddCardMaterials);
+    // The Navigator and the tab of the full card show the new name
+    connect(m_cardPage, &CardPage::titleChanged, this, &PropertiesPanel::chapterStatusChanged);
+    scrollArea->setWidget(scrollContent);
+    auto* pageLayout = new QVBoxLayout(page);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scrollArea);
+    return page;
+}
+
 LinkedMaterialsBox* PropertiesPanel::createMaterialsBox(QWidget* parent) {
-    auto* box = new LinkedMaterialsBox(parent);
+    auto* box = new LinkedMaterialsBox(m_book, parent);
     connect(box, &LinkedMaterialsBox::requestOpenMaterial, this,
             &PropertiesPanel::requestOpenMaterial);
     return box;
@@ -777,7 +837,7 @@ void PropertiesPanel::connectSignals() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::connectSignals()");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     // Connect to ProjectManager signals
     connect(&pm, &core::ProjectManager::projectOpened,
@@ -794,6 +854,24 @@ void PropertiesPanel::connectSignals() {
             this, &PropertiesPanel::onProjectLanguageChanged);
     connect(m_projectGenreEdit, &QLineEdit::editingFinished,
             this, &PropertiesPanel::onProjectGenreChanged);
+    connect(m_projectBibliographyCombo, &QComboBox::activated, this, [this]() {
+        if (m_isUpdating || m_book.isReadOnly()) {
+            return;
+        }
+        const QString style = m_projectBibliographyCombo->currentData().toString();
+        if (!m_book.setBookBibliographyStyle(style)) {
+            //: In Polish: Nie zapisano normy bibliografii
+            dialogs::MessageDialog::warning(this, tr("Bibliography Style Not Saved"),
+                                            tr("Failed to save changes."));
+        }
+        populateBibliographyStyle();
+    });
+    // The style of the Settings changes the first choice, the book's style the one chosen
+    connect(&m_book, &core::ProjectManager::sourcesChanged, this, [this]() {
+        if (m_book.book() != nullptr) {
+            populateBibliographyStyle();
+        }
+    });
     connect(m_projectSectionsCombo, &QComboBox::currentIndexChanged,
             this, &PropertiesPanel::onProjectSectionsChanged);
     connect(m_projectSectionNames, &SectionNamesEdit::editingFinished,
@@ -846,11 +924,16 @@ void PropertiesPanel::showChapterProperties(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::showChapterProperties() - Element: {}", elementId.toStdString());
 
-    // A material has its card
-    const auto& pm = core::ProjectManager::getInstance();
+    // A material has its card, and so has a character, a location or an item
+    const auto& pm = m_book;
     if (const core::ProjectElement* element = pm.findElement(elementId);
         element && pm.isMaterial(*element)) {
         showMaterialProperties(elementId);
+        return;
+    }
+    if (const core::ProjectElement* element = pm.findElement(elementId);
+        element != nullptr && pm.isCard(*element)) {
+        showCardProperties(elementId);
         return;
     }
 
@@ -872,6 +955,14 @@ void PropertiesPanel::showMaterialProperties(const QString& elementId) {
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Material));
 }
 
+void PropertiesPanel::showCardProperties(const QString& elementId) {
+    m_currentChapterId.clear();
+    m_currentSectionType.clear();
+    m_currentPartId.clear();
+    m_cardPage->showCard(elementId);
+    m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Card));
+}
+
 void PropertiesPanel::focusFirstField() {
     switch (currentPage()) {
         case Page::Project:
@@ -881,18 +972,18 @@ void PropertiesPanel::focusFirstField() {
             focusInPage(m_chapterTitleEdit);
             break;
         case Page::Material:
-            focusInPage(m_materialPage->titleEdit());
-            m_materialPage->titleEdit()->selectAll();
+            focusTitle(m_materialPage->titleEdit());
             break;
+        case Page::Card:
+            focusTitle(m_cardPage->nameEdit());
+            break;
+        // A section or a part has no field: its materials
         case Page::Section:
-        case Page::Part: {
-            // A section or a part has no field: its materials
-            LinkedMaterialsBox* box =
-                currentPage() == Page::Section ? m_sectionMaterials : m_partMaterials;
-            focusInPage(!box->list()->isHidden() ? static_cast<QWidget*>(box->list())
-                                                 : box->addButton());
+            focusMaterials(m_sectionMaterials);
             break;
-        }
+        case Page::Part:
+            focusMaterials(m_partMaterials);
+            break;
         case Page::Editor:     // Counts only: the paragraph is the Paragraph and Styles panel's
         case Page::NoProject:
             break;
@@ -976,7 +1067,7 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
         // The counts were of the document that left the front: without one the panel shows
         // the book, as before a document was opened (the status bar shows no counts then)
         if (currentPage() == Page::Editor) {
-            if (core::ProjectManager::getInstance().isProjectOpen()) {
+            if (m_book.isProjectOpen()) {
                 showProjectProperties();
             } else {
                 showNoProject();
@@ -1037,7 +1128,7 @@ void PropertiesPanel::refresh() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::refresh()");
 
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     Page currentPage = static_cast<Page>(m_stackedWidget->currentIndex());
 
     switch (currentPage) {
@@ -1080,6 +1171,18 @@ void PropertiesPanel::refresh() {
                 showProjectProperties();
             }
             break;
+        case Page::Card:
+            refreshCard();
+            break;
+    }
+}
+
+void PropertiesPanel::refreshCard() {
+    // A card deleted from the book leaves the panel to the book, as a material does
+    if (m_book.findElement(m_cardPage->elementId()) != nullptr) {
+        m_cardPage->refresh();
+    } else {
+        showProjectProperties();
     }
 }
 
@@ -1102,12 +1205,13 @@ void PropertiesPanel::refreshMaterial(const QString& elementId) {
         case Page::NoProject:
         case Page::Project:
         case Page::Editor:
+        case Page::Card:
             break;
     }
 }
 
 void PropertiesPanel::updateWordCounts() {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     if (!pm.isProjectOpen()) {
         return;
     }
@@ -1133,6 +1237,7 @@ void PropertiesPanel::updateWordCounts() {
         case Page::NoProject:
         case Page::Editor:
         case Page::Material:
+        case Page::Card:
             break;  // No counts of the book
     }
 }
@@ -1160,7 +1265,7 @@ void PropertiesPanel::onProjectTitleChanged() {
     if (m_isUpdating) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::ProjectBook* book = pm.book();
     if (!book || pm.isReadOnly()) return;  // a book open read-only keeps its fields
@@ -1183,7 +1288,7 @@ void PropertiesPanel::onProjectAuthorChanged() {
     if (m_isUpdating) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::ProjectBook* book = pm.book();
     if (!book || pm.isReadOnly()) return;
@@ -1194,13 +1299,14 @@ void PropertiesPanel::onProjectAuthorChanged() {
     logger.info("PropertiesPanel: Project author changed to: {}", newAuthor.toStdString());
     book->author = newAuthor;
     pm.setDirty(true);
+    emit bookChanged();  // the fields of the author show the new one
 }
 
 void PropertiesPanel::onProjectLanguageChanged(int index) {
     if (m_isUpdating) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::ProjectBook* book = pm.book();
     if (!book || pm.isReadOnly()) return;
@@ -1224,7 +1330,7 @@ void PropertiesPanel::onProjectGenreChanged() {
     if (m_isUpdating) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     core::ProjectBook* book = pm.book();
     if (!book || pm.isReadOnly()) return;
@@ -1240,7 +1346,7 @@ void PropertiesPanel::onProjectGenreChanged() {
 void PropertiesPanel::onProjectSectionsChanged() {
     if (m_isUpdating) return;
 
-    const core::ProjectBook* book = core::ProjectManager::getInstance().book();
+    const core::ProjectBook* book = m_book.book();
     if (!book) return;
 
     const QString chosen = m_projectSectionsCombo->choice();
@@ -1265,7 +1371,7 @@ void PropertiesPanel::onProjectSectionNamesChanged() {
     if (m_projectSectionsCombo->choice() != QLatin1String(core::ProjectBook::CUSTOM_SECTIONS)) {
         return;
     }
-    if (!core::ProjectManager::getInstance().book()) return;
+    if (!m_book.book()) return;
 
     emit requestSections(core::BookSections{
         true, QString::fromLatin1(core::ProjectBook::CUSTOM_SECTIONS),
@@ -1277,7 +1383,7 @@ void PropertiesPanel::onChapterTitleChanged() {
     if (m_currentChapterId.isEmpty()) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectElement* element = pm.findElement(m_currentChapterId);
     if (!element) return;
@@ -1309,7 +1415,7 @@ void PropertiesPanel::onChapterStatusChanged(int index) {
     if (m_currentChapterId.isEmpty()) return;
 
     auto& logger = core::Logger::getInstance();
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectElement* element = pm.findElement(m_currentChapterId);
     if (!element) return;
@@ -1334,7 +1440,7 @@ void PropertiesPanel::onChapterFirstPageChanged(bool left) {
     if (m_currentChapterId.isEmpty()) return;
 
     // ProjectManager saves the project at once
-    if (!core::ProjectManager::getInstance().setFirstPageLeft(m_currentChapterId, left)) {
+    if (!m_book.setFirstPageLeft(m_currentChapterId, left)) {
         const bool wasUpdating = m_isUpdating;
         m_isUpdating = true;
         m_chapterFirstPageLeft->setChecked(!left);
@@ -1349,7 +1455,7 @@ void PropertiesPanel::onChapterNotesChanged() {
     if (m_isUpdating) return;
     if (m_currentChapterId.isEmpty()) return;
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.findElement(m_currentChapterId)) return;
 
@@ -1380,11 +1486,27 @@ bool PropertiesPanel::eventFilter(QObject* obj, QEvent* event) {
     return QWidget::eventFilter(obj, event);
 }
 
+void PropertiesPanel::populateBibliographyStyle() {
+    const QSignalBlocker blocker(m_projectBibliographyCombo);
+    m_projectBibliographyCombo->clear();
+    //: The book follows the style of the Settings: %1 its name. In Polish: Jak w Ustawieniach
+    //: (%1)
+    m_projectBibliographyCombo->addItem(
+        tr("As in the Settings (%1)")
+            .arg(core::Bibliography::styleName(core::Bibliography::settingsStyle())),
+        QString());
+    for (const QString& style : core::Bibliography::styles()) {
+        m_projectBibliographyCombo->addItem(core::Bibliography::styleName(style), style);
+    }
+    const int at = m_projectBibliographyCombo->findData(m_book.bookBibliographyStyle());
+    m_projectBibliographyCombo->setCurrentIndex(std::max(at, 0));
+}
+
 void PropertiesPanel::populateProjectFields() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateProjectFields()");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::BookProject* project = pm.project();
     const core::ProjectBook* book = pm.book();
@@ -1411,6 +1533,7 @@ void PropertiesPanel::populateProjectFields() {
 
     m_projectGenreEdit->setText(book->genre);
     populateBookSections(*book);
+    populateBibliographyStyle();
 
     // A book open read-only is read only, here too
     const bool readOnly = pm.isReadOnly();
@@ -1418,6 +1541,7 @@ void PropertiesPanel::populateProjectFields() {
         field->setReadOnly(readOnly);
     }
     m_projectLanguageCombo->setEnabled(!readOnly);
+    m_projectBibliographyCombo->setEnabled(!readOnly);
     m_projectSectionsCombo->setEnabled(!readOnly);
     m_projectSectionNames->setEnabled(!readOnly);
 
@@ -1435,7 +1559,7 @@ void PropertiesPanel::populateProjectFields() {
 
 void PropertiesPanel::showBookType(const core::BookProject& project,
                                    const core::ProjectBook& book) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     auto& art = core::ArtProvider::getInstance();
     const core::BookTypeRegistry& types = pm.installedBookTypes();
     const core::BookTypePackage* package =
@@ -1465,7 +1589,7 @@ void PropertiesPanel::showBookType(const core::BookProject& project,
     // Greyed out, as the Dashboard shows a type the program does not have
     m_projectTypeLabel->setEnabled(!missing);
     m_projectTypeIcon->setEnabled(!missing);
-    const QString why = readOnlyBookMessage();
+    const QString why = readOnlyBookMessage(m_book);
     //: The tooltip of the type of the book in the Properties panel. In Polish: Typ książki:
     //: z niego pochodzą rodzaje jej elementów
     const QString toolTip =
@@ -1499,7 +1623,7 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateChapterFields() - Element: {}", elementId.toStdString());
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         logger.warn("PropertiesPanel: No project open, cannot populate chapter fields");
@@ -1513,7 +1637,8 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
     }
 
     // The kind of the element names the group and the tooltips: "Story Information"
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*element)}};
+    const QHash<QString, core::KindWords> nouns{
+        {QStringLiteral("kind"), wordsOf(m_book, *element)}};
     //: In Polish: Informacje o {kind:locative}
     m_chapterInfoGroup->setTitle(core::fillWords(tr("{Kind} Information"), nouns));
     //: In Polish: Tytuł {kind:genitive}
@@ -1586,14 +1711,14 @@ void PropertiesPanel::populateChapterFields(const QString& elementId) {
 
 void PropertiesPanel::showVersions(const QString& elementId) {
     m_versionsElementId = elementId;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const std::optional<core::ChapterVersions> versions = pm.versionsOf(elementId);
     const core::ProjectElement* element = pm.findElement(elementId);
     m_chapterVersionsGroup->setVisible(versions.has_value() && element != nullptr);
     if (!versions || element == nullptr) {
         return;
     }
-    const core::KindWords kind = wordsOf(*element);
+    const core::KindWords kind = wordsOf(m_book, *element);
     const QList<core::ChapterVersion> list = versions->list();
     const bool enabled = versionsEnabled();
     if (!enabled) {
@@ -1654,28 +1779,8 @@ void PropertiesPanel::refreshVersions() {
 }
 
 void PropertiesPanel::placeVersionSettingsButton() {
-    // In the middle of the line of the title, at the right end of the frame (left from right
-    // to left)
-    QStyleOptionGroupBox option;
-    option.initFrom(m_chapterVersionsGroup);
-    option.text = m_chapterVersionsGroup->title();
-    option.textAlignment = m_chapterVersionsGroup->alignment();
-    option.subControls = QStyle::SC_GroupBoxFrame | QStyle::SC_GroupBoxLabel;
-    option.lineWidth = 1;
-    const QStyle* style = m_chapterVersionsGroup->style();
-    const QRect label = style->subControlRect(QStyle::CC_GroupBox, &option,
-                                              QStyle::SC_GroupBoxLabel, m_chapterVersionsGroup);
-    const QRect frame = style->subControlRect(QStyle::CC_GroupBox, &option,
-                                              QStyle::SC_GroupBoxFrame, m_chapterVersionsGroup);
-    const QSize size = m_versionSettingsButton->size();
-    const QRect place(QPoint(frame.right() + 1 - size.width(),
-                             std::max(0, label.center().y() + 1 - (size.height() / 2))),
-                      size);
-    m_versionSettingsButton->move(
-        QStyle::visualRect(m_chapterVersionsGroup->layoutDirection(),
-                           m_chapterVersionsGroup->rect(), place)
-            .topLeft());
-    m_versionSettingsButton->raise();
+    // In the middle of the line of the title, at the right end of the frame
+    card::placeAtTitle(m_chapterVersionsGroup, m_versionSettingsButton);
 }
 
 void PropertiesPanel::updateVersionIcons() {
@@ -1739,7 +1844,7 @@ void PropertiesPanel::updateProjectStatistics() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::updateProjectStatistics()");
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectBook* book = pm.book();
     if (!book) {
@@ -1788,7 +1893,7 @@ void PropertiesPanel::populateSectionFields(const QString& sectionType) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populateSectionFields() - Section: {}", sectionType.toStdString());
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     const core::ProjectBook* book = pm.book();
     if (!book) {
@@ -1842,7 +1947,7 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::populatePartFields() - Part: {}", partId.toStdString());
 
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
 
     if (!pm.isProjectOpen()) {
         logger.warn("PropertiesPanel: No project open, cannot populate part fields");
@@ -1863,7 +1968,7 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
     const core::TextStatistics statistics = pm.statisticsOf(part->elements);
     const core::KindRef mainKind = pm.mainTextKind();
     const QHash<QString, core::KindWords> nouns{{QStringLiteral("main"), wordsOf(mainKind)},
-                                                {QStringLiteral("group"), wordsOf(*part)}};
+                                                {QStringLiteral("group"), wordsOf(m_book, *part)}};
     if (mainKind) {
         m_partChapterCountTitle->setText(core::fillWords(tr("{Main:plural}:"), nouns));
         //: In Polish: Liczba {main:genitivePlural} w {group:m=tym|f=tej|n=tym|p=tych}
@@ -1888,7 +1993,7 @@ void PropertiesPanel::populatePartFields(const QString& partId) {
 }
 
 void PropertiesPanel::showSectionMaterials() {
-    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const core::BookProject* project = m_book.project();
     const std::optional<core::BookPlace> place = sectionPlaceOf(m_currentSectionType);
     //: In Polish: Brak powiązanych materiałów.
     m_sectionMaterials->showLinked(project && place ? project->sectionLink(*place) : QString(),
@@ -1897,11 +2002,11 @@ void PropertiesPanel::showSectionMaterials() {
 
 void PropertiesPanel::showPartMaterials() {
     const core::ProjectElement* part =
-        core::ProjectManager::getInstance().findElement(m_currentPartId);
+        m_book.findElement(m_currentPartId);
     if (!part) {
         return;
     }
-    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(*part)}};
+    const QHash<QString, core::KindWords> nouns{{QStringLiteral("kind"), wordsOf(m_book, *part)}};
     m_partMaterials->showLinked(
         m_currentPartId,
         core::fillWords(tr("{Kind:s=This|p=These} {kind} {kind:s=has|p=have} no linked "

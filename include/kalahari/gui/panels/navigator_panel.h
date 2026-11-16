@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file navigator_panel.h
 /// @brief Navigator panel for project structure navigation (Qt6)
 ///
@@ -15,6 +18,7 @@
 #include "kalahari/gui/material_source.h"
 
 #include <QWidget>
+#include <QColor>
 #include <QHash>
 #include <QIcon>
 #include <QMap>
@@ -32,6 +36,10 @@ class QMimeData;
 class QToolButton;
 class QTimer;
 class QComboBox;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
 
 namespace kalahari {
 namespace core {
@@ -99,8 +107,9 @@ class NavigatorPanel : public QWidget {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
     /// @param parent Parent widget
-    explicit NavigatorPanel(QWidget* parent = nullptr);
+    explicit NavigatorPanel(core::ProjectManager& book, QWidget* parent = nullptr);
 
     /// @brief Highlight element in tree by ID (OpenSpec #00034 Phase C)
     /// @param elementId Element ID to highlight
@@ -134,11 +143,11 @@ public:
                             const core::ProjectElement& element,
                             const core::PackageCard* card = nullptr);
 
-    /// @brief The icon of @p element of the open book: of its kind, as the program has it or,
-    /// for a kind the program does not have, as the book's card of its package shows it
-    /// (core::ProjectManager::packageCard()); else of its form
-    static QIcon iconOf(const core::BookTypeRegistry& registry,
-                        const core::ProjectElement& element, core::IconContext context);
+    /// @brief The icon of @p element of the book open in @p book: of its kind, as the program
+    /// has it or, for a kind the program does not have, as the book's card of its package shows
+    /// it (core::ProjectManager::packageCard()); else of its form
+    static QIcon iconOf(const core::ProjectManager& book, const core::ProjectElement& element,
+                        core::IconContext context);
 
     /// @brief Show the book as one open read-only (core::ProjectManager::isReadOnly()), or as
     /// one that can be changed
@@ -167,11 +176,13 @@ public:
     static AddChooser addChooser();
 
     /// @brief The setting of how a material opens: "card" (its picture on a preview tab of the
-    /// program, the usual one) or "system" (in the program the system gives its file)
+    /// program, the usual one) or "system" (in the program the system gives its file); set in
+    /// Settings > Materials > Opening
     static constexpr const char* OPEN_MATERIALS_SETTING = "navigator.openMaterials";
 
     /// @brief The setting of how a material with the address of a page opens: "browser" (in
-    /// the system's browser, the usual one) or "card" (its card in the middle of the window)
+    /// the system's browser, the usual one) or "card" (its card in the middle of the window);
+    /// set in Settings > Materials > Opening
     static constexpr const char* OPEN_PAGES_SETTING = "navigator.openPages";
 
     /// @brief The setting of what a file, a web address or a picture dropped on the Navigator
@@ -192,6 +203,33 @@ public:
     /// (MATERIALS_TREE_SETTING)
     static bool materialsExpandable();
 
+    /// @brief The setting of how the cards of a kind with a field that names a card of the same
+    /// kind (the locations, by their part) are in the Workshop: "tree" (each under the card it
+    /// names; the usual one) or "list" (all of them in alphabetical order)
+    static constexpr const char* CARDS_TREE_SETTING = "cards.navigatorTree";
+
+    /// @brief Whether the cards are in trees (CARDS_TREE_SETTING)
+    static bool cardsInTrees();
+
+    /// @brief The element of the current item; empty for none and for the other nodes
+    [[nodiscard]] QString currentElementId() const;
+
+    /// @brief Make the item of element @p elementId current again after the tree was built
+    /// again, asking for nothing: neither its properties nor its tab; nothing for none
+    void restoreCurrentElement(const QString& elementId);
+
+    /// @brief Whether a card would stand elsewhere in its tree than the Navigator shows it:
+    /// the relations of the cards changed since it was built (CARDS_TREE_SETTING)
+    [[nodiscard]] bool cardTreesChanged() const;
+
+    /// @brief The cards under other cards in their trees, as the Navigator shows them: the id
+    /// of the card above by the id of the card
+    [[nodiscard]] const QHash<QString, QString>& cardTrees() const { return m_cardTrees; }
+
+    /// @brief Open the cards above each card that stands under another card than in @p before
+    /// (cardTrees() before the tree was built again), so that it shows
+    void showMovedCards(const QHash<QString, QString>& before);
+
     /// @brief The list of materials that @p item opens (MaterialList): MaterialList::ALL for
     /// Materials, the kind of a kind of the Materials; none for the other nodes
     static std::optional<QString> materialListOf(const QTreeWidgetItem* item);
@@ -206,17 +244,21 @@ public:
     /// @brief Whether @p item is an element of the Workshop
     static bool isWorkshopItem(const QTreeWidgetItem* item);
 
-    /// @brief Whether @p item is a material of the Workshop
-    static bool isMaterialItem(const QTreeWidgetItem* item);
+    /// @brief Whether @p item is a material of the Workshop of the book open in @p book
+    static bool isMaterialItem(const core::ProjectManager& book, const QTreeWidgetItem* item);
+
+    /// @brief The color of the dot of a card at the right of @p item; invalid when it shows
+    /// none (another element, or the setting core::CardColors::NAVIGATOR_DOT_SETTING)
+    [[nodiscard]] static QColor cardColorOf(const QTreeWidgetItem* item);
 
     /// @brief The format of the dragged nodes of the tree that a material can be linked with:
     /// their links, one in a line (linkOf())
     static constexpr const char* LINKS_MIME_TYPE = "application/x-kalahari-links";
 
     /// @brief The link of the node of @p item (core::ProjectElement::links): the id of an
-    /// element of the book or of the Workshop, or the section of the open book
+    /// element of the book or of the Workshop, or the section of the book open in @p book
     /// (core::BookProject::sectionLink()); empty for another node
-    static QString linkOf(const QTreeWidgetItem* item);
+    static QString linkOf(const core::ProjectManager& book, const QTreeWidgetItem* item);
 
     /// @brief The links of the nodes of the tree in @p data (LINKS_MIME_TYPE); empty for other
     /// data
@@ -229,7 +271,8 @@ public:
     std::optional<AddTarget> addTargetOf(const QTreeWidgetItem* item) const;
 
     /// @brief New settings: the "+" button follows what the Add Element window can be opened
-    /// on (addChooser())
+    /// on (addChooser()), and the cards show their colors or not
+    /// (core::CardColors::NAVIGATOR_DOT_SETTING)
     void onSettingsChanged();
 
     /// @brief The tree of the project
@@ -327,7 +370,12 @@ public:
     /// @note Updates the display title (including status suffix) from ProjectManager
     /// @note Does nothing if element not found in tree
     /// @note In a group of the Workshop the element goes to the place of its title
+    /// @note The number of the sources follows the descriptions
     void refreshItem(const QString& elementId);
+
+    /// @brief Give Sources in Materials the number of the materials with a bibliographic
+    /// description
+    void refreshSourcesCount();
 
     /// @brief Set modified indicator for a chapter element (OpenSpec #00042 Phase 7.5)
     /// @param elementId Element ID of the chapter
@@ -388,6 +436,11 @@ signals:
     /// @param keys The list gets the keys (Enter), else the Navigator keeps them (a click)
     void requestOpenMaterialList(const QString& list, bool keys);
 
+    /// @brief Request to show the book's dictionary on its tab: a click on Book Dictionary at
+    /// the top of the Workshop, or Enter on it
+    /// @param keys The page gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenBookDictionary(bool keys);
+
     /// @brief Request to hide kind @p list of the materials (MaterialList::HIDDEN_SETTING) in
     /// the Navigator of every book: Hide Kind in the menu of the kind
     void requestHideKind(const QString& list);
@@ -395,6 +448,10 @@ signals:
     /// @brief Request to open the settings of the kinds of materials (Settings > Navigator):
     /// Kind Settings... in the menu of Materials and of its kinds
     void requestMaterialSettings();
+
+    /// @brief Request to open the settings of the sources (Settings > Materials): Source
+    /// Settings... in the menu of Sources
+    void requestSourceSettings();
 
     /// @brief Request to add the materials @p incoming, dropped on the Navigator from outside
     /// the program or pasted in it; @p link: the node they are linked with (empty: none), as
@@ -571,6 +628,15 @@ private:
     /// which the tree shows at the right of its name and a screen reader reads with it
     static void setCount(QTreeWidgetItem* item, qsizetype count);
 
+    /// @brief Ask for the page that @p item shows on a tab: the book's dictionary, a list of
+    /// materials (materialListOf())
+    /// @param keys The page gets the keys (Enter), else the Navigator keeps them (a click)
+    /// @return Whether @p item has a page
+    bool requestPageOf(const QTreeWidgetItem* item, bool keys);
+
+    /// @brief Add Book Dictionary at the top of the Workshop (@p workshopItem)
+    void addDictionaryItem(QTreeWidgetItem* workshopItem);
+
     /// @brief Add the groups of the kinds of the Workshop of @p project with their elements
     /// under @p workshopItem
     void addWorkshopItems(QTreeWidgetItem* workshopItem, const core::BookProject& project,
@@ -594,6 +660,28 @@ private:
     /// @param workshop The elements are of the Workshop: no status, not dragged
     void addElementItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
                          const core::BookTypeRegistry& registry, bool workshop = false);
+
+    /// @brief Add the item of @p element, and of the elements inside it, under @p parent
+    /// @param workshop The element is of the Workshop: no status, not dragged
+    /// @return The item
+    QTreeWidgetItem* addElementItem(QTreeWidgetItem* parent, const core::ProjectElement& element,
+                                    const core::BookTypeRegistry& registry, bool workshop);
+
+    /// @brief Add the elements @p elements of kind @p kind under @p item, its group of the
+    /// Workshop: the cards in their trees, the materials of a kind of the Materials
+    /// (@p material) only when the settings say so (materialsExpandable())
+    void addGroupElements(QTreeWidgetItem* item, const core::KindRef& kind,
+                          const QList<core::ProjectElement>& elements, bool material,
+                          const core::BookTypeRegistry& registry);
+
+    /// @brief Add the items of the cards @p cards of a group of the Workshop, in alphabetical
+    /// order, under @p parent: each under the card it stands under in its tree (m_cardTrees)
+    void addCardItems(QTreeWidgetItem* parent, const QList<core::ProjectElement>& cards,
+                      const core::BookTypeRegistry& registry);
+
+    /// @brief The card each card of the Workshop stands under in the tree of its kind
+    /// (core::CardRelations::treeOf()); none when the setting says "list"
+    [[nodiscard]] QHash<QString, QString> cardTreesOf(const core::BookProject& project) const;
 
     /// @brief Add the group "Other Files" with the files of the book outside its text, @p files,
     /// under @p parent; nothing when the book has none
@@ -663,8 +751,12 @@ private:
     /// @note Handles both regular IDs and "type:<elementType>:<text>" format
     void expandItemsById(const QStringList& ids);
 
-    /// @brief Move @p item of a group of the Workshop to the place of its title among the
-    /// others; the tree keeps its current item, the items open under it and its scroll, and
+    /// @brief The dot of the color of card @p element at the right of @p item, while the
+    /// setting shows it; none for another element
+    static void showCardColor(QTreeWidgetItem* item, const core::ProjectElement& element);
+
+    /// @brief Move @p item of a group of the Workshop, or of a card above it in a tree, to the
+    /// place of its title among the others; the tree keeps its current item, the items open under it and its scroll, and
     /// asks for no properties
     void placeInWorkshopGroup(QTreeWidgetItem* item);
 
@@ -724,8 +816,11 @@ private:
     bool m_readOnly = false;             ///< The book is open read-only (setReadOnly())
 
     // Modified state tracking (OpenSpec #00042 Phase 7.5)
+    QHash<QString, QString> m_cardTrees; ///< The cards under other cards: the id of the card
+                                         ///< above by the id of the card (cardTreesOf())
     QSet<QString> m_modifiedElements;    ///< Set of element IDs with unsaved changes
     QSet<QString> m_modifiedFiles;       ///< Paths of the files outside the book with changes
+    core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file search_panel.h
 /// @brief The Search panel: Find in Book, the matches in all the texts of the book grouped by
 ///        text, and Replace All in Book
@@ -84,7 +87,8 @@ public:
     /// @brief What the matches become
     [[nodiscard]] QString replaceText() const;
 
-    /// @brief The options of the search (Match Case, Whole Word, Regular Expression)
+    /// @brief The options of the search (Match Case, Whole Word, Regular Expression, All
+    ///        Forms), without the forms (BookSearchCoordinator finds them)
     [[nodiscard]] editor::SearchOptions options() const;
 
     /// @brief Set the options, without asking for a search
@@ -157,6 +161,7 @@ private:
     QToolButton* m_caseButton = nullptr;
     QToolButton* m_wordButton = nullptr;
     QToolButton* m_regexButton = nullptr;
+    QToolButton* m_formsButton = nullptr;
     QLineEdit* m_replaceField = nullptr;
     QPushButton* m_replaceButton = nullptr;
     QLabel* m_statusLabel = nullptr;

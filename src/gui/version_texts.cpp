@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file version_texts.cpp
 /// @brief What the program says of a version of a text
 
@@ -98,8 +101,8 @@ QString wordCountText(int words) {
     return VersionTexts::tr("%Ln word(s)", nullptr, words);
 }
 
-QString saveVersionKeys() {
-    const Command* command = CommandRegistry::getInstance().getCommand("file.saveVersion");
+QString saveVersionKeys(const CommandRegistry& commands) {
+    const Command* command = commands.getCommand("file.saveVersion");
     if (command != nullptr && !command->shortcut.isEmpty()) {
         return command->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
     }

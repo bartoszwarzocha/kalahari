@@ -1,8 +1,13 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_input.cpp
 /// @brief BookEditor: keyboard, input method, mouse, drag and drop and context menu events
 
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_tables.h>
 #include <QAbstractTextDocumentLayout>
 #include <QAction>
@@ -875,6 +880,15 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
         return;
     }
 
+    // A double click on a field: its window, as in LibreOffice
+    if (const std::optional<int> field = fieldAt(event->position()); field && textFieldAt(*field)) {
+        if (!m_readOnly) {
+            emit fieldEditRequested(*field);
+        }
+        event->accept();
+        return;
+    }
+
     // A double click on a note's number writes its text in its frame (or on its text, which
     // the first click opened)
     if (const std::optional<NotePlace> note = noteAt(event->position())) {
@@ -1257,16 +1271,21 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         inNote ? std::optional<NoteRange>(
                      NoteRange{inNote->id, inNote->start + (inNote->length / 2), 0})
                : std::nullopt;
-    const auto misspelled = [this, &pos, &notePlace, kind]() {
+    HighlightKind wave = HighlightKind::Spelling;
+    const auto misspelled = [this, &pos, &notePlace, kind, &wave]() {
         if (kind == TextIssueKind::Grammar) {
             return std::tuple<QString, int, int>{QString(), 0, 0};
         }
-        return notePlace ? getMisspelledNoteWordAt(*notePlace)
-                         : getMisspelledWordAt(pos.paragraph, pos.offset);
+        return notePlace ? getMisspelledNoteWordAt(*notePlace, &wave)
+                         : getMisspelledWordAt(pos.paragraph, pos.offset, &wave);
     };
     const auto [word, startOffset, endOffset] = misspelled();
+    // A place breaking a spelling rule of the book: the rule's form
+    const std::optional<core::RuleDeviation> deviation =
+        !word.isEmpty() && wave == HighlightKind::BookRule ? bookRuleDeviation(word)
+                                                           : std::nullopt;
     std::optional<GrammarError> grammarError;
-    if (word.isEmpty() && kind != TextIssueKind::Spelling) {
+    if (word.isEmpty() && kind != TextIssueKind::Spelling && kind != TextIssueKind::BookRule) {
         grammarError = notePlace ? getNoteGrammarErrorAt(*notePlace)
                                  : getGrammarErrorAt(pos.paragraph, pos.offset);
     }
@@ -1295,7 +1314,9 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     // why in its tooltip (a read-only text), as in the program's menus
     QMenu menu(this);
     menu.setToolTipsVisible(true);
-    if (!word.isEmpty()) {
+    if (deviation.has_value()) {
+        addBookRuleActions(menu, *deviation, replacing(startOffset, endOffset));
+    } else if (!word.isEmpty()) {
         addSpellingActions(menu, word, replacing(startOffset, endOffset));
     } else if (grammarError.has_value()) {
         addGrammarActions(menu, *grammarError,
@@ -1310,6 +1331,15 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
             menu.addSeparator();
         }
         addNoteActions(menu, *note);
+        menu.addSeparator();
+    }
+
+    // The field at the cursor: its window, or the text it shows in its place
+    if (const std::optional<int> field = fieldAtCursor()) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        addFieldActions(menu, *field);
         menu.addSeparator();
     }
 

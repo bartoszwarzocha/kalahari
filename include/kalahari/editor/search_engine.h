@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file search_engine.h
 /// @brief Search engine for Find/Replace operations (OpenSpec #00044 Task 9.4)
 ///
@@ -5,6 +8,7 @@
 /// - Case-sensitive/insensitive search
 /// - Whole word matching
 /// - Regular expression search
+/// - Every form of a word or a name (SearchOptions::allForms)
 /// - Forward/backward navigation
 /// - Wrap around
 /// - Match highlighting
@@ -16,6 +20,7 @@
 #include <QObject>
 #include <QRegularExpression>
 #include <QString>
+#include <QStringList>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <optional>
@@ -37,6 +42,10 @@ struct SearchOptions {
     bool useRegex = false;        ///< Interpret search text as regex
     bool searchBackward = false;  ///< Search in reverse direction
     bool wrapAround = true;       ///< Wrap to start/end when reaching document boundary
+    /// Find every form of the search text: those of @c forms, as whole words (not with
+    /// useRegex); without forms, the text itself as the other options say
+    bool allForms = false;
+    QStringList forms{};  ///< The forms allForms finds (formsToFind())
 };
 
 // =============================================================================
@@ -413,6 +422,7 @@ private:
     QString m_needle;                         ///< Search text as matched (plain search)
     QRegularExpression m_regex;               ///< Search text as matched (regex search)
     bool m_searchReady = false;               ///< m_needle or m_regex can be searched for
+    bool m_formsSearch = false;               ///< m_regex finds the forms of the options
     std::vector<SearchMatch> m_matches;       ///< Cached matches
     int m_currentMatchIndex = -1;             ///< Current match index (-1 = none)
     bool m_matchesDirty = true;               ///< Matches need rebuild

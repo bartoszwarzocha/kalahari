@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file archive_problem.h
 /// @brief Why an archive of a book could not be written, read or unpacked
 

@@ -5,7 +5,7 @@
 **Current Phase:** Phase 1 (Core Editor) – in progress, Part A released as 0.4.0-alpha
 **Version:** 0.4.0-alpha
 **Next Release:** 0.4.x-alpha (Phase 1, Part B)
-**Last Updated:** 2026-11-13
+**Last Updated:** 2026-11-16
 
 This roadmap was rewritten on 2026-10-03 after a review of the actual state of the code.
 The previous version overstated progress in some areas (the editor, the menus) and
@@ -53,9 +53,9 @@ The wxWidgets code is archived on the `wxwidgets-archive` branch.
 
 0.4.0-alpha is released after Part A – the editor with every part of the full editor –, the
 settings rebuild, the translations and the tests (decisions of 2026-10-08 and 2026-11-09).
-Text styles and the statistics, planned for Part B, were finished before it and are part of
-0.4.0-alpha. DOCX/Markdown export follows in 0.4.x releases, and Phase 1 ends with a test of
-the whole program on Windows and Linux. What each version brings is in `CHANGELOG.md`.
+Text styles, the statistics and the DOCX/Markdown export, planned for Part B, were finished
+before it and are part of 0.4.0-alpha. Phase 1 ends with a test of the whole program on
+Windows and Linux. What each version brings is in `CHANGELOG.md`.
 
 ### Part A – Editor
 
@@ -81,14 +81,17 @@ the whole program on Windows and Linux. What each version brings is in `CHANGELO
       discussed again.
 - [x] The book: book types, the new project file, the Navigator with the book and the
       Workshop, materials (card, sources, links, lists, the Cover), books of 0.3 converted
+- [x] The writer's research in the book: cards of characters, locations and items, the book
+      dictionary, sources with their bibliographic description, the bibliography and
+      quotes, and the preview of PDF files
 - [x] Full editor, parts 1–9 (plan of 2026-10-12): paragraph styles, headings, breaks and
       pasting from other programs; autocorrect and special characters; lists and the Font and
       Paragraph windows; links; tables; images with captions; footnotes and endnotes
 - [x] Full editor, part 10: Find in Book, with Replace All in Book
 - [x] Full editor, part 11: Chapter Break, the text from the cursor to a new text after it
-- [ ] Full editor, part 12: fields, the date, Paste Special and Go To
-- [ ] A window of its own for each book, and one book never open twice; the tabs of the
-      texts already go to windows of their own
+- [x] Full editor, part 12: fields, the date and time, Paste Special and Go To
+- [x] A window of its own for each book, and one book never open twice; the tabs of the
+      texts go to windows of their own too
 
 **Done when:** benchmark results stay good on all platforms and a manual test on a large
 document is positive.
@@ -133,7 +136,8 @@ Design of the text styles: `docs/superpowers/specs/2026-04-10-text-styling-syste
       text and highlight color, the paragraph styles of the book's type and the writer's own,
       stored in the book – in 0.4.0-alpha
 - [x] Statistics bar and weekly statistics panel, with writing goals – in 0.4.0-alpha
-- [ ] Export: DOCX and Markdown
+- [x] Export: DOCX and Markdown (File > Export: the whole book, chosen texts or the text in
+      front) – in 0.4.0-alpha
 - [ ] Test of the whole program at the end of Phase 1, on Windows and Linux
 
 Named perspectives and the default layout of the toolbars and panels moved to the end of the

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file navigator_coordinator.h
 /// @brief Navigator panel interaction coordination for MainWindow
 ///
@@ -24,6 +27,14 @@ class QTabWidget;
 class QStatusBar;
 class QTimer;
 
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
 namespace kalahari {
 namespace core {
     struct ProjectElement;
@@ -38,11 +49,14 @@ namespace gui {
 
 class NavigatorPanel;
 class PropertiesPanel;
+class CardPanel;
 class EditorPanel;
 class MaterialCardPanel;
+class PreviewPanel;
 
 namespace dialogs {
 class NewFileDialog;
+class NewQuoteDialog;
 }
 
 /// @brief Coordinates navigator panel interactions
@@ -66,19 +80,25 @@ class NavigatorCoordinator : public QObject {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param navigatorPanel Navigator panel instance
     /// @param propertiesPanel Properties panel instance
     /// @param centralTabs Central tab widget for editor tabs
     /// @param statusBar Status bar for feedback messages
     /// @param parent Parent QObject
-    explicit NavigatorCoordinator(NavigatorPanel* navigatorPanel,
-                                   PropertiesPanel* propertiesPanel,
-                                   QTabWidget* centralTabs,
-                                   QStatusBar* statusBar,
-                                   QObject* parent = nullptr);
+    explicit NavigatorCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                  NavigatorPanel* navigatorPanel, PropertiesPanel* propertiesPanel,
+                                  QTabWidget* centralTabs, QStatusBar* statusBar,
+                                  QObject* parent = nullptr);
 
     /// @brief Destructor
-    ~NavigatorCoordinator() override = default;
+    ~NavigatorCoordinator() override;
+
+    NavigatorCoordinator(const NavigatorCoordinator&) = delete;
+    NavigatorCoordinator& operator=(const NavigatorCoordinator&) = delete;
+    NavigatorCoordinator(NavigatorCoordinator&&) = delete;
+    NavigatorCoordinator& operator=(NavigatorCoordinator&&) = delete;
 
     /// @brief Get the current element ID being edited
     [[nodiscard]] QString currentElementId() const { return m_currentElementId; }
@@ -121,6 +141,11 @@ public:
 
     /// @brief Refresh navigator with the open project, keeping its expanded items
     void refreshNavigator();
+
+    /// @brief The Navigator built again when a card stands under another card in its tree
+    /// now, or no longer, or the setting of the trees changed (NavigatorPanel::cardTreesChanged()),
+    /// keeping its current item; invokable, as the settings may change on another thread
+    Q_INVOKABLE void refreshCardTrees();
 
     /// @brief Close the editor tabs of @p element and of the elements inside it
     void closeTabsOf(const core::ProjectElement& element);
@@ -276,6 +301,7 @@ public slots:
     void onRequestWorkshopGrouped(bool grouped);
 
     /// @brief Open material @p elementId of the Workshop as its source and the settings say: a
+    /// PDF file on its preview tab or in the system program (PdfFiles::opensInPreview()); a
     /// picture, also the copy of a picture from the web, on its preview tab or in the program
     /// the system gives its file (NavigatorPanel::OPEN_MATERIALS_SETTING); another file in the
     /// system program; a web page, and a picture on the web without a copy, in the browser or
@@ -297,8 +323,23 @@ public slots:
     void onRequestSaveCopy(const QString& elementId);
 
     /// @brief Material @p elementId changed on one of its cards: the others, its tabs and its
-    /// node in the Navigator show it
+    /// node in the Navigator show it; a quote's source shows it among its quotes
     void onMaterialChanged(const QString& elementId);
+
+    /// @brief A new quote from source @p sourceId in the Workshop, at the page of the source
+    /// shown last; its card opens with the keys in its words
+    void onRequestNewQuote(const QString& sourceId);
+
+    /// @brief The New Quote window for words @p text selected on page @p page of the file of
+    /// source @p sourceId: the quote is made in the Workshop, linked as the writer chooses, and
+    /// with Create and Insert into Chapter its words with the reference go into the chapter
+    /// open last, which comes to the front
+    void onRequestQuoteFromPreview(const QString& sourceId, const QString& text,
+                                   const QString& page);
+
+    /// @brief Show page @p page of the file of material @p elementId in its preview; without
+    /// the preview of PDF files the file opens in the system program
+    void onRequestShowPage(const QString& elementId, const QString& page);
 
     /// @brief Add the materials @p incoming, dropped on the Navigator from outside the program
     /// or pasted in it, as NavigatorPanel::QUICK_MATERIALS_SETTING says: at once, linked with
@@ -312,7 +353,8 @@ public slots:
     MaterialDownloader* materialDownloader() const { return m_downloader; }
 
     /// @brief Show the preview of material @p elementId on a tab of its own beside the
-    /// chapters, or bring its tab to the front
+    /// chapters, or bring its tab to the front, with the keys in it: of a picture, or of a PDF
+    /// file (which opens in the system program without the preview of PDF files)
     void onRequestPreview(const QString& elementId);
 
     /// @brief Open material @p elementId in the program the system gives its file; the writer
@@ -360,6 +402,14 @@ signals:
     /// @brief Material @p elementId changed on one of its cards (onMaterialChanged()): the
     /// lists of the materials show it
     void materialChanged(const QString& elementId);
+
+    /// @brief The gear of a full card of a character, a location or an item: Settings > Cards
+    void cardSettingsRequested();
+    /// @brief Find in Book of a full card: the texts of the book searched for @p text, its name
+    void findInBookRequested(const QString& text);
+    /// @brief The gear of the entry of a source on a card, or of the preview of a PDF file:
+    /// open Settings > Materials
+    void sourceSettingsRequested();
 
     /// @brief Emitted when chapter dirty state changes (OpenSpec #00042 Phase 7.5)
     /// @param elementId Element ID of the chapter
@@ -417,6 +467,36 @@ private:
     /// @brief The tabs of the cards of materials
     QList<MaterialCardPanel*> materialCards() const;
 
+    /// @brief The tab of element @p element (@p elementId): the full card of a character, a
+    /// location or an item, the editor of a text otherwise
+    EditorPanel* createEditorPanel(const core::ProjectElement* element, const QString& elementId);
+
+    /// @brief The full card of character, location or item @p elementId, for its tab: its
+    /// name shows on the tab and in the Navigator, its gear opens Settings > Cards
+    CardPanel* createCardPanel(const QString& elementId);
+    /// @brief The previews of the materials, in the book window and in windows of their own
+    [[nodiscard]] QList<PreviewPanel*> previews() const;
+
+    /// @brief The preview of material @p elementId brought to the front: the one open, else a
+    /// new tab; nullptr when the program has none for its file (a PDF file then opens in the
+    /// system program)
+    PreviewPanel* openPreview(const QString& elementId);
+
+    /// @brief A new quote of words @p text from page @p page of source @p sourceId, linked with
+    /// @p links, shown in the Navigator, and its source shows it among its quotes
+    /// @return Its id; empty when it could not be made (the writer is told why)
+    QString addQuote(const QString& sourceId, const QString& text, const QString& page,
+                     const QStringList& links);
+
+    /// @brief The quote the writer described in @p dialog, from source @p sourceId: linked
+    /// with chapter @p chapter (of element @p chapterElement; both nullptr when no chapter is
+    /// open) or with what the writer chooses, and typed into that chapter when asked
+    void addQuoteFrom(const dialogs::NewQuoteDialog& dialog, const QString& sourceId,
+                      EditorPanel* chapter, const core::ProjectElement* chapterElement);
+
+    /// @brief The editor of the chapter in front last, while it is open; none when it is closed
+    [[nodiscard]] EditorPanel* lastChapter() const;
+
     NavigatorPanel* m_navigatorPanel;
     PropertiesPanel* m_propertiesPanel;
     QTabWidget* m_centralTabs;
@@ -443,6 +523,14 @@ private:
     /// @brief The materials whose downloads the writer asked for: a failure is told in a
     /// window
     QSet<QString> m_askedDownloads;
+
+    /// @brief The element of the chapter in front last: New Quote links the quote with it and
+    /// inserts it there
+    QString m_lastChapterId;
+
+    int m_settingsListener = 0;    ///< core::SettingsManager::subscribe() id
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

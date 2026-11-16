@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_search_coordinator.h
 /// @brief Edit > Find in Book...: the search in all the texts of the book in the Search panel,
 ///        and Replace All in Book with Undo
@@ -15,6 +18,7 @@
 #include <QObject>
 #include <QSet>
 #include <QString>
+#include <QStringList>
 #include <QTimer>
 
 #include <functional>
@@ -25,12 +29,17 @@ class QStatusBar;
 class QTabWidget;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}
+
 namespace kalahari::editor {
 class BookEditor;
 }
 
 namespace kalahari::gui {
 
+class CommandRegistry;
 class EditorPanel;
 
 /// @brief A match as the Search panel shows it: the line around it
@@ -104,6 +113,8 @@ public:
         QList<SearchPanelHit> hits;  ///< As the panel lists them: of the first matches
     };
 
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the book window (DocumentWindows gives all the texts)
     /// @param panel The Search panel
     /// @param showPanel Shows the panel in front
@@ -115,7 +126,8 @@ public:
     /// @param statusBar Where short messages go (may be null)
     /// @param window Over which the window asking opens
     /// @param parent Parent object
-    BookSearchCoordinator(QTabWidget* centralTabs, SearchPanel* panel, PanelShower showPanel,
+    BookSearchCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                          QTabWidget* centralTabs, SearchPanel* panel, PanelShower showPanel,
                           TextWithKeys textWithKeys, ChapterOpener openChapter,
                           NoteContexts noteContexts, NoticeShower showNotice,
                           QStatusBar* statusBar, QWidget* window, QObject* parent = nullptr);
@@ -128,6 +140,10 @@ public:
     /// @brief Edit > Find in Book...: the panel in front with what to find, the keys in its
     ///        field, the search
     void findInBook();
+
+    /// @brief Find in Book of a card: the panel in front with @p text, a name, as whole words
+    ///        in any letters, the keys in its field, the search
+    void findInBook(const QString& text);
 
     /// @brief Search the book for what the panel says, from the first text
     void search();
@@ -159,7 +175,7 @@ public:
     /// @brief Replace All in Book: every match of the search with what the panel says, after
     ///        the window asks
     /// @return How many matches were replaced; 0 when none or the writer said no; -1 when the
-    ///         book cannot change
+    ///         book cannot change or the search finds all forms
     int replaceAllInBook();
 
     /// @brief Why Replace All in Book cannot be done now (empty: it can)
@@ -173,6 +189,13 @@ public:
 
     /// @brief Replace the window that asks first (for the tests)
     void setConfirmer(Confirmer confirm) { m_confirm = std::move(confirm); }
+
+    /// @brief The forms a text has for the option of all forms (editor::formsToFind())
+    using FormsOf = std::function<QStringList(const QString& text)>;
+
+    /// @brief Find the forms of @p formsOf with the option of all forms ("Odm"); none: the
+    ///        text itself
+    void setFormsOf(FormsOf formsOf) { m_formsOf = std::move(formsOf); }
 
 signals:
     /// @brief The search went through all the texts (the panel shows what it found)
@@ -257,6 +280,8 @@ private:
     /// @brief Forget what was found and read: another book, or none
     void reset();
 
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;   ///< The commands of its window
     QTabWidget* m_centralTabs = nullptr;
     SearchPanel* m_panel = nullptr;
     PanelShower m_showPanel;
@@ -267,6 +292,7 @@ private:
     QStatusBar* m_statusBar = nullptr;
     QWidget* m_window = nullptr;
     Confirmer m_confirm;
+    FormsOf m_formsOf;  ///< The forms of the option of all forms
 
     editor::SearchEngine m_engine;            ///< Matches the query (without a document)
     std::optional<Query> m_query;             ///< What was searched for last; none: nothing

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file list_dialogs.cpp
 /// @brief The windows of the lists: Bullets and Numbering, Set Numbering Value
 

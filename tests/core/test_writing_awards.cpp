@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_writing_awards.cpp
 /// @brief The badges of writing and the writer's challenges: what each kind counts, the month,
 /// the badges of a book and what the journal keeps

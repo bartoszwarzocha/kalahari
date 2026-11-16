@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotation_frame.h
 /// @brief The frame an annotation's text is written in, at its place in the text
 
@@ -24,8 +27,9 @@ class AnnotationFrame : public WritingFrame {
 
 public:
     /// @brief Constructor
+    /// @param commands The commands of its window, whose keys it knows
     /// @param editor The editor it lies over (its parent)
-    explicit AnnotationFrame(QWidget* editor);
+    AnnotationFrame(CommandRegistry& commands, QWidget* editor);
 
     /// @brief The annotation's kind (the frame's header)
     void setKind(editor::AnnotationKind kind);

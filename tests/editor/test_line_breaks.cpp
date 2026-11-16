@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_line_breaks.cpp
 /// @brief A line break in a paragraph (Shift+Enter): typing it, moving over it, and the
 ///        chapter files, the clipboard and the other programs it goes to

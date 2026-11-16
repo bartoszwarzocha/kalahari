@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_list_editing.cpp
 /// @brief Lists in the editor: Numbering and Bullets, Enter, Backspace, Tab, the indents, the
 ///        numbering of an item, autocorrect and the context menu of an item

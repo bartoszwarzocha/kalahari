@@ -26,6 +26,8 @@ This directory contains convenience scripts to simplify building, testing, and m
 | **setup_dev_env.sh** | Install system dependencies (Ubuntu/Fedora/macOS) |
 | **copy_clean.sh** | Copy project without build artifacts (useful for VirtualBox workflows) |
 | **release.py** | The version in its five files and the cut of the CHANGELOG: `check`, `bump`, `notes` (see `project_docs/06_roadmap.md`, 5.2) |
+| **sonar_analysis.bat** | SonarQube analysis on demand (Windows, double-click): build, then `sonar_analysis.py` with the token from the `SONAR_TOKEN` user variable |
+| **sonar_analysis.py** | SonarQube analysis: clang-tidy report for the sonar-cxx plugin, then sonar-scanner (settings in `sonar-project.properties`; usage in the script header) |
 
 ---
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_source.cpp
 /// @brief Where a material comes from, and what comes to the Navigator from outside the program
 
@@ -5,7 +8,10 @@
 
 #include "kalahari/core/material_kinds.h"
 
+#include <QBuffer>
+#include <QByteArray>
 #include <QFileInfo>
+#include <QImage>
 #include <QLocale>
 #include <QMimeData>
 
@@ -148,6 +154,14 @@ QString IncomingMaterials::pictureTitle(const QDateTime& time) {
 
 QString IncomingMaterials::pictureFileName(const QDateTime& time) {
     return QStringLiteral("clipboard_%1.png").arg(time.toString(QStringLiteral("yyyyMMdd_HHmmss")));
+}
+
+QByteArray IncomingMaterials::pngOf(const QImage& picture) {
+    QByteArray data;
+    QBuffer buffer(&data);
+    buffer.open(QIODevice::WriteOnly);
+    picture.save(&buffer, "PNG");
+    return data;
 }
 
 } // namespace gui

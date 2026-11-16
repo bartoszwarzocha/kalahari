@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_goals.cpp
 /// @brief The goals of a book and its deadlines, and the reckoning of the words they need
 

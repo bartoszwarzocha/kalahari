@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file document_windows.cpp
 /// @brief The texts of the book window in its tabs and in the windows of their own the tabs are
 /// moved to
@@ -92,6 +95,13 @@ constexpr const char* RETURN_TAB_COMMAND = "window.returnTab";
 constexpr const char* NEXT_WINDOW_COMMAND = "window.next";
 constexpr const char* PREVIOUS_WINDOW_COMMAND = "window.previous";
 constexpr const char* SETTINGS_COMMAND = "window.settings";
+constexpr const char* NEW_WINDOW_COMMAND = "window.new";
+
+/// The texts of every book window of the program, in the order the windows were made
+QList<DocumentWindows*>& everyBookWindow() {
+    static QList<DocumentWindows*> owners;
+    return owners;
+}
 
 }  // namespace
 
@@ -109,11 +119,44 @@ DocumentWindows& DocumentWindows::of(QTabWidget& bookTabs) {
 DocumentWindows::DocumentWindows(QTabWidget& bookTabs)
     : QObject(&bookTabs), m_bookTabs(&bookTabs), m_frontTabs(&bookTabs) {
     setObjectName(QStringLiteral("documentWindows"));
+    everyBookWindow().append(this);
     watch(bookTabs);
     if (auto* app = qobject_cast<QApplication*>(QCoreApplication::instance())) {
         connect(app, &QApplication::focusChanged, this,
                 [this](QWidget* /*old*/, QWidget* now) { onFocusChanged(now); });
     }
+}
+
+DocumentWindows::~DocumentWindows() {
+    everyBookWindow().removeAll(this);
+}
+
+QList<QWidget*> DocumentWindows::programWindows() {
+    QList<QWidget*> list;
+    for (const DocumentWindows* owner : std::as_const(everyBookWindow())) {
+        if (owner->isWhole()) {
+            list.append(owner->bookWindows());
+        }
+    }
+    return list;
+}
+
+DocumentWindows* DocumentWindows::ownerOf(const QWidget* window) {
+    for (DocumentWindows* owner : std::as_const(everyBookWindow())) {
+        if (owner->isWhole() && owner->bookWindows().contains(window)) {
+            return owner;
+        }
+    }
+    return nullptr;
+}
+
+void DocumentWindows::showWindow(QWidget* window) {
+    DocumentWindows* owner = ownerOf(window);
+    if (owner == nullptr) {
+        return;
+    }
+    auto* detached = qobject_cast<DetachedWindow*>(window);
+    bringToFront(window, detached != nullptr ? detached->tabs() : *owner->m_bookTabs);
 }
 
 DocumentWindows::Look DocumentWindows::look() {
@@ -272,10 +315,9 @@ void DocumentWindows::updateFront() {
     m_frontPage = page;
     m_frontSaid = true;
     // The Window menu follows the page in front
-    CommandRegistry& registry = CommandRegistry::getInstance();
-    if (registry.getCommand(MOVE_TAB_COMMAND) != nullptr) {
-        registry.updateActionState(MOVE_TAB_COMMAND);
-        registry.updateActionState(RETURN_TAB_COMMAND);
+    if (m_commands != nullptr && m_commands->getCommand(MOVE_TAB_COMMAND) != nullptr) {
+        m_commands->updateActionState(MOVE_TAB_COMMAND);
+        m_commands->updateActionState(RETURN_TAB_COMMAND);
     }
     emit frontChanged(page);
 }
@@ -387,7 +429,7 @@ QList<QWidget*> DocumentWindows::bookWindows() const {
 }
 
 void DocumentWindows::activateNextWindow(int step) {
-    const QList<QWidget*> list = bookWindows();
+    const QList<QWidget*> list = programWindows();
     if (list.size() < 2) {
         return;
     }
@@ -397,9 +439,7 @@ void DocumentWindows::activateNextWindow(int step) {
         at = list.indexOf(frontTabs()->window());
     }
     const qsizetype count = list.size();
-    QWidget* next = list.at(((std::max<qsizetype>(at, 0) + step) % count + count) % count);
-    auto* window = qobject_cast<DetachedWindow*>(next);
-    bringToFront(next, window ? window->tabs() : *m_bookTabs);
+    showWindow(list.at(((std::max<qsizetype>(at, 0) + step) % count + count) % count));
 }
 
 // ----------------------------------------------------------------------------
@@ -620,7 +660,8 @@ void DocumentWindows::showTabMenu(QTabWidget& tabs, int index, const QPoint& glo
 // ----------------------------------------------------------------------------
 
 int DocumentWindows::registerCommands(CommandRegistry& registry,
-                                      const std::function<DocumentWindows*()>& windows) {
+                                      const std::function<DocumentWindows*()>& windows,
+                                      const std::function<void()>& newWindow) {
     int count = 0;
     const auto add = [&](const char* id, const char* menuText, int order, bool separatorAfter,
                          KeyboardShortcut shortcut, std::function<void()> execute,
@@ -643,6 +684,11 @@ int DocumentWindows::registerCommands(CommandRegistry& registry,
         ++count;
     };
 
+    if (newWindow) {
+        add(NEW_WINDOW_COMMAND,
+            //: Window menu: a new book window, with the Dashboard. In Polish: N&owe okno
+            QT_TR_NOOP("Ne&w Window"), 5, false, KeyboardShortcut(), newWindow, nullptr);
+    }
     add(MOVE_TAB_COMMAND,
         //: Window menu: the text in front goes to a window of its own. In Polish: &Przenieś
         //: kartę do nowego okna
@@ -702,12 +748,14 @@ void DocumentWindows::listWindowsIn(QMenu* windowMenu) {
         qDeleteAll(m_windowActions);
         m_windowActions.clear();
 
-        // Before Window Settings...: the book window, then its windows of their own
+        // Before Window Settings...: each book window of the program, then its windows of
+        // their own
         QAction* settings =
-            CommandRegistry::getInstance().getAction(QString::fromLatin1(SETTINGS_COMMAND));
+            m_commands != nullptr ? m_commands->getAction(QString::fromLatin1(SETTINGS_COMMAND))
+                                  : nullptr;
         QAction* before = windowMenu->actions().contains(settings) ? settings : nullptr;
         QWidget* active = QApplication::activeWindow();
-        const QList<QWidget*> list = bookWindows();
+        const QList<QWidget*> list = programWindows();
         for (qsizetype i = 0; i < list.size(); ++i) {
             QWidget* window = list.at(i);
             QString title = withoutProgramName(window->windowTitle());
@@ -722,10 +770,8 @@ void DocumentWindows::listWindowsIn(QMenu* windowMenu) {
             action->setCheckable(true);
             action->setChecked(window == active);
             // Gone with the window
-            connect(action, &QAction::triggered, window, [this, window]() {
-                auto* detached = qobject_cast<DetachedWindow*>(window);
-                bringToFront(window, detached ? detached->tabs() : *m_bookTabs);
-            });
+            connect(action, &QAction::triggered, window,
+                    [window]() { DocumentWindows::showWindow(window); });
             windowMenu->insertAction(before, action);
             m_windowActions.append(action);
         }
@@ -802,11 +848,12 @@ DetachedWindow::DetachedWindow(DocumentWindows& owner, QMainWindow& bookWindow)
     m_statistics = new StatusBarStatistics(statusBar(), this);
 
     // The commands of the book window, so their keys work here too
-    CommandRegistry& registry = CommandRegistry::getInstance();
-    for (const Command& command : registry.getAllCommands()) {
-        if (command.canExecute()) {
-            if (QAction* action = registry.getAction(command.id)) {
-                addAction(action);
+    if (CommandRegistry* registry = owner.commands()) {
+        for (const Command& command : registry->getAllCommands()) {
+            if (command.canExecute()) {
+                if (QAction* action = registry->getAction(command.id)) {
+                    addAction(action);
+                }
             }
         }
     }

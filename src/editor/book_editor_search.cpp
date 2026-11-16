@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_search.cpp
 /// @brief BookEditor: find and replace
 
@@ -5,6 +8,7 @@
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/search_engine.h>
+#include <kalahari/editor/search_forms.h>
 #include <kalahari/editor/text_footnotes.h>
 #include "book_editor_internal.h"
 #include <QScrollBar>
@@ -32,6 +36,9 @@ void BookEditor::setupFindReplace()
     m_findReplaceBar = new FindReplaceBar(this);
     m_findReplaceBar->setCursor(Qt::ArrowCursor);
     m_findReplaceBar->setSearchEngine(m_searchEngine.get());
+    m_findReplaceBar->setFormsOf([this](const QString& text) {
+        return formsToFind(text, m_bookDictionary, m_spellCheckService);
+    });
     // Find/Replace performs its edits directly on the document, which QTextDocument's
     // native undo records
     m_findReplaceBar->hide();

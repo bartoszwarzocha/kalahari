@@ -23,7 +23,10 @@ NC='\033[0m'
 # Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+# The repository's hooks folder (in a worktree .git is a file, the hooks are shared)
+HOOKS_DIR="$(git -C "$PROJECT_ROOT" rev-parse --path-format=absolute --git-common-dir)/hooks"
+# Tracked versions of the hooks
+HOOKS_SOURCE_DIR="$SCRIPT_DIR/hooks"
 
 # =============================================================================
 # Helper functions
@@ -130,7 +133,7 @@ install_hooks() {
     echo ""
 
     # Verify we're in a git repository
-    if [ ! -d "$PROJECT_ROOT/.git" ]; then
+    if ! git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
         print_error "Not a git repository: $PROJECT_ROOT"
         exit 1
     fi
@@ -141,18 +144,17 @@ install_hooks() {
         print_info "Created hooks directory: $HOOKS_DIR"
     fi
 
-    # Install pre-commit hook
-    local precommit_source="$HOOKS_DIR/pre-commit"
-
-    if [ -f "$precommit_source" ]; then
-        # Make it executable
-        chmod +x "$precommit_source"
-        print_success "pre-commit hook: made executable"
-    else
-        print_error "pre-commit hook not found at: $precommit_source"
-        print_info "The hook should already exist in .git/hooks/"
-        exit 1
-    fi
+    # Install the hooks from their tracked versions in scripts/hooks/
+    for hook in "${HOOKS[@]}"; do
+        local source="$HOOKS_SOURCE_DIR/$hook"
+        if [ ! -f "$source" ]; then
+            print_error "$hook hook not found at: $source"
+            exit 1
+        fi
+        cp "$source" "$HOOKS_DIR/$hook"
+        chmod +x "$HOOKS_DIR/$hook"
+        print_success "$hook hook: installed from scripts/hooks/$hook"
+    done
 
     echo ""
     echo -e "${GREEN}========================================${NC}"

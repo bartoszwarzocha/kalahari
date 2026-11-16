@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file settings_coordinator.h
 /// @brief Settings dialog coordination for MainWindow
 ///
@@ -13,6 +16,14 @@
 class QMainWindow;
 class QStatusBar;
 class QWidget;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari {
 namespace editor {
@@ -42,17 +53,18 @@ class SettingsCoordinator : public QObject {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param mainWindow Parent QMainWindow
     /// @param dockCoordinator Dock coordinator for panel access
     /// @param statusBar Status bar for feedback messages
     /// @param parent Parent QObject
-    explicit SettingsCoordinator(QMainWindow* mainWindow,
-                                  DockCoordinator* dockCoordinator,
-                                  QStatusBar* statusBar,
-                                  QObject* parent = nullptr);
+    explicit SettingsCoordinator(const core::ProjectManager& book, CommandRegistry& commands,
+                                 QMainWindow* mainWindow, DockCoordinator* dockCoordinator,
+                                 QStatusBar* statusBar, QObject* parent = nullptr);
 
     /// @brief Destructor
-    ~SettingsCoordinator() override = default;
+    ~SettingsCoordinator() override;
 
     /// @brief Open the settings dialog
     /// @note Creates modal SettingsDialog, connects signals, handles OK/Cancel
@@ -77,10 +89,23 @@ public:
     /// @brief The grammar of the editors, which the dialog prepares and whose server it checks
     void setGrammarCoordinator(GrammarCoordinator* grammar);
 
+    /// @brief How the program closes before it restarts for another language: every window,
+    /// asking once about the unsaved changes; false: it stays open. Without it, the window
+    /// closes.
+    void setProgramCloser(std::function<bool()> close) { m_closeProgram = std::move(close); }
+
+    /// @brief The settings coordinators of every book window, in the order they were made
+    static QList<SettingsCoordinator*> coordinators();
+
 public slots:
-    /// @brief React to settings applied by the dialog, refreshing only what changed
+    /// @brief React to settings applied by the dialog, refreshing only what changed, in every
+    ///        book window (applyInWindow())
     /// @param changedKeys Keys of the settings written
     void onApplySettings(const QStringList& changedKeys);
+
+    /// @brief Refresh in this window what the settings @p changedKeys affect: the panels and
+    ///        the tabs (the editors follow the settings by themselves)
+    void applyInWindow(const QStringList& changedKeys);
 
 signals:
     /// @brief Emitted when diagnostic mode should be enabled
@@ -89,11 +114,16 @@ signals:
     /// @brief Emitted when diagnostic mode should be disabled
     void disableDiagnosticModeRequested();
 
+    /// @brief The settings were closed with Open Book Dictionary (Editor > Spelling): the
+    ///        book's dictionary shows on its tab
+    void bookDictionaryRequested();
+
 private:
     QMainWindow* m_mainWindow;
     DockCoordinator* m_dockCoordinator;
     QStatusBar* m_statusBar;
     std::function<bool()> m_diagnosticModeGetter;
+    std::function<bool()> m_closeProgram;  ///< setProgramCloser(); none: the window closes
     editor::SpellCheckService* m_spellCheckService = nullptr;  ///< Not owned
     GrammarCoordinator* m_grammarCoordinator = nullptr;        ///< Not owned
     bool m_languageChanged = false;  ///< UI language changed while the dialog was open
@@ -105,6 +135,8 @@ private:
     /// @param page The page it opens at (SettingsDialog::openPage()); empty: the first one
     /// @param parent The window it opens over; nullptr: the main window
     void runSettingsDialog(const QString& page, QWidget* parent = nullptr);
+    CommandRegistry& m_commands;  ///< The commands of its window
+    const core::ProjectManager& m_book;  ///< The book of its window
 };
 
 } // namespace gui

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_serializer.h
 /// @brief KML Serializer - serializes QTextDocument back to KML (OpenSpec #00043 Phase 11.2)
 ///

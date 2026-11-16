@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_appearance.h
 /// @brief Visual appearance configuration for BookEditor (OpenSpec #00042 Phase 5)
 ///
@@ -251,6 +254,7 @@ struct EditorColors {
         QColor spelling;    ///< Misspelled words
         QColor grammar;     ///< Grammar, style and punctuation
         QColor repetition;  ///< Words repeated too close (the Repetitions panel)
+        QColor bookRule;    ///< Places breaking a spelling rule of the book
     };
     IssueColors issuesLight;  ///< On the light paper
     IssueColors issuesDark;   ///< On the dark paper
@@ -506,6 +510,9 @@ public:
     SceneBreakLook sceneBreakLook{SceneBreakLook::Asterisks};  ///< How the scene breaks look
     bool showFormattingMarks{false};           ///< View > Show Formatting Marks
     MarginNumbers marginNumbers;               ///< View > Margin Numbering
+    /// The fields (the date, the book's title, a caption's number) on a gray background
+    /// (Settings > Editor > General); without it a broken cross-reference keeps its own
+    bool fieldShading{true};
 };
 
 }  // namespace kalahari::editor

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dashboard_panel.cpp
 /// @brief Dashboard panel implementation - native Qt widgets
 ///
@@ -137,7 +140,7 @@ private:
     QWidget* m_cornerButton = nullptr;  ///< A child of the card, in its top right corner
 };
 
-DashboardPanel::DashboardPanel(QWidget* parent)
+DashboardPanel::DashboardPanel(CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
     , m_scrollArea(nullptr)
     , m_contentWidget(nullptr)
@@ -164,6 +167,7 @@ DashboardPanel::DashboardPanel(QWidget* parent)
     , m_columnsGridLayout(nullptr)
     , m_showNews(true)
     , m_showRecentFiles(true)
+    , m_commands(commands)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("DashboardPanel constructor called");
@@ -376,7 +380,7 @@ QWidget* DashboardPanel::createShortcutsSection(QWidget* parent)
 
     updateShortcutLabels();
     // The keys the user gives the commands in Settings > Keyboard Shortcuts
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, this,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, this,
             &DashboardPanel::updateShortcutLabels);
 
     return m_shortcutsFrame;
@@ -393,7 +397,7 @@ void DashboardPanel::updateShortcutLabels()
     // The commands to start with, named as in the menus and with the keys they have
     // (written here a second time, they drifted apart: Ctrl+N was shown as New Chapter), in
     // the order of the File menu
-    const CommandRegistry& registry = CommandRegistry::getInstance();
+    const CommandRegistry& registry = m_commands;
     for (const char* id : {"file.open.file", "file.new.project", "file.open"}) {
         const Command* command = registry.getCommand(id);
         if (command == nullptr || command->shortcut.isEmpty()) {
@@ -610,7 +614,7 @@ RecentBook readRecentBook(const QJsonObject& json, const QString& projectDir)
     }
     // Another book than the open one: the installed packages
     const core::BookTypeRegistry& registry =
-        core::ProjectManager::getInstance().installedBookTypes();
+        core::ProjectManager::installedBookTypes();
     const core::ProjectBook& book = project->books.first();
     recent.title = book.title.trimmed();
     recent.author = book.author.trimmed();

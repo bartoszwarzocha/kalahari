@@ -1,0 +1,8 @@
+{
+  "name": "pdfium",
+  "version": "159.0.8152.0",
+  "description": "PDFium, the PDF library of Chromium, as built by pdfium-binaries from its official sources without JavaScript (V8) and XFA. A prebuilt shared library checked by its SHA-512.",
+  "homepage": "https://github.com/bblanchon/pdfium-binaries",
+  "license": "BSD-3-Clause AND Apache-2.0",
+  "supports": "(windows & (x64 | arm64) & !uwp) | (osx & (x64 | arm64)) | (linux & (x64 | arm64))"
+}

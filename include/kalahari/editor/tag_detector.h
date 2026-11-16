@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file tag_detector.h
 /// @brief Tag detection service for TODO/FIX/CHECK markers (OpenSpec #00042 Task 7.10)
 ///

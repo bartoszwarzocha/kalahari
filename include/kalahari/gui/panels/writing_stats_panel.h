@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file writing_stats_panel.h
 /// @brief The Statistics panel: a list of small graphs of the writing, as in the Performance
 /// tab of the Task Manager of Windows 11, and the view chosen in it, large

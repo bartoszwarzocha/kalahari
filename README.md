@@ -22,7 +22,7 @@
 
 **Current Version:** 0.4.0-alpha
 **Next Release:** 0.4.x-alpha (Phase 1, Part B)
-**Last Updated:** 2026-11-13
+**Last Updated:** 2026-11-16
 
 ---
 
@@ -250,21 +250,25 @@ Each assistant has unique personality and communication style, helping you stay 
 - ✅ Editor rebuilt for speed: a chapter of 150,000 words opens in a fraction of a second
 - ✅ Page view (paper size, margins, page numbers) and continuous view, zoom, typewriter
   scrolling, Focus and Distraction-Free modes
-- ✅ Find and Replace in a text and in the whole book
+- ✅ Find and Replace in a text and in the whole book, Go To
 - ✅ Formatting: paragraph styles (the book type's and the writer's own), the Font and
   Paragraph windows, lists, links, tables, images with captions, footnotes and endnotes,
-  special characters, autocorrect
+  fields and the date, special characters, autocorrect, Paste Special
 - ✅ Spelling (Polish, English) and grammar (LanguageTool) as you type, with the Spelling and
   Grammar panel
 - ✅ Annotations: comments, TODOs and notes, in a panel and as cards under the paragraphs
 - ✅ Book types and the new structure of a book; the Navigator with the book and the
   Workshop; materials and the Cover; versions of the texts; Chapter Break
+- ✅ Cards of characters, locations and items, the book dictionary, sources with the
+  bibliography and quotes, and the preview of PDF files
+- ✅ Export of the book to Word (DOCX) and Markdown
 - ✅ Writing statistics, goals, badges and challenges
+- ✅ Several books open at once, each in its own window
 - ✅ The program's own dialogs that fit small screens, the new Settings window, keyboard
   shortcuts, the Polish translation
 
-**Next:** export to DOCX and Markdown (0.4.x), a window of its own for each book, and a test
-of the whole program at the end of Phase 1. Every change is in [CHANGELOG.md](CHANGELOG.md).
+**Next:** a test of the whole program at the end of Phase 1. Every change is in
+[CHANGELOG.md](CHANGELOG.md).
 
 Menu commands that are not implemented yet are shown disabled.
 

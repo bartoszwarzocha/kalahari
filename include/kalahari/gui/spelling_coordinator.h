@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_coordinator.h
 /// @brief Spelling as you type: the dictionaries of the editors, their languages and the
 ///        commands
@@ -12,6 +15,14 @@
 class QStatusBar;
 class QTabWidget;
 class QTimer;
+
+namespace kalahari::core {
+class BookDictionary;
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari::editor {
 class BookEditor;
@@ -33,6 +44,14 @@ namespace kalahari::gui {
 /// own words, the same in every language, are kept in the file user_dictionary.txt next to
 /// the settings.
 ///
+/// The chapters of the book are checked with the book's dictionary too
+/// (core::ProjectManager::bookDictionary(), BookEditor::setBookDictionary()): its names and
+/// words are right in them, and the places written otherwise than its spelling rules want
+/// are marked, unless the setting MARK_RULES_KEY says not to. They are checked again when it
+/// changes. Add to Book Dictionary and Remove Rule on the menu of a wave change it, in a book
+/// that is not open read-only; Add Name... and Edit Rule... there ask for the windows of the
+/// dictionary (addNameAsked(), editRuleAsked()).
+///
 /// Tools > Check Spelling as You Type (Shift+F7) turns the checking on and off: the
 /// setting editor.spellCheck.enabled, also in the Settings dialog. Tools > Next Spelling or
 /// Grammar Issue (F7) selects the next misspelled word or grammar issue of the document in
@@ -50,11 +69,13 @@ public:
     using NextIssueHandler = std::function<void(editor::BookEditor* editor, bool found)>;
 
     /// @brief Constructor: the dictionary starts loading in the background
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the documents, whose editors check with the dictionary
     /// @param statusBar Where short messages about the spelling are shown (may be null)
     /// @param parent Parent object
-    SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* statusBar,
-                        QObject* parent = nullptr);
+    SpellingCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                        QTabWidget* centralTabs, QStatusBar* statusBar, QObject* parent = nullptr);
 
     /// @brief Destructor: the commands have no callbacks any more
     ~SpellingCoordinator() override;
@@ -88,9 +109,9 @@ public:
     ///        languages have the same dictionary; it keeps the writer's own words
     editor::SpellCheckService* service() const { return m_service; }
 
-    /// @brief The language the chapters of the book are checked in: the setting, else the
-    ///        book's language, else the program's
-    static QString wantedLanguage();
+    /// @brief The language the chapters of the book open in @p book are checked in: the
+    ///        setting, else the book's language, else the program's
+    static QString wantedLanguage(const core::ProjectManager& book);
 
     /// @brief The language a document outside the book is checked in: the setting, else the
     ///        program's
@@ -99,19 +120,49 @@ public:
     /// @brief The file the writer's own words are kept in, next to the settings
     static QString userDictionaryFile();
 
+    /// @brief The setting of whether the places written otherwise than the spelling rules of
+    ///        the book's dictionary want are marked (true by default)
+    static constexpr const char* MARK_RULES_KEY = "bookDictionary.markRules";
+
 public slots:
     /// @brief Check with the dictionaries of the languages wanted now, or turn the checking
     ///        off as the setting says (after the settings or the book's language change)
     void updateDictionary();
 
+    /// @brief Add a word to the book's dictionary: right in the chapters of the book
+    /// @return false when it cannot be changed (the status bar says so)
+    bool addToBookDictionary(const QString& word);
+
+    /// @brief Remove a spelling rule from the book's dictionary
+    /// @return false when it cannot be changed (the status bar says so)
+    bool removeBookRule(const QString& ruleId);
+
 signals:
     /// @brief What problem() says may have changed: a dictionary was loaded, or not found
     void problemChanged();
 
-private:
+    /// @brief Add Name... was chosen on the context menu of a misspelled word of a chapter
+    void addNameAsked(const QString& word);
+
+    /// @brief Edit Rule... was chosen on the context menu of a place of a chapter breaking a
+    ///        spelling rule of the book
+    void editRuleAsked(const QString& ruleId);
+
+private slots:
     /// @brief Give the editors of the documents their dictionaries, and load the one of the
-    ///        documents outside the book when the first of them needs it
+    ///        documents outside the book when the first of them needs it (a slot: the
+    ///        listener of the settings queues it by its name)
     void updateEditors();
+
+private:
+    /// @brief The book's dictionary changed: its chapters are checked again
+    void onBookDictionaryChanged();
+
+    /// @brief Do what the context menu of an editor asks of the book's dictionary
+    void connectEditor(editor::BookEditor* bookEditor) const;
+
+    /// @brief Change the book's dictionary; the status bar says when it cannot be changed
+    bool changeBookDictionary(const std::function<void(core::BookDictionary&)>& change);
 
     /// @brief Check with a dictionary, or without one when its language has none: then the
     ///        status bar says so, once for the language
@@ -149,6 +200,8 @@ private:
     QString m_otherMissingLanguage;
 
     NextIssueHandler m_nextIssueHandler;  ///< Shows the next issue instead of its menu
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

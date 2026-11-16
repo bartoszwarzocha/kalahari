@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_document_model.cpp
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting
 ///
@@ -6,6 +9,7 @@
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/editor/kml_format_registry.h"
 #include "kalahari/editor/text_captions.h"
+#include "kalahari/editor/text_fields.h"
 #include "kalahari/editor/text_footnotes.h"
 #include "kalahari/editor/text_images.h"
 #include "kalahari/editor/text_link.h"
@@ -1086,6 +1090,16 @@ bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                         crossReferenceOfKml(reader.attributes())) {
                     QTextCharFormat format = currentFormat;
                     setCrossReference(format, *reference);
+                    appendObject(para, format);
+                }
+                reader.skipCurrentElement();
+                reader.readNext();
+            } else if (tag == QStringLiteral("field")) {
+                // A field of the book, the page, the words or the date; one of a type the
+                // program does not know is nothing
+                if (const std::optional<TextField> field = textFieldOfKml(reader.attributes())) {
+                    QTextCharFormat format = currentFormat;
+                    setTextField(format, *field);
                     appendObject(para, format);
                 }
                 reader.skipCurrentElement();

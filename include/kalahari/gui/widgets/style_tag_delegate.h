@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file style_tag_delegate.h
 /// @brief The names of paragraph styles in a list, with a tag after a name: "own", "changed",
 ///        "not in this book"

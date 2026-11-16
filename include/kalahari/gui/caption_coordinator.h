@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file caption_coordinator.h
 /// @brief The numbered captions of the book: the numbers of every open text in the book around
 ///        it, Insert Caption, Insert Cross-Reference and Insert List of Figures
@@ -20,6 +23,13 @@
 
 class QTabWidget;
 class QWidget;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari::editor {
 class BookEditor;
@@ -62,11 +72,14 @@ public:
         QHash<QString, int> references;             ///< Its cross-references, by caption
     };
 
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the book window (DocumentWindows gives all the texts)
     /// @param openChapter Opens a text of the book (Ctrl+click on a caption of another text)
     /// @param window Over which the windows open
     /// @param parent Parent object
-    CaptionCoordinator(QTabWidget* centralTabs, ChapterOpener openChapter, QWidget* window,
+    CaptionCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                       QTabWidget* centralTabs, ChapterOpener openChapter, QWidget* window,
                        QObject* parent = nullptr);
 
     CaptionCoordinator(const CaptionCoordinator&) = delete;
@@ -170,6 +183,8 @@ private:
     /// The editors whose signals it has; an editor destroyed leaves the list
     QList<editor::BookEditor*> m_attached;
     mutable QHash<QString, CachedText> m_savedTexts;
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

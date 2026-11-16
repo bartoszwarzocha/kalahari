@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_coordinator.cpp
 /// @brief Spelling as you type: the dictionaries of the editors, their languages and the
 ///        commands
@@ -23,6 +26,7 @@
 #include <QTimer>
 #include <QVariant>
 
+#include <functional>
 #include <string>
 #include <utility>
 
@@ -75,20 +79,34 @@ bool isChapter(const EditorPanel& panel) {
     return !panel.property("elementId").toString().isEmpty();
 }
 
+/// @brief The spelling coordinators of the book windows open, in the order they were made
+QList<SpellingCoordinator*>& liveCoordinators() {
+    static QList<SpellingCoordinator*> coordinators;
+    return coordinators;
+}
+
 }  // namespace
 
-SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* statusBar,
+SpellingCoordinator::SpellingCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                         QTabWidget* centralTabs, QStatusBar* statusBar,
                                          QObject* parent)
-    : QObject(parent)
-    , m_centralTabs(centralTabs)
-    , m_statusBar(statusBar)
-    , m_service(new editor::SpellCheckService(this))
-    , m_otherService(new editor::SpellCheckService(this))
-    , m_editorsTimer(new QTimer(this))
-{
-    // The writer's own words are the same in every language
-    m_service->setUserDictionaryFile(userDictionaryFile());
+    : QObject(parent),
+      m_centralTabs(centralTabs),
+      m_statusBar(statusBar),
+      m_service(new editor::SpellCheckService(this)),
+      m_otherService(new editor::SpellCheckService(this)),
+      m_editorsTimer(new QTimer(this)),
+      m_book(book),
+      m_commands(commands) {
+    // The writer's own words are the same in every language and in every book window: a word
+    // added in one window is known in the others at once
+    if (liveCoordinators().isEmpty()) {
+        m_service->setUserDictionaryFile(userDictionaryFile());
+    } else {
+        m_service->shareOwnWordsWith(*liveCoordinators().first()->m_service);
+    }
     m_otherService->shareOwnWordsWith(*m_service);
+    liveCoordinators().append(this);
     for (editor::SpellCheckService* service : {m_service, m_otherService}) {
         connect(service, &editor::SpellCheckService::dictionaryError, this,
                 [this](const QString& error) { showMessage(error, DICTIONARY_MESSAGE_MS); });
@@ -109,16 +127,18 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
         connect(&DocumentWindows::of(*m_centralTabs), &DocumentWindows::frontChanged, this,
                 [this]() {
             m_editorsTimer->start();
-            CommandRegistry::getInstance().updateActionState(NEXT_COMMAND_ID);
+            m_commands.updateActionState(NEXT_COMMAND_ID);
         });
     }
 
     // Another book can be in another language
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     connect(&projects, &core::ProjectManager::projectOpened, this,
             &SpellingCoordinator::updateDictionary);
     connect(&projects, &core::ProjectManager::projectClosed, this,
             &SpellingCoordinator::updateDictionary);
+    connect(&projects, &core::ProjectManager::bookDictionaryChanged, this,
+            &SpellingCoordinator::onBookDictionaryChanged);
 
     // The settings of the spelling, from the Settings dialog or the command. A listener
     // runs on the thread that changed the setting: the slot is queued.
@@ -126,6 +146,8 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
         [this](const std::string& key) {
             if (key.rfind("editor.spellCheck.", 0) == 0 || key == "ui.language") {
                 QMetaObject::invokeMethod(this, "updateDictionary", Qt::QueuedConnection);
+            } else if (key == MARK_RULES_KEY) {
+                QMetaObject::invokeMethod(this, "updateEditors", Qt::QueuedConnection);
             }
         });
 
@@ -133,10 +155,11 @@ SpellingCoordinator::SpellingCoordinator(QTabWidget* centralTabs, QStatusBar* st
 }
 
 SpellingCoordinator::~SpellingCoordinator() {
+    liveCoordinators().removeAll(this);
     core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 
     // The commands outlive the coordinator
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const char* id : {COMMAND_ID, NEXT_COMMAND_ID}) {
         if (Command* command = registry.getCommand(id)) {
             command->execute = nullptr;
@@ -146,7 +169,7 @@ SpellingCoordinator::~SpellingCoordinator() {
 }
 
 void SpellingCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand(COMMAND_ID)) {
         command->execute = [this]() { toggle(); };
         registry.updateActionState(COMMAND_ID);
@@ -262,15 +285,14 @@ QString SpellingCoordinator::problem(const editor::BookEditor* editor) const {
         .arg(utils::languageName(missing));
 }
 
-QString SpellingCoordinator::wantedLanguage() {
+QString SpellingCoordinator::wantedLanguage(const core::ProjectManager& book) {
     QString language = chosenLanguage();
     if (!language.isEmpty()) {
         return language;
     }
 
-    const auto& projects = core::ProjectManager::getInstance();
-    if (const core::ProjectBook* book = projects.isProjectOpen() ? projects.book() : nullptr) {
-        QString bookLanguage = book->language.trimmed();
+    if (const core::ProjectBook* open = book.isProjectOpen() ? book.book() : nullptr) {
+        QString bookLanguage = open->language.trimmed();
         if (!bookLanguage.isEmpty()) {
             return bookLanguage;
         }
@@ -294,7 +316,7 @@ void SpellingCoordinator::updateDictionary() {
     m_service->setEnabled(enabled);
     m_otherService->setEnabled(enabled);
     if (enabled) {
-        const QString language = wantedLanguage();
+        const QString language = wantedLanguage(m_book);
         const QString dictionary = editor::SpellCheckService::dictionaryFor(language);
         useDictionary(*m_service, language, dictionary, m_missingLanguage);
 
@@ -318,6 +340,8 @@ void SpellingCoordinator::updateDictionary() {
 void SpellingCoordinator::updateEditors() {
     m_editorsTimer->stop();
     bool otherDocuments = false;
+    const bool rulesMarked =
+        core::SettingsManager::getInstance().get<bool>(MARK_RULES_KEY, true);
     if (m_centralTabs != nullptr) {
         for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
             auto* panel = qobject_cast<EditorPanel*>(page);
@@ -326,8 +350,16 @@ void SpellingCoordinator::updateEditors() {
             }
             const bool chapter = isChapter(*panel);
             otherDocuments = otherDocuments || !chapter;
-            panel->getBookEditor()->setSpellCheckService(
-                chapter || m_otherLanguage.isEmpty() ? m_service : m_otherService);
+            editor::BookEditor* bookEditor = panel->getBookEditor();
+            bookEditor->setSpellCheckService(chapter || m_otherLanguage.isEmpty() ? m_service
+                                                                                  : m_otherService);
+            // The book's dictionary for its chapters only, changed from them while the book is
+            // not open read-only
+            const bool withBook = chapter && m_book.isProjectOpen();
+            bookEditor->setBookDictionary(withBook ? &m_book.bookDictionary() : nullptr,
+                                          withBook && !m_book.isReadOnly());
+            bookEditor->setBookRulesMarked(rulesMarked);
+            connectEditor(bookEditor);
         }
     }
 
@@ -341,6 +373,53 @@ void SpellingCoordinator::updateEditors() {
                       m_otherMissingLanguage);
     }
     emit problemChanged();  // the documents may have other dictionaries now
+}
+
+void SpellingCoordinator::connectEditor(editor::BookEditor* bookEditor) const {
+    connect(bookEditor, &editor::BookEditor::addToBookDictionaryAsked, this,
+            &SpellingCoordinator::addToBookDictionary, Qt::UniqueConnection);
+    connect(bookEditor, &editor::BookEditor::removeBookRuleAsked, this,
+            &SpellingCoordinator::removeBookRule, Qt::UniqueConnection);
+    connect(bookEditor, &editor::BookEditor::addNameAsked, this,
+            &SpellingCoordinator::addNameAsked, Qt::UniqueConnection);
+    connect(bookEditor, &editor::BookEditor::editBookRuleAsked, this,
+            &SpellingCoordinator::editRuleAsked, Qt::UniqueConnection);
+}
+
+void SpellingCoordinator::onBookDictionaryChanged() {
+    if (m_centralTabs == nullptr) {
+        return;
+    }
+    const core::BookDictionary* dictionary = &m_book.bookDictionary();
+    for (QWidget* page : DocumentWindows::of(*m_centralTabs).pages()) {
+        auto* panel = qobject_cast<EditorPanel*>(page);
+        editor::BookEditor* bookEditor = panel != nullptr ? panel->getBookEditor() : nullptr;
+        if (bookEditor != nullptr && bookEditor->bookDictionary() == dictionary) {
+            bookEditor->requestSpellCheck();
+        }
+    }
+}
+
+bool SpellingCoordinator::changeBookDictionary(
+    const std::function<void(core::BookDictionary&)>& change) {
+    if (m_book.changeBookDictionary(change)) {
+        return true;
+    }
+    showMessage(m_book.isReadOnly() ? tr("The book is open read-only: its dictionary cannot be "
+                                         "changed")
+                                    : tr("The book's dictionary cannot be saved"),
+                DICTIONARY_MESSAGE_MS);
+    return false;
+}
+
+bool SpellingCoordinator::addToBookDictionary(const QString& word) {
+    return changeBookDictionary(
+        [&word](core::BookDictionary& dictionary) { dictionary.addWord(word); });
+}
+
+bool SpellingCoordinator::removeBookRule(const QString& ruleId) {
+    return changeBookDictionary(
+        [&ruleId](core::BookDictionary& dictionary) { dictionary.removeRule(ruleId); });
 }
 
 void SpellingCoordinator::useDictionary(editor::SpellCheckService& service,

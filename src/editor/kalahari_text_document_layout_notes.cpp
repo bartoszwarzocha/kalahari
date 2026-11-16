@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kalahari_text_document_layout_notes.cpp
 /// @brief KalahariTextDocumentLayout: the notes - their numbers in the text, their texts under
 ///        their paragraphs (the continuous views) and at the bottom of the pages (page flow)
@@ -487,6 +490,9 @@ void KalahariTextDocumentLayout::drawNoteMarks(QPainter* painter, size_t note, s
                     break;
                 case HighlightKind::Grammar:
                     color = waves ? colors.grammar : QColor();
+                    break;
+                case HighlightKind::BookRule:
+                    color = waves ? colors.bookRule : QColor();
                     break;
                 default:
                     break;

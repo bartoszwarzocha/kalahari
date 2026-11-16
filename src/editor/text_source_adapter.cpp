@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_source_adapter.cpp
 /// @brief Implementation of ITextSource adapters (OpenSpec #00043 Phase 12.1)
 
@@ -82,7 +85,7 @@ std::vector<TextHighlight> QTextDocumentSource::paragraphHighlights(size_t index
                 const int position = fragment.position() + i;
                 const bool broken =
                     layout != nullptr &&
-                    layout->captionNumbers().fieldText(position, fragment.charFormat()).broken;
+                    layout->fieldText(position, fragment.charFormat()).broken;
                 highlights.push_back({position - block.position(), 1,
                                       broken ? HighlightKind::BrokenField : HighlightKind::Field});
             }

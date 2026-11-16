@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file issue_colors.h
 /// @brief The colors of the misspelled words and the grammar issues, as the theme gives them
 
@@ -17,10 +20,13 @@ namespace kalahari::gui {
 ///        theme has none)
 inline QColor issueColor(editor::TextIssueKind kind) {
     const editor::RenderColors editorColors;
-    return core::ThemeManager::getInstance().editorColor(
-        editor::issueColorKey(kind),
-        kind == editor::TextIssueKind::Spelling ? editorColors.spellError
-                                                : editorColors.grammarWarning);
+    QColor fallback = editorColors.spellError;
+    if (kind == editor::TextIssueKind::Grammar) {
+        fallback = editorColors.grammarWarning;
+    } else if (kind == editor::TextIssueKind::BookRule) {
+        fallback = editorColors.bookRule;
+    }
+    return core::ThemeManager::getInstance().editorColor(editor::issueColorKey(kind), fallback);
 }
 
 /// @brief The color of a kind of issue as it is shown on a background: as "Optimize colors in

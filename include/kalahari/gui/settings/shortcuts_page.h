@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file shortcuts_page.h
 /// @brief Settings > Keyboard Shortcuts: the keys of the commands, changed and checked
 ///
@@ -44,8 +47,9 @@ class ShortcutsPage : public SettingsPage {
 
 public:
     /// @brief Constructor: the commands registered now
+    /// @param commands The commands of its window
     /// @param parent Parent widget
-    explicit ShortcutsPage(QWidget* parent = nullptr);
+    explicit ShortcutsPage(CommandRegistry& commands, QWidget* parent = nullptr);
 
     /// @brief Select a command in the list (the search shows it if it hid it)
     /// @return Whether the list has the command
@@ -72,6 +76,7 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
 
 private:
+    CommandRegistry& m_commands;  ///< The commands of its window
     /// @brief A command of the list
     struct Entry {
         std::string id;

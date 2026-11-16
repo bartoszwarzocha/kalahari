@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_panel_toggle.cpp
 /// @brief The toggles of the dock panels: a click shows a closed panel on top, brings an open
 /// one under another tab on top and closes the one on top

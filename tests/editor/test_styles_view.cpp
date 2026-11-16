@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_styles_view.cpp
 /// @brief How the editor shows the paragraph styles, the objects of the text and the
 ///        formatting marks

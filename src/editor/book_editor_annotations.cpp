@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_annotations.cpp
 /// @brief BookEditor: comments, TODOs and notes anchored to the text
 

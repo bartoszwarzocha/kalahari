@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_cover_list.cpp
 /// @brief The materials of the cover in the program: their names, the list grouped by kind with
 /// its plan, their states, the kinds hidden in the Navigator, the card and the settings
@@ -39,6 +42,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using core::CoverMaterial;
@@ -54,7 +58,7 @@ const QString COVER_LIST = QStringLiteral("kalahari.base:cover");
 /// A material of the cover of the open book: @p part at @p place, with @p text
 QString addCover(const QString& title, const char* part, const char* place,
                  const QString& text = QString(), const QString& file = QString()) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     core::NewMaterial material;
     material.title = title;
     material.filePath = file;
@@ -174,10 +178,13 @@ TEST_CASE("Cover materials: the words of their parts, places, states and lengths
 
     // A new material is numbered after those of its part
     test::OpenNovel novel(QStringLiteral("Sand"));
-    CHECK(CoverNames::newTitle(QStringLiteral("blurb")) == QStringLiteral("Description 1"));
+    CHECK(CoverNames::newTitle(kalahari::test::book(), QStringLiteral("blurb")) ==
+          QStringLiteral("Description 1"));
     addCover(QStringLiteral("Back"), CoverMaterial::BLURB, CoverMaterial::BACK);
-    CHECK(CoverNames::newTitle(QStringLiteral("blurb")) == QStringLiteral("Description 2"));
-    CHECK(CoverNames::newTitle(QStringLiteral("tagline")) == QStringLiteral("Tagline 1"));
+    CHECK(CoverNames::newTitle(kalahari::test::book(), QStringLiteral("blurb")) ==
+          QStringLiteral("Description 2"));
+    CHECK(CoverNames::newTitle(kalahari::test::book(), QStringLiteral("tagline")) ==
+          QStringLiteral("Tagline 1"));
 }
 
 TEST_CASE("Cover materials: the list in groups of kinds, its filter, the plan and the states",
@@ -203,12 +210,12 @@ TEST_CASE("Cover materials: the list in groups of kinds, its filter, the plan an
     const QString note = addCover(QStringLiteral("Note 1"), CoverMaterial::NOTE, "",
                                   QStringLiteral("Warmer colors."));
     CHECK(MaterialList::isCover(COVER_LIST));
-    CHECK(MaterialList::kinds().contains(COVER_LIST));
-    CHECK(MaterialList::countOf(COVER_LIST) == 6);
+    CHECK(MaterialList::kinds(kalahari::test::book()).contains(COVER_LIST));
+    CHECK(MaterialList::countOf(kalahari::test::book(), COVER_LIST) == 6);
 
     test::Window window;
-    gui::MaterialListCoordinator lists(window.tabs, &window.navigator, &window.statusBar,
-                                       [](bool) {});
+    gui::MaterialListCoordinator lists(kalahari::test::book(), window.tabs, &window.navigator,
+                                       &window.statusBar, [](bool) {});
     MaterialListPanel* panel = lists.openList(COVER_LIST, false);
     REQUIRE(panel != nullptr);
 
@@ -268,8 +275,8 @@ TEST_CASE("Cover materials: a kind hidden in the Navigator, its list and Setting
     test::OpenNovel novel(QStringLiteral("Sand"));
     addCover(QStringLiteral("Description 1"), CoverMaterial::BLURB, CoverMaterial::BACK);
     test::Window window;
-    gui::MaterialListCoordinator lists(window.tabs, &window.navigator, &window.statusBar,
-                                       [](bool) {});
+    gui::MaterialListCoordinator lists(kalahari::test::book(), window.tabs, &window.navigator,
+                                       &window.statusBar, [](bool) {});
     MaterialListPanel* panel = lists.openList(COVER_LIST, false);
     REQUIRE(panel != nullptr);
     const auto kindNode = [&window]() -> QTreeWidgetItem* {
@@ -287,9 +294,9 @@ TEST_CASE("Cover materials: a kind hidden in the Navigator, its list and Setting
     lists.hideKind(COVER_LIST);
     settle();
     CHECK(MaterialList::isHidden(COVER_LIST));
-    CHECK_FALSE(MaterialList::kinds().contains(COVER_LIST));
-    CHECK(MaterialList::allKinds().contains(COVER_LIST));
-    CHECK(MaterialList::countOf(COVER_LIST) == 1);
+    CHECK_FALSE(MaterialList::kinds(kalahari::test::book()).contains(COVER_LIST));
+    CHECK(MaterialList::allKinds(kalahari::test::book()).contains(COVER_LIST));
+    CHECK(MaterialList::countOf(kalahari::test::book(), COVER_LIST) == 1);
     CHECK(kindNode() == nullptr);
     CHECK(window.statusBar.currentMessage().startsWith(
         QStringLiteral("The kind \"Cover\" is hidden.")));
@@ -297,7 +304,7 @@ TEST_CASE("Cover materials: a kind hidden in the Navigator, its list and Setting
     CHECK(panel->hiddenPage()->isVisibleTo(panel));
 
     // Settings > Navigator: the kind unchecked; checked, it comes back
-    gui::NavigatorPage page;
+    gui::NavigatorPage page(kalahari::test::book());
     page.load();
     auto* box = page.findChild<QCheckBox*>(QStringLiteral("navigatorKind_") + COVER_LIST);
     REQUIRE(box != nullptr);
@@ -346,7 +353,7 @@ TEST_CASE("Cover materials: the text, its counts and target, and the data on the
                                     CoverMaterial::BACK);
     REQUIRE(pm.setCoverState(second, QStringLiteral("chosen")));
 
-    gui::MaterialPage card(nullptr, true);
+    gui::MaterialPage card(kalahari::test::book(), nullptr, true);
     int changed = 0;
     QStringList messages;
     QObject::connect(&card, &gui::MaterialPage::changed, [&changed]() { ++changed; });
@@ -421,15 +428,15 @@ TEST_CASE("Cover materials: the text, its counts and target, and the data on the
     card.showMaterial(second);
     CHECK(card.targetLabel()->text() == QStringLiteral("target: up to 100 words"));
 
-    // Another material has its description
-    gui::MaterialPage other;
+    // Another material has its own group there: a quote, its words
+    gui::MaterialPage other(kalahari::test::book());
     core::NewMaterial quote;
     quote.title = QStringLiteral("Quote");
     const QString quoteId = pm.addMaterial(
         quote, pm.bookTypes().findKind(QStringLiteral("kalahari.base"), QStringLiteral("quote")));
     REQUIRE_FALSE(quoteId.isEmpty());
     other.showMaterial(quoteId);
-    CHECK(other.descriptionGroup()->title() == QStringLiteral("Description"));
+    CHECK(other.descriptionGroup()->title() == QStringLiteral("Quote"));
     CHECK_FALSE(other.coverGroup()->isVisibleTo(&other));
     CHECK_FALSE(other.countsLabel()->isVisibleTo(&other));
 }

@@ -233,6 +233,9 @@ else()
     endif()
 endif()
 
+# The preview of PDF files in the program: PDFium (KALAHARI_PDF_AVAILABLE, PDFium::pdfium)
+include("${CMAKE_SOURCE_DIR}/cmake/Pdfium.cmake")
+
 # Project version accessible in code; the suffix marks the release stage (empty for a final release)
 set(KALAHARI_VERSION_SUFFIX "alpha")
 if(KALAHARI_VERSION_SUFFIX)

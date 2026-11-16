@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_grammar.cpp
 /// @brief Grammar as you type in the editor: waves under the issues the writer's LanguageTool
 ///        server (a stand-in on localhost) finds in the paragraphs around the view, sent when
@@ -457,7 +460,7 @@ TEST_CASE("Grammar: the context menu of an issue", "[editor][grammar]") {
         CHECK_FALSE(grammar->isRuleIgnored(QStringLiteral("RULE_A")));
     }
 
-    SECTION("a misspelled word in a read-only text: Ignore All and Add to Dictionary greyed out, "
+    SECTION("a misspelled word in a read-only text: Ignore All and Add to Your Words greyed out, "
             "saying why") {
         SpellCheckService spelling;
         REQUIRE(spelling.loadDictionary(QStringLiteral("en_US")));
@@ -469,7 +472,7 @@ TEST_CASE("Grammar: the context menu of an issue", "[editor][grammar]") {
         editor->setCursorPosition({0, 17});
         const MenuSeen menu = contextMenuAtCursor(*editor);
         for (const QString& item :
-             {QStringLiteral("Ignore All"), QStringLiteral("Add to Dictionary")}) {
+             {QStringLiteral("Ignore All"), QStringLiteral("Add to Your Words (All Books)")}) {
             CAPTURE(item.toStdString());
             const auto at = menu.texts.indexOf(item);
             REQUIRE(at >= 0);
@@ -496,7 +499,7 @@ TEST_CASE("Grammar: the context menu of an issue", "[editor][grammar]") {
         REQUIRE(waitUntil([&editor]() { return !editor->isSpellCheckPending(); }, 20000));
         editor->setCursorPosition({0, 17});
         const MenuSeen menu = contextMenuAtCursor(*editor);
-        CHECK(menu.texts.contains(QStringLiteral("Add to Dictionary")));
+        CHECK(menu.texts.contains(QStringLiteral("Add to Your Words (All Books)")));
         CHECK_FALSE(menu.texts.contains(QStringLiteral("Ignore This Rule")));
         editor->setSpellCheckService(nullptr);
     }
@@ -548,7 +551,7 @@ TEST_CASE("Grammar: Next Spelling or Grammar Issue goes to the grammar issues to
         REQUIRE(editor->goToNextIssue() == BookEditor::IssueSearch::Found);
         CHECK(editor->selectedText() == QStringLiteral("dogz"));
         const MenuSeen menu = contextMenuAtCursor(*editor);
-        CHECK(menu.texts.contains(QStringLiteral("Add to Dictionary")));
+        CHECK(menu.texts.contains(QStringLiteral("Add to Your Words (All Books)")));
         CHECK_FALSE(menu.texts.contains(QStringLiteral("Ignore This Rule")));
 
         // Its grammar issue is passed over with it

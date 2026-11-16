@@ -473,7 +473,8 @@ comes back as a break where that format tells it apart from the end of a paragra
 | Plain text files (`.txt`) | A line end | As the plain text of the clipboard |
 | Grammar check (LanguageTool) | A line end | – |
 
-Export and import of other formats are not written yet; they are to keep a line break so:
+File > Export > DOCX and Markdown write a line break as the table says (see Export to DOCX and
+Markdown below); the other exports and the imports are not written yet and are to keep it so:
 
 | Format | Export | Import |
 |--------|--------|--------|
@@ -484,6 +485,37 @@ Export and import of other formats are not written yet; they are to keep a line 
 | InDesign ICML | The character U+2028 (a forced line break) | – |
 | LaTeX | `\\` at the end of the line | – |
 | Scrivener (RTF) | – | `\line` |
+
+## Export to DOCX and Markdown
+
+File > Export > DOCX and Markdown write the whole book, the texts chosen in the window, or the
+text in front (also a file outside the book), in the order of the Navigator, the open texts with
+their unsaved changes. Each text is read as the editor reads it, so lists, captions and notes have
+the numbers the editor shows, in the book around them. The window keeps its choices in the
+settings `export.*`; the page comes from Settings > Editor > Pages and Margins.
+
+| KML | DOCX (WordprocessingML) | Markdown (GitHub Flavored) |
+|-----|-------------------------|----------------------------|
+| A title of the Navigator (option) | A paragraph in the style of the title: `part_title` for a part, `chapter_title` for a text, `heading_1` where the book has none; a text that starts with a heading keeps its own, and the title page, copyright page, dedication and motto get none | `#` |
+| `heading_1`–`heading_3` and the styles based on them | Word's built-in Heading 1–3 (`Heading1`, `outlineLvl`), so Word's navigation pane and table of contents show them | `#`, `##`, `###` |
+| `normal`, `quote`, `caption`, `footnote` | Word's built-in Normal, Quote, Caption and Footnote Text, with the values of the book's styles | A paragraph; a quote as `>` |
+| Any other paragraph style | A style of the same name (id in PascalCase), based on its base style, with its next style | A paragraph; `code` as a fenced block |
+| A paragraph's own formatting | `w:pPr`: alignment, indents, spacing, line spacing, keep with next, keep lines together, page break before, widow control | – |
+| `<b>`, `<i>`, `<s>`, `<u>`, `<sub>`, `<sup>` | `w:b`, `w:i`, `w:strike`, `w:u`, `w:vertAlign` | `**`, `*`, `~~`, `<u>`, `<sub>`, `<sup>` (the spaces at the ends stay outside) |
+| Font, size, color, background, small capitals, letter spacing | `w:rFonts`, `w:sz`, `w:color`, `w:shd`, `w:smallCaps`, `w:spacing` | – |
+| `<a href>` | A hyperlink (web and e-mail addresses) | `[text](address)` |
+| A scene break | A centered paragraph with the symbol of Settings, a short line, or an empty paragraph | The same symbol (escaped); a short line as `---`, an empty line as `&nbsp;` |
+| A horizontal line | A paragraph with a bottom border | `---` |
+| A page break | The next paragraph starts a page (`w:pageBreakBefore`) | – |
+| A list | Word's numbering (`numbering.xml`): the level formats and bullets, the indents, an item's own number (`w:startOverride`) | `1.` and `-`, the levels indented; an item of its own number starts another list (`<!-- -->`) |
+| A table | `w:tbl`: its width and its columns' widths, merged cells (`w:gridSpan`, `w:vMerge`), header rows repeated (`w:tblHeader`), borders, cell backgrounds, row heights | A pipe table; a merged cell's text in its first column |
+| An image | An inline picture: the file as it is when the editor shows it so, else drawn with its crop, turn, mirror, filter, border and shadow (PNG, or JPEG for a photo); its alternative text, or decorative | `![alt](path)`, the files copied to "<name> – images" next to the file, or linked in the book's folder |
+| A caption's number, a cross-reference, the list of figures | The text the editor shows; a cross-reference and a row of the list link to the caption (a bookmark) | The text the editor shows |
+| A footnote, an endnote | Word's footnotes and endnotes, in the book's number formats, numbered anew in each text or through the book; endnotes after each text or at the end of the book | `[^label]`, the notes at the end of the file |
+| An annotation (option) | A Word comment with its author and date (a to-do done: resolved, `w15:done`); a to-do or a note starts with its kind | – |
+| The table of contents (an element of the book) | Word's TOC field (`TOC \o "1-3" \h \z \u`), filled with the headings; Word updates it when the file opens (`w:updateFields`) | A list of the headings with links to them |
+| The book's title, author and language | `docProps/core.xml` and the language of the text | – |
+| Each text (option) | A section of its own from a new page (a right page with mirror margins, unless the text starts on a left one) with the page size, margins and page numbers of the settings | – |
 
 ## Inline formatting
 
@@ -623,6 +655,41 @@ the element, written at the place of the number.
 - Copied, pasted or moved, a note goes with its number; deleting the number deletes the note.
   A note pasted into a text that already has its `id` gets a new one.
 
+## Fields
+
+```xml
+<p><field type="title" format="upper"/> – <field type="book-title"/>, <field type="author"/></p>
+<p>Page <field type="page"/> of <field type="pages" format="i"/>, <field type="words"/> words,
+<field type="date" format="iso"/></p>
+```
+
+A **field** shows a value that changes by itself (Insert > Field..., and Insert > Date &
+Time... with Update Automatically). Like a caption's number it is one character of its
+paragraph, on the gray background of the fields, inside the formatting elements of its place;
+it has no text of its own in the file and adds nothing to the word and character counts.
+
+| `type` | What it shows | `format` (the first without it) |
+|--------|---------------|---------------------------------|
+| `book-title` | The title of the book (the Properties panel) | none, `upper` (in capitals) |
+| `author` | The author of the book | none, `upper` |
+| `title` | The title of the text it is in (its name in the Navigator; the name of a file outside the book) | none, `upper` |
+| `page` | The page it is on, from 1 in each text | `1`, `i`, `I` |
+| `pages` | The pages of the text | `1`, `i`, `I` |
+| `words` | The words of the text, as the status bar counts them | none (grouped in the book's language: `12 345`), `plain` (`12345`) |
+| `date` | Today's date or the time, in the book's language | `long` (`11 October 2026`), `short` (`11.10.2026` in Polish), `full` (with the day of the week), `iso` (`2026-10-11`), `time` (`14:35`), `date-time` (`11.10.2026, 14:35`) |
+
+- A field of an unknown `type` is left out; an unknown `format` is read as the type's first. The
+  editor writes the format only when it is not the type's first.
+- The page and the page count show in the Page Layout view; the continuous views show `#`. A
+  book's title or author it does not have yet shows its name in brackets (`[Book Title]`). A
+  text outside a book has no book's values, and its dates are in the program's language.
+- The date is that of when the text was opened or brought to the front: it changes when the
+  text is opened on another day. The word count follows the text when the typing pauses.
+- Edit Field... (the context menu of a field, a double click) changes it; Convert to Text puts
+  the text it shows in its place. A plain text file (`.txt`) keeps no fields; the date goes in
+  as text.
+- The gray background can be turned off (Settings > Editor > General, `editor.fieldShading`).
+
 ## The clipboard of other programs
 
 The clipboard gives other programs HTML and plain text of the copied KML, and HTML of other
@@ -643,7 +710,7 @@ tests in `tests/editor/test_clipboard_paste.cpp`, the notes in
 | `caps`, `spacing` | CSS `font-variant:small-caps` or `text-transform:uppercase`, `letter-spacing` in points | – |
 | `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
 | `<table>` | `<table>` as wide as the text with a thin grid (`border="1"`, `border-collapse:collapse`), the header row in a `<thead>` of `<th>` cells, `colspan` and `rowspan`, the widths of the columns on the cells of the first row | A line for each row, its cells separated by tabs (one also for a cell that a cell above spans into), the paragraphs of a cell by spaces |
-| `<caption-number>`, `<cross-reference>` | The text it shows | The text it shows |
+| `<caption-number>`, `<cross-reference>`, `<field>` | The text it shows | The text it shows |
 | `<footnote>`, `<endnote>` | The number as the editor shows it, raised, a link to the note's text after the text, as LibreOffice writes it: `<a class="sdfootnoteanc" name="sdfootnote1anc" href="#sdfootnote1sym"><sup>1</sup></a>` and `<div id="sdfootnote1"><p><a class="sdfootnotesym" name="sdfootnote1sym" href="#sdfootnote1anc">1</a>Its text</p></div>` (`sdendnote` for an endnote), the footnotes first | The number in the text; after the text and an empty line each note on a line after its number, the footnotes first |
 | `<list-of-figures/>` | A paragraph for each of its lines | Each of its lines on a line |
 | `<img>` | `<img>` with the address of its file (`file:`), its `alt` and its width as CSS `width` (`80%`, `4.5cm`); left out when the text has no folder or its `src` is not one of the book's files. An image copied alone is also on the clipboard as a picture | Left out |

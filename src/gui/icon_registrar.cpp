@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file icon_registrar.cpp
 /// @brief Application icon registration with IconRegistry
 ///
@@ -75,6 +78,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.findPrevious", "resources/icons/twotone/navigate_before.svg", "Find Previous");
     iconRegistry.registerIcon("edit.findReplace", "resources/icons/twotone/find_replace.svg", "Find & Replace");
     iconRegistry.registerIcon("edit.findInBook", "resources/icons/twotone/search.svg", "Find in Book");
+    iconRegistry.registerIcon("edit.goTo", "resources/icons/twotone/arrow_forward.svg", "Go To");
     iconRegistry.registerIcon("edit.nextTodo", "resources/icons/twotone/navigate_next.svg", "Next To Do");
     iconRegistry.registerIcon("edit.previousTodo", "resources/icons/twotone/navigate_before.svg", "Previous To Do");
     iconRegistry.registerIcon("edit.preferences", "resources/icons/twotone/settings.svg", "Preferences");
@@ -93,6 +97,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("book.newTimeline", "resources/icons/twotone/timeline.svg", "New Timeline");
     iconRegistry.registerIcon("book.chapterBreak", "resources/icons/twotone/horizontal_split.svg", "Chapter Break");
     iconRegistry.registerIcon("book.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Scene Break");
+    iconRegistry.registerIcon("book.dictionary", "resources/icons/twotone/abc.svg", "Book Dictionary");
     iconRegistry.registerIcon("book.properties", "resources/icons/twotone/tune.svg", "Book Properties");
 
     // -------------------------------------------------------------------------
@@ -116,6 +121,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("insert.quickInsert", "resources/icons/twotone/text_snippet.svg", "Quick Insert");
     iconRegistry.registerIcon("insert.dateTime", "resources/icons/twotone/schedule.svg", "Insert Date/Time");
     iconRegistry.registerIcon("insert.field", "resources/icons/twotone/data_object.svg", "Insert Field");
+    iconRegistry.registerIcon("insert.date", "resources/icons/twotone/event.svg", "Today's Date as Text");
+    iconRegistry.registerIcon("insert.time", "resources/icons/twotone/schedule.svg", "Current Time as Text");
     iconRegistry.registerIcon("insert.horizontalLine", "resources/icons/twotone/horizontal_rule.svg", "Insert Horizontal Line");
     iconRegistry.registerIcon("insert.sceneBreak", "resources/icons/twotone/more_horiz.svg", "Insert Scene Break");
     iconRegistry.registerIcon("insert.pageBreak", "resources/icons/twotone/horizontal_split.svg", "Insert Page Break");
@@ -320,6 +327,7 @@ void registerAllIcons() {
     // -------------------------------------------------------------------------
     // WINDOW MENU ICONS (DocumentWindows)
     // -------------------------------------------------------------------------
+    iconRegistry.registerIcon("window.new", "resources/icons/twotone/open_in_new.svg", "New Window");
     iconRegistry.registerIcon("window.moveTabToNewWindow", "resources/icons/twotone/move_to_end.svg", "Move Tab to New Window");
     iconRegistry.registerIcon("window.returnTab", "resources/icons/twotone/move_to_start.svg", "Return Tab to Book Window");
     iconRegistry.registerIcon("window.next", "resources/icons/twotone/navigate_next.svg", "Next Window");
@@ -447,6 +455,18 @@ void registerAllIcons() {
     iconRegistry.registerIcon("action.delete", "resources/icons/twotone/delete.svg", "Delete");
     iconRegistry.registerIcon("common.firstPage", "resources/icons/twotone/first_page.svg", "First Page");
     iconRegistry.registerIcon("common.lastPage", "resources/icons/twotone/last_page.svg", "Last Page");
+    // The preview of a PDF file: its bar, its side panel and the commands of a selection
+    iconRegistry.registerIcon("material.pdf", "resources/icons/twotone/picture_as_pdf.svg", "PDF File");
+    iconRegistry.registerIcon("pdf.sidePanel", "resources/icons/twotone/view_sidebar.svg", "Side Panel");
+    iconRegistry.registerIcon("pdf.layoutContinuous", "resources/icons/twotone/view_agenda.svg", "Pages One under Another");
+    iconRegistry.registerIcon("pdf.layoutSingle", "resources/icons/twotone/description.svg", "One Page at a Time");
+    iconRegistry.registerIcon("pdf.layoutTwo", "resources/icons/twotone/import_contacts.svg", "Two Pages Side by Side");
+    iconRegistry.registerIcon("pdf.bookmarks", "resources/icons/twotone/bookmark.svg", "Bookmarks");
+    iconRegistry.registerIcon("pdf.contents", "resources/icons/twotone/toc.svg", "Contents");
+    iconRegistry.registerIcon("pdf.thumbnails", "resources/icons/twotone/grid_view.svg", "Thumbnails");
+    iconRegistry.registerIcon("pdf.results", "resources/icons/twotone/search.svg", "Search Results");
+    iconRegistry.registerIcon("pdf.quote", "resources/icons/twotone/format_quote.svg", "Create Quote");
+    iconRegistry.registerIcon("pdf.card", "resources/icons/twotone/edit.svg", "Material Card");
     iconRegistry.registerIcon("common.sort", "resources/icons/twotone/sort.svg", "Sort");
     iconRegistry.registerIcon("common.filterList", "resources/icons/twotone/filter_list.svg", "Filter");
     iconRegistry.registerIcon("common.lock", "resources/icons/twotone/lock.svg", "Lock");
