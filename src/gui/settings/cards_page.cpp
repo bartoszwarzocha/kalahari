@@ -120,7 +120,7 @@ void CardsPage::addNavigatorGroup() {
     QFormLayout* navigator = addGroup(tr("Navigator"));
     //: The locations in the Navigator, each under the location it is part of. In Polish:
     //: Drzewo według miejsca nadrzędnego
-    m_tree = new QRadioButton(tr("A tree: each location under the one it is part of"));
+    m_tree = new QRadioButton(tr("A tree by parent location"));
     m_tree->setObjectName(QStringLiteral("cardsNavigatorTree"));
     //: In Polish: Lista alfabetyczna
     m_list = new QRadioButton(tr("An alphabetical list"));

@@ -27877,7 +27877,7 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <translation>Nawigator</translation>
     </message>
     <message>
-        <source>A tree: each location under the one it is part of</source>
+        <source>A tree by parent location</source>
         <extracomment>The locations in the Navigator, each under the location it is part of. In Polish: Drzewo według miejsca nadrzędnego</extracomment>
         <translation>Drzewo według miejsca nadrzędnego</translation>
     </message>

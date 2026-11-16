@@ -58,7 +58,6 @@ set(KALAHARI_CORE_SOURCES
     core/package_json.cpp       # The parts of booktype.json that its readers share
     core/card_package.cpp       # The fields of the kinds of cards and the relations of a package
     core/card_names.cpp         # The names of the cards in the book's dictionary
-    core/card_relations.cpp     # The relations between the cards of a book
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/affix_expander.cpp     # The forms a Hunspell dictionary gives its words
@@ -172,6 +171,7 @@ set(KALAHARI_SOURCES
     core/resource_paths.cpp # ResourcePaths - Platform-aware resource locator (OpenSpec #00029)
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
+    core/card_relations.cpp # The relations between the cards of a book (uses ProjectManager)
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
