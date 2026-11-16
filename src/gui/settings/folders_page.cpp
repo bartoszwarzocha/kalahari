@@ -27,6 +27,13 @@ namespace gui {
 
 using json = nlohmann::json;
 
+namespace {
+
+/// @brief The fewest characters the list of the place of the backups shows
+constexpr int MIN_CHOICE_CHARACTERS = 14;
+
+}  // namespace
+
 FoldersPage::FoldersPage(QWidget* parent)
     : SettingsPage(parent)
 {
@@ -53,6 +60,10 @@ FoldersPage::FoldersPage(QWidget* parent)
                                {tr("In one folder for all books"), true, QString()}},
                               std::string());
     m_backupPlace->setObjectName(QStringLiteral("backupsPlace"));
+    // Its longest choice does not widen the page in the narrowest window, also where the
+    // style draws the lists wider (macOS)
+    m_backupPlace->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_backupPlace->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
 
     m_backupFolder = new FolderField();
     m_backupFolder->setObjectName(QStringLiteral("backupFolder"));
