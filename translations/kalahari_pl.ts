@@ -9981,6 +9981,11 @@ Szczegóły są w dzienniku programu.</translation>
         <extracomment>%1: the page the writer asked for. In Polish: W pliku nie ma strony %1</extracomment>
         <translation>W pliku nie ma strony %1</translation>
     </message>
+    <message>
+        <source>The program does not have an editor for the {kind} yet.</source>
+        <extracomment>The status bar, when an element of the Workshop has no editor in the program. In Polish: Program nie ma jeszcze edytora {kind:genitive}.</extracomment>
+        <translation>Program nie ma jeszcze edytora {kind:genitive}.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::NavigatorPage</name>
@@ -28205,6 +28210,2181 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <source>Relation Not Saved</source>
         <extracomment>In Polish: Nie zapisano relacji</extracomment>
         <translation>Nie zapisano relacji</translation>
+    </message>
+</context>
+<context>
+    <name>MindMapMenus</name>
+    <message>
+        <source>Markers</source>
+        <extracomment>In the menu of a node of a mind map. In Polish: Znaczniki</extracomment>
+        <translation>Znaczniki</translation>
+    </message>
+    <message>
+        <source>Question</source>
+        <extracomment>A marker of a node. In Polish: Pytanie</extracomment>
+        <translation>Pytanie</translation>
+    </message>
+    <message>
+        <source>Important</source>
+        <extracomment>A marker of a node. In Polish: Ważne</extracomment>
+        <translation>Ważne</translation>
+    </message>
+    <message>
+        <source>Idea</source>
+        <extracomment>A marker of a node. In Polish: Pomysł</extracomment>
+        <translation>Pomysł</translation>
+    </message>
+    <message>
+        <source>Done</source>
+        <extracomment>A marker of a node. In Polish: Zrobione</extracomment>
+        <translation>Zrobione</translation>
+    </message>
+    <message>
+        <source>To check</source>
+        <extracomment>A marker of a node. In Polish: Do sprawdzenia</extracomment>
+        <translation>Do sprawdzenia</translation>
+    </message>
+    <message>
+        <source>Color of the branch</source>
+        <extracomment>In the menu of a node of a mind map. In Polish: Kolor gałęzi</extracomment>
+        <translation>Kolor gałęzi</translation>
+    </message>
+    <message>
+        <source>From its branch</source>
+        <extracomment>The color of a branch: the one it takes from the branch above. In Polish: Z gałęzi</extracomment>
+        <translation>Z gałęzi</translation>
+    </message>
+    <message>
+        <source>Color %1</source>
+        <extracomment>A color of the palette of the branches. In Polish: Kolor %1</extracomment>
+        <translation>Kolor %1</translation>
+    </message>
+    <message>
+        <source>The main topic stays: it is the title of the map. Delete its branches, or the whole map in the Navigator.</source>
+        <extracomment>In Polish: Temat główny zostaje: to tytuł mapy. Usuń jego gałęzie albo całą mapę w Nawigatorze.</extracomment>
+        <translation>Temat główny zostaje: to tytuł mapy. Usuń jego gałęzie albo całą mapę w Nawigatorze.</translation>
+    </message>
+    <message>
+        <source>Deleted “%1”.</source>
+        <extracomment>In Polish: Usunięto „%1”.</extracomment>
+        <translation>Usunięto „%1”.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Deleted “%1” with its branch: %n node(s).</source>
+        <extracomment>In Polish: Usunięto „%1” z gałęzią: %n węzeł / węzły / węzłów.</extracomment>
+        <translation>
+            <numerusform>Usunięto „%1” z gałęzią: %n węzeł.</numerusform>
+            <numerusform>Usunięto „%1” z gałęzią: %n węzły.</numerusform>
+            <numerusform>Usunięto „%1” z gałęzią: %n węzłów.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>Copied “%1” as an outline: %n line(s).</source>
+        <extracomment>In Polish: Skopiowano „%1” jako listę z wcięciami: %n wiersz / wiersze / wierszy.</extracomment>
+        <translation>
+            <numerusform>Skopiowano „%1” jako listę z wcięciami: %n wiersz.</numerusform>
+            <numerusform>Skopiowano „%1” jako listę z wcięciami: %n wiersze.</numerusform>
+            <numerusform>Skopiowano „%1” jako listę z wcięciami: %n wierszy.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>pasting</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: wklejenie</extracomment>
+        <translation>wklejenie</translation>
+    </message>
+    <message numerus="yes">
+        <source>Pasted into “%1”: %n node(s).</source>
+        <extracomment>In Polish: Wklejono do „%1”: %n węzeł / węzły / węzłów.</extracomment>
+        <translation>
+            <numerusform>Wklejono do „%1”: %n węzeł.</numerusform>
+            <numerusform>Wklejono do „%1”: %n węzły.</numerusform>
+            <numerusform>Wklejono do „%1”: %n węzłów.</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>TimelineEdits</name>
+    <message>
+        <source>adding an event</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: dodanie wydarzenia</extracomment>
+        <translation>dodanie wydarzenia</translation>
+    </message>
+    <message>
+        <source>Added an event. Type its title and press Enter; its time, characters and chapters are in the window “Event” (Enter).</source>
+        <extracomment>In Polish: Dodano wydarzenie. Wpisz tytuł i naciśnij Enter; czas, postacie i rozdziały ustawisz w oknie „Wydarzenie” (Enter).</extracomment>
+        <translation>Dodano wydarzenie. Wpisz tytuł i naciśnij Enter; czas, postacie i rozdziały ustawisz w oknie „Wydarzenie” (Enter).</translation>
+    </message>
+    <message>
+        <source>Added an event. Type its title and press Enter; the window “Event” (Enter) has the other fields.</source>
+        <extracomment>%1: when it is. In Polish: Dodano wydarzenie – %1. Wpisz tytuł i naciśnij Enter; resztę pól ma okno „Wydarzenie” (Enter).</extracomment>
+        <translation>Dodano wydarzenie. Wpisz tytuł i naciśnij Enter; resztę pól ma okno „Wydarzenie” (Enter).</translation>
+    </message>
+    <message>
+        <source>Added an event – %1. Type its title and press Enter; the window “Event” (Enter) has the other fields.</source>
+        <translation>Dodano wydarzenie – %1. Wpisz tytuł i naciśnij Enter; resztę pól ma okno „Wydarzenie” (Enter).</translation>
+    </message>
+    <message>
+        <source>deleting %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: usunięcie „%1”</extracomment>
+        <translation>usunięcie %1</translation>
+    </message>
+    <message>
+        <source>Deleted the event %1.</source>
+        <extracomment>In Polish: Usunięto wydarzenie „%1”.</extracomment>
+        <translation>Usunięto wydarzenie %1.</translation>
+    </message>
+    <message>
+        <source>a place</source>
+        <extracomment>Ctrl+Left and Ctrl+Right move an event by... In Polish: jedno miejsce</extracomment>
+        <translation>jedno miejsce</translation>
+    </message>
+    <message>
+        <source>a day</source>
+        <extracomment>In Polish: dzień</extracomment>
+        <translation>dzień</translation>
+    </message>
+    <message>
+        <source>a month</source>
+        <extracomment>In Polish: miesiąc / rok</extracomment>
+        <translation>miesiąc</translation>
+    </message>
+    <message>
+        <source>a year</source>
+        <translation>rok</translation>
+    </message>
+    <message>
+        <source>moving %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: przesunięcie „%1”</extracomment>
+        <translation>przesunięcie %1</translation>
+    </message>
+    <message>
+        <source>This is the first event.</source>
+        <extracomment>In Polish: To już pierwsze wydarzenie. / To już ostatnie wydarzenie.</extracomment>
+        <translation>To już pierwsze wydarzenie.</translation>
+    </message>
+    <message>
+        <source>This is the last event.</source>
+        <translation>To już ostatnie wydarzenie.</translation>
+    </message>
+    <message>
+        <source>%1 is now %2. in the order.</source>
+        <extracomment>In Polish: „%1” jest teraz %2. w kolejności.</extracomment>
+        <translation>%1 jest teraz %2. w kolejności.</translation>
+    </message>
+    <message>
+        <source>This event has no time yet. Give it one in the window “Event” (Enter), or drag the event onto the axis.</source>
+        <extracomment>In Polish: To wydarzenie nie ma jeszcze czasu. Wpisz go w oknie „Wydarzenie” (Enter) albo przeciągnij wydarzenie na oś.</extracomment>
+        <translation>To wydarzenie nie ma jeszcze czasu. Wpisz go w oknie „Wydarzenie” (Enter) albo przeciągnij wydarzenie na oś.</translation>
+    </message>
+    <message>
+        <source>Moved %1: %2.</source>
+        <translation>Przesunięto %1: %2.</translation>
+    </message>
+    <message>
+        <source>With one lane an event has nowhere to go. Choose lanes of threads, characters or places.</source>
+        <extracomment>In Polish: Przy jednym paśmie wydarzenie nie ma dokąd przejść. Wybierz pasma według wątków, postaci albo miejsc.</extracomment>
+        <translation>Przy jednym paśmie wydarzenie nie ma dokąd przejść. Wybierz pasma według wątków, postaci albo miejsc.</translation>
+    </message>
+    <message>
+        <source>%1 is already in this event.</source>
+        <extracomment>In Polish: %1 już jest w tym wydarzeniu.</extracomment>
+        <translation>%1 już jest w tym wydarzeniu.</translation>
+    </message>
+    <message>
+        <source>moving %1 to another lane</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: przeniesienie „%1” do innego pasma</extracomment>
+        <translation>przeniesienie %1 do innego pasma</translation>
+    </message>
+    <message>
+        <source>%1 is now in the lane %2.</source>
+        <extracomment>In Polish: „%1” – teraz w paśmie „%2”.</extracomment>
+        <translation>%1 – teraz w paśmie %2.</translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <extracomment>In the menu of an event of a timeline. In Polish: Kolor</extracomment>
+        <translation>Kolor</translation>
+    </message>
+    <message>
+        <source>The color of its thread</source>
+        <extracomment>The color of an event: that of its thread. In Polish: Kolor wątku</extracomment>
+        <translation>Kolor wątku</translation>
+    </message>
+    <message>
+        <source>changing the color of an event</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana koloru wydarzenia</extracomment>
+        <translation>zmiana koloru wydarzenia</translation>
+    </message>
+    <message>
+        <source>Color %1</source>
+        <extracomment>A color of the palette of the threads. In Polish: Kolor %1</extracomment>
+        <translation>Kolor %1</translation>
+    </message>
+    <message>
+        <source>“%1”</source>
+        <extracomment>A title in quotes. In Polish: „%1”</extracomment>
+        <translation>„%1”</translation>
+    </message>
+</context>
+<context>
+    <name>TimelineScene</name>
+    <message>
+        <source>days %1 … %2</source>
+        <extracomment>The upper row of the axis of a timeline in days of the story. In Polish: dni %1 … %2</extracomment>
+        <translation>dni %1 … %2</translation>
+    </message>
+    <message>
+        <source>%1 (%2) – drag onto the axis or give a time:</source>
+        <extracomment>Before the events of a timeline without a time. %1: the tray; %2: how many. In Polish: %1 (%2) – przeciągnij na oś albo wpisz czas:</extracomment>
+        <translation>%1 (%2) – przeciągnij na oś albo wpisz czas:</translation>
+    </message>
+</context>
+<context>
+    <name>TimelineWords</name>
+    <message>
+        <source>%1. in the order of the story; the label is any text.</source>
+        <extracomment>The note under the field &quot;When&quot; in the order of the story. In Polish: %1. w kolejności opowieści; podpis to dowolny tekst.</extracomment>
+        <translation>%1. w kolejności opowieści; podpis to dowolny tekst.</translation>
+    </message>
+    <message>
+        <source>No time – the event waits in “%1”.</source>
+        <extracomment>In Polish: Bez czasu – wydarzenie czeka na pasku „%1”.</extracomment>
+        <translation>Bez czasu – wydarzenie czeka na pasku „%1”.</translation>
+    </message>
+    <message>
+        <source>Not recognized – the event waits in “%1”. Examples: %2.</source>
+        <extracomment>In Polish: Nie rozpoznano – wydarzenie czeka na pasku „%1”. Przykłady: %2.</extracomment>
+        <translation>Nie rozpoznano – wydarzenie czeka na pasku „%1”. Przykłady: %2.</translation>
+    </message>
+    <message>
+        <source>Recognized: %1.</source>
+        <extracomment>The note under the field &quot;When&quot;. %1: the time; %2: the same time in days of the story or in dates. In Polish: Rozpoznano: %1 – %2.</extracomment>
+        <translation>Rozpoznano: %1.</translation>
+    </message>
+    <message>
+        <source>Recognized: %1 – %2.</source>
+        <translation>Rozpoznano: %1 – %2.</translation>
+    </message>
+    <message>
+        <source>no time</source>
+        <extracomment>An event of a timeline without a time. In Polish: bez czasu</extracomment>
+        <translation>bez czasu</translation>
+    </message>
+    <message>
+        <source>New event</source>
+        <extracomment>The title of a new event of a timeline. In Polish: Nowe wydarzenie</extracomment>
+        <translation>Nowe wydarzenie</translation>
+    </message>
+    <message>
+        <source>“14 April 1931, in the morning”, “March 1931”, “16–17 April 1931”, “Day 3, night”, “Days 5–7”, “about 1931”</source>
+        <extracomment>Times the program reads; keep the quotes. In Polish: „14 kwietnia 1931, rano”, „marzec 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „Dni 5–7”, „ok. 1931”</extracomment>
+        <translation>„14 kwietnia 1931, rano”, „marzec 1931”, „16–17 kwietnia 1931”, „Dzień 3, noc”, „Dni 5–7”, „ok. 1931”</translation>
+    </message>
+    <message>
+        <source>Not on the axis</source>
+        <extracomment>The tray of the events of a timeline without a time. In Polish: Bez miejsca na osi</extracomment>
+        <translation>Bez miejsca na osi</translation>
+    </message>
+    <message>
+        <source>Without a thread</source>
+        <extracomment>A lane of a timeline. In Polish: Bez wątku</extracomment>
+        <translation>Bez wątku</translation>
+    </message>
+    <message>
+        <source>Without characters</source>
+        <extracomment>A lane of a timeline. In Polish: Bez postaci</extracomment>
+        <translation>Bez postaci</translation>
+    </message>
+    <message>
+        <source>Without a place</source>
+        <extracomment>A lane of a timeline. In Polish: Bez miejsca</extracomment>
+        <translation>Bez miejsca</translation>
+    </message>
+    <message>
+        <source>All events</source>
+        <extracomment>The one lane of a timeline. In Polish: Wszystkie wydarzenia</extracomment>
+        <translation>Wszystkie wydarzenia</translation>
+    </message>
+    <message>
+        <source>thread</source>
+        <extracomment>Under the name of a lane of a timeline. In Polish: wątek</extracomment>
+        <translation>wątek</translation>
+    </message>
+    <message>
+        <source>character</source>
+        <extracomment>Under the name of a lane of a timeline. In Polish: postać</extracomment>
+        <translation>postać</translation>
+    </message>
+    <message>
+        <source>place</source>
+        <extracomment>Under the name of a lane of a timeline. In Polish: miejsce</extracomment>
+        <translation>miejsce</translation>
+    </message>
+    <message>
+        <source>Dates</source>
+        <extracomment>A scale of a timeline: days of the calendar. In Polish: Daty</extracomment>
+        <translation>Daty</translation>
+    </message>
+    <message>
+        <source>Days of the story</source>
+        <extracomment>A scale of a timeline: days counted from day one. In Polish: Dni opowieści</extracomment>
+        <translation>Dni opowieści</translation>
+    </message>
+    <message>
+        <source>Order</source>
+        <extracomment>A scale of a timeline: the order of the story. In Polish: Kolejność</extracomment>
+        <translation>Kolejność</translation>
+    </message>
+    <message>
+        <source>Threads</source>
+        <extracomment>The lanes of a timeline. In Polish: Wątki</extracomment>
+        <translation>Wątki</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <extracomment>The lanes of a timeline. In Polish: Postacie</extracomment>
+        <translation>Postacie</translation>
+    </message>
+    <message>
+        <source>Places</source>
+        <extracomment>The lanes of a timeline. In Polish: Miejsca</extracomment>
+        <translation>Miejsca</translation>
+    </message>
+    <message>
+        <source>One lane</source>
+        <extracomment>The lanes of a timeline: one for all. In Polish: Jedno pasmo</extracomment>
+        <translation>Jedno pasmo</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ElementChoiceDialog</name>
+    <message>
+        <source>Search the titles</source>
+        <extracomment>The field above the list of the window that chooses an element. In Polish: Szukaj w tytułach</extracomment>
+        <translation>Szukaj w tytułach</translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <extracomment>In Polish: Filtr</extracomment>
+        <translation>Filtr</translation>
+    </message>
+    <message>
+        <source>Elements of the book</source>
+        <extracomment>In Polish: Elementy książki</extracomment>
+        <translation>Elementy książki</translation>
+    </message>
+    <message>
+        <source>Book</source>
+        <extracomment>The node of the book in the window that chooses an element. In Polish: Książka</extracomment>
+        <translation>Książka</translation>
+    </message>
+    <message>
+        <source>Workshop</source>
+        <extracomment>The node of the Workshop in the window that chooses an element. In Polish: Warsztat</extracomment>
+        <translation>Warsztat</translation>
+    </message>
+    <message>
+        <source>Choose</source>
+        <extracomment>The button of the window that chooses an element. In Polish: Wybierz</extracomment>
+        <translation>Wybierz</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::MindMapDocument</name>
+    <message>
+        <source>adding a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: dodanie węzła</extracomment>
+        <translation>dodanie węzła</translation>
+    </message>
+    <message>
+        <source>adding a loose node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: dodanie luźnego węzła</extracomment>
+        <translation>dodanie luźnego węzła</translation>
+    </message>
+    <message>
+        <source>deleting a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: usunięcie węzła</extracomment>
+        <translation>usunięcie węzła</translation>
+    </message>
+    <message>
+        <source>changing the text of a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana tekstu węzła</extracomment>
+        <translation>zmiana tekstu węzła</translation>
+    </message>
+    <message>
+        <source>collapsing a branch</source>
+        <translation>zwinięcie gałęzi</translation>
+    </message>
+    <message>
+        <source>expanding a branch</source>
+        <translation>rozwinięcie gałęzi</translation>
+    </message>
+    <message>
+        <source>changing the markers</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana znaczników</extracomment>
+        <translation>zmiana znaczników</translation>
+    </message>
+    <message>
+        <source>changing the color of a branch</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana koloru gałęzi</extracomment>
+        <translation>zmiana koloru gałęzi</translation>
+    </message>
+    <message>
+        <source>changing the note</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana notatki</extracomment>
+        <translation>zmiana notatki</translation>
+    </message>
+    <message>
+        <source>changing the linked element</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana powiązania z elementem</extracomment>
+        <translation>zmiana powiązania z elementem</translation>
+    </message>
+    <message>
+        <source>moving a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: przeniesienie węzła</extracomment>
+        <translation>przeniesienie węzła</translation>
+    </message>
+    <message>
+        <source>detaching a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: odłączenie węzła od gałęzi</extracomment>
+        <translation>odłączenie węzła od gałęzi</translation>
+    </message>
+    <message>
+        <source>connecting nodes</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: połączenie węzłów</extracomment>
+        <translation>połączenie węzłów</translation>
+    </message>
+    <message>
+        <source>changing the label of a connection</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana podpisu połączenia</extracomment>
+        <translation>zmiana podpisu połączenia</translation>
+    </message>
+    <message>
+        <source>reversing a connection</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: odwrócenie połączenia</extracomment>
+        <translation>odwrócenie połączenia</translation>
+    </message>
+    <message>
+        <source>deleting a connection</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: usunięcie połączenia</extracomment>
+        <translation>usunięcie połączenia</translation>
+    </message>
+    <message>
+        <source>changing the layout</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: zmiana układu mapy</extracomment>
+        <translation>zmiana układu mapy</translation>
+    </message>
+    <message>
+        <source>pasting</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: wklejenie</extracomment>
+        <translation>wklejenie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::MindMapEditor</name>
+    <message>
+        <source>(a deleted element)</source>
+        <extracomment>A node about an element of the book that was deleted. In Polish: (element usunięty)</extracomment>
+        <translation>(element usunięty)</translation>
+    </message>
+    <message>
+        <source>Undone: %1.</source>
+        <translation>Cofnięto: %1.</translation>
+    </message>
+    <message>
+        <source>The map could not be saved: %1</source>
+        <extracomment>In Polish: Nie udało się zapisać mapy: %1</extracomment>
+        <translation>Nie udało się zapisać mapy: %1</translation>
+    </message>
+    <message>
+        <source>Map</source>
+        <extracomment>The view of a mind map: its nodes and lines. In Polish: Mapa</extracomment>
+        <translation>Mapa</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <extracomment>The view of a mind map: an outline. In Polish: Lista</extracomment>
+        <translation>Lista</translation>
+    </message>
+    <message>
+        <source>View:</source>
+        <extracomment>In the bar of a mind map. In Polish: Widok:</extracomment>
+        <translation>Widok:</translation>
+    </message>
+    <message>
+        <source>Both sides</source>
+        <extracomment>A layout of a mind map. In Polish: Na obie strony</extracomment>
+        <translation>Na obie strony</translation>
+    </message>
+    <message>
+        <source>To the right</source>
+        <extracomment>A layout of a mind map. In Polish: W prawo</extracomment>
+        <translation>W prawo</translation>
+    </message>
+    <message>
+        <source>Down</source>
+        <extracomment>A layout of a mind map: a tree going down. In Polish: W dół</extracomment>
+        <translation>W dół</translation>
+    </message>
+    <message>
+        <source>Free</source>
+        <extracomment>A layout of a mind map: where the writer puts the nodes. In Polish: Swobodny</extracomment>
+        <translation>Swobodny</translation>
+    </message>
+    <message>
+        <source>Layout:</source>
+        <extracomment>In the bar of a mind map. In Polish: Układ:</extracomment>
+        <translation>Układ:</translation>
+    </message>
+    <message>
+        <source>The layout of the map: %1.</source>
+        <extracomment>In Polish: Układ mapy: %1.</extracomment>
+        <translation>Układ mapy: %1.</translation>
+    </message>
+    <message>
+        <source>nothing</source>
+        <extracomment>Highlight in a mind map: nothing. In Polish: nic</extracomment>
+        <translation>nic</translation>
+    </message>
+    <message>
+        <source>questions</source>
+        <extracomment>Highlight in a mind map: the nodes with this marker. In Polish: pytania</extracomment>
+        <translation>pytania</translation>
+    </message>
+    <message>
+        <source>important</source>
+        <extracomment>Highlight in a mind map. In Polish: ważne</extracomment>
+        <translation>ważne</translation>
+    </message>
+    <message>
+        <source>ideas</source>
+        <extracomment>Highlight in a mind map. In Polish: pomysły</extracomment>
+        <translation>pomysły</translation>
+    </message>
+    <message>
+        <source>done</source>
+        <extracomment>Highlight in a mind map. In Polish: zrobione</extracomment>
+        <translation>zrobione</translation>
+    </message>
+    <message>
+        <source>to check</source>
+        <extracomment>Highlight in a mind map. In Polish: do sprawdzenia</extracomment>
+        <translation>do sprawdzenia</translation>
+    </message>
+    <message>
+        <source>about elements of the book</source>
+        <extracomment>Highlight in a mind map. In Polish: o elementach książki</extracomment>
+        <translation>o elementach książki</translation>
+    </message>
+    <message>
+        <source>with a note</source>
+        <extracomment>Highlight in a mind map. In Polish: z notatką</extracomment>
+        <translation>z notatką</translation>
+    </message>
+    <message>
+        <source>Highlight:</source>
+        <extracomment>In the bar of a mind map. In Polish: Wyróżnij:</extracomment>
+        <translation>Wyróżnij:</translation>
+    </message>
+    <message>
+        <source>Zoom Out (Ctrl+-)</source>
+        <extracomment>In Polish: Pomniejsz (Ctrl+−)</extracomment>
+        <translation>Pomniejsz (Ctrl+−)</translation>
+    </message>
+    <message>
+        <source>Zoom Out</source>
+        <extracomment>In Polish: Pomniejsz</extracomment>
+        <translation>Pomniejsz</translation>
+    </message>
+    <message>
+        <source>Zoom In (Ctrl++)</source>
+        <extracomment>In Polish: Powiększ (Ctrl++)</extracomment>
+        <translation>Powiększ (Ctrl++)</translation>
+    </message>
+    <message>
+        <source>Zoom In</source>
+        <extracomment>In Polish: Powiększ</extracomment>
+        <translation>Powiększ</translation>
+    </message>
+    <message>
+        <source>100%</source>
+        <extracomment>In Polish: 100%</extracomment>
+        <translation>100%</translation>
+    </message>
+    <message>
+        <source>Zoom 100% (Ctrl+0)</source>
+        <extracomment>In Polish: Powiększenie 100% (Ctrl+0)</extracomment>
+        <translation>Powiększenie 100% (Ctrl+0)</translation>
+    </message>
+    <message>
+        <source>Mind Map Settings</source>
+        <extracomment>The gear of a mind map. In Polish: Ustawienia map myśli</extracomment>
+        <translation>Ustawienia map myśli</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n node(s)</source>
+        <extracomment>The numbers in the bar of a mind map. In Polish: %n węzeł / węzły / węzłów</extracomment>
+        <translation>
+            <numerusform>%n węzeł</numerusform>
+            <numerusform>%n węzły</numerusform>
+            <numerusform>%n węzłów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n connection(s)</source>
+        <extracomment>In Polish: %n połączenie / połączenia / połączeń</extracomment>
+        <translation>
+            <numerusform>%n połączenie</numerusform>
+            <numerusform>%n połączenia</numerusform>
+            <numerusform>%n połączeń</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <extracomment>The button of the bar under a mind map. In Polish: Cofnij</extracomment>
+        <translation>Cofnij</translation>
+    </message>
+    <message>
+        <source>Note of the Node</source>
+        <extracomment>The window of the note of a node of a mind map. %1: the text of the node. In Polish: Notatka węzła / Notatka do „%1”. Widać ją w podpowiedzi i na liście.</extracomment>
+        <translation>Notatka węzła</translation>
+    </message>
+    <message>
+        <source>The note of “%1”. It shows in the tooltip and in the list.</source>
+        <translation>Notatka do „%1”. Widać ją w podpowiedzi i na liście.</translation>
+    </message>
+    <message>
+        <source>Note</source>
+        <extracomment>In Polish: Notatka</extracomment>
+        <translation>Notatka</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Element of the Book</source>
+        <extracomment>The window that chooses what a node of a mind map is about. In Polish: Element książki</extracomment>
+        <translation>Element książki</translation>
+    </message>
+    <message>
+        <source>What is “%1” about? A node without its own text shows the title of the element, and Ctrl+Enter opens it.</source>
+        <extracomment>%1: the text of the node. In Polish: O czym jest „%1”? Węzeł bez własnego tekstu nosi tytuł elementu, a Ctrl+Enter go otwiera.</extracomment>
+        <translation>O czym jest „%1”? Węzeł bez własnego tekstu nosi tytuł elementu, a Ctrl+Enter go otwiera.</translation>
+    </message>
+    <message>
+        <source>This element is not in the book any more.</source>
+        <extracomment>In Polish: Tego elementu nie ma już w książce.</extracomment>
+        <translation>Tego elementu nie ma już w książce.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::MindMapList</name>
+    <message>
+        <source>note</source>
+        <extracomment>In the list of a mind map: the node has a note. In Polish: notatka</extracomment>
+        <translation>notatka</translation>
+    </message>
+    <message>
+        <source>Text of the node</source>
+        <extracomment>The accessible name of the field of the text of a node. In Polish: Tekst węzła</extracomment>
+        <translation>Tekst węzła</translation>
+    </message>
+    <message>
+        <source>List of the mind map</source>
+        <extracomment>The accessible name of the list of a mind map. In Polish: Lista mapy myśli</extracomment>
+        <translation>Lista mapy myśli</translation>
+    </message>
+    <message>
+        <source>Loose nodes</source>
+        <extracomment>The heading of the loose nodes in the list of a mind map. In Polish: Luźne węzły</extracomment>
+        <translation>Luźne węzły</translation>
+    </message>
+    <message>
+        <source>A loose node goes back into a branch when it is dragged onto a node of the map.</source>
+        <extracomment>In Polish: Luźny węzeł wraca do gałęzi, gdy przeciągnie się go na węzeł w mapie.</extracomment>
+        <translation>Luźny węzeł wraca do gałęzi, gdy przeciągnie się go na węzeł w mapie.</translation>
+    </message>
+    <message>
+        <source>There is no node before “%1” that it could go into.</source>
+        <extracomment>In Polish: Przed „%1” nie ma węzła, do którego mógłby wejść.</extracomment>
+        <translation>Przed „%1” nie ma węzła, do którego mógłby wejść.</translation>
+    </message>
+    <message>
+        <source>“%1” is at the top level already.</source>
+        <extracomment>In Polish: „%1” jest już na najwyższym poziomie.</extracomment>
+        <translation>„%1” jest już na najwyższym poziomie.</translation>
+    </message>
+    <message>
+        <source>Done again: %1.</source>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+    <message>
+        <source>Undone: %1.</source>
+        <translation>Cofnięto: %1.</translation>
+    </message>
+    <message>
+        <source>It is the first node of this branch already.</source>
+        <translation>To już pierwszy węzeł tej gałęzi.</translation>
+    </message>
+    <message>
+        <source>It is the last node of this branch already.</source>
+        <translation>To już ostatni węzeł tej gałęzi.</translation>
+    </message>
+    <message>
+        <source>New node inside</source>
+        <translation>Nowy węzeł w środku</translation>
+    </message>
+    <message>
+        <source>New node after it</source>
+        <translation>Nowy węzeł za nim</translation>
+    </message>
+    <message>
+        <source>New node before it</source>
+        <translation>Nowy węzeł przed nim</translation>
+    </message>
+    <message>
+        <source>Change the text</source>
+        <translation>Zmień tekst</translation>
+    </message>
+    <message>
+        <source>Note…</source>
+        <translation>Notatka…</translation>
+    </message>
+    <message>
+        <source>Element of the book…</source>
+        <translation>Element książki…</translation>
+    </message>
+    <message>
+        <source>Open the element</source>
+        <translation>Otwórz element</translation>
+    </message>
+    <message>
+        <source>Unlink the element</source>
+        <translation>Odłącz element</translation>
+    </message>
+    <message>
+        <source>Copy as text</source>
+        <translation>Kopiuj jako tekst</translation>
+    </message>
+    <message>
+        <source>Paste</source>
+        <translation>Wklej</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::MindMapModule</name>
+    <message>
+        <source>Mind Maps</source>
+        <extracomment>The page of Settings of the mind maps. In Polish: Mapy myśli</extracomment>
+        <translation>Mapy myśli</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::MindMapSettingsPage</name>
+    <message>
+        <source>New Maps</source>
+        <extracomment>Settings &gt; Mind Maps. In Polish: Nowe mapy</extracomment>
+        <translation>Nowe mapy</translation>
+    </message>
+    <message>
+        <source>Layout of a new map:</source>
+        <extracomment>In Polish: Układ nowej mapy:</extracomment>
+        <translation>Układ nowej mapy:</translation>
+    </message>
+    <message>
+        <source>Both sides</source>
+        <translation>Na obie strony</translation>
+    </message>
+    <message>
+        <source>To the right</source>
+        <translation>W prawo</translation>
+    </message>
+    <message>
+        <source>Down</source>
+        <translation>W dół</translation>
+    </message>
+    <message>
+        <source>Free</source>
+        <translation>Swobodny</translation>
+    </message>
+    <message>
+        <source>A map opens on:</source>
+        <extracomment>In Polish: Mapa otwiera się:</extracomment>
+        <translation>Mapa otwiera się:</translation>
+    </message>
+    <message>
+        <source>the map</source>
+        <extracomment>In Polish: na mapie</extracomment>
+        <translation>na mapie</translation>
+    </message>
+    <message>
+        <source>the list</source>
+        <extracomment>In Polish: na liście</extracomment>
+        <translation>na liście</translation>
+    </message>
+    <message>
+        <source>the view it was left on</source>
+        <extracomment>In Polish: tam, gdzie ją zostawiono</extracomment>
+        <translation>tam, gdzie ją zostawiono</translation>
+    </message>
+    <message>
+        <source>Look of the Maps</source>
+        <extracomment>In Polish: Wygląd map</extracomment>
+        <translation>Wygląd map</translation>
+    </message>
+    <message>
+        <source>Nodes:</source>
+        <extracomment>In Polish: Węzły:</extracomment>
+        <translation>Węzły:</translation>
+    </message>
+    <message>
+        <source>rounded</source>
+        <extracomment>In Polish: zaokrąglone</extracomment>
+        <translation>zaokrąglone</translation>
+    </message>
+    <message>
+        <source>rectangles</source>
+        <extracomment>In Polish: prostokąty</extracomment>
+        <translation>prostokąty</translation>
+    </message>
+    <message>
+        <source>ovals</source>
+        <extracomment>In Polish: owale</extracomment>
+        <translation>owale</translation>
+    </message>
+    <message>
+        <source>text over a line</source>
+        <extracomment>In Polish: tekst nad linią</extracomment>
+        <translation>tekst nad linią</translation>
+    </message>
+    <message>
+        <source>Lines:</source>
+        <extracomment>In Polish: Linie:</extracomment>
+        <translation>Linie:</translation>
+    </message>
+    <message>
+        <source>curves</source>
+        <extracomment>In Polish: łuki</extracomment>
+        <translation>łuki</translation>
+    </message>
+    <message>
+        <source>straight</source>
+        <extracomment>In Polish: proste</extracomment>
+        <translation>proste</translation>
+    </message>
+    <message>
+        <source>with right angles</source>
+        <extracomment>In Polish: łamane pod kątem prostym</extracomment>
+        <translation>łamane pod kątem prostym</translation>
+    </message>
+    <message>
+        <source>Thinner lines deeper in the branches</source>
+        <extracomment>In Polish: Linie cieńsze w głębi gałęzi</extracomment>
+        <translation>Linie cieńsze w głębi gałęzi</translation>
+    </message>
+    <message>
+        <source>Colors of the branches:</source>
+        <extracomment>In Polish: Kolory gałęzi:</extracomment>
+        <translation>Kolory gałęzi:</translation>
+    </message>
+    <message>
+        <source>each main branch its own</source>
+        <extracomment>In Polish: każda gałąź główna swój kolor</extracomment>
+        <translation>każda gałąź główna swój kolor</translation>
+    </message>
+    <message>
+        <source>one color</source>
+        <extracomment>In Polish: jeden kolor</extracomment>
+        <translation>jeden kolor</translation>
+    </message>
+    <message>
+        <source>no colors</source>
+        <extracomment>In Polish: bez kolorów</extracomment>
+        <translation>bez kolorów</translation>
+    </message>
+    <message>
+        <source>Background:</source>
+        <extracomment>In Polish: Tło:</extracomment>
+        <translation>Tło:</translation>
+    </message>
+    <message>
+        <source>plain</source>
+        <extracomment>In Polish: gładkie</extracomment>
+        <translation>gładkie</translation>
+    </message>
+    <message>
+        <source>dots</source>
+        <extracomment>In Polish: w kropki</extracomment>
+        <translation>w kropki</translation>
+    </message>
+    <message>
+        <source>grid</source>
+        <extracomment>In Polish: w kratkę</extracomment>
+        <translation>w kratkę</translation>
+    </message>
+    <message>
+        <source>own color</source>
+        <extracomment>In Polish: własny kolor</extracomment>
+        <translation>własny kolor</translation>
+    </message>
+    <message>
+        <source>The font of the editor (in place of the font of the program)</source>
+        <extracomment>In Polish: Czcionka edytora (zamiast czcionki programu)</extracomment>
+        <translation>Czcionka edytora (zamiast czcionki programu)</translation>
+    </message>
+    <message>
+        <source>Size of the text:</source>
+        <extracomment>In Polish: Wielkość tekstu:</extracomment>
+        <translation>Wielkość tekstu:</translation>
+    </message>
+    <message>
+        <source>small</source>
+        <extracomment>In Polish: mała</extracomment>
+        <translation>mała</translation>
+    </message>
+    <message>
+        <source>medium</source>
+        <extracomment>In Polish: średnia</extracomment>
+        <translation>średnia</translation>
+    </message>
+    <message>
+        <source>large</source>
+        <extracomment>In Polish: duża</extracomment>
+        <translation>duża</translation>
+    </message>
+    <message>
+        <source>Pasting</source>
+        <extracomment>In Polish: Wklejanie</extracomment>
+        <translation>Wklejanie</translation>
+    </message>
+    <message>
+        <source>Pasted text with indents makes branches (a line is a node)</source>
+        <extracomment>In Polish: Wklejony tekst z wcięciami tworzy gałęzie (wiersz to węzeł)</extracomment>
+        <translation>Wklejony tekst z wcięciami tworzy gałęzie (wiersz to węzeł)</translation>
+    </message>
+    <message>
+        <source>Without it, all the text pasted goes into one node.</source>
+        <extracomment>In Polish: Bez tego cały wklejony tekst wchodzi do jednego węzła.</extracomment>
+        <translation>Bez tego cały wklejony tekst wchodzi do jednego węzła.</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <extracomment>In Polish: Kolory</extracomment>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Each theme has its own colors: these are the colors of the theme in use. The colors of the branches are shared with the timelines.</source>
+        <extracomment>In Polish: Każdy motyw ma swoje kolory: to kolory motywu w użyciu. Kolory gałęzi są wspólne z osiami czasu.</extracomment>
+        <translation>Każdy motyw ma swoje kolory: to kolory motywu w użyciu. Kolory gałęzi są wspólne z osiami czasu.</translation>
+    </message>
+    <message>
+        <source>Branch color %1</source>
+        <extracomment>In Polish: Kolor gałęzi %1</extracomment>
+        <translation>Kolor gałęzi %1</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <extracomment>In Polish: Tło</extracomment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Dots and grid</source>
+        <extracomment>In Polish: Kropki i kratka</extracomment>
+        <translation>Kropki i kratka</translation>
+    </message>
+    <message>
+        <source>Own background</source>
+        <extracomment>In Polish: Własny kolor tła</extracomment>
+        <translation>Własny kolor tła</translation>
+    </message>
+    <message>
+        <source>Main topic</source>
+        <extracomment>In Polish: Temat główny</extracomment>
+        <translation>Temat główny</translation>
+    </message>
+    <message>
+        <source>Text of the main topic</source>
+        <extracomment>In Polish: Tekst tematu głównego</extracomment>
+        <translation>Tekst tematu głównego</translation>
+    </message>
+    <message>
+        <source>Nodes</source>
+        <extracomment>In Polish: Węzły</extracomment>
+        <translation>Węzły</translation>
+    </message>
+    <message>
+        <source>Connections</source>
+        <extracomment>In Polish: Połączenia</extracomment>
+        <translation>Połączenia</translation>
+    </message>
+    <message>
+        <source>Lines without colors</source>
+        <extracomment>In Polish: Linie bez kolorów</extracomment>
+        <translation>Linie bez kolorów</translation>
+    </message>
+    <message>
+        <source>Where a dragged node goes</source>
+        <extracomment>In Polish: Miejsce upuszczenia węzła</extracomment>
+        <translation>Miejsce upuszczenia węzła</translation>
+    </message>
+    <message>
+        <source>Signs in the markers</source>
+        <extracomment>In Polish: Znaki w znacznikach</extracomment>
+        <translation>Znaki w znacznikach</translation>
+    </message>
+    <message>
+        <source>Marker: question</source>
+        <extracomment>In Polish: Znacznik: pytanie</extracomment>
+        <translation>Znacznik: pytanie</translation>
+    </message>
+    <message>
+        <source>Marker: important</source>
+        <extracomment>In Polish: Znacznik: ważne</extracomment>
+        <translation>Znacznik: ważne</translation>
+    </message>
+    <message>
+        <source>Marker: idea</source>
+        <extracomment>In Polish: Znacznik: pomysł</extracomment>
+        <translation>Znacznik: pomysł</translation>
+    </message>
+    <message>
+        <source>Marker: done</source>
+        <extracomment>In Polish: Znacznik: zrobione</extracomment>
+        <translation>Znacznik: zrobione</translation>
+    </message>
+    <message>
+        <source>Marker: to check</source>
+        <extracomment>In Polish: Znacznik: do sprawdzenia</extracomment>
+        <translation>Znacznik: do sprawdzenia</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::mindmap::MindMapView</name>
+    <message>
+        <source>Mind map</source>
+        <extracomment>The accessible name of the map of a mind map. In Polish: Mapa myśli</extracomment>
+        <translation>Mapa myśli</translation>
+    </message>
+    <message>
+        <source>Text of the node</source>
+        <extracomment>The accessible name of the field of the text of a node. In Polish: Tekst węzła</extracomment>
+        <translation>Tekst węzła</translation>
+    </message>
+    <message>
+        <source>Label of the connection</source>
+        <extracomment>The accessible name of the field of the label of a connection. In Polish: Podpis połączenia</extracomment>
+        <translation>Podpis połączenia</translation>
+    </message>
+    <message>
+        <source>“%1” has no nodes inside it, so there is nothing to collapse.</source>
+        <extracomment>In Polish: „%1” nie ma węzłów podrzędnych, więc nie ma czego zwinąć.</extracomment>
+        <translation>„%1” nie ma węzłów podrzędnych, więc nie ma czego zwinąć.</translation>
+    </message>
+    <message>
+        <source>It is the first node of this branch already.</source>
+        <translation>To już pierwszy węzeł tej gałęzi.</translation>
+    </message>
+    <message>
+        <source>It is the last node of this branch already.</source>
+        <translation>To już ostatni węzeł tej gałęzi.</translation>
+    </message>
+    <message>
+        <source>“%1” is a main branch already.</source>
+        <extracomment>In Polish: „%1” to już gałąź główna.</extracomment>
+        <translation>„%1” to już gałąź główna.</translation>
+    </message>
+    <message>
+        <source>There is no node before “%1” that it could go into.</source>
+        <extracomment>In Polish: Przed „%1” nie ma węzła, do którego mógłby wejść.</extracomment>
+        <translation>Przed „%1” nie ma węzła, do którego mógłby wejść.</translation>
+    </message>
+    <message>
+        <source>This node is not about an element of the book. Choose one with “Element of the book…” in the menu of the node.</source>
+        <extracomment>In Polish: Ten węzeł nie jest o żadnym elemencie książki. Wskaż go poleceniem „Element książki…” z menu węzła.</extracomment>
+        <translation>Ten węzeł nie jest o żadnym elemencie książki. Wskaż go poleceniem „Element książki…” z menu węzła.</translation>
+    </message>
+    <message>
+        <source>Choose the node to connect “%1” with: click it, or go to it with the arrows and press Enter. Esc cancels.</source>
+        <extracomment>In Polish: Wskaż węzeł, z którym połączyć „%1” – kliknięciem albo strzałkami i Enter. Esc odwołuje.</extracomment>
+        <translation>Wskaż węzeł, z którym połączyć „%1” – kliknięciem albo strzałkami i Enter. Esc odwołuje.</translation>
+    </message>
+    <message>
+        <source>The connection is cancelled.</source>
+        <extracomment>In Polish: Połączenie odwołane.</extracomment>
+        <translation>Połączenie odwołane.</translation>
+    </message>
+    <message>
+        <source>These nodes are connected already.</source>
+        <extracomment>In Polish: Te węzły są już połączone.</extracomment>
+        <translation>Te węzły są już połączone.</translation>
+    </message>
+    <message>
+        <source>Connected “%1” with “%2”. Type a label and press Enter.</source>
+        <extracomment>In Polish: Połączono „%1” z „%2”. Wpisz podpis i naciśnij Enter.</extracomment>
+        <translation>Połączono „%1” z „%2”. Wpisz podpis i naciśnij Enter.</translation>
+    </message>
+    <message>
+        <source>Done again: %1.</source>
+        <extracomment>In Polish: Ponowiono: %1.</extracomment>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+    <message>
+        <source>Undone: %1.</source>
+        <extracomment>In Polish: Cofnięto: %1.</extracomment>
+        <translation>Cofnięto: %1.</translation>
+    </message>
+    <message>
+        <source>The connection is deleted.</source>
+        <extracomment>In Polish: Usunięto połączenie.</extracomment>
+        <translation>Usunięto połączenie.</translation>
+    </message>
+    <message>
+        <source>“%1” is inside “%2” already.</source>
+        <extracomment>In Polish: „%1” już jest w „%2”.</extracomment>
+        <translation>„%1” już jest w „%2”.</translation>
+    </message>
+    <message>
+        <source>moving a node</source>
+        <extracomment>What Undo undoes in a mind map. In Polish: przeniesienie węzła</extracomment>
+        <translation>przeniesienie węzła</translation>
+    </message>
+    <message>
+        <source>Moved “%1” into “%2”.</source>
+        <extracomment>In Polish: Przeniesiono „%1” do „%2”.</extracomment>
+        <translation>Przeniesiono „%1” do „%2”.</translation>
+    </message>
+    <message>
+        <source>“%1” is now before “%2”.</source>
+        <translation>„%1” jest teraz przed „%2”.</translation>
+    </message>
+    <message>
+        <source>“%1” is now after “%2”.</source>
+        <translation>„%1” jest teraz za „%2”.</translation>
+    </message>
+    <message>
+        <source>“%1” is a loose node now. Drag it onto a node to bring it back into a branch.</source>
+        <extracomment>In Polish: „%1” jest teraz luźnym węzłem. Przeciągnij go na węzeł, żeby wrócił do gałęzi.</extracomment>
+        <translation>„%1” jest teraz luźnym węzłem. Przeciągnij go na węzeł, żeby wrócił do gałęzi.</translation>
+    </message>
+    <message>
+        <source>A node cannot be dropped here.</source>
+        <extracomment>In Polish: Tu nie można upuścić węzła.</extracomment>
+        <translation>Tu nie można upuścić węzła.</translation>
+    </message>
+    <message>
+        <source>New loose node here</source>
+        <extracomment>In the menu of an empty place of a mind map. In Polish: Nowy luźny węzeł tutaj</extracomment>
+        <translation>Nowy luźny węzeł tutaj</translation>
+    </message>
+    <message>
+        <source>Paste</source>
+        <translation>Wklej</translation>
+    </message>
+    <message>
+        <source>Zoom 100%</source>
+        <extracomment>In Polish: Powiększenie 100%</extracomment>
+        <translation>Powiększenie 100%</translation>
+    </message>
+    <message>
+        <source>Label…</source>
+        <extracomment>In the menu of a connection of a mind map. In Polish: Podpis…</extracomment>
+        <translation>Podpis…</translation>
+    </message>
+    <message>
+        <source>Reverse the arrow</source>
+        <extracomment>In Polish: Odwróć strzałkę</extracomment>
+        <translation>Odwróć strzałkę</translation>
+    </message>
+    <message>
+        <source>Delete the connection</source>
+        <extracomment>In Polish: Usuń połączenie</extracomment>
+        <translation>Usuń połączenie</translation>
+    </message>
+    <message>
+        <source>New node inside</source>
+        <extracomment>In the menu of a node of a mind map. In Polish: Nowy węzeł w środku</extracomment>
+        <translation>Nowy węzeł w środku</translation>
+    </message>
+    <message>
+        <source>New node after it</source>
+        <extracomment>In Polish: Nowy węzeł za nim</extracomment>
+        <translation>Nowy węzeł za nim</translation>
+    </message>
+    <message>
+        <source>New node before it</source>
+        <extracomment>In Polish: Nowy węzeł przed nim</extracomment>
+        <translation>Nowy węzeł przed nim</translation>
+    </message>
+    <message>
+        <source>Change the text</source>
+        <extracomment>In Polish: Zmień tekst</extracomment>
+        <translation>Zmień tekst</translation>
+    </message>
+    <message>
+        <source>Note…</source>
+        <extracomment>In Polish: Notatka…</extracomment>
+        <translation>Notatka…</translation>
+    </message>
+    <message>
+        <source>Element of the book…</source>
+        <extracomment>In Polish: Element książki…</extracomment>
+        <translation>Element książki…</translation>
+    </message>
+    <message>
+        <source>Open the element</source>
+        <extracomment>In Polish: Otwórz element</extracomment>
+        <translation>Otwórz element</translation>
+    </message>
+    <message>
+        <source>Unlink the element</source>
+        <extracomment>In Polish: Odłącz element</extracomment>
+        <translation>Odłącz element</translation>
+    </message>
+    <message>
+        <source>Connect to…</source>
+        <extracomment>In Polish: Połącz z…</extracomment>
+        <translation>Połącz z…</translation>
+    </message>
+    <message>
+        <source>Expand the branch</source>
+        <translation>Rozwiń gałąź</translation>
+    </message>
+    <message>
+        <source>Collapse the branch</source>
+        <translation>Zwiń gałąź</translation>
+    </message>
+    <message>
+        <source>Detach from the branch</source>
+        <extracomment>In Polish: Odłącz od gałęzi</extracomment>
+        <translation>Odłącz od gałęzi</translation>
+    </message>
+    <message>
+        <source>Copy as text</source>
+        <extracomment>In Polish: Kopiuj jako tekst</extracomment>
+        <translation>Kopiuj jako tekst</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <extracomment>In Polish: Usuń</extracomment>
+        <translation>Usuń</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::TimelineAxisView</name>
+    <message>
+        <source>Timeline axis</source>
+        <extracomment>The accessible name of the axis of a timeline. In Polish: Oś czasu</extracomment>
+        <translation>Oś czasu</translation>
+    </message>
+    <message>
+        <source>Title of the event</source>
+        <extracomment>The field of the title of an event of a timeline. In Polish: Tytuł wydarzenia</extracomment>
+        <translation>Tytuł wydarzenia</translation>
+    </message>
+    <message>
+        <source>changing the title of %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana tytułu „%1”</extracomment>
+        <translation>zmiana tytułu %1</translation>
+    </message>
+    <message>
+        <source>A gap without events: %1</source>
+        <extracomment>In Polish: Przerwa bez wydarzeń: %1</extracomment>
+        <translation>Przerwa bez wydarzeń: %1</translation>
+    </message>
+    <message>
+        <source>order</source>
+        <extracomment>The corner of the axis of a timeline. In Polish: kolejność / dni opowieści / daty</extracomment>
+        <translation>kolejność</translation>
+    </message>
+    <message>
+        <source>days of the story</source>
+        <translation>dni opowieści</translation>
+    </message>
+    <message>
+        <source>dates</source>
+        <translation>daty</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n event(s)</source>
+        <extracomment>How many events a lane of a timeline has. In Polish: %n wydarzenie / wydarzenia / wydarzeń</extracomment>
+        <translation>
+            <numerusform>%n wydarzenie</numerusform>
+            <numerusform>%n wydarzenia</numerusform>
+            <numerusform>%n wydarzeń</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>not in the book</source>
+        <extracomment>An event that no chapter tells. In Polish: poza książką</extracomment>
+        <translation>poza książką</translation>
+    </message>
+    <message>
+        <source>(deleted)</source>
+        <extracomment>A chapter that was deleted. In Polish: (usunięty)</extracomment>
+        <translation>(usunięty)</translation>
+    </message>
+    <message>
+        <source>This is the outermost lane.</source>
+        <extracomment>In Polish: To już skrajne pasmo.</extracomment>
+        <translation>To już skrajne pasmo.</translation>
+    </message>
+    <message>
+        <source>There is nothing more to undo.</source>
+        <extracomment>In Polish: Nie ma już czego cofnąć. / Cofnięto: %1.</extracomment>
+        <translation>Nie ma już czego cofnąć.</translation>
+    </message>
+    <message>
+        <source>Undone: %1.</source>
+        <translation>Cofnięto: %1.</translation>
+    </message>
+    <message>
+        <source>There is nothing to redo.</source>
+        <extracomment>In Polish: Nie ma czego ponowić. / Ponowiono: %1.</extracomment>
+        <translation>Nie ma czego ponowić.</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+    <message>
+        <source>%1. in the order</source>
+        <extracomment>Where a dragged event goes in the order of the story. In Polish: %1. w kolejności</extracomment>
+        <translation>%1. w kolejności</translation>
+    </message>
+    <message>
+        <source>lane %1</source>
+        <extracomment>Where a dragged event goes: another lane. In Polish: pasmo „%1”
+----------
+In Polish: pasmo „%1”</extracomment>
+        <translation>pasmo %1</translation>
+    </message>
+    <message>
+        <source>%1 is already in this event</source>
+        <extracomment>In Polish: %1 już jest w tym wydarzeniu</extracomment>
+        <translation>%1 już jest w tym wydarzeniu</translation>
+    </message>
+    <message>
+        <source>moving %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: przesunięcie „%1”</extracomment>
+        <translation>przesunięcie %1</translation>
+    </message>
+    <message>
+        <source>New event here</source>
+        <extracomment>In the menu of the axis of a timeline. In Polish: Nowe wydarzenie tutaj</extracomment>
+        <translation>Nowe wydarzenie tutaj</translation>
+    </message>
+    <message>
+        <source>Day One and Threads…</source>
+        <extracomment>In the menu of the axis of a timeline. In Polish: Dzień 1 i wątki…</extracomment>
+        <translation>Dzień 1 i wątki…</translation>
+    </message>
+    <message>
+        <source>Zoom 100%</source>
+        <extracomment>In Polish: Powiększenie 100%</extracomment>
+        <translation>Powiększenie 100%</translation>
+    </message>
+    <message>
+        <source>Event…</source>
+        <extracomment>In the menu of an event of a timeline. In Polish: Okno „Wydarzenie”…</extracomment>
+        <translation>Okno „Wydarzenie”…</translation>
+    </message>
+    <message>
+        <source>Change the Title</source>
+        <extracomment>In Polish: Zmień tytuł</extracomment>
+        <translation>Zmień tytuł</translation>
+    </message>
+    <message>
+        <source>Open the Chapter</source>
+        <extracomment>In Polish: Otwórz rozdział</extracomment>
+        <translation>Otwórz rozdział</translation>
+    </message>
+    <message>
+        <source>New Event after It</source>
+        <extracomment>In Polish: Nowe wydarzenie po nim</extracomment>
+        <translation>Nowe wydarzenie po nim</translation>
+    </message>
+    <message>
+        <source>Earlier in the Order</source>
+        <extracomment>In Polish: Wcześniej w kolejności / Wcześniej</extracomment>
+        <translation>Wcześniej w kolejności</translation>
+    </message>
+    <message>
+        <source>Earlier</source>
+        <translation>Wcześniej</translation>
+    </message>
+    <message>
+        <source>Later in the Order</source>
+        <extracomment>In Polish: Później w kolejności / Później</extracomment>
+        <translation>Później w kolejności</translation>
+    </message>
+    <message>
+        <source>Later</source>
+        <translation>Później</translation>
+    </message>
+    <message>
+        <source>To the Lane Above</source>
+        <extracomment>In Polish: Do pasma wyżej</extracomment>
+        <translation>Do pasma wyżej</translation>
+    </message>
+    <message>
+        <source>To the Lane Below</source>
+        <extracomment>In Polish: Do pasma niżej</extracomment>
+        <translation>Do pasma niżej</translation>
+    </message>
+    <message>
+        <source>Delete the Event</source>
+        <extracomment>In Polish: Usuń wydarzenie</extracomment>
+        <translation>Usuń wydarzenie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::TimelineBookView</name>
+    <message>
+        <source>Time and the book</source>
+        <extracomment>The accessible name of the view of a timeline. In Polish: Czas i książka</extracomment>
+        <translation>Czas i książka</translation>
+    </message>
+    <message>
+        <source>The book does not tell yet (%1):</source>
+        <extracomment>Under the time and the book. In Polish: Jeszcze poza książką (%1):</extracomment>
+        <translation>Jeszcze poza książką (%1):</translation>
+    </message>
+    <message>
+        <source>In the book, but without a time (%1):</source>
+        <extracomment>In Polish: W książce, ale bez czasu (%1):</extracomment>
+        <translation>W książce, ale bez czasu (%1):</translation>
+    </message>
+    <message>
+        <source>The dashed line joins the chapters in the order of reading. A ring marks a flashback: an event earlier than what happened in the chapter before. A click selects an event, a double click opens the window “Event”.</source>
+        <extracomment>In Polish: Przerywana linia łączy rozdziały w kolejności czytania. Obwódka oznacza retrospekcję: wydarzenie wcześniejsze niż to, co działo się w poprzednim rozdziale. Kliknięcie zaznacza wydarzenie, dwuklik otwiera okno „Wydarzenie”.</extracomment>
+        <translation>Przerywana linia łączy rozdziały w kolejności czytania. Obwódka oznacza retrospekcję: wydarzenie wcześniejsze niż to, co działo się w poprzednim rozdziale. Kliknięcie zaznacza wydarzenie, dwuklik otwiera okno „Wydarzenie”.</translation>
+    </message>
+    <message>
+        <source>order of the events →</source>
+        <extracomment>Above the time and the book in the order of the story. In Polish: kolejność wydarzeń →</extracomment>
+        <translation>kolejność wydarzeń →</translation>
+    </message>
+    <message>
+        <source>Undone: %1.</source>
+        <extracomment>In Polish: Cofnięto: %1. / Ponowiono: %1.</extracomment>
+        <translation>Cofnięto: %1.</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::TimelineEditor</name>
+    <message>
+        <source>Undone: %1.</source>
+        <extracomment>In Polish: Cofnięto: %1.</extracomment>
+        <translation>Cofnięto: %1.</translation>
+    </message>
+    <message>
+        <source>The timeline could not be saved: %1</source>
+        <extracomment>In Polish: Nie udało się zapisać osi czasu: %1</extracomment>
+        <translation>Nie udało się zapisać osi czasu: %1</translation>
+    </message>
+    <message>
+        <source>Axis</source>
+        <extracomment>The view of a timeline: its events on the axis. In Polish: Oś</extracomment>
+        <translation>Oś</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <extracomment>The view of a timeline: a table. In Polish: Lista</extracomment>
+        <translation>Lista</translation>
+    </message>
+    <message>
+        <source>Time and the Book</source>
+        <extracomment>The view of a timeline: the chapters against the time. In Polish: Czas i książka</extracomment>
+        <translation>Czas i książka</translation>
+    </message>
+    <message>
+        <source>View:</source>
+        <extracomment>In the bar of a timeline. In Polish: Widok:</extracomment>
+        <translation>Widok:</translation>
+    </message>
+    <message>
+        <source>Scale:</source>
+        <extracomment>In the bar of a timeline. In Polish: Skala:</extracomment>
+        <translation>Skala:</translation>
+    </message>
+    <message>
+        <source>Lanes:</source>
+        <extracomment>In the bar of a timeline. In Polish: Pasma:</extracomment>
+        <translation>Pasma:</translation>
+    </message>
+    <message>
+        <source>Cards</source>
+        <extracomment>How a timeline shows its events. In Polish: Karty / Etykiety</extracomment>
+        <translation>Karty</translation>
+    </message>
+    <message>
+        <source>Labels</source>
+        <translation>Etykiety</translation>
+    </message>
+    <message>
+        <source>Compress gaps</source>
+        <extracomment>In the bar of a timeline: long gaps without events are short. In Polish: Skracaj przerwy</extracomment>
+        <translation>Skracaj przerwy</translation>
+    </message>
+    <message>
+        <source>Highlight:</source>
+        <extracomment>In the bar of a timeline. In Polish: Wyróżnij:</extracomment>
+        <translation>Wyróżnij:</translation>
+    </message>
+    <message>
+        <source>Zoom Out (Ctrl+-)</source>
+        <extracomment>In Polish: Pomniejsz (Ctrl+−)</extracomment>
+        <translation>Pomniejsz (Ctrl+−)</translation>
+    </message>
+    <message>
+        <source>Zoom Out</source>
+        <extracomment>In Polish: Pomniejsz</extracomment>
+        <translation>Pomniejsz</translation>
+    </message>
+    <message>
+        <source>Zoom In (Ctrl++)</source>
+        <extracomment>In Polish: Powiększ (Ctrl++)</extracomment>
+        <translation>Powiększ (Ctrl++)</translation>
+    </message>
+    <message>
+        <source>Zoom In</source>
+        <extracomment>In Polish: Powiększ</extracomment>
+        <translation>Powiększ</translation>
+    </message>
+    <message>
+        <source>Day One and Threads…</source>
+        <translation>Dzień 1 i wątki…</translation>
+    </message>
+    <message>
+        <source>Timeline Settings</source>
+        <extracomment>The gear of a timeline. In Polish: Ustawienia osi czasu</extracomment>
+        <translation>Ustawienia osi czasu</translation>
+    </message>
+    <message>
+        <source>nothing</source>
+        <extracomment>Highlight in a timeline: nothing. In Polish: nic</extracomment>
+        <translation>nic</translation>
+    </message>
+    <message>
+        <source>thread: %1</source>
+        <extracomment>Highlight in a timeline. In Polish: wątek: %1</extracomment>
+        <translation>wątek: %1</translation>
+    </message>
+    <message>
+        <source>character: %1</source>
+        <extracomment>Highlight in a timeline. In Polish: postać: %1</extracomment>
+        <translation>postać: %1</translation>
+    </message>
+    <message>
+        <source>place: %1</source>
+        <extracomment>Highlight in a timeline. In Polish: miejsce: %1</extracomment>
+        <translation>miejsce: %1</translation>
+    </message>
+    <message>
+        <source>not in the book</source>
+        <extracomment>Highlight in a timeline: the events no chapter tells. In Polish: poza książką</extracomment>
+        <translation>poza książką</translation>
+    </message>
+    <message>
+        <source>The scale “Order” shows the events in the order of the story. Their times stay in the file and come back with dates or days.</source>
+        <extracomment>In Polish: Skala „Kolejność” pokazuje wydarzenia w kolejności opowieści. Ich czas zostaje w pliku i wraca po powrocie do dat albo dni.</extracomment>
+        <translation>Skala „Kolejność” pokazuje wydarzenia w kolejności opowieści. Ich czas zostaje w pliku i wraca po powrocie do dat albo dni.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n event(s) wait in “%1” – drag them onto the axis or give them a time.</source>
+        <extracomment>In Polish: %n wydarzenie czeka / wydarzenia czekają / wydarzeń czeka na pasku „%1” – przeciągnij je na oś albo wpisz czas.</extracomment>
+        <translation>
+            <numerusform>%n wydarzenie czeka na pasku „%1” – przeciągnij je na oś albo wpisz czas.</numerusform>
+            <numerusform>%n wydarzenia czekają na pasku „%1” – przeciągnij je na oś albo wpisz czas.</numerusform>
+            <numerusform>%n wydarzeń czeka na pasku „%1” – przeciągnij je na oś albo wpisz czas.</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n event(s)</source>
+        <extracomment>The numbers in the bar of a timeline. In Polish: %n wydarzenie / wydarzenia / wydarzeń</extracomment>
+        <translation>
+            <numerusform>%n wydarzenie</numerusform>
+            <numerusform>%n wydarzenia</numerusform>
+            <numerusform>%n wydarzeń</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n thread(s)</source>
+        <extracomment>In Polish: %n wątek / wątki / wątków</extracomment>
+        <translation>
+            <numerusform>%n wątek</numerusform>
+            <numerusform>%n wątki</numerusform>
+            <numerusform>%n wątków</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <extracomment>The button of the bar under a timeline. In Polish: Cofnij</extracomment>
+        <translation>Cofnij</translation>
+    </message>
+    <message>
+        <source>changing the event %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana wydarzenia „%1”</extracomment>
+        <translation>zmiana wydarzenia %1</translation>
+    </message>
+    <message>
+        <source>Saved %1; without a time it waits in “%2”.</source>
+        <extracomment>In Polish: Zapisano „%1”; bez czasu czeka na pasku „%2”.</extracomment>
+        <translation>Zapisano %1; bez czasu czeka na pasku „%2”.</translation>
+    </message>
+    <message>
+        <source>Saved the event %1.</source>
+        <extracomment>In Polish: Zapisano wydarzenie „%1”.</extracomment>
+        <translation>Zapisano wydarzenie %1.</translation>
+    </message>
+    <message>
+        <source>changing day one and the threads</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana dnia 1 i wątków</extracomment>
+        <translation>zmiana dnia 1 i wątków</translation>
+    </message>
+    <message>
+        <source>Saved day one and the threads.</source>
+        <extracomment>In Polish: Zapisano dzień 1 i wątki.</extracomment>
+        <translation>Zapisano dzień 1 i wątki.</translation>
+    </message>
+    <message>
+        <source>This event is not in any chapter yet. Choose its chapters in the window “Event” (Enter).</source>
+        <extracomment>In Polish: To wydarzenie nie jest jeszcze w żadnym rozdziale. Wybierz rozdziały w oknie „Wydarzenie” (Enter).</extracomment>
+        <translation>To wydarzenie nie jest jeszcze w żadnym rozdziale. Wybierz rozdziały w oknie „Wydarzenie” (Enter).</translation>
+    </message>
+    <message>
+        <source>The event is also in: %1.</source>
+        <extracomment>In Polish: Wydarzenie jest też w: %1.</extracomment>
+        <translation>Wydarzenie jest też w: %1.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::TimelineEventDialog</name>
+    <message>
+        <source>Color %1</source>
+        <extracomment>A color of the palette of the threads. In Polish: Kolor %1</extracomment>
+        <translation>Kolor %1</translation>
+    </message>
+    <message>
+        <source>Event</source>
+        <extracomment>The window of an event of a timeline. In Polish: Wydarzenie / Wszystkie pola wydarzenia w jednym miejscu.</extracomment>
+        <translation>Wydarzenie</translation>
+    </message>
+    <message>
+        <source>All the fields of the event in one place.</source>
+        <translation>Wszystkie pola wydarzenia w jednym miejscu.</translation>
+    </message>
+    <message>
+        <source>Timeline Settings</source>
+        <extracomment>The gear of the window &quot;Event&quot;. In Polish: Ustawienia osi czasu</extracomment>
+        <translation>Ustawienia osi czasu</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <extracomment>In Polish: Tytuł</extracomment>
+        <translation>Tytuł</translation>
+    </message>
+    <message>
+        <source>e.g. That same night</source>
+        <extracomment>Examples of a time, in the field &quot;When&quot;. In Polish: np. Tej samej nocy / np. 14 kwietnia 1931, rano</extracomment>
+        <translation>np. Tej samej nocy</translation>
+    </message>
+    <message>
+        <source>e.g. 14 April 1931, in the morning</source>
+        <translation>np. 14 kwietnia 1931, rano</translation>
+    </message>
+    <message>
+        <source>Label of the time</source>
+        <extracomment>In Polish: Podpis czasu / Kiedy</extracomment>
+        <translation>Podpis czasu</translation>
+    </message>
+    <message>
+        <source>When</source>
+        <translation>Kiedy</translation>
+    </message>
+    <message>
+        <source>Thread</source>
+        <extracomment>In Polish: Wątek</extracomment>
+        <translation>Wątek</translation>
+    </message>
+    <message>
+        <source>with commas, e.g. Amara, Jusuf</source>
+        <extracomment>In Polish: po przecinku, np. Amara, Jusuf</extracomment>
+        <translation>po przecinku, np. Amara, Jusuf</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <extracomment>In Polish: Postacie</extracomment>
+        <translation>Postacie</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <extracomment>In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Characters and places come from the cards of the Workshop; a name without a card stays plain text.</source>
+        <extracomment>In Polish: Program podpowiada postacie i miejsca z kart Warsztatu; nazwa bez karty zostaje zwykłym tekstem.</extracomment>
+        <translation>Program podpowiada postacie i miejsca z kart Warsztatu; nazwa bez karty zostaje zwykłym tekstem.</translation>
+    </message>
+    <message>
+        <source>In the book</source>
+        <extracomment>The chapters that tell an event. In Polish: W książce</extracomment>
+        <translation>W książce</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <extracomment>In Polish: Opis</extracomment>
+        <translation>Opis</translation>
+    </message>
+    <message>
+        <source>the color of its thread</source>
+        <extracomment>The color of an event: that of its thread. In Polish: kolor wątku</extracomment>
+        <translation>kolor wątku</translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <extracomment>In Polish: Kolor</extracomment>
+        <translation>Kolor</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::TimelineList</name>
+    <message>
+        <source>List of the events</source>
+        <extracomment>The accessible name of the list of a timeline. In Polish: Lista wydarzeń</extracomment>
+        <translation>Lista wydarzeń</translation>
+    </message>
+    <message>
+        <source>not in the book</source>
+        <extracomment>An event that no chapter tells. In Polish: poza książką</extracomment>
+        <translation>poza książką</translation>
+    </message>
+    <message>
+        <source>(deleted)</source>
+        <extracomment>A chapter that was deleted. In Polish: (usunięty)</extracomment>
+        <translation>(usunięty)</translation>
+    </message>
+    <message>
+        <source>When (label)</source>
+        <extracomment>The columns of the list of a timeline. In Polish: Kiedy (podpis) / Kiedy / Wydarzenie / Wątek / Postacie / Miejsce / W książce</extracomment>
+        <translation>Kiedy (podpis)</translation>
+    </message>
+    <message>
+        <source>When</source>
+        <translation>Kiedy</translation>
+    </message>
+    <message>
+        <source>Event</source>
+        <translation>Wydarzenie</translation>
+    </message>
+    <message>
+        <source>Thread</source>
+        <translation>Wątek</translation>
+    </message>
+    <message>
+        <source>Characters</source>
+        <translation>Postacie</translation>
+    </message>
+    <message>
+        <source>Place</source>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>In the book</source>
+        <translation>W książce</translation>
+    </message>
+    <message>
+        <source>%1 without events</source>
+        <extracomment>A row of the list of a timeline. %1: &quot;≈ 3 mies.&quot;. In Polish: %1 bez wydarzeń</extracomment>
+        <translation>%1 bez wydarzeń</translation>
+    </message>
+    <message>
+        <source>changing the time of %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana czasu „%1”</extracomment>
+        <translation>zmiana czasu %1</translation>
+    </message>
+    <message>
+        <source>%1 has no time any more and waits in “%2”.</source>
+        <extracomment>In Polish: %1 nie ma już czasu i czeka na pasku „%2”. / Nie rozpoznano „%1” – wpis zostaje, a wydarzenie czeka na pasku „%2”. Przykłady: %3.</extracomment>
+        <translation>%1 nie ma już czasu i czeka na pasku „%2”.</translation>
+    </message>
+    <message>
+        <source>“%1” is not recognized – what you typed stays, and the event waits in “%2”. Examples: %3.</source>
+        <translation>Nie rozpoznano „%1” – wpis zostaje, a wydarzenie czeka na pasku „%2”. Przykłady: %3.</translation>
+    </message>
+    <message>
+        <source>changing the title of %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana tytułu „%1”</extracomment>
+        <translation>zmiana tytułu %1</translation>
+    </message>
+    <message>
+        <source>changing the thread of %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana wątku „%1”</extracomment>
+        <translation>zmiana wątku %1</translation>
+    </message>
+    <message>
+        <source>changing the characters of %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana postaci „%1”</extracomment>
+        <translation>zmiana postaci %1</translation>
+    </message>
+    <message>
+        <source>changing the place of %1</source>
+        <extracomment>What Undo undoes in a timeline. In Polish: zmiana miejsca „%1”</extracomment>
+        <translation>zmiana miejsca %1</translation>
+    </message>
+    <message>
+        <source>There is nothing more to undo.</source>
+        <extracomment>In Polish: Nie ma już czego cofnąć. / Cofnięto: %1.</extracomment>
+        <translation>Nie ma już czego cofnąć.</translation>
+    </message>
+    <message>
+        <source>Undone: %1.</source>
+        <translation>Cofnięto: %1.</translation>
+    </message>
+    <message>
+        <source>There is nothing to redo.</source>
+        <extracomment>In Polish: Nie ma czego ponowić. / Ponowiono: %1.</extracomment>
+        <translation>Nie ma czego ponowić.</translation>
+    </message>
+    <message>
+        <source>Redone: %1.</source>
+        <translation>Ponowiono: %1.</translation>
+    </message>
+    <message>
+        <source>Event…</source>
+        <extracomment>In the menu of an event of a timeline. In Polish: Okno „Wydarzenie”…</extracomment>
+        <translation>Okno „Wydarzenie”…</translation>
+    </message>
+    <message>
+        <source>Open the Chapter</source>
+        <extracomment>In Polish: Otwórz rozdział</extracomment>
+        <translation>Otwórz rozdział</translation>
+    </message>
+    <message>
+        <source>New Event</source>
+        <extracomment>In Polish: Nowe wydarzenie / Nowe wydarzenie po nim</extracomment>
+        <translation>Nowe wydarzenie</translation>
+    </message>
+    <message>
+        <source>New Event after It</source>
+        <translation>Nowe wydarzenie po nim</translation>
+    </message>
+    <message>
+        <source>Delete the Event</source>
+        <extracomment>In Polish: Usuń wydarzenie</extracomment>
+        <translation>Usuń wydarzenie</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::TimelineModule</name>
+    <message>
+        <source>Main plot</source>
+        <extracomment>The thread of a new timeline. In Polish: Główny wątek</extracomment>
+        <translation>Główny wątek</translation>
+    </message>
+    <message>
+        <source>Timelines</source>
+        <extracomment>The page of Settings of the timelines. In Polish: Osie czasu</extracomment>
+        <translation>Osie czasu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::TimelinePropertiesDialog</name>
+    <message>
+        <source>Day One and Threads</source>
+        <extracomment>The window of a timeline: day one and the threads. In Polish: Dzień 1 i wątki / Od dnia 1 liczą się dni opowieści; wątki to linie fabuły, do których należą wydarzenia.</extracomment>
+        <translation>Dzień 1 i wątki</translation>
+    </message>
+    <message>
+        <source>The days of the story count from day one; the threads are the lines of the plot that the events belong to.</source>
+        <translation>Od dnia 1 liczą się dni opowieści; wątki to linie fabuły, do których należą wydarzenia.</translation>
+    </message>
+    <message>
+        <source>Timeline Settings</source>
+        <translation>Ustawienia osi czasu</translation>
+    </message>
+    <message>
+        <source>Day one of the story</source>
+        <extracomment>In Polish: Dzień 1 opowieści</extracomment>
+        <translation>Dzień 1 opowieści</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <extracomment>The columns of the threads of a timeline. In Polish: Nazwa / Kolor</extracomment>
+        <translation>Nazwa</translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <translation>Kolor</translation>
+    </message>
+    <message>
+        <source>Threads</source>
+        <extracomment>In Polish: Wątki</extracomment>
+        <translation>Wątki</translation>
+    </message>
+    <message>
+        <source>Add a Thread</source>
+        <extracomment>In Polish: Dodaj wątek</extracomment>
+        <translation>Dodaj wątek</translation>
+    </message>
+    <message>
+        <source>Delete the Thread</source>
+        <extracomment>In Polish: Usuń wątek</extracomment>
+        <translation>Usuń wątek</translation>
+    </message>
+    <message>
+        <source>The events of a deleted thread stay, without a thread.</source>
+        <extracomment>In Polish: Wydarzenia usuniętego wątku zostają, bez wątku.</extracomment>
+        <translation>Wydarzenia usuniętego wątku zostają, bez wątku.</translation>
+    </message>
+    <message>
+        <source>New thread</source>
+        <extracomment>The name of a new thread of a timeline. In Polish: Nowy wątek</extracomment>
+        <translation>Nowy wątek</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <extracomment>In Polish: Zapisz</extracomment>
+        <translation>Zapisz</translation>
+    </message>
+    <message>
+        <source>Recognized: %1. Changing day one moves nothing: the events keep their dates.</source>
+        <extracomment>In Polish: Rozpoznano: %1. Zmiana dnia 1 niczego nie przesuwa: wydarzenia mają swoje daty.</extracomment>
+        <translation>Rozpoznano: %1. Zmiana dnia 1 niczego nie przesuwa: wydarzenia mają swoje daty.</translation>
+    </message>
+    <message>
+        <source>Not recognized – type a day, e.g. 14 April 1931.</source>
+        <extracomment>In Polish: Nie rozpoznano – wpisz dzień, np. 14 kwietnia 1931.</extracomment>
+        <translation>Nie rozpoznano – wpisz dzień, np. 14 kwietnia 1931.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::timeline::TimelineSettingsPage</name>
+    <message>
+        <source>New Timelines</source>
+        <extracomment>Settings &gt; Timelines. In Polish: Nowe osie czasu</extracomment>
+        <translation>Nowe osie czasu</translation>
+    </message>
+    <message>
+        <source>Scale of a new timeline:</source>
+        <extracomment>In Polish: Skala nowej osi:</extracomment>
+        <translation>Skala nowej osi:</translation>
+    </message>
+    <message>
+        <source>dates</source>
+        <extracomment>In Polish: daty</extracomment>
+        <translation>daty</translation>
+    </message>
+    <message>
+        <source>days of the story (Day 1, Day 2...)</source>
+        <extracomment>In Polish: dni opowieści (Dzień 1, Dzień 2...)</extracomment>
+        <translation>dni opowieści (Dzień 1, Dzień 2...)</translation>
+    </message>
+    <message>
+        <source>the order alone</source>
+        <extracomment>In Polish: sama kolejność</extracomment>
+        <translation>sama kolejność</translation>
+    </message>
+    <message>
+        <source>Lanes:</source>
+        <extracomment>In Polish: Pasma:</extracomment>
+        <translation>Pasma:</translation>
+    </message>
+    <message>
+        <source>threads</source>
+        <extracomment>In Polish: wątki</extracomment>
+        <translation>wątki</translation>
+    </message>
+    <message>
+        <source>characters</source>
+        <extracomment>In Polish: postacie</extracomment>
+        <translation>postacie</translation>
+    </message>
+    <message>
+        <source>places</source>
+        <extracomment>In Polish: miejsca</extracomment>
+        <translation>miejsca</translation>
+    </message>
+    <message>
+        <source>one lane</source>
+        <extracomment>In Polish: jedno pasmo</extracomment>
+        <translation>jedno pasmo</translation>
+    </message>
+    <message>
+        <source>Events:</source>
+        <extracomment>In Polish: Wydarzenia:</extracomment>
+        <translation>Wydarzenia:</translation>
+    </message>
+    <message>
+        <source>cards</source>
+        <extracomment>In Polish: karty</extracomment>
+        <translation>karty</translation>
+    </message>
+    <message>
+        <source>labels</source>
+        <extracomment>In Polish: etykiety</extracomment>
+        <translation>etykiety</translation>
+    </message>
+    <message>
+        <source>Shorten long gaps between the events</source>
+        <extracomment>In Polish: Skracaj długie przerwy między wydarzeniami</extracomment>
+        <translation>Skracaj długie przerwy między wydarzeniami</translation>
+    </message>
+    <message>
+        <source>A timeline opens on:</source>
+        <extracomment>In Polish: Oś czasu otwiera się:</extracomment>
+        <translation>Oś czasu otwiera się:</translation>
+    </message>
+    <message>
+        <source>the axis</source>
+        <extracomment>In Polish: na osi</extracomment>
+        <translation>na osi</translation>
+    </message>
+    <message>
+        <source>the list</source>
+        <extracomment>In Polish: na liście</extracomment>
+        <translation>na liście</translation>
+    </message>
+    <message>
+        <source>the view “Time and the Book”</source>
+        <extracomment>In Polish: w widoku „Czas i książka”</extracomment>
+        <translation>w widoku „Czas i książka”</translation>
+    </message>
+    <message>
+        <source>the view it was left on</source>
+        <extracomment>In Polish: tam, gdzie ją zostawiono</extracomment>
+        <translation>tam, gdzie ją zostawiono</translation>
+    </message>
+    <message>
+        <source>Cards of the Events</source>
+        <extracomment>In Polish: Karty wydarzeń</extracomment>
+        <translation>Karty wydarzeń</translation>
+    </message>
+    <message>
+        <source>The time</source>
+        <extracomment>In Polish: Czas</extracomment>
+        <translation>Czas</translation>
+    </message>
+    <message>
+        <source>The chapters that tell the event</source>
+        <extracomment>In Polish: Rozdziały, które opowiadają wydarzenie</extracomment>
+        <translation>Rozdziały, które opowiadają wydarzenie</translation>
+    </message>
+    <message>
+        <source>The characters</source>
+        <extracomment>In Polish: Postacie</extracomment>
+        <translation>Postacie</translation>
+    </message>
+    <message>
+        <source>The place</source>
+        <extracomment>In Polish: Miejsce</extracomment>
+        <translation>Miejsce</translation>
+    </message>
+    <message>
+        <source>Writing the Time</source>
+        <extracomment>In Polish: Zapis czasu</extracomment>
+        <translation>Zapis czasu</translation>
+    </message>
+    <message>
+        <source>Dates:</source>
+        <extracomment>In Polish: Daty:</extracomment>
+        <translation>Daty:</translation>
+    </message>
+    <message>
+        <source>in words (16 April 1931)</source>
+        <extracomment>In Polish: słownie (16 kwietnia 1931)</extracomment>
+        <translation>słownie (16 kwietnia 1931)</translation>
+    </message>
+    <message>
+        <source>in numbers (16.04.1931)</source>
+        <extracomment>In Polish: liczbami (16.04.1931)</extracomment>
+        <translation>liczbami (16.04.1931)</translation>
+    </message>
+    <message>
+        <source>ISO (1931-04-16)</source>
+        <extracomment>In Polish: ISO (1931-04-16)</extracomment>
+        <translation>ISO (1931-04-16)</translation>
+    </message>
+    <message>
+        <source>Parts of the day:</source>
+        <extracomment>In Polish: Pory dnia:</extracomment>
+        <translation>Pory dnia:</translation>
+    </message>
+    <message>
+        <source>in words (in the evening)</source>
+        <extracomment>In Polish: słownie (wieczorem)</extracomment>
+        <translation>słownie (wieczorem)</translation>
+    </message>
+    <message>
+        <source>as an hour (19:00)</source>
+        <extracomment>In Polish: jako godzina (19:00)</extracomment>
+        <translation>jako godzina (19:00)</translation>
+    </message>
+    <message>
+        <source>The program reads a time written in any of these ways; the setting says only how it writes it.</source>
+        <extracomment>In Polish: Program czyta czas zapisany na każdy z tych sposobów; ustawienie mówi tylko, jak go wypisuje.</extracomment>
+        <translation>Program czyta czas zapisany na każdy z tych sposobów; ustawienie mówi tylko, jak go wypisuje.</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <extracomment>In Polish: Kolory</extracomment>
+        <translation>Kolory</translation>
+    </message>
+    <message>
+        <source>Each theme has its own colors: these are the colors of the theme in use. The colors of the threads are shared with the mind maps; the colors of the characters and the places come from their cards.</source>
+        <extracomment>In Polish: Każdy motyw ma swoje kolory: to kolory motywu w użyciu. Kolory wątków są wspólne z mapami myśli; kolory postaci i miejsc pochodzą z ich kart.</extracomment>
+        <translation>Każdy motyw ma swoje kolory: to kolory motywu w użyciu. Kolory wątków są wspólne z mapami myśli; kolory postaci i miejsc pochodzą z ich kart.</translation>
+    </message>
+    <message>
+        <source>Thread color %1</source>
+        <extracomment>In Polish: Kolor wątku %1</extracomment>
+        <translation>Kolor wątku %1</translation>
+    </message>
+    <message>
+        <source>Lane</source>
+        <extracomment>In Polish: Pasmo</extracomment>
+        <translation>Pasmo</translation>
+    </message>
+    <message>
+        <source>Every other lane</source>
+        <extracomment>In Polish: Co drugie pasmo</extracomment>
+        <translation>Co drugie pasmo</translation>
+    </message>
+    <message>
+        <source>Ticks of the axis</source>
+        <extracomment>In Polish: Podziałka osi</extracomment>
+        <translation>Podziałka osi</translation>
+    </message>
+    <message>
+        <source>A gap drawn short</source>
+        <extracomment>In Polish: Skrócona przerwa</extracomment>
+        <translation>Skrócona przerwa</translation>
+    </message>
+    <message>
+        <source>Where a dragged event goes</source>
+        <extracomment>In Polish: Miejsce upuszczenia wydarzenia</extracomment>
+        <translation>Miejsce upuszczenia wydarzenia</translation>
+    </message>
+    <message>
+        <source>Flashback and a time not recognized</source>
+        <extracomment>In Polish: Retrospekcja i nierozpoznany czas</extracomment>
+        <translation>Retrospekcja i nierozpoznany czas</translation>
     </message>
 </context>
 </TS>

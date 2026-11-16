@@ -94,7 +94,7 @@ void putList(QJsonObject& json, const QString& key, const QStringList& values) {
 
 QStringList listOf(const QJsonValue& value) {
     QStringList list;
-    for (const QJsonValue& item : value.toArray()) {
+    for (const auto& item : value.toArray()) {
         if (item.isString() && !item.toString().isEmpty()) {
             list.append(item.toString());
         }
@@ -197,8 +197,8 @@ void setError(QString* error, const QString& text) {
 
 /// Whether event @p a comes before @p b in time; the same time keeps the order of the story
 bool earlier(const TimelineEvent* a, const TimelineEvent* b) {
-    const double startA = a->time->start();
-    const double startB = b->time->start();
+    const double startA = a->time ? a->time->start() : 0.0;
+    const double startB = b->time ? b->time->start() : 0.0;
     if (startA != startB) {
         return startA < startB;
     }
@@ -455,13 +455,13 @@ bool Timeline::fromJson(const QJsonObject& json, QString* error) {
     if (dayOne) {
         m_dayOne = dayOne->first;
     }
-    for (const QJsonValue& value : json.value(THREADS).toArray()) {
+    for (const auto& value : json.value(THREADS).toArray()) {
         TimelineThread thread = threadFromJson(value.toObject());
         if (!thread.id.isEmpty() && this->thread(thread.id) == nullptr) {
             m_threads.append(thread);
         }
     }
-    for (const QJsonValue& value : json.value(EVENTS).toArray()) {
+    for (const auto& value : json.value(EVENTS).toArray()) {
         TimelineEvent event = eventFromJson(value.toObject());
         if (event.id.isEmpty() || this->event(event.id) != nullptr) {
             event.id = newId(QStringLiteral("e"));

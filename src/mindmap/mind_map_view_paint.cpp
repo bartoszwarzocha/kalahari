@@ -132,25 +132,27 @@ void MindMapView::paintBackground(QPainter& painter) const {
     const QPointF to = toMap(all.bottomRight());
     const double left = std::floor(from.x() / step) * step;
     const double top = std::floor(from.y() / step) * step;
+    const auto columns = static_cast<int>(std::floor((to.x() - left) / step));
+    const auto rows = static_cast<int>(std::floor((to.y() - top) / step));
     painter.save();
     if (m_look.background == MapBackground::Dots) {
         painter.setPen(Qt::NoPen);
         painter.setBrush(m_look.dots);
         const double size = DOT_SIZE * std::min(1.0, zoom());
-        for (double y = top; y <= to.y(); y += step) {
-            for (double x = left; x <= to.x(); x += step) {
-                const QPointF at = toViewport(QPointF(x, y));
+        for (int row = 0; row <= rows; ++row) {
+            for (int column = 0; column <= columns; ++column) {
+                const QPointF at = toViewport(QPointF(left + column * step, top + row * step));
                 painter.drawEllipse(at, size / 2.0, size / 2.0);
             }
         }
     } else {
         painter.setPen(QPen(m_look.dots, 1.0));
-        for (double x = left; x <= to.x(); x += step) {
-            const double at = toViewport(QPointF(x, 0.0)).x();
+        for (int column = 0; column <= columns; ++column) {
+            const double at = toViewport(QPointF(left + column * step, 0.0)).x();
             painter.drawLine(QPointF(at, all.top()), QPointF(at, all.bottom()));
         }
-        for (double y = top; y <= to.y(); y += step) {
-            const double at = toViewport(QPointF(0.0, y)).y();
+        for (int row = 0; row <= rows; ++row) {
+            const double at = toViewport(QPointF(0.0, top + row * step)).y();
             painter.drawLine(QPointF(all.left(), at), QPointF(all.right(), at));
         }
     }

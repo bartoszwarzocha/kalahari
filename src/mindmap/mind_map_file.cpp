@@ -108,7 +108,7 @@ QJsonObject nodeToJson(const MindMapNode& node) {
 
 QStringList textsOf(const QJsonValue& value) {
     QStringList texts;
-    for (const QJsonValue& item : value.toArray()) {
+    for (const auto& item : value.toArray()) {
         if (item.isString() && !item.toString().isEmpty() && !texts.contains(item.toString())) {
             texts.append(item.toString());
         }
@@ -187,24 +187,25 @@ QStringList MindMap::addOutline(const QString& parent, const QString& text, qsiz
     QList<std::pair<int, QString>> open;
     qsizetype at = index;
     for (const QString& line : text.split(QRegularExpression(QStringLiteral("\r\n|\r|\n")))) {
-        const std::optional<OutlineLine> item = outlineLine(line);
-        if (!item) {
+        const std::optional<OutlineLine> read = outlineLine(line);
+        if (!read) {
             continue;
         }
-        while (!open.isEmpty() && open.last().first >= item->indent) {
+        const OutlineLine& item = *read;
+        while (!open.isEmpty() && open.last().first >= item.indent) {
             open.removeLast();
         }
         QString id;
         if (open.isEmpty()) {
-            id = addChild(parent, item->text, at);
+            id = addChild(parent, item.text, at);
             if (at >= 0) {
                 ++at;
             }
             added.append(id);
         } else {
-            id = addChild(open.last().second, item->text);
+            id = addChild(open.last().second, item.text);
         }
-        open.append({item->indent, id});
+        open.append({item.indent, id});
     }
     return added;
 }
@@ -253,7 +254,7 @@ bool MindMap::fromJson(const QJsonObject& json, QString* error) {
     }
     QHash<QString, MindMapNode> read;
     QStringList order;
-    for (const QJsonValue& value : json.value(NODES).toArray()) {
+    for (const auto& value : json.value(NODES).toArray()) {
         const MindMapNode own = nodeFromJson(value.toObject());
         if (!own.id.isEmpty() && !read.contains(own.id)) {
             read.insert(own.id, own);
@@ -302,7 +303,7 @@ bool MindMap::fromJson(const QJsonObject& json, QString* error) {
         }
     }
 
-    for (const QJsonValue& value : json.value(CONNECTIONS).toArray()) {
+    for (const auto& value : json.value(CONNECTIONS).toArray()) {
         const QJsonObject item = value.toObject();
         if (connect(item.value(FROM).toString(), item.value(TO).toString(),
                     item.value(LABEL).toString())) {

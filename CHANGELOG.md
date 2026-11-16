@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Mind maps and timelines of the Workshop** - 2026-11-16. A mind map or a timeline added to
+  the Workshop opens on a tab of its own. Both are modules of their own (`src/mindmap`,
+  `src/timeline`): the program knows them only by the editors of the window kinds they register
+  (core::IWindowEditorProvider), so that each can leave the program as an add-on. A mind map
+  has the map and the list (an outline): nodes added, changed, moved and deleted with the keys
+  (Tab, Enter, F2, Delete, Ctrl+arrows) and the mouse, its layout (both sides, to the right,
+  down, free), markers, colors of the branches, notes, nodes about elements of the book,
+  connections with labels, loose nodes, Copy as Text and pasting an outline with indents.
+  A timeline has three views: the axis (the events as cards or labels in lanes of threads,
+  characters, places or one lane, on a scale of dates, of days of the story or of the order
+  of the story, long gaps without events drawn short, a tray of the events without a time,
+  dragging in time and between lanes, the zoom), the list (a table edited in place, with the
+  gaps without events) and "Time and the Book" (the chapters top to bottom against the time of
+  their events, flashbacks marked). The window "Event" has all the fields of an event and says
+  at once what it reads in the time typed ("16 kwietnia 1931, wieczorem", "Dzień 3", "marzec
+  1931", "ok. 1925"); a time it does not read stays as typed. "Day One and Threads..." sets the
+  day the days of the story count from and the threads with their colors. Each change is saved
+  at once and has its step of Undo; the bar under the tab says what was done. Settings > Mind
+  Maps and Settings > Timelines (also the gear of each tab) hold the options of new maps and
+  timelines, the look and the colors of each theme; the six colors of the branches and the
+  threads are shared.
+
 - **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
   characters, locations and items, added from the Book menu, the Navigator ("Add Character...",
   "Add Location...", "Add Item...") or Add Element, in the groups Characters, Locations and Items

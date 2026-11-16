@@ -207,6 +207,8 @@ QHash<QString, MindMapPlace> freeLayout(const MindMap& map, const MindMapSizes& 
     QHash<QString, MindMapPlace> places = Layouter(map, sizes).layOut(MindMapLayout::BothSides);
     constexpr int JITTER_X = 9;
     constexpr int JITTER_Y = 7;
+    constexpr int HALF_JITTER_X = JITTER_X / 2;
+    constexpr int HALF_JITTER_Y = JITTER_Y / 2;
     for (auto it = places.begin(); it != places.end(); ++it) {
         const MindMapNode* node = map.node(it.key());
         if (node->freePlace) {
@@ -216,8 +218,8 @@ QHash<QString, MindMapPlace> freeLayout(const MindMap& map, const MindMapSizes& 
         } else if (!node->loosePlace) {
             const int hash = hashOf(it.key());
             it->centre = QPointF(
-                std::round(it->centre.x() * FREE_SPREAD_X + hash % JITTER_X - JITTER_X / 2),
-                std::round(it->centre.y() * FREE_SPREAD_Y + hash % JITTER_Y - JITTER_Y / 2));
+                std::round(it->centre.x() * FREE_SPREAD_X + hash % JITTER_X - HALF_JITTER_X),
+                std::round(it->centre.y() * FREE_SPREAD_Y + hash % JITTER_Y - HALF_JITTER_Y));
         }
     }
     return places;

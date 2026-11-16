@@ -23,7 +23,7 @@ namespace kalahari::timeline {
 struct TimelineThread {
     QString id;         ///< Unique in the timeline
     QString name;       ///< "Wyprawa"
-    QString color;      ///< Key of a color of the palette ("blue"...); empty: none
+    QString color;      ///< Key of a color of the palette ("1"..."6"); empty: none
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
     bool operator==(const TimelineThread&) const = default;
@@ -47,7 +47,8 @@ struct TimelineEvent {
     QStringList chapters;           ///< Ids of the elements of the book that tell it
                                     ///< (chapters, scenes), in the order of the book
     QString description;            ///< What happens
-    QString color;                  ///< Key of a color of the palette; empty: its thread's
+    QString color;                  ///< Key of a color of the palette ("1"..."6"); empty:
+                                    ///< its thread's
     QJsonObject extra;              ///< Fields this version does not know, saved back
 
     bool operator==(const TimelineEvent&) const = default;
@@ -101,7 +102,7 @@ struct TimelineView {
 /// {
 ///   "format": 1,
 ///   "dayOne": "1931-04-14",
-///   "threads": [ { "id": "t1", "name": "Wyprawa", "color": "amber" } ],
+///   "threads": [ { "id": "t1", "name": "Wyprawa", "color": "2" } ],
 ///   "events": [
 ///     { "id": "e1", "title": "Amara znajduje mapę", "order": 1, "thread": "t1",
 ///       "time": { "from": "1931-04-16", "part": "evening" },

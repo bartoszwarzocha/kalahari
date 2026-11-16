@@ -120,6 +120,7 @@
     "timelineLaneAlternate": "#F5F5F2",
     "timelineTick": "#C8C8C8",
     "timelineGap": "#E6E6E3",
-    "timelineDrop": "#0078D4"
+    "timelineDrop": "#0078D4",
+    "timelineFlashback": "#C62828"
   }
 }

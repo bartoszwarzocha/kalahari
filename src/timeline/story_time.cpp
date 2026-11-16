@@ -441,7 +441,8 @@ QString StoryTime::lengthText(double days, TimeLanguage language) {
     }
     const int count = std::max(1, static_cast<int>(std::lround(days)));
     return QString::number(count) + QLatin1Char(' ') +
-           (polish ? polishCount(count, "dzień", "dni", "dni") : englishCount(count, "day", "days"));
+           (polish ? polishCount(count, "dzień", "dni", "dni")
+                   : englishCount(count, "day", "days"));
 }
 
 QString StoryTime::yearText(int year, TimeLanguage language) {

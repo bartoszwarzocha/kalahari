@@ -23,15 +23,17 @@ constexpr int MONTHS = 12;
 /// The text without Polish diacritics, in lower case, with single spaces, its dashes as en
 /// dashes and its minus signs as hyphens, so that "Dzień −2" and "dzien -2" read the same
 QString normalized(const QString& text) {
-    static const std::array<std::pair<QChar, QChar>, 9> letters{{{QChar(0x0105), QLatin1Char('a')},
-                                                                 {QChar(0x0107), QLatin1Char('c')},
-                                                                 {QChar(0x0119), QLatin1Char('e')},
-                                                                 {QChar(0x0142), QLatin1Char('l')},
-                                                                 {QChar(0x0144), QLatin1Char('n')},
-                                                                 {QChar(0x00F3), QLatin1Char('o')},
-                                                                 {QChar(0x015B), QLatin1Char('s')},
-                                                                 {QChar(0x017A), QLatin1Char('z')},
-                                                                 {QChar(0x017C), QLatin1Char('z')}}};
+    static const std::array<std::pair<QChar, QChar>, 9> letters{{
+        {QChar(0x0105), QLatin1Char('a')},
+        {QChar(0x0107), QLatin1Char('c')},
+        {QChar(0x0119), QLatin1Char('e')},
+        {QChar(0x0142), QLatin1Char('l')},
+        {QChar(0x0144), QLatin1Char('n')},
+        {QChar(0x00F3), QLatin1Char('o')},
+        {QChar(0x015B), QLatin1Char('s')},
+        {QChar(0x017A), QLatin1Char('z')},
+        {QChar(0x017C), QLatin1Char('z')},
+    }};
     QString result = text.toLower().simplified();
     for (const auto& [from, to] : letters) {
         result.replace(from, to);

@@ -40,6 +40,7 @@
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/widget_keys.h"
 #include "kalahari/mindmap/mind_map_module.h"
+#include "kalahari/timeline/timeline_module.h"
 
 namespace {
 
@@ -324,6 +325,7 @@ int main(int argc, char *argv[]) {
     // The modules that edit window kinds of the Workshop: the program knows them only by what
     // they register (core::IWindowEditorProvider), so that each can leave as an add-on
     kalahari::mindmap::registerMindMapModule();
+    kalahari::timeline::registerTimelineModule();
 
     // The first book window of the program: it opens the file of the command line, or the
     // books of the last work. Each book window closes and is deleted on its own.
