@@ -21259,7 +21259,7 @@ Notatka: %2</translation>
     <message>
         <source>Characters</source>
         <extracomment>The heading of the characters of the book in a list</extracomment>
-        <translation type="unfinished">Znaki</translation>
+        <translation>Postacie</translation>
     </message>
     <message>
         <source>Locations</source>

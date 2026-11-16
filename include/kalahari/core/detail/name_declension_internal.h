@@ -68,6 +68,14 @@ inline constexpr std::size_t POLISH_MODEL_COUNT = static_cast<std::size_t>(Polis
 /// @brief Every cell of both numbers with @p form
 [[nodiscard]] Candidates unchangedCandidates(const QString& form);
 
+/// @brief Whether @p word is a common noun whose stem changes in its forms, which the models
+///        know (Las -> Lesie, Dwór -> Dworu): the dictionary does not choose its model
+[[nodiscard]] bool isChangingNoun(const QString& word);
+
+/// @brief Whether @p word is a masculine common noun of those whose genitive ends in -u
+///        (Las -> Lasu, Dwór -> Dworu)
+[[nodiscard]] bool takesGenitiveU(const QString& word);
+
 /// @brief The ids of the Polish models, in the order of PolishModel
 [[nodiscard]] const QStringList& polishModelIds();
 

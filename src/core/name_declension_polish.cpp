@@ -7,6 +7,8 @@
 #include <kalahari/core/detail/name_declension_internal.h>
 #include <kalahari/core/name_declension.h>
 
+#include <QHash>
+#include <QSet>
 #include <QString>
 #include <QStringView>
 
@@ -187,6 +189,80 @@ Cell genitivePlural(const QString& stem) {
 }
 
 // =============================================================================
+// Common nouns whose stem changes
+// =============================================================================
+
+/// The common nouns whose vowel changes in the locative (Las -> Lesie): the stem it softens.
+/// The names of places often have them (Czarny Las, Stare Miasto), and the models cannot
+/// tell them by their ending.
+const QHash<QString, QString>& softenedStems() {
+    static const QHash<QString, QString> stems{
+        {QStringLiteral("las"), QStringLiteral("les")},
+        {QStringLiteral("świat"), QStringLiteral("świet")},
+        {QStringLiteral("kwiat"), QStringLiteral("kwiet")},
+        {QStringLiteral("wiatr"), QStringLiteral("wietr")},
+        {QStringLiteral("obiad"), QStringLiteral("obied")},
+        {QStringLiteral("sąsiad"), QStringLiteral("sąsied")},
+        {QStringLiteral("anioł"), QStringLiteral("anieł")},
+        {QStringLiteral("kościół"), QStringLiteral("kościeł")},
+        {QStringLiteral("popiół"), QStringLiteral("popieł")},
+        {QStringLiteral("gwiazda"), QStringLiteral("gwiezd")},
+        {QStringLiteral("jazda"), QStringLiteral("jezd")},
+        {QStringLiteral("wiara"), QStringLiteral("wier")},
+        {QStringLiteral("miasto"), QStringLiteral("miest")},
+        {QStringLiteral("lato"), QStringLiteral("let")},
+        {QStringLiteral("ciało"), QStringLiteral("cieł")},
+        {QStringLiteral("światło"), QStringLiteral("świetł")},
+        {QStringLiteral("gniazdo"), QStringLiteral("gniezd")}};
+    return stems;
+}
+
+/// The masculine common nouns whose stem changes in the other cases: ó -> o (Dwór -> Dworu)
+/// and the e that drops (Zamek -> Zamku)
+const QHash<QString, QString>& changedStems() {
+    static const QHash<QString, QString> stems{
+        {QStringLiteral("kościół"), QStringLiteral("kościoł")},
+        {QStringLiteral("popiół"), QStringLiteral("popioł")},
+        {QStringLiteral("gród"), QStringLiteral("grod")},
+        {QStringLiteral("ogród"), QStringLiteral("ogrod")},
+        {QStringLiteral("bór"), QStringLiteral("bor")},
+        {QStringLiteral("dwór"), QStringLiteral("dwor")},
+        {QStringLiteral("dół"), QStringLiteral("doł")},
+        {QStringLiteral("stół"), QStringLiteral("stoł")},
+        {QStringLiteral("wóz"), QStringLiteral("woz")},
+        {QStringLiteral("lód"), QStringLiteral("lod")},
+        {QStringLiteral("róg"), QStringLiteral("rog")},
+        {QStringLiteral("zamek"), QStringLiteral("zamk")}};
+    return stems;
+}
+
+/// The masculine common nouns of the tables above whose genitive ends in -u (Lasu), not -a
+const QSet<QString>& genitivesInU() {
+    static const QSet<QString> nouns{
+        QStringLiteral("las"),   QStringLiteral("kwiat"), QStringLiteral("wiatr"),
+        QStringLiteral("obiad"), QStringLiteral("popiół"), QStringLiteral("gród"),
+        QStringLiteral("ogród"), QStringLiteral("bór"),   QStringLiteral("dwór"),
+        QStringLiteral("dół"),   QStringLiteral("stół"),  QStringLiteral("wóz"),
+        QStringLiteral("lód"),   QStringLiteral("róg"),   QStringLiteral("zamek")};
+    return nouns;
+}
+
+/// @p stem written as @p word is: with a capital letter when the word has one
+QString likeWritten(const QString& stem, const QString& word) {
+    if (stem.isEmpty() || !word.front().isUpper()) {
+        return stem;
+    }
+    return stem.front().toUpper() + stem.mid(1);
+}
+
+/// The stem whose last consonants the locative of @p word softens: its own, or the one of a
+/// common noun whose vowel changes (Las -> Les-ie)
+QString softenedStem(const QString& word, const QString& stem) {
+    const QString softened = softenedStems().value(word.toLower());
+    return softened.isEmpty() ? stem : likeWritten(softened, word);
+}
+
+// =============================================================================
 // The forms of the models
 // =============================================================================
 
@@ -194,6 +270,9 @@ Cell genitivePlural(const QString& stem) {
 /// that drops (Marek -> Mark), and a soft consonant written with i (Staś -> Stasi)
 QString masculineStem(const QString& word, bool dropsE) {
     const QString lower = word.toLower();
+    if (const QString changed = changedStems().value(lower); !changed.isEmpty()) {
+        return likeWritten(changed, word);  // Dwór -> Dwor-u, Zamek -> Zamk-u
+    }
     if (lower.endsWith(QStringLiteral("ów"))) {
         return word.chopped(2) + QStringLiteral("ow");
     }
@@ -238,7 +317,8 @@ Candidates masculineNoun(const QString& word, bool personal, bool genitiveU, boo
     Candidates candidates;
     Cells& singular = candidates.singular;
     const QString genitive = stem + (genitiveU ? QStringLiteral("u") : QStringLiteral("a"));
-    const QString locative = end == StemEnd::Hard ? hardLocative(stem) : stem + QStringLiteral("u");
+    const QString locative =
+        end == StemEnd::Hard ? hardLocative(softenedStem(word, stem)) : stem + QStringLiteral("u");
     put(singular, GrammaticalCase::Nominative, word);
     put(singular, GrammaticalCase::Genitive, genitive);
     put(singular, GrammaticalCase::Dative, stem + QStringLiteral("owi"));
@@ -293,8 +373,9 @@ void velarForms(AForms& forms, const QString& stem, const QString& lower) {
     forms.dative = velarLocative(stem);
 }
 
-/// The forms of the singular of a noun ending in -a that depend on its stem
-AForms aForms(const QString& stem) {
+/// The forms of the singular of a noun ending in -a that depend on its stem; @p softened is
+/// the stem the dative of a hard stem softens (Gwiazd -> Gwiezd-zie)
+AForms aForms(const QString& stem, const QString& softened) {
     const QString lower = stem.toLower();
     AForms forms{.genitive = stem + QStringLiteral("y"),
                  .dative = QString(),
@@ -319,7 +400,7 @@ AForms aForms(const QString& stem) {
         velarForms(forms, stem, lower);
         break;
     case StemEnd::Hard:
-        forms.dative = hardLocative(stem);
+        forms.dative = hardLocative(softened);
         break;
     }
     if (forms.dative.isEmpty()) {
@@ -333,7 +414,7 @@ AForms aForms(const QString& stem) {
 Candidates aNoun(const QString& word, bool masculine) {
     const QString stem = word.chopped(1);
     const QString lower = stem.toLower();
-    const AForms forms = aForms(stem);
+    const AForms forms = aForms(stem, softenedStem(word, stem));
     const bool endsInO = word.back().toLower() == QLatin1Char('o');
 
     Candidates candidates;
@@ -500,7 +581,7 @@ Candidates neuterNoun(const QString& word) {
     put(singular, GrammaticalCase::Instrumental,
         stem + (kOrG ? QStringLiteral("iem") : QStringLiteral("em")));
     put(singular, GrammaticalCase::Locative,
-        hard ? hardLocative(stem) : stem + QStringLiteral("u"));
+        hard ? hardLocative(softenedStem(word, stem)) : stem + QStringLiteral("u"));
     put(singular, GrammaticalCase::Vocative, word);
 
     putPlural(candidates.plural, stem, stem + QStringLiteral("a"),
@@ -523,6 +604,15 @@ bool isVowel(QChar character) {
 bool endsWithAny(const QString& text, const QStringList& endings) {
     return std::ranges::any_of(endings,
                                [&text](const QString& ending) { return text.endsWith(ending); });
+}
+
+bool isChangingNoun(const QString& word) {
+    const QString lower = word.toLower();
+    return softenedStems().contains(lower) || changedStems().contains(lower);
+}
+
+bool takesGenitiveU(const QString& word) {
+    return genitivesInU().contains(word.toLower());
 }
 
 Candidates unchangedCandidates(const QString& form) {
