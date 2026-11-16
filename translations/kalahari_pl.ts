@@ -9025,11 +9025,6 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <translation>Okno importu</translation>
     </message>
     <message>
-        <source>File › Import › DOCX Document, Markdown and Plain Text start with these choices. What you choose in the window of the import stays here for the next import.</source>
-        <extracomment>In Polish: Polecenia Plik › Importuj › Dokument DOCX, Markdown i Zwykły tekst zaczynają od tych ustawień. To, co wybierzesz w oknie importu, zostaje tutaj na następny import.</extracomment>
-        <translation>Polecenia Plik › Importuj › Dokument DOCX, Markdown i Zwykły tekst zaczynają od tych ustawień. To, co wybierzesz w oknie importu, zostaje tutaj na następny import.</translation>
-    </message>
-    <message>
         <source>&amp;More files: each file as one text</source>
         <extracomment>In Polish: &amp;Kilka plików: każdy plik jako jeden tekst</extracomment>
         <translation>&amp;Kilka plików: każdy plik jako jeden tekst</translation>
@@ -9173,6 +9168,81 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <source>The images that Markdown files and Word documents give by Internet addresses; the program connects to the addresses only when the import starts. Without it, the descriptions of the images stay in their places.</source>
         <extracomment>In Polish: Obrazy, które pliki Markdown i dokumenty Worda wskazują adresem internetowym; program łączy się z tymi adresami dopiero wtedy, gdy import się zacznie. Bez tej opcji w miejscu obrazów zostaje ich opis.</extracomment>
         <translation>Obrazy, które pliki Markdown i dokumenty Worda wskazują adresem internetowym; program łączy się z tymi adresami dopiero wtedy, gdy import się zacznie. Bez tej opcji w miejscu obrazów zostaje ich opis.</translation>
+    </message>
+    <message>
+        <source>File › Import › DOCX Document, Markdown, Plain Text and Scrivener Project start with these choices. What you choose in the window of the import stays here for the next import.</source>
+        <extracomment>In Polish: Polecenia Plik › Importuj › Dokument DOCX, Markdown, Zwykły tekst i Projekt Scrivenera zaczynają od tych ustawień. To, co wybierzesz w oknie importu, zostaje tutaj na następny import.</extracomment>
+        <translation>Polecenia Plik › Importuj › Dokument DOCX, Markdown, Zwykły tekst i Projekt Scrivenera zaczynają od tych ustawień. To, co wybierzesz w oknie importu, zostaje tutaj na następny import.</translation>
+    </message>
+    <message>
+        <source>Scrivener Projects</source>
+        <extracomment>A group of Settings &gt; Files &gt; Import. In Polish: Projekty Scrivenera</extracomment>
+        <translation>Projekty Scrivenera</translation>
+    </message>
+    <message>
+        <source>&amp;Only what Scrivener compiles</source>
+        <extracomment>In Polish: Tylko to, co Scrivener &amp;bierze do kompilacji</extracomment>
+        <translation>Tylko to, co Scrivener &amp;bierze do kompilacji</translation>
+    </message>
+    <message>
+        <source>a scene break</source>
+        <extracomment>What divides the scenes of a text. In Polish: podział sceny</extracomment>
+        <translation>podział sceny</translation>
+    </message>
+    <message>
+        <source>the title of the scene as a heading</source>
+        <extracomment>In Polish: tytuł sceny jako nagłówek</extracomment>
+        <translation>tytuł sceny jako nagłówek</translation>
+    </message>
+    <message>
+        <source>nothing (one text)</source>
+        <extracomment>In Polish: nic (tekst ciągły)</extracomment>
+        <translation>nic (tekst ciągły)</translation>
+    </message>
+    <message>
+        <source>Scenes divided b&amp;y:</source>
+        <extracomment>In Polish: Sceny tekstu oddziel&amp;a:</extracomment>
+        <translation>Sceny tekstu oddziel&amp;a:</translation>
+    </message>
+    <message>
+        <source>Formatting of the pro&amp;ject:</source>
+        <extracomment>In Polish: Formatowanie z pro&amp;jektu:</extracomment>
+        <translation>Formatowanie z pro&amp;jektu:</translation>
+    </message>
+    <message>
+        <source>Syno&amp;pses at the start of the notes</source>
+        <extracomment>In Polish: Streszczenia na p&amp;oczątku notatek</extracomment>
+        <translation>Streszczenia na p&amp;oczątku notatek</translation>
+    </message>
+    <message>
+        <source>&amp;Notes of the documents as notes</source>
+        <extracomment>In Polish: Notatki doku&amp;mentów jako notatki</extracomment>
+        <translation>Notatki doku&amp;mentów jako notatki</translation>
+    </message>
+    <message>
+        <source>Comments and inline &amp;annotations as annotations</source>
+        <extracomment>In Polish: Komentarze i adnotacje jako uwa&amp;gi</extracomment>
+        <translation>Komentarze i adnotacje jako uwa&amp;gi</translation>
+    </message>
+    <message>
+        <source>Snapshots as &amp;versions of the texts</source>
+        <extracomment>In Polish: Migawki jako &amp;wersje tekstów</extracomment>
+        <translation>Migawki jako &amp;wersje tekstów</translation>
+    </message>
+    <message>
+        <source>The folder &quot;Research&quot; to the &amp;Workshop</source>
+        <extracomment>In Polish: Folder „&amp;Research” do Warsztatu</extracomment>
+        <translation>Folder „&amp;Research” do Warsztatu</translation>
+    </message>
+    <message>
+        <source>The statuses of Scrivener become the statuses of the texts, and the labels and the keywords go to their notes.</source>
+        <extracomment>Under the options of a project of Scrivener. In Polish: Stany Scrivenera stają się stanami tekstów, a etykiety i słowa kluczowe trafiają do ich notatek.</extracomment>
+        <translation>Stany Scrivenera stają się stanami tekstów, a etykiety i słowa kluczowe trafiają do ich notatek.</translation>
+    </message>
+    <message>
+        <source>Scrivener projects</source>
+        <extracomment>In Polish: projekty Scrivenera</extracomment>
+        <translation>projekty Scrivenera</translation>
     </message>
 </context>
 <context>
@@ -24523,6 +24593,44 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
     </message>
 </context>
 <context>
+    <name>BookImportPlan</name>
+    <message>
+        <source>Label: %1</source>
+        <extracomment>The label of a document of Scrivener, in the notes of an imported text. In Polish: Etykieta: %1</extracomment>
+        <translation>Etykieta: %1</translation>
+    </message>
+    <message>
+        <source>Status: %1</source>
+        <extracomment>A status of Scrivener the book has no status of, in the notes of an imported text. In Polish: Stan: %1</extracomment>
+        <translation>Stan: %1</translation>
+    </message>
+    <message>
+        <source>Keywords: %1</source>
+        <extracomment>The keywords of a document of Scrivener, in the notes of an imported text. In Polish: Słowa kluczowe: %1</extracomment>
+        <translation>Słowa kluczowe: %1</translation>
+    </message>
+    <message>
+        <source>Synopsis:</source>
+        <extracomment>Before the synopsis of a document of Scrivener, at the start of the notes of an imported text. In Polish: Streszczenie:</extracomment>
+        <translation>Streszczenie:</translation>
+    </message>
+    <message>
+        <source>Untitled scene</source>
+        <extracomment>A scene of Scrivener without a title, in the notes of an imported text. In Polish: Scena bez tytułu</extracomment>
+        <translation>Scena bez tytułu</translation>
+    </message>
+    <message>
+        <source>Scenes:</source>
+        <extracomment>The heading of what the scenes of Scrivener say of themselves, in the notes of an imported text. In Polish: Sceny:</extracomment>
+        <translation>Sceny:</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <extracomment>The title of a document of the research of Scrivener without one. In Polish: Bez tytułu</extracomment>
+        <translation>Bez tytułu</translation>
+    </message>
+</context>
+<context>
     <name>CaptionNumbers</name>
     <message>
         <source>above</source>
@@ -28926,6 +29034,16 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>Why File &gt; Import &gt; Other Formats is greyed out. In Polish: Żadna wtyczka nie importuje innych formatów.</extracomment>
         <translation>Żadna wtyczka nie importuje innych formatów.</translation>
     </message>
+    <message>
+        <source>Scrivener projects</source>
+        <extracomment>The files of the system window of File &gt; Import &gt; Scrivener Project. In Polish: Projekty Scrivenera</extracomment>
+        <translation>Projekty Scrivenera</translation>
+    </message>
+    <message>
+        <source>Scrivener Project to Import</source>
+        <extracomment>The title of the system window of File &gt; Import &gt; Scrivener Project. In Polish: Projekt Scrivenera do importu</extracomment>
+        <translation>Projekt Scrivenera do importu</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ImportBookDialog</name>
@@ -29896,6 +30014,265 @@ No parts in the file. In Polish: – bez części –</extracomment>
         <source>These images could not be downloaded; their descriptions are in their places:</source>
         <extracomment>Before the images of Internet addresses that did not come. In Polish: Nie udało się pobrać tych obrazów; w ich miejscu jest opis:</extracomment>
         <translation>Nie udało się pobrać tych obrazów; w ich miejscu jest opis:</translation>
+    </message>
+    <message>
+        <source>Scrivener project (.scrivx)</source>
+        <extracomment>A format of the window of the import. In Polish: Projekt Scrivenera (.scrivx)</extracomment>
+        <translation>Projekt Scrivenera (.scrivx)</translation>
+    </message>
+    <message>
+        <source>&amp;Only what Scrivener compiles (&quot;Include in Compile&quot;)</source>
+        <extracomment>The documents of a project of Scrivener that its compilation takes. In Polish: Tylko to, co Scrivener &amp;bierze do kompilacji („Include in Compile”)</extracomment>
+        <translation>Tylko to, co Scrivener &amp;bierze do kompilacji („Include in Compile”)</translation>
+    </message>
+    <message>
+        <source>a scene break</source>
+        <extracomment>What divides the scenes of a text. In Polish: podział sceny</extracomment>
+        <translation>podział sceny</translation>
+    </message>
+    <message>
+        <source>the title of the scene as a heading</source>
+        <extracomment>In Polish: tytuł sceny jako nagłówek</extracomment>
+        <translation>tytuł sceny jako nagłówek</translation>
+    </message>
+    <message>
+        <source>nothing (one text)</source>
+        <extracomment>In Polish: nic (tekst ciągły)</extracomment>
+        <translation>nic (tekst ciągły)</translation>
+    </message>
+    <message>
+        <source>Scenes divided b&amp;y:</source>
+        <extracomment>Before what divides the scenes of a text. In Polish: Sceny tekstu oddziel&amp;a:</extracomment>
+        <translation>Sceny tekstu oddziel&amp;a:</translation>
+    </message>
+    <message>
+        <source>To the Elements of the Book</source>
+        <extracomment>A group of the window of the import of a project of Scrivener. In Polish: Do elementów książki</extracomment>
+        <translation>Do elementów książki</translation>
+    </message>
+    <message>
+        <source>S&amp;ynopses at the start of the notes</source>
+        <extracomment>In Polish: Streszczenia na p&amp;oczątku notatek</extracomment>
+        <translation>Streszczenia na p&amp;oczątku notatek</translation>
+    </message>
+    <message>
+        <source>&amp;Notes of the documents as notes</source>
+        <extracomment>In Polish: Notatki dokumentów jako &amp;notatki</extracomment>
+        <translation>Notatki dokumentów jako &amp;notatki</translation>
+    </message>
+    <message>
+        <source>Comments and inline annotations as &amp;annotations</source>
+        <extracomment>In Polish: Komentarze i adnotacje jako &amp;uwagi</extracomment>
+        <translation>Komentarze i adnotacje jako &amp;uwagi</translation>
+    </message>
+    <message>
+        <source>Statuses: &quot;To Do&quot; and &quot;First Draft&quot; – Draft, &quot;Revised Draft&quot; – Revision, &quot;Final Draft&quot; and &quot;Done&quot; – Final. The labels, the keywords and the scenes go to the notes of the texts.</source>
+        <extracomment>Under the notes of a project of Scrivener. In Polish: Stany: „To Do” i „First Draft” – Szkic, „Revised Draft” – Poprawki, „Final Draft” i „Done” – Gotowy. Etykiety, słowa kluczowe i sceny – do notatek tekstów.</extracomment>
+        <translation>Stany: „To Do” i „First Draft” – Szkic, „Revised Draft” – Poprawki, „Final Draft” i „Done” – Gotowy. Etykiety, słowa kluczowe i sceny – do notatek tekstów.</translation>
+    </message>
+    <message>
+        <source>To the Workshop</source>
+        <extracomment>A group of the window of the import of a project of Scrivener. In Polish: Do Warsztatu</extracomment>
+        <translation>Do Warsztatu</translation>
+    </message>
+    <message>
+        <source>The texts as working notes, and the pictures, the PDF files, the web pages and the other files as materials of their kinds.</source>
+        <extracomment>Under the research of a project of Scrivener. In Polish: Teksty jako notatki robocze, a obrazy, pliki PDF, strony internetowe i inne pliki jako materiały tych rodzajów.</extracomment>
+        <translation>Teksty jako notatki robocze, a obrazy, pliki PDF, strony internetowe i inne pliki jako materiały tych rodzajów.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is not a Scrivener project: it has no .scrivx file.</source>
+        <extracomment>%1: the name of the folder or the file. In Polish: „%1” nie jest projektem Scrivenera: nie ma w nim pliku .scrivx.</extracomment>
+        <translation>„%1” nie jest projektem Scrivenera: nie ma w nim pliku .scrivx.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n parts</source>
+        <extracomment>What is in the draft of a project of Scrivener. In Polish: %n część / części / części</extracomment>
+        <translation>
+            <numerusform>%n część</numerusform>
+            <numerusform>%n części</numerusform>
+            <numerusform>%n części</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n texts</source>
+        <extracomment>In Polish: %n tekst / teksty / tekstów</extracomment>
+        <translation>
+            <numerusform>%n tekst</numerusform>
+            <numerusform>%n teksty</numerusform>
+            <numerusform>%n tekstów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n scenes</source>
+        <extracomment>The documents in the texts after their first. In Polish: %n scena / sceny / scen</extracomment>
+        <translation>
+            <numerusform>%n scena</numerusform>
+            <numerusform>%n sceny</numerusform>
+            <numerusform>%n scen</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n words</source>
+        <extracomment>In Polish: %n słowo / słowa / słów</extracomment>
+        <translation>
+            <numerusform>%n słowo</numerusform>
+            <numerusform>%n słowa</numerusform>
+            <numerusform>%n słów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>In the draft: %1.</source>
+        <extracomment>What is in the draft of a project of Scrivener whose draft has no title; %1: what is in it. In Polish: W szkicu: %1.</extracomment>
+        <translation>W szkicu: %1.</translation>
+    </message>
+    <message>
+        <source>In &quot;%1&quot;: %2.</source>
+        <extracomment>What is in the draft of a project of Scrivener; %1: the title of the draft (&quot;Manuscript&quot;), %2: what is in it. In Polish: W „%1”: %2.</extracomment>
+        <translation>W „%1”: %2.</translation>
+    </message>
+    <message numerus="yes">
+        <source>in &quot;Research&quot;: %n items</source>
+        <extracomment>In Polish: w „Research”: %n element / elementy / elementów</extracomment>
+        <translation>
+            <numerusform>w „Research”: %n element</numerusform>
+            <numerusform>w „Research”: %n elementy</numerusform>
+            <numerusform>w „Research”: %n elementów</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n snapshots</source>
+        <extracomment>In Polish: %n migawka / migawki / migawek</extracomment>
+        <translation>
+            <numerusform>%n migawka</numerusform>
+            <numerusform>%n migawki</numerusform>
+            <numerusform>%n migawek</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>in the Trash: %n documents</source>
+        <extracomment>In Polish: w Koszu: %n dokument / dokumenty / dokumentów</extracomment>
+        <translation>
+            <numerusform>w Koszu: %n dokument</numerusform>
+            <numerusform>w Koszu: %n dokumenty</numerusform>
+            <numerusform>w Koszu: %n dokumentów</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Also %1.</source>
+        <extracomment>After what is in the draft; %1: the research, the snapshots and the Trash. In Polish: Także %1.</extracomment>
+        <translation>Także %1.</translation>
+    </message>
+    <message>
+        <source>The title of the project: &quot;%1&quot;.</source>
+        <extracomment>After what is in the project; %1: its title. In Polish: Tytuł z projektu: „%1”.</extracomment>
+        <translation>Tytuł z projektu: „%1”.</translation>
+    </message>
+    <message>
+        <source>Scrivener Project to Import</source>
+        <extracomment>The title of the system window of File &gt; Import &gt; Scrivener Project. In Polish: Projekt Scrivenera do importu</extracomment>
+        <translation>Projekt Scrivenera do importu</translation>
+    </message>
+    <message>
+        <source>Pro&amp;ject:</source>
+        <extracomment>The label of the project of Scrivener in the window of the import. In Polish: Pro&amp;jekt:</extracomment>
+        <translation>Pro&amp;jekt:</translation>
+    </message>
+    <message>
+        <source>C&amp;hoose...</source>
+        <extracomment>Chooses another project of Scrivener. In Polish: Wy&amp;bierz…</extracomment>
+        <translation>Wy&amp;bierz…</translation>
+    </message>
+    <message>
+        <source>Notes and Mat&amp;erials</source>
+        <extracomment>A tab of the window of the import of a project of Scrivener: its notes and its research. In Polish: Notatki i mate&amp;riały</extracomment>
+        <translation>Notatki i mate&amp;riały</translation>
+    </message>
+    <message numerus="yes">
+        <source>Snapshots as &amp;versions of the texts (%n)</source>
+        <extracomment>%n: the snapshots of the texts of the project. In Polish: Migawki jako &amp;wersje tekstów (%n)</extracomment>
+        <translation>
+            <numerusform>Migawki jako &amp;wersje tekstów (%n)</numerusform>
+            <numerusform>Migawki jako &amp;wersje tekstów (%n)</numerusform>
+            <numerusform>Migawki jako &amp;wersje tekstów (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>The folder &quot;&amp;Research&quot; (%n)</source>
+        <extracomment>%n: the documents of the research of the project. In Polish: &amp;Folder „Research” (%n)</extracomment>
+        <translation>
+            <numerusform>&amp;Folder „Research” (%n)</numerusform>
+            <numerusform>&amp;Folder „Research” (%n)</numerusform>
+            <numerusform>&amp;Folder „Research” (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>The images of the texts (%n) go to the images of the book.</source>
+        <extracomment>The images of the texts of a project of Scrivener. In Polish: Obrazy z tekstów (%n) trafią do obrazów książki.</extracomment>
+        <translation>
+            <numerusform>Obrazy z tekstów (%n) trafią do obrazów książki.</numerusform>
+            <numerusform>Obrazy z tekstów (%n) trafią do obrazów książki.</numerusform>
+            <numerusform>Obrazy z tekstów (%n) trafią do obrazów książki.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>The texts of the project have no images.</source>
+        <extracomment>In Polish: Teksty projektu nie mają obrazów.</extracomment>
+        <translation>Teksty projektu nie mają obrazów.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The snapshots are versions of the texts (%n).</source>
+        <extracomment>After the result of the import of a project of Scrivener. In Polish: Migawki są wersjami tekstów (%n).</extracomment>
+        <translation>
+            <numerusform>Migawki są wersjami tekstów (%n).</numerusform>
+            <numerusform>Migawki są wersjami tekstów (%n).</numerusform>
+            <numerusform>Migawki są wersjami tekstów (%n).</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>The Workshop has the materials of &quot;Research&quot; (%n).</source>
+        <extracomment>After the result of the import of a project of Scrivener. In Polish: Warsztat ma materiały z „Research” (%n).</extracomment>
+        <translation>
+            <numerusform>Warsztat ma materiały z „Research” (%n).</numerusform>
+            <numerusform>Warsztat ma materiały z „Research” (%n).</numerusform>
+            <numerusform>Warsztat ma materiały z „Research” (%n).</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– the documents of the Trash (%n)</source>
+        <extracomment>What the import of a project of Scrivener left out. In Polish: – dokumenty z Kosza (%n)</extracomment>
+        <translation>
+            <numerusform>– dokumenty z Kosza (%n)</numerusform>
+            <numerusform>– dokumenty z Kosza (%n)</numerusform>
+            <numerusform>– dokumenty z Kosza (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– the documents without &quot;Include in Compile&quot; (%n)</source>
+        <extracomment>In Polish: – dokumenty bez „Include in Compile” (%n)</extracomment>
+        <translation>
+            <numerusform>– dokumenty bez „Include in Compile” (%n)</numerusform>
+            <numerusform>– dokumenty bez „Include in Compile” (%n)</numerusform>
+            <numerusform>– dokumenty bez „Include in Compile” (%n)</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– the snapshots of scenes (%n): they are no versions of a whole text</source>
+        <extracomment>The snapshots of the scenes, which are no versions of a whole text. In Polish: – migawki scen (%n): nie są wersjami całego tekstu</extracomment>
+        <translation>
+            <numerusform>– migawki scen (%n): nie są wersjami całego tekstu</numerusform>
+            <numerusform>– migawki scen (%n): nie są wersjami całego tekstu</numerusform>
+            <numerusform>– migawki scen (%n): nie są wersjami całego tekstu</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>– the materials of &quot;Research&quot; that could not be added (%n); the log says why</source>
+        <extracomment>The materials of &quot;Research&quot; that could not be added; the log says why. In Polish: – materiały z „Research”, których nie udało się dodać (%n); dlaczego, mówi dziennik</extracomment>
+        <translation>
+            <numerusform>– materiały z „Research”, których nie udało się dodać (%n); dlaczego, mówi dziennik</numerusform>
+            <numerusform>– materiały z „Research”, których nie udało się dodać (%n); dlaczego, mówi dziennik</numerusform>
+            <numerusform>– materiały z „Research”, których nie udało się dodać (%n); dlaczego, mówi dziennik</numerusform>
+        </translation>
     </message>
 </context>
 <context>

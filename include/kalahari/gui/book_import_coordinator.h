@@ -2,8 +2,9 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file book_import_coordinator.h
-/// @brief File > Import > DOCX, Markdown and Plain Text: the system window of the files, the
-///        window of the import, and the texts added to the open book or to a new one
+/// @brief File > Import > DOCX, Markdown, Plain Text and Scrivener Project: the system window
+///        of the files, the window of the import, and the texts added to the open book or to a
+///        new one
 
 #pragma once
 
@@ -27,8 +28,8 @@ namespace kalahari::gui {
 
 class CommandRegistry;
 
-/// @brief Imports Word documents, Markdown and plain text into the book of the window or into
-///        a new book
+/// @brief Imports Word documents, Markdown, plain text and projects of Scrivener into the book
+///        of the window or into a new book
 ///
 /// The commands work always: without an open book the import makes a new one; Other Formats
 /// while a plugin imports a format of its own (core::IImporter). A command
@@ -57,7 +58,8 @@ class BookImportCoordinator : public QObject {
     BookImportCoordinator(const BookImportCoordinator&) = delete;
     BookImportCoordinator& operator=(const BookImportCoordinator&) = delete;
 
-    /// @brief Give File > Import > DOCX, Markdown, Plain Text and Other Formats their callbacks
+    /// @brief Give File > Import > DOCX, Markdown, Plain Text, Scrivener Project and Other
+    ///        Formats their callbacks
     /// @note Call after the commands are registered
     void connectCommands();
 
@@ -67,6 +69,10 @@ class BookImportCoordinator : public QObject {
     /// @brief File > Import > Other Formats: choose the files of a format of a plugin in the
     ///        system window, then import them
     void importPluginFormat();
+
+    /// @brief File > Import > Scrivener Project: choose the project (its .scrivx file, or its
+    ///        folder .scriv as a package on macOS) in the system window, then import it
+    void importScrivenerProject();
 
     /// @brief Open the window of the import of @p files of @p format; of ImportFormat::Plugin,
     ///        of the format @p plugin

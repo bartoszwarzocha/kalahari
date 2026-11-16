@@ -2,8 +2,9 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file import_book_dialog.h
-/// @brief File > Import > DOCX, Markdown and Plain Text: the files, the place in the book, the
-/// texts they become and how, and the progress and the result of the import in one window
+/// @brief File > Import > DOCX, Markdown, Plain Text and Scrivener Project: the files, the place
+/// in the book, the texts they become and how, and the progress and the result of the import in
+/// one window
 
 #pragma once
 
@@ -42,13 +43,15 @@ namespace dialogs {
 
 class RowList;
 
-/// @brief Import of Word documents (DOCX), Markdown and plain text into a book
+/// @brief Import of Word documents (DOCX), Markdown, plain text and projects of Scrivener into
+///        a book
 ///
 /// The command of the menu chooses the format and the files in the system window first; the
 /// window shows at once what is in them and the texts they become. The options are on tabs as
 /// high as the highest, so the window keeps its size: the files, the place in the book, the
 /// division into texts (the list of the texts, their titles and kinds), the styles, the
-/// cleanups of the text, and the annotations and the images. The progress and the result show
+/// cleanups of the text, and the annotations and the images (of a project of Scrivener: its
+/// notes and its research). The progress and the result show
 /// under the tabs, with Show in Navigator, Open First Text and Undo Import. The window keeps
 /// its choices in the settings (import.*), each format its own, for the next import.
 class ImportBookDialog : public ArchiveDialog {
@@ -103,6 +106,8 @@ class ImportBookDialog : public ArchiveDialog {
         QHash<QString, QString> styles;  ///< The book's style of each style of the files, by
                                          ///< its name; NEW_STYLE_PREFIX: a new style of the
                                          ///< book; empty: suggestedBookStyle()
+        ImportDetails details;  ///< What of a project of Scrivener goes with its texts
+        bool research = true;   ///< The research of a project to the Workshop
     };
 
     /// @brief What the import added, as the window says it and Undo Import takes it out
@@ -111,6 +116,9 @@ class ImportBookDialog : public ArchiveDialog {
         int parts = 0;            ///< The parts it added
         int images = 0;           ///< The image files it wrote
         int styles = 0;           ///< The new styles of the book
+        int versions = 0;         ///< The versions of the texts (snapshots of Scrivener)
+        int materials = 0;        ///< The materials it added to the Workshop
+        int lostMaterials = 0;    ///< The materials it could not add
         QString firstText;        ///< The element of its first text; empty: none
         QString bookFile;         ///< Of a new book: its .klh file
         bool bookOpened = false;  ///< The new book opened in the window
@@ -311,6 +319,20 @@ class ImportBookDialog : public ArchiveDialog {
     /// @brief The comments of Word as annotations
     QCheckBox* commentsBox() const { return m_commentsBox; }
 
+    /// @brief A project of Scrivener: only the documents Included in Compile, and what divides
+    ///        the scenes of a text
+    QCheckBox* compiledOnlyBox() const { return m_compiledOnlyBox; }
+    QComboBox* scenesBox() const { return m_scenesBox; }
+
+    /// @brief A project of Scrivener: the synopses in the notes, the notes as notes, the
+    ///        comments and annotations as annotations, the snapshots as versions, the research
+    ///        to the Workshop
+    QCheckBox* synopsesBox() const { return m_synopsesBox; }
+    QCheckBox* projectNotesBox() const { return m_projectNotesBox; }
+    QCheckBox* projectCommentsBox() const { return m_projectCommentsBox; }
+    QCheckBox* snapshotsBox() const { return m_snapshotsBox; }
+    QCheckBox* researchBox() const { return m_researchBox; }
+
     /// @brief The tracked changes rejected
     QRadioButton* rejectButton() const { return m_rejectButton; }
 
@@ -400,8 +422,15 @@ class ImportBookDialog : public ArchiveDialog {
     /// @brief A check box or a title of the list changed
     void rowChanged(QTreeWidgetItem* item, int column);
 
-    /// @brief Choose the files in the system window
+    /// @brief Choose the files in the system window; of a project of Scrivener, the project
     void browseFiles();
+
+    /// @brief What is in a project of Scrivener, as the window says it under it
+    QString projectContents() const;
+
+    /// @brief What the import of a project of Scrivener left out, and the materials it could
+    ///        not add, as lines of the result
+    QStringList projectOmissions(const Outcome& outcome) const;
 
     /// @brief Choose the folder of a new book in the system window
     void browseFolder();
@@ -444,6 +473,9 @@ class ImportBookDialog : public ArchiveDialog {
     QPushButton* m_upButton = nullptr;
     QPushButton* m_downButton = nullptr;
     QPushButton* m_removeButton = nullptr;
+    QPushButton* m_addButton = nullptr;
+    QLabel* m_filesLabel = nullptr;
+    QLabel* m_orderRemark = nullptr;
     QComboBox* m_encodingBox = nullptr;
     QLabel* m_previewLabel = nullptr;
     QLabel* m_contentsLabel = nullptr;
@@ -480,6 +512,9 @@ class ImportBookDialog : public ArchiveDialog {
     QCheckBox* m_wholeFilesBox = nullptr;
     QCheckBox* m_headingAsTitleBox = nullptr;
     QLabel* m_pluginNote = nullptr;
+    QWidget* m_projectDivision = nullptr;
+    QCheckBox* m_compiledOnlyBox = nullptr;
+    QComboBox* m_scenesBox = nullptr;
     RowList* m_textList = nullptr;
     QComboBox* m_kindBox = nullptr;
     QPushButton* m_renameButton = nullptr;
@@ -522,6 +557,14 @@ class ImportBookDialog : public ArchiveDialog {
     QCheckBox* m_webImagesBox = nullptr;
     QWidget* m_webImagesOption = nullptr;
     int m_webImages = 0;  ///< The images of Internet addresses of the files that are read
+    QGroupBox* m_imagesGroup = nullptr;
+    QGroupBox* m_projectGroup = nullptr;
+    QCheckBox* m_synopsesBox = nullptr;
+    QCheckBox* m_projectNotesBox = nullptr;
+    QCheckBox* m_projectCommentsBox = nullptr;
+    QCheckBox* m_snapshotsBox = nullptr;
+    QGroupBox* m_researchGroup = nullptr;
+    QCheckBox* m_researchBox = nullptr;
 
     QLabel* m_showInNavigatorLink = nullptr;
     QLabel* m_openTextLink = nullptr;

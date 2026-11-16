@@ -14,6 +14,7 @@
 #include <kalahari/gui/book_styles.h>
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari_tests/test_support/window_parts.h"
+#include "test_support/scrivener_project.h"
 
 #include <QDir>
 #include <QFile>
@@ -383,4 +384,140 @@ TEST_CASE("Import plan: the texts a plugin read, with their titles, as one docum
 
     // No texts: an empty document
     CHECK(pluginDocument({}, folder.path(), QStringLiteral("Szkic")).blocks.empty());
+}
+
+TEST_CASE("Import plan: a project of Scrivener, its texts, what it says of them, its research",
+          "[import][gui][scrivener]") {
+    Novel novel;
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    ImportReading reading;
+    reading.format = ImportFormat::Scrivener;
+    CHECK(importExtensions(ImportFormat::Scrivener) == QStringList({QStringLiteral(".scrivx")}));
+    const std::vector<ImportFile> files{
+        readImportFile(test::makeScrivenerProject(folder.path()), reading)};
+    REQUIRE(files[0].isRead());
+    REQUIRE(files[0].project);
+    const ImportProject& project = *files[0].project;
+    CHECK(project.title == QStringLiteral("Karawana"));
+    CHECK(project.draftName == QStringLiteral("Manuscript"));
+    CHECK(project.excluded == 1);
+    CHECK(project.trash == 1);
+    CHECK(project.snapshots() == 2);
+    CHECK(project.draftBlocks == 11);
+    REQUIRE(project.pieces.size() == 5);
+    REQUIRE(project.details.size() == 5);
+    // The snapshots and the research after the draft in the document of the file
+    const std::vector<ImportSnapshot>& snapshots = project.details[3].snapshots;
+    REQUIRE(snapshots.size() == 2);
+    CHECK(snapshots[0].title == QStringLiteral("Pierwsza wersja"));
+    CHECK(snapshots[0].from == project.draftBlocks);
+    CHECK(snapshots[1].from == snapshots[0].to);
+    REQUIRE(project.research.size() == 3);
+    CHECK(project.research[0].kind == ImportMaterial::Kind::Picture);
+    CHECK(project.research[1].kind == ImportMaterial::Kind::Note);
+    CHECK(project.research[1].from == snapshots[1].to);
+    CHECK(project.research[2].title == QStringLiteral("Anna"));
+
+    // Its rows: the texts and parts of its draft, whatever the division
+    const ImportKinds kinds = importKindsOf(novel.book());
+    const std::vector<ImportRow> rows = importRows(files, atHeadings(1), true, kinds);
+    REQUIRE(rows.size() == 5);
+    CHECK(rows[0].kind == kinds.part.reference());
+    CHECK(rows[0].title == QStringLiteral("Część pierwsza"));
+    CHECK(rows[2].title == QStringLiteral("Rozdział 1"));
+    CHECK(rows[2].text == 2);
+    CHECK(kindId(rows[4].kind) == QStringLiteral("epilogue"));
+
+    const std::vector<editor::ImportKmlOptions> options(files.size());
+    SECTION("All that the project says of its texts") {
+        const std::vector<ImportedText> texts = importedTexts(files, rows, kinds, options);
+        REQUIRE(texts.size() == 2);
+        const ImportedText& part = texts[0];
+        CHECK(part.notes == QStringLiteral("Label: Blue"));
+        REQUIRE(part.texts.size() == 3);
+        CHECK(part.texts[0].kml.contains(QStringLiteral("Wstęp do części.")));
+
+        // The synopsis of the folder, then what its scenes say of themselves
+        const ImportedText& first = part.texts[1];
+        CHECK(first.status == QStringLiteral("draft"));
+        CHECK(first.notes ==
+              QStringLiteral("Synopsis:\nRozdział o wyjeździe.\n\nScenes:\n\nScena 1\nKarawana wyrusza.\n"
+                             "Notatka do sceny.\nDruga linia.\nLabel: Red\nKeywords: pustynia, noc"));
+        CHECK(first.versions.empty());
+
+        // The snapshots as its versions, from the oldest
+        const ImportedText& second = part.texts[2];
+        CHECK(second.status == QStringLiteral("final"));
+        CHECK(second.notes.isEmpty());
+        REQUIRE(second.versions.size() == 2);
+        CHECK(second.versions[0].name == QStringLiteral("Pierwsza wersja"));
+        CHECK(second.versions[0].created.isValid());
+        CHECK(second.versions[0].kml.contains(QStringLiteral("Stary tekst.")));
+        CHECK_FALSE(second.versions[0].kml.contains(QStringLiteral("Tekst rozdziału drugiego.")));
+        CHECK(second.versions[1].kml.contains(QStringLiteral("Nowszy tekst.")));
+        CHECK(second.kml.contains(QStringLiteral("Tekst rozdziału drugiego.")));
+        CHECK_FALSE(second.kml.contains(QStringLiteral("Stary tekst.")));
+        CHECK(texts[1].title == QStringLiteral("Epilog"));
+        CHECK(texts[1].status.isEmpty());  // a text without a status: a draft
+    }
+
+    SECTION("Nothing of what it says but the texts") {
+        ImportDetails nothing;
+        nothing.synopses = false;
+        nothing.notes = false;
+        nothing.statuses = false;
+        nothing.snapshots = false;
+        const std::vector<ImportedText> texts = importedTexts(files, rows, kinds, options, nothing);
+        REQUIRE(texts.size() == 2);
+        CHECK(texts[0].notes.isEmpty());
+        for (const ImportedText& text : texts[0].texts) {
+            CHECK(text.notes.isEmpty());
+            CHECK(text.status.isEmpty());
+            CHECK(text.versions.empty());
+        }
+    }
+
+    SECTION("The synopses without the notes") {
+        ImportDetails synopses;
+        synopses.notes = false;
+        const std::vector<ImportedText> texts = importedTexts(files, rows, kinds, options, synopses);
+        CHECK(texts[0].notes.isEmpty());
+        CHECK(texts[0].texts[1].notes ==
+              QStringLiteral("Synopsis:\nRozdział o wyjeździe.\n\nScenes:\n\nScena 1\nKarawana wyrusza."));
+    }
+
+    SECTION("The research, as the Workshop gets it") {
+        const std::vector<ImportedMaterial> materials = importedMaterials(files, options);
+        REQUIRE(materials.size() == 3);
+        CHECK(materials[0].kind == QStringLiteral("picture"));
+        CHECK(materials[0].title == QStringLiteral("Mapa"));
+        CHECK(materials[0].file.endsWith(QStringLiteral("Files/Data/IMG/content.png")));
+        CHECK(materials[0].description == QStringLiteral("Mapa szlaku.\n\nZ archiwum."));
+        CHECK(materials[1].kind == QStringLiteral("work_note"));
+        CHECK(materials[1].title == QStringLiteral("Notatki o oazie"));
+        CHECK(materials[1].kml.contains(QStringLiteral("Oaza leży na południu.")));
+        CHECK_FALSE(materials[1].kml.contains(QStringLiteral("Nowszy tekst.")));
+        CHECK(materials[1].notes.isEmpty());
+        CHECK(materials[2].title == QStringLiteral("Anna"));
+        CHECK(materials[2].kml.contains(QStringLiteral("Przewodniczka.")));
+    }
+}
+
+TEST_CASE("Import plan: the notes of a document of Scrivener", "[import][gui][scrivener]") {
+    ImportTextDetails details;
+    CHECK(importNotes(details).isEmpty());
+    details.notes = QStringLiteral(" Notatka. ");
+    details.status = QStringLiteral("Do sprawdzenia");  // the book has no such status
+    details.scenes.emplace_back();
+    details.scenes.back().notes = QStringLiteral("Bez tytułu.");
+    details.scenes.emplace_back();  // nothing to say
+    details.scenes.back().title = QStringLiteral("Pusta");
+    CHECK(importNotes(details) ==
+          QStringLiteral("Notatka.\n\nStatus: Do sprawdzenia\n\nScenes:\n\nUntitled scene\nBez tytułu."));
+
+    ImportMaterial material;
+    CHECK(materialNotes(material).isEmpty());
+    material.notes = QStringLiteral("Z archiwum.");
+    CHECK(materialNotes(material) == QStringLiteral("Z archiwum."));
 }

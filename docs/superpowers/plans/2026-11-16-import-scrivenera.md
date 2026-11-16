@@ -20,7 +20,7 @@ kluczowe i migawki. Folder „Research” może trafić do materiałów książk
 - Polecenie „Projekt Scrivenera...” jest w menu jako zapowiedź fazy 2 (`src/gui/command_registrar.cpp:272`).
 - Program nie czyta RTF; Scrivener zapisuje w nim tekst każdego dokumentu.
 - Książka ma to, czego potrzebują dane Scrivenera: stan tekstu (`ProjectManager::setStatus`), opis
-  (`setDescription`), notatki pliku rozdziału (`src/core/chapter_document.cpp:225`), wersje tekstu
+  materiału (`setDescription`), notatki pliku rozdziału (`src/core/chapter_document.cpp:225`), wersje tekstu
   (`core::ChapterVersions::add`, `include/kalahari/core/chapter_versions.h:160`) i materiały z plikami
   (`ProjectManager::addMaterial`, `include/kalahari/core/project_manager.h:510`).
 
@@ -58,7 +58,8 @@ domysłach. Scrivener 2 (`Files/Docs/<ID>.rtf`) – tylko gdy taki projekt się 
    dokument na poziomie części albo szuflady to rozdział. Kosz i ustawienia kompilacji pominięte; tylko
    to, co jest „Include in Compile” (opcja).
 3. **Okno i polecenie**: format „Projekt Scrivenera (.scrivx)”, wybór pliku `.scrivx` albo folderu
-   `.scriv`, zakładka „Notatki i materiały” (streszczenia jako opisy, notatki jako notatki tekstów, migawki
+   `.scriv`, zakładka „Notatki i materiały” (streszczenia na początku notatek – opisu tekstu program nie
+   pokazuje, notatki jako notatki tekstów, migawki
    jako wersje, stany: „To Do” i „First Draft” – Szkic, „Revised Draft” – Poprawki, „Final Draft” i „Done” –
    Gotowy, etykieta i słowa kluczowe na koniec notatek, folder „Research” jako materiały), grupa
    w Ustawieniach › Pliki › Import, wynik z tym, co import pominął (Kosz, dokumenty bez „Include in

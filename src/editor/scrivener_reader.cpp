@@ -453,7 +453,7 @@ private:
             own.piece.inPart = true;
             own.piece.title = item.title;
             startText(std::move(own));
-            appendScene(item.text);
+            appendScene(item.text, nullptr);
         }
         addInPart(item.children);
     }
@@ -492,7 +492,11 @@ private:
             }
         }
         if (scenes.empty()) {
+            // Versions of the text: their headings as low as its own
             text.snapshots = item.snapshots;
+            for (ScrivenerSnapshot& snapshot : text.snapshots) {
+                lowerHeadings(snapshot.text);
+            }
         } else {
             m_draft.sceneSnapshots += static_cast<int>(item.snapshots.size());
             for (const ScrivenerItem* scene : scenes) {
@@ -500,9 +504,9 @@ private:
             }
         }
         startText(std::move(text));
-        appendScene(item.text);
+        appendScene(item.text, nullptr);
         for (const ScrivenerItem* scene : scenes) {
-            appendScene(scene->text);
+            appendScene(scene->text, &scene->title);
         }
     }
 
@@ -561,25 +565,37 @@ private:
         m_text.reset();
     }
 
-    /// A document of the text, after a scene break when another one is before it; its
-    /// headings a level lower than the titles
-    void appendScene(const ImportDocument& scene) {
+    /// A document of the text: a scene (with its @p title) after its scene break or its title,
+    /// as the options say, or the text's own (@p title nullptr); its headings a level lower
+    /// than the titles
+    void appendScene(const ImportDocument& scene, const QString* title) {
         if (!hasText(scene)) {
             return;
         }
+        using Scenes = ScrivenerDraftOptions::Scenes;
         ImportDocument copy = scene;
-        for (ImportBlock& block : copy.blocks) {
-            if (const int level = copy.headingLevelOf(block); level > 0) {
-                block.headingLevel = std::min(level + TEXT_LEVEL, MAX_HEADING_LEVEL);
-            }
-        }
-        if (m_scenes > 0) {
+        lowerHeadings(copy);
+        if (m_options.scenes == Scenes::Titles && title != nullptr && !title->trimmed().isEmpty()) {
+            m_draft.document.blocks.push_back(heading(title->trimmed(), TEXT_LEVEL + 1));
+        } else if (m_scenes > 0 && m_options.scenes != Scenes::None) {
             ImportBlock sceneBreak;
             sceneBreak.kind = ImportBlock::Kind::SceneBreak;
             m_draft.document.blocks.push_back(std::move(sceneBreak));
         }
         ++m_scenes;
         appendImportDocument(m_draft.document, std::move(copy));
+    }
+
+    /// The headings of a document of a text a level lower than the titles: of the texts, and
+    /// of the scenes when they have titles
+    void lowerHeadings(ImportDocument& document) const {
+        const int lower =
+            m_options.scenes == ScrivenerDraftOptions::Scenes::Titles ? TEXT_LEVEL + 1 : TEXT_LEVEL;
+        for (ImportBlock& block : document.blocks) {
+            if (const int level = document.headingLevelOf(block); level > 0) {
+                block.headingLevel = std::min(level + lower, MAX_HEADING_LEVEL);
+            }
+        }
     }
 
     static bool hasText(const ImportDocument& document) {

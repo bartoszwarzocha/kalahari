@@ -4,10 +4,11 @@
 /// @file import_page.cpp
 /// @brief Settings page: Files > Import
 ///
-/// The choices the window of File > Import > DOCX, Markdown and Plain Text starts with: the
-/// texts of more files, the images of Internet addresses, the formatting, the comments and the
-/// tracked changes of Word, and the headings, the dialogue and the cleanups of each format. The
-/// window keeps the writer's choices in the same settings.
+/// The choices the window of File > Import > DOCX, Markdown, Plain Text and Scrivener Project
+/// starts with: the texts of more files, the images of Internet addresses, the formatting, the
+/// comments and the tracked changes of Word, what of a project of Scrivener goes to the book,
+/// and the headings, the dialogue and the cleanups of each format. The window keeps the writer's
+/// choices in the same settings.
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/core/settings_manager.h"
@@ -32,7 +33,10 @@ namespace {
 using json = nlohmann::json;
 
 /// The formats of the import, as the settings name them
-constexpr std::array<const char*, 3> FORMAT_KEYS{"docx", "markdown", "text"};
+constexpr std::array<const char*, 4> FORMAT_KEYS{"docx", "markdown", "text", "scrivener"};
+
+/// The format whose texts are the documents of its binder: no heading is their title
+constexpr const char* PROJECT_KEY = "scrivener";
 
 }  // namespace
 
@@ -41,11 +45,12 @@ ImportPage::ImportPage(QWidget* parent)
 {
     //: A group of Settings > Files > Import. In Polish: Okno importu
     QFormLayout* window = addGroup(tr("Window of the Import"));
-    //: In Polish: Polecenia Plik › Importuj › Dokument DOCX, Markdown i Zwykły tekst zaczynają
-    //: od tych ustawień. To, co wybierzesz w oknie importu, zostaje tutaj na następny import.
-    addNote(window, tr("File › Import › DOCX Document, Markdown and Plain Text start with these "
-                       "choices. What you choose in the window of the import stays here for the "
-                       "next import."));
+    //: In Polish: Polecenia Plik › Importuj › Dokument DOCX, Markdown, Zwykły tekst i Projekt
+    //: Scrivenera zaczynają od tych ustawień. To, co wybierzesz w oknie importu, zostaje tutaj
+    //: na następny import.
+    addNote(window, tr("File › Import › DOCX Document, Markdown, Plain Text and Scrivener "
+                       "Project start with these choices. What you choose in the window of the "
+                       "import stays here for the next import."));
     //: In Polish: &Kilka plików: każdy plik jako jeden tekst
     QCheckBox* whole =
         addCheckBox(window, tr("&More files: each file as one text"), "import.wholeFiles");
@@ -97,8 +102,63 @@ ImportPage::ImportPage(QWidget* parent)
         changes->setCurrentIndex(value.is_boolean() && value.get<bool>() ? 1 : 0);
     };
 
+    addProject();
     addFormats();
     pageLayout()->addStretch();
+}
+
+void ImportPage::addProject()
+{
+    //: A group of Settings > Files > Import. In Polish: Projekty Scrivenera
+    QFormLayout* project = addGroup(tr("Scrivener Projects"));
+    const auto named = [](QWidget* widget, const char* option) {
+        widget->setObjectName(QStringLiteral("import_scrivener_%1").arg(QLatin1String(option)));
+    };
+    //: In Polish: Tylko to, co Scrivener &bierze do kompilacji
+    named(addCheckBox(project, tr("&Only what Scrivener compiles"), "import.scrivener.compiledOnly"),
+          "compiledOnly");
+    auto* scenes = new QComboBox();
+    named(scenes, "scenes");
+    //: What divides the scenes of a text. In Polish: podział sceny
+    scenes->addItem(tr("a scene break"), QStringLiteral("breaks"));
+    //: In Polish: tytuł sceny jako nagłówek
+    scenes->addItem(tr("the title of the scene as a heading"), QStringLiteral("titles"));
+    //: In Polish: nic (tekst ciągły)
+    scenes->addItem(tr("nothing (one text)"), QStringLiteral("none"));
+    //: In Polish: Sceny tekstu oddziel&a:
+    addField(project, tr("Scenes divided b&y:"), scenes, "import.scrivener.scenes");
+    auto* formatting = new QComboBox();
+    named(formatting, "formatting");
+    //: How much of the formatting of the documents the texts keep. In Polish: całe formatowanie
+    formatting->addItem(tr("all the formatting"), QStringLiteral("all"));
+    //: In Polish: wyróżnienia i wyrównanie
+    formatting->addItem(tr("emphasis and alignment"), QStringLiteral("emphasis"));
+    //: In Polish: tylko style
+    formatting->addItem(tr("only the styles"), QStringLiteral("styles"));
+    //: In Polish: Formatowanie z pro&jektu:
+    addField(project, tr("Formatting of the pro&ject:"), formatting, "import.scrivener.formatting");
+    //: In Polish: Streszczenia na p&oczątku notatek
+    named(addCheckBox(project, tr("Syno&pses at the start of the notes"), "import.scrivener.synopses"),
+          "synopses");
+    //: In Polish: Notatki doku&mentów jako notatki
+    named(addCheckBox(project, tr("&Notes of the documents as notes"), "import.scrivener.notes"),
+          "notes");
+    //: In Polish: Komentarze i adnotacje jako uwa&gi
+    named(addCheckBox(project, tr("Comments and inline &annotations as annotations"),
+                      "import.scrivener.comments"),
+          "comments");
+    //: In Polish: Migawki jako &wersje tekstów
+    named(addCheckBox(project, tr("Snapshots as &versions of the texts"),
+                      "import.scrivener.snapshots"),
+          "snapshots");
+    //: In Polish: Folder „&Research” do Warsztatu
+    named(addCheckBox(project, tr("The folder \"Research\" to the &Workshop"),
+                      "import.scrivener.research"),
+          "research");
+    //: Under the options of a project of Scrivener. In Polish: Stany Scrivenera stają się
+    //: stanami tekstów, a etykiety i słowa kluczowe trafiają do ich notatek.
+    addNote(project, tr("The statuses of Scrivener become the statuses of the texts, and the "
+                        "labels and the keywords go to their notes."));
 }
 
 void ImportPage::addFormats()
@@ -116,6 +176,8 @@ void ImportPage::addFormats()
     format->addItem(tr("Markdown"));
     //: In Polish: zwykły tekst
     format->addItem(tr("plain text"));
+    //: In Polish: projekty Scrivenera
+    format->addItem(tr("Scrivener projects"));
     //: The format whose options the page shows. In Polish: &Format:
     auto* formatLabel = new QLabel(tr("&Format:"));
     formatLabel->setBuddy(format);
@@ -139,11 +201,14 @@ void ImportPage::addFormats()
             widget->setObjectName(
                 QStringLiteral("import_%1_%2").arg(QLatin1String(key), QLatin1String(option)));
         };
-        //: As the tab Division of the window of the import. In Polish: &Nagłówek jako tytuł,
-        //: nie w tekście
-        named(addCheckBox(form, tr("&Heading as the title, not in the text"),
-                          prefix + "headingAsTitle"),
-              "headingAsTitle");
+        // The texts of a project are the documents of its binder, with their titles
+        if (std::string(key) != PROJECT_KEY) {
+            //: As the tab Division of the window of the import. In Polish: &Nagłówek jako
+            //: tytuł, nie w tekście
+            named(addCheckBox(form, tr("&Heading as the title, not in the text"),
+                              prefix + "headingAsTitle"),
+                  "headingAsTitle");
+        }
         //: As the tab Styles of the window of the import; when the book has the style. In
         //: Polish: Akapity zaczynające się pauzą w stylu Dia&log
         named(addCheckBox(form, tr("Paragraphs with a dash in the style Dia&logue"),

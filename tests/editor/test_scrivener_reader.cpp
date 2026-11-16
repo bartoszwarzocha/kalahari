@@ -6,155 +6,24 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/scrivener_import.h>
+#include "test_support/scrivener_project.h"
 
-#include <QBuffer>
 #include <QDir>
 #include <QFile>
-#include <QImage>
+#include <QFileInfo>
 #include <QTemporaryDir>
 #include <QTimeZone>
 
 using namespace kalahari::editor;
+using kalahari::test::makeScrivenerProject;
 
 namespace {
-
-const QByteArray BINDER = R"XML(<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<ScrivenerProject Template="No" Version="2.0" Identifier="1A" Creator="SCRMAC-3.3.1-15651">
-  <Binder>
-    <BinderItem UUID="DRAFT" Type="DraftFolder">
-      <Title>Manuscript</Title>
-      <Children>
-        <BinderItem UUID="P1" Type="Folder">
-          <Title>Część pierwsza</Title>
-          <MetaData><LabelID>1</LabelID></MetaData>
-          <Children>
-            <BinderItem UUID="C1" Type="Folder">
-              <Title>Rozdział 1</Title>
-              <Children>
-                <BinderItem UUID="S1" Type="Text">
-                  <Title>Scena 1</Title>
-                  <MetaData><StatusID>2</StatusID><LabelID>0</LabelID></MetaData>
-                  <Keywords><KeywordID>0</KeywordID><KeywordID>1</KeywordID></Keywords>
-                </BinderItem>
-                <BinderItem UUID="S2" Type="Text">
-                  <Title>Scena 2</Title>
-                  <MetaData><StatusID>1</StatusID></MetaData>
-                </BinderItem>
-                <BinderItem UUID="S3" Type="Text">
-                  <Title>Wycięta</Title>
-                  <MetaData><IncludeInCompile>No</IncludeInCompile></MetaData>
-                </BinderItem>
-              </Children>
-            </BinderItem>
-            <BinderItem UUID="C2" Type="Text">
-              <Title>Rozdział 2</Title>
-              <MetaData><StatusID>3</StatusID></MetaData>
-            </BinderItem>
-          </Children>
-        </BinderItem>
-        <BinderItem UUID="E1" Type="Text"><Title>Epilog</Title></BinderItem>
-        <BinderItem UUID="F0" Type="Folder"><Title>Pusty</Title></BinderItem>
-      </Children>
-    </BinderItem>
-    <BinderItem UUID="RES" Type="ResearchFolder">
-      <Title>Research</Title>
-      <Children>
-        <BinderItem UUID="IMG" Type="Image"><Title>Mapa</Title></BinderItem>
-        <BinderItem UUID="R1" Type="Text"><Title>Notatki o oazie</Title></BinderItem>
-      </Children>
-    </BinderItem>
-    <BinderItem UUID="CH" Type="Folder">
-      <Title>Characters</Title>
-      <Children><BinderItem UUID="K1" Type="Text"><Title>Anna</Title></BinderItem></Children>
-    </BinderItem>
-    <BinderItem UUID="TR" Type="TrashFolder">
-      <Title>Trash</Title>
-      <Children><BinderItem UUID="T1" Type="Text"><Title>Stary</Title></BinderItem></Children>
-    </BinderItem>
-  </Binder>
-  <LabelSettings>
-    <Title>Label</Title>
-    <Labels><Label ID="-1">No Label</Label><Label ID="0" Color="0.9 0.2 0.2">Red</Label><Label ID="1">Blue</Label></Labels>
-  </LabelSettings>
-  <StatusSettings>
-    <Title>Status</Title>
-    <StatusItems>
-      <Status ID="-1">No Status</Status><Status ID="0">To Do</Status><Status ID="1">First Draft</Status>
-      <Status ID="2">Revised Draft</Status><Status ID="3">Final Draft</Status><Status ID="4">Done</Status>
-    </StatusItems>
-  </StatusSettings>
-  <Keywords>
-    <Keyword ID="0"><Title>pustynia</Title><Color>0 0 0</Color></Keyword>
-    <Keyword ID="1"><Title>noc</Title></Keyword>
-  </Keywords>
-  <ProjectProperties><ProjectTitle>Karawana</ProjectTitle><FullName>Jan Kowalski</FullName></ProjectProperties>
-</ScrivenerProject>
-)XML";
-
-/// A text of Cocoa's RTF of one paragraph
-QByteArray cocoaText(const QByteArray& text) {
-    return R"RTF({\rtf1\ansi\ansicpg1252\cocoartf2639
-{\fonttbl\f0\fnil\fcharset0 Palatino-Roman;}
-\pard\f0\fs24 \cf0 \uc0 )RTF" +
-           text + "}";
-}
-
-QByteArray pngBytes() {
-    QImage image(2, 2, QImage::Format_RGB32);
-    image.fill(Qt::blue);
-    QByteArray bytes;
-    QBuffer buffer(&bytes);
-    buffer.open(QIODevice::WriteOnly);
-    image.save(&buffer, "PNG");
-    return bytes;
-}
 
 void write(const QString& path, const QByteArray& data) {
     QDir().mkpath(QFileInfo(path).absolutePath());
     QFile file(path);
     REQUIRE(file.open(QIODevice::WriteOnly));
     file.write(data);
-}
-
-/// A project Karawana.scriv in @p folder; its folder
-QString makeProject(const QString& folder) {
-    const QDir project(QDir(folder).filePath(QStringLiteral("Karawana.scriv")));
-    const auto data = [&project](const char* id, const char* name) {
-        return project.filePath(QStringLiteral("Files/Data/%1/%2").arg(QLatin1String(id), QLatin1String(name)));
-    };
-    write(project.filePath(QStringLiteral("Karawana.scrivx")), BINDER);
-    write(data("P1", "content.rtf"), cocoaText(R"(Wst\u281 p do cz\u281 \u347 ci.)"));
-    write(data("C1", "synopsis.txt"), QStringLiteral("Rozdział o wyjeździe.\n").toUtf8());
-    write(data("S1", "content.rtf"),
-          cocoaText(R"(Pierwsza {\field{\*\fldinst{HYPERLINK "scrivcmt://CM1"}}{\fldrslt scena}}{\field{\*\fldinst{HYPERLINK "scrivcmt://FN1"}}{\fldrslt .}})"));
-    write(data("S1", "content.comments"), R"XML(<?xml version="1.0" encoding="UTF-8"?>
-<Comments>
-  <Comment ID="CM1" Color="1 1 0"><![CDATA[{\rtf1\ansi\ansicpg1250 Sprawd\'9f dat\'ea.}]]></Comment>
-  <Comment ID="FN1" Footnote="Yes"><![CDATA[{\rtf1\ansi Przypis sceny.}]]></Comment>
-</Comments>
-)XML");
-    write(data("S1", "synopsis.txt"), QStringLiteral("Karawana wyrusza.").toUtf8());
-    write(data("S1", "notes.rtf"), cocoaText(R"(Notatka do sceny.\
-Druga linia.)"));
-    write(data("S2", "content.rtf"),
-          R"RTF({\rtf1\ansi\ansicpg1250{\stylesheet{\s0 Normal;}{\s1\b heading 1;}}\pard\s1 Podtytu\'b3\par\pard Druga scena.\par})RTF");
-    write(data("S3", "content.rtf"), cocoaText("Wyci\\u281 ty tekst."));
-    write(data("C2", "content.rtf"), cocoaText("Tekst rozdzia\\u322 u drugiego."));
-    const QDir snapshots(project.filePath(QStringLiteral("Snapshots/C2.snapshots")));
-    write(snapshots.filePath(QStringLiteral("index.xml")), R"XML(<?xml version="1.0" encoding="UTF-8"?>
-<Snapshots Version="1.0">
-  <Snapshot><Title>Po redakcji</Title><Date>2025-10-28 10:00:00 -0700</Date></Snapshot>
-  <Snapshot><Title>Pierwsza wersja</Title><Date>2025-10-27 02:20:40 -0700</Date></Snapshot>
-</Snapshots>
-)XML");
-    write(snapshots.filePath(QStringLiteral("2025-10-27-02-20-40-0700.rtf")), cocoaText("Stary tekst."));
-    write(snapshots.filePath(QStringLiteral("2025-10-28-10-00-00-0700.rtf")), cocoaText("Nowszy tekst."));
-    write(data("E1", "content.rtf"), cocoaText("Koniec."));
-    write(data("IMG", "content.png"), pngBytes());
-    write(data("R1", "content.rtf"), cocoaText("Oaza le\\u380 y na po\\u322 udniu."));
-    write(data("K1", "content.rtf"), cocoaText("Przewodniczka."));
-    write(data("T1", "content.rtf"), cocoaText("Stary."));
-    return project.path();
 }
 
 QString textOf(const ImportDocument& document) {
@@ -170,7 +39,7 @@ QString textOf(const ImportDocument& document) {
 TEST_CASE("Import Scrivener: the project file of its folder", "[import][scrivener]") {
     QTemporaryDir folder;
     REQUIRE(folder.isValid());
-    const QString project = makeProject(folder.path());
+    const QString project = makeScrivenerProject(folder.path());
     const QString file = QDir(project).filePath(QStringLiteral("Karawana.scrivx"));
     CHECK(scrivenerProjectFile(project) == file);
     CHECK(scrivenerProjectFile(file) == file);
@@ -194,7 +63,7 @@ TEST_CASE("Import Scrivener: the project file of its folder", "[import][scrivene
 TEST_CASE("Import Scrivener: the binder and the metadata of its documents", "[import][scrivener]") {
     QTemporaryDir folder;
     REQUIRE(folder.isValid());
-    const QString path = makeProject(folder.path());
+    const QString path = makeScrivenerProject(folder.path());
     ScrivenerProject project;
     ImportProblem problem;
     REQUIRE(readScrivenerProject(path, &project, &problem));
@@ -267,7 +136,7 @@ TEST_CASE("Import Scrivener: the texts and parts of the draft", "[import][scrive
     REQUIRE(folder.isValid());
     ScrivenerProject project;
     ImportProblem problem;
-    REQUIRE(readScrivenerProject(makeProject(folder.path()), &project, &problem));
+    REQUIRE(readScrivenerProject(makeScrivenerProject(folder.path()), &project, &problem));
 
     const ScrivenerDraft draft = scrivenerDraft(project, ScrivenerDraftOptions());
     CHECK(draft.document.title == QStringLiteral("Karawana"));
@@ -398,4 +267,68 @@ TEST_CASE("Import Scrivener: a document appended to another", "[import][scrivene
     CHECK(into.annotations.size() == 3);
     CHECK(into.lists.size() == 3);
     CHECK(into.omissions.at(ImportOmission::Shape) == 3);
+}
+
+TEST_CASE("Import Scrivener: the scenes divided by their titles or not at all", "[import][scrivener]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    ScrivenerProject project;
+    ImportProblem problem;
+    REQUIRE(readScrivenerProject(makeScrivenerProject(folder.path()), &project, &problem));
+
+    // The titles of the scenes as headings of level 3, their own headings a level lower
+    ScrivenerDraftOptions titles;
+    titles.scenes = ScrivenerDraftOptions::Scenes::Titles;
+    const ScrivenerDraft titled = scrivenerDraft(project, titles);
+    CHECK(textOf(titled.document) ==
+          QStringLiteral("Część pierwsza\nWstęp do części.\nRozdział 1\nScena 1\nPierwsza scena.\n"
+                         "Scena 2\nPodtytuł\nDruga scena.\nRozdział 2\nTekst rozdziału drugiego.\n"
+                         "Epilog\nKoniec."));
+    REQUIRE(titled.document.blocks.size() == 12);
+    CHECK(titled.document.blocks[3].headingLevel == 3);
+    CHECK(titled.document.blocks[5].headingLevel == 3);
+    CHECK(titled.document.headingLevelOf(titled.document.blocks[6]) == 4);
+    CHECK(titled.document.blocks[8].headingLevel == 2);
+    REQUIRE(titled.texts.size() == 5);
+    CHECK(titled.texts[2].piece.from == 3);
+    CHECK(titled.texts[2].piece.to == 8);
+
+    // Nothing between the scenes
+    ScrivenerDraftOptions none;
+    none.scenes = ScrivenerDraftOptions::Scenes::None;
+    const ScrivenerDraft joined = scrivenerDraft(project, none);
+    CHECK(textOf(joined.document) ==
+          QStringLiteral("Część pierwsza\nWstęp do części.\nRozdział 1\nPierwsza scena.\nPodtytuł\n"
+                         "Druga scena.\nRozdział 2\nTekst rozdziału drugiego.\nEpilog\nKoniec."));
+    for (const ImportBlock& block : joined.document.blocks) {
+        CHECK(block.kind != ImportBlock::Kind::SceneBreak);
+    }
+    CHECK(joined.document.headingLevelOf(joined.document.blocks[4]) == 3);
+}
+
+TEST_CASE("Import Scrivener: the headings of a snapshot as low as those of its text",
+          "[import][scrivener]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    const QString path = makeScrivenerProject(folder.path());
+    // A snapshot of "Rozdział 2" with a heading of its own
+    write(QDir(path).filePath(QStringLiteral("Snapshots/C2.snapshots/2025-10-27-02-20-40-0700.rtf")),
+          R"RTF({\rtf1\ansi{\stylesheet{\s0 Normal;}{\s1\b heading 1;}}\pard\s1 Stary podtytu\'b3\par\pard Stary tekst.\par})RTF");
+    ScrivenerProject project;
+    ImportProblem problem;
+    REQUIRE(readScrivenerProject(path, &project, &problem));
+
+    const ScrivenerDraft draft = scrivenerDraft(project, ScrivenerDraftOptions());
+    REQUIRE(draft.texts.size() == 5);
+    const std::vector<ScrivenerSnapshot>& snapshots = draft.texts[3].snapshots;
+    REQUIRE(snapshots.size() == 2);
+    const ImportDocument& old = snapshots[0].text;
+    REQUIRE(old.blocks.size() == 2);
+    CHECK(old.headingLevelOf(old.blocks[0]) == 3);
+
+    ScrivenerDraftOptions titles;
+    titles.scenes = ScrivenerDraftOptions::Scenes::Titles;
+    const ScrivenerDraft titled = scrivenerDraft(project, titles);
+    const ImportDocument& lower = titled.texts[3].snapshots[0].text;
+    CHECK(lower.headingLevelOf(lower.blocks[0]) == 4);
 }

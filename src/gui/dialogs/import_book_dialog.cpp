@@ -2,8 +2,9 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file import_book_dialog.cpp
-/// @brief File > Import > DOCX, Markdown and Plain Text: the files, the place in the book, the
-/// texts they become and how, and the progress and the result of the import in one window
+/// @brief File > Import > DOCX, Markdown, Plain Text and Scrivener Project: the files, the place
+/// in the book, the texts they become and how, and the progress and the result of the import in
+/// one window
 
 #include "kalahari/gui/dialogs/import_book_dialog.h"
 #include "kalahari/core/art_provider.h"
@@ -11,6 +12,7 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/editor/scrivener_import.h"
 #include "kalahari/gui/book_styles.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/gui/kind_names.h"
@@ -90,10 +92,25 @@ const char* formatKey(ImportFormat format) {
             return "markdown";
         case ImportFormat::PlainText:
             return "text";
+        case ImportFormat::Scrivener:
+            return "scrivener";
         case ImportFormat::Plugin:
             break;  // keeps no choices of its own
     }
     return "docx";
+}
+
+/// What divides the scenes of a text of a project of Scrivener, as the settings name it
+const char* scenesKey(editor::ScrivenerDraftOptions::Scenes scenes) {
+    switch (scenes) {
+        case editor::ScrivenerDraftOptions::Scenes::Breaks:
+            return "breaks";
+        case editor::ScrivenerDraftOptions::Scenes::Titles:
+            return "titles";
+        case editor::ScrivenerDraftOptions::Scenes::None:
+            return "none";
+    }
+    return "breaks";
 }
 
 const char* formattingKey(editor::ImportFormatting formatting) {
@@ -491,6 +508,9 @@ void ImportBookDialog::buildFileTab() {
     m_formatBox->addItem(tr("Markdown (.md)"), static_cast<int>(ImportFormat::Markdown));
     //: A format of the window of the import. In Polish: Zwykły tekst (.txt)
     m_formatBox->addItem(tr("Plain text (.txt)"), static_cast<int>(ImportFormat::PlainText));
+    //: A format of the window of the import. In Polish: Projekt Scrivenera (.scrivx)
+    m_formatBox->addItem(tr("Scrivener project (.scrivx)"),
+                         static_cast<int>(ImportFormat::Scrivener));
     for (const PluginImportFormat& each : pluginImportFormats()) {
         //: A format of a plugin in the list of the formats; %1: its name, %2: the extensions of
         //: its files. In Polish: %1 (%2) – wtyczka
@@ -520,28 +540,27 @@ void ImportBookDialog::buildFileTab() {
     m_fileList->setRows(FILE_ROWS);
     filesLayout->addWidget(m_fileList, 0, 0, 2, 1);
     auto* fileButtons = new QGridLayout();
-    //: Adds files to the list of the import. In Polish: Dod&aj…
-    QPushButton* addButton = newButton(tr("&Add..."), files);
+    m_addButton = newButton(QString(), files);
     //: Moves the file up in the list. In Polish: W &górę
     m_upButton = newButton(tr("Move &Up"), files);
     //: Moves the file down in the list. In Polish: &W dół
     m_downButton = newButton(tr("Move Do&wn"), files);
     //: Takes the file out of the list of the import. In Polish: &Usuń z listy
     m_removeButton = newButton(tr("&Remove from List"), files);
-    fileButtons->addWidget(addButton, 0, 0);
+    fileButtons->addWidget(m_addButton, 0, 0);
     fileButtons->addWidget(m_removeButton, 0, 1);
     fileButtons->addWidget(m_upButton, 1, 0);
     fileButtons->addWidget(m_downButton, 1, 1);
     filesLayout->addLayout(fileButtons, 0, 1);
-    filesLayout->addWidget(
+    m_orderRemark =
         newRemark(files,
                   //: Beside the list of the files. In Polish: Kolejność plików to kolejność
                   //: tekstów w książce, z liczbami po kolei („Rozdział 2” przed „Rozdział 10”).
                   tr("The order of the files is the order of the texts in the book, the numbers in "
-                     "order (\"Chapter 2\" before \"Chapter 10\").")),
-        1, 1);
-    //: In Polish: Pl&iki:
-    addRow(file, tr("F&iles:"), files)->setBuddy(m_fileList);
+                     "order (\"Chapter 2\" before \"Chapter 10\")."));
+    filesLayout->addWidget(m_orderRemark, 1, 1);
+    m_filesLabel = addRow(file, QString(), files);
+    m_filesLabel->setBuddy(m_fileList);
     m_filesNote = addNote(file);
 
     m_encodingBox = new QComboBox(filePage);
@@ -564,7 +583,7 @@ void ImportBookDialog::buildFileTab() {
     //: In Polish: W pliku:
     addRow(file, tr("In the file:"), m_contentsLabel);
     endTab(file);
-    connect(addButton, &QPushButton::clicked, this, &ImportBookDialog::browseFiles);
+    connect(m_addButton, &QPushButton::clicked, this, &ImportBookDialog::browseFiles);
 }
 
 void ImportBookDialog::buildPlaceTab() {
@@ -691,6 +710,33 @@ void ImportBookDialog::buildDivisionTab() {
            "list."));
     m_pluginNote->hide();
     split->addWidget(m_pluginNote, 0, 0, 1, 2);
+
+    // A project of Scrivener: its binder gives the texts; what of it, and how its scenes go
+    m_projectDivision = new QWidget(splitPage);
+    auto* project = new QGridLayout(m_projectDivision);
+    project->setContentsMargins(0, 0, 0, 0);
+    project->setColumnStretch(2, 1);
+    //: The documents of a project of Scrivener that its compilation takes. In Polish: Tylko to,
+    //: co Scrivener &bierze do kompilacji („Include in Compile”)
+    m_compiledOnlyBox = new QCheckBox(
+        tr("&Only what Scrivener compiles (\"Include in Compile\")"), m_projectDivision);
+    m_scenesBox = new QComboBox(m_projectDivision);
+    //: What divides the scenes of a text. In Polish: podział sceny
+    m_scenesBox->addItem(tr("a scene break"),
+                         static_cast<int>(editor::ScrivenerDraftOptions::Scenes::Breaks));
+    //: In Polish: tytuł sceny jako nagłówek
+    m_scenesBox->addItem(tr("the title of the scene as a heading"),
+                         static_cast<int>(editor::ScrivenerDraftOptions::Scenes::Titles));
+    //: In Polish: nic (tekst ciągły)
+    m_scenesBox->addItem(tr("nothing (one text)"),
+                         static_cast<int>(editor::ScrivenerDraftOptions::Scenes::None));
+    m_scenesBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    project->addWidget(m_compiledOnlyBox, 0, 0, 1, 3);
+    //: Before what divides the scenes of a text. In Polish: Sceny tekstu oddziel&a:
+    project->addWidget(newLabel(tr("Scenes divided b&y:"), m_scenesBox, m_projectDivision), 1, 0);
+    project->addWidget(m_scenesBox, 1, 1);
+    m_projectDivision->hide();
+    split->addWidget(m_projectDivision, 0, 0, 1, 2);
 
     // The levels of the headings (DOCX, Markdown)
     m_levels = new QWidget(splitPage);
@@ -1004,8 +1050,55 @@ void ImportBookDialog::buildExtrasTab() {
     changes->addStretch(1);
     notes->addWidget(m_changes, 2, 0, 1, 2);
     extras->addWidget(m_notesGroup, 0, 0, 1, 2);
+
+    // A project of Scrivener: what its documents say of themselves, and its research
+    //: A group of the window of the import of a project of Scrivener. In Polish: Do elementów
+    //: książki
+    m_projectGroup = new QGroupBox(tr("To the Elements of the Book"), m_extrasTab);
+    auto* project = new QGridLayout(m_projectGroup);
+    //: In Polish: Streszczenia na p&oczątku notatek
+    m_synopsesBox = new QCheckBox(tr("S&ynopses at the start of the notes"), m_projectGroup);
+    //: In Polish: Notatki dokumentów jako &notatki
+    m_projectNotesBox = new QCheckBox(tr("&Notes of the documents as notes"), m_projectGroup);
+    //: In Polish: Komentarze i adnotacje jako &uwagi
+    m_projectCommentsBox =
+        new QCheckBox(tr("Comments and inline annotations as &annotations"), m_projectGroup);
+    m_snapshotsBox = new QCheckBox(m_projectGroup);
+    project->addWidget(m_synopsesBox, 0, 0);
+    project->addWidget(m_projectNotesBox, 0, 1);
+    project->addWidget(m_projectCommentsBox, 1, 0);
+    project->addWidget(m_snapshotsBox, 1, 1);
+    project->addWidget(
+        newRemark(m_projectGroup,
+                  //: Under the notes of a project of Scrivener. In Polish: Stany: „To Do”
+                  //: i „First Draft” – Szkic, „Revised Draft” – Poprawki, „Final Draft” i „Done”
+                  //: – Gotowy. Etykiety, słowa kluczowe i sceny – do notatek tekstów.
+                  tr("Statuses: \"To Do\" and \"First Draft\" – Draft, \"Revised Draft\" – "
+                     "Revision, \"Final Draft\" and \"Done\" – Final. The labels, the keywords "
+                     "and the scenes go to the notes of the texts.")),
+        2, 0, 1, 2);
+    m_projectGroup->hide();
+    extras->addWidget(m_projectGroup, 0, 0, 1, 2);
+    //: A group of the window of the import of a project of Scrivener. In Polish: Do Warsztatu
+    m_researchGroup = new QGroupBox(tr("To the Workshop"), m_extrasTab);
+    auto* research = new QVBoxLayout(m_researchGroup);
+    m_researchBox = new QCheckBox(m_researchGroup);
+    research->addWidget(withRemark(
+        m_researchBox,
+        newRemark(m_researchGroup,
+                  //: Under the research of a project of Scrivener. In Polish: Teksty jako
+                  //: notatki robocze, a obrazy, pliki PDF, strony internetowe i inne pliki jako
+                  //: materiały tych rodzajów.
+                  tr("The texts as working notes, and the pictures, the PDF files, the web pages "
+                     "and the other files as materials of their kinds."))));
+    m_researchGroup->hide();
+    // Beside the images (formatChanged()), so that the tab is no higher than the others
+    extras->addWidget(m_researchGroup, 1, 0);
+    extras->setColumnStretch(0, 1);
+
     //: A group of the window of the import. In Polish: Obrazy i przypisy
-    auto* imagesGroup = new QGroupBox(tr("Images and Notes"), m_extrasTab);
+    m_imagesGroup = new QGroupBox(tr("Images and Notes"), m_extrasTab);
+    QGroupBox* imagesGroup = m_imagesGroup;
     auto* images = new QVBoxLayout(imagesGroup);
     m_imagesLabel = new QLabel(imagesGroup);
     m_imagesLabel->setTextFormat(Qt::PlainText);
@@ -1026,7 +1119,7 @@ void ImportBookDialog::buildExtrasTab() {
                       .arg(QLocale().formattedDataSize(MaterialDownloader::MAXIMUM_PICTURE, 0))));
     images->addWidget(m_webImagesOption);
     m_webImagesOption->hide();
-    extras->addWidget(imagesGroup, 1, 0, 1, 2);
+    extras->addWidget(imagesGroup, 2, 0, 1, 2);
     endTab(extras);
 }
 
@@ -1100,6 +1193,9 @@ void ImportBookDialog::connectFields() {
     connect(m_prefixField, &QLineEdit::editingFinished, this, readAgain);
     connect(m_emptyLinesBox, &QSpinBox::valueChanged, this, readAgain);
     connect(m_wholeFilesBox, &QCheckBox::toggled, this, splitAgain);
+    // A project of Scrivener is made into texts as it is read
+    connect(m_compiledOnlyBox, &QCheckBox::toggled, this, readAgain);
+    connect(m_scenesBox, &QComboBox::currentIndexChanged, this, readAgain);
     connect(m_headingAsTitleBox, &QCheckBox::toggled, this, splitAgain);
     connect(m_linesButton, &QRadioButton::toggled, this, [readAgain](bool on) {
         if (on) {
@@ -1140,7 +1236,8 @@ void ImportBookDialog::connectFields() {
         showExtras();
     });
     for (QCheckBox* box : {m_dialogueBox, m_typographyBox, m_doubleSpacesBox, m_leadingSpacesBox,
-                           m_sceneMarkersBox, m_commentsBox}) {
+                           m_sceneMarkersBox, m_commentsBox, m_synopsesBox, m_projectNotesBox,
+                           m_projectCommentsBox, m_snapshotsBox, m_researchBox}) {
         connect(box, &QCheckBox::toggled, this, &ImportBookDialog::dropFailure);
     }
     connect(m_formattingBox, &QComboBox::currentIndexChanged, this, &ImportBookDialog::dropFailure);
@@ -1242,6 +1339,9 @@ ImportReading ImportBookDialog::reading() const {
         reading.encoding = static_cast<editor::TextEncoding>(encoding);
     }
     reading.rejectChanges = m_rejectButton->isChecked();
+    reading.scrivener.compiledOnly = m_compiledOnlyBox->isChecked();
+    reading.scrivener.scenes =
+        static_cast<editor::ScrivenerDraftOptions::Scenes>(m_scenesBox->currentData().toInt());
     if (reading.format == ImportFormat::PlainText) {
         editor::TextReadOptions& text = reading.text;
         text.emptyLineParagraphs = m_emptyLineButton->isChecked();
@@ -1277,11 +1377,20 @@ ImportBookDialog::Choice ImportBookDialog::choice() const {
     choice.newBook.typeId = m_typeBox->currentData().toString();
     choice.newBook.folder = m_newBookFolder;
     const bool plugin = choice.format == ImportFormat::Plugin;
-    choice.wholeFiles = !plugin && m_files.size() > 1 && m_wholeFilesBox->isChecked();
+    const bool project = choice.format == ImportFormat::Scrivener;
+    choice.wholeFiles = !plugin && !project && m_files.size() > 1 && m_wholeFilesBox->isChecked();
     choice.split = splitOptions();
+    if (project) {
+        choice.details.synopses = m_synopsesBox->isChecked();
+        choice.details.notes = m_projectNotesBox->isChecked();
+        choice.details.snapshots = m_snapshotsBox->isChecked();
+        choice.research = m_researchBox->isChecked();
+    } else {
+        choice.research = false;
+    }
 
     editor::ImportKmlOptions& kml = choice.kml;
-    kml.formatting = choice.format == ImportFormat::Docx
+    kml.formatting = choice.format == ImportFormat::Docx || project
                          ? static_cast<editor::ImportFormatting>(
                                m_formattingBox->currentData().toInt())
                          : editor::ImportFormatting::Emphasis;
@@ -1302,7 +1411,8 @@ ImportBookDialog::Choice ImportBookDialog::choice() const {
         kml.cleanup = editor::ImportCleanup();
         kml.cleanup.empty = editor::EmptyParagraphs::Keep;
     }
-    kml.annotations = choice.format == ImportFormat::Docx && m_commentsBox->isChecked();
+    kml.annotations = (choice.format == ImportFormat::Docx && m_commentsBox->isChecked()) ||
+                      (project && m_projectCommentsBox->isChecked());
     //: The word a comment of Word starts with that makes it a to-do. In Polish: Do zrobienia
     kml.annotationLabels.emplace_back(editor::AnnotationKind::Todo, tr("To do"));
     //: The word a comment of Word starts with that makes it a note. In Polish: Notatka
@@ -1352,18 +1462,41 @@ void ImportBookDialog::loadChoices() {
         }
     }
     m_wholeFilesBox->setChecked(settings.get<bool>("import.wholeFiles"));
+    const auto loadFormatting = [this, &text]() {
+        const std::string formatting = text("formatting");
+        for (const editor::ImportFormatting each :
+             {editor::ImportFormatting::All, editor::ImportFormatting::Emphasis,
+              editor::ImportFormatting::StylesOnly}) {
+            if (formatting == formattingKey(each)) {
+                chooseData(m_formattingBox, static_cast<int>(each));
+            }
+        }
+    };
     switch (format()) {
         case ImportFormat::Docx: {
-            const std::string formatting = text("formatting");
-            for (const editor::ImportFormatting each :
-                 {editor::ImportFormatting::All, editor::ImportFormatting::Emphasis,
-                  editor::ImportFormatting::StylesOnly}) {
-                if (formatting == formattingKey(each)) {
-                    chooseData(m_formattingBox, static_cast<int>(each));
-                }
-            }
+            loadFormatting();
             m_commentsBox->setChecked(flag("comments"));
             (flag("rejectChanges") ? m_rejectButton : m_acceptChangesButton)->setChecked(true);
+            break;
+        }
+        case ImportFormat::Scrivener: {
+            loadFormatting();
+            m_compiledOnlyBox->setChecked(flag("compiledOnly"));
+            const std::string scenes = text("scenes");
+            for (const editor::ScrivenerDraftOptions::Scenes each :
+                 {editor::ScrivenerDraftOptions::Scenes::Breaks,
+                  editor::ScrivenerDraftOptions::Scenes::Titles,
+                  editor::ScrivenerDraftOptions::Scenes::None}) {
+                if (scenes == scenesKey(each)) {
+                    chooseData(m_scenesBox, static_cast<int>(each));
+                }
+            }
+            m_synopsesBox->setChecked(flag("synopses"));
+            m_projectNotesBox->setChecked(flag("notes"));
+            m_projectCommentsBox->setChecked(flag("comments"));
+            m_snapshotsBox->setChecked(flag("snapshots"));
+            m_researchBox->setChecked(flag("research"));
+            m_acceptChangesButton->setChecked(true);
             break;
         }
         case ImportFormat::Markdown:
@@ -1437,6 +1570,16 @@ void ImportBookDialog::rememberChoices() const {
             settings.set<std::string>(prefix + "formatting", formattingKey(now.kml.formatting));
             settings.set<bool>(prefix + "comments", m_commentsBox->isChecked());
             settings.set<bool>(prefix + "rejectChanges", now.reading.rejectChanges);
+            break;
+        case ImportFormat::Scrivener:
+            settings.set<std::string>(prefix + "formatting", formattingKey(now.kml.formatting));
+            settings.set<bool>(prefix + "compiledOnly", now.reading.scrivener.compiledOnly);
+            settings.set<std::string>(prefix + "scenes", scenesKey(now.reading.scrivener.scenes));
+            settings.set<bool>(prefix + "synopses", now.details.synopses);
+            settings.set<bool>(prefix + "notes", now.details.notes);
+            settings.set<bool>(prefix + "comments", m_projectCommentsBox->isChecked());
+            settings.set<bool>(prefix + "snapshots", now.details.snapshots);
+            settings.set<bool>(prefix + "research", m_researchBox->isChecked());
             break;
         case ImportFormat::Markdown:
         case ImportFormat::Plugin:
@@ -1745,6 +1888,9 @@ void ImportBookDialog::showFiles() {
         //: After what is in the file; %1: its title. In Polish: Z właściwości pliku: tytuł „%1”.
         contents += QLatin1Char(' ') + tr("From its properties: the title \"%1\".").arg(title);
     }
+    if (format() == ImportFormat::Scrivener) {
+        contents = projectContents();
+    }
     m_contentsLabel->setText(m_files.empty() ? tr("No files.") : contents);
 
     // A new book takes its title, author and language from the file, until the writer types
@@ -1772,10 +1918,107 @@ void ImportBookDialog::showFiles() {
     updateFields();
 }
 
+QString ImportBookDialog::projectContents() const {
+    QStringList sentences;
+    for (const ImportFile& file : m_files) {
+        if (!file.isRead() || !file.project) {
+            continue;
+        }
+        const ImportProject& project = *file.project;
+        int parts = 0;
+        int texts = 0;
+        int scenes = 0;
+        int words = 0;
+        for (size_t i = 0; i < project.pieces.size(); ++i) {
+            const editor::ImportPiece& piece = project.pieces[i];
+            if (piece.part) {
+                ++parts;
+                continue;
+            }
+            ++texts;
+            words += piece.words;
+            if (i < project.details.size()) {
+                scenes += static_cast<int>(project.details[i].scenes.size());
+            }
+        }
+        QStringList draft;
+        if (parts > 0) {
+            //: What is in the draft of a project of Scrivener. In Polish: %n część / części /
+            //: części
+            draft << tr("%n parts", nullptr, parts);
+        }
+        //: In Polish: %n tekst / teksty / tekstów
+        draft << tr("%n texts", nullptr, texts);
+        if (scenes > 0) {
+            //: The documents in the texts after their first. In Polish: %n scena / sceny / scen
+            draft << tr("%n scenes", nullptr, scenes);
+        }
+        //: In Polish: %n słowo / słowa / słów
+        draft << tr("%n words", nullptr, words);
+        if (project.draftName.isEmpty()) {
+            //: What is in the draft of a project of Scrivener whose draft has no title; %1: what
+            //: is in it. In Polish: W szkicu: %1.
+            sentences << tr("In the draft: %1.").arg(draft.join(QStringLiteral(", ")));
+        } else {
+            //: What is in the draft of a project of Scrivener; %1: the title of the draft
+            //: ("Manuscript"), %2: what is in it. In Polish: W „%1”: %2.
+            sentences << tr("In \"%1\": %2.").arg(project.draftName, draft.join(QStringLiteral(", ")));
+        }
+        QStringList more;
+        if (!project.research.empty()) {
+            //: In Polish: w „Research”: %n element / elementy / elementów
+            more << tr("in \"Research\": %n items", nullptr,
+                       static_cast<int>(project.research.size()));
+        }
+        if (const int snapshots = project.snapshots() + project.sceneSnapshots; snapshots > 0) {
+            //: In Polish: %n migawka / migawki / migawek
+            more << tr("%n snapshots", nullptr, snapshots);
+        }
+        if (project.trash > 0) {
+            //: In Polish: w Koszu: %n dokument / dokumenty / dokumentów
+            more << tr("in the Trash: %n documents", nullptr, project.trash);
+        }
+        if (!more.isEmpty()) {
+            //: After what is in the draft; %1: the research, the snapshots and the Trash. In
+            //: Polish: Także %1.
+            sentences << tr("Also %1.").arg(more.join(QStringLiteral(", ")));
+        }
+        if (!project.title.isEmpty()) {
+            //: After what is in the project; %1: its title. In Polish: Tytuł z projektu: „%1”.
+            sentences << tr("The title of the project: \"%1\".").arg(project.title);
+        }
+        break;  // one project
+    }
+    return sentences.join(QLatin1Char(' '));
+}
+
 void ImportBookDialog::browseFiles() {
     QString start = m_files.empty()
                         ? ProgramFolders::startFolder(ProgramFolders::Operation::ImportText)
                         : QFileInfo(m_files.back().path).absolutePath();
+    if (format() == ImportFormat::Scrivener) {
+        // One project: its file in its folder, or the folder as a package on macOS
+        QDir beside(start);
+        if (beside.dirName().endsWith(QLatin1String(".scriv"), Qt::CaseInsensitive)) {
+            beside.cdUp();
+        }
+        //: The title of the system window of File > Import > Scrivener Project. In Polish:
+        //: Projekt Scrivenera do importu
+        const QString chosen = QFileDialog::getOpenFileName(
+            this, tr("Scrivener Project to Import"), beside.absolutePath(),
+            QStringLiteral("%1 (*.scrivx *.scriv)").arg(m_formatBox->currentText()));
+        if (!chosen.isEmpty()) {
+            const QString project = editor::scrivenerProjectFile(chosen);
+            QDir folder = QFileInfo(project.isEmpty() ? chosen : project).absoluteDir();
+            if (folder.dirName().endsWith(QLatin1String(".scriv"), Qt::CaseInsensitive)) {
+                folder.cdUp();
+            }
+            ProgramFolders::remember(ProgramFolders::Operation::ImportText, folder.absolutePath());
+            dropFailure();
+            setFiles({project.isEmpty() ? chosen : project});
+        }
+        return;
+    }
     QStringList patterns;
     for (const QString& extension : importExtensions(format(), pluginFormat())) {
         patterns << QLatin1Char('*') + extension;
@@ -1836,22 +2079,45 @@ void ImportBookDialog::showFormat() {
     const bool text = now == ImportFormat::PlainText;
     const bool word = now == ImportFormat::Docx;
     const bool plugin = now == ImportFormat::Plugin;
+    const bool project = now == ImportFormat::Scrivener;
     const bool ownText = now == ImportFormat::Markdown || text;
     setHeadingIcon(text                            ? QStringLiteral("file.import.text")
                    : now == ImportFormat::Markdown ? QStringLiteral("file.import.markdown")
                    : plugin                        ? QStringLiteral("file.import.plugin")
+                   : project                       ? QStringLiteral("file.import.scrivener")
                                                    : QStringLiteral("file.import.docx"));
     setRowVisible(m_encodingBox, ownText);
     m_encodingBox->parentWidget()->setVisible(ownText);
     m_previewLabel->setVisible(ownText && !m_previewLabel->text().isEmpty());
-    // A format of a plugin: the plugin gives the texts, as it wrote them
+    // A project of Scrivener is one file: chosen again, not added to
+    if (project) {
+        //: The label of the project of Scrivener in the window of the import. In Polish:
+        //: Pro&jekt:
+        m_filesLabel->setText(tr("Pro&ject:"));
+        //: Chooses another project of Scrivener. In Polish: Wy&bierz…
+        m_addButton->setText(tr("C&hoose..."));
+    } else {
+        //: In Polish: Pl&iki:
+        m_filesLabel->setText(tr("F&iles:"));
+        //: Adds files to the list of the import. In Polish: Dod&aj…
+        m_addButton->setText(tr("&Add..."));
+    }
+    for (QWidget* widget : {static_cast<QWidget*>(m_upButton),
+                            static_cast<QWidget*>(m_downButton),
+                            static_cast<QWidget*>(m_removeButton),
+                            static_cast<QWidget*>(m_orderRemark)}) {
+        widget->setVisible(!project);
+    }
+    // A format of a plugin: the plugin gives the texts, as it wrote them; a project of
+    // Scrivener: its binder
     for (QWidget* mode : {static_cast<QWidget*>(m_headingsButton),
                           static_cast<QWidget*>(m_pagesButton),
                           static_cast<QWidget*>(m_wholeButton)}) {
-        mode->setVisible(!plugin);
+        mode->setVisible(!plugin && !project);
     }
     m_pluginNote->setVisible(plugin);
-    m_headingAsTitleBox->setVisible(!plugin);
+    m_projectDivision->setVisible(project);
+    m_headingAsTitleBox->setVisible(!plugin && !project);
     m_tabs->setTabVisible(m_tabs->indexOf(m_stylesTab), !plugin);
     m_tabs->setTabVisible(m_tabs->indexOf(m_cleanupTab), !plugin);
     showPluginPage();
@@ -1866,14 +2132,34 @@ void ImportBookDialog::showFormat() {
         //: The division of a file. In Polish: Przy podziałach st&rony
         m_pagesButton->setText(tr("At the page &breaks"));
     }
-    m_pagesButton->setVisible(now != ImportFormat::Markdown && !plugin);
+    m_pagesButton->setVisible(now != ImportFormat::Markdown && !plugin && !project);
     if (now == ImportFormat::Markdown && m_pagesButton->isChecked()) {
         m_headingsButton->setChecked(true);
     }
     m_fileStyles->setVisible(!text);
-    m_formattingBox->parentWidget()->setVisible(word);
+    m_formattingBox->parentWidget()->setVisible(word || project);
     m_textParagraphs->setVisible(text);
     m_tabs->setTabVisible(m_tabs->indexOf(m_extrasTab), !text && !plugin);
+    m_tabs->setTabText(m_tabs->indexOf(m_extrasTab),
+                       project
+                           //: A tab of the window of the import of a project of Scrivener: its
+                           //: notes and its research. In Polish: Notatki i mate&riały
+                           ? tr("Notes and Mat&erials")
+                           //: A tab of the window of the import: the annotations and the images.
+                           //: In Polish: Uwagi i o&brazy
+                           : tr("Annotations and Ima&ges"));
+    m_notesGroup->setVisible(!project);
+    m_projectGroup->setVisible(project);
+    m_researchGroup->setVisible(project);
+    // A project: its research beside the images; the other formats: the images across the tab
+    if (auto* extras = qobject_cast<QGridLayout*>(m_extrasTab->layout())) {
+        extras->removeWidget(m_imagesGroup);
+        if (project) {
+            extras->addWidget(m_imagesGroup, 1, 1);
+        } else {
+            extras->addWidget(m_imagesGroup, 2, 0, 1, 2);
+        }
+    }
     m_commentsOption->setVisible(word);
     m_noCommentsNote->setVisible(!word);
     updateFields();
@@ -2026,7 +2312,8 @@ void ImportBookDialog::splitFiles() {
     }
     const bool text = format() == ImportFormat::PlainText;
     const bool plugin = format() == ImportFormat::Plugin;
-    m_levels->setVisible(!text && !plugin);
+    const bool project = format() == ImportFormat::Scrivener;
+    m_levels->setVisible(!text && !plugin && !project);
     m_levels->setEnabled(m_headingsButton->isChecked());
     m_patterns->setVisible(text);
     m_patterns->setEnabled(m_headingsButton->isChecked());
@@ -2034,9 +2321,10 @@ void ImportBookDialog::splitFiles() {
                               static_cast<int>(editor::TitlePattern::Prefix));
     m_emptyLines->setVisible(text);
     m_emptyLines->setEnabled(m_pagesButton->isChecked());
-    m_wholeFilesBox->setVisible(m_files.size() > 1 && !plugin);
+    m_wholeFilesBox->setVisible(m_files.size() > 1 && !plugin && !project);
 
-    const bool wholeFiles = !plugin && m_files.size() > 1 && m_wholeFilesBox->isChecked();
+    const bool wholeFiles =
+        !plugin && !project && m_files.size() > 1 && m_wholeFilesBox->isChecked();
     m_rows = importRows(m_files, splitOptions(), wholeFiles, m_kinds);
     showRows();
 }
@@ -2285,8 +2573,29 @@ void ImportBookDialog::showExtras() {
     m_changesLabel->setText(tr("Tracked changes (%n):", nullptr, changes));
     m_changes->setVisible(format() == ImportFormat::Docx && changes > 0);
 
+    // A project of Scrivener: its snapshots and its research
+    int snapshots = 0;
+    int research = 0;
+    for (const ImportFile& file : m_files) {
+        if (file.isRead() && file.project) {
+            snapshots += file.project->snapshots();
+            research += static_cast<int>(file.project->research.size());
+        }
+    }
+    //: %n: the snapshots of the texts of the project. In Polish: Migawki jako &wersje tekstów (%n)
+    m_snapshotsBox->setText(tr("Snapshots as &versions of the texts (%n)", nullptr, snapshots));
+    m_snapshotsBox->setEnabled(snapshots > 0);
+    //: %n: the documents of the research of the project. In Polish: &Folder „Research” (%n)
+    m_researchBox->setText(tr("The folder \"&Research\" (%n)", nullptr, research));
+    m_researchBox->setEnabled(research > 0);
+
     QStringList sentences;
-    if (images > 0 && format() == ImportFormat::Docx) {
+    if (images > 0 && format() == ImportFormat::Scrivener) {
+        //: The images of the texts of a project of Scrivener. In Polish: Obrazy z tekstów (%n)
+        //: trafią do obrazów książki.
+        sentences << tr("The images of the texts (%n) go to the images of the book.", nullptr,
+                        images);
+    } else if (images > 0 && format() == ImportFormat::Docx) {
         //: The images of a Word document. In Polish: Obrazy z pliku (%n) trafią do obrazów
         //: książki, w rozmiarze z Worda, z przycięciem i tekstem alternatywnym.
         sentences << tr("The images of the file (%n) go to the images of the book, in their size "
@@ -2298,6 +2607,9 @@ void ImportBookDialog::showExtras() {
         sentences << tr(
             "The images of the files next to the Markdown file (%n) go to the images of the book.",
             nullptr, images);
+    } else if (missing + web == 0 && format() == ImportFormat::Scrivener) {
+        //: In Polish: Teksty projektu nie mają obrazów.
+        sentences << tr("The texts of the project have no images.");
     } else if (missing + web == 0) {
         //: In Polish: Plik nie ma obrazów.
         sentences << tr("The file has no images.");
@@ -2514,6 +2826,19 @@ void ImportBookDialog::run() {
         //: After the result of the import. In Polish: Książka ma nowe style (%n).
         text += QLatin1Char(' ') + tr("The book has new styles (%n).", nullptr, outcome.styles);
     }
+    if (outcome.versions > 0) {
+        //: After the result of the import of a project of Scrivener. In Polish: Migawki są
+        //: wersjami tekstów (%n).
+        text += QLatin1Char(' ') +
+                tr("The snapshots are versions of the texts (%n).", nullptr, outcome.versions);
+    }
+    if (outcome.materials > 0) {
+        //: After the result of the import of a project of Scrivener. In Polish: Warsztat ma
+        //: materiały z „Research” (%n).
+        text += QLatin1Char(' ') +
+                tr("The Workshop has the materials of \"Research\" (%n).", nullptr,
+                   outcome.materials);
+    }
     const bool newBook = now.target == Target::NewBook;
     finishWork(text, newBook ? QFileInfo(outcome.bookFile).absolutePath() : QString());
     progressBar()->hide();
@@ -2576,6 +2901,7 @@ void ImportBookDialog::run() {
                 break;
         }
     }
+    notes += projectOmissions(outcome);
     if (!notes.isEmpty()) {
         //: Before what the import left out. In Polish: Import pominął:
         notes.prepend(tr("The import left out:"));
@@ -2588,6 +2914,40 @@ void ImportBookDialog::run() {
               << notDownloaded;
     }
     setResultNotes(notes);
+}
+
+QStringList ImportBookDialog::projectOmissions(const Outcome& outcome) const {
+    QStringList lines;
+    for (const ImportFile& file : m_files) {
+        if (!file.isRead() || !file.project) {
+            continue;
+        }
+        const ImportProject& project = *file.project;
+        if (project.trash > 0) {
+            //: What the import of a project of Scrivener left out. In Polish: – dokumenty
+            //: z Kosza (%n)
+            lines << tr("– the documents of the Trash (%n)", nullptr, project.trash);
+        }
+        if (project.excluded > 0) {
+            //: In Polish: – dokumenty bez „Include in Compile” (%n)
+            lines << tr("– the documents without \"Include in Compile\" (%n)", nullptr,
+                        project.excluded);
+        }
+        if (project.sceneSnapshots > 0) {
+            //: The snapshots of the scenes, which are no versions of a whole text. In Polish:
+            //: – migawki scen (%n): nie są wersjami całego tekstu
+            lines << tr("– the snapshots of scenes (%n): they are no versions of a whole text",
+                        nullptr, project.sceneSnapshots);
+        }
+    }
+    if (outcome.lostMaterials > 0) {
+        //: The materials of "Research" that could not be added; the log says why. In Polish:
+        //: – materiały z „Research”, których nie udało się dodać (%n); dlaczego, mówi dziennik
+        lines << tr("– the materials of \"Research\" that could not be added (%n); the log says "
+                    "why",
+                    nullptr, outcome.lostMaterials);
+    }
+    return lines;
 }
 
 void ImportBookDialog::undoImport() {

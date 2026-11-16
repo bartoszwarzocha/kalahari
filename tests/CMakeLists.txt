@@ -8,6 +8,7 @@ set(TEST_SOURCES
     test_support/plugin_signing.cpp    # The tests' own publisher key (only signed plugins load)
     test_support/export_samples.cpp    # The sample book of the export tests
     test_support/dialog_checks.cpp     # The keys and the size of the windows of the tests
+    test_support/scrivener_project.cpp # A project of Scrivener the tests of its import read
     core/test_settings_manager.cpp
     core/test_cmd_line_parser.cpp
     core/test_svg_converter.cpp

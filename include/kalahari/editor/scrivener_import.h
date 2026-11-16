@@ -120,14 +120,22 @@ struct ScrivenerText {
 
 /// @brief How the draft is made into texts
 struct ScrivenerDraftOptions {
-    bool compiledOnly = true;  ///< Only the documents Included in Compile
+    /// @brief What divides the documents of a text (its scenes)
+    enum class Scenes {
+        Breaks,  ///< A scene break
+        Titles,  ///< The title of each scene, a heading a level lower than the text's
+        None,    ///< Nothing: the text goes on
+    };
+
+    bool compiledOnly = true;       ///< Only the documents Included in Compile
+    Scenes scenes = Scenes::Breaks;
 };
 
 /// @brief The texts and parts of the draft, as one document
 struct ScrivenerDraft {
-    /// Its headings are the titles: of the parts of level 1, of the texts of level 2; the
-    /// documents' own headings are a level lower than those (3 and further). The documents
-    /// of a text (its scenes) are divided by scene breaks.
+    /// Its headings are the titles: of the parts of level 1, of the texts of level 2, of the
+    /// scenes (Scenes::Titles) of level 3; the documents' own headings are a level lower than
+    /// those. The documents of a text (its scenes) are divided as the options say.
     ImportDocument document;
     std::vector<ScrivenerText> texts;  ///< The texts and the parts, in the order of the binder
     int excluded = 0;          ///< The documents left out: not Included in Compile

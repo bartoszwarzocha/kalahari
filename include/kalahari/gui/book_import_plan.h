@@ -14,8 +14,10 @@
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/editor/book_import.h>
+#include <kalahari/editor/scrivener_import.h>
 #include <kalahari/gui/book_import_texts.h>
 
+#include <QDateTime>
 #include <QHash>
 #include <QList>
 #include <QString>
@@ -38,6 +40,7 @@ enum class ImportFormat {
     Docx,       ///< A Word document (.docx)
     Markdown,   ///< Markdown (.md)
     PlainText,  ///< Plain text (.txt)
+    Scrivener,  ///< A project of Scrivener (.scrivx in its folder .scriv)
     Plugin,     ///< A format of a plugin (core::IImporter), named by its id
 };
 
@@ -83,7 +86,88 @@ struct ImportReading {
     std::optional<editor::TextEncoding> encoding;
     editor::TextReadOptions text;  ///< Of plain text
     bool rejectChanges = false;    ///< The tracked changes rejected; false: accepted
+    editor::ScrivenerDraftOptions scrivener;  ///< Of a project of Scrivener
 };
+
+// =============================================================================
+// A project of Scrivener
+// =============================================================================
+
+/// @brief A snapshot of a text of a project: a version of the text, its blocks after the
+///        draft's in the document of the file
+struct ImportSnapshot {
+    QString title;      ///< Its title; empty: none
+    QDateTime created;  ///< When it was taken; invalid: unknown
+    size_t from = 0;    ///< Its blocks [from, to) of the document
+    size_t to = 0;
+};
+
+/// @brief What a project says of a text or a part of its draft
+struct ImportTextDetails {
+    QString synopsis;
+    QString notes;
+    QString label;
+    QString status;  ///< The project's own ("First Draft")
+    QStringList keywords;
+    std::vector<editor::ScrivenerScene> scenes;  ///< Of a text of several documents
+    std::vector<ImportSnapshot> snapshots;       ///< From the oldest
+};
+
+/// @brief A document of the research of a project, as the Workshop of the book gets it
+struct ImportMaterial {
+    enum class Kind {
+        Note,      ///< A text: a work note
+        Picture,   ///< A picture
+        Document,  ///< A PDF file
+        WebPage,   ///< A page of the web the project keeps
+        File,      ///< Another file
+    };
+
+    Kind kind = Kind::Note;
+    QString title;
+    QString file;      ///< Not Kind::Note: its file; empty: none
+    size_t from = 0;   ///< Kind::Note: its blocks [from, to) of the document, after the draft's
+    size_t to = 0;
+    QString synopsis;  ///< Its synopsis; empty: none
+    QString notes;     ///< Its notes; empty: none
+};
+
+/// @brief A project of Scrivener, as the import reads it
+///
+/// The document of its file starts with the texts and parts of its draft (draftBlocks), then
+/// come the snapshots of the texts and the texts of the research, so that their KML is made
+/// with the images and the styles of the file.
+struct ImportProject {
+    QString title;      ///< Its title
+    QString draftName;  ///< The title of its draft ("Draft", "Manuscript")
+    std::vector<editor::ImportPiece> pieces;  ///< The texts and the parts of its draft
+    std::vector<ImportTextDetails> details;   ///< What it says of each piece, in their order
+    std::vector<ImportMaterial> research;     ///< The documents of its research, in the binder's
+                                              ///< order
+    size_t draftBlocks = 0;  ///< The blocks of the draft at the start of the document
+    int excluded = 0;        ///< The documents of the draft not Included in Compile, left out
+    int sceneSnapshots = 0;  ///< The snapshots of scenes, which are no versions of texts
+    int trash = 0;           ///< The documents in its Trash, left out
+
+    /// @brief The snapshots of its texts
+    int snapshots() const;
+};
+
+/// @brief What of a project goes to the book with its texts
+struct ImportDetails {
+    bool synopses = true;   ///< The synopses at the start of the notes of the texts and parts
+    bool notes = true;      ///< The notes, with the labels and keywords, as their notes
+    bool statuses = true;   ///< The statuses as theirs (scrivenerBookStatus()); else drafts
+    bool snapshots = true;  ///< The snapshots as the versions of the texts
+};
+
+/// @brief The notes of a text or a part of @p details, as @p take has them: its synopsis, its
+///        notes, then its label, its keywords, a status of the project the book has no status
+///        of, and what its scenes say of themselves, in the program's language; empty: none
+QString importNotes(const ImportTextDetails& details, const ImportDetails& take = ImportDetails());
+
+/// @brief The notes of a material: its synopsis and its notes, a line between them
+QString materialNotes(const ImportMaterial& material);
 
 /// @brief A file of an import as the program read it
 struct ImportFile {
@@ -97,6 +181,8 @@ struct ImportFile {
     /// document the texts are made of
     std::shared_ptr<const editor::ImportDocument> document;
     editor::ImportProblem problem;  ///< Why it could not be read; Kind::None: it was
+    /// Of a project of Scrivener: its texts, what it says of them and its research
+    std::shared_ptr<const ImportProject> project;
 
     /// @brief Whether it was read
     bool isRead() const { return document != nullptr; }
@@ -166,10 +252,11 @@ struct ImportRow {
                                 ///< kind's; empty: none (a part of a book without parts)
     bool checked = true;        ///< It goes to the book
     bool full = false;          ///< It was unchecked: the book can have no more of its kind
+    int text = -1;              ///< Of a project: its piece (ImportProject::pieces)
 };
 
 /// @brief The texts and parts of the files, each file divided as @p split says, or one text
-///        each when @p wholeFiles
+///        each when @p wholeFiles; of a project, its own (ImportProject::pieces)
 ///
 /// A text that has no title takes the name of its file. The kind of a text is the one its
 /// title names ("Prolog"), of a short text before the first title (TITLE_PAGE_WORDS) a title
@@ -186,12 +273,20 @@ QStringList fullKinds(const std::vector<ImportRow>& rows, const ImportKinds& kin
 /// @brief The checked rows of a part: the part and those of its texts; of a text, itself
 bool isChecked(const std::vector<ImportRow>& rows, size_t row);
 
-/// @brief The texts of the checked rows, with their KML
+/// @brief The texts of the checked rows, with their KML; of a project, with what @p details
+///        takes of it
 /// @param options How the KML of the texts of each file is written (by the index of its file)
 std::vector<ImportedText> importedTexts(const std::vector<ImportFile>& files,
                                         const std::vector<ImportRow>& rows,
                                         const ImportKinds& kinds,
-                                        const std::vector<editor::ImportKmlOptions>& options);
+                                        const std::vector<editor::ImportKmlOptions>& options,
+                                        const ImportDetails& details = ImportDetails());
+
+/// @brief The materials of the research of the projects of @p files, with the KML of their
+///        notes
+/// @param options How the KML of the notes of each file is written (by the index of its file)
+std::vector<ImportedMaterial> importedMaterials(const std::vector<ImportFile>& files,
+                                                const std::vector<editor::ImportKmlOptions>& options);
 
 /// @brief The words of the checked texts
 int checkedWords(const std::vector<ImportRow>& rows);

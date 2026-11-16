@@ -2,8 +2,9 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file book_import_coordinator.cpp
-/// @brief File > Import > DOCX, Markdown and Plain Text: the system window of the files, the
-///        window of the import, and the texts added to the open book or to a new one
+/// @brief File > Import > DOCX, Markdown, Plain Text and Scrivener Project: the system window
+///        of the files, the window of the import, and the texts added to the open book or to a
+///        new one
 
 #include "kalahari/gui/book_import_coordinator.h"
 
@@ -29,6 +30,7 @@ namespace {
 constexpr const char* DOCX_COMMAND = "file.import.docx";
 constexpr const char* MARKDOWN_COMMAND = "file.import.markdown";
 constexpr const char* TEXT_COMMAND = "file.import.text";
+constexpr const char* SCRIVENER_COMMAND = "file.import.scrivener";
 constexpr const char* PLUGIN_COMMAND = "file.import.plugin";
 
 /// Progress of the import: the styles and the images up to this, then the texts
@@ -44,6 +46,15 @@ void countTexts(const std::vector<ImportedText>& texts, int* count, int* parts) 
             ++*count;
         }
     }
+}
+
+/// The versions of @p texts, those of the texts of the parts too
+int countVersions(const std::vector<ImportedText>& texts) {
+    int count = 0;
+    for (const ImportedText& text : texts) {
+        count += static_cast<int>(text.versions.size()) + countVersions(text.texts);
+    }
+    return count;
 }
 
 /// The first text of the elements the import added: a part's first text
@@ -109,7 +120,7 @@ bool addTexts(core::ProjectManager& book, const dialogs::ImportBookDialog::Choic
     }
     outcome->images = static_cast<int>(added.images.size());
 
-    std::vector<ImportedText> texts = importedTexts(files, rows, kinds, options);
+    std::vector<ImportedText> texts = importedTexts(files, rows, kinds, options, choice.details);
     if (newBook) {
         clearNewBookStart(book, texts);
         place.at = {core::BookPlace::Main, QString(),
@@ -135,12 +146,21 @@ bool addTexts(core::ProjectManager& book, const dialogs::ImportBookDialog::Choic
         *outcome = dialogs::ImportBookDialog::Outcome();
         return false;
     }
+    outcome->versions = countVersions(texts);
+    outcome->firstText = firstTextOf(book, added.elements);
+    // The research of a project in the Workshop: one that cannot be added does not stop the
+    // import, the result says so
+    if (choice.research) {
+        const std::vector<ImportedMaterial> materials = importedMaterials(files, options);
+        outcome->lostMaterials = addImportedMaterials(book, materials, &added);
+        outcome->materials = static_cast<int>(materials.size()) - outcome->lostMaterials;
+    }
     if (progress) {
         progress(100);
     }
-    outcome->firstText = firstTextOf(book, added.elements);
-    logger.info("Import: {} texts in {} parts, {} images, {} new styles", outcome->texts,
-                outcome->parts, outcome->images, outcome->styles);
+    logger.info("Import: {} texts in {} parts, {} versions, {} images, {} new styles, {} materials",
+                outcome->texts, outcome->parts, outcome->versions, outcome->images,
+                outcome->styles, outcome->materials);
     return true;
 }
 
@@ -157,7 +177,8 @@ BookImportCoordinator::BookImportCoordinator(core::ProjectManager& book, Command
 void BookImportCoordinator::connectCommands() {
     for (const auto& [id, format] : {std::pair{DOCX_COMMAND, ImportFormat::Docx},
                                      std::pair{MARKDOWN_COMMAND, ImportFormat::Markdown},
-                                     std::pair{TEXT_COMMAND, ImportFormat::PlainText}}) {
+                                     std::pair{TEXT_COMMAND, ImportFormat::PlainText},
+                                     std::pair{SCRIVENER_COMMAND, ImportFormat::Scrivener}}) {
         if (Command* command = m_commands.getCommand(id)) {
             command->execute = [this, format = format]() {
                 importFormat(format);
@@ -236,6 +257,9 @@ void BookImportCoordinator::importFormat(ImportFormat format) {
             //: zwykłego tekstu
             name = tr("Plain text files");
             break;
+        case ImportFormat::Scrivener:
+            importScrivenerProject();
+            return;
         case ImportFormat::Plugin:
             importPluginFormat();
             return;
@@ -252,6 +276,30 @@ void BookImportCoordinator::importFormat(ImportFormat format) {
     ProgramFolders::remember(ProgramFolders::Operation::ImportText,
                              QFileInfo(files.front()).absolutePath());
     importFiles(format, files);
+}
+
+void BookImportCoordinator::importScrivenerProject() {
+    // The file of the project in its folder; on macOS the folder is a package, chosen as a file
+    //: The files of the system window of File > Import > Scrivener Project. In Polish: Projekty
+    //: Scrivenera
+    const QString filter = QStringLiteral("%1 (*.scrivx *.scriv)").arg(tr("Scrivener projects"));
+    //: The title of the system window of File > Import > Scrivener Project. In Polish: Projekt
+    //: Scrivenera do importu
+    const QString chosen = QFileDialog::getOpenFileName(
+        m_parent, tr("Scrivener Project to Import"),
+        ProgramFolders::startFolder(ProgramFolders::Operation::ImportText), filter);
+    if (chosen.isEmpty()) {
+        return;
+    }
+    const QString project = editor::scrivenerProjectFile(chosen);
+    const QString file = project.isEmpty() ? chosen : project;
+    // The next time the system window opens beside the project's folder, not in it
+    QDir folder = QFileInfo(file).absoluteDir();
+    if (folder.dirName().endsWith(QLatin1String(".scriv"), Qt::CaseInsensitive)) {
+        folder.cdUp();
+    }
+    ProgramFolders::remember(ProgramFolders::Operation::ImportText, folder.absolutePath());
+    importFiles(ImportFormat::Scrivener, {file});
 }
 
 void BookImportCoordinator::importFiles(ImportFormat format, const QStringList& files,
