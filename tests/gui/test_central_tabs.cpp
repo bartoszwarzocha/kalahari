@@ -392,7 +392,11 @@ TEST_CASE("Central tabs: the list of all the tabs, from its button and with Alt+
     CHECK(space.tabs.currentIndex() == 4);
 
     // In more rows too, and with Alt+Down on the tabs: the keys of their window, also when the
-    // system does not make it active (Windows on the test machines, at times)
+    // system does not make it active (Windows on the test machines, at times): another window
+    // active
+    QWidget other;
+    other.show();
+    other.activateWindow();
     for (const PanelTabBar::Rows rows : {PanelTabBar::Rows::Single, PanelTabBar::Rows::Wrap}) {
         space.tabs.setRows(rows);
         settle();
@@ -400,7 +404,6 @@ TEST_CASE("Central tabs: the list of all the tabs, from its button and with Alt+
                             ? static_cast<QWidget*>(space.tabs.tabRows())
                             : static_cast<QWidget*>(space.tabs.tabBar());
         REQUIRE(tabs != nullptr);
-        space.tabs.activateWindow();
         tabs->setFocus(Qt::OtherFocusReason);
         settle();
         REQUIRE(space.tabs.focusWidget() == tabs);
