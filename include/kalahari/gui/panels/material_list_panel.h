@@ -363,6 +363,7 @@ private:
     CardCellDelegate* m_cardDelegate = nullptr;      ///< Edits the cells of the cards (F2)
     bool m_cards = false;    ///< The list is one of the cards (CardList::isCardList())
     bool m_loading = false;  ///< The list is being filled: no material is chosen by the writer
+    int m_settingsListener = 0;    ///< core::SettingsManager::subscribe() id: the portraits
     core::ProjectManager& m_book;  ///< The book of its window
 };
 

@@ -600,7 +600,8 @@ void CardFieldsDialog::fillTable() {
         }
     }
     m_filling = false;
-    const int row = std::clamp(currentRow, FIXED_ROWS, std::max(FIXED_ROWS, m_table->rowCount() - 1));
+    const int row =
+        std::clamp(currentRow, FIXED_ROWS, std::max(FIXED_ROWS, m_table->rowCount() - 1));
     if (row < m_table->rowCount()) {
         m_table->setCurrentCell(row, NAME_COLUMN);
     }

@@ -17,6 +17,8 @@
 #include <QStringList>
 #include <QWidget>
 
+#include <string>
+
 class QDragEnterEvent;
 class QDropEvent;
 class QFormLayout;
@@ -26,6 +28,7 @@ class QLineEdit;
 class QMenu;
 class QPlainTextEdit;
 class QPushButton;
+class QTabWidget;
 class QToolButton;
 class QVBoxLayout;
 
@@ -93,6 +96,39 @@ public:
     static constexpr int SHORT_PORTRAIT = 96;
     /// @brief Side of the portrait of the full card
     static constexpr int FULL_PORTRAIT = 128;
+
+    /// @brief The setting of the layout of the full card: LAYOUT_COLUMNS (the default), the
+    /// data beside the description, relations, chapters and materials; LAYOUT_TABS, each of
+    /// them on a tab under the header
+    static constexpr const char* LAYOUT_SETTING = "cards.fullCardLayout";
+    static constexpr const char* LAYOUT_COLUMNS = "columns";
+    static constexpr const char* LAYOUT_TABS = "tabs";
+
+    /// @brief The setting of the shape of the portraits: SHAPE_SQUARE (the default) or
+    /// SHAPE_CIRCLE
+    static constexpr const char* SHAPE_SETTING = "cards.portraitShape";
+    static constexpr const char* SHAPE_SQUARE = "square";
+    static constexpr const char* SHAPE_CIRCLE = "circle";
+
+    /// @brief The setting of what a portrait without a picture shows: NO_PICTURE_INITIALS (the
+    /// default), the initials on the color of the card; NO_PICTURE_ICON, the icon of its kind
+    static constexpr const char* NO_PICTURE_SETTING = "cards.portraitWithoutPicture";
+    static constexpr const char* NO_PICTURE_INITIALS = "initials";
+    static constexpr const char* NO_PICTURE_ICON = "icon";
+
+    /// @brief Whether the full cards have tabs (LAYOUT_SETTING)
+    [[nodiscard]] static bool hasTabs();
+
+    /// @brief Whether the portraits are circles (SHAPE_SETTING)
+    [[nodiscard]] static bool roundPortraits();
+
+    /// @brief Whether a portrait without a picture shows the icon of the kind
+    /// (NO_PICTURE_SETTING)
+    [[nodiscard]] static bool kindIconWithoutPicture();
+
+    /// @brief Whether setting @p key changes how the portraits are drawn (SHAPE_SETTING,
+    /// NO_PICTURE_SETTING)
+    [[nodiscard]] static bool isPortraitSetting(const std::string& key);
 
     /// @brief The card; @p full: the full card, else the short one
     /// @param book The book of its window
@@ -174,6 +210,9 @@ public:
     [[nodiscard]] QToolButton* relationButton() const { return m_relationButton; }
     /// @brief Fields... of the bar: the window Card Fields of the kind of the card; full card
     [[nodiscard]] QToolButton* fieldsButton() const { return m_fieldsButton; }
+    /// @brief The tabs of the full card with LAYOUT_TABS: General, Description, Relations,
+    /// Chapters and Materials; nullptr with the columns or on the short card
+    [[nodiscard]] QTabWidget* tabs() const { return m_tabs; }
     /// @brief Find in Book of the bar: the name of the card in the Search panel; full card
     [[nodiscard]] QToolButton* findButton() const { return m_findButton; }
     /// @brief The chapters the card is in; full card
@@ -268,6 +307,13 @@ private:
     /// @brief The group of the short card: the portrait, the name and the field beside the
     /// kind, In short, the fields; the gear at its title, Open Card under it
     void createShortLayout();
+
+    /// @brief The parts of the full card under its header, as LAYOUT_SETTING has them: the
+    /// data beside the description, relations, chapters and materials, or on tabs
+    void placeBody();
+
+    /// @brief A setting of the cards changed (@p key): the layout, the portrait
+    void takeSetting(const std::string& key);
 
     /// @brief The name, In short, the kind and the color of @p element, or the title of the
     /// group of the short card
@@ -384,6 +430,11 @@ private:
     RelationsBox* m_relations = nullptr;
     QToolButton* m_relationButton = nullptr;  ///< Full card: Relation... of the bar
     QToolButton* m_fieldsButton = nullptr;    ///< Full card: Fields... of the bar
+    QWidget* m_body = nullptr;          ///< Full card: the parts under the header
+    QWidget* m_dataColumn = nullptr;    ///< Full card: the data, the declension, own fields
+    QTabWidget* m_tabs = nullptr;       ///< Full card with LAYOUT_TABS: the tabs of the parts
+    bool m_hasTabs = false;             ///< Full card: the parts are on tabs
+    int m_settingsListener = 0;         ///< core::SettingsManager::subscribe() id
     QToolButton* m_findButton = nullptr;      ///< Full card: Find in Book of the bar
     CardChaptersBox* m_chapters = nullptr;    ///< Full card: the chapters of the card
     LinkedMaterialsBox* m_materials = nullptr;  ///< Full card: the materials of the card

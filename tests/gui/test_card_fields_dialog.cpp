@@ -342,7 +342,8 @@ TEST_CASE("Card fields window: a field of the writer added, changed and taken ou
 TEST_CASE("Card fields window: the values of a list", "[gui][cards][card_fields]") {
     gui::registerAllIcons();
     const QList<core::CardFieldChoice> choices{
-        core::CardFieldChoice{QStringLiteral("c1"), core::LocalizedText::plain(QStringLiteral("elf"))},
+        core::CardFieldChoice{QStringLiteral("c1"),
+                              core::LocalizedText::plain(QStringLiteral("elf"))},
         core::CardFieldChoice{QStringLiteral("c2"),
                               core::LocalizedText::plain(QStringLiteral("dwarf"))}};
     CardChoicesDialog dialog(QStringLiteral("Race"), choices);
@@ -456,8 +457,10 @@ TEST_CASE("Card fields: Fields... of the full card, and an own field made a fiel
     auto& pm = novel.pm;
     const QString anna = addCard(pm, "character", QStringLiteral("Anna"));
     const QString jan = addCard(pm, "character", QStringLiteral("Jan"));
-    REQUIRE(pm.setFields(anna, {core::ElementField{QStringLiteral("Race"), QStringLiteral("elf"), {}}}));
-    REQUIRE(pm.setFields(jan, {core::ElementField{QStringLiteral("race"), QStringLiteral("dwarf"), {}}}));
+    REQUIRE(pm.setFields(
+        anna, {core::ElementField{QStringLiteral("Race"), QStringLiteral("elf"), {}}}));
+    REQUIRE(pm.setFields(
+        jan, {core::ElementField{QStringLiteral("race"), QStringLiteral("dwarf"), {}}}));
 
     gui::CardPage page(pm, true);
     page.showCard(anna);

@@ -17,6 +17,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <nlohmann/json_fwd.hpp>
+
 namespace kalahari::core {
 
 /// @brief A field of the cards of a kind in the set of a book: a field of the kind (by its id),
@@ -115,6 +117,12 @@ inline constexpr const char* DEFAULTS_SETTING = "cards.fields";
 
 /// @brief "cardFields" of @p sets: an object, empty when there are none
 [[nodiscard]] QJsonObject write(const CardFieldSets& sets);
+
+/// @brief The sets of @p value, the JSON of DEFAULTS_SETTING
+[[nodiscard]] CardFieldSets fromSetting(const nlohmann::json& value);
+
+/// @brief @p sets as DEFAULTS_SETTING keeps them
+[[nodiscard]] nlohmann::json toSetting(const CardFieldSets& sets);
 
 /// @brief The sets that new books start with (DEFAULTS_SETTING)
 [[nodiscard]] CardFieldSets defaults();

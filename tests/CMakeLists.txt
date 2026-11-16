@@ -181,6 +181,7 @@ set(TEST_SOURCES
     gui/test_card_page.cpp                       # The cards of characters, locations and items
     gui/test_relation_dialog.cpp                 # The window Relation and the relations of a card
     gui/test_card_fields_dialog.cpp              # The window Card Fields and Fields... of the full card
+    gui/test_card_settings.cpp                   # Settings > Cards: the full card layout, the portraits, the fields of new books
     gui/test_card_declension.cpp                 # The names of the cards, declined, in the dictionary
     gui/test_card_chapters.cpp                   # The chapters and the materials of a card, what is dropped on it
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs

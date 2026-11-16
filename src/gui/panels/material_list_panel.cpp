@@ -13,6 +13,7 @@
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/kind_names.h"
@@ -63,6 +64,7 @@
 #include <algorithm>
 #include <functional>
 #include <optional>
+#include <string>
 #include <utility>
 
 namespace kalahari {
@@ -957,11 +959,21 @@ MaterialListPanel::MaterialListPanel(core::ProjectManager& book, const QString& 
     createCommands();
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, this,
             &MaterialListPanel::refreshIcons);
+    // The portraits of the cards drawn as Settings > Cards has them; the listener runs on the
+    // thread that changes them, the list changes on its own
+    m_settingsListener =
+        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
+            if (CardPage::isPortraitSetting(key)) {
+                QMetaObject::invokeMethod(
+                    this, [this]() { m_model->refreshIcons(); }, Qt::QueuedConnection);
+            }
+        });
     load();
     restoreState();
 }
 
 MaterialListPanel::~MaterialListPanel() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
     // What the views do while they are destroyed (the current row cleared) does not reach the
     // panel
     m_table->selectionModel()->disconnect(this);

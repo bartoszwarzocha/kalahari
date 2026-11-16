@@ -191,6 +191,9 @@ PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
             } else if (key == CursorCardBox::SETTING ||
                        key == core::LinkRoles::PARAGRAPHS_SETTING) {
                 QMetaObject::invokeMethod(this, "updateCursorCard", Qt::QueuedConnection);
+            } else if (CardPage::isPortraitSetting(key)) {  // the portrait drawn again
+                QMetaObject::invokeMethod(
+                    this, [this]() { m_cursorCard->refresh(); }, Qt::QueuedConnection);
             }
         });
 

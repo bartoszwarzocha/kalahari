@@ -7,6 +7,7 @@
 
 #include "../editor/editor_test_utils.h"
 #include "document_window.h"
+#include "test_support/changed_setting.h"
 #include "test_support/window_parts.h"
 
 #include "kalahari/core/book_dictionary.h"
@@ -310,32 +311,7 @@ QTreeWidgetItem* navigatorItem(QTreeWidget* tree, const QString& id) {
     return nullptr;
 }
 
-/// A setting changed for a test, and set back afterwards
-template <typename T>
-class ChangedSetting {
-public:
-    ChangedSetting(std::string key, const T& value)
-        : m_key(std::move(key)), m_saved(core::SettingsManager::getInstance().get<T>(m_key, value)) {
-        core::SettingsManager::getInstance().set<T>(m_key, value);
-    }
-    ~ChangedSetting() {
-        try {
-            core::SettingsManager::getInstance().set<T>(m_key, m_saved);
-        } catch (...) {
-            // A destructor may not throw: the later tests then find the setting of this one
-            static_cast<void>(
-                std::fputs("ChangedSetting: the setting of the test stays\n", stderr));
-        }
-    }
-    ChangedSetting(const ChangedSetting&) = delete;
-    ChangedSetting& operator=(const ChangedSetting&) = delete;
-    ChangedSetting(ChangedSetting&&) = delete;
-    ChangedSetting& operator=(ChangedSetting&&) = delete;
-
-private:
-    std::string m_key;
-    T m_saved;
-};
+using test::ChangedSetting;
 
 /// The recent colors of the color window, as they were before the test
 class RecentColors {

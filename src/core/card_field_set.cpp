@@ -12,6 +12,8 @@
 #include <QJsonDocument>
 #include <QSet>
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
 #include <optional>
 #include <string>
@@ -323,13 +325,20 @@ QJsonObject write(const CardFieldSets& sets) {
     return object;
 }
 
+CardFieldSets fromSetting(const nlohmann::json& value) {
+    return read(toQt(value));
+}
+
+nlohmann::json toSetting(const CardFieldSets& sets) {
+    return fromQt(write(sets));
+}
+
 CardFieldSets defaults() {
-    const auto stored = SettingsManager::getInstance().get<nlohmann::json>(DEFAULTS_SETTING);
-    return read(toQt(stored));
+    return fromSetting(SettingsManager::getInstance().get<nlohmann::json>(DEFAULTS_SETTING));
 }
 
 void setDefaults(const CardFieldSets& sets) {
-    SettingsManager::getInstance().set<nlohmann::json>(DEFAULTS_SETTING, fromQt(write(sets)));
+    SettingsManager::getInstance().set<nlohmann::json>(DEFAULTS_SETTING, toSetting(sets));
 }
 
 }  // namespace kalahari::core::card_fields
