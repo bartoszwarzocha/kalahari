@@ -940,12 +940,21 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
 
     loadElementStates();
 
+    // The dictionary of the book; one that cannot be read is not written over
+    QString dictionaryProblem;
+    m_bookDictionaryRead = m_bookDictionary.load(bookDictionaryPath(), &dictionaryProblem);
+    if (!m_bookDictionaryRead) {
+        logger.warn("openProject: The dictionary of the book cannot be read: {}",
+                    dictionaryProblem.toStdString());
+    }
+
     // Set state
     m_isDirty = false;
     setWorkMode(WorkMode::ProjectMode);
 
     logger.info("Project opened successfully: {}",
                 book() ? book()->title.toStdString() : std::string());
+    emit bookDictionaryChanged();
     emit projectOpened(toQString(m_projectPath));
 
     return true;
@@ -1077,11 +1086,14 @@ bool ProjectManager::closeProject(bool promptSave) {
     m_missingPackages.clear();
     m_packageCards.clear();
     m_elementStates.clear();
+    m_bookDictionary.clear();
+    m_bookDictionaryRead = false;
     m_projectPath.clear();
     m_manifestPath.clear();
     m_isDirty = false;
 
     setWorkMode(WorkMode::NoDocument);
+    emit bookDictionaryChanged();
     emit projectClosed();
 
     return true;
@@ -2714,6 +2726,46 @@ bool ProjectManager::setParagraphStyles(const QList<BookParagraphStyle>& styles)
     }
     emit paragraphStylesChanged();
     return true;
+}
+
+const BookDictionary& ProjectManager::bookDictionary() const {
+    return m_bookDictionary;
+}
+
+bool ProjectManager::changeBookDictionary(const std::function<void(BookDictionary&)>& change) {
+    auto& logger = Logger::getInstance();
+    if (!m_project) {
+        logger.warn("changeBookDictionary: No project is open");
+        return false;
+    }
+    if (refusesChange("changeBookDictionary")) {
+        return false;
+    }
+    if (!m_bookDictionaryRead) {
+        logger.warn("changeBookDictionary: The file of the dictionary could not be read, so it "
+                    "is not written over");
+        return false;
+    }
+    BookDictionary changed = m_bookDictionary;
+    change(changed);
+    if (changed.toJson() == m_bookDictionary.toJson()) {
+        return true;
+    }
+    QString problem;
+    if (!changed.save(bookDictionaryPath(), &problem)) {
+        logger.warn("changeBookDictionary: {}", problem.toStdString());
+        return false;
+    }
+    m_bookDictionary = std::move(changed);
+    emit bookDictionaryChanged();
+    return true;
+}
+
+QString ProjectManager::bookDictionaryPath() const {
+    if (!m_project) {
+        return {};
+    }
+    return QDir(toQString(m_projectPath)).filePath(BookDictionary::fileName());
 }
 
 bool ProjectManager::setSource(const QString& elementId, const SourceDescription& source) {

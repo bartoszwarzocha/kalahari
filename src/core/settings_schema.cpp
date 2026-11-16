@@ -224,7 +224,8 @@ std::map<std::string, json> buildDefaults() {
         {"materials.sources.style", "pn-iso-690"},
         {"materials.sources.reference", "authorYear"},
         // A PDF file opens on a preview tab of the program ("preview") or in the system program
-        // ("system"); without the Qt PDF module always in the system program (gui::PdfFiles)
+        // ("system"); in a program built without the preview always in the system program
+        // (gui::PdfFiles)
         {"materials.open.pdf", "preview"},
         // The preview of a PDF file (Settings > Materials > PDF Preview): the pages one under
         // another ("continuous"), one at a time ("single") or two side by side ("two"); in a
@@ -405,6 +406,12 @@ std::map<std::string, json> buildDefaults() {
         {"spellingPanel.fixButtons", "selected"},
         {"spellingPanel.nextIssue", "panel"},
         {"spellingPanel.grammarScope", "whole"},
+
+        // The book's dictionary: the places that go against its spelling rules are marked in
+        // the chapters; Add of a misspelled word's card in the Spelling and Grammar panel puts
+        // the word in the book's dictionary ("book") or in the writer's own words ("user")
+        {"bookDictionary.markRules", true},
+        {"bookDictionary.panelAddsTo", "book"},
 
         // Editor: the paper, light or dark whatever the theme, and the colors. The user's values
         // of the theme's editor colors (both papers and their text, the desk around them, the

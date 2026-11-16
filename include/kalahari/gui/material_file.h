@@ -19,8 +19,8 @@ namespace gui {
 ///
 /// A picture is a file of an image type ("image/png", "image/webp"...). The program shows those
 /// whose format its image plugins read; for the others problem() says why it does not. A PDF
-/// file is no picture: the program shows its pages when it has the Qt PDF module, and its first
-/// page where it shows a picture (readPicture()).
+/// file is no picture: the program shows its pages when it is built with their preview
+/// (PDFium), and its first page where it shows a picture (readPicture()).
 struct MaterialFile {
     Q_DECLARE_TR_FUNCTIONS(kalahari::gui::MaterialFile)
 

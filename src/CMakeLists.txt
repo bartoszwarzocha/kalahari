@@ -58,6 +58,12 @@ set(KALAHARI_CORE_SOURCES
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
+    core/affix_expander.cpp     # The forms a Hunspell dictionary gives its words
+    core/name_declension.cpp    # The forms of names in the grammatical cases
+    core/name_declension_polish.cpp # The Polish models of declension
+    core/book_dictionary.cpp    # The dictionary of a book: names, rules of spelling, words
+    core/book_dictionary_rules.cpp # Its words of a text, the places against its rules
+    core/book_dictionary_file.cpp  # Its file
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/source_description.cpp # The bibliographic description of a source, its bookmarks
@@ -190,6 +196,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
+    gui/name_labels.cpp    # The cases and kinds of the names of the book dictionary, in the program's language
     gui/cover_names.cpp    # The materials of the cover in the program's words
     gui/source_names.cpp   # The sources in the program's words
     gui/pdf_files.cpp      # PDF files: whether the program shows them, their first page and data
@@ -220,6 +227,8 @@ set(KALAHARI_SOURCES
     gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
     gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
     gui/dialogs/quick_insert_item_dialog.cpp  # QuickInsertItemDialog - a fragment or a character of quick insert
+    gui/dialogs/name_dialog.cpp  # NameDialog - a name of the book dictionary with its forms
+    gui/dialogs/rule_dialog.cpp  # RuleDialog - a spelling rule of the book dictionary
     gui/dialogs/deadline_dialog.cpp  # DeadlineDialog - a deadline of the book
     gui/dialogs/new_quote_dialog.cpp  # NewQuoteDialog - a quote from a selection of a PDF
     gui/dialogs/challenge_dialog.cpp  # ChallengeDialog - Add Challenge
@@ -271,6 +280,7 @@ set(KALAHARI_SOURCES
     gui/spelling_coordinator.cpp  # SpellingCoordinator - spelling as you type: the editors' dictionary
     gui/grammar_coordinator.cpp  # GrammarCoordinator - grammar as you type: the editors' LanguageTool server
     gui/spelling_panel_coordinator.cpp  # SpellingPanelCoordinator - the Spelling and Grammar panel and the text in front
+    gui/book_dictionary_coordinator.cpp  # BookDictionaryCoordinator - the book dictionary on its tab and its windows
     gui/repetitions_coordinator.cpp  # RepetitionsCoordinator - the Repetitions panel, the marks in the text, Next Repetition
     gui/grammar_components.cpp  # GrammarComponents - Java and LanguageTool on this computer
     gui/language_tool_server.cpp  # LanguageToolServer - the LanguageTool server the program starts
@@ -334,6 +344,7 @@ set(KALAHARI_SOURCES
     gui/widgets/sections_field.cpp  # Fields of the sections of a book: their names or none
     gui/widgets/kind_palette.cpp  # KindPalette - the kinds of elements of all book types
     gui/widgets/folder_field.cpp  # FolderField - the path of a folder, Browse... and Restore Default
+    gui/widgets/name_forms_table.cpp  # NameFormsTable - the forms of a name by case and number
     gui/toolbar_manager.cpp
     gui/widgets/status_bar_statistics.cpp  # Counts of the document in front in the status bar
     gui/widgets/stats_painter.cpp  # Colors and drawing of the statistics graphs
@@ -362,6 +373,7 @@ set(KALAHARI_SOURCES
     gui/panels/preview_panel.cpp  # PreviewPanel - what the window asks of a preview of a file
     gui/panels/image_preview_panel.cpp  # ImagePreviewPanel - the preview of a material's picture on a tab
     gui/panels/material_list_panel.cpp  # MaterialListPanel - the list of a kind of materials on a tab
+    gui/panels/book_dictionary_panel.cpp  # BookDictionaryPanel - the book dictionary on a tab
     gui/panels/plot_board_panel.cpp  # PlotBoardPanel - the tab of the plot board and the outline
     gui/panels/plot_board_panel_header.cpp  # PlotBoardPanel - its switches and look from the settings
     gui/panels/paragraph_panel.cpp
@@ -427,6 +439,7 @@ set(KALAHARI_SOURCES
     editor/quick_insert_controller.cpp   # Quick insert: the list at the cursor of an editor
     editor/viewport_manager.cpp          # OpenSpec #00043: Viewport manager for Word/Writer-style scrolling
     editor/search_engine.cpp             # OpenSpec #00044 Task 9.4: Search engine for Find/Replace
+    editor/search_forms.cpp              # The forms the search of all forms finds ("Odm")
     editor/kalahari_text_document_layout.cpp  # OpenSpec #00043 Phase 11.11: Custom layout without Qt leading gaps
     editor/kalahari_text_document_layout_notes.cpp  # The layout of the notes: numbers, under paragraphs, at the bottom of pages
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
@@ -484,6 +497,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/name_dialog.h  # NameDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/rule_dialog.h  # RuleDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_quote_dialog.h  # NewQuoteDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT
@@ -521,6 +536,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_coordinator.h  # SpellingCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_dictionary_coordinator.h  # BookDictionaryCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/repetitions_coordinator.h  # RepetitionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
@@ -546,6 +562,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/sections_field.h  # SectionsComboBox, SectionNamesEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/folder_field.h  # FolderField with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/name_forms_table.h  # NameFormsTable with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h  # StatusBarStatistics with Q_OBJECT
@@ -570,6 +587,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_list_panel.h  # MaterialListPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_dictionary_panel.h  # BookDictionaryPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/plot_board_panel.h  # PlotBoardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/material_downloader.h  # MaterialDownloader with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/search_panel.h
@@ -597,15 +615,19 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_benchmark.h            # EditorBenchmark with Q_OBJECT (OpenSpec #00043 Phase 11.11)
 )
 
-# The preview of PDF files: only with Qt PDF
+# The preview of PDF files: only with PDFium (cmake/Pdfium.cmake)
 if(KALAHARI_PDF_AVAILABLE)
     list(APPEND KALAHARI_SOURCES
+        gui/pdf_document.cpp              # PdfDocument - a PDF file read by PDFium
+        gui/pdf_models.cpp                # PdfSearchModel, PdfContentsModel - its search and contents
         gui/panels/pdf_preview_panel.cpp  # PdfPreviewPanel - a PDF on a tab: pages, side panel, search
         gui/panels/pdf_preview_parts.cpp  # PdfPreviewPanel - its tool bar, side panel, selection bar
         gui/panels/pdf_pages_view.cpp     # PdfPagesView - the pages of a PDF, drawn by the program
         gui/panels/pdf_pages_layout.cpp   # PdfPagesView - the rows, the zoom and the page shown
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_preview_panel.h  # with Q_OBJECT
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_pages_view.h     # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_document.h              # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_models.h                # with Q_OBJECT
     )
 endif()
 
@@ -657,11 +679,20 @@ target_link_libraries(kalahari PRIVATE
 target_include_directories(kalahari PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari PRIVATE ${HUNSPELL_LIBRARY_DIRS})
 
-# The preview of PDF files (optional Qt PDF module)
+# The preview of PDF files (PDFium)
 if(KALAHARI_PDF_AVAILABLE)
-    target_link_libraries(kalahari PRIVATE Qt6::Pdf)
+    target_link_libraries(kalahari PRIVATE PDFium::pdfium)
     target_compile_definitions(kalahari PRIVATE KALAHARI_HAS_PDF)
-    message(STATUS "PDF preview: Enabled (linked Qt6::Pdf)")
+    if(WIN32)
+        # One release build of pdfium.dll serves every configuration: the Debug deployment of
+        # vcpkg (debug/bin) has none
+        add_custom_command(TARGET kalahari POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:PDFium::pdfium>" "$<TARGET_FILE_DIR:kalahari>/"
+            COMMENT "Copying pdfium.dll to output directory"
+        )
+    endif()
+    message(STATUS "PDF preview: Enabled (linked PDFium::pdfium)")
 else()
     message(STATUS "PDF preview: Disabled (PDF files open in the system program)")
 endif()

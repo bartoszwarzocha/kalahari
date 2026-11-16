@@ -410,7 +410,10 @@ ColorConfigWidget* SettingsPage::addThemeColor(QFormLayout* form, const QString&
 
 void SettingsPage::addIssueColor(QFormLayout* form, editor::TextIssueKind kind) {
     // The frames of the kind's cards in the panel have the same color (issueColor())
-    addThemeColor(form, tr("Underline"), editor::issueColorKey(kind));
+    addThemeColor(form,
+                  kind == editor::TextIssueKind::BookRule ? tr("Departure from a book rule")
+                                                          : tr("Underline"),
+                  editor::issueColorKey(kind));
 }
 
 QCheckBox* SettingsPage::addOptimizeColorsCheckBox(QFormLayout* form) {

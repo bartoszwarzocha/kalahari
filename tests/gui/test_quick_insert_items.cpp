@@ -6,9 +6,12 @@
 ///        characters of the settings, the page Settings > Editor > Quick Insert and its window
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
+#include <kalahari/core/name_declension.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/settings_manager.h>
+#include <kalahari/editor/quick_insert.h>
 #include <kalahari/gui/dialogs/quick_insert_item_dialog.h>
 #include <kalahari/gui/quick_insert_items.h>
 #include <kalahari/gui/settings/settings_pages.h>
@@ -76,6 +79,15 @@ QStringList namesOf(const QList<QuickInsertItem>& items) {
         names << item.name;
     }
     return names;
+}
+
+/// The forms of a list as "form: cases"
+QStringList formsOf(const QList<editor::QuickInsertForm>& forms) {
+    QStringList shown;
+    for (const editor::QuickInsertForm& form : forms) {
+        shown << form.text + QStringLiteral(": ") + form.cases;
+    }
+    return shown;
 }
 
 core::ProjectElement element(const QString& id, const char* kind, const QString& title) {
@@ -290,4 +302,115 @@ TEST_CASE("Quick insert: the window of a fragment needs a name and a text",
     CHECK(edited.acceptButton()->isEnabled());
     CHECK(edited.item().source == QuickInsertSource::Character);
     CHECK(edited.item().text == QStringLiteral("→"));
+}
+
+TEST_CASE("Quick insert items: the forms of a name, each once, with their cases",
+          "[gui][quickinsert][dictionary]") {
+    const core::NameDeclension polish(QStringLiteral("pl"));
+    const core::DictionaryName anna =
+        core::makeName(QStringLiteral("Anna Wolska"), core::NameKind::Character, polish);
+    REQUIRE_FALSE(anna.variants.isEmpty());
+    const QStringList forms = formsOf(gui::quickInsertForms(anna.variants.front(), false));
+    CHECK(forms == QStringList{QStringLiteral("Anna Wolska: nominative"),
+                               QStringLiteral("Anny Wolskiej: genitive"),
+                               QStringLiteral("Annie Wolskiej: dative, locative"),
+                               QStringLiteral("Annę Wolską: accusative"),
+                               QStringLiteral("Anną Wolską: instrumental"),
+                               QStringLiteral("Anno Wolska: vocative")});
+    // With the plural: its forms after those of the singular
+    const QStringList withPlural = formsOf(gui::quickInsertForms(anna.variants.front(), true));
+    REQUIRE(withPlural.size() > forms.size());
+    CHECK(withPlural.mid(0, forms.size()) == forms);
+    CHECK(withPlural.at(forms.size()).contains(QStringLiteral(": nominative plural")));
+
+    // A name that does not change has nothing to choose
+    const core::DictionaryName ruth = core::makeName(QStringLiteral("Ruth"),
+                                                     core::NameKind::Character, polish);
+    REQUIRE_FALSE(ruth.variants.isEmpty());
+    core::NameVariant unchanged = ruth.variants.front();
+    for (const core::GrammaticalCase cell : core::FormTable::allCases()) {
+        unchanged.forms.cell(cell, false) = QStringList{QStringLiteral("Ruth")};
+    }
+    CHECK(gui::quickInsertForms(unchanged, false).isEmpty());
+
+    // In a language without cases, the forms are named by their number
+    core::NameVariant english;
+    english.text = QStringLiteral("Ruth");
+    english.forms.cell(core::GrammaticalCase::Nominative, false) = {QStringLiteral("Ruth")};
+    english.forms.cell(core::GrammaticalCase::Nominative, true) = {QStringLiteral("Ruths")};
+    CHECK(formsOf(gui::quickInsertForms(english, true)) ==
+          QStringList{QStringLiteral("Ruth: singular"), QStringLiteral("Ruths: plural")});
+    CHECK(gui::quickInsertForms(english, false).isEmpty());
+}
+
+TEST_CASE("Quick insert items: the names of the book dictionary with their other names",
+          "[gui][quickinsert][dictionary]") {
+    const core::NameDeclension polish(QStringLiteral("pl"));
+    core::BookDictionary dictionary;
+    dictionary.putName(
+        core::makeName(QStringLiteral("Księga Popiołów"), core::NameKind::Item, polish));
+    dictionary.putName(
+        core::makeName(QStringLiteral("Anna Wolska"), core::NameKind::Character, polish));
+    core::DictionaryName hidden =
+        core::makeName(QStringLiteral("Jan Anioł"), core::NameKind::Character, polish);
+    hidden.quickInsert = false;
+    dictionary.putName(hidden);
+    dictionary.putName(core::makeName(QStringLiteral("Gdańsk"), core::NameKind::Place, polish));
+
+    const QList<QuickInsertItem> items = gui::dictionaryItems(dictionary);
+    // The kinds in the order of their first name; Jan Anioł is not offered
+    CHECK(namesOf(items) == QStringList{QStringLiteral("Księga Popiołów"),
+                                        QStringLiteral("Anna Wolska"), QStringLiteral("Anna"),
+                                        QStringLiteral("Wolska"), QStringLiteral("Gdańsk")});
+    REQUIRE(items.size() == 5);
+    CHECK(items.at(0).group == QStringLiteral("Items"));
+    CHECK(items.at(0).detail == QStringLiteral("item"));
+    CHECK(items.at(1).source == QuickInsertSource::Name);
+    CHECK(items.at(1).group == QStringLiteral("Characters"));
+    CHECK(items.at(1).detail == QStringLiteral("character"));
+    CHECK(items.at(1).owner.isEmpty());
+    CHECK(items.at(1).forms.size() == 6);
+    CHECK(items.at(2).detail == QStringLiteral("Anna Wolska"));
+    CHECK(items.at(2).owner == QStringLiteral("Anna Wolska"));
+    CHECK(items.at(2).forms.at(3).text == QStringLiteral("Annę"));
+    CHECK(items.at(4).group == QStringLiteral("Locations"));
+}
+
+TEST_CASE("Quick insert items: @ offers the names of the book dictionary before the cards",
+          "[gui][quickinsert][dictionary]") {
+    const QuickInsertSettings settings;
+    const QTemporaryDir dir;
+    REQUIRE(dir.isValid());
+    auto& pm = test::book();
+    core::ProjectManager::loadBookTypes(
+        {QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
+    REQUIRE(pm.createProject(dir.path(), QStringLiteral("Names"), QStringLiteral("Author"),
+                             QStringLiteral("pl"), false, QStringLiteral("kalahari.novel")));
+    REQUIRE(pm.project() != nullptr);
+    QList<core::ProjectElement>& workshop =
+        pm.project()->elementsIn(core::BookPlace::Workshop);
+    workshop.append(element(QStringLiteral("c1"), "kalahari.base:character",
+                            QStringLiteral("Jan Anioł")));
+    workshop.append(element(QStringLiteral("c2"), "kalahari.base:character",
+                            QStringLiteral("Anna Wolska")));
+    REQUIRE(pm.changeBookDictionary([](core::BookDictionary& dictionary) {
+        dictionary.putName(core::makeName(QStringLiteral("Anna Wolska"),
+                                          core::NameKind::Character,
+                                          core::NameDeclension(QStringLiteral("pl"))));
+    }));
+
+    // The card of Anna Wolska is her name in the dictionary, with its forms; the others stay
+    const QList<QuickInsertItem> items = gui::quickInsertItems(pm, QLatin1Char('@'));
+    CHECK(namesOf(items) == QStringList{QStringLiteral("Anna Wolska"), QStringLiteral("Anna"),
+                                        QStringLiteral("Wolska"), QStringLiteral("Jan Anioł")});
+    REQUIRE(items.size() == 4);
+    CHECK(items.at(0).source == QuickInsertSource::Name);
+    CHECK(items.at(3).source == QuickInsertSource::Card);
+    CHECK(items.at(3).group == items.at(0).group);
+
+    // Without the names in the settings of @, none of them
+    core::SettingsManager::getInstance().set<json>(keys::AT_SOURCES, json::array({"fragments"}));
+    CHECK(namesOf(gui::quickInsertItems(pm, QLatin1Char('@'))).indexOf(QStringLiteral("Anna")) ==
+          -1);
+    pm.closeProject(false);
 }

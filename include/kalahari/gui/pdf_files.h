@@ -26,7 +26,7 @@ namespace kalahari::gui {
 
 class PreviewPanel;
 
-/// @brief What a PDF file says of itself (QPdfDocument::metaData()), for "Fill In from File"
+/// @brief What a PDF file says of itself (PdfDocument::metaData()), for "Fill In from File"
 struct PdfMetaData {
     QString title;    ///< Its title; empty: none
     QString author;   ///< Its author or authors, as the file has them; empty: none
@@ -38,8 +38,9 @@ struct PdfMetaData {
 /// @brief PDF files: whether the program shows them, their first page and their data, and the
 /// settings of their preview (Settings > Materials)
 ///
-/// The program shows a PDF only when it was built with the Qt PDF module (previewAvailable());
-/// without it a PDF opens in the system program and the commands of the preview are greyed out.
+/// The program shows a PDF only when it was built with its preview (PDFium,
+/// previewAvailable()); without it a PDF opens in the system program and the commands of the
+/// preview are greyed out.
 class PdfFiles {
     Q_DECLARE_TR_FUNCTIONS(kalahari::gui::PdfFiles)
 
@@ -82,7 +83,7 @@ public:
     /// @brief Whether a preview opens at the page shown last (a bool, true at first)
     static constexpr const char* LAST_PAGE_SETTING = "materials.pdf.openAtLastPage";
 
-    /// @brief Whether the program shows PDF files: it was built with the Qt PDF module
+    /// @brief Whether the program shows PDF files: it was built with their preview (PDFium)
     [[nodiscard]] static bool previewAvailable();
 
     /// @brief Whether @p path is a PDF file, by its suffix or its content type
@@ -98,24 +99,24 @@ public:
                                         std::initializer_list<const char*> values);
 
     /// @brief The first page of PDF @p path, at most @p bounds large; a null image without
-    /// the Qt PDF module or when the file cannot be read, and then why in @p error
+    /// the preview or when the file cannot be read, and then why in @p error
     [[nodiscard]] static QImage firstPage(const QString& path, const QSize& bounds,
                                           QString* error = nullptr);
 
-    /// @brief How many pages PDF @p path has; 0 without the Qt PDF module or when the file
-    /// cannot be read, and then why in @p error
+    /// @brief How many pages PDF @p path has; 0 without the preview or when the file cannot
+    /// be read, and then why in @p error
     [[nodiscard]] static int pageCount(const QString& path, QString* error = nullptr);
 
-    /// @brief What PDF @p path says of itself; none without the Qt PDF module or when the
-    /// file cannot be read
+    /// @brief What PDF @p path says of itself; none without the preview or when the file
+    /// cannot be read
     [[nodiscard]] static std::optional<PdfMetaData> metaData(const QString& path);
 
     /// @brief Why a PDF file did not load, in a sentence
-    /// @param error The error of the load (a QPdfDocument::Error)
+    /// @param error The error of the load (a PdfDocument::Error)
     [[nodiscard]] static QString loadProblem(int error);
 
     /// @brief A new preview of the PDF file of material @p elementId of @p book (a
-    /// PdfPreviewPanel); nullptr without the Qt PDF module
+    /// PdfPreviewPanel); nullptr without the preview
     [[nodiscard]] static PreviewPanel* newPreview(core::ProjectManager& book,
                                                   const QString& elementId, QWidget* parent);
 };

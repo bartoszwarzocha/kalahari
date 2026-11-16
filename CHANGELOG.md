@@ -79,6 +79,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   strip at its top or its background, what is under the cards (the color of the theme, cork or
   a color of one's own, both kept for each theme) and the columns of the outline, which the
   button "Table Columns" over the outline chooses too.
+- **Book dictionary** - 2026-11-15. Each book has a dictionary of its own (`dictionary.json`
+  in its folder, saved at once with each change): the names of its characters, places, things
+  and other proper names with all their forms, the author's spelling rules, and words right in
+  this book only. Book > Book Dictionary... and "Book Dictionary" at the top of the Workshop
+  in the Navigator show it on a tab in the middle of the window, with three tabs and their
+  counts (Names, Spelling Rules, Book Words), a search that finds the names also in their
+  forms and other names ("annę" and "ania" find "Anna Wolska"; Find, Ctrl+F, goes to it), and
+  the keys Insert, Enter and Delete in the lists, Ctrl+Tab between the tabs. The window of a
+  name has the name and its other names (for a character of several words the first name and
+  the surname alone, which follow the name, and the diminutives and nicknames the author
+  adds), the kind (Character, Location, Item, Other name), the model of declension of each
+  word, picked by its ending and confirmed by the spelling dictionary (common nouns whose stem
+  changes have their forms from the program: Czarny Las, w Czarnym Lesie; Stary Dwór, Starego
+  Dworu), and the table of the forms by case, which the author corrects (a corrected cell
+  keeps its forms when a model changes; "Suggest the Forms Again"), "Does not change", the
+  plural and Show in Quick Insert; in Polish seven cases, in English the singular and the
+  plural, in another language the forms the author writes. The window of a spelling rule has
+  the right spelling, the wrong ones (those that suggest themselves are added: the other case
+  of a capital letter, without the hyphen, with it or apart, a word made of two apart),
+  whether its forms count too (shown from the spelling dictionary, or from the word it ends
+  with: "półelf" like "elf") and a note. In the chapters the names are right in all their
+  forms and the words of the book are right; a departure from a rule has a wavy line of its
+  own color ("Book rule", its color in Settings > Editor > Spelling) with the rule's spelling
+  and note in the context menu, Edit Rule... and Remove Rule (Settings > Editor > Spelling >
+  Book Dictionary: "Mark departures from the rules"). The context menu of a misspelled word
+  adds it to the book dictionary, to Your Words of every book, or as a name (Add Name..., the
+  window of a name with the word and its forms); so do the cards of the Spelling and Grammar
+  panel, whose button adds to the place Settings names ("The panel adds a word to"), the other
+  on the menu of its arrow. Quick Insert after @ offers the names with their forms (Right
+  shows them), and Find in Book and the find bar of a chapter find a name in all its forms, an
+  ordinary word in those of the spelling dictionary (the option "All Forms", Alt+M). Move to
+  Your Words moves words of the book to the words of every book; Remove asks first. In a book
+  open read-only the dictionary is shown, not changed. The cards of the Workshop will keep
+  their names here (`DictionaryName::card`).
+
 - **The preview of PDF files in the program** - 2026-11-15. A PDF opens in a card of its own
   (Settings > Materials > Opening: in the program, at first, or in the system program): the
   pages one under another (at first), one at a time or two side by side; the zoom of
@@ -98,11 +133,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the preview, and the card of a quote has Show Page. The colors around the pages, of the
   selection and of the hits are the editor's (Settings > Editor > Colors). The opening of
   pictures and pages on the web moved from Settings > Navigator to Settings > Materials.
-  Without the Qt PDF module a PDF opens in the system program and the options of the
-  preview are dimmed. On Linux the package `qt6-pdf-dev` gives it. Windows and macOS builds
-  are without it by default: the vcpkg feature `pdf-preview` (`qtwebengine` with only its
-  feature `pdf`, `-DVCPKG_MANIFEST_FEATURES="qt6;pdf-preview"`) adds it, but its build takes
-  hours and tens of GB.
+  The pages are drawn by PDFium, the PDF library of Chromium (BSD 3-Clause and Apache 2.0),
+  as a ready shared library of pdfium-binaries built from its official sources without
+  JavaScript and XFA: the port `vcpkg-ports/pdfium` installs it with vcpkg, a build without
+  vcpkg downloads the same archive, both checked by the SHA-512 pinned in
+  `vcpkg-ports/pdfium/release.cmake`, and the CI checks the signed record of each build
+  (`scripts/verify_pdfium.cmake`). So every build has the preview, on Windows, macOS and
+  Linux (x64 and arm64); `-DKALAHARI_PDF_PREVIEW=OFF` builds the program without it, and
+  then a PDF opens in the system program and the options of the preview are dimmed.
 
 - **Sources: the bibliographic description of a material, the bibliography and the quotes
   with their source** - 2026-11-15. A publication, a document, a web page and a recording

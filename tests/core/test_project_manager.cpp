@@ -6,6 +6,7 @@
 /// and the data of their chapter files
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
@@ -276,6 +277,66 @@ QList<Entry> entriesOfFolder(const QString& path, QChar separator) {
 // =============================================================================
 // Creating, opening and closing
 // =============================================================================
+
+TEST_CASE("ProjectManager keeps the dictionary of the book in its folder",
+          "[project_manager][dictionary]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    const auto addWord = [](const QString& word) {
+        return [word](BookDictionary& dictionary) { dictionary.addWord(word); };
+    };
+
+    // Without a book: none
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.bookDictionaryPath().isEmpty());
+    CHECK_FALSE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));
+
+    // A new book: an empty one, without a file until it has something
+    REQUIRE(pm.createProject(dir.path(), "Words", "Author", "pl", true));
+    const QString manifest = pm.getManifestPath();
+    const QString path = pm.bookDictionaryPath();
+    CHECK(path == QDir(pm.getProjectPath()).filePath(QStringLiteral("dictionary.json")));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK_FALSE(QFile::exists(path));
+
+    // Changed: saved at once, and the editors told
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::bookDictionaryChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));
+    CHECK(changes == 1);
+    CHECK(pm.bookDictionary().hasWord(QStringLiteral("Kirran")));
+    CHECK(QFile::exists(path));
+    REQUIRE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));  // nothing new
+    CHECK(changes == 1);
+
+    // Closed: none; opened again: read from its file
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK(changes == 2);
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.bookDictionary().hasWord(QStringLiteral("Kirran")));
+    CHECK(changes == 3);
+
+    // A file that cannot be read: the book opens with an empty dictionary, and the file is
+    // not written over
+    REQUIRE(pm.closeProject(false));
+    {
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write("{not json");
+    }
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK_FALSE(pm.changeBookDictionary(addWord(QStringLiteral("Eldrion"))));
+    {
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        CHECK(file.readAll() == QByteArray("{not json"));
+    }
+    QObject::disconnect(connection);
+    REQUIRE(pm.closeProject(false));
+}
 
 TEST_CASE("ProjectManager closes the database after projectAboutToClose", "[project_manager]") {
     QTemporaryDir dir;
@@ -1230,6 +1291,10 @@ TEST_CASE("ProjectManager opens elements whose package is not installed, read-on
     REQUIRE(pm.openProject(manifest, &problems));
     CHECK(problems.isEmpty());
     CHECK(pm.isReadOnly());
+    // Nor its dictionary
+    CHECK_FALSE(pm.changeBookDictionary(
+        [](BookDictionary& dictionary) { dictionary.addWord(QStringLiteral("Kirran")); }));
+    CHECK(pm.bookDictionary().isEmpty());
     CHECK(pm.missingPackages() == QStringList{"acme.thriller"});
 
     const ProjectElement* arc = pm.findElement(part);

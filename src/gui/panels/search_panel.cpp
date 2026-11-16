@@ -177,6 +177,10 @@ SearchPanel::SearchPanel(QWidget* parent) : QWidget(parent) {
     m_caseButton = addOption(tr("Aa"), tr("Match Case (%1)").arg(keysOf(0)));
     m_wordButton = addOption(tr("W"), tr("Match Whole Word (%1)").arg(keysOf(1)));
     m_regexButton = addOption(tr(".*"), tr("Use Regular Expression (%1)").arg(keysOf(2)));
+    //: The option that finds every form of a word or a name, short; its tooltip. In Polish:
+    //: Odm / Wszystkie odmiany (%1)
+    m_formsButton = addOption(tr("Forms"), tr("All Forms (%1)").arg(keysOf(3)));
+    m_formsButton->setMaximumWidth(QWIDGETSIZE_MAX);  // as wide as its text
     findItems->addWidget(options);
     layout->addWidget(findRow);
 
@@ -252,13 +256,15 @@ SearchPanel::SearchPanel(QWidget* parent) : QWidget(parent) {
     setTabOrder(m_searchField, m_caseButton);
     setTabOrder(m_caseButton, m_wordButton);
     setTabOrder(m_wordButton, m_regexButton);
-    setTabOrder(m_regexButton, m_replaceField);
+    setTabOrder(m_regexButton, m_formsButton);
+    setTabOrder(m_formsButton, m_replaceField);
     setTabOrder(m_replaceField, m_replaceButton);
     setTabOrder(m_replaceButton, m_tree);
 
     for (QWidget* widget : {static_cast<QWidget*>(m_searchField),
                             static_cast<QWidget*>(m_caseButton), static_cast<QWidget*>(m_wordButton),
                             static_cast<QWidget*>(m_regexButton),
+                            static_cast<QWidget*>(m_formsButton),
                             static_cast<QWidget*>(m_replaceField),
                             static_cast<QWidget*>(m_replaceButton), static_cast<QWidget*>(m_tree)}) {
         widget->installEventFilter(this);
@@ -288,6 +294,7 @@ editor::SearchOptions SearchPanel::options() const {
     options.caseSensitive = m_caseButton->isChecked();
     options.wholeWord = m_wordButton->isChecked();
     options.useRegex = m_regexButton->isChecked();
+    options.allForms = m_formsButton->isChecked();
     return options;
 }
 
@@ -296,6 +303,7 @@ void SearchPanel::setOptions(const editor::SearchOptions& options) {
     m_caseButton->setChecked(options.caseSensitive);
     m_wordButton->setChecked(options.wholeWord);
     m_regexButton->setChecked(options.useRegex);
+    m_formsButton->setChecked(options.allForms);
     m_quiet = false;
 }
 
@@ -436,7 +444,8 @@ bool SearchPanel::eventFilter(QObject* watched, QEvent* event) {
     const qsizetype option = editor::FindReplaceBar::optionKeys().indexOf(key->keyCombination());
     if (option >= 0) {
         if (press && !key->isAutoRepeat()) {
-            const QList<QToolButton*> buttons = {m_caseButton, m_wordButton, m_regexButton};
+            const QList<QToolButton*> buttons = {m_caseButton, m_wordButton, m_regexButton,
+                                                 m_formsButton};
             buttons.at(option)->toggle();
         }
         key->accept();

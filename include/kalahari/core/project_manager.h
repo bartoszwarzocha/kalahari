@@ -45,6 +45,7 @@
 #include <vector>
 
 #include "kalahari/core/archive_problem.h"
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/chapter_document.h"
@@ -877,6 +878,27 @@ public:
     ///         saved (the styles stay as they were)
     bool setParagraphStyles(const QList<BookParagraphStyle>& styles);
 
+    // =========================================================================
+    // Dictionary of the Book
+    // =========================================================================
+
+    /// @brief The dictionary of the open book: the names of the book with their forms, the
+    ///        author's spelling rules and the words right only in this book (book_dictionary.h);
+    ///        empty without a book
+    [[nodiscard]] const BookDictionary& bookDictionary() const;
+
+    /// @brief Change the dictionary of the book with @p change and save it in the book's
+    ///        folder (bookDictionaryPath()); the editors check with it at once
+    ///        (bookDictionaryChanged())
+    /// @return false without a book, in a book open read-only, when the file of the dictionary
+    ///         could not be read when the book opened (it is not written over), or when it
+    ///         cannot be written; the dictionary stays as it was then
+    bool changeBookDictionary(const std::function<void(BookDictionary&)>& change);
+
+    /// @brief The file of the dictionary of the open book (BookDictionary::fileName() in its
+    ///        folder); empty without a book
+    [[nodiscard]] QString bookDictionaryPath() const;
+
     /// @brief Materials linked with @p link, an element or a section of the book
     /// (BookProject::sectionLink()), in the order of the Workshop
     QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
@@ -1140,6 +1162,10 @@ signals:
 
     /// @brief The numbering of the book's notes changed (setBookFootnotes())
     void bookFootnotesChanged();
+    /// @brief The dictionary of the book changed (changeBookDictionary()), or another book with
+    ///        its own dictionary opened
+    void bookDictionaryChanged();
+
     /// @brief A bibliographic description, the source of a quote or the style of the book's
     /// bibliography changed (setSource(), setQuoteSource(), setBookBibliographyStyle())
     void sourcesChanged();
@@ -1256,6 +1282,8 @@ private:
 
     QStringList m_missingPackages;                ///< Of the open book: it is read-only
     QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
+    BookDictionary m_bookDictionary;              ///< Of the open book
+    bool m_bookDictionaryRead = false;            ///< Its file was read (or there is none)
 
     // OpenSpec #00041: SQLite Project Database. A book open read-only has no lock and no
     // backups, and its database is a copy in a temporary folder: nothing is written into its

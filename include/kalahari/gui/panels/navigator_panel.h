@@ -403,6 +403,11 @@ signals:
     /// @param keys The list gets the keys (Enter), else the Navigator keeps them (a click)
     void requestOpenMaterialList(const QString& list, bool keys);
 
+    /// @brief Request to show the book's dictionary on its tab: a click on Book Dictionary at
+    /// the top of the Workshop, or Enter on it
+    /// @param keys The page gets the keys (Enter), else the Navigator keeps them (a click)
+    void requestOpenBookDictionary(bool keys);
+
     /// @brief Request to hide kind @p list of the materials (MaterialList::HIDDEN_SETTING) in
     /// the Navigator of every book: Hide Kind in the menu of the kind
     void requestHideKind(const QString& list);
@@ -597,6 +602,15 @@ private:
     /// @brief Gives @p item, Materials or a group of it, its number of elements @p count,
     /// which the tree shows at the right of its name and a screen reader reads with it
     static void setCount(QTreeWidgetItem* item, qsizetype count);
+
+    /// @brief Ask for the page that @p item shows on a tab: the book's dictionary, a list of
+    /// materials (materialListOf())
+    /// @param keys The page gets the keys (Enter), else the Navigator keeps them (a click)
+    /// @return Whether @p item has a page
+    bool requestPageOf(const QTreeWidgetItem* item, bool keys);
+
+    /// @brief Add Book Dictionary at the top of the Workshop (@p workshopItem)
+    void addDictionaryItem(QTreeWidgetItem* workshopItem);
 
     /// @brief Add the groups of the kinds of the Workshop of @p project with their elements
     /// under @p workshopItem

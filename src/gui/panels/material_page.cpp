@@ -726,8 +726,9 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
     m_previewButton->setEnabled(m_picture);
     QString onlyPictures;
     if (file.pdf) {
-        //: The tooltip of Preview for a PDF file in a program without the Qt PDF module. In
-        //: Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy
+        //: The tooltip of Preview for a PDF file in a program built without the preview of
+        //: PDF files. In Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je
+        //: program systemowy
         onlyPictures = tr("This version of the program has no preview of PDF files; the "
                           "system program opens them");
     } else if (PdfFiles::previewAvailable()) {

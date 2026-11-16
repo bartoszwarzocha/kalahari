@@ -52,8 +52,9 @@ void bindToDocument(CommandRegistry& registry, const std::function<bool()>& hasD
 /// @param registry The commands
 void updateDocumentCommands(CommandRegistry& registry);
 
-/// @brief The commands of the File menu that work on the open book: Close Book and the
-/// export of its archive (the Book menu has its own rules, see MainWindow)
+/// @brief The commands that work on the open book, whatever it is: Close Book, the export of
+/// its archive and Book Dictionary... (it shows a book open read-only too; the other commands
+/// of the Book menu have their own rules, see MainWindow)
 const std::vector<std::string>& openBookCommands();
 
 /// @brief Grey out the commands of the open book while no book is open

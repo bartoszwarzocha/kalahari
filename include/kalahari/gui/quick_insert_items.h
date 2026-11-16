@@ -2,9 +2,9 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file quick_insert_items.h
-/// @brief What the list of quick insert offers: the cards of the book's Workshop, the writer's
-///        text fragments and the typographic characters, as Settings > Editor > Quick Insert
-///        chooses for @ and #
+/// @brief What the list of quick insert offers: the names of the book's dictionary and the
+///        cards of its Workshop, the writer's text fragments and the typographic characters,
+///        as Settings > Editor > Quick Insert chooses for @ and #
 
 #pragma once
 
@@ -18,8 +18,10 @@
 #include <nlohmann/json_fwd.hpp>
 
 namespace kalahari::core {
+class BookDictionary;
 struct BookProject;
 class BookTypeRegistry;
+struct NameVariant;
 class ProjectManager;
 }  // namespace kalahari::core
 
@@ -29,7 +31,8 @@ namespace kalahari::gui {
 namespace quick_insert_keys {
 /// Whether @ and # typed at the start of a word open the list
 inline constexpr const char* ENABLED = "editor.quickInsert.enabled";
-/// What @ opens: a list of SOURCE_CARDS, SOURCE_FRAGMENTS, SOURCE_CHARACTERS
+/// What @ opens: a list of SOURCE_CARDS (the names of the book's dictionary and of the cards),
+/// SOURCE_FRAGMENTS, SOURCE_CHARACTERS
 inline constexpr const char* AT_SOURCES = "editor.quickInsert.at";
 /// What # opens, as AT_SOURCES
 inline constexpr const char* HASH_SOURCES = "editor.quickInsert.hash";
@@ -70,11 +73,25 @@ editor::QuickInsertItem fragmentItem(editor::QuickInsertSource source, const QSt
 QList<editor::QuickInsertItem> cardItems(const core::BookProject& project,
                                          const core::BookTypeRegistry& registry);
 
+/// @brief The forms of @p variant as the list shows them under Right: each once, with the
+///        cases it is the form of ("dative, locative"), those of the singular first, then
+///        those of the plural when @p withPlural; for a language without cases (only the
+///        nominative), with the number ("singular"); none when it has a single form
+QList<editor::QuickInsertForm> quickInsertForms(const core::NameVariant& variant,
+                                                bool withPlural);
+
+/// @brief The names of the book's dictionary that quick insert offers: each variant of each
+///        of them in its order (the name itself, its other names with the name they belong to
+///        beside them), with its forms, grouped by kind, the kinds in the order of their first
+///        name
+QList<editor::QuickInsertItem> dictionaryItems(const core::BookDictionary& dictionary);
+
 /// @brief The characters that open the list as the settings are: "@#", "@", "#" or none
 QString quickInsertTriggers();
 
 /// @brief The items of the list opened by @p trigger ('@', '#'; QChar(): all of them, for
-///        Insert > Quick Insert...), with the cards of the book open in @p book
+///        Insert > Quick Insert...), with the names of the dictionary and the cards of the book
+///        open in @p book (a card whose name the dictionary has is its name there)
 QList<editor::QuickInsertItem> quickInsertItems(const core::ProjectManager& book, QChar trigger);
 
 }  // namespace kalahari::gui

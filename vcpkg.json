@@ -40,16 +40,6 @@
           "default-features": false
         }
       ]
-    },
-    "pdf-preview": {
-      "description": "Qt PDF (qtwebengine with only its pdf feature) for the preview of PDF files in the program. Off by default, locally and in CI: its build takes hours and tens of GB. Without it a PDF opens in the system program",
-      "dependencies": [
-        {
-          "name": "qtwebengine",
-          "default-features": false,
-          "features": ["pdf"]
-        }
-      ]
     }
   },
   "dependencies": [
@@ -69,6 +59,13 @@
     },
     "catch2",
     "python3",
-    "pybind11"
-  ]
+    "pybind11",
+    {
+      "name": "pdfium",
+      "platform": "(windows & (x64 | arm64) & !uwp) | (osx & (x64 | arm64)) | (linux & (x64 | arm64))"
+    }
+  ],
+  "vcpkg-configuration": {
+    "overlay-ports": ["./vcpkg-ports"]
+  }
 }

@@ -38,7 +38,6 @@
 #include <QLineEdit>
 #include <QPageSize>
 #include <QPainter>
-#include <QPdfSearchModel>
 #include <QPdfWriter>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -378,7 +377,7 @@ TEST_CASE("PDF preview: the search finds the hits, goes to them and selects them
     // "Page 1 of the atlas"... on each page, the camel on the second one
     preview.searchEdit()->setText(QStringLiteral("atlas"));
     preview.search(QStringLiteral("atlas"));
-    QPdfSearchModel* model = preview.searchModel();
+    gui::PdfSearchModel* model = preview.searchModel();
     REQUIRE(waitFor([model]() { return model->rowCount(QModelIndex()) == 3; }));
     CHECK(preview.currentHit() == 0);
     CHECK(preview.hitsLabel()->text() == QStringLiteral("1 of 3"));

@@ -1696,6 +1696,7 @@ void EditorRenderPipeline::renderHighlightBackgrounds(
             // Drawn as marks only; the fields' under the selection (renderFieldBackgrounds())
             case HighlightKind::Spelling:
             case HighlightKind::Grammar:
+            case HighlightKind::BookRule:
             case HighlightKind::Field:
             case HighlightKind::BrokenField: continue;
         }
@@ -1767,6 +1768,9 @@ void EditorRenderPipeline::renderHighlightMarks(
                 break;
             case HighlightKind::Grammar:
                 drawWave(painter, paragraph, highlight, colors.grammarWarning);
+                break;
+            case HighlightKind::BookRule:
+                drawWave(painter, paragraph, highlight, colors.bookRule);
                 break;
             case HighlightKind::Repetition:
             case HighlightKind::CurrentRepetition: {
