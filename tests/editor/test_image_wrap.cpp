@@ -196,7 +196,9 @@ TEST_CASE("Image wrap: the next paragraph goes beside an image on the left, belo
     CHECK(box.width() < textWidth / 2.0);
     CHECK(layout->blockY(1) == Approx(layout->blockY(0)).margin(1.0));
 
-    // Beside it the lines start after it and the room between; below it across the column
+    // Beside it the lines start after it and the room between; below it across the column.
+    // A line whose box (its line and the room above it) still reaches the image is beside it:
+    // below it only a line a line's height lower
     const QTextLayout* lines = text.layout();
     REQUIRE(lines->lineCount() > 10);
     int beside = 0;
@@ -209,7 +211,7 @@ TEST_CASE("Image wrap: the next paragraph goes beside an image on the left, belo
             ++beside;
             CHECK(line.x() >= box.right() + 5.0);
             CHECK(line.x() + line.width() <= textWidth + 1.0);
-        } else if (top >= box.bottom()) {
+        } else if (top >= box.bottom() + line.height()) {
             ++below;
             CHECK(line.width() > textWidth * 0.9);
             CHECK(line.x() < 1.0);
