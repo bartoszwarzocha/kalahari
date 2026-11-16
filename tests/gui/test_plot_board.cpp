@@ -2095,7 +2095,7 @@ TEST_CASE("Plot board: the gear over the board and the outline opens Settings > 
     CHECK_FALSE(gear->icon().isNull());
     CHECK(gear->toolTip() == QStringLiteral("Plot Board Settings"));
     CHECK(gear->accessibleName() == gear->toolTip());
-    CHECK(gear->focusPolicy() & Qt::TabFocus);
+    CHECK(gear->focusPolicy() == Qt::TabFocus);
     CHECK_FALSE(gear->isHidden());
     gear->click();
     CHECK(asked == 1);
