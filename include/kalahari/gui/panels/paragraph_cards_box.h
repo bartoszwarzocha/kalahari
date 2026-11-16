@@ -27,7 +27,7 @@ struct ProjectElement;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+}  // namespace kalahari::editor
 
 namespace kalahari::gui {
 

@@ -23,6 +23,7 @@
 #include <QToolTip>
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 using namespace kalahari::editor;
@@ -347,7 +348,7 @@ TEST_CASE("Paragraph marks: the signs of the kinds of the cards beside the paper
     editorImage(*editor);  // shown: the marks of the paragraphs in view are found
     QStringList found;
     QPointF item;
-    for (double x = line.left() - 1.0; x > 0.0; x -= 1.0) {
+    for (int x = static_cast<int>(line.left()) - 1; x > 0; --x) {
         const std::optional<ParagraphMark> mark =
             editor->paragraphMarkAt(QPointF(x, line.center().y()));
         const QString first = mark ? mark->ids.first() : QString();

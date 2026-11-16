@@ -20,9 +20,18 @@ namespace kalahari::core {
 class ProjectManager;
 }  // namespace kalahari::core
 
+namespace kalahari::editor {
+class BookEditor;
+}  // namespace kalahari::editor
+
 namespace kalahari::gui {
 
 class RelationsBox;
+
+/// @brief The card of @p book whose name the cursor of @p text is in, in any of its forms
+///        (core::ProjectManager::cardNames()); empty for none
+[[nodiscard]] QString cardNamedAt(const core::ProjectManager& book,
+                                  const editor::BookEditor& text);
 
 /// @brief The group "Card at the Cursor" of the Properties panel, under the data of the text
 ///

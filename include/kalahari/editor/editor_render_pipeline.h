@@ -644,6 +644,12 @@ private:
     ///        order of m_paragraphMarks
     std::vector<int> paragraphMarkPlaces() const;
 
+    /// @brief Draw @p mark in @p rect, in the color of the text, for the screen's @p ratio;
+    ///        dimmed beside a paragraph other than that of the cursor while the text has the
+    ///        keys
+    void drawParagraphMark(QPainter& painter, const ParagraphMark& mark, const QRectF& rect,
+                           qreal ratio) const;
+
     /// @brief Render cursor
     void renderCursor(QPainter* painter);
 

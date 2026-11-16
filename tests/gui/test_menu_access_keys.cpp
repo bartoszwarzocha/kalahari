@@ -25,6 +25,7 @@
 #include "kalahari/editor/annotation.h"
 #include "kalahari/editor/annotation_cards.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/gui/annotations_coordinator.h"
@@ -522,6 +523,43 @@ private:
     QTcpServer m_server;
 };
 
+/// The context menu of a selection in a paragraph linked with materials and with a card, with
+/// the commands of the cards (CardsInTextCoordinator): each item has its own key, the commands
+/// keep theirs. @p booked: a text with the kinds of cards and a selection. @p shown: as Windows
+/// and Linux show them
+void checkCardMenus(editor::BookEditor& booked, bool shown, QStringList& problems) {
+    auto& registry = kalahari::test::commands();
+    QAction* open = registry.getAction(QStringLiteral("book.openCardAtCursor"));
+    REQUIRE(open != nullptr);
+    const bool openEnabled = open->isEnabled();
+    open->setEnabled(true);
+    booked.setContextMenuCardActions(
+        {.link = registry.getAction(QStringLiteral("book.linkParagraphCard")), .open = open});
+    booked.setParagraphMarks(
+        {editor::ParagraphMark{0, {QStringLiteral("m1")}, {QStringLiteral("Map")}},
+         editor::ParagraphMark{
+             0, {QStringLiteral("c1")}, {QStringLiteral("Anna")}, QStringLiteral("character")}},
+        QIcon(), {{QStringLiteral("character"), QIcon()}});
+    const QList<test::MenuItem> items =
+        contextMenu(&booked, &booked, QPoint(5, 5), QContextMenuEvent::Keyboard);
+    // The titles of a material and of a card are names the menu shows as they are: as Windows
+    // and Linux show them, with a free key
+    const QStringList keyless =
+        shown ? QStringList() : QStringList{QStringLiteral("Map"), QStringLiteral("Anna")};
+    collectProblems(items, QStringLiteral("Selection in a paragraph with linked cards"), keyless,
+                    problems);
+    // and Link Paragraph with Card..., Open Card at Cursor, Linked Materials > Map and
+    // Linked Cards > Anna
+    CHECK(itemCount(items) == 1 + 3 + 8 + 2 + 2 + 2);
+    CHECK(labelsOf(items).contains(registry.getAction(
+              QStringLiteral("book.linkParagraphCard"))->text()));
+    CHECK(labelsOf(items).contains(open->text()));
+    CHECK(labelsOf(items).contains(QCoreApplication::translate(BOOK_EDITOR, "Linked Card&s")));
+    booked.setContextMenuCardActions({});
+    booked.setParagraphMarks({}, QIcon());
+    open->setEnabled(openEnabled);
+}
+
 /// The context menus of a book's text: the usual one, without a selection and with one, in
 /// both color modes; that of a misspelled word, with the words of the dictionary and without
 /// a dictionary, and with the book's dictionary; that of a departure from a rule of the book;
@@ -825,35 +863,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         CHECK(labelsOf(items).first() ==
               QCoreApplication::translate(BOOK_EDITOR, "C&reate Card"));
 
-        // In a paragraph linked with materials and with a card, with the commands of the cards
-        // (CardsInTextCoordinator): each item has its own key, the commands keep theirs
-        QAction* open = registry.getAction(QStringLiteral("book.openCardAtCursor"));
-        REQUIRE(open != nullptr);
-        const bool openEnabled = open->isEnabled();
-        open->setEnabled(true);
-        booked.setContextMenuCardActions(
-            {.link = registry.getAction(QStringLiteral("book.linkParagraphCard")), .open = open});
-        booked.setParagraphMarks(
-            {editor::ParagraphMark{0, {QStringLiteral("m1")}, {QStringLiteral("Map")}},
-             editor::ParagraphMark{
-                 0, {QStringLiteral("c1")}, {QStringLiteral("Anna")}, QStringLiteral("character")}},
-            QIcon(), {{QStringLiteral("character"), QIcon()}});
-        items = contextMenu(&booked, &booked, QPoint(5, 5), QContextMenuEvent::Keyboard);
-        // The titles of a material and of a card are names the menu shows as they are
-        collectProblems(items, QStringLiteral("Selection in a paragraph with linked cards"),
-                        shown ? QStringList()
-                              : QStringList{QStringLiteral("Map"), QStringLiteral("Anna")},
-                        problems);
-        // and Link Paragraph with Card..., Open Card at Cursor, Linked Materials > Map and
-        // Linked Cards > Anna
-        CHECK(itemCount(items) == 1 + 3 + 8 + 2 + 2 + 2);
-        CHECK(labelsOf(items).contains(registry.getAction(
-                  QStringLiteral("book.linkParagraphCard"))->text()));
-        CHECK(labelsOf(items).contains(open->text()));
-        CHECK(labelsOf(items).contains(QCoreApplication::translate(BOOK_EDITOR, "Linked Card&s")));
-        booked.setContextMenuCardActions({});
-        booked.setParagraphMarks({}, QIcon());
-        open->setEnabled(openEnabled);
+        checkCardMenus(booked, shown, problems);
 
         QStringList told = {QCoreApplication::translate(BOOK_EDITOR, "Book rule: write %1")
                                 .arg(QLocale().quoteString(rule.right)),

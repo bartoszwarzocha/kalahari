@@ -21,6 +21,7 @@
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/material_list_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
+#include "kalahari/gui/panels/navigator_panel.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -40,7 +41,7 @@
 
 #include <algorithm>
 
-using namespace kalahari;
+namespace kalahari {
 using gui::CardList;
 using gui::MaterialList;
 using gui::MaterialListPanel;
@@ -426,7 +427,7 @@ TEST_CASE("Navigator: the groups of the cards show their lists on tabs", "[gui][
     const Cast cast;
     auto& pm = cast.novel.pm;
     test::Window window;
-    gui::MaterialListCoordinator lists{pm, window.tabs, &window.navigator, &window.statusBar,
+    const gui::MaterialListCoordinator lists{pm, window.tabs, &window.navigator, &window.statusBar,
                                        [](bool) {}};
     QObject::connect(window.navigatorPanel, &gui::NavigatorPanel::requestOpenMaterialList,
                      &lists, &gui::MaterialListCoordinator::openList);
@@ -436,9 +437,9 @@ TEST_CASE("Navigator: the groups of the cards show their lists on tabs", "[gui][
                      [&cardSettings]() { ++cardSettings; });
     QObject::connect(&lists, &gui::MaterialListCoordinator::settingsRequested,
                      [&materialSettings]() { ++materialSettings; });
-    const QTreeWidget* tree = window.navigatorPanel->tree();
+    QTreeWidget* tree = window.navigatorPanel->tree();
     QTreeWidgetItem* group = nullptr;
-    for (QTreeWidgetItemIterator it(const_cast<QTreeWidget*>(tree)); *it; ++it) {
+    for (QTreeWidgetItemIterator it(tree); *it != nullptr; ++it) {
         if ((*it)->data(0, Qt::UserRole).toString() ==
             QStringLiteral("workshop:") + listOf("character")) {
             group = *it;
@@ -469,3 +470,5 @@ TEST_CASE("Navigator: the groups of the cards show their lists on tabs", "[gui][
     CHECK(materialSettings == 0);
     window.documents.onProjectClosed();
 }
+
+}  // namespace kalahari

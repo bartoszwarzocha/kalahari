@@ -3593,7 +3593,10 @@ private:
     void addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark);
 
     /// @brief The icon @p mark shows: the paperclip, or the sign of its cards
-    QIcon paragraphMarkIcon(const ParagraphMark& mark) const;
+    [[nodiscard]] QIcon paragraphMarkIcon(const ParagraphMark& mark) const;
+
+    /// @brief The tooltip of @p mark: the titles of the materials or the cards it names
+    [[nodiscard]] static QString paragraphMarkToolTip(const ParagraphMark& mark);
 
     /// @brief Linked Materials and Linked Cards in the context menu @p menu of paragraph
     /// @p paragraph: what the marks beside it name

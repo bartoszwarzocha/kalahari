@@ -7,10 +7,15 @@
 
 #include "kalahari/gui/panels/cursor_card_box.h"
 
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_name_index.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/widgets/relations_box.h"
@@ -21,6 +26,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include <cstddef>
 #include <string>
 
 namespace kalahari::gui {
@@ -36,9 +42,18 @@ constexpr int TITLE_BUTTON = 16;
 
 }  // namespace
 
+QString cardNamedAt(const core::ProjectManager& book, const editor::BookEditor& text) {
+    const editor::CursorPosition cursor = text.cursorPosition();
+    const QString card =
+        book.cardNames()
+            .cardAt(text.paragraphPlainText(static_cast<size_t>(cursor.paragraph)),
+                    cursor.offset)
+            .card;
+    return book.findElement(card) != nullptr ? card : QString();  // Not a card deleted
+}
+
 CursorCardBox::Shown CursorCardBox::cardsAtCursor() {
-    const std::string value =
-        core::SettingsManager::getInstance().get<std::string>(SETTING, NAMES);
+    const auto value = core::SettingsManager::getInstance().get<std::string>(SETTING, NAMES);
     if (value == PARAGRAPHS) {
         return Shown::Paragraphs;
     }
@@ -46,7 +61,7 @@ CursorCardBox::Shown CursorCardBox::cardsAtCursor() {
 }
 
 CursorCardBox::CursorCardBox(core::ProjectManager& book, QWidget* parent)
-    : QGroupBox(parent), m_book(book) {
+    : QGroupBox(parent), m_settingsButton(new QToolButton(this)), m_book(book) {
     setObjectName(QStringLiteral("cursorCardGroup"));
     //: The group of the Properties panel with the card whose name the cursor of the text is
     //: in. In Polish: Karta przy kursorze
@@ -55,7 +70,6 @@ CursorCardBox::CursorCardBox(core::ProjectManager& book, QWidget* parent)
     layout->setSpacing(SPACING);
 
     // The gear at the title of the group
-    m_settingsButton = new QToolButton(this);
     m_settingsButton->setObjectName(QStringLiteral("cursorCardSettings"));
     m_settingsButton->setAutoRaise(true);
     m_settingsButton->setFixedSize(TITLE_BUTTON, TITLE_BUTTON);

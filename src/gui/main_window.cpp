@@ -790,21 +790,7 @@ MainWindow::MainWindow(QWidget* parent)
             return m_chapterBreakCoordinator->canBreak(text);
         });
 
-    // Book > Link Paragraph with Card... and Open Card at Cursor: in the text with the keys,
-    // also on its context menu
-    m_cardsInTextCoordinator = new CardsInTextCoordinator(
-        book(), commands(), m_dockCoordinator->centralTabs(),
-        [this]() { return m_editCoordinator->textWithKeys(); },
-        [this](const QString& cardId) { openCard(cardId); }, this, this);
-    m_cardsInTextCoordinator->connectCommands();
-    m_editCoordinator->addTextCommands(
-        {CardsInTextCoordinator::LINK_COMMAND}, [this](const editor::BookEditor& text) {
-            return m_cardsInTextCoordinator->canLink(text);
-        });
-    m_editCoordinator->addTextCommands(
-        {CardsInTextCoordinator::OPEN_COMMAND}, [this](const editor::BookEditor& text) {
-            return m_cardsInTextCoordinator->canOpen(text);
-        });
+    createCardsInText();
 
     // Insert > Date && Time... and the date and the time at once (Alt+Shift+D, Alt+Shift+T):
     // in the book's text with the keys, not in a read-only one; Insert > Field... not in a
@@ -2678,6 +2664,23 @@ void MainWindow::openCard(const QString& cardId) {
     if (const core::ProjectElement* element = book().findElement(cardId); element != nullptr) {
         m_navigatorCoordinator->onElementSelected(cardId, element->title);
     }
+}
+
+void MainWindow::createCardsInText() {
+    // In the text with the keys, also on its context menu
+    m_cardsInTextCoordinator = new CardsInTextCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(),
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        [this](const QString& cardId) { openCard(cardId); }, this, this);
+    m_cardsInTextCoordinator->connectCommands();
+    m_editCoordinator->addTextCommands(
+        {CardsInTextCoordinator::LINK_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_cardsInTextCoordinator->canLink(text);
+        });
+    m_editCoordinator->addTextCommands(
+        {CardsInTextCoordinator::OPEN_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_cardsInTextCoordinator->canOpen(text);
+        });
 }
 
 void MainWindow::connectCards() {

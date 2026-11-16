@@ -7,22 +7,26 @@
 #include "kalahari/gui/cards_in_text_coordinator.h"
 
 #include "kalahari/core/book_project.h"
-#include "kalahari/core/card_name_index.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/paragraph_card_dialog.h"
 #include "kalahari/gui/document_windows.h"
+#include "kalahari/gui/panels/cursor_card_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/paragraph_cards_box.h"
 #include "kalahari/gui/read_only_book.h"
 
 #include <QTabWidget>
 
+#include <cstddef>
 #include <optional>
+#include <utility>
 
 namespace kalahari::gui {
 
@@ -119,16 +123,7 @@ QString CardsInTextCoordinator::whyNotOpen(const editor::BookEditor* text) const
 }
 
 QString CardsInTextCoordinator::cardNamedAtCursor(const editor::BookEditor& text) const {
-    if (elementOf(&text).isEmpty()) {
-        return {};
-    }
-    const editor::CursorPosition cursor = text.cursorPosition();
-    const QString card =
-        m_book.cardNames()
-            .cardAt(text.paragraphPlainText(static_cast<size_t>(cursor.paragraph)),
-                    cursor.offset)
-            .card;
-    return m_book.findElement(card) != nullptr ? card : QString();  // Not a card deleted
+    return elementOf(&text).isEmpty() ? QString() : cardNamedAt(m_book, text);
 }
 
 QString CardsInTextCoordinator::cardAtCursor(const editor::BookEditor& text) const {

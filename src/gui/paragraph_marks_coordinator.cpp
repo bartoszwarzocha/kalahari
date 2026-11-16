@@ -7,15 +7,18 @@
 
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 
 #include <QPointer>
+#include <QString>
 #include <QTabWidget>
 #include <QTextBlock>
 #include <QTextDocument>
@@ -47,6 +50,33 @@ void addToMark(QList<editor::ParagraphMark>& marks, int number, const QString& i
     editor::ParagraphMark mark{number - 1, {element.id}, {element.title}};
     mark.icon = icon;
     marks.append(mark);
+}
+
+/// The texts of the paragraphs of @p document, in which the links find their paragraphs
+QStringList paragraphTexts(const QTextDocument& document) {
+    QStringList paragraphs;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        paragraphs << block.text();
+    }
+    return paragraphs;
+}
+
+/// What is linked with element @p elementId of @p book, with the icon of its mark: the
+/// materials first, with the paperclip (none), next to the text, then the cards, with the signs
+/// of their kinds, unless the cards have no signs
+QList<std::pair<const core::ProjectElement*, QString>> linkedWithMarks(
+    const core::ProjectManager& book, const QString& elementId) {
+    QList<std::pair<const core::ProjectElement*, QString>> linked;
+    for (const core::ProjectElement* material : book.materialsLinkedTo(elementId)) {
+        linked.append({material, QString()});
+    }
+    if (!ParagraphMarksCoordinator::cardMarksShown()) {
+        return linked;
+    }
+    for (const core::ProjectElement* card : book.cardsLinkedTo(elementId)) {
+        linked.append({card, NavigatorPanel::iconIdOf(book.bookTypes(), *card)});
+    }
+    return linked;
 }
 
 }  // namespace
@@ -108,21 +138,8 @@ QList<editor::ParagraphMark> ParagraphMarksCoordinator::marksOf(const core::Proj
     if (elementId.isEmpty() || document == nullptr || !core::LinkRoles::paragraphsShown()) {
         return marks;
     }
-    QStringList paragraphs;
-    for (QTextBlock block = document->begin(); block.isValid(); block = block.next()) {
-        paragraphs << block.text();
-    }
-    // The paperclips first, next to the text, then the signs of the kinds of the cards
-    QList<std::pair<const core::ProjectElement*, QString>> linked;
-    for (const core::ProjectElement* material : book.materialsLinkedTo(elementId)) {
-        linked.append({material, QString()});
-    }
-    const QList<const core::ProjectElement*> cards =
-        cardMarksShown() ? book.cardsLinkedTo(elementId) : QList<const core::ProjectElement*>();
-    for (const core::ProjectElement* card : cards) {
-        linked.append({card, NavigatorPanel::iconIdOf(book.bookTypes(), *card)});
-    }
-    for (const auto& [element, icon] : linked) {
+    const QStringList paragraphs = paragraphTexts(*document);
+    for (const auto& [element, icon] : linkedWithMarks(book, elementId)) {
         const core::ElementLink* link = element->linkTo(elementId);
         const int number = link != nullptr ? core::LinkRoles::paragraphOf(paragraphs, *link) : 0;
         if (number > 0) {

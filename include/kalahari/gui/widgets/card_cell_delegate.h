@@ -5,7 +5,8 @@
 /// @brief The cells of the table of a list of cards that F2 edits: the fields of a card and
 /// In Short
 
-#pragma once
+#ifndef KALAHARI_GUI_WIDGETS_CARD_CELL_DELEGATE_H
+#define KALAHARI_GUI_WIDGETS_CARD_CELL_DELEGATE_H
 
 #include <QString>
 #include <QStringList>
@@ -61,3 +62,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_WIDGETS_CARD_CELL_DELEGATE_H

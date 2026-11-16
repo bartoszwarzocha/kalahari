@@ -20,6 +20,7 @@
 #include <QPainter>
 #include <QPen>
 #include <QPixmap>
+#include <QString>
 #include <QStringView>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -69,6 +70,9 @@ int stepsOf(int key, int page) {
 
 /// @brief The share of the height of a line the dot of the color of a card takes
 constexpr qreal COLOR_DOT_SHARE = 0.6;
+/// @brief How far inside its place the line around a dot is drawn: half of its width, so
+///        that the whole line shows
+constexpr qreal COLOR_DOT_INSET = 0.5;
 
 /// @brief The dot of color @p color (none: an empty place of its size) beside a name of a
 ///        card, @p side pixels wide for the screen's @p ratio, with a line of @p border
@@ -81,9 +85,10 @@ QIcon colorDot(const QString& color, int side, qreal ratio, const QColor& border
         painter.setRenderHint(QPainter::Antialiasing);
         painter.setPen(QPen(border, 1.0));
         painter.setBrush(fill);
-        painter.drawEllipse(QRectF(0.5, 0.5, side - 1.0, side - 1.0));
+        painter.drawEllipse(QRectF(COLOR_DOT_INSET, COLOR_DOT_INSET, side - 2 * COLOR_DOT_INSET,
+                                   side - 2 * COLOR_DOT_INSET));
     }
-    return QIcon(pixmap);
+    return {pixmap};
 }
 
 /// @brief The text an item inserts as the list shows it: one line, the paragraph breaks as ¶

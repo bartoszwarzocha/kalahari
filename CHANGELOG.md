@@ -21,8 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whose name the cursor is in, in any of its forms, else the first card of the paragraph; both
   are on the context menu of the text too. A paragraph linked with cards has the sign of each of
   their kinds on the margin, next to the paperclip of the materials; a click opens the card, and
-  the context menu of the paragraph has Linked Cards. The Properties panel shows the card whose
-  name the cursor is in (Card at the Cursor, with Open Card) and Cards of the Paragraph: the
+  the context menu of the paragraph has Linked Cards. The Properties panel, on the page of the
+  text in front or of its chapter, shows the card whose name the cursor is in (Card at the
+  Cursor, with Open Card) and Cards of the Paragraph: the
   roles and the cards with their colors, "+" or Insert to link one, "-" or Delete to take one off
   the paragraph (it stays linked with the chapter), Enter or a double-click to open it. Settings >
   Cards > In the Text chooses what Properties shows at the cursor and whether the signs are on

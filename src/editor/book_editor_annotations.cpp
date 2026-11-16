@@ -6,6 +6,7 @@
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/editor_types.h>
 #include "book_editor_internal.h"
 #include <QAction>
 #include <QDateTime>
@@ -13,6 +14,7 @@
 #include <QTextBlock>
 
 #include <algorithm>
+#include <utility>
 
 namespace kalahari::editor {
 
@@ -209,6 +211,23 @@ void BookEditor::addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark)
 QIcon BookEditor::paragraphMarkIcon(const ParagraphMark& mark) const
 {
     return mark.icon.isEmpty() ? m_paragraphMarkIcon : m_paragraphCardIcons.value(mark.icon);
+}
+
+QString BookEditor::paragraphMarkToolTip(const ParagraphMark& mark)
+{
+    //: The tooltip of the paperclip beside a paragraph, over the titles of the materials. In
+    //: Polish: Powiązane materiały
+    const QString materials = tr("Linked materials");
+    //: The tooltip of the sign of the cards beside a paragraph, over the names of the cards. In
+    //: Polish: Powiązane karty
+    const QString cards = tr("Linked cards");
+    QStringList lines{
+        QStringLiteral("<b>%1</b>").arg((mark.icon.isEmpty() ? materials : cards).toHtmlEscaped())};
+    for (const QString& title : mark.titles) {
+        lines << title.toHtmlEscaped();
+    }
+    return QStringLiteral("<p style='white-space:pre-wrap'>%1</p>")
+        .arg(lines.join(QStringLiteral("<br>")));
 }
 
 void BookEditor::addParagraphMarkMenus(QMenu& menu, int paragraph)

@@ -5,7 +5,8 @@
 /// @brief The cards of characters, locations and items in the texts of the book: Book > Link
 ///        Paragraph with Card... and Book > Open Card at Cursor, also on the context menu
 
-#pragma once
+#ifndef KALAHARI_GUI_CARDS_IN_TEXT_COORDINATOR_H
+#define KALAHARI_GUI_CARDS_IN_TEXT_COORDINATOR_H
 
 #include <QList>
 #include <QMetaObject>
@@ -24,7 +25,7 @@ struct ProjectElement;
 
 namespace kalahari::editor {
 class BookEditor;
-}
+}  // namespace kalahari::editor
 
 namespace kalahari::gui {
 
@@ -64,8 +65,11 @@ public:
     CardsInTextCoordinator(core::ProjectManager& book, CommandRegistry& commands,
                            QTabWidget* centralTabs, TextWithKeys textWithKeys,
                            CardOpener openCard, QWidget* window, QObject* parent = nullptr);
+    ~CardsInTextCoordinator() override = default;
     CardsInTextCoordinator(const CardsInTextCoordinator&) = delete;
     CardsInTextCoordinator& operator=(const CardsInTextCoordinator&) = delete;
+    CardsInTextCoordinator(CardsInTextCoordinator&&) = delete;
+    CardsInTextCoordinator& operator=(CardsInTextCoordinator&&) = delete;
 
     /// @brief Give the commands their actions, their states and the reasons why they are
     ///        greyed out (the main window has their states follow the keys too:
@@ -134,3 +138,5 @@ private:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_CARDS_IN_TEXT_COORDINATOR_H

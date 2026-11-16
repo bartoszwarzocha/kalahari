@@ -10,6 +10,7 @@
 #include "test_support/window_parts.h"
 
 #include "kalahari/core/book_dictionary.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_names.h"
@@ -29,18 +30,19 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <QGroupBox>
+#include <QKeyEvent>
 #include <QLabel>
+#include <QLayout>
 #include <QPushButton>
 #include <QStringList>
-#include <QKeyEvent>
 #include <QToolButton>
 #include <QTreeWidget>
 
 #include <cstdio>
 #include <string>
-#include <utility>
 
-using namespace kalahari;
+namespace kalahari {
 using gui::CursorCardBox;
 
 namespace {
@@ -242,6 +244,71 @@ TEST_CASE("Card at the cursor: the card whose name the cursor is in", "[gui][car
     }
 }
 
+TEST_CASE("Card at the cursor: the Chapter page of the chapter in front has the cards too",
+          "[gui][cards][names]") {
+    gui::registerAllIcons();
+    const AtCursor names(CursorCardBox::NAMES);
+    Cast cast;
+    auto& pm = cast.novel.pm;
+    const QString first = text("Spotkał Annę Wolską i Eldriona w Czarnym Lesie.");
+    cast.editor->fromKml(test::kmlOf({first}));
+    REQUIRE(pm.linkParagraph(cast.forest, cast.novel.chapterId, 1, first,
+                             core::LinkRoles::SETTING));
+    const QString other = pm.addElement(pm.chapterKindFor(core::BookPlace::Main),
+                                        QStringLiteral("The Calm"), core::BookPlace::Main);
+    REQUIRE_FALSE(other.isEmpty());
+    // As a chapter opened from the Navigator: its tab in front, then its page
+    gui::PropertiesPanel panel(test::book());
+    panel.setActiveEditor(&cast.editorPanel);
+    panel.showChapterProperties(cast.novel.chapterId);
+    REQUIRE(panel.currentPage() == gui::PropertiesPanel::Page::Chapter);
+    const gui::ParagraphCardsBox* box = panel.paragraphCards();
+    REQUIRE(box != nullptr);
+
+    // Under the versions of the chapter: the card at the cursor and the cards of its paragraph
+    putCursor(*cast.editor, "Wolską");
+    waitForPanel();
+    REQUIRE(showsCard(panel));
+    CHECK(panel.cursorCard()->cardId() == cast.anna);
+    REQUIRE(box->isVisibleTo(&panel));
+    CHECK(box->list()->topLevelItemCount() == 1);
+
+    SECTION("the page of another chapter has none") {
+        panel.showChapterProperties(other);
+        CHECK_FALSE(showsCard(panel));
+        CHECK_FALSE(box->isVisibleTo(&panel));
+        // Its cursor moving shows none either
+        putCursor(*cast.editor, "Eldriona");
+        waitForPanel();
+        CHECK_FALSE(showsCard(panel));
+        // Its own page again
+        panel.showChapterProperties(cast.novel.chapterId);
+        CHECK(showsCard(panel));
+        CHECK(panel.cursorCard()->cardId() == cast.eldrion);
+    }
+
+    SECTION("they leave with the text") {
+        panel.setActiveEditor(nullptr);
+        CHECK(panel.currentPage() == gui::PropertiesPanel::Page::Chapter);
+        CHECK_FALSE(showsCard(panel));
+        CHECK_FALSE(box->isVisibleTo(&panel));
+    }
+
+    SECTION("the Editor page has them again, in the same order") {
+        panel.setActiveEditor(&cast.editorPanel);
+        REQUIRE(panel.currentPage() == gui::PropertiesPanel::Page::Editor);
+        CHECK(showsCard(panel));
+        CHECK(box->isVisibleTo(&panel));
+        const auto* versions = panel.findChild<QGroupBox*>(QStringLiteral("chapterVersionsGroup"));
+        REQUIRE(versions != nullptr);
+        const QLayout* layout = panel.cursorCard()->parentWidget()->layout();
+        REQUIRE(layout != nullptr);
+        CHECK(layout->indexOf(versions) >= 0);
+        CHECK(layout->indexOf(versions) < layout->indexOf(panel.cursorCard()));
+        CHECK(layout->indexOf(panel.cursorCard()) < layout->indexOf(panel.paragraphCards()));
+    }
+}
+
 TEST_CASE("Card at the cursor: the setting", "[gui][cards][settings]") {
     const AtCursor names(CursorCardBox::NAMES);
     CHECK(CursorCardBox::cardsAtCursor() == CursorCardBox::Shown::NamesAndParagraphs);
@@ -355,3 +422,5 @@ TEST_CASE("Card at the cursor: the cards of the paragraph, with their roles",
         CHECK_FALSE(box->isVisibleTo(&panel));
     }
 }
+
+}  // namespace kalahari

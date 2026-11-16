@@ -59,6 +59,7 @@
 #include <optional>
 
 #include <algorithm>
+#include <initializer_list>
 
 namespace kalahari {
 namespace gui {
@@ -750,8 +751,9 @@ QWidget* PropertiesPanel::createEditorPage() {
     statsLayout->addRow(tr("Reading time:"), m_editorReadingTimeLabel);
 
     layout->addWidget(statsGroup);
-    // Under the counts of a text of the book, the group of its versions (placeVersionsGroup()),
-    // then the card whose name the cursor is in
+    // Under the counts of a text of the book, the group of its versions, the card whose name
+    // the cursor is in and the cards of its paragraph; the Chapter page of the text in front
+    // has them as well (placeTextGroups())
     m_editorPageLayout = layout;
     m_cursorCard = new CursorCardBox(m_book, scrollContent);
     layout->addWidget(m_cursorCard);
@@ -969,8 +971,10 @@ void PropertiesPanel::showChapterProperties(const QString& elementId) {
     }
 
     m_currentChapterId = elementId;
-    placeVersionsGroup(m_chapterPageLayout);
+    placeTextGroups(m_chapterPageLayout);
     populateChapterFields(elementId);
+    // The chapter in front has the cards at its cursor here too
+    updateCursorCard();
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Chapter));
 }
 
@@ -1066,27 +1070,33 @@ void PropertiesPanel::showEditorProperties() {
     updateCursorCard();
     // A text of the book in front has its versions under its counts, as the Navigator's
     // choice of it has them
-    placeVersionsGroup(m_editorPageLayout);
+    placeTextGroups(m_editorPageLayout);
     showVersions(m_activeEditorPanel != nullptr
                      ? m_activeEditorPanel->property("elementId").toString()
                      : QString());
     m_stackedWidget->setCurrentIndex(static_cast<int>(Page::Editor));
 }
 
-void PropertiesPanel::placeVersionsGroup(QVBoxLayout* layout) {
-    if (layout == nullptr || layout->indexOf(m_chapterVersionsGroup) >= 0) {
+void PropertiesPanel::placeTextGroups(QVBoxLayout* layout) {
+    const std::initializer_list<QWidget*> groups{m_chapterVersionsGroup, m_cursorCard,
+                                                 m_paragraphCards};
+    if (layout == nullptr || std::all_of(groups.begin(), groups.end(), [layout](QWidget* group) {
+            return layout->indexOf(group) >= 0;
+        })) {
         return;
     }
     for (QVBoxLayout* other : {m_chapterPageLayout, m_editorPageLayout}) {
-        if (other != nullptr) {
-            other->removeWidget(m_chapterVersionsGroup);
+        for (QWidget* group : groups) {
+            if (other != nullptr) {
+                other->removeWidget(group);
+            }
         }
     }
-    // Over the card at the cursor of the Editor page, else over the stretch at the bottom of
-    // the page
-    const int cursorCard = layout->indexOf(m_cursorCard);
-    layout->insertWidget(cursorCard >= 0 ? cursorCard : layout->count() - 1,
-                         m_chapterVersionsGroup);
+    // In this order, over the stretch at the bottom of the page
+    int at = layout->count() - 1;
+    for (QWidget* group : groups) {
+        layout->insertWidget(at++, group);
+    }
 }
 
 void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
@@ -1099,6 +1109,8 @@ void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
 
     if (!editorPanel) {
         logger.debug("PropertiesPanel::setActiveEditor() - Disconnected from editor");
+        // The cards at the cursor of the Chapter page leave with the text
+        updateCursorCard();
         // The counts were of the document that left the front: without one the panel shows
         // the book, as before a document was opened (the status bar shows no counts then)
         if (currentPage() == Page::Editor) {
@@ -2069,11 +2081,12 @@ void PropertiesPanel::onEditorSelectionChanged() {
 
 void PropertiesPanel::onEditorCursorChanged() {
     // OpenSpec #00043: Debounce cursor changes to avoid expensive updates
-    // Only update if we're on the Editor page
-    if (m_stackedWidget->currentIndex() == static_cast<int>(Page::Editor)) {
-        if (m_cursorDebounceTimer) {
-            m_cursorDebounceTimer->start();  // Restart timer on each change
-        }
+    // Only update if the page shown describes the text: the Editor page, or the Chapter page
+    // of its chapter
+    const Page page = currentPage();
+    if (m_cursorDebounceTimer != nullptr &&
+        (page == Page::Editor || (page == Page::Chapter && !describedTextId().isEmpty()))) {
+        m_cursorDebounceTimer->start();  // Restart timer on each change
     }
 }
 
@@ -2121,33 +2134,30 @@ void PropertiesPanel::updateEditorStatistics() {
                  counts.words, counts.characters, counts.paragraphs);
 }
 
+QString PropertiesPanel::describedTextId() const {
+    if (m_activeEditorPanel == nullptr || m_activeEditorPanel->getBookEditor() == nullptr ||
+        !m_book.isProjectOpen()) {
+        return {};
+    }
+    // Only a text of the open book, whose cards they are
+    const QString elementId = m_activeEditorPanel->property("elementId").toString();
+    const bool described = m_currentChapterId.isEmpty() || m_currentChapterId == elementId;
+    return described && m_book.findElement(elementId) != nullptr ? elementId : QString();
+}
+
 void PropertiesPanel::updateCursorCard() {
-    editor::BookEditor* bookEditor =
-        m_activeEditorPanel != nullptr ? m_activeEditorPanel->getBookEditor() : nullptr;
-    // Only in a text of the open book, whose cards they are
-    const QString elementId =
-        m_activeEditorPanel != nullptr ? m_activeEditorPanel->property("elementId").toString()
-                                       : QString();
-    const bool ofBook = bookEditor != nullptr && m_book.isProjectOpen() &&
-                        m_book.findElement(elementId) != nullptr;
+    const QString elementId = describedTextId();
+    const editor::BookEditor* bookEditor =
+        elementId.isEmpty() ? nullptr : m_activeEditorPanel->getBookEditor();
     const CursorCardBox::Shown shown = CursorCardBox::cardsAtCursor();
-    const editor::CursorPosition cursor =
-        bookEditor != nullptr ? bookEditor->cursorPosition() : editor::CursorPosition{};
-    QString cardId;
-    if (ofBook && shown == CursorCardBox::Shown::NamesAndParagraphs) {
-        cardId = m_book.cardNames()
-                     .cardAt(bookEditor->paragraphPlainText(static_cast<size_t>(cursor.paragraph)),
-                             cursor.offset)
-                     .card;
-    }
-    if (m_book.findElement(cardId) == nullptr) {
-        cardId.clear();  // A card deleted from the book
-    }
+    const QString cardId =
+        bookEditor != nullptr && shown == CursorCardBox::Shown::NamesAndParagraphs
+            ? cardNamedAt(m_book, *bookEditor)
+            : QString();
     if (cardId != m_cursorCard->cardId()) {
         m_cursorCard->showCard(cardId);
     }
-    showParagraphCards(ofBook && shown != CursorCardBox::Shown::None ? bookEditor : nullptr,
-                       elementId);
+    showParagraphCards(shown != CursorCardBox::Shown::None ? bookEditor : nullptr, elementId);
 }
 
 void PropertiesPanel::showParagraphCards(const editor::BookEditor* text,

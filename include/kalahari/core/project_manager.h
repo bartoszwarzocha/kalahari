@@ -754,10 +754,10 @@ public:
     /// order: a link it has keeps its role, paragraph and note, a new one is newLink()
     bool setLinks(const QString& elementId, const QStringList& targets);
 
-    /// @brief A new link of element @p elementId with @p target: with the role that the kind
+    /// @brief A new link of element @p linkedId with @p target: with the role that the kind
     /// of a material suggests (LinkRoles::suggestedFor()), or of a card in a chapter
     /// (LinkRoles::suggestedForCard()), else without a role
-    ElementLink newLink(const QString& elementId, const QString& target) const;
+    ElementLink newLink(const QString& linkedId, const QString& target) const;
 
     /// @brief Link element @p linkedId (a card, a material) with paragraph @p paragraph (from
     /// 1) of text element @p elementId, whose text is @p paragraphText now, in role @p role

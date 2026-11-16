@@ -11,6 +11,7 @@
 #include "test_support/window_parts.h"
 
 #include "kalahari/core/book_dictionary.h"
+#include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_names.h"
@@ -19,7 +20,9 @@
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/cards_in_text_coordinator.h"
+#include "kalahari/gui/command.h"
 #include "kalahari/gui/command_registrar.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
@@ -29,6 +32,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <QApplication>
@@ -44,7 +48,7 @@
 #include <cstdio>
 #include <functional>
 
-using namespace kalahari;
+namespace kalahari {
 using gui::CardsInTextCoordinator;
 using gui::dialogs::ParagraphCardDialog;
 
@@ -102,11 +106,13 @@ private:
 };
 
 /// The paragraphs of the chapter of the tests
-const QStringList PARAGRAPHS{text("Spotkał Annę Wolską w Czarnym Lesie."),
-                             text("Deszcz padał całą noc, a rano wszyscy przy ognisku milczeli."), QString(),
-                             text("Eldrion milczał.")};
+QStringList chapterParagraphs() {
+    return {text("Spotkał Annę Wolską w Czarnym Lesie."),
+            text("Deszcz padał całą noc, a rano wszyscy przy ognisku milczeli."), QString(),
+            text("Eldrion milczał.")};
+}
 
-/// The book of the tests: a chapter with PARAGRAPHS, saved, and three cards
+/// The book of the tests: a chapter with chapterParagraphs(), saved, and three cards
 struct Cast {
     test::OpenNovel novel{QStringLiteral("Cards")};
     QString anna;
@@ -114,7 +120,7 @@ struct Cast {
     QString forest;
 
     Cast() {
-        novel.pm.setChapterContent(novel.chapterId, test::kmlOf(PARAGRAPHS));
+        novel.pm.setChapterContent(novel.chapterId, test::kmlOf(chapterParagraphs()));
         REQUIRE(novel.pm.saveChapterContent(novel.chapterId));
         anna = addCard("character", "Anna Wolska");
         eldrion = addCard("character", "Eldrion");
@@ -197,12 +203,12 @@ TEST_CASE("Paragraph cards: the window Link Paragraph with Card", "[gui][cards][
     REQUIRE(character);
     REQUIRE(location);
 
-    ParagraphCardDialog dialog(pm, cast.novel.chapterId, 2, PARAGRAPHS.at(1), QString());
+    ParagraphCardDialog dialog(pm, cast.novel.chapterId, 2, chapterParagraphs().at(1), QString());
     // The chapter, the paragraph and its first words in the heading
     const QString texts = test::textsOf(dialog);
     INFO(texts.toStdString());
     CHECK(texts.contains(QStringLiteral("The Storm, paragraph 2: \"") +
-                         core::LinkRoles::excerptOf(PARAGRAPHS.at(1)) + QStringLiteral("…\"")));
+                         core::LinkRoles::excerptOf(chapterParagraphs().at(1)) + QStringLiteral("…\"")));
     CHECK(dialog.noteLabel()->isHidden());
 
     // The cards by their names, the first one chosen, with the roles of its kind
@@ -230,7 +236,7 @@ TEST_CASE("Paragraph cards: the window Link Paragraph with Card", "[gui][cards][
     dialog.filterEdit()->clear();
 
     // The card whose name the cursor is in is chosen first
-    ParagraphCardDialog atName(pm, cast.novel.chapterId, 1, PARAGRAPHS.at(0), cast.forest);
+    const ParagraphCardDialog atName(pm, cast.novel.chapterId, 1, chapterParagraphs().at(0), cast.forest);
     CHECK(atName.choice().cardId == cast.forest);
 
     SECTION("the link is saved with the paragraph, its first words and the role") {
@@ -238,7 +244,7 @@ TEST_CASE("Paragraph cards: the window Link Paragraph with Card", "[gui][cards][
         CHECK(answeringLink(
             [&]() {
                 linked = gui::dialogs::linkParagraphWithCard(pm, cast.novel.chapterId, 2,
-                                                             PARAGRAPHS.at(1), cast.eldrion,
+                                                             chapterParagraphs().at(1), cast.eldrion,
                                                              nullptr);
             },
             [](ParagraphCardDialog& window) {
@@ -250,23 +256,23 @@ TEST_CASE("Paragraph cards: the window Link Paragraph with Card", "[gui][cards][
         const core::ElementLink* link = pm.findElement(cast.eldrion)->linkTo(cast.novel.chapterId);
         REQUIRE(link != nullptr);
         CHECK(link->paragraph == 2);
-        CHECK(link->excerpt == core::LinkRoles::excerptOf(PARAGRAPHS.at(1)));
+        CHECK(link->excerpt == core::LinkRoles::excerptOf(chapterParagraphs().at(1)));
         CHECK(link->role == core::LinkRoles::MENTIONED);
 
         // The card keeps its role in the window again, and says that its link moves to
         // another paragraph
-        ParagraphCardDialog again(pm, cast.novel.chapterId, 1, PARAGRAPHS.at(0), cast.eldrion);
+        ParagraphCardDialog again(pm, cast.novel.chapterId, 1, chapterParagraphs().at(0), cast.eldrion);
         CHECK(again.choice().role == core::LinkRoles::MENTIONED);
         CHECK(again.noteLabel()->isVisibleTo(&again));
         CHECK(again.noteLabel()->text().contains(QStringLiteral("paragraph 2")));
-        ParagraphCardDialog same(pm, cast.novel.chapterId, 2, PARAGRAPHS.at(1), cast.eldrion);
+        const ParagraphCardDialog same(pm, cast.novel.chapterId, 2, chapterParagraphs().at(1), cast.eldrion);
         CHECK(same.noteLabel()->text().contains(QStringLiteral("already")));
 
         // Closed with Cancel: nothing changes
         CHECK(answeringLink(
             [&]() {
                 linked = gui::dialogs::linkParagraphWithCard(pm, cast.novel.chapterId, 1,
-                                                             PARAGRAPHS.at(0), cast.eldrion,
+                                                             chapterParagraphs().at(0), cast.eldrion,
                                                              nullptr);
             },
             [](ParagraphCardDialog& window) { window.reject(); }));
@@ -280,6 +286,24 @@ TEST_CASE("Paragraph cards: the window Link Paragraph with Card", "[gui][cards][
         QCoreApplication::sendEvent(dialog.filterEdit(), &down);
         CHECK(dialog.choice().cardId == cast.forest);
     }
+
+    SECTION("it fits a small screen with many cards: only the list scrolls") {
+        // 1366x768 at 150%: 911 pixels wide and 460 high (a Mac's larger controls need a few
+        // more)
+#ifdef Q_OS_MACOS
+        constexpr int MAX_HEIGHT = 480;
+#else
+        constexpr int MAX_HEIGHT = 460;
+#endif
+        for (int i = 0; i < 30; ++i) {
+            addCard("character", QStringLiteral("Gość %1").arg(i).toUtf8().constData());
+        }
+        const ParagraphCardDialog crowded(pm, cast.novel.chapterId, 2, chapterParagraphs().at(1),
+                                          QString());
+        INFO("size " << crowded.sizeHint().width() << "x" << crowded.sizeHint().height());
+        CHECK(crowded.sizeHint().width() <= 911);
+        CHECK(crowded.sizeHint().height() <= MAX_HEIGHT);
+    }
 }
 
 TEST_CASE("Paragraph cards: the signs of the kinds of the cards beside the paragraph",
@@ -289,15 +313,15 @@ TEST_CASE("Paragraph cards: the signs of the kinds of the cards beside the parag
     const ChangedSetting signs(gui::ParagraphMarksCoordinator::CARD_MARKS_SETTING, true);
     Cast cast;
     auto& pm = cast.novel.pm;
-    REQUIRE(pm.linkParagraph(cast.anna, cast.novel.chapterId, 1, PARAGRAPHS.at(0),
+    REQUIRE(pm.linkParagraph(cast.anna, cast.novel.chapterId, 1, chapterParagraphs().at(0),
                              core::LinkRoles::POINT_OF_VIEW));
-    REQUIRE(pm.linkParagraph(cast.forest, cast.novel.chapterId, 1, PARAGRAPHS.at(0),
+    REQUIRE(pm.linkParagraph(cast.forest, cast.novel.chapterId, 1, chapterParagraphs().at(0),
                              core::LinkRoles::SETTING));
 
     test::Window window;
     QStringList opened;
     QStringList shown;
-    gui::ParagraphMarksCoordinator coordinator(
+    const gui::ParagraphMarksCoordinator coordinator(
         test::book(), window.tabs, [&shown](const QString& id) { shown << id; },
         [&opened](const QString& id) { opened << id; });
     editor::BookEditor* editor = openChapter(window, cast);
@@ -321,7 +345,7 @@ TEST_CASE("Paragraph cards: the signs of the kinds of the cards beside the parag
     CHECK(shown.isEmpty());
 
     // A card linked with the paragraph joins the sign of its kind
-    REQUIRE(pm.linkParagraph(cast.eldrion, cast.novel.chapterId, 1, PARAGRAPHS.at(0),
+    REQUIRE(pm.linkParagraph(cast.eldrion, cast.novel.chapterId, 1, chapterParagraphs().at(0),
                              core::LinkRoles::APPEARS));
     settle();
     marks = editor->paragraphMarks();
@@ -352,7 +376,7 @@ TEST_CASE("Paragraph cards: Book > Link Paragraph with Card... and Open Card at 
     gui::registerAllCommands(test::commands(), gui::CommandCallbacks{});
     gui::CommandRegistry& registry = test::commands();
     test::OpenNovel novel(QStringLiteral("Cards"));
-    novel.pm.setChapterContent(novel.chapterId, test::kmlOf(PARAGRAPHS));
+    novel.pm.setChapterContent(novel.chapterId, test::kmlOf(chapterParagraphs()));
     REQUIRE(novel.pm.saveChapterContent(novel.chapterId));
 
     test::Window window;
@@ -398,7 +422,7 @@ TEST_CASE("Paragraph cards: Book > Link Paragraph with Card... and Open Card at 
 
     // The card whose name the cursor is in, in any of its forms
     const auto putCursor = [keys](int paragraph, const char* word) {
-        const auto at = static_cast<int>(PARAGRAPHS.at(paragraph).indexOf(text(word)));
+        const auto at = static_cast<int>(chapterParagraphs().at(paragraph).indexOf(text(word)));
         REQUIRE(at >= 0);
         keys->setCursorPosition({paragraph, at + 2});
     };
@@ -416,16 +440,16 @@ TEST_CASE("Paragraph cards: Book > Link Paragraph with Card... and Open Card at 
         putCursor(3, "Eldrion");
         QString chosen;
         CHECK(answeringLink([&]() { link->execute(); },
-                            [&chosen](ParagraphCardDialog& window) {
-                                chosen = window.choice().cardId;
-                                window.acceptButton()->click();
+                            [&chosen](ParagraphCardDialog& dialog) {
+                                chosen = dialog.choice().cardId;
+                                dialog.acceptButton()->click();
                             }));
         CHECK(chosen == eldrion);
         const core::ElementLink* saved =
             test::book().findElement(eldrion)->linkTo(novel.chapterId);
         REQUIRE(saved != nullptr);
         CHECK(saved->paragraph == 4);
-        CHECK(saved->excerpt == core::LinkRoles::excerptOf(PARAGRAPHS.at(3)));
+        CHECK(saved->excerpt == core::LinkRoles::excerptOf(chapterParagraphs().at(3)));
 
         // Open Card at Cursor: outside a name, the first card of the paragraph
         putCursor(3, "milczał");
@@ -456,3 +480,5 @@ TEST_CASE("Paragraph cards: Book > Link Paragraph with Card... and Open Card at 
         CHECK(opened == QStringList{anna});
     }
 }
+
+}  // namespace kalahari

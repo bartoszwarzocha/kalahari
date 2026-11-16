@@ -292,8 +292,8 @@ void MaterialListCoordinator::connectList(MaterialListPanel* panel) {
             &MaterialListCoordinator::setCoverState);
     connect(panel, &MaterialListPanel::requestShowKind, this, &MaterialListCoordinator::showKind);
     connect(panel, &MaterialListPanel::requestSettings, this,
-            [this, panel = QPointer<MaterialListPanel>(panel)]() {
-                if (panel != nullptr && CardList::isCardList(panel->list())) {
+            [this, shown = QPointer<MaterialListPanel>(panel)]() {
+                if (shown != nullptr && CardList::isCardList(shown->list())) {
                     emit cardSettingsRequested();
                 } else {
                     emit settingsRequested();

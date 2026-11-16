@@ -63,6 +63,7 @@
 #include <algorithm>
 #include <functional>
 #include <optional>
+#include <utility>
 
 namespace kalahari {
 namespace gui {
@@ -76,6 +77,10 @@ const QString NONE = QStringLiteral("–");
 constexpr int THUMBNAIL_WIDTH = 48;
 constexpr int THUMBNAIL_HEIGHT = 36;
 constexpr int THUMBNAIL_ROW = 40;
+/// The room a row of text has over and under its letters
+constexpr int TEXT_ROW_PADDING = 8;
+/// The side of the icons of the rows of text
+constexpr int ROW_ICON = 16;
 
 /// Size of a tile and of its picture
 constexpr int TILE_WIDTH = 150;
@@ -344,7 +349,7 @@ private:
                                                 -TILE_MARGIN);
         const QRect pictureArea(area.left(), area.top(), area.width(), TILE_PICTURE_HEIGHT);
         painter->fillRect(pictureArea, option.palette.color(QPalette::AlternateBase));
-        const QPixmap portrait = index.data(MaterialListPanel::TILE_ROLE).value<QPixmap>();
+        const auto portrait = index.data(MaterialListPanel::TILE_ROLE).value<QPixmap>();
         if (!portrait.isNull()) {
             const QSize shown = portrait.deviceIndependentSize().toSize();
             painter->drawPixmap(
@@ -1809,7 +1814,6 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
     if (row == nullptr) {
         return true;
     }
-    const bool changing = !m_book.isReadOnly();
     switch (what) {
     case ListKey::Edit:
         emit requestEdit(row->id, editsText(*row));
@@ -1818,13 +1822,10 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
         emit requestProperties(row->id);
         break;
     case ListKey::Rename:
-        // A list of cards edits the cell of a field; the names are renamed
-        if (changing && !editCell(view)) {
-            emit requestRename(row->id);
-        }
+        renameFromKeys(view, row->id);
         break;
     case ListKey::Delete:
-        if (changing) {
+        if (!m_book.isReadOnly()) {
             emit requestDelete(row->id);
         }
         break;
@@ -1835,6 +1836,12 @@ bool MaterialListPanel::handleKey(QAbstractItemView* view, QKeyEvent* key) {
         break;
     }
     return true;
+}
+
+void MaterialListPanel::renameFromKeys(QAbstractItemView* view, const QString& id) {
+    if (!m_book.isReadOnly() && !editCell(view)) {
+        emit requestRename(id);
+    }
 }
 
 void MaterialListPanel::load() {
@@ -1901,8 +1908,8 @@ void MaterialListPanel::load() {
 }
 
 void MaterialListPanel::applyRowSizes(bool pictures) {
-    int rowHeight = m_table->fontMetrics().height() + 8;
-    QSize iconSize(16, 16);
+    int rowHeight = m_table->fontMetrics().height() + TEXT_ROW_PADDING;
+    QSize iconSize(ROW_ICON, ROW_ICON);
     if (pictures) {
         rowHeight = THUMBNAIL_ROW;
         iconSize = QSize(THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT);

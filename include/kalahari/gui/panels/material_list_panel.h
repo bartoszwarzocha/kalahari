@@ -284,6 +284,9 @@ private:
     void onCurrentChanged(QAbstractItemView* view, const QModelIndex& current);
     /// @brief A key of the list: true when it did something with it
     bool handleKey(QAbstractItemView* view, QKeyEvent* key);
+    /// @brief Rename... of material @p id from the keys of @p view: a list of cards edits the
+    /// cell of a field, a name is renamed; nothing in a book open read-only
+    void renameFromKeys(QAbstractItemView* view, const QString& id);
     QString idAt(const QModelIndex& index) const;
     int columnOf(const QString& columnId) const;
     /// @brief The plan of the cover from the rows shown
@@ -311,7 +314,7 @@ private:
     bool editCell(QAbstractItemView* view);
     /// @brief The column of the table to choose a row in: that of the current cell, also when
     /// the list was filled again; the first one when it is hidden
-    int tableColumn() const;
+    [[nodiscard]] int tableColumn() const;
 
     QString m_list;
     QHash<QString, State> m_states;

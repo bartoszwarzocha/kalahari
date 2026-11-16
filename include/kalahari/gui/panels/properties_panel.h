@@ -99,10 +99,12 @@ public:
     /// @brief The short card of a character, a location or an item
     [[nodiscard]] CardPage* cardPage() const { return m_cardPage; }
 
-    /// @brief The card at the cursor of a text of the book, on the Editor page
+    /// @brief The card at the cursor of a text of the book, on the Editor page or the Chapter
+    ///        page of the text in front
     [[nodiscard]] CursorCardBox* cursorCard() const { return m_cursorCard; }
 
-    /// @brief The cards of the paragraph at the cursor of a chapter, on the Editor page
+    /// @brief The cards of the paragraph at the cursor of a chapter, on the Editor page or the
+    ///        Chapter page of the text in front
     [[nodiscard]] ParagraphCardsBox* paragraphCards() const { return m_paragraphCards; }
 
     /// @brief The materials of the element of the chapter page, of the section and of the part
@@ -229,8 +231,8 @@ private slots:
     void refreshVersions();
 
     /// @brief The card whose name the cursor of the text in front is in and the cards of its
-    /// paragraph, on the Editor page, as Settings > Cards shows them
-    /// (CursorCardBox::cardsAtCursor())
+    /// paragraph, on the Editor page or on the Chapter page of its chapter, as Settings >
+    /// Cards shows them (CursorCardBox::cardsAtCursor())
     void updateCursorCard();
 
 protected:
@@ -394,9 +396,14 @@ private:
     /// @brief Update editor statistics from current BookEditor
     void updateEditorStatistics();
 
-    /// @brief Put the group of the versions on the page of @p layout (of the Chapter page or
-    ///        the Editor page): the one group follows the page shown
-    void placeVersionsGroup(QVBoxLayout* layout);
+    /// @brief Put the group of the versions, the card at the cursor and the cards of its
+    ///        paragraph on the page of @p layout (of the Chapter page or the Editor page): the
+    ///        one set of them follows the page shown
+    void placeTextGroups(QVBoxLayout* layout);
+
+    /// @brief The element of the book whose text is in front, when the page shown describes
+    ///        it: the Editor page, or the Chapter page of its chapter; empty for none
+    [[nodiscard]] QString describedTextId() const;
 
     /// @brief The cards of the paragraph at the cursor of @p text, the text of element
     ///        @p elementId: shown for a chapter of the book (nullptr: none shown)
@@ -523,8 +530,8 @@ private:
     // The card of a material
     MaterialPage* m_materialPage = nullptr;
     CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
-    CursorCardBox* m_cursorCard = nullptr;  ///< The Editor page: the card at the cursor
-    ParagraphCardsBox* m_paragraphCards = nullptr;  ///< The Editor page: the paragraph's cards
+    CursorCardBox* m_cursorCard = nullptr;  ///< The card at the cursor (placeTextGroups())
+    ParagraphCardsBox* m_paragraphCards = nullptr;  ///< The paragraph's cards (placeTextGroups())
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
     QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"

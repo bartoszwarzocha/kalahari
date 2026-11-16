@@ -30,6 +30,9 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
+#include <functional>
+#include <utility>
+
 namespace kalahari::gui {
 
 namespace {
@@ -157,7 +160,7 @@ void ParagraphCardsBox::refresh() {
                       QIcon(PaletteEdit::swatchOf(QColor(card->card.color), SWATCH_SIDE,
                                                   devicePixelRatioF(),
                                                   palette().color(QPalette::Mid))));
-        item->setData(ROLE_COLUMN, CARD_ROLE, id);
+        item->setData(CARD_COLUMN, CARD_ROLE, id);
         if (id == current) {
             m_list->setCurrentItem(item);
         }
@@ -168,7 +171,7 @@ void ParagraphCardsBox::refresh() {
 
 QString ParagraphCardsBox::currentCard() const {
     const QTreeWidgetItem* item = m_list->currentItem();
-    return item != nullptr ? item->data(ROLE_COLUMN, CARD_ROLE).toString() : QString();
+    return item != nullptr ? item->data(CARD_COLUMN, CARD_ROLE).toString() : QString();
 }
 
 void ParagraphCardsBox::unlinkCurrent() {

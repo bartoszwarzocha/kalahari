@@ -5,7 +5,8 @@
 /// @brief The lists of the cards of the characters, the locations and the items on their tabs:
 /// the columns of a kind of cards and what a card shows in them
 
-#pragma once
+#ifndef KALAHARI_GUI_CARD_LIST_H
+#define KALAHARI_GUI_CARD_LIST_H
 
 #include "kalahari/gui/material_list.h"
 
@@ -72,3 +73,5 @@ public:
 };
 
 }  // namespace kalahari::gui
+
+#endif  // KALAHARI_GUI_CARD_LIST_H

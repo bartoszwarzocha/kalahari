@@ -13,6 +13,7 @@
 #include "kalahari/gui/card_list.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 
 #include <QComboBox>
@@ -34,7 +35,9 @@ constexpr int LONG_TEXT_LINES = 4;
 /// Characters across an edited longer text at least: a short sentence
 constexpr int LONG_TEXT_CHARACTERS = 40;
 /// The value of a field with a list that has none, as the table shows it
-const QString NO_VALUE = QStringLiteral("–");
+QString noValue() {
+    return QStringLiteral("–");
+}
 
 /// The text @p editor holds: the id of the value chosen, the name typed or chosen, the text
 QString textOf(const QWidget* editor) {
@@ -52,7 +55,7 @@ QString textOf(const QWidget* editor) {
 QWidget* choiceEditor(QWidget* parent, const core::CardField& field) {
     auto* box = new QComboBox(parent);
     box->setObjectName(QStringLiteral("cardCellChoice"));
-    box->addItem(NO_VALUE, QString());
+    box->addItem(noValue(), QString());
     for (const core::CardFieldChoice& choice : field.choices) {
         box->addItem(choice.name.text(programLanguage()), choice.id);
     }

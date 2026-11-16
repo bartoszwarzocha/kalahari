@@ -10,6 +10,7 @@
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/card_name_index.h>
 #include <kalahari/core/card_relations.h>
 #include <kalahari/core/bibliography.h>
 #include <kalahari/core/chapter_document.h>
@@ -2600,10 +2601,10 @@ bool ProjectManager::setLinks(const QString& elementId, const QStringList& targe
     return setLinks(elementId, links);
 }
 
-ElementLink ProjectManager::newLink(const QString& elementId, const QString& target) const {
+ElementLink ProjectManager::newLink(const QString& linkedId, const QString& target) const {
     ElementLink link;
     link.to = target;
-    const ProjectElement* element = findElement(elementId);
+    const ProjectElement* element = findElement(linkedId);
     const KindRef kind = element != nullptr ? kindOf(*element) : KindRef();
     const ProjectElement* other = findElement(target);
     if (!kind) {

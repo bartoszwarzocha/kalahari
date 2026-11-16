@@ -263,6 +263,10 @@ private:
     /// @brief Open the full card of card @p cardId on a tab, as the Navigator opens it
     void openCard(const QString& cardId);
 
+    /// @brief Book > Link Paragraph with Card... and Book > Open Card at Cursor
+    ///        (CardsInTextCoordinator), with their states following the text with the keys
+    void createCardsInText();
+
     /// @brief Reset the layout to default: the toolbars (ToolbarManager) and the panels
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();

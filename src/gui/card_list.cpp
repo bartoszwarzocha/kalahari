@@ -11,8 +11,10 @@
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_names.h"
+#include "kalahari/core/card_relations.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_list.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 
@@ -20,6 +22,7 @@
 
 #include <algorithm>
 #include <functional>
+#include <iterator>
 #include <optional>
 
 namespace kalahari::gui {
