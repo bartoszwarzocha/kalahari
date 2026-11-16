@@ -6,6 +6,7 @@
 /// they look in it, and the progress and the result of the export in one window
 
 #include "kalahari/gui/dialogs/export_book_dialog.h"
+#include "book_output_parts.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/extension_points.h"
 #include "kalahari/core/logger.h"
@@ -56,11 +57,13 @@ namespace dialogs {
 
 namespace {
 
-constexpr int ID_ROLE = Qt::UserRole;          ///< The element of a row of the list
-constexpr int STATUS_ROLE = Qt::UserRole + 1;  ///< The status of a text of the list
-/// Rows the list of the texts shows at most (the others scroll in it): the window with the
-/// result of the export fits 1366x768 at 150%
-constexpr int LIST_ROWS = 5;
+using book_output::literal;
+using book_output::nameOfValue;
+using book_output::newRemark;
+using book_output::valueOfName;
+using book_output::widthOfLetters;
+using book_output::withRemark;
+
 /// The width of the window in the letters of a text: the remarks in fewer lines
 constexpr int WIDTH_IN_LETTERS = 140;
 /// The widest the window starts, a wide font or not: with its frame it fits a screen of
@@ -71,64 +74,9 @@ constexpr int MAX_START_WIDTH = 880;
 constexpr int COVER_LINES = 3;
 /// The width of the description of the book on the tab of an EPUB, in letters: one line
 constexpr int DESCRIPTION_LETTERS = 70;
-/// The width of the list of the fonts, in letters of their names
-constexpr int FONT_NAME_LETTERS = 24;
 /// The width of the field of the ISBN, in letters: the 17 characters of an ISBN with its
 /// hyphens (digits are wider than letters) and the frame of the field
 constexpr int ISBN_LETTERS = 24;
-
-/// The width of @p letters letters of a text in the font of @p metrics. Not
-/// averageCharWidth(): fonts give it differently (DejaVu Sans 6 pixels, Inter 8, for text
-/// that takes 5.8 and 5.5), and the window would wrap its sentences into more lines in one
-/// font than in another
-int widthOfLetters(const QFontMetrics& metrics, int letters) {
-    const QString text = QStringLiteral("the quick brown fox jumps over the lazy dog ");
-    return qRound(metrics.horizontalAdvance(text) * static_cast<qreal>(letters) /
-                  static_cast<qreal>(text.size()));
-}
-
-/// Tabs as high as their highest page at the width they have: a page of wrapped sentences
-/// asks for the lines its sentences take there, whichever page is in front. A plain
-/// QTabWidget asks so only for the page in front, and for the others takes their own hints,
-/// which wrap the sentences at a narrower width into more lines.
-class FittingTabs : public QTabWidget {
-public:
-    using QTabWidget::QTabWidget;
-
-    [[nodiscard]] bool hasHeightForWidth() const override { return true; }
-
-    [[nodiscard]] int heightForWidth(int width) const override {
-        // The frame around the pages, as QTabWidget measures it
-        QStyleOption option(0);
-        option.initFrom(this);
-        option.state = QStyle::State_None;
-        const QSize frame =
-            style()->sizeFromContents(QStyle::CT_TabWidget, &option, QSize(0, 0), this);
-        const int pageWidth = width - frame.width();
-        int pages = 0;
-        for (int i = 0; i < count(); ++i) {
-            if (!isTabVisible(i)) {
-                continue;  // the options of a format that is not chosen
-            }
-            const QWidget* page = widget(i);
-            const int height = page->hasHeightForWidth() ? page->heightForWidth(pageWidth) : -1;
-            pages = std::max(pages, height >= 0 ? height : page->sizeHint().height());
-        }
-        return frame.height() + tabBar()->sizeHint().height() + pages;
-    }
-
-    [[nodiscard]] QSize sizeHint() const override {
-        const QSize plain = QTabWidget::sizeHint();
-        return {plain.width(), heightForWidth(plain.width())};
-    }
-};
-
-/// The fonts a Word document is often written in, offered first after the editor's
-const QStringList& commonFonts() {
-    static const QStringList fonts = {QStringLiteral("Times New Roman"), QStringLiteral("Georgia"),
-                                      QStringLiteral("Garamond"), QStringLiteral("Calibri")};
-    return fonts;
-}
 
 /// Characters that file systems do not allow in a name
 const QString& forbiddenCharacters() {
@@ -144,59 +92,6 @@ QString safeName(const QString& title) {
     return name;
 }
 
-/// @p text in the label of a button: an '&' shows as itself, not as an access key
-QString literal(QString text) {
-    return text.replace(QLatin1Char('&'), QStringLiteral("&&"));
-}
-
-/// A grey sentence under an option or a list
-QLabel* newRemark(QWidget* parent, const QString& text) {
-    auto* label = new QLabel(text, parent);
-    label->setTextFormat(Qt::PlainText);
-    label->setWordWrap(true);
-    label->setForegroundRole(QPalette::PlaceholderText);
-    return label;
-}
-
-/// Check box @p box with @p remark right under it, in line with its text; @p beside, when
-/// given, on the line of the box after it (an option of its own, which saves a line)
-QWidget* withRemark(QCheckBox* box, QLabel* remark, QWidget* beside = nullptr) {
-    auto* option = new QWidget(box->parentWidget());
-    auto* layout = new QVBoxLayout(option);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
-    box->setParent(option);
-    remark->setParent(option);
-    const QStyle* style = box->style();
-    remark->setContentsMargins(style->pixelMetric(QStyle::PM_IndicatorWidth, nullptr, box) +
-                                   style->pixelMetric(QStyle::PM_CheckBoxLabelSpacing, nullptr, box),
-                               0, 0, 0);
-    if (beside != nullptr) {
-        beside->setParent(option);
-        auto* line = new QHBoxLayout();
-        line->setSpacing(box->fontMetrics().averageCharWidth() * 3);
-        line->addWidget(box);
-        line->addWidget(beside);
-        line->addStretch(1);
-        layout->addLayout(line);
-    } else {
-        layout->addWidget(box);
-    }
-    layout->addWidget(remark);
-    return option;
-}
-
-/// The running heads as the settings keep them
-const std::array<std::pair<editor::RunningHead, const char*>, 4>& runningHeadNames() {
-    static const std::array<std::pair<editor::RunningHead, const char*>, 4> names = {{
-        {editor::RunningHead::None, "none"},
-        {editor::RunningHead::AuthorAndTitle, "authorAndTitle"},
-        {editor::RunningHead::TitleAndChapter, "titleAndChapter"},
-        {editor::RunningHead::Chapter, "chapter"},
-    }};
-    return names;
-}
-
 /// The purposes of a PDF as the settings keep them
 const std::array<std::pair<editor::PdfPurpose, const char*>, 3>& purposeNames() {
     static const std::array<std::pair<editor::PdfPurpose, const char*>, 3> names = {{
@@ -207,56 +102,17 @@ const std::array<std::pair<editor::PdfPurpose, const char*>, 3>& purposeNames() 
     return names;
 }
 
-/// The value of @p name in @p names; @p fallback for a name the list does not have
-template <typename Value, std::size_t Size>
-Value valueOfName(const std::array<std::pair<Value, const char*>, Size>& names,
-                  const std::string& name, Value fallback) {
-    for (const auto& [value, each] : names) {
-        if (name == each) {
-            return value;
-        }
-    }
-    return fallback;
-}
-
-/// The name of @p value in @p names
-template <typename Value, std::size_t Size>
-std::string nameOfValue(const std::array<std::pair<Value, const char*>, Size>& names,
-                        Value value) {
-    for (const auto& [each, name] : names) {
-        if (each == value) {
-            return name;
-        }
-    }
-    return names.front().second;
-}
-
-/// The content as the settings keep it
-QString contentName(ExportBookDialog::Content content) {
-    switch (content) {
-        case ExportBookDialog::Content::Book:
-            return QStringLiteral("book");
-        case ExportBookDialog::Content::Chosen:
-            return QStringLiteral("chosen");
-        case ExportBookDialog::Content::Front:
-            return QStringLiteral("front");
-    }
-    return QStringLiteral("book");
-}
-
 } // anonymous namespace
 
 ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format,
                                    const QString& folder, Exporter exporter, QWidget* parent)
-    : ArchiveDialog(parent)
-    , m_book(book)
+    : BookOutputDialog(book, parent)
     , m_exporter(std::move(exporter))
 {
     const auto& settings = core::SettingsManager::getInstance();
     //: The title of the window of File > Export > DOCX and Markdown. In Polish: Eksportuj
     //: książkę
     setHeading(tr("Export Book"));
-    setCompactHeading(true);
     setMinimumWidth(std::max(
         minimumWidth(), std::min(widthOfLetters(fontMetrics(), WIDTH_IN_LETTERS), MAX_START_WIDTH)));
     //: The tooltip of the gear of the window of the export. In Polish: Ustawienia stron
@@ -267,17 +123,7 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     // The tabs: the file, the texts, the layout, and the annotations and the images. The
     // tabs are as high as the highest, so the window keeps its size and nothing scrolls; the
     // progress and the result show under them, whichever tab is in front.
-    m_tabs = new FittingTabs(this);
-    fieldsLayout()->addWidget(m_tabs);
-    const auto newTab = [this](const QString& title) {
-        auto* page = new QWidget(m_tabs);
-        auto* grid = new QGridLayout(page);
-        grid->setColumnStretch(1, 1);
-        m_tabs->addTab(page, title);
-        return grid;
-    };
-    // The rows of a tab start at its top
-    const auto endTab = [](QGridLayout* grid) { grid->setRowStretch(grid->rowCount(), 1); };
+    fieldsLayout()->addWidget(tabs());
 
     // The file: its format, its folder and its name
     //: A tab of the window of the export: the format, the folder and the name of the file. In
@@ -310,97 +156,10 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     endTab(file);
 
     // The texts: the whole book, the texts chosen in the list, or the text in front
-    //: A tab of the window of the export: what goes to the file. In Polish: T&eksty
-    QGridLayout* content = newTab(tr("Text&s"));
-    QWidget* contentBox = content->parentWidget();
-    int leafCount = 0;
-    for (const Row& row : std::as_const(m_book.rows)) {
-        leafCount += row.leaf ? 1 : 0;
-    }
-    //: %n: how many texts the book has. In Polish: &Cała książka (%n tekst / teksty / tekstów)
-    m_bookButton = new QRadioButton(tr("Whole &book (%n texts)", nullptr, leafCount), contentBox);
-    //: In Polish: &Wybrane teksty
-    m_chosenButton = new QRadioButton(tr("&Chosen texts"), contentBox);
-    //: %1: the title of the text of the tab in front. In Polish: Tekst na wie&rzchu: „%1”
-    m_frontButton =
-        new QRadioButton(tr("&Text in front: \"%1\"").arg(literal(m_book.frontTitle)), contentBox);
-    // The book and the chosen texts side by side; the text in front, whose title may be long,
-    // under them
-    int row = 0;
-    auto* bookOrChosen = new QHBoxLayout();
-    bookOrChosen->setSpacing(fontMetrics().averageCharWidth() * 3);
-    bookOrChosen->addWidget(m_bookButton);
-    bookOrChosen->addWidget(m_chosenButton);
-    bookOrChosen->addStretch();
-    content->addLayout(bookOrChosen, row++, 0, 1, 2);
-    content->addWidget(m_frontButton, row++, 0, 1, 2);
-
-    // The list of the texts, with their sections and groups, and its buttons at its side. It
-    // stays in its place and works with Chosen texts.
-    m_chosenBox = new QWidget(contentBox);
-    auto* chosenLayout = new QGridLayout(m_chosenBox);
-    chosenLayout->setContentsMargins(0, 0, 0, 0);
-    chosenLayout->setColumnStretch(0, 1);
-    //: The name of the list of the texts for screen readers. In Polish: Teksty książki
-    m_textList = newRowList(m_chosenBox, tr("Texts of the book"));
-    // A tree as the Navigator: the sections and the parts open and close, all open at first
-    m_textList->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_textList->setRootIsDecorated(true);
-    m_textList->setItemsExpandable(true);
-    auto& artProvider = core::ArtProvider::getInstance();
-    QList<QTreeWidgetItem*> parents;
-    for (const Row& each : std::as_const(m_book.rows)) {
-        while (!parents.isEmpty() && parents.size() > each.level) {
-            parents.removeLast();
-        }
-        auto* item = parents.isEmpty() ? new QTreeWidgetItem(m_textList)
-                                       : new QTreeWidgetItem(parents.last());
-        item->setText(0, each.title);
-        if (!each.iconId.isEmpty()) {
-            item->setIcon(0, artProvider.getIcon(each.iconId, core::IconContext::TreeView));
-        }
-        item->setData(0, ID_ROLE, each.id);
-        item->setData(0, STATUS_ROLE, each.status);
-        if (!each.status.isEmpty()) {
-            item->setText(1, AddToBookDialog::statusName(each.status));
-            item->setForeground(1, m_textList->palette().brush(QPalette::PlaceholderText));
-        }
-        Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable;
-        if (!each.leaf) {
-            flags |= Qt::ItemIsAutoTristate;
-        }
-        item->setFlags(flags);
-        item->setCheckState(0, Qt::Checked);
-        if (!each.leaf) {
-            while (parents.size() < each.level + 1) {
-                parents.append(item);
-            }
-        }
-    }
-    m_textList->expandAll();
-    m_textList->setRows(std::min(static_cast<int>(m_book.rows.size()), LIST_ROWS));
-    chosenLayout->addWidget(m_textList, 0, 0);
-    auto* buttons = new QVBoxLayout();
-    buttons->setContentsMargins(0, 0, 0, 0);
-    //: Checks every text of the list. In Polish: &Zaznacz wszystkie
-    auto* allButton = new QPushButton(tr("Check &All"), m_chosenBox);
-    //: Unchecks every text of the list. In Polish: &Odznacz wszystkie
-    auto* noneButton = new QPushButton(tr("&Uncheck All"), m_chosenBox);
-    //: Checks only the final texts of the list. In Polish: Tylko &gotowe
-    auto* finalButton = new QPushButton(tr("Only &Final"), m_chosenBox);
-    for (QPushButton* button : {allButton, noneButton, finalButton}) {
-        button->setAutoDefault(false);
-        buttons->addWidget(button);
-    }
-    // How many texts are chosen, under the buttons
-    m_chosenNote = newRemark(m_chosenBox, QString());
-    buttons->addWidget(m_chosenNote);
-    buttons->addStretch();
-    chosenLayout->addLayout(buttons, 0, 1);
-    content->addWidget(m_chosenBox, row++, 0, 1, 2);
-    QLabel* orderNote = newRemark(
-        contentBox,
-        m_book.title.isEmpty()
+    addTextsTab(
+        //: A tab of the window of the export: what goes to the file. In Polish: T&eksty
+        tr("Text&s"),
+        book.title.isEmpty()
             //: Under the content of the export without a book. In Polish: Tekst trafi do
             //: pliku także z niezapisanymi zmianami.
             ? tr("The text goes to the file also with its unsaved changes.")
@@ -408,131 +167,11 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
             //: Nawigatora, także z niezapisanymi zmianami.
             : tr("The texts go to the file in the order of the Navigator, also with their "
                  "unsaved changes."));
-    content->addWidget(orderNote, row++, 0, 1, 2);
-    endTab(content);
-    connect(allButton, &QPushButton::clicked, this, &ExportBookDialog::checkAll);
-    connect(noneButton, &QPushButton::clicked, this, &ExportBookDialog::checkNone);
-    connect(finalButton, &QPushButton::clicked, this, &ExportBookDialog::checkFinal);
-    connect(m_textList, &QTreeWidget::itemChanged, this,
-            [this](QTreeWidgetItem* item, int column) {
-                if (column == 0) {
-                    textChanged(item);
-                }
-            });
 
-    // Without a book only the text in front; without a text in front, only the book
-    m_bookButton->setVisible(!m_book.title.isEmpty());
-    m_chosenButton->setVisible(!m_book.title.isEmpty());
-    m_chosenBox->setVisible(!m_book.title.isEmpty());
-    m_frontButton->setVisible(!m_book.frontTitle.isEmpty());
-
-    // The layout: the titles as headings, and the pages of a Word document
+    // The layout: the titles as headings, the pages of a Word document and of a PDF
     //: A tab of the window of the export: how the texts look in the file. In Polish: U&kład
-    QGridLayout* look = newTab(tr("La&yout"));
+    QGridLayout* look = addLayoutTab(tr("La&yout"));
     QWidget* lookPage = look->parentWidget();
-    row = 0;
-    //: In Polish: &Tytuły części i rozdziałów z Nawigatora jako nagłówki
-    m_titlesBox = new QCheckBox(tr("Navigator titles of parts and chapters as &headings"), lookPage);
-    look->addWidget(
-        withRemark(m_titlesBox,
-                   newRemark(lookPage,
-                             //: Under the titles as headings. In Polish: Tekst, który zaczyna się
-                             //: od nagłówka, zostaje z własnym. Strona tytułowa, strona
-                             //: redakcyjna, dedykacja i motto nie dostają tytułu.
-                             tr("A text that starts with a heading keeps its own. The title page, "
-                                "the copyright page, the dedication and the motto get no title."))),
-        row++, 0, 1, 2);
-    m_wordLayout = new QWidget(lookPage);
-    auto* wordLayout = new QGridLayout(m_wordLayout);
-    wordLayout->setContentsMargins(0, 0, 0, 0);
-    wordLayout->setColumnStretch(1, 1);
-    int wordRow = 0;
-    //: In Polish: Każd&y tekst od nowej strony
-    m_newPageBox = new QCheckBox(tr("Each text from a new &page"), m_wordLayout);
-    //: In Polish: Numery &stron na dole strony
-    m_pageNumbersBox = new QCheckBox(tr("Page numbers at the b&ottom of the page"), m_wordLayout);
-    // The page numbers beside a new page: the tab as high as the Texts tab
-    wordLayout->addWidget(
-        withRemark(m_newPageBox,
-                   newRemark(m_wordLayout,
-                             //: Under each text from a new page. In Polish: Przy marginesach
-                             //: lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego
-                             //: właściwościach ustawiono lewą.
-                             tr("With mirror margins a text starts on a right page, unless its "
-                                "properties say a left one.")),
-                   m_pageNumbersBox),
-        wordRow++, 0, 1, 2);
-    look->addWidget(m_wordLayout, row++, 0, 1, 2);
-
-    m_fontBox = new QComboBox(lookPage);
-    const QString editorFont = QString::fromStdString(settings.get<std::string>("editor.fontFamily"));
-    //: The first font of the export: the font of the editor; %1: its name. In Polish: %1
-    //: (czcionka edytora)
-    m_fontBox->addItem(tr("%1 (editor font)").arg(editorFont), QString());
-    for (const QString& font : commonFonts()) {
-        m_fontBox->addItem(font, font);
-    }
-    m_fontBox->insertSeparator(m_fontBox->count());
-    for (const QString& font : QFontDatabase::families()) {
-        if (!commonFonts().contains(font) && !QFontDatabase::isPrivateFamily(font)) {
-            m_fontBox->addItem(font, font);
-        }
-    }
-    // The font and the running head of a Word document and of a PDF, in one row: the tab as
-    // high as the others
-    m_fontRow = new QWidget(lookPage);
-    auto* fontRowLayout = new QHBoxLayout(m_fontRow);
-    fontRowLayout->setContentsMargins(0, 0, 0, 0);
-    fontRowLayout->setSpacing(fontMetrics().averageCharWidth() * 3);
-    m_fontBox->setParent(m_fontRow);
-    // As wide as a long name of a font, whichever fonts the system has
-    m_fontBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    m_fontBox->setMinimumContentsLength(FONT_NAME_LETTERS);
-    fontRowLayout->addWidget(m_fontBox);
-    m_runningHeadBox = new QComboBox(m_fontRow);
-    //: A running head of the export. In Polish: Bez żywej paginy
-    m_runningHeadBox->addItem(tr("No running head"), static_cast<int>(editor::RunningHead::None));
-    //: A running head of the export. In Polish: Autor na lewej stronie, tytuł książki na prawej
-    m_runningHeadBox->addItem(tr("Author on the left page, book title on the right one"),
-                              static_cast<int>(editor::RunningHead::AuthorAndTitle));
-    //: A running head of the export. In Polish: Tytuł książki na lewej, tytuł rozdziału na
-    //: prawej
-    m_runningHeadBox->addItem(tr("Book title on the left, chapter title on the right"),
-                              static_cast<int>(editor::RunningHead::TitleAndChapter));
-    //: A running head of the export. In Polish: Tytuł rozdziału na obu stronach
-    m_runningHeadBox->addItem(tr("Chapter title on both pages"),
-                              static_cast<int>(editor::RunningHead::Chapter));
-    m_runningHeadBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-    //: The line at the top of the pages of a book. In Polish: Żywa pa&gina:
-    auto* runningHeadLabel = new QLabel(tr("&Running head:"), m_fontRow);
-    runningHeadLabel->setBuddy(m_runningHeadBox);
-    auto* runningHeadLayout = new QHBoxLayout();
-    runningHeadLayout->setSpacing(
-        style()->layoutSpacing(QSizePolicy::Label, QSizePolicy::ComboBox, Qt::Horizontal));
-    runningHeadLayout->addWidget(runningHeadLabel);
-    runningHeadLayout->addWidget(m_runningHeadBox);
-    fontRowLayout->addLayout(runningHeadLayout);
-    fontRowLayout->addStretch();
-    //: In Polish: Czcionk&a tekstu:
-    addRow(look, tr("Font of the te&xt:"), m_fontRow)->setBuddy(m_fontBox);
-    m_runningHeadNote = addNote(look);
-    //: Under the running head. In Polish: U góry stron tekstu, bez stron tytułowych i bez
-    //: pierwszych stron rozdziałów.
-    showNote(m_runningHeadNote, tr("At the top of the pages of the text, without the title pages "
-                                   "and without the first pages of the chapters."));
-    m_pageLabel = new QLabel(lookPage);
-    m_pageLabel->setTextFormat(Qt::PlainText);
-    m_pageLabel->setWordWrap(true);
-    //: In Polish: Strona:
-    addRow(look, tr("Page:"), m_pageLabel);
-    m_pageNote = addNote(look);
-    //: Under the page of the export. In Polish: Rozmiar strony i marginesy pochodzą z Ustawień ›
-    //: Edytor › Strony i marginesy (zębatka w nagłówku okna). Rozmiary liter, odstępy i wcięcia
-    //: – ze stylów książki.
-    showNote(m_pageNote, tr("The size of the page and the margins come from Settings › Editor › "
-                          "Pages and Margins (the gear in the heading of the window). The sizes of "
-                          "the letters, the spacing and the indents come from the styles of the "
-                          "book."));
 
     // The look of an EPUB in the reader, and its font
     m_epubLayout = new QWidget(lookPage);
@@ -716,10 +355,10 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     coverGrid->setContentsMargins(0, 0, 0, 0);
     coverGrid->setColumnStretch(1, 1);
     m_coverBox = new QComboBox(coverFields);
-    if (!m_book.coverFile.isEmpty()) {
+    if (!book.coverFile.isEmpty()) {
         //: The cover of an EPUB: the design chosen in the materials; %1: its title. In Polish:
         //: %1 (z materiałów)
-        m_coverBox->addItem(tr("%1 (from the materials)").arg(m_book.coverTitle),
+        m_coverBox->addItem(tr("%1 (from the materials)").arg(book.coverTitle),
                             static_cast<int>(Cover::Design));
     }
     //: The cover of an EPUB. In Polish: Bez okładki
@@ -748,18 +387,18 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
         label->setTextFormat(Qt::PlainText);
         return label;
     };
-    m_titleAndAuthor = newValue(m_book.author.trimmed().isEmpty()
-                                    ? m_book.title
+    m_titleAndAuthor = newValue(book.author.trimmed().isEmpty()
+                                    ? book.title
                                     //: The title and the author of an EPUB; %1: the title, %2:
                                     //: the author. In Polish: %1 – %2
-                                    : tr("%1 – %2").arg(m_book.title, m_book.author));
+                                    : tr("%1 – %2").arg(book.title, book.author));
     //: In Polish: Tytuł i autor:
     addRow(data, tr("Title and author:"), m_titleAndAuthor);
     //: The language of a book that has none. In Polish: Nie ustawiono
-    m_languageLabel = newValue(m_book.language.isEmpty() ? tr("Not set") : m_book.language);
+    m_languageLabel = newValue(book.language.isEmpty() ? tr("Not set") : book.language);
     //: In Polish: Język:
     addRow(data, tr("Language:"), m_languageLabel);
-    const QString description = m_book.description.simplified();
+    const QString description = book.description.simplified();
     m_descriptionLabel = newValue(
         description.isEmpty()
             //: The description of a book that has none. In Polish: Brak
@@ -776,13 +415,13 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     auto* publicationLayout = new QHBoxLayout(publication);
     publicationLayout->setContentsMargins(0, 0, 0, 0);
     publicationLayout->setSpacing(fontMetrics().averageCharWidth() * 3);
-    m_isbnField = new QLineEdit(m_book.isbn, publication);
+    m_isbnField = new QLineEdit(book.isbn, publication);
     //: The example of an ISBN in its empty field. In Polish: 978-83-…
     m_isbnField->setPlaceholderText(tr("978-..."));
     // As wide as an ISBN with its hyphens
     m_isbnField->setFixedWidth(widthOfLetters(m_isbnField->fontMetrics(), ISBN_LETTERS));
     publicationLayout->addWidget(m_isbnField);
-    m_publisherField = new QLineEdit(m_book.publisher, publication);
+    m_publisherField = new QLineEdit(book.publisher, publication);
     //: The example of a publisher in its empty field. In Polish: np. Wydawnictwo Wydmy albo
     //: puste
     m_publisherField->setPlaceholderText(tr("e.g. Dunes Publishing, or empty"));
@@ -818,14 +457,15 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
         }
         QWidget* page = nullptr;
         try {
-            page = plugin->createOptionsPage(each.id.toStdString(), m_tabs);
+            page = plugin->createOptionsPage(each.id.toStdString(), tabs());
         } catch (const std::exception& error) {
             core::Logger::getInstance().error("Export: the options of the format {}: {}",
                                               each.id.toStdString(), error.what());
         }
         if (page != nullptr) {
             const QString title = each.name.left(each.name.lastIndexOf(QLatin1String(" ("))).trimmed();
-            m_tabs->setTabVisible(m_tabs->addTab(page, title.isEmpty() ? each.name : title), false);
+            tabs()->setTabVisible(tabs()->addTab(page, title.isEmpty() ? each.name : title),
+                                  false);
             m_formatPages.insert(each.id, page);
         }
     }
@@ -836,16 +476,8 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     setAcceptText(tr("Export"));
 
     // The writer's last choices
-    m_titlesBox->setChecked(settings.get<bool>("export.titles"));
-    m_newPageBox->setChecked(settings.get<bool>("export.newPage"));
-    m_pageNumbersBox->setChecked(settings.get<bool>("export.pageNumbers"));
     m_commentsBox->setChecked(settings.get<bool>("export.comments"));
     m_copyImagesBox->setChecked(settings.get<bool>("export.copyImages"));
-    const editor::RunningHead runningHead =
-        valueOfName(runningHeadNames(), settings.get<std::string>("export.runningHead"),
-                    editor::RunningHead::AuthorAndTitle);
-    m_runningHeadBox->setCurrentIndex(
-        std::max(0, m_runningHeadBox->findData(static_cast<int>(runningHead))));
     m_pdfCommentsBox->setChecked(settings.get<bool>("export.pdf.comments"));
     editor::PdfPurpose purpose = valueOfName(
         purposeNames(), settings.get<std::string>("export.pdf.purpose"), editor::PdfPurpose::Reading);
@@ -864,25 +496,7 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     const bool noCover = settings.get<std::string>("export.epub.cover") == "none";
     m_coverBox->setCurrentIndex(
         std::max(0, m_coverBox->findData(static_cast<int>(noCover ? Cover::None : Cover::Design))));
-    const QString font = QString::fromStdString(settings.get<std::string>("export.font"));
-    int fontIndex = m_fontBox->findData(font);
-    if (fontIndex < 0) {
-        m_fontBox->addItem(font, font);  // a font this system does not have
-        fontIndex = m_fontBox->count() - 1;
-    }
-    m_fontBox->setCurrentIndex(fontIndex);
-    const QString lastContent = QString::fromStdString(settings.get<std::string>("export.content"));
-    Content start = lastContent == contentName(Content::Chosen) ? Content::Chosen
-                    : lastContent == contentName(Content::Front) ? Content::Front
-                                                                  : Content::Book;
-    if (m_book.title.isEmpty()) {
-        start = Content::Front;
-    } else if (start == Content::Front && m_book.frontTitle.isEmpty()) {
-        start = Content::Book;
-    }
-    (start == Content::Book ? m_bookButton : start == Content::Chosen ? m_chosenButton
-                                                                       : m_frontButton)
-        ->setChecked(true);
+    readLayout("export.content");
     setFormat(format);
     m_nameField->setText(suggestedName() + extension());
 
@@ -894,21 +508,9 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
         dropFailure();
         showFormat();
     });
-    for (QRadioButton* button : {m_bookButton, m_chosenButton, m_frontButton}) {
-        connect(button, &QRadioButton::toggled, this, [this](bool on) {
-            if (on) {
-                dropFailure();
-                showContent();
-            }
-        });
-    }
-    for (QCheckBox* box :
-         {m_titlesBox, m_newPageBox, m_pageNumbersBox, m_commentsBox, m_copyImagesBox,
-          m_pdfCommentsBox, m_bookmarksBox, m_facingPagesBox, m_grayscaleBox, m_embedFontBox}) {
+    for (QCheckBox* box : {m_commentsBox, m_copyImagesBox, m_pdfCommentsBox, m_bookmarksBox,
+                           m_facingPagesBox, m_grayscaleBox, m_embedFontBox}) {
         connect(box, &QCheckBox::toggled, this, &ExportBookDialog::dropFailure);
-    }
-    for (QComboBox* box : {m_fontBox, m_runningHeadBox}) {
-        connect(box, &QComboBox::currentIndexChanged, this, &ExportBookDialog::dropFailure);
     }
     connect(m_bookStylesButton, &QRadioButton::toggled, this, &ExportBookDialog::dropFailure);
     connect(m_purposeButtons, &QButtonGroup::idToggled, this, [this](int, bool on) {
@@ -927,52 +529,25 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
         connect(field, &QLineEdit::textChanged, this, &ExportBookDialog::updateFields);
     }
 
-    // The page follows the settings the gear opens
-    showPage();
-    m_settingsListener =
-        core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
-            if (key.rfind("editor.page", 0) == 0 || key.rfind("editor.margins", 0) == 0 ||
-                key == "ui.lengthUnit") {
-                QMetaObject::invokeMethod(this, "showPage", Qt::QueuedConnection);
-            }
-        });
-
     setFolder(folder);
     showFormat();
     showPurpose();
     showCover();
-    showContent();
+    contentChanged();
 
     // The name is typed over, without its extension
     m_nameField->setFocus();
     m_nameField->setSelection(0, static_cast<int>(baseName().size()));
 }
 
-ExportBookDialog::~ExportBookDialog()
-{
-    if (m_settingsListener >= 0) {
-        core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
-    }
-}
+ExportBookDialog::~ExportBookDialog() = default;
 
 ExportBookDialog::Choice ExportBookDialog::choice() const
 {
     Choice choice;
+    static_cast<Layout&>(choice) = layoutChoice();
     choice.formatId = m_formatBox->currentData().toString();
     choice.format = currentFormat();
-    choice.content = m_frontButton->isChecked()    ? Content::Front
-                     : m_chosenButton->isChecked() ? Content::Chosen
-                                                   : Content::Book;
-    for (const QTreeWidgetItem* item : leaves()) {
-        if (item->checkState(0) == Qt::Checked) {
-            choice.chosen << item->data(0, ID_ROLE).toString();
-        }
-    }
-    choice.titles = m_titlesBox->isChecked();
-    choice.newPage = m_newPageBox->isChecked();
-    choice.pageNumbers = m_pageNumbersBox->isChecked();
-    choice.fontFamily = m_fontBox->currentData().toString();
-    choice.runningHead = static_cast<editor::RunningHead>(m_runningHeadBox->currentData().toInt());
     // The comments of the format: Word's, or those of a PDF that may have them
     if (choice.formatId == QLatin1String(DOCX_ID)) {
         choice.comments = m_commentsBox->isChecked();
@@ -990,7 +565,7 @@ ExportBookDialog::Choice ExportBookDialog::choice() const
     choice.bookStyles = m_bookStylesButton->isChecked();
     choice.embedFont = m_embedFontBox->isChecked();
     choice.cover = static_cast<Cover>(m_coverBox->currentData().toInt());
-    choice.coverImage = choice.cover == Cover::Design ? m_book.coverFile
+    choice.coverImage = choice.cover == Cover::Design ? book().coverFile
                         : choice.cover == Cover::File ? m_coverFile
                                                       : QString();
     choice.isbn = m_isbnField->text().simplified();
@@ -1148,13 +723,6 @@ void ExportBookDialog::setFormatId(const QString& id)
     }
 }
 
-void ExportBookDialog::setContent(Content content)
-{
-    (content == Content::Book ? m_bookButton : content == Content::Chosen ? m_chosenButton
-                                                                           : m_frontButton)
-        ->setChecked(true);
-}
-
 void ExportBookDialog::setFolder(const QString& folder)
 {
     m_folder = ProgramFolders::cleanPath(folder);
@@ -1170,109 +738,6 @@ QString ExportBookDialog::filePath() const
     }
     const QString path = QDir(m_folder).filePath(fileName());
     return QFileInfo(path).isDir() ? QString() : path;
-}
-
-QTreeWidget* ExportBookDialog::textList() const
-{
-    return m_textList;
-}
-
-QString ExportBookDialog::chosenNote() const
-{
-    return m_chosenButton->isChecked() && !m_chosenBox->isHidden() ? m_chosenNote->text()
-                                                                    : QString();
-}
-
-void ExportBookDialog::checkAll()
-{
-    for (QTreeWidgetItem* item : leaves()) {
-        item->setCheckState(0, Qt::Checked);
-    }
-}
-
-void ExportBookDialog::checkNone()
-{
-    for (QTreeWidgetItem* item : leaves()) {
-        item->setCheckState(0, Qt::Unchecked);
-    }
-}
-
-void ExportBookDialog::checkFinal()
-{
-    // A text that is not final goes; a table of contents, which has no status, stays
-    for (QTreeWidgetItem* item : leaves()) {
-        const QString status = item->data(0, STATUS_ROLE).toString();
-        item->setCheckState(0, status.isEmpty() || status == QLatin1String("final")
-                                   ? Qt::Checked
-                                   : Qt::Unchecked);
-    }
-}
-
-void ExportBookDialog::showPage()
-{
-    m_pageLabel->setText(pageText());
-}
-
-QString ExportBookDialog::pageText()
-{
-    const auto& settings = core::SettingsManager::getInstance();
-    editor::PageLayout page;
-    page.pageSize = editor::PageLayout::pageSizeFromId(
-        QString::fromStdString(settings.get<std::string>("editor.page.size")));
-    page.customWidth = settings.get<double>("editor.page.customWidth");
-    page.customHeight = settings.get<double>("editor.page.customHeight");
-    const auto length = [](double millimeters) {
-        return lengthText(millimeters, LengthUnit::Millimeters);
-    };
-    QString size;
-    switch (page.pageSize) {
-        case editor::PageLayout::PageSize::A4:
-            size = QStringLiteral("A4");
-            break;
-        case editor::PageLayout::PageSize::A5:
-            size = QStringLiteral("A5");
-            break;
-        case editor::PageLayout::PageSize::B5:
-            size = QStringLiteral("B5");
-            break;
-        case editor::PageLayout::PageSize::Trade6x9:
-            //: A size of the page. In Polish: 6 x 9 cali
-            size = tr("6 x 9 in");
-            break;
-        case editor::PageLayout::PageSize::Letter:
-            //: A size of the page (8.5 x 11 in). In Polish: Letter
-            size = tr("Letter");
-            break;
-        case editor::PageLayout::PageSize::Legal:
-            //: A size of the page (8.5 x 14 in). In Polish: Legal
-            size = tr("Legal");
-            break;
-        case editor::PageLayout::PageSize::Custom: {
-            const QSizeF millimeters = page.pageSizeMm();
-            size = QStringLiteral("%1 x %2").arg(length(millimeters.width()),
-                                                 length(millimeters.height()));
-            break;
-        }
-    }
-    if (settings.get<bool>("editor.margins.mirrorEnabled")) {
-        //: The page of the export; %1: its size, %2 and %3: the margins. In Polish: %1,
-        //: marginesy lustrzane: wewnętrzny %2, zewnętrzny %3
-        return tr("%1, mirror margins: inner %2, outer %3")
-            .arg(size, length(settings.get<double>("editor.margins.pageInner")),
-                 length(settings.get<double>("editor.margins.pageOuter")));
-    }
-    //: The page of the export; %1: its size, %2-%5: the margins. In Polish: %1, marginesy: lewy
-    //: %2, prawy %3, górny %4, dolny %5
-    return tr("%1, margins: left %2, right %3, top %4, bottom %5")
-        .arg(size, length(settings.get<double>("editor.margins.pageLeft")),
-             length(settings.get<double>("editor.margins.pageRight")),
-             length(settings.get<double>("editor.margins.pageTop")),
-             length(settings.get<double>("editor.margins.pageBottom")));
-}
-
-QString ExportBookDialog::shownPageText() const
-{
-    return m_pageLabel->text();
 }
 
 QString ExportBookDialog::imagesFolderName() const
@@ -1385,7 +850,7 @@ void ExportBookDialog::showPurpose()
 void ExportBookDialog::showCover()
 {
     const auto cover = static_cast<Cover>(m_coverBox->currentData().toInt());
-    const QString path = cover == Cover::Design ? m_book.coverFile
+    const QString path = cover == Cover::Design ? book().coverFile
                          : cover == Cover::File ? m_coverFile
                                                 : QString();
     // The picture as the reader shows it, as high as the frame
@@ -1422,7 +887,7 @@ void ExportBookDialog::showCover()
             break;
         case Cover::None:
             showNote(m_coverNote,
-                     m_book.coverFile.isEmpty()
+                     book().coverFile.isEmpty()
                          //: Under the cover of an EPUB, when the materials have none. In
                          //: Polish: W materiałach „Okładka” nie wybrano projektu przodu okładki.
                          ? tr("The materials \"Cover\" have no chosen design of the front of the "
@@ -1472,12 +937,7 @@ void ExportBookDialog::showFormat()
     if (!name.isEmpty() && name != base + extension()) {
         m_nameField->setText(base + extension());
     }
-    m_wordLayout->setVisible(paged);
-    m_fontRow->setVisible(paged);
-    setRowVisible(m_fontBox, paged);
-    m_runningHeadNote.widget->setVisible(paged);
-    setRowVisible(m_pageLabel, paged);
-    m_pageNote.widget->setVisible(paged);
+    setPagesVisible(paged);
     m_epubLayout->setVisible(epub);
     // The groups of the annotations and of the images stay for the program's formats: each
     // says what its format does. A plugin's format has its own tab instead.
@@ -1511,22 +971,21 @@ void ExportBookDialog::showFormat()
         //: obrazy w samym pliku.
         m_imagesInFileNote->setText(tr("A Word document has the images in the file itself."));
     }
-    m_tabs->setTabVisible(m_tabs->indexOf(m_extrasTab), word || pdf || markdown || epub);
-    m_tabs->setTabVisible(m_tabs->indexOf(m_pdfTab), pdf);
-    m_tabs->setTabVisible(m_tabs->indexOf(m_epubTab), epub);
+    QTabWidget* tabs = this->tabs();
+    tabs->setTabVisible(tabs->indexOf(m_extrasTab), word || pdf || markdown || epub);
+    tabs->setTabVisible(tabs->indexOf(m_pdfTab), pdf);
+    tabs->setTabVisible(tabs->indexOf(m_epubTab), epub);
     for (auto page = m_formatPages.cbegin(); page != m_formatPages.cend(); ++page) {
-        m_tabs->setTabVisible(m_tabs->indexOf(page.value()), page.key() == id);
+        tabs->setTabVisible(tabs->indexOf(page.value()), page.key() == id);
     }
-    showContent();
+    contentChanged();
 }
 
-void ExportBookDialog::showContent()
+void ExportBookDialog::contentChanged()
 {
-    const bool front = m_frontButton->isChecked();
-    // The list stays in its place, so the tab keeps its look; it works with Chosen texts
-    m_chosenBox->setEnabled(m_chosenButton->isChecked());
+    const bool front = frontButton()->isChecked();
     const QString id = m_formatBox->currentData().toString();
-    const QString title = front ? m_book.frontTitle : m_book.title;
+    const QString title = front ? book().frontTitle : book().title;
     QString description;
     if (id == QLatin1String(DOCX_ID)) {
         description = front
@@ -1636,16 +1095,7 @@ void ExportBookDialog::updateFields()
                                  .arg(literal(imagesFolderName())));
 
     // The texts chosen in the list
-    int chosen = 0;
-    const QList<QTreeWidgetItem*> texts = leaves();
-    for (const QTreeWidgetItem* item : texts) {
-        chosen += item->checkState(0) == Qt::Checked ? 1 : 0;
-    }
-    //: Under the list of the texts; %1: how many are checked, %n: how many there are. In
-    //: Polish: Wybrano %1 z %n tekstu / tekstów.
-    m_chosenNote->setText(
-        tr("%1 of %n texts chosen.", nullptr, static_cast<int>(texts.size())).arg(chosen));
-    const bool contentUsable = !m_chosenButton->isChecked() || chosen > 0;
+    const bool contentUsable = updateChosen();
 
     // The ISBN of an EPUB: none, or an ISBN
     const QString isbn = m_isbnField->text().simplified();
@@ -1674,43 +1124,11 @@ void ExportBookDialog::updateFields()
                                isbnUsable);
 }
 
-void ExportBookDialog::textChanged(QTreeWidgetItem* item)
-{
-    Q_UNUSED(item);
-    dropFailure();
-    updateFields();
-}
-
-QList<QTreeWidgetItem*> ExportBookDialog::leaves() const
-{
-    QList<QTreeWidgetItem*> items;
-    QList<QTreeWidgetItem*> pending;
-    for (int i = m_textList->topLevelItemCount() - 1; i >= 0; --i) {
-        pending.append(m_textList->topLevelItem(i));
-    }
-    // Depth first, in the order of the list
-    while (!pending.isEmpty()) {
-        QTreeWidgetItem* item = pending.takeLast();
-        if (!item->flags().testFlag(Qt::ItemIsAutoTristate)) {
-            items.append(item);
-        }
-        for (int i = item->childCount() - 1; i >= 0; --i) {
-            pending.append(item->child(i));
-        }
-    }
-    return items;
-}
-
 void ExportBookDialog::rememberChoices() const
 {
     auto& settings = core::SettingsManager::getInstance();
     const Choice now = choice();
-    settings.set<std::string>("export.content", contentName(now.content).toStdString());
-    settings.set<bool>("export.titles", now.titles);
-    settings.set<bool>("export.newPage", now.newPage);
-    settings.set<bool>("export.pageNumbers", now.pageNumbers);
-    settings.set<std::string>("export.font", now.fontFamily.toStdString());
-    settings.set<std::string>("export.runningHead", nameOfValue(runningHeadNames(), now.runningHead));
+    rememberLayout("export.content");
     // The comments of each format: Word's, and those of a PDF
     settings.set<bool>("export.comments", m_commentsBox->isChecked());
     settings.set<bool>("export.copyImages", now.copyImages);
@@ -1752,7 +1170,7 @@ QString ExportBookDialog::baseName() const
 
 QString ExportBookDialog::suggestedName() const
 {
-    const QString title = m_frontButton->isChecked() ? m_book.frontTitle : m_book.title;
+    const QString title = frontButton()->isChecked() ? book().frontTitle : book().title;
     const QString name = safeName(title);
     //: The name of the exported file of a book without a title. In Polish: Książka
     return name.isEmpty() ? tr("Book") : name;

@@ -89,39 +89,6 @@ int crossReferenceSections(const QByteArray& file) {
     }
     return sections;
 }
-
-/// A text of @p paragraphs paragraphs of a few lines
-QString longKml(int paragraphs) {
-    QString kml = QStringLiteral("<kml>");
-    for (int i = 0; i < paragraphs; ++i) {
-        kml += QStringLiteral("<p>Paragraph %1: the wind over the oasis moved the sand from one dune "
-                              "to another, and the caravan waited for the evening to go on.</p>")
-                   .arg(i + 1);
-    }
-    return kml + QStringLiteral("</kml>");
-}
-
-/// A text item of a book
-ExportItem textItem(const QString& id, const QString& title, const QString& kml) {
-    ExportItem item;
-    item.elementId = id;
-    item.title = title;
-    item.titleStyle = QStringLiteral("chapter_title");
-    item.kml = kml;
-    return item;
-}
-
-/// A book of texts in the novel's styles
-BookExport bookOf(std::vector<ExportItem> items) {
-    BookExport book;
-    book.title = QStringLiteral("Wiatr nad oazą");
-    book.author = QStringLiteral("Anna Nowak");
-    book.language = QStringLiteral("pl");
-    book.styles = novelStyles();
-    book.items = std::move(items);
-    return book;
-}
-
 #ifdef KALAHARI_HAS_PDF
 /// The text of a page of a PDF
 QString pageText(QPdfDocument& document, int page) {

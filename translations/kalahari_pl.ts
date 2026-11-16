@@ -26005,31 +26005,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
 </context>
 <context>
-    <name>kalahari::gui::dialogs::ExportBookDialog</name>
-    <message>
-        <source>Export Book</source>
-        <extracomment>The title of the window of File &gt; Export &gt; DOCX and Markdown. In Polish: Eksportuj książkę</extracomment>
-        <translation>Eksportuj książkę</translation>
-    </message>
-    <message>
-        <source>Page and Margin Settings</source>
-        <extracomment>The tooltip of the gear of the window of the export. In Polish: Ustawienia stron i marginesów</extracomment>
-        <translation>Ustawienia stron i marginesów</translation>
-    </message>
-    <message>
-        <source>Folder:</source>
-        <extracomment>In Polish: Folder:</extracomment>
-        <translation>Folder:</translation>
-    </message>
-    <message>
-        <source>Choose the folder in the system window</source>
-        <translation>Wybierz folder w oknie systemowym</translation>
-    </message>
-    <message>
-        <source>&amp;Name:</source>
-        <extracomment>In Polish: &amp;Nazwa:</extracomment>
-        <translation>&amp;Nazwa:</translation>
-    </message>
+    <name>kalahari::gui::dialogs::BookOutputDialog</name>
     <message numerus="yes">
         <source>Whole &amp;book (%n texts)</source>
         <extracomment>%n: how many texts the book has. In Polish: &amp;Cała książka (%n tekst / teksty / tekstów)</extracomment>
@@ -26070,14 +26046,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Tylko &amp;gotowe</translation>
     </message>
     <message>
-        <source>The text goes to the file also with its unsaved changes.</source>
-        <translation>Tekst trafi do pliku także z niezapisanymi zmianami.</translation>
-    </message>
-    <message>
-        <source>The texts go to the file in the order of the Navigator, also with their unsaved changes.</source>
-        <translation>Teksty trafią do pliku w kolejności Nawigatora, także z niezapisanymi zmianami.</translation>
-    </message>
-    <message>
         <source>Navigator titles of parts and chapters as &amp;headings</source>
         <extracomment>In Polish: &amp;Tytuły części i rozdziałów z Nawigatora jako nagłówki</extracomment>
         <translation>&amp;Tytuły części i rozdziałów z Nawigatora jako nagłówki</translation>
@@ -26093,14 +26061,14 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>Każd&amp;y tekst od nowej strony</translation>
     </message>
     <message>
-        <source>With mirror margins a text starts on a right page, unless its properties say a left one.</source>
-        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego właściwościach ustawiono lewą.</extracomment>
-        <translation>Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego właściwościach ustawiono lewą.</translation>
-    </message>
-    <message>
         <source>Page numbers at the b&amp;ottom of the page</source>
         <extracomment>In Polish: Numery &amp;stron na dole strony</extracomment>
         <translation>Numery &amp;stron na dole strony</translation>
+    </message>
+    <message>
+        <source>With mirror margins a text starts on a right page, unless its properties say a left one.</source>
+        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego właściwościach ustawiono lewą.</extracomment>
+        <translation>Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego właściwościach ustawiono lewą.</translation>
     </message>
     <message>
         <source>%1 (editor font)</source>
@@ -26108,9 +26076,39 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <translation>%1 (czcionka edytora)</translation>
     </message>
     <message>
+        <source>No running head</source>
+        <extracomment>A running head of the export. In Polish: Bez żywej paginy</extracomment>
+        <translation>Bez żywej paginy</translation>
+    </message>
+    <message>
+        <source>Author on the left page, book title on the right one</source>
+        <extracomment>A running head of the export. In Polish: Autor na lewej stronie, tytuł książki na prawej</extracomment>
+        <translation>Autor na lewej stronie, tytuł książki na prawej</translation>
+    </message>
+    <message>
+        <source>Book title on the left, chapter title on the right</source>
+        <extracomment>A running head of the export. In Polish: Tytuł książki na lewej, tytuł rozdziału na prawej</extracomment>
+        <translation>Tytuł książki na lewej, tytuł rozdziału na prawej</translation>
+    </message>
+    <message>
+        <source>Chapter title on both pages</source>
+        <extracomment>A running head of the export. In Polish: Tytuł rozdziału na obu stronach</extracomment>
+        <translation>Tytuł rozdziału na obu stronach</translation>
+    </message>
+    <message>
+        <source>&amp;Running head:</source>
+        <extracomment>The line at the top of the pages of a book. In Polish: Żywa pa&amp;gina:</extracomment>
+        <translation>Żywa pa&amp;gina:</translation>
+    </message>
+    <message>
         <source>Font of the te&amp;xt:</source>
         <extracomment>In Polish: Czcionk&amp;a tekstu:</extracomment>
         <translation>Czcionk&amp;a tekstu:</translation>
+    </message>
+    <message>
+        <source>At the top of the pages of the text, without the title pages and without the first pages of the chapters.</source>
+        <extracomment>Under the running head. In Polish: U góry stron tekstu, bez stron tytułowych i bez pierwszych stron rozdziałów.</extracomment>
+        <translation>U góry stron tekstu, bez stron tytułowych i bez pierwszych stron rozdziałów.</translation>
     </message>
     <message>
         <source>Page:</source>
@@ -26121,6 +26119,75 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>The size of the page and the margins come from Settings › Editor › Pages and Margins (the gear in the heading of the window). The sizes of the letters, the spacing and the indents come from the styles of the book.</source>
         <extracomment>Under the page of the export. In Polish: Rozmiar strony i marginesy pochodzą z Ustawień › Edytor › Strony i marginesy (zębatka w nagłówku okna). Rozmiary liter, odstępy i wcięcia – ze stylów książki.</extracomment>
         <translation>Rozmiar strony i marginesy pochodzą z Ustawień › Edytor › Strony i marginesy (zębatka w nagłówku okna). Rozmiary liter, odstępy i wcięcia – ze stylów książki.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 of %n texts chosen.</source>
+        <extracomment>Under the list of the texts; %1: how many are checked, %n: how many there are. In Polish: Wybrano %1 z %n tekstu / tekstów.</extracomment>
+        <translation>
+            <numerusform>Wybrano %1 z %n tekstu.</numerusform>
+            <numerusform>Wybrano %1 z %n tekstów.</numerusform>
+            <numerusform>Wybrano %1 z %n tekstów.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>6 x 9 in</source>
+        <extracomment>A size of the page. In Polish: 6 x 9 cali</extracomment>
+        <translation>6 x 9 cali</translation>
+    </message>
+    <message>
+        <source>Letter</source>
+        <extracomment>A size of the page (8.5 x 11 in). In Polish: Letter</extracomment>
+        <translation>Letter</translation>
+    </message>
+    <message>
+        <source>Legal</source>
+        <extracomment>A size of the page (8.5 x 14 in). In Polish: Legal</extracomment>
+        <translation>Legal</translation>
+    </message>
+    <message>
+        <source>%1, mirror margins: inner %2, outer %3</source>
+        <extracomment>The page of the export; %1: its size, %2 and %3: the margins. In Polish: %1, marginesy lustrzane: wewnętrzny %2, zewnętrzny %3</extracomment>
+        <translation>%1, marginesy lustrzane: wewnętrzny %2, zewnętrzny %3</translation>
+    </message>
+    <message>
+        <source>%1, margins: left %2, right %3, top %4, bottom %5</source>
+        <extracomment>The page of the export; %1: its size, %2-%5: the margins. In Polish: %1, marginesy: lewy %2, prawy %3, górny %4, dolny %5</extracomment>
+        <translation>%1, marginesy: lewy %2, prawy %3, górny %4, dolny %5</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::ExportBookDialog</name>
+    <message>
+        <source>Export Book</source>
+        <extracomment>The title of the window of File &gt; Export &gt; DOCX and Markdown. In Polish: Eksportuj książkę</extracomment>
+        <translation>Eksportuj książkę</translation>
+    </message>
+    <message>
+        <source>Page and Margin Settings</source>
+        <extracomment>The tooltip of the gear of the window of the export. In Polish: Ustawienia stron i marginesów</extracomment>
+        <translation>Ustawienia stron i marginesów</translation>
+    </message>
+    <message>
+        <source>Folder:</source>
+        <extracomment>In Polish: Folder:</extracomment>
+        <translation>Folder:</translation>
+    </message>
+    <message>
+        <source>Choose the folder in the system window</source>
+        <translation>Wybierz folder w oknie systemowym</translation>
+    </message>
+    <message>
+        <source>&amp;Name:</source>
+        <extracomment>In Polish: &amp;Nazwa:</extracomment>
+        <translation>&amp;Nazwa:</translation>
+    </message>
+    <message>
+        <source>The text goes to the file also with its unsaved changes.</source>
+        <translation>Tekst trafi do pliku także z niezapisanymi zmianami.</translation>
+    </message>
+    <message>
+        <source>The texts go to the file in the order of the Navigator, also with their unsaved changes.</source>
+        <translation>Teksty trafią do pliku w kolejności Nawigatora, także z niezapisanymi zmianami.</translation>
     </message>
     <message>
         <source>Annotations</source>
@@ -26161,31 +26228,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Export</source>
         <extracomment>The button that writes the file. In Polish: Eksportuj</extracomment>
         <translation>Eksportuj</translation>
-    </message>
-    <message>
-        <source>6 x 9 in</source>
-        <extracomment>A size of the page. In Polish: 6 x 9 cali</extracomment>
-        <translation>6 x 9 cali</translation>
-    </message>
-    <message>
-        <source>Letter</source>
-        <extracomment>A size of the page (8.5 x 11 in). In Polish: Letter</extracomment>
-        <translation>Letter</translation>
-    </message>
-    <message>
-        <source>Legal</source>
-        <extracomment>A size of the page (8.5 x 14 in). In Polish: Legal</extracomment>
-        <translation>Legal</translation>
-    </message>
-    <message>
-        <source>%1, mirror margins: inner %2, outer %3</source>
-        <extracomment>The page of the export; %1: its size, %2 and %3: the margins. In Polish: %1, marginesy lustrzane: wewnętrzny %2, zewnętrzny %3</extracomment>
-        <translation>%1, marginesy lustrzane: wewnętrzny %2, zewnętrzny %3</translation>
-    </message>
-    <message>
-        <source>%1, margins: left %2, right %3, top %4, bottom %5</source>
-        <extracomment>The page of the export; %1: its size, %2-%5: the margins. In Polish: %1, marginesy: lewy %2, prawy %3, górny %4, dolny %5</extracomment>
-        <translation>%1, marginesy: lewy %2, prawy %3, górny %4, dolny %5</translation>
     </message>
     <message>
         <source>images</source>
@@ -26275,15 +26317,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>%1: the name of the folder of the images. In Polish: Skopiuj obrazy do &amp;folderu „%1” obok pliku</extracomment>
         <translation>Skopiuj obrazy do &amp;folderu „%1” obok pliku</translation>
     </message>
-    <message numerus="yes">
-        <source>%1 of %n texts chosen.</source>
-        <extracomment>Under the list of the texts; %1: how many are checked, %n: how many there are. In Polish: Wybrano %1 z %n tekstu / tekstów.</extracomment>
-        <translation>
-            <numerusform>Wybrano %1 z %n tekstu.</numerusform>
-            <numerusform>Wybrano %1 z %n tekstów.</numerusform>
-            <numerusform>Wybrano %1 z %n tekstów.</numerusform>
-        </translation>
-    </message>
     <message>
         <source>Book</source>
         <extracomment>The name of the exported file of a book without a title. In Polish: Książka</extracomment>
@@ -26358,36 +26391,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Saves the book &quot;%1&quot; in the format %2.</source>
         <extracomment>The format of a plugin; %1: the title of the book, %2: the format with its extension. In Polish: Zapisuje książkę „%1” w formacie %2.</extracomment>
         <translation>Zapisuje książkę „%1” w formacie %2.</translation>
-    </message>
-    <message>
-        <source>No running head</source>
-        <extracomment>A running head of the export. In Polish: Bez żywej paginy</extracomment>
-        <translation>Bez żywej paginy</translation>
-    </message>
-    <message>
-        <source>Author on the left page, book title on the right one</source>
-        <extracomment>A running head of the export. In Polish: Autor na lewej stronie, tytuł książki na prawej</extracomment>
-        <translation>Autor na lewej stronie, tytuł książki na prawej</translation>
-    </message>
-    <message>
-        <source>Book title on the left, chapter title on the right</source>
-        <extracomment>A running head of the export. In Polish: Tytuł książki na lewej, tytuł rozdziału na prawej</extracomment>
-        <translation>Tytuł książki na lewej, tytuł rozdziału na prawej</translation>
-    </message>
-    <message>
-        <source>Chapter title on both pages</source>
-        <extracomment>A running head of the export. In Polish: Tytuł rozdziału na obu stronach</extracomment>
-        <translation>Tytuł rozdziału na obu stronach</translation>
-    </message>
-    <message>
-        <source>&amp;Running head:</source>
-        <extracomment>The line at the top of the pages of a book. In Polish: Żywa pa&amp;gina:</extracomment>
-        <translation>Żywa pa&amp;gina:</translation>
-    </message>
-    <message>
-        <source>At the top of the pages of the text, without the title pages and without the first pages of the chapters.</source>
-        <extracomment>Under the running head. In Polish: U góry stron tekstu, bez stron tytułowych i bez pierwszych stron rozdziałów.</extracomment>
-        <translation>U góry stron tekstu, bez stron tytułowych i bez pierwszych stron rozdziałów.</translation>
     </message>
     <message>
         <source>Look in the Reader</source>

@@ -146,6 +146,36 @@ BookExport sampleBook(const QString& folder) {
 }
 
 /// The files of a ZIP archive by name
+QString longKml(int paragraphs) {
+    QString kml = QStringLiteral("<kml>");
+    for (int i = 0; i < paragraphs; ++i) {
+        kml += QStringLiteral("<p>Paragraph %1: the wind over the oasis moved the sand from one "
+                              "dune to another, and the caravan waited for the evening to go "
+                              "on.</p>")
+                   .arg(i + 1);
+    }
+    return kml + QStringLiteral("</kml>");
+}
+
+ExportItem textItem(const QString& id, const QString& title, const QString& kml) {
+    ExportItem item;
+    item.elementId = id;
+    item.title = title;
+    item.titleStyle = QStringLiteral("chapter_title");
+    item.kml = kml;
+    return item;
+}
+
+BookExport bookOf(std::vector<ExportItem> items) {
+    BookExport book;
+    book.title = QStringLiteral("Wiatr nad oazą");
+    book.author = QStringLiteral("Anna Nowak");
+    book.language = QStringLiteral("pl");
+    book.styles = novelStyles();
+    book.items = std::move(items);
+    return book;
+}
+
 QHash<QString, QByteArray> zipEntries(const QString& path) {
     QHash<QString, QByteArray> entries;
     int error = 0;

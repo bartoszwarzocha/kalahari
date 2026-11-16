@@ -107,6 +107,7 @@ set(TEST_SOURCES
     editor/test_version_comparison.cpp           # A version of a text compared with the text now
     editor/test_book_export.cpp                  # Export of a book to DOCX and Markdown
     editor/test_pdf_export.cpp                   # Export of a book to PDF: its pages and the file
+    editor/test_book_print.cpp                   # The print of a book: the pages on the sheets
     editor/test_epub_export.cpp                  # Export of a book to EPUB 3
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
@@ -488,7 +489,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/delete_dialogs.cpp           # What goes from the book, and its files
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/archive_dialogs.cpp          # Export and import of an archive
-    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/export_book_dialog.cpp       # Export of the book to DOCX and Markdown
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/book_output_dialog.cpp       # The tabs of the export and the print
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/export_book_dialog.cpp       # Export of the book to DOCX, PDF, Markdown, EPUB
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/file_preview_dialog.cpp      # The text of a file no element has
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/flow_layout.cpp              # Items in more rows when narrow
@@ -553,6 +555,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/docx_writer.cpp          # Export of a book to a Word document (DOCX)
     ${CMAKE_SOURCE_DIR}/src/editor/markdown_writer.cpp      # Export of a book to Markdown (GitHub Flavored)
     ${CMAKE_SOURCE_DIR}/src/editor/book_pages.cpp           # The pages of a book as the page view shows them (PDF, printer)
+    ${CMAKE_SOURCE_DIR}/src/editor/book_print.cpp           # The print of a book: the pages on the sheets
     ${CMAKE_SOURCE_DIR}/src/editor/pdf_writer.cpp           # Export of a book to a PDF document
     ${CMAKE_SOURCE_DIR}/src/editor/epub_writer.cpp          # Export of a book to an EPUB 3 e-book
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
@@ -661,6 +664,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/book_output_dialog.h  # BookOutputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/export_book_dialog.h  # ExportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT

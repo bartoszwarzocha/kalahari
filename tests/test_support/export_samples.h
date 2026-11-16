@@ -12,6 +12,8 @@
 #include <QHash>
 #include <QString>
 
+#include <vector>
+
 namespace kalahari::test {
 
 /// @brief The styles of a novel, as its pack has them
@@ -22,6 +24,15 @@ QString richKml();
 
 /// @brief A book of a contents, a part and two chapters, its images in @p folder
 editor::BookExport sampleBook(const QString& folder);
+
+/// @brief A text of @p paragraphs paragraphs of a few lines
+QString longKml(int paragraphs);
+
+/// @brief A text item of a book, its title in the style of a chapter's title
+editor::ExportItem textItem(const QString& id, const QString& title, const QString& kml);
+
+/// @brief A book of @p items in the novel's styles
+editor::BookExport bookOf(std::vector<editor::ExportItem> items);
 
 /// @brief The files of a ZIP archive by name
 QHash<QString, QByteArray> zipEntries(const QString& path);

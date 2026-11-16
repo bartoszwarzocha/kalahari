@@ -30,6 +30,7 @@ set(KALAHARI_CORE_SOURCES
     editor/docx_writer.cpp             # Export of a book to a Word document (DOCX)
     editor/markdown_writer.cpp         # Export of a book to Markdown (GitHub Flavored)
     editor/book_pages.cpp              # The pages of a book as the page view shows them (PDF, printer)
+    editor/book_print.cpp              # The print of a book: the pages on the sheets, their drawing
     editor/pdf_writer.cpp              # Export of a book to a PDF document
     editor/epub_writer.cpp             # Export of a book to an EPUB 3 e-book
     core/database_schema_manager.cpp
@@ -193,7 +194,8 @@ set(KALAHARI_SOURCES
     gui/dialogs/delete_dialogs.cpp  # DeleteFromBookDialog, DeleteFilesDialog - what goes, and its files
     gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
     gui/dialogs/archive_dialogs.cpp  # ExportArchiveDialog, ImportArchiveDialog - one window each
-    gui/dialogs/export_book_dialog.cpp  # ExportBookDialog - File > Export > DOCX and Markdown
+    gui/dialogs/book_output_dialog.cpp  # BookOutputDialog - the tabs of the texts and the layout of the export and the print
+    gui/dialogs/export_book_dialog.cpp  # ExportBookDialog - File > Export > DOCX, PDF, Markdown and EPUB
     gui/dialogs/file_preview_dialog.cpp  # FilePreviewDialog - the text of a file no element has
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
@@ -463,6 +465,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/move_element_dialog.h  # MoveElementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/book_output_dialog.h  # BookOutputDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/export_book_dialog.h  # ExportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
