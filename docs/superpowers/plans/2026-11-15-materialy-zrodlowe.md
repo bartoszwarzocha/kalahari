@@ -111,6 +111,18 @@ rysuje je PDFium z gotowych kompilacji pdfium-binaries (bez JavaScriptu i XFA): 
 - Zakreślenia w PDF zapisywane w książce (domyślnie wyłączone): kolor i notatka, w panelu bocznym obok
   zakładek; plik PDF zostaje bez zmian.
 
+Stan: zrobiony (gałąź `claude/project-thread-zsum8e`, po etapach 1 i 2). Opcja „Opisy z sieci na podstawie
+ISBN i DOI” jest w Ustawieniach › Materiały › Źródła razem z wyborem katalogu dla ISBN
+(Google Books – zalecany – albo Open Library); DOI zawsze trafia do doi.org. Przycisk „Opis z sieci
+(ISBN, DOI)...” na karcie otwiera okno z numerem z karty; znaleziony opis zastępuje te pola, które ma,
+a pozostałe zostają. Odpowiedź jest ograniczona rozmiarem i czasem, Esc przerywa wyszukiwanie. Opcja
+„Zakreślenia na stronach, zapisane w książce” jest w Ustawieniach › Materiały › Podgląd PDF.
+„Zakreśl” i „Zakreśl kolorem” są na pasku i w menu zaznaczenia; karta „Zakreślenia” w panelu bocznym
+pokazuje stronę, tekst i notatkę (Enter, F2, Delete, Insert i przycisk „Kolor” działają w tej liście),
+a menu zakreślenia na stronie zmienia jego kolor i notatkę albo je usuwa. Zakreślenia są zapisywane
+w pliku książki jako `highlights` źródła (strona, obszary w punktach, tekst, kolor, notatka), a nie
+w pliku PDF. Obszary zakreślenia biorą się z zaznaczenia PDFium (PdfSelection), po jednym na wiersz.
+
 ## Klawiatura
 
 Bez nowych skrótów: podgląd używa Ctrl+G, Ctrl+F, Ctrl++, Ctrl+-, Ctrl+0, F6 i klawiszy stron; polecenia

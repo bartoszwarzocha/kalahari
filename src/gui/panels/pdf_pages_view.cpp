@@ -13,6 +13,7 @@
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QPolygonF>
 #include <QScrollBar>
 #include <QTransform>
 #include <QWheelEvent>
@@ -44,6 +45,9 @@ constexpr qint64 KILOBYTE = 1024;
 
 /// How much of the pages shows through the colors of the selection and of the hits at first
 constexpr int SELECTION_ALPHA = 80;
+
+/// How much of the light text of inverted pages shows through a highlight (0-255)
+constexpr int INVERTED_HIGHLIGHT_ALPHA = 110;
 
 /// Dimmed pages: their white is this light
 constexpr float DIMMED_LIGHTNESS = 0.62F;
@@ -279,6 +283,55 @@ QRect PdfPagesView::selectionRect() const {
     return toViewport(m_selectionPage, m_selection->boundingRectangle()).toAlignedRect();
 }
 
+QList<QRectF> PdfPagesView::selectionAreas() const {
+    QList<QRectF> areas;
+    if (!m_selection || m_selection->text().isEmpty()) {
+        return areas;
+    }
+    // One area a line: the parts of a line, word by word, are one band
+    for (const QPolygonF& polygon : m_selection->bounds()) {
+        const QRectF part = polygon.boundingRect();
+        if (part.isEmpty()) {
+            continue;
+        }
+        // Of one line: at least half of the lower one beside the other, as a full stop
+        const auto line = std::ranges::find_if(areas, [&part](const QRectF& area) {
+            const double beside = std::min(area.bottom(), part.bottom()) -
+                                  std::max(area.top(), part.top());
+            return beside >= std::min(area.height(), part.height()) / 2;
+        });
+        if (line != areas.end()) {
+            *line = line->united(part);
+        } else {
+            areas << part;
+        }
+    }
+    return areas;
+}
+
+void PdfPagesView::setHighlights(const QList<Highlight>& highlights) {
+    m_highlights = highlights;
+    viewport()->update();
+}
+
+int PdfPagesView::highlightAt(const QPoint& position) const {
+    const int page = pageAt(position);
+    if (page < 0) {
+        return -1;
+    }
+    const QPointF point = toPoints(page, position);
+    // The one drawn last, over the others
+    for (qsizetype index = m_highlights.size() - 1; index >= 0; --index) {
+        const Highlight& highlight = m_highlights.at(index);
+        if (highlight.page == page &&
+            std::ranges::any_of(highlight.areas,
+                                [&point](const QRectF& area) { return area.contains(point); })) {
+            return static_cast<int>(index);
+        }
+    }
+    return -1;
+}
+
 void PdfPagesView::setCurrentHit(int page, const QList<QRectF>& rectangles) {
     m_hitPage = page;
     m_hitRectangles = rectangles;
@@ -335,6 +388,25 @@ void PdfPagesView::paintEvent(QPaintEvent* event) {
 }
 
 void PdfPagesView::paintMarks(QPainter& painter, int page, const QRect& rect) const {
+    // A highlight colors the paper and leaves the text dark, as a highlighter; on the dark
+    // paper of inverted pages it lets the light text through
+    painter.save();
+    if (m_look != Look::Inverted) {
+        painter.setCompositionMode(QPainter::CompositionMode_Multiply);
+    }
+    for (const Highlight& highlight : m_highlights) {
+        if (highlight.page != page) {
+            continue;
+        }
+        QColor color = highlight.color;
+        if (m_look == Look::Inverted) {
+            color.setAlpha(INVERTED_HIGHLIGHT_ALPHA);
+        }
+        for (const QRectF& area : highlight.areas) {
+            painter.fillRect(toViewport(page, area), color);
+        }
+    }
+    painter.restore();
     if (m_search != nullptr) {
         const QList<PdfHit> hits = m_search->resultsOnPage(page);
         for (const PdfHit& hit : hits) {

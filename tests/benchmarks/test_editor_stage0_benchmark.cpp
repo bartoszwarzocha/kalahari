@@ -64,6 +64,7 @@
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
+#include <kalahari/editor/text_places.h>
 #include <kalahari/editor/text_tables.h>
 #include <kalahari/editor/viewport_manager.h>
 #include <kalahari/gui/book_search_coordinator.h>
@@ -1470,4 +1471,131 @@ TEST_CASE("Fields benchmark: a 150k-word chapter with notes and fields",
     CHECK(saved.count(QStringLiteral("<field ")) == fields);
 
     report(rows, header, QStringLiteral("fields_benchmark_results.md"));
+}
+
+TEST_CASE("Paste Special and Go To benchmark: a 150k-word chapter with headings and notes",
+          "[.][benchmark][goto]") {
+    std::vector<BenchRow> rows;
+    QStringList header = reportHeader();
+
+    // -------------------------------------------------------------------------
+    // 1. Loading
+    // -------------------------------------------------------------------------
+    int notes = 0;
+    const QString kml = withNotes(generateKml(150000), &notes);
+    BookEditor editor;
+    resizeWidget(editor, QSize(1000, 800));
+    editor.setParagraphStyles(bookStyles());
+    const double loadMs = timeMs([&] { editor.fromKml(kml); });
+    paint(editor);
+    KalahariTextDocumentLayout* layout = layoutOf(editor);
+    layout->layoutPendingBlocks();
+    const int headings = static_cast<int>(editor.placePositions(PlaceKind::Heading).size());
+    header << QStringLiteral("Dokument: %1 słów, %2 akapitów, %3 nagłówków, %4 przypisów")
+                  .arg(editor.wordCount())
+                  .arg(editor.paragraphCount())
+                  .arg(headings)
+                  .arg(notes);
+    rows.push_back({.operation = QStringLiteral("fromKml – 150k słów z nagłówkami i przypisami"),
+                    .ms = loadMs,
+                    .note = QString()});
+    REQUIRE(headings > 20);
+
+    // -------------------------------------------------------------------------
+    // 2. Go To in the continuous view: each step with its paintEvent
+    // -------------------------------------------------------------------------
+    const auto steps = [&](const QString& name, PlaceKind kind, bool next) {
+        int done = 0;
+        const double ms = timeMs([&] {
+            for (int i = 0; i < 10; ++i) {
+                done += editor.goToAdjacentPlace(kind, next).result == GoToResult::Done ? 1 : 0;
+                paint(editor);
+            }
+        });
+        CHECK(done == 10);
+        rows.push_back({.operation = name,
+                        .ms = ms,
+                        .note = QStringLiteral("%1 ms/krok").arg(ms / 10.0, 0, 'f', 2)});
+    };
+    editor.setCursorPosition({.paragraph = 0, .offset = 0});
+    steps(QStringLiteral("Przejdź do – 10 × Następny nagłówek (Continuous, z paintEvent)"),
+          PlaceKind::Heading, true);
+    const auto byNumber = [&](const QString& name, PlaceKind kind, const QString& number) {
+        GoToOutcome outcome;
+        const double ms = timeMs([&] {
+            outcome = editor.goToPlace(kind, number);
+            paint(editor);
+        });
+        CHECK(outcome.result == GoToResult::Done);
+        rows.push_back({.operation = name, .ms = ms, .note = QString()});
+    };
+    byNumber(QStringLiteral("Przejdź do – nagłówek w połowie tekstu (po numerze)"),
+             PlaceKind::Heading, QString::number(headings / 2));
+    byNumber(QStringLiteral("Przejdź do – ostatni nagłówek (po numerze)"), PlaceKind::Heading,
+             QString::number(headings));
+    editor.setCursorPosition({.paragraph = 0, .offset = 0});
+    steps(QStringLiteral("Przejdź do – 10 × Następny przypis (Continuous, z paintEvent)"),
+          PlaceKind::Note, true);
+    byNumber(QStringLiteral("Przejdź do – przypis o numerze z końca tekstu"), PlaceKind::Note,
+             QStringLiteral("+%1").arg(notes - 20));
+    steps(QStringLiteral("Przejdź do – 10 × Poprzedni przypis"), PlaceKind::Note, false);
+
+    // -------------------------------------------------------------------------
+    // 3. Go To in the page view
+    // -------------------------------------------------------------------------
+    editor.setViewMode(ViewMode::Page);
+    layout->layoutPendingBlocks();
+    QCoreApplication::processEvents();
+    paint(editor);
+    const int pages = editor.totalPages();
+    header << QStringLiteral("Stron w widoku Page: %1").arg(pages);
+    byNumber(QStringLiteral("Przejdź do – strona w połowie tekstu (Page)"), PlaceKind::Page,
+             QString::number(pages / 2));
+    steps(QStringLiteral("Przejdź do – 10 × Następna strona (Page, z paintEvent)"),
+          PlaceKind::Page, true);
+    steps(QStringLiteral("Przejdź do – 10 × Następny nagłówek (Page, z paintEvent)"),
+          PlaceKind::Heading, true);
+    editor.setViewMode(ViewMode::Continuous);
+    paint(editor);
+
+    // -------------------------------------------------------------------------
+    // 4. Paste Special in the middle of the text: each form, then Undo
+    // -------------------------------------------------------------------------
+    const int middle = static_cast<int>(editor.paragraphCount() / 2);
+    editor.setCursorPosition({.paragraph = middle, .offset = 0});
+    editor.setSelection({.start = {.paragraph = middle, .offset = 0},
+                         .end = {.paragraph = middle + 40, .offset = 0}});
+    const std::unique_ptr<QMimeData> copied = editor.createMimeDataFromSelection();
+    REQUIRE(copied);
+    editor.clearSelection();
+    std::vector<PasteForm> forms;
+    rows.push_back({.operation =
+                        QStringLiteral("Postacie schowka (40 akapitów skopiowanych w Kalahari)"),
+                    .ms = timeMs([&] { forms = editor.pasteFormsOf(copied.get()); }),
+                    .note = QStringLiteral("to, co okno pokazuje przy otwarciu")});
+    CHECK(forms.size() == 4);
+    const auto pasteIn = [&](const QString& name, PasteForm form) {
+        editor.setCursorPosition({.paragraph = middle + 100, .offset = 0});
+        const QString before = editor.textDocument()->findBlockByNumber(middle + 100).text();
+        const double ms = timeMs([&] {
+            editor.insertInForm(copied.get(), form);
+            paint(editor);
+        });
+        const double undoMs = timeMs([&] {
+            editor.undo();
+            paint(editor);
+        });
+        CHECK(editor.textDocument()->findBlockByNumber(middle + 100).text() == before);
+        rows.push_back({.operation = name,
+                        .ms = ms,
+                        .note = QStringLiteral("cofnięcie %1 ms").arg(undoMs, 0, 'f', 1)});
+    };
+    pasteIn(QStringLiteral("Wklej specjalnie – format Kalahari (40 akapitów) + paintEvent"),
+            PasteForm::Kalahari);
+    pasteIn(QStringLiteral("Wklej specjalnie – zachowaj formatowanie źródła (z HTML)"),
+            PasteForm::Source);
+    pasteIn(QStringLiteral("Wklej specjalnie – scal formatowanie (z HTML)"), PasteForm::Merge);
+    pasteIn(QStringLiteral("Wklej specjalnie – tylko tekst"), PasteForm::Text);
+
+    report(rows, header, QStringLiteral("paste_goto_benchmark_results.md"));
 }
