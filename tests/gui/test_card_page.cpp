@@ -9,11 +9,14 @@
 #include "document_window.h"
 #include "test_support/window_parts.h"
 
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_data.h"
+#include "kalahari/core/card_names.h"
 #include "kalahari/core/material_kinds.h"
+#include "kalahari/core/name_declension.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/color_dialog.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
@@ -29,6 +32,8 @@
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/widgets/card_chapters_box.h"
+#include "kalahari/gui/widgets/card_name_box.h"
+#include "kalahari/gui/widgets/name_forms_table.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/gui/widgets/palette_edit.h"
 #include "kalahari/gui/widgets/relations_box.h"
@@ -414,6 +419,15 @@ struct ReadOnlyNovel {
         REQUIRE(pm.setDescription(anna, QStringLiteral("A cartographer.")));
         jan = addCard(pm, "character", QStringLiteral("Jan"));
         REQUIRE(pm.addRelation(anna, jan, QStringLiteral("friend"), QStringLiteral("old")));
+        // The name of Anna in the book's dictionary, with another name
+        core::DictionaryName name = core::nameOfCard(
+            pm.bookDictionary(), anna, QStringLiteral("Anna"), core::NameKind::Character,
+            core::NameDeclension(QStringLiteral("en")));
+        core::NameVariant ania;
+        ania.text = QStringLiteral("Ania");
+        name.variants.append(ania);
+        REQUIRE(pm.changeBookDictionary(
+            [&name](core::BookDictionary& dictionary) { dictionary.putName(name); }));
         const QString manifest = pm.getManifestPath();
         REQUIRE(pm.closeProject(false));
 
@@ -533,7 +547,8 @@ TEST_CASE("Card: the short card shows the fields of its kind marked for the Prop
     CHECK(tabChain(page.settingsButton()) ==
           QList<QWidget*>{page.settingsButton(), page.portraitButton(), page.nameEdit(), role,
                           page.shortEdit(), age, occupation, goal,
-                          page.relationsBox()->addButton(), page.openButton()});
+                          page.nameBox()->nameButton(), page.relationsBox()->addButton(),
+                          page.openButton()});
 
     // A value chosen is saved at once in the .klh file
     role->setCurrentIndex(1);
@@ -814,14 +829,16 @@ TEST_CASE("Card: the full card has the kind with the role, the color, the data, 
     CHECK(choosing([&page]() { page.chooseColor(); }, QColor(QStringLiteral("#123456"))) == 1);
     CHECK(pm.findElement(anna)->card.color == QStringLiteral("#123456"));
 
-    // The keys go through the bar and the header, then the data, the own fields, the
-    // description and the relations
+    // The keys go through the bar and the header, then the data, the declension, the own
+    // fields, the description and the relations
     const QList<QWidget*> chain = tabChain(page.settingsButton());
     REQUIRE(chain.size() > 6);
     CHECK(chain.mid(0, 6) == QList<QWidget*>{page.settingsButton(), page.portraitButton(),
                                              page.nameEdit(), page.colorButton(),
                                              page.shortEdit(), role});
-    CHECK(chain.indexOf(goal) < chain.indexOf(page.ownFields()->addButton()));
+    CHECK(chain.indexOf(goal) < chain.indexOf(page.nameBox()->nameButton()));
+    CHECK(chain.indexOf(page.nameBox()->nameButton()) <
+          chain.indexOf(page.ownFields()->addButton()));
     CHECK(chain.indexOf(page.ownFields()->table()) < chain.indexOf(description));
     CHECK(chain.indexOf(description) < chain.indexOf(page.relationsBox()->addButton()));
     CHECK(chain.last() == page.relationButton());
@@ -1118,6 +1135,22 @@ TEST_CASE("Card: a book open read-only shows its cards and changes nothing", "[g
     dropped.picture = QImage(QSize(8, 8), QImage::Format_RGB32);
     CHECK_FALSE(full.dropMaterials(dropped, QPoint(1, 1)));
     CHECK(full.findButton()->isEnabled());
+
+    // The declension is shown, and changes nothing: no window Name, no other name, no form
+    CHECK(brief.nameBox()->formsLabel()->text() == QStringLiteral("The name does not change."));
+    CHECK(brief.nameBox()->otherNamesLabel()->text() == QStringLiteral("Other names: Ania"));
+    CHECK_FALSE(brief.nameBox()->nameButton()->isEnabled());
+    gui::CardNameBox* declension = full.nameBox();
+    REQUIRE(declension->variantButtons().size() == 2);
+    CHECK(declension->variantButtons().at(1)->isEnabled());  // the forms of each are shown
+    CHECK_FALSE(declension->nameButton()->isEnabled());
+    CHECK_FALSE(declension->addButton()->isEnabled());
+    REQUIRE(declension->formsTable() != nullptr);
+    CHECK_FALSE(declension->formsTable()->item(0, 1)->flags().testFlag(Qt::ItemIsEditable));
+    int others = 0;
+    QObject::connect(&full, &gui::CardPage::requestOtherName, [&others]() { ++others; });
+    press(declension->formsTable(), Qt::Key_Insert);
+    CHECK(others == 0);
 
     // Nor does the window Relation save or make a card
     const gui::dialogs::RelationDialog dialog(kalahari::test::book(), novel.anna, std::nullopt);

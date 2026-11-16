@@ -1663,6 +1663,20 @@ public:
     /// Null entries are left out.
     void setContextMenuActions(const QList<QAction*>& actions);
 
+    /// @brief A kind of card that Create Card on the context menu offers (setCardKinds())
+    struct CardKindChoice {
+        QString kind;  ///< What createCardAsked() gives for it: "kalahari.base:character"
+        QString text;  ///< Its item, with its access key: "&Character..."
+        QIcon icon;    ///< Its icon
+    };
+
+    /// @brief The kinds of cards Create Card offers on the context menu of a misspelled word
+    ///        and of a selection in one paragraph (createCardAsked()); none: no Create Card
+    void setCardKinds(const QList<CardKindChoice>& kinds);
+
+    /// @brief The kinds of cards Create Card offers (setCardKinds())
+    [[nodiscard]] const QList<CardKindChoice>& cardKinds() const { return m_cardKinds; }
+
     /// @brief The application's Cut, Copy, Paste and Select All, and its Insert > Link
     ///        (setContextMenuEditActions())
     struct ContextMenuEditActions {
@@ -2288,6 +2302,11 @@ signals:
     /// @brief The writer chose Add Name... on the context menu of a misspelled word: the
     ///        word is to be a name of the book's dictionary (setBookDictionary())
     void addNameAsked(const QString& word);
+
+    /// @brief The writer chose a kind of Create Card on the context menu of a misspelled word
+    ///        or of a selection (setCardKinds()): @p text is to be the name of a new card of
+    ///        kind @p kind
+    void createCardAsked(const QString& text, const QString& kind);
 
     /// @brief The writer chose Edit Rule... on the context menu of a place breaking a spelling
     ///        rule of the book (setBookDictionary())
@@ -3342,6 +3361,7 @@ private:
     bool m_autoScrollForDrop = false;   ///< Scrolling for dragged text (else: for a mouse selection)
     bool m_draggingText = false;        ///< The selected text is being dragged (startTextDrag())
     QList<QAction*> m_contextMenuActions;  ///< The application's commands in the context menu
+    QList<CardKindChoice> m_cardKinds;     ///< What Create Card offers in the context menu
 
     /// @brief A mark beside a paragraph, held by a cursor at the start of the paragraph: it
     /// moves with the text
@@ -3585,6 +3605,16 @@ private:
     /// @param replace Puts a word chosen in its place
     void addSpellingActions(QMenu& menu, const QString& word,
                             const std::function<void(const QString&)>& replace);
+
+    /// @brief Put Create Card on the context menu, with the kinds of setCardKinds(), for
+    ///        @p text as the name of a new card; nothing without kinds, for a text open
+    ///        read-only, or for a text too long for a name
+    /// @return Whether it is on the menu
+    bool addCreateCardMenu(QMenu& menu, const QString& text);
+
+    /// @brief Create Card on the context menu for the selection in one paragraph, as a name,
+    ///        unless the menu is of misspelled word @p word (addSpellingActions() has it)
+    void addSelectionCardMenu(QMenu& menu, const QString& word);
 
     /// @brief Put on the context menu what is offered for a place breaking a spelling rule of
     ///        the book: the rule's form, the rule and its note, Ignore All, Edit Rule...,

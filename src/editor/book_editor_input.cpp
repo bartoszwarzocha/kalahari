@@ -47,6 +47,9 @@ constexpr qreal AUTO_SCROLL_DROP_BAND = 24.0;      // px at the top and bottom e
 constexpr qreal AUTO_SCROLL_MIN_STEP = 2.0;        // px
 constexpr qreal AUTO_SCROLL_MAX_STEP = 60.0;       // px
 
+/// The longest text Create Card on the context menu takes for the name of a new card
+constexpr qsizetype MAX_CARD_NAME = 80;
+
 namespace {
 
 /// @brief Whether a key types: a character (also with AltGr), Backspace or Delete. A
@@ -1144,6 +1147,37 @@ void BookEditor::setContextMenuActions(const QList<QAction*>& actions)
     m_contextMenuActions = actions;
 }
 
+void BookEditor::setCardKinds(const QList<CardKindChoice>& kinds)
+{
+    m_cardKinds = kinds;
+}
+
+bool BookEditor::addCreateCardMenu(QMenu& menu, const QString& text)
+{
+    const QString name = text.simplified();
+    if (m_cardKinds.isEmpty() || isReadOnly() || name.isEmpty() || name.size() > MAX_CARD_NAME) {
+        return false;
+    }
+    //: The submenu of the context menu of a word or a selection with the kinds of cards: a new
+    //: card named after them. In Polish: &Utwórz kartę
+    QMenu* cards = menu.addMenu(tr("C&reate Card"));
+    cards->setToolTipsVisible(true);
+    for (const CardKindChoice& kind : std::as_const(m_cardKinds)) {
+        QAction* action = cards->addAction(kind.icon, kind.text);
+        connect(action, &QAction::triggered, this,
+                [this, name, id = kind.kind]() { emit createCardAsked(name, id); });
+    }
+    return true;
+}
+
+void BookEditor::addSelectionCardMenu(QMenu& menu, const QString& word)
+{
+    // A misspelled word has Create Card with its words
+    if (word.isEmpty() && addCreateCardMenu(menu, searchTextFromSelection())) {
+        menu.addSeparator();
+    }
+}
+
 void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions)
 {
     m_contextMenuEditActions = actions;
@@ -1323,6 +1357,7 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
                           replacing(grammarError->startPos,
                                     grammarError->startPos + grammarError->length));
     }
+    addSelectionCardMenu(menu, word);
 
     // The note whose number is at the cursor: edit its text, make it the other kind, delete it
     // (as in the mockup approved on 12.10.2026)

@@ -1108,6 +1108,8 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
         disableWhileReadOnly(name);
         connect(name, &QAction::triggered, this, [this, word]() { emit addNameAsked(word); });
     }
+    // The word as the name of a new card, which takes its forms to the book's dictionary
+    addCreateCardMenu(menu, word);
     menu.addSeparator();
 }
 

@@ -812,6 +812,8 @@ QWidget* PropertiesPanel::createCardPage() {
     layout->addWidget(m_cardPage);
     connect(m_cardPage, &CardPage::requestOpenCard, this, &PropertiesPanel::requestOpenCard);
     connect(m_cardPage, &CardPage::requestSettings, this, &PropertiesPanel::requestCardSettings);
+    connect(m_cardPage, &CardPage::requestNameWindow, this,
+            &PropertiesPanel::requestCardNameWindow);
     connect(m_cardPage, &CardPage::materialAdded, this, &PropertiesPanel::cardMaterialAdded);
     connect(m_cardPage, &CardPage::requestSelectCard, this, &PropertiesPanel::requestSelectCard);
     connect(m_cardPage, &CardPage::cardAdded, this, &PropertiesPanel::cardAdded);

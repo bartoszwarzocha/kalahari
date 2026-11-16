@@ -61,6 +61,9 @@ public:
         bool trash = true;             ///< The files can go to the Trash (core::canMoveToTrash())
         bool unassigned = true;        ///< The Navigator lists the files that stay, under
                                        ///< "Unassigned Files" (ProjectManager::listsAsUnassigned())
+        /// The name of a card in the book's dictionary (core::DictionaryName::text()); empty:
+        /// none
+        QString dictionaryName;
     };
 
     /// @brief Create the window
@@ -72,6 +75,13 @@ public:
 
     /// @brief Whether the files go too ("Also delete the files" is checked)
     bool deleteFiles() const;
+
+    /// @brief Whether the name of the card stays in the book's dictionary, without the card
+    ///        ("Keep the name in the book's dictionary" is checked); false without a name
+    [[nodiscard]] bool keepName() const;
+
+    /// @brief "Keep the name in the book's dictionary"; hidden without a name of a card
+    [[nodiscard]] QCheckBox* keepNameBox() const { return m_keepNameBox; }
 
     /// @brief The text Copy puts on the clipboard: what the window says and lists
     QString clipboardText() const;
@@ -115,6 +125,7 @@ private:
     QString m_description;
     QTreeWidget* m_list = nullptr;
     QCheckBox* m_deleteFilesBox = nullptr;
+    QCheckBox* m_keepNameBox = nullptr;
     QStackedWidget* m_filesPages = nullptr;  ///< What it says when the files stay, and go
     QLabel* m_stayText = nullptr;
     QLabel* m_goText = nullptr;

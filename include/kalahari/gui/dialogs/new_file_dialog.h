@@ -271,6 +271,10 @@ public:
     /// @brief The elements a new material is linked to (a chapter it was dropped on)
     void setMaterialLinks(const QStringList& links);
 
+    /// @brief The title of the new element as the writer would type it (a name chosen in the
+    ///        text for a new card): another kind chosen keeps it
+    void setTitle(const QString& title);
+
     /// @brief The status of a new text element of the book; hidden for other tiles
     QComboBox* statusBox() const { return m_statusBox; }
 

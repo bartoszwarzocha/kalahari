@@ -21,6 +21,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QLocale>
 #include <QPushButton>
 #include <QStackedWidget>
 #include <QTreeWidget>
@@ -199,6 +200,18 @@ DeleteFromBookDialog::DeleteFromBookDialog(const Content& content,
     list->setRows(rows);
     contentLayout()->addWidget(list, 1);
 
+    // The name of a card goes from the book's dictionary with the card, unless the writer
+    // keeps it there: its forms stay right in the book
+    //: %1: the name of the card in quotes. In Polish: &Zostaw imię lub nazwę %1 w słowniku
+    //: książki – jej formy będą nadal poprawne
+    m_keepNameBox = new QCheckBox(tr("&Keep the name %1 in the book's dictionary – its forms "
+                                     "stay right in the book")
+                                      .arg(QLocale().quoteString(m_content.dictionaryName)),
+                                  this);
+    m_keepNameBox->setObjectName(QStringLiteral("keepNameBox"));
+    m_keepNameBox->setVisible(!m_content.dictionaryName.isEmpty());
+    contentLayout()->addWidget(m_keepNameBox);
+
     // The files: they stay unless the writer deletes them too
     const auto files = static_cast<int>(m_content.files.size());
     m_deleteFilesBox = new QCheckBox(this);
@@ -311,6 +324,11 @@ DeleteFromBookDialog::DeleteFromBookDialog(const Content& content,
 bool DeleteFromBookDialog::deleteFiles() const
 {
     return !m_content.files.isEmpty() && m_deleteFilesBox->isChecked();
+}
+
+bool DeleteFromBookDialog::keepName() const
+{
+    return !m_content.dictionaryName.isEmpty() && m_keepNameBox->isChecked();
 }
 
 QString DeleteFromBookDialog::clipboardText() const

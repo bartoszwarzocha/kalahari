@@ -27,6 +27,7 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/widgets/card_chapters_box.h"
+#include "kalahari/gui/widgets/card_name_box.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/gui/widgets/palette_edit.h"
 #include "kalahari/gui/widgets/relations_box.h"
@@ -292,6 +293,10 @@ CardPage::CardPage(core::ProjectManager& book, bool full, QWidget* parent)
     connect(m_relations, &RelationsBox::requestShowCard, this,
             full ? &CardPage::requestOpenCard : &CardPage::requestSelectCard);
     connect(m_relations, &RelationsBox::cardAdded, this, &CardPage::cardAdded);
+    // The declension of the name, as the book's dictionary has it
+    m_nameBox = new CardNameBox(m_book, full, this);
+    connect(m_nameBox, &CardNameBox::requestNameWindow, this, &CardPage::requestNameWindow);
+    connect(m_nameBox, &CardNameBox::requestOtherName, this, &CardPage::requestOtherName);
 
     if (full) {
         createFullLayout();
@@ -342,14 +347,12 @@ void CardPage::createFullLayout() {
     //: the card. In Polish: Znajdź w książce
     m_findButton = barButton(bar, tr("Find in Book"), QStringLiteral("edit.findInBook"),
                              QStringLiteral("cardFindButton"));
-    //: In Polish: Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)
-    m_findButton->setToolTip(tr("Searches all the texts of the book for the name of the card "
-                                "(the Search panel)"));
-    connect(m_findButton, &QToolButton::clicked, this, [this]() {
-        if (const core::ProjectElement* element = m_book.findElement(m_elementId)) {
-            emit requestFindInBook(element->title);
-        }
-    });
+    //: In Polish: Szuka nazwy karty we wszystkich tekstach książki, w każdej formie i pod
+    //: innymi imionami (panel „Wyszukiwanie”)
+    m_findButton->setToolTip(tr("Searches all the texts of the book for the name of the card, "
+                                "in all its forms and by its other names (the Search panel)"));
+    connect(m_findButton, &QToolButton::clicked, this,
+            [this]() { emit requestFindInBook(m_elementId); });
     barLayout->addWidget(m_findButton);
     auto* barLine = new QFrame(bar);
     barLine->setFrameShape(QFrame::VLine);
@@ -443,6 +446,7 @@ void CardPage::createFullLayout() {
     fieldsLayout->addLayout(m_form);
     m_fieldsBox = fieldsGroup;
     dataLayout->addWidget(fieldsGroup);
+    dataLayout->addWidget(m_nameBox);
     //: In Polish: Własne pola karty
     m_ownFields = new OwnFieldsBox(m_book, QStringLiteral("card"), tr("Own fields of the card"),
                                    false, dataColumn);
@@ -521,6 +525,7 @@ void CardPage::createShortLayout() {
     fieldsLayout->addLayout(m_form);
     info->addWidget(m_fieldsBox);
     layout->addWidget(m_infoGroup);
+    layout->addWidget(m_nameBox);
     layout->addWidget(m_relations);
 
     //: The button of the short card of a character, a location or an item in the Properties
@@ -543,6 +548,7 @@ void CardPage::showCard(const QString& elementId) {
     m_elementId = elementId;
     m_portraitKey.clear();
     m_relations->showCard(elementId);
+    m_nameBox->showCard(elementId);
     if (m_full) {
         m_chapters->showCard(elementId);
         //: The materials of a card without any. In Polish: Z kartą nie są powiązane żadne
@@ -677,7 +683,7 @@ void CardPage::orderKeys(const QList<QWidget*>& besides, const QList<QWidget*>& 
     if (m_colorButton != nullptr) {
         chain << m_colorButton;
     }
-    chain << besides << m_shortEdit << fields;
+    chain << besides << m_shortEdit << fields << m_nameBox->keyParts();
     if (m_ownFields != nullptr) {
         chain << m_ownFields->addButton() << m_ownFields->removeButton() << m_ownFields->table();
     }

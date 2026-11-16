@@ -34,6 +34,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QTemporaryDir>
@@ -620,7 +621,8 @@ public:
     /// save the .klh file
     ///
     /// Their files stay in the project's folder: unassignedFiles() has their chapter files,
-    /// and filesOf() of the element gives them to whoever deletes them.
+    /// and filesOf() of the element gives them to whoever deletes them. The names of removed
+    /// cards stay in the book's dictionary, without the cards (DictionaryName::card).
     /// @return The element; nullopt when the project has no such element or the file cannot be
     ///         written
     std::optional<ProjectElement> removeElement(const QString& elementId);
@@ -1204,6 +1206,10 @@ signals:
     /// @brief Element @p elementId got another title (renameElement())
     void elementRenamed(const QString& elementId);
 
+    /// @brief Card @p elementId of the Workshop was added (addElement()): the book's dictionary
+    /// can get its name (card_names.h)
+    void cardAdded(const QString& elementId);
+
     /// @brief What card @p elementId has beside its text changed: its short description
     /// (setDescription()), the values of its fields, its color or its portraits (setCard(), or
     /// a picture of a portrait deleted)
@@ -1260,6 +1266,13 @@ private:
     ///         element stays as it was then
     bool changeDetails(const char* what, const QString& elementId,
                        const std::function<void(ProjectElement&)>& change);
+
+    /// @brief Element @p elementId of kind @p kind was added: cardAdded() for a card
+    void sayIfCard(const KindRef& kind, const QString& elementId);
+
+    /// @brief The names of the book's dictionary of the removed elements @p removedIds lose
+    /// their cards (removeElement())
+    void releaseCardNames(const QSet<QString>& removedIds);
 
     /// @brief The links of @p links that element @p elementId keeps (setLinks()): only to what
     /// the project has, not to the element itself, each once (the first); between two cards

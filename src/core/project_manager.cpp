@@ -6,6 +6,7 @@
 
 #include <kalahari/core/project_manager.h>
 #include <kalahari/core/backup_manager.h>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_package.h>
 #include <kalahari/core/card_data.h>
@@ -1550,6 +1551,7 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     logger.info("addElement: Added '{}' ({}, id: {}) with {} elements inside it",
                 title.toStdString(), kind.reference().toStdString(), element.id.toStdString(),
                 takeInside.size());
+    sayIfCard(kind, element.id);
     return element.id;
 }
 
@@ -2075,6 +2077,7 @@ std::optional<ProjectElement> ProjectManager::removeElement(const QString& eleme
     }
     Logger::getInstance().info("removeElement: Removed '{}' (id: {})",
                                element.title.toStdString(), elementId.toStdString());
+    releaseCardNames(removedIds);
     if (linksGone) {
         emit linksChanged();
     }
@@ -3061,6 +3064,33 @@ bool ProjectManager::changeBookDictionary(const std::function<void(BookDictionar
     m_bookDictionary = std::move(changed);
     emit bookDictionaryChanged();
     return true;
+}
+
+void ProjectManager::sayIfCard(const KindRef& kind, const QString& elementId) {
+    if (kind && kind.kind->isCard()) {
+        emit cardAdded(elementId);
+    }
+}
+
+void ProjectManager::releaseCardNames(const QSet<QString>& removedIds) {
+    // The names stay in the dictionary, without their cards (a book whose dictionary could not
+    // be read keeps its file)
+    const bool named = std::ranges::any_of(m_bookDictionary.names(),
+                                           [&removedIds](const DictionaryName& name) {
+                                               return removedIds.contains(name.card);
+                                           });
+    if (!named || !m_bookDictionaryRead) {
+        return;
+    }
+    changeBookDictionary([&removedIds](BookDictionary& dictionary) {
+        const QList<DictionaryName> names = dictionary.names();
+        for (DictionaryName name : names) {
+            if (removedIds.contains(name.card)) {
+                name.card.clear();
+                dictionary.putName(std::move(name));
+            }
+        }
+    });
 }
 
 QString ProjectManager::bookDictionaryPath() const {

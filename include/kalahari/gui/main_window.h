@@ -85,6 +85,7 @@ class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
 class BookDictionaryCoordinator;
+class CardNamesCoordinator;
 class RepetitionsCoordinator;
 class DocumentWindows;
 class WritingStatsCoordinator;
@@ -271,6 +272,11 @@ private:
     /// and of the Spelling and Grammar panel)
     /// @note Call after the spelling and its panel are made
     void createBookDictionary();
+
+    /// @brief The names of the cards in the book's dictionary (CardNamesCoordinator): Create
+    /// Card of the texts and the declension of the cards
+    /// @note Call after the book's dictionary and the Navigator's coordinator are made
+    void createCardNames();
 
     /// @brief Make the Book menu and the commands of the open book follow it
     ///
@@ -542,6 +548,9 @@ private:
 
     /// @brief The book's dictionary on its tab and its windows
     BookDictionaryCoordinator* m_bookDictionaryCoordinator{nullptr};
+
+    /// @brief The names of the cards in the book's dictionary
+    CardNamesCoordinator* m_cardNamesCoordinator{nullptr};
 
     /// @brief The Repetitions panel, the marks of the repeated words and Next Repetition
     RepetitionsCoordinator* m_repetitionsCoordinator{nullptr};

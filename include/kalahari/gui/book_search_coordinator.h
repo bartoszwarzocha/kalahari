@@ -141,9 +141,14 @@ public:
     ///        field, the search
     void findInBook();
 
-    /// @brief Find in Book of a card: the panel in front with @p text, a name, as whole words
-    ///        in any letters, the keys in its field, the search
+    /// @brief Find in Book of a name: the panel in front with @p text as whole words in any
+    ///        letters, the keys in its field, the search
     void findInBook(const QString& text);
+
+    /// @brief Find in Book of card @p cardId: findInBook() with its name; when the book's
+    ///        dictionary has the name, with the option of all forms on, which finds every form
+    ///        of it and of its other names (core::cardForms()) while the panel searches for it
+    void findCardInBook(const QString& cardId);
 
     /// @brief Search the book for what the panel says, from the first text
     void search();
@@ -208,6 +213,12 @@ private:
         editor::SearchOptions options;
     };
 
+    /// @brief Find in Book of a card: the name the panel searches for, and the card
+    struct CardQuery {
+        QString text;
+        QString cardId;
+    };
+
     /// @brief The paragraphs of a text as they were last read
     struct ReadText {
         QString signature;     ///< Of its kept text or file (savedTextIfChanged()); empty: none
@@ -249,6 +260,15 @@ private:
     /// @brief The matches of a text as it is now
     [[nodiscard]] TextMatches searchText(const QString& elementId, const QString& title,
                                          editor::BookEditor* editor);
+
+    /// @brief The panel in front with name @p text as whole words in any letters, all its
+    ///        forms too when @p allForms, the keys in its field, the search
+    void findName(const QString& text, bool allForms);
+
+    /// @brief The forms the option of all forms finds for @p text: those of the card of Find
+    ///        in Book of a card while the panel searches for its name, else those of
+    ///        setFormsOf()
+    [[nodiscard]] QStringList formsToFind(const QString& text) const;
 
     /// @brief Search the next texts, for SLICE_MS
     void searchSlice();
@@ -293,6 +313,7 @@ private:
     QWidget* m_window = nullptr;
     Confirmer m_confirm;
     FormsOf m_formsOf;  ///< The forms of the option of all forms
+    std::optional<CardQuery> m_card;  ///< Find in Book of a card: its forms for its name
 
     editor::SearchEngine m_engine;            ///< Matches the query (without a document)
     std::optional<Query> m_query;             ///< What was searched for last; none: nothing

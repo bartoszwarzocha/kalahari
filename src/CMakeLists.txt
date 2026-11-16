@@ -57,6 +57,7 @@ set(KALAHARI_CORE_SOURCES
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
     core/package_json.cpp       # The parts of booktype.json that its readers share
     core/card_package.cpp       # The fields of the kinds of cards and the relations of a package
+    core/card_names.cpp         # The names of the cards in the book's dictionary
     core/card_relations.cpp     # The relations between the cards of a book
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
@@ -278,6 +279,7 @@ set(KALAHARI_SOURCES
     gui/grammar_coordinator.cpp  # GrammarCoordinator - grammar as you type: the editors' LanguageTool server
     gui/spelling_panel_coordinator.cpp  # SpellingPanelCoordinator - the Spelling and Grammar panel and the text in front
     gui/book_dictionary_coordinator.cpp  # BookDictionaryCoordinator - the book dictionary on its tab and its windows
+    gui/card_names_coordinator.cpp  # CardNamesCoordinator - the names of the cards in the book's dictionary
     gui/repetitions_coordinator.cpp  # RepetitionsCoordinator - the Repetitions panel, the marks in the text, Next Repetition
     gui/grammar_components.cpp  # GrammarComponents - Java and LanguageTool on this computer
     gui/language_tool_server.cpp  # LanguageToolServer - the LanguageTool server the program starts
@@ -337,6 +339,7 @@ set(KALAHARI_SOURCES
     gui/widgets/kind_palette.cpp  # KindPalette - the kinds of elements of all book types
     gui/widgets/folder_field.cpp  # FolderField - the path of a folder, Browse... and Restore Default
     gui/widgets/name_forms_table.cpp  # NameFormsTable - the forms of a name by case and number
+    gui/widgets/card_name_box.cpp  # CardNameBox - the declension of the name of a card
     gui/toolbar_manager.cpp
     gui/widgets/status_bar_statistics.cpp  # Counts of the document in front in the status bar
     gui/widgets/stats_painter.cpp  # Colors and drawing of the statistics graphs
@@ -531,6 +534,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_coordinator.h  # GrammarCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/spelling_panel_coordinator.h  # SpellingPanelCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_dictionary_coordinator.h  # BookDictionaryCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/card_names_coordinator.h  # CardNamesCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/repetitions_coordinator.h  # RepetitionsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/language_tool_server.h  # LanguageToolServer with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/grammar_setup.h  # GrammarSetup with Q_OBJECT
@@ -555,6 +559,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/kind_palette.h  # KindPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/folder_field.h  # FolderField with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/name_forms_table.h  # NameFormsTable with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_name_box.h  # CardNameBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widget_keys.h  # WidgetKeys with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/utils/distraction_free_layout.h  # DistractionFreeLayout with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/status_bar_statistics.h  # StatusBarStatistics with Q_OBJECT

@@ -26,6 +26,7 @@
 class QTabWidget;
 class QStatusBar;
 class QTimer;
+class QWidget;
 
 namespace kalahari::gui {
 class CommandRegistry;
@@ -280,6 +281,12 @@ public slots:
     /// @brief Book > Add...: Add Element for what is in front (addTargetHere())
     void onRequestAddHere();
 
+    /// @brief Create Card in the context menu of a word or a selection of a text: Add Element
+    /// with the kind of card @p kind chosen and @p title in it (the book's dictionary gives the
+    /// new card its name, ProjectManager::cardAdded())
+    /// @return false when the writer closed the window without adding
+    bool onRequestAddCard(const QString& title, const core::KindRef& kind);
+
     /// @brief Book > New Chapter...: Add Element for what is in front with the main text kind
     /// of the book chosen; the whole book when the list of the element in front cannot have it
     void onRequestNewChapter();
@@ -405,8 +412,14 @@ signals:
 
     /// @brief The gear of a full card of a character, a location or an item: Settings > Cards
     void cardSettingsRequested();
-    /// @brief Find in Book of a full card: the texts of the book searched for @p text, its name
-    void findInBookRequested(const QString& text);
+    /// @brief Find in Book of a full card: the texts of the book searched for the name of card
+    /// @p cardId, all its forms and its other names
+    void findInBookRequested(const QString& cardId);
+    /// @brief The window "Name" of the book's dictionary for the name of card @p cardId, from
+    /// its full card
+    void nameWindowRequested(const QString& cardId);
+    /// @brief Another name for card @p cardId, from its full card in window @p window
+    void otherNameRequested(const QString& cardId, QWidget* window);
     /// @brief The gear of the entry of a source on a card, or of the preview of a PDF file:
     /// open Settings > Materials
     void sourceSettingsRequested();

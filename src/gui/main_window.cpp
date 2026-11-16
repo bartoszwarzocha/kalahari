@@ -35,6 +35,7 @@
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/spelling_panel_coordinator.h"
 #include "kalahari/gui/book_dictionary_coordinator.h"
+#include "kalahari/gui/card_names_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
@@ -939,6 +940,7 @@ MainWindow::MainWindow(QWidget* parent)
         *m_book, *m_commands, m_dockCoordinator->spellingPanel(), m_dockCoordinator->spellingDock(),
         m_dockCoordinator->centralTabs(), m_spellingCoordinator, m_grammarCoordinator, this);
     createBookDictionary();
+    createCardNames();
 
     // The Repetitions panel, the marks of the repeated words and Next Repetition; a chapter
     // is opened as from the Navigator
@@ -1901,6 +1903,21 @@ void MainWindow::createBookDictionary() {
             });
 }
 
+void MainWindow::createCardNames() {
+    m_cardNamesCoordinator = new CardNamesCoordinator(*m_book, *m_bookDictionaryCoordinator,
+                                                      m_dockCoordinator->centralTabs(), this);
+    // Create Card of the texts: Add Element with the kind chosen and the name
+    connect(m_cardNamesCoordinator, &CardNamesCoordinator::addCardRequested,
+            m_navigatorCoordinator, &NavigatorCoordinator::onRequestAddCard);
+    // The declension of the cards: the window "Name", another name of the full card
+    connect(m_dockCoordinator->propertiesPanel(), &PropertiesPanel::requestCardNameWindow,
+            m_cardNamesCoordinator, &CardNamesCoordinator::editName);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::nameWindowRequested,
+            m_cardNamesCoordinator, &CardNamesCoordinator::editName);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::otherNameRequested,
+            m_cardNamesCoordinator, &CardNamesCoordinator::addOtherName);
+}
+
 void MainWindow::onFind() {
     core::Logger::getInstance().info("Action triggered: Find");
 
@@ -2668,9 +2685,9 @@ void MainWindow::connectCards() {
     connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
             &NavigatorCoordinator::onRequestAddMaterials);
     connect(m_navigatorCoordinator, &NavigatorCoordinator::findInBookRequested, this,
-            [this](const QString& text) {
+            [this](const QString& cardId) {
                 if (m_bookSearchCoordinator != nullptr) {
-                    m_bookSearchCoordinator->findInBook(text);
+                    m_bookSearchCoordinator->findCardInBook(cardId);
                 }
             });
 }

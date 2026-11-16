@@ -41,6 +41,7 @@ struct ProjectElement;
 namespace kalahari::gui {
 
 class CardChaptersBox;
+class CardNameBox;
 class LinkedMaterialsBox;
 class OwnFieldsBox;
 class RelationsBox;
@@ -63,10 +64,14 @@ class RelationsBox;
 ///   the name of a card makes the relation of the field with it (CardField::relation).
 /// - Its relations with the other cards (RelationsBox): Enter shows the other card, on the
 ///   short card in the Navigator (requestSelectCard()), on the full card as its full card.
-/// - The full card has a bar with Find in Book (the name of the card in the Search panel),
-///   Relation... and the gear (Settings > Cards) over its data, which scroll: the kind with
-///   that field and the color of the card (a click opens the color window), the fields, the
-///   writer's own fields (OwnFieldsBox) and, beside them, the long description, the text of
+/// - The declension of its name and its other names, as the book's dictionary has them
+///   (CardNameBox): the window "Name" opens for them (requestNameWindow()), and the full card
+///   adds other names (requestOtherName()).
+/// - The full card has a bar with Find in Book (the name of the card, all its forms and its
+///   other names in the Search panel), Relation... and the gear (Settings > Cards) over its
+///   data, which scroll: the kind with that field and the color of the card (a click opens
+///   the color window), the fields, the declension, the writer's own fields (OwnFieldsBox)
+///   and, beside them, the long description, the text of
 ///   the card (setDescriptionWidget()), the relations, the chapters the card is in
 ///   (CardChaptersBox) and the materials linked with it (LinkedMaterialsBox), where a picture
 ///   has Set as Portrait in its menu.
@@ -167,6 +172,8 @@ public:
     [[nodiscard]] CardChaptersBox* chaptersBox() const { return m_chapters; }
     /// @brief The materials linked with the card; full card
     [[nodiscard]] LinkedMaterialsBox* materialsBox() const { return m_materials; }
+    /// @brief The declension of the name of the card and its other names
+    [[nodiscard]] CardNameBox* nameBox() const { return m_nameBox; }
 
 public slots:
     /// @brief Make picture material @p imageId the portrait of the card, first of its portraits,
@@ -220,8 +227,15 @@ signals:
     /// @brief Open material @p elementId, linked with the card
     void requestOpenMaterial(const QString& elementId);
 
-    /// @brief Search the texts of the book for @p text, the name of the card
-    void requestFindInBook(const QString& text);
+    /// @brief Search the texts of the book for the name of card @p elementId: all its forms
+    /// and its other names
+    void requestFindInBook(const QString& elementId);
+
+    /// @brief The window "Name" of the book's dictionary for the name of card @p elementId
+    void requestNameWindow(const QString& elementId);
+
+    /// @brief Another name for card @p elementId
+    void requestOtherName(const QString& elementId);
 
 protected:
     /// @brief The keys of the portrait, the gear at the title of the group, the lines saved
@@ -365,6 +379,7 @@ private:
     QToolButton* m_findButton = nullptr;      ///< Full card: Find in Book of the bar
     CardChaptersBox* m_chapters = nullptr;    ///< Full card: the chapters of the card
     LinkedMaterialsBox* m_materials = nullptr;  ///< Full card: the materials of the card
+    CardNameBox* m_nameBox = nullptr;         ///< The declension of the name
     core::ProjectManager& m_book;             ///< The book of its window
 };
 

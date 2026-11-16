@@ -28,6 +28,7 @@ set(TEST_SOURCES
     core/test_affix_expander.cpp      # The forms a Hunspell dictionary gives its words
     core/test_name_declension.cpp     # The forms of names in the grammatical cases
     core/test_book_dictionary.cpp     # The dictionary of a book: names, rules of spelling, words
+    core/test_card_names.cpp          # The names of the cards in the book's dictionary
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
@@ -177,6 +178,7 @@ set(TEST_SOURCES
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
     gui/test_card_page.cpp                       # The cards of characters, locations and items
     gui/test_relation_dialog.cpp                 # The window Relation and the relations of a card
+    gui/test_card_declension.cpp                 # The names of the cards, declined, in the dictionary
     gui/test_card_chapters.cpp                   # The chapters and the materials of a card, what is dropped on it
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
@@ -249,6 +251,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/package_json.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_package.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_names.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_relations.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
@@ -543,6 +546,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/name_forms_table.cpp         # The forms of a name
     ${CMAKE_SOURCE_DIR}/src/gui/panels/book_dictionary_panel.cpp     # The book dictionary on a tab
     ${CMAKE_SOURCE_DIR}/src/gui/book_dictionary_coordinator.cpp      # The book dictionary and its windows
+    ${CMAKE_SOURCE_DIR}/src/gui/card_names_coordinator.cpp          # The names of the cards in the dictionary
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/card_name_box.cpp            # The declension of the name of a card
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/deadline_dialog.cpp          # A deadline of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/new_quote_dialog.cpp         # A quote from a selection of a PDF
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/challenge_dialog.cpp         # Add Challenge
@@ -710,6 +715,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/name_forms_table.h  # NameFormsTable with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/book_dictionary_panel.h  # BookDictionaryPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_dictionary_coordinator.h  # BookDictionaryCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/card_names_coordinator.h  # CardNamesCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_name_box.h  # CardNameBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/deadline_dialog.h  # DeadlineDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_quote_dialog.h  # NewQuoteDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/challenge_dialog.h  # ChallengeDialog with Q_OBJECT

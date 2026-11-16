@@ -284,6 +284,10 @@ signals:
     /// @brief The gear of the short card: Settings > Cards
     void requestCardSettings();
 
+    /// @brief Change... of the declension of the short card: the window "Name" of the book's
+    /// dictionary for the name of card @p elementId
+    void requestCardNameWindow(const QString& elementId);
+
     /// @brief Material @p materialId was added on the short card (a portrait from a file): the
     /// Navigator shows it
     void cardMaterialAdded(const QString& materialId);

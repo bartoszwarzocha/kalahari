@@ -4047,6 +4047,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <extracomment>Opens the window of the spelling rule of the book. In Polish: Zmień z&amp;asadę…</extracomment>
         <translation>Zmień z&amp;asadę...</translation>
     </message>
+    <message>
+        <source>C&amp;reate Card</source>
+        <extracomment>The submenu of the context menu of a word or a selection with the kinds of cards: a new card named after them. In Polish: &amp;Utwórz kartę</extracomment>
+        <translation>&amp;Utwórz kartę</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::editor::BookEditorAccessible</name>
@@ -15877,6 +15882,11 @@ Harmonogram projektu:
         <source>The file will be gone for good: files in this folder cannot go to the {bin}.</source>
         <extracomment>In Polish: Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</extracomment>
         <translation>Plik zniknie na zawsze: z tego folderu nie da się przenieść pliku do Kosza.</translation>
+    </message>
+    <message>
+        <source>&amp;Keep the name %1 in the book&apos;s dictionary – its forms stay right in the book</source>
+        <extracomment>%1: the name of the card in quotes. In Polish: &amp;Zostaw imię lub nazwę %1 w słowniku książki – jej formy będą nadal poprawne</extracomment>
+        <translation>&amp;Zostaw imię lub nazwę %1 w słowniku książki – jej formy będą nadal poprawne</translation>
     </message>
 </context>
 <context>
@@ -27796,11 +27806,6 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <translation>Znajdź w książce</translation>
     </message>
     <message>
-        <source>Searches all the texts of the book for the name of the card (the Search panel)</source>
-        <extracomment>In Polish: Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)</extracomment>
-        <translation>Szuka nazwy karty we wszystkich tekstach książki (panel „Wyszukiwanie”)</translation>
-    </message>
-    <message>
         <source>Relation...</source>
         <extracomment>The button of the bar of a full card that opens the window Relation. In Polish: Relacja...</extracomment>
         <translation>Relacja...</translation>
@@ -27819,6 +27824,11 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <source>Set as &amp;Portrait</source>
         <extracomment>In the menu of a picture linked with a card. In Polish: Ustaw jako &amp;portret</extracomment>
         <translation>Ustaw jako &amp;portret</translation>
+    </message>
+    <message>
+        <source>Searches all the texts of the book for the name of the card, in all its forms and by its other names (the Search panel)</source>
+        <extracomment>In Polish: Szuka nazwy karty we wszystkich tekstach książki, w każdej formie i pod innymi imionami (panel „Wyszukiwanie”)</extracomment>
+        <translation>Szuka nazwy karty we wszystkich tekstach książki, w każdej formie i pod innymi imionami (panel „Wyszukiwanie”)</translation>
     </message>
 </context>
 <context>
@@ -28199,6 +28209,109 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <source>Relation Not Saved</source>
         <extracomment>In Polish: Nie zapisano relacji</extracomment>
         <translation>Nie zapisano relacji</translation>
+    </message>
+    <message>
+        <source>On the card of %1: &lt;b&gt;%2&lt;/b&gt; – %3</source>
+        <extracomment>How a card shows a relation, in the window Relation, when the program speaks the language of the book: %1 the name of the card in the genitive, as the book&apos;s dictionary declines it (&quot;Jana Wolskiego&quot;), %2 the name of the relation, %3 the other card. Keep &lt;b&gt; and &lt;/b&gt;. In Polish: Na karcie %1: &lt;b&gt;%2&lt;/b&gt; – %3</extracomment>
+        <translation>Na karcie %1: &lt;b&gt;%2&lt;/b&gt; – %3</translation>
+    </message>
+    <message>
+        <source>On the card of %1:</source>
+        <extracomment>The name of a relation the writer names, as a card shows it, when the program speaks the language of the book: %1 the name of the card in the genitive (&quot;Jana Wolskiego&quot;). In Polish: Na karcie %1:</extracomment>
+        <translation>Na karcie %1:</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardNameBox</name>
+    <message>
+        <source>Declension</source>
+        <extracomment>The group of a card with the forms of its name and its other names, which the book&apos;s dictionary has. In Polish: Odmiana</extracomment>
+        <translation>Odmiana</translation>
+    </message>
+    <message>
+        <source>Change...</source>
+        <extracomment>The button of the group Declension of the short card that opens the window Name of the book&apos;s dictionary. In Polish: Zmień...</extracomment>
+        <translation>Zmień...</translation>
+    </message>
+    <message>
+        <source>The forms, the other names, the plural and the models of declension in the window Name</source>
+        <extracomment>In Polish: Formy, inne imiona, liczba mnoga i wzory odmiany w oknie „Imię lub nazwa”</extracomment>
+        <translation>Formy, inne imiona, liczba mnoga i wzory odmiany w oknie „Imię lub nazwa”</translation>
+    </message>
+    <message>
+        <source>Forms of:</source>
+        <extracomment>Before the buttons of the name of a card and of its other names, which choose whose forms the table shows. In Polish: Formy:</extracomment>
+        <translation>Formy:</translation>
+    </message>
+    <message>
+        <source>Another Name... (Insert)</source>
+        <extracomment>In Polish: Inne imię lub nazwa... (Insert)</extracomment>
+        <translation>Inne imię lub nazwa... (Insert)</translation>
+    </message>
+    <message>
+        <source>Name Window...</source>
+        <extracomment>The button of the group Declension of the full card: the window Name of the book&apos;s dictionary, where the plural and the models of declension change. In Polish: Okno „Imię lub nazwa”...</extracomment>
+        <translation>Okno „Imię lub nazwa”...</translation>
+    </message>
+    <message>
+        <source>The book&apos;s dictionary does not have this name and its forms yet. The window Name adds them.</source>
+        <extracomment>A card whose name the book&apos;s dictionary does not have. In Polish: Słownik książki nie ma jeszcze tej nazwy ani jej form. Doda je okno „Imię lub nazwa”.</extracomment>
+        <translation>Słownik książki nie ma jeszcze tej nazwy ani jej form. Doda je okno „Imię lub nazwa”.</translation>
+    </message>
+    <message>
+        <source>The name does not change.</source>
+        <extracomment>The short card of a name whose forms are all the same (a name of a language without cases). In Polish: Nazwa się nie odmienia.</extracomment>
+        <translation>Nazwa się nie odmienia.</translation>
+    </message>
+    <message>
+        <source>Other names: %1</source>
+        <comment>character</comment>
+        <translation>Inne imiona: %1</translation>
+    </message>
+    <message>
+        <source>Other names: %1</source>
+        <comment>place or item</comment>
+        <translation>Inne nazwy: %1</translation>
+    </message>
+    <message>
+        <source>Declined as: %1</source>
+        <extracomment>%1: the sample words of the models of declension of the words of a name, each declined as its sample: &quot;Anna + Kowalska&quot;. In Polish: Odmienia się jak: %1</extracomment>
+        <translation>Odmienia się jak: %1</translation>
+    </message>
+    <message>
+        <source>The name itself</source>
+        <extracomment>The button of the name of the card itself, among its other names. In Polish: Nazwa karty</extracomment>
+        <translation>Nazwa karty</translation>
+    </message>
+    <message>
+        <source>Added by the program</source>
+        <translation>Dodał program</translation>
+    </message>
+    <message>
+        <source>Added by the author</source>
+        <translation>Dodał autor</translation>
+    </message>
+    <message>
+        <source>Forms by case</source>
+        <extracomment>In Polish: Formy według przypadków</extracomment>
+        <translation>Formy według przypadków</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::CardNamesCoordinator</name>
+    <message>
+        <source>Other Name</source>
+        <extracomment>The window of a new other name of a card: a diminutive, a nickname, a surname alone. In Polish: Inne imię lub nazwa</extracomment>
+        <translation>Inne imię lub nazwa</translation>
+    </message>
+    <message>
+        <source>Another name of %1 (a diminutive, a nickname)</source>
+        <extracomment>%1: the name of the card in quotes. In Polish: Inne imię lub inna nazwa karty %1 (zdrobnienie, przydomek)</extracomment>
+        <translation>Inne imię lub inna nazwa karty %1 (zdrobnienie, przydomek)</translation>
+    </message>
+    <message>
+        <source>&amp;Add</source>
+        <translation>&amp;Dodaj</translation>
     </message>
 </context>
 </TS>
