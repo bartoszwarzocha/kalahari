@@ -374,6 +374,57 @@ TEST_CASE("StatisticsCollector: text moved to another text is not written or del
     collector.setBookEditor(nullptr);
 }
 
+TEST_CASE("StatisticsCollector: a cut to the clippings lowers the words, or moves them",
+          "[editor][statistics][clippings]") {
+    // Edit > Cut to Clippings: the selection goes to the Workshop
+    BookEditor editor;
+    editor.fromKml(createKmlParagraphs({"One two three.", "Four five six seven."}));
+    StatisticsCollector collector;
+    collector.setBookEditor(&editor);
+    collector.startSession();
+    REQUIRE(collector.wordCount() == 7);
+
+    SECTION("deleted, as any deletion is") {
+        editor.setSelection({.start = {.paragraph = 1, .offset = 0},
+                             .end = {.paragraph = 1, .offset = 10}});
+        REQUIRE(editor.takeSelection(false));
+        waitForCount();
+        CHECK(collector.wordCount() == 5);
+        CHECK(collector.wordsDeletedThisSession() == 2);
+        CHECK_FALSE(editor.hasSelection());
+        // Undo writes them back, as an undone deletion does
+        editor.undo();
+        waitForCount();
+        CHECK(collector.wordCount() == 7);
+    }
+
+    SECTION("moved: neither deleted nor written, with Undo and Redo") {
+        editor.setSelection({.start = {.paragraph = 1, .offset = 0},
+                             .end = {.paragraph = 1, .offset = 10}});
+        REQUIRE(editor.takeSelection(true));
+        waitForCount();
+        CHECK(collector.wordCount() == 5);
+        CHECK(collector.wordsDeletedThisSession() == 0);
+        editor.undo();
+        waitForCount();
+        CHECK(collector.wordCount() == 7);
+        CHECK(collector.wordsWrittenThisSession() == 0);
+        editor.redo();
+        waitForCount();
+        CHECK(collector.wordCount() == 5);
+        CHECK(collector.wordsDeletedThisSession() == 0);
+    }
+
+    SECTION("nothing selected: nothing taken") {
+        editor.setCursorPosition({.paragraph = 1, .offset = 4});
+        CHECK_FALSE(editor.takeSelection(true));
+        CHECK(collector.wordCount() == 7);
+    }
+
+    collector.endSession();
+    collector.setBookEditor(nullptr);
+}
+
 TEST_CASE("StatisticsCollector: new rules of counting are not words written or deleted",
           "[editor][statistics]") {
     BookEditor editor;

@@ -99,6 +99,11 @@ public:
     ///        (SettingsDialog::openPage()); the program sets it once, with its window
     static void setSettingsOpener(std::function<void(QWidget*, const QString&)> opener);
 
+    /// @brief Open the Settings dialog at @p page over @p over, as a gear does (nothing without
+    ///        the program's opener, as in the tests)
+    /// @return false without an opener
+    static bool openSettings(QWidget* over, const QString& page);
+
 protected:
     /// @brief Keep the whole dialog on a small screen: the content scrolls, the heading
     ///        and the buttons stay in view

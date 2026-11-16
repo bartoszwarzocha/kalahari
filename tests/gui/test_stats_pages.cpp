@@ -146,6 +146,34 @@ TEST_CASE("Statistics settings: Counting", "[gui][settings][statistics]")
     CHECK(rules.dayStartMinutes == 210);
 }
 
+TEST_CASE("Statistics settings: Counting, a cut to the clippings under the words added",
+          "[gui][settings][statistics][clippings]")
+{
+    gui::StatsCountingPage page;
+    page.load();
+    auto* added = withText<QRadioButton>(page, QStringLiteral("Words added: written minus deleted"));
+    auto* written = withText<QRadioButton>(page, QStringLiteral("All the words written"));
+    auto* keepWords = page.findChild<QCheckBox*>(QStringLiteral("statsClippingsKeepWords"));
+    REQUIRE(added != nullptr);
+    REQUIRE(written != nullptr);
+    REQUIRE(keepWords != nullptr);
+
+    // By default a cut lowers the words of the day, as a deletion does
+    CHECK(added->isChecked());
+    CHECK_FALSE(keepWords->isChecked());
+    CHECK(keepWords->isEnabled());
+
+    // Nothing lowers all the words written: the choice does not matter there
+    written->setChecked(true);
+    CHECK_FALSE(keepWords->isEnabled());
+    added->setChecked(true);
+    CHECK(keepWords->isEnabled());
+
+    keepWords->setChecked(true);
+    CHECK(page.apply() == std::vector<std::string>{"stats.clippingsKeepWords"});
+    CHECK(core::SettingsManager::getInstance().get<bool>("stats.clippingsKeepWords"));
+}
+
 TEST_CASE("Statistics settings: Notifications", "[gui][settings][statistics]")
 {
     gui::StatsNotificationsPage page;

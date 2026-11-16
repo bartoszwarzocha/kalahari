@@ -573,7 +573,7 @@ TEST_CASE("Find in Book: the numbers of the notes the matches are in follow the 
     search.find(QStringLiteral("1931"));
     CHECK(noteOfStorm() == QStringLiteral("footnote c"));
 
-    // Insert > Footnote Layout...: the numbers as they are now
+    // Format > Footnote Layout...: the numbers as they are now
     search.noteContext = {};
     core::BookFootnotes footnotes = book.book.pm.bookFootnotes().value_or(core::BookFootnotes{});
     footnotes.footnotes.perChapter = !footnotes.footnotes.perChapter;

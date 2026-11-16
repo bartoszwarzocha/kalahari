@@ -2,14 +2,17 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file paragraph_marks_coordinator.cpp
-/// @brief The paperclips beside the paragraphs of the chapters that materials are linked with
+/// @brief The paperclips beside the paragraphs of the chapters that materials are linked with,
+///        and the scissors beside those clippings were cut from
 
 #include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/clipping.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panels/editor_panel.h"
 
@@ -56,10 +59,12 @@ ParagraphMarksCoordinator::ParagraphMarksCoordinator(core::ProjectManager& book,
     connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged,
             m_refreshTimer, qOverload<>(&QTimer::start));
 
-    // The setting may change on another thread: the paperclips change on this one
+    // The settings may change on another thread: the marks change on this one
     m_settingsListener = core::SettingsManager::getInstance().subscribe(
         [timer = QPointer<QTimer>(m_refreshTimer)](const std::string& key) {
-            if (key == core::LinkRoles::PARAGRAPHS_SETTING && timer != nullptr) {
+            if ((key == core::LinkRoles::PARAGRAPHS_SETTING ||
+                 key == core::Clippings::MARKS_SETTING) &&
+                timer != nullptr) {
                 QMetaObject::invokeMethod(timer, "start", Qt::QueuedConnection);
             }
         });
@@ -78,10 +83,7 @@ QList<editor::ParagraphMark> ParagraphMarksCoordinator::marksOf(const core::Proj
     if (elementId.isEmpty() || document == nullptr || !core::LinkRoles::paragraphsShown()) {
         return marks;
     }
-    QStringList paragraphs;
-    for (QTextBlock block = document->begin(); block.isValid(); block = block.next()) {
-        paragraphs << block.text();
-    }
+    const QStringList paragraphs = paragraphsOf(*document);
     for (const core::ProjectElement* material : book.materialsLinkedTo(elementId)) {
         const core::ElementLink* link = material->linkTo(elementId);
         const int number = link != nullptr ? core::LinkRoles::paragraphOf(paragraphs, *link) : 0;
@@ -96,7 +98,10 @@ QList<editor::ParagraphMark> ParagraphMarksCoordinator::marksOf(const core::Proj
             same->ids << material->id;
             same->titles << material->title;
         } else {
-            marks.append(editor::ParagraphMark{number - 1, {material->id}, {material->title}});
+            marks.append(editor::ParagraphMark{.paragraph = number - 1,
+                                               .ids = {material->id},
+                                               .titles = {material->title},
+                                               .kind = editor::ParagraphMarkKind::Materials});
         }
     }
     std::sort(marks.begin(), marks.end(),
@@ -104,6 +109,14 @@ QList<editor::ParagraphMark> ParagraphMarksCoordinator::marksOf(const core::Proj
                   return a.paragraph < b.paragraph;
               });
     return marks;
+}
+
+QStringList ParagraphMarksCoordinator::paragraphsOf(const QTextDocument& document) {
+    QStringList paragraphs;
+    for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
+        paragraphs << block.text();
+    }
+    return paragraphs;
 }
 
 void ParagraphMarksCoordinator::refresh() {
@@ -114,6 +127,10 @@ void ParagraphMarksCoordinator::refresh() {
             refreshPanel(panel);
         }
     }
+}
+
+void ParagraphMarksCoordinator::refreshSoon() {
+    m_refreshTimer->start();
 }
 
 void ParagraphMarksCoordinator::refreshPanel(EditorPanel* panel) {
@@ -136,12 +153,17 @@ void ParagraphMarksCoordinator::refreshPanel(EditorPanel* panel) {
                         m_showMaterial(id);
                     }
                 });
+        connect(editor, &editor::BookEditor::clippingRestoreRequested, this,
+                &ParagraphMarksCoordinator::clippingRestoreRequested);
     }
     // A chapter of the book: a file of its own has no element
     const QString elementId = panel->property("elementId").toString();
-    editor->setParagraphMarks(
-        marksOf(m_book, elementId, *editor),
-        core::ArtProvider::getInstance().getIcon(QStringLiteral("structure.materials")));
+    auto& art = core::ArtProvider::getInstance();
+    editor->setParagraphMarks(marksOf(m_book, elementId, *editor),
+                              art.getIcon(QStringLiteral("structure.materials")));
+    editor->setParagraphMarks(clippingMarksOf(m_book, elementId, *editor),
+                              art.getIcon(QStringLiteral("edit.cut")),
+                              editor::ParagraphMarkKind::Clippings);
 }
 
 }  // namespace kalahari::gui

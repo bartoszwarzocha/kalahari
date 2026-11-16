@@ -6,6 +6,7 @@
 
 #include "kalahari/gui/settings/stats_pages.h"
 
+#include "kalahari/core/clipping.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme.h"
 #include "kalahari/core/theme_manager.h"
@@ -162,65 +163,6 @@ private:
 StatsSettingsPage::StatsSettingsPage(QWidget* parent)
     : SettingsPage(parent)
 {
-}
-
-std::vector<QRadioButton*> StatsSettingsPage::addChoices(QFormLayout* form, const QString& label,
-                                                         const std::string& key,
-                                                         std::vector<Choice> choices, bool inRow)
-{
-    auto* holder = new QWidget();
-    QBoxLayout* layout = inRow ? static_cast<QBoxLayout*>(new QHBoxLayout(holder))
-                               : static_cast<QBoxLayout*>(new QVBoxLayout(holder));
-    layout->setContentsMargins(0, 0, 0, 0);
-    // The buttons share the holder, so one of them is checked at a time (auto-exclusive)
-    std::vector<QRadioButton*> buttons;
-    for (const Choice& choice : choices) {
-        auto* button = new QRadioButton(choice.text);
-        layout->addWidget(button);
-        if (!choice.note.isEmpty()) {
-            alignWithText(addNote(layout, choice.note), button);
-        }
-        buttons.push_back(button);
-    }
-    if (inRow) {
-        layout->addStretch();
-    }
-    if (label.isEmpty()) {
-        form->addRow(holder);
-    } else {
-        auto* caption = new QLabel(label);
-        caption->setBuddy(buttons.front());
-        form->addRow(caption, holder);
-    }
-
-    auto values = std::make_shared<std::vector<Choice>>(std::move(choices));
-    Binding binding;
-    binding.key = [key]() { return key; };
-    binding.stored = [key, values]() {
-        return core::SettingsManager::getInstance().get<json>(key, values->front().value);
-    };
-    binding.shown = [buttons, values]() {
-        for (std::size_t i = 0; i < buttons.size(); ++i) {
-            if (buttons[i]->isChecked()) {
-                return (*values)[i].value;
-            }
-        }
-        return values->front().value;
-    };
-    binding.show = [buttons, values](const json& value) {
-        for (std::size_t i = 0; i < buttons.size(); ++i) {
-            if ((*values)[i].value == value) {
-                buttons[i]->setChecked(true);
-                return;
-            }
-        }
-        buttons.front()->setChecked(true);
-    };
-    binding.store = [key](const json& value) {
-        core::SettingsManager::getInstance().set<json>(key, value);
-    };
-    bindCustom(std::move(binding));
-    return buttons;
 }
 
 QCheckBox* StatsSettingsPage::addOption(QLayout* layout, const QString& text,
@@ -392,6 +334,37 @@ StatsBarPage::StatsBarPage(QWidget* parent)
 // Counting
 // =============================================================================
 
+void StatsCountingPage::addClippingsOption(const std::vector<QRadioButton*>& goal)
+{
+    // Under the words added, which a cut lowers as a deletion: the fragment waits in the
+    // Workshop. With all the words written nothing lowers them.
+    auto* option = new QWidget();
+    option->setObjectName(QStringLiteral("statsClippingsKeepWordsRow"));
+    auto* layout = new QVBoxLayout(option);
+    layout->setContentsMargins(0, 0, 0, 0);
+    //: Under "Words added" of Settings > Statistics and Goals > Counting. In Polish: Wycięcie
+    //: do wycinków &nie jest usunięciem
+    QCheckBox* keepWords = addOption(layout, tr("Cutting to the &clippings is not deleting"),
+                                     core::Clippings::KEEP_WORDS_SETTING,
+                                     //: In Polish: Wycięte słowa trafiają do Warsztatu, więc
+                                     //: słowa dnia się nie zmieniają. Wstawienie wycinka z
+                                     //: powrotem liczy się jak wklejenie.
+                                     tr("The words cut go to the Workshop, so the words of the "
+                                        "day stay as they were. Inserting a clipping back "
+                                        "counts as a paste."));
+    keepWords->setObjectName(QStringLiteral("statsClippingsKeepWords"));
+    alignWithText(option, goal.front());
+    // Between the words added, with its note, and all the words written
+    if (auto* choices = qobject_cast<QBoxLayout*>(goal.front()->parentWidget()->layout())) {
+        choices->insertWidget(choices->indexOf(goal.back()), option);
+    }
+    const auto sync = [net = goal.front(), keepWords]() {
+        keepWords->setEnabled(net->isChecked());
+    };
+    connect(goal.front(), &QRadioButton::toggled, this, sync);
+    whenLoaded(sync);
+}
+
 StatsCountingPage::StatsCountingPage(QWidget* parent)
     : StatsSettingsPage(parent)
 {
@@ -402,11 +375,15 @@ StatsCountingPage::StatsCountingPage(QWidget* parent)
                 "Deadlines (Tools > Writing Goals and Deadlines)."));
 
     QFormLayout* counting = addGroup(tr("What Counts toward the Goal"));
-    addChoices(counting, QString(), "stats.goalCounting",
-               {{tr("&Words added: written minus deleted"), "net",
-                 tr("When you delete a paragraph, the words of the day go down.")},
-                {tr("&All the words written"), "written",
-                 tr("Deleting does not lower the words of the day.")}});
+    const std::vector<QRadioButton*> goal = addChoices(
+        counting, QString(), "stats.goalCounting",
+        {{.text = tr("&Words added: written minus deleted"),
+          .value = "net",
+          .note = tr("When you delete a paragraph, the words of the day go down.")},
+         {.text = tr("&All the words written"),
+          .value = "written",
+          .note = tr("Deleting does not lower the words of the day.")}});
+    addClippingsOption(goal);
 
     QFormLayout* books = addGroup(tr("Daily and Weekly Goal"));
     addChoices(books, QString(), "stats.dailyGoalAllBooks",

@@ -54,6 +54,15 @@ void KalahariDialog::setSettingsOpener(std::function<void(QWidget*, const QStrin
     settingsOpener() = std::move(opener);
 }
 
+bool KalahariDialog::openSettings(QWidget* over, const QString& page)
+{
+    if (!settingsOpener()) {
+        return false;
+    }
+    settingsOpener()(over, page);
+    return true;
+}
+
 KalahariDialog::KalahariDialog(QWidget* parent)
     : QDialog(parent)
 {

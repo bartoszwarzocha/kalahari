@@ -78,6 +78,7 @@ class BookExportCoordinator;
 class CaptionCoordinator;
 class FootnoteCoordinator;
 class ChapterBreakCoordinator;
+class ClippingsCoordinator;
 class FieldCoordinator;
 class GoToCoordinator;
 class BookSearchCoordinator;
@@ -576,6 +577,9 @@ private:
     FieldCoordinator* m_fieldCoordinator{nullptr};
     /// Edit > Go To...
     GoToCoordinator* m_goToCoordinator{nullptr};
+
+    /// @brief Edit > Cut to Clippings and Insert > Clipping from the Workshop
+    ClippingsCoordinator* m_clippingsCoordinator{nullptr};
 
     /// @brief Image > Filter > Same Filter for All Images...
     ImageFilterCoordinator* m_imageFilterCoordinator{nullptr};

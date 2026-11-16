@@ -7,8 +7,12 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_dictionary.h>
+#include <kalahari/core/book_project.h>
+#include <kalahari/core/book_type_package.h>
+#include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/card_data.h>
 #include <kalahari/core/chapter_document.h>
+#include <kalahari/core/clipping.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/file_trash.h>
 #include <kalahari/core/link_roles.h>
@@ -783,6 +787,48 @@ TEST_CASE("A user project has the kinds and the elements chosen in the palette",
     const BookProject saved = savedProject(manifest);
     CHECK(saved.kinds == kinds);
     CHECK(titles(saved.books.first().mainElements) == "Prolog, Część I, Cykl I, Epilog");
+}
+
+TEST_CASE("A user project without the clippings among its kinds takes them with the first one",
+          "[project_manager][clippings]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    NewProject request;
+    request.parentDir = dir.path();
+    request.title = QStringLiteral("Notes");
+    request.author = QStringLiteral("Anna Nowak");
+    request.language = QStringLiteral("en");
+    PaletteChoice palette;
+    palette.kinds = {kind("kalahari.base", "chapter")};
+    palette.elements = {
+        StartElement{.kind = kind("kalahari.base", "chapter"), .place = BookPlace::Main}};
+    request.palette = palette;
+    REQUIRE(pm.createProject(request));
+    const KindReference clippings{.packageId = QStringLiteral("kalahari.base"),
+                                  .kindId = QString::fromLatin1(Clippings::KIND)};
+    REQUIRE_FALSE(pm.project()->kinds.contains(clippings));
+
+    const QString first = pm.addClipping(QStringLiteral("Rain"),
+                                         QStringLiteral("<kml><p>Rain.</p></kml>"), {});
+    REQUIRE_FALSE(first.isEmpty());
+    CHECK(pm.project()->kinds.count(clippings) == 1);
+    const ProjectElement* clipping = pm.findElement(first);
+    REQUIRE(clipping != nullptr);
+    CHECK(ProjectManager::isClipping(*clipping));
+    CHECK(pm.chapterText(first).contains(QStringLiteral("Rain.")));
+
+    // The next one finds the kind there
+    CHECK_FALSE(pm.addClipping(QStringLiteral("Wind"), QStringLiteral("<kml><p>Wind.</p></kml>"),
+                               {})
+                    .isEmpty());
+    CHECK(pm.project()->kinds.count(clippings) == 1);
+
+    // Saved with the book
+    const QString manifest = pm.getManifestPath();
+    REQUIRE(pm.closeProject(false));
+    CHECK(savedProject(manifest).kinds.contains(clippings));
+    // Without a book, nothing
+    CHECK(pm.addClipping(QStringLiteral("Lost"), QString(), {}).isEmpty());
 }
 
 TEST_CASE("ProjectManager creates a project without opening it", "[project_manager]") {
@@ -1765,9 +1811,9 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
           "kalahari.base:location, kalahari.base:item, kalahari.base:work_note, "
-          "kalahari.base:cover, kalahari.base:quote, kalahari.base:web_page, "
-          "kalahari.base:picture, kalahari.base:document, kalahari.base:publication, "
-          "kalahari.base:recording, kalahari.base:other_file");
+          "kalahari.base:clipping, kalahari.base:cover, kalahari.base:quote, "
+          "kalahari.base:web_page, kalahari.base:picture, kalahari.base:document, "
+          "kalahari.base:publication, kalahari.base:recording, kalahari.base:other_file");
     CHECK(ProjectManager::canAdd(note));
     CHECK(ProjectManager::canAdd(material));
     CHECK(ProjectManager::canAdd(otherFile));
