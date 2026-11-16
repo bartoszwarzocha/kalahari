@@ -541,6 +541,13 @@ MainWindow::MainWindow(QWidget* parent)
     // Show on the Plot Board in the menu of the book, a part and a text of the Navigator
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestShowOnPlotBoard,
             m_plotBoardCoordinator, &PlotBoardCoordinator::showOnBoard);
+    // The gear over the board: Settings > Plot Board
+    connect(m_plotBoardCoordinator, &PlotBoardCoordinator::settingsRequested, this, [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::PLOT_BOARD_PAGE));
+        }
+    });
     // Hide Kind in the menu of a kind of the Navigator; Kind Settings... there and the gear of
     // a list: the materials in Settings > Navigator
     connect(m_dockCoordinator->navigatorPanel(), &NavigatorPanel::requestHideKind,

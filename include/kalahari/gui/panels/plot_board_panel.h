@@ -191,6 +191,8 @@ signals:
     void scenesVariantChanged();
     /// @brief What Edit > Undo, Redo, Cut, Paste and Delete can do may have changed
     void editStatesChanged();
+    /// @brief Open Settings > Plot Board (the gear over the board and the outline)
+    void settingsRequested();
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
@@ -216,6 +218,8 @@ private:
     void updateSwitches();
     /// @brief The button over the outline with the menu of the columns it shows
     [[nodiscard]] QToolButton* buildColumnsButton(QWidget* header);
+    /// @brief The gear over the board and the outline: settingsRequested()
+    [[nodiscard]] QToolButton* buildSettingsButton(QWidget* header) const;
     /// @brief The columns of the outline as the settings say (PlotBoard::OUTLINE_SETTING)
     void applyOutlineColumns();
     void onOutlineEdited(const QString& elementId, int column, const QString& value);

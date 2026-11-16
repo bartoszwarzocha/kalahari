@@ -2,9 +2,10 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file plot_board_panel_header.cpp
-/// @brief PlotBoardPanel: the switches over the board and the outline, and their look from
-/// the settings (PlotBoard::LAYOUT_SETTING...)
+/// @brief PlotBoardPanel: the switches over the board and the outline, their gear, and their
+/// look from the settings (PlotBoard::LAYOUT_SETTING...)
 
+#include "kalahari/core/art_provider.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/gui/panels/plot_board_panel.h"
@@ -242,6 +243,9 @@ void PlotBoardPanel::buildHeader(QWidget* header) {
     m_totals->setObjectName(QStringLiteral("plotBoardTotals"));
     m_totals->setForegroundRole(QPalette::PlaceholderText);
     flow->addWidget(m_totals);
+
+    // Settings > Plot Board
+    flow->addWidget(buildSettingsButton(header));
 }
 
 void PlotBoardPanel::applySettings() {
@@ -323,6 +327,25 @@ QToolButton* PlotBoardPanel::buildColumnsButton(QWidget* header) {
         });
     }
     button->setMenu(menu);
+    return button;
+}
+
+QToolButton* PlotBoardPanel::buildSettingsButton(QWidget* header) const {
+    auto* button = new QToolButton(header);
+    button->setObjectName(QStringLiteral("plotBoardSettings"));
+    button->setAutoRaise(true);
+    //: The gear over the plot board and the outline: Settings > Plot Board. In Polish:
+    //: Ustawienia tablicy fabuły
+    button->setToolTip(tr("Plot Board Settings"));
+    button->setAccessibleName(button->toolTip());
+    const auto refreshIcon = [button]() {
+        button->setIcon(core::ArtProvider::getInstance().getIcon(
+            QStringLiteral("dock.settings"), core::IconContext::Menu));
+    };
+    refreshIcon();
+    connect(&core::ArtProvider::getInstance(), &core::ArtProvider::resourcesChanged, button,
+            refreshIcon);
+    connect(button, &QToolButton::clicked, this, &PlotBoardPanel::settingsRequested);
     return button;
 }
 

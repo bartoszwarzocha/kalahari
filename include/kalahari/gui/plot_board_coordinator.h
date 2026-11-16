@@ -127,6 +127,10 @@ public slots:
     /// it comes to the front
     void refresh();
 
+signals:
+    /// @brief Open Settings > Plot Board (the gear over the board)
+    void settingsRequested();
+
 private:
     /// @brief What a card shows of its text that the writer can change: its title, its
     /// description and its plot

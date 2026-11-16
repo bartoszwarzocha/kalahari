@@ -11603,6 +11603,11 @@ The switch: the table of the texts. In Polish: Konspekt</extracomment>
         <translation>&amp;Cofnij</translation>
     </message>
     <message>
+        <source>Plot Board Settings</source>
+        <extracomment>The gear over the plot board and the outline: Settings &gt; Plot Board. In Polish: Ustawienia tablicy fabuły</extracomment>
+        <translation>Ustawienia tablicy fabuły</translation>
+    </message>
+    <message>
         <source>%1 · %2</source>
         <extracomment>The texts and the words of the book over the plot board; %1 the texts (&quot;7 texts&quot;), %2 the words. In Polish: %1 · %2</extracomment>
         <translation>%1 · %2</translation>

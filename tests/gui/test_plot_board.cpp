@@ -2082,6 +2082,30 @@ TEST_CASE("Plot board: the look of the board and the outline from Settings > Plo
     }
 }
 
+TEST_CASE("Plot board: the gear over the board and the outline opens Settings > Plot Board",
+          "[gui][plotboard]") {
+    gui::registerAllIcons();
+    const StormBoard scenes;
+    gui::PlotBoardPanel* panel = scenes.panel;
+    int asked = 0;
+    QObject::connect(&scenes.boards, &gui::PlotBoardCoordinator::settingsRequested,
+                     [&asked]() { ++asked; });
+    auto* gear = panel->findChild<QToolButton*>(QStringLiteral("plotBoardSettings"));
+    REQUIRE(gear != nullptr);
+    CHECK_FALSE(gear->icon().isNull());
+    CHECK(gear->toolTip() == QStringLiteral("Plot Board Settings"));
+    CHECK(gear->accessibleName() == gear->toolTip());
+    CHECK(gear->focusPolicy() & Qt::TabFocus);
+    CHECK_FALSE(gear->isHidden());
+    gear->click();
+    CHECK(asked == 1);
+    // Over the outline too
+    panel->showView(QString::fromLatin1(PlotBoard::VIEW_OUTLINE));
+    CHECK_FALSE(gear->isHidden());
+    gear->click();
+    CHECK(asked == 2);
+}
+
 TEST_CASE("Plot board: the front and back sections shown as a preview", "[gui][plotboard]") {
     const KeptSwitch sections{PlotBoard::SECTIONS_SETTING};
     auto& settings = core::SettingsManager::getInstance();

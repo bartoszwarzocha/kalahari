@@ -78,7 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their titles (the time of the action is off by default), whether the color of a card is a
   strip at its top or its background, what is under the cards (the color of the theme, cork or
   a color of one's own, both kept for each theme) and the columns of the outline, which the
-  button "Table Columns" over the outline chooses too.
+  button "Table Columns" over the outline chooses too. The gear at the end of the switches over
+  the board and the outline opens this page.
 - **Book dictionary** - 2026-11-15. Each book has a dictionary of its own (`dictionary.json`
   in its folder, saved at once with each change): the names of its characters, places, things
   and other proper names with all their forms, the author's spelling rules, and words right in

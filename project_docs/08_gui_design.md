@@ -1650,8 +1650,9 @@ may have them too.
   with these keys). Edit > Undo, Redo, Cut, Paste and Delete do there what their keys do;
   "Show on the Plot Board" in the Navigator (the book, a part, a text) chooses the card. The
   button "Table Columns" over the outline (Tab to it, Space) chooses the columns it shows, as
-  Settings > Plot Board does with the rest of the look of the board. The front and back
-  sections shown on the board (Settings > Plot Board) are a preview: the keys pass them by.
+  Settings > Plot Board does with the rest of the look of the board; the gear at the end of
+  the switches (Tab to it, Space) opens that page. The front and back sections shown on the
+  board (Settings > Plot Board) are a preview: the keys pass them by.
   After a move that leaves the numbers in the titles out of the order, the button Renumber of
   the bar under the board (its underlined letter with Alt) renumbers them; Ctrl+Z undoes it.
 - **Annotations panel:** Up and Down, Home and End – select an annotation, Enter or F2 –

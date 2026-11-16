@@ -259,6 +259,8 @@ void PlotBoardCoordinator::connectBoard(PlotBoardPanel* panel) {
             [this](const QString& elementId) { showProperties(elementId, true); });
     // Another variant of the scenes shows other cards
     connect(panel, &PlotBoardPanel::scenesVariantChanged, this, &PlotBoardCoordinator::refresh);
+    connect(panel, &PlotBoardPanel::settingsRequested, this,
+            &PlotBoardCoordinator::settingsRequested);
 }
 
 void PlotBoardCoordinator::updateTab() {
