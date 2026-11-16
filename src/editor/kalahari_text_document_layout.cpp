@@ -421,6 +421,8 @@ void KalahariTextDocumentLayout::setPageFlow(const PageFlow& flow) {
         normalized.enabled = true;
         normalized.textHeight = std::max<qreal>(1.0, normalized.textHeight);
         normalized.pitch = std::max(normalized.textHeight, std::round(flow.pitch));
+        normalized.firstPageTop =
+            std::clamp<qreal>(std::round(flow.firstPageTop), 0.0, normalized.textHeight);
     }
     if (normalized == m_pageFlow) {
         return;
@@ -1860,6 +1862,7 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     const bool withNotes = inStep && (!footnoteNumbers().notes().empty() ||
                                       !m_footnoteContext.otherEndnotes.empty());
     qreal lastSpacing = 0;
+    y = m_pageFlow.firstPageTop;  // below the text before it on its page
     QTextBlock block = document()->begin();
     for (size_t i = 0; i < count; ++i, block = block.next()) {
         const FlowEntry& entry = m_blockFlowEntries[i];
@@ -3775,7 +3778,10 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
         }
         case TextObject::PageBreak: {
             // In every view, with the formatting marks or without them: the pages start the
-            // next one, the line says why the text ends there
+            // next one, the line says why the text ends there (not on paper)
+            if (m_printed) {
+                break;
+            }
             QColor markColor = textColor;
             markColor.setAlphaF(markColor.alphaF() * OBJECT_LINE_OPACITY);
             QFont labelFont = document()->defaultFont();
@@ -3998,7 +4004,8 @@ void KalahariTextDocumentLayout::drawImageFrame(QPainter* painter, const QRectF&
 
 void KalahariTextDocumentLayout::drawImage(QPainter* painter, const QRectF& box,
                                            const ImageProperties& image) const {
-    if (box.isEmpty()) {
+    // On paper a missing image is left out (the export reports it)
+    if (box.isEmpty() || (m_printed && isImageMissing(image))) {
         return;
     }
     // The picture inside its frame: the border, the room around the picture, the shadow

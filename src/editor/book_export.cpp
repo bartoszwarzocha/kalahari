@@ -25,6 +25,8 @@
 #include <QTextCursor>
 #include <QTextFragment>
 
+#include <zip.h>
+
 #include <algorithm>
 #include <cmath>
 
@@ -464,6 +466,81 @@ QString xmlEscaped(const QString& text) {
 // =============================================================================
 // Files
 // =============================================================================
+
+QByteArray zipped(const std::vector<std::pair<QString, QByteArray>>& files, ExportProblem* problem) {
+    zip_error_t error;
+    zip_error_init(&error);
+    zip_source_t* buffer = zip_source_buffer_create(nullptr, 0, 0, &error);
+    if (!buffer) {
+        problem->kind = ExportProblem::Kind::Other;
+        problem->lines << QString::fromUtf8(zip_error_strerror(&error));
+        zip_error_fini(&error);
+        return {};
+    }
+    zip_source_keep(buffer);
+    zip_t* archive = zip_open_from_source(buffer, ZIP_TRUNCATE, &error);
+    if (!archive) {
+        problem->kind = ExportProblem::Kind::Other;
+        problem->lines << QString::fromUtf8(zip_error_strerror(&error));
+        zip_source_free(buffer);
+        zip_source_free(buffer);
+        zip_error_fini(&error);
+        return {};
+    }
+    bool ok = true;
+    for (const auto& [name, data] : files) {
+        zip_source_t* source = zip_source_buffer(archive, data.constData(), static_cast<zip_uint64_t>(data.size()), 0);
+        const zip_int64_t index =
+            source ? zip_file_add(archive, name.toUtf8().constData(), source, ZIP_FL_ENC_UTF_8 | ZIP_FL_OVERWRITE) : -1;
+        if (index < 0) {
+            if (source) {
+                zip_source_free(source);
+            }
+            problem->lines << QStringLiteral("%1: %2").arg(name, QString::fromUtf8(zip_strerror(archive)));
+            ok = false;
+            break;
+        }
+        // Pictures are packed already; an EPUB's mimetype is stored as it is
+        const bool stored = name == QLatin1String("mimetype") || name.endsWith(QLatin1String(".png")) ||
+                            name.endsWith(QLatin1String(".jpeg")) || name.endsWith(QLatin1String(".jpg")) ||
+                            name.endsWith(QLatin1String(".gif"));
+        zip_set_file_compression(archive, static_cast<zip_uint64_t>(index), stored ? ZIP_CM_STORE : ZIP_CM_DEFLATE, 0);
+    }
+    if (!ok) {
+        zip_discard(archive);
+        zip_source_free(buffer);
+        zip_error_fini(&error);
+        problem->kind = ExportProblem::Kind::Other;
+        return {};
+    }
+    if (zip_close(archive) != 0) {
+        problem->kind = ExportProblem::Kind::Other;
+        problem->lines << QString::fromUtf8(zip_strerror(archive));
+        zip_discard(archive);
+        zip_source_free(buffer);
+        zip_error_fini(&error);
+        return {};
+    }
+    QByteArray data;
+    zip_stat_t stat;
+    zip_stat_init(&stat);
+    if (zip_source_stat(buffer, &stat) == 0 && zip_source_open(buffer) == 0) {
+        data.resize(static_cast<qsizetype>(stat.size));
+        const zip_int64_t read = zip_source_read(buffer, data.data(), stat.size);
+        zip_source_close(buffer);
+        if (read != static_cast<zip_int64_t>(stat.size)) {
+            data.clear();
+        }
+    }
+    zip_source_free(buffer);
+    zip_error_fini(&error);
+    if (data.isEmpty()) {
+        problem->kind = ExportProblem::Kind::Other;
+        problem->lines << QStringLiteral("The packed document could not be read from memory.");
+    }
+    return data;
+}
+
 
 bool writeExportFile(const QString& path, const QByteArray& data, ExportProblem* problem) {
     QSaveFile file(path);

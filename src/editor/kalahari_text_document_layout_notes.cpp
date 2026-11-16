@@ -913,6 +913,19 @@ std::optional<QRectF> KalahariTextDocumentLayout::noteRect(const QString& id) co
 // Page flow
 // =============================================================================
 
+qreal KalahariTextDocumentLayout::pageNotesHeight(int page) const {
+    updateBlockPositions();
+    if (!m_pageFlow.enabled || page < 0 || static_cast<size_t>(page) >= m_pageNotes.size()) {
+        return 0.0;
+    }
+    return m_pageNotes[static_cast<size_t>(page)].reserved;
+}
+
+qreal KalahariTextDocumentLayout::contentBottom() const {
+    updateBlockPositions();
+    return m_contentBottom;
+}
+
 qreal KalahariTextDocumentLayout::flowAreaHeight(qreal page) const {
     const auto index = static_cast<size_t>(std::max<qreal>(0.0, page));
     if (page < 0.0 || index >= m_pageNotes.size()) {

@@ -24,6 +24,10 @@ namespace kalahari::editor {
 
 namespace {
 
+/// How far left and right of its paragraph a line of a printed page may reach (document
+/// units): the clip of renderPrintedPage() cuts only above and below the page's text area
+constexpr double PRINTED_LINE_REACH = 1.0e6;
+
 /// Size of the page numbers relative to the text font
 constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
 
@@ -362,6 +366,7 @@ void EditorRenderPipeline::applyPageFlowToSource() {
     if (m_context.viewMode == ViewMode::Page) {
         flow.enabled = true;
         flow.pitch = m_context.computed.pagePitch;
+        flow.firstPageTop = m_context.pageMode.firstPageTop;
     }
     m_textSource->setPageFlow(flow);
 }
@@ -1250,6 +1255,9 @@ void EditorRenderPipeline::renderTableGrid(QPainter* painter, const TableGrid& g
 
     // A line of an edge: a border when the table has its kind of lines, else a faint one
     const auto drawEdge = [&](bool border, const QPointF& from, const QPointF& to) {
+        if (!border && gridPen.color().alpha() == 0) {
+            return;  // a printed page has no faint lines
+        }
         painter->setPen(border ? borderPen : gridPen);
         if (border && doubled) {
             const QPointF offset = from.y() == to.y() ? QPointF(0.0, gap) : QPointF(gap, 0.0);
@@ -1452,17 +1460,23 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
         firstPage = pageAtDocumentY(paragraphY + layout->lineAt(0).y());
         lastPage = pageAtDocumentY(paragraphY + layout->lineAt(layout->lineCount() - 1).y());
     }
+    if (m_printedArea && m_context.pageMode.mirrorMargins) {
+        firstPage = m_printedArea->page;  // only its lines on the printed page, with its margins
+        lastPage = m_printedArea->page;
+    }
 
     // The colors of the text as shown. On dark paper the text and highlights of colors of
     // their own are lighter and darker, so the text stays readable; focus dims colored text as
     // the rest. The saved colors stay as they are. A link is underlined, in the link color
     // unless it has a color of its own (the layout draws the underline of a range only with
-    // its color).
+    // its color). A printed page has the light paper and its links in their document's
+    // formats (BookPages): the layout draws a range twice, which would put its text twice in a
+    // PDF (two links where one is).
     QList<QTextLayout::FormatRange> shownColors;
     const QColor paper = m_context.colors.background;
     const bool darkPaper = isDarkPaper(paper);
     for (const ColoredText& run : m_textSource->paragraphColors(index)) {
-        if (!run.link && !darkPaper && !isDimmed) {
+        if (m_printedArea || (!run.link && !darkPaper && !isDimmed)) {
             continue;
         }
         QTextLayout::FormatRange range;
@@ -1512,9 +1526,23 @@ void EditorRenderPipeline::renderParagraph(QPainter* painter, size_t index, doub
             painter->scale(scale, scale);
         }
 
-        // Draw the layout, and the number or bullet of a list item
-        layout->draw(painter, QPointF(0, 0), shownColors);
-        m_textSource->drawListMarker(painter, index);
+        // Draw the layout, and the number or bullet of a list item; a printed page only its
+        // own lines, so no text of another page hides under its clip in the file
+        if (m_printedArea) {
+            const double areaTop = m_printedArea->top;
+            const double areaBottom = m_printedArea->bottom;
+            const QRectF lines(-PRINTED_LINE_REACH, areaTop - paragraphY, 2.0 * PRINTED_LINE_REACH,
+                               areaBottom - areaTop);
+            layout->draw(painter, QPointF(0, 0), shownColors, lines);
+            const double firstLine = layout->lineCount() > 0 ? paragraphY + layout->lineAt(0).y()
+                                                             : paragraphY;
+            if (firstLine >= areaTop - 0.5 && firstLine < areaBottom) {
+                m_textSource->drawListMarker(painter, index);
+            }
+        } else {
+            layout->draw(painter, QPointF(0, 0), shownColors);
+            m_textSource->drawListMarker(painter, index);
+        }
 
         painter->restore();
     }
@@ -2166,6 +2194,59 @@ void EditorRenderPipeline::renderPages(QPainter* painter, const QRect& clipRect)
             painter->restore();
         }
     }
+}
+
+void EditorRenderPipeline::renderPrintedPage(QPainter* painter, int page) {
+    if (!painter || !m_textSource || m_context.viewMode != ViewMode::Page) return;
+
+    // The page's sheet at the painter's origin, at 100%: the context is kept and given back,
+    // so the view (if any) is drawn as before
+    const RenderContext kept = m_context;
+    auto& computed = m_context.computed;
+    computed.viewScale = 1.0;
+    computed.pageCenterOffset = 0.0;
+    computed.originX = computed.marginLeft;
+    computed.originY = computed.marginTop;
+    m_context.scrollY = pageTextTop(page);
+    m_context.viewportSize = QSizeF(computed.pageWidthPixels, computed.pageHeightPixels);
+    m_context.focus = false;
+    m_context.showFormattingMarks = false;
+
+    // The paragraphs on the page: from the one at the top of its sheet to the one at its
+    // bottom
+    const double top = pageTextTop(page);
+    const size_t count = m_textSource->paragraphCount();
+    if (count > 0) {
+        computed.firstVisibleParagraph =
+            std::min(m_textSource->firstParagraphAtY(top - computed.marginTop), count - 1);
+        computed.lastVisibleParagraph = std::min(
+            m_textSource->paragraphAtY(top + computed.textAreaHeight + computed.marginBottom),
+            count - 1);
+        m_textSource->ensureLayouted(computed.firstVisibleParagraph, computed.lastVisibleParagraph);
+
+        const QRect sheet(0, 0, static_cast<int>(std::ceil(computed.pageWidthPixels)),
+                          static_cast<int>(std::ceil(computed.pageHeightPixels)));
+        painter->save();
+        painter->setClipRect(sheet, Qt::IntersectClip);
+        const std::vector<TableGrid> tables =
+            m_textSource->tablesIn(computed.firstVisibleParagraph, computed.lastVisibleParagraph);
+        renderTables(painter, tables, std::nullopt);
+        m_printedArea = PrintedArea{page, top, top + computed.textAreaHeight};
+        renderParagraphs(painter, sheet);
+        if (!tables.empty()) {
+            renderHeaderCopies(painter, tables, sheet);
+        }
+        m_printedArea.reset();
+        if (m_pageDecorator) {
+            // Its notes, at the top left of its text area (pageShiftX(): mirror margins)
+            painter->save();
+            painter->translate(computed.marginLeft + pageShiftX(page), computed.marginTop);
+            m_pageDecorator(painter, page);
+            painter->restore();
+        }
+        painter->restore();
+    }
+    m_context = kept;
 }
 
 void EditorRenderPipeline::renderEndlessPage(QPainter* painter, const QRect& clipRect) {

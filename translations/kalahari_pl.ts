@@ -431,10 +431,6 @@
         <translation>&amp;EPUB</translation>
     </message>
     <message>
-        <source>M&amp;OBI</source>
-        <translation>M&amp;OBI</translation>
-    </message>
-    <message>
         <source>&amp;InDesign ICML</source>
         <translation>&amp;InDesign ICML</translation>
     </message>

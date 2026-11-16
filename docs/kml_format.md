@@ -480,7 +480,7 @@ Markdown below); the other exports and the imports are not written yet and are t
 |--------|--------|--------|
 | DOCX | `<w:br/>` in the run | `<w:br/>` without a type or with `w:type="textWrapping"`, and `<w:cr/>`; a page or column break is not a line break |
 | Markdown | A backslash at the end of the line (a hard line break) | A backslash or two spaces at the end of the line |
-| EPUB, MOBI | `<br/>` | – |
+| EPUB | `<br/>` | – |
 | PDF | A new line of the same paragraph, without the paragraph's spacing and first-line indent | – |
 | InDesign ICML | The character U+2028 (a forced line break) | – |
 | LaTeX | `\\` at the end of the line | – |

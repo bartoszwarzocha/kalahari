@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file book_export_internal.h
-/// @brief What the writers of DOCX and Markdown share (not part of the editor's API): a text
+/// @brief What the writers of DOCX, Markdown and EPUB share (not part of the editor's API): a text
 ///        read as the editor reads it with its numbers, the pieces of its paragraphs, the
 ///        styles' kinds and the pictures of the images
 
@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 class QTextTable;
@@ -130,6 +131,11 @@ ExportPicture exportPicture(const ImageStore& store, const ImageProperties& imag
 /// @brief A text with the characters XML does not allow taken out, escaped for an attribute or
 ///        an element
 QString xmlEscaped(const QString& text);
+
+/// @brief The files packed as a ZIP archive in memory, in their order (pictures and a file
+///        named "mimetype" stored, the others compressed)
+/// @return The archive; empty, with what went wrong in @p problem, when they cannot be packed
+QByteArray zipped(const std::vector<std::pair<QString, QByteArray>>& files, ExportProblem* problem);
 
 /// @brief Write @p data as the whole of file @p path, replaced only once it is written whole
 /// @return false, with what went wrong in @p problem, when it cannot

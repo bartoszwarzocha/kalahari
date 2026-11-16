@@ -48,7 +48,6 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.export.pdf", "resources/icons/twotone/picture_as_pdf.svg", "Export PDF");
     iconRegistry.registerIcon("file.export.markdown", "resources/icons/twotone/code.svg", "Export Markdown");
     iconRegistry.registerIcon("file.export.epub", "resources/icons/twotone/auto_stories.svg", "Export EPUB");
-    iconRegistry.registerIcon("file.export.mobi", "resources/icons/twotone/smartphone.svg", "Export MOBI");
     iconRegistry.registerIcon("file.export.latex", "resources/icons/twotone/functions.svg", "Export LaTeX");
     iconRegistry.registerIcon("file.export.icml", "resources/icons/twotone/view_quilt.svg", "Export InDesign ICML");
     iconRegistry.registerIcon("file.export.settings", "resources/icons/twotone/tune.svg", "Export Settings");

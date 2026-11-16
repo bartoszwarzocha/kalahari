@@ -26,7 +26,6 @@ FILE
     ─────────────────
     [Plugin formats below]
       EPUB
-      MOBI
       InDesign ICML
       LaTeX
     Export Settings...

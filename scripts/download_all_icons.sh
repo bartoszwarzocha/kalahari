@@ -31,7 +31,6 @@ ICONS=(
     "download"          # file.export.docx
     "code"              # file.export.markdown, format.style.code
     "auto_stories"      # file.export.epub, tools.readability
-    "smartphone"        # file.export.mobi
     "functions"         # file.export.latex
 
     # EDIT MENU

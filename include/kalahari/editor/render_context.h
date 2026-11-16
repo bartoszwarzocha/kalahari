@@ -153,6 +153,9 @@ struct PageModeConfig {
     bool showPageNumbers = true;               ///< Page numbers at the bottom centre (page view)
     bool mirrorMargins = false;                ///< Facing pages (page view): pages 2, 4, ... have
                                                ///< the left and right margins of page 1 swapped
+    double firstPageTop = 0.0;                 ///< Where the text starts on page 1, below the top
+                                               ///< of its text area (pixels at 100%): it goes on
+                                               ///< after another text (PageFlow::firstPageTop)
 };
 
 /// @brief Typewriter scrolling configuration
