@@ -69,8 +69,8 @@ struct Node {
     QString attr(QLatin1StringView local) const {
         for (const QXmlStreamAttribute& attribute : attributes) {
             if (attribute.name() == local) {
-                const QStringView ns = attribute.namespaceUri();
-                if (ns.isEmpty() || ns == W_MAIN || ns == W_STRICT) {
+                const QStringView uri = attribute.namespaceUri();
+                if (uri.isEmpty() || uri == W_MAIN || uri == W_STRICT) {
                     return attribute.value().toString();
                 }
             }
@@ -95,8 +95,8 @@ struct Node {
     }
 
     /// An attribute of a namespace
-    QString attrIn(const QString& ns, QLatin1StringView local) const {
-        return attributes.value(ns, local).toString();
+    QString attrIn(const QString& uri, QLatin1StringView local) const {
+        return attributes.value(uri, local).toString();
     }
 
     const Node* child(QLatin1StringView local) const {
