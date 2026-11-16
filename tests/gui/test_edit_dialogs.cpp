@@ -404,6 +404,8 @@ TEST_CASE("Go To and Paste Special: their lists never scroll, a row higher than 
         layOut(window);
         CHECK(list->minimumSizeHint().height() >= list->sizeHint().height());
         CHECK(list->verticalScrollBar()->maximum() == 0);
+        // Nor sideways, in a font wider than the one of its width in letters
+        CHECK(list->horizontalScrollBar()->maximum() == 0);
     };
 
     auto text = editorWith(QStringLiteral("<kml><h1>One</h1><p>a</p></kml>"));
