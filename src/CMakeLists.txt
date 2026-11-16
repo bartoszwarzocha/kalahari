@@ -632,15 +632,19 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/editor/editor_benchmark.h            # EditorBenchmark with Q_OBJECT (OpenSpec #00043 Phase 11.11)
 )
 
-# The preview of PDF files: only with Qt PDF
+# The preview of PDF files: only with PDFium (cmake/Pdfium.cmake)
 if(KALAHARI_PDF_AVAILABLE)
     list(APPEND KALAHARI_SOURCES
+        gui/pdf_document.cpp              # PdfDocument - a PDF file read by PDFium
+        gui/pdf_models.cpp                # PdfSearchModel, PdfContentsModel - its search and contents
         gui/panels/pdf_preview_panel.cpp  # PdfPreviewPanel - a PDF on a tab: pages, side panel, search
         gui/panels/pdf_preview_parts.cpp  # PdfPreviewPanel - its tool bar, side panel, selection bar
         gui/panels/pdf_pages_view.cpp     # PdfPagesView - the pages of a PDF, drawn by the program
         gui/panels/pdf_pages_layout.cpp   # PdfPagesView - the rows, the zoom and the page shown
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_preview_panel.h  # with Q_OBJECT
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_pages_view.h     # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_document.h              # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_models.h                # with Q_OBJECT
     )
 endif()
 
@@ -692,11 +696,20 @@ target_link_libraries(kalahari PRIVATE
 target_include_directories(kalahari PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari PRIVATE ${HUNSPELL_LIBRARY_DIRS})
 
-# The preview of PDF files (optional Qt PDF module)
+# The preview of PDF files (PDFium)
 if(KALAHARI_PDF_AVAILABLE)
-    target_link_libraries(kalahari PRIVATE Qt6::Pdf)
+    target_link_libraries(kalahari PRIVATE PDFium::pdfium)
     target_compile_definitions(kalahari PRIVATE KALAHARI_HAS_PDF)
-    message(STATUS "PDF preview: Enabled (linked Qt6::Pdf)")
+    if(WIN32)
+        # One release build of pdfium.dll serves every configuration: the Debug deployment of
+        # vcpkg (debug/bin) has none
+        add_custom_command(TARGET kalahari POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:PDFium::pdfium>" "$<TARGET_FILE_DIR:kalahari>/"
+            COMMENT "Copying pdfium.dll to output directory"
+        )
+    endif()
+    message(STATUS "PDF preview: Enabled (linked PDFium::pdfium)")
 else()
     message(STATUS "PDF preview: Disabled (PDF files open in the system program)")
 endif()

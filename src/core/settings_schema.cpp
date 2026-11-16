@@ -224,7 +224,8 @@ std::map<std::string, json> buildDefaults() {
         {"materials.sources.style", "pn-iso-690"},
         {"materials.sources.reference", "authorYear"},
         // A PDF file opens on a preview tab of the program ("preview") or in the system program
-        // ("system"); without the Qt PDF module always in the system program (gui::PdfFiles)
+        // ("system"); in a program built without the preview always in the system program
+        // (gui::PdfFiles)
         {"materials.open.pdf", "preview"},
         // The preview of a PDF file (Settings > Materials > PDF Preview): the pages one under
         // another ("continuous"), one at a time ("single") or two side by side ("two"); in a

@@ -37,7 +37,7 @@ MaterialFile MaterialFile::of(const QString& path) {
     }
     file.bytes = info.size();
 
-    // A PDF file shows its pages, also where an image plugin of Qt PDF would read it
+    // A PDF file shows its pages, also where an image plugin would read it
     if (PdfFiles::isPdf(path)) {
         file.pdf = true;
         file.format = QStringLiteral("PDF");
@@ -101,7 +101,7 @@ QString MaterialFile::problem() const {
         return tr("The file is not in the book's folder.");
     }
     if (pdf) {
-        // Without the Qt PDF module the file opens in the system program, as it should
+        // Without the preview the file opens in the system program, as it should
         return readable || !PdfFiles::previewAvailable() ? QString() : readError;
     }
     if (!picture || readable) {

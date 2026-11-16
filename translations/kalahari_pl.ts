@@ -20963,7 +20963,7 @@ Notatka: %2</translation>
     </message>
     <message>
         <source>This version of the program has no preview of PDF files; the system program opens them</source>
-        <extracomment>The tooltip of Preview for a PDF file in a program without the Qt PDF module. In Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</extracomment>
+        <extracomment>The tooltip of Preview for a PDF file in a program built without the preview of PDF files. In Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</extracomment>
         <translation>Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy</translation>
     </message>
     <message>

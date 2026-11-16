@@ -9,6 +9,8 @@
 #define KALAHARI_GUI_PANELS_PDF_PAGES_VIEW_H
 
 #include "kalahari/gui/copy_target.h"
+#include "kalahari/gui/pdf_document.h"
+#include "kalahari/gui/pdf_models.h"
 
 #include <QAbstractScrollArea>
 #include <QCache>
@@ -16,9 +18,6 @@
 #include <QHash>
 #include <QImage>
 #include <QList>
-#include <QPdfDocument>
-#include <QPdfSearchModel>
-#include <QPdfSelection>
 #include <QPointF>
 #include <QPointer>
 #include <QRectF>
@@ -32,12 +31,12 @@ class QPainter;
 
 namespace kalahari::gui {
 
-/// @brief The pages of a PDF file, drawn by the program (QPdfDocument::render())
+/// @brief The pages of a PDF file, drawn by the program (PdfDocument::render())
 ///
-/// QPdfView of Qt 6.4 selects no text, so the view draws the pages itself: it selects the text
-/// of a page with the mouse (QPdfDocument::getSelection()), draws the hits of a search
-/// (QPdfSearchModel), shows the pages darker or with their colors turned in a dark theme, and
-/// two pages side by side as in a book: the first alone, then the even pages on the left.
+/// The view draws the pages itself: it selects the text of a page with the mouse
+/// (PdfDocument::getSelection()), draws the hits of a search (PdfSearchModel), shows the pages
+/// darker or with their colors turned in a dark theme, and two pages side by side as in a
+/// book: the first alone, then the even pages on the left.
 ///
 /// Keys: PgUp and PgDn the previous and the next page, Home and End the first and the last
 /// one, the arrows move the pages, Ctrl with the wheel zooms, Enter asks for the card of the
@@ -84,13 +83,13 @@ public:
     explicit PdfPagesView(QWidget* parent = nullptr);
 
     /// @brief Show the pages of @p document (not owned), from the first; nullptr: none
-    void setDocument(QPdfDocument* document);
+    void setDocument(PdfDocument* document);
 
     /// @brief The file it shows
-    [[nodiscard]] QPdfDocument* document() const { return m_document; }
+    [[nodiscard]] PdfDocument* document() const { return m_document; }
 
     /// @brief Draw the hits of @p model (not owned); nullptr: none
-    void setSearchModel(QPdfSearchModel* model);
+    void setSearchModel(PdfSearchModel* model);
 
     /// @brief How many pages the file has
     [[nodiscard]] int pageCount() const;
@@ -153,9 +152,8 @@ public:
     /// @brief Select the text of page @p page between @p start and @p end (in points)
     void select(int page, const QPointF& start, const QPointF& end);
 
-    /// @brief Select a hit of the search for @p text on page @p page: the @p occurrence-th
-    /// there (from 0), at @p rectangles
-    void selectHit(int page, const QString& text, int occurrence, const QList<QRectF>& rectangles);
+    /// @brief Select hit @p hit of the search: its letters in the text of its page
+    void selectHit(const PdfHit& hit);
 
     /// @brief Select all the text of page @p page
     void selectPage(int page);
@@ -278,19 +276,14 @@ private:
     /// @brief The text of page @p page from @p start to @p end (in points), also from a place
     /// beside the text, as in the margin: the places go to the text, and toward each other
     /// until each is at a letter; none: no text between them
-    [[nodiscard]] std::optional<QPdfSelection> textBetween(int page, const QPointF& start,
-                                                           const QPointF& end);
+    [[nodiscard]] std::optional<PdfSelection> textBetween(int page, const QPointF& start,
+                                                          const QPointF& end);
 
     /// @brief Where the text of page @p page is, in points; empty: it has none
     [[nodiscard]] QRectF textBounds(int page);
 
-    /// @brief The @p occurrence-th (from 0) @p text on page @p page, by the places of its
-    /// letters in the text of the page, in any case; none: the page does not have it
-    [[nodiscard]] std::optional<QPdfSelection> occurrenceOf(int page, const QString& text,
-                                                            int occurrence) const;
-
     /// @brief @p selection of page @p page becomes the selection, and it says so
-    void takeSelection(int page, QPdfSelection selection);
+    void takeSelection(int page, PdfSelection selection);
 
     /// @brief The page in the middle of the window becomes the page shown
     void followScroll();
@@ -301,8 +294,8 @@ private:
     /// @brief Go @p count rows down (up for a negative one), at the top of the page
     void moveRows(int count);
 
-    QPointer<QPdfDocument> m_document;
-    QPointer<QPdfSearchModel> m_search;
+    QPointer<PdfDocument> m_document;
+    QPointer<PdfSearchModel> m_search;
     QVector<QSizeF> m_pointSizes;  ///< The size of each page in points
     QVector<QRect> m_rects;        ///< Each page laid out, in pixels of the pages; empty: not
     QSize m_size;                  ///< All the pages laid out with the room around them
@@ -314,7 +307,7 @@ private:
     Colors m_colors;
     QCache<int, QImage> m_images;  ///< The pages drawn, by page
     QHash<int, QRectF> m_textBounds;  ///< textBounds() of the pages asked for
-    std::optional<QPdfSelection> m_selection;
+    std::optional<PdfSelection> m_selection;
     int m_selectionPage = -1;
     int m_hitPage = -1;
     QList<QRectF> m_hitRectangles;
