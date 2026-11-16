@@ -297,6 +297,17 @@ std::map<std::string, json> buildDefaults() {
         {"export.epub.look", "book"},
         {"export.epub.embedFont", false},
         {"export.epub.cover", "design"},
+        // File > Print: the writer's last choices of the window; its layout is the export's
+        // (export.*). What goes to the printer, as export.content ("front" the first time, as
+        // Ctrl+P in the editors of text); the copies whole one after another; the pages on a
+        // sheet ("onePage", "twoPages" side by side, "booklet" folded in half); one page as
+        // large as the sheet allows, else of its own size; the crop marks of a page of its own
+        // size
+        {"print.content", "front"},
+        {"print.collate", true},
+        {"print.sheet.layout", "onePage"},
+        {"print.sheet.fit", true},
+        {"print.sheet.cropMarks", false},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},

@@ -143,6 +143,11 @@ void KalahariDialog::setHeading(const QString& title, const QString& description
     m_descriptionLabel->setVisible(!description.isEmpty());
 }
 
+QString KalahariDialog::headingDescription() const
+{
+    return m_descriptionLabel->text();
+}
+
 void KalahariDialog::setHeadingIcon(const QString& iconId)
 {
     m_iconId = iconId;

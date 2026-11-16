@@ -52,6 +52,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("file.export.icml", "resources/icons/twotone/view_quilt.svg", "Export InDesign ICML");
     iconRegistry.registerIcon("file.export.settings", "resources/icons/twotone/tune.svg", "Export Settings");
     iconRegistry.registerIcon("file.export.archive", "resources/icons/twotone/drive_file_move.svg", "Export Project Archive");
+    iconRegistry.registerIcon("file.print", "resources/icons/twotone/print.svg", "Print");
 
     // -------------------------------------------------------------------------
     // EDIT MENU ICONS

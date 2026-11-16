@@ -71,6 +71,9 @@ public:
     /// @brief The sentence of the result, or of what went wrong; empty before the work
     QString resultText() const;
 
+    /// @brief The sentence under the bar while the work lasts; empty while it is hidden
+    QString progressText() const;
+
     /// @brief Why the work failed, as the window says it under resultText(); empty when the
     /// work did not fail
     QString reasonText() const;
@@ -166,7 +169,12 @@ protected:
     /// @brief The progress of the work, for the function that does it: it moves the bar
     Progress progress();
 
+    /// @brief A sentence in grey under the bar while the work lasts: what the work does now;
+    ///        an empty text hides it
+    void setProgressText(const QString& text);
+
     /// @brief The work is done: the result, Show in Folder for @p path, and Close
+    /// @param path Empty: no Show in Folder (a work that wrote no file, as the print)
     /// @param withOpenFile Open File too: @p path is a file the system opens (a document)
     void finishWork(const QString& text, const QString& path, bool withOpenFile = false);
 
@@ -217,6 +225,7 @@ private:
     QList<QLabel*> m_rowLabels;  ///< The labels of the rows of all the groups
     FieldNote m_hint;
     QProgressBar* m_progressBar = nullptr;
+    QLabel* m_progressText = nullptr;  ///< Under the bar: what the work does now
     QWidget* m_result = nullptr;
     QLabel* m_resultIcon = nullptr;
     QLabel* m_resultText = nullptr;

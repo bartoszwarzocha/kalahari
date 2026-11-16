@@ -121,6 +121,45 @@ TEST_CASE("Print: the sides of the sheets of each layout", "[print]") {
     }
 }
 
+TEST_CASE("Print: the copies, and the fronts and the backs printed by hand", "[print]") {
+    const std::vector<SheetSide> three{{0}, {1}, {2}};
+
+    SECTION("On one side: the copies whole, or the copies of each page together") {
+        CHECK(copiesOf(three, 2, true, false) ==
+              std::vector<SheetSide>{{0}, {1}, {2}, {0}, {1}, {2}});
+        CHECK(copiesOf(three, 2, false, false) ==
+              std::vector<SheetSide>{{0}, {0}, {1}, {1}, {2}, {2}});
+        CHECK(copiesOf(three, 1, true, false) == three);
+    }
+
+    SECTION("On both sides: a copy starts on a sheet of its own") {
+        CHECK(copiesOf(three, 2, true, true) ==
+              std::vector<SheetSide>{{0}, {1}, {2}, {}, {0}, {1}, {2}, {}});
+        // The copies of each sheet together: its front and its back
+        CHECK(copiesOf(three, 2, false, true) ==
+              std::vector<SheetSide>{{0}, {1}, {0}, {1}, {2}, {}, {2}, {}});
+        CHECK(copiesOf({}, 3, true, true).empty());
+        // One copy: no empty back after the last front
+        CHECK(copiesOf(three, 1, true, true) == three);
+    }
+
+    SECTION("By hand: the fronts, then the backs, the last one empty") {
+        CHECK(sidesOfSheets(three, false) == std::vector<SheetSide>{{0}, {2}});
+        CHECK(sidesOfSheets(three, true) == std::vector<SheetSide>{{1}, {}});
+        const std::vector<SheetSide> booklet{{7, 0}, {1, 6}, {5, 2}, {3, 4}};
+        CHECK(sidesOfSheets(booklet, false) == std::vector<SheetSide>{{7, 0}, {5, 2}});
+        CHECK(sidesOfSheets(booklet, true) == std::vector<SheetSide>{{1, 6}, {3, 4}});
+    }
+}
+
+TEST_CASE("Print: the sheet lies sideways for two pages side by side", "[print]") {
+    const QSizeF a5(420.0, 595.0);
+    CHECK_FALSE(sheetSideways(SheetOptions{SheetLayout::OnePage, true, false}, a5));
+    CHECK(sheetSideways(SheetOptions{SheetLayout::OnePage, true, false}, a5.transposed()));
+    CHECK(sheetSideways(SheetOptions{SheetLayout::TwoPages, true, false}, a5));
+    CHECK(sheetSideways(SheetOptions{SheetLayout::Booklet, true, false}, a5));
+}
+
 TEST_CASE("Print: where the pages go on a sheet", "[print]") {
     const QRectF wholeA4(QPointF(0, 0), A4);
     SECTION("A page fit to the sheet, or of its own size in its middle") {

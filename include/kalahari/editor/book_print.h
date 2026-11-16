@@ -57,6 +57,10 @@ struct SheetOptions {
     bool cropMarks = false;
 };
 
+/// @brief Whether the sheet lies sideways (landscape): two pages side by side and a booklet,
+///        and one page wider than high
+bool sheetSideways(const SheetOptions& options, const QSizeF& pageSize);
+
 /// @brief The pages of a range typed as the pages show their numbers: "3-5, 9", "3–5; 9"
 /// @param text The numbers and the ranges, separated by commas, semicolons or spaces; a
 ///        hyphen or an en dash between the first and the last page of a range
@@ -76,6 +80,18 @@ std::vector<SheetSide> sheetSides(const std::vector<int>& pages, SheetLayout lay
 
 /// @brief The sheets of @p sides: with two-sided printing two sides a sheet
 int sheetCount(int sides, bool twoSided);
+
+/// @brief The sides of @p copies copies of @p sides, in the order of the print
+/// @param collate Each copy whole before the next; false: the copies of each sheet together
+/// @param twoSided A sheet has a front and a back: of more copies, a copy of an odd number
+///        of sides ends with an empty back, so the next copy starts on a sheet of its own
+std::vector<SheetSide> copiesOf(const std::vector<SheetSide>& sides, int copies, bool collate,
+                                bool twoSided);
+
+/// @brief The fronts (@p backs false) or the backs of the sheets of @p sides, two-sided, in
+///        the order of the print: for two-sided printing by hand, the fronts first, then the
+///        backs on the turned stack
+std::vector<SheetSide> sidesOfSheets(const std::vector<SheetSide>& sides, bool backs);
 
 /// @brief Where the pages of a side go: a rectangle for each page of the side, in points from
 ///        the top left of the sheet

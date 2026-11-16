@@ -134,13 +134,17 @@ public:
     /// outer 2 cm"
     static QString pageText();
 
+    /// @brief The size of the page of the settings, as the window says it: "A5", "6 x 9 in",
+    /// "150 x 220 mm"
+    static QString pageSizeName();
+
     /// @brief The page as the window shows it now
     QString shownPageText() const;
 
 protected:
     /// @brief Create the window of @p book with its tabs, which the window puts in its place
     ///        and fills: the first one of its own, then addTextsTab() and addLayoutTab()
-    BookOutputDialog(const Book& book, QWidget* parent);
+    BookOutputDialog(Book book, QWidget* parent);
 
     /// @brief What the window says about the book
     const Book& book() const { return m_book; }
@@ -158,8 +162,10 @@ protected:
 
     /// @brief The tab of the layout: the titles as headings, then the options of the pages
     /// @param title The title of the tab, with its access key
+    /// @param narrow The tab is narrow (beside the preview of the print): the font and the
+    ///        running head each in a row of its own
     /// @return Its grid, for more rows of the window's own; endTab() ends it
-    QGridLayout* addLayoutTab(const QString& title);
+    QGridLayout* addLayoutTab(const QString& title, bool narrow = false);
 
     /// @brief Show or hide the options of the pages: each text from a new page, the page
     ///        numbers, the font, the running head and the page
@@ -184,7 +190,7 @@ protected:
     ///        follow
     virtual void updateFields() = 0;
 
-    /// @brief An option of the layout changed
+    /// @brief An option of the layout changed, or the page of the settings
     virtual void layoutChanged();
 
 private slots:
@@ -192,6 +198,10 @@ private slots:
     void showPage();
 
 private:
+    /// @brief The rows of the book in the list of the texts, with their check boxes: the
+    ///        sections and the groups with the texts under them, all checked
+    void fillTextList();
+
     /// @brief The texts of the list (its leaves), in reading order
     QList<QTreeWidgetItem*> leaves() const;
 
@@ -212,6 +222,8 @@ private:
     QCheckBox* m_pageNumbersBox = nullptr;
     QComboBox* m_fontBox = nullptr;
     QWidget* m_fontRow = nullptr;  ///< The font and the running head
+    QWidget* m_runningHeadRow = nullptr;  ///< The running head in a narrow tab; null: beside
+                                          ///< the font
     QComboBox* m_runningHeadBox = nullptr;
     FieldNote m_runningHeadNote;
     QLabel* m_pageLabel = nullptr;

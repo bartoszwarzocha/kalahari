@@ -6,6 +6,7 @@ set(TEST_SOURCES
     test_support/reset_singletons.cpp  # Sub-Project C WS4.1: singleton reset hook
     test_support/window_parts.cpp      # The book and the commands of the window of the tests
     test_support/export_samples.cpp    # The sample book of the export tests
+    test_support/dialog_checks.cpp     # The keys and the size of the windows of the tests
     core/test_settings_manager.cpp
     core/test_cmd_line_parser.cpp
     core/test_svg_converter.cpp
@@ -161,6 +162,7 @@ set(TEST_SOURCES
     gui/test_dialogs.cpp                         # The program's own dialogs
     gui/test_archive_dialogs.cpp                 # Export and Import Project Archive windows
     gui/test_export_book_dialog.cpp              # File > Export > DOCX and Markdown: the window and the book
+    gui/test_print_book_dialog.cpp               # File > Print: the window, its sheets and the print
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_own_windows.cpp                     # Only own windows, on their common base
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
@@ -490,6 +492,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/dialog_parts.cpp             # Parts of the own dialogs
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/archive_dialogs.cpp          # Export and import of an archive
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/book_output_dialog.cpp       # The tabs of the export and the print
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/print_book_dialog.cpp        # File > Print
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/export_book_dialog.cpp       # Export of the book to DOCX, PDF, Markdown, EPUB
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/file_preview_dialog.cpp      # The text of a file no element has
     ${CMAKE_SOURCE_DIR}/src/gui/utils/file_location.cpp              # A file shown in the file manager
@@ -665,6 +668,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/book_output_dialog.h  # BookOutputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/print_book_dialog.h  # PrintBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/export_book_dialog.h  # ExportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/flow_layout.h  # FlowLayout with Q_OBJECT
@@ -788,6 +792,7 @@ target_link_libraries(kalahari-tests PRIVATE
     Qt6::Sql        # OpenSpec #00041: SQLite Project Database
     Qt6::Svg        # For IconRegistry (QSvgRenderer) used by ArtProvider
     Qt6::SvgWidgets # For the preview of the Icon Downloader
+    Qt6::PrintSupport  # The print of the book
     spdlog::spdlog
     nlohmann_json::nlohmann_json
     libzip::zip

@@ -15,7 +15,6 @@
 #include "kalahari/editor/text_images.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
-#include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
@@ -64,11 +63,6 @@ using book_output::valueOfName;
 using book_output::widthOfLetters;
 using book_output::withRemark;
 
-/// The width of the window in the letters of a text: the remarks in fewer lines
-constexpr int WIDTH_IN_LETTERS = 140;
-/// The widest the window starts, a wide font or not: with its frame it fits a screen of
-/// 1366x768 at 150% (911 pixels)
-constexpr int MAX_START_WIDTH = 880;
 /// The height of the picture of the cover of an EPUB, in lines of the window's text; its width
 /// is two thirds of it, as a page of a book
 constexpr int COVER_LINES = 3;
@@ -113,12 +107,6 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     //: The title of the window of File > Export > DOCX and Markdown. In Polish: Eksportuj
     //: książkę
     setHeading(tr("Export Book"));
-    setMinimumWidth(std::max(
-        minimumWidth(), std::min(widthOfLetters(fontMetrics(), WIDTH_IN_LETTERS), MAX_START_WIDTH)));
-    //: The tooltip of the gear of the window of the export. In Polish: Ustawienia stron
-    //: i marginesów
-    addSettingsButton(QString::fromLatin1(SettingsDialog::PAGES_PAGE),
-                      tr("Page and Margin Settings"));
 
     // The tabs: the file, the texts, the layout, and the annotations and the images. The
     // tabs are as high as the highest, so the window keeps its size and nothing scrolls; the
@@ -479,8 +467,9 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     m_commentsBox->setChecked(settings.get<bool>("export.comments"));
     m_copyImagesBox->setChecked(settings.get<bool>("export.copyImages"));
     m_pdfCommentsBox->setChecked(settings.get<bool>("export.pdf.comments"));
-    editor::PdfPurpose purpose = valueOfName(
-        purposeNames(), settings.get<std::string>("export.pdf.purpose"), editor::PdfPurpose::Reading);
+    editor::PdfPurpose purpose =
+        valueOfName(purposeNames(), settings.get<std::string>("export.pdf.purpose"),
+                    editor::PdfPurpose::Reading);
     if (!editor::pdfPurposeSupported(purpose)) {
         purpose = editor::PdfPurpose::Reading;
     }
@@ -947,7 +936,8 @@ void ExportBookDialog::showFormat()
     if (epub) {
         //: In the group of the annotations, for an EPUB. In Polish: EPUB nie ma komentarzy: uwagi
         //: zostają tylko w książce.
-        m_noCommentsNote->setText(tr("EPUB has no comments: the annotations stay only in the book."));
+        m_noCommentsNote->setText(
+            tr("EPUB has no comments: the annotations stay only in the book."));
     } else {
         //: In the group of the annotations, for a Markdown file. In Polish: Markdown nie ma
         //: komentarzy: uwagi zostają tylko w książce.

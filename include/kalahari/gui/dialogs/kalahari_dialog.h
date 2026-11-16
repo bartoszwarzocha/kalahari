@@ -57,6 +57,9 @@ public:
     /// @param description Sentence under the title; empty: none
     void setHeading(const QString& title, const QString& description = QString());
 
+    /// @brief The sentence under the title of the heading; empty: none
+    QString headingDescription() const;
+
     /// @brief Set the heading's icon
     /// @param iconId ArtProvider id (e.g. "template.chapter"); empty: no icon
     void setHeadingIcon(const QString& iconId);

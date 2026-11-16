@@ -12,6 +12,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
+#include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/length_spin_box.h"
 
 #include <QCheckBox>
@@ -101,6 +102,11 @@ constexpr int STATUS_ROLE = Qt::UserRole + 1;  ///< The status of a text of the 
 constexpr int LIST_ROWS = 5;
 /// The width of the list of the fonts, in letters of their names
 constexpr int FONT_NAME_LETTERS = 24;
+/// The width of the window in the letters of a text: the remarks in fewer lines
+constexpr int WIDTH_IN_LETTERS = 140;
+/// The widest the window starts, a wide font or not: with its frame it fits a screen of
+/// 1366x768 at 150% (911 pixels)
+constexpr int MAX_START_WIDTH = 880;
 
 /// Tabs as high as their highest page at the width they have: a page of wrapped sentences
 /// asks for the lines its sentences take there, whichever page is in front. A plain
@@ -168,17 +174,24 @@ const std::array<std::pair<BookOutputDialog::Content, const char*>, 3>& contentN
 
 } // anonymous namespace
 
-BookOutputDialog::BookOutputDialog(const Book& book, QWidget* parent)
+BookOutputDialog::BookOutputDialog(Book book, QWidget* parent)
     : ArchiveDialog(parent)
-    , m_book(book)
+    , m_book(std::move(book))
 {
     setCompactHeading(true);
+    setMinimumWidth(std::max(minimumWidth(),
+                             std::min(book_output::widthOfLetters(fontMetrics(), WIDTH_IN_LETTERS),
+                                      MAX_START_WIDTH)));
+    //: The tooltip of the gear of the windows of the export and of the print. In Polish:
+    //: Ustawienia stron i marginesów
+    addSettingsButton(QString::fromLatin1(SettingsDialog::PAGES_PAGE),
+                      tr("Page and Margin Settings"));
     m_tabs = new FittingTabs(this);
 
     // The page follows the settings the gear opens
     m_settingsListener =
         core::SettingsManager::getInstance().subscribe([this](const std::string& key) {
-            if (key.rfind("editor.page", 0) == 0 || key.rfind("editor.margins", 0) == 0 ||
+            if (key.starts_with("editor.page") || key.starts_with("editor.margins") ||
                 key == "ui.lengthUnit") {
                 QMetaObject::invokeMethod(this, "showPage", Qt::QueuedConnection);
             }
@@ -244,36 +257,7 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     m_textList->setSelectionMode(QAbstractItemView::SingleSelection);
     m_textList->setRootIsDecorated(true);
     m_textList->setItemsExpandable(true);
-    auto& artProvider = core::ArtProvider::getInstance();
-    QList<QTreeWidgetItem*> parents;
-    for (const Row& each : std::as_const(m_book.rows)) {
-        while (!parents.isEmpty() && parents.size() > each.level) {
-            parents.removeLast();
-        }
-        auto* item = parents.isEmpty() ? new QTreeWidgetItem(m_textList)
-                                       : new QTreeWidgetItem(parents.last());
-        item->setText(0, each.title);
-        if (!each.iconId.isEmpty()) {
-            item->setIcon(0, artProvider.getIcon(each.iconId, core::IconContext::TreeView));
-        }
-        item->setData(0, ID_ROLE, each.id);
-        item->setData(0, STATUS_ROLE, each.status);
-        if (!each.status.isEmpty()) {
-            item->setText(1, AddToBookDialog::statusName(each.status));
-            item->setForeground(1, m_textList->palette().brush(QPalette::PlaceholderText));
-        }
-        Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable;
-        if (!each.leaf) {
-            flags |= Qt::ItemIsAutoTristate;
-        }
-        item->setFlags(flags);
-        item->setCheckState(0, Qt::Checked);
-        if (!each.leaf) {
-            while (parents.size() < each.level + 1) {
-                parents.append(item);
-            }
-        }
-    }
+    fillTextList();
     m_textList->expandAll();
     m_textList->setRows(std::min(static_cast<int>(m_book.rows.size()), LIST_ROWS));
     chosenLayout->addWidget(m_textList, 0, 0);
@@ -325,14 +309,49 @@ void BookOutputDialog::addTextsTab(const QString& title, const QString& note)
     m_frontButton->setVisible(!m_book.frontTitle.isEmpty());
 }
 
-QGridLayout* BookOutputDialog::addLayoutTab(const QString& title)
+void BookOutputDialog::fillTextList()
+{
+    auto& artProvider = core::ArtProvider::getInstance();
+    QList<QTreeWidgetItem*> parents;
+    for (const Row& each : std::as_const(m_book.rows)) {
+        while (!parents.isEmpty() && parents.size() > each.level) {
+            parents.removeLast();
+        }
+        auto* item = parents.isEmpty() ? new QTreeWidgetItem(m_textList)
+                                       : new QTreeWidgetItem(parents.last());
+        item->setText(0, each.title);
+        if (!each.iconId.isEmpty()) {
+            item->setIcon(0, artProvider.getIcon(each.iconId, core::IconContext::TreeView));
+        }
+        item->setData(0, ID_ROLE, each.id);
+        item->setData(0, STATUS_ROLE, each.status);
+        if (!each.status.isEmpty()) {
+            item->setText(1, AddToBookDialog::statusName(each.status));
+            item->setForeground(1, m_textList->palette().brush(QPalette::PlaceholderText));
+        }
+        Qt::ItemFlags flags = Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsUserCheckable;
+        if (!each.leaf) {
+            flags |= Qt::ItemIsAutoTristate;
+        }
+        item->setFlags(flags);
+        item->setCheckState(0, Qt::Checked);
+        if (!each.leaf) {
+            while (parents.size() < each.level + 1) {
+                parents.append(item);
+            }
+        }
+    }
+}
+
+QGridLayout* BookOutputDialog::addLayoutTab(const QString& title, bool narrow)
 {
     const auto& settings = core::SettingsManager::getInstance();
     QGridLayout* look = newTab(title);
     QWidget* lookPage = look->parentWidget();
     int row = 0;
     //: In Polish: &Tytuły części i rozdziałów z Nawigatora jako nagłówki
-    m_titlesBox = new QCheckBox(tr("Navigator titles of parts and chapters as &headings"), lookPage);
+    m_titlesBox =
+        new QCheckBox(tr("Navigator titles of parts and chapters as &headings"), lookPage);
     look->addWidget(
         withRemark(m_titlesBox,
                    newRemark(lookPage,
@@ -355,8 +374,8 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title)
         withRemark(m_newPageBox,
                    newRemark(m_pagesLayout,
                              //: Under each text from a new page. In Polish: Przy marginesach
-                             //: lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego
-                             //: właściwościach ustawiono lewą.
+                             //: lustrzanych tekst zaczyna się na prawej stronie, chyba że
+                             //: ustawiono lewą.
                              tr("With mirror margins a text starts on a right page, unless its "
                                 "properties say a left one.")),
                    m_pageNumbersBox),
@@ -378,7 +397,8 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title)
             m_fontBox->addItem(font, font);
         }
     }
-    // The font and the running head in one row: the tab as high as the others
+    // The font and the running head in one row, the tab as high as the others; in a narrow
+    // tab each in a row of its own
     m_fontRow = new QWidget(lookPage);
     auto* fontRowLayout = new QHBoxLayout(m_fontRow);
     fontRowLayout->setContentsMargins(0, 0, 0, 0);
@@ -403,22 +423,36 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title)
                               static_cast<int>(editor::RunningHead::Chapter));
     m_runningHeadBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     //: The line at the top of the pages of a book. In Polish: Żywa pa&gina:
-    auto* runningHeadLabel = new QLabel(tr("&Running head:"), m_fontRow);
-    runningHeadLabel->setBuddy(m_runningHeadBox);
-    auto* runningHeadLayout = new QHBoxLayout();
-    runningHeadLayout->setSpacing(
-        style()->layoutSpacing(QSizePolicy::Label, QSizePolicy::ComboBox, Qt::Horizontal));
-    runningHeadLayout->addWidget(runningHeadLabel);
-    runningHeadLayout->addWidget(m_runningHeadBox);
-    fontRowLayout->addLayout(runningHeadLayout);
-    fontRowLayout->addStretch();
-    //: In Polish: Czcionk&a tekstu:
-    addRow(look, tr("Font of the te&xt:"), m_fontRow)->setBuddy(m_fontBox);
+    const QString runningHeadText = tr("&Running head:");
+    if (narrow) {
+        fontRowLayout->addStretch();
+        //: In Polish: Czcionk&a tekstu:
+        addRow(look, tr("Font of the te&xt:"), m_fontRow)->setBuddy(m_fontBox);
+        m_runningHeadRow = new QWidget(lookPage);
+        auto* runningHeadRowLayout = new QHBoxLayout(m_runningHeadRow);
+        runningHeadRowLayout->setContentsMargins(0, 0, 0, 0);
+        m_runningHeadBox->setParent(m_runningHeadRow);
+        runningHeadRowLayout->addWidget(m_runningHeadBox);
+        runningHeadRowLayout->addStretch();
+        addRow(look, runningHeadText, m_runningHeadRow)->setBuddy(m_runningHeadBox);
+    } else {
+        auto* runningHeadLabel = new QLabel(runningHeadText, m_fontRow);
+        runningHeadLabel->setBuddy(m_runningHeadBox);
+        auto* runningHeadLayout = new QHBoxLayout();
+        runningHeadLayout->setSpacing(
+            style()->layoutSpacing(QSizePolicy::Label, QSizePolicy::ComboBox, Qt::Horizontal));
+        runningHeadLayout->addWidget(runningHeadLabel);
+        runningHeadLayout->addWidget(m_runningHeadBox);
+        fontRowLayout->addLayout(runningHeadLayout);
+        fontRowLayout->addStretch();
+        //: In Polish: Czcionk&a tekstu:
+        addRow(look, tr("Font of the te&xt:"), m_fontRow)->setBuddy(m_fontBox);
+    }
     m_runningHeadNote = addNote(look);
-    //: Under the running head. In Polish: U góry stron tekstu, bez stron tytułowych i bez
-    //: pierwszych stron rozdziałów.
-    showNote(m_runningHeadNote, tr("At the top of the pages of the text, without the title pages "
-                                   "and without the first pages of the chapters."));
+    //: Under the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych
+    //: stron rozdziałów.
+    showNote(m_runningHeadNote,
+             tr("At the top of the pages, not on title pages or first pages of chapters."));
     m_pageLabel = new QLabel(lookPage);
     m_pageLabel->setTextFormat(Qt::PlainText);
     m_pageLabel->setWordWrap(true);
@@ -432,7 +466,7 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title)
                             "Pages and Margins (the gear in the heading of the window). The sizes "
                             "of the letters, the spacing and the indents come from the styles of "
                             "the book."));
-    showPage();
+    m_pageLabel->setText(pageText());
 
     for (QCheckBox* box : {m_titlesBox, m_newPageBox, m_pageNumbersBox}) {
         connect(box, &QCheckBox::toggled, this, [this]() {
@@ -454,6 +488,9 @@ void BookOutputDialog::setPagesVisible(bool visible)
     m_pagesLayout->setVisible(visible);
     m_fontRow->setVisible(visible);
     setRowVisible(m_fontBox, visible);
+    if (m_runningHeadRow != nullptr) {
+        setRowVisible(m_runningHeadRow, visible);
+    }
     m_runningHeadNote.widget->setVisible(visible);
     setRowVisible(m_pageLabel, visible);
     m_pageNote.widget->setVisible(visible);
@@ -504,9 +541,12 @@ void BookOutputDialog::rememberLayout(const std::string& contentKey) const
 BookOutputDialog::Layout BookOutputDialog::layoutChoice() const
 {
     Layout layout;
-    layout.content = m_frontButton->isChecked()    ? Content::Front
-                     : m_chosenButton->isChecked() ? Content::Chosen
-                                                   : Content::Book;
+    layout.content = Content::Book;
+    if (m_frontButton->isChecked()) {
+        layout.content = Content::Front;
+    } else if (m_chosenButton->isChecked()) {
+        layout.content = Content::Chosen;
+    }
     for (const QTreeWidgetItem* item : leaves()) {
         if (item->checkState(0) == Qt::Checked) {
             layout.chosen << item->data(0, ID_ROLE).toString();
@@ -542,9 +582,17 @@ void BookOutputDialog::layoutChanged()
 
 void BookOutputDialog::setContent(Content content)
 {
-    (content == Content::Book ? m_bookButton : content == Content::Chosen ? m_chosenButton
-                                                                           : m_frontButton)
-        ->setChecked(true);
+    switch (content) {
+        case Content::Book:
+            m_bookButton->setChecked(true);
+            break;
+        case Content::Chosen:
+            m_chosenButton->setChecked(true);
+            break;
+        case Content::Front:
+            m_frontButton->setChecked(true);
+            break;
+    }
 }
 
 QTreeWidget* BookOutputDialog::textList() const
@@ -607,10 +655,11 @@ void BookOutputDialog::showPage()
 {
     if (m_pageLabel != nullptr) {
         m_pageLabel->setText(pageText());
+        layoutChanged();
     }
 }
 
-QString BookOutputDialog::pageText()
+QString BookOutputDialog::pageSizeName()
 {
     const auto& settings = core::SettingsManager::getInstance();
     editor::PageLayout page;
@@ -651,6 +700,16 @@ QString BookOutputDialog::pageText()
             break;
         }
     }
+    return size;
+}
+
+QString BookOutputDialog::pageText()
+{
+    const auto& settings = core::SettingsManager::getInstance();
+    const auto length = [](double millimeters) {
+        return lengthText(millimeters, LengthUnit::Millimeters);
+    };
+    const QString size = pageSizeName();
     if (settings.get<bool>("editor.margins.mirrorEnabled")) {
         //: The page of the export; %1: its size, %2 and %3: the margins. In Polish: %1,
         //: marginesy lustrzane: wewnętrzny %2, zewnętrzny %3

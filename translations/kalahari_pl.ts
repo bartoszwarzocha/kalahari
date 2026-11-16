@@ -1342,6 +1342,10 @@
         <source>Current Time as Text</source>
         <translation>Bieżąca godzina jako tekst</translation>
     </message>
+    <message>
+        <source>&amp;Print...</source>
+        <translation>&amp;Drukuj...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -26003,6 +26007,11 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>The word before the text of a note in a comment of Word. In Polish: Notatka</extracomment>
         <translation>Notatka</translation>
     </message>
+    <message>
+        <source>Open a book or a text to print</source>
+        <extracomment>The tooltip of File &gt; Print while it is greyed out. In Polish: Otwórz książkę albo tekst, który chcesz wydrukować</extracomment>
+        <translation>Otwórz książkę albo tekst, który chcesz wydrukować</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::BookOutputDialog</name>
@@ -26067,8 +26076,8 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
     </message>
     <message>
         <source>With mirror margins a text starts on a right page, unless its properties say a left one.</source>
-        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego właściwościach ustawiono lewą.</extracomment>
-        <translation>Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że w jego właściwościach ustawiono lewą.</translation>
+        <extracomment>Under each text from a new page. In Polish: Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że ustawiono lewą.</extracomment>
+        <translation>Przy marginesach lustrzanych tekst zaczyna się na prawej stronie, chyba że ustawiono lewą.</translation>
     </message>
     <message>
         <source>%1 (editor font)</source>
@@ -26104,11 +26113,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Font of the te&amp;xt:</source>
         <extracomment>In Polish: Czcionk&amp;a tekstu:</extracomment>
         <translation>Czcionk&amp;a tekstu:</translation>
-    </message>
-    <message>
-        <source>At the top of the pages of the text, without the title pages and without the first pages of the chapters.</source>
-        <extracomment>Under the running head. In Polish: U góry stron tekstu, bez stron tytułowych i bez pierwszych stron rozdziałów.</extracomment>
-        <translation>U góry stron tekstu, bez stron tytułowych i bez pierwszych stron rozdziałów.</translation>
     </message>
     <message>
         <source>Page:</source>
@@ -26154,6 +26158,16 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>The page of the export; %1: its size, %2-%5: the margins. In Polish: %1, marginesy: lewy %2, prawy %3, górny %4, dolny %5</extracomment>
         <translation>%1, marginesy: lewy %2, prawy %3, górny %4, dolny %5</translation>
     </message>
+    <message>
+        <source>Page and Margin Settings</source>
+        <extracomment>The tooltip of the gear of the windows of the export and of the print. In Polish: Ustawienia stron i marginesów</extracomment>
+        <translation>Ustawienia stron i marginesów</translation>
+    </message>
+    <message>
+        <source>At the top of the pages, not on title pages or first pages of chapters.</source>
+        <extracomment>Under the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</extracomment>
+        <translation>U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ExportBookDialog</name>
@@ -26161,11 +26175,6 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <source>Export Book</source>
         <extracomment>The title of the window of File &gt; Export &gt; DOCX and Markdown. In Polish: Eksportuj książkę</extracomment>
         <translation>Eksportuj książkę</translation>
-    </message>
-    <message>
-        <source>Page and Margin Settings</source>
-        <extracomment>The tooltip of the gear of the window of the export. In Polish: Ustawienia stron i marginesów</extracomment>
-        <translation>Ustawienia stron i marginesów</translation>
     </message>
     <message>
         <source>Folder:</source>
@@ -27950,6 +27959,475 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <source>The chapter is read-only</source>
         <extracomment>In Polish: Rozdział jest tylko do odczytu</extracomment>
         <translation>Rozdział jest tylko do odczytu</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::PrintBookDialog</name>
+    <message>
+        <source>Print</source>
+        <extracomment>The title of the window of File &gt; Print. In Polish: Drukuj
+----------
+The button of the window of the print. In Polish: Drukuj
+----------
+The question of the print by hand, after the fronts; %n: the sheets. In Polish: Przody kartek (%n) są wydrukowane. Wyjmij stos z drukarki, odwróć go i włóż z powrotem tak, by pierwsza kartka weszła pierwsza. Potem wydrukuj tyły.</extracomment>
+        <translation>Drukuj</translation>
+    </message>
+    <message>
+        <source>Pri&amp;nter</source>
+        <extracomment>A tab of the window of the print. In Polish: &amp;Drukarka</extracomment>
+        <translation>&amp;Drukarka</translation>
+    </message>
+    <message>
+        <source>%1 (default)</source>
+        <extracomment>The default printer of the system in the list of the printers; %1: its name. In Polish: %1 (domyślna)</extracomment>
+        <translation>%1 (domyślna)</translation>
+    </message>
+    <message>
+        <source>Prin&amp;ter:</source>
+        <extracomment>In Polish: D&amp;rukarka:</extracomment>
+        <translation>D&amp;rukarka:</translation>
+    </message>
+    <message>
+        <source>C&amp;ollate</source>
+        <extracomment>Each copy whole before the next. In Polish: &amp;Sortuj kopie</extracomment>
+        <translation>&amp;Sortuj kopie</translation>
+    </message>
+    <message>
+        <source>&amp;Copies:</source>
+        <extracomment>In Polish: K&amp;opie:</extracomment>
+        <translation>K&amp;opie:</translation>
+    </message>
+    <message>
+        <source>&amp;All</source>
+        <extracomment>Which pages print: all of them. In Polish: &amp;Wszystkie</extracomment>
+        <translation>&amp;Wszystkie</translation>
+    </message>
+    <message>
+        <source>&amp;Range:</source>
+        <extracomment>Which pages print: those typed in the field beside. In Polish: &amp;Zakres:</extracomment>
+        <translation>&amp;Zakres:</translation>
+    </message>
+    <message>
+        <source>e.g. 3-5, 9</source>
+        <extracomment>The field of the range of the pages, while it is empty. In Polish: np. 3–5, 9</extracomment>
+        <translation>np. 3–5, 9</translation>
+    </message>
+    <message>
+        <source>Range of the pages</source>
+        <extracomment>The name of the field of the range of the pages for screen readers. In Polish: Zakres stron</extracomment>
+        <translation>Zakres stron</translation>
+    </message>
+    <message>
+        <source>Pages:</source>
+        <extracomment>In Polish: Strony:</extracomment>
+        <translation>Strony:</translation>
+    </message>
+    <message>
+        <source>All pages</source>
+        <extracomment>Which of the pages print. In Polish: Wszystkie strony</extracomment>
+        <translation>Wszystkie strony</translation>
+    </message>
+    <message>
+        <source>Only odd pages</source>
+        <extracomment>Which of the pages print. In Polish: Tylko nieparzyste</extracomment>
+        <translation>Tylko nieparzyste</translation>
+    </message>
+    <message>
+        <source>Only even pages</source>
+        <extracomment>Which of the pages print. In Polish: Tylko parzyste</extracomment>
+        <translation>Tylko parzyste</translation>
+    </message>
+    <message>
+        <source>Pr&amp;int:</source>
+        <extracomment>In Polish: Dr&amp;ukuj:</extracomment>
+        <translation>Dr&amp;ukuj:</translation>
+    </message>
+    <message>
+        <source>T&amp;wo-sided:</source>
+        <extracomment>Printing on both sides of the sheets. In Polish: Dwustronn&amp;ie:</extracomment>
+        <translation>Dwustronn&amp;ie:</translation>
+    </message>
+    <message>
+        <source>&amp;Paper:</source>
+        <extracomment>In Polish: P&amp;apier:</extracomment>
+        <translation>P&amp;apier:</translation>
+    </message>
+    <message>
+        <source>Co&amp;lor:</source>
+        <extracomment>In Polish: Ko&amp;lor:</extracomment>
+        <translation>Ko&amp;lor:</translation>
+    </message>
+    <message>
+        <source>Text&amp;s</source>
+        <translation>T&amp;eksty</translation>
+    </message>
+    <message>
+        <source>The text prints also with its unsaved changes.</source>
+        <translation>Tekst drukuje się także z niezapisanymi zmianami.</translation>
+    </message>
+    <message>
+        <source>The first time the window chooses the text in front, then it keeps the last choice.</source>
+        <translation>Za pierwszym razem okno wybiera tekst na wierzchu, a potem pamięta ostatni wybór.</translation>
+    </message>
+    <message>
+        <source>La&amp;yout</source>
+        <translation>U&amp;kład</translation>
+    </message>
+    <message>
+        <source>On the Sh&amp;eet</source>
+        <extracomment>A tab of the window of the print: how the pages go on the sheets. In Polish: &amp;Na kartce</extracomment>
+        <translation>&amp;Na kartce</translation>
+    </message>
+    <message>
+        <source>Pages of the book on a sheet</source>
+        <extracomment>A group of the tab of the sheets. In Polish: Strony książki na kartce</extracomment>
+        <translation>Strony książki na kartce</translation>
+    </message>
+    <message>
+        <source>&amp;One page</source>
+        <extracomment>In Polish: &amp;Jedna strona</extracomment>
+        <translation>&amp;Jedna strona</translation>
+    </message>
+    <message>
+        <source>T&amp;wo pages side by side</source>
+        <extracomment>In Polish: Dwie strony o&amp;bok siebie</extracomment>
+        <translation>Dwie strony o&amp;bok siebie</translation>
+    </message>
+    <message>
+        <source>&amp;Booklet to fold in half</source>
+        <extracomment>In Polish: Broszur&amp;a do złożenia na pół</extracomment>
+        <translation>Broszur&amp;a do złożenia na pół</translation>
+    </message>
+    <message>
+        <source>Folded in half, the stack of the sheets reads in order.</source>
+        <extracomment>Under the booklet. In Polish: Po złożeniu na pół stos kartek czyta się po kolei.</extracomment>
+        <translation>Po złożeniu na pół stos kartek czyta się po kolei.</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <extracomment>A group of the tab of the sheets: the size of the pages on them. In Polish: Rozmiar</extracomment>
+        <translation>Rozmiar</translation>
+    </message>
+    <message>
+        <source>&amp;Fit to the sheet</source>
+        <extracomment>In Polish: Do&amp;pasuj do kartki</extracomment>
+        <translation>Do&amp;pasuj do kartki</translation>
+    </message>
+    <message>
+        <source>&amp;Actual size (%1)</source>
+        <extracomment>The page of its own size in the middle of the sheet; %1: its size (A5). In Polish: R&amp;zeczywisty rozmiar (%1)</extracomment>
+        <translation>R&amp;zeczywisty rozmiar (%1)</translation>
+    </message>
+    <message>
+        <source>&amp;Crop marks</source>
+        <extracomment>The marks of the corners of a page, where the sheet is cut. In Polish: Znaczniki &amp;cięcia</extracomment>
+        <translation>Znaczniki &amp;cięcia</translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <extracomment>The caption of the preview of the sheets. In Polish: Podgląd</extracomment>
+        <translation>Podgląd</translation>
+    </message>
+    <message>
+        <source>Preview of the sheet</source>
+        <extracomment>The name of the preview of the sheets for screen readers. In Polish: Podgląd kartki</extracomment>
+        <translation>Podgląd kartki</translation>
+    </message>
+    <message>
+        <source>Page Up and Page Down change the sheet</source>
+        <extracomment>What the keys of the preview do, for screen readers. In Polish: Page Up i Page Down zmieniają kartkę</extracomment>
+        <translation>Page Up i Page Down zmieniają kartkę</translation>
+    </message>
+    <message>
+        <source>Previous Sheet</source>
+        <extracomment>A button under the preview. In Polish: Poprzednia kartka</extracomment>
+        <translation>Poprzednia kartka</translation>
+    </message>
+    <message>
+        <source>Next Sheet</source>
+        <extracomment>A button under the preview. In Polish: Następna kartka</extracomment>
+        <translation>Następna kartka</translation>
+    </message>
+    <message>
+        <source>empty</source>
+        <extracomment>A side of a sheet without pages, under the preview. In Polish: pusta</extracomment>
+        <translation>pusta</translation>
+    </message>
+    <message>
+        <source>page %1</source>
+        <extracomment>The page on a side of a sheet, under the preview. In Polish: strona %1</extracomment>
+        <translation>strona %1</translation>
+    </message>
+    <message>
+        <source>pages %1 and %2</source>
+        <extracomment>The pages on a side of a sheet, under the preview. In Polish: strony %1 i %2</extracomment>
+        <translation>strony %1 i %2</translation>
+    </message>
+    <message>
+        <source>Sheet %1 of %2 · %3</source>
+        <extracomment>Under the preview; %1: the sheet, %2: the sheets, %3: its pages. In Polish: Kartka %1 z %2 · %3</extracomment>
+        <translation>Kartka %1 z %2 · %3</translation>
+    </message>
+    <message>
+        <source>Sheet %1 of %2, front · %3</source>
+        <extracomment>Under the preview; %1: the sheet, %2: the sheets, %3: the pages on its front. In Polish: Kartka %1 z %2, przód · %3</extracomment>
+        <translation>Kartka %1 z %2, przód · %3</translation>
+    </message>
+    <message>
+        <source>Sheet %1 of %2, back · %3</source>
+        <extracomment>Under the preview; %1: the sheet, %2: the sheets, %3: the pages on its back. In Polish: Kartka %1 z %2, tył · %3</extracomment>
+        <translation>Kartka %1 z %2, tył · %3</translation>
+    </message>
+    <message>
+        <source>Prints the text &quot;%1&quot; on the printer &quot;%2&quot;.</source>
+        <extracomment>%1: the title of the text, %2: the printer. In Polish: Drukuje tekst „%1” na drukarce „%2”.</extracomment>
+        <translation>Drukuje tekst „%1” na drukarce „%2”.</translation>
+    </message>
+    <message>
+        <source>Prints the chosen texts of the book &quot;%1&quot; on the printer &quot;%2&quot;.</source>
+        <extracomment>%1: the title of the book, %2: the printer. In Polish: Drukuje wybrane teksty książki „%1” na drukarce „%2”.</extracomment>
+        <translation>Drukuje wybrane teksty książki „%1” na drukarce „%2”.</translation>
+    </message>
+    <message>
+        <source>Prints the book &quot;%1&quot; on the printer &quot;%2&quot;.</source>
+        <extracomment>%1: the title of the book, %2: the printer. In Polish: Drukuje książkę „%1” na drukarce „%2”.</extracomment>
+        <translation>Drukuje książkę „%1” na drukarce „%2”.</translation>
+    </message>
+    <message>
+        <source>Prints the text &quot;%1&quot;.</source>
+        <extracomment>Without a printer; %1: the title of the text. In Polish: Drukuje tekst „%1”.</extracomment>
+        <translation>Drukuje tekst „%1”.</translation>
+    </message>
+    <message>
+        <source>Prints the chosen texts of the book &quot;%1&quot;.</source>
+        <extracomment>Without a printer; %1: the title of the book. In Polish: Drukuje wybrane teksty książki „%1”.</extracomment>
+        <translation>Drukuje wybrane teksty książki „%1”.</translation>
+    </message>
+    <message>
+        <source>Prints the book &quot;%1&quot;.</source>
+        <extracomment>Without a printer; %1: the title of the book. In Polish: Drukuje książkę „%1”.</extracomment>
+        <translation>Drukuje książkę „%1”.</translation>
+    </message>
+    <message>
+        <source>The system has no printer: add one in the settings of the system.</source>
+        <extracomment>Under the list of the printers, when the system has none. In Polish: System nie ma drukarki: dodaj ją w ustawieniach systemu.</extracomment>
+        <translation>System nie ma drukarki: dodaj ją w ustawieniach systemu.</translation>
+    </message>
+    <message>
+        <source>Ready</source>
+        <extracomment>The state of a printer. In Polish: Gotowa</extracomment>
+        <translation>Gotowa</translation>
+    </message>
+    <message>
+        <source>Printing</source>
+        <extracomment>The state of a printer. In Polish: Drukuje</extracomment>
+        <translation>Drukuje</translation>
+    </message>
+    <message>
+        <source>Stopped</source>
+        <extracomment>The state of a printer. In Polish: Zatrzymana</extracomment>
+        <translation>Zatrzymana</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <extracomment>The state of a printer. In Polish: Błąd</extracomment>
+        <translation>Błąd</translation>
+    </message>
+    <message>
+        <source>%1 · %2 · %3</source>
+        <extracomment>Under the list of the printers; %1: its state, %2: its color, %3: its sides. In Polish: %1 · %2 · %3</extracomment>
+        <translation>%1 · %2 · %3</translation>
+    </message>
+    <message>
+        <source>color</source>
+        <translation>kolorowa</translation>
+    </message>
+    <message>
+        <source>black and white</source>
+        <translation>czarno-biała</translation>
+    </message>
+    <message>
+        <source>prints on both sides</source>
+        <translation>drukuje dwustronnie</translation>
+    </message>
+    <message>
+        <source>prints on one side</source>
+        <translation>drukuje jednostronnie</translation>
+    </message>
+    <message>
+        <source>No</source>
+        <extracomment>Two-sided printing. In Polish: Nie</extracomment>
+        <translation>Nie</translation>
+    </message>
+    <message>
+        <source>Along the long edge</source>
+        <extracomment>Two-sided printing. In Polish: Wzdłuż dłuższej krawędzi</extracomment>
+        <translation>Wzdłuż dłuższej krawędzi</translation>
+    </message>
+    <message>
+        <source>Along the short edge</source>
+        <extracomment>Two-sided printing. In Polish: Wzdłuż krótszej krawędzi</extracomment>
+        <translation>Wzdłuż krótszej krawędzi</translation>
+    </message>
+    <message>
+        <source>By hand – Kalahari asks to turn the sheets over</source>
+        <extracomment>Two-sided printing without a printer that does it. In Polish: Ręcznie – program poprosi o odwrócenie kartek</extracomment>
+        <translation>Ręcznie – program poprosi o odwrócenie kartek</translation>
+    </message>
+    <message>
+        <source>In color</source>
+        <extracomment>The color of the print. In Polish: Kolorowo</extracomment>
+        <translation>Kolorowo</translation>
+    </message>
+    <message>
+        <source>In shades of gray</source>
+        <extracomment>The color of the print. In Polish: W odcieniach szarości</extracomment>
+        <translation>W odcieniach szarości</translation>
+    </message>
+    <message>
+        <source>A booklet prints on both sides, along the short edge.</source>
+        <extracomment>Under both sides, for a booklet. In Polish: Broszura drukuje się dwustronnie, wzdłuż krótszej krawędzi.</extracomment>
+        <translation>Broszura drukuje się dwustronnie, wzdłuż krótszej krawędzi.</translation>
+    </message>
+    <message>
+        <source>A booklet: the fronts of the sheets first, then Kalahari asks to turn the stack over.</source>
+        <extracomment>Under both sides, for a booklet without a printer that prints on both sides. In Polish: Broszura: najpierw przody kartek, potem program poprosi o odwrócenie stosu.</extracomment>
+        <translation>Broszura: najpierw przody kartek, potem program poprosi o odwrócenie stosu.</translation>
+    </message>
+    <message>
+        <source>Kalahari prints the fronts of the sheets, then asks in its own window to turn the stack over, and prints the backs.</source>
+        <extracomment>Under both sides by hand. In Polish: Program wydrukuje przody kartek, a potem w swoim oknie poprosi o odwrócenie stosu i wydrukuje tyły.</extracomment>
+        <translation>Program wydrukuje przody kartek, a potem w swoim oknie poprosi o odwrócenie stosu i wydrukuje tyły.</translation>
+    </message>
+    <message>
+        <source>C&amp;urrent (%1)</source>
+        <extracomment>Which pages print: the page of the cursor; %1: its number. In Polish: &amp;Bieżąca (%1)</extracomment>
+        <translation>&amp;Bieżąca (%1)</translation>
+    </message>
+    <message>
+        <source>C&amp;urrent</source>
+        <translation>&amp;Bieżąca</translation>
+    </message>
+    <message>
+        <source>This is not a range of the pages: type numbers and ranges, e.g. 3-5, 9.</source>
+        <translation>To nie jest zakres stron: wpisz numery i zakresy, np. 3–5, 9.</translation>
+    </message>
+    <message>
+        <source>No text is chosen.</source>
+        <extracomment>In the preview, when no text is chosen. In Polish: Nie wybrano żadnego tekstu.</extracomment>
+        <translation>Nie wybrano żadnego tekstu.</translation>
+    </message>
+    <message>
+        <source>Nothing to print: choose the texts on the tab &quot;Texts&quot;.</source>
+        <extracomment>Under the tabs, when no text is chosen. In Polish: Nie ma czego drukować: wybierz teksty na zakładce „Teksty”.</extracomment>
+        <translation>Nie ma czego drukować: wybierz teksty na zakładce „Teksty”.</translation>
+    </message>
+    <message>
+        <source>Type the pages of the range.</source>
+        <extracomment>In the preview, while the field of the range is empty. In Polish: Wpisz strony zakresu.</extracomment>
+        <translation>Wpisz strony zakresu.</translation>
+    </message>
+    <message>
+        <source>Nothing to print: type the pages of the range.</source>
+        <extracomment>Under the tabs, while the field of the range is empty. In Polish: Nie ma czego drukować: wpisz strony zakresu.</extracomment>
+        <translation>Nie ma czego drukować: wpisz strony zakresu.</translation>
+    </message>
+    <message>
+        <source>The range has no page.</source>
+        <extracomment>In the preview, when no page is chosen. In Polish: Zakres nie obejmuje żadnej strony.</extracomment>
+        <translation>Zakres nie obejmuje żadnej strony.</translation>
+    </message>
+    <message>
+        <source>Nothing to print: change the range of the pages.</source>
+        <extracomment>Under the tabs, when no page is chosen. In Polish: Nie ma czego drukować: zmień zakres stron.</extracomment>
+        <translation>Nie ma czego drukować: zmień zakres stron.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n pages</source>
+        <extracomment>How many pages print. In Polish: %n strona / strony / stron
+----------
+How many pages printed. In Polish: %n strona / strony / stron</extracomment>
+        <translation>
+            <numerusform>%n strona</numerusform>
+            <numerusform>%n strony</numerusform>
+            <numerusform>%n stron</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <source>%n sheets</source>
+        <extracomment>How many sheets the pages print on, after &quot;on&quot;. In Polish (miejscownik): %n kartce / kartkach
+----------
+How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscownik): %n kartce / kartkach</extracomment>
+        <translation>
+            <numerusform>%n kartce</numerusform>
+            <numerusform>%n kartkach</numerusform>
+            <numerusform>%n kartkach</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 on %2, %3. The progress and the result will show here.</source>
+        <extracomment>Under the tabs; %1: the pages, %2: the sheets, %3: the copies. In Polish: %1 na %2, %3. Postęp i wynik pokażą się tutaj.</extracomment>
+        <translation>%1 na %2, %3. Postęp i wynik pokażą się tutaj.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n copies</source>
+        <extracomment>How many copies printed. In Polish: %n kopia / kopie / kopii</extracomment>
+        <translation>
+            <numerusform>%n kopia</numerusform>
+            <numerusform>%n kopie</numerusform>
+            <numerusform>%n kopii</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>%1 on %2. The progress and the result will show here.</source>
+        <extracomment>Under the tabs; %1: the pages, %2: the sheets. In Polish: %1 na %2. Postęp i wynik pokażą się tutaj.</extracomment>
+        <translation>%1 na %2. Postęp i wynik pokażą się tutaj.</translation>
+    </message>
+    <message>
+        <source>There is no printer to print on.</source>
+        <extracomment>Under the tabs, when the system has no printer. In Polish: Nie ma drukarki, na której można drukować.</extracomment>
+        <translation>Nie ma drukarki, na której można drukować.</translation>
+    </message>
+    <message>
+        <source>Sending to the printer: sheet %1 of %2...</source>
+        <extracomment>While the print lasts; %1: the sheet sent, %2: the sheets. In Polish: Wysyłanie do drukarki: kartka %1 z %2...</extracomment>
+        <translation>Wysyłanie do drukarki: kartka %1 z %2...</translation>
+    </message>
+    <message>
+        <source>The print could not be sent to the printer.</source>
+        <extracomment>In Polish: Nie udało się wysłać wydruku do drukarki.</extracomment>
+        <translation>Nie udało się wysłać wydruku do drukarki.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Sent to the printer &quot;%1&quot; the fronts of %n sheets. The backs were not printed.</source>
+        <extracomment>After the print by hand without its backs; %1: the printer. In Polish: Wysłano do drukarki „%1” przody %n kartki / kartek. Tyłów nie wydrukowano.</extracomment>
+        <translation>
+            <numerusform>Wysłano do drukarki „%1” przody %n kartki. Tyłów nie wydrukowano.</numerusform>
+            <numerusform>Wysłano do drukarki „%1” przody %n kartek. Tyłów nie wydrukowano.</numerusform>
+            <numerusform>Wysłano do drukarki „%1” przody %n kartek. Tyłów nie wydrukowano.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Sent to the printer &quot;%1&quot;: %2 on %3, %4.</source>
+        <translation>Wysłano do drukarki „%1”: %2 na %3, %4.</translation>
+    </message>
+    <message>
+        <source>Sent to the printer &quot;%1&quot;: %2 on %3.</source>
+        <extracomment>After the print; %1: the printer, %2: the pages, %3: the sheets. In Polish: Wysłano do drukarki „%1”: %2 na %3.</extracomment>
+        <translation>Wysłano do drukarki „%1”: %2 na %3.</translation>
+    </message>
+    <message numerus="yes">
+        <source>The fronts of the sheets (%n) are printed. Take the stack out of the printer, turn it over and put it back so that the first sheet goes in first. Then print the backs.</source>
+        <translation>
+            <numerusform>Przody kartek (%n) są wydrukowane. Wyjmij stos z drukarki, odwróć go i włóż z powrotem tak, by pierwsza kartka weszła pierwsza. Potem wydrukuj tyły.</numerusform>
+            <numerusform>Przody kartek (%n) są wydrukowane. Wyjmij stos z drukarki, odwróć go i włóż z powrotem tak, by pierwsza kartka weszła pierwsza. Potem wydrukuj tyły.</numerusform>
+            <numerusform>Przody kartek (%n) są wydrukowane. Wyjmij stos z drukarki, odwróć go i włóż z powrotem tak, by pierwsza kartka weszła pierwsza. Potem wydrukuj tyły.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Print the &amp;Backs</source>
+        <extracomment>The button of the question of the print by hand. In Polish: Drukuj &amp;tyły</extracomment>
+        <translation>Drukuj &amp;tyły</translation>
     </message>
 </context>
 </TS>

@@ -17,6 +17,7 @@
 #include <QRegularExpression>
 
 #include <algorithm>
+#include <cstddef>
 #include <iterator>
 #include <limits>
 #include <set>
@@ -62,6 +63,10 @@ void paintCropMarks(QPainter* painter, const QRectF& page) {
 }
 
 }  // namespace
+
+bool sheetSideways(const SheetOptions& options, const QSizeF& pageSize) {
+    return options.layout != SheetLayout::OnePage || pageSize.width() > pageSize.height();
+}
 
 std::optional<std::vector<int>> pagesOfRange(const QString& text, int count) {
     // A dash between two numbers, with or without spaces around it, joins them
@@ -147,6 +152,44 @@ std::vector<SheetSide> sheetSides(const std::vector<int>& pages, SheetLayout lay
 
 int sheetCount(int sides, bool twoSided) {
     return twoSided ? (sides + 1) / 2 : sides;
+}
+
+std::vector<SheetSide> copiesOf(const std::vector<SheetSide>& sides, int copies, bool collate,
+                                bool twoSided) {
+    // A sheet: its front, and its back when it prints on both sides
+    const size_t perSheet = twoSided ? 2 : 1;
+    std::vector<SheetSide> sheets = sides;
+    if (twoSided && copies > 1 && sheets.size() % 2 != 0) {
+        sheets.emplace_back();
+    }
+    std::vector<SheetSide> printed;
+    printed.reserve(sheets.size() * static_cast<size_t>(std::max(copies, 0)));
+    if (collate) {
+        for (int copy = 0; copy < copies; ++copy) {
+            printed.insert(printed.end(), sheets.cbegin(), sheets.cend());
+        }
+        return printed;
+    }
+    for (size_t sheet = 0; sheet < sheets.size(); sheet += perSheet) {
+        for (int copy = 0; copy < copies; ++copy) {
+            printed.insert(printed.end(), sheets.cbegin() + static_cast<std::ptrdiff_t>(sheet),
+                           sheets.cbegin() + static_cast<std::ptrdiff_t>(sheet + perSheet));
+        }
+    }
+    return printed;
+}
+
+std::vector<SheetSide> sidesOfSheets(const std::vector<SheetSide>& sides, bool backs) {
+    std::vector<SheetSide> chosen;
+    chosen.reserve((sides.size() + 1) / 2);
+    for (size_t side = backs ? 1 : 0; side < sides.size(); side += 2) {
+        chosen.push_back(sides[side]);
+    }
+    // The last sheet of an odd number of sides has an empty back
+    if (backs && sides.size() % 2 != 0) {
+        chosen.emplace_back();
+    }
+    return chosen;
 }
 
 std::vector<QRectF> pageRects(const QSizeF& pageSize, int pagesOnSide, const QSizeF& paper,

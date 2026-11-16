@@ -195,6 +195,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/dialog_parts.cpp  # Parts of the own dialogs: a list as high as its rows, a note, Copy
     gui/dialogs/archive_dialogs.cpp  # ExportArchiveDialog, ImportArchiveDialog - one window each
     gui/dialogs/book_output_dialog.cpp  # BookOutputDialog - the tabs of the texts and the layout of the export and the print
+    gui/dialogs/print_book_dialog.cpp  # PrintBookDialog - File > Print
     gui/dialogs/export_book_dialog.cpp  # ExportBookDialog - File > Export > DOCX, PDF, Markdown and EPUB
     gui/dialogs/file_preview_dialog.cpp  # FilePreviewDialog - the text of a file no element has
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
@@ -466,6 +467,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/delete_dialogs.h  # Delete dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/archive_dialogs.h  # Archive dialogs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/book_output_dialog.h  # BookOutputDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/print_book_dialog.h  # PrintBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/export_book_dialog.h  # ExportBookDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/file_preview_dialog.h  # FilePreviewDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/user_project_dialog.h  # UserProjectDialog with Q_OBJECT
@@ -653,6 +655,7 @@ target_link_libraries(kalahari PRIVATE
     Qt6::Widgets
     Qt6::Gui
     Qt6::SvgWidgets
+    Qt6::PrintSupport  # The print of the book
     ${HUNSPELL_LIBRARIES}
 )
 target_include_directories(kalahari PRIVATE ${HUNSPELL_INCLUDE_DIRS})

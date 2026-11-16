@@ -115,6 +115,10 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
     m_progressBar->setAccessibleName(tr("Progress"));
     m_progressBar->hide();
     contentLayout()->addWidget(m_progressBar);
+    m_progressText = newValue(this);
+    m_progressText->setForegroundRole(QPalette::PlaceholderText);
+    m_progressText->hide();
+    contentLayout()->addWidget(m_progressText);
 
     // The result: its icon, the sentence and Show in Folder, or why the work failed
     m_result = new QWidget(this);
@@ -359,6 +363,8 @@ void ArchiveDialog::startWork()
     m_result->hide();
     m_progressBar->setValue(0);
     m_progressBar->show();
+    m_progressText->clear();
+    m_progressText->hide();
     bringIntoView(m_progressBar);
     // The window shows that the work started
     QCoreApplication::processEvents();
@@ -373,16 +379,28 @@ ArchiveDialog::Progress ArchiveDialog::progress()
     };
 }
 
+void ArchiveDialog::setProgressText(const QString& text)
+{
+    m_progressText->setText(text);
+    m_progressText->setVisible(!text.isEmpty() && m_state == State::Working);
+}
+
+QString ArchiveDialog::progressText() const
+{
+    return m_progressText->isHidden() ? QString() : m_progressText->text();
+}
+
 void ArchiveDialog::finishWork(const QString& text, const QString& path, bool withOpenFile)
 {
     m_state = State::Done;
     m_resultPath = path;
     m_progressBar->setValue(100);
+    m_progressText->hide();
     setNoteIcon(m_resultIcon, QStringLiteral("common.checkCircle"));
     m_resultText->setText(text);
     m_reasonText->hide();
-    m_openLink->setVisible(withOpenFile);
-    m_showLink->show();
+    m_openLink->setVisible(withOpenFile && !path.isEmpty());
+    m_showLink->setVisible(!path.isEmpty());
     m_result->show();
 
     // The fields stay as the work used them; the window has only Close
@@ -401,6 +419,7 @@ void ArchiveDialog::failWork(const QString& text, const QString& reason,
     m_failed = true;
     m_details = details;
     m_progressBar->hide();
+    m_progressText->hide();
     setNoteIcon(m_resultIcon, QStringLiteral("common.error"));
     m_resultText->setText(text);
     // A cause the window does not name is in the details

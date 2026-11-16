@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
+#include "test_support/dialog_checks.h"
 #include "document_window.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/cover_material.h"
@@ -63,7 +64,11 @@ Q_GUI_EXPORT bool qt_sendShortcutOverrideEvent(QObject* o, ulong timestamp, int 
 using namespace kalahari;
 using gui::BookExportCoordinator;
 using gui::dialogs::ExportBookDialog;
+using test::AppFontOfPixels;
+using test::checkFitsSmallScreen;
+using test::onItsTab;
 using test::OpenNovel;
+using test::Polish;
 using test::Window;
 
 namespace {
@@ -169,95 +174,6 @@ ExportBookDialog::Choice wholeBook() {
     return choice;
 }
 
-/// The page of the tabs that has @p widget; null for a widget outside the tabs
-const QWidget* tabPageOf(const QWidget* widget) {
-    for (const QWidget* each = widget; each != nullptr; each = each->parentWidget()) {
-        if (qobject_cast<const QStackedWidget*>(each->parentWidget()) != nullptr &&
-            qobject_cast<const QTabWidget*>(each->parentWidget()->parentWidget()) != nullptr) {
-            return each;
-        }
-    }
-    return nullptr;
-}
-
-/// Whether @p widget shows on its tab, whichever tab is in front
-bool onItsTab(const QWidget* widget) {
-    const QWidget* page = tabPageOf(widget);
-    REQUIRE(page != nullptr);
-    return widget == page || widget->isVisibleTo(page);
-}
-
-/// The access key of a text: the letter after a single "&"
-QChar accessKey(const QString& text) {
-    for (qsizetype i = 0; i + 1 < text.size(); ++i) {
-        if (text.at(i) == QLatin1Char('&')) {
-            if (text.at(i + 1) == QLatin1Char('&')) {
-                ++i;
-                continue;
-            }
-            return text.at(i + 1).toLower();
-        }
-    }
-    return QChar();
-}
-
-/// The texts with an access key while tab @p tab is in front: the titles of the tabs shown,
-/// and the labels of fields, the buttons and the groups that show on that tab or outside the
-/// tabs
-QStringList keyTexts(const ExportBookDialog& dialog, int tab) {
-    QStringList texts;
-    for (int i = 0; i < dialog.tabs()->count(); ++i) {
-        if (dialog.tabs()->isTabVisible(i)) {
-            texts << dialog.tabs()->tabText(i);
-        }
-    }
-    for (const QWidget* widget : dialog.findChildren<QWidget*>()) {
-        const QWidget* page = tabPageOf(widget);
-        const bool shown = page == nullptr ? widget->isVisibleTo(&dialog)
-                                           : page == dialog.tabs()->widget(tab) && onItsTab(widget);
-        if (!shown) {
-            continue;
-        }
-        if (const auto* label = qobject_cast<const QLabel*>(widget); label && label->buddy()) {
-            texts << label->text();
-        } else if (const auto* button = qobject_cast<const QAbstractButton*>(widget)) {
-            texts << button->text();
-        } else if (const auto* group = qobject_cast<const QGroupBox*>(widget)) {
-            texts << group->title();
-        }
-    }
-    return texts;
-}
-
-/// The texts with the same access key, or with a key that is not a Latin letter or digit (Alt
-/// does not reach "ś"), on any tab in front; empty when each key is the only one
-QString keyProblems(const ExportBookDialog& dialog) {
-    QStringList problems;
-    for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
-        if (!dialog.tabs()->isTabVisible(tab)) {
-            continue;
-        }
-        std::map<QChar, QStringList> texts;
-        for (const QString& text : keyTexts(dialog, tab)) {
-            const QChar key = accessKey(text);
-            if (key.isNull()) {
-                continue;
-            }
-            texts[key] << text;
-            if (key.unicode() >= 0x80 || !key.isLetterOrNumber()) {
-                problems << QStringLiteral("not a Latin key: ") + text;
-            }
-        }
-        for (const auto& [key, each] : texts) {
-            if (each.size() > 1) {
-                problems << each.join(QStringLiteral(" / "));
-            }
-        }
-    }
-    problems.removeDuplicates();
-    return problems.join(QStringLiteral("; "));
-}
-
 /// An exporter of a plugin: an OpenDocument format with a tab of options, and a format without
 /// one; the formats of the program's ids stay the program's
 class OdtExporter : public core::IExporter {
@@ -308,58 +224,6 @@ public:
 
     std::shared_ptr<OdtExporter> exporter;
 };
-
-/// The font of the program of @p pixels while it lives: the window fits with the font of
-/// another system, whose letters are as high (Windows' Segoe UI has the lines of a 13 pixel
-/// font, macOS has 13 pixels)
-class AppFontOfPixels {
-public:
-    explicit AppFontOfPixels(int pixels) : m_font(QApplication::font()) {
-        QFont font = m_font;
-        font.setPixelSize(pixels);
-        QApplication::setFont(font);
-    }
-    ~AppFontOfPixels() { QApplication::setFont(m_font); }
-    AppFontOfPixels(const AppFontOfPixels&) = delete;
-    AppFontOfPixels& operator=(const AppFontOfPixels&) = delete;
-
-private:
-    QFont m_font;
-};
-
-/// The windows in Polish while it lives: the translation the program ships
-class Polish {
-public:
-    Polish() {
-        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
-        if (m_loaded) {
-            QCoreApplication::installTranslator(&m_translator);
-        }
-    }
-    ~Polish() { QCoreApplication::removeTranslator(&m_translator); }
-    Polish(const Polish&) = delete;
-    Polish& operator=(const Polish&) = delete;
-
-    [[nodiscard]] bool loaded() const { return m_loaded; }
-
-private:
-    QTranslator m_translator;
-    bool m_loaded = false;
-};
-
-/// The window fits a small screen whole, so nothing in it scrolls: on Windows and Linux
-/// 1366x768 at 150%, 911 pixels wide and 460 high. A Mac has no such scaling: its smallest
-/// screen is 1366x768 at 100% (the 11-inch MacBook Air), 640 pixels high under the menu bar,
-/// the title bar and the Dock, and its controls and spacing are larger
-void checkFitsSmallScreen(const ExportBookDialog& dialog) {
-#ifdef Q_OS_MACOS
-    constexpr int MAX_HEIGHT = 640;
-#else
-    constexpr int MAX_HEIGHT = 460;
-#endif
-    CHECK(dialog.sizeHint().width() <= 911);
-    CHECK(dialog.sizeHint().height() <= MAX_HEIGHT);
-}
 
 }  // namespace
 
@@ -599,8 +463,8 @@ TEST_CASE("Export Book: the tabs of each format, the window whole on a small scr
     const auto check = [&](editor::ExportFormat format) {
         ExportBookDialog dialog(book, format, dir.path(), {});
         CHECK(dialog.tabs()->currentIndex() == 0);
-        INFO(keyProblems(dialog).toStdString());
-        CHECK(keyProblems(dialog).isEmpty());
+        INFO(test::keyProblems(dialog, *dialog.tabs()).toStdString());
+        CHECK(test::keyProblems(dialog, *dialog.tabs()).isEmpty());
         QStringList shown;
         for (int tab = 0; tab < dialog.tabs()->count(); ++tab) {
             if (!dialog.tabs()->isTabVisible(tab)) {
@@ -622,8 +486,9 @@ TEST_CASE("Export Book: the tabs of each format, the window whole on a small scr
         CHECK(check(editor::ExportFormat::Pdf) ==
               QStringLiteral("Fi&le | Text&s | La&yout | Annotations and Ima&ges | P&DF"));
         check(editor::ExportFormat::Markdown);
-        CHECK(check(editor::ExportFormat::Epub) ==
-              QStringLiteral("Fi&le | Text&s | La&yout | Annotations and Ima&ges | Cover an&d Data"));
+        CHECK(
+            check(editor::ExportFormat::Epub) ==
+            QStringLiteral("Fi&le | Text&s | La&yout | Annotations and Ima&ges | Cover an&d Data"));
     }
 
     SECTION("In Polish") {
@@ -961,9 +826,11 @@ TEST_CASE("Export Book: an EPUB, its look, its cover and its data", "[gui][dialo
     CHECK(dialog.tabs()->isTabVisible(dialog.tabs()->indexOf(dialog.epubTab())));
     CHECK_FALSE(dialog.tabs()->isTabVisible(dialog.tabs()->indexOf(dialog.pdfTab())));
     dialog.tabs()->setCurrentWidget(dialog.epubTab());
-    CHECK(dialog.coverBox()->currentText() == QStringLiteral("Front, version 3 (from the materials)"));
-    CHECK(dialog.coverNote() ==
-          QStringLiteral("The design of the front of the cover chosen in the materials \"Cover\"."));
+    CHECK(dialog.coverBox()->currentText() ==
+          QStringLiteral("Front, version 3 (from the materials)"));
+    CHECK(
+        dialog.coverNote() ==
+        QStringLiteral("The design of the front of the cover chosen in the materials \"Cover\"."));
     CHECK(dialog.isbnField()->text() == QStringLiteral("978-3-16-148410-0"));
     CHECK(dialog.publisherField()->text() == QStringLiteral("Dunes"));
     CHECK(dialog.bookDataNote().startsWith(QStringLiteral("Change the title, the author")));
@@ -1029,8 +896,9 @@ TEST_CASE("Export Book: an EPUB, its look, its cover and its data", "[gui][dialo
     ExportBookDialog bare(book, editor::ExportFormat::Epub, dir.path(), {});
     CHECK(bare.choice().cover == ExportBookDialog::Cover::None);
     bare.tabs()->setCurrentWidget(bare.epubTab());
-    CHECK(bare.coverNote() ==
-          QStringLiteral("The materials \"Cover\" have no chosen design of the front of the cover."));
+    CHECK(
+        bare.coverNote() ==
+        QStringLiteral("The materials \"Cover\" have no chosen design of the front of the cover."));
 }
 
 TEST_CASE("Export Book: the book as the program has it, in reading order",
