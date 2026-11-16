@@ -26158,6 +26158,11 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>Under the running head. In Polish: U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</extracomment>
         <translation>U góry stron, bez stron tytułowych i pierwszych stron rozdziałów.</translation>
     </message>
+    <message>
+        <source>The size and the margins: Settings › Editor › Pages and Margins.</source>
+        <extracomment>Under the page of the print. In Polish: Rozmiar i marginesy: Ustawienia › Edytor › Strony i marginesy.</extracomment>
+        <translation>Rozmiar i marginesy: Ustawienia › Edytor › Strony i marginesy.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ExportBookDialog</name>

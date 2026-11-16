@@ -13,6 +13,7 @@
 #include "kalahari/editor/editor_appearance.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 
+#include <QChar>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QGridLayout>
@@ -65,6 +66,8 @@ constexpr int PREVIEW_MARGIN = 10;
 constexpr int MAX_COPIES = 99;
 /// Below this lightness the window's theme is dark: the preview's desk is the dark one
 constexpr int DARK_LIGHTNESS = 128;
+/// A space no line breaks at
+constexpr QChar NO_BREAK_SPACE(0x00A0);
 
 /// The pages on a sheet as the settings keep them
 const std::array<std::pair<editor::SheetLayout, const char*>, 3>& sheetLayoutNames() {
@@ -666,7 +669,7 @@ QString PrintBookDialog::previewMessage() const
 
 QString PrintBookDialog::previewText() const
 {
-    return m_previewLabel->text();
+    return m_previewLabel->text().replace(NO_BREAK_SPACE, QLatin1Char(' '));
 }
 
 void PrintBookDialog::showSide(int side)
@@ -698,6 +701,8 @@ void PrintBookDialog::showSide(int side)
         //: The pages on a side of a sheet, under the preview. In Polish: strony %1 i %2
         pages = tr("pages %1 and %2").arg(numbers.at(0), numbers.at(1));
     }
+    // The pages in one line under the preview: "page" not apart from its number
+    pages.replace(QLatin1Char(' '), NO_BREAK_SPACE);
     const int sheets = sheetCount();
     if (!twoSided()) {
         //: Under the preview; %1: the sheet, %2: the sheets, %3: its pages. In Polish: Kartka

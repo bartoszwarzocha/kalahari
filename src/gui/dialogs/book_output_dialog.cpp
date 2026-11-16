@@ -459,13 +459,21 @@ QGridLayout* BookOutputDialog::addLayoutTab(const QString& title, bool narrow)
     //: In Polish: Strona:
     addRow(look, tr("Page:"), m_pageLabel);
     m_pageNote = addNote(look);
-    //: Under the page of the export. In Polish: Rozmiar strony i marginesy pochodzą z Ustawień ›
-    //: Edytor › Strony i marginesy (zębatka w nagłówku okna). Rozmiary liter, odstępy i wcięcia
-    //: – ze stylów książki.
-    showNote(m_pageNote, tr("The size of the page and the margins come from Settings › Editor › "
-                            "Pages and Margins (the gear in the heading of the window). The sizes "
-                            "of the letters, the spacing and the indents come from the styles of "
-                            "the book."));
+    if (narrow) {
+        // One line in a narrow tab: the window whole on a small screen
+        //: Under the page of the print. In Polish: Rozmiar i marginesy: Ustawienia › Edytor ›
+        //: Strony i marginesy.
+        showNote(m_pageNote,
+                 tr("The size and the margins: Settings › Editor › Pages and Margins."));
+    } else {
+        //: Under the page of the export. In Polish: Rozmiar strony i marginesy pochodzą z
+        //: Ustawień › Edytor › Strony i marginesy (zębatka w nagłówku okna). Rozmiary liter,
+        //: odstępy i wcięcia – ze stylów książki.
+        showNote(m_pageNote,
+                 tr("The size of the page and the margins come from Settings › Editor › Pages "
+                    "and Margins (the gear in the heading of the window). The sizes of the "
+                    "letters, the spacing and the indents come from the styles of the book."));
+    }
     m_pageLabel->setText(pageText());
 
     for (QCheckBox* box : {m_titlesBox, m_newPageBox, m_pageNumbersBox}) {

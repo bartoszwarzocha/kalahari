@@ -32,6 +32,7 @@
 #include <QTemporaryDir>
 #include <QTreeWidget>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -462,11 +463,18 @@ TEST_CASE("Print: the pages chosen, the sheets and the preview", "[gui][dialogs]
     SECTION("The preview draws the sheet on the desk") {
         dialog.resize(dialog.sizeHint());
         dialog.preview()->resize(240, 300);
+        // The size the layout of the window gives the preview, which differs between the
+        // systems: the sheet in its middle, the desk at its corners
         const QImage image = dialog.preview()->grab().toImage();
-        const QColor desk = image.pixelColor(2, image.height() / 2);
-        const QColor paper = image.pixelColor(image.width() / 2, 14);
-        CHECK(desk != paper);
-        CHECK(paper.lightness() > desk.lightness());
+        INFO("The preview " << image.width() << "x" << image.height());
+        REQUIRE(image.width() > 20);
+        REQUIRE(image.height() > 20);
+        const QColor desk = image.pixelColor(2, 2);
+        int paper = 0;
+        for (int y = 0; y < image.height(); ++y) {
+            paper = std::max(paper, image.pixelColor(image.width() / 2, y).lightness());
+        }
+        CHECK(paper > desk.lightness());
     }
 
     SECTION("The texts chosen lay the pages out again, once for many changes") {

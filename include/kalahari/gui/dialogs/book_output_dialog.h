@@ -163,7 +163,7 @@ protected:
     /// @brief The tab of the layout: the titles as headings, then the options of the pages
     /// @param title The title of the tab, with its access key
     /// @param narrow The tab is narrow (beside the preview of the print): the font and the
-    ///        running head each in a row of its own
+    ///        running head each in a row of its own, a note of one line under the page
     /// @return Its grid, for more rows of the window's own; endTab() ends it
     QGridLayout* addLayoutTab(const QString& title, bool narrow = false);
 
