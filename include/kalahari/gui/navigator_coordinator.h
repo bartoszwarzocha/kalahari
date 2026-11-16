@@ -144,8 +144,8 @@ public:
 
     /// @brief The Navigator built again when a card stands under another card in its tree
     /// now, or no longer, or the setting of the trees changed (NavigatorPanel::cardTreesChanged()),
-    /// keeping its current item
-    void refreshCardTrees();
+    /// keeping its current item; invokable, as the settings may change on another thread
+    Q_INVOKABLE void refreshCardTrees();
 
     /// @brief Close the editor tabs of @p element and of the elements inside it
     void closeTabsOf(const core::ProjectElement& element);

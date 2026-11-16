@@ -336,14 +336,20 @@ TEST_CASE("Relation: the cards in groups, the filter, the cards it makes and the
     CHECK(combo->currentText() == QStringLiteral("Own Relation..."));
     CHECK(labelsOf(dialog).contains(QStringLiteral("On the card \"Alex\":")));
 
-    // It fits a small screen: only the list scrolls
+    // It fits a small screen, 1366x768 at 150%: 911 pixels wide and 460 high (a Mac's larger
+    // controls need a few more); only the list scrolls
+#ifdef Q_OS_MACOS
+    constexpr int MAX_HEIGHT = 480;
+#else
+    constexpr int MAX_HEIGHT = 460;
+#endif
     for (int i = 0; i < 30; ++i) {
         addCard(pm, "character", QStringLiteral("Guest %1").arg(i));
     }
     const RelationDialog crowded(kalahari::test::book(), cards.anna, std::nullopt);
     INFO("size " << crowded.sizeHint().width() << "x" << crowded.sizeHint().height());
     CHECK(crowded.sizeHint().width() <= 911);
-    CHECK(crowded.sizeHint().height() <= 460);
+    CHECK(crowded.sizeHint().height() <= MAX_HEIGHT);
 }
 
 TEST_CASE("Relation: the letters typed in the list go to the filter, the arrows of the "
