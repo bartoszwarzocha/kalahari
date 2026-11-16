@@ -225,8 +225,8 @@ TEST_CASE("NameDeclension: places, things and other names", "[core][dictionary][
     CHECK(row(formsOf("Wysokie", NameKind::Place), false) ==
           text("Wysokie, Wysokiego, Wysokiemu, Wysokie, Wysokim, Wysokim, Wysokie").toStdString());
     CHECK(row(formsOf("Czarny Las", NameKind::Place), false) ==
-          text("Czarny Las, Czarnego Lasa, Czarnemu Lasowi, Czarny Las, Czarnym Lasem, "
-               "Czarnym Lasie, Czarny Lasie")
+          text("Czarny Las, Czarnego Lasu, Czarnemu Lasowi, Czarny Las, Czarnym Lasem, "
+               "Czarnym Lesie, Czarny Lesie")
               .toStdString());
     CHECK(row(formsOf("Czarny Las", NameKind::Place), true) ==
           text("Czarne Lasy, Czarnych Lasów, Czarnym Lasom, Czarne Lasy, Czarnymi Lasami, "
@@ -262,6 +262,68 @@ TEST_CASE("NameDeclension: places, things and other names", "[core][dictionary][
         CHECK(modelsOf("X", NameKind::Other) == "none");
         CHECK(modelsOf("Renee") == "none");
         CHECK(modelsOf("Aleja 3", NameKind::Place) == "anna,none");
+    }
+}
+
+TEST_CASE("NameDeclension: common nouns whose stem changes", "[core][dictionary][declension]") {
+    SECTION("the vowel of the locative") {
+        CHECK(modelsOf("Czarny Las", NameKind::Place) == "kowalski,londyn");
+        CHECK(row(formsOf("Biały Świat", NameKind::Place), false) ==
+              text("Biały Świat, Białego Świata, Białemu Światowi, Biały Świat, Białym Światem, "
+                   "Białym Świecie, Biały Świecie")
+                  .toStdString());
+        CHECK(row(formsOf("Wiatr", NameKind::Other), false) ==
+              text("Wiatr, Wiatru, Wiatrowi, Wiatr, Wiatrem, Wietrze, Wietrze").toStdString());
+        CHECK(row(formsOf("Anioł"), false) ==
+              text("Anioł, Anioła, Aniołowi, Anioła, Aniołem, Aniele, Aniele").toStdString());
+        CHECK(row(formsOf("Gwiazda", NameKind::Place), false) ==
+              text("Gwiazda, Gwiazdy, Gwieździe, Gwiazdę, Gwiazdą, Gwieździe, Gwiazdo")
+                  .toStdString());
+        CHECK(row(formsOf("Gniazdo", NameKind::Place), false) ==
+              text("Gniazdo, Gniazda, Gniazdu, Gniazdo, Gniazdem, Gnieździe, Gniazdo")
+                  .toStdString());
+        // Not a name that only looks like one of them
+        CHECK(formsOf("Piast", NameKind::Place).cell(GrammaticalCase::Locative, false) ==
+              QStringList{text("Piaście")});
+    }
+
+    SECTION("ó -> o and the e that drops in the other cases") {
+        CHECK(row(formsOf("Stary Dwór", NameKind::Place), false) ==
+              text("Stary Dwór, Starego Dworu, Staremu Dworowi, Stary Dwór, Starym Dworem, "
+                   "Starym Dworze, Stary Dworze")
+                  .toStdString());
+        CHECK(row(formsOf("Stary Dwór", NameKind::Place), true) ==
+              text("Stare Dwory, Starych Dworów, Starym Dworom, Stare Dwory, Starymi Dworami, "
+                   "Starych Dworach, Stare Dwory")
+                  .toStdString());
+        CHECK(row(formsOf("Kościół", NameKind::Place), false) ==
+              text("Kościół, Kościoła, Kościołowi, Kościół, Kościołem, Kościele, Kościele")
+                  .toStdString());
+        CHECK(row(formsOf("Róg", NameKind::Place), false) ==
+              text("Róg, Rogu, Rogowi, Róg, Rogiem, Rogu, Rogu").toStdString());
+        CHECK(row(formsOf("Złoty Zamek", NameKind::Place), false) ==
+              text("Złoty Zamek, Złotego Zamku, Złotemu Zamkowi, Złoty Zamek, Złotym Zamkiem, "
+                   "Złotym Zamku, Złoty Zamku")
+                  .toStdString());
+    }
+
+    SECTION("a neuter adjective before a neuter noun") {
+        CHECK(modelsOf("Stare Miasto", NameKind::Place) == "zakopane,gniezno");
+        CHECK(formsOf("Stare Miasto", NameKind::Place).cell(GrammaticalCase::Genitive, false) ==
+              QStringList{text("Starego Miasta")});
+        CHECK(formsOf("Stare Miasto", NameKind::Place).cell(GrammaticalCase::Locative, false) ==
+              QStringList{text("Starem Mieście"), text("Starym Mieście")});
+        CHECK(modelsOf("Białe Morze", NameKind::Place) == "zakopane,opole");
+        CHECK(modelsOf("Zabrze", NameKind::Place) == "opole");
+    }
+
+    SECTION("the spelling dictionary does not choose another model for them") {
+        // As the dictionary of Polish has it: "lasa" (a basket) and its "lasie", not "lesie"
+        const auto dictionary = fakeDictionary(
+            {{"las", {"las", "lasy", "lasów", "lasom", "lasami", "lasach", "lasa", "lasie"}}});
+        CHECK(modelsOf("Czarny Las", NameKind::Place, dictionary) == "kowalski,londyn");
+        CHECK(row(formsOf("Las", NameKind::Place, dictionary), false) ==
+              "Las, Lasu, Lasowi, Las, Lasem, Lesie, Lesie");
     }
 }
 

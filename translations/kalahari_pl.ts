@@ -21642,7 +21642,7 @@ Where a quote comes from: a source and its page. In Polish: Źródło</extracomm
     <message>
         <source>Characters</source>
         <extracomment>The heading of the characters of the book in a list</extracomment>
-        <translation type="unfinished">Znaki</translation>
+        <translation>Postacie</translation>
     </message>
     <message>
         <source>Locations</source>

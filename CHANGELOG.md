@@ -104,28 +104,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   name has the name and its other names (for a character of several words the first name and
   the surname alone, which follow the name, and the diminutives and nicknames the author
   adds), the kind (Character, Location, Item, Other name), the model of declension of each
-  word, picked by its ending and confirmed by the spelling dictionary, and the table of the
-  forms by case, which the author corrects (a corrected cell keeps its forms when a model
-  changes; "Suggest the Forms Again"), "Does not change", the plural and Show in Quick Insert;
-  in Polish seven cases, in English the singular and the plural, in another language the forms
-  the author writes. The window of a spelling rule has the right spelling, the wrong ones
-  (those that suggest themselves are added: the other case of a capital letter, without the
-  hyphen, with it or apart, a word made of two apart), whether its forms count too (shown from
-  the spelling dictionary, or from the word it ends with: "półelf" like "elf") and a note. In
-  the chapters the names are right in all their forms and the words of the book are right; a
-  departure from a rule has a wavy line of its own color ("Book rule", its color in Settings >
-  Editor > Spelling) with the rule's spelling and note in the context menu, Edit Rule... and
-  Remove Rule (Settings > Editor > Spelling > Book Dictionary: "Mark departures from the
-  book's spelling rules"). The context menu of a misspelled word adds it to the book
-  dictionary, to Your Words of every book, or as a name (Add Name..., the window of a name
-  with the word and its forms); so do the cards of the Spelling and Grammar panel, whose
-  button adds to the place Settings names ("The panel adds a word to"), the other on the menu
-  of its arrow. Quick Insert after @ offers the names with their forms (Right shows them), and
-  Find in Book and the find bar of a chapter find a name in all its forms, an ordinary word in
-  those of the spelling dictionary (the option "All Forms", Alt+M). Move to Your Words moves
-  words of the book to the words of every book; Remove asks first. In a book open read-only
-  the dictionary is shown, not changed. The cards of the Workshop will keep their names here
-  (`DictionaryName::card`).
+  word, picked by its ending and confirmed by the spelling dictionary (common nouns whose stem
+  changes have their forms from the program: Czarny Las, w Czarnym Lesie; Stary Dwór, Starego
+  Dworu), and the table of the forms by case, which the author corrects (a corrected cell
+  keeps its forms when a model changes; "Suggest the Forms Again"), "Does not change", the
+  plural and Show in Quick Insert; in Polish seven cases, in English the singular and the
+  plural, in another language the forms the author writes. The window of a spelling rule has
+  the right spelling, the wrong ones (those that suggest themselves are added: the other case
+  of a capital letter, without the hyphen, with it or apart, a word made of two apart),
+  whether its forms count too (shown from the spelling dictionary, or from the word it ends
+  with: "półelf" like "elf") and a note. In the chapters the names are right in all their
+  forms and the words of the book are right; a departure from a rule has a wavy line of its
+  own color ("Book rule", its color in Settings > Editor > Spelling) with the rule's spelling
+  and note in the context menu, Edit Rule... and Remove Rule (Settings > Editor > Spelling >
+  Book Dictionary: "Mark departures from the book's spelling rules"). The context menu of a
+  misspelled word adds it to the book dictionary, to Your Words of every book, or as a name
+  (Add Name..., the window of a name with the word and its forms); so do the cards of the
+  Spelling and Grammar panel, whose button adds to the place Settings names ("The panel adds a
+  word to"), the other on the menu of its arrow. Quick Insert after @ offers the names with
+  their forms (Right shows them), and Find in Book and the find bar of a chapter find a name
+  in all its forms, an ordinary word in those of the spelling dictionary (the option "All
+  Forms", Alt+M). Move to Your Words moves words of the book to the words of every book;
+  Remove asks first. In a book open read-only the dictionary is shown, not changed. The cards
+  of the Workshop will keep their names here (`DictionaryName::card`).
 - **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
   opens another book window, with the Dashboard; the Window menu lists every window of the
   program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the

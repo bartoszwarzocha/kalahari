@@ -25,11 +25,13 @@ using declension::Cell;
 using declension::Cells;
 using declension::endsWithAny;
 using declension::fitsWord;
+using declension::isChangingNoun;
 using declension::isVowel;
 using declension::PolishModel;
 using declension::polishCandidates;
 using declension::polishModelIds;
 using declension::polishModelOf;
+using declension::takesGenitiveU;
 using declension::unchangedCandidates;
 
 // =============================================================================
@@ -93,23 +95,27 @@ PolishModel modelOfA(const QString& lower, bool man) {
     return man ? PolishModel::Kuba : PolishModel::Anna;
 }
 
-/// The model of a Polish word ending in -e: a neuter adjective (Zakopane) or noun (Opole);
-/// a character's does not change
+/// The model of a Polish word ending in -e: a neuter adjective (Zakopane, Stare) or noun
+/// (Opole, Zabrze); a character's does not change
 PolishModel modelOfE(const QString& lower, bool character) {
     if (character) {
         return PolishModel::None;
     }
+    if (lower.endsWith(QLatin1String("rze"))) {
+        return PolishModel::Opole;  // Zabrze, Morze; but Stare
+    }
     return endsWithAny(lower, {QStringLiteral("ne"), QStringLiteral("kie"), QStringLiteral("gie"),
-                               QStringLiteral("we"), QStringLiteral("te")})
+                               QStringLiteral("we"), QStringLiteral("te"), QStringLiteral("re"),
+                               QStringLiteral("łe"), QStringLiteral("de")})
                ? PolishModel::Zakopane
                : PolishModel::Opole;
 }
 
-/// The model of a Polish word ending in a consonant: a thing (Gdańsk), a man's name (Jan,
-/// Marek); a woman's surname does not change (Anna Nowak)
+/// The model of a Polish word ending in a consonant: a thing (Gdańsk; Las, genitive -u), a
+/// man's name (Jan, Marek); a woman's surname does not change (Anna Nowak)
 PolishModel modelOfConsonant(const QString& lower, NameKind kind, bool feminine) {
     if (kind != NameKind::Character) {
-        return PolishModel::Gdansk;
+        return takesGenitiveU(lower) ? PolishModel::Londyn : PolishModel::Gdansk;
     }
     if (feminine) {
         return PolishModel::None;
@@ -408,8 +414,10 @@ QStringList NameDeclension::wordsOf(const QString& name) {
 QString NameDeclension::polishModel(const QString& word, NameKind kind, bool feminine, bool first,
                                     const DictionaryForms& dictionary) {
     const PolishModel byEnding = modelByEnding(word, kind, feminine, first);
-    const QSet<QString> known =
-        byEnding == PolishModel::None ? QSet<QString>() : knownForms(word, dictionary);
+    // The forms of a common noun whose stem changes are known better than the dictionary
+    // tells them (it has "lasa", a basket, but not "lesie")
+    const bool byDictionary = byEnding != PolishModel::None && !isChangingNoun(word);
+    const QSet<QString> known = byDictionary ? knownForms(word, dictionary) : QSet<QString>();
     if (known.isEmpty()) {
         return polishModelIds().at(static_cast<qsizetype>(byEnding));
     }
