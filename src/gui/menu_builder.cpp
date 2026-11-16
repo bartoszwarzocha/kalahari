@@ -74,6 +74,10 @@ QString MenuBuilder::menuText(const std::string& technicalName) {
     if (technicalName == "Perspectives") return QObject::tr("Pe&rspectives");
     if (technicalName == "Toolbars") return QObject::tr("&Toolbars");
     if (technicalName == "Recent Books") return QObject::tr("&Recent Books");
+    //: The submenu of Edit with Next To Do and Previous To Do. In Polish: Uwa&gi do zrobienia
+    if (technicalName == "To Dos") {
+        return QObject::tr("T&o Dos");
+    }
 
     // Fallback: as it is, with no access key
     return literalMenuText(QString::fromStdString(technicalName));
@@ -117,6 +121,7 @@ QString MenuBuilder::submenuIconId(const std::string& technicalName) {
         {"Panels", QStringLiteral("menu.panels")},
         {"Perspectives", QStringLiteral("menu.perspectives")},
         {"Toolbars", QStringLiteral("menu.toolbars")},
+        {"To Dos", QStringLiteral("menu.toDos")},
     };
     const auto it = icons.find(technicalName);
     return it != icons.end() ? it->second : QString();

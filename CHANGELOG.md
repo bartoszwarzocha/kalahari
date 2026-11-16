@@ -37,7 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text, Restore also in a book open read-only). Settings > Editor > Clippings > Draw scissors
   where a fragment was cut (off at first): scissors beside the paragraph a clipping not
   inserted since was cut from, left of the paperclip of the materials; a click on them or the
-  context menu of the paragraph shows the clipping or restores it there.
+  context menu of the paragraph shows the clipping or restores it there. The Edit menu had
+  more items than letters for their access keys: Next To Do and Previous To Do went to its
+  submenu To Dos (keys as before), Find Next has X and Cut to Clippings N.
 
 - **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
   characters, locations and items, added from the Book menu, the Navigator ("Add Character...",

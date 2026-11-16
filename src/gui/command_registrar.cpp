@@ -320,7 +320,7 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // The selection, or the paragraph with the cursor, to a new clipping of the Workshop
     // (ClippingsCoordinator gives it its callback). Ctrl+Shift+X: Cut with Shift
     REG_CMD_KEY("edit.cutToClippings",
-                QT_TRANSLATE_NOOP("CommandRegistrar", "Cut to C&lippings"),
+                QT_TRANSLATE_NOOP("CommandRegistrar", "Cut to Clippi&ngs"),
                 "EDIT/Cut to Clippings", 35, false, 0,
                 KeyboardShortcut(Qt::Key_X, Qt::ControlModifier | Qt::ShiftModifier));
 
@@ -366,13 +366,13 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     // OpenSpec #00030: Added keyboard shortcuts for Find operations
     REG_CMD_KEY_CB("edit.find", QT_TRANSLATE_NOOP("CommandRegistrar", "&Find..."), "EDIT/Find...", 110, false, 1,
                    KeyboardShortcut(Qt::Key_F, Qt::ControlModifier), callbacks.onFind);
-    REG_CMD_KEY_CB("edit.findNext", QT_TRANSLATE_NOOP("CommandRegistrar", "Find &Next"), "EDIT/Find Next", 120, false, 1,
+    REG_CMD_KEY_CB("edit.findNext", QT_TRANSLATE_NOOP("CommandRegistrar", "Find Ne&xt"), "EDIT/Find Next", 120, false, 1,
                    KeyboardShortcut(Qt::Key_F3, Qt::NoModifier),
                    callbacks.onFindNext);
     REG_CMD_KEY_CB("edit.findPrevious", QT_TRANSLATE_NOOP("CommandRegistrar", "Find Pre&vious"), "EDIT/Find Previous", 130, false, 1,
                    KeyboardShortcut(Qt::Key_F3, Qt::ShiftModifier),
                    callbacks.onFindPrevious);
-    REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find && R&eplace..."), "EDIT/Find & Replace...", 140, false, 1,
+    REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find && Rep&lace..."), "EDIT/Find & Replace...", 140, false, 1,
                    replaceShortcut,
                    callbacks.onFindReplace);
     // Find in Book: the Search panel, in all the texts of the book (BookSearchCoordinator gives
@@ -384,10 +384,11 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_KEY("edit.goTo", QT_TRANSLATE_NOOP("CommandRegistrar", "&Go To..."), "EDIT/Go To...", 151, true, 0,
                 KeyboardShortcut(Qt::Key_G, Qt::ControlModifier));
 
-    // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks
-    REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt To Do"), "EDIT/Next To Do", 152, false, 0,
+    // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks. In a submenu:
+    // the Edit menu has no letter left for one more access key of its own
+    REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt To Do"), "EDIT/To Dos/Next To Do", 152, false, 0,
                 nextTodoShortcut);
-    REG_CMD_KEY("edit.previousTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Previ&ous To Do"), "EDIT/Previous To Do", 154, true, 0,
+    REG_CMD_KEY("edit.previousTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Previ&ous To Do"), "EDIT/To Dos/Previous To Do", 154, true, 0,
                 previousTodoShortcut);
 
     // Preferences... opens the window the Edit menu has as Settings..., the name the texts that

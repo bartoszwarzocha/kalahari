@@ -368,6 +368,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("menu.panels", "resources/icons/twotone/view_sidebar.svg", "Panels");
     iconRegistry.registerIcon("menu.perspectives", "resources/icons/twotone/view_quilt.svg", "Perspectives");
     iconRegistry.registerIcon("menu.toolbars", "resources/icons/twotone/build.svg", "Toolbars");
+    iconRegistry.registerIcon("menu.toDos", "resources/icons/twotone/check_circle.svg", "To Dos");
 
     // -------------------------------------------------------------------------
     // LOG PANEL TOOLBAR ICONS (OpenSpec #00024)

@@ -1273,7 +1273,7 @@ TEST_CASE("Menu access keys: lists and toolbar buttons show the names without th
     // An ampersand of the name stays one
     const Command* replace = kalahari::test::commands().getCommand("edit.findReplace");
     REQUIRE(replace != nullptr);
-    CHECK(replace->actionText() == QStringLiteral("Find && R&eplace..."));
+    CHECK(replace->actionText() == QStringLiteral("Find && Rep&lace..."));
     CHECK(replace->label == "Find & Replace...");
 
     CHECK(MenuBuilder::menuText("FORMAT") == QStringLiteral("F&ormat"));

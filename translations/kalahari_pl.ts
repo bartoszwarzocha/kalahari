@@ -507,7 +507,7 @@
         <translation>&amp;Znajdź...</translation>
     </message>
     <message>
-        <source>Find &amp;Next</source>
+        <source>Find Ne&amp;xt</source>
         <translation>Znajdź &amp;następny</translation>
     </message>
     <message>
@@ -1319,11 +1319,11 @@
         <translation>Pod&amp;ział rozdziału</translation>
     </message>
     <message>
-        <source>Cut to C&amp;lippings</source>
-        <translation>Wytni&amp;j do wycinków</translation>
+        <source>Cut to Clippi&amp;ngs</source>
+        <translation>Wytnij &amp;do wycinków</translation>
     </message>
     <message>
-        <source>Find &amp;&amp; R&amp;eplace...</source>
+        <source>Find &amp;&amp; Rep&amp;lace...</source>
         <translation>Znajdź i za&amp;mień...</translation>
     </message>
     <message>
@@ -2476,6 +2476,11 @@ Uruchomić ponownie teraz?</translation>
     <message>
         <source>&amp;Statistics</source>
         <translation>&amp;Statystyki</translation>
+    </message>
+    <message>
+        <source>T&amp;o Dos</source>
+        <extracomment>The submenu of Edit with Next To Do and Previous To Do. In Polish: Uwa&amp;gi do zrobienia</extracomment>
+        <translation>Uwa&amp;gi do zrobienia</translation>
     </message>
     <message>
         <source>P&amp;lugins</source>
