@@ -517,6 +517,47 @@ settings `export.*`; the page comes from Settings > Editor > Pages and Margins.
 | The book's title, author and language | `docProps/core.xml` and the language of the text | – |
 | Each text (option) | A section of its own from a new page (a right page with mirror margins, unless the text starts on a left one) with the page size, margins and page numbers of the settings | – |
 
+## Import from DOCX, Markdown and plain text
+
+The import reads a file of another program into a book (`include/kalahari/editor/book_import.h`):
+a reader gives the file's document (`readDocx()`, `readMarkdown()`, `readPlainText()`),
+`splitDocument()` divides it into texts and parts, and `importKml()` writes the KML of each text.
+The writer chooses the book's style of each style of the file (`suggestedBookStyle()` suggests
+one), how much of the file's own formatting stays (all of it; the emphasis with the paragraphs
+centered or aligned right, by default; only the styles) and the cleanups. A file the program
+exported comes back with its parts, texts, styles, notes and comments. Tests:
+`tests/editor/test_book_import.cpp`, with files of other programs in `tests/data/import`.
+
+| In the file | DOCX (WordprocessingML) | Markdown (GitHub Flavored) | Plain text | KML |
+|-------------|-------------------------|----------------------------|------------|-----|
+| The texts and parts | The headings of two levels (a part: a heading of the first level that names a part, "Część pierwsza", or one of the program's own `PartTitle`), the page breaks, or none | The headings | The titles the writer chooses: "Rozdział 1", "Chapter One", a number, a line in capitals, one that starts with a prefix or a kind's name alone ("Prolog"); "Część pierwsza" and "Part One" for the parts; or a number of empty lines | A text of the book each, a part a group |
+| A heading | A style of Word's Heading 1–9 (by its outline level or its name in English, Polish, German or French) or a paragraph's own outline level | `#` to `######` | A title | `<h1>`–`<h3>` (a deeper one `<h3>`), or the book's style the writer chooses |
+| A style | Its paragraphs; Word's Normal, Body Text, Quote, Title, Caption, Footnote Text, HTML Preformatted ... to the book's `normal`, `quote`, `heading_1`, `caption`, `footnote`, `code`; a style of the book of the same name | `normal`, the headings, `quote` (`>`) and `code` (a fenced or indented block) | `normal` | `style` |
+| Emphasis | `w:b`, `w:i`, `w:u`, `w:strike`, `w:vertAlign`, those of the character styles | `**`, `*`, `_`, `~~`, `<u>`, `<sub>`, `<sup>` | – | `<b>`, `<i>`, `<u>`, `<s>`, `<sub>`, `<sup>` |
+| Font, size, color, background, capitals, spacing; indents, spacing of paragraphs | `w:rFonts`, `w:sz`, `w:color`, `w:highlight`, `w:shd`, `w:smallCaps`, `w:caps`, `w:spacing`; `w:ind`, `w:spacing`, keep and widow control | – | – | Only with all the formatting kept |
+| A link | `w:hyperlink`, the field HYPERLINK | `[text](address)` | – | `<a href>`, only of web and e-mail addresses |
+| A line break, a tab | `w:br`, `w:cr`, `w:tab` | A backslash or two spaces at a line's end, `<br>` | – | `<br/>`, a tab |
+| A page break | `w:br w:type="page"` (the paragraph of a break alone is the break), `w:pageBreakBefore`, a section from a new page | – | A form feed | `<page-break/>` |
+| A scene break | The program's own short line (a bottom border between drawn-in margins) | A line of asterisks (`* * *`, `***`), `&nbsp;` alone | – | `<scene-break/>`; with the cleanup also a paragraph of "* * *", "***", "#", "⁂", "❦" or "───" alone (the program's own symbol) |
+| A horizontal line | An empty paragraph with a bottom border, Word's and Pandoc's shape of a line (`o:hr`) | `---` | – | `<hr/>` |
+| A list | Word's numbering (`numbering.xml`, also of the style): its formats, bullets, numbers and their starts; a list of another number at a deeper level is inside the item before it | `1.`, `-`, `*`, the task boxes as ☑ and ☐ | – | `<ol>`, `<ul>`, `<li>` |
+| A table | `w:tbl`: its columns' widths, merged cells, header rows, cell backgrounds and vertical alignment, row heights | A pipe table, its first row the header | – | `<table>`; a table in a cell its rows of text |
+| An image | An inline picture (`a:blip`, VML `v:imagedata`): its width, crop, turn, mirror, alternative text and description; EMF and WMF are left out | `![alt](path)`, the file next to the Markdown file; a web address and a missing file as `[alt]` | – | `<img>` of the book's images |
+| A footnote, an endnote | Word's footnotes and endnotes | `[^label]` and its definition | – | `<footnote>`, `<endnote>` |
+| A comment | Word's comment with its author, date, replies and done (`w15:done`); one that starts with a kind's label ("To do:") is that kind | – | – | An annotation (option) |
+| A field | PAGE, NUMPAGES, SECTIONPAGES, NUMWORDS, TITLE, AUTHOR, DATE, TIME, SEQ | – | – | `<field>`, a caption's number |
+| Tracked changes | Accepted or rejected, as the writer chooses | – | – | The text |
+| Title, author, language | `docProps/core.xml` | The YAML header (`title`, `author`, `lang`) | – | The book's |
+| Left out, and counted for the writer | Text boxes (their text after the paragraph), shapes, charts and SmartArt, equations, embedded objects, headers and footers, Word's table of contents, EMF and WMF images | HTML other than `<u>`, `<br>`, `<sub>`, `<sup>` | – | – |
+
+The cleanups, each one the writer can turn off: the quotation marks, apostrophes, dashes and
+ellipses as autocorrect makes them as the text is typed (double quotation marks of another
+language become those of the book's language), two and more spaces as one, no spaces and tabs at
+the start of a paragraph (the style gives the indent), the scene marks as scene breaks, and the
+empty paragraphs left out, kept or made scene breaks. Paragraphs in the style `code` keep their
+text as it is. Word's hidden text is left out. The encodings of plain text: UTF-8, UTF-16 (with
+or without its mark), Windows-1250 and ISO 8859-2, found from the text (`detectTextEncoding()`).
+
 ## Inline formatting
 
 | Written | Also accepted on reading | Effect |

@@ -105,6 +105,7 @@ set(TEST_SOURCES
     editor/test_read_only_text.cpp               # A read-only text: read, copied, searched, not changed
     editor/test_version_comparison.cpp           # A version of a text compared with the text now
     editor/test_book_export.cpp                  # Export of a book to DOCX and Markdown
+    editor/test_book_import.cpp                  # Import of DOCX, Markdown and plain text into a book
     benchmarks/test_editor_stage0_benchmark.cpp  # Editor Stage 0: hidden benchmark, tag [benchmark]
     benchmarks/test_document_generator.cpp       # 150k-word KML generator for the benchmark
     gui/test_command_registry.cpp
@@ -549,6 +550,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_export.cpp          # Export of a book: the texts read as the editor reads them
     ${CMAKE_SOURCE_DIR}/src/editor/docx_writer.cpp          # Export of a book to a Word document (DOCX)
     ${CMAKE_SOURCE_DIR}/src/editor/markdown_writer.cpp      # Export of a book to Markdown (GitHub Flavored)
+    ${CMAKE_SOURCE_DIR}/src/editor/book_import.cpp          # Import of a file into a book: texts, parts, kinds, styles
+    ${CMAKE_SOURCE_DIR}/src/editor/book_import_kml.cpp      # Import of a file into a book: the KML of a text, cleanups
+    ${CMAKE_SOURCE_DIR}/src/editor/docx_reader.cpp          # Import of a Word document (DOCX)
+    ${CMAKE_SOURCE_DIR}/src/editor/markdown_reader.cpp      # Import of Markdown
+    ${CMAKE_SOURCE_DIR}/src/editor/text_reader.cpp          # Import of plain text: encodings, paragraphs, titles
     ${CMAKE_SOURCE_DIR}/src/editor/statistics_collector.cpp   # Phase 6/Task 7.17: Statistics
     ${CMAKE_SOURCE_DIR}/src/editor/word_repetitions.cpp        # The repetitions of words
     ${CMAKE_SOURCE_DIR}/src/editor/quick_insert.cpp            # Quick insert: the items

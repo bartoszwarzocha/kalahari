@@ -29,6 +29,11 @@ set(KALAHARI_CORE_SOURCES
     editor/book_export.cpp             # Export of a book: the texts read as the editor reads them
     editor/docx_writer.cpp             # Export of a book to a Word document (DOCX)
     editor/markdown_writer.cpp         # Export of a book to Markdown (GitHub Flavored)
+    editor/book_import.cpp             # Import of a file into a book: texts, parts, kinds, styles
+    editor/book_import_kml.cpp         # Import of a file into a book: the KML of a text, cleanups
+    editor/docx_reader.cpp             # Import of a Word document (DOCX)
+    editor/markdown_reader.cpp         # Import of Markdown
+    editor/text_reader.cpp             # Import of plain text: encodings, paragraphs, titles
     core/database_schema_manager.cpp
     core/project_lock.cpp
     core/backup_manager.cpp
