@@ -816,13 +816,15 @@ void SpellCheckService::findSuggestions(const QString& word, int maxSuggestions,
         return;
     }
 
-    // The thread, made at the first question
+    // The thread, made at the first question. Of the priority of the window's: Hunspell stops
+    // looking after a quarter of a second, measured on Windows as time passing (not as time
+    // of the processor), so a thread of low priority on a busy computer found no words
     if (m_suggestionThread == nullptr) {
         m_suggestionThread = new QThread(this);
         m_suggestionThread->setObjectName(QStringLiteral("Spelling suggestions"));
         m_suggestionWorker = new SuggestionWorker();
         m_suggestionWorker->moveToThread(m_suggestionThread);
-        m_suggestionThread->start(QThread::LowPriority);
+        m_suggestionThread->start(QThread::NormalPriority);
         m_suggestionIdle = new QTimer(this);
         m_suggestionIdle->setSingleShot(true);
         m_suggestionIdle->setInterval(SUGGESTIONS_IDLE_MS);
@@ -882,10 +884,14 @@ void SpellCheckService::onSuggestionsFound(const QString& dictionary, const QStr
         }
         return;
     }
-    if (m_knownSuggestions.size() >= MAX_KNOWN_SUGGESTIONS) {
-        m_knownSuggestions.clear();
+    // No words found are not kept: the dictionary may have run out of its time (above), and
+    // the next menu of the word asks again
+    if (!found.found.isEmpty() || !found.small.isEmpty()) {
+        if (m_knownSuggestions.size() >= MAX_KNOWN_SUGGESTIONS) {
+            m_knownSuggestions.clear();
+        }
+        m_knownSuggestions.insert(asked, found);
     }
-    m_knownSuggestions.insert(asked, found);
     for (const WaitingForSuggestions& each : std::as_const(waiting)) {
         if (!each.context.isNull()) {
             each.done(finishSuggestions(asked, found, each.maxSuggestions));
