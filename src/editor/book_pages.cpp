@@ -279,6 +279,7 @@ void BookPages::layOut(const ExportProgress& progress) {
     // The tables of contents with the pages of the headings, until the pages stay
     for (int pass = 1; contents && pass < CONTENTS_PASSES; ++pass) {
         std::vector<int> pages;
+        pages.reserve(m_headings.size());
         for (const PageHeading& heading : m_headings) {
             pages.push_back(heading.place.page);
         }

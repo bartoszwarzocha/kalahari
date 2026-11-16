@@ -125,9 +125,11 @@ public:
 
         // The pages in order, each with the array of its annotations
         const std::optional<QByteArray> catalog = object(m_root);
+        if (!catalog) {
+            return false;
+        }
         static const QRegularExpression pages(QStringLiteral("/Pages\\s+(\\d+)\\s+\\d+\\s+R"));
-        const QRegularExpressionMatch pagesMatch =
-            catalog ? pages.match(QString::fromLatin1(*catalog)) : QRegularExpressionMatch();
+        const QRegularExpressionMatch pagesMatch = pages.match(QString::fromLatin1(*catalog));
         if (!pagesMatch.hasMatch()) {
             return false;
         }

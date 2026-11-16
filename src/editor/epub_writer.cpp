@@ -27,6 +27,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFont>
+#include <QFontDatabase>
 #include <QImage>
 #include <QImageReader>
 #include <QRawFont>
@@ -357,9 +358,9 @@ QString EpubWriter::href(const QString& target) const {
     // From the document written now: the documents of the texts are in text/, the others
     // (the navigation document, the images, the styles) in the folder of the publication
     const QString path = target.section(QLatin1Char('#'), 0, 0);
-    const QString anchor = target.contains(QLatin1Char('#'))
-                               ? QLatin1Char('#') + target.section(QLatin1Char('#'), 1)
-                               : QString();
+    QString anchor = target.contains(QLatin1Char('#'))
+                         ? QLatin1Char('#') + target.section(QLatin1Char('#'), 1)
+                         : QString();
     if (path == m_file && !anchor.isEmpty()) {
         return anchor;
     }
@@ -843,7 +844,7 @@ QString EpubWriter::inlineOf(const ExportText& text, const QTextBlock& block, do
                                   shown + QStringLiteral("</span>");
                         break;
                     }
-                } else if (ownLink) {
+                } else if (ownLink && piece.reference) {
                     const QString target = m_captionFiles.value(piece.reference->target) +
                                            QLatin1Char('#') +
                                            xmlName(QStringLiteral("cap-"), piece.reference->target);
@@ -1318,7 +1319,7 @@ QString EpubWriter::identifier() const {
         }
         return QStringLiteral("urn:isbn:") + isbn;
     }
-    const QString own = m_book.epub.identifier.trimmed();
+    QString own = m_book.epub.identifier.trimmed();
     if (const QUuid uuid(own); !uuid.isNull()) {
         return QStringLiteral("urn:uuid:") + uuid.toString(QUuid::WithoutBraces);
     }
@@ -1376,6 +1377,12 @@ void EpubWriter::addFonts() {
         return;
     }
     const QString family = m_book.fontFamily.isEmpty() ? QFont().family() : m_book.fontFamily;
+    // A font of the system's own windows (".AppleSystemUIFont" of macOS) is not for books: its
+    // licence keeps it in the system, and its file names another family
+    if (QFontDatabase::isPrivateFamily(family)) {
+        m_fontNotEmbedded = true;
+        return;
+    }
     struct Variant {
         bool bold;
         bool italic;

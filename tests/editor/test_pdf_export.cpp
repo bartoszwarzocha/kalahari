@@ -104,6 +104,14 @@ QString pageText(const PdfDocument& document, int page) {
     return document.getAllText(page).text();
 }
 
+/// @p text without its spaces and line breaks: a reader of PDF puts them by the gaps between
+/// the letters, which differ with the fonts of the computer
+QString withoutSpaces(QString text) {
+    static const QRegularExpression spaces(QStringLiteral("\\s+"),
+                                           QRegularExpression::UseUnicodePropertiesOption);
+    return text.remove(spaces);
+}
+
 /// The entries of the table of contents @p contents one level under its entry @p parent (-1:
 /// the entries at the top), as their places in it
 std::vector<std::size_t> entriesUnder(const std::vector<PdfContentsEntry>& contents,
@@ -198,7 +206,8 @@ TEST_CASE("PDF: the pages of the page view, with bookmarks, links and comments",
         CHECK(pageText(document, 3).trimmed().isEmpty());
         // The first page of a text: its number, no running head
         const QString opening = pageText(document, 4);
-        CHECK(opening.contains(QStringLiteral("Rozdział 1. Studnia")));
+        INFO(opening.toStdString());
+        CHECK(withoutSpaces(opening).contains(QStringLiteral("Rozdział1.Studnia")));
         CHECK_FALSE(opening.contains(QStringLiteral("ANNA NOWAK")));
         CHECK(opening.trimmed().endsWith(QStringLiteral("5")));
         // A left page: the author above the text

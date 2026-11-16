@@ -101,7 +101,7 @@ constexpr int STATUS_ROLE = Qt::UserRole + 1;  ///< The status of a text of the 
 /// result of the export fits 1366x768 at 150%
 constexpr int LIST_ROWS = 5;
 /// The width of the list of the fonts, in letters of their names
-constexpr int FONT_NAME_LETTERS = 24;
+constexpr int FONT_NAME_LETTERS = 22;
 /// The width of the window in the letters of a text: the remarks in fewer lines
 constexpr int WIDTH_IN_LETTERS = 140;
 /// The widest the window starts, a wide font or not: with its frame it fits a screen of
