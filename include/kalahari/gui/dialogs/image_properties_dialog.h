@@ -210,6 +210,7 @@ private:
     QPushButton* m_changeButton = nullptr;
     QPushButton* m_saveButton = nullptr;
     QCheckBox* m_keepSizeAndCrop = nullptr;
+    QComboBox* m_wrap = nullptr;  ///< How the text flows around it (ImageWrap)
 
     // Size and Rotation
     QDoubleSpinBox* m_widthPercent = nullptr;

@@ -183,6 +183,13 @@ constexpr std::pair<const char*, editor::ImageFilter> IMAGE_FILTER_COMMANDS[] = 
     {"image.filterBlackWhite", editor::ImageFilter::BlackWhite},
     {"image.filterWash", editor::ImageFilter::Wash}};
 
+/// The commands of Image > Wrap Text and their ways of the text flowing around the image
+constexpr std::pair<const char*, editor::ImageWrap> IMAGE_WRAP_COMMANDS[] = {
+    {"image.wrapInline", editor::ImageWrap::Inline},
+    {"image.wrapSquareLeft", editor::ImageWrap::SquareLeft},
+    {"image.wrapSquareRight", editor::ImageWrap::SquareRight},
+    {"image.wrapTopBottom", editor::ImageWrap::TopBottom}};
+
 /// The selected image of a text, as it is
 std::optional<editor::ImageProperties> selectedImageOf(const editor::BookEditor& text) {
     const std::optional<int> position = text.selectedImage();
@@ -2440,19 +2447,40 @@ void MainWindow::addImageCommands() {
         const std::optional<int> image = text.selectedImage();
         return image && QFileInfo(text.imageFilePath(*image)).isFile();
     });
+    // The text flows only around an image alone in its paragraph (one around which it flows
+    // already may go back into the text)
+    std::vector<std::string> wrapCommands;
+    for (const auto& [id, wrap] : IMAGE_WRAP_COMMANDS) {
+        wrapCommands.emplace_back(id);
+    }
+    m_editCoordinator->addTextCommands(wrapCommands, [changeable](Text text) {
+        const std::optional<int> image = text.selectedImage();
+        return changeable(text) && image && text.canWrapImage(*image);
+    });
 
-    // The filter of the selected image
+    // The filter and the wrap of the selected image
     CommandRegistry& registry = *m_commands;  // commands() is the list of ids here
-    for (const auto& [id, filter] : IMAGE_FILTER_COMMANDS) {
+    using ImageTest = std::function<bool(const editor::ImageProperties&)>;
+    const auto checkWhen = [this, &registry](const char* id, ImageTest is) {
         if (Command* command = registry.getCommand(id)) {
-            command->isChecked = [this, wanted = filter]() {
+            command->isChecked = [this, is = std::move(is)]() {
                 const editor::BookEditor* text =
                     m_editCoordinator ? m_editCoordinator->textWithKeys() : nullptr;
                 const std::optional<editor::ImageProperties> image =
                     text != nullptr ? selectedImageOf(*text) : std::nullopt;
-                return image && image->filter == wanted;
+                return image && is(*image);
             };
         }
+    };
+    for (const auto& [id, filter] : IMAGE_FILTER_COMMANDS) {
+        checkWhen(id, [wanted = filter](const editor::ImageProperties& image) {
+            return image.filter == wanted;
+        });
+    }
+    for (const auto& [id, wrap] : IMAGE_WRAP_COMMANDS) {
+        checkWhen(id, [wanted = wrap](const editor::ImageProperties& image) {
+            return image.wrap == wanted;
+        });
     }
 
     // Why
@@ -2494,6 +2522,15 @@ void MainWindow::addImageCommands() {
                                       "next to it");
     });
     explain("image.saveAs", [missing](Text) { return missing; });
+    for (const auto& [id, wrap] : IMAGE_WRAP_COMMANDS) {
+        explain(id, [readOnly](Text text) {
+            //: Why Image > Wrap Text is greyed out. In Polish: Tekst opływa tylko obraz, który
+            //: jest sam w swoim akapicie, poza tabelą
+            return text.isReadOnly() ? readOnly(text)
+                                     : tr("The text flows only around an image alone in its "
+                                          "paragraph, outside a table");
+        });
+    }
 }
 
 void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) {
@@ -2524,6 +2561,18 @@ void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) 
         break;
     case ImageCommand::AltText:
         showPage(Page::DescriptionPage);
+        break;
+    case ImageCommand::WrapInline:
+        text.setImageWrap(*image, editor::ImageWrap::Inline);
+        break;
+    case ImageCommand::WrapSquareLeft:
+        text.setImageWrap(*image, editor::ImageWrap::SquareLeft);
+        break;
+    case ImageCommand::WrapSquareRight:
+        text.setImageWrap(*image, editor::ImageWrap::SquareRight);
+        break;
+    case ImageCommand::WrapTopBottom:
+        text.setImageWrap(*image, editor::ImageWrap::TopBottom);
         break;
     case ImageCommand::RotateRight:
         text.rotateImage(*image, 1);
@@ -2580,7 +2629,7 @@ void MainWindow::onImageCommand(editor::BookEditor& text, ImageCommand command) 
         }
         break;
     }
-    // A check of Image > Filter follows at once, as a menu shows it
+    // A check of Image > Filter and Wrap Text follows at once, as a menu shows it
     m_editCoordinator->updateStates();
 }
 

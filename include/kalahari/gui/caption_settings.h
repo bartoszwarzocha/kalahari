@@ -14,6 +14,10 @@
 #include <QString>
 #include <QStringList>
 
+#include <string>
+#include <utility>
+#include <vector>
+
 namespace kalahari::core {
 class ProjectManager;
 }
@@ -24,7 +28,9 @@ namespace kalahari::gui {
 // Setting keys
 // =============================================================================
 
-/// @brief How a new image is laid out: "inline", in a paragraph of its own (the only way yet)
+/// @brief How the text flows around a new image: "inline" (none, the image in a paragraph of
+///        its own), "left" or "right" (the image on that side, the text beside it), "topBottom"
+///        (the text above and below it)
 inline constexpr const char* IMAGE_LAYOUT_KEY = "editor.images.layout";
 /// @brief How a new image is aligned: "left", "center" or "right"
 inline constexpr const char* IMAGE_ALIGNMENT_KEY = "editor.images.alignment";
@@ -96,8 +102,17 @@ editor::ReferenceShows referenceShowsOf(const core::BookCaptions& captions);
 // New images
 // =============================================================================
 
-/// @brief How a new image goes into the text, from the settings: its alignment, its width, the
-///        label of its caption (none when the settings add none)
+/// @brief How a new image goes into the text, from the settings: its alignment, how the text
+///        flows around it, its width, the label of its caption (none when the settings add none)
 editor::BookEditor::NewImageOptions settingsNewImageOptions();
+
+/// @brief The ways the text flows around an image, in order, each with its name as the
+///        windows show it (Image Properties, Settings > Editor > Images)
+std::vector<std::pair<editor::ImageWrap, QString>> imageWrapChoices();
+
+/// @brief The value of IMAGE_LAYOUT_KEY of a wrap, and the wrap of a value (any other value:
+///        ImageWrap::Inline)
+std::string imageWrapSetting(editor::ImageWrap wrap);
+editor::ImageWrap imageWrapOfSetting(const std::string& value);
 
 }  // namespace kalahari::gui

@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The text flowing around an image** - 2026-11-16. An image alone in its paragraph can have
+  the text beside it, on its left or right, or above and below it: Image > Wrap Text, the same
+  submenu in the image's context menu, and Wrap text in Image Properties (In the Text, Image on
+  the Left, Text Beside It, Image on the Right, Text Beside It, Text Above and Below the Image).
+  Beside an image the lines of the next paragraphs are shorter by the image and a small room;
+  a table, a line or a break goes below the image. An image with the text above and below it
+  that does not fit at the end of a page goes to the top of the next page and the text after it
+  fills the page, so a tall image no longer leaves an empty end of a page; in the continuous
+  views it stays in the text. Settings > Editor > Images > New Image > Layout sets it for the
+  images inserted next. KML keeps it in the `wrap` attribute of `<img>`; DOCX gets
+  an image anchored to its paragraph with the text around it. An image in a line of text or in
+  a table stays in its line.
+
 - **The description of a source from the web by its ISBN or DOI** - 2026-11-15. An option,
   off at first (Settings > Materials > Sources > Descriptions from the web by ISBN and
   DOI), gives the card of a source the button From the Web by ISBN or DOI...: Look Up

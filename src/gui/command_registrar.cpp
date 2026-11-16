@@ -825,6 +825,15 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                image(ImageCommand::AddCaption));
     REG_CMD_CB("image.altText", QT_TRANSLATE_NOOP("CommandRegistrar", "A&lternative Text..."), "IMAGE/Alternative Text...", 30, true, 0,
                image(ImageCommand::AltText));
+    // How the text flows around an image alone in its paragraph (the one checked: MainWindow)
+    REG_CMD_CB("image.wrapInline", QT_TRANSLATE_NOOP("CommandRegistrar", "&In the Text"), "IMAGE/Wrap Text/In the Text", 35, true, 0,
+               image(ImageCommand::WrapInline));
+    REG_CMD_CB("image.wrapSquareLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Image on the &Left, Text Beside It"), "IMAGE/Wrap Text/Image on the Left, Text Beside It", 36, false, 0,
+               image(ImageCommand::WrapSquareLeft));
+    REG_CMD_CB("image.wrapSquareRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Image on the &Right, Text Beside It"), "IMAGE/Wrap Text/Image on the Right, Text Beside It", 37, false, 0,
+               image(ImageCommand::WrapSquareRight));
+    REG_CMD_CB("image.wrapTopBottom", QT_TRANSLATE_NOOP("CommandRegistrar", "Text &Above and Below the Image"), "IMAGE/Wrap Text/Text Above and Below the Image", 38, false, 0,
+               image(ImageCommand::WrapTopBottom));
     REG_CMD_CB("image.rotateRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Rotate &Right 90°"), "IMAGE/Rotate/Rotate Right 90°", 40, false, 0,
                image(ImageCommand::RotateRight));
     REG_CMD_CB("image.rotateLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Rotate &Left 90°"), "IMAGE/Rotate/Rotate Left 90°", 41, false, 0,
@@ -858,9 +867,11 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
                image(ImageCommand::Change));
     REG_CMD_CB("image.saveAs", QT_TRANSLATE_NOOP("CommandRegistrar", "Sa&ve as Image..."), "IMAGE/Save as Image...", 90, false, 0,
                image(ImageCommand::SaveAs));
-    // The filter of the selected image is checked (MainWindow)
+    // The filter and the wrap of the selected image are checked (MainWindow)
     for (const char* id : {"image.filterNone", "image.filterGrayscale", "image.filterSepia",
-                           "image.filterBlackWhite", "image.filterWash"}) {
+                           "image.filterBlackWhite", "image.filterWash", "image.wrapInline",
+                           "image.wrapSquareLeft", "image.wrapSquareRight",
+                           "image.wrapTopBottom"}) {
         if (Command* filter = registry.getCommand(id)) {
             filter->isChecked = []() { return false; };
         }

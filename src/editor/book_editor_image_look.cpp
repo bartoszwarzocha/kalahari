@@ -3,7 +3,8 @@
 
 /// @file book_editor_image_look.cpp
 /// @brief BookEditor: the commands of the Image menu that change the look of an image (turn,
-///        mirror, filter, the keys of its size) and cropping it in the text
+///        mirror, filter, the text flowing around it, the keys of its size) and cropping it
+///        in the text
 
 #include <kalahari/editor/book_editor.h>
 #include "book_editor_internal.h"
@@ -103,6 +104,23 @@ bool BookEditor::setImageFilter(int position, ImageFilter filter)
         return false;
     }
     image->filter = filter;
+    return setImageProperties(position, *image);
+}
+
+bool BookEditor::canWrapImage(int position) const
+{
+    return m_textBuffer && editor::imageAt(*m_textBuffer, position) &&
+           holdsImageAlone(m_textBuffer->findBlock(position));
+}
+
+bool BookEditor::setImageWrap(int position, ImageWrap wrap)
+{
+    std::optional<ImageProperties> image =
+        m_textBuffer ? editor::imageAt(*m_textBuffer, position) : std::nullopt;
+    if (!image || (wrap != ImageWrap::Inline && !canWrapImage(position))) {
+        return false;
+    }
+    image->wrap = wrap;
     return setImageProperties(position, *image);
 }
 

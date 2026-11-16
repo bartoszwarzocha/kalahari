@@ -1350,6 +1350,22 @@
         <source>S&amp;ettings...</source>
         <translation>Ustawi&amp;enia...</translation>
     </message>
+    <message>
+        <source>&amp;In the Text</source>
+        <translation>&amp;W tekście</translation>
+    </message>
+    <message>
+        <source>Image on the &amp;Left, Text Beside It</source>
+        <translation>Obraz z &amp;lewej, tekst obok</translation>
+    </message>
+    <message>
+        <source>Image on the &amp;Right, Text Beside It</source>
+        <translation>Obraz z &amp;prawej, tekst obok</translation>
+    </message>
+    <message>
+        <source>Text &amp;Above and Below the Image</source>
+        <translation>Tekst &amp;nad i pod obrazem</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -2623,6 +2639,11 @@ Uruchomić ponownie teraz?</translation>
         <source>&amp;Filter</source>
         <extracomment>In Polish: &amp;Filtr</extracomment>
         <translation>&amp;Filtr</translation>
+    </message>
+    <message>
+        <source>&amp;Wrap Text</source>
+        <extracomment>How the text flows around the selected image. In Polish: Opływanie t&amp;ekstem</extracomment>
+        <translation>Opływanie t&amp;ekstem</translation>
     </message>
 </context>
 <context>
@@ -4060,6 +4081,11 @@ Akty, które można łączyć w odcinki, z formatowaniem scenariuszowym. Do scen
         <source>Looking for suggestions...</source>
         <extracomment>In the submenu of the suggestions while the dictionary looks for them. In Polish: Szukam podpowiedzi…</extracomment>
         <translation>Szukam podpowiedzi…</translation>
+    </message>
+    <message>
+        <source>&amp;Wrap Text</source>
+        <extracomment>The context menu of an image, as the Image menu&apos;s submenus. In Polish: Opływanie t&amp;ekstem</extracomment>
+        <translation>Opływanie t&amp;ekstem</translation>
     </message>
 </context>
 <context>
@@ -7879,21 +7905,6 @@ Po zaznaczeniu kursor ma wybrany kolor.</translation>
         <translation>Nowy obraz</translation>
     </message>
     <message>
-        <source>In the text, in a paragraph of its own</source>
-        <extracomment>In Polish: W tekście, we własnym akapicie</extracomment>
-        <translation>W tekście, we własnym akapicie</translation>
-    </message>
-    <message>
-        <source>Square</source>
-        <extracomment>In Polish: Wokół ramki</extracomment>
-        <translation>Wokół ramki</translation>
-    </message>
-    <message>
-        <source>Top and bottom</source>
-        <extracomment>In Polish: Nad i pod</extracomment>
-        <translation>Nad i pod</translation>
-    </message>
-    <message>
         <source>&amp;Layout:</source>
         <extracomment>In Polish: Ukła&amp;d:</extracomment>
         <translation>Ukła&amp;d:</translation>
@@ -9618,6 +9629,11 @@ Czy zapisać go przed zamknięciem?</translation>
         <source>A plain text file keeps no notes</source>
         <extracomment>Why Insert &gt; Footnote and Endnote are greyed out in a .txt file. In Polish: Plik zwykłego tekstu nie przechowuje przypisów</extracomment>
         <translation>Plik zwykłego tekstu nie przechowuje przypisów</translation>
+    </message>
+    <message>
+        <source>The text flows only around an image alone in its paragraph, outside a table</source>
+        <extracomment>Why Image &gt; Wrap Text is greyed out. In Polish: Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą</extracomment>
+        <translation>Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą</translation>
     </message>
 </context>
 <context>
@@ -17113,6 +17129,16 @@ Harmonogram projektu:
         <extracomment>Beside the label of a caption. In Polish: numer nadaje program: %1</extracomment>
         <translation>numer nadaje program: %1</translation>
     </message>
+    <message>
+        <source>&amp;Wrap text:</source>
+        <extracomment>How the text flows around the image. In Polish: Opływanie t&amp;ekstem:</extracomment>
+        <translation>Opływanie t&amp;ekstem:</translation>
+    </message>
+    <message>
+        <source>The text flows only around an image alone in its paragraph, outside a table</source>
+        <extracomment>Why the wrap of an image is greyed out. In Polish: Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą</extracomment>
+        <translation>Tekst opływa tylko obraz, który jest sam w swoim akapicie, poza tabelą</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ImportArchiveDialog</name>
@@ -23014,6 +23040,26 @@ Words done of a challenge. In Polish: %1 z %2</extracomment>
         <source>Diagram</source>
         <extracomment>A label of captions. In Polish: Schemat</extracomment>
         <translation>Schemat</translation>
+    </message>
+    <message>
+        <source>In the text, in a paragraph of its own</source>
+        <extracomment>How the text flows around an image (Image Properties, Settings &gt; Editor &gt; Images): none. In Polish: W tekście, we własnym akapicie</extracomment>
+        <translation>W tekście, we własnym akapicie</translation>
+    </message>
+    <message>
+        <source>Image on the left, text beside it</source>
+        <extracomment>In Polish: Obraz z lewej, tekst obok</extracomment>
+        <translation>Obraz z lewej, tekst obok</translation>
+    </message>
+    <message>
+        <source>Image on the right, text beside it</source>
+        <extracomment>In Polish: Obraz z prawej, tekst obok</extracomment>
+        <translation>Obraz z prawej, tekst obok</translation>
+    </message>
+    <message>
+        <source>Text above and below the image</source>
+        <extracomment>In Polish: Tekst nad i pod obrazem</extracomment>
+        <translation>Tekst nad i pod obrazem</translation>
     </message>
 </context>
 <context>

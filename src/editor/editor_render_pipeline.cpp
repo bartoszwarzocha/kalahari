@@ -1195,12 +1195,22 @@ void EditorRenderPipeline::renderParagraphs(QPainter* painter, const QRect& clip
     size_t last = m_context.computed.lastVisibleParagraph;
     size_t count = m_textSource->paragraphCount();
 
+    const double scale = m_context.computed.viewScale;
     for (size_t i = first; i <= last && i < count; ++i) {
         double widgetY = paragraphWidgetY(i);
-        double height = m_textSource->paragraphHeight(i) * m_context.computed.viewScale;
+        double height = m_textSource->paragraphHeight(i) * scale;
 
-        // Check if paragraph intersects clip rect
-        QRectF paraRect(0, widgetY, m_context.viewportSize.width(), height);
+        // Check if paragraph intersects clip rect. The lines of an image the text flows
+        // around lie in its own box, which takes no room in the flow (on the next page when
+        // it does not fit in the rest of its own): the paragraph reaches as far as they do.
+        double top = widgetY;
+        if (const QTextLayout* layout = m_textSource->layout(i);
+            layout != nullptr && layout->lineCount() > 0) {
+            const QTextLine lastLine = layout->lineAt(layout->lineCount() - 1);
+            top += std::min(0.0, layout->lineAt(0).y() * scale);
+            height = std::max(widgetY + height, widgetY + lastLine.rect().bottom() * scale) - top;
+        }
+        QRectF paraRect(0, top, m_context.viewportSize.width(), height);
         if (paraRect.intersects(clipRect)) {
             // Finding the marks shapes the paragraph's glyphs, which drawing it then uses (a
             // paragraph laid out on demand keeps no glyphs once drawn)

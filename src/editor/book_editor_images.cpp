@@ -230,12 +230,15 @@ bool BookEditor::insertImage(const ImageProperties& image,
     cursor.mergeBlockFormat(aligned);
 
     // No formatting of its own: only the fragments of annotations and the link of its place;
-    // the width of the settings unless it has one
+    // the width and the wrap of the settings unless it has them
     const QTextCharFormat place = insertionFormat(cursor);
     ImageProperties shown = image;
     if (m_newImageOptions.widthPercent > 0 && shown.unit == ImageWidthUnit::Natural) {
         shown.unit = ImageWidthUnit::Percent;
         shown.width = m_newImageOptions.widthPercent;
+    }
+    if (shown.wrap == ImageWrap::Inline) {
+        shown.wrap = m_newImageOptions.wrap;
     }
     QTextCharFormat format = imageCharFormat(normalizedImage(shown));
     setAnnotations(format, replacing ? fragments : annotationsOf(place));
@@ -511,6 +514,7 @@ std::optional<ImagePropertiesData> BookEditor::imagePropertiesData(int position)
         propertiesData.shownWidth = (box - frame.left() - frame.right()) / layout->pixelsPerPoint();
     }
     // Its caption, and the number it has or would get
+    propertiesData.canWrap = holdsImageAlone(m_textBuffer->findBlock(position));
     propertiesData.caption = imageCaptionOf(position).value_or(ImageCaption{});
     if (!propertiesData.caption.label.isEmpty()) {
         propertiesData.captionNumber = captionNumberAt(position, propertiesData.caption.label);
@@ -877,7 +881,10 @@ void BookEditor::addImageActions(QMenu& menu, int position)
         };
         addActions(menu, commands.top);
         menu.addSeparator();
-        //: The context menu of an image, as the Image menu's submenus. In Polish: Ob&róć
+        //: The context menu of an image, as the Image menu's submenus. In Polish: Opływanie
+        //: t&ekstem
+        addSubmenu(tr("&Wrap Text"), commands.wrap);
+        //: In Polish: Ob&róć
         addSubmenu(tr("R&otate"), commands.rotate);
         //: In Polish: &Filtr
         addSubmenu(tr("&Filter"), commands.filter);

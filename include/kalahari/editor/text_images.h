@@ -16,6 +16,11 @@
 /// the text, or a length in centimeters; the height follows in proportion. An image wider
 /// than its line is shown as wide as the line, one higher than a page as high as a page.
 ///
+/// An image alone in its paragraph (outside a table) may have the text flow around it
+/// (ImageWrap): beside it on the left or the right of the text column, or above and below it
+/// (an image too high for the rest of its page then goes on to the next one, the text after
+/// it filling that rest). Its caption stays with it.
+///
 /// KML writes an image as <img src="images/map.png" alt="Map" width="60%"/> in its
 /// paragraph (docs/kml_format.md).
 
@@ -95,6 +100,10 @@ inline constexpr int IMAGE_BORDER_COLOR_PROPERTY = QTextFormat::UserProperty + 1
 inline constexpr int IMAGE_BORDER_PADDING_PROPERTY = QTextFormat::UserProperty + 193;
 inline constexpr int IMAGE_SHADOW_PROPERTY = QTextFormat::UserProperty + 194;
 
+/// @brief How the text flows around the image (int, ImageWrap); without it: the image is a
+///        part of its line
+inline constexpr int IMAGE_WRAP_PROPERTY = QTextFormat::UserProperty + 195;
+
 /// @brief The folder of a book's images, in its main folder
 inline constexpr const char* IMAGES_FOLDER = "images";
 
@@ -163,6 +172,16 @@ enum class ImageBorderLine {
     Double,
 };
 
+/// @brief How the text flows around an image alone in its paragraph (floatingImage())
+enum class ImageWrap {
+    Inline,       ///< None: the image is a part of its line, its paragraph takes the width
+    SquareLeft,   ///< On the left of the text column, the next paragraphs' lines beside it
+    SquareRight,  ///< On the right of the text column, the next paragraphs' lines beside it
+    TopBottom,    ///< Above and below the text: with page flow, an image that does not fit
+                  ///< in the rest of its page goes on to the next one, the text after it
+                  ///< filling that rest
+};
+
 /// @brief The parts of the file's picture an image does not show, in percent of the
 ///        picture's width (left, right) or height (top, bottom)
 struct ImageCrop {
@@ -204,6 +223,8 @@ struct ImageProperties {
     double borderPadding = 0.0;  ///< Points between the border and the picture
     bool shadow = false;
 
+    ImageWrap wrap = ImageWrap::Inline;  ///< How the text flows around it
+
     /// @brief Whether the picture is drawn as the file has it: not cropped, turned, mirrored
     ///        or recolored
     bool hasPlainPicture() const;
@@ -227,6 +248,8 @@ struct ImagePropertiesData {
     bool keepSizeAndCrop = true;  ///< With a new file: its width, height and crop stay
     ImageCaption caption;     ///< Its caption (ImageCaption::shown false: none)
     QString captionNumber;    ///< The number its caption has, or would get, in its label
+    bool canWrap = false;     ///< The text can flow around it: it is alone in its paragraph,
+                              ///< outside a table (holdsImageAlone())
 };
 
 /// @brief Whether the format is of an image's character
@@ -254,6 +277,15 @@ std::vector<int> imagePositions(const QTextDocument& document, int from, int to)
 
 /// @brief Whether a block holds an image
 bool hasImages(const QTextBlock& block);
+
+/// @brief Whether the text can flow around the image of a block: the block holds an image
+///        alone (its only character), outside a table
+bool holdsImageAlone(const QTextBlock& block);
+
+/// @brief The image of a block the text flows around: the block holds the image alone
+///        (holdsImageAlone()) and the image's wrap is not ImageWrap::Inline; std::nullopt:
+///        none (any other image is a part of its line)
+std::optional<ImageProperties> floatingImage(const QTextBlock& block);
 
 /// @brief The properties clamped to what they allow (a width of 0 or less: the file's own,
 ///        a rotation to a quarter turn 0 to 3, the crops leaving some of the picture)
@@ -293,6 +325,9 @@ QString pictureLookKey(const ImageProperties& image);
 
 /// @brief The name of a filter in KML ("grayscale"); empty for None
 QString imageFilterKml(ImageFilter filter);
+
+/// @brief The name of a wrap in KML ("left", "right", "top-bottom"); empty for Inline
+QString imageWrapKml(ImageWrap wrap);
 
 // =============================================================================
 // Files

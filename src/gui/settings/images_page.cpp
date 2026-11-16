@@ -64,19 +64,16 @@ EditorImagesPage::EditorImagesPage(QWidget* parent)
     // How a new image goes into the text
     //: Settings > Editor > Images. In Polish: Nowy obraz
     QFormLayout* image = addGroup(tr("New Image"));
+    // How the text flows around it (as Image > Wrap Text)
     auto* layout = new QComboBox();
     layout->setObjectName(QStringLiteral("imageLayout"));
-    //: In Polish: W tekście, we własnym akapicie
-    layout->addItem(tr("In the text, in a paragraph of its own"), QStringLiteral("inline"));
-    //: In Polish: Wokół ramki
-    layout->addItem(tr("Square"), QStringLiteral("square"));
-    //: In Polish: Nad i pod
-    layout->addItem(tr("Top and bottom"), QStringLiteral("topBottom"));
+    for (const auto& [wrap, text] : imageWrapChoices()) {
+        layout->addItem(text, QString::fromStdString(imageWrapSetting(wrap)));
+    }
     layout->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     layout->setMinimumContentsLength(MIN_CHOICE_CHARACTERS);
     //: In Polish: Ukła&d:
-    QLabel* layoutLabel = addField(image, tr("&Layout:"), layout, IMAGE_LAYOUT_KEY);
-    markNotUsedYet(layout, layoutLabel);
+    addField(image, tr("&Layout:"), layout, IMAGE_LAYOUT_KEY);
 
     auto* alignment = new QComboBox();
     alignment->setObjectName(QStringLiteral("imageAlignment"));
