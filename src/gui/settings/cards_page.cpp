@@ -8,10 +8,13 @@
 /// the color of a card beside its name, and the palette that new cards take their colors from,
 /// the color that the fewest cards of the book have first. A changed palette does not change
 /// the colors the cards have. The locations in the Navigator: in a tree, each under the one it
-/// is part of, or in alphabetical order.
+/// is part of, or in alphabetical order. What the Properties panel shows of the cards at the
+/// cursor of a text: the card whose name it is in and the cards linked with the paragraph, only
+/// those, or none.
 
 #include "kalahari/core/card_data.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/panels/cursor_card_box.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/settings/settings_pages.h"
@@ -113,6 +116,7 @@ CardsPage::CardsPage(QWidget* parent) : SettingsPage(parent) {
     bindCustom(std::move(palette));
 
     addNavigatorGroup();
+    addTextGroup();
 }
 
 void CardsPage::addNavigatorGroup() {
@@ -156,6 +160,76 @@ void CardsPage::addNavigatorGroup() {
                                                              value.get<std::string>());
     };
     bindCustom(std::move(tree));
+}
+
+void CardsPage::addTextGroup() {
+    //: Settings > Cards: the group of the cards in the texts of the book. In Polish: W tekście
+    QFormLayout* text = addGroup(tr("In the Text"));
+    //: The Properties panel shows the card whose name the cursor is in and the cards linked
+    //: with the paragraph. In Polish: Imiona z kart i akapity powiązane
+    m_atCursorNames = new QRadioButton(tr("Names of the cards and linked paragraphs"));
+    m_atCursorNames->setObjectName(QStringLiteral("cardsAtCursorNames"));
+    //: In Polish: Tylko akapity powiązane
+    m_atCursorParagraphs = new QRadioButton(tr("Only linked paragraphs"));
+    m_atCursorParagraphs->setObjectName(QStringLiteral("cardsAtCursorParagraphs"));
+    //: In Polish: Nie pokazuj
+    m_atCursorNone = new QRadioButton(tr("Do not show"));
+    m_atCursorNone->setObjectName(QStringLiteral("cardsAtCursorNone"));
+    auto* choices = new QWidget();
+    auto* choicesLayout = new QVBoxLayout(choices);
+    choicesLayout->setContentsMargins(0, 0, 0, 0);
+    choicesLayout->addWidget(m_atCursorNames);
+    //: In Polish: Gdy kursor jest w imieniu lub nazwie z karty, w dowolnej formie, panel
+    //: „Właściwości” pokazuje tę kartę pod danymi tekstu. Formy zna słownik książki.
+    alignWithText(addNote(choicesLayout,
+                          tr("When the cursor is in the name of a card, in any of its forms, "
+                             "the Properties panel shows the card under the data of the text. "
+                             "The book's dictionary knows the forms.")),
+                  m_atCursorNames);
+    choicesLayout->addWidget(m_atCursorParagraphs);
+    choicesLayout->addWidget(m_atCursorNone);
+    //: The label of the choice of what the Properties panel shows of the cards at the cursor.
+    //: In Polish: Karta przy kursorze:
+    auto* label = new QLabel(tr("Card at the cursor:"));
+    label->setBuddy(m_atCursorNames);
+    text->addRow(label, choices);
+
+    Binding atCursor;
+    atCursor.key = []() { return std::string(CursorCardBox::SETTING); };
+    atCursor.stored = []() {
+        return json(core::SettingsManager::getInstance().get<std::string>(
+            CursorCardBox::SETTING, CursorCardBox::NAMES));
+    };
+    atCursor.shown = [this]() {
+        for (const char* value :
+             {CursorCardBox::NAMES, CursorCardBox::PARAGRAPHS, CursorCardBox::NONE}) {
+            if (atCursorButton(value)->isChecked()) {
+                return json(value);
+            }
+        }
+        return json(CursorCardBox::NAMES);
+    };
+    atCursor.show = [this](const json& value) {
+        QRadioButton* button =
+            value.is_string() ? atCursorButton(value.get<std::string>().c_str()) : nullptr;
+        (button != nullptr ? button : m_atCursorNames)->setChecked(true);
+    };
+    atCursor.store = [](const json& value) {
+        core::SettingsManager::getInstance().set<std::string>(CursorCardBox::SETTING,
+                                                             value.get<std::string>());
+    };
+    bindCustom(std::move(atCursor));
+}
+
+QRadioButton* CardsPage::atCursorButton(const char* value) const {
+    const std::string choice(value);
+    if (choice == CursorCardBox::NAMES) {
+        return m_atCursorNames;
+    }
+    if (choice == CursorCardBox::PARAGRAPHS) {
+        return m_atCursorParagraphs;
+    }
+    return choice == CursorCardBox::NONE ? m_atCursorNone : nullptr;
 }
 
 }  // namespace kalahari::gui

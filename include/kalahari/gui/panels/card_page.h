@@ -136,6 +136,11 @@ public:
     /// @brief The initials of @p title: the first letters of its first two words, in capitals
     [[nodiscard]] static QString initialsOf(const QString& title);
 
+    /// @brief The kind of card @p element of @p book with the value of the field beside it
+    /// ("Character · main"), or the kind alone ("Character")
+    [[nodiscard]] static QString subtitleOf(const core::ProjectManager& book,
+                                            const core::ProjectElement& element);
+
     /// @brief The portrait, a button with its menu
     [[nodiscard]] QToolButton* portraitButton() const { return m_portrait; }
     /// @brief The name
@@ -336,12 +341,6 @@ private:
 
     /// @brief Give the card the data @p card, saying so when it cannot be saved
     void saveCard(const core::CardData& card);
-
-    /// @brief The kind and the value of the field beside it: "Character · main"
-    [[nodiscard]] QString subtitleOf(const core::ProjectElement& element) const;
-
-    /// @brief The name of the kind of @p element, in capitals: "Character"
-    [[nodiscard]] QString kindNameOf(const core::ProjectElement& element) const;
 
     /// @brief The names of the cards that the line of field @p fieldId, of the type "card",
     /// suggests: the cards of its kind, without this one

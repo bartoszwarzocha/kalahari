@@ -11,10 +11,9 @@
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_names.h"
-#include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/gui/kind_names.h"
-#include "kalahari/gui/panels/card_parts.h"
+#include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 
 #include <QLocale>
@@ -74,17 +73,6 @@ int choiceOrder(const core::CardField& field, const QString& value) {
         std::find_if(field.choices.cbegin(), field.choices.cend(),
                      [&value](const core::CardFieldChoice& choice) { return choice.id == value; });
     return static_cast<int>(std::distance(field.choices.cbegin(), found));
-}
-
-/// What a card shows under its name on its tile: its kind with the value of the field that
-/// stands beside it ("Character · main")
-QString subtitleOf(const core::ProjectManager& book, const core::ProjectElement& element) {
-    const QString kind =
-        core::fillWords(QStringLiteral("{Kind}"), {{QStringLiteral("kind"), wordsOf(book, element)}});
-    const QString value = card::subtitleValue(book, element);
-    //: The kind of a card on its tile in the list of cards, with the value of the field beside
-    //: it: "Character · main". In Polish: %1 · %2
-    return value.isEmpty() ? kind : CardList::tr("%1 · %2").arg(kind, value);
 }
 
 /// Put @p text in column @p columnId of @p row; an empty one stays out
@@ -149,7 +137,7 @@ MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& 
     putText(row, QString::fromLatin1(MaterialList::TITLE), element.title);
     setFieldTexts(book, row, element, *kind.kind);
     putText(row, QString::fromLatin1(MaterialList::DESCRIPTION), row.summary);
-    putText(row, QString::fromLatin1(MaterialList::DETAILS), subtitleOf(book, element));
+    putText(row, QString::fromLatin1(MaterialList::DETAILS), CardPage::subtitleOf(book, element));
     const QString chaptersId = QString::fromLatin1(CardList::CHAPTERS);
     const QString relationsId = QString::fromLatin1(CardList::RELATIONS);
     putText(row, chaptersId, QLocale().toString(chapters));

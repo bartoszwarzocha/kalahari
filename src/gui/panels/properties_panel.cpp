@@ -10,6 +10,7 @@
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/utils/reading_time.h"
 #include "kalahari/gui/panels/card_page.h"
+#include "kalahari/gui/panels/cursor_card_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -173,6 +174,7 @@ PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
     m_cursorDebounceTimer->setInterval(100);  // 100ms debounce
     connect(m_cursorDebounceTimer, &QTimer::timeout,
             this, &PropertiesPanel::updateEditorStatistics);
+    connect(m_cursorDebounceTimer, &QTimer::timeout, this, &PropertiesPanel::updateCursorCard);
 
     // The words of the book follow new rules of counting at once, wherever they are chosen,
     // and the group of the versions the versions turned on or off; the listener runs on the
@@ -183,6 +185,8 @@ PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
                 QMetaObject::invokeMethod(this, "updateWordCounts", Qt::QueuedConnection);
             } else if (key == core::ChapterVersions::ENABLED_SETTING) {
                 QMetaObject::invokeMethod(this, "refreshVersions", Qt::QueuedConnection);
+            } else if (key == CursorCardBox::SETTING) {
+                QMetaObject::invokeMethod(this, "updateCursorCard", Qt::QueuedConnection);
             }
         });
 
@@ -743,8 +747,18 @@ QWidget* PropertiesPanel::createEditorPage() {
     statsLayout->addRow(tr("Reading time:"), m_editorReadingTimeLabel);
 
     layout->addWidget(statsGroup);
-    // Under the counts of a text of the book, the group of its versions (placeVersionsGroup())
+    // Under the counts of a text of the book, the group of its versions (placeVersionsGroup()),
+    // then the card whose name the cursor is in
     m_editorPageLayout = layout;
+    m_cursorCard = new CursorCardBox(m_book, scrollContent);
+    layout->addWidget(m_cursorCard);
+    connect(m_cursorCard, &CursorCardBox::requestOpenCard, this,
+            &PropertiesPanel::requestOpenCard);
+    connect(m_cursorCard, &CursorCardBox::requestSettings, this,
+            &PropertiesPanel::requestCardSettings);
+    connect(m_cursorCard, &CursorCardBox::requestSelectCard, this,
+            &PropertiesPanel::requestSelectCard);
+    connect(m_cursorCard, &CursorCardBox::cardAdded, this, &PropertiesPanel::cardAdded);
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -898,6 +912,11 @@ void PropertiesPanel::connectSignals() {
     });
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
             &PropertiesPanel::refreshVersions);
+    // The names of the cards change in the book's dictionary
+    connect(&pm, &core::ProjectManager::bookDictionaryChanged, this, [this]() {
+        m_cardNamesRead = false;
+        updateCursorCard();
+    });
 }
 
 void PropertiesPanel::showProjectProperties() {
@@ -1034,6 +1053,7 @@ void PropertiesPanel::showEditorProperties() {
     m_currentSectionType.clear();
     m_currentPartId.clear();
     updateEditorStatistics();
+    updateCursorCard();
     // A text of the book in front has its versions under its counts, as the Navigator's
     // choice of it has them
     placeVersionsGroup(m_editorPageLayout);
@@ -1052,8 +1072,11 @@ void PropertiesPanel::placeVersionsGroup(QVBoxLayout* layout) {
             other->removeWidget(m_chapterVersionsGroup);
         }
     }
-    // Over the stretch at the bottom of the page
-    layout->insertWidget(layout->count() - 1, m_chapterVersionsGroup);
+    // Over the card at the cursor of the Editor page, else over the stretch at the bottom of
+    // the page
+    const int cursorCard = layout->indexOf(m_cursorCard);
+    layout->insertWidget(cursorCard >= 0 ? cursorCard : layout->count() - 1,
+                         m_chapterVersionsGroup);
 }
 
 void PropertiesPanel::setActiveEditor(EditorPanel* editorPanel) {
@@ -1164,6 +1187,7 @@ void PropertiesPanel::refresh() {
             break;
         case Page::Editor:
             updateEditorStatistics();
+            updateCursorCard();
             break;
         case Page::Material:
             // A material deleted from the book leaves the panel to the book
@@ -1248,12 +1272,15 @@ void PropertiesPanel::onProjectOpened(const QString& projectPath) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::onProjectOpened() - Path: {}", projectPath.toStdString());
 
+    m_cardNamesRead = false;
     showProjectProperties();
 }
 
 void PropertiesPanel::onProjectClosed() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::onProjectClosed()");
+    m_cardNamesRead = false;
+    m_cardNames = core::CardNameIndex();
 
     // A file opened outside the book stays open in the editor
     if (m_activeEditorPanel) {
@@ -2085,6 +2112,33 @@ void PropertiesPanel::updateEditorStatistics() {
 
     logger.debug("PropertiesPanel: Editor stats - {} words, {} chars, {} paragraphs",
                  counts.words, counts.characters, counts.paragraphs);
+}
+
+void PropertiesPanel::updateCursorCard() {
+    editor::BookEditor* bookEditor =
+        m_activeEditorPanel != nullptr ? m_activeEditorPanel->getBookEditor() : nullptr;
+    // Only in a text of the open book, whose cards they are
+    const bool ofBook =
+        bookEditor != nullptr && m_book.isProjectOpen() &&
+        m_book.findElement(m_activeEditorPanel->property("elementId").toString()) != nullptr;
+    QString cardId;
+    if (ofBook && CursorCardBox::cardsAtCursor() == CursorCardBox::Shown::NamesAndParagraphs) {
+        if (!m_cardNamesRead) {
+            m_cardNames = core::CardNameIndex(m_book.bookDictionary());
+            m_cardNamesRead = true;
+        }
+        const editor::CursorPosition cursor = bookEditor->cursorPosition();
+        cardId = m_cardNames
+                     .cardAt(bookEditor->paragraphPlainText(static_cast<size_t>(cursor.paragraph)),
+                             cursor.offset)
+                     .card;
+    }
+    if (m_book.findElement(cardId) == nullptr) {
+        cardId.clear();  // A card deleted from the book
+    }
+    if (cardId != m_cursorCard->cardId()) {
+        m_cursorCard->showCard(cardId);
+    }
 }
 
 } // namespace gui

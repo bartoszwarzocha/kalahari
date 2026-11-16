@@ -58,6 +58,7 @@ set(KALAHARI_CORE_SOURCES
     core/package_json.cpp       # The parts of booktype.json that its readers share
     core/card_package.cpp       # The fields of the kinds of cards and the relations of a package
     core/card_names.cpp         # The names of the cards in the book's dictionary
+    core/card_name_index.cpp    # Which card a name at a place of a text is
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/affix_expander.cpp     # The forms a Hunspell dictionary gives its words
@@ -368,6 +369,7 @@ set(KALAHARI_SOURCES
     gui/widgets/card_cell_delegate.cpp  # CardCellDelegate - the cells of a list of cards that F2 edits
     gui/widgets/palette_edit.cpp  # PaletteEdit - a palette of colors to change in the Settings
     gui/panels/card_page.cpp      # CardPage - the card of a character, a location or an item
+    gui/panels/cursor_card_box.cpp  # CursorCardBox - the card at the cursor in the Properties panel
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
     gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
@@ -585,6 +587,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_chapters_box.h  # CardChaptersBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/cursor_card_box.h  # CursorCardBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h  # The groups of the card of a source with Q_OBJECT

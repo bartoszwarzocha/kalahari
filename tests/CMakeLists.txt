@@ -29,6 +29,7 @@ set(TEST_SOURCES
     core/test_name_declension.cpp     # The forms of names in the grammatical cases
     core/test_book_dictionary.cpp     # The dictionary of a book: names, rules of spelling, words
     core/test_card_names.cpp          # The names of the cards in the book's dictionary
+    core/test_card_name_index.cpp     # Which card a name at a place of a text is
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
@@ -182,6 +183,7 @@ set(TEST_SOURCES
     gui/test_card_chapters.cpp                   # The chapters and the materials of a card, what is dropped on it
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
     gui/test_card_list.cpp                       # The lists of the cards: fields, F2, tiles, Navigator
+    gui/test_cursor_card.cpp          # The card at the cursor in the Properties panel
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
     gui/test_source_cards.cpp                    # The cards of the sources and quotes, the list Sources
@@ -253,6 +255,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/package_json.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_package.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_names.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_name_index.cpp
     ${CMAKE_SOURCE_DIR}/src/core/card_relations.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
@@ -530,6 +533,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/card_chapters_box.cpp        # The chapters a card is in
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/card_cell_delegate.cpp       # The cells of a list of cards that F2 edits
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_page.cpp                 # The card of a character, a location, an item
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/cursor_card_box.cpp           # The card at the cursor in Properties
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_panel.cpp                # The full card on a tab
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/palette_edit.cpp             # A palette of colors to change
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_parts.cpp                # The small parts of the cards
@@ -704,6 +708,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_chapters_box.h  # CardChaptersBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/cursor_card_box.h  # CursorCardBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h   # The groups of the card of a source with Q_OBJECT

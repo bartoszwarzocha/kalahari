@@ -15,6 +15,7 @@
 #pragma once
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/card_name_index.h"
 #include "kalahari/gui/material_source.h"
 
 #include <QWidget>
@@ -46,6 +47,7 @@ namespace kalahari {
 namespace gui {
 
 class CardPage;
+class CursorCardBox;
 class EditorPanel;
 class LinkedMaterialsBox;
 class MaterialPage;
@@ -96,6 +98,9 @@ public:
 
     /// @brief The short card of a character, a location or an item
     [[nodiscard]] CardPage* cardPage() const { return m_cardPage; }
+
+    /// @brief The card at the cursor of a text of the book, on the Editor page
+    [[nodiscard]] CursorCardBox* cursorCard() const { return m_cursorCard; }
 
     /// @brief The materials of the element of the chapter page, of the section and of the part
     LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
@@ -219,6 +224,10 @@ private slots:
 
     /// @brief The group of the versions again, when the page with it is shown
     void refreshVersions();
+
+    /// @brief The card whose name the cursor of the text in front is in, on the Editor page,
+    /// when Settings > Cards shows it (CursorCardBox::cardsAtCursor())
+    void updateCursorCard();
 
 protected:
     /// @brief Event filter for handling focus events
@@ -502,6 +511,9 @@ private:
     // The card of a material
     MaterialPage* m_materialPage = nullptr;
     CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
+    CursorCardBox* m_cursorCard = nullptr;  ///< The Editor page: the card at the cursor
+    core::CardNameIndex m_cardNames;  ///< The names of the cards of the book's dictionary
+    bool m_cardNamesRead = false;     ///< m_cardNames has the dictionary as it is
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
     QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"
@@ -524,7 +536,7 @@ private:
     QTimer* m_cursorDebounceTimer{nullptr};     ///< Debounce rapid cursor changes
 
     int m_settingsListener{0};  ///< SettingsManager::subscribe() id: the rules of counting,
-                                ///< versions turned on or off
+                                ///< versions turned on or off, the cards at the cursor
     core::ProjectManager& m_book;  ///< The book of its window
 };
 

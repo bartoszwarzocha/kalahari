@@ -496,14 +496,25 @@ public:
     /// @brief The locations in the Navigator: in alphabetical order
     [[nodiscard]] QRadioButton* listButton() const { return m_list; }
 
+    /// @brief Card at the Cursor: the choice of value @p value of CursorCardBox::SETTING
+    /// ("names", "paragraphs", "none"); nullptr for another value
+    [[nodiscard]] QRadioButton* atCursorButton(const char* value) const;
+
 private:
     /// @brief The group Navigator: the locations in a tree or in a list
     void addNavigatorGroup();
+
+    /// @brief The group In the Text: what the Properties panel shows of the cards at the
+    /// cursor
+    void addTextGroup();
 
     PaletteEdit* m_palette = nullptr;
     QPushButton* m_restorePalette = nullptr;
     QRadioButton* m_tree = nullptr;
     QRadioButton* m_list = nullptr;
+    QRadioButton* m_atCursorNames = nullptr;
+    QRadioButton* m_atCursorParagraphs = nullptr;
+    QRadioButton* m_atCursorNone = nullptr;
 };
 
 /// @brief Materials: how a picture, a page or a picture on the web and a PDF file open

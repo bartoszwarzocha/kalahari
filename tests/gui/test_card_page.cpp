@@ -28,6 +28,7 @@
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
+#include "kalahari/gui/panels/cursor_card_box.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -1304,6 +1305,8 @@ TEST_CASE("Card: the Navigator puts a location under the one it is part of, or a
     test::OpenNovel novel(QStringLiteral("Rain"));
     auto& pm = novel.pm;
     const ChangedSetting<std::string> trees(gui::NavigatorPanel::CARDS_TREE_SETTING, "tree");
+    const ChangedSetting<std::string> atCursor(gui::CursorCardBox::SETTING,
+                                               gui::CursorCardBox::NAMES);
     const QString parent = QStringLiteral("parent");
     const QString warsaw = addCard(pm, "location", QStringLiteral("Warsaw"));
     const QString zoliborz = addCard(pm, "location", QStringLiteral("Zoliborz"));
@@ -1449,6 +1452,8 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
                                        json::array({"#111111", "#222222"}));
     const ChangedSetting<bool> dots(core::CardColors::NAVIGATOR_DOT_SETTING, true);
     const ChangedSetting<std::string> trees(gui::NavigatorPanel::CARDS_TREE_SETTING, "tree");
+    const ChangedSetting<std::string> atCursor(gui::CursorCardBox::SETTING,
+                                               gui::CursorCardBox::NAMES);
 
     gui::CardsPage page;
     page.load();
@@ -1496,6 +1501,24 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
     page.treeButton()->setChecked(true);
     page.apply();
     CHECK(gui::NavigatorPanel::cardsInTrees());
+
+    // The cards at the cursor of a text: the names and the paragraphs, only the paragraphs, none
+    using gui::CursorCardBox;
+    for (const char* value : {CursorCardBox::NAMES, CursorCardBox::PARAGRAPHS,
+                              CursorCardBox::NONE}) {
+        REQUIRE(page.atCursorButton(value) != nullptr);
+    }
+    CHECK(page.atCursorButton("other") == nullptr);
+    CHECK(page.atCursorButton(CursorCardBox::NAMES)->isChecked());
+    for (const char* value : {CursorCardBox::PARAGRAPHS, CursorCardBox::NONE,
+                              CursorCardBox::NAMES}) {
+        page.atCursorButton(value)->setChecked(true);
+        CHECK(page.isChanged());
+        page.apply();
+        CHECK(core::SettingsManager::getInstance().get<std::string>(CursorCardBox::SETTING,
+                                                                    "") == value);
+        CHECK_FALSE(page.isChanged());
+    }
 }
 
 }  // namespace kalahari

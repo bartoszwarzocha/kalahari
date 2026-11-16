@@ -594,7 +594,7 @@ void CardPage::showHeader(const core::ProjectElement& element) {
     }
     m_shortEdit->setReadOnly(readOnly);
     if (m_full) {
-        m_subtitleLabel->setText(subtitleOf(element));
+        m_subtitleLabel->setText(subtitleOf(m_book, element));
         showKindIcon(element);
         showColor(element);
         m_colorButton->setEnabled(!readOnly);
@@ -1187,16 +1187,14 @@ void CardPage::saveCardText(const QString& fieldId, const QString& text) {
     }
 }
 
-QString CardPage::subtitleOf(const core::ProjectElement& element) const {
-    const QString value = card::subtitleValue(m_book, element);
+QString CardPage::subtitleOf(const core::ProjectManager& book,
+                            const core::ProjectElement& element) {
+    const QString kind = core::fillWords(QStringLiteral("{Kind}"),
+                                         {{QStringLiteral("kind"), wordsOf(book, element)}});
+    const QString value = card::subtitleValue(book, element);
     //: The kind of a card under its name, with the value of the field beside it: "Character ·
     //: main". In Polish: %1 · %2
-    return value.isEmpty() ? kindNameOf(element) : tr("%1 · %2").arg(kindNameOf(element), value);
-}
-
-QString CardPage::kindNameOf(const core::ProjectElement& element) const {
-    return core::fillWords(QStringLiteral("{Kind}"),
-                           {{QStringLiteral("kind"), wordsOf(m_book, element)}});
+    return value.isEmpty() ? kind : tr("%1 · %2").arg(kind, value);
 }
 
 QStringList CardPage::suggestedCards(const QString& fieldId) const {
