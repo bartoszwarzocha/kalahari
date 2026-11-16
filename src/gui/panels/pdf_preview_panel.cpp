@@ -225,6 +225,9 @@ PdfPreviewPanel::PdfPreviewPanel(core::ProjectManager& book, const QString& elem
 }
 
 PdfPreviewPanel::~PdfPreviewPanel() {
+    // QWidget's destructor deletes the document first of the children, and the search then
+    // forgets its hits: it must not tell this preview, which is no longer whole by then
+    disconnect(m_search, nullptr, this, nullptr);
     try {
         core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
         if (m_saveTimer->isActive()) {
