@@ -19,6 +19,7 @@
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/read_only_book.h"
+#include "kalahari/gui/utils/access_keys.h"
 
 #include <QApplication>
 #include <QKeySequence>
@@ -705,8 +706,8 @@ bool BookSearchCoordinator::confirm(int matches, int texts) const {
         //: / %n trafienia „%1” zostaną usunięte. / %n trafień „%1” zostanie usuniętych.
         question = tr("%n matches of \"%1\" will be deleted.", nullptr, matches).arg(found);
     }
-    // The keys of Undo, as the program has them now
-    QString undoKeys = QKeySequence(QKeySequence::Undo).toString(QKeySequence::NativeText);
+    // The keys of Undo, as the program has them now; without keys its name
+    QString undoKeys = QLocale().quoteString(withoutAccessKey(tr("&Undo")));
     if (const Command* undoCommand = m_commands.getCommand("edit.undo");
         undoCommand != nullptr && !undoCommand->shortcut.isEmpty()) {
         undoKeys = undoCommand->shortcut.toQKeySequence().toString(QKeySequence::NativeText);
@@ -885,7 +886,7 @@ bool BookSearchCoordinator::redo() {
         return false;
     }
     take(*m_redo, true);
-    //: In Polish: Zamiana w książce jest znów zrobiona.
+    //: In Polish: Zamiana w książce została ponowiona.
     say(tr("The replacement in the book is done again."));
     if (m_query) {
         search();

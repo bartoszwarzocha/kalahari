@@ -113,6 +113,9 @@ SpecialCharacterDialog::SpecialCharacterDialog(TargetOf targetOf, KeysOf keysOf,
     , m_autoCorrectOf(std::move(autoCorrectOf))
 {
     setHeading(tr("Special Character"),
+               //: In Polish: Enter wstawia znak w miejscu kursora. Przycisk „Dodaj do
+               //: ulubionych” albo gwiazdka sprawia, że znak jest zawsze pod ręką. Esc zamyka
+               //: okno.
                tr("Enter inserts the character at the cursor. Add to Favorites or the star keeps "
                   "a character at hand. Esc closes the window."));
     setHeadingIcon(QStringLiteral("insert.specialChar"));
@@ -147,6 +150,8 @@ SpecialCharacterDialog::SpecialCharacterDialog(TargetOf targetOf, KeysOf keysOf,
 
     // The buttons of the list view: in the grid view they are in the details
     m_listFavoriteButton = addSideButton(tr("Add to &Favorites"));
+    //: In Polish: Zachowaj znak w ulubionych: na początku okna i w menu Wstaw > Szybki wybór
+    //: znaku
     m_listFavoriteButton->setToolTip(tr("Keep the character among the favorites: first in the "
                                         "window and in Insert > Quick Character"));
     m_listShortcutButton = addSideButton(tr("Assign &Shortcut..."));
@@ -411,6 +416,8 @@ QWidget* SpecialCharacterDialog::createGridView()
     detailsLayout->addWidget(m_fontNote);
 
     m_favoriteButton = new QPushButton(tr("Add to &Favorites"), details);
+    //: In Polish: Zachowaj znak w ulubionych: na początku okna i w menu Wstaw > Szybki wybór
+    //: znaku
     m_favoriteButton->setToolTip(tr("Keep the character among the favorites: first in the "
                                     "window and in Insert > Quick Character"));
     m_shortcutButton = new QPushButton(tr("Assign &Shortcut..."), details);
@@ -510,6 +517,7 @@ QWidget* SpecialCharacterDialog::createListView()
     m_list->setHeaderLabels({tr("Character"), tr("Name"), tr("Code"),
                              tr("Shortcut, auto-correct"), FAVORITE_STAR});
     m_list->headerItem()->setToolTip(
+        //: In Polish: Ulubione: kliknij gwiazdkę przy znaku, żeby go dodać albo usunąć
         FAVORITE_COLUMN, tr("Favorites: click the star of a character to add it to them or to "
                             "take it away"));
     m_list->setRootIsDecorated(false);
@@ -881,6 +889,9 @@ QString SpecialCharacterDialog::emptyText(const QList<char32_t>& shown) const
             .arg(search);
     }
     if ((m_view == View::Grid ? m_gridGroup : m_listGroup) == FAVORITES) {
+        //: In Polish: Nie ma jeszcze ulubionych. Zaznacz znak w innej grupie i kliknij „Dodaj
+        //: do ulubionych” albo gwiazdkę obok niego na liście: ulubione są na początku tego okna
+        //: i w menu Wstaw > Szybki wybór znaku.
         return tr("No favorites yet. Select a character in another group and click Add to "
                   "Favorites, or the star beside it in the list: the favorites come first here "
                   "and in Insert > Quick Character.");

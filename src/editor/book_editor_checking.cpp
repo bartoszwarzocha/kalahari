@@ -6,7 +6,6 @@
 
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/core/book_dictionary.h>
-#include <kalahari/gui/utils/access_keys.h>
 #include <kalahari/editor/grammar_check_service.h>
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/spell_check_service.h>
@@ -1045,49 +1044,55 @@ std::tuple<QString, int, int> BookEditor::getMisspelledNoteWordAt(const NoteRang
 void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
                                     const std::function<void(const QString&)>& replace)
 {
-    // The words to put in its place, in a submenu at the top: the dictionary takes up to a few
-    // seconds for some words (names above all), so they are found on a thread of their own
-    // and the menu opens at once (user's test of 16.11). Until they are found the submenu says
-    // so; they come in it as soon as they are, also while it is open. In bold, as in other word
-    // processors; they get free access keys as the submenu shows (gui::giveFreeAccessKeys()).
-    //: The submenu of the words to put in place of a misspelled one. In Polish: &Podpowiedzi
-    QMenu* words = menu.addMenu(tr("&Suggestions"));
-    words->setToolTipsVisible(true);
-    // A name of the book written small: the name first, known at once
+    // The words to put in its place, first in the menu, in bold as in other word processors;
+    // they get free access keys as the menu shows (gui::WidgetKeys), the other items have
+    // their own. The dictionary takes up to a few seconds for some words (names above
+    // all), so they are found on a thread of their own and the menu opens at once (user's
+    // test of 16.11): until they are found its first item says so, and they take its place as
+    // soon as they are, also while the menu is open. A name of the book written small comes
+    // first, known at once.
     const QString name =
         m_bookDictionary != nullptr ? m_bookDictionary->nameSpelling(word) : QString();
     const QPointer<BookEditor> editor(this);
-    const auto fill = [editor, words, name, replace](QStringList suggestions) {
-        if (editor.isNull()) {
+    const QPointer<QMenu> shown(&menu);
+    const auto wordAction = [editor, replace](QMenu& target, const QString& suggestion) {
+        auto* action = new QAction(menuText(suggestion), &target);
+        QFont bold = action->font();
+        bold.setBold(true);
+        action->setFont(bold);
+        editor->disableWhileReadOnly(action);  // a read-only text keeps its words
+        connect(action, &QAction::triggered, editor.data(),
+                [replace, suggestion]() { replace(suggestion); });
+        return action;
+    };
+    if (!name.isEmpty()) {
+        menu.addAction(wordAction(menu, name));
+    }
+    //: The first item of the menu of a misspelled word while the dictionary looks for the words
+    //: to put in its place. In Polish: Szukam podpowiedzi…
+    QAction* waiting = menu.addAction(tr("Looking for suggestions..."));
+    waiting->setEnabled(false);
+    const auto fill = [editor, shown, waiting, name, wordAction](QStringList suggestions) {
+        if (editor.isNull() || shown.isNull()) {
             return;
         }
-        if (!name.isEmpty()) {
-            suggestions.removeAll(name);
-            suggestions.prepend(name);
-            while (suggestions.size() > MAX_SUGGESTIONS) {
-                suggestions.removeLast();
-            }
-        }
-        words->clear();
-        if (suggestions.isEmpty()) {
-            words->addAction(tr("(No suggestions)"))->setEnabled(false);
+        suggestions.removeAll(name);
+        const int room = MAX_SUGGESTIONS - (name.isEmpty() ? 0 : 1);
+        while (suggestions.size() > room) {
+            suggestions.removeLast();
         }
         for (const QString& suggestion : std::as_const(suggestions)) {
-            QAction* action = words->addAction(menuText(suggestion));
-            QFont bold = action->font();
-            bold.setBold(true);
-            action->setFont(bold);
-            editor->disableWhileReadOnly(action);  // a read-only text keeps its words
-            connect(action, &QAction::triggered, editor.data(),
-                    [replace, suggestion]() { replace(suggestion); });
+            shown->insertAction(waiting, wordAction(*shown, suggestion));
         }
-#ifndef Q_OS_MACOS
-        // Open while they came: their access keys now (the program gives them as a menu
-        // shows; macOS has none)
-        if (words->isVisible()) {
-            gui::giveFreeAccessKeys(words);
+        if (suggestions.isEmpty() && name.isEmpty()) {
+            waiting->setText(tr("(No suggestions)"));
+        } else {
+            shown->removeAction(waiting);
+            waiting->deleteLater();
         }
-#endif
+        // Open while they came, they get their access keys as they come in it (the program
+        // gives them as a menu shows and as an open menu gets items)
+        shown->setProperty(SUGGESTIONS_PENDING_PROPERTY, false);
     };
     if (m_spellCheckService == nullptr) {
         fill({});
@@ -1095,10 +1100,8 @@ void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
                    m_spellCheckService->knownSuggestions(word, MAX_SUGGESTIONS)) {
         fill(*known);
     } else {
-        //: In the submenu of the suggestions while the dictionary looks for them. In Polish:
-        //: Szukam podpowiedzi…
-        words->addAction(tr("Looking for suggestions..."))->setEnabled(false);
-        m_spellCheckService->findSuggestions(word, MAX_SUGGESTIONS, words, fill);
+        menu.setProperty(SUGGESTIONS_PENDING_PROPERTY, true);
+        m_spellCheckService->findSuggestions(word, MAX_SUGGESTIONS, &menu, fill);
     }
     menu.addSeparator();
 

@@ -37,9 +37,10 @@ class CommandRegistry;
 /// the X drops it. Going anywhere else in the program closes it, the text kept: a click
 /// outside it, or the keys going to another place of the program. It stays open while another
 /// application is in front, for a menu or a list over it (its own context menu) and for the
-/// editor's scroll bars (it goes along with its place; the keys stay in it). While it has the keys, the window's shortcuts do nothing
-/// (bold, the commands of the text... would change the text under it), except saving, closing
-/// and quitting; no key and no click goes through it to the editor.
+/// editor's scroll bars (it goes along with its place; the keys stay in it). While it has the
+/// keys, the window's shortcuts do nothing (bold, the commands of the text... would change the
+/// text under it), except saving, closing and quitting; no key and no click goes through it to
+/// the editor.
 ///
 /// The frames of the annotations (AnnotationFrame) and of the notes (NoteFrame) are made of it.
 class WritingFrame : public QFrame {

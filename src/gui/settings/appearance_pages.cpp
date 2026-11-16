@@ -86,6 +86,7 @@ ThemePage::ThemePage(QWidget* parent)
              "themes.", ".colors.infoHeader", [](const Theme& t) { return t.colors.infoHeader; });
     //: In Polish: Etykieta stylu własnego
     addColor(ui, tr("Own Style Tag"),
+             //: In Polish: Tło etykiety „własny” przy własnych stylach na listach stylów
              tr("Background of the tag \"own\" after the styles of your own in the lists of "
                 "styles"),
              "themes.", ".colors.styleTag", [](const Theme& t) { return t.colors.styleTag; });

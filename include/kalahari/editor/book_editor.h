@@ -2014,6 +2014,11 @@ public:
     /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
     bool isSpellCheckPending() const;
 
+    /// @brief A property of the context menu (bool) true while the words to put in place of a
+    ///        misspelled word are being found: they come first in the menu once they are, its
+    ///        first item saying so until then
+    static constexpr const char* SUGGESTIONS_PENDING_PROPERTY = "kalahariSuggestionsPending";
+
     /// @brief What goToNextIssue() did
     enum class IssueSearch {
         Found,     ///< The issue is selected
@@ -3708,8 +3713,9 @@ private:
                                                       HighlightKind* kind = nullptr) const;
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
-    ///        put in its place, Ignore All, Add to Book Dictionary (with the book's dictionary),
-    ///        Add to Your Words (All Books), Add Name... (with the book's dictionary)
+    ///        put in its place (as soon as they are found, SUGGESTIONS_PENDING_PROPERTY),
+    ///        Ignore All, Add to Book Dictionary (with the book's dictionary), Add to Your Words
+    ///        (All Books), Add Name... (with the book's dictionary)
     /// @param replace Puts a word chosen in its place
     void addSpellingActions(QMenu& menu, const QString& word,
                             const std::function<void(const QString&)>& replace);
