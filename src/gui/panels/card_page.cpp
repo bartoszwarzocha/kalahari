@@ -579,55 +579,67 @@ void CardPage::placeBody() {
     delete m_tabs;
     m_tabs = nullptr;
     if (tabs) {
-        auto* layout = new QVBoxLayout(m_body);
-        layout->setContentsMargins(0, 0, 0, 0);
-        m_tabs = new QTabWidget(m_body);
-        m_tabs->setObjectName(QStringLiteral("cardTabs"));
-        m_tabs->setDocumentMode(true);
-        const auto page = [this](const QList<QWidget*>& widgets, bool stretch) {
-            auto* each = new QWidget(m_tabs);
-            auto* pageLayout = new QVBoxLayout(each);
-            pageLayout->setContentsMargins(0, SPACING, 0, 0);
-            pageLayout->setSpacing(SPACING);
-            for (QWidget* widget : widgets) {
-                pageLayout->addWidget(widget, stretch ? 0 : 1);
-            }
-            if (stretch) {
-                pageLayout->addStretch(1);
-            }
-            return each;
-        };
-        //: A tab of the full card: the data, the declension and the own fields. In Polish:
-        //: &Ogólne
-        m_tabs->addTab(page({m_dataColumn}, false), tr("&General"));
-        //: A tab of the full card: the long description. In Polish: O&pis
-        m_tabs->addTab(page({m_descriptionGroup}, false), tr("&Description"));
-        //: A tab of the full card: the relations with the other cards. In Polish: &Relacje
-        m_tabs->addTab(page({m_relations}, true), tr("&Relations"));
-        //: A tab of the full card: the chapters the card is in and its materials. In Polish:
-        //: Rozdziały i &materiały
-        m_tabs->addTab(page({m_chapters, m_materials}, true), tr("Chapters and &Materials"));
-        layout->addWidget(m_tabs);
-        m_dataColumn->setMaximumWidth(QWIDGETSIZE_MAX);
+        placeOnTabs();
     } else {
-        // The data beside the long description, then the relations, the chapters and the
-        // materials of the card
-        auto* columns = new QHBoxLayout(m_body);
-        columns->setContentsMargins(0, 0, 0, 0);
-        columns->setSpacing(SPACING);
-        columns->addWidget(m_dataColumn);
-        auto* side = new QVBoxLayout();
-        side->setSpacing(SPACING);
-        side->addWidget(m_descriptionGroup, 1);
-        side->addWidget(m_relations);
-        side->addWidget(m_chapters);
-        side->addWidget(m_materials);
-        columns->addLayout(side, 1);
-        m_dataColumn->setMaximumWidth(DATA_MAXIMUM_WIDTH);
+        placeInColumns();
     }
     for (qsizetype i = 0; i < parts.size(); ++i) {
         parts.at(i)->setHidden(hidden.at(i));
     }
+}
+
+void CardPage::placeOnTabs() {
+    auto* layout = new QVBoxLayout(m_body);
+    layout->setContentsMargins(0, 0, 0, 0);
+    m_tabs = new QTabWidget(m_body);
+    m_tabs->setObjectName(QStringLiteral("cardTabs"));
+    m_tabs->setDocumentMode(true);
+    const auto page = [this](const QList<QWidget*>& widgets, bool stretch) {
+        auto* each = new QWidget(m_tabs);
+        auto* pageLayout = new QVBoxLayout(each);
+        pageLayout->setContentsMargins(0, SPACING, 0, 0);
+        pageLayout->setSpacing(SPACING);
+        for (QWidget* widget : widgets) {
+            pageLayout->addWidget(widget, stretch ? 0 : 1);
+        }
+        if (stretch) {
+            pageLayout->addStretch(1);
+        }
+        return each;
+    };
+    //: A tab of the full card: the data, the declension and the own fields. In Polish:
+    //: &Ogólne
+    const QString general = tr("&General");
+    //: A tab of the full card: the long description. In Polish: O&pis
+    const QString description = tr("&Description");
+    //: A tab of the full card: the relations with the other cards. In Polish: &Relacje
+    const QString relations = tr("&Relations");
+    //: A tab of the full card: the chapters the card is in and its materials. In Polish:
+    //: Rozdziały i &materiały
+    const QString chapters = tr("Chapters and &Materials");
+    m_tabs->addTab(page({m_dataColumn}, false), general);
+    m_tabs->addTab(page({m_descriptionGroup}, false), description);
+    m_tabs->addTab(page({m_relations}, true), relations);
+    m_tabs->addTab(page({m_chapters, m_materials}, true), chapters);
+    layout->addWidget(m_tabs);
+    m_dataColumn->setMaximumWidth(QWIDGETSIZE_MAX);
+}
+
+void CardPage::placeInColumns() {
+    // The data beside the long description, then the relations, the chapters and the
+    // materials of the card
+    auto* columns = new QHBoxLayout(m_body);
+    columns->setContentsMargins(0, 0, 0, 0);
+    columns->setSpacing(SPACING);
+    columns->addWidget(m_dataColumn);
+    auto* side = new QVBoxLayout();
+    side->setSpacing(SPACING);
+    side->addWidget(m_descriptionGroup, 1);
+    side->addWidget(m_relations);
+    side->addWidget(m_chapters);
+    side->addWidget(m_materials);
+    columns->addLayout(side, 1);
+    m_dataColumn->setMaximumWidth(DATA_MAXIMUM_WIDTH);
 }
 
 void CardPage::takeSetting(const std::string& key) {

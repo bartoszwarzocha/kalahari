@@ -68,7 +68,8 @@ OwnFieldsBox::OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix
     //: character): a name and a value each. In Polish: Własne pola
     : QGroupBox(tr("Own Fields"), parent),
       m_book(book),
-      m_table(new QTableWidget(0, 2, this)) {
+      m_table(new QTableWidget(0, 2, this)),
+      m_menu(new QMenu(this)) {
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(MARGIN, TOP_MARGIN, MARGIN, MARGIN);
     layout->setSpacing(4);
@@ -99,7 +100,6 @@ OwnFieldsBox::OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix
     m_table->setWordWrap(false);
     m_table->setContextMenuPolicy(Qt::CustomContextMenu);
     m_table->installEventFilter(this);
-    m_menu = new QMenu(this);
     m_menu->setObjectName(namePrefix + QStringLiteral("FieldsMenu"));
     connect(m_table, &QTableWidget::customContextMenuRequested, this, &OwnFieldsBox::showMenu);
     layout->addWidget(m_table);

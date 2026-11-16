@@ -7,7 +7,8 @@
 
 #include "../editor/editor_test_utils.h"
 #include "document_window.h"
-#include "test_support/changed_setting.h"
+#include "kalahari_tests/changed_setting.h"
+#include "kalahari_tests/polish.h"
 #include "test_support/window_parts.h"
 
 #include "kalahari/core/book_dictionary.h"
@@ -68,7 +69,6 @@
 #include <QTableWidget>
 #include <QTimer>
 #include <QToolButton>
-#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItemIterator>
 
@@ -338,32 +338,7 @@ private:
     std::vector<std::string> m_saved;
 };
 
-/// The program in Polish while it lives: the translation it ships and the names of the kinds
-class Polish {
-public:
-    Polish() : m_before(gui::programLanguage()) {
-        m_loaded = m_translator.load(QStringLiteral(":/i18n/kalahari_pl.qm"));
-        if (m_loaded) {
-            QCoreApplication::installTranslator(&m_translator);
-        }
-        gui::setProgramLanguage(QStringLiteral("pl"));
-    }
-    ~Polish() {
-        QCoreApplication::removeTranslator(&m_translator);
-        gui::setProgramLanguage(m_before);
-    }
-    Polish(const Polish&) = delete;
-    Polish& operator=(const Polish&) = delete;
-    Polish(Polish&&) = delete;
-    Polish& operator=(Polish&&) = delete;
-
-    [[nodiscard]] bool loaded() const { return m_loaded; }
-
-private:
-    QTranslator m_translator;
-    QString m_before;
-    bool m_loaded = false;
-};
+using test::Polish;
 
 /// Folder @p from copied to @p to, with what it has
 void copyFolder(const QString& from, const QString& to) {

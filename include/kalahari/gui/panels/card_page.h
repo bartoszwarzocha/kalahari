@@ -312,6 +312,14 @@ private:
     /// data beside the description, relations, chapters and materials, or on tabs
     void placeBody();
 
+    /// @brief The parts of the full card on the tabs General, Description, Relations,
+    /// Chapters and Materials, in m_body
+    void placeOnTabs();
+
+    /// @brief The data of the full card beside its description, the relations, the chapters
+    /// and the materials, in m_body
+    void placeInColumns();
+
     /// @brief A setting of the cards changed (@p key): the layout, the portrait
     void takeSetting(const std::string& key);
 

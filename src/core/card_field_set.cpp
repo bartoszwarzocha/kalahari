@@ -6,6 +6,7 @@
 
 #include "kalahari/core/card_field_set.h"
 
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/settings_manager.h"
 
 #include <QJsonArray>
@@ -13,6 +14,7 @@
 #include <QSet>
 
 #include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <algorithm>
 #include <optional>
@@ -41,7 +43,7 @@ const QStringList& knownKeys() {
 
 /// Where @p field is shown, from ["card", "properties", "list"]
 void readShown(const QJsonValue& value, BookCardField& field) {
-    for (const QJsonValue& place : value.toArray()) {
+    for (const auto& place : value.toArray()) {
         const QString name = place.toString();
         field.onCard = field.onCard || name == QLatin1String(ON_CARD);
         field.inProperties = field.inProperties || name == QLatin1String(IN_PROPERTIES);
@@ -67,7 +69,7 @@ QJsonArray shownOf(const BookCardField& field) {
 /// The values of a field of the writer with a list: [{"id": "c1", "name": "elf"}]
 QList<CardFieldChoice> readChoices(const QJsonValue& value) {
     QList<CardFieldChoice> choices;
-    for (const QJsonValue& each : value.toArray()) {
+    for (const auto& each : value.toArray()) {
         const QJsonObject object = each.toObject();
         const QString id = object.value(QStringLiteral("id")).toString();
         const QString name = object.value(QStringLiteral("name")).toString().trimmed();
@@ -298,7 +300,7 @@ CardFieldSets read(const QJsonValue& value) {
     const QJsonObject object = value.toObject();
     for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
         QList<BookCardField> fields;
-        for (const QJsonValue& entry : it.value().toArray()) {
+        for (const auto& entry : it.value().toArray()) {
             if (std::optional<BookCardField> field = readEntry(entry)) {
                 fields << *field;
             }

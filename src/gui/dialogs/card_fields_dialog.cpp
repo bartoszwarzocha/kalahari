@@ -9,8 +9,12 @@
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_field_set.h"
 #include "kalahari/core/kind_words.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/card_parts.h"
@@ -38,6 +42,8 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <array>
+#include <optional>
 #include <utility>
 
 namespace kalahari::gui::dialogs {
@@ -248,9 +254,18 @@ core::KindRef namedKind(const core::KindRef& kind, const QString& cardKind) {
 }
 
 /// Whether @p event is key @p key without modifiers
-bool isKey(const QEvent* event, int key) {
-    return event->type() == QEvent::KeyPress &&
-           card::isListKey(static_cast<const QKeyEvent*>(event), key);
+/// The keys of the table of the fields: Insert adds a field, Delete removes it, F2 changes it
+constexpr std::array<Qt::Key, 3> TABLE_KEYS{Qt::Key_Insert, Qt::Key_Delete, Qt::Key_F2};
+
+/// The key of TABLE_KEYS that @p event presses or would take from a shortcut, if any
+std::optional<Qt::Key> tableKeyOf(const QEvent* event) {
+    if (event->type() != QEvent::KeyPress && event->type() != QEvent::ShortcutOverride) {
+        return std::nullopt;
+    }
+    const auto* key = static_cast<const QKeyEvent*>(event);
+    const auto* const found = std::ranges::find_if(
+        TABLE_KEYS, [key](Qt::Key which) { return card::isListKey(key, which); });
+    return found != TABLE_KEYS.end() ? std::optional<Qt::Key>(*found) : std::nullopt;
 }
 
 }  // namespace
@@ -550,9 +565,13 @@ QString CardFieldsDialog::typeText(const core::BookCardField& field) const {
         for (const core::CardFieldChoice& choice : shown.choices) {
             names << choice.name.text(programLanguage());
         }
+        if (names.isEmpty()) {
+            //: A field with a list to choose from that has no values yet. In Polish: lista bez
+            //: wartości
+            return tr("list without values");
+        }
         //: A field with a list of values to choose from; %1 the values. In Polish: lista: %1
-        return names.isEmpty() ? tr("list without values")
-                               : tr("list: %1").arg(names.join(QStringLiteral(", ")));
+        return tr("list: %1").arg(names.join(QStringLiteral(", ")));
     }
     case core::CardFieldType::Card:
         //: A field that names a card; {kind} is its kind, such as "miejsce". In Polish:
@@ -669,19 +688,18 @@ void CardFieldsDialog::takeCheck(int row, int column) {
 }
 
 void CardFieldsDialog::updateButtons() {
-    const KindFields* kind = current();
-    const int index = currentIndex();
-    const core::BookCardField* field =
-        index >= 0 && kind != nullptr ? &kind->fields.at(index) : nullptr;
+    // A book open read-only: none
+    const KindFields* kind = m_readOnly ? nullptr : current();
+    const int index = kind != nullptr ? currentIndex() : -1;
+    const core::BookCardField* field = index >= 0 ? &kind->fields.at(index) : nullptr;
     const bool own = field != nullptr && field->isOwn();
-    const bool can = !m_readOnly && kind != nullptr;
-    m_addButton->setEnabled(can);
-    m_removeButton->setEnabled(can && own);
-    m_upButton->setEnabled(can && index > 0);
-    m_downButton->setEnabled(can && index >= 0 && index + 1 < kind->fields.size());
-    m_choicesButton->setEnabled(can && own && field->type == core::CardFieldType::Choice);
-    m_restoreButton->setEnabled(can && !core::card_fields::isKindSet(*kind->kind.kind,
-                                                                     kind->fields));
+    m_addButton->setEnabled(kind != nullptr);
+    m_removeButton->setEnabled(own);
+    m_upButton->setEnabled(index > 0);
+    m_downButton->setEnabled(index >= 0 && index + 1 < kind->fields.size());
+    m_choicesButton->setEnabled(own && field->type == core::CardFieldType::Choice);
+    m_restoreButton->setEnabled(kind != nullptr &&
+                                !core::card_fields::isKindSet(*kind->kind.kind, kind->fields));
 }
 
 QStringList CardFieldsDialog::namesBut(int exceptIndex) const {
@@ -831,29 +849,21 @@ void CardFieldsDialog::showMenu(const QPoint& pos) {
 
 bool CardFieldsDialog::eventFilter(QObject* watched, QEvent* event) {
     // The keys of the table, before the commands of the window
-    if (watched == m_table && event->type() == QEvent::ShortcutOverride) {
-        const auto* key = static_cast<const QKeyEvent*>(event);
-        if (card::isListKey(key, Qt::Key_Insert) || card::isListKey(key, Qt::Key_Delete) ||
-            card::isListKey(key, Qt::Key_F2)) {
-            event->accept();
-            return true;
-        }
+    const std::optional<Qt::Key> key =
+        watched == m_table ? tableKeyOf(event) : std::optional<Qt::Key>();
+    if (!key) {
+        return KalahariDialog::eventFilter(watched, event);
     }
-    if (watched == m_table && event->type() == QEvent::KeyPress) {
-        if (isKey(event, Qt::Key_Insert)) {
-            addField();
-            return true;
-        }
-        if (isKey(event, Qt::Key_Delete)) {
-            removeField();
-            return true;
-        }
-        if (isKey(event, Qt::Key_F2)) {
-            changeField();
-            return true;
-        }
+    if (event->type() == QEvent::ShortcutOverride) {
+        event->accept();
+    } else if (*key == Qt::Key_Insert) {
+        addField();
+    } else if (*key == Qt::Key_Delete) {
+        removeField();
+    } else {
+        changeField();
     }
-    return KalahariDialog::eventFilter(watched, event);
+    return true;
 }
 
 core::CardFieldSets defaultsOf(const QList<core::KindRef>& kinds, const core::CardFieldSets& sets,

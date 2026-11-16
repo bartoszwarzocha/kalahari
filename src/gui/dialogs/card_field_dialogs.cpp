@@ -6,7 +6,11 @@
 /// values of its list
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_field_set.h"
 #include "kalahari/gui/dialogs/card_fields_dialog.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/card_parts.h"
 
@@ -24,6 +28,7 @@
 
 #include <algorithm>
 #include <array>
+#include <utility>
 
 namespace kalahari::gui::dialogs {
 
@@ -74,13 +79,40 @@ bool canBecome(core::CardFieldType from, core::CardFieldType to) {
     return from == to || (isText(from) && isText(to));
 }
 
+/// The kinds of field into @p types: all for a new field (@p isNew), else those @p field can
+/// become; the kind of @p field chosen
+void fillTypes(QComboBox* types, const core::BookCardField& field, bool isNew) {
+    for (const core::CardFieldType type : TYPES) {
+        if (isNew || canBecome(field.type, type)) {
+            types->addItem(typeName(type), static_cast<int>(type));
+        }
+    }
+    types->setCurrentIndex(std::max(0, types->findData(static_cast<int>(field.type))));
+}
+
+/// The kinds of cards of the package of @p kind into @p kinds; the kind @p field names chosen,
+/// else @p kind
+void fillCardKinds(QComboBox* kinds, const core::KindRef& kind, const core::BookCardField& field) {
+    if (kind.package != nullptr) {
+        for (const core::ElementKind& each : kind.package->kinds) {
+            if (each.isCard()) {
+                kinds->addItem(
+                    core::ArtProvider::getInstance().getIcon(each.icon, core::IconContext::Menu),
+                    each.name.text(programLanguage()), each.id);
+            }
+        }
+    }
+    const QString chosen = field.cardKind.isEmpty() && kind ? kind.kind->id : field.cardKind;
+    kinds->setCurrentIndex(std::max(0, kinds->findData(chosen)));
+}
+
 }  // namespace
 
 CardFieldDialog::CardFieldDialog(const core::KindRef& kind, const core::BookCardField& field,
-                                 const QStringList& names, QWidget* parent)
+                                 QStringList names, QWidget* parent)
     : KalahariDialog(parent),
       m_field(field),
-      m_names(names),
+      m_names(std::move(names)),
       m_name(new QLineEdit(this)),
       m_type(new QComboBox(this)),
       m_cardKind(new QComboBox(this)),
@@ -88,44 +120,27 @@ CardFieldDialog::CardFieldDialog(const core::KindRef& kind, const core::BookCard
       m_note(new QLabel(this)) {
     setObjectName(QStringLiteral("cardFieldDialog"));
     const bool isNew = field.id.isEmpty();
-    setHeading(isNew
-                   //: The window that adds a field to the cards of a kind. In Polish: Nowe
-                   //: pole kart
-                   ? tr("New Card Field")
-                   //: The window that changes a field the writer added. In Polish: Pole kart
-                   : tr("Card Field"),
-               //: In Polish: Pole mają wszystkie karty tego rodzaju.
-               tr("All the cards of this kind have the field."));
+    //: The window that adds a field to the cards of a kind. In Polish: Nowe pole kart
+    const QString newTitle = tr("New Card Field");
+    //: The window that changes a field the writer added. In Polish: Pole kart
+    const QString changedTitle = tr("Card Field");
+    //: In Polish: To pole mają wszystkie karty tego rodzaju.
+    setHeading(isNew ? newTitle : changedTitle, tr("All the cards of this kind have the field."));
     setHeadingIcon(QStringLiteral("card.fields"));
     setCompactHeading(true);
-    setAcceptText(isNew
-                      //: In Polish: &Dodaj
-                      ? tr("&Add")
-                      //: In Polish: &Zapisz
-                      : tr("&Save"));
+    //: Adds the new field. In Polish: &Dodaj
+    const QString addText = tr("&Add");
+    //: In Polish: &Zapisz
+    const QString saveText = tr("&Save");
+    setAcceptText(isNew ? addText : saveText);
 
     m_name->setObjectName(QStringLiteral("cardFieldName"));
     m_name->setText(field.name);
     m_name->setMinimumWidth(fontMetrics().averageCharWidth() * NAME_CHARS);
     m_type->setObjectName(QStringLiteral("cardFieldType"));
-    for (const core::CardFieldType type : TYPES) {
-        if (isNew || canBecome(field.type, type)) {
-            m_type->addItem(typeName(type), static_cast<int>(type));
-        }
-    }
-    m_type->setCurrentIndex(std::max(0, m_type->findData(static_cast<int>(field.type))));
+    fillTypes(m_type, field, isNew);
     m_cardKind->setObjectName(QStringLiteral("cardFieldCardKind"));
-    if (kind.package != nullptr) {
-        for (const core::ElementKind& each : kind.package->kinds) {
-            if (each.isCard()) {
-                m_cardKind->addItem(
-                    core::ArtProvider::getInstance().getIcon(each.icon, core::IconContext::Menu),
-                    each.name.text(programLanguage()), each.id);
-            }
-        }
-    }
-    const QString cardKind = field.cardKind.isEmpty() && kind ? kind.kind->id : field.cardKind;
-    m_cardKind->setCurrentIndex(std::max(0, m_cardKind->findData(cardKind)));
+    fillCardKinds(m_cardKind, kind, field);
     m_inverse->setObjectName(QStringLiteral("cardFieldInverse"));
     m_inverse->setText(field.inverseName);
     //: The name of the relation the named card has, when it is empty. In Polish: tak samo

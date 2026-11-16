@@ -14,8 +14,8 @@
 #include <kalahari/core/card_field_set.h>
 #include <kalahari/core/card_relations.h>
 #include <kalahari/core/project_manager.h>
-#include <kalahari/core/settings_manager.h>
 
+#include "kalahari_tests/changed_setting.h"
 #include "test_support/window_parts.h"
 
 #include <QFile>
@@ -24,6 +24,8 @@
 #include <QJsonObject>
 #include <QObject>
 #include <QTemporaryDir>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include <algorithm>
 
@@ -38,7 +40,6 @@ using kalahari::core::KindRef;
 using kalahari::core::LocalizedText;
 using kalahari::core::OwnRelation;
 using kalahari::core::ProjectManager;
-using kalahari::core::SettingsManager;
 namespace card_fields = kalahari::core::card_fields;
 
 namespace {
@@ -134,25 +135,6 @@ BookCardField entryOf(const ProjectManager& pm, const KindRef& kind, const QStri
     REQUIRE(found != set.cend());
     return *found;
 }
-
-/// The fields that new books start with, put back as they were when the test ends
-class DefaultsKept {
-public:
-    DefaultsKept()
-        : m_before(SettingsManager::getInstance().get<nlohmann::json>(
-              card_fields::DEFAULTS_SETTING)) {}
-    ~DefaultsKept() {
-        SettingsManager::getInstance().set<nlohmann::json>(card_fields::DEFAULTS_SETTING,
-                                                           m_before);
-    }
-    DefaultsKept(const DefaultsKept&) = delete;
-    DefaultsKept& operator=(const DefaultsKept&) = delete;
-    DefaultsKept(DefaultsKept&&) = delete;
-    DefaultsKept& operator=(DefaultsKept&&) = delete;
-
-private:
-    nlohmann::json m_before;
-};
 
 /// The project file of the open book as JSON
 QJsonObject manifestOf(const ProjectManager& pm) {
@@ -264,7 +246,7 @@ TEST_CASE("Card fields: the fields of a kind in the order of the set, the others
     CHECK_FALSE(card_fields::isKindSet(*kind.kind, reordered));
 
     // An entry of a newer package is kept at the end
-    BookCardField future = kindField("future");
+    const BookCardField future = kindField("future");
     const QList<BookCardField> kept = card_fields::keepUnknown(*kind.kind, {future, set.at(1)},
                                                                ofPackage);
     REQUIRE(kept.size() == ofPackage.size() + 1);
@@ -582,7 +564,7 @@ TEST_CASE("Card fields: an own field of a card made a field of all the cards of 
 
 TEST_CASE("Card fields: a new book starts with the fields set in the Settings",
           "[core][cards][card_fields][project_manager]") {
-    const DefaultsKept kept;
+    const kalahari::test::KeptSetting<nlohmann::json> kept(card_fields::DEFAULTS_SETTING);
 
     BookCardField mentor = ownField("own-1", QStringLiteral("Mentor"), CardFieldType::Card);
     mentor.cardKind = QStringLiteral("character");

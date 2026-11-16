@@ -7,6 +7,8 @@
 /// an own field of a card made a field of all the cards of its kind
 
 #include "document_window.h"
+#include "kalahari_tests/changed_setting.h"
+#include "kalahari_tests/polish.h"
 #include "test_support/window_parts.h"
 
 #include "kalahari/core/book_project.h"
@@ -14,8 +16,8 @@
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_field_set.h"
 #include "kalahari/core/project_manager.h"
-#include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/dialogs/card_fields_dialog.h"
+#include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/widgets/own_fields_box.h"
@@ -39,8 +41,11 @@
 #include <QTimer>
 #include <QToolButton>
 
+#include <nlohmann/json_fwd.hpp>
+
+#include <algorithm>
 #include <functional>
-#include <utility>
+#include <optional>
 
 namespace kalahari {
 
@@ -51,7 +56,7 @@ using gui::dialogs::CardFieldDialog;
 using gui::dialogs::CardFieldsDialog;
 
 /// The kind of the cards of the characters of the Base
-const QString CHARACTER = QStringLiteral("kalahari.base:character");
+constexpr QLatin1String CHARACTER("kalahari.base:character");
 
 /// A new card @p title of kind @p kindId of the Base in the Workshop
 QString addCard(core::ProjectManager& pm, const char* kindId, const QString& title) {
@@ -138,32 +143,13 @@ void press(QWidget* widget, int key) {
     QCoreApplication::sendEvent(widget, &down);
 }
 
-/// The fields new books start with, put back as they were when the test ends
-class DefaultsKept {
-public:
-    DefaultsKept()
-        : m_before(core::SettingsManager::getInstance().get<nlohmann::json>(
-              core::card_fields::DEFAULTS_SETTING)) {}
-    ~DefaultsKept() {
-        core::SettingsManager::getInstance().set<nlohmann::json>(
-            core::card_fields::DEFAULTS_SETTING, m_before);
-    }
-    DefaultsKept(const DefaultsKept&) = delete;
-    DefaultsKept& operator=(const DefaultsKept&) = delete;
-    DefaultsKept(DefaultsKept&&) = delete;
-    DefaultsKept& operator=(DefaultsKept&&) = delete;
-
-private:
-    nlohmann::json m_before;
-};
-
 }  // namespace
 
 TEST_CASE("Card fields window: the fields of a kind, in the order of the card, where each is "
           "shown",
           "[gui][cards][card_fields]") {
     gui::registerAllIcons();
-    test::OpenNovel novel(QStringLiteral("Fields"));
+    const test::OpenNovel novel(QStringLiteral("Fields"));
     auto& pm = novel.pm;
     CardFieldsDialog dialog(pm, CHARACTER);
     const QTableWidget* table = dialog.fieldTable();
@@ -251,7 +237,7 @@ TEST_CASE("Card fields window: the fields of a kind, in the order of the card, w
 TEST_CASE("Card fields window: a field of the writer added, changed and taken out",
           "[gui][cards][card_fields]") {
     gui::registerAllIcons();
-    test::OpenNovel novel(QStringLiteral("Fields"));
+    const test::OpenNovel novel(QStringLiteral("Fields"));
     auto& pm = novel.pm;
     CardFieldsDialog dialog(pm, CHARACTER);
     const QTableWidget* table = dialog.fieldTable();
@@ -372,8 +358,8 @@ TEST_CASE("Card fields window: the values of a list", "[gui][cards][card_fields]
 TEST_CASE("Card fields window: saved in the book, and as the fields of new books",
           "[gui][cards][card_fields]") {
     gui::registerAllIcons();
-    const DefaultsKept kept;
-    test::OpenNovel novel(QStringLiteral("Fields"));
+    const test::KeptSetting<nlohmann::json> kept(core::card_fields::DEFAULTS_SETTING);
+    const test::OpenNovel novel(QStringLiteral("Fields"));
     auto& pm = novel.pm;
     const core::KindRef character = baseKind(pm, "character");
     const core::KindRef item = baseKind(pm, "item");
@@ -426,34 +412,54 @@ TEST_CASE("Card fields window: saved in the book, and as the fields of new books
     CHECK(changed->keys() == QStringList{QStringLiteral("kalahari.base:item")});
 }
 
-TEST_CASE("Card fields window: fits a small screen", "[gui][cards][card_fields]") {
-    gui::registerAllIcons();
-    test::OpenNovel novel(QStringLiteral("Fields"));
-    // 1366x768 at 150%: 911 pixels wide and 460 high (a Mac's larger controls need a few more)
+namespace {
+
+/// Whether the windows of the fields of the cards fit 1366x768 at 150%: 911 pixels wide and 460
+/// high (a Mac's larger controls need a few more)
+void checkFieldWindowsFit(const core::ProjectManager& pm, const char* language) {
 #ifdef Q_OS_MACOS
     constexpr int MAX_HEIGHT = 480;
 #else
     constexpr int MAX_HEIGHT = 460;
 #endif
-    const CardFieldsDialog dialog(novel.pm, CHARACTER);
+    INFO("In " << language);
+    const CardFieldsDialog dialog(pm, CHARACTER);
     INFO("Card Fields " << dialog.sizeHint().width() << "x" << dialog.sizeHint().height());
     CHECK(dialog.sizeHint().width() <= 911);
     CHECK(dialog.sizeHint().height() <= MAX_HEIGHT);
+    const CardFieldsDialog defaults(core::CardFieldSets{});
+    INFO("Default Fields " << defaults.sizeHint().width() << "x"
+                           << defaults.sizeHint().height());
+    CHECK(defaults.sizeHint().width() <= 911);
+    CHECK(defaults.sizeHint().height() <= MAX_HEIGHT);
     core::BookCardField field;
     field.type = core::CardFieldType::Card;
-    const CardFieldDialog one(baseKind(novel.pm, "character"), field, {});
+    const CardFieldDialog one(baseKind(pm, "character"), field, {});
     INFO("Card Field " << one.sizeHint().width() << "x" << one.sizeHint().height());
     CHECK(one.sizeHint().width() <= 911);
     CHECK(one.sizeHint().height() <= MAX_HEIGHT);
     const CardChoicesDialog values(QStringLiteral("Race"), {});
     INFO("List Values " << values.sizeHint().width() << "x" << values.sizeHint().height());
+    CHECK(values.sizeHint().width() <= 911);
     CHECK(values.sizeHint().height() <= MAX_HEIGHT);
+}
+
+}  // namespace
+
+TEST_CASE("Card fields window: fits a small screen, in English and in Polish",
+          "[gui][cards][card_fields]") {
+    gui::registerAllIcons();
+    const test::OpenNovel novel(QStringLiteral("Fields"));
+    checkFieldWindowsFit(novel.pm, "English");
+    const test::Polish polish;
+    REQUIRE(polish.loaded());
+    checkFieldWindowsFit(novel.pm, "Polish");
 }
 
 TEST_CASE("Card fields: Fields... of the full card, and an own field made a field of the kind",
           "[gui][cards][card_fields]") {
     gui::registerAllIcons();
-    test::OpenNovel novel(QStringLiteral("Fields"));
+    const test::OpenNovel novel(QStringLiteral("Fields"));
     auto& pm = novel.pm;
     const QString anna = addCard(pm, "character", QStringLiteral("Anna"));
     const QString jan = addCard(pm, "character", QStringLiteral("Jan"));

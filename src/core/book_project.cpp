@@ -6,6 +6,7 @@
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/card_field_set.h>
 #include <kalahari/core/logger.h>
 #include <kalahari/core/source_description.h>
 #include <QFile>

@@ -11,6 +11,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The fields of the cards, and Settings > Cards** - 2026-11-16. Fields... on the bar of a full
+  card opens the window Card Fields of its kind (a list of the kinds above the table chooses
+  another): the fields in the order of the card, Name and In Short first and always there, with
+  the kind of each field and three boxes, On the Card, In Properties and In the List (Space
+  ticks the box of the cell); a hidden field keeps its values. Add Field... (Insert) adds a text,
+  a longer text, a list to choose from (its values in List Values..., in the order of the list)
+  or a card of a kind, which names the relation it keeps with the card it names and the other
+  way; F2 changes a field the writer added, Delete removes it (the cards keep its values, and a
+  value gone from a list stays as text), Move Up and Move Down change the order, and Restore
+  Type Fields goes back to the fields of the book type. The book keeps its fields
+  (`workshop.cardFields` of the book file), so each book can have its own; "Save as defaults for
+  new books" makes them the fields new books start with, which Settings > Cards > Card Fields
+  changes too (Default Fields of New Books...). The context menu of an own field of a card adds
+  it to all the cards of its kind, which take the values of their own fields of that name.
+  Settings > Cards also chooses the layout of the full card (two columns, or the tabs General,
+  Description, Relations, Chapters and Materials under the header, chosen with Alt and their
+  letters) and the portraits: squares or circles, and for a card without a picture its
+  initials on its color or the icon of its kind; the cards, their lists and the card at the
+  cursor change at once.
 - **Cards in the text of the book** - 2026-11-16. Book > Link Paragraph with Card...
   (Alt+Shift+K; macOS: Cmd+Option+Shift+K) opens the window of the paragraph at the cursor: the
   chapter, the number and the first words of the paragraph, the cards in the order of their

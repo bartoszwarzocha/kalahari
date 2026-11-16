@@ -22,7 +22,6 @@
 
 #include <algorithm>
 #include <functional>
-#include <iterator>
 #include <map>
 #include <optional>
 #include <utility>
@@ -31,12 +30,17 @@ namespace kalahari::core {
 
 namespace {
 
-/// Each element of @p elements and of the groups inside them, with @p visit
+/// Each element of @p elements and of the groups inside them, with @p visit (which changes the
+/// elements, not the lists of them)
 void forEachElement(QList<ProjectElement>& elements,
                     const std::function<void(ProjectElement&)>& visit) {
-    for (ProjectElement& element : elements) {
-        visit(element);
-        forEachElement(element.elements, visit);
+    QList<QList<ProjectElement>*> lists{&elements};
+    while (!lists.isEmpty()) {
+        QList<ProjectElement>* list = lists.takeLast();
+        for (ProjectElement& element : *list) {
+            visit(element);
+            lists.append(&element.elements);
+        }
     }
 }
 
@@ -210,6 +214,58 @@ QStringList takeOwnFields(BookProject& project, const KindReference& kind, const
     return changed;
 }
 
+/// The set the book keeps for @p kind when @p fields are to be its fields, with the entries of
+/// a newer package in @p before: none for the fields of the package, unless it has such entries
+QList<BookCardField> setToKeep(const ElementKind& kind, const QList<BookCardField>& before,
+                               const QList<BookCardField>& fields) {
+    const bool ofPackage = card_fields::isKindSet(kind, fields);
+    QList<BookCardField> set = card_fields::keepUnknown(
+        kind, before, ofPackage ? card_fields::ofKind(kind) : card_fields::complete(kind, fields));
+    if (ofPackage && set.size() == kind.fields.size()) {
+        set.clear();
+    }
+    return set;
+}
+
+/// @p set made the fields of the cards of kind @p kind (of package @p packageId) of
+/// @p project, the own fields of the type card with their relations
+void putCardFields(BookProject& project, const QString& kind, const QString& packageId,
+                   QList<BookCardField>& set) {
+    for (BookCardField& field : set) {
+        if (field.isOwn() && field.type == CardFieldType::Card) {
+            giveRelation(project, kind, packageId, field);
+        }
+    }
+    if (set.isEmpty()) {
+        project.workshop.cardFields.remove(kind);
+    } else {
+        project.workshop.cardFields.insert(kind, set);
+    }
+}
+
+/// The field of @p set of the cards of @p kind that takes the own fields like @p own, shown on
+/// the card: the text field of its name, else a new one (its id not one of @p taken); its id
+QString fieldTaking(QList<BookCardField>& set, const ElementKind& kind, const ElementField& own,
+                    const QStringList& taken) {
+    const QString name = own.name.trimmed();
+    const auto named =
+        std::find_if(set.begin(), set.end(), [&kind, &name](const BookCardField& field) {
+            return isTextFieldNamed(kind, field, name);
+        });
+    if (named != set.end()) {
+        named->onCard = true;  // Shown on the card, with the values it takes
+        return named->id;
+    }
+    BookCardField field;
+    field.id = card_fields::newOwnId(set, taken);
+    field.name = name;
+    field.type = own.value.contains(QLatin1Char('\n')) ? CardFieldType::LongText
+                                                        : CardFieldType::Text;
+    field.onCard = true;
+    set << field;
+    return field.id;
+}
+
 }  // namespace
 
 const QList<CardField>& ProjectManager::cardFields(const KindRef& kind) const {
@@ -273,28 +329,12 @@ bool ProjectManager::setCardFields(const KindRef& kind, const QList<BookCardFiel
     }
     const QString reference = kind.reference();
     const QList<BookCardField> before = m_project->workshop.cardFields.value(reference);
-    // The fields of the package need no set, unless the book keeps fields of a newer one
-    const bool ofPackage = card_fields::isKindSet(*kind.kind, fields);
-    QList<BookCardField> set = card_fields::keepUnknown(
-        *kind.kind, before,
-        ofPackage ? card_fields::ofKind(*kind.kind) : card_fields::complete(*kind.kind, fields));
-    if (ofPackage && set.size() == kind.kind->fields.size()) {
-        set.clear();
-    }
+    QList<BookCardField> set = setToKeep(*kind.kind, before, fields);
     const auto gone = choicesGone(before, set);
     const std::optional<KindReference> cardKind = KindReference::parse(reference);
     QStringList changed;
     const bool saved = changeProject("setCardFields", [&](BookProject& project) {
-        for (BookCardField& field : set) {
-            if (field.isOwn() && field.type == CardFieldType::Card) {
-                giveRelation(project, reference, kind.package->id, field);
-            }
-        }
-        if (set.isEmpty()) {
-            project.workshop.cardFields.remove(reference);
-        } else {
-            project.workshop.cardFields.insert(reference, set);
-        }
+        putCardFields(project, reference, kind.package->id, set);
         if (cardKind) {
             changed = nameChoicesGone(project, *cardKind, gone);
         }
@@ -316,32 +356,13 @@ QString ProjectManager::addFieldToKind(const QString& cardId, int index) {
     if (!kind || !kind.kind->isCard() || index < 0 || index >= card->fields.size()) {
         return {};
     }
-    const QString name = card->fields.at(index).name.trimmed();
+    const ElementField& own = card->fields.at(index);
+    const QString name = own.name.trimmed();
     if (name.isEmpty()) {
         return {};
     }
     QList<BookCardField> set = cardFieldSet(kind);
-    const auto named = std::find_if(set.cbegin(), set.cend(),
-                                    [&kind, &name](const BookCardField& field) {
-                                        return isTextFieldNamed(*kind.kind, field, name);
-                                    });
-    QString fieldId;
-    if (named != set.cend()) {
-        // Shown on the card, with the values it takes
-        BookCardField& taking = set[std::distance(set.cbegin(), named)];
-        taking.onCard = true;
-        fieldId = taking.id;
-    } else {
-        BookCardField field;
-        field.id = card_fields::newOwnId(set, valueIds(*m_project, card->kind));
-        field.name = name;
-        field.type = card->fields.at(index).value.contains(QLatin1Char('\n'))
-                         ? CardFieldType::LongText
-                         : CardFieldType::Text;
-        field.onCard = true;
-        set << field;
-        fieldId = field.id;
-    }
+    QString fieldId = fieldTaking(set, *kind.kind, own, valueIds(*m_project, card->kind));
     QStringList changed;
     const QString reference = kind.reference();
     const KindReference cardKind = card->kind;
@@ -363,14 +384,15 @@ void ProjectManager::giveDefaultCardFields(BookProject& project) {
     const CardFieldSets defaults = card_fields::defaults();
     for (auto it = defaults.cbegin(); it != defaults.cend(); ++it) {
         const std::optional<KindReference> kind = KindReference::parse(it.key());
-        if (!kind || kind->packageId.isEmpty()) {
+        const QString packageId = kind ? kind->packageId : QString();
+        if (packageId.isEmpty()) {
             continue;
         }
         QList<BookCardField> set = it.value();
         for (BookCardField& field : set) {
             if (field.isOwn() && field.type == CardFieldType::Card) {
                 field.relation.clear();
-                giveRelation(project, it.key(), kind->packageId, field);
+                giveRelation(project, it.key(), packageId, field);
             }
         }
         project.workshop.cardFields.insert(it.key(), set);

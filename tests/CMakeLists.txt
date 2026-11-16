@@ -803,6 +803,7 @@ target_include_directories(kalahari-tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}  # test_support/
+    ${CMAKE_CURRENT_SOURCE_DIR}/include  # kalahari_tests/: the helpers of the tests
 )
 
 # Source tree, for tests that read files of the repository (the example project)

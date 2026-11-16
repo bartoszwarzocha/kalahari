@@ -6,10 +6,11 @@
 /// portraits and what a portrait without a picture shows, the fields of new books
 
 #include "document_window.h"
-#include "test_support/changed_setting.h"
+#include "kalahari_tests/changed_setting.h"
 #include "test_support/window_parts.h"
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_data.h"
 #include "kalahari/core/card_field_set.h"
@@ -35,14 +36,16 @@
 #include <QGroupBox>
 #include <QImage>
 #include <QLabel>
-#include <QPushButton>
 #include <QPixmap>
+#include <QPushButton>
 #include <QRadioButton>
 #include <QSortFilterProxyModel>
 #include <QTabWidget>
 #include <QTableWidget>
 #include <QTimer>
 #include <QToolButton>
+
+#include <nlohmann/json_fwd.hpp>
 
 #include <string>
 
@@ -197,7 +200,7 @@ TEST_CASE("Settings > Cards: the layout, the portraits and the fields of new boo
     const ChangedSetting<std::string> without(gui::CardPage::NO_PICTURE_SETTING,
                                               gui::CardPage::NO_PICTURE_INITIALS);
     const ChangedSetting<json> fields(core::card_fields::DEFAULTS_SETTING, json::object());
-    test::OpenNovel novel(QStringLiteral("Settings"));
+    const test::OpenNovel novel(QStringLiteral("Settings"));
 
     gui::CardsPage page;
     page.load();
@@ -265,8 +268,8 @@ TEST_CASE("Settings > Cards: the portraits of the list of cards and of the card 
     auto& pm = novel.pm;
     const QString anna = addCard(pm, "character", QStringLiteral("Anna Wolska"));
 
-    gui::MaterialListPanel list(pm, QStringLiteral("kalahari.base:character"));
-    gui::PropertiesPanel properties(pm);
+    const gui::MaterialListPanel list(pm, QStringLiteral("kalahari.base:character"));
+    const gui::PropertiesPanel properties(pm);
     gui::CursorCardBox* atCursor = properties.cursorCard();
     atCursor->showCard(anna);
     const QImage listBefore = listPortrait(pm, list);

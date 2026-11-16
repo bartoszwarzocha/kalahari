@@ -47,7 +47,6 @@
 #include <optional>
 #include <string>
 #include <utility>
-#include <vector>
 
 namespace kalahari::gui {
 
@@ -383,18 +382,20 @@ void CardsPage::showDefaultFields() {
             kinds << kind.kind->plural.text(programLanguage());
         }
     }
-    m_defaultFieldsLabel->setText(
-        kinds.isEmpty()
-            //: In Polish: Nowe książki mają pola typów książek. Okno „Pola kart” na
-            //: pełnej karcie zmienia pola jednej książki.
-            ? tr("New books have the fields of the book types. Card Fields on the full card "
-                 "changes the fields of one book.")
-            //: %1: the kinds with fields of their own, such as "Postacie, Przedmioty". In
-            //: Polish: Własne pola nowych książek: %1. Okno „Pola kart” na pełnej karcie
-            //: zmienia pola jednej książki.
-            : tr("Fields of their own in new books: %1. Card Fields on the full card changes "
-                 "the fields of one book.")
-                  .arg(kinds.join(QStringLiteral(", "))));
+    if (kinds.isEmpty()) {
+        //: In Polish: Nowe książki mają pola z typów książek. Przycisk „Pola...” na pełnej
+        //: karcie zmienia pola jednej książki.
+        m_defaultFieldsLabel->setText(tr("New books have the fields of the book types. "
+                                         "Fields... on the full card changes the fields of one "
+                                         "book."));
+        return;
+    }
+    //: %1: the kinds with fields of their own, such as "Postacie, Przedmioty". In Polish:
+    //: Własne pola w nowych książkach: %1. Przycisk „Pola...” na pełnej karcie zmienia pola
+    //: jednej książki.
+    m_defaultFieldsLabel->setText(tr("Fields of their own in new books: %1. Fields... on the "
+                                     "full card changes the fields of one book.")
+                                      .arg(kinds.join(QStringLiteral(", "))));
 }
 
 QRadioButton* CardsPage::layoutButton(const char* value) const {

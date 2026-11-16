@@ -222,7 +222,7 @@ public:
     /// @param names The names of the other fields of the kind, which it does not take
     /// @param parent Parent widget
     CardFieldDialog(const core::KindRef& kind, const core::BookCardField& field,
-                    const QStringList& names, QWidget* parent = nullptr);
+                    QStringList names, QWidget* parent = nullptr);
 
     /// @brief The field as the writer set it
     [[nodiscard]] core::BookCardField field() const;
