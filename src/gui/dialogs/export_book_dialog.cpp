@@ -368,8 +368,8 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
 
     //: A group of the tab of an EPUB: the data of the book. In Polish: Dane książki
     auto* dataGroup = new QGroupBox(tr("Book Data"), m_epubTab);
-    auto* data = new QGridLayout(dataGroup);
-    data->setColumnStretch(1, 1);
+    auto* dataGrid = new QGridLayout(dataGroup);
+    dataGrid->setColumnStretch(1, 1);
     const auto newValue = [dataGroup](const QString& text) {
         auto* label = new QLabel(text, dataGroup);
         label->setTextFormat(Qt::PlainText);
@@ -381,11 +381,11 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
                                     //: the author. In Polish: %1 – %2
                                     : tr("%1 – %2").arg(book.title, book.author));
     //: In Polish: Tytuł i autor:
-    addRow(data, tr("Title and author:"), m_titleAndAuthor);
+    addRow(dataGrid, tr("Title and author:"), m_titleAndAuthor);
     //: The language of a book that has none. In Polish: Nie ustawiono
     m_languageLabel = newValue(book.language.isEmpty() ? tr("Not set") : book.language);
     //: In Polish: Język:
-    addRow(data, tr("Language:"), m_languageLabel);
+    addRow(dataGrid, tr("Language:"), m_languageLabel);
     const QString description = book.description.simplified();
     m_descriptionLabel = newValue(
         description.isEmpty()
@@ -397,7 +397,7 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
                   widthOfLetters(fontMetrics(), DESCRIPTION_LETTERS)));
     m_descriptionLabel->setToolTip(description);
     //: In Polish: Opis:
-    addRow(data, tr("Description:"), m_descriptionLabel);
+    addRow(dataGrid, tr("Description:"), m_descriptionLabel);
     // The ISBN and the publisher in one row: the tab as high as the others
     auto* publication = new QWidget(dataGroup);
     auto* publicationLayout = new QHBoxLayout(publication);
@@ -423,17 +423,17 @@ ExportBookDialog::ExportBookDialog(const Book& book, editor::ExportFormat format
     publisherLayout->addWidget(m_publisherField, 1);
     publicationLayout->addLayout(publisherLayout, 1);
     //: In Polish: &ISBN:
-    addRow(data, tr("&ISBN:"), publication)->setBuddy(m_isbnField);
+    addRow(dataGrid, tr("&ISBN:"), publication)->setBuddy(m_isbnField);
     // The sentence under the data as wide as the group: in fewer lines
-    m_bookDataNote = addNote(data);
+    m_bookDataNote = addNote(dataGrid);
     int noteRow = 0;
     int noteColumn = 0;
     int noteRows = 0;
     int noteColumns = 0;
-    data->getItemPosition(data->indexOf(m_bookDataNote.widget), &noteRow, &noteColumn, &noteRows,
-                          &noteColumns);
-    data->removeWidget(m_bookDataNote.widget);
-    data->addWidget(m_bookDataNote.widget, noteRow, 0, 1, 2);
+    dataGrid->getItemPosition(dataGrid->indexOf(m_bookDataNote.widget), &noteRow, &noteColumn,
+                              &noteRows, &noteColumns);
+    dataGrid->removeWidget(m_bookDataNote.widget);
+    dataGrid->addWidget(m_bookDataNote.widget, noteRow, 0, 1, 2);
     epub->addWidget(dataGroup, 1, 0, 1, 2);
     endTab(epub);
 

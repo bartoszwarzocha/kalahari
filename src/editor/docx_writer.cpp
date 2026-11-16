@@ -782,10 +782,7 @@ QString DocxWriter::stylesXml() const {
                  hidden, noIndent + QStringLiteral("<w:jc w:val=\"center\"/>"), {});
     if (m_book.runningHead != RunningHead::None) {
         // The running head: smaller capitals a little apart, as on the pages of a PDF
-        const double normalSize =
-            m_book.styles.normal().properties.value(QStringLiteral("fontSize")).toDouble();
-        const QString size = number(halfPoints(
-            RUNNING_HEAD_SCALE * (normalSize > 0.0 ? normalSize : DEFAULT_NORMAL_POINT_SIZE)));
+        const QString size = number(halfPoints(RUNNING_HEAD_SCALE * normalSize));
         xml += style(QStringLiteral("paragraph"), QStringLiteral("Header"),
                      QStringLiteral("header"), normalId, {}, hidden,
                      QStringLiteral("<w:spacing w:before=\"0\" w:after=\"0\"/>") + noIndent +

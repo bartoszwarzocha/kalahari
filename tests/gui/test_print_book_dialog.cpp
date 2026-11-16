@@ -172,7 +172,7 @@ struct PageMaker {
 struct Printed {
     std::vector<std::vector<SheetSide>> runs;
     std::vector<PrintBookDialog::Choice> choices;
-    QStringList progress;  ///< The sentences under the bar while it printed
+    QStringList progressTexts;  ///< The sentences under the bar while it printed
     bool fail = false;
 
     PrintBookDialog::Printing printing(PrintBookDialog* const* dialog) {
@@ -184,7 +184,7 @@ struct Printed {
             for (size_t i = 0; i < sides.size(); ++i) {
                 progress(static_cast<int>(i) + 1);
                 if (*dialog != nullptr) {
-                    this->progress << (*dialog)->progressText();
+                    progressTexts << (*dialog)->progressText();
                 }
             }
             if (fail) {
@@ -551,9 +551,9 @@ TEST_CASE("Print: the print, its progress and its result", "[gui][dialogs][print
               std::vector<SheetSide>{{0}, {1}, {2}, {3}, {4}, {0}, {1}, {2}, {3}, {4}});
         CHECK(printed.choices[0].printer == QStringLiteral("Office"));
         CHECK(printed.choices[0].copies == 2);
-        CHECK(printed.progress.first() ==
+        CHECK(printed.progressTexts.first() ==
               QStringLiteral("Sending to the printer: sheet 2 of 10..."));
-        CHECK(printed.progress.last() ==
+        CHECK(printed.progressTexts.last() ==
               QStringLiteral("Sending to the printer: sheet 10 of 10..."));
         CHECK(dialog.resultText() ==
               QStringLiteral("Sent to the printer \"Office\": 5 pages on 5 sheets, 2 copies."));
@@ -567,7 +567,8 @@ TEST_CASE("Print: the print, its progress and its result", "[gui][dialogs][print
         REQUIRE(printed.runs.size() == 1);
         CHECK(printed.runs[0] == std::vector<SheetSide>{{0}, {1}, {2}, {3}, {4}});
         CHECK(printed.choices[0].duplex == Duplex::LongEdge);
-        CHECK(printed.progress.at(1) == QStringLiteral("Sending to the printer: sheet 2 of 3..."));
+        CHECK(printed.progressTexts.at(1) ==
+              QStringLiteral("Sending to the printer: sheet 2 of 3..."));
         CHECK(dialog.resultText() ==
               QStringLiteral("Sent to the printer \"Study\": 5 pages on 3 sheets."));
     }
@@ -579,7 +580,8 @@ TEST_CASE("Print: the print, its progress and its result", "[gui][dialogs][print
         CHECK(printed.runs[0] == std::vector<SheetSide>{{0}, {2}, {4}});
         CHECK(printed.runs[1] == std::vector<SheetSide>{{1}, {3}, {}});
         CHECK(turns == 1);
-        CHECK(printed.progress.at(3) == QStringLiteral("Sending to the printer: sheet 2 of 3..."));
+        CHECK(printed.progressTexts.at(3) ==
+              QStringLiteral("Sending to the printer: sheet 2 of 3..."));
         CHECK(dialog.resultText() ==
               QStringLiteral("Sent to the printer \"Office\": 5 pages on 3 sheets."));
     }
