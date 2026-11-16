@@ -159,6 +159,8 @@ void SettingsDialog::createNavigationTree() {
         addPage(nullptr, tr("Annotations"), []() { return new AnnotationsPage(); });
     m_pageItems[NAVIGATOR_PAGE] =
         addPage(nullptr, tr("Navigator"), [this]() { return new NavigatorPage(m_book); });
+    //: Settings > Cards: the cards of characters, locations and items. In Polish: Karty
+    m_pageItems[CARDS_PAGE] = addPage(nullptr, tr("Cards"), []() { return new CardsPage(); });
     //: The page of the materials: how they open, the preview of PDF files and the sources. In
     //: Polish: Materiały
     m_pageItems[MATERIALS_PAGE] =

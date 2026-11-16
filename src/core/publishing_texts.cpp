@@ -8,7 +8,7 @@
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/cover_material.h>
-#include <kalahari/core/detail/package_json.h>
+#include <kalahari/core/package_json.h>
 #include <kalahari/core/settings_manager.h>
 
 #include <QByteArray>
@@ -33,11 +33,11 @@ namespace kalahari::core {
 
 namespace {
 
-using detail::addProblem;
-using detail::checkKeys;
-using detail::isIdentifier;
-using detail::isWholeNumber;
-using detail::readText;
+using package_json::addProblem;
+using package_json::checkKeys;
+using package_json::isIdentifier;
+using package_json::isWholeNumber;
+using package_json::readText;
 
 /// In place of an empty field of a pattern: "…"
 constexpr char16_t ELLIPSIS = u'\u2026';

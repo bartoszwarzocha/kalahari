@@ -73,10 +73,31 @@
 /// author), "position" (kinds of the main part: "start" for a kind that opens the story, like
 /// a prologue, "end" for one that closes it, like an epilogue), "first" (true for a kind that
 /// opens its section, like the title page: nothing is moved or added before its element),
-/// "editor", "generated" and "settings" (window kinds), "workshopGroup" (kinds of the
+/// "editor", "generated" and "settings" (window kinds; a text kind can have the editor
+/// "card": its elements are cards, such as of characters, whose text is the long
+/// description), "fields" (kinds of cards: the fields of their cards, see below),
+/// "chapterRoles" (kinds of cards: how their cards are in a chapter, among "pov" (the point of
+/// view), "appears", "mentioned" and "setting" (where the chapter takes place); without it,
+/// "appears" and "mentioned"), "workshopGroup" (kinds of the
 /// Workshop: "libraries", the group they go to when the Workshop is grouped, or "resources",
 /// the Materials of the Workshop, where they always are), "retired" (true for a kind of earlier
 /// versions: the elements of books saved with it are read, but it is offered nowhere).
+///
+/// The fields of the cards of a kind, in the order of the card:
+/// @code{.json}
+/// "fields": [
+///   { "id": "role", "type": "choice", "name": { "pl": "Rola", "en": "Role" },
+///     "show": ["card", "properties", "list"], "subtitle": true,
+///     "choices": [ { "id": "main", "name": { "pl": "główna", "en": "main" } } ] },
+///   { "id": "origin", "type": "card", "card": "location",
+///     "name": { "pl": "Pochodzenie", "en": "Origin" } }
+/// ]
+/// @endcode
+/// "type" is "text" (when missing), "longText", "choice" (with "choices") or "card" (with
+/// "card", the id of a kind of cards of the package); "show" lists where the field is shown:
+/// "card" (the full card), "properties" (the short card of the Properties panel) and "list"
+/// (a column of the list of cards); without "show" the field is hidden until the writer shows
+/// it. "subtitle" (one field at most): its value stands beside the kind under the name.
 ///
 /// styles.json has the fields of the paragraph_styles and character_styles tables of
 /// project.db, with names in several languages and the style of the next paragraph:
@@ -172,11 +193,88 @@ struct KindReference {
     bool operator==(const KindReference&) const = default;
 };
 
+/// @brief What a field of the cards holds
+enum class CardFieldType {
+    Text,      ///< A line of text: age, job
+    LongText,  ///< Several lines: appearance, character
+    Choice,    ///< One of a list: role, gender
+    Card       ///< The name of another card, of a kind given: the place of origin, the owner
+};
+
+/// @brief One of the values of a field of the cards with a list: "main" ("główna")
+struct CardFieldChoice {
+    QString id;          ///< Saved in the cards: "main"
+    LocalizedText name;  ///< Shown: "Main", "Główna"
+};
+
+/// @brief A field of the cards of a kind (character, location, item): its name, what it holds
+/// and where it is shown
+///
+/// The cards keep the values by the field's id (ProjectElement::values).
+struct CardField {
+    QString id;                      ///< Unique among the fields of its kind: "role"
+    LocalizedText name;              ///< "Role", "Rola"
+    CardFieldType type = CardFieldType::Text;
+    QList<CardFieldChoice> choices;  ///< Choice: the values to choose from, in order
+    QString cardKind;                ///< Card: the id of the kind of the cards it names
+    QString relation;                ///< Card: the relation (CardRelation) the card it names
+                                     ///< has with the card; empty: none
+    bool onCard = false;             ///< Shown on the full card
+    bool inProperties = false;       ///< Shown on the short card of the Properties panel
+    bool inList = false;             ///< A column of the list of cards
+    bool subtitle = false;           ///< Its value stands beside the kind under the name:
+                                     ///< "Character · main"
+
+    /// @brief The choice with id @p choiceId; nullptr when it has none
+    [[nodiscard]] const CardFieldChoice* choice(const QString& choiceId) const;
+
+    /// @brief Name of the type in packages: "text", "longText", "choice" or "card"
+    static QString typeName(CardFieldType type);
+
+    /// @brief Type named @p name in packages, or nullopt when it is not one
+    static std::optional<CardFieldType> typeFromName(const QString& name);
+};
+
+/// @brief A relation between two cards that a package offers: "sibling", "owner"
+///
+/// A card linked with another card (ElementLink) with the id of a relation as the role says
+/// what the other card is to it: "brother"; the other card shows the inverse relation of the
+/// link: "sister". The link is saved once, with the card it was added to.
+struct CardRelation {
+    /// @brief The field of a kind of cards whose choice is the gender of a card, which names
+    /// the forms of the relations: "woman", "man"
+    static constexpr const char* GENDER_FIELD = "gender";
+
+    QString id;                          ///< Unique among the relations of its package
+    KindReference kind;                  ///< The kind of the card that has it
+    KindReference otherKind;             ///< The kind of the other card
+    QString inverse;                     ///< The relation of the other card with the card; its
+                                         ///< own id when it is the same both ways
+    LocalizedText group;                 ///< Its group in the window Relation: "family"; empty:
+                                         ///< none
+    LocalizedText choice;                ///< How the window Relation offers it: "siblings";
+                                         ///< empty: its name
+    LocalizedText name;                  ///< What the other card is to the card: "sibling"
+    QMap<QString, LocalizedText> forms;  ///< The name by the gender of the other card
+                                         ///< (GENDER_FIELD): "woman" -> "sister"
+
+    /// @brief The name in @p language for another card of gender @p gender (a choice of
+    /// GENDER_FIELD; empty: not said)
+    [[nodiscard]] QString nameFor(const QString& gender, const QString& language) const;
+
+    /// @brief How the window Relation offers it in @p language: its choice, else its name
+    [[nodiscard]] QString choiceText(const QString& language) const;
+};
+
 /// @brief Kind of element (rodzaj): chapter, dedication, act, poem, mind map...
 struct ElementKind {
     /// Editor of the kinds of materials: files of any type that the Workshop keeps (pictures,
     /// PDF files), which open in the program the system has for them
     static constexpr const char* MATERIAL_EDITOR = "material";
+
+    /// Editor of the kinds of cards: characters, locations, items. A text kind with it is a
+    /// card whose text is its long description; the card shows its fields beside the text.
+    static constexpr const char* CARD_EDITOR = "card";
 
     QString id;                          ///< Unique in its package, e.g. "chapter"
     ElementForm form = ElementForm::Text;
@@ -191,16 +289,34 @@ struct ElementKind {
     QString templateFile;                ///< Text kinds: starting .kchapter, in the package
     KindPosition position = KindPosition::Any;  ///< Where its elements stand in the main part
     bool first = false;                  ///< Its element opens its section: the title page
-    QString editor;                      ///< Window kinds: id of the window that opens the element
+    QString editor;                      ///< Window kinds: id of the window that opens the
+                                         ///< element; text kinds: CARD_EDITOR or empty
     bool generated = false;              ///< Window kinds: content made by a tool of the type
     QJsonObject settings;                ///< Window kinds: settings of the window
     WorkshopGroup workshopGroup = WorkshopGroup::None;  ///< Workshop kinds: their group
     bool retired = false;                ///< A kind of earlier versions, offered nowhere
+    QList<CardField> fields;             ///< Kinds of cards: the fields of their cards, in
+                                         ///< the order of the card
+    QStringList chapterRoles;            ///< Kinds of cards: the roles of their links with the
+                                         ///< chapters (LinkRoles::ofCard()); empty: those
+                                         ///< of every card
 
     /// @brief Whether its elements are materials: a window kind with MATERIAL_EDITOR
     bool isMaterial() const {
         return form == ElementForm::Window && editor == QLatin1String(MATERIAL_EDITOR);
     }
+
+    /// @brief Whether its elements are cards: a text kind with CARD_EDITOR
+    [[nodiscard]] bool isCard() const {
+        return form == ElementForm::Text && editor == QLatin1String(CARD_EDITOR);
+    }
+
+    /// @brief Its field with id @p fieldId; nullptr when it has none
+    [[nodiscard]] const CardField* field(const QString& fieldId) const;
+
+    /// @brief The field whose value stands beside the kind under the card's name; nullptr
+    /// when it has none
+    [[nodiscard]] const CardField* subtitleField() const;
 
     /// @brief Whether an element of this kind can be in @p place, outside groups
     bool allows(BookPlace place) const;
@@ -258,6 +374,7 @@ struct BookTypePackage {
     QString icon;                     ///< Icon id of ArtProvider; may be empty
     QStringList uses;                 ///< Ids of packages whose kinds and styles it uses
     QList<ElementKind> kinds;         ///< Kinds defined by this package, ordered by id
+    QList<CardRelation> relations;    ///< Relations between its kinds of cards, in order
     QStringList frontKinds;           ///< Kinds offered in the front part, in order
     QStringList mainKinds;            ///< Kinds offered in the main part, in order
     QStringList backKinds;            ///< Kinds offered in the back part, in order
@@ -273,6 +390,9 @@ struct BookTypePackage {
 
     /// @brief Kind defined by this package (not by the packages it uses), or nullptr
     const ElementKind* ownKind(const QString& kindId) const;
+
+    /// @brief Its relation between cards with id @p relationId; nullptr when it has none
+    [[nodiscard]] const CardRelation* relation(const QString& relationId) const;
 
     /// @brief Kinds offered in @p place
     const QStringList& kindsIn(BookPlace place) const;

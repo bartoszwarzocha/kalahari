@@ -31,6 +31,8 @@ set(TEST_SOURCES
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
     core/test_publishing_texts.cpp    # The texts for publishers: their data, templates, lengths and the set
+    core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
+    core/test_card_relations.cpp      # The relations between cards, and the fields that name a card by one
     core/test_sources.cpp             # The sources: descriptions in the book, bibliography styles, BibTeX
     core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
     core/test_book_project.cpp        # Book project and its .klh file
@@ -174,6 +176,9 @@ set(TEST_SOURCES
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
+    gui/test_card_page.cpp                       # The cards of characters, locations and items
+    gui/test_relation_dialog.cpp                 # The window Relation and the relations of a card
+    gui/test_card_chapters.cpp                   # The chapters and the materials of a card, what is dropped on it
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_publishing_settings.cpp             # The names of the texts for publishers and their settings
@@ -244,6 +249,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/file_trash.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/package_json.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_package.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_relations.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
     ${CMAKE_SOURCE_DIR}/src/core/affix_expander.cpp
@@ -255,6 +263,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
     ${CMAKE_SOURCE_DIR}/src/core/publishing_texts.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography_records.cpp
@@ -351,6 +360,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/cards_page.cpp  # Settings > Cards
     ${CMAKE_SOURCE_DIR}/src/gui/settings/materials_page.cpp  # Settings > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
@@ -509,11 +519,18 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/quick_character_palette.cpp  # Insert > Quick Character
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/character_dialogs.cpp        # The keys of a character, a replacement
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/link_dialog.cpp              # What a material is about
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/relation_dialog.cpp          # A relation of a card
     ${CMAKE_SOURCE_DIR}/src/gui/material_file.cpp                    # The file of a material and its picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_source.cpp                  # Where a material comes from
     ${CMAKE_SOURCE_DIR}/src/gui/material_downloader.cpp              # The title of a page, the copy of a picture
     ${CMAKE_SOURCE_DIR}/src/gui/link_names.cpp                       # The links of a material in lists
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_page.cpp             # The card of a material in Properties
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/own_fields_box.cpp           # The writer's own fields of an element
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/relations_box.cpp            # The relations of a card
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/card_chapters_box.cpp        # The chapters a card is in
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/card_page.cpp                 # The card of a character, a location, an item
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/card_panel.cpp                # The full card on a tab
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/palette_edit.cpp             # A palette of colors to change
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_parts.cpp                # The small parts of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/source_boxes.cpp              # The groups of the card of a source
     ${CMAKE_SOURCE_DIR}/src/gui/panels/source_description_box.cpp    # The description of a source
@@ -677,7 +694,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_chapters_box.h  # CardChaptersBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h   # The groups of the card of a source with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT

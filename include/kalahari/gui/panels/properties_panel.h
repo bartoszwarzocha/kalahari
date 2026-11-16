@@ -15,6 +15,7 @@
 #pragma once
 
 #include "kalahari/core/book_project.h"
+#include "kalahari/gui/material_source.h"
 
 #include <QWidget>
 #include <QString>
@@ -44,6 +45,7 @@ class BookEditor;
 namespace kalahari {
 namespace gui {
 
+class CardPage;
 class EditorPanel;
 class LinkedMaterialsBox;
 class MaterialPage;
@@ -74,7 +76,8 @@ public:
         Section = 3,    ///< Section aggregate statistics view
         Part = 4,       ///< Part aggregate statistics view
         Editor = 5,     ///< Editor statistics view (selection/document stats)
-        Material = 6    ///< The short card of a material of the Workshop
+        Material = 6,   ///< The short card of a material of the Workshop
+        Card = 7        ///< The short card of a character, a location or an item
     };
 
     /// @brief Constructor
@@ -90,6 +93,9 @@ public:
 
     /// @brief The card of a material
     MaterialPage* materialPage() const { return m_materialPage; }
+
+    /// @brief The short card of a character, a location or an item
+    [[nodiscard]] CardPage* cardPage() const { return m_cardPage; }
 
     /// @brief The materials of the element of the chapter page, of the section and of the part
     LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
@@ -116,6 +122,10 @@ public slots:
 
     /// @brief Show the card of material @p elementId of the Workshop
     void showMaterialProperties(const QString& elementId);
+
+    /// @brief Show the short card of card @p elementId of the Workshop: a character, a
+    /// location or an item
+    void showCardProperties(const QString& elementId);
 
     /// @brief Give the keys to the first field of the page shown, scrolled to it (Alt+Enter in
     /// the Navigator): the title of the book, of an element or of a material; the materials of
@@ -268,6 +278,29 @@ signals:
     /// @brief Material @p elementId changed on its card in the panel: its other cards show it
     void materialChanged(const QString& elementId);
 
+    /// @brief Open Card on the short card: the full card of @p elementId beside the chapters
+    void requestOpenCard(const QString& elementId);
+
+    /// @brief The gear of the short card: Settings > Cards
+    void requestCardSettings();
+
+    /// @brief Material @p materialId was added on the short card (a portrait from a file): the
+    /// Navigator shows it
+    void cardMaterialAdded(const QString& materialId);
+
+    /// @brief The short card shows card @p elementId: the other card of a relation; the
+    /// Navigator shows it as the current element
+    void requestSelectCard(const QString& elementId);
+
+    /// @brief Card @p elementId was made with a relation on the short card: the Navigator
+    /// shows it
+    void cardAdded(const QString& elementId);
+
+    /// @brief Files, web addresses or pictures @p incoming were dropped on the short card: new
+    /// materials linked with card @p link
+    void requestAddCardMaterials(const kalahari::gui::IncomingMaterials& incoming,
+                                 const QString& link);
+
     /// @brief Something to say on the status bar: "Address copied: ..."
     void message(const QString& text);
     /// @brief Save Version in the group of the versions: keep the text of element
@@ -312,6 +345,14 @@ private:
     /// @brief Setup the page of the card of a material
     /// @return Created widget
     QWidget* createMaterialPage();
+
+    /// @brief Setup the page of the short card of a character, a location or an item
+    /// @return Created widget
+    QWidget* createCardPage();
+
+    /// @brief Show the short card again as the book has it, or the book's page when the card
+    /// was deleted
+    void refreshCard();
 
     /// @brief A box of the materials linked with an element or a section, which forwards their
     /// opening
@@ -456,6 +497,7 @@ private:
     LinkedMaterialsBox* m_partMaterials = nullptr;  ///< The materials of the part
     // The card of a material
     MaterialPage* m_materialPage = nullptr;
+    CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
     QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"

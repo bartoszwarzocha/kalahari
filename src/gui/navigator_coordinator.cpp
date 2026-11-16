@@ -21,11 +21,14 @@
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/card_page.h"
+#include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/image_preview_panel.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_file.h"
+#include "kalahari/gui/material_source.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
 #include "kalahari/gui/section_words.h"
@@ -44,16 +47,19 @@
 #include <QTabWidget>
 #include <QStatusBar>
 #include <QTimer>
-#include <QBuffer>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHash>
 #include <QImage>
+#include <QMetaObject>
+#include <QPointer>
 #include <QUrl>
 #include <algorithm>
 #include <chrono>
 #include <optional>
+#include <string>
 #include <utility>
 
 namespace kalahari {
@@ -116,15 +122,6 @@ constexpr int QUOTE_MESSAGE_MS = 2000;
 /// How long the status bar says that a file has not the page asked for
 constexpr int NO_PAGE_MESSAGE_MS = 3000;
 
-/// @p picture as a PNG file
-QByteArray pngOf(const QImage& picture) {
-    QByteArray data;
-    QBuffer buffer(&data);
-    buffer.open(QIODevice::WriteOnly);
-    picture.save(&buffer, "PNG");
-    return data;
-}
-
 /// The kind of all @p kinds; none when they are of several kinds, or there are none
 core::KindRef oneKindOf(const QList<core::KindRef>& kinds) {
     if (kinds.isEmpty() || std::any_of(kinds.cbegin(), kinds.cend(), [&kinds](const auto& kind) {
@@ -186,8 +183,23 @@ NavigatorCoordinator::NavigatorCoordinator(core::ProjectManager& book, CommandRe
                 });
     }
 
+    // A card under another card in its tree: the relations of the cards, or the setting of the
+    // trees, which may change on another thread
+    connect(&m_book, &core::ProjectManager::linksChanged, this,
+            &NavigatorCoordinator::refreshCardTrees);
+    m_settingsListener = core::SettingsManager::getInstance().subscribe(
+        [self = QPointer<NavigatorCoordinator>(this)](const std::string& key) {
+            if (self != nullptr && key == NavigatorPanel::CARDS_TREE_SETTING) {
+                QMetaObject::invokeMethod(self, "refreshCardTrees", Qt::QueuedConnection);
+            }
+        });
+
     auto& logger = core::Logger::getInstance();
     logger.debug("NavigatorCoordinator created");
+}
+
+NavigatorCoordinator::~NavigatorCoordinator() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
 
 bool NavigatorCoordinator::isChapterDirty(const QString& elementId) const {
@@ -269,6 +281,18 @@ void NavigatorCoordinator::refreshNavigator() {
     emit refreshNavigatorRequested();
 }
 
+void NavigatorCoordinator::refreshCardTrees() {
+    if (m_navigatorPanel == nullptr || !m_navigatorPanel->cardTreesChanged()) {
+        return;
+    }
+    // The cards that stand elsewhere show there, and the current item stays
+    const QHash<QString, QString> before = m_navigatorPanel->cardTrees();
+    const QString current = m_navigatorPanel->currentElementId();
+    refreshNavigator();
+    m_navigatorPanel->showMovedCards(before);
+    m_navigatorPanel->restoreCurrentElement(current);
+}
+
 void NavigatorCoordinator::refreshTabTitle(const QString& elementId) {
     const core::ProjectElement* element =
         m_book.findElement(elementId);
@@ -346,14 +370,15 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         // Still create tab but with empty content
     }
 
-    // Create new editor tab with the element's icon, as in the navigator
+    // Create new editor tab with the element's icon, as in the navigator; a character, a
+    // location or an item has its full card, with its text beside its data
     logElapsed("Before new EditorPanel");
-    EditorPanel* newEditor = new EditorPanel(m_book, m_commands, m_centralTabs);
+    const core::ProjectElement* element = pm.findElement(elementId);
+    EditorPanel* newEditor = createEditorPanel(element, elementId);
     logElapsed("After new EditorPanel");
     // A chapter of a book open read-only is read, copied and searched only; before the tab
     // comes, as the commands follow the tab in front
     newEditor->getBookEditor()->setReadOnly(pm.isReadOnly());
-    const core::ProjectElement* element = pm.findElement(elementId);
     // The margins of its pages: its first page is a right one unless it says otherwise
     newEditor->setFirstPageLeft(element != nullptr && element->firstPageLeft);
     // A kind the program does not have: its icon on the book's card of its package
@@ -424,6 +449,46 @@ void NavigatorCoordinator::onElementSelected(const QString& elementId, const QSt
         const core::KindWords kind = element ? wordsOf(m_book, *element) : mainWords(m_book);
         EditorPanel::warnDamagedChapter(m_centralTabs->window(), elementTitle, &kind);
     }
+}
+
+EditorPanel* NavigatorCoordinator::createEditorPanel(const core::ProjectElement* element,
+                                                     const QString& elementId) {
+    if (element != nullptr && m_book.isCard(*element)) {
+        return createCardPanel(elementId);
+    }
+    return new EditorPanel(m_book, m_commands, m_centralTabs);
+}
+
+CardPanel* NavigatorCoordinator::createCardPanel(const QString& elementId) {
+    auto* panel = new CardPanel(m_book, m_commands, elementId, m_centralTabs);
+    const CardPage* page = panel->page();
+    // A new name on the card: its tab, the Navigator and the short card show it
+    connect(page, &CardPage::titleChanged, this, [this](const QString& cardId) {
+        refreshTabTitle(cardId);
+        m_navigatorPanel->refreshItem(cardId);
+    });
+    // A portrait from a file is a new material of the Workshop, as is a card made with a
+    // relation
+    connect(page, &CardPage::materialAdded, this, &NavigatorCoordinator::refreshNavigator);
+    connect(page, &CardPage::cardAdded, this, &NavigatorCoordinator::refreshNavigator);
+    connect(page, &CardPage::requestSettings, this,
+            &NavigatorCoordinator::cardSettingsRequested);
+    // The other card of a relation: its full card; a chapter of the card in its editor
+    const auto open = [this](const QString& otherId) {
+        if (const core::ProjectElement* element = m_book.findElement(otherId)) {
+            onElementSelected(otherId, element->title);
+        }
+    };
+    connect(page, &CardPage::requestOpenCard, this, open);
+    connect(page, &CardPage::requestOpenChapter, this, open);
+    connect(page, &CardPage::requestOpenMaterial, this,
+            &NavigatorCoordinator::onRequestOpenMaterial);
+    // What is dropped on the card: its materials
+    connect(page, &CardPage::requestAddMaterials, this,
+            &NavigatorCoordinator::onRequestAddMaterials);
+    connect(page, &CardPage::requestFindInBook, this,
+            &NavigatorCoordinator::findInBookRequested);
+    return panel;
 }
 
 void NavigatorCoordinator::onRequestRename(const QString& elementId, const QString& currentTitle) {
@@ -1128,7 +1193,7 @@ bool NavigatorCoordinator::addWithWindow(
         core::NewMaterial newMaterial;
         newMaterial.title = title;
         if (!picture.isNull()) {
-            newMaterial.data = pngOf(picture);
+            newMaterial.data = IncomingMaterials::pngOf(picture);
             newMaterial.fileName =
                 IncomingMaterials::pictureFileName(QDateTime::currentDateTime());
         } else {
@@ -1853,7 +1918,7 @@ void NavigatorCoordinator::onRequestAddMaterials(const IncomingMaterials& incomi
         core::NewMaterial material;
         material.title = IncomingMaterials::pictureTitle(now);
         material.fileName = IncomingMaterials::pictureFileName(now);
-        material.data = pngOf(incoming.picture);
+        material.data = IncomingMaterials::pngOf(incoming.picture);
         materials << material;
         kinds << pictureKind;
         //: In Polish: obraz zapisany w książce

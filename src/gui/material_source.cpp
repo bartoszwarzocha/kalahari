@@ -8,7 +8,10 @@
 
 #include "kalahari/core/material_kinds.h"
 
+#include <QBuffer>
+#include <QByteArray>
 #include <QFileInfo>
+#include <QImage>
 #include <QLocale>
 #include <QMimeData>
 
@@ -151,6 +154,14 @@ QString IncomingMaterials::pictureTitle(const QDateTime& time) {
 
 QString IncomingMaterials::pictureFileName(const QDateTime& time) {
     return QStringLiteral("clipboard_%1.png").arg(time.toString(QStringLiteral("yyyyMMdd_HHmmss")));
+}
+
+QByteArray IncomingMaterials::pngOf(const QImage& picture) {
+    QByteArray data;
+    QBuffer buffer(&data);
+    buffer.open(QIODevice::WriteOnly);
+    picture.save(&buffer, "PNG");
+    return data;
 }
 
 } // namespace gui

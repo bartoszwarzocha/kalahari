@@ -55,6 +55,8 @@ set(KALAHARI_CORE_SOURCES
     core/standalone_file.cpp    # Chapters and text files opened outside a book project
     core/file_trash.cpp         # Files to the Trash of the system
     core/book_type_package.cpp  # Book type packages: kinds, structure and styles as data
+    core/package_json.cpp       # The parts of booktype.json that its readers share
+    core/card_package.cpp       # The fields of the kinds of cards and the relations of a package
     core/book_type_registry.cpp # Book type packages loaded from folders
     core/kind_words.cpp         # Forms of the names of kinds in the program's sentences
     core/affix_expander.cpp     # The forms a Hunspell dictionary gives its words
@@ -66,6 +68,7 @@ set(KALAHARI_CORE_SOURCES
     core/material_kinds.cpp     # The kinds of materials, and the kind a file or an address gives
     core/cover_material.cpp     # The materials of the cover: parts, places, states and lengths
     core/publishing_texts.cpp   # The texts for publishers: data, templates, lengths, the set
+    core/card_data.cpp          # The cards of the Workshop: the values of their fields, colors
     core/source_description.cpp # The bibliographic description of a source, its bookmarks
     core/bibliography.cpp       # The entries of a bibliography and the references in the text
     core/bibliography_records.cpp  # The descriptions pasted as BibTeX and RIS
@@ -168,6 +171,7 @@ set(KALAHARI_SOURCES
     core/resource_paths.cpp # ResourcePaths - Platform-aware resource locator (OpenSpec #00029)
     core/recent_books_manager.cpp # RecentBooksManager - Recent files management (OpenSpec #00030)
     core/project_manager.cpp # ProjectManager - Project lifecycle management (OpenSpec #00033)
+    core/card_relations.cpp # The relations between the cards of a book (uses ProjectManager)
     core/package_card.cpp   # Cards of the packages a book uses: names and icons (IconRegistry)
     gui/kalahari_style.cpp  # KalahariStyle - Dynamic icon sizing (OpenSpec #00026)
     gui/widget_wheel.cpp  # The mouse wheel changes only the field with the focus
@@ -219,6 +223,7 @@ set(KALAHARI_SOURCES
     gui/widgets/quick_character_palette.cpp  # QuickCharacterPalette - Insert > Quick Character
     gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
     gui/dialogs/link_dialog.cpp  # LinkDialog - what a material is about, or the materials of an element
+    gui/dialogs/relation_dialog.cpp  # RelationDialog - a relation of a card with another card
     gui/material_file.cpp  # MaterialFile - the file of a material: its name, format, size and picture
     gui/material_source.cpp  # MaterialSource - a file, a web page, a picture on the web or none
     gui/material_downloader.cpp  # MaterialDownloader - the title of a page, the copy of a picture
@@ -297,6 +302,7 @@ set(KALAHARI_SOURCES
     gui/settings/versions_page.cpp  # Settings > Editor > Versions
     gui/settings/annotations_page.cpp
     gui/settings/navigator_page.cpp  # Settings > Navigator
+    gui/settings/cards_page.cpp  # Settings > Cards
     gui/settings/materials_page.cpp  # Settings > Materials
     gui/settings/network_page.cpp  # Settings > Network > Materials
     gui/settings/folders_page.cpp
@@ -354,6 +360,12 @@ set(KALAHARI_SOURCES
     gui/panels/navigator_panel.cpp
     gui/panels/properties_panel.cpp
     gui/panels/material_page.cpp  # MaterialPage, LinkedMaterialsBox - the card of a material in Properties
+    gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
+    gui/widgets/relations_box.cpp  # RelationsBox - the relations of a card with the other cards
+    gui/widgets/card_chapters_box.cpp  # CardChaptersBox - the chapters a card is in
+    gui/widgets/palette_edit.cpp  # PaletteEdit - a palette of colors to change in the Settings
+    gui/panels/card_page.cpp      # CardPage - the card of a character, a location or an item
+    gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
     gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
     gui/panels/source_description_box.cpp  # SourceDescriptionBox - the description of a source on its card
@@ -480,6 +492,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/name_dialog.h  # NameDialog with Q_OBJECT
@@ -563,6 +576,12 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_panel.h  # ParagraphPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/properties_panel.h
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_chapters_box.h  # CardChaptersBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h  # The groups of the card of a source with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT

@@ -49,6 +49,7 @@ namespace gui {
 
 class NavigatorPanel;
 class PropertiesPanel;
+class CardPanel;
 class EditorPanel;
 class MaterialCardPanel;
 class PreviewPanel;
@@ -92,7 +93,12 @@ public:
                                   QObject* parent = nullptr);
 
     /// @brief Destructor
-    ~NavigatorCoordinator() override = default;
+    ~NavigatorCoordinator() override;
+
+    NavigatorCoordinator(const NavigatorCoordinator&) = delete;
+    NavigatorCoordinator& operator=(const NavigatorCoordinator&) = delete;
+    NavigatorCoordinator(NavigatorCoordinator&&) = delete;
+    NavigatorCoordinator& operator=(NavigatorCoordinator&&) = delete;
 
     /// @brief Get the current element ID being edited
     [[nodiscard]] QString currentElementId() const { return m_currentElementId; }
@@ -135,6 +141,11 @@ public:
 
     /// @brief Refresh navigator with the open project, keeping its expanded items
     void refreshNavigator();
+
+    /// @brief The Navigator built again when a card stands under another card in its tree
+    /// now, or no longer, or the setting of the trees changed (NavigatorPanel::cardTreesChanged()),
+    /// keeping its current item; invokable, as the settings may change on another thread
+    Q_INVOKABLE void refreshCardTrees();
 
     /// @brief Close the editor tabs of @p element and of the elements inside it
     void closeTabsOf(const core::ProjectElement& element);
@@ -392,6 +403,10 @@ signals:
     /// lists of the materials show it
     void materialChanged(const QString& elementId);
 
+    /// @brief The gear of a full card of a character, a location or an item: Settings > Cards
+    void cardSettingsRequested();
+    /// @brief Find in Book of a full card: the texts of the book searched for @p text, its name
+    void findInBookRequested(const QString& text);
     /// @brief The gear of the entry of a source on a card, or of the preview of a PDF file:
     /// open Settings > Materials
     void sourceSettingsRequested();
@@ -452,6 +467,13 @@ private:
     /// @brief The tabs of the cards of materials
     QList<MaterialCardPanel*> materialCards() const;
 
+    /// @brief The tab of element @p element (@p elementId): the full card of a character, a
+    /// location or an item, the editor of a text otherwise
+    EditorPanel* createEditorPanel(const core::ProjectElement* element, const QString& elementId);
+
+    /// @brief The full card of character, location or item @p elementId, for its tab: its
+    /// name shows on the tab and in the Navigator, its gear opens Settings > Cards
+    CardPanel* createCardPanel(const QString& elementId);
     /// @brief The previews of the materials, in the book window and in windows of their own
     [[nodiscard]] QList<PreviewPanel*> previews() const;
 
@@ -506,6 +528,7 @@ private:
     /// inserts it there
     QString m_lastChapterId;
 
+    int m_settingsListener = 0;    ///< core::SettingsManager::subscribe() id
     core::ProjectManager& m_book;  ///< The book of its window
     CommandRegistry& m_commands;  ///< The commands of its window
 };

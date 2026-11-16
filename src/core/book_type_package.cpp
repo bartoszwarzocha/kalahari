@@ -5,8 +5,10 @@
 /// @brief Book type packages: reading booktype.json and the styles file
 
 #include <kalahari/core/book_type_package.h>
-#include <kalahari/core/detail/package_json.h>
-#include <kalahari/core/publishing_texts.h>
+
+#include "kalahari/core/card_package.h"
+#include "kalahari/core/package_json.h"
+#include "kalahari/core/publishing_texts.h"
 
 #include <QDir>
 #include <QFile>
@@ -16,7 +18,6 @@
 #include <QJsonParseError>
 #include <QRegularExpression>
 #include <algorithm>
-#include <cmath>
 #include <initializer_list>
 #include <iterator>
 #include <optional>
@@ -26,103 +27,19 @@ namespace kalahari::core {
 
 namespace {
 
+using package_json::addProblem;
+using package_json::checkKeys;
+using package_json::isIdentifier;
+using package_json::isLanguageCode;
+using package_json::isWholeNumber;
+using package_json::matches;
+using package_json::readIdList;
+using package_json::readText;
+
 const char* const PLACE_NAMES[] = {"front", "main", "back", "workshop"};
 
 /// Names of the groups of the Workshop, from WorkshopGroup::Libraries on
 const char* const WORKSHOP_GROUP_NAMES[] = {"libraries", "resources"};
-
-bool matches(const QString& text, const char* pattern) {
-    const QRegularExpression expression(QString::fromLatin1(pattern));
-    return expression.match(text).hasMatch();
-}
-
-/// "en", "pl", "pt_BR"
-bool isLanguageCode(const QString& text) {
-    return matches(text, "^[a-z]{2,3}(_[A-Z]{2})?$");
-}
-
-}  // namespace
-
-// Shared with the reading of the templates of the texts for publishers
-// (publishing_texts.cpp): detail/package_json.h
-namespace detail {
-
-void addProblem(QStringList& problems, const QString& field, const QString& message) {
-    problems << field + QStringLiteral(": ") + message;
-}
-
-/// Kind, style and window ids: "chapter", "heading_1", "mindmap"
-bool isIdentifier(const QString& text) {
-    return matches(text, "^[a-z][a-z0-9_]*$");
-}
-
-bool isWholeNumber(const QJsonValue& value) {
-    if (!value.isDouble()) {
-        return false;
-    }
-    const double number = value.toDouble();
-    return std::isfinite(number) && std::floor(number) == number;
-}
-
-/// Report keys of @p object that are not in @p known (a misspelt key would be ignored)
-void checkKeys(const QJsonObject& object, const QString& field,
-               std::initializer_list<const char*> known, QStringList& problems) {
-    for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
-        const QString key = it.key();
-        const bool isKnown = std::any_of(known.begin(), known.end(), [&key](const char* name) {
-            return key == QLatin1String(name);
-        });
-        if (!isKnown) {
-            addProblem(problems, field, QStringLiteral("unknown key '%1'").arg(key));
-        }
-    }
-}
-
-LocalizedText readText(const QJsonValue& value, const QString& field, bool required,
-                       QStringList& problems) {
-    LocalizedText text;
-    if (value.isUndefined()) {
-        if (required) {
-            addProblem(problems, field, QStringLiteral("is missing"));
-        }
-        return text;
-    }
-    if (!value.isObject()) {
-        addProblem(problems, field,
-                   QStringLiteral("must be texts by language, e.g. "
-                                  "{\"en\": \"...\", \"pl\": \"...\"}"));
-        return text;
-    }
-    const QJsonObject object = value.toObject();
-    for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
-        if (!isLanguageCode(it.key())) {
-            addProblem(problems, field,
-                       QStringLiteral("'%1' is not a language code such as \"en\" or \"pt_BR\"")
-                           .arg(it.key()));
-        } else if (!it.value().isString() || it.value().toString().trimmed().isEmpty()) {
-            addProblem(problems, field + QLatin1Char('.') + it.key(),
-                       QStringLiteral("must be a text that is not empty"));
-        } else {
-            text.values.insert(it.key(), it.value().toString());
-        }
-    }
-    if (!object.contains(QStringLiteral("en"))) {
-        addProblem(problems, field,
-                   QStringLiteral("the English text (\"en\") is missing; it is shown in "
-                                  "languages the package does not have"));
-    }
-    return text;
-}
-
-}  // namespace detail
-
-namespace {
-
-using detail::addProblem;
-using detail::checkKeys;
-using detail::isIdentifier;
-using detail::isWholeNumber;
-using detail::readText;
 
 /// Package ids: "kalahari.novel"
 bool isPackageId(const QString& text) {
@@ -176,32 +93,6 @@ QString readIcon(const QJsonValue& value, const QString& field, QStringList& pro
         return {};
     }
     return value.toString();
-}
-
-/// List of ids; @p unique reports an id listed twice
-QStringList readIdList(const QJsonValue& value, const QString& field,
-                       bool (*isValid)(const QString&), const QString& what, bool unique,
-                       QStringList& problems) {
-    QStringList list;
-    if (value.isUndefined()) {
-        return list;
-    }
-    if (!value.isArray()) {
-        addProblem(problems, field, QStringLiteral("must be a list of %1s").arg(what));
-        return list;
-    }
-    const QJsonArray array = value.toArray();
-    for (const auto& item : array) {
-        const QString id = item.toString();
-        if (!item.isString() || !isValid(id)) {
-            addProblem(problems, field, QStringLiteral("'%1' is not a %2").arg(id, what));
-        } else if (unique && list.contains(id)) {
-            addProblem(problems, field, QStringLiteral("'%1' is listed twice").arg(id));
-        } else {
-            list << id;
-        }
-    }
-    return list;
 }
 
 /// A file of the package: a relative path inside its folder, with @p suffix, that exists
@@ -304,7 +195,7 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
     checkKeys(object, field,
               {"form", "name", "plural", "words", "icon", "places", "limit", "title",
                "numbering", "template", "position", "first", "editor", "generated",
-               "settings", "workshopGroup", "retired"},
+               "settings", "workshopGroup", "retired", "fields", "chapterRoles"},
               problems);
 
     ElementKind kind;
@@ -438,10 +329,16 @@ std::optional<ElementKind> readKind(const QString& id, const QJsonValue& value,
         } else {
             kind.editor = editor.toString();
         }
+    } else if (kind.form == ElementForm::Text &&
+               editor.toString() == QLatin1String(ElementKind::CARD_EDITOR)) {
+        kind.editor = editor.toString();
     } else if (!editor.isUndefined()) {
         addProblem(problems, field + QStringLiteral(".editor"),
-                   QStringLiteral("only a window kind has an editor"));
+                   QStringLiteral("only a window kind has an editor, and a text kind the "
+                                  "editor of cards, \"card\""));
     }
+
+    card_package::readCardKind(object, field, kind, problems);
 
     const QJsonValue generated = object.value(QStringLiteral("generated"));
     if (!generated.isUndefined()) {
@@ -785,6 +682,49 @@ QString KindReference::toString() const {
     return packageId.isEmpty() ? kindId : packageId + QLatin1Char(':') + kindId;
 }
 
+const CardFieldChoice* CardField::choice(const QString& choiceId) const {
+    const auto found =
+        std::find_if(choices.cbegin(), choices.cend(),
+                     [&choiceId](const CardFieldChoice& each) { return each.id == choiceId; });
+    return found == choices.cend() ? nullptr : &*found;
+}
+
+QString CardField::typeName(CardFieldType type) {
+    switch (type) {
+    case CardFieldType::LongText:
+        return QStringLiteral("longText");
+    case CardFieldType::Choice:
+        return QStringLiteral("choice");
+    case CardFieldType::Card:
+        return QStringLiteral("card");
+    case CardFieldType::Text:
+        break;
+    }
+    return QStringLiteral("text");
+}
+
+std::optional<CardFieldType> CardField::typeFromName(const QString& name) {
+    for (const CardFieldType type : {CardFieldType::Text, CardFieldType::LongText,
+                                     CardFieldType::Choice, CardFieldType::Card}) {
+        if (name == typeName(type)) {
+            return type;
+        }
+    }
+    return std::nullopt;
+}
+
+const CardField* ElementKind::field(const QString& fieldId) const {
+    const auto found = std::find_if(fields.cbegin(), fields.cend(),
+                                    [&fieldId](const CardField& each) { return each.id == fieldId; });
+    return found == fields.cend() ? nullptr : &*found;
+}
+
+const CardField* ElementKind::subtitleField() const {
+    const auto found = std::find_if(fields.cbegin(), fields.cend(),
+                                    [](const CardField& each) { return each.subtitle; });
+    return found == fields.cend() ? nullptr : &*found;
+}
+
 bool ElementKind::allows(BookPlace place) const {
     return places.contains(bookPlaceName(place));
 }
@@ -903,8 +843,8 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
     }
     checkKeys(*manifest, manifestFile,
               {"format", "id", "version", "role", "name", "description", "icon", "uses", "kinds",
-               "front", "main", "back", "workshop", "primary", "start", "partsLayer", "styles",
-               "publishingTemplates"},
+               "relations", "front", "main", "back", "workshop", "primary", "start", "partsLayer",
+               "styles", "publishingTemplates"},
               problems);
 
     BookTypePackage package;
@@ -958,6 +898,10 @@ std::optional<BookTypePackage> BookTypePackage::read(const QString& directory,
             package.kinds.append(std::move(*kind));
         }
     }
+    // The relations between its kinds of cards, and those that its fields of cards make
+    package.relations = card_package::readRelations(manifest->value(QStringLiteral("relations")),
+                                                    QStringLiteral("relations"), problems);
+    card_package::checkRelations(package, problems);
 
     for (const BookPlace place :
          {BookPlace::Front, BookPlace::Main, BookPlace::Back, BookPlace::Workshop}) {
