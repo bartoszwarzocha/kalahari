@@ -45,6 +45,17 @@ void openBook(ProjectManager& pm, const QTemporaryDir& dir) {
     REQUIRE(pm.createProject(dir.path(), "Names", "Anna", "pl", true, "kalahari.novel"));
 }
 
+/// Closes the book of the tests when a test ends, before its folder is removed: its database
+/// does not outlive the folder nor Qt's connections (Qt 6.4 crashed at the exit)
+struct ClosedAtEnd {
+    ClosedAtEnd() = default;
+    ClosedAtEnd(const ClosedAtEnd&) = delete;
+    ClosedAtEnd& operator=(const ClosedAtEnd&) = delete;
+    ClosedAtEnd(ClosedAtEnd&&) = delete;
+    ClosedAtEnd& operator=(ClosedAtEnd&&) = delete;
+    ~ClosedAtEnd() { kalahari::test::book().closeProject(false); }
+};
+
 /// The kind @p kindId of the Base
 KindRef baseKind(const ProjectManager& pm, const char* kindId) {
     const KindRef kind =
@@ -67,6 +78,7 @@ QStringList textsOf(const DictionaryName& name) {
 TEST_CASE("Card names: what a name of a card is", "[core][cards][dictionary]") {
     const QTemporaryDir dir;
     auto& pm = kalahari::test::book();
+    const ClosedAtEnd closed;
     openBook(pm, dir);
     CHECK(kalahari::core::nameKindOf(*baseKind(pm, "character").kind) == NameKind::Character);
     CHECK(kalahari::core::nameKindOf(*baseKind(pm, "location").kind) == NameKind::Place);
@@ -182,6 +194,7 @@ TEST_CASE("Card names: a new card is said, a removed one leaves its name without
           "[core][cards][dictionary][project_manager]") {
     const QTemporaryDir dir;
     auto& pm = kalahari::test::book();
+    const ClosedAtEnd closed;
     openBook(pm, dir);
     QStringList added;
     const QObject listener;
