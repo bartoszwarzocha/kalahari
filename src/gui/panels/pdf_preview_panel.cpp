@@ -17,6 +17,7 @@
 #include "kalahari/gui/panels/pdf_pages_view.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
+#include "kalahari/gui/widgets/color_menu.h"
 
 #include <QAbstractTextDocumentLayout>
 #include <QAction>
@@ -180,8 +181,11 @@ PdfPreviewPanel::PdfPreviewPanel(core::ProjectManager& book, const QString& elem
             icons.getIcon(QStringLiteral("common.openExternal"), core::IconContext::Button));
         m_addBookmarkButton->setIcon(
             icons.getIcon(QStringLiteral("pdf.bookmarks"), core::IconContext::Button));
+        m_highlightColorButton->setIcon(
+            icons.getIcon(QStringLiteral("format.highlightColor"), core::IconContext::Button));
         const std::initializer_list<std::pair<int, const char*>> tabs{
             {BookmarksTab, "pdf.bookmarks"},
+            {HighlightsTab, "pdf.highlight"},
             {ContentsTab, "pdf.contents"},
             {ThumbnailsTab, "pdf.thumbnails"},
             {ResultsTab, "pdf.results"}};
@@ -286,6 +290,7 @@ bool PdfPreviewPanel::showPage(const QString& page) {
 
 void PdfPreviewPanel::refresh() {
     fillBookmarks();
+    fillHighlights();
     updateCommands();
 }
 
@@ -311,7 +316,7 @@ QAction* PdfPreviewPanel::layoutAction(PdfPagesView::Layout layout) const {
 
 QList<QAction*> PdfPreviewPanel::selectionActions() const {
     return {m_copyAction, m_copyReferenceAction, m_quoteAction, m_bookmarkHereAction,
-            m_selectPageAction};
+            m_highlightAction, m_selectPageAction};
 }
 
 void PdfPreviewPanel::zoomIn() {
@@ -462,6 +467,7 @@ void PdfPreviewPanel::reload() {
     m_contentsTree->setVisible(contents);
     m_contentsEmpty->setVisible(!contents);
     fillBookmarks();
+    fillHighlights();
     if (page >= 0) {
         m_view->setCurrentPage(page);
     }
@@ -493,6 +499,9 @@ bool PdfPreviewPanel::handleKey(QObject* watched, QKeyEvent& key) {
     }
     if (watched == m_bookmarksList) {
         return modifiers == Qt::NoModifier && bookmarkKey(key.key());
+    }
+    if (watched == m_highlightsList) {
+        return modifiers == Qt::NoModifier && highlightKey(key.key());
     }
     if (watched == m_searchEdit) {
         return searchKey(key.key(), modifiers);
@@ -553,6 +562,7 @@ void PdfPreviewPanel::applySettings(bool opening) {
     }
     m_view->setPageLayout(shown);
     layoutAction(shown)->setChecked(true);
+    applyHighlightsSetting();
     if (!opening) {
         return;
     }
@@ -684,15 +694,23 @@ void PdfPreviewPanel::updateCommands() {
     m_bookmarkHereAction->setEnabled(shown && writable);
     m_selectPageAction->setEnabled(shown);
     m_addBookmarkButton->setEnabled(shown && writable);
+    m_highlightAction->setEnabled(selected && writable);
+    m_newHighlightColors->menuAction()->setEnabled(selected && writable);
+    m_highlightButton->setEnabled(selected && writable);
+    const bool highlighted = highlightTarget() >= 0;
+    m_highlightColorButton->setEnabled(highlighted && writable);
+    m_highlightNoteAction->setEnabled(highlighted && writable);
+    m_removeHighlightAction->setEnabled(highlighted && writable);
 }
 
 void PdfPreviewPanel::showSelectionMenu(const QPoint& globalPosition) {
     if (!hasDocument()) {
         return;
     }
-    m_menuPage = m_view->hasSelection()
-                     ? -1
-                     : m_view->pageAt(m_view->viewport()->mapFromGlobal(globalPosition));
+    const QPoint position = m_view->viewport()->mapFromGlobal(globalPosition);
+    const bool selected = m_view->hasSelection();
+    m_menuPage = selected ? -1 : m_view->pageAt(position);
+    m_menuHighlight = selected || !PdfFiles::highlightsOn() ? -1 : m_view->highlightAt(position);
     updateCommands();
     QMenu menu(this);
     menu.addAction(m_copyAction);
@@ -700,10 +718,13 @@ void PdfPreviewPanel::showSelectionMenu(const QPoint& globalPosition) {
     menu.addAction(m_quoteAction);
     menu.addSeparator();
     menu.addAction(m_bookmarkHereAction);
+    addHighlightCommands(menu);
     menu.addSeparator();
     menu.addAction(m_selectPageAction);
     menu.exec(globalPosition);
     m_menuPage = -1;
+    m_menuHighlight = -1;
+    updateCommands();
 }
 
 void PdfPreviewPanel::goToTypedPage() {
@@ -746,8 +767,8 @@ void PdfPreviewPanel::focusNextPart(bool forward) {
     QWidget* part = parts.at(next);
     if (part == m_side) {
         // The list of the tab shown, else its tabs
-        const QList<QWidget*> lists{m_bookmarksList, m_contentsTree, m_thumbnails,
-                                    m_resultsList};
+        const QList<QWidget*> lists{m_bookmarksList, m_highlightsList, m_contentsTree,
+                                    m_thumbnails, m_resultsList};
         QWidget* list = lists.value(m_side->currentIndex());
         part = list != nullptr && list->isVisible() ? list : m_side->tabBar();
     }

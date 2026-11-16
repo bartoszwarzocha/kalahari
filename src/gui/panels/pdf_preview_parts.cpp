@@ -3,7 +3,8 @@
 
 /// @file pdf_preview_parts.cpp
 /// @brief The parts of PdfPreviewPanel: its tool bar, its side panel (the bookmarks, the
-/// contents, the small pages and the hits of the search) and the bar of a selection
+/// contents, the small pages and the hits of the search) and the bar of a selection; the
+/// highlights are in pdf_preview_highlights.cpp
 
 #include "kalahari/gui/panels/pdf_preview_panel.h"
 
@@ -15,6 +16,7 @@
 #include "kalahari/gui/panels/pdf_pages_view.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
+#include "kalahari/gui/widgets/color_menu.h"
 
 #include <QAbstractTextDocumentLayout>
 #include <QAction>
@@ -422,6 +424,9 @@ void PdfPreviewPanel::buildSidePanel() {
     //: In Polish: Zakładki
     m_side->setTabToolTip(BookmarksTab, tr("Bookmarks"));
 
+    // The highlights of the material, next to the bookmarks
+    buildHighlightsTab(page);
+
     // The contents of the file
     m_contentsTree = new QTreeView();
     m_contentsTree->setObjectName(QStringLiteral("pdfPreviewContents"));
@@ -475,6 +480,7 @@ void PdfPreviewPanel::connectSidePanel() {
     connect(m_bookmarksList, &QTreeWidget::itemActivated, this, &PdfPreviewPanel::goToBookmark);
     connect(m_bookmarksList, &QTreeWidget::itemClicked, this, &PdfPreviewPanel::goToBookmark);
     connect(m_bookmarksList, &QTreeWidget::itemChanged, this, &PdfPreviewPanel::saveBookmarkNote);
+    connectHighlights();
     const auto goToContents = [this](const QModelIndex& index) {
         const int page = index.data(static_cast<int>(PdfContentsModel::Role::Page)).toInt();
         if (page >= 0) {
@@ -548,6 +554,21 @@ void PdfPreviewPanel::buildSelectionCommands() {
     connect(m_bookmarkHereAction, &QAction::triggered, this, &PdfPreviewPanel::addBookmark);
     connect(m_selectPageAction, &QAction::triggered, this,
             [this]() { m_view->selectPage(commandPage()); });
+    //: Marks the selection with a color, as with a highlighter. In Polish: Zakreśl
+    m_highlightAction = art.createAction(QStringLiteral("pdf.highlight"), tr("Highlight"), this);
+    //: In Polish: Zakreśla zaznaczenie kolorem wybranym ostatnio; strzałka obok otwiera inne kolory
+    m_highlightAction->setToolTip(tr("Highlights the selection in the color chosen last; the "
+                                     "arrow beside it gives the other colors"));
+    //: In Polish: Zmień notatkę
+    m_highlightNoteAction = new QAction(tr("Change Note"), this);
+    //: In Polish: Usuń zakreślenie
+    m_removeHighlightAction = art.createAction(QStringLiteral("common.delete"),
+                                               tr("Delete Highlight"), this);
+    connect(m_highlightAction, &QAction::triggered, this, &PdfPreviewPanel::highlight);
+    connect(m_highlightNoteAction, &QAction::triggered, this,
+            &PdfPreviewPanel::editHighlightNote);
+    connect(m_removeHighlightAction, &QAction::triggered, this,
+            &PdfPreviewPanel::removeHighlight);
 
     // The bar over a selection made with the mouse; the keys have the menu
     m_selectionBar = new QFrame(m_view->viewport());
@@ -569,6 +590,15 @@ void PdfPreviewPanel::buildSelectionCommands() {
         button->setAutoRaise(true);
         barLayout->addWidget(button);
     }
+    // Highlight, with the other colors beside it
+    m_highlightButton = new QToolButton(m_selectionBar);
+    m_highlightButton->setDefaultAction(m_highlightAction);
+    m_highlightButton->setMenu(m_newHighlightColors);
+    m_highlightButton->setPopupMode(QToolButton::MenuButtonPopup);
+    m_highlightButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_highlightButton->setFocusPolicy(Qt::NoFocus);
+    m_highlightButton->setAutoRaise(true);
+    barLayout->addWidget(m_highlightButton);
     m_selectionBar->hide();
 }
 

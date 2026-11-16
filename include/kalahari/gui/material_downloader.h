@@ -14,6 +14,8 @@
 #include <QUrl>
 
 class QNetworkAccessManager;
+class QNetworkReply;
+class QNetworkRequest;
 
 namespace kalahari {
 namespace gui {
@@ -43,6 +45,13 @@ public:
 
     /// @brief What the setting says now
     static Policy policy();
+
+    /// @brief Why download @p reply failed, in a sentence for the writer
+    [[nodiscard]] static QString failureOf(const QNetworkReply* reply);
+
+    /// @brief The request of @p url as the program sends it: with its name and TIMEOUT, and
+    /// redirected only to addresses as safe
+    [[nodiscard]] static QNetworkRequest requestOf(const QUrl& url);
 
     /// @brief Most of a page read for its title
     static constexpr qint64 MAXIMUM_PAGE = 1024 * 1024;
