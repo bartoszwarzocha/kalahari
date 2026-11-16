@@ -29,9 +29,6 @@ set(KALAHARI_CORE_SOURCES
     editor/book_export.cpp             # Export of a book: the texts read as the editor reads them
     editor/docx_writer.cpp             # Export of a book to a Word document (DOCX)
     editor/markdown_writer.cpp         # Export of a book to Markdown (GitHub Flavored)
-    editor/book_pages.cpp              # The pages of a book as the page view shows them (PDF, printer)
-    editor/book_print.cpp              # The print of a book: the pages on the sheets, their drawing
-    editor/pdf_writer.cpp              # Export of a book to a PDF document
     editor/epub_writer.cpp             # Export of a book to an EPUB 3 e-book
     core/database_schema_manager.cpp
     core/project_lock.cpp
@@ -446,6 +443,10 @@ set(KALAHARI_SOURCES
     editor/formatting_marks.cpp               # The formatting marks of a paragraph (¶ · ° → ↵ ¬), drawn by the layout
     editor/text_source_adapter.cpp            # OpenSpec #00043 Phase 12.1: Text source adapters
     editor/editor_render_pipeline.cpp         # OpenSpec #00043 Phase 12.1: Unified render pipeline
+    # The pages of a book use the layout of the editor above, so they are not in kalahari_core
+    editor/book_pages.cpp                     # The pages of a book as the page view shows them (PDF, printer)
+    editor/book_print.cpp                     # The print of a book: the pages on the sheets, their drawing
+    editor/pdf_writer.cpp                     # Export of a book to a PDF document
     editor/editor_benchmark.cpp               # OpenSpec #00043 Phase 11.11: Performance benchmarks
     # Headers with Q_OBJECT (needed for AUTOMOC to generate moc files)
     ${CMAKE_SOURCE_DIR}/include/kalahari/core/utils/icon_downloader.h  # IconDownloader with Q_OBJECT
