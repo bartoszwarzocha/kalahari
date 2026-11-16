@@ -3,7 +3,7 @@
 
 /// @file source_description.h
 /// @brief What a material that is a source says of itself: its bibliographic description, its
-/// bookmarks and, of a quote, the source and the page it comes from
+/// bookmarks and highlights and, of a quote, the source and the page it comes from
 
 #ifndef KALAHARI_CORE_SOURCE_DESCRIPTION_H
 #define KALAHARI_CORE_SOURCE_DESCRIPTION_H
@@ -11,6 +11,7 @@
 #include <QJsonObject>
 #include <QList>
 #include <QMap>
+#include <QRectF>
 #include <QString>
 #include <QStringList>
 
@@ -153,6 +154,24 @@ struct PageBookmark {
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
     bool operator==(const PageBookmark&) const = default;
+};
+
+/// @brief Text on a page of the PDF file of a material, marked as with a highlighter: the
+/// file stays as it is
+///
+/// Saved with the material as "highlights": [{ "page": 45, "areas": [[72, 140.5, 310, 12]],
+/// "text": "Karawana idzie...", "color": "#FFFF00", "note": "..." }]; an area is the left, the
+/// top, the width and the height of a part of a line, in points from the top left corner of
+/// the page.
+struct PdfHighlight {
+    int page = 1;          ///< Page of the file, from 1
+    QList<QRectF> areas;   ///< Where the text is on the page, in points; one or more lines
+    QString text;          ///< The text marked
+    QString color;         ///< "#RRGGBB"; empty: the first highlight color of the program
+    QString note;          ///< The writer's note; empty: none
+    QJsonObject extra;     ///< Fields this version does not know, saved back
+
+    bool operator==(const PdfHighlight&) const = default;
 };
 
 /// @brief Where a quote comes from: a material that is a source and its page, or an author

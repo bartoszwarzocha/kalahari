@@ -3,7 +3,7 @@
 
 /// @file pdf_pages_view.h
 /// @brief The pages of a PDF file as the preview shows them: one under another, one at a time
-/// or two side by side, with the selected text and the search hits
+/// or two side by side, with the selected text, the highlights and the search hits
 
 #ifndef KALAHARI_GUI_PANELS_PDF_PAGES_VIEW_H
 #define KALAHARI_GUI_PANELS_PDF_PAGES_VIEW_H
@@ -34,9 +34,9 @@ namespace kalahari::gui {
 /// @brief The pages of a PDF file, drawn by the program (PdfDocument::render())
 ///
 /// The view draws the pages itself: it selects the text of a page with the mouse
-/// (PdfDocument::getSelection()), draws the hits of a search (PdfSearchModel), shows the pages
-/// darker or with their colors turned in a dark theme, and two pages side by side as in a
-/// book: the first alone, then the even pages on the left.
+/// (PdfDocument::getSelection()), draws the highlights kept in the book and the hits of a
+/// search (PdfSearchModel), shows the pages darker or with their colors turned in a dark theme,
+/// and two pages side by side as in a book: the first alone, then the even pages on the left.
 ///
 /// Keys: PgUp and PgDn the previous and the next page, Home and End the first and the last
 /// one, the arrows move the pages, Ctrl with the wheel zooms, Enter asks for the card of the
@@ -74,6 +74,13 @@ public:
         QColor selection;           ///< The selected text
         QColor searchMatch;         ///< The hits of the search
         QColor currentSearchMatch;  ///< The hit gone to
+    };
+
+    /// @brief Text marked on a page, as with a highlighter
+    struct Highlight {
+        int page = 0;         ///< From 0
+        QList<QRectF> areas;  ///< Where it is, in points of the page
+        QColor color;         ///< Of the highlighter: it colors the paper, not the text
     };
 
     /// @brief The zooms of Zoom In and Zoom Out, from the smallest
@@ -164,8 +171,21 @@ public:
     /// @brief The selection in the coordinates of the viewport; empty: none, or not shown
     [[nodiscard]] QRect selectionRect() const;
 
+    /// @brief Where the selection is on its page, in points: a rectangle a line; empty: none
+    [[nodiscard]] QList<QRectF> selectionAreas() const;
+
     /// @brief Draw the hit gone to: its @p rectangles on page @p page; -1: none
     void setCurrentHit(int page, const QList<QRectF>& rectangles);
+
+    /// @brief Draw @p highlights over the text, under the hits and the selection
+    void setHighlights(const QList<Highlight>& highlights);
+
+    /// @brief The highlights it draws
+    [[nodiscard]] const QList<Highlight>& highlights() const { return m_highlights; }
+
+    /// @brief The highlight at @p position of the viewport: its index in highlights(); -1:
+    /// none
+    [[nodiscard]] int highlightAt(const QPoint& position) const;
 
     /// @brief Page @p page (from 0) in the coordinates of the viewport; empty: not laid out
     [[nodiscard]] QRect pageRect(int page) const;
@@ -225,8 +245,8 @@ private:
     /// @brief Lay out the pages of @p shownRows at m_zoom: m_rects and m_size
     void placePages(const QList<QList<int>>& shownRows);
 
-    /// @brief Draw over page @p page, at @p rect of the viewport, the hits of the search, the
-    /// hit gone to and the selection
+    /// @brief Draw over page @p page, at @p rect of the viewport, the highlights, the hits of
+    /// the search, the hit gone to and the selection
     void paintMarks(QPainter& painter, int page, const QRect& rect) const;
 
     /// @brief One page or one spread at a time: past the end of the row, the wheel turned by
@@ -311,6 +331,7 @@ private:
     int m_selectionPage = -1;
     int m_hitPage = -1;
     QList<QRectF> m_hitRectangles;
+    QList<Highlight> m_highlights;
     int m_dragPage = -1;  ///< The page the mouse selects on; -1: none
     QPointF m_dragStart;  ///< Where it was pressed, in points
     bool m_scrolling = false;  ///< The view itself scrolls to a page: the page stays

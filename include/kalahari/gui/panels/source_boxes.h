@@ -37,15 +37,22 @@ namespace kalahari::gui {
 /// page). The people are a table of names and what each did: "+" or Insert adds one with the
 /// keys in its name, F2 edits a cell, "-" or Delete takes one out. A field is saved when it
 /// loses the keys; the title, empty, is the title of the material. Paste Description reads a
-/// record of BibTeX or RIS from the clipboard; Fill In from File, for a PDF file, the title, the
-/// author, the year and the pages the file has. A material whose description says nothing is no
-/// source; the kind alone does not make it one.
+/// record of BibTeX or RIS from the clipboard; From the Web by ISBN or DOI..., shown when the
+/// Settings allow it (core::SourceCatalogs::LOOKUP_SETTING), asks a catalog on the web; Fill In
+/// from File, for a PDF file, the title, the author, the year and the pages the file has. A
+/// material whose description says nothing is no source; the kind alone does not make it one.
 class SourceDescriptionBox : public QGroupBox {
     Q_OBJECT
 
 public:
     /// @brief The group of the descriptions of the materials of @p book
     explicit SourceDescriptionBox(core::ProjectManager& book, QWidget* parent = nullptr);
+    ~SourceDescriptionBox() override;
+
+    SourceDescriptionBox(const SourceDescriptionBox&) = delete;
+    SourceDescriptionBox& operator=(const SourceDescriptionBox&) = delete;
+    SourceDescriptionBox(SourceDescriptionBox&&) = delete;
+    SourceDescriptionBox& operator=(SourceDescriptionBox&&) = delete;
 
     /// @brief Show the description of @p element; the field with the keys keeps what is typed
     void showMaterial(const core::ProjectElement& element);
@@ -63,6 +70,8 @@ public:
     [[nodiscard]] QToolButton* removePersonButton() const { return m_removePersonButton; }
     /// @brief Paste Description (BibTeX, RIS)
     [[nodiscard]] QPushButton* pasteButton() const { return m_pasteButton; }
+    /// @brief From the Web by ISBN or DOI..., shown when the Settings allow it
+    [[nodiscard]] QPushButton* lookupButton() const { return m_lookupButton; }
     /// @brief Fill In from File, shown for a PDF file
     [[nodiscard]] QPushButton* fillButton() const { return m_fillButton; }
 
@@ -84,6 +93,11 @@ public slots:
 
     /// @brief Take the description from a record of BibTeX or RIS on the clipboard
     void pasteDescription();
+
+    /// @brief Fill the description from a catalog on the web, by the ISBN or the DOI the
+    /// writer gives (dialogs::SourceLookupDialog): its fields take the place of those the card
+    /// has, the others stay
+    void lookUp();
 
     /// @brief Fill the empty fields with what the PDF file of the material says of itself: its
     /// title, its authors, its year and, of a book or a thesis, its pages
@@ -130,7 +144,9 @@ private:
     QHash<QString, QLineEdit*> m_edits;
     QHash<QString, QLabel*> m_labels;
     QPushButton* m_pasteButton = nullptr;
+    QPushButton* m_lookupButton = nullptr;
     QPushButton* m_fillButton = nullptr;
+    int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
     bool m_pdf = false;  ///< The file of the material is a PDF the program reads
 };
 

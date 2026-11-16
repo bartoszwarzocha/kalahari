@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The description of a source from the web by its ISBN or DOI** - 2026-11-15. An option,
+  off at first (Settings > Materials > Sources > Descriptions from the web by ISBN and
+  DOI), gives the card of a source the button From the Web by ISBN or DOI...: Look Up
+  sends only the number of the card, or the one typed, an ISBN to the catalog chosen
+  (Google Books, recommended, or Open Library) and a DOI to doi.org, and the description
+  found takes the place of the fields it has; the others stay as they were. A wrong number,
+  a book the catalog does not know or a failed connection is said in the window; Esc stops
+  the search. Without the option the program sends nothing and the card has no such button.
+
+- **Highlights in PDF files** - 2026-11-15. An option, off at first (Settings > Materials >
+  PDF Preview > Highlights on the pages, kept in the book), marks the text selected in the
+  preview with a color: Highlight and Highlight in Color are on the bar and in the menu of
+  the selection. The side panel has the tab Highlights next to the bookmarks: the page, the
+  text and the note of each highlight; Enter goes to the text, F2 changes the note, Delete
+  deletes the highlight (asking first when it has a note), Insert highlights the selection,
+  and the Color button changes the color. The menu of a highlight on the page also changes
+  its color or note and deletes it. The highlights are kept in the book (`highlights` of the
+  source in the .klh file), not in the PDF file, which stays as it is; with the option off
+  they are not shown and stay in the book.
+
 - **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
   characters, locations and items, added from the Book menu, the Navigator ("Add Character...",
   "Add Location...", "Add Item...") or Add Element, in the groups Characters, Locations and Items
@@ -113,6 +133,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (Properties of the book > Bibliography). The kind Source of non-fiction is retired: books
   that have one keep it. In the book file: `source`, `bookmarks`, `lastPage` and `quote` of
   a material, `bibliographyStyle` of a book; fields the program does not know are kept.
+
+- **Paste Special and Go To** - 2026-11-13. Edit > Paste Special... (no keys: Ctrl+Shift+V
+  pastes the text only) says where the content of the clipboard comes from (Kalahari,
+  Microsoft Word, LibreOffice, Google Docs, a web page or another program, text, a picture,
+  files of pictures) and pastes it in the form chosen: the Kalahari format, with the
+  annotations, of text copied in Kalahari; its formatting kept or merged with the book's look,
+  the text only; a picture (a screenshot, the picture Word gives with its text) or files of
+  pictures as images. The forms the clipboard has not are greyed out, saying why, and the
+  hint says what the one chosen keeps; the one Paste would give is chosen first, and the gear
+  opens the Paste Command in Settings > Editor > General. Text copied in Kalahari pasted with
+  its formatting kept or merged comes as from another program, without its annotations and
+  images. Edit > Go To... (Ctrl+G) goes to a page (in the Page Layout view), a heading, a
+  footnote or an endnote (by the number it shows), an image, a table or an annotation of the
+  text: by its number, on or back from the cursor ("+2", "-1"), or Next and Previous; the
+  window stays open over the text and says where it went ("Heading 3 of 7") or why not. The
+  Edit menu has Go To... after Find in Book..., as the mockup of the menu, and Settings...
+  once: Preferences..., which opened the same window, is no more in it (the command stays for
+  the keys and the toolbars), so every item keeps a key of its own.
 
 - **Fields** - 2026-11-13. Insert > Field... inserts a value that changes by itself: the title
   of the book, its author, the title of the text (named after its kind: "Chapter Title"), the
@@ -1532,6 +1570,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The default labels of captions in Polish** - 2026-11-16. The labels that new books and
+  Settings > Editor > Images start with are "Rysunek", "Fotografia", "Ilustracja", "Mapa" and
+  "Schemat" in the Polish program, not "Figure", "Photo", "Illustration", "Map" and "Diagram":
+  the translations now find these texts. A book that already numbers its captions keeps the
+  labels it has.
 - **A paragraph at the top of a page drawn at the bottom of the page before** - 2026-11-13. In
   the Page Layout view a paragraph whose first line went on to the next page could be drawn
   in the margin of the page before, and its page fields showed that page, after its list
