@@ -30,7 +30,8 @@ class CommandRegistry;
 /// @brief Imports Word documents, Markdown and plain text into the book of the window or into
 ///        a new book
 ///
-/// The commands work always: without an open book the import makes a new one. A command
+/// The commands work always: without an open book the import makes a new one; Other Formats
+/// while a plugin imports a format of its own (core::IImporter). A command
 /// opens the system window of the files first, then the window of the import. After the
 /// import the Navigator shows the book as it is; a new book opens as a book of File > Open
 /// Book does, when the window closes.
@@ -56,15 +57,21 @@ class BookImportCoordinator : public QObject {
     BookImportCoordinator(const BookImportCoordinator&) = delete;
     BookImportCoordinator& operator=(const BookImportCoordinator&) = delete;
 
-    /// @brief Give File > Import > DOCX, Markdown and Plain Text their callbacks
+    /// @brief Give File > Import > DOCX, Markdown, Plain Text and Other Formats their callbacks
     /// @note Call after the commands are registered
     void connectCommands();
 
     /// @brief Choose the files of @p format in the system window, then import them
     void importFormat(ImportFormat format);
 
-    /// @brief Open the window of the import of @p files of @p format
-    void importFiles(ImportFormat format, const QStringList& files);
+    /// @brief File > Import > Other Formats: choose the files of a format of a plugin in the
+    ///        system window, then import them
+    void importPluginFormat();
+
+    /// @brief Open the window of the import of @p files of @p format; of ImportFormat::Plugin,
+    ///        of the format @p plugin
+    void importFiles(ImportFormat format, const QStringList& files,
+                     const QString& plugin = QString());
 
     /// @brief What the window says about the book of the window
     dialogs::ImportBookDialog::Book dialogBook() const;

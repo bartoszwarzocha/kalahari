@@ -8,6 +8,7 @@
 
 #include <kalahari/core/book_project.h>
 #include <kalahari/core/book_type_registry.h>
+#include <kalahari/core/extension_points.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/gui/book_import_plan.h>
 #include <kalahari/gui/book_styles.h>
@@ -313,4 +314,73 @@ TEST_CASE("Import plan: the start of a text file in its encoding", "[import][gui
     CHECK(textPreview(QDir(folder.path()).filePath(QStringLiteral("none.txt")),
                       editor::TextEncoding::Utf8, 2)
               .isEmpty());
+}
+
+TEST_CASE("Import plan: the texts a plugin read, with their titles, as one document",
+          "[import][gui][plugins]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    {
+        QFile image(QDir(folder.path()).filePath(QStringLiteral("map.png")));
+        REQUIRE(image.open(QIODevice::WriteOnly));
+        image.write("\x89PNG\r\n\x1a\n");
+    }
+    const std::vector<core::ImportTextInfo> texts{
+        {"", "Szklane miasto\n\nAutor: Anna"},
+        {"  INT. DOM – NOC ", "Anna *czyta* list.[^1]\n\n[^1]: Od brata.\n\n# Uwaga\n\nCisza."},
+        {"", "Wiatr.[^1] ![Mapa](map.png)\n\n[^1]: Gorący.\n\n### Głęboko\n\nPiasek."},
+    };
+    const editor::ImportDocument document =
+        pluginDocument(texts, folder.path(), QStringLiteral("Szkic"));
+
+    // Each text after the first one starts with its title, a heading of the first level; the
+    // headings of the texts go a level lower
+    std::vector<std::pair<int, QString>> headings;
+    for (const editor::ImportBlock& block : document.blocks) {
+        if (const int level = document.headingLevelOf(block); level > 0) {
+            headings.emplace_back(level, editor::importPlainText(block));
+        }
+    }
+    CHECK(headings == std::vector<std::pair<int, QString>>{{1, QStringLiteral("INT. DOM – NOC")},
+                                                          {2, QStringLiteral("Uwaga")},
+                                                          {1, QStringLiteral("Szkic")},
+                                                          {4, QStringLiteral("Głęboko")}});
+    // The notes and the images of each text are its own
+    REQUIRE(document.notes.size() == 2);
+    REQUIRE(document.images.size() == 1);
+    CHECK_FALSE(document.images[0].missing);
+    std::vector<int> notes;
+    std::vector<int> images;
+    for (const editor::ImportBlock& block : document.blocks) {
+        for (const editor::ImportRun& run : block.runs) {
+            if (run.kind == editor::ImportRun::Kind::Note) {
+                notes.push_back(run.index);
+            } else if (run.kind == editor::ImportRun::Kind::Image) {
+                images.push_back(run.index);
+            }
+        }
+    }
+    CHECK(notes == std::vector<int>{0, 1});
+    CHECK(images == std::vector<int>{0});
+    CHECK(editor::importPlainText(document.notes[1].paragraphs.front()) ==
+          QStringLiteral("Gorący."));
+    // The styles of the paragraphs, counted in the whole document
+    QStringList styles;
+    for (const editor::ImportStyle& style : document.styles) {
+        styles << QStringLiteral("%1 %2").arg(style.key).arg(style.paragraphs);
+    }
+    CHECK(styles == QStringList({QStringLiteral("normal 6"), QStringLiteral("heading_1 2"),
+                                 QStringLiteral("heading_2 1"), QStringLiteral("heading_3 1")}));
+
+    // Divided at the titles: the text before them, then the plugin's texts with their titles
+    const std::vector<editor::ImportPiece> pieces =
+        editor::splitDocument(document, editor::SplitOptions());
+    REQUIRE(pieces.size() == 3);
+    CHECK(pieces[0].beforeTitles);
+    CHECK(pieces[1].title == QStringLiteral("INT. DOM – NOC"));
+    CHECK(pieces[2].title == QStringLiteral("Szkic"));
+    CHECK(pieces[1].words == 7);  // "Anna czyta list." "Od brata." "Uwaga" "Cisza."
+
+    // No texts: an empty document
+    CHECK(pluginDocument({}, folder.path(), QStringLiteral("Szkic")).blocks.empty());
 }

@@ -7,6 +7,8 @@
 
 #include "kalahari/gui/dialogs/import_book_dialog.h"
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/extension_points.h"
+#include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/book_styles.h"
@@ -39,6 +41,7 @@
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <exception>
 #include <map>
 #include <utility>
 
@@ -50,6 +53,8 @@ namespace {
 
 constexpr int ROW_ROLE = Qt::UserRole;   ///< The index of a row of the list of the texts
 constexpr int PATH_ROLE = Qt::UserRole;  ///< The path of a row of the list of the files
+/// The id of a format of a plugin in the list of the formats (PluginImportFormat::id)
+constexpr int PLUGIN_ROLE = Qt::UserRole + 1;
 /// Rows the lists show at most (the others scroll in them): the window with the result of the
 /// import fits 1366x768 at 150%
 constexpr int FILE_ROWS = 3;
@@ -82,6 +87,8 @@ const char* formatKey(ImportFormat format) {
             return "markdown";
         case ImportFormat::PlainText:
             return "text";
+        case ImportFormat::Plugin:
+            break;  // keeps no choices of its own
     }
     return "docx";
 }
@@ -152,9 +159,10 @@ const char* partPatternKey(editor::PartPattern pattern) {
     return "none";
 }
 
-/// The index of the item of @p box with data @p data; the first item when none has it
-void chooseData(QComboBox* box, const QVariant& data) {
-    const int index = box->findData(data);
+/// The index of the item of @p box with data @p data in @p role; the first item when none has
+/// it
+void chooseData(QComboBox* box, const QVariant& data, int role = Qt::UserRole) {
+    const int index = box->findData(data, role);
     box->setCurrentIndex(index >= 0 ? index : 0);
 }
 
@@ -265,6 +273,17 @@ QLabel* newLabel(const QString& text, QWidget* buddy, QWidget* parent) {
 ImportBookDialog::ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry,
                                    ImportFormat format, const QStringList& files, Actions actions,
                                    QWidget* parent)
+    : ImportBookDialog(book, registry, format, QString(), files, std::move(actions), parent) {}
+
+ImportBookDialog::ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry,
+                                   const QString& plugin, const QStringList& files,
+                                   Actions actions, QWidget* parent)
+    : ImportBookDialog(book, registry, ImportFormat::Plugin, plugin, files, std::move(actions),
+                       parent) {}
+
+ImportBookDialog::ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry,
+                                   ImportFormat format, const QString& plugin,
+                                   const QStringList& files, Actions actions, QWidget* parent)
     : ArchiveDialog(parent),
       m_book(book),
       m_registry(registry),
@@ -341,6 +360,9 @@ ImportBookDialog::ImportBookDialog(const Book& book, const core::BookTypeRegistr
                                  : m_otherFilesButton)
         ->setChecked(true);
     chooseData(m_formatBox, static_cast<int>(format));
+    if (format == ImportFormat::Plugin) {
+        chooseData(m_formatBox, plugin, PLUGIN_ROLE);
+    }
     m_filling = false;
 
     connectFields();
@@ -348,6 +370,7 @@ ImportBookDialog::ImportBookDialog(const Book& book, const core::BookTypeRegistr
     loadChoices();
     showTarget();
     m_filling = false;
+    showPluginPage();  // before the plugin reads the files with its options
     setFiles(files);
     showFormat();
     m_tabs->setCurrentIndex(0);
@@ -365,6 +388,14 @@ void ImportBookDialog::buildFileTab() {
     m_formatBox->addItem(tr("Markdown (.md)"), static_cast<int>(ImportFormat::Markdown));
     //: A format of the window of the import. In Polish: Zwykły tekst (.txt)
     m_formatBox->addItem(tr("Plain text (.txt)"), static_cast<int>(ImportFormat::PlainText));
+    for (const PluginImportFormat& each : pluginImportFormats()) {
+        //: A format of a plugin in the list of the formats; %1: its name, %2: the extensions of
+        //: its files. In Polish: %1 (%2) – wtyczka
+        m_formatBox->addItem(tr("%1 (%2) – plugin")
+                                 .arg(each.name, each.extensions.join(QStringLiteral(", "))),
+                             static_cast<int>(ImportFormat::Plugin));
+        m_formatBox->setItemData(m_formatBox->count() - 1, each.id, PLUGIN_ROLE);
+    }
     m_formatBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     //: In Polish: F&ormat:
     addRow(file, tr("F&ormat:"), newLine(filePage, {m_formatBox}))->setBuddy(m_formatBox);
@@ -548,6 +579,15 @@ void ImportBookDialog::buildDivisionTab() {
     modes->addWidget(m_wholeButton);
     modes->addStretch(1);
     split->addLayout(modes, 0, 0, 1, 2);
+    // A format of a plugin: in the place of the division
+    m_pluginNote = newRemark(
+        splitPage,
+        //: The division of a format of a plugin. In Polish: Teksty i ich tytuły daje wtyczka;
+        //: rodzaj każdego tekstu zmienisz na liście.
+        tr("The plugin gives the texts and their titles; change the kind of each text in the "
+           "list."));
+    m_pluginNote->hide();
+    split->addWidget(m_pluginNote, 0, 0, 1, 2);
 
     // The levels of the headings (DOCX, Markdown)
     m_levels = new QWidget(splitPage);
@@ -692,6 +732,7 @@ void ImportBookDialog::buildStylesTab() {
     //: A tab of the window of the import: the styles. In Polish: &Style
     QGridLayout* styles = newTab(m_tabs, tr("&Styles"));
     QWidget* stylesPage = styles->parentWidget();
+    m_stylesTab = stylesPage;
     m_fileStyles = new QWidget(stylesPage);
     auto* fileStyles = new QGridLayout(m_fileStyles);
     fileStyles->setContentsMargins(0, 0, 0, 0);
@@ -764,6 +805,7 @@ void ImportBookDialog::buildCleanupTab() {
     //: A tab of the window of the import: the cleanups of the text. In Polish: Por&ządki
     QGridLayout* cleanup = newTab(m_tabs, tr("&Cleanup"));
     QWidget* cleanupPage = cleanup->parentWidget();
+    m_cleanupTab = cleanupPage;
     //: In Polish: Cudzysłowy, apostrofy, półpauzy i wielokropki jak w &autokorekcie
     m_typographyBox = new QCheckBox(
         tr("Quotation marks, apostrophes, dashes and ellipses as in &auto-correct"), cleanupPage);
@@ -873,7 +915,17 @@ void ImportBookDialog::buildExtrasTab() {
 void ImportBookDialog::connectFields() {
     connect(m_formatBox, &QComboBox::currentIndexChanged, this, [this]() {
         if (!m_filling) {
-            setFormat(this->format());
+            formatChanged();
+        }
+    });
+    // The options of a plugin read the files again when their tab goes to the back
+    connect(m_tabs, &QTabWidget::currentChanged, this, [this](int tab) {
+        const QWidget* left = m_tabs->widget(m_tab);
+        m_tab = tab;
+        if (left != nullptr && !m_filling && format() == ImportFormat::Plugin &&
+            left == m_pluginPages.value(pluginFormat())) {
+            dropFailure();
+            readFiles();
         }
     });
     connect(m_upButton, &QPushButton::clicked, this, [this]() { moveFile(-1); });
@@ -1015,12 +1067,20 @@ ImportFormat ImportBookDialog::format() const {
     return static_cast<ImportFormat>(m_formatBox->currentData().toInt());
 }
 
+QString ImportBookDialog::pluginFormat() const {
+    return format() == ImportFormat::Plugin ? m_formatBox->currentData(PLUGIN_ROLE).toString()
+                                            : QString();
+}
+
 std::string ImportBookDialog::settingsPrefix() const {
     return std::string("import.") + formatKey(format()) + ".";
 }
 
 editor::SplitOptions ImportBookDialog::splitOptions() const {
     editor::SplitOptions options;
+    if (format() == ImportFormat::Plugin) {
+        return options;  // the plugin's texts: at the headings of their titles, each a title
+    }
     options.headingAsTitle = m_headingAsTitleBox->isChecked();
     if (m_wholeButton->isChecked()) {
         options.mode = editor::SplitMode::Whole;
@@ -1058,6 +1118,7 @@ editor::SplitOptions ImportBookDialog::splitOptions() const {
 ImportReading ImportBookDialog::reading() const {
     ImportReading reading;
     reading.format = format();
+    reading.plugin = pluginFormat();
     const int encoding = m_encodingBox->currentData().toInt();
     if (encoding >= 0) {
         reading.encoding = static_cast<editor::TextEncoding>(encoding);
@@ -1097,7 +1158,8 @@ ImportBookDialog::Choice ImportBookDialog::choice() const {
     choice.newBook.language = m_languageBox->currentData().toString();
     choice.newBook.typeId = m_typeBox->currentData().toString();
     choice.newBook.folder = m_newBookFolder;
-    choice.wholeFiles = m_files.size() > 1 && m_wholeFilesBox->isChecked();
+    const bool plugin = choice.format == ImportFormat::Plugin;
+    choice.wholeFiles = !plugin && m_files.size() > 1 && m_wholeFilesBox->isChecked();
     choice.split = splitOptions();
 
     editor::ImportKmlOptions& kml = choice.kml;
@@ -1116,6 +1178,12 @@ ImportBookDialog::Choice ImportBookDialog::choice() const {
     kml.cleanup.leadingSpaces = m_leadingSpacesBox->isChecked();
     kml.cleanup.sceneMarkers = m_sceneMarkersBox->isChecked();
     kml.cleanup.empty = static_cast<editor::EmptyParagraphs>(m_emptyBox->currentData().toInt());
+    if (plugin) {
+        // The plugin's texts as it wrote them
+        kml.dialogueStyle = false;
+        kml.cleanup = editor::ImportCleanup();
+        kml.cleanup.empty = editor::EmptyParagraphs::Keep;
+    }
     kml.annotations = choice.format == ImportFormat::Docx && m_commentsBox->isChecked();
     //: The word a comment of Word starts with that makes it a to-do. In Polish: Do zrobienia
     kml.annotationLabels.emplace_back(editor::AnnotationKind::Todo, tr("To do"));
@@ -1138,6 +1206,10 @@ ImportBookDialog::Choice ImportBookDialog::choice() const {
 }
 
 void ImportBookDialog::loadChoices() {
+    if (format() == ImportFormat::Plugin) {
+        m_acceptChangesButton->setChecked(true);
+        return;  // the plugin's texts: no choices of the program's formats
+    }
     const auto& settings = core::SettingsManager::getInstance();
     const std::string prefix = settingsPrefix();
     const auto flag = [&settings, &prefix](const char* key) {
@@ -1176,6 +1248,7 @@ void ImportBookDialog::loadChoices() {
             break;
         }
         case ImportFormat::Markdown:
+        case ImportFormat::Plugin:
             m_acceptChangesButton->setChecked(true);
             break;
         case ImportFormat::PlainText: {
@@ -1224,6 +1297,9 @@ void ImportBookDialog::rememberChoices() const {
     const Choice now = choice();
     const std::string prefix = settingsPrefix();
     settings.set<std::string>("import.target", targetKey(now.target));
+    if (now.format == ImportFormat::Plugin) {
+        return;  // keeps no choices of its own
+    }
     if (m_files.size() > 1) {
         settings.set<bool>("import.wholeFiles", m_wholeFilesBox->isChecked());
     }
@@ -1241,6 +1317,7 @@ void ImportBookDialog::rememberChoices() const {
             settings.set<bool>(prefix + "rejectChanges", now.reading.rejectChanges);
             break;
         case ImportFormat::Markdown:
+        case ImportFormat::Plugin:
             break;
         case ImportFormat::PlainText:
             settings.set<std::string>(prefix + "split", m_wholeButton->isChecked()   ? "whole"
@@ -1271,6 +1348,17 @@ void ImportBookDialog::setFormat(ImportFormat format) {
         chooseData(m_formatBox, static_cast<int>(format));
         m_filling = false;
     }
+    formatChanged();
+}
+
+void ImportBookDialog::setPluginFormat(const QString& id) {
+    m_filling = true;
+    chooseData(m_formatBox, id, PLUGIN_ROLE);
+    m_filling = false;
+    formatChanged();
+}
+
+void ImportBookDialog::formatChanged() {
     m_filling = true;
     loadChoices();
     m_filling = false;
@@ -1353,7 +1441,9 @@ void ImportBookDialog::readFiles() {
     // The encoding found in the first file, in the first item of the list
     const ImportFile* first = m_files.empty() || !m_files.front().isRead() ? nullptr
                                                                            : &m_files.front();
-    if (first != nullptr && how.format != ImportFormat::Docx) {
+    const bool ownText = how.format == ImportFormat::Markdown ||
+                         how.format == ImportFormat::PlainText;
+    if (first != nullptr && ownText) {
         QFile source(first->path);
         const editor::TextEncoding detected = source.open(QIODevice::ReadOnly)
                                                   ? editor::detectTextEncoding(source.readAll())
@@ -1418,6 +1508,12 @@ void ImportBookDialog::showFiles() {
                     problems << tr("A part of the file \"%1\" cannot be read: the file is damaged.")
                                     .arg(QFileInfo(file.path).fileName());
                     break;
+                case editor::ImportProblem::Kind::Plugin:
+                    //: %1: the name of the file; what the plugin said follows under Details.
+                    //: In Polish: Wtyczka nie odczytała pliku „%1”.
+                    problems << tr("The plugin could not read the file \"%1\".")
+                                    .arg(QFileInfo(file.path).fileName());
+                    break;
                 case editor::ImportProblem::Kind::None:
                 case editor::ImportProblem::Kind::CannotOpen:
                     //: %1: the name of the file. In Polish: Nie można otworzyć pliku „%1”.
@@ -1427,7 +1523,7 @@ void ImportBookDialog::showFiles() {
             }
         } else {
             item->setForeground(1, m_fileList->palette().brush(QPalette::PlaceholderText));
-            if (format() != ImportFormat::Docx) {
+            if (format() == ImportFormat::Markdown || format() == ImportFormat::PlainText) {
                 item->setText(1, encodingName(file.encoding));
             }
         }
@@ -1447,10 +1543,11 @@ void ImportBookDialog::showFiles() {
     // The start of the first file, to see whether its letters are right
     const ImportFile* first = m_files.empty() || !m_files.front().isRead() ? nullptr
                                                                            : &m_files.front();
-    m_previewLabel->setText(first != nullptr && format() != ImportFormat::Docx
+    const bool ownText = format() == ImportFormat::Markdown || format() == ImportFormat::PlainText;
+    m_previewLabel->setText(first != nullptr && ownText
                                 ? textPreview(first->path, first->encoding, PREVIEW_LINES)
                                 : QString());
-    m_previewLabel->setVisible(format() != ImportFormat::Docx && !m_previewLabel->text().isEmpty());
+    m_previewLabel->setVisible(ownText && !m_previewLabel->text().isEmpty());
 
     // What is in the files: the headings, the images, the notes and the comments, and the
     // properties of the first one
@@ -1552,7 +1649,7 @@ void ImportBookDialog::browseFiles() {
                         ? ProgramFolders::startFolder(ProgramFolders::Operation::ImportText)
                         : QFileInfo(m_files.back().path).absolutePath();
     QStringList patterns;
-    for (const QString& extension : importExtensions(format())) {
+    for (const QString& extension : importExtensions(format(), pluginFormat())) {
         patterns << QLatin1Char('*') + extension;
     }
     //: The title of the system window that chooses the files of the import. In Polish: Pliki
@@ -1610,12 +1707,26 @@ void ImportBookDialog::showFormat() {
     const ImportFormat now = format();
     const bool text = now == ImportFormat::PlainText;
     const bool word = now == ImportFormat::Docx;
+    const bool plugin = now == ImportFormat::Plugin;
+    const bool ownText = now == ImportFormat::Markdown || text;
     setHeadingIcon(text                            ? QStringLiteral("file.import.text")
                    : now == ImportFormat::Markdown ? QStringLiteral("file.import.markdown")
+                   : plugin                        ? QStringLiteral("file.import.plugin")
                                                    : QStringLiteral("file.import.docx"));
-    setRowVisible(m_encodingBox, !word);
-    m_encodingBox->parentWidget()->setVisible(!word);
-    m_previewLabel->setVisible(!word && !m_previewLabel->text().isEmpty());
+    setRowVisible(m_encodingBox, ownText);
+    m_encodingBox->parentWidget()->setVisible(ownText);
+    m_previewLabel->setVisible(ownText && !m_previewLabel->text().isEmpty());
+    // A format of a plugin: the plugin gives the texts, as it wrote them
+    for (QWidget* mode : {static_cast<QWidget*>(m_headingsButton),
+                          static_cast<QWidget*>(m_pagesButton),
+                          static_cast<QWidget*>(m_wholeButton)}) {
+        mode->setVisible(!plugin);
+    }
+    m_pluginNote->setVisible(plugin);
+    m_headingAsTitleBox->setVisible(!plugin);
+    m_tabs->setTabVisible(m_tabs->indexOf(m_stylesTab), !plugin);
+    m_tabs->setTabVisible(m_tabs->indexOf(m_cleanupTab), !plugin);
+    showPluginPage();
     if (text) {
         //: The division of plain text. In Polish: Przy t&ytułach
         m_headingsButton->setText(tr("At the &titles"));
@@ -1627,17 +1738,51 @@ void ImportBookDialog::showFormat() {
         //: The division of a file. In Polish: Przy podziałach st&rony
         m_pagesButton->setText(tr("At the page &breaks"));
     }
-    m_pagesButton->setVisible(now != ImportFormat::Markdown);
+    m_pagesButton->setVisible(now != ImportFormat::Markdown && !plugin);
     if (now == ImportFormat::Markdown && m_pagesButton->isChecked()) {
         m_headingsButton->setChecked(true);
     }
     m_fileStyles->setVisible(!text);
     m_formattingBox->parentWidget()->setVisible(word);
     m_textParagraphs->setVisible(text);
-    m_tabs->setTabVisible(m_tabs->indexOf(m_extrasTab), !text);
+    m_tabs->setTabVisible(m_tabs->indexOf(m_extrasTab), !text && !plugin);
     m_commentsOption->setVisible(word);
     m_noCommentsNote->setVisible(!word);
     updateFields();
+}
+
+void ImportBookDialog::showPluginPage() {
+    const QString id = pluginFormat();
+    if (!id.isEmpty() && !m_pluginPages.contains(id)) {
+        // Made once, when the format is first chosen; none when the plugin has no options
+        QWidget* page = nullptr;
+        if (const std::shared_ptr<core::IImporter> importer = importerOf(id)) {
+            try {
+                page = importer->createOptionsPage(id.toStdString(), m_tabs);
+            } catch (const std::exception& error) {
+                core::Logger::getInstance().error("Import: the options of the format {}: {}",
+                                                  id.toStdString(), error.what());
+            }
+        }
+        if (page != nullptr) {
+            QString title;
+            for (const PluginImportFormat& each : pluginImportFormats()) {
+                if (each.id == id) {
+                    title = each.name;
+                }
+            }
+            const bool filling = m_filling;
+            m_filling = true;  // the new tab does not read the files again
+            m_tabs->addTab(page, title);
+            m_filling = filling;
+        }
+        m_pluginPages.insert(id, page);
+    }
+    for (auto it = m_pluginPages.cbegin(); it != m_pluginPages.cend(); ++it) {
+        if (it.value() != nullptr) {
+            m_tabs->setTabVisible(m_tabs->indexOf(it.value()), it.key() == id);
+        }
+    }
 }
 
 void ImportBookDialog::setTarget(Target target) {
@@ -1752,7 +1897,8 @@ void ImportBookDialog::splitFiles() {
         m_filling = filling;
     }
     const bool text = format() == ImportFormat::PlainText;
-    m_levels->setVisible(!text);
+    const bool plugin = format() == ImportFormat::Plugin;
+    m_levels->setVisible(!text && !plugin);
     m_levels->setEnabled(m_headingsButton->isChecked());
     m_patterns->setVisible(text);
     m_patterns->setEnabled(m_headingsButton->isChecked());
@@ -1760,9 +1906,9 @@ void ImportBookDialog::splitFiles() {
                               static_cast<int>(editor::TitlePattern::Prefix));
     m_emptyLines->setVisible(text);
     m_emptyLines->setEnabled(m_pagesButton->isChecked());
-    m_wholeFilesBox->setVisible(m_files.size() > 1);
+    m_wholeFilesBox->setVisible(m_files.size() > 1 && !plugin);
 
-    const bool wholeFiles = m_files.size() > 1 && m_wholeFilesBox->isChecked();
+    const bool wholeFiles = !plugin && m_files.size() > 1 && m_wholeFilesBox->isChecked();
     m_rows = importRows(m_files, splitOptions(), wholeFiles, m_kinds);
     showRows();
 }

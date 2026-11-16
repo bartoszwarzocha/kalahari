@@ -9,12 +9,14 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/book_project.h"
+#include "kalahari/core/extension_points.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_export.h"
 #include "kalahari/editor/book_import.h"
 #include "kalahari/gui/book_import_coordinator.h"
 #include "kalahari/gui/book_styles.h"
+#include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/import_book_dialog.h"
 #include "kalahari/gui/dialogs/kalahari_dialog.h"
 #include "kalahari/gui/settings/settings_pages.h"
@@ -47,6 +49,8 @@
 #include <cstdio>
 #include <functional>
 #include <map>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -436,6 +440,67 @@ class SettingsOpener {
     ~SettingsOpener() { gui::dialogs::KalahariDialog::setSettingsOpener(nullptr); }
     SettingsOpener(const SettingsOpener&) = delete;
     SettingsOpener& operator=(const SettingsOpener&) = delete;
+};
+
+/// An importer of a plugin: screenplays with a tab of options, each scene a text, and formats
+/// the program leaves out
+class ScreenplayImporter : public core::IImporter {
+   public:
+    std::string getPluginId() const override { return "test.screenplay-importer"; }
+    std::string getVersion() const override { return "1.0.0"; }
+    void onInit() override {}
+    void onActivate() override {}
+    std::vector<core::ImportFormatInfo> getFormats() const override {
+        return {{"screenplay", "Screenplay", {"fountain", ".SPMD"}},
+                {"markdown", "Another Markdown", {"md"}},  // the program's own
+                {"bare", "No extension", {}},
+                {"", "No id", {"x"}}};
+    }
+    QWidget* createOptionsPage(const std::string& format, QWidget* parent) override {
+        if (format != "screenplay") {
+            return nullptr;
+        }
+        auto* page = new QWidget(parent);
+        m_scenes = new QCheckBox(QStringLiteral("Each &scene as a text"), page);
+        m_scenes->setChecked(true);
+        // The window deletes the page; the importer forgets its check box with it
+        QObject::connect(page, &QObject::destroyed, [this] { m_scenes = nullptr; });
+        return page;
+    }
+    std::vector<core::ImportTextInfo> importDocument(const std::string& /*format*/,
+                                                     const std::string& filepath) override {
+        ++reads;
+        if (QString::fromStdString(filepath).endsWith(QLatin1String("broken.fountain"))) {
+            throw std::runtime_error("line 3: no scene heading");
+        }
+        if (m_scenes != nullptr && !m_scenes->isChecked()) {
+            return {{"", "Szklane miasto"},
+                    {"Cały scenariusz", "Anna czyta list.\n\nWiatr nad pustynią."}};
+        }
+        return {{"", "Szklane miasto"},
+                {"INT. DOM – NOC", "Anna *czyta* list."},
+                {"EXT. PUSTYNIA – DZIEŃ", "Wiatr nad pustynią."}};
+    }
+
+    int reads = 0;  ///< The files read
+
+   private:
+    QCheckBox* m_scenes = nullptr;
+};
+
+/// The importer of a plugin registered while it lives
+class RegisteredImporter {
+   public:
+    RegisteredImporter() : importer(std::make_shared<ScreenplayImporter>()) {
+        core::ExtensionPointRegistry::getInstance().registerPlugin(importer);
+    }
+    ~RegisteredImporter() {
+        core::ExtensionPointRegistry::getInstance().unregisterPlugin(importer->getPluginId());
+    }
+    RegisteredImporter(const RegisteredImporter&) = delete;
+    RegisteredImporter& operator=(const RegisteredImporter&) = delete;
+
+    std::shared_ptr<ScreenplayImporter> importer;
 };
 
 }  // namespace
@@ -1005,4 +1070,125 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
     REQUIRE(polishFormat != nullptr);
     polishFormat->setCurrentIndex(2);
     CHECK(pageKeyProblems(*polishPage).toStdString().empty());
+}
+
+TEST_CASE("Import Text: a format of a plugin, its tab of options and its texts",
+          "[gui][dialogs][import][plugins]") {
+    SettingsKept kept;
+    Novel novel;
+    Files files;
+    const QString path = files.write(QStringLiteral("Szklane miasto.fountain"), "scenes");
+    const QString broken = files.write(QStringLiteral("broken.fountain"), "scenes");
+    const core::BookTypeRegistry& types = core::ProjectManager::installedBookTypes();
+
+    // File > Import > Other Formats: greyed out while no plugin imports a format
+    gui::CommandRegistry commands;
+    gui::Command other;
+    other.id = "file.import.plugin";
+    commands.registerCommand(other);
+    BookImportCoordinator coordinator(test::book(), commands, {}, nullptr);
+    coordinator.connectCommands();
+    gui::Command* command = commands.getCommand("file.import.plugin");
+    REQUIRE(command != nullptr);
+    CHECK(command->canExecute());
+    CHECK_FALSE(command->checkEnabled());
+    CHECK(command->disabledReason() == QStringLiteral("No plugin imports other formats."));
+    {
+        ImportBookDialog dialog(Novel::dialogBook(), types, ImportFormat::Markdown, {}, {});
+        CHECK(dialog.formatBox()->count() == 3);
+    }
+
+    RegisteredImporter registered;
+    CHECK(command->checkEnabled());
+    // Its formats with an id, a name and an extension, not the program's own
+    const std::vector<gui::PluginImportFormat> formats = gui::pluginImportFormats();
+    REQUIRE(formats.size() == 1);
+    CHECK(formats[0].id == QStringLiteral("screenplay"));
+    CHECK(formats[0].extensions ==
+          QStringList({QStringLiteral(".fountain"), QStringLiteral(".spmd")}));
+    CHECK(gui::importExtensions(ImportFormat::Plugin, QStringLiteral("screenplay")) ==
+          formats[0].extensions);
+    CHECK(gui::importerOf(QStringLiteral("markdown")) == nullptr);
+
+    ImportBookDialog dialog(Novel::dialogBook(), types, QStringLiteral("screenplay"), {path},
+                            intoBook());
+    CHECK(dialog.formatBox()->count() == 4);
+    CHECK(dialog.formatBox()->currentText() ==
+          QStringLiteral("Screenplay (.fountain, .spmd) – plugin"));
+    CHECK(dialog.pluginFormat() == QStringLiteral("screenplay"));
+    CHECK(registered.importer->reads == 1);
+
+    // The tabs: no styles, cleanups, annotations and images; the plugin's options
+    QTabWidget* tabs = dialog.tabs();
+    REQUIRE(tabs->count() == 7);
+    CHECK_FALSE(tabs->isTabVisible(3));
+    CHECK_FALSE(tabs->isTabVisible(4));
+    CHECK_FALSE(tabs->isTabVisible(5));
+    CHECK(tabs->isTabVisible(6));
+    CHECK(tabs->tabText(6) == QStringLiteral("Screenplay"));
+    CHECK(tabs->widget(6) == dialog.pluginPage(QStringLiteral("screenplay")));
+    CHECK_FALSE(dialog.encodingBox()->isVisibleTo(&dialog));
+    CHECK(keyProblems(dialog).toStdString().empty());
+    checkFitsSmallScreen(dialog);
+
+    // The division: the plugin's texts with their titles; the kinds in the list
+    tabs->setCurrentIndex(2);
+    CHECK(dialog.pluginNote()->isVisibleTo(&dialog));
+    CHECK_FALSE(dialog.headingsButton()->isVisibleTo(&dialog));
+    CHECK_FALSE(dialog.headingAsTitleBox()->isVisibleTo(&dialog));
+    REQUIRE(dialog.rows().size() == 3);
+    CHECK(dialog.rows()[0].kind == dialog.kinds().titlePage.reference());
+    CHECK(dialog.rows()[1].title == QStringLiteral("INT. DOM – NOC"));
+    CHECK(dialog.rows()[2].title == QStringLiteral("EXT. PUSTYNIA – DZIEŃ"));
+    CHECK(dialog.rows()[1].kind == dialog.kinds().main.reference());
+
+    // Its options read the file again when their tab goes to the back
+    tabs->setCurrentIndex(6);
+    auto* scenes = tabs->widget(6)->findChild<QCheckBox*>();
+    REQUIRE(scenes != nullptr);
+    scenes->setChecked(false);
+    tabs->setCurrentIndex(2);
+    CHECK(registered.importer->reads == 2);
+    REQUIRE(dialog.rows().size() == 2);
+    CHECK(dialog.rows()[1].title == QStringLiteral("Cały scenariusz"));
+    tabs->setCurrentIndex(6);
+    scenes->setChecked(true);
+    tabs->setCurrentIndex(0);
+    REQUIRE(dialog.rows().size() == 3);
+
+    // The texts go to the book as the plugin wrote them
+    dialog.setTarget(ImportBookDialog::Target::Book);
+    REQUIRE(dialog.acceptButton()->isEnabled());
+    const std::string target = core::SettingsManager::getInstance().get<std::string>(
+        "import.markdown.emptyParagraphs");
+    dialog.accept();
+    REQUIRE(dialog.isDone());
+    CHECK(novel.mainTitles().contains(QStringLiteral("INT. DOM – NOC")));
+    CHECK(novel.mainTitles().contains(QStringLiteral("EXT. PUSTYNIA – DZIEŃ")));
+    CHECK(core::SettingsManager::getInstance().get<std::string>(
+              "import.markdown.emptyParagraphs") == target);
+    dialog.undoImport();
+    CHECK_FALSE(novel.mainTitles().contains(QStringLiteral("INT. DOM – NOC")));
+
+    // A file the plugin cannot read: what it said under Details
+    ImportBookDialog failed(Novel::dialogBook(), types, QStringLiteral("screenplay"), {broken},
+                            intoBook());
+    CHECK(failed.filesNote() ==
+          QStringLiteral("The plugin could not read the file \"broken.fountain\"."));
+    CHECK_FALSE(failed.acceptButton()->isEnabled());
+    REQUIRE_FALSE(failed.files().empty());
+    CHECK(failed.files().front().problem.detail.endsWith(
+        QStringLiteral("line 3: no scene heading")));
+
+    // The format of the plugin chosen in the list of a window of another format
+    ImportBookDialog chosen(Novel::dialogBook(), types, ImportFormat::Markdown, {path},
+                            intoBook());
+    CHECK(chosen.tabs()->count() == 6);  // no tab of the plugin until its format is chosen
+    chosen.setPluginFormat(QStringLiteral("screenplay"));
+    CHECK(chosen.pluginFormat() == QStringLiteral("screenplay"));
+    CHECK(chosen.rows().size() == 3);
+    chosen.setFormat(ImportFormat::Markdown);
+    CHECK(chosen.pluginFormat().isEmpty());
+    CHECK_FALSE(chosen.tabs()->isTabVisible(chosen.tabs()->count() - 1));
+    CHECK(chosen.tabs()->isTabVisible(3));
 }

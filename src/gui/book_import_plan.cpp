@@ -7,6 +7,8 @@
 
 #include <kalahari/gui/book_import_plan.h>
 
+#include <kalahari/core/extension_points.h>
+#include <kalahari/core/logger.h>
 #include <kalahari/core/project_manager.h>
 #include <kalahari/gui/kind_names.h>
 #include <kalahari/gui/panels/navigator_panel.h>
@@ -17,6 +19,7 @@
 
 #include <algorithm>
 #include <array>
+#include <exception>
 #include <functional>
 #include <map>
 #include <utility>
@@ -30,6 +33,102 @@ constexpr std::array<core::BookPlace, 3> BOOK_PLACES{core::BookPlace::Front, cor
 
 /// The id of the kind of a title page in the packages of the program
 const QString TITLE_PAGE_KIND = QStringLiteral("title_page");
+
+/// The ids of the program's own formats, which the formats of the plugins cannot take
+const QStringList OWN_FORMATS{QStringLiteral("docx"), QStringLiteral("markdown"),
+                              QStringLiteral("text")};
+
+/// The styles of headings of Markdown: heading_1 to heading_3
+constexpr int MARKDOWN_HEADING_STYLES = 3;
+/// The deepest level of a heading
+constexpr int DEEPEST_HEADING = 9;
+
+/// The key of the style of a heading of @p level in Markdown
+QString headingStyle(int level) {
+    return QStringLiteral("heading_%1").arg(std::min(level, MARKDOWN_HEADING_STYLES));
+}
+
+/// The key of a style of Markdown for a heading a level lower; another style's key as it is
+QString lowerStyle(const QString& key) {
+    return key.startsWith(QLatin1String("heading_")) ? headingStyle(key.mid(8).toInt() + 1) : key;
+}
+
+/// Where the parts of a document go when it is added after another one
+struct Offsets {
+    int notes = 0;
+    int images = 0;
+    int annotations = 0;
+    int lists = 0;
+};
+
+/// A block of a document added after another one: its headings a level lower, its notes,
+/// images, annotations and lists after those of the other document
+void lowerBlock(editor::ImportBlock& block, const Offsets& offsets) {
+    if (block.headingLevel > 0) {
+        block.headingLevel = std::min(block.headingLevel + 1, DEEPEST_HEADING);
+    }
+    block.style = lowerStyle(block.style);
+    if (block.list >= 0) {
+        block.list += offsets.lists;
+    }
+    for (editor::ImportRun& run : block.runs) {
+        switch (run.kind) {
+            case editor::ImportRun::Kind::Note:
+                run.index += offsets.notes;
+                break;
+            case editor::ImportRun::Kind::Image:
+                run.index += offsets.images;
+                break;
+            case editor::ImportRun::Kind::Annotation:
+                run.index += offsets.annotations;
+                break;
+            default:
+                break;
+        }
+        for (int& annotation : run.annotations) {
+            annotation += offsets.annotations;
+        }
+    }
+    if (block.table) {
+        for (editor::ImportRow& row : block.table->rows) {
+            for (editor::ImportCell& cell : row.cells) {
+                for (editor::ImportBlock& each : cell.blocks) {
+                    lowerBlock(each, offsets);
+                }
+            }
+        }
+    }
+}
+
+/// Add @p text after what @p document has, its headings a level lower; @p paragraphs counts
+/// the paragraphs of each style
+void appendLower(editor::ImportDocument& document, editor::ImportDocument text,
+                 std::map<QString, int>& paragraphs) {
+    const Offsets offsets{static_cast<int>(document.notes.size()),
+                          static_cast<int>(document.images.size()),
+                          static_cast<int>(document.annotations.size()),
+                          static_cast<int>(document.lists.size())};
+    for (editor::ImportBlock& block : text.blocks) {
+        lowerBlock(block, offsets);
+        document.blocks.push_back(std::move(block));
+    }
+    for (editor::ImportNote& note : text.notes) {
+        for (editor::ImportBlock& block : note.paragraphs) {
+            lowerBlock(block, offsets);
+        }
+        document.notes.push_back(std::move(note));
+    }
+    std::move(text.images.begin(), text.images.end(), std::back_inserter(document.images));
+    std::move(text.annotations.begin(), text.annotations.end(),
+              std::back_inserter(document.annotations));
+    std::move(text.lists.begin(), text.lists.end(), std::back_inserter(document.lists));
+    for (const editor::ImportStyle& style : text.styles) {
+        paragraphs[lowerStyle(style.key)] += style.paragraphs;
+    }
+    for (const auto& [omission, count] : text.omissions) {
+        document.omissions[omission] += count;
+    }
+}
 
 /// The most bytes of a file its preview reads
 constexpr qint64 PREVIEW_BYTES = 64 * 1024;
@@ -168,7 +267,7 @@ int compareNames(const QString& a, const QString& b) {
 
 }  // namespace
 
-QStringList importExtensions(ImportFormat format) {
+QStringList importExtensions(ImportFormat format, const QString& plugin) {
     switch (format) {
         case ImportFormat::Docx:
             return {QStringLiteral(".docx")};
@@ -176,15 +275,127 @@ QStringList importExtensions(ImportFormat format) {
             return {QStringLiteral(".md"), QStringLiteral(".markdown")};
         case ImportFormat::PlainText:
             return {QStringLiteral(".txt")};
+        case ImportFormat::Plugin:
+            for (const PluginImportFormat& each : pluginImportFormats()) {
+                if (each.id == plugin) {
+                    return each.extensions;
+                }
+            }
+            break;
     }
     return {};
+}
+
+std::vector<PluginImportFormat> pluginImportFormats() {
+    std::vector<PluginImportFormat> formats;
+    QStringList taken = OWN_FORMATS;
+    for (const auto& importer :
+         core::ExtensionPointRegistry::getInstance().getPluginsOfType<core::IImporter>()) {
+        std::vector<core::ImportFormatInfo> infos;
+        try {
+            infos = importer->getFormats();
+        } catch (const std::exception& error) {
+            core::Logger::getInstance().error("Import: the formats of the plugin {}: {}",
+                                              importer->getPluginId(), error.what());
+            continue;
+        }
+        for (const core::ImportFormatInfo& info : infos) {
+            PluginImportFormat format;
+            format.id = QString::fromStdString(info.id).trimmed();
+            format.name = QString::fromStdString(info.name).trimmed();
+            for (const std::string& each : info.extensions) {
+                QString extension = QString::fromStdString(each).trimmed().toLower();
+                while (extension.startsWith(QLatin1Char('.'))) {
+                    extension.remove(0, 1);
+                }
+                if (!extension.isEmpty()) {
+                    format.extensions << QLatin1Char('.') + extension;
+                }
+            }
+            format.extensions.removeDuplicates();
+            if (format.id.isEmpty() || format.name.isEmpty() || format.extensions.isEmpty() ||
+                taken.contains(format.id)) {
+                continue;
+            }
+            taken << format.id;
+            format.pluginId = QString::fromStdString(importer->getPluginId());
+            formats.push_back(std::move(format));
+        }
+    }
+    return formats;
+}
+
+std::shared_ptr<core::IImporter> importerOf(const QString& id) {
+    for (const PluginImportFormat& each : pluginImportFormats()) {
+        if (each.id == id) {
+            return core::ExtensionPointRegistry::getInstance().getPluginAs<core::IImporter>(
+                each.pluginId.toStdString());
+        }
+    }
+    return nullptr;
+}
+
+editor::ImportDocument pluginDocument(const std::vector<core::ImportTextInfo>& texts,
+                                      const QString& folder, const QString& fileTitle) {
+    editor::ImportDocument document;
+    std::map<QString, int> paragraphs;
+    for (size_t i = 0; i < texts.size(); ++i) {
+        const QString title = QString::fromStdString(texts[i].title).simplified();
+        // The title as a heading of the first level; the first text without one is the text
+        // before the titles
+        if (!title.isEmpty() || i > 0) {
+            editor::ImportBlock heading;
+            heading.style = headingStyle(1);
+            heading.headingLevel = 1;
+            editor::ImportRun run;
+            run.text = title.isEmpty() ? fileTitle : title;
+            heading.runs.push_back(std::move(run));
+            ++paragraphs[heading.style];
+            document.blocks.push_back(std::move(heading));
+        }
+        appendLower(document,
+                    editor::readMarkdown(QString::fromStdString(texts[i].markdown), folder),
+                    paragraphs);
+    }
+    // The styles in the order of Markdown's
+    for (const QString& key : {QStringLiteral("normal"), headingStyle(1), headingStyle(2),
+                               headingStyle(3), QStringLiteral("quote"), QStringLiteral("code")}) {
+        if (const auto found = paragraphs.find(key); found != paragraphs.end() && found->second > 0) {
+            editor::ImportStyle style;
+            style.key = key;
+            style.name = key;
+            style.headingLevel = key.startsWith(QLatin1String("heading_")) ? key.mid(8).toInt() : 0;
+            style.paragraphs = found->second;
+            document.styles.push_back(std::move(style));
+        }
+    }
+    return document;
 }
 
 ImportFile readImportFile(const QString& path, const ImportReading& reading) {
     ImportFile file;
     file.path = path;
     auto document = std::make_shared<editor::ImportDocument>();
-    if (reading.format == ImportFormat::Docx) {
+    if (reading.format == ImportFormat::Plugin) {
+        // The plugin divides the file into its texts
+        const std::shared_ptr<core::IImporter> importer = importerOf(reading.plugin);
+        if (!importer) {
+            file.problem.kind = editor::ImportProblem::Kind::Plugin;
+            file.problem.detail =
+                QStringLiteral("%1: no plugin reads the format %2").arg(path, reading.plugin);
+            return file;
+        }
+        std::vector<core::ImportTextInfo> texts;
+        try {
+            texts = importer->importDocument(reading.plugin.toStdString(), path.toStdString());
+        } catch (const std::exception& error) {
+            file.problem.kind = editor::ImportProblem::Kind::Plugin;
+            file.problem.detail = QStringLiteral("%1: %2").arg(path, QString::fromUtf8(error.what()));
+            return file;
+        }
+        const QFileInfo info(path);
+        *document = pluginDocument(texts, info.absolutePath(), info.completeBaseName());
+    } else if (reading.format == ImportFormat::Docx) {
         if (!editor::readDocx(path, document.get(), &file.problem)) {
             return file;
         }

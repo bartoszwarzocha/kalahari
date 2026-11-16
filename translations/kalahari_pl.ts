@@ -1350,6 +1350,10 @@
         <source>S&amp;ettings...</source>
         <translation>Ustawi&amp;enia...</translation>
     </message>
+    <message>
+        <source>&amp;Other Formats...</source>
+        <translation>&amp;Inne formaty...</translation>
+    </message>
 </context>
 <context>
     <name>DeleteDialogs</name>
@@ -27055,6 +27059,11 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>After the texts that could not be added to a new book; %1: its folder. In Polish: Książka powstała w folderze %1 bez tych tekstów.</extracomment>
         <translation>Książka powstała w folderze %1 bez tych tekstów.</translation>
     </message>
+    <message>
+        <source>No plugin imports other formats.</source>
+        <extracomment>Why File &gt; Import &gt; Other Formats is greyed out. In Polish: Żadna wtyczka nie importuje innych formatów.</extracomment>
+        <translation>Żadna wtyczka nie importuje innych formatów.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::dialogs::ImportBookDialog</name>
@@ -27997,6 +28006,21 @@ No parts in the file. In Polish: – bez części –</translation>
     <message>
         <source>The import is undone, but not every file could be deleted.</source>
         <translation>Cofnięto import, ale nie wszystkie pliki udało się usunąć.</translation>
+    </message>
+    <message>
+        <source>%1 (%2) – plugin</source>
+        <extracomment>A format of a plugin in the list of the formats; %1: its name, %2: the extensions of its files. In Polish: %1 (%2) – wtyczka</extracomment>
+        <translation>%1 (%2) – wtyczka</translation>
+    </message>
+    <message>
+        <source>The plugin gives the texts and their titles; change the kind of each text in the list.</source>
+        <extracomment>The division of a format of a plugin. In Polish: Teksty i ich tytuły daje wtyczka; rodzaj każdego tekstu zmienisz na liście.</extracomment>
+        <translation>Teksty i ich tytuły daje wtyczka; rodzaj każdego tekstu zmienisz na liście.</translation>
+    </message>
+    <message>
+        <source>The plugin could not read the file &quot;%1&quot;.</source>
+        <extracomment>%1: the name of the file; what the plugin said follows under Details. In Polish: Wtyczka nie odczytała pliku „%1”.</extracomment>
+        <translation>Wtyczka nie odczytała pliku „%1”.</translation>
     </message>
 </context>
 <context>

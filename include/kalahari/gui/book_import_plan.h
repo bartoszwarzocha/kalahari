@@ -26,7 +26,9 @@
 #include <vector>
 
 namespace kalahari::core {
+class IImporter;
 class ProjectManager;
+struct ImportTextInfo;
 }  // namespace kalahari::core
 
 namespace kalahari::gui {
@@ -36,14 +38,47 @@ enum class ImportFormat {
     Docx,       ///< A Word document (.docx)
     Markdown,   ///< Markdown (.md)
     PlainText,  ///< Plain text (.txt)
+    Plugin,     ///< A format of a plugin (core::IImporter), named by its id
 };
 
-/// @brief The extensions of the files of a format, with their dots (".md", ".markdown")
-QStringList importExtensions(ImportFormat format);
+/// @brief The extensions of the files of a format, with their dots (".md", ".markdown"); of
+///        ImportFormat::Plugin, those of the format @p plugin
+QStringList importExtensions(ImportFormat format, const QString& plugin = QString());
+
+/// @brief A format of a plugin, as File > Import offers it
+struct PluginImportFormat {
+    QString id;              ///< Its id (core::ImportFormatInfo::id)
+    QString name;            ///< Its name
+    QStringList extensions;  ///< The extensions of its files, with their dots
+    QString pluginId;        ///< The id of its plugin
+};
+
+/// @brief The formats of the plugins (core::IImporter) loaded now, in the order of the
+///        plugins and their formats
+///
+/// A format needs its id, its name and an extension; an id the list has already, or one of
+/// the program's own formats (docx, markdown, text), stays the first one's.
+std::vector<PluginImportFormat> pluginImportFormats();
+
+/// @brief The importer of the format @p id of a plugin, or nullptr
+std::shared_ptr<core::IImporter> importerOf(const QString& id);
+
+/// @brief The document of the texts a plugin read from a file
+///
+/// Each text starts with its title as a heading of the first level, and its own headings go
+/// a level lower, so the document divided at the headings of the first level, each heading
+/// a title only, gives the plugin's texts with their titles. The first text without a title
+/// has no heading: it is the text before the titles.
+/// @param texts The texts in their order
+/// @param folder The folder the paths of their images are relative to
+/// @param fileTitle The title of a text without one after the first
+editor::ImportDocument pluginDocument(const std::vector<core::ImportTextInfo>& texts,
+                                      const QString& folder, const QString& fileTitle);
 
 /// @brief How the files of an import are read
 struct ImportReading {
     ImportFormat format = ImportFormat::Docx;
+    QString plugin;  ///< ImportFormat::Plugin: the id of its format
     /// The encoding of Markdown and plain text; none: each file's own (detectTextEncoding())
     std::optional<editor::TextEncoding> encoding;
     editor::TextReadOptions text;  ///< Of plain text

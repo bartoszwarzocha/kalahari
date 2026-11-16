@@ -263,6 +263,7 @@ struct ImportProblem {
         CannotOpen,  ///< The file cannot be opened
         NotDocx,     ///< The file is not a Word document (DOCX)
         Damaged,     ///< A part of the document cannot be read
+        Plugin,      ///< The plugin of its format could not read it (detail: what it said)
     };
 
     Kind kind = Kind::None;

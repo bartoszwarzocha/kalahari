@@ -19,6 +19,7 @@
 #include <QFileInfo>
 
 #include <algorithm>
+#include <memory>
 #include <utility>
 
 namespace kalahari::gui {
@@ -28,6 +29,7 @@ namespace {
 constexpr const char* DOCX_COMMAND = "file.import.docx";
 constexpr const char* MARKDOWN_COMMAND = "file.import.markdown";
 constexpr const char* TEXT_COMMAND = "file.import.text";
+constexpr const char* PLUGIN_COMMAND = "file.import.plugin";
 
 /// Progress of the import: the styles and the images up to this, then the texts
 constexpr int FILES_PROGRESS = 40;
@@ -162,6 +164,55 @@ void BookImportCoordinator::connectCommands() {
             };
         }
     }
+    // Other Formats: those of the plugins, greyed out while no plugin has one
+    if (Command* command = m_commands.getCommand(PLUGIN_COMMAND)) {
+        command->execute = [this]() { importPluginFormat(); };
+        command->isEnabled = []() { return !pluginImportFormats().empty(); };
+        command->disabledReason = []() {
+            //: Why File > Import > Other Formats is greyed out. In Polish: Żadna wtyczka nie
+            //: importuje innych formatów.
+            return tr("No plugin imports other formats.");
+        };
+    }
+}
+
+void BookImportCoordinator::importPluginFormat() {
+    const std::vector<PluginImportFormat> formats = pluginImportFormats();
+    if (formats.empty()) {
+        return;
+    }
+    // A filter of the system window for each format
+    QStringList filters;
+    for (const PluginImportFormat& format : formats) {
+        QStringList patterns;
+        for (const QString& extension : format.extensions) {
+            patterns << QLatin1Char('*') + extension;
+        }
+        filters << QStringLiteral("%1 (%2)").arg(format.name, patterns.join(QLatin1Char(' ')));
+    }
+    QString filter = filters.front();
+    const QStringList files = QFileDialog::getOpenFileNames(
+        m_parent, tr("Files to Import"),
+        ProgramFolders::startFolder(ProgramFolders::Operation::ImportText),
+        filters.join(QStringLiteral(";;")), &filter);
+    if (files.isEmpty()) {
+        return;
+    }
+    ProgramFolders::remember(ProgramFolders::Operation::ImportText,
+                             QFileInfo(files.front()).absolutePath());
+    // The format of the filter chosen, else the one of the extension of the first file
+    const qsizetype chosen = filters.indexOf(filter);
+    QString id = formats[static_cast<size_t>(std::max<qsizetype>(chosen, 0))].id;
+    const QString suffix = QLatin1Char('.') + QFileInfo(files.front()).suffix().toLower();
+    if (chosen < 0) {
+        for (const PluginImportFormat& format : formats) {
+            if (format.extensions.contains(suffix)) {
+                id = format.id;
+                break;
+            }
+        }
+    }
+    importFiles(ImportFormat::Plugin, files, id);
 }
 
 void BookImportCoordinator::importFormat(ImportFormat format) {
@@ -185,6 +236,9 @@ void BookImportCoordinator::importFormat(ImportFormat format) {
             //: zwykłego tekstu
             name = tr("Plain text files");
             break;
+        case ImportFormat::Plugin:
+            importPluginFormat();
+            return;
     }
     //: The title of the system window that chooses the files of the import. In Polish: Pliki
     //: do importu
@@ -200,7 +254,8 @@ void BookImportCoordinator::importFormat(ImportFormat format) {
     importFiles(format, files);
 }
 
-void BookImportCoordinator::importFiles(ImportFormat format, const QStringList& files) {
+void BookImportCoordinator::importFiles(ImportFormat format, const QStringList& files,
+                                        const QString& plugin) {
     dialogs::ImportBookDialog::Actions actions;
     actions.import = [this](const dialogs::ImportBookDialog::Choice& choice,
                             const std::vector<ImportFile>& read, const std::vector<ImportRow>& rows,
@@ -237,12 +292,20 @@ void BookImportCoordinator::importFiles(ImportFormat format, const QStringList& 
             m_window.openElement(outcome.firstText);
         }
     };
-    dialogs::ImportBookDialog dialog(dialogBook(), core::ProjectManager::installedBookTypes(),
-                                     format, files, std::move(actions), m_parent);
-    dialog.exec();
+    std::unique_ptr<dialogs::ImportBookDialog> dialog =
+        format == ImportFormat::Plugin
+            ? std::make_unique<dialogs::ImportBookDialog>(dialogBook(),
+                                                          core::ProjectManager::installedBookTypes(),
+                                                          plugin, files, std::move(actions),
+                                                          m_parent)
+            : std::make_unique<dialogs::ImportBookDialog>(dialogBook(),
+                                                          core::ProjectManager::installedBookTypes(),
+                                                          format, files, std::move(actions),
+                                                          m_parent);
+    dialog->exec();
 
     // A new book opens when the window closes, as a book of File > Open Book
-    const QString made = dialog.outcome().bookFile;
+    const QString made = dialog->outcome().bookFile;
     if (!made.isEmpty() && m_window.openBook) {
         m_window.openBook(made);
     }

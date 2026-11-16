@@ -10,6 +10,7 @@
 /// **Architecture:**
 /// - IPlugin: Base interface all plugins must implement
 /// - IExporter: Export documents to various formats (DOCX, PDF, Markdown)
+/// - IImporter: Read the files of other formats into the texts of a book (File > Import)
 /// - IPanelProvider: Add custom dockable UI panels (Qt6 QWidget-based)
 /// - ICommandProvider: Register custom commands for menus/toolbars (Qt6 Command Registry)
 /// - IAssistant: Provide graphical assistant personalities
@@ -146,6 +147,68 @@ public:
     /// @throws std::runtime_error if export fails with critical error
     virtual bool exportDocument(const std::string& format,
                                const std::string& filepath) = 0;
+};
+
+/// @brief A format an importer reads, as File > Import lists it
+struct ImportFormatInfo {
+    std::string id;    ///< Its identifier, which importDocument() gets (e.g. "fountain")
+    std::string name;  ///< Its name in the list of the formats (e.g. "Fountain screenplay")
+    std::vector<std::string> extensions;  ///< The extensions of its files, without the dots
+                                          ///< (e.g. "fountain", "spmd")
+};
+
+/// @brief A text of a file, as an importer reads it
+struct ImportTextInfo {
+    /// Its title in the book. Empty for the first text: the text before the titles, which
+    /// becomes a title page when it is short; empty for another: the name of the file
+    std::string title;
+    /// What is in it, in Markdown (UTF-8, GitHub Flavored, with footnotes [^1]): paragraphs,
+    /// emphasis, its own headings (they stay in the text), lists, tables, quotes and images
+    /// whose paths are relative to the folder of the file
+    std::string markdown;
+};
+
+/// @brief Import plugin interface
+///
+/// Plugins implementing this interface read the files of formats of their own into the texts
+/// of a book. File > Import > Other Formats chooses the files of the formats of getFormats(),
+/// and the window of the import lists them after the program's own (DOCX, Markdown and plain
+/// text). The plugin divides a file into its texts and gives their titles; the writer chooses
+/// their kinds and their place in the book. A format with options of its own gets a tab of the
+/// window from createOptionsPage(), shown while the format is chosen.
+class IImporter : public virtual IPlugin {
+public:
+    /// @brief Virtual destructor
+    ~IImporter() override = default;
+
+    /// @brief The formats the importer reads, for File > Import
+    ///
+    /// @return The formats; a format needs its id, its name and an extension. The default,
+    ///         none, keeps the importer out of File > Import
+    virtual std::vector<ImportFormatInfo> getFormats() const { return {}; }
+
+    /// @brief The options of @p format: a page that the window of the import shows as a tab of
+    /// its own while the format is chosen
+    ///
+    /// The window owns the page and deletes it when it closes; the importer reads the options
+    /// from it in importDocument(), which the window calls while it is open (again whenever
+    /// the files are read again).
+    ///
+    /// @param format The id of one of the formats of getFormats()
+    /// @param parent The parent of the page
+    /// @return The page; the default, nullptr: the format has no options of its own
+    virtual QWidget* createOptionsPage(const std::string& /*format*/, QWidget* /*parent*/) {
+        return nullptr;
+    }
+
+    /// @brief Read the file @p filepath of the format @p format
+    ///
+    /// @param format The id of one of the formats of getFormats()
+    /// @param filepath The file
+    /// @return Its texts, in their order in the book
+    /// @throws std::runtime_error with why the file cannot be read; the window says it
+    virtual std::vector<ImportTextInfo> importDocument(const std::string& format,
+                                                       const std::string& filepath) = 0;
 };
 
 /// @brief UI panel provider interface (Qt6)

@@ -143,6 +143,18 @@ class ImportBookDialog : public ArchiveDialog {
     ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry, ImportFormat format,
                      const QStringList& files, Actions actions, QWidget* parent = nullptr);
 
+    /// @brief Create the window of the format @p plugin of a plugin (File > Import > Other
+    ///        Formats)
+    /// @param book What the window says about the open book
+    /// @param registry The installed book types, for the list of the place and a new book
+    /// @param plugin The id of the format (PluginImportFormat::id)
+    /// @param files The files chosen in the system window
+    /// @param actions What the window does with the book
+    /// @param parent Parent widget
+    ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry,
+                     const QString& plugin, const QStringList& files, Actions actions,
+                     QWidget* parent = nullptr);
+
     ~ImportBookDialog() override;
 
     /// @brief The choices of the window now
@@ -162,6 +174,12 @@ class ImportBookDialog : public ArchiveDialog {
 
     /// @brief Choose the format, as its list does: the files stay in the list, read again
     void setFormat(ImportFormat format);
+
+    /// @brief Choose the format @p id of a plugin, as its list does
+    void setPluginFormat(const QString& id);
+
+    /// @brief The id of the format of a plugin chosen in the list; empty: one of the program's
+    QString pluginFormat() const;
 
     /// @brief The files of the list, in place of those it has
     void setFiles(const QStringList& paths);
@@ -244,6 +262,12 @@ class ImportBookDialog : public ArchiveDialog {
     /// @brief The heading is the title only
     QCheckBox* headingAsTitleBox() const { return m_headingAsTitleBox; }
 
+    /// @brief The line of the division of a format of a plugin: the plugin gives the texts
+    QLabel* pluginNote() const { return m_pluginNote; }
+
+    /// @brief The tab of the options of the format @p id of a plugin; nullptr: none (yet)
+    QWidget* pluginPage(const QString& id) const { return m_pluginPages.value(id); }
+
     /// @brief The list of the texts, with their check boxes, titles, kinds and words
     QTreeWidget* textList() const;
 
@@ -312,6 +336,11 @@ class ImportBookDialog : public ArchiveDialog {
     bool eventFilter(QObject* watched, QEvent* event) override;
 
    private:
+    /// @brief Create the window of @p format; of ImportFormat::Plugin, of the format @p plugin
+    ImportBookDialog(const Book& book, const core::BookTypeRegistry& registry, ImportFormat format,
+                     const QString& plugin, const QStringList& files, Actions actions,
+                     QWidget* parent);
+
     /// @brief The tabs of the window: the files, the place, the division, the styles, the
     /// cleanups, and the annotations and the images
     void buildFileTab();
@@ -323,6 +352,13 @@ class ImportBookDialog : public ArchiveDialog {
 
     /// @brief The fields of the window follow the writer's changes
     void connectFields();
+
+    /// @brief The format chosen in its list: its choices, its fields and its files read again
+    void formatChanged();
+
+    /// @brief The tab of the options of the format of a plugin chosen, made when it is first
+    ///        chosen; the tabs of the other formats hidden
+    void showPluginPage();
 
     /// @brief Read the files again, as the format and the reading of plain text say
     void readFiles();
@@ -439,6 +475,7 @@ class ImportBookDialog : public ArchiveDialog {
     QSpinBox* m_emptyLinesBox = nullptr;
     QCheckBox* m_wholeFilesBox = nullptr;
     QCheckBox* m_headingAsTitleBox = nullptr;
+    QLabel* m_pluginNote = nullptr;
     RowList* m_textList = nullptr;
     QComboBox* m_kindBox = nullptr;
     QPushButton* m_renameButton = nullptr;
@@ -462,7 +499,13 @@ class ImportBookDialog : public ArchiveDialog {
     QCheckBox* m_sceneMarkersBox = nullptr;
     QComboBox* m_emptyBox = nullptr;
 
+    QWidget* m_stylesTab = nullptr;
+    QWidget* m_cleanupTab = nullptr;
     QWidget* m_extrasTab = nullptr;
+    /// The tabs of the options of the formats of the plugins, by their ids; nullptr: none. The
+    /// tabs own them
+    QHash<QString, QWidget*> m_pluginPages;
+    int m_tab = 0;  ///< The tab in front, until another one comes in front
     QGroupBox* m_notesGroup = nullptr;
     QCheckBox* m_commentsBox = nullptr;
     QWidget* m_commentsOption = nullptr;
