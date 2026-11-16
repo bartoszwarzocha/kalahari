@@ -13,6 +13,7 @@
 #include "kalahari/core/plugin_manager.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/trusted_keys.h"
 #include "kalahari/editor/book_export.h"
 #include "kalahari/gui/book_export_coordinator.h"
 #include "kalahari/gui/command_registry.h"
@@ -590,6 +591,15 @@ void installPluginHost() {
         }
     });
     host.setProgramLanguage(core::SettingsManager::getInstance().getLanguage());
+}
+
+void loadPlugins() {
+    core::TrustedKeys::getInstance().loadBuiltinKeys();
+    core::PluginManager::getInstance().loadEnabledPlugins();
+}
+
+void unloadPlugins() {
+    core::PluginManager::getInstance().unloadAll();
 }
 
 void tellPluginsGoalReached() {

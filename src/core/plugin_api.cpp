@@ -9,7 +9,6 @@
 #include "kalahari/core/event_bus.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/plugin_host.h"
-#include "kalahari/version.h"
 
 #include <pybind11/functional.h>
 #include <pybind11/stl.h>
@@ -269,7 +268,7 @@ void defineProgram(py::module_& m) {
         "program_language", []() { return PluginHost::getInstance().programLanguage(); },
         "The language of the program's windows (\"pl\", \"en\")");
     m.def(
-        "program_version", []() { return std::string(VERSION_STRING); },
+        "program_version", []() { return PluginHost::programVersion(); },
         "The version of the program (\"0.4.0-alpha\")");
     m.attr("API_VERSION") = PLUGIN_API_VERSION;
 }

@@ -158,5 +158,14 @@ void installPluginHost();
 /// @brief Tell the plugins the daily goal was reached; once a day, whichever window saw it
 void tellPluginsGoalReached();
 
+/// @brief Trust Kalahari's own key and load the plugins turned on; Python starts only when one
+///        is to be loaded
+/// @note Here, not in main.cpp: on Windows the headers of Python define COMPILER and PLATFORM,
+///       which kalahari/version.h has
+void loadPlugins();
+
+/// @brief Unload all plugins, after the windows that show their commands and panels are gone
+void unloadPlugins();
+
 }  // namespace gui
 }  // namespace kalahari

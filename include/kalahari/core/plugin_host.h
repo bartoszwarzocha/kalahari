@@ -64,6 +64,10 @@ public:
     void setProgramLanguage(std::string language) { m_language = std::move(language); }
     [[nodiscard]] const std::string& programLanguage() const { return m_language; }
 
+    /// @brief The version of the program ("0.4.0-alpha"). Here, not in the module of the API:
+    ///        on Windows the headers of Python define COMPILER and PLATFORM, which version.h has
+    [[nodiscard]] static std::string programVersion();
+
     /// @brief The book of the window in front, as its texts are now
     [[nodiscard]] std::optional<PluginBook> book() const;
 

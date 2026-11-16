@@ -7,12 +7,17 @@
 #include "kalahari/core/plugin_host.h"
 
 #include "kalahari/core/logger.h"
+#include "kalahari/version.h"
 
 namespace kalahari::core {
 
 PluginHost& PluginHost::getInstance() {
     static PluginHost instance;
     return instance;
+}
+
+std::string PluginHost::programVersion() {
+    return VERSION_STRING;
 }
 
 std::optional<PluginBook> PluginHost::book() const {
