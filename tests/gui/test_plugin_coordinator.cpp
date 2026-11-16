@@ -20,6 +20,7 @@
 #include <QAction>
 #include <QApplication>
 #include <QDockWidget>
+#include <QLabel>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
@@ -47,7 +48,7 @@ public:
     void onActivate() override {}
 
     std::vector<core::PluginCommandInfo> getCommands() override {
-        return {
+        std::vector<core::PluginCommandInfo> commands{
             {"hello", "&Hello", "Says hello", "", "Ctrl+Shift+F8", "", false},
             {"tools", "In Tools", "", "TOOLS", "", "", false},
             {"lost", "Lost", "", "NOWHERE/At All", "", "", false},
@@ -55,6 +56,10 @@ public:
             {"taken", "Taken Keys", "", "", "Ctrl+S", "", false},
             {"fail", "Fail", "", "", "", "", false},
         };
+        if (newer) {
+            commands.push_back({"added", "Added", "", "", "", "", false});
+        }
+        return commands;
     }
 
     void runCommand(const std::string& commandId) override {
@@ -65,7 +70,11 @@ public:
     }
 
     std::vector<core::PluginPanelInfo> getPanels() override {
-        return {{"page", "Fake Page", ""}};
+        return {{"page", "Fake Page", ""}, {"own", "Own Widget", ""}};
+    }
+
+    QWidget* createPanel(const std::string& panelId, QWidget* parent) override {
+        return panelId == "own" ? new QLabel(QStringLiteral("own"), parent) : nullptr;
     }
 
     std::string panelContent(const std::string& /*panelId*/) override {
@@ -81,6 +90,7 @@ public:
     std::vector<std::string> links;
     std::string word = "first";
     int reads = 0;
+    bool newer = false;  ///< A newer version, with one command more
 };
 
 /// The submenu of @p menu with the text @p text, nullptr when it has none
@@ -219,6 +229,17 @@ TEST_CASE("Plugins in a window: a panel is closed until opened and reads its pag
     // Its links go to the plugin
     emit page->anchorClicked(QUrl(QStringLiteral("chapter:7")));
     CHECK(window.plugin().links == std::vector<std::string>{"chapter:7"});
+
+    // A panel the plugin makes itself shows its widget, as a tab beside the other panel
+    QDockWidget* own = coordinator.panelDock(FAKE_ID, "own");
+    REQUIRE(own != nullptr);
+    CHECK(qobject_cast<QLabel*>(own->widget()) != nullptr);
+    CHECK(coordinator.panelPage(FAKE_ID, "own") == nullptr);
+    kalahari::test::commands().getAction(PluginCoordinator::panelCommandIdOf(FAKE_ID, "own"))
+        ->trigger();
+    QApplication::processEvents();
+    CHECK(own->isVisible());
+    CHECK(window.window().tabifiedDockWidgets(dock).contains(own));
     window.window().hide();
 }
 
@@ -250,6 +271,51 @@ TEST_CASE("Plugins in a window: the commands and panels of a plugin gone leave t
     coordinator.sync();
     CHECK(commands.isCommandRegistered(hello));
     CHECK(submenu(plugins, literalMenuText(QString::fromLatin1(FAKE_ID))) != nullptr);
+}
+
+TEST_CASE("Plugins in a window: a plugin loaded again in its place gets its parts anew",
+          "[gui][plugin]") {
+    PluginWindow window;
+    PluginCoordinator coordinator(kalahari::test::book(), kalahari::test::commands(),
+                                  &window.window(), nullptr);
+    CommandRegistry& commands = kalahari::test::commands();
+    const std::string added = PluginCoordinator::commandIdOf(FAKE_ID, "added");
+    REQUIRE_FALSE(commands.isCommandRegistered(added));
+
+    // A newer version installed in its place: unloaded and loaded before the window hears
+    auto& registry = core::ExtensionPointRegistry::getInstance();
+    registry.unregisterPlugin(FAKE_ID);
+    const auto newer = std::make_shared<FakePlugin>();
+    newer->newer = true;
+    registry.registerPlugin(newer);
+    coordinator.sync();
+    CHECK(commands.isCommandRegistered(added));
+    commands.getAction(PluginCoordinator::commandIdOf(FAKE_ID, "hello"))->trigger();
+    CHECK(newer->ran == std::vector<std::string>{"hello"});
+    CHECK(window.plugin().ran.empty());
+}
+
+TEST_CASE("Plugins in a window: the program's keys of a command stay its own when the writer "
+          "moved them",
+          "[gui][plugin]") {
+    PluginWindow window;
+    CommandRegistry& commands = kalahari::test::commands();
+    const CommandRegistry::ShortcutMap before = commands.customShortcuts();
+    const KeyboardShortcut save(Qt::Key_S, Qt::ControlModifier);
+    commands.setCustomShortcuts(
+        {{"file.save", KeyboardShortcut(Qt::Key_F7, Qt::ControlModifier | Qt::ShiftModifier)}});
+    REQUIRE(commands.defaultShortcut("file.save") == save);
+    REQUIRE_FALSE(commands.getCommand("file.save")->shortcut == save);
+
+    {
+        PluginCoordinator coordinator(kalahari::test::book(), commands, &window.window(),
+                                      nullptr);
+        const Command* taken =
+            commands.getCommand(PluginCoordinator::commandIdOf(FAKE_ID, "taken"));
+        REQUIRE(taken != nullptr);
+        CHECK(taken->shortcut.isEmpty());
+    }
+    commands.setCustomShortcuts(before);
 }
 
 TEST_CASE("Plugins in a window: the book of an export as the plugins see it", "[gui][plugin]") {

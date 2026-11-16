@@ -210,6 +210,13 @@ private:
     /// @param error Why it is not a plugin to load
     std::optional<PluginMetadata> examine(const std::filesystem::path& file, std::string* error);
 
+    /// @brief Put @p file and its signature in place of the installed @p target and its
+    ///        signature, checked before; the installed pair stays when a step fails
+    /// @return Why it was not replaced; empty when it was
+    std::string replaceInstalled(const std::filesystem::path& file,
+                                 const std::filesystem::path& target,
+                                 const std::string& pluginId);
+
     /// @brief Import the entry module of an extracted plugin under a name of its own
     static py::object importEntryModule(const std::filesystem::path& folder,
                                         const std::string& module, const std::string& uniqueName);

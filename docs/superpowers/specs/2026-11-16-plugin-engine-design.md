@@ -56,15 +56,23 @@ Core (`kalahari_core`):
 - `python_plugin.h`: `PythonPlugin`, one adapter behind every extension point. The plugin's
   class needs no base class; each extension point is a method it may have (`get_commands`,
   `get_panels`, `get_export_formats` + `export_document(format, path, book)`,
-  `on_goal_reached`, `show_message`, `get_settings`, `on_settings_changed`). Every call takes
-  the GIL; an exception of the plugin becomes a `std::runtime_error` with its words.
+  `on_goal_reached`, `show_message`, `get_settings`, `on_settings_changed`). It is made after
+  `on_init()`: it reads `get_settings()` and binds the settings to the plugin, so their values
+  are the writer's in `on_activate()`; the commands, panels and formats are read after
+  `on_activate()`. Every call takes the GIL; an exception of the plugin becomes a
+  `std::runtime_error` with its words.
 - `PluginManager`: several folders (the user's `<config dir>/plugins` first, then the
-  program's), the entry module imported from its file under a unique name
-  (`kalahari_plugin_<id>`) and its modules removed from `sys.modules` on unload, a
+  program's); a plugin checked again when it is loaded, on a copy of its file and signature
+  that is then unpacked (a file changed after discovery is not loaded when turned on); the
+  entry module imported from its file under a unique name (`kalahari_plugin_<id>`, every
+  character other than a letter or a digit written as `_` and its hex code) and its modules
+  removed from `sys.modules` on unload, a
   `PythonPlugin` registered in `ExtensionPointRegistry` after the load and removed before the
   unload, `loadEnabledPlugins()` (Python starts only when a plugin is to be loaded),
-  `unloadAll()`, `plugins.disabled` with `setPluginEnabled()` (no restart), `installPlugin()`
-  (into the user's folder, in place of an older version), `removePlugin()` (only from the
+  `unloadAll()` (without Python when it did not start), `plugins.disabled` with
+  `setPluginEnabled()` (no restart), `installPlugin()` (into the user's folder, in place of an
+  older version: the new pair is copied beside the old one and checked, the old one is put
+  back when a step fails), `removePlugin()` (only from the
   user's folder, optionally with its settings), `contributionsOf()` (what a plugin added),
   `setLicenseCheck()`, change listeners.
 - `TrustedKeys`: the keys built into the program; `addTestKey()` and `clear()` for the tests.
@@ -75,12 +83,16 @@ Program (`gui`):
   id>`) in the menus at run time – Tools > Plugins > the plugin's name by default, or a menu of
   the program by its technical path ("TOOLS", "TOOLS/Statistics"); icons (a program icon, the
   plugin's SVG, or the icon of the plugins) through `IconRegistry`; keys checked by
-  `ShortcutRules` and against the other commands; greyed out without a book (`needsBook`);
-  the plugin's error in a `MessageDialog`. The panels are docks on the right, closed until
-  opened, with a toggle in View > Panels (`plugin-panel.<plugin id>.<panel id>`) and a tab in
-  `PanelTabs`; the page is a `QTextBrowser` (web links open in the browser, the others go to
-  `onPanelLink()`), read when it is shown and when the plugin asks. The window follows the
-  plugins turned on and off (`PluginManager` listeners, queued).
+  `ShortcutRules` and against the keys of the other commands, now and the program's own;
+  greyed out without a book (`needsBook`);
+  the plugin's error in a `MessageDialog`. The panels are docks on the right, tabbed with the
+  Statistics panel (or another plugin's panel), closed until opened, with a toggle in View >
+  Panels (`plugin-panel.<plugin id>.<panel id>`) and a tab in `PanelTabs`; a C++ plugin's own
+  widget (`createPanel()`), or else a `QTextBrowser` page (web links open in the browser, the
+  others go to `onPanelLink()`), read when it is shown and when the plugin asks. The window
+  follows the plugins turned on and off (`PluginManager` listeners, queued), and a plugin
+  loaded again in its place (a new version) gets its commands and panels anew. The plugins'
+  own submenus and the line above them are found by their object names.
 - `CommandRegistry::unregisterCommand()` also removes the command's action from the menus.
 - `installPluginHost()`: the book from the front window's
   `BookExportCoordinator::bookExport()`, the text in front, messages in
@@ -88,8 +100,10 @@ Program (`gui`):
   around a plugin's export with what the writer chose in the export window.
 - `WritingAwardsTracker::dailyGoalReached` → `IAssistant::onGoalReached()`, once a day for all
   windows (`tellPluginsGoalReached()`).
-- `main.cpp`: the built-in keys and `loadEnabledPlugins()` before the first window (not in the
-  benchmark), `unloadAll()` after the windows are deleted.
+- `main.cpp`: `gui::loadPlugins()` (the built-in keys and `loadEnabledPlugins()`) before the
+  first window (not in the benchmark), `gui::unloadPlugins()` after the windows are deleted.
+  Neither main.cpp nor the module of the API includes `kalahari/version.h` with Python's
+  headers: on Windows `pyconfig.h` defines `COMPILER` and `PLATFORM`.
 - Python calls stay on the main thread, which keeps the GIL.
 
 Tests:

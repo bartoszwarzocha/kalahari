@@ -15,8 +15,10 @@
 #include <zip.h>
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
 #include <cstdio>
 #include <fstream>
+#include <random>
 #include <sstream>
 #include <vector>
 
@@ -41,13 +43,92 @@ std::filesystem::path signatureOf(const std::filesystem::path& file) {
     return signature;
 }
 
-/// The name the entry module of a plugin is imported under: its id, as a name of Python
+/// The name the entry module of a plugin is imported under: its id as a name of Python, each
+/// character other than a letter or a digit written as _ and its code in hex, so that two ids
+/// never give one name ("a.b-c" and "a.b_c" would with a plain _)
 std::string uniqueModuleName(const std::string& pluginId) {
+    constexpr std::string_view HEX = "0123456789abcdef";
     std::string name = "kalahari_plugin_";
     for (const char each : pluginId) {
-        name += std::isalnum(static_cast<unsigned char>(each)) != 0 ? each : '_';
+        const auto code = static_cast<unsigned char>(each);
+        if (std::isalnum(code) != 0) {
+            name += each;
+        } else {
+            name += '_';
+            name += HEX[code >> 4U];
+            name += HEX[code & 0x0FU];
+        }
     }
     return name;
+}
+
+/// A copy of a plugin file and its signature, in a folder of its own, to check and unpack: the
+/// file in the plugins' folder may change after it is checked, the copy does not. The folder
+/// goes with it.
+class PluginSnapshot {
+public:
+    explicit PluginSnapshot(const std::filesystem::path& file) {
+        std::error_code error;
+        const std::filesystem::path temporary = std::filesystem::temp_directory_path(error);
+        if (error) {
+            m_error = "No temporary folder: " + error.message();
+            return;
+        }
+        std::random_device random;
+        std::ostringstream name;
+        name << std::hex << ((static_cast<std::uint64_t>(random()) << 32U) | random());
+        m_folder = temporary / "Kalahari" / "plugin-checks" / name.str();
+        std::filesystem::create_directories(m_folder, error);
+        const std::filesystem::path copy = m_folder / file.filename();
+        if (!error) {
+            std::filesystem::copy_file(file, copy, error);
+        }
+        std::error_code missing;
+        if (!error && std::filesystem::exists(signatureOf(file), missing)) {
+            std::filesystem::copy_file(signatureOf(file), signatureOf(copy), error);
+        }
+        if (error) {
+            m_error = "Cannot copy " + pathText(file) + ": " + error.message();
+            return;
+        }
+        m_file = copy;
+    }
+
+    ~PluginSnapshot() {
+        std::error_code ignored;
+        if (!m_folder.empty()) {
+            std::filesystem::remove_all(m_folder, ignored);
+        }
+    }
+
+    PluginSnapshot(const PluginSnapshot&) = delete;
+    PluginSnapshot& operator=(const PluginSnapshot&) = delete;
+    PluginSnapshot(PluginSnapshot&&) = delete;
+    PluginSnapshot& operator=(PluginSnapshot&&) = delete;
+
+    /// The copy of the plugin file; empty when it could not be made
+    [[nodiscard]] const std::filesystem::path& file() const { return m_file; }
+    /// Why there is no copy
+    [[nodiscard]] const std::string& error() const { return m_error; }
+
+private:
+    std::filesystem::path m_folder;
+    std::filesystem::path m_file;
+    std::string m_error;
+};
+
+/// Move @p from to @p to (in one folder); false when it cannot
+bool moveFile(const std::filesystem::path& from, const std::filesystem::path& to) {
+    std::error_code error;
+    std::filesystem::rename(from, to, error);
+    return !error;
+}
+
+/// Delete a file and its signature, if they are there
+void removeWithSignature(const std::filesystem::path& file) {
+    std::error_code ignored;
+    std::filesystem::remove(file, ignored);
+    std::filesystem::remove(signatureOf(file), ignored);
 }
 
 /// Remove the modules of an extracted plugin from sys.modules (the GIL is held)
@@ -419,21 +500,8 @@ std::optional<std::string> PluginManager::installPlugin(const std::filesystem::p
     }
     if (std::filesystem::equivalent(file, target, fileError)) {
         // Installed already: only loaded again
-    } else {
-        std::filesystem::copy_file(file, target, std::filesystem::copy_options::overwrite_existing,
-                                   fileError);
-        if (fileError) {
-            return fail("Cannot copy " + pathText(file) + ": " + fileError.message());
-        }
-        const std::filesystem::path signature = signatureOf(file);
-        const std::filesystem::path targetSignature = signatureOf(target);
-        if (std::filesystem::exists(signature)) {
-            std::filesystem::copy_file(signature, targetSignature,
-                                       std::filesystem::copy_options::overwrite_existing,
-                                       fileError);
-        } else {
-            std::filesystem::remove(targetSignature, fileError);
-        }
+    } else if (std::string failed = replaceInstalled(file, target, id); !failed.empty()) {
+        return fail(failed);
     }
     Logger::getInstance().info("PluginManager: Installed '{}' v{} to {}", id, plugin->version,
                                pathText(target));
@@ -443,6 +511,59 @@ std::optional<std::string> PluginManager::installPlugin(const std::filesystem::p
         setPluginEnabled(id, true);
     }
     return id;
+}
+
+std::string PluginManager::replaceInstalled(const std::filesystem::path& file,
+                                           const std::filesystem::path& target,
+                                           const std::string& pluginId) {
+    // The new pair is copied beside the old one and checked there; then the old pair steps
+    // aside, the new one takes its place, and the old one is deleted. A step that fails puts
+    // the old pair back, so a plugin that worked keeps working.
+    std::filesystem::path staged = target;
+    staged += ".new";
+    std::filesystem::path kept = target;
+    kept += ".old";
+    removeWithSignature(staged);
+    removeWithSignature(kept);
+
+    std::error_code error;
+    std::filesystem::copy_file(file, staged, error);
+    if (!error) {
+        std::filesystem::copy_file(signatureOf(file), signatureOf(staged), error);
+    }
+    if (error) {
+        removeWithSignature(staged);
+        return "Cannot copy " + pathText(file) + ": " + error.message();
+    }
+    std::string why;
+    const std::optional<PluginMetadata> copied = examine(staged, &why);
+    if (!copied || copied->id != pluginId) {
+        removeWithSignature(staged);
+        return "The copy of " + pathText(file) + " is not the plugin: " + why;
+    }
+
+    const bool hadOne = std::filesystem::exists(target, error);
+    const bool hadSignature = std::filesystem::exists(signatureOf(target), error);
+    if ((hadOne && !moveFile(target, kept)) ||
+        (hadSignature && !moveFile(signatureOf(target), signatureOf(kept)))) {
+        // The old pair as it was
+        moveFile(kept, target);
+        removeWithSignature(staged);
+        return "Cannot move the installed version of '" + pluginId + "' aside";
+    }
+    if (!moveFile(staged, target) || !moveFile(signatureOf(staged), signatureOf(target))) {
+        removeWithSignature(target);
+        if (hadOne) {
+            moveFile(kept, target);
+        }
+        if (hadSignature) {
+            moveFile(signatureOf(kept), signatureOf(target));
+        }
+        removeWithSignature(staged);
+        return "Cannot put the new version of '" + pluginId + "' in place";
+    }
+    removeWithSignature(kept);
+    return {};
 }
 
 bool PluginManager::isUserPlugin(const std::string& pluginId) const {
@@ -626,18 +747,40 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
     }
     // Mutex released here
 
+    // A plugin that is not loaded stays in the list, with the reason
+    const auto refuse = [this, &pluginId, &plugin_manifest](const std::string& why) {
+        Logger::getInstance().warn("PluginManager: '{}' not loaded: {}", pluginId, why);
+        PluginInstance failed;
+        failed.id = pluginId;
+        failed.state = PluginState::Error;
+        failed.manifest = plugin_manifest;
+        failed.error_message = why;
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_loaded_plugins[pluginId] = std::move(failed);
+        return false;
+    };
+
+    // The file is checked again as it is now, and the copy checked is the one unpacked: a
+    // plugin changed or unsigned after it was found (and turned on later) is not loaded
+    const PluginSnapshot snapshot(plugin_path);
+    std::string why = snapshot.error();
+    std::optional<PluginMetadata> checked;
+    if (!snapshot.file().empty()) {
+        checked = examine(snapshot.file(), &why);
+    }
+    if (!checked) {
+        return refuse(why);
+    }
+    if (checked->id != pluginId) {
+        return refuse("Its file now has the plugin '" + checked->id + "'");
+    }
+    plugin_manifest = checked->manifest;
+    entry_point = plugin_manifest.entry_point;
+
     // A plugin its licence does not let load stays unloaded, with the reason
     if (licenseCheck) {
         if (std::optional<std::string> refused = licenseCheck(plugin_manifest)) {
-            Logger::getInstance().warn("PluginManager: '{}' not loaded: {}", pluginId, *refused);
-            PluginInstance failed;
-            failed.id = pluginId;
-            failed.state = PluginState::Error;
-            failed.manifest = plugin_manifest;
-            failed.error_message = *refused;
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_loaded_plugins[pluginId] = std::move(failed);
-            return false;
+            return refuse(*refused);
         }
     }
 
@@ -652,7 +795,7 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
     try {
         // Step 1: Extract .kplugin archive (no GIL needed)
         Logger::getInstance().debug("PluginManager: Extracting plugin archive: {}", pathText(plugin_path));
-        instance.archive = std::make_unique<PluginArchive>(plugin_path);
+        instance.archive = std::make_unique<PluginArchive>(snapshot.file());
 
         if (!instance.archive->isValid()) {
             // The archive's own reason, for the writer (it is in the log already)
@@ -711,6 +854,10 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
                 Logger::getInstance().debug("PluginManager: on_init() completed");
             }
 
+            // Its settings have their values from now on, in on_activate() too
+            instance.extensions = std::make_shared<PythonPlugin>(
+                pluginId, plugin_manifest.version, extracted_path, instance.instance);
+
             // Call on_activate() if exists
             if (py::hasattr(*instance.instance, "on_activate")) {
                 Logger::getInstance().debug("PluginManager: Calling on_activate()");
@@ -720,15 +867,15 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
         }
         // GIL released here
 
-        // Its extension points: what it gives the program
-        instance.extensions = std::make_shared<PythonPlugin>(
-            pluginId, plugin_manifest.version, extracted_path, instance.instance);
+        // Its extension points: what it gives the program, as it is once active
+        instance.extensions->readContributions();
         ExtensionPointRegistry::getInstance().registerPlugin(instance.extensions);
 
         instance.state = PluginState::Activated;
         Logger::getInstance().info("PluginManager: Plugin '{}' activated successfully", pluginId);
 
     } catch (const py::error_already_set& e) {
+        instance.extensions.reset();  // Not registered: nothing of it is used
         instance.state = PluginState::Error;
         instance.error_message = std::string("Python error: ") + e.what();
         Logger::getInstance().error("PluginManager: Failed to load plugin '{}': {}", pluginId, instance.error_message);
@@ -739,6 +886,7 @@ bool PluginManager::loadPlugin(const std::string& pluginId) {
         return false;
 
     } catch (const std::exception& e) {
+        instance.extensions.reset();  // Not registered: nothing of it is used
         instance.state = PluginState::Error;
         instance.error_message = std::string("C++ error: ") + e.what();
         Logger::getInstance().error("PluginManager: Failed to load plugin '{}': {}", pluginId, instance.error_message);
@@ -806,6 +954,20 @@ void PluginManager::unloadPlugin(const std::string& pluginId) {
     if (instance.extensions) {
         ExtensionPointRegistry::getInstance().unregisterPlugin(pluginId);
         instance.extensions.reset();
+    }
+
+    // Without an interpreter (Python did not start, or it is gone) there is nothing of Python
+    // to release, and taking its lock would crash
+    if (Py_IsInitialized() == 0) {
+        if (instance.instance) {
+            instance.instance->release();
+        }
+        if (instance.module) {
+            instance.module->release();
+        }
+        Logger::getInstance().info("PluginManager: Plugin '{}' unloaded", pluginId);
+        notifyChanged(pluginId);
+        return;
     }
 
     // =========================================================================

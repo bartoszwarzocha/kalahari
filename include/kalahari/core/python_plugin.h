@@ -65,8 +65,14 @@ public:
     /// @param folder The folder its archive is extracted to: the files its commands and panels
     ///        name (icons) are there
     /// @param instance The object of the class of its entry point
+    /// @note Made after on_init() and before on_activate(): it reads get_settings() and binds
+    ///       the settings to the plugin, so their values are the writer's in on_activate().
+    ///       The other extension points are read by readContributions(), once it is active.
     PythonPlugin(std::string id, std::string version, std::filesystem::path folder,
                  std::shared_ptr<pybind11::object> instance);
+
+    /// @brief Read the commands, panels and formats of the plugin, once, after on_activate()
+    void readContributions();
 
     /// @brief Releases the plugin's Python objects under the GIL (or leaks them when the
     ///        interpreter is gone at the exit of the program)
@@ -107,8 +113,6 @@ public:
     [[nodiscard]] PluginContributions contributions() const;
 
 private:
-    /// The commands, panels, formats and settings of the plugin, read once
-    void readExtensions();
     void readCommands();
     void readPanels();
     void readFormats();

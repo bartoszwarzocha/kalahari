@@ -9,6 +9,7 @@
 #include "kalahari/core/logger.h"
 #include "kalahari/core/plugin_api.h"
 #include "kalahari/core/plugin_host.h"
+#include "kalahari/core/unicode_paths.h"
 
 #include <pybind11/stl.h>
 
@@ -48,7 +49,10 @@ PythonPlugin::PythonPlugin(std::string id, std::string version, std::filesystem:
       m_version(std::move(version)),
       m_folder(std::move(folder)),
       m_instance(std::move(instance)) {
-    readExtensions();
+    py::gil_scoped_acquire gil;
+    // The classes of the API are known once the module is imported
+    py::module_::import("kalahari_api");
+    readSettings();
 }
 
 PythonPlugin::~PythonPlugin() {
@@ -75,14 +79,11 @@ PythonPlugin::~PythonPlugin() {
     }
 }
 
-void PythonPlugin::readExtensions() {
+void PythonPlugin::readContributions() {
     py::gil_scoped_acquire gil;
-    // The classes of the API are known once the module is imported
-    py::module_::import("kalahari_api");
     readCommands();
     readPanels();
     readFormats();
-    readSettings();
     m_hears = py::hasattr(*m_instance, "on_goal_reached");
 }
 
@@ -188,18 +189,20 @@ void PythonPlugin::readSettings() {
 }
 
 std::string PythonPlugin::iconPath(const std::string& icon) const {
-    if (std::filesystem::path(icon).extension() != ".svg") {
+    // The words of Python are UTF-8, and so are the paths the window reads
+    const std::filesystem::path name = pathOfText(icon);
+    if (name.extension() != ".svg") {
         return icon;  // An icon of the program, or none
     }
     // A file of the plugin; one outside its folder is none
-    const std::filesystem::path file = (m_folder / std::filesystem::path(icon)).lexically_normal();
+    const std::filesystem::path file = (m_folder / name).lexically_normal();
     const std::filesystem::path folder = m_folder.lexically_normal();
     const auto [end, rest] = std::mismatch(folder.begin(), folder.end(), file.begin(), file.end());
     if (end != folder.end()) {
         Logger::getInstance().warn("Plugin '{}': the icon '{}' is outside the plugin", m_id, icon);
         return {};
     }
-    return file.string();
+    return pathText(file);
 }
 
 void PythonPlugin::runCommand(const std::string& commandId) {

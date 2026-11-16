@@ -22,6 +22,7 @@
 #include <QString>
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -101,27 +102,35 @@ private:
         std::string panelId;
         std::string commandId;
         QPointer<QDockWidget> dock;
-        QPointer<QTextBrowser> page;
+        QPointer<QTextBrowser> page;  ///< None when the plugin gave a widget of its own
         bool stale = true;  ///< Its page is to be read again when it is shown
     };
 
     /// What a plugin added to the window
     struct Parts {
+        /// The loaded plugin they are of: a new one of the same id (a version installed in
+        /// its place) gets its parts anew
+        std::weak_ptr<core::IPlugin> plugin;
         std::vector<std::string> commandIds;
         std::vector<Panel> panels;
     };
 
-    void addPlugin(const std::string& pluginId);
+    void addPlugin(const std::string& pluginId, const std::shared_ptr<core::IPlugin>& plugin);
     void removePlugin(const std::string& pluginId);
     void addCommand(const std::string& pluginId, const QString& pluginName,
                     const core::PluginCommandInfo& info, Parts& parts);
-    void addPanel(const std::string& pluginId, const core::PluginPanelInfo& info, Parts& parts);
+    void addPanel(core::IPanelProvider& provider, const std::string& pluginId,
+                  const core::PluginPanelInfo& info, Parts& parts);
 
     /// The keys a plugin's command may have: none when the program or another command has them
     [[nodiscard]] QString allowedKeys(const std::string& commandId, const std::string& keys) const;
 
     /// The menu of the window at @p menuPath ("TOOLS/Statistics"); nullptr when it has none
     [[nodiscard]] QMenu* existingMenu(const std::string& menuPath) const;
+
+    /// A panel on the right a new panel joins as a tab: the Statistics panel, or another panel
+    /// of a plugin; nullptr when none of them is docked on the right
+    [[nodiscard]] QDockWidget* tabNeighbour() const;
 
     /// Tools > Plugins > the plugin's name, made when it is not there yet
     [[nodiscard]] QMenu* pluginMenu(const std::string& pluginId, const QString& pluginName) const;

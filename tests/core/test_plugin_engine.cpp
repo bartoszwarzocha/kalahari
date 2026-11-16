@@ -59,7 +59,7 @@ class Full:
         pass
 
     def on_activate(self):
-        pass
+        self.size_at_start = self.size.value
 
     def run(self):
         self.ran += 1
@@ -362,6 +362,19 @@ TEST_CASE("Plugin engine: the settings of a plugin keep the writer's values with
     CHECK_FALSE(SettingsManager::getInstance().get<json>("plugins.settings").contains(FULL_ID));
 }
 
+TEST_CASE("Plugin engine: the settings of a plugin have the writer's values when it starts",
+          "[plugin][engine][settings]") {
+    PluginFolder plugins;
+    writeFullPlugin(plugins.folder() / "full.kplugin");
+    json all = SettingsManager::getInstance().get<json>("plugins.settings");
+    all[FULL_ID] = {{"size", 6}};
+    SettingsManager::getInstance().set<json>("plugins.settings", all);
+
+    REQUIRE(PluginManager::getInstance().loadEnabledPlugins() == 1);
+    CHECK(attributeOf<int>(FULL_ID, "size_at_start") == 6);
+    forgetPluginSettings(FULL_ID);
+}
+
 TEST_CASE("Plugin engine: a declaration of a setting that cannot be kept is refused",
           "[plugin][engine][settings]") {
     PythonInterpreter::getInstance().initialize();
@@ -435,8 +448,11 @@ TEST_CASE("Plugin engine: two plugins with entry modules of the same name are bo
         writePlugin(file, id, "1.0.0", "plugin:Plugin", {{"plugin.py", code}});
         kalahari::test::signPlugin(file);
     };
-    write("org.kalahari.test.first", "first");
-    write("org.kalahari.test.second", "second");
+    // Ids that would give one module name if every other character became a plain _
+    const std::string first = "org.kalahari.test.first-one";
+    const std::string second = "org.kalahari.test.first_one";
+    write(first, "first");
+    write(second, "second");
     auto& manager = PluginManager::getInstance();
     REQUIRE(manager.loadEnabledPlugins() == 2);
 
@@ -446,15 +462,18 @@ TEST_CASE("Plugin engine: two plugins with entry modules of the same name are bo
         py::gil_scoped_acquire gil;
         return instance->instance->attr("word")().cast<std::string>();
     };
-    CHECK(wordOf("org.kalahari.test.first") == "first");
-    CHECK(wordOf("org.kalahari.test.second") == "second");
+    CHECK(wordOf(first) == "first");
+    CHECK(wordOf(second) == "second");
+    const std::string firstModule = manager.getPluginInstance(first)->moduleName;
+    CHECK(firstModule == "kalahari_plugin_org_2ekalahari_2etest_2efirst_2done");
+    CHECK(firstModule != manager.getPluginInstance(second)->moduleName);
 
     // Unloaded, its modules are forgotten: no plain "plugin" module is left behind
     manager.unloadAll();
     py::gil_scoped_acquire gil;
     const py::dict modules = py::module_::import("sys").attr("modules");
     CHECK_FALSE(modules.contains("plugin"));
-    CHECK_FALSE(modules.contains("kalahari_plugin_org_kalahari_test_first"));
+    CHECK_FALSE(modules.contains(firstModule));
 }
 
 TEST_CASE("Plugin engine: only plugins signed by Kalahari are loaded", "[plugin][engine]") {
@@ -488,6 +507,31 @@ TEST_CASE("Plugin engine: only plugins signed by Kalahari are loaded", "[plugin]
         CHECK(manager.discoverPlugins() == 1);
     }
     CHECK(manager.loadEnabledPlugins() == manager.getDiscoveredPlugins().size());
+}
+
+TEST_CASE("Plugin engine: a plugin changed after it was found is not loaded when turned on",
+          "[plugin][engine]") {
+    PluginFolder plugins;
+    auto& manager = PluginManager::getInstance();
+    const fs::path file = plugins.folder() / "full.kplugin";
+    writeFullPlugin(file);
+    REQUIRE(manager.setPluginEnabled(FULL_ID, false));
+    REQUIRE(manager.discoverPlugins() == 1);
+
+    // Its file changed, with the signature of the one found
+    const fs::path signature = fs::path(file) += ".sig";
+    const std::string kept = textOf(signature);
+    writePlugin(file, FULL_ID, "1.0.0", "plugin:Full",
+                {{"plugin.py", std::string(FULL_PLUGIN) + "\n# changed\n"}});
+    std::ofstream(signature, std::ios::binary | std::ios::trunc) << kept;
+
+    CHECK_FALSE(manager.setPluginEnabled(FULL_ID, true));
+    CHECK_FALSE(manager.isPluginLoaded(FULL_ID));
+    const PluginInstance* refused = manager.getPluginInstance(FULL_ID);
+    REQUIRE(refused != nullptr);
+    CHECK(refused->state == PluginState::Error);
+    CHECK(refused->error_message.find("Signature") != std::string::npos);
+    CHECK(ExtensionPointRegistry::getInstance().getPlugin(FULL_ID) == nullptr);
 }
 
 TEST_CASE("Plugin engine: the licence check can keep a plugin from loading, saying why",

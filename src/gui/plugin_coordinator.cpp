@@ -153,26 +153,29 @@ std::string PluginCoordinator::panelCommandIdOf(const std::string& pluginId,
 
 void PluginCoordinator::sync() {
     auto& registry = core::ExtensionPointRegistry::getInstance();
-    std::set<std::string> present;
+    // The plugins loaded now, each with the object loaded: a plugin unloaded and loaded again
+    // before the window hears of it (a version installed in its place) is another object
+    std::map<std::string, std::shared_ptr<core::IPlugin>> present;
     for (const auto& provider : registry.getPluginsOfType<core::ICommandProvider>()) {
-        present.insert(provider->getPluginId());
+        present[provider->getPluginId()] = provider;
     }
     for (const auto& provider : registry.getPluginsOfType<core::IPanelProvider>()) {
-        present.insert(provider->getPluginId());
+        present[provider->getPluginId()] = provider;
     }
 
     std::vector<std::string> gone;
     for (const auto& [pluginId, parts] : m_plugins) {
-        if (present.count(pluginId) == 0) {
+        const auto it = present.find(pluginId);
+        if (it == present.end() || it->second != parts.plugin.lock()) {
             gone.push_back(pluginId);
         }
     }
     for (const std::string& pluginId : gone) {
         removePlugin(pluginId);
     }
-    for (const std::string& pluginId : present) {
+    for (const auto& [pluginId, plugin] : present) {
         if (m_plugins.count(pluginId) == 0) {
-            addPlugin(pluginId);
+            addPlugin(pluginId, plugin);
         }
     }
 }
@@ -185,9 +188,11 @@ void PluginCoordinator::updateCommands() {
     }
 }
 
-void PluginCoordinator::addPlugin(const std::string& pluginId) {
+void PluginCoordinator::addPlugin(const std::string& pluginId,
+                                  const std::shared_ptr<core::IPlugin>& plugin) {
     auto& registry = core::ExtensionPointRegistry::getInstance();
     Parts& parts = m_plugins[pluginId];
+    parts.plugin = plugin;
     const QString name = pluginName(pluginId);
     try {
         if (const auto provider = registry.getPluginAs<core::ICommandProvider>(pluginId)) {
@@ -197,7 +202,7 @@ void PluginCoordinator::addPlugin(const std::string& pluginId) {
         }
         if (const auto provider = registry.getPluginAs<core::IPanelProvider>(pluginId)) {
             for (const core::PluginPanelInfo& info : provider->getPanels()) {
-                addPanel(pluginId, info, parts);
+                addPanel(*provider, pluginId, info, parts);
             }
         }
     } catch (const std::exception& error) {
@@ -300,17 +305,30 @@ void PluginCoordinator::addCommand(const std::string& pluginId, const QString& p
     parts.commandIds.push_back(id);
 }
 
-void PluginCoordinator::addPanel(const std::string& pluginId, const core::PluginPanelInfo& info,
-                                 Parts& parts) {
+void PluginCoordinator::addPanel(core::IPanelProvider& provider, const std::string& pluginId,
+                                 const core::PluginPanelInfo& info, Parts& parts) {
     const std::string commandId = panelCommandIdOf(pluginId, info.id);
     const QString title = qt(info.title);
 
     auto* dock = new QDockWidget(title, m_window);
     dock->setObjectName(QStringLiteral("PluginDock_%1_%2").arg(qt(pluginId), qt(info.id)));
-    auto* page = new QTextBrowser(dock);
-    page->setOpenLinks(false);  // The plugin or the browser opens them
-    page->setObjectName(QStringLiteral("pluginPanelPage"));
-    dock->setWidget(page);
+    // A widget of the plugin (C++), or else the page the program shows
+    QWidget* own = nullptr;
+    try {
+        own = provider.createPanel(info.id, dock);
+    } catch (const std::exception& error) {
+        core::Logger::getInstance().error("Plugins: the panel '{}' of '{}' failed: {}", info.id,
+                                          pluginId, error.what());
+    }
+    QTextBrowser* page = nullptr;
+    if (own != nullptr) {
+        dock->setWidget(own);
+    } else {
+        page = new QTextBrowser(dock);
+        page->setOpenLinks(false);  // The plugin or the browser opens them
+        page->setObjectName(QStringLiteral("pluginPanelPage"));
+        dock->setWidget(page);
+    }
 
     registerIcon(commandId, info.icon, title);
     Command command;
@@ -332,6 +350,10 @@ void PluginCoordinator::addPanel(const std::string& pluginId, const core::Plugin
         m_docks->setupDockTitleBar(dock, qt(commandId), title);
     }
     m_window->addDockWidget(Qt::RightDockWidgetArea, dock);
+    // A tab among the panels on the right, not a pane of its own
+    if (QDockWidget* neighbour = tabNeighbour()) {
+        m_window->tabifyDockWidget(neighbour, dock);
+    }
     dock->hide();  // Closed until the writer opens it
     if (m_docks != nullptr && m_docks->panelTabs() != nullptr) {
         m_docks->panelTabs()->addPanel(dock, commandId);
@@ -346,8 +368,10 @@ void PluginCoordinator::addPanel(const std::string& pluginId, const core::Plugin
 
     parts.panels.push_back(Panel{pluginId, info.id, commandId, dock, page, true});
     const std::string panelId = info.id;
-    connect(page, &QTextBrowser::anchorClicked, this,
-            [this, pluginId, panelId](const QUrl& link) { openLink(pluginId, panelId, link); });
+    if (page != nullptr) {
+        connect(page, &QTextBrowser::anchorClicked, this,
+                [this, pluginId, panelId](const QUrl& link) { openLink(pluginId, panelId, link); });
+    }
     connect(dock, &QDockWidget::visibilityChanged, this, [this, pluginId, panelId](bool shown) {
         if (shown) {
             refreshPanel(pluginId, panelId);
@@ -380,7 +404,35 @@ QString PluginCoordinator::allowedKeys(const std::string& commandId,
             return {};
         }
     }
+    // Nor the program's keys of a command the writer gave other keys: they are its again when
+    // the writer goes back to the program's keys
+    for (const auto& [otherId, keysOfProgram] : m_commands.defaultShortcuts()) {
+        if (otherId != commandId && keysOfProgram == shortcut) {
+            logger.warn("Plugins: '{}' cannot have the keys {}: they are the program's keys of "
+                        "'{}'",
+                        commandId, keys, otherId);
+            return {};
+        }
+    }
     return shortcut.toString();
+}
+
+QDockWidget* PluginCoordinator::tabNeighbour() const {
+    const auto onTheRight = [this](QDockWidget* dock) {
+        return dock != nullptr && !dock->isFloating() &&
+               m_window->dockWidgetArea(dock) == Qt::RightDockWidgetArea;
+    };
+    if (m_docks != nullptr && onTheRight(m_docks->statisticsDock())) {
+        return m_docks->statisticsDock();
+    }
+    for (const auto& [pluginId, parts] : m_plugins) {
+        for (const Panel& panel : parts.panels) {
+            if (onTheRight(panel.dock)) {
+                return panel.dock;
+            }
+        }
+    }
+    return nullptr;
 }
 
 QMenu* PluginCoordinator::existingMenu(const std::string& menuPath) const {
