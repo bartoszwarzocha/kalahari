@@ -132,17 +132,6 @@ if(USE_SYSTEM_PACKAGES)
         message(STATUS "Qt6 TextToSpeech: Not found (TTS features disabled)")
         set(QT_TEXTTOSPEECH_AVAILABLE FALSE)
     endif()
-
-    # The preview of PDF files in the program (optional): without Qt PDF a PDF opens in the
-    # system program
-    find_package(Qt6 COMPONENTS Pdf QUIET)
-    if(Qt6Pdf_FOUND)
-        message(STATUS "Qt6 Pdf: Found (PDF preview enabled)")
-        set(KALAHARI_PDF_AVAILABLE TRUE)
-    else()
-        message(STATUS "Qt6 Pdf: Not found (PDF files open in the system program)")
-        set(KALAHARI_PDF_AVAILABLE FALSE)
-    endif()
 else()
     # vcpkg integration
     # Note: vcpkg toolchain file should be specified via:
@@ -244,18 +233,10 @@ else()
         message(STATUS "Qt6 TextToSpeech: Not found (TTS features disabled)")
         set(QT_TEXTTOSPEECH_AVAILABLE FALSE)
     endif()
-
-    # The preview of PDF files in the program (optional): without Qt PDF a PDF opens in the
-    # system program
-    find_package(Qt6 COMPONENTS Pdf QUIET)
-    if(Qt6Pdf_FOUND)
-        message(STATUS "Qt6 Pdf: Found (PDF preview enabled)")
-        set(KALAHARI_PDF_AVAILABLE TRUE)
-    else()
-        message(STATUS "Qt6 Pdf: Not found (PDF files open in the system program)")
-        set(KALAHARI_PDF_AVAILABLE FALSE)
-    endif()
 endif()
+
+# The preview of PDF files in the program: PDFium (KALAHARI_PDF_AVAILABLE, PDFium::pdfium)
+include("${CMAKE_SOURCE_DIR}/cmake/Pdfium.cmake")
 
 # Project version accessible in code; the suffix marks the release stage (empty for a final release)
 set(KALAHARI_VERSION_SUFFIX "alpha")

@@ -224,7 +224,8 @@ std::map<std::string, json> buildDefaults() {
         {"materials.sources.style", "pn-iso-690"},
         {"materials.sources.reference", "authorYear"},
         // A PDF file opens on a preview tab of the program ("preview") or in the system program
-        // ("system"); without the Qt PDF module always in the system program (gui::PdfFiles)
+        // ("system"); in a program built without the preview always in the system program
+        // (gui::PdfFiles)
         {"materials.open.pdf", "preview"},
         // The preview of a PDF file (Settings > Materials > PDF Preview): the pages one under
         // another ("continuous"), one at a time ("single") or two side by side ("two"); in a
@@ -243,6 +244,15 @@ std::map<std::string, json> buildDefaults() {
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
         {"navigator.addCommands", "named"},
+        // The cards of the Workshop (characters, locations, items): the palette that new cards
+        // take their colors from, in order (CardColors::next()), whether the Navigator shows
+        // the color of a card beside its name, and whether it puts a location under the one it
+        // is part of ("tree") or all of them in alphabetical order ("list")
+        {"cards.palette", json::array({"#c0504d", "#7e57c2", "#2e9e6a", "#d4a017", "#3a8fc9",
+                                       "#8d7b6a", "#b04a8f", "#e07b39", "#4f6fd1", "#6b9e2e",
+                                       "#1f9aa5", "#a35d3d"})},
+        {"cards.navigatorColorDot", true},
+        {"cards.navigatorTree", "tree"},
 
         // New projects
         {"project.defaultAuthor", ""},

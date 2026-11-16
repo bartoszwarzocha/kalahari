@@ -1,0 +1,6 @@
+pdfium provides CMake targets:
+
+    find_package(PDFium CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE PDFium::pdfium)
+
+On Windows, pdfium.dll (in bin) goes beside the program.

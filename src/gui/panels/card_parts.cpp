@@ -2,15 +2,22 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file card_parts.cpp
-/// @brief The small parts of the cards of the materials
+/// @brief The small parts of the cards of the materials, the characters, the locations and the
+/// items
 
 #include "kalahari/gui/panels/card_parts.h"
 
 #include "kalahari/core/art_provider.h"
+#include "kalahari/core/book_project.h"
+#include "kalahari/core/book_type_package.h"
+#include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/project_manager.h"
+#include "kalahari/gui/kind_names.h"
 
 #include <QAbstractButton>
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QEvent>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
@@ -19,6 +26,7 @@
 #include <QLabel>
 #include <QPalette>
 #include <QStyle>
+#include <QStyleOptionGroupBox>
 #include <QTableWidget>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -54,9 +62,9 @@ void keepIcon(QAbstractButton* button, const QString& iconId, core::IconContext 
 }
 
 QToolButton* listButton(QWidget* parent, const char* iconId, const QString& tooltip,
-                        const char* name) {
+                        const QString& name) {
     auto* button = new QToolButton(parent);
-    button->setObjectName(QString::fromLatin1(name));
+    button->setObjectName(name);
     button->setAutoRaise(true);
     keepIcon(button, QString::fromLatin1(iconId), core::IconContext::Menu);
     button->setToolTip(tooltip);
@@ -76,9 +84,9 @@ QHBoxLayout* buttonRow(QToolButton* add, QToolButton* remove) {
     return row;
 }
 
-QLabel* hintLabel(QWidget* parent, const QString& text, const char* name) {
+QLabel* hintLabel(QWidget* parent, const QString& text, const QString& name) {
     auto* label = new QLabel(text, parent);
-    label->setObjectName(QString::fromLatin1(name));
+    label->setObjectName(name);
     label->setWordWrap(true);
     label->setForegroundRole(QPalette::PlaceholderText);
     return label;
@@ -101,6 +109,10 @@ void cutOffChildren(QWidget* widget) {
     for (const QObject* child : widget->findChildren<QObject*>()) {
         child->disconnect(widget);
     }
+}
+
+bool isKeyEvent(const QEvent* event) {
+    return event->type() == QEvent::KeyPress || event->type() == QEvent::ShortcutOverride;
 }
 
 bool isListKey(const QKeyEvent* key, int which) {
@@ -155,6 +167,36 @@ QFormLayout* groupForm() {
     form->setSpacing(GROUP_SPACING);
     form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     return form;
+}
+
+void placeAtTitle(QGroupBox* group, QWidget* button) {
+    QStyleOptionGroupBox option;
+    option.initFrom(group);
+    option.text = group->title();
+    option.textAlignment = group->alignment();
+    option.subControls = QStyle::SC_GroupBoxFrame | QStyle::SC_GroupBoxLabel;
+    option.lineWidth = 1;
+    const QStyle* style = group->style();
+    const QRect label =
+        style->subControlRect(QStyle::CC_GroupBox, &option, QStyle::SC_GroupBoxLabel, group);
+    const QRect frame =
+        style->subControlRect(QStyle::CC_GroupBox, &option, QStyle::SC_GroupBoxFrame, group);
+    const QSize size = button->size();
+    const QRect place(QPoint(frame.right() + 1 - size.width(),
+                             std::max(0, label.center().y() + 1 - (size.height() / 2))),
+                      size);
+    button->move(QStyle::visualRect(group->layoutDirection(), group->rect(), place).topLeft());
+    button->raise();
+}
+
+QString subtitleValue(const core::ProjectManager& book, const core::ProjectElement& card) {
+    const core::KindRef kind = book.kindOf(card);
+    const core::CardField* field = kind ? kind.kind->subtitleField() : nullptr;
+    const QString value = field != nullptr ? card.card.value(field->id) : QString();
+    const core::CardFieldChoice* choice =
+        field != nullptr && field->type == core::CardFieldType::Choice ? field->choice(value)
+                                                                       : nullptr;
+    return choice != nullptr ? choice->name.text(programLanguage()) : value;
 }
 
 }  // namespace kalahari::gui::card

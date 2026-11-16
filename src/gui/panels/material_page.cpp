@@ -19,6 +19,7 @@
 #include "kalahari/gui/panels/source_boxes.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
+#include "kalahari/gui/widgets/own_fields_box.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
@@ -27,6 +28,7 @@
 #include "kalahari/core/theme_manager.h"
 
 #include <QAbstractItemDelegate>
+#include <QAction>
 #include <QClipboard>
 #include <QComboBox>
 #include <QGridLayout>
@@ -46,6 +48,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMenu>
 #include <QLocale>
 #include <QPlainTextEdit>
 #include <QPointer>
@@ -88,30 +91,6 @@ using card::isOpenKey;
 using card::keepIcon;
 using card::listButton;
 using card::listHeight;
-
-/// The names of the fields: the names of the fields of the book suggested as they are typed
-class FieldDelegate : public QStyledItemDelegate {
-public:
-    /// @param book The book whose names of fields it suggests
-    FieldDelegate(const core::ProjectManager& book, QObject* parent)
-        : QStyledItemDelegate(parent), m_book(book) {}
-
-    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option,
-                          const QModelIndex& index) const override {
-        QWidget* editor = QStyledItemDelegate::createEditor(parent, option, index);
-        auto* line = qobject_cast<QLineEdit*>(editor);
-        if (line != nullptr && index.column() == 0) {
-            auto* completer = new QCompleter(m_book.fieldNames(), line);
-            completer->setCaseSensitivity(Qt::CaseInsensitive);
-            completer->setFilterMode(Qt::MatchStartsWith);
-            line->setCompleter(completer);
-        }
-        return editor;
-    }
-
-private:
-    const core::ProjectManager& m_book;
-};
 
 /// The links of a material: a node of the Navigator dropped on it is linked
 class LinkList : public QTreeWidget {
@@ -395,74 +374,10 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
     connectSourceParts();
 
     // The writer's own fields
-    //: The writer's own fields of a material: a name and a value each. In Polish: Własne pola
-    auto* fieldsGroup = new QGroupBox(tr("Own Fields"), this);
-    auto* fieldsLayout = new QVBoxLayout(fieldsGroup);
-    fieldsLayout->setContentsMargins(11, 6, 11, 11);
-    fieldsLayout->setSpacing(4);
-    //: In Polish: Dodaj pole (Insert)
-    m_addFieldButton = listButton(fieldsGroup, "common.add", tr("Add Field (Insert)"),
-                                  "materialAddField");
-    //: In Polish: Usuń pole (Delete)
-    m_removeFieldButton = listButton(fieldsGroup, "common.remove", tr("Delete Field (Delete)"),
-                                     "materialRemoveField");
-    fieldsLayout->addLayout(buttonRow(m_addFieldButton, m_removeFieldButton));
-    m_fieldsTable = new QTableWidget(0, 2, fieldsGroup);
-    m_fieldsTable->setObjectName(QStringLiteral("materialFieldsTable"));
-    //: The columns of the own fields of a material. In Polish: Nazwa
-    m_fieldsTable->setHorizontalHeaderLabels({tr("Name"),
-                                              //: In Polish: Wartość
-                                              tr("Value")});
     //: In Polish: Własne pola materiału
-    m_fieldsTable->setAccessibleName(tr("Own fields of the material"));
-    m_fieldsTable->verticalHeader()->hide();
-    m_fieldsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    m_fieldsTable->setSelectionBehavior(QAbstractItemView::SelectItems);
-    m_fieldsTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_fieldsTable->setEditTriggers(QAbstractItemView::DoubleClicked |
-                                   QAbstractItemView::EditKeyPressed |
-                                   QAbstractItemView::AnyKeyPressed);
-    m_fieldsTable->setItemDelegate(new FieldDelegate(m_book, m_fieldsTable));
-    m_fieldsTable->setWordWrap(false);
-    m_fieldsTable->installEventFilter(this);
-    fieldsLayout->addWidget(m_fieldsTable);
-    //: In Polish: Brak pól. „+” albo Insert dodaje pole.
-    m_noFieldsLabel = hintLabel(fieldsGroup, tr("No fields. \"+\" or Insert adds a field."),
-                                "materialNoFields");
-    fieldsLayout->addWidget(m_noFieldsLabel);
-    if (full) {
-        fieldsLayout->addStretch(1);
-    }
-    connect(m_addFieldButton, &QToolButton::clicked, this, &MaterialPage::addField);
-    connect(m_removeFieldButton, &QToolButton::clicked, this, &MaterialPage::removeField);
-    connect(m_fieldsTable, &QTableWidget::itemChanged, this, [this]() {
-        if (!m_updating) {
-            saveFields();
-        }
-    });
-    connect(m_fieldsTable, &QTableWidget::currentCellChanged, this, &MaterialPage::updateButtons);
-    // A new field left without a name and a value goes
-    connect(m_fieldsTable->itemDelegate(), &QAbstractItemDelegate::closeEditor, this,
-            [this](QWidget*, QAbstractItemDelegate::EndEditHint hint) {
-                if (hint == QAbstractItemDelegate::EditNextItem ||
-                    hint == QAbstractItemDelegate::EditPreviousItem) {
-                    return;
-                }
-                const int row = m_fieldsTable->currentRow();
-                if (row < 0 || row >= m_fieldsTable->rowCount()) {
-                    return;
-                }
-                const QTableWidgetItem* name = m_fieldsTable->item(row, 0);
-                const QTableWidgetItem* value = m_fieldsTable->item(row, 1);
-                if ((name == nullptr || name->text().trimmed().isEmpty()) &&
-                    (value == nullptr || value->text().isEmpty())) {
-                    m_fieldsTable->removeRow(row);
-                    if (row < m_fields.size()) {
-                        m_fields.removeAt(row);
-                    }
-                    saveFields();
-                }
-            });
+    m_fieldsBox = new OwnFieldsBox(m_book, QStringLiteral("material"),
+                                   tr("Own fields of the material"), full, this);
+    connect(m_fieldsBox, &OwnFieldsBox::changed, this, &MaterialPage::changed);
 
     // The links: what the material is about
     //: The elements and sections a material is about. In Polish: Powiązania
@@ -527,7 +442,7 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
         right->addWidget(m_coverGroup);
         right->addWidget(m_bookmarksBox);
         right->addWidget(m_quotesBox);
-        right->addWidget(fieldsGroup, 1);
+        right->addWidget(m_fieldsBox, 1);
         grid->addLayout(left, 1, 0);
         grid->addLayout(right, 1, 1);
         grid->addWidget(linksGroup, 2, 0, 1, 2);
@@ -545,7 +460,7 @@ MaterialPage::MaterialPage(core::ProjectManager& book, QWidget* parent, bool ful
         layout->addWidget(m_entryBox);
         layout->addWidget(m_coverGroup);
         layout->addWidget(m_bookmarksBox);
-        layout->addWidget(fieldsGroup);
+        layout->addWidget(m_fieldsBox);
         layout->addWidget(linksGroup);
         layout->addStretch(1);
     }
@@ -645,7 +560,7 @@ void MaterialPage::refresh() {
     if (!m_descriptionEdit->hasFocus()) {
         m_descriptionEdit->setPlainText(element->description);
     }
-    fillFields(*element);
+    m_fieldsBox->showFields(m_elementId, element->fields);
     fillLinks(*element);
     showCover(*element);
     showSourceParts(*element);
@@ -653,10 +568,6 @@ void MaterialPage::refresh() {
     const bool readOnly = pm.isReadOnly();
     m_titleEdit->setReadOnly(readOnly);
     m_descriptionEdit->setReadOnly(readOnly);
-    m_fieldsTable->setEditTriggers(readOnly ? QAbstractItemView::NoEditTriggers
-                                            : QAbstractItemView::DoubleClicked |
-                                                  QAbstractItemView::EditKeyPressed |
-                                                  QAbstractItemView::AnyKeyPressed);
     static_cast<LinkList*>(m_linksList)->takesDrops = !readOnly;
     m_updating = false;
     updateButtons();
@@ -726,8 +637,9 @@ void MaterialPage::showSource(const core::ProjectElement& element) {
     m_previewButton->setEnabled(m_picture);
     QString onlyPictures;
     if (file.pdf) {
-        //: The tooltip of Preview for a PDF file in a program without the Qt PDF module. In
-        //: Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je program systemowy
+        //: The tooltip of Preview for a PDF file in a program built without the preview of
+        //: PDF files. In Polish: Ta wersja programu nie ma podglądu plików PDF; otwiera je
+        //: program systemowy
         onlyPictures = tr("This version of the program has no preview of PDF files; the "
                           "system program opens them");
     } else if (PdfFiles::previewAvailable()) {
@@ -905,26 +817,6 @@ QString MaterialPage::updateThumbnail() {
     return readError;
 }
 
-void MaterialPage::fillFields(const core::ProjectElement& element) {
-    m_fields = element.fields;
-    const bool wasUpdating = m_updating;
-    m_updating = true;
-    m_fieldsTable->setRowCount(0);
-    for (const core::ElementField& field : element.fields) {
-        const int row = m_fieldsTable->rowCount();
-        m_fieldsTable->insertRow(row);
-        m_fieldsTable->setItem(row, 0, new QTableWidgetItem(field.name));
-        m_fieldsTable->setItem(row, 1, new QTableWidgetItem(field.value));
-    }
-    const int rowHeight = m_fieldsTable->verticalHeader()->defaultSectionSize();
-    const int header = m_fieldsTable->horizontalHeader()->sizeHint().height();
-    m_fieldsTable->setFixedHeight(listHeight(
-        m_fieldsTable, static_cast<int>(element.fields.size()), rowHeight, header));
-    m_fieldsTable->setVisible(!element.fields.isEmpty());
-    m_noFieldsLabel->setVisible(element.fields.isEmpty());
-    m_updating = wasUpdating;
-}
-
 void MaterialPage::fillLinks(const core::ProjectElement& element) {
     const QString current =
         m_linksList->currentItem() ? m_linksList->currentItem()->data(0, LINK_ROLE).toString()
@@ -967,9 +859,7 @@ void MaterialPage::fillLinks(const core::ProjectElement& element) {
 
 void MaterialPage::updateButtons() {
     const bool readOnly = m_book.isReadOnly();
-    m_addFieldButton->setEnabled(!readOnly);
-    m_removeFieldButton->setEnabled(!readOnly && m_fieldsTable->currentRow() >= 0 &&
-                                    m_fieldsTable->rowCount() > 0);
+    m_fieldsBox->updateButtons();
     m_addLinkButton->setEnabled(!readOnly);
     m_removeLinkButton->setEnabled(!readOnly && m_linksList->currentItem() != nullptr);
 }
@@ -1017,96 +907,24 @@ void MaterialPage::saveDescription() {
     emit changed(m_elementId);
 }
 
-QList<core::ElementField> MaterialPage::tableFields() const {
-    QList<core::ElementField> fields;
-    for (int row = 0; row < m_fieldsTable->rowCount(); ++row) {
-        core::ElementField field = row < m_fields.size() ? m_fields.at(row) : core::ElementField{};
-        const QTableWidgetItem* name = m_fieldsTable->item(row, 0);
-        const QTableWidgetItem* value = m_fieldsTable->item(row, 1);
-        field.name = name ? name->text().trimmed() : QString();
-        field.value = value ? value->text() : QString();
-        fields << field;
-    }
-    return fields;
+QTableWidget* MaterialPage::fieldsTable() const {
+    return m_fieldsBox->table();
 }
 
-void MaterialPage::saveFields() {
-    auto& pm = m_book;
-    if (m_elementId.isEmpty() || pm.isReadOnly()) {
-        return;
-    }
-    // A field without a name and a value is not saved
-    QList<core::ElementField> fields = tableFields();
-    fields.removeIf([](const core::ElementField& field) {
-        return field.name.isEmpty() && field.value.isEmpty();
-    });
-    if (!pm.setFields(m_elementId, fields)) {
-        //: In Polish: Nie zapisano pól
-        dialogs::MessageDialog::warning(this, tr("Fields Not Saved"),
-                                        tr("Failed to save changes."));
-        return;
-    }
-    m_fields = tableFields();
-    updateButtons();
-    emit changed(m_elementId);
+QToolButton* MaterialPage::addFieldButton() const {
+    return m_fieldsBox->addButton();
+}
+
+QToolButton* MaterialPage::removeFieldButton() const {
+    return m_fieldsBox->removeButton();
 }
 
 void MaterialPage::addField() {
-    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
-        return;
-    }
-    const bool wasUpdating = m_updating;
-    m_updating = true;
-    const int row = m_fieldsTable->rowCount();
-    m_fieldsTable->insertRow(row);
-    m_fieldsTable->setItem(row, 0, new QTableWidgetItem());
-    m_fieldsTable->setItem(row, 1, new QTableWidgetItem());
-    m_fields.append(core::ElementField{});
-    m_updating = wasUpdating;
-    const int rowHeight = m_fieldsTable->verticalHeader()->defaultSectionSize();
-    const int header = m_fieldsTable->horizontalHeader()->sizeHint().height();
-    m_fieldsTable->setFixedHeight(
-        listHeight(m_fieldsTable, m_fieldsTable->rowCount(), rowHeight, header));
-    m_fieldsTable->show();
-    m_noFieldsLabel->hide();
-    m_fieldsTable->setFocus(Qt::OtherFocusReason);
-    m_fieldsTable->setCurrentCell(row, 0);
-    m_fieldsTable->editItem(m_fieldsTable->item(row, 0));
-    updateButtons();
+    m_fieldsBox->addField();
 }
 
 void MaterialPage::removeField() {
-    const int row = m_fieldsTable->currentRow();
-    if (row < 0 || row >= m_fieldsTable->rowCount() ||
-        m_book.isReadOnly()) {
-        return;
-    }
-    const QTableWidgetItem* name = m_fieldsTable->item(row, 0);
-    const QTableWidgetItem* value = m_fieldsTable->item(row, 1);
-    if (value != nullptr && !value->text().isEmpty()) {
-        //: %1: the name of the field. In Polish: Usunąć pole „%1” razem z jego wartością?
-        const QString question = tr("Delete the field \"%1\" with its value?")
-                                     .arg(name != nullptr ? name->text() : QString());
-        //: In Polish: Usuń pole
-        if (!dialogs::MessageDialog::confirm(this, tr("Delete Field"), question,
-                                             //: In Polish: &Usuń
-                                             tr("&Delete"))) {
-            return;
-        }
-    }
-    const bool wasUpdating = m_updating;
-    m_updating = true;
-    m_fieldsTable->removeRow(row);
-    if (row < m_fields.size()) {
-        m_fields.removeAt(row);
-    }
-    m_updating = wasUpdating;
-    saveFields();
-    refresh();
-    if (m_fieldsTable->rowCount() > 0) {
-        m_fieldsTable->setCurrentCell(std::min(row, m_fieldsTable->rowCount() - 1), 0);
-        m_fieldsTable->setFocus(Qt::OtherFocusReason);
-    }
+    m_fieldsBox->removeField();
 }
 
 void MaterialPage::editLinks() {
@@ -1539,10 +1357,10 @@ bool MaterialPage::eventFilter(QObject* watched, QEvent* event) {
     }
     // Insert and Delete of the lists; the same keys of the window's commands wait while a
     // list has the keys. A cell being edited has them itself.
-    if ((watched == m_fieldsTable || watched == m_linksList) &&
+    if (watched == m_linksList &&
         (event->type() == QEvent::ShortcutOverride || event->type() == QEvent::KeyPress)) {
         auto* key = static_cast<QKeyEvent*>(event);
-        if (watched == m_linksList && event->type() == QEvent::KeyPress && isOpenKey(key)) {
+        if (event->type() == QEvent::KeyPress && isOpenKey(key)) {
             if (const QTreeWidgetItem* item = m_linksList->currentItem()) {
                 emit requestOpenLink(item->data(0, LINK_ROLE).toString());
             }
@@ -1555,11 +1373,7 @@ bool MaterialPage::eventFilter(QObject* watched, QEvent* event) {
                 key->accept();
                 return true;
             }
-            if (watched == m_fieldsTable) {
-                insert ? addField() : removeField();
-            } else {
-                insert ? editLinks() : removeLink();
-            }
+            insert ? editLinks() : removeLink();
             return true;
         }
     }
@@ -1608,7 +1422,7 @@ void MaterialCardPanel::refresh() {
 // =============================================================================
 
 LinkedMaterialsBox::LinkedMaterialsBox(core::ProjectManager& book, QWidget* parent)
-    : QGroupBox(parent), m_book(book) {
+    : QGroupBox(parent), m_menu(new QMenu(this)), m_book(book) {
     setObjectName(QStringLiteral("linkedMaterials"));
     //: The materials linked with a chapter, in its page of the Properties panel. In Polish:
     //: Materiały
@@ -1633,8 +1447,14 @@ LinkedMaterialsBox::LinkedMaterialsBox(core::ProjectManager& book, QWidget* pare
     //: In Polish: Dwuklik otwiera materiał
     m_list->setToolTip(tr("A double-click opens the material"));
     m_list->installEventFilter(this);
+    m_list->setContextMenuPolicy(Qt::CustomContextMenu);
     layout->addWidget(m_list);
     m_emptyLabel = hintLabel(this, QString(), "linkedMaterialsEmpty");
+    m_menu->setObjectName(QStringLiteral("linkedMaterialsMenu"));
+    connect(m_list, &QListWidget::customContextMenuRequested, this, [this](const QPoint& at) {
+        fillMenu();
+        m_menu->popup(m_list->viewport()->mapToGlobal(at));
+    });
     layout->addWidget(m_emptyLabel);
     connect(m_addButton, &QToolButton::clicked, this, &LinkedMaterialsBox::editMaterials);
     connect(m_removeButton, &QToolButton::clicked, this, &LinkedMaterialsBox::removeMaterial);
@@ -1732,6 +1552,26 @@ void LinkedMaterialsBox::updateButtons() {
     const bool readOnly = m_book.isReadOnly();
     m_addButton->setEnabled(!readOnly && !m_link.isEmpty());
     m_removeButton->setEnabled(!readOnly && m_list->currentItem() != nullptr);
+}
+
+void LinkedMaterialsBox::fillMenu() {
+    m_menu->clear();
+    const QListWidgetItem* item = m_list->currentItem();
+    const QString material = item != nullptr ? item->data(LINK_ROLE).toString() : QString();
+    const bool writable = !m_book.isReadOnly() && !m_link.isEmpty();
+    //: The menu of a material linked with a chapter or a card. In Polish: Otwórz materiał
+    QAction* open = m_menu->addAction(tr("Open the Material"));
+    open->setEnabled(!material.isEmpty());
+    connect(open, &QAction::triggered, this,
+            [this, material]() { emit requestOpenMaterial(material); });
+    QAction* remove = m_menu->addAction(tr("Remove Link (Delete)"));
+    remove->setEnabled(writable && !material.isEmpty());
+    connect(remove, &QAction::triggered, this, &LinkedMaterialsBox::removeMaterial);
+    m_menu->addSeparator();
+    QAction* add = m_menu->addAction(tr("Link Material... (Insert)"));
+    add->setEnabled(writable);
+    connect(add, &QAction::triggered, this, &LinkedMaterialsBox::editMaterials);
+    emit menuOpening(m_menu, material);
 }
 
 void LinkedMaterialsBox::editMaterials() {

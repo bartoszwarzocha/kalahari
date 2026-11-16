@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
+  characters, locations and items, added from the Book menu, the Navigator ("Add Character...",
+  "Add Location...", "Add Item...") or Add Element, in the groups Characters, Locations and Items
+  of the Navigator, each with a dot of its color beside its name (Settings > Cards can turn the
+  dots off). Properties shows the short card: the portrait, the name, the field of the subtitle
+  (the role of a character), In Short, the fields of the kind shown there and Open Card. The full
+  card opens on a tab: the name with the kind and its role, the color, In Short, the fields of
+  the kind (a field naming another card suggests the cards of its kind), Own Fields and the
+  description in two columns, edited as any text of the book. The portrait is a picture among
+  the materials of the book or from a file (it becomes a material of the Workshop); a card
+  without one shows its initials in its color. A new card takes the next color of the palette
+  of Settings > Cards, which also has the dots of the Navigator; the gear of the cards opens it.
+  The library of characters and locations of the old model in project.db is gone: the cards of
+  the Workshop take its place.
+
 - **Book dictionary** - 2026-11-15. Each book has a dictionary of its own (`dictionary.json`
   in its folder, saved at once with each change): the names of its characters, places, things
   and other proper names with all their forms, the author's spelling rules, and words right in
@@ -65,11 +80,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the preview, and the card of a quote has Show Page. The colors around the pages, of the
   selection and of the hits are the editor's (Settings > Editor > Colors). The opening of
   pictures and pages on the web moved from Settings > Navigator to Settings > Materials.
-  Without the Qt PDF module a PDF opens in the system program and the options of the
-  preview are dimmed. On Linux the package `qt6-pdf-dev` gives it. Windows and macOS builds
-  are without it by default: the vcpkg feature `pdf-preview` (`qtwebengine` with only its
-  feature `pdf`, `-DVCPKG_MANIFEST_FEATURES="qt6;pdf-preview"`) adds it, but its build takes
-  hours and tens of GB.
+  The pages are drawn by PDFium, the PDF library of Chromium (BSD 3-Clause and Apache 2.0),
+  as a ready shared library of pdfium-binaries built from its official sources without
+  JavaScript and XFA: the port `vcpkg-ports/pdfium` installs it with vcpkg, a build without
+  vcpkg downloads the same archive, both checked by the SHA-512 pinned in
+  `vcpkg-ports/pdfium/release.cmake`, and the CI checks the signed record of each build
+  (`scripts/verify_pdfium.cmake`). So every build has the preview, on Windows, macOS and
+  Linux (x64 and arm64); `-DKALAHARI_PDF_PREVIEW=OFF` builds the program without it, and
+  then a PDF opens in the system program and the options of the preview are dimmed.
 
 - **Sources: the bibliographic description of a material, the bibliography and the quotes
   with their source** - 2026-11-15. A publication, a document, a web page and a recording

@@ -629,6 +629,7 @@ MainWindow::MainWindow(QWidget* parent)
                         QString::fromLatin1(SettingsDialog::VERSIONS_PAGE));
                 }
             });
+    connectCards();
 
     // Undo, Redo, Cut, Copy, Paste and Select All work on the element with the keys; what
     // is done in the Annotations panel is undone in the text in front
@@ -2637,6 +2638,42 @@ void MainWindow::onAbout() {
 }
 
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
+
+void MainWindow::connectCards() {
+    PropertiesPanel* properties = m_dockCoordinator->propertiesPanel();
+    connect(properties, &PropertiesPanel::requestOpenCard, this,
+            [this](const QString& elementId) {
+                if (const core::ProjectElement* element = book().findElement(elementId);
+                    element != nullptr) {
+                    m_navigatorCoordinator->onElementSelected(elementId, element->title);
+                }
+            });
+    const auto openCardSettings = [this]() {
+        if (m_settingsCoordinator != nullptr) {
+            m_settingsCoordinator->openSettingsPage(
+                QString::fromLatin1(SettingsDialog::CARDS_PAGE));
+        }
+    };
+    connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
+            openCardSettings);
+    connect(properties, &PropertiesPanel::cardMaterialAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::refreshNavigator);
+    // The other card of a relation, and a card made with a relation
+    connect(properties, &PropertiesPanel::requestSelectCard, m_dockCoordinator->navigatorPanel(),
+            &NavigatorPanel::revealElement);
+    connect(properties, &PropertiesPanel::cardAdded, m_navigatorCoordinator,
+            &NavigatorCoordinator::refreshNavigator);
+    // What is dropped on a card: its materials; Find in Book of the full card
+    connect(properties, &PropertiesPanel::requestAddCardMaterials, m_navigatorCoordinator,
+            &NavigatorCoordinator::onRequestAddMaterials);
+    connect(m_navigatorCoordinator, &NavigatorCoordinator::findInBookRequested, this,
+            [this](const QString& text) {
+                if (m_bookSearchCoordinator != nullptr) {
+                    m_bookSearchCoordinator->findInBook(text);
+                }
+            });
+}
 
 void MainWindow::createDocks() {
     auto& logger = core::Logger::getInstance();

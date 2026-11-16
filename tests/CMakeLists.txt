@@ -32,6 +32,8 @@ set(TEST_SOURCES
     core/test_book_dictionary.cpp     # The dictionary of a book: names, rules of spelling, words
     core/test_material_kinds.cpp      # The kind that the file or the address of a material gives it
     core/test_cover_material.cpp      # The materials of the cover: their data in the book and their lengths
+    core/test_card_data.cpp           # The cards of the Workshop: their fields, data in the book and colors
+    core/test_card_relations.cpp      # The relations between cards, and the fields that name a card by one
     core/test_sources.cpp             # The sources: descriptions in the book, bibliography styles, BibTeX
     core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
     core/test_book_project.cpp        # Book project and its .klh file
@@ -179,6 +181,9 @@ set(TEST_SOURCES
     gui/test_reading_time.cpp                    # The reading time of a text as the program shows it
     gui/test_properties_panel.cpp                # Properties panel: the counts of the editor in front
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
+    gui/test_card_page.cpp                       # The cards of characters, locations and items
+    gui/test_relation_dialog.cpp                 # The window Relation and the relations of a card
+    gui/test_card_chapters.cpp                   # The chapters and the materials of a card, what is dropped on it
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
     gui/test_cover_list.cpp                      # The list, the plan, the card and the settings of the cover
     gui/test_material_source.cpp                 # Where a material comes from, its downloads
@@ -248,6 +253,9 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/standalone_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/file_trash.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_package.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/package_json.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_package.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_relations.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_type_registry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/kind_words.cpp
     ${CMAKE_SOURCE_DIR}/src/core/affix_expander.cpp
@@ -258,6 +266,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/book_dictionary_file.cpp
     ${CMAKE_SOURCE_DIR}/src/core/material_kinds.cpp
     ${CMAKE_SOURCE_DIR}/src/core/cover_material.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/card_data.cpp
     ${CMAKE_SOURCE_DIR}/src/core/source_description.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography_records.cpp
@@ -354,6 +363,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/settings/versions_page.cpp  # Settings > Editor > Versions
     ${CMAKE_SOURCE_DIR}/src/gui/settings/annotations_page.cpp
     ${CMAKE_SOURCE_DIR}/src/gui/settings/navigator_page.cpp  # Settings > Navigator
+    ${CMAKE_SOURCE_DIR}/src/gui/settings/cards_page.cpp  # Settings > Cards
     ${CMAKE_SOURCE_DIR}/src/gui/settings/materials_page.cpp  # Settings > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/network_page.cpp  # Settings > Network > Materials
     ${CMAKE_SOURCE_DIR}/src/gui/settings/folders_page.cpp
@@ -513,11 +523,18 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/quick_character_palette.cpp  # Insert > Quick Character
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/character_dialogs.cpp        # The keys of a character, a replacement
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/link_dialog.cpp              # What a material is about
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/relation_dialog.cpp          # A relation of a card
     ${CMAKE_SOURCE_DIR}/src/gui/material_file.cpp                    # The file of a material and its picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_source.cpp                  # Where a material comes from
     ${CMAKE_SOURCE_DIR}/src/gui/material_downloader.cpp              # The title of a page, the copy of a picture
     ${CMAKE_SOURCE_DIR}/src/gui/link_names.cpp                       # The links of a material in lists
     ${CMAKE_SOURCE_DIR}/src/gui/panels/material_page.cpp             # The card of a material in Properties
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/own_fields_box.cpp           # The writer's own fields of an element
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/relations_box.cpp            # The relations of a card
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/card_chapters_box.cpp        # The chapters a card is in
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/card_page.cpp                 # The card of a character, a location, an item
+    ${CMAKE_SOURCE_DIR}/src/gui/panels/card_panel.cpp                # The full card on a tab
+    ${CMAKE_SOURCE_DIR}/src/gui/widgets/palette_edit.cpp             # A palette of colors to change
     ${CMAKE_SOURCE_DIR}/src/gui/panels/card_parts.cpp                # The small parts of the cards
     ${CMAKE_SOURCE_DIR}/src/gui/panels/source_boxes.cpp              # The groups of the card of a source
     ${CMAKE_SOURCE_DIR}/src/gui/panels/source_description_box.cpp    # The description of a source
@@ -687,7 +704,14 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_chapters_box.h  # CardChaptersBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h   # The groups of the card of a source with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/preview_panel.h  # PreviewPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/image_preview_panel.h  # ImagePreviewPanel with Q_OBJECT
@@ -734,15 +758,20 @@ set(TEST_SOURCES ${TEST_SOURCES}
     # More test files will be added as we implement features
 )
 
-# The preview of PDF files and its tests: only with Qt PDF
+# The preview of PDF files and its tests: only with PDFium (cmake/Pdfium.cmake)
 if(KALAHARI_PDF_AVAILABLE)
     list(APPEND TEST_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/gui/pdf_document.cpp             # A PDF file read by PDFium
+        ${CMAKE_SOURCE_DIR}/src/gui/pdf_models.cpp               # Its search and contents
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_panel.cpp  # A PDF on a tab
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_parts.cpp  # Its bars and side panel
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_view.cpp     # The pages of a PDF
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_layout.cpp   # Their rows and zoom
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_preview_panel.h  # with Q_OBJECT
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_pages_view.h     # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_document.h              # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_models.h                # with Q_OBJECT
+        gui/test_pdf_document.cpp  # A PDF file read by PDFium: pages, text, data, contents
         gui/test_pdf_preview.cpp  # The preview of a PDF: pages, side panel, search, selection
     )
 endif()
@@ -809,10 +838,18 @@ target_link_libraries(kalahari-tests PRIVATE
 target_include_directories(kalahari-tests PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari-tests PRIVATE ${HUNSPELL_LIBRARY_DIRS})
 
-# The preview of PDF files (optional Qt PDF module)
+# The preview of PDF files (PDFium)
 if(KALAHARI_PDF_AVAILABLE)
-    target_link_libraries(kalahari-tests PRIVATE Qt6::Pdf)
+    target_link_libraries(kalahari-tests PRIVATE PDFium::pdfium)
     target_compile_definitions(kalahari-tests PRIVATE KALAHARI_HAS_PDF)
+    if(WIN32)
+        # One release build of pdfium.dll serves every configuration (src/CMakeLists.txt)
+        add_custom_command(TARGET kalahari-tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:PDFium::pdfium>" "$<TARGET_FILE_DIR:kalahari-tests>/"
+            COMMENT "Copying pdfium.dll to the tests' directory"
+        )
+    endif()
 endif()
 
 # Windows: Workaround for Catch2d.lib link errors with VS 2022/2026
