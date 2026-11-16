@@ -40,3 +40,28 @@ The proposal is `przeglad/automatyzacja-testow-propozycja.md` in the project fil
   `GITHUB_STEP_SUMMARY`; the full run on a schedule.
 - MSVC builds with `/W4 /WX`: the code must not hide names or narrow numbers implicitly
   (main was red on 2026-11-16 for C4456).
+
+## The run in a browser (the user's requirement, 2026-11-16)
+
+The user wants to see the course of a test in an HTML interface. `index.html` in the report
+folder becomes that interface, in Polish:
+
+- a summary: the situations, the commands run and greyed, the time, the state of the run
+  (running, finished, ended by a crash), the findings;
+- the steps in the order they ran: the command with its name in the menu, the time, the
+  windows it showed with their screenshots, the checks, the log; steps with findings in colour;
+- a player: the screenshots of the steps one after another, with Back, Next and Pause;
+- filters: findings only, a check, a situation, the name of a command;
+- the findings, with links to their steps.
+
+How: the page and the screenshots are one folder that a browser opens from the disk
+(`file://`), without a server. The robot writes the data of the page (`data.js`, loaded by a
+script tag) after each step; while the run lasts, the page reloads itself every few seconds and
+follows the current step. The robot runs the program in Polish (the tests have the
+translation: `tests/CMakeLists.txt`, line 819), so the names and the screenshots are those the
+user sees. On GitHub the folder is the artifact `robot-report-<system>`, a ZIP; `summary.md`
+goes to the summary of the run. A fixed address (GitHub Pages) would make the page public: the
+user decides. Not tried yet: the reload and the script of `data.js` under `file://`.
+
+The present `robot_report.cpp` writes a static `index.html` after each situation; the
+interface replaces it.
