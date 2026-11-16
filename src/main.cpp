@@ -18,6 +18,9 @@
 #include <QThread>
 #include <QTranslator>
 #include "kalahari/gui/main_window.h"
+#include "kalahari/gui/plugin_coordinator.h"
+#include "kalahari/core/plugin_manager.h"
+#include "kalahari/core/trusted_keys.h"
 #include "kalahari/gui/program_instance.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -320,6 +323,14 @@ int main(int argc, char *argv[]) {
     }
     logger.openFile(LOG_FILE);
 
+    // The plugins: Kalahari's own add-ons, signed with its key. Python starts only when one is
+    // turned on; every book window takes their commands and panels
+    kalahari::gui::installPluginHost();
+    if (!benchmarkMode) {
+        kalahari::core::TrustedKeys::getInstance().loadBuiltinKeys();
+        kalahari::core::PluginManager::getInstance().loadEnabledPlugins();
+    }
+
     // The first book window of the program: it opens the file of the command line, or the
     // books of the last work. Each book window closes and is deleted on its own.
     auto* firstWindow = new kalahari::gui::MainWindow;
@@ -496,6 +507,8 @@ int main(int argc, char *argv[]) {
     // The windows still there (closed ones wait for the event loop to delete them) go while
     // the application is
     qDeleteAll(kalahari::gui::MainWindow::windows());
+    // The plugins go after the windows that show their commands and panels
+    kalahari::core::PluginManager::getInstance().unloadAll();
 
     // Settings that apply only after a restart (UI language) can ask for one:
     // SettingsCoordinator sets this property and closes the main window

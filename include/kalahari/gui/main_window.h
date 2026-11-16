@@ -64,6 +64,7 @@ class BusyIndicator;    // Reusable spinner overlay
 class StatusBarStatistics;  // Counts of the document in front in the status bar
 class DiagnosticController;  // OpenSpec #00038 - Diagnostic/dev mode controller
 class DockCoordinator;  // OpenSpec #00038 Phase 4 - Dock/panel management
+class PluginCoordinator;  // The commands and panels of the plugins
 class SettingsCoordinator;  // OpenSpec #00038 Phase 5 - Settings management
 class NavigatorCoordinator;  // OpenSpec #00038 Phase 6 - Navigator handlers
 class DocumentCoordinator;  // OpenSpec #00038 Phase 7 - Document operations
@@ -201,6 +202,16 @@ public:
     /// @brief The book window in front, or the one in front last when the program is not in
     /// front (a window of its own of its tabs counts as it); none: no window
     static MainWindow* frontWindow();
+
+    /// @brief File > Export: the texts of the book as the window has them (also for the
+    ///        plugins)
+    [[nodiscard]] BookExportCoordinator* bookExportCoordinator() const
+    {
+        return m_bookExportCoordinator;
+    }
+
+    /// @brief The commands and panels of the plugins in the window
+    [[nodiscard]] PluginCoordinator* pluginCoordinator() const { return m_pluginCoordinator; }
 
     /// @brief Window > New Window: a new book window with the Dashboard, its panels and bars
     /// as in this one, a little lower and to the right; it closes and is deleted on its own
@@ -562,6 +573,9 @@ private:
 
     /// @brief File > Export > DOCX and Markdown
     BookExportCoordinator* m_bookExportCoordinator{nullptr};
+
+    /// @brief The commands and panels of the plugins
+    PluginCoordinator* m_pluginCoordinator{nullptr};
 
     /// @brief Edit > Find in Book... and Replace All in Book, in the Search panel
     BookSearchCoordinator* m_bookSearchCoordinator{nullptr};

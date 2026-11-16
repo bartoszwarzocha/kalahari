@@ -40,6 +40,10 @@ set(KALAHARI_CORE_SOURCES
     core/plugin_archive.cpp
     core/plugin_signature.cpp   # OpenSpec #00038: Plugin signature verification (Ed25519)
     core/trusted_keys.cpp       # OpenSpec #00038: Trusted publisher key management
+    core/plugin_host.cpp        # What the program gives the plugins (the book, messages)
+    core/plugin_api.cpp         # The kalahari_api module of the plugins (its contents)
+    core/plugin_settings.cpp    # The settings plugins declare and their values
+    core/python_plugin.cpp      # A Python plugin behind the extension points
     core/extension_points.cpp
     core/event_bus.cpp
     core/chapter_document.cpp
@@ -159,6 +163,7 @@ target_link_libraries(kalahari_core PUBLIC
 # Executable source files
 set(KALAHARI_SOURCES
     main.cpp
+    core/plugin_api_embedded.cpp  # kalahari_api built into the program (not into kalahari_core)
     core/utils/icon_downloader.cpp  # IconDownloader moved to executable (avoid moc DLL export issues)
     core/theme_manager.cpp  # ThemeManager moved to executable (avoid moc DLL export issues)
     core/icon_registry.cpp  # IconRegistry moved to executable (Task #00025: Q_OBJECT for theme signals)
@@ -259,6 +264,7 @@ set(KALAHARI_SOURCES
     gui/book_texts.cpp  # The texts of the book in reading order, the saved text of one not open
     gui/caption_coordinator.cpp  # CaptionCoordinator - the numbered captions of the book
     gui/book_export_coordinator.cpp  # BookExportCoordinator - the export of the book to DOCX and Markdown
+    gui/plugin_coordinator.cpp  # The commands and panels of the plugins in a book window
     gui/footnote_coordinator.cpp  # FootnoteCoordinator - Insert > Footnote, Endnote and the frame of a note
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
     gui/book_search_coordinator.cpp  # BookSearchCoordinator - Find in Book and Replace All in Book
@@ -491,6 +497,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_export_coordinator.h  # BookExportCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plugin_coordinator.h  # PluginCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT

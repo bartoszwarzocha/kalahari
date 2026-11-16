@@ -79,12 +79,18 @@ void PythonPlugin::readExtensions() {
     py::gil_scoped_acquire gil;
     // The classes of the API are known once the module is imported
     py::module_::import("kalahari_api");
-    const py::object& instance = *m_instance;
-    auto& logger = Logger::getInstance();
+    readCommands();
+    readPanels();
+    readFormats();
+    readSettings();
+    m_hears = py::hasattr(*m_instance, "on_goal_reached");
+}
 
+void PythonPlugin::readCommands() {
+    auto& logger = Logger::getInstance();
     try {
         std::set<std::string> ids;
-        for (py::handle item : listOf(instance, "get_commands")) {
+        for (py::handle item : listOf(*m_instance, "get_commands")) {
             if (!py::isinstance<ApiCommand>(item)) {
                 logger.warn("Plugin '{}': get_commands() gave something else than a Command",
                             m_id);
@@ -104,10 +110,13 @@ void PythonPlugin::readExtensions() {
     } catch (const py::error_already_set& error) {
         logger.error("Plugin '{}': get_commands() failed: {}", m_id, error.what());
     }
+}
 
+void PythonPlugin::readPanels() {
+    auto& logger = Logger::getInstance();
     try {
         std::set<std::string> ids;
-        for (py::handle item : listOf(instance, "get_panels")) {
+        for (py::handle item : listOf(*m_instance, "get_panels")) {
             if (!py::isinstance<ApiPanel>(item)) {
                 logger.warn("Plugin '{}': get_panels() gave something else than a Panel", m_id);
                 continue;
@@ -125,31 +134,57 @@ void PythonPlugin::readExtensions() {
     } catch (const py::error_already_set& error) {
         logger.error("Plugin '{}': get_panels() failed: {}", m_id, error.what());
     }
+}
 
+void PythonPlugin::readFormats() {
+    auto& logger = Logger::getInstance();
+    if (!py::hasattr(*m_instance, "export_document")) {
+        return;  // Formats it cannot write are none
+    }
     try {
-        if (py::hasattr(instance, "export_document")) {
-            std::set<std::string> ids;
-            for (py::handle item : listOf(instance, "get_export_formats")) {
-                if (!py::isinstance<ApiExportFormat>(item)) {
-                    logger.warn("Plugin '{}': get_export_formats() gave something else than an "
-                                "ExportFormat",
-                                m_id);
-                    continue;
-                }
-                const auto& format = item.cast<const ApiExportFormat&>();
-                if (format.id.empty() || format.name.empty() || !ids.insert(format.id).second) {
-                    logger.warn("Plugin '{}': a format without an id or a name, or twice: '{}'",
-                                m_id, format.id);
-                    continue;
-                }
-                m_formats.push_back({format.id, format.name, format.extension});
+        std::set<std::string> ids;
+        for (py::handle item : listOf(*m_instance, "get_export_formats")) {
+            if (!py::isinstance<ApiExportFormat>(item)) {
+                logger.warn("Plugin '{}': get_export_formats() gave something else than an "
+                            "ExportFormat",
+                            m_id);
+                continue;
             }
+            const auto& format = item.cast<const ApiExportFormat&>();
+            if (format.id.empty() || format.name.empty() || !ids.insert(format.id).second) {
+                logger.warn("Plugin '{}': a format without an id or a name, or twice: '{}'", m_id,
+                            format.id);
+                continue;
+            }
+            m_formats.push_back({format.id, format.name, format.extension});
         }
     } catch (const py::error_already_set& error) {
         logger.error("Plugin '{}': get_export_formats() failed: {}", m_id, error.what());
     }
+}
 
-    m_hears = py::hasattr(instance, "on_goal_reached");
+void PythonPlugin::readSettings() {
+    auto& logger = Logger::getInstance();
+    try {
+        std::set<std::string> ids;
+        for (py::handle item : listOf(*m_instance, "get_settings")) {
+            if (!py::isinstance<ApiSetting>(item)) {
+                logger.warn("Plugin '{}': get_settings() gave something else than a Setting",
+                            m_id);
+                continue;
+            }
+            auto& setting = item.cast<ApiSetting&>();
+            if (!ids.insert(setting.info.id).second) {
+                logger.warn("Plugin '{}': the setting '{}' twice", m_id, setting.info.id);
+                continue;
+            }
+            // Its value is read and written as this plugin's from now on
+            setting.owner = m_id;
+            m_settings.push_back(setting.info);
+        }
+    } catch (const py::error_already_set& error) {
+        logger.error("Plugin '{}': get_settings() failed: {}", m_id, error.what());
+    }
 }
 
 std::string PythonPlugin::iconPath(const std::string& icon) const {
@@ -267,8 +302,20 @@ void PythonPlugin::onGoalReached() {
     }
 }
 
+void PythonPlugin::settingsChanged() {
+    py::gil_scoped_acquire gil;
+    if (!py::hasattr(*m_instance, "on_settings_changed")) {
+        return;
+    }
+    try {
+        m_instance->attr("on_settings_changed")();
+    } catch (const py::error_already_set& error) {
+        throw pluginError(m_id, error);
+    }
+}
+
 PluginContributions PythonPlugin::contributions() const {
-    return {m_commandInfos, m_panelInfos, m_formats, m_hears};
+    return {m_commandInfos, m_panelInfos, m_formats, m_settings, m_hears};
 }
 
 }  // namespace kalahari::core

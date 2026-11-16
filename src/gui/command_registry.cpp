@@ -7,6 +7,7 @@
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/core/art_provider.h"
 #include <QAction>
+#include <QWidget>
 #include <QString>
 #include <algorithm>
 #include <set>
@@ -70,14 +71,26 @@ void CommandRegistry::registerCommand(Command&& command) {
 void CommandRegistry::unregisterCommand(const std::string& commandId) {
     std::vector<ShortcutChange> changes;
     bool othersChanged = false;
+    QAction* action = nullptr;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         // Safe to call even if command doesn't exist
         m_commands.erase(commandId);
+        action = m_actions.take(QString::fromStdString(commandId));
         // Its keys may go back to the command the program gave them
         if (m_defaultShortcuts.erase(commandId) > 0) {
             changes = applyShortcuts(commandId, &othersChanged);
         }
+    }
+    if (action != nullptr) {
+        // Its action leaves the menus and toolbars at once, and goes when the events that may
+        // still have it are handled; a command registered again gets a new one
+        for (QObject* holder : action->associatedObjects()) {
+            if (auto* widget = qobject_cast<QWidget*>(holder)) {
+                widget->removeAction(action);
+            }
+        }
+        action->deleteLater();
     }
     finishShortcutChanges(changes, othersChanged);
 }

@@ -13,5 +13,5 @@
 #include "kalahari/core/plugin_api.h"
 
 PYBIND11_EMBEDDED_MODULE(kalahari_api, m) {
-    kalahari::core::definePluginApi(m);
+    kalahari::core::definePluginApi(m.ptr());
 }

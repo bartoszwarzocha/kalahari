@@ -16,6 +16,8 @@
 /// | export_document(format, path, book)      | IExporter: writes the file               |
 /// | on_goal_reached()                        | IAssistant: the daily goal reached       |
 /// | show_message(message, kind)              | IAssistant: a message for the assistant  |
+/// | get_settings() -> [kalahari_api.Setting] | its page in the Settings window          |
+/// | on_settings_changed()                    | the writer changed its settings          |
 ///
 /// Every call takes the GIL; an exception of the plugin becomes a std::runtime_error with the
 /// plugin's words, which the program shows to the writer.
@@ -23,8 +25,13 @@
 #pragma once
 
 #include "kalahari/core/extension_points.h"
+#include "kalahari/core/plugin_settings.h"
 
+// Qt's "slots" keyword would break Python's headers when Qt's come first
+#pragma push_macro("slots")
+#undef slots
 #include <pybind11/pybind11.h>
+#pragma pop_macro("slots")
 
 #include <filesystem>
 #include <memory>
@@ -38,8 +45,14 @@ struct PluginContributions {
     std::vector<PluginCommandInfo> commands;
     std::vector<PluginPanelInfo> panels;
     std::vector<ExportFormatInfo> exportFormats;
+    std::vector<PluginSettingInfo> settings;  ///< Shown on its page in the Settings window
     bool assistant = false;  ///< It hears of the goals reached (on_goal_reached)
 };
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"  // pybind11's types are hidden, the class is not
+#endif
 
 /// @brief A plugin written in Python, behind every extension point
 class PythonPlugin final : public IExporter,
@@ -87,12 +100,19 @@ public:
     void showMessage(const std::string& message, const std::string& messageType) override;
     void onGoalReached() override;
 
+    /// @brief The writer changed the settings of the plugin (its page in the Settings window)
+    void settingsChanged();
+
     /// @brief What the plugin added to the program
     [[nodiscard]] PluginContributions contributions() const;
 
 private:
-    /// The commands, panels and formats of the plugin, read once
+    /// The commands, panels, formats and settings of the plugin, read once
     void readExtensions();
+    void readCommands();
+    void readPanels();
+    void readFormats();
+    void readSettings();
     /// An icon a command or panel names: a file of the plugin becomes its absolute path
     [[nodiscard]] std::string iconPath(const std::string& icon) const;
 
@@ -105,7 +125,12 @@ private:
     std::vector<PluginCommandInfo> m_commandInfos;
     std::vector<PluginPanelInfo> m_panelInfos;
     std::vector<ExportFormatInfo> m_formats;
+    std::vector<PluginSettingInfo> m_settings;
     bool m_hears = false;  ///< It has on_goal_reached()
 };
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 }  // namespace kalahari::core

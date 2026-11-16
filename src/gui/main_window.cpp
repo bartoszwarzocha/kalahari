@@ -37,6 +37,7 @@
 #include "kalahari/gui/book_dictionary_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
+#include "kalahari/gui/writing_awards_tracker.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -55,6 +56,7 @@
 #include "kalahari/gui/recent_books_menu.h"
 #include "kalahari/gui/panels/dashboard_panel.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/plugin_coordinator.h"
 #include "kalahari/gui/panels/preview_panel.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/text_images.h"
@@ -465,6 +467,11 @@ MainWindow::MainWindow(QWidget* parent)
     // the session over this window
     m_writingStatsCoordinator->attachStatusBar(statusBar());
     m_writingStatsCoordinator->setSummaryWindow(this);
+    // The plugins hear of the daily goal reached, once a day whichever window sees it
+    if (WritingAwardsTracker* tracker = m_writingStatsCoordinator->tracker()) {
+        connect(tracker, &WritingAwardsTracker::dailyGoalReached, this,
+                []() { tellPluginsGoalReached(); });
+    }
 
     // The annotation commands and the Annotations panel; a chapter is opened as from the
     // Navigator
@@ -736,6 +743,10 @@ MainWindow::MainWindow(QWidget* parent)
         [this]() { return getCurrentEditor(); },
         m_captionCoordinator, m_footnoteCoordinator, this, this);
     m_bookExportCoordinator->connectCommands();
+
+    // The commands of the plugins in the menus (Tools > Plugins by default) and their panels
+    // in docks on the right, closed until opened; they follow the plugins turned on and off
+    m_pluginCoordinator = new PluginCoordinator(book(), commands(), this, m_dockCoordinator, this);
 
     // Edit > Find in Book... and the Search panel: all the texts of the book; a match of a
     // text not open opens it, as from the Navigator, and the bar under the text says how many
@@ -2998,6 +3009,10 @@ void MainWindow::updateBookCommands() {
     utils::updateOpenBookCommands(registry);
     if (m_bookExportCoordinator != nullptr) {
         m_bookExportCoordinator->updateCommands();
+    }
+    // The commands of the plugins that need a book
+    if (m_pluginCoordinator != nullptr) {
+        m_pluginCoordinator->updateCommands();
     }
     // A book open read-only says so in the status bar, and in the title of the window
     updateReadOnlyStatus();

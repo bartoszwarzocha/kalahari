@@ -5,12 +5,14 @@ set(TEST_SOURCES
     test_main.cpp
     test_support/reset_singletons.cpp  # Sub-Project C WS4.1: singleton reset hook
     test_support/window_parts.cpp      # The book and the commands of the window of the tests
+    test_support/plugin_signing.cpp    # The tests' own publisher key (only signed plugins load)
     core/test_settings_manager.cpp
     core/test_cmd_line_parser.cpp
     core/test_svg_converter.cpp
     core/test_extension_points.cpp
     core/test_event_bus.cpp
     core/test_plugin_loading.cpp
+    core/test_plugin_engine.cpp         # Python plugins behind the extension points
     core/test_chapter_document.cpp
     core/test_chapter_versions.cpp    # Versions of the texts of the chapter files
     core/test_text_diff.cpp           # Differences between two texts, word by word
@@ -139,6 +141,7 @@ set(TEST_SOURCES
     gui/test_navigator_panel.cpp                 # Navigator tree of a book project
     gui/test_navigator_coordinator.cpp           # Navigator commands on the open project
     gui/test_menu_access_keys.cpp                # The access keys of the menus, in both languages
+    gui/test_plugin_coordinator.cpp              # The commands and panels of the plugins in a window
     gui/test_panel_toggle.cpp                    # Panel toggles follow open panels
     gui/test_setting_toggle.cpp                  # Toggles follow on/off settings
     gui/test_document_commands.cpp               # Document commands greyed out without one
@@ -228,6 +231,11 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/plugin_archive.cpp
     ${CMAKE_SOURCE_DIR}/src/core/plugin_signature.cpp
     ${CMAKE_SOURCE_DIR}/src/core/trusted_keys.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin_host.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin_api.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin_api_embedded.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/plugin_settings.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/python_plugin.cpp
     ${CMAKE_SOURCE_DIR}/src/core/python_interpreter.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_document.cpp
     ${CMAKE_SOURCE_DIR}/src/core/chapter_versions.cpp
@@ -412,6 +420,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/book_texts.cpp              # The texts of the book in reading order
     ${CMAKE_SOURCE_DIR}/src/gui/caption_coordinator.cpp     # The numbered captions of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_export_coordinator.cpp # The export of the book to DOCX and Markdown
+    ${CMAKE_SOURCE_DIR}/src/gui/plugin_coordinator.cpp      # The commands and panels of the plugins
     ${CMAKE_SOURCE_DIR}/src/gui/footnote_coordinator.cpp    # Insert > Footnote, Endnote and the frame of a note
     ${CMAKE_SOURCE_DIR}/src/gui/image_filter_coordinator.cpp  # One filter for every image of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_search_coordinator.cpp  # Find in Book and Replace All in Book
@@ -695,6 +704,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/style_coordinator.h  # StyleCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/caption_coordinator.h  # CaptionCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_export_coordinator.h  # BookExportCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/plugin_coordinator.h  # PluginCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/footnote_coordinator.h  # FootnoteCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT

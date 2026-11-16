@@ -287,9 +287,11 @@ std::map<std::string, json> buildDefaults() {
         // The writer's own names of the front, main and back section, for "custom"
         {"project.sectionNames", json::array()},
 
-        // Plugins
-        {"plugins.allowUnsigned", false},
-        {"plugins.trustedKeys", "[]"},
+        // Plugins (only Kalahari's own, signed with its key: no setting loads others)
+        // The ids of the plugins the writer turned off (the others load at the start)
+        {"plugins.disabled", json::array()},
+        // The values of the plugins' own settings: {plugin id: {setting id: value}}
+        {"plugins.settings", json::object()},
 
         // Editor: text
         {"editor.fontFamily", "Georgia"},

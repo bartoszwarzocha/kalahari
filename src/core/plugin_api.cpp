@@ -171,6 +171,52 @@ void defineExtensions(py::module_& m) {
         .def_readwrite("id", &ApiExportFormat::id)
         .def_readwrite("name", &ApiExportFormat::name)
         .def_readwrite("extension", &ApiExportFormat::extension);
+
+    py::class_<ApiSetting>(m, "Setting",
+                           "A setting of the plugin: get_settings() gives them to the page of "
+                           "the plugins in the Settings window")
+        .def(py::init([](std::string id, std::string label, const py::object& defaultValue,
+                         std::string description, const py::object& choices,
+                         const py::object& minimum, const py::object& maximum) {
+                 ApiSetting setting;
+                 setting.info.id = std::move(id);
+                 setting.info.label = std::move(label);
+                 setting.info.description = std::move(description);
+                 setting.info.defaultValue = jsonOf(defaultValue);
+                 if (!choices.is_none()) {
+                     for (py::handle choice : choices) {
+                         const auto pair = py::reinterpret_borrow<py::tuple>(choice);
+                         if (pair.size() != 2) {
+                             throw py::value_error("a choice is a (value, label) pair");
+                         }
+                         setting.info.choices.emplace_back(jsonOf(pair[0]),
+                                                           py::str(pair[1]).cast<std::string>());
+                     }
+                 }
+                 if (!minimum.is_none()) {
+                     setting.info.minimum = minimum.cast<double>();
+                 }
+                 if (!maximum.is_none()) {
+                     setting.info.maximum = maximum.cast<double>();
+                 }
+                 if (!setting.info.isValid()) {
+                     throw py::value_error("Setting '" + setting.info.id +
+                                           "': an id, a label and a default of a bool, an int, "
+                                           "a float or a str it accepts are needed");
+                 }
+                 return setting;
+             }),
+             py::arg("id"), py::arg("label"), py::arg("default"), py::kw_only(),
+             py::arg("description") = "", py::arg("choices") = py::none(),
+             py::arg("minimum") = py::none(), py::arg("maximum") = py::none())
+        .def_property_readonly("id", [](const ApiSetting& setting) { return setting.info.id; })
+        .def_property_readonly("label",
+                               [](const ApiSetting& setting) { return setting.info.label; })
+        .def_property_readonly(
+            "default", [](const ApiSetting& setting) { return pythonOf(setting.info.defaultValue); })
+        .def_readonly("plugin_id", &ApiSetting::owner)
+        .def_property("value", &ApiSetting::value, &ApiSetting::setValue,
+                      "The value the writer gave, or the default");
 }
 
 void defineBook(py::module_& m) {
@@ -234,7 +280,95 @@ void ApiPanel::refresh() const {
     PluginHost::getInstance().refreshPanel(owner, id);
 }
 
-void definePluginApi(py::module_& module) {
+py::object ApiSetting::value() const {
+    if (owner.empty()) {
+        return pythonOf(info.defaultValue);  // Not read by the program yet
+    }
+    return pythonOf(pluginSettingValue(owner, info));
+}
+
+void ApiSetting::setValue(const py::object& value) const {
+    if (owner.empty()) {
+        throw py::value_error("Setting '" + info.id +
+                              "': the program has not read it from get_settings() yet");
+    }
+    if (!setPluginSettingValue(owner, info, jsonOf(value))) {
+        throw py::value_error("Setting '" + info.id + "' does not accept " +
+                              std::string(py::repr(value)));
+    }
+}
+
+nlohmann::json jsonOf(const py::handle& value) {
+    if (value.is_none()) {
+        return nullptr;
+    }
+    // bool before int: True is an int in Python
+    if (py::isinstance<py::bool_>(value)) {
+        return value.cast<bool>();
+    }
+    if (py::isinstance<py::int_>(value)) {
+        return value.cast<std::int64_t>();
+    }
+    if (py::isinstance<py::float_>(value)) {
+        return value.cast<double>();
+    }
+    if (py::isinstance<py::str>(value)) {
+        return value.cast<std::string>();
+    }
+    if (py::isinstance<py::list>(value) || py::isinstance<py::tuple>(value)) {
+        nlohmann::json array = nlohmann::json::array();
+        for (py::handle item : value) {
+            array.push_back(jsonOf(item));
+        }
+        return array;
+    }
+    if (py::isinstance<py::dict>(value)) {
+        nlohmann::json object = nlohmann::json::object();
+        for (auto [key, item] : py::reinterpret_borrow<py::dict>(value)) {
+            if (!py::isinstance<py::str>(key)) {
+                throw py::type_error("the keys of a dict are str");
+            }
+            object[key.cast<std::string>()] = jsonOf(item);
+        }
+        return object;
+    }
+    throw py::type_error("not a None, bool, int, float, str, list or dict: " +
+                         std::string(py::repr(value)));
+}
+
+py::object pythonOf(const nlohmann::json& value) {
+    switch (value.type()) {
+        case nlohmann::json::value_t::boolean:
+            return py::bool_(value.get<bool>());
+        case nlohmann::json::value_t::number_integer:
+            return py::int_(value.get<std::int64_t>());
+        case nlohmann::json::value_t::number_unsigned:
+            return py::int_(value.get<std::uint64_t>());
+        case nlohmann::json::value_t::number_float:
+            return py::float_(value.get<double>());
+        case nlohmann::json::value_t::string:
+            return py::str(value.get<std::string>());
+        case nlohmann::json::value_t::array: {
+            py::list list;
+            for (const nlohmann::json& item : value) {
+                list.append(pythonOf(item));
+            }
+            return list;
+        }
+        case nlohmann::json::value_t::object: {
+            py::dict dict;
+            for (const auto& [key, item] : value.items()) {
+                dict[py::str(key)] = pythonOf(item);
+            }
+            return dict;
+        }
+        default:
+            return py::none();
+    }
+}
+
+void definePluginApi(PyObject* object) {
+    auto module = py::reinterpret_borrow<py::module_>(object);
     module.doc() = "Kalahari API for Python plugins";
     defineLogger(module);
     defineEvents(module);

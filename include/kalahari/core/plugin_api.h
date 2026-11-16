@@ -11,11 +11,23 @@
 
 #pragma once
 
+#include "kalahari/core/plugin_settings.h"
+
+#include <nlohmann/json.hpp>
+// Qt's "slots" keyword would break Python's headers when Qt's come first
+#pragma push_macro("slots")
+#undef slots
 #include <pybind11/pybind11.h>
+#pragma pop_macro("slots")
 
 #include <string>
 
 namespace kalahari::core {
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"  // pybind11's types are hidden, the structs are not
+#endif
 
 /// @brief kalahari_api.Command: a command of a plugin (core::PluginCommandInfo and its action)
 struct ApiCommand {
@@ -42,6 +54,17 @@ struct ApiPanel {
     void refresh() const;
 };
 
+/// @brief kalahari_api.Setting: a setting of a plugin and its value
+struct ApiSetting {
+    PluginSettingInfo info;
+    std::string owner;  ///< The id of the plugin, set by the program when it reads the setting
+
+    /// @brief The value the writer gave, or the default
+    [[nodiscard]] pybind11::object value() const;
+    /// @brief Remember a value; raises ValueError when the setting does not accept it
+    void setValue(const pybind11::object& value) const;
+};
+
 /// @brief kalahari_api.ExportFormat: a format a plugin writes (core::ExportFormatInfo)
 struct ApiExportFormat {
     std::string id;
@@ -49,10 +72,25 @@ struct ApiExportFormat {
     std::string extension;
 };
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 /// @brief Fill the module @p module with the API of the plugins
-void definePluginApi(pybind11::module_& module);
+///
+/// It takes the module as a PyObject: a function with a type of pybind11 (hidden) among its
+/// parameters is hidden too, and the program and the extension module call this one from
+/// outside kalahari_core.
+void definePluginApi(PyObject* module);
+
+/// @brief A value of Python as JSON: None, bool, int, float, str, and lists and dicts (with
+///        str keys) of them; raises TypeError for anything else
+[[nodiscard]] nlohmann::json jsonOf(const pybind11::handle& value);
+
+/// @brief A JSON value as a value of Python
+[[nodiscard]] pybind11::object pythonOf(const nlohmann::json& value);
 
 /// @brief The version of the API of the plugins: the "api_version" a manifest asks for
-inline constexpr const char* PLUGIN_API_VERSION = "1.0";
+inline constexpr const char* PLUGIN_API_VERSION = "1.0.0";
 
 }  // namespace kalahari::core
