@@ -129,12 +129,20 @@ struct MarginCounts {
     bool operator==(const MarginCounts&) const = default;
 };
 
+/// @brief What a mark beside a paragraph stands for
+enum class ParagraphMarkKind {
+    Materials,  ///< The paperclip of the materials linked with the paragraph
+    Clippings,  ///< The scissors of the clippings cut from the paragraph
+};
+
 /// @brief A mark beside a paragraph, in the left margin of the page: the paperclip of the
-/// materials linked with the paragraph
+/// materials linked with the paragraph, or the scissors of the clippings cut from it
 struct ParagraphMark {
     int paragraph = 0;   ///< The paragraph (0-based)
     QStringList ids;     ///< What it names: the ids of the materials, in their order
-    QStringList titles;  ///< Their titles, for the tooltip and the menu
+    QStringList titles;  ///< What the tooltip and the menu call them: the titles of the
+                         ///< materials; of a clipping, its title, its words and its time
+    ParagraphMarkKind kind = ParagraphMarkKind::Materials;  ///< What it stands for
 
     bool operator==(const ParagraphMark&) const = default;
 };

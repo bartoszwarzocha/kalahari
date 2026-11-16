@@ -60,7 +60,7 @@ public:
     static constexpr const char* GENERAL_PAGE = "general";           ///< General
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
     /// Editor > General, scrolled to its group Word Count, the cursor in its counting of the
-    /// notes' words (the gear of Insert > Footnote Layout...)
+    /// notes' words (the gear of Format > Footnote Layout...)
     static constexpr const char* WORD_COUNT_PAGE = "editor.general.wordCount";
     /// Editor > General, the cursor in the gray background of the fields (the gear of Insert >
     /// Field...)
@@ -74,6 +74,7 @@ public:
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
     static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
+    static constexpr const char* CLIPPINGS_PAGE = "editor.clippings";  ///< Editor > Clippings
     static constexpr const char* ANNOTATIONS_PAGE = "annotations";   ///< Annotations
     static constexpr const char* SHORTCUTS_PAGE = "shortcuts";       ///< Keyboard Shortcuts
     static constexpr const char* NAVIGATOR_PAGE = "navigator";       ///< Navigator
@@ -118,10 +119,11 @@ public:
     /// IMAGES_PAGE (the gears of the windows of images and captions), PAGES_PAGE,
     /// MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
     /// FIELDS_PAGE (the gear of Insert > Field...), SPELLING_PAGE (the gear of the Spelling and
-    /// Grammar panel), VERSIONS_PAGE (the gear of the versions), REPETITIONS_PAGE (the gear of
-    /// the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel),
-    /// NAVIGATOR_PAGE (the gear of a list of materials), MATERIALS_PAGE (the gear of the entry
-    /// of a source), CARDS_PAGE (the gear of a card of a character, a location or an item) or
+    /// Grammar panel), VERSIONS_PAGE (the gear of the versions), CLIPPINGS_PAGE (the gears of
+    /// the windows of the clippings), REPETITIONS_PAGE (the gear of the Repetitions panel),
+    /// ANNOTATIONS_PAGE (the gear of the Annotations panel), NAVIGATOR_PAGE (the gear of a list
+    /// of materials), MATERIALS_PAGE (the gear of the entry of a source), CARDS_PAGE (the gear
+    /// of a card of a character, a location or an item) or
     /// SHORTCUTS_PAGE (as showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);

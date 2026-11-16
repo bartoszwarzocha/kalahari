@@ -25,6 +25,7 @@
 #include "kalahari/editor/annotation.h"
 #include "kalahari/editor/annotation_cards.h"
 #include "kalahari/editor/book_editor.h"
+#include "kalahari/editor/editor_types.h"
 #include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
 #include "kalahari/gui/annotations_coordinator.h"
@@ -699,14 +700,20 @@ void checkTextMenus(bool shown, QStringList& problems) {
         }
 
         // A comment in a paragraph with linked materials (Mark as Resolved and Linked
-        // Materials have the same key): each item has its own key, the commands of the window
-        // keep theirs
+        // Materials have the same key) and a clipping cut from it: each item has its own key,
+        // the commands of the window keep theirs
         annotated.fromKml(QStringLiteral(
             "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Check it</annotation>"
             "</annotations><p>One <anchor ref=\"c1\">two</anchor> three</p></kml>"));
         annotated.setParagraphMarks({editor::ParagraphMark{0, {QStringLiteral("m1")},
                                                            {QStringLiteral("Map")}}},
                                     QIcon());
+        annotated.setParagraphMarks(
+            {editor::ParagraphMark{.paragraph = 0,
+                                   .ids = {QStringLiteral("k1")},
+                                   .titles = {QStringLiteral("\"Two\" (1 word, today, 7:42)")},
+                                   .kind = editor::ParagraphMarkKind::Clippings}},
+            QIcon(), editor::ParagraphMarkKind::Clippings);
         const QString comment =
             editor::AnnotationCards::kindTitle(editor::AnnotationKind::Comment) +
             QStringLiteral(": ") + QLocale().quoteString(QStringLiteral("Check it"));
@@ -717,7 +724,8 @@ void checkTextMenus(bool shown, QStringList& problems) {
                                           : QStringList{comment, QStringLiteral("Map")};
         collectProblems(items, where + QStringLiteral(", with linked materials"), keyless,
                         problems);
-        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2);  // and Linked Materials > Map
+        // and Linked Materials > Map, Clippings From Here > Show Clipping, Restore Here
+        CHECK(itemCount(items) == (cards ? 5 : 4) + 6 + 2 + 3);
         const QString paste = registry.getAction(QStringLiteral("edit.paste"))->text();
         CHECK(std::any_of(items.cbegin(), items.cend(),
                           [&paste](const test::MenuItem& item) { return item.text == paste; }));

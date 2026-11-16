@@ -100,7 +100,8 @@
 ///   saved once, with the element that has it; an element deleted from the project leaves the
 ///   links. "view" has how its picture is shown: "rotation", 0, 90, 180 or 270 degrees
 ///   clockwise. A material of the cover has what it is and where it goes in "cover"
-///   (CoverData). A material that is a source has its bibliographic description in "source"
+///   (CoverData), a clipping where it was cut from and where it was inserted in "clipping"
+///   (ClippingData). A material that is a source has its bibliographic description in "source"
 ///   (SourceDescription), a material with a file its bookmarks ("bookmarks": a page and a
 ///   note each), the text marked in its PDF file ("highlights", PdfHighlight) and the page
 ///   shown last ("lastPage"), a quote its source and page in "quote" (QuoteSource). A card (a
@@ -123,6 +124,7 @@
 
 #include <kalahari/core/book_type_registry.h>
 #include <kalahari/core/card_data.h>
+#include <kalahari/core/clipping.h>
 #include <kalahari/core/cover_material.h>
 #include <kalahari/core/source_description.h>
 #include <QByteArray>
@@ -191,6 +193,8 @@ struct ProjectElement {
                                      ///< 90, 180 or 270 degrees
     CoverData cover;                 ///< Of a material of the cover: what it is and where
                                      ///< it goes; empty: none
+    ClippingData clipping;           ///< Of a clipping: where it was cut from and where it
+                                     ///< was inserted; empty: none
     CardData card;                   ///< Of a card (a character, a location, an item): the
                                      ///< values of its fields, its color and its portraits;
                                      ///< empty: none
@@ -282,7 +286,7 @@ struct BookCaptions {
     CaptionLabelNumbering numberingOf(const QString& label) const;
 };
 
-/// @brief How a book numbers its footnotes or its endnotes (Insert > Footnote Layout...)
+/// @brief How a book numbers its footnotes or its endnotes (Format > Footnote Layout...)
 struct NoteNumbering {
     QString format;           ///< Of the number: "1", "a", "A", "i", "I" or "*" (*, †, ‡, §)
     bool perChapter = true;   ///< Anew in each chapter; false: through the book

@@ -11,6 +11,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Clippings: fragments cut to the Workshop, which can come back** - 2026-11-15. Edit > Cut
+  to Clippings (Ctrl+Shift+X, also in the text's context menu) takes the selection, or the
+  paragraph with the cursor without one, from a text of the book or a working note to a new
+  clipping of the Workshop (Materials > Clippings), titled with its first words. The clipping
+  keeps where it was cut from: the text, the paragraph and the words around the place
+  (`core::ClippingData`, "clipping" in the .klh file). A notice under the text says where it
+  went, with Undo; Ctrl+Z in the text takes the cut back too – the fragment comes back and
+  the clipping goes, while it has not changed since – and Ctrl+Y cuts it again. Insert >
+  Clipping from the Workshop... (Alt+Shift+X) opens a window with the clippings, the last cut
+  first, a search in their titles, texts and notes, where they come from and the preview of
+  the one chosen; Enter inserts it at the cursor as a paste, Alt+P restores it to the place it
+  came from (found again by its words when the text changed before it; where the words around
+  it changed, the cursor goes near it and the notice offers Insert Here), Alt+O opens it.
+  Settings > Editor > Clippings (the gears of the windows): cut at once or first a small
+  window with the title and a note; without a selection the paragraph or nothing; the window
+  or a list at the cursor, as quick insert; a clipping inserted stays in the Workshop marked
+  as inserted, or goes from it (Ctrl+Z brings it back). Statistics and Goals > Counting:
+  "Cutting to the clippings is not deleting" keeps the words of the day as they were (off:
+  a cut lowers them as a deletion does). The list of Materials > Clippings has the columns
+  From, Cut, Note and Inserted and the button Restore to Its Place; its menu has Go to Its
+  Place too. The Properties panel of a clipping has the group Origin: the text it was cut
+  from (a link to the place), the paragraph and the last words before it, when it was cut and
+  inserted, Go to Its Place and Restore to Its Place (greyed out with the reason without the
+  text, Restore also in a book open read-only). Settings > Editor > Clippings > Draw scissors
+  where a fragment was cut (off at first): scissors beside the paragraph a clipping not
+  inserted since was cut from, left of the paperclip of the materials; a click on them or the
+  context menu of the paragraph shows the clipping or restores it there. The Edit menu had
+  more items than letters for their access keys: Next To Do and Previous To Do went to its
+  submenu To Dos (keys as before), Find Next has X and Cut to Clippings N.
+
 - **The description of a source from the web by its ISBN or DOI** - 2026-11-15. An option,
   off at first (Settings > Materials > Sources > Descriptions from the web by ISBN and
   DOI), gives the card of a source the button From the Web by ISBN or DOI...: Look Up
@@ -1134,6 +1164,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   book is opened again.
 
 ### Changed
+
+- **Menus: Format > Footnote Layout..., and one Settings... in the Edit menu** - 2026-11-15.
+  Footnote Layout... moved from Insert to Format; the Edit menu no longer has Preferences...
+  beside Settings..., which opens the same window (its keys and toolbar button stay); a few
+  access keys changed to make room for the clippings: Find & Replace... has E, Format > Text
+  Effects X, in Polish Wklej z formatowaniem źródła F and Ustawienia przypisów... I.
 
 - **Each book window has its own book and its own commands** - 2026-11-13. Inside the
   program, with nothing changed on the screen: the window owns the book open in it

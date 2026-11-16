@@ -430,6 +430,19 @@ private:
     CommandRegistry& m_commands;  ///< The commands of its window
 };
 
+/// @brief Editor > Clippings: what Cut to Clippings and Insert > Clipping from the Workshop do,
+/// and whether scissors are beside the paragraphs clippings were cut from
+class EditorClippingsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    /// @param commands The commands of its window: the page names the keys of the two
+    /// @param parent Parent widget
+    explicit EditorClippingsPage(CommandRegistry& commands, QWidget* parent = nullptr);
+
+private:
+    CommandRegistry& m_commands;  ///< The commands of its window
+};
+
 /// @brief Annotations: who new comments, to-dos and notes are by, their marks in the text, their
 /// cards under the paragraphs and their colors
 class AnnotationsPage : public SettingsPage {

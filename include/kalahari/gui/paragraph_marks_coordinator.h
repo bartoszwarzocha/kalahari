@@ -2,7 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file paragraph_marks_coordinator.h
-/// @brief The paperclips beside the paragraphs of the chapters that materials are linked with
+/// @brief The paperclips beside the paragraphs of the chapters that materials are linked with,
+///        and the scissors beside those clippings were cut from
 
 #pragma once
 
@@ -11,10 +12,12 @@
 #include <QList>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 
 class QTabWidget;
+class QTextDocument;
 class QTimer;
 
 namespace kalahari::core {
@@ -37,6 +40,11 @@ class EditorPanel;
 /// item in the context menu of the paragraph, shows the material in the Properties panel.
 /// The paperclips follow the links, the setting of whether links name paragraphs
 /// (core::LinkRoles::PARAGRAPHS_SETTING), a chapter that opens and the book.
+///
+/// When the settings say so (core::Clippings::MARKS_SETTING), scissors are beside each
+/// paragraph a clipping not inserted since was cut from (core::Clippings::placeIn()): a click
+/// on them, or their item in the context menu, shows the clipping in the Properties panel or
+/// restores it there (clippingRestoreRequested()).
 class ParagraphMarksCoordinator : public QObject {
     Q_OBJECT
 
@@ -65,10 +73,29 @@ public:
                                                 const QString& elementId,
                                                 const editor::BookEditor& editor);
 
-    /// @brief Give every open chapter its paperclips again
+    /// @brief The scissors of text @p elementId of @p book in @p editor: one for each
+    /// paragraph clippings were cut from and not inserted since, naming them the newest first,
+    /// with their words and the time of the cut; none when the settings say so
+    static QList<editor::ParagraphMark> clippingMarksOf(const core::ProjectManager& book,
+                                                        const QString& elementId,
+                                                        const editor::BookEditor& editor);
+
+    /// @brief Give every open chapter its paperclips and scissors again
     void refresh();
 
+    /// @brief refresh() once the events now waiting are done (many changes at once)
+    void refreshSoon();
+
+signals:
+    /// @brief Restore Here was chosen at the scissors: clipping @p clippingId goes back to the
+    /// place it was cut from
+    void clippingRestoreRequested(const QString& clippingId);
+
 private:
+    /// @brief The texts of the paragraphs of @p document (its blocks), as the links and the
+    ///        clippings find their paragraphs in
+    static QStringList paragraphsOf(const QTextDocument& document);
+
     /// @brief Give the chapter of @p panel its paperclips again
     void refreshPanel(EditorPanel* panel);
 

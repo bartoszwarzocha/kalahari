@@ -136,6 +136,9 @@ public:
     /// @brief The gear: the settings of the materials
     QToolButton* settingsButton() const { return m_settingsButton; }
 
+    /// @brief Restore to Its Place of the list of the clippings; hidden in the other lists
+    [[nodiscard]] QToolButton* restoreButton() const { return m_restoreButton; }
+
     /// @brief The page of a kind hidden in the Navigator; shown in place of the list
     QWidget* hiddenPage() const { return m_hiddenPage; }
 
@@ -224,6 +227,12 @@ signals:
     /// @brief Open the settings of the materials (the gear)
     void requestSettings();
 
+    /// @brief Restore clipping @p elementId to the place it was cut from
+    void requestRestore(const QString& elementId);
+
+    /// @brief Open the text clipping @p elementId was cut from at its place
+    void requestShowOrigin(const QString& elementId);
+
     /// @brief Show list @p list, a kind hidden in the Navigator, again
     void requestShowKind(const QString& list);
 
@@ -286,6 +295,22 @@ private:
     /// @brief The choices of Kind and the menu of Add of the list of the cover
     void fillCoverChoices();
 
+    /// @brief The text and what Restore to Its Place of the list of the clippings does
+    void createClippingCommands();
+
+    /// @brief Restore to Its Place and the gear for list @p row of the material chosen: the
+    /// button shown in the list of the clippings, enabled for a clipping whose text is in the
+    /// book; the gear names the settings of the clippings there
+    void updateClippingCommands(const MaterialRow* row);
+
+    /// @brief Restore to Its Place and Go to Its Place in the menu of clipping @p row; nothing
+    /// for another material
+    void addClippingItems(QMenu& menu, const MaterialRow& row);
+
+    /// @brief The gear: Settings > Editor > Clippings in the list of the clippings, else the
+    /// settings of the materials (requestSettings())
+    void openSettings();
+
     QString m_list;
     QHash<QString, State> m_states;
     QList<MaterialColumn> m_columns;
@@ -306,6 +331,7 @@ private:
     QToolButton* m_planButton = nullptr;
     QToolButton* m_groupsButton = nullptr;
     QToolButton* m_settingsButton = nullptr;
+    QToolButton* m_restoreButton = nullptr;  ///< Restore to Its Place: the list of the clippings
     QMenu* m_addMenu = nullptr;           ///< Add of the cover: the kind of the material
     QLabel* m_partLabel = nullptr;
     QComboBox* m_partBox = nullptr;
