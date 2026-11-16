@@ -25,6 +25,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of Settings > Cards, which also has the dots of the Navigator; the gear of the cards opens it.
   The library of characters and locations of the old model in project.db is gone: the cards of
   the Workshop take its place.
+
+- **Book dictionary** - 2026-11-15. Each book has a dictionary of its own (`dictionary.json`
+  in its folder, saved at once with each change): the names of its characters, places, things
+  and other proper names with all their forms, the author's spelling rules, and words right in
+  this book only. Book > Book Dictionary... and "Book Dictionary" at the top of the Workshop
+  in the Navigator show it on a tab in the middle of the window, with three tabs and their
+  counts (Names, Spelling Rules, Book Words), a search that finds the names also in their
+  forms and other names ("annę" and "ania" find "Anna Wolska"; Find, Ctrl+F, goes to it), and
+  the keys Insert, Enter and Delete in the lists, Ctrl+Tab between the tabs. The window of a
+  name has the name and its other names (for a character of several words the first name and
+  the surname alone, which follow the name, and the diminutives and nicknames the author
+  adds), the kind (Character, Location, Item, Other name), the model of declension of each
+  word, picked by its ending and confirmed by the spelling dictionary (common nouns whose stem
+  changes have their forms from the program: Czarny Las, w Czarnym Lesie; Stary Dwór, Starego
+  Dworu), and the table of the forms by case, which the author corrects (a corrected cell
+  keeps its forms when a model changes; "Suggest the Forms Again"), "Does not change", the
+  plural and Show in Quick Insert; in Polish seven cases, in English the singular and the
+  plural, in another language the forms the author writes. The window of a spelling rule has
+  the right spelling, the wrong ones (those that suggest themselves are added: the other case
+  of a capital letter, without the hyphen, with it or apart, a word made of two apart),
+  whether its forms count too (shown from the spelling dictionary, or from the word it ends
+  with: "półelf" like "elf") and a note. In the chapters the names are right in all their
+  forms and the words of the book are right; a departure from a rule has a wavy line of its
+  own color ("Book rule", its color in Settings > Editor > Spelling) with the rule's spelling
+  and note in the context menu, Edit Rule... and Remove Rule (Settings > Editor > Spelling >
+  Book Dictionary: "Mark departures from the rules"). The context menu of a misspelled word
+  adds it to the book dictionary, to Your Words of every book, or as a name (Add Name..., the
+  window of a name with the word and its forms); so do the cards of the Spelling and Grammar
+  panel, whose button adds to the place Settings names ("The panel adds a word to"), the other
+  on the menu of its arrow. Quick Insert after @ offers the names with their forms (Right
+  shows them), and Find in Book and the find bar of a chapter find a name in all its forms, an
+  ordinary word in those of the spelling dictionary (the option "All Forms", Alt+M). Move to
+  Your Words moves words of the book to the words of every book; Remove asks first. In a book
+  open read-only the dictionary is shown, not changed. The cards of the Workshop will keep
+  their names here (`DictionaryName::card`).
+
 - **The preview of PDF files in the program** - 2026-11-15. A PDF opens in a card of its own
   (Settings > Materials > Opening: in the program, at first, or in the system program): the
   pages one under another (at first), one at a time or two side by side; the zoom of

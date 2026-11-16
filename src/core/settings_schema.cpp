@@ -373,6 +373,12 @@ std::map<std::string, json> buildDefaults() {
         {"spellingPanel.nextIssue", "panel"},
         {"spellingPanel.grammarScope", "whole"},
 
+        // The book's dictionary: the places that go against its spelling rules are marked in
+        // the chapters; Add of a misspelled word's card in the Spelling and Grammar panel puts
+        // the word in the book's dictionary ("book") or in the writer's own words ("user")
+        {"bookDictionary.markRules", true},
+        {"bookDictionary.panelAddsTo", "book"},
+
         // Editor: the paper, light or dark whatever the theme, and the colors. The user's values
         // of the theme's editor colors (both papers and their text, the desk around them, the
         // selection, the search's hits, the underlines of the misspelled words and grammar

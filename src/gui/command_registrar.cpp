@@ -441,6 +441,10 @@ int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callb
     REG_CMD_CB("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 0,
                callbacks.onInsertSceneBreak);
 
+    // The book's dictionary on its tab: its names, spelling rules and words (no keys);
+    // BookDictionaryCoordinator gives it its callback
+    REG_CMD("book.dictionary", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Dictionary..."), "BOOK/Book Dictionary...", 95, false, 0);
+
     REG_CMD_TOOL_ICON("book.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Properties..."), "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
                       IconSet(),

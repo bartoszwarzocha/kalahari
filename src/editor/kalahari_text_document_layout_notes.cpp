@@ -491,6 +491,9 @@ void KalahariTextDocumentLayout::drawNoteMarks(QPainter* painter, size_t note, s
                 case HighlightKind::Grammar:
                     color = waves ? colors.grammar : QColor();
                     break;
+                case HighlightKind::BookRule:
+                    color = waves ? colors.bookRule : QColor();
+                    break;
                 default:
                     break;
                 }

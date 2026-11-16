@@ -270,6 +270,9 @@ void BookSearchCoordinator::search() {
         return;
     }
     m_query = Query{text, m_panel->options()};
+    if (m_query->options.allForms && m_formsOf) {
+        m_query->options.forms = m_formsOf(text);
+    }
     m_engine.setSearchText(text);
     m_engine.setOptions(m_query->options);
     if (m_engine.canSearch()) {
@@ -674,6 +677,11 @@ QString BookSearchCoordinator::whyNotReplace() const {
         //: In Polish: Najpierw wpisz, czego szukać
         return tr("Type what to find first");
     }
+    if (m_query->options.allForms) {
+        //: Why Replace All in Book is greyed out while the search finds all forms ("Odm")
+        return tr("Replace All in Book is off while all forms are found: one replacement of "
+                  "every form would break the declension");
+    }
     if (!isSearching() && m_found.empty()) {
         //: In Polish: Nie ma czego zamienić
         return tr("Nothing was found to replace");
@@ -708,7 +716,9 @@ bool BookSearchCoordinator::confirm(int matches, int texts) const {
 
 int BookSearchCoordinator::replaceAllInBook() {
     auto& projects = m_book;
-    if (!projects.isProjectOpen() || projects.isReadOnly() || !m_query || !m_engine.canSearch()) {
+    // Not every form at once (the option of all forms): that would break the declension
+    if (!projects.isProjectOpen() || projects.isReadOnly() || !m_query || !m_engine.canSearch() ||
+        m_query->options.allForms) {
         say(whyNotReplace());
         return -1;
     }

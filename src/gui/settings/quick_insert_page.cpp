@@ -107,7 +107,7 @@ void EditorQuickInsertPage::createSources() {
         heading->setFont(bold);
         layout->addWidget(heading, 0, column + 1);
     }
-    const std::array<QString, 3> names = {tr("Names from the cards of the Workshop"),
+    const std::array<QString, 3> names = {tr("Names from the book dictionary (and the cards)"),
                                           tr("Text fragments"), tr("Typographic characters")};
     std::array<std::array<QCheckBox*, 3>, 2> boxes{};
     for (int row = 0; row < 3; ++row) {
@@ -231,8 +231,8 @@ void EditorQuickInsertPage::createItems() {
     column->addLayout(restoreRow);
     form->addRow(box);
     addNote(form, tr("Type # and the first letters of a name at the start of a word to insert "
-                     "its text. The names of the cards are those of the book open; they need "
-                     "no list here."));
+                     "its text. The names of the book dictionary and of the cards are those of "
+                     "the book open; they need no list here."));
 
     connect(add, &QPushButton::clicked, this, &EditorQuickInsertPage::addItem);
     connect(m_edit, &QPushButton::clicked, this, &EditorQuickInsertPage::editItem);
