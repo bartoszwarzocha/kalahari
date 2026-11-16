@@ -720,15 +720,20 @@ set(TEST_SOURCES ${TEST_SOURCES}
     # More test files will be added as we implement features
 )
 
-# The preview of PDF files and its tests: only with Qt PDF
+# The preview of PDF files and its tests: only with PDFium (cmake/Pdfium.cmake)
 if(KALAHARI_PDF_AVAILABLE)
     list(APPEND TEST_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/gui/pdf_document.cpp             # A PDF file read by PDFium
+        ${CMAKE_SOURCE_DIR}/src/gui/pdf_models.cpp               # Its search and contents
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_panel.cpp  # A PDF on a tab
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_preview_parts.cpp  # Its bars and side panel
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_view.cpp     # The pages of a PDF
         ${CMAKE_SOURCE_DIR}/src/gui/panels/pdf_pages_layout.cpp   # Their rows and zoom
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_preview_panel.h  # with Q_OBJECT
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/pdf_pages_view.h     # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_document.h              # with Q_OBJECT
+        ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_models.h                # with Q_OBJECT
+        gui/test_pdf_document.cpp  # A PDF file read by PDFium: pages, text, data, contents
         gui/test_pdf_preview.cpp  # The preview of a PDF: pages, side panel, search, selection
     )
 endif()
@@ -794,10 +799,18 @@ target_link_libraries(kalahari-tests PRIVATE
 target_include_directories(kalahari-tests PRIVATE ${HUNSPELL_INCLUDE_DIRS})
 target_link_directories(kalahari-tests PRIVATE ${HUNSPELL_LIBRARY_DIRS})
 
-# The preview of PDF files (optional Qt PDF module)
+# The preview of PDF files (PDFium)
 if(KALAHARI_PDF_AVAILABLE)
-    target_link_libraries(kalahari-tests PRIVATE Qt6::Pdf)
+    target_link_libraries(kalahari-tests PRIVATE PDFium::pdfium)
     target_compile_definitions(kalahari-tests PRIVATE KALAHARI_HAS_PDF)
+    if(WIN32)
+        # One release build of pdfium.dll serves every configuration (src/CMakeLists.txt)
+        add_custom_command(TARGET kalahari-tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:PDFium::pdfium>" "$<TARGET_FILE_DIR:kalahari-tests>/"
+            COMMENT "Copying pdfium.dll to the tests' directory"
+        )
+    endif()
 endif()
 
 # Windows: Workaround for Catch2d.lib link errors with VS 2022/2026

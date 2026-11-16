@@ -118,7 +118,7 @@ związany i w jaki sposób. Wszystko działa z klawiatury, w obu motywach i we w
 
 - Ustawienie dla każdego rodzaju pliku: obraz, PDF, tekst, dźwięk, film, strona – w programie albo w programie
   systemowym; dokumenty biurowe zawsze w programie systemowym.
-- Karty podglądu: PDF (Qt PDF), film i odtwarzacz nagrań ze znacznikami (Qt Multimedia), strona – ustawienie
+- Karty podglądu: PDF (PDFium), film i odtwarzacz nagrań ze znacznikami (Qt Multimedia), strona – ustawienie
   „Strona w programie”: kopia uproszczona zapisana z książką albo cała strona (Qt WebEngine).
 - Moduły opcjonalne, jak synteza mowy (`CMakeLists.txt:126–129`): program zbudowany bez modułu ma jego pozycje
   wyszarzone i otwiera plik w programie systemowym; bez Qt WebEngine strona w programie to kopia uproszczona.

@@ -13,10 +13,6 @@
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
-#include <QPdfDocument>
-#include <QPdfDocumentRenderOptions>
-#include <QPdfLink>
-#include <QPdfSearchModel>
 #include <QScrollBar>
 #include <QTransform>
 #include <QWheelEvent>
@@ -68,13 +64,6 @@ constexpr double SAME_POSITION = 0.5;
 /// @brief textBetween(): the steps in which the places beside the text go toward each other
 constexpr int APPROACH_STEPS = 8;
 
-/// How the pages are drawn: with the comments and the forms of the file
-QPdfDocumentRenderOptions renderOptions() {
-    QPdfDocumentRenderOptions options;
-    options.setRenderFlags(QPdfDocumentRenderOptions::RenderFlag::Annotations);
-    return options;
-}
-
 }  // namespace
 
 const QList<double>& PdfPagesView::zoomSteps() {
@@ -97,7 +86,7 @@ PdfPagesView::PdfPagesView(QWidget* parent) : QAbstractScrollArea(parent) {
     m_colors.currentSearchMatch = m_colors.selection;
 }
 
-void PdfPagesView::setDocument(QPdfDocument* document) {
+void PdfPagesView::setDocument(PdfDocument* document) {
     // clang-analyzer takes the shared reference count of the QPointer for a use after free
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
     m_document = document;
@@ -125,7 +114,7 @@ void PdfPagesView::setDocument(QPdfDocument* document) {
     emit currentPageChanged(m_page);
 }
 
-void PdfPagesView::setSearchModel(QPdfSearchModel* model) {
+void PdfPagesView::setSearchModel(PdfSearchModel* model) {
     if (m_search != nullptr) {
         disconnect(m_search, nullptr, this, nullptr);
     }
@@ -192,7 +181,7 @@ void PdfPagesView::select(int page, const QPointF& start, const QPointF& end) {
         clearSelection();
         return;
     }
-    std::optional<QPdfSelection> selection = textBetween(page, start, end);
+    std::optional<PdfSelection> selection = textBetween(page, start, end);
     if (!selection) {
         clearSelection();
         return;
@@ -200,23 +189,23 @@ void PdfPagesView::select(int page, const QPointF& start, const QPointF& end) {
     takeSelection(page, std::move(*selection));
 }
 
-void PdfPagesView::takeSelection(int page, QPdfSelection selection) {
+void PdfPagesView::takeSelection(int page, PdfSelection selection) {
     m_selection = std::move(selection);
     m_selectionPage = page;
     viewport()->update();
     emit selectionChanged();
 }
 
-std::optional<QPdfSelection> PdfPagesView::textBetween(int page, const QPointF& start,
-                                                       const QPointF& end) {
-    const auto found = [](const QPdfSelection& selection) {
+std::optional<PdfSelection> PdfPagesView::textBetween(int page, const QPointF& start,
+                                                      const QPointF& end) {
+    const auto found = [](const PdfSelection& selection) {
         return selection.isValid() && !selection.text().isEmpty();
     };
-    QPdfSelection selection = m_document->getSelection(page, start, end);
+    PdfSelection selection = m_document->getSelection(page, start, end);
     if (found(selection)) {
         return selection;
     }
-    // QPdfDocument finds a letter only near the place: from the margin, or between two
+    // PdfDocument finds a letter only near the place: from the margin, or between two
     // paragraphs, the places go to the text and toward each other
     const QRectF bounds = textBounds(page);
     if (bounds.isEmpty()) {
@@ -242,62 +231,30 @@ QRectF PdfPagesView::textBounds(int page) {
     if (const auto known = m_textBounds.constFind(page); known != m_textBounds.cend()) {
         return *known;
     }
-    const QPdfSelection all = m_document->getAllText(page);
+    const PdfSelection all = m_document->getAllText(page);
     const QRectF bounds = all.isValid() ? all.boundingRectangle() : QRectF();
     m_textBounds.insert(page, bounds);
     return bounds;
 }
 
-std::optional<QPdfSelection> PdfPagesView::occurrenceOf(int page, const QString& text,
-                                                       int occurrence) const {
-    if (text.isEmpty() || occurrence < 0) {
-        return std::nullopt;
-    }
-    const QPdfSelection all = m_document->getAllText(page);
-    const QString pageText = all.text();
-    qsizetype at = -1;
-    for (int found = 0; found <= occurrence; ++found) {
-        at = pageText.indexOf(text, at + 1, Qt::CaseInsensitive);
-        if (at < 0) {
-            return std::nullopt;
-        }
-    }
-    QPdfSelection selection = m_document->getSelectionAtIndex(
-        page, all.startIndex() + static_cast<int>(at), static_cast<int>(text.size()));
-    // The text of the page is without the spaces at its ends: the places may then differ
-    if (!selection.isValid() || selection.text().compare(text, Qt::CaseInsensitive) != 0) {
-        return std::nullopt;
-    }
-    return selection;
-}
-
-void PdfPagesView::selectHit(int page, const QString& text, int occurrence,
-                             const QList<QRectF>& rectangles) {
-    if (m_document == nullptr || page < 0 || page >= pageCount()) {
+void PdfPagesView::selectHit(const PdfHit& hit) {
+    if (m_document == nullptr || hit.page < 0 || hit.page >= pageCount()) {
         return;
     }
-    // By the places of its letters in the text: which letters are at a place in the page
-    // QPdfDocument tells differently in each version of Qt
-    if (std::optional<QPdfSelection> selection = occurrenceOf(page, text, occurrence)) {
-        takeSelection(page, std::move(*selection));
+    PdfSelection selection =
+        m_document->getSelectionAtIndex(hit.page, hit.startIndex, hit.length);
+    if (!selection.isValid() || selection.text().isEmpty()) {
+        clearSelection();
         return;
     }
-    if (rectangles.isEmpty()) {
-        return;
-    }
-    // Else from the left edge of its first letter to the right edge of its last one, in the
-    // middle of their lines
-    const QRectF& first = rectangles.first();
-    const QRectF& last = rectangles.last();
-    select(page, QPointF(first.left() + SAME_POSITION, first.center().y()),
-           QPointF(last.right() - SAME_POSITION, last.center().y()));
+    takeSelection(hit.page, std::move(selection));
 }
 
 void PdfPagesView::selectPage(int page) {
     if (m_document == nullptr || page < 0 || page >= pageCount()) {
         return;
     }
-    QPdfSelection selection = m_document->getAllText(page);
+    PdfSelection selection = m_document->getAllText(page);
     if (!selection.isValid() || selection.text().isEmpty()) {
         clearSelection();
         return;
@@ -379,9 +336,9 @@ void PdfPagesView::paintEvent(QPaintEvent* event) {
 
 void PdfPagesView::paintMarks(QPainter& painter, int page, const QRect& rect) const {
     if (m_search != nullptr) {
-        const QList<QPdfLink> hits = m_search->resultsOnPage(page);
-        for (const QPdfLink& hit : hits) {
-            for (const QRectF& rectangle : hit.rectangles()) {
+        const QList<PdfHit> hits = m_search->resultsOnPage(page);
+        for (const PdfHit& hit : hits) {
+            for (const QRectF& rectangle : hit.rectangles) {
                 painter.fillRect(toViewport(page, rectangle), m_colors.searchMatch);
             }
         }
@@ -573,10 +530,7 @@ QImage PdfPagesView::pageImage(int page, const QSize& size, const QRect& visible
         if (part.isEmpty()) {
             return {};
         }
-        QPdfDocumentRenderOptions options = renderOptions();
-        options.setScaledSize(pixels);
-        options.setScaledClipRect(part);
-        QImage image = m_document->render(page, part.size(), options);
+        QImage image = m_document->render(page, pixels, part);
         applyLook(image);
         image.setDevicePixelRatio(ratio);
         return image;
@@ -584,7 +538,7 @@ QImage PdfPagesView::pageImage(int page, const QSize& size, const QRect& visible
     if (const QImage* kept = m_images.object(page); kept != nullptr && kept->size() == pixels) {
         return *kept;
     }
-    QImage image = m_document->render(page, pixels, renderOptions());
+    QImage image = m_document->render(page, pixels);
     if (image.isNull()) {
         return image;
     }

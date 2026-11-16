@@ -77,13 +77,12 @@ ma; otwierają podgląd dopiero w etapie 2.
 
 ### 2. Podgląd PDF w programie
 
-- Moduł opcjonalny Qt PDF (`find_package(Qt6 COMPONENTS Pdf QUIET)`, jak synteza mowy); bez niego PDF
-  otwiera się w programie systemowym, a pozycje podglądu są wyszarzone.
-- Karta podglądu: własne rysowanie stron (`QPdfDocument::render`), bo `QPdfView` w Qt 6.4 nie zaznacza
-  tekstu; układ: jedna pod drugą (domyślnie), po jednej, dwie obok siebie; powiększenie poleceniami
-  Widok › Powiększenie; numer strony z etykietą pliku (`pageLabel`), Ctrl+G; PgUp, PgDn, Home, End.
-- Panel boczny: zakładki, spis treści (`QPdfBookmarkModel`), miniatury, wyniki szukania z fragmentem
-  (`QPdfSearchModel`); Ctrl+F, Enter, Shift+Enter, Esc; F6 i Shift+F6 między paskiem, panelem i stronami.
+- PDFium (`PdfDocument`, `cmake/Pdfium.cmake`); kompilacja z `-DKALAHARI_PDF_PREVIEW=OFF` jest bez
+  podglądu: PDF otwiera się wtedy w programie systemowym, a pozycje podglądu są wyszarzone.
+- Karta podglądu: własne rysowanie stron (`PdfDocument::render`) z zaznaczaniem tekstu; układ: jedna
+  pod drugą (domyślnie), po jednej, dwie obok siebie; powiększenie poleceniami Widok › Powiększenie; numer strony z etykietą pliku (`pageLabel`), Ctrl+G; PgUp, PgDn, Home, End.
+- Panel boczny: zakładki, spis treści (`PdfContentsModel`), miniatury, wyniki szukania z fragmentem
+  (`PdfSearchModel`); Ctrl+F, Enter, Shift+Enter, Esc; F6 i Shift+F6 między paskiem, panelem i stronami.
 - Zaznaczanie tekstu (`getSelection`), Ctrl+C, menu zaznaczenia (klawisz menu, Shift+F10) i pasek
   zaznaczenia: Kopiuj, Kopiuj z odnośnikiem, Utwórz cytat… (okno „Nowy cytat” ze źródłem i stroną),
   Zakładka tutaj.
@@ -99,10 +98,11 @@ Stan: zrobiony (gałąź `claude/project-thread-zsum8e`, po etapie 1). Zakładk�
 stron, zaznaczenia i wyników są wspólne z edytorem (Edytor › Kolory). Grupa Otwieranie (obrazy, strony
 w sieci, PDF) przeszła ze strony Nawigator na stronę Materiały. „Utwórz cytat…” w oknie „Nowy cytat”
 wiąże cytat z rozdziałem otwartym ostatnio, z innym elementem albo z żadnym; „Utwórz i wstaw do
-rozdziału” wstawia słowa z odnośnikiem. Linux ma Qt PDF z pakietu `qt6-pdf-dev`. Na Windows i macOS
-Qt PDF daje tylko opcjonalna cecha vcpkg `pdf-preview` (`qtwebengine` z samą cechą `pdf`), domyślnie
-wyłączona lokalnie i w CI: jej kompilacja trwa godziny i zajmuje dziesiątki GB, a na Windows pada na
-ścieżkach dłuższych niż 260 znaków. Bez niej PDF otwiera się w programie systemowym.
+rozdziału” wstawia słowa z odnośnikiem. Strony rysował najpierw Qt PDF, który na Windows i macOS
+wymagał kompilacji `qtwebengine` (godziny i dziesiątki GB), więc tam podglądu nie było. Od 2026-11-16
+rysuje je PDFium z gotowych kompilacji pdfium-binaries (bez JavaScriptu i XFA): własny port vcpkg
+`vcpkg-ports/pdfium`, wydanie i sumy SHA-512 w `release.cmake`, a CI sprawdza podpis każdej kompilacji
+(`scripts/verify_pdfium.cmake`). Podgląd mają więc wszystkie kompilacje na Windows, macOS i Linuksie.
 
 ### 3. Opcje
 

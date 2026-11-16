@@ -35,10 +35,6 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QPainter>
-#include <QPdfBookmarkModel>
-#include <QPdfDocument>
-#include <QPdfLink>
-#include <QPdfSearchModel>
 #include <QPointer>
 #include <QPushButton>
 #include <QRegularExpression>
@@ -95,9 +91,9 @@ PdfPreviewPanel::PdfPreviewPanel(core::ProjectManager& book, const QString& elem
     if (const core::ProjectElement* element = m_book.findElement(elementId)) {
         m_path = m_book.filePathOf(*element);
     }
-    m_document = new QPdfDocument(this);
-    m_search = new QPdfSearchModel(this);
-    m_contents = new QPdfBookmarkModel(this);
+    m_document = new PdfDocument(this);
+    m_search = new PdfSearchModel(this);
+    m_contents = new PdfContentsModel(this);
     m_searchTimer = new QTimer(this);
     m_searchTimer->setSingleShot(true);
     m_searchTimer->setInterval(SEARCH_DELAY);
@@ -229,6 +225,9 @@ PdfPreviewPanel::PdfPreviewPanel(core::ProjectManager& book, const QString& elem
 }
 
 PdfPreviewPanel::~PdfPreviewPanel() {
+    // QWidget's destructor deletes the document first of the children, and the search then
+    // forgets its hits: it must not tell this preview, which is no longer whole by then
+    disconnect(m_search, nullptr, this, nullptr);
     try {
         core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
         if (m_saveTimer->isActive()) {
@@ -242,8 +241,7 @@ PdfPreviewPanel::~PdfPreviewPanel() {
 }
 
 bool PdfPreviewPanel::hasDocument() const {
-    return m_problem.isEmpty() && m_document->status() == QPdfDocument::Status::Ready &&
-           m_document->pageCount() > 0;
+    return m_problem.isEmpty() && m_document->isOpen() && m_document->pageCount() > 0;
 }
 
 QString PdfPreviewPanel::pageLabel(int page) const {
@@ -400,23 +398,17 @@ void PdfPreviewPanel::goToHit(int index) {
     if (index < 0 || index >= m_search->rowCount(QModelIndex())) {
         return;
     }
-    const QPdfLink hit = m_search->resultAtIndex(index);
+    const PdfHit hit = m_search->resultAtIndex(index);
     m_hit = index;
     m_goToFirstHit = false;
-    const QList<QRectF> rectangles = hit.rectangles();
     QRectF place;
-    for (const QRectF& rectangle : rectangles) {
+    for (const QRectF& rectangle : hit.rectangles) {
         place = place.united(rectangle);
     }
-    m_view->showPlace(hit.page(), place);
-    m_view->setCurrentHit(hit.page(), rectangles);
+    m_view->showPlace(hit.page, place);
+    m_view->setCurrentHit(hit.page, hit.rectangles);
     // The hit is the selection: Copy and the menu of the selection work on it
-    int occurrence = 0;
-    for (int before = index - 1;
-         before >= 0 && m_search->resultAtIndex(before).page() == hit.page(); --before) {
-        ++occurrence;
-    }
-    m_view->selectHit(hit.page(), m_search->searchString(), occurrence, rectangles);
+    m_view->selectHit(hit);
     m_resultsList->setCurrentIndex(m_search->index(index, 0));
     updateHits();
 }
@@ -445,8 +437,8 @@ void PdfPreviewPanel::reload() {
     const MaterialFile file = MaterialFile::of(m_path);
     if (!file.exists) {
         m_problem = file.problem();
-    } else if (const QPdfDocument::Error error = m_document->load(m_path);
-               error != QPdfDocument::Error::None || m_document->pageCount() < 1) {
+    } else if (const PdfDocument::Error error = m_document->load(m_path);
+               error != PdfDocument::Error::None || m_document->pageCount() < 1) {
         m_problem = PdfFiles::loadProblem(static_cast<int>(error));
     }
     if (!m_problem.isEmpty()) {
