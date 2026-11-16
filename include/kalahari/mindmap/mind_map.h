@@ -5,8 +5,8 @@
 /// @brief A mind map of the Workshop: a main topic with branches, loose nodes and connections,
 /// as its .kmap file keeps them
 
-#ifndef KALAHARI_CORE_MIND_MAP_H
-#define KALAHARI_CORE_MIND_MAP_H
+#ifndef KALAHARI_MINDMAP_MIND_MAP_H
+#define KALAHARI_MINDMAP_MIND_MAP_H
 
 #include <QHash>
 #include <QJsonObject>
@@ -18,7 +18,7 @@
 #include <functional>
 #include <optional>
 
-namespace kalahari::core {
+namespace kalahari::mindmap {
 
 /// @brief A node of a mind map
 struct MindMapNode {
@@ -264,6 +264,6 @@ private:
     QJsonObject m_extra;
 };
 
-}  // namespace kalahari::core
+}  // namespace kalahari::mindmap
 
-#endif  // KALAHARI_CORE_MIND_MAP_H
+#endif  // KALAHARI_MINDMAP_MIND_MAP_H

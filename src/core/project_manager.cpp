@@ -22,6 +22,7 @@
 #include <kalahari/core/source_description.h>
 #include <kalahari/core/standalone_file.h>
 #include <kalahari/core/text_file.h>
+#include <kalahari/core/window_editor_provider.h>
 #include <kalahari/editor/clipboard_handler.h>
 
 #include <QDateTime>
@@ -1456,7 +1457,11 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
     if (!list) {
         return QString();
     }
-    if (kind.kind->form == ElementForm::Window) {
+    // A window kind of a module: the module writes its new file (IWindowEditorProvider)
+    const std::shared_ptr<IWindowEditorProvider> windowEditor =
+        kind.kind->form == ElementForm::Window ? windowEditorProvider(kind.kind->editor)
+                                               : nullptr;
+    if (kind.kind->form == ElementForm::Window && !windowEditor) {
         logger.error("addElement: Elements of {} open in a window that the program does not "
                      "have yet",
                      kind.reference().toStdString());
@@ -1507,6 +1512,16 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
             m_elementStates.remove(element.id);
             return QString();
         }
+    } else if (windowEditor) {
+        element.file =
+            newMaterialFile(kind.kind->id + QLatin1Char('.') + windowEditor->fileSuffix());
+        const QString path = filePathOf(element);
+        if (!QDir().mkpath(QFileInfo(path).absolutePath()) ||
+            !writeWhole(path, windowEditor->newFile())) {
+            logger.error("addElement: Cannot write {}", path.toStdString());
+            QFile::remove(path);
+            return QString();
+        }
     }
 
     const auto restore = [this, &previous, &element]() {
@@ -1555,7 +1570,8 @@ QString ProjectManager::addElement(const KindRef& kind, const QString& title, Bo
 
 bool ProjectManager::canAdd(const KindRef& kind) {
     return kind && !kind.kind->retired &&
-           (kind.kind->form != ElementForm::Window || kind.kind->isMaterial());
+           (kind.kind->form != ElementForm::Window || kind.kind->isMaterial() ||
+            windowEditorProvider(kind.kind->editor) != nullptr);
 }
 
 std::optional<ElementPlace> ProjectManager::newPlaceAfter(const QString& elementId,

@@ -5,7 +5,7 @@
 /// @brief The time a writer types: dates, months, years and days of the story, in Polish and in
 /// English, with a part of the day, "about" and years before the Common Era
 
-#include <kalahari/core/story_time.h>
+#include <kalahari/timeline/story_time.h>
 
 #include <QRegularExpression>
 #include <QStringList>
@@ -14,7 +14,7 @@
 #include <cstddef>
 #include <utility>
 
-namespace kalahari::core {
+namespace kalahari::timeline {
 
 namespace {
 
@@ -393,4 +393,4 @@ std::optional<StoryTime> StoryTime::parse(const QString& text, qint64 dayOne) {
     return time;
 }
 
-}  // namespace kalahari::core
+}  // namespace kalahari::timeline

@@ -5,8 +5,8 @@
 /// @brief When something happens in a story: a day or days of the calendar, a month or a year,
 /// perhaps with a part of the day, as the writer types it and as the program shows it
 
-#ifndef KALAHARI_CORE_STORY_TIME_H
-#define KALAHARI_CORE_STORY_TIME_H
+#ifndef KALAHARI_TIMELINE_STORY_TIME_H
+#define KALAHARI_TIMELINE_STORY_TIME_H
 
 #include <QJsonObject>
 #include <QString>
@@ -14,7 +14,7 @@
 
 #include <optional>
 
-namespace kalahari::core {
+namespace kalahari::timeline {
 
 /// @brief A day of the calendar, with astronomical years: 0 is 1 BC, -43 is 44 BC
 struct CalendarDay {
@@ -149,6 +149,6 @@ struct StoryTime {
     bool operator==(const StoryTime&) const = default;
 };
 
-}  // namespace kalahari::core
+}  // namespace kalahari::timeline
 
-#endif  // KALAHARI_CORE_STORY_TIME_H
+#endif  // KALAHARI_TIMELINE_STORY_TIME_H

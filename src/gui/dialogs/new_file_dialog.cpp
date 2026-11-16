@@ -12,6 +12,7 @@
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/window_editor_provider.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/material_downloader.h"
@@ -586,7 +587,14 @@ NewFileKind NewFileDialog::entryOf(const core::ProjectManager& pm, const core::K
                         "from the web; a page and a material without a file have none")
                          .arg(QString::fromLatin1(core::BookProject::WORKSHOP_FOLDER));
     } else {
-        const QFileInfo file(pm.newChapterFile(kind, section));
+        // A window kind of a module: the file of the module in the Workshop's folder
+        const std::shared_ptr<core::IWindowEditorProvider> module =
+            kind.kind->form == core::ElementForm::Window
+                ? core::windowEditorProvider(kind.kind->editor)
+                : nullptr;
+        const QFileInfo file(module ? pm.newMaterialFile(kind.kind->id + QLatin1Char('.') +
+                                                         module->fileSuffix())
+                                    : pm.newChapterFile(kind, section));
         //: The file of a new element: %1 is its name, %2 the folder of the book it is in. In
         //: Polish: %1 w folderze „%2”
         entry.file = tr("%1 in the folder \"%2\"").arg(file.fileName(), file.path());

@@ -4,13 +4,13 @@
 /// @file time_axis.cpp
 /// @brief The axis of a timeline: its stretches of days and its gaps drawn short
 
-#include <kalahari/core/time_axis.h>
+#include <kalahari/timeline/time_axis.h>
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 
-namespace kalahari::core {
+namespace kalahari::timeline {
 
 namespace {
 
@@ -122,4 +122,4 @@ double TimeAxis::dayAt(double x) const {
     return x < 0.0 ? m_segments.first().from : m_segments.last().to;
 }
 
-}  // namespace kalahari::core
+}  // namespace kalahari::timeline

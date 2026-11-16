@@ -4,10 +4,10 @@
 /// @file mind_map_layout.h
 /// @brief Where the nodes of a mind map stand in each of its layouts
 
-#ifndef KALAHARI_CORE_MIND_MAP_LAYOUT_H
-#define KALAHARI_CORE_MIND_MAP_LAYOUT_H
+#ifndef KALAHARI_MINDMAP_MIND_MAP_LAYOUT_H
+#define KALAHARI_MINDMAP_MIND_MAP_LAYOUT_H
 
-#include <kalahari/core/mind_map.h>
+#include <kalahari/mindmap/mind_map.h>
 
 #include <QHash>
 #include <QPointF>
@@ -16,7 +16,7 @@
 
 #include <functional>
 
-namespace kalahari::core {
+namespace kalahari::mindmap {
 
 /// @brief Where a node of a mind map stands
 struct MindMapPlace {
@@ -43,6 +43,6 @@ using MindMapSizes = std::function<QSizeF(const MindMapNode& node, int depth)>;
 [[nodiscard]] QHash<QString, MindMapPlace> layOutMindMap(const MindMap& map, MindMapLayout layout,
                                                          const MindMapSizes& sizes);
 
-}  // namespace kalahari::core
+}  // namespace kalahari::mindmap
 
-#endif  // KALAHARI_CORE_MIND_MAP_LAYOUT_H
+#endif  // KALAHARI_MINDMAP_MIND_MAP_LAYOUT_H

@@ -4,7 +4,7 @@
 /// @file mind_map_file.cpp
 /// @brief A mind map as an outline of text, and as its .kmap file
 
-#include <kalahari/core/mind_map.h>
+#include <kalahari/mindmap/mind_map.h>
 
 #include <QFile>
 #include <QJsonArray>
@@ -19,7 +19,7 @@
 #include <cstddef>
 #include <utility>
 
-namespace kalahari::core {
+namespace kalahari::mindmap {
 
 namespace {
 
@@ -368,4 +368,4 @@ std::optional<MindMapLayout> MindMap::layoutOf(const QString& name) {
     return std::nullopt;
 }
 
-}  // namespace kalahari::core
+}  // namespace kalahari::mindmap

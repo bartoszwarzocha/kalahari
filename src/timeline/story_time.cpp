@@ -5,7 +5,7 @@
 /// @brief The time of a story: its days of the calendar, its place on a time axis, its text in
 /// dates and in days of the story, and its object in a file
 
-#include <kalahari/core/story_time.h>
+#include <kalahari/timeline/story_time.h>
 
 #include <QDate>
 #include <QJsonValue>
@@ -18,7 +18,7 @@
 #include <cstddef>
 #include <utility>
 
-namespace kalahari::core {
+namespace kalahari::timeline {
 
 namespace {
 
@@ -502,4 +502,4 @@ std::optional<StoryTime> StoryTime::fromJson(const QJsonObject& json) {
     return time;
 }
 
-}  // namespace kalahari::core
+}  // namespace kalahari::timeline

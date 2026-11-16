@@ -7,14 +7,14 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <kalahari/core/story_time.h>
+#include <kalahari/timeline/story_time.h>
 
 #include <QJsonObject>
 #include <QString>
 
 #include <optional>
 
-using namespace kalahari::core;
+using namespace kalahari::timeline;
 using Catch::Matchers::WithinAbs;
 
 namespace {

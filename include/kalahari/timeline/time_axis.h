@@ -5,12 +5,12 @@
 /// @brief The axis of a timeline: days measured in pixels, where long gaps without events are
 /// drawn short, so that events years apart fit beside events hours apart
 
-#ifndef KALAHARI_CORE_TIME_AXIS_H
-#define KALAHARI_CORE_TIME_AXIS_H
+#ifndef KALAHARI_TIMELINE_TIME_AXIS_H
+#define KALAHARI_TIMELINE_TIME_AXIS_H
 
 #include <QList>
 
-namespace kalahari::core {
+namespace kalahari::timeline {
 
 /// @brief The axis of a timeline
 ///
@@ -83,6 +83,6 @@ private:
     QList<Gap> m_gaps;
 };
 
-}  // namespace kalahari::core
+}  // namespace kalahari::timeline
 
-#endif  // KALAHARI_CORE_TIME_AXIS_H
+#endif  // KALAHARI_TIMELINE_TIME_AXIS_H

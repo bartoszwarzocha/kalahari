@@ -5,10 +5,10 @@
 /// @brief A timeline of the Workshop: the events of a story in time, in threads, with the
 /// characters, the place and the chapters of each, as its .ktl file keeps them
 
-#ifndef KALAHARI_CORE_TIMELINE_H
-#define KALAHARI_CORE_TIMELINE_H
+#ifndef KALAHARI_TIMELINE_TIMELINE_H
+#define KALAHARI_TIMELINE_TIMELINE_H
 
-#include <kalahari/core/story_time.h>
+#include <kalahari/timeline/story_time.h>
 
 #include <QJsonObject>
 #include <QList>
@@ -17,7 +17,7 @@
 
 #include <optional>
 
-namespace kalahari::core {
+namespace kalahari::timeline {
 
 /// @brief A thread of a timeline: a line of the plot that events belong to
 struct TimelineThread {
@@ -229,6 +229,6 @@ struct TimelineViewNames {
     [[nodiscard]] static std::optional<TimelineView::Mode> mode(const QString& name);
 };
 
-}  // namespace kalahari::core
+}  // namespace kalahari::timeline
 
-#endif  // KALAHARI_CORE_TIMELINE_H
+#endif  // KALAHARI_TIMELINE_TIMELINE_H

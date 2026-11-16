@@ -41,6 +41,7 @@ set(KALAHARI_CORE_SOURCES
     core/plugin_signature.cpp   # OpenSpec #00038: Plugin signature verification (Ed25519)
     core/trusted_keys.cpp       # OpenSpec #00038: Trusted publisher key management
     core/extension_points.cpp
+    core/window_editor_provider.cpp # The editors of the window kinds that modules bring
     core/event_bus.cpp
     core/chapter_document.cpp
     core/chapter_versions.cpp   # Versions of the texts of the chapter files
@@ -72,13 +73,6 @@ set(KALAHARI_CORE_SOURCES
     core/bibliography.cpp       # The entries of a bibliography and the references in the text
     core/bibliography_records.cpp  # The descriptions pasted as BibTeX and RIS
     core/link_roles.cpp         # The roles of links, and the paragraph a link names
-    core/story_time.cpp         # The time of the story: dates and days, their words and file
-    core/story_time_parse.cpp   # The time of the story written by the writer, read back
-    core/timeline.cpp           # Timelines of the Workshop: threads, events, order, file
-    core/time_axis.cpp          # The axis of a timeline, its gaps shortened
-    core/mind_map.cpp           # Mind maps of the Workshop: nodes, loose nodes, connections
-    core/mind_map_file.cpp      # Their file and their outlines
-    core/mind_map_layout.cpp    # Their layouts: on both sides, to the right, down, free
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/unicode_paths.cpp      # Paths with any characters, as UTF-8 text, and their ZIP archives
@@ -237,6 +231,7 @@ set(KALAHARI_SOURCES
     gui/version_texts.cpp  # What the program says of a version of a text
     gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
     gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
+    gui/dialogs/element_choice_dialog.cpp  # ElementChoiceDialog - choose an element of the book
     gui/dialogs/quick_insert_item_dialog.cpp  # QuickInsertItemDialog - a fragment or a character of quick insert
     gui/dialogs/name_dialog.cpp  # NameDialog - a name of the book dictionary with its forms
     gui/dialogs/rule_dialog.cpp  # RuleDialog - a spelling rule of the book dictionary
@@ -461,6 +456,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/program_instance.h  # ProgramInstance with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dock_coordinator.h  # DockCoordinator with Q_OBJECT (OpenSpec #00038 Phase 4)
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/document_windows.h  # DocumentWindows and DetachedWindow with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/element_choice_dialog.h  # ElementChoiceDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panel_tabs.h  # PanelTabs with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/panel_tab_bar.h  # PanelTabBar with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/central_tabs.h  # CentralTabs with Q_OBJECT
@@ -633,6 +629,16 @@ if(KALAHARI_PDF_AVAILABLE)
         ${CMAKE_SOURCE_DIR}/include/kalahari/gui/pdf_models.h                # with Q_OBJECT
     )
 endif()
+
+# The modules of the Workshop's tools: each lists its own sources and talks to the program
+# only through core::IWindowEditorProvider (core/window_editor_provider.h), so that it can
+# leave the program as an add-on of its own
+include(${CMAKE_CURRENT_SOURCE_DIR}/mindmap/module.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/timeline/module.cmake)
+list(APPEND KALAHARI_SOURCES
+    ${KALAHARI_MINDMAP_SOURCES} ${KALAHARI_MINDMAP_GUI_SOURCES}
+    ${KALAHARI_TIMELINE_SOURCES} ${KALAHARI_TIMELINE_GUI_SOURCES}
+)
 
 # Create executable
 add_executable(kalahari ${KALAHARI_SOURCES})

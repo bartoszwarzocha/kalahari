@@ -4,7 +4,7 @@
 /// @file timeline.cpp
 /// @brief A timeline of the Workshop: its threads and events, their order, and its file
 
-#include <kalahari/core/timeline.h>
+#include <kalahari/timeline/timeline.h>
 
 #include <QFile>
 #include <QHash>
@@ -18,7 +18,7 @@
 #include <cstddef>
 #include <utility>
 
-namespace kalahari::core {
+namespace kalahari::timeline {
 
 namespace {
 
@@ -543,4 +543,4 @@ std::optional<TimelineView::Mode> TimelineViewNames::mode(const QString& name) {
     return valueOf<TimelineView::Mode>(name, MODE_NAMES);
 }
 
-}  // namespace kalahari::core
+}  // namespace kalahari::timeline

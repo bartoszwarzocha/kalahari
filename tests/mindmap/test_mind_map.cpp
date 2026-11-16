@@ -6,15 +6,15 @@
 /// outlines, its file and its layouts
 
 #include <catch2/catch_test_macros.hpp>
-#include <kalahari/core/mind_map.h>
-#include <kalahari/core/mind_map_layout.h>
+#include <kalahari/mindmap/mind_map.h>
+#include <kalahari/mindmap/mind_map_layout.h>
 
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QSizeF>
 #include <QTemporaryDir>
 
-using namespace kalahari::core;
+using namespace kalahari::mindmap;
 
 namespace {
 

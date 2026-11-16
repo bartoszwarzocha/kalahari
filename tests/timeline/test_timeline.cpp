@@ -7,8 +7,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <kalahari/core/time_axis.h>
-#include <kalahari/core/timeline.h>
+#include <kalahari/timeline/time_axis.h>
+#include <kalahari/timeline/timeline.h>
 
 #include <QDir>
 #include <QFile>
@@ -17,7 +17,7 @@
 #include <QStringList>
 #include <QTemporaryDir>
 
-using namespace kalahari::core;
+using namespace kalahari::timeline;
 using Catch::Matchers::WithinAbs;
 
 namespace {

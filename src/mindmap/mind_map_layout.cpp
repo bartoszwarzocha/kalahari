@@ -4,7 +4,7 @@
 /// @file mind_map_layout.cpp
 /// @brief The layouts of a mind map: on both sides, to the right, down, and free
 
-#include <kalahari/core/mind_map_layout.h>
+#include <kalahari/mindmap/mind_map_layout.h>
 
 #include <QStringList>
 
@@ -13,7 +13,7 @@
 #include <limits>
 #include <utility>
 
-namespace kalahari::core {
+namespace kalahari::mindmap {
 
 namespace {
 
@@ -233,4 +233,4 @@ QHash<QString, MindMapPlace> layOutMindMap(const MindMap& map, MindMapLayout lay
     return Layouter(map, sizes).layOut(layout);
 }
 
-}  // namespace kalahari::core
+}  // namespace kalahari::mindmap

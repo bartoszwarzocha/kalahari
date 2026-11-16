@@ -27,6 +27,11 @@ const nlohmann::json* defaultValue(const std::string& key);
 /// @brief All listed settings (key with '.' separators -> default value)
 const std::map<std::string, nlohmann::json>& defaults();
 
+/// @brief List the settings of a module of the program (mind maps, timelines) with their
+/// default values, so that the module keeps its settings itself; a key listed already keeps
+/// its value. A module adds them once, when it is registered, before any window reads them.
+void addDefaults(const std::map<std::string, nlohmann::json>& moduleDefaults);
+
 /// @brief Whether a changed setting takes effect only after restarting Kalahari
 /// @param key Setting key; '.' and '/' both separate levels
 bool requiresRestart(const std::string& key);

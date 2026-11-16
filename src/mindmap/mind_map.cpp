@@ -5,11 +5,11 @@
 /// @brief A mind map of the Workshop: its tree of nodes, its loose nodes and its connections,
 /// and their changes
 
-#include <kalahari/core/mind_map.h>
+#include <kalahari/mindmap/mind_map.h>
 
 #include <algorithm>
 
-namespace kalahari::core {
+namespace kalahari::mindmap {
 
 namespace {
 
@@ -322,4 +322,4 @@ void MindMap::fixFreePlaces(const QHash<QString, QPointF>& places) {
     }
 }
 
-}  // namespace kalahari::core
+}  // namespace kalahari::mindmap
