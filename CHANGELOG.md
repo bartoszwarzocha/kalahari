@@ -29,7 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or a list at the cursor, as quick insert; a clipping inserted stays in the Workshop marked
   as inserted, or goes from it (Ctrl+Z brings it back). Statistics and Goals > Counting:
   "Cutting to the clippings is not deleting" keeps the words of the day as they were (off:
-  a cut lowers them as a deletion does).
+  a cut lowers them as a deletion does). The list of Materials > Clippings has the columns
+  From, Cut, Note and Inserted and the button Restore to Its Place; its menu has Go to Its
+  Place too. The Properties panel of a clipping has the group Origin: the text it was cut
+  from (a link to the place), the paragraph and the last words before it, when it was cut and
+  inserted, Go to Its Place and Restore to Its Place (greyed out with the reason without the
+  text, Restore also in a book open read-only). Settings > Editor > Clippings > Draw scissors
+  where a fragment was cut (off at first): scissors beside the paragraph a clipping not
+  inserted since was cut from, left of the paperclip of the materials; a click on them or the
+  context menu of the paragraph shows the clipping or restores it there.
 
 - **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
   characters, locations and items, added from the Book menu, the Navigator ("Add Character...",
