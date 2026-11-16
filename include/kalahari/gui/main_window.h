@@ -80,6 +80,7 @@ class FootnoteCoordinator;
 class ChapterBreakCoordinator;
 class ClippingsCoordinator;
 class FieldCoordinator;
+class GoToCoordinator;
 class BookSearchCoordinator;
 class ImageFilterCoordinator;
 class SpellingCoordinator;
@@ -574,6 +575,8 @@ private:
     ChapterBreakCoordinator* m_chapterBreakCoordinator{nullptr};
     /// Insert > Date && Time..., Insert > Field... and what the fields of the texts show
     FieldCoordinator* m_fieldCoordinator{nullptr};
+    /// Edit > Go To...
+    GoToCoordinator* m_goToCoordinator{nullptr};
 
     /// @brief Edit > Cut to Clippings and Insert > Clipping from the Workshop
     ClippingsCoordinator* m_clippingsCoordinator{nullptr};

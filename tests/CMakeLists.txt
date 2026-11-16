@@ -96,6 +96,7 @@ set(TEST_SOURCES
     editor/test_text_images.cpp                  # Images: KML, the store of files, layout, drawing, commands
     editor/test_text_captions.cpp                # Captions: numbers, cross-references, list of figures
     editor/test_text_fields.cpp                  # Fields: values, formats, KML, layout, editing
+    editor/test_text_places.cpp                  # Edit > Go To...: the places of a text
     editor/test_text_footnotes.cpp               # Footnotes and endnotes: model, numbers, KML
     editor/test_note_checking.cpp                # Notes: search, replace, spelling, grammar
     editor/test_image_look.cpp                   # Images: their look (turn, crop, filters, frame)
@@ -209,6 +210,7 @@ set(TEST_SOURCES
     gui/test_caption_coordinator.cpp             # Captions of the book, one filter for all images
     gui/test_footnote_coordinator.cpp            # Notes: their frame, Insert > Footnote and Endnote
     gui/test_field_coordinator.cpp               # Insert > Date && Time..., Insert > Field... and their windows
+    gui/test_edit_dialogs.cpp                    # Edit > Paste Special... and Edit > Go To...
     gui/test_book_search.cpp                     # Find in Book, Replace All in Book, the Search panel
     gui/test_chapter_break.cpp                   # Book > Chapter Break: the new text, its title, Undo
     gui/test_clippings.cpp                       # Clippings: cut, Undo and Redo, insert, restore
@@ -315,6 +317,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_images.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_captions.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_fields.cpp
+    ${CMAKE_SOURCE_DIR}/src/editor/book_editor_places.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_image_look.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_input.cpp
     ${CMAKE_SOURCE_DIR}/src/editor/book_editor_search.cpp
@@ -434,6 +437,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/clippings_coordinator.cpp  # Cut to Clippings, Insert > Clipping
     ${CMAKE_SOURCE_DIR}/src/gui/clippings_coordinator_steps.cpp  # The undo of the texts, the tabs
     ${CMAKE_SOURCE_DIR}/src/gui/field_coordinator.cpp       # The fields of the open texts, Insert > Field...
+    ${CMAKE_SOURCE_DIR}/src/gui/go_to_coordinator.cpp       # Edit > Go To...
     ${CMAKE_SOURCE_DIR}/src/gui/style_coordinator.cpp       # New, changed and deleted styles of the book
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/style_dialog.cpp    # New Style and Modify Style
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/manage_styles_dialog.cpp  # Manage Styles
@@ -516,6 +520,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/caption_dialogs.cpp  # The windows of captions
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/footnote_settings_dialog.cpp  # Footnote Settings
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/field_dialogs.cpp  # The windows of the fields
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/edit_dialogs.cpp   # Paste Special... and Go To...
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/table_dialogs.cpp  # The windows of the Table menu
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/image_properties_dialog.cpp  # Image > Image Properties...
     ${CMAKE_SOURCE_DIR}/src/gui/widgets/character_grid.cpp           # Characters in cells, in the font of the text
@@ -697,6 +702,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/caption_dialogs.h  # The windows of captions, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/footnote_settings_dialog.h  # Footnote Settings, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/field_dialogs.h  # The windows of the fields, with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/edit_dialogs.h  # Paste Special... and Go To..., with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/table_dialogs.h  # The windows of the Table menu, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/image_properties_dialog.h  # Image Properties, with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/quick_character_palette.h  # QuickCharacterPalette with Q_OBJECT
@@ -739,6 +745,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/chapter_break_coordinator.h  # ChapterBreakCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/clippings_coordinator.h  # ClippingsCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/field_coordinator.h  # FieldCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/go_to_coordinator.h  # GoToCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/new_item_dialog.h  # NewItemDialog with Q_OBJECT
@@ -792,7 +799,8 @@ set_target_properties(kalahari-tests PROPERTIES
 target_include_directories(kalahari-tests PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_BINARY_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}  # test_support/
+    ${CMAKE_CURRENT_SOURCE_DIR}/include  # kalahari_tests/: the tests' shared headers
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # Source tree, for tests that read files of the repository (the example project)
