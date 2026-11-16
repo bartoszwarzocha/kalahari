@@ -21,14 +21,20 @@
 #include <QRegularExpression>
 #include <QTemporaryDir>
 
+#include <vector>
+
 #ifdef KALAHARI_HAS_PDF
-#include <QPdfBookmarkModel>
-#include <QPdfDocument>
-#include <QPdfSelection>
+#include <kalahari/gui/pdf_document.h>
+
+#include <cstddef>
 #endif
 
 using namespace kalahari::editor;
 using namespace kalahari::test;
+#ifdef KALAHARI_HAS_PDF
+using kalahari::gui::PdfContentsEntry;
+using kalahari::gui::PdfDocument;
+#endif
 
 namespace {
 
@@ -94,8 +100,23 @@ int crossReferenceSections(const QByteArray& file) {
 }
 #ifdef KALAHARI_HAS_PDF
 /// The text of a page of a PDF
-QString pageText(QPdfDocument& document, int page) {
+QString pageText(const PdfDocument& document, int page) {
     return document.getAllText(page).text();
+}
+
+/// The entries of the table of contents @p contents one level under its entry @p parent (-1:
+/// the entries at the top), as their places in it
+std::vector<std::size_t> entriesUnder(const std::vector<PdfContentsEntry>& contents,
+                                      int parent) {
+    std::vector<std::size_t> entries;
+    const auto first = parent < 0 ? std::size_t{0} : static_cast<std::size_t>(parent) + 1;
+    const int level = parent < 0 ? 0 : contents[static_cast<std::size_t>(parent)].level + 1;
+    for (std::size_t at = first; at < contents.size() && contents[at].level >= level; ++at) {
+        if (contents[at].level == level) {
+            entries.push_back(at);
+        }
+    }
+    return entries;
 }
 #endif
 
@@ -159,8 +180,8 @@ TEST_CASE("PDF: the pages of the page view, with bookmarks, links and comments",
 
 #ifdef KALAHARI_HAS_PDF
     SECTION("A reader shows the pages, the running heads, the numbers and the bookmarks") {
-        QPdfDocument document(nullptr);
-        REQUIRE(document.load(path) == QPdfDocument::Error::None);
+        PdfDocument document(nullptr);
+        REQUIRE(document.load(path) == PdfDocument::Error::None);
         // Each on a right page: the contents, the part, the first chapter (two pages), the
         // second; empty left pages before the part and the first chapter
         REQUIRE(document.pageCount() == 7);
@@ -185,19 +206,16 @@ TEST_CASE("PDF: the pages of the page view, with bookmarks, links and comments",
         CHECK(pageText(document, 5).trimmed().endsWith(QStringLiteral("6")));
         CHECK(pageText(document, 6).contains(QStringLiteral("Its own heading")));
 
-        QPdfBookmarkModel bookmarks(nullptr);
-        bookmarks.setDocument(&document);
-        REQUIRE(bookmarks.rowCount() == 3);
-        const QModelIndex chapter = bookmarks.index(1, 0);
-        CHECK(chapter.data(static_cast<int>(QPdfBookmarkModel::Role::Title)).toString() ==
-              QStringLiteral("Rozdział 1. Studnia"));
-        CHECK(chapter.data(static_cast<int>(QPdfBookmarkModel::Role::Page)).toInt() == 4);
-        REQUIRE(bookmarks.rowCount(chapter) == 1);
-        CHECK(bookmarks.index(0, 0, chapter)
-                  .data(static_cast<int>(QPdfBookmarkModel::Role::Title))
-                  .toString() == QStringLiteral("Section"));
-        CHECK(bookmarks.index(2, 0).data(static_cast<int>(QPdfBookmarkModel::Role::Page)).toInt() ==
-              6);
+        const std::vector<PdfContentsEntry> bookmarks = document.contents();
+        const std::vector<std::size_t> top = entriesUnder(bookmarks, -1);
+        REQUIRE(top.size() == 3);
+        const PdfContentsEntry& chapter = bookmarks[top[1]];
+        CHECK(chapter.title == QStringLiteral("Rozdział 1. Studnia"));
+        CHECK(chapter.page == 4);
+        const std::vector<std::size_t> sections = entriesUnder(bookmarks, static_cast<int>(top[1]));
+        REQUIRE(sections.size() == 1);
+        CHECK(bookmarks[sections[0]].title == QStringLiteral("Section"));
+        CHECK(bookmarks[top[2]].page == 6);
     }
 #endif
 }
