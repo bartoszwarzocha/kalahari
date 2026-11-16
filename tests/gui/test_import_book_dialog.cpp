@@ -644,6 +644,14 @@ TEST_CASE("Import Text: six tabs, the window whole on a small screen, the access
         REQUIRE(polish.loaded());
         CHECK(checkAll() ==
               QStringLiteral("&Plik | &Miejsce | Po&dział | &Style | Por&ządki | Uwagi i o&brazy"));
+        // "No parts" in one line: with the notes for the translators it made the window too
+        // wide on macOS
+        ImportBookDialog headings(book, core::ProjectManager::installedBookTypes(),
+                                  ImportFormat::Markdown, markdown, {});
+        CHECK(headings.partLevelBox()->itemText(0) == QStringLiteral("– bez części –"));
+        ImportBookDialog plain(book, core::ProjectManager::installedBookTypes(),
+                               ImportFormat::PlainText, {text}, {});
+        CHECK(plain.partPatternBox()->itemText(2) == QStringLiteral("– bez części –"));
     }
 
     // The result of the import shows under the tabs, with its links and what it left out

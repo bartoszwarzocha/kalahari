@@ -27465,9 +27465,7 @@ The menu of a card of the panel Repetitions. In Polish: Przejdź</extracomment>
         <extracomment>No parts in plain text. In Polish: – bez części –
 ----------
 No parts in the file. In Polish: – bez części –</extracomment>
-        <translation>– bez części –
-----------
-No parts in the file. In Polish: – bez części –</translation>
+        <translation>– bez części –</translation>
     </message>
     <message>
         <source>Text t&amp;itle:</source>
