@@ -223,7 +223,8 @@ void CardsPage::addTextGroup() {
     bindCustom(std::move(atCursor));
 
     //: The signs of the kinds of the cards beside a paragraph linked with them, like the
-    //: paperclip of a material. In Polish: Znaki kart na marginesie przy powiązanych akapitach
+    //: paperclip of a material; keep it short, as the narrowest window of the settings has
+    //: room for about 40 characters. In Polish: Znaki kart przy powiązanych akapitach
     QCheckBox* marks = addCheckBox(text, tr("Signs of the cards beside the linked paragraphs"),
                                    ParagraphMarksCoordinator::CARD_MARKS_SETTING);
     marks->setObjectName(QStringLiteral("cardsParagraphMarks"));
