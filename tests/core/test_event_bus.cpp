@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_event_bus.cpp
 /// @brief Unit tests for Event Bus (Task #00010)
 ///

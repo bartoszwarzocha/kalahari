@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_stage1.cpp
 /// @brief Editor Stage 1 (quick fixes): regression tests for the defects it fixed
 ///
@@ -315,9 +318,10 @@ TEST_CASE("Stage1 word count: new rules of counting are told, the text stays",
 
 TEST_CASE("Stage1 word count: a saved chapter reports the editor's count",
           "[editor][stage1][statistics]") {
-    // Formatting inside a word, entities, metadata anchors and dialogue dashes: the
+    // Formatting inside a word, entities, metadata anchors, a note and dialogue dashes: the
     // chapter file (ChapterDocument, from KML) and the editor must agree. The text of the
-    // annotations is not part of the chapter's text.
+    // annotations and of the notes is not part of the chapter's text; the words of the notes
+    // count, unless the settings leave them out.
     BookEditor editor;
     editor.fromKml(QStringLiteral(
         "<kml><annotations><annotation id=\"c1\" kind=\"comment\">Not counted</annotation>"
@@ -325,15 +329,20 @@ TEST_CASE("Stage1 word count: a saved chapter reports the editor's count",
         "<annotation id=\"n1\" kind=\"note\">Nor this</annotation></annotations>"
         "<p>Nie<i>zwykle</i> ważne: Tom &amp; Jerry</p>"
         "<p>– Tak – <anchor ref=\"c1\">powiedział</anchor> cicho.</p>"
-        "<p></p><p>Przypis<footnote id=\"f1\">1</footnote> i <anchor ref=\"t1\">zadanie</anchor>"
+        "<p></p><p>Przypis<footnote id=\"f1\">But the note</footnote> i <anchor ref=\"t1\">zadanie</anchor>"
         ".<anchor ref=\"n1\"/></p></kml>"));
 
     const core::ChapterDocument chapter(editor.toKml());
-    CHECK(editor.wordCount() == 10);
+    CHECK(editor.wordCount() == 13);
     CHECK(chapter.wordCount() == static_cast<int>(editor.wordCount()));
     CHECK(chapter.characterCount() == static_cast<int>(editor.characterCountNoSpaces()));
     CHECK(chapter.plainText() == editor.plainText());
     CHECK(chapter.paragraphCount() == 3);  // the empty paragraph does not count
+    CHECK(chapter.wordTally().wordsUnder(editor.wordCountRules()) == 13);
+
+    editor.setWordCountRules({.notesAreWords = false});
+    CHECK(editor.wordCount() == 10);
+    CHECK(chapter.wordTally().wordsUnder(editor.wordCountRules()) == 10);
 }
 
 TEST_CASE("Stage1 word count: a chapter file counts the text the editor shows",

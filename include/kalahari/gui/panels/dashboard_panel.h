@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dashboard_panel.h
 /// @brief Dashboard panel - welcome screen with native Qt widgets
 ///
@@ -18,6 +21,10 @@
 class QEvent;
 class QFrame;
 class QObject;
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari {
 namespace gui {
@@ -59,8 +66,9 @@ class DashboardPanel : public QWidget {
 
 public:
     /// @brief Constructor
+    /// @param commands The commands of its window
     /// @param parent Parent widget (typically MainWindow or QTabWidget)
-    explicit DashboardPanel(QWidget* parent = nullptr);
+    explicit DashboardPanel(CommandRegistry& commands, QWidget* parent = nullptr);
 
     /// @brief Destructor: the auto-load checkbox no longer follows its setting
     ~DashboardPanel() override;
@@ -212,6 +220,7 @@ private:
     int getIconSize() const;
 
     static constexpr int SINGLE_COLUMN_THRESHOLD = 750;  ///< Width threshold for single column mode
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file read_only_book.cpp
 /// @brief What the program says of a book open read-only
 
@@ -34,8 +37,7 @@ QString readOnlyReason() {
     return QCoreApplication::translate("ReadOnlyBook", "The book is open read-only");
 }
 
-QString readOnlyBookMessage() {
-    const core::ProjectManager& pm = core::ProjectManager::getInstance();
+QString readOnlyBookMessage(const core::ProjectManager& pm) {
     const core::BookProject* project = pm.project();
     if (!pm.isProjectOpen() || project == nullptr || !pm.isReadOnly()) {
         return {};

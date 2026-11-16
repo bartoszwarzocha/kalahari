@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file edit_coordinator.cpp
 /// @brief Implementation of EditCoordinator
 
@@ -6,6 +9,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/find_replace_bar.h"
 #include "kalahari/gui/command_registry.h"
+#include "kalahari/gui/copy_target.h"
 #include "kalahari/gui/paste_target.h"
 #include "kalahari/gui/panels/annotations_panel.h"
 #include "kalahari/gui/panels/spelling_panel.h"
@@ -262,16 +266,18 @@ struct EditCoordinator::Target {
     QTextEdit* text = nullptr;
     QPlainTextEdit* plainText = nullptr;
     QAbstractItemView* list = nullptr;
+    CopyTarget* copy = nullptr;             ///< A view with text to copy: Copy and Select All
     editor::BookEditor* book = nullptr;     ///< The book's text: every command
     editor::BookEditor* history = nullptr;  ///< The text's undo history only: Undo and Redo
 };
 
-EditCoordinator::EditCoordinator(EditorInFront editorInFront, QObject* parent)
-    : QObject(parent), m_editorInFront(std::move(editorInFront)) {}
+EditCoordinator::EditCoordinator(CommandRegistry& commands, EditorInFront editorInFront,
+                                 QObject* parent)
+    : QObject(parent), m_editorInFront(std::move(editorInFront)), m_commands(commands) {}
 
 EditCoordinator::~EditCoordinator() {
     // Their states asked this coordinator
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const auto& command : COMMANDS) {
         if (Command* found = registry.getCommand(command.second)) {
             found->isEnabled = nullptr;
@@ -285,7 +291,7 @@ EditCoordinator::~EditCoordinator() {
 }
 
 void EditCoordinator::connectCommands() {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const auto& [edit, id] : COMMANDS) {
         if (Command* command = registry.getCommand(id)) {
             command->isEnabled = [this, edit = edit]() { return canDo(edit, focusedElement()); };
@@ -312,7 +318,7 @@ editor::BookEditor* EditCoordinator::textWithKeys() const {
 }
 
 void EditCoordinator::addTextCommands(const std::vector<std::string>& ids, const TextCan& can) {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const std::string& id : ids) {
         if (Command* command = registry.getCommand(id)) {
             command->isEnabled = [this, can]() {
@@ -373,6 +379,10 @@ EditCoordinator::Target EditCoordinator::targetOf(QWidget* element) const {
         target.list = list;
         return target;
     }
+    if (auto* copy = dynamic_cast<CopyTarget*>(element)) {
+        target.copy = copy;
+        return target;
+    }
 
     // What is done in the find bar and in the Annotations and the Spelling and Grammar panels
     // are steps of the text's undo history: the text in the find bar's book, the one in front
@@ -415,6 +425,10 @@ bool EditCoordinator::canDo(Edit edit, QWidget* element) const {
     if (target.list != nullptr) {
         return listCan(*target.list, edit);
     }
+    if (target.copy != nullptr) {
+        return (edit == Edit::Copy && target.copy->canCopyHere()) ||
+               (edit == Edit::SelectAll && target.copy->canSelectAllHere());
+    }
     return false;
 }
 
@@ -441,6 +455,12 @@ bool EditCoordinator::execute(Edit edit, QWidget* element) {
         } else {
             target.list->selectAll();
         }
+    } else if (target.copy != nullptr) {
+        if (edit == Edit::Copy) {
+            target.copy->copyHere();
+        } else {
+            target.copy->selectAllHere();  // canDo() allows no other
+        }
     }
     updateStates();
     return true;
@@ -448,7 +468,7 @@ bool EditCoordinator::execute(Edit edit, QWidget* element) {
 
 void EditCoordinator::updateStates() {
     follow(focusedElement());
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     for (const auto& command : COMMANDS) {
         registry.updateActionState(command.second);
     }
@@ -494,6 +514,9 @@ void EditCoordinator::follow(QWidget* element) {
             add(connect(model, &QAbstractItemModel::modelReset, this, update));
             add(connect(model, &QAbstractItemModel::dataChanged, this, update));
         }
+    }
+    if (target.copy != nullptr) {
+        add(target.copy->whenSelectionChanges(this, update));
     }
     if (auto* book = qobject_cast<editor::BookEditor*>(text)) {
         add(connect(book, &editor::BookEditor::selectionChanged, this, update));

@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_internal.h
 /// @brief Helpers shared by the BookEditor source files (not part of the editor's API)
 
 #pragma once
 
 #include <kalahari/editor/kml_document_model.h>
+#include <kalahari/editor/text_captions.h>
 #include <kalahari/editor/text_tables.h>
 #include <functional>
 #include <utility>
@@ -59,8 +63,9 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
     std::optional<TableCellPlace> lastCell;  // the cell of the previous paragraph
     bool emptyBlock = true;            // the cursor's block is a new one, without text
     const auto leaveTable = [&]() {
-        // Its cells span their rows and columns once their paragraphs have their formats
-        spanCells(*table, model.table(static_cast<size_t>(tableIndex)).spans);
+        // Its cells span their rows and columns, and get their properties and those of
+        // their rows, once their paragraphs have their formats
+        finishTableCells(*table, model.table(static_cast<size_t>(tableIndex)));
         cursor.setPosition(table->lastPosition() + 1);  // the block after it
         cursor.setBlockFormat(zeroMarginFormat);
         cursor.setBlockCharFormat(QTextCharFormat());
@@ -77,6 +82,7 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
         }
         setParagraphStyle(blockFormat, model.paragraphStyle(i));
         mergeParagraphFormat(blockFormat, model.paragraphOwnFormat(i));
+        setCaptionAbove(blockFormat, model.paragraphCaptionAbove(i));
         if (std::optional<ListItem> item = model.paragraphList(i)) {
             item->id += listIdOffset;
             setListItem(blockFormat, *item);
@@ -132,6 +138,21 @@ inline void appendParagraphs(QTextCursor& cursor, const KmlDocumentModel& model)
     if (table) {
         leaveTable();  // the KML ends with the table: the empty paragraph after it
     }
+}
+
+/// @brief Fill an empty document with a text's KML as the editor reads it
+///        (BookEditor::fromKml()), so that its paragraphs and positions are those of the
+///        editor's document; the reading is not undoable
+/// @return False for unreadable KML: the document has the paragraphs read before the error
+inline bool readKmlInto(QTextDocument& document, const QString& kml) {
+    document.setUndoRedoEnabled(false);
+    KmlDocumentModel model;
+    const bool complete = model.loadKml(kml);
+    QTextCursor cursor(&document);
+    cursor.beginEditBlock();
+    appendParagraphs(cursor, model);
+    cursor.endEditBlock();
+    return complete;
 }
 
 }  // namespace kalahari::editor

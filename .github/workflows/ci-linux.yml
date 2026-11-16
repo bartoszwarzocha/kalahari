@@ -14,10 +14,27 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # The PDFium of the preview of PDF files (vcpkg-ports/pdfium/release.cmake) is the one
+  # pdfium-binaries built from the official sources: each pinned archive has its SHA-512, its
+  # version, no JavaScript and XFA, and GitHub's signed record of its build
+  pdfium:
+    name: PDFium archives (SHA-512 and attestation)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Verify the PDFium archives
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: cmake -DWORK_DIR="$RUNNER_TEMP/pdfium" -P scripts/verify_pdfium.cmake
+
   build:
     name: Linux Build & Test
     runs-on: ubuntu-24.04
-    timeout-minutes: 30  # Fast with all system packages, no vcpkg
+    timeout-minutes: 45  # System packages, no vcpkg: the build takes 19 to 28 minutes on the runner
 
     strategy:
       matrix:
@@ -153,7 +170,7 @@ jobs:
   analysis:
     name: Sanitizers, Coverage & clang-tidy
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90  # Build ~30 min and tests ~12 min leave clang-tidy of a large PR too little in 60
 
     steps:
     - name: Checkout code
@@ -223,6 +240,10 @@ jobs:
         gcovr --root . build --filter 'src/' --exclude-throw-branches \
           --txt-summary --txt build/coverage.txt \
           --html-details build/coverage/index.html
+        # The same measurement for SonarQube (generic coverage format, paths relative to the
+        # repository root), headers included; scripts/sonar_analysis.py downloads it
+        gcovr --root . build --filter 'src/' --filter 'include/' --exclude-throw-branches \
+          --sonarqube build/coverage/sonarqube.xml
         echo '### Line coverage (files compiled into tests)' >> "$GITHUB_STEP_SUMMARY"
         echo '```' >> "$GITHUB_STEP_SUMMARY"
         tail -n 4 build/coverage.txt >> "$GITHUB_STEP_SUMMARY"
@@ -239,6 +260,9 @@ jobs:
     - name: clang-tidy on changed lines
       if: github.event_name == 'pull_request'
       run: |
+        # Hunks that add only // comments or blank lines (e.g. a licence header in every
+        # file) cannot get a finding, but would make clang-tidy analyse their whole files
         git diff -U0 "origin/${{ github.base_ref }}...HEAD" -- '*.cpp' '*.h' \
+          | python3 .github/scripts/drop_comment_only_hunks.py \
           | clang-tidy-diff-18.py -p1 -path build -quiet -j 4
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_issue.h
 /// @brief A misspelled word or a grammar issue of a text, as its wave marks it
 
@@ -12,7 +15,9 @@ namespace kalahari::editor {
 /// @brief What found an issue of a text
 enum class TextIssueKind {
     Spelling,  ///< The dictionary does not know the word (SpellCheckService)
-    Grammar    ///< Grammar, style or punctuation (GrammarCheckService)
+    Grammar,   ///< Grammar, style or punctuation (GrammarCheckService)
+    BookRule   ///< A spelling rule of the book's dictionary (core::BookDictionary): the place
+               ///< is written otherwise than the author wants
 };
 
 /// @brief A misspelled word or a grammar issue of a text (BookEditor::textIssues())
@@ -23,7 +28,16 @@ struct TextIssue {
     int length{0};     ///< Number of characters
     QString text;      ///< The text marked: the word, or the words of the issue
 
-    // A grammar issue's
+    // An issue in the text of a note: start and length in the note's text (noteText()), the
+    // paragraph the one with the note's number
+    QString noteId;       ///< The note's (empty: the issue is in the paragraph's own text)
+    int numberOffset{0};  ///< Where the note's number is in the paragraph
+
+    /// @brief Whether it is in the text of a note
+    bool inNote() const { return !noteId.isEmpty(); }
+
+    // A grammar issue's; of a place breaking a rule of the book: the rule's id, its note as
+    // the description, and its right form as the suggestion
     QString message;          ///< What is wrong
     QString shortMessage;     ///< What is wrong, in a few words (may be empty)
     QString ruleId;           ///< The rule that found it
@@ -37,11 +51,16 @@ struct TextIssue {
 
 /// @brief The theme's editor color of a kind (the "editor" section of a theme file)
 ///
-/// As for the annotations (annotationColorKey()), one color for each kind: "spelling" or
-/// "grammar", of its waves and of the frames of its cards in the panel.
+/// As for the annotations (annotationColorKey()), one color for each kind: "spelling",
+/// "grammar" or "bookRule", of its waves and of the frames of its cards in the panel.
 /// @param kind The kind
 inline std::string issueColorKey(TextIssueKind kind) {
-    return kind == TextIssueKind::Spelling ? "spelling" : "grammar";
+    switch (kind) {
+        case TextIssueKind::Spelling: return "spelling";
+        case TextIssueKind::Grammar: return "grammar";
+        case TextIssueKind::BookRule: return "bookRule";
+    }
+    return "spelling";
 }
 
 }  // namespace kalahari::editor

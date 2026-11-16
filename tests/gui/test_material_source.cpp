@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_material_source.cpp
 /// @brief Where a material comes from: what comes to the Navigator from outside the program,
 /// the downloads for a material with a web address, and its card for each source
@@ -5,6 +8,7 @@
 #include "document_window.h"
 
 #include "kalahari/core/material_kinds.h"
+#include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/icon_registrar.h"
 #include "kalahari/gui/material_downloader.h"
@@ -29,6 +33,7 @@
 
 #include <cstdio>
 #include <optional>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -98,6 +103,14 @@ public:
 private:
     std::string m_saved;
 };
+
+/// A new material @p title with the address @p url (none when empty)
+core::NewMaterial materialOf(const QString& title, const QString& url = {}) {
+    core::NewMaterial material;
+    material.title = title;
+    material.url = url;
+    return material;
+}
 
 /// Add @p material to the Workshop of the open book, of the kind its source gives it; a quote
 /// without one
@@ -319,18 +332,16 @@ TEST_CASE("Material card: a page, a picture on the web with and without its copy
     gui::registerAllIcons();
     test::OpenNovel novel(QStringLiteral("Caravan"));
     auto& pm = novel.pm;
-    DownloadsSetting downloads("ask");
+    const DownloadsSetting downloads("ask");
 
     const QString pageUrl = QStringLiteral("https://en.wikipedia.org/wiki/Kalahari_Desert");
     const QString pictureUrl = QStringLiteral("https://upload.example.org/Camel_on_a_dune.jpg");
-    const QString pageId =
-        addMaterial(pm, {QStringLiteral("Kalahari Desert"), {}, {}, {}, pageUrl, {}, {}});
+    const QString pageId = addMaterial(pm, materialOf(QStringLiteral("Kalahari Desert"), pageUrl));
     const QString pictureId =
-        addMaterial(pm, {QStringLiteral("Camel on a dune"), {}, {}, {}, pictureUrl, {}, {}});
-    const QString quoteId =
-        addMaterial(pm, {QStringLiteral("What the guide said"), {}, {}, {}, {}, {}, {}});
+        addMaterial(pm, materialOf(QStringLiteral("Camel on a dune"), pictureUrl));
+    const QString quoteId = addMaterial(pm, materialOf(QStringLiteral("What the guide said")));
 
-    gui::MaterialPage page;
+    gui::MaterialPage page(kalahari::test::book());
     QStringList browsers;
     QStringList copies;
     QStringList messages;
@@ -427,13 +438,13 @@ TEST_CASE("Material card: a page, a picture on the web with and without its copy
     CHECK_FALSE(shown(page.addressLabel(), page));
 
     // The full card on a tab has the icon of the source
-    gui::MaterialCardPanel card(pageId);
+    gui::MaterialCardPanel card(kalahari::test::book(), pageId);
     CHECK(card.elementId() == pageId);
     CHECK(card.page()->isFull());
     CHECK(card.property("elementId").toString() == pageId);
     CHECK(card.property("tabIconId").toString() == QStringLiteral("material.page"));
-    gui::MaterialCardPanel quoteCard(quoteId);
+    gui::MaterialCardPanel quoteCard(kalahari::test::book(), quoteId);
     CHECK(quoteCard.property("tabIconId").toString() == QStringLiteral("material.noFile"));
-    gui::MaterialCardPanel pictureCard(pictureId);
+    gui::MaterialCardPanel pictureCard(kalahari::test::book(), pictureId);
     CHECK(pictureCard.property("tabIconId").toString() == QStringLiteral("material.webPicture"));
 }

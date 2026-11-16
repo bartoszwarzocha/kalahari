@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_kind_words.cpp
 /// @brief Names of kinds in the program's sentences: the forms of the packages, the markers of
 /// the sentences and of their translations

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_format_without_selection.cpp
 /// @brief Character formats given without a selection: on the word with the cursor, or on
 ///        the text typed next

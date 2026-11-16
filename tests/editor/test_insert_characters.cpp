@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_insert_characters.cpp
 /// @brief Characters inserted by a command or a window (Insert > Special Character...,
 ///        Insert > Formatting Character): an undo step of their own, without autocorrect

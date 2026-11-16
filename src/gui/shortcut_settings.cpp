@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file shortcut_settings.cpp
 /// @brief The user's keys of the commands in the settings and in the files
 
@@ -120,11 +123,10 @@ CommandRegistry::ShortcutMap loadCustomShortcuts() {
     return valid;
 }
 
-std::string ownerOfKeys(const KeyboardShortcut& keys) {
+std::string ownerOfKeys(const CommandRegistry& registry, const KeyboardShortcut& keys) {
     if (keys.isEmpty()) {
         return {};
     }
-    const CommandRegistry& registry = CommandRegistry::getInstance();
     const CommandRegistry::ShortcutMap keysNow = CommandRegistry::resolveShortcuts(
         registry.defaultShortcuts(), registry.customShortcuts());
     for (const auto& [id, commandKeys] : keysNow) {
@@ -135,11 +137,11 @@ std::string ownerOfKeys(const KeyboardShortcut& keys) {
     return {};
 }
 
-CommandRegistry::ShortcutMap withKeys(const std::string& commandId,
+CommandRegistry::ShortcutMap withKeys(const CommandRegistry& registry,
+                                      const std::string& commandId,
                                       const KeyboardShortcut& keys) {
-    const CommandRegistry& registry = CommandRegistry::getInstance();
     CommandRegistry::ShortcutMap custom = registry.customShortcuts();
-    const std::string owner = ownerOfKeys(keys);
+    const std::string owner = ownerOfKeys(registry, keys);
     if (!owner.empty() && owner != commandId) {
         custom[owner] = KeyboardShortcut();
     }
@@ -154,10 +156,17 @@ CommandRegistry::ShortcutMap withKeys(const std::string& commandId,
     return custom;
 }
 
+void applyCustomShortcuts() {
+    const CommandRegistry::ShortcutMap custom = loadCustomShortcuts();
+    for (CommandRegistry* registry : CommandRegistry::registries()) {
+        registry->setCustomShortcuts(custom);
+    }
+}
+
 void saveCustomShortcuts(const CommandRegistry::ShortcutMap& custom) {
     core::SettingsManager::getInstance().set<nlohmann::json>(SHORTCUTS_SETTING,
                                                              shortcutsToJson(custom));
-    CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
+    applyCustomShortcuts();
 }
 
 nlohmann::json shortcutsFile(const CommandRegistry::ShortcutMap& custom) {

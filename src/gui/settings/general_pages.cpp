@@ -1,13 +1,18 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file general_pages.cpp
 /// @brief Settings pages: General, Appearance > General and Dashboard, Advanced
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/dock_coordinator.h"
+#include "kalahari/gui/document_coordinator.h"
 #include "kalahari/gui/document_windows.h"
 #include "kalahari/gui/panel_tabs.h"
 #include "kalahari/gui/toolbar_manager.h"
 #include "kalahari/gui/widgets/central_tabs.h"
+#include "kalahari/core/recent_books_manager.h"
 #include "kalahari/core/theme_manager.h"
 
 #include <QCheckBox>
@@ -33,23 +38,62 @@ GeneralPage::GeneralPage(QWidget* parent)
     QCheckBox* autoLoad = addCheckBox(startup, tr("Open last book on startup"),
                                       "startup.autoLoadLastProject");
     autoLoad->setToolTip(tr("Automatically open the most recently used book when Kalahari starts"));
+    auto* startupBooks = new QComboBox();
+    //: Settings > General > Startup: the books open when the program was closed open again,
+    //: each in its window. In Polish: Wszystkie, każda w swoim oknie
+    startupBooks->addItem(tr("All, each in its own window"), QStringLiteral("all"));
+    //: The book opened last opens. In Polish: Tylko ostatnia
+    startupBooks->addItem(tr("Only the last one"), QStringLiteral("last"));
+    //: In Polish: Książki otwarte w chwili zamknięcia programu otwierają się znów, każda w swoim
+    //: oknie, albo tylko książka otwarta ostatnio.
+    startupBooks->setToolTip(tr("The books open when Kalahari was closed open again, each in its "
+                                "own window, or only the book opened last."));
+    //: In Polish: Gdy przy zamknięciu było otwartych kilka książek:
+    QLabel* startupBooksLabel =
+        addField(startup, tr("When several books were open at closing:"), startupBooks,
+                 core::RecentBooksManager::STARTUP_BOOKS_KEY);
+    // Only for the books opened at startup
+    const auto followAutoLoad = [startupBooks, startupBooksLabel](bool on) {
+        startupBooks->setEnabled(on);
+        startupBooksLabel->setEnabled(on);
+    };
+    connect(autoLoad, &QCheckBox::toggled, this, followAutoLoad);
+    followAutoLoad(autoLoad->isChecked());
 
     // The windows of their own of the tabs of the texts (DocumentWindows)
     //: Settings > General: the group of the options of the windows. In Polish: Okna
     QFormLayout* windows = addGroup(tr("Windows"));
-    auto* detachedLook = new QComboBox();
-    //: Settings > General > Windows: a tab moved to a window of its own shows the menus, the
-    //: toolbars and the status bar. In Polish: Pełne okno
-    detachedLook->addItem(tr("Full window"), QStringLiteral("full"));
-    //: The Format toolbar and the status bar. In Polish: Samo pisanie
-    detachedLook->addItem(tr("Writing only"), QStringLiteral("writing"));
-    //: In Polish: Pełne okno: menu, paski narzędzi i pasek stanu, jak w oknie książki. Samo
-    //: pisanie: pasek formatowania i pasek stanu.
-    detachedLook->setToolTip(tr("Full window: the menus, the toolbars and the status bar, as in "
-                                "the book window. Writing only: the Format toolbar and the "
-                                "status bar."));
-    //: In Polish: Wygląd oderwanego okna:
-    addField(windows, tr("Detached window:"), detachedLook, DocumentWindows::LOOK_KEY);
+    // A book opened while another one is open in the window (DocumentCoordinator)
+    auto* otherBook = new QComboBox();
+    //: Settings > General > Windows: the question Opening a Book each time. In Polish: Pytaj za
+    //: każdym razem
+    otherBook->addItem(tr("Ask every time"), QStringLiteral("ask"));
+    //: In Polish: Otwieraj w nowym oknie
+    otherBook->addItem(tr("Open in a new window"), QStringLiteral("new"));
+    //: In Polish: Otwieraj w tym oknie (zamyka otwartą)
+    otherBook->addItem(tr("Open in this window (closes the open one)"), QStringLiteral("this"));
+    //: In Polish: Gdzie otwiera się książka wybrana, gdy w oknie jest otwarta inna. Ta sama
+    //: książka nigdy nie otwiera się dwa razy: jej okno wychodzi na wierzch.
+    otherBook->setToolTip(tr("Where a book opens while another one is open in the window. The "
+                             "same book never opens twice: its window comes to the front."));
+    //: In Polish: Książka otwierana, gdy inna jest otwarta:
+    addField(windows, tr("Book opened while another is open:"), otherBook,
+             DocumentCoordinator::OTHER_BOOK_KEY);
+    // What a tab moved to a window of its own shows, with what it means under the list
+    addChoice(windows,
+              //: In Polish: Wygląd oderwanego okna:
+              tr("Detached window:"),
+              //: Settings > General > Windows: a tab moved to a window of its own shows the
+              //: menus, the toolbars and the status bar. In Polish: Pełne okno
+              {{tr("Full window"), QStringLiteral("full"),
+                //: In Polish: Menu, paski narzędzi i pasek stanu, jak w oknie książki.
+                tr("The menus, the toolbars and the status bar, as in the book window.")},
+               //: The Format toolbar and the status bar. In Polish: Samo pisanie
+               {tr("Writing only"), QStringLiteral("writing"),
+                //: In Polish: Pasek formatowania i pasek stanu.
+                tr("The Format toolbar and the status bar.")}},
+              DocumentWindows::LOOK_KEY)
+        ->setObjectName(QStringLiteral("detachedWindowLook"));
     auto* detachedClose = new QComboBox();
     //: In Polish: Karty wracają do okna książki
     detachedClose->addItem(tr("Its tabs return to the book window"), QStringLiteral("return"));

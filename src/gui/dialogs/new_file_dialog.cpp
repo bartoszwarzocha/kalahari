@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file new_file_dialog.cpp
 /// @brief New File: a new element of the open book, of the kind, with the title and at the
 /// place the writer chooses, or an empty text file, outside the book or with it; and Add
@@ -480,11 +483,10 @@ public:
 
 } // anonymous namespace
 
-NewFileKind NewFileDialog::entryOf(const core::KindRef& kind, core::BookPlace section,
-                                   const QList<core::KindRef>& offered,
+NewFileKind NewFileDialog::entryOf(const core::ProjectManager& pm, const core::KindRef& kind,
+                                   core::BookPlace section, const QList<core::KindRef>& offered,
                                    const QList<core::KindRef>& groups)
 {
-    const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
     const core::BookTypeRegistry& registry = pm.bookTypes();
@@ -606,11 +608,12 @@ NewFileKind NewFileDialog::entryOf(const core::KindRef& kind, core::BookPlace se
     return entry;
 }
 
-NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
+NewFileDialog::Book NewFileDialog::openBook(const core::ProjectManager& pm,
+                                            const QString& untitled)
 {
     Book book;
+    book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
     book.untitled = untitled;
-    const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
     if (!project || !projectBook) {
@@ -638,7 +641,7 @@ NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
             if (kind.kind->form == core::ElementForm::Group || !kind.offeredIn(place)) {
                 continue;
             }
-            NewFileKind entry = entryOf(kind, place, offered, groups);
+            NewFileKind entry = entryOf(pm, kind, place, offered, groups);
             if (entry.unavailable.isEmpty()) {
                 entry.place = pm.newPlaceOf(kind, place);
             }
@@ -665,21 +668,23 @@ NewFileDialog::Book NewFileDialog::openBook(const QString& untitled)
     return book;
 }
 
-NewFileDialog::Book NewFileDialog::forAdding(const AddTarget& target, AddChooser chooser)
+NewFileDialog::Book NewFileDialog::forAdding(const core::ProjectManager& pm,
+                                             const AddTarget& target, AddChooser chooser)
 {
     if (chooser == AddChooser::None) {
-        return forPlace(target);
+        return forPlace(pm, target);
     }
     Book book;
+    book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
     book.adding = true;
     book.chooser = chooser;
     book.coverPart = target.coverPart;
-    const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
     if (!project || !projectBook) {
         return book;
     }
+    book.bookName = NavigatorPanel::bookName(*projectBook);
     const core::BookTypeRegistry& registry = pm.bookTypes();
     const QList<core::KindRef> groups = groupKindsOf(*project, registry);
     book.mainKind = pm.mainTextKind();
@@ -755,7 +760,7 @@ NewFileDialog::Book NewFileDialog::forAdding(const AddTarget& target, AddChooser
         }
         for (const core::KindRef& kind : std::as_const(kinds)) {
             const bool inGroup = hasKind(inside, kind);
-            NewFileKind entry = entryOf(kind, place, inGroup ? inside : offered, groups);
+            NewFileKind entry = entryOf(pm, kind, place, inGroup ? inside : offered, groups);
             if (entry.unavailable.isEmpty()) {
                 const std::optional<core::ElementPlace> after =
                     here && !afterId.isEmpty() ? pm.newPlaceAfter(afterId, kind) : std::nullopt;
@@ -772,7 +777,7 @@ NewFileDialog::Book NewFileDialog::forAdding(const AddTarget& target, AddChooser
     book.groupNames.append(NavigatorPanel::workshopName(*project));
     const QList<core::KindRef> offered = pm.kindsFor(core::BookPlace::Workshop);
     for (const core::KindRef& kind : project->kindsIn(registry, core::BookPlace::Workshop)) {
-        NewFileKind entry = entryOf(kind, core::BookPlace::Workshop, offered, groups);
+        NewFileKind entry = entryOf(pm, kind, core::BookPlace::Workshop, offered, groups);
         if (entry.unavailable.isEmpty()) {
             entry.place = pm.newPlaceOf(kind, core::BookPlace::Workshop);
         }
@@ -801,12 +806,13 @@ NewFileDialog::Book NewFileDialog::forAdding(const AddTarget& target, AddChooser
     return book;
 }
 
-NewFileDialog::Book NewFileDialog::forPlace(const AddTarget& target)
+NewFileDialog::Book NewFileDialog::forPlace(const core::ProjectManager& pm,
+                                            const AddTarget& target)
 {
     Book book;
+    book.coverTitle = [&pm](const QString& part) { return CoverNames::newTitle(pm, part); };
     book.adding = true;
     book.coverPart = target.coverPart;
-    const auto& pm = core::ProjectManager::getInstance();
     const core::BookProject* project = pm.project();
     const core::ProjectBook* projectBook = pm.book();
     if (!project || !projectBook) {
@@ -831,7 +837,7 @@ NewFileDialog::Book NewFileDialog::forPlace(const AddTarget& target)
             if (!target.kinds.isEmpty() && !hasKind(target.kinds, kind)) {
                 continue;
             }
-            NewFileKind entry = entryOf(kind, core::BookPlace::Workshop, offered, groups);
+            NewFileKind entry = entryOf(pm, kind, core::BookPlace::Workshop, offered, groups);
             if (entry.unavailable.isEmpty()) {
                 entry.place = pm.newPlaceOf(kind, core::BookPlace::Workshop);
             }
@@ -896,7 +902,7 @@ NewFileDialog::Book NewFileDialog::forPlace(const AddTarget& target)
                 if (!group && !kind.offeredIn(place)) {
                     continue;
                 }
-                NewFileKind entry = entryOf(kind, place, offered, groups);
+                NewFileKind entry = entryOf(pm, kind, place, offered, groups);
                 if (entry.unavailable.isEmpty()) {
                     const std::optional<core::ElementPlace> after =
                         afterId.isEmpty() ? std::nullopt : pm.newPlaceAfter(afterId, kind);
@@ -1279,9 +1285,7 @@ QWidget* NewFileDialog::createChooser(QWidget* parent)
         }
     } else {
         // Named as the Navigator names the book
-        const core::ProjectBook* projectBook = core::ProjectManager::getInstance().book();
-        choices.append(
-            {projectBook ? NavigatorPanel::bookName(*projectBook) : QString(), BOOK_ICON});
+        choices.append({m_book.bookName, BOOK_ICON});
         choices.append({m_book.groupNames.value(m_book.sections.size() - 1), WORKSHOP_ICON});
         start = m_book.start == core::BookPlace::Workshop ? WORKSHOP_CHOICE : BOOK_CHOICE;
     }
@@ -1455,7 +1459,8 @@ QGroupBox* NewFileDialog::createCoverGroup(QWidget* parent)
     //: The parts of a new material of the cover, buttons that the arrows go through. In
     //: Polish: Rodzaj materiału okładki
     m_coverGroup = new QGroupBox(tr("Kind of Cover Material"), parent);
-    auto* layout = new FlowLayout(m_coverGroup, 6, 6);
+    // The group takes the layout when its buttons are in it
+    auto* layout = new FlowLayout(nullptr, 6, 6);
     m_coverButtons = new QButtonGroup(m_coverGroup);
     const QStringList& parts = core::CoverMaterial::parts();
     for (qsizetype index = 0; index < parts.size(); ++index) {
@@ -1469,6 +1474,7 @@ QGroupBox* NewFileDialog::createCoverGroup(QWidget* parent)
         m_coverButtons->addButton(button, static_cast<int>(index));
         layout->addWidget(button);
     }
+    m_coverGroup->setLayout(layout);
 
     // The part asked for, else the one chosen last, else a description
     QString start = m_book.coverPart;
@@ -2380,7 +2386,7 @@ QString NewFileDialog::sourceTitle() const
         break;
     }
     // A material of the cover without them is named after its part: "Opinion 4"
-    return isCover(chosen()) ? CoverNames::newTitle(m_coverPart) : QString();
+    return isCover(chosen()) && m_book.coverTitle ? m_book.coverTitle(m_coverPart) : QString();
 }
 
 QString NewFileDialog::typedFile() const

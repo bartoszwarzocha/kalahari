@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_trusted_keys.cpp
 /// @brief Unit tests for TrustedKeys singleton (Sub-Project C WS4.3)
 ///

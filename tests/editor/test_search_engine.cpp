@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_search_engine.cpp
 /// @brief Unit tests for SearchEngine (OpenSpec #00044 Task 9.4)
 ///

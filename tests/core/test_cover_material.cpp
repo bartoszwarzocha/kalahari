@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_cover_material.cpp
 /// @brief The materials of the cover: their data in the book file, their parts and places,
 /// and the lengths of their texts
@@ -10,6 +13,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
+#include <cstdio>
 #include <string>
 #include <utility>
 
@@ -41,7 +45,14 @@ public:
         : m_key(std::move(key)), m_before(SettingsManager::getInstance().get<T>(m_key)) {
         SettingsManager::getInstance().set<T>(m_key, value);
     }
-    ~ChangedSetting() { SettingsManager::getInstance().set<T>(m_key, m_before); }
+    ~ChangedSetting() {
+        try {
+            SettingsManager::getInstance().set<T>(m_key, m_before);
+        } catch (...) {
+            // A destructor may not throw: the later tests then find the setting of this one
+            std::fputs("ChangedSetting: the setting of the test stays\n", stderr);
+        }
+    }
 
     ChangedSetting(const ChangedSetting&) = delete;
     ChangedSetting& operator=(const ChangedSetting&) = delete;

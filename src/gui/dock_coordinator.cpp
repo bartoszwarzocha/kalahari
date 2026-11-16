@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dock_coordinator.cpp
 /// @brief Dock widget and panel coordination implementation
 ///
@@ -18,6 +21,7 @@
 #include "kalahari/gui/panels/spelling_panel.h"
 #include "kalahari/gui/panels/repetitions_panel.h"
 #include "kalahari/gui/panels/paragraph_panel.h"
+#include "kalahari/gui/panels/writing_stats_panel.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/widgets/central_tabs.h"
 #include "kalahari/gui/widgets/fitting_scroll_area.h"
@@ -54,6 +58,10 @@ namespace {
 /// @brief Width of the Navigator on a small screen, in percent of the screen's width: 200
 /// pixels of 911 (1366×768 at 150%), within its minimum and its usual width
 constexpr int SMALL_SCREEN_NAVIGATOR_PERCENT = 22;
+
+/// The setting that the Statistics panel has its place in the saved layout
+/// (DockCoordinator::placeStatisticsPanel())
+constexpr const char* STATISTICS_PLACED_SETTING = "window.statisticsPanelPlaced";
 
 /// @brief The part of the screen of @p window that windows can take (the screen without the
 /// taskbar); empty without a screen
@@ -113,10 +121,9 @@ protected:
 
 } // anonymous namespace
 
-DockCoordinator::DockCoordinator(QMainWindow* mainWindow, QObject* parent)
-    : QObject(parent)
-    , m_mainWindow(mainWindow)
-{
+DockCoordinator::DockCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                                 QMainWindow* mainWindow, QObject* parent)
+    : QObject(parent), m_mainWindow(mainWindow), m_book(book), m_commands(commands) {
     auto& logger = core::Logger::getInstance();
     logger.debug("DockCoordinator created");
 }
@@ -146,6 +153,7 @@ void DockCoordinator::createDocks() {
     createAnnotationsDock();
     createSpellingDock();
     createRepetitionsDock();
+    createStatisticsDock();
 
     // Tab right-side docks: Paragraph and Styles next to Properties
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
@@ -154,6 +162,7 @@ void DockCoordinator::createDocks() {
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
+    m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
 
     // The Spelling and Grammar panel is closed until opened (View > Panels, Next Spelling or
     // Grammar Issue); then its tab is next to the Annotations tab, which is on top by default.
@@ -180,7 +189,7 @@ void DockCoordinator::createDocks() {
 
     // The tabs of the panels docked one over another: the program's own, with the icons of
     // View > Panels, as the settings say
-    m_panelTabs = new PanelTabs(m_mainWindow, this);
+    m_panelTabs = new PanelTabs(m_commands, m_mainWindow, this);
     m_panelTabs->addPanel(m_navigatorDock, "view.navigator");
     m_panelTabs->addPanel(m_propertiesDock, "view.properties");
     m_panelTabs->addPanel(m_paragraphDock, "view.paragraph");
@@ -189,6 +198,7 @@ void DockCoordinator::createDocks() {
     m_panelTabs->addPanel(m_assistantDock, "view.assistant");
     m_panelTabs->addPanel(m_annotationsDock, "view.annotations");
     m_panelTabs->addPanel(m_spellingDock, "view.spelling");
+    m_panelTabs->addPanel(m_statisticsDock, "view.statistics");
     m_panelTabs->applySettings();
 
     // The Paragraph and Styles panel where the settings say
@@ -228,6 +238,8 @@ void DockCoordinator::createCentralWidget() {
     m_centralTabs->setDocumentMode(true);
     centralTabs->applySettings();
     centralLayout->addWidget(m_centralTabs, 1);  // Stretch factor 1 to fill space
+    // The texts of the tabs, also in the windows of their own, with the commands of the window
+    DocumentWindows::of(*m_centralTabs).setCommands(m_commands);
 
     // Create standalone info bar at BOTTOM (hidden by default)
     m_standaloneInfoBar = new StandaloneInfoBar(m_centralWrapper);
@@ -244,8 +256,10 @@ void DockCoordinator::createCentralWidget() {
 
     m_mainWindow->setCentralWidget(m_centralWrapper);
 
-    // Add Dashboard as first tab (default at startup, closable)
-    m_dashboardPanel = new DashboardPanel(m_mainWindow);
+    // Add Dashboard as first tab (default at startup, closable). clang-analyzer takes the
+    // shared reference count of the QPointer for a use after free.
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
+    m_dashboardPanel = new DashboardPanel(m_commands, m_mainWindow);
     auto& artProvider = core::ArtProvider::getInstance();
     QIcon dashboardIcon = artProvider.getIcon("view.dashboard");
     int dashboardIndex = m_centralTabs->addTab(m_dashboardPanel, dashboardIcon, QObject::tr("Dashboard"));
@@ -284,7 +298,7 @@ void DockCoordinator::createCentralWidget() {
 void DockCoordinator::createNavigatorDock() {
     auto& logger = core::Logger::getInstance();
 
-    m_navigatorPanel = new NavigatorPanel(m_mainWindow);
+    m_navigatorPanel = new NavigatorPanel(m_book, m_mainWindow);
     m_navigatorDock = new QDockWidget(QObject::tr("Navigator"), m_mainWindow);
     m_navigatorDock->setWidget(m_navigatorPanel);
     m_navigatorDock->setObjectName("NavigatorDock");  // Required for saveState!
@@ -330,7 +344,7 @@ void DockCoordinator::createNavigatorDock() {
 void DockCoordinator::createPropertiesDock() {
     auto& logger = core::Logger::getInstance();
 
-    m_propertiesPanel = new PropertiesPanel(m_mainWindow);
+    m_propertiesPanel = new PropertiesPanel(m_book, m_mainWindow);
     m_propertiesDock = new QDockWidget(QObject::tr("Properties"), m_mainWindow);
     m_propertiesDock->setObjectName("PropertiesDock");
 
@@ -340,7 +354,7 @@ void DockCoordinator::createPropertiesDock() {
     m_propertiesSplitter->setObjectName(QStringLiteral("propertiesSplitter"));
     m_propertiesSplitter->setChildrenCollapsible(false);
     m_propertiesSplitter->addWidget(scrollingPanel(m_propertiesPanel, m_propertiesDock));
-    m_propertiesParagraph = new ParagraphPanel(m_mainWindow);
+    m_propertiesParagraph = new ParagraphPanel(m_commands, m_mainWindow);
     m_propertiesParagraph->setObjectName(QStringLiteral("propertiesParagraphPanel"));
     m_propertiesParagraph->setFoldable(true);
     m_propertiesParagraph->setFolded(
@@ -378,7 +392,7 @@ void DockCoordinator::createPropertiesDock() {
 }
 
 void DockCoordinator::createParagraphDock() {
-    m_paragraphPanel = new ParagraphPanel(m_mainWindow);
+    m_paragraphPanel = new ParagraphPanel(m_commands, m_mainWindow);
     m_paragraphDock = new QDockWidget(tr("Paragraph and Styles"), m_mainWindow);
     m_paragraphDock->setWidget(scrollingPanel(m_paragraphPanel, m_paragraphDock));
     m_paragraphDock->setObjectName("ParagraphDock");
@@ -491,6 +505,11 @@ void DockCoordinator::createSearchDock() {
     m_searchDock->setWidget(scrollingPanel(m_searchPanel, m_searchDock));
     m_searchDock->setObjectName("SearchDock");
     setupDockTitleBar(m_searchDock, "view.search", QObject::tr("Search"));
+    // The colors of the hits, as the gear of the find bar
+    //: The gear of the Search panel: Settings > Editor > Colors. In Polish: Kolory znalezionych
+    //: wystąpień
+    addSettingsButton(m_searchDock, QString::fromLatin1(SettingsDialog::EDITOR_COLORS_PAGE),
+                      tr("Colors of the Search Hits"));
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_searchDock);
 
     logger.debug("DockCoordinator: Search dock created");
@@ -512,7 +531,7 @@ void DockCoordinator::createAssistantDock() {
 void DockCoordinator::createAnnotationsDock() {
     auto& logger = core::Logger::getInstance();
 
-    m_annotationsPanel = new AnnotationsPanel(m_mainWindow);
+    m_annotationsPanel = new AnnotationsPanel(m_commands, m_mainWindow);
     m_annotationsDock = new QDockWidget(QObject::tr("Annotations"), m_mainWindow);
     m_annotationsDock->setWidget(scrollingPanel(m_annotationsPanel, m_annotationsDock));
     m_annotationsDock->setObjectName("AnnotationsDock");
@@ -556,6 +575,48 @@ void DockCoordinator::createRepetitionsDock() {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
 
     logger.debug("DockCoordinator: Repetitions dock created");
+}
+
+void DockCoordinator::createStatisticsDock() {
+    m_statisticsPanel = new WritingStatsPanel(m_mainWindow);
+    m_statisticsDock = new QDockWidget(tr("Statistics"), m_mainWindow);
+    // The box of the text pasted stays in view under the panel, which may scroll
+    auto* body = new QWidget(m_statisticsDock);
+    auto* column = new QVBoxLayout(body);
+    column->setContentsMargins(0, 0, 0, 0);
+    column->setSpacing(0);
+    column->addWidget(scrollingPanel(m_statisticsPanel, m_statisticsDock), 1);
+    column->addWidget(m_statisticsPanel->takeFooter());
+    m_statisticsDock->setWidget(body);
+    m_statisticsDock->setObjectName("StatisticsDock");
+    setupDockTitleBar(m_statisticsDock, "view.statistics", tr("Statistics"));
+    // What it shows, its colors and the statistics bar are on the pages of Statistics and Goals
+    addSettingsButton(m_statisticsDock, QString::fromLatin1(SettingsDialog::STATS_BAR_PAGE),
+                      tr("Statistics Settings"));
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_statisticsDock);
+
+    core::Logger::getInstance().debug("DockCoordinator: Statistics dock created");
+}
+
+void DockCoordinator::placeStatisticsPanel(bool savedLayout) {
+    auto& settings = core::SettingsManager::getInstance();
+    if (settings.get<bool>(STATISTICS_PLACED_SETTING, false)) {
+        return;
+    }
+    settings.set<bool>(STATISTICS_PLACED_SETTING, true);
+    if (!savedLayout || m_statisticsDock == nullptr || m_annotationsDock == nullptr) {
+        return;
+    }
+    if (!m_annotationsDock->isFloating() &&
+        m_mainWindow->dockWidgetArea(m_annotationsDock) != Qt::NoDockWidgetArea &&
+        !m_mainWindow->tabifiedDockWidgets(m_annotationsDock).contains(m_statisticsDock)) {
+        m_mainWindow->tabifyDockWidget(m_annotationsDock, m_statisticsDock);
+        m_annotationsDock->raise();
+    }
+    m_statisticsDock->setVisible(!m_annotationsDock->isHidden());
+    core::Logger::getInstance().info(
+        "DockCoordinator: the Statistics panel placed after Annotations in a saved layout ({})",
+        m_statisticsDock->isHidden() ? "closed" : "open");
 }
 
 QToolButton* DockCoordinator::addTitleBarButton(QDockWidget* dock, const QString& iconId,
@@ -672,7 +733,7 @@ void DockCoordinator::refreshTabIcons() {
         const QString package = page->property("tabIconPackage").toString();
         const core::PackageCard* card =
             package.isEmpty() ? nullptr
-                              : core::ProjectManager::getInstance().packageCard(package);
+                              : m_book.packageCard(package);
         if (!iconId.isEmpty()) {
             DocumentWindows::setTabIcon(page, artProvider.getPackageIcon(iconId, card));
         }
@@ -720,9 +781,10 @@ void DockCoordinator::setupViewMenuActions() {
     connectPanelCommand("view.annotations", m_annotationsDock);
     connectPanelCommand("view.spelling", m_spellingDock);
     connectPanelCommand("view.repetitionsPanel", m_repetitionsDock);
+    connectPanelCommand("view.statistics", m_statisticsDock);
 
     // Paragraph and Styles: a panel of its own or the lower part of Properties
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (Command* command = registry.getCommand("view.paragraph")) {
         command->execute = [this]() { toggleParagraph(); };
         command->isChecked = [this]() { return isParagraphOpen(); };
@@ -739,6 +801,7 @@ void DockCoordinator::setupViewMenuActions() {
     m_viewAnnotationsAction = createPanelAction("view.annotations", m_annotationsDock);
     m_viewSpellingAction = createPanelAction("view.spelling", m_spellingDock);
     m_viewRepetitionsAction = createPanelAction("view.repetitionsPanel", m_repetitionsDock);
+    m_viewStatisticsAction = createPanelAction("view.statistics", m_statisticsDock);
     m_viewParagraphAction = registry.getAction(std::string("view.paragraph"));
     if (m_viewParagraphAction != nullptr) {
         m_viewParagraphAction->setCheckable(true);
@@ -751,7 +814,7 @@ void DockCoordinator::setupViewMenuActions() {
 }
 
 void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget* dock) {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     Command* cmd = registry.getCommand(cmdId);
     if (cmd) {
         // The command opens a closed panel on top, brings one under another tab on top and
@@ -770,7 +833,7 @@ void DockCoordinator::connectPanelCommand(const std::string& cmdId, QDockWidget*
 
 QAction* DockCoordinator::createPanelAction(const std::string& cmdId, QDockWidget* dock) {
     auto& logger = core::Logger::getInstance();
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
 
     // Get action from CommandRegistry (single source of truth)
     // Action is already configured with icon, shortcut, checkable state from command
@@ -802,6 +865,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->removeDockWidget(m_spellingDock);
     m_mainWindow->removeDockWidget(m_repetitionsDock);
     m_mainWindow->removeDockWidget(m_paragraphDock);
+    m_mainWindow->removeDockWidget(m_statisticsDock);
 
     // Re-add in default layout
     m_mainWindow->addDockWidget(Qt::LeftDockWidgetArea, m_navigatorDock);
@@ -813,6 +877,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_annotationsDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_spellingDock);
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_repetitionsDock);
+    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_statisticsDock);
 
     // Tab right-side docks
     m_mainWindow->tabifyDockWidget(m_propertiesDock, m_paragraphDock);
@@ -821,6 +886,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_mainWindow->tabifyDockWidget(m_assistantDock, m_annotationsDock);
     m_mainWindow->tabifyDockWidget(m_annotationsDock, m_spellingDock);
     m_mainWindow->tabifyDockWidget(m_spellingDock, m_repetitionsDock);
+    m_mainWindow->tabifyDockWidget(m_repetitionsDock, m_statisticsDock);
 
     // Show docks (LogDock only in diagnostic/dev mode; the Spelling and Grammar panel and the
     // Repetitions panel only when opened; Paragraph and Styles unfolded where the settings put it)
@@ -835,6 +901,7 @@ void DockCoordinator::resetLayout(bool diagnosticMode, bool devMode) {
     m_annotationsDock->show();
     m_spellingDock->hide();
     m_repetitionsDock->hide();
+    m_statisticsDock->show();
 
     // The Annotations tab is on top, as at the first start
     m_annotationsDock->raise();
@@ -904,9 +971,11 @@ void DockCoordinator::showRightPanels() {
 QList<QDockWidget*> DockCoordinator::rightDocks() const {
     // Paragraph and Styles in the Properties panel has no dock of its own
     if (paragraphInProperties()) {
-        return {m_propertiesDock, m_searchDock, m_assistantDock, m_annotationsDock};
+        return {m_propertiesDock, m_searchDock, m_assistantDock, m_annotationsDock,
+                m_statisticsDock};
     }
-    return {m_propertiesDock, m_paragraphDock, m_searchDock, m_assistantDock, m_annotationsDock};
+    return {m_propertiesDock, m_paragraphDock, m_searchDock, m_assistantDock, m_annotationsDock,
+            m_statisticsDock};
 }
 
 } // namespace gui

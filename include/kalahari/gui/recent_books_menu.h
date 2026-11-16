@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file recent_books_menu.h
 /// @brief File > Recent Books submenu
 
@@ -5,6 +8,10 @@
 
 #include <QMenu>
 #include <QString>
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari {
 namespace gui {
@@ -19,8 +26,9 @@ class RecentBooksMenu : public QMenu {
 
 public:
     /// @brief Create the submenu with the current list
+    /// @param commands The commands of its window
     /// @param parent Parent widget (usually the File menu)
-    explicit RecentBooksMenu(QWidget* parent = nullptr);
+    explicit RecentBooksMenu(CommandRegistry& commands, QWidget* parent = nullptr);
 
     /// @brief Put the submenu into a menu, before the Close Book command
     /// @param menu The File menu; the submenu goes last when Close Book is not in it
@@ -34,6 +42,7 @@ signals:
 private:
     /// @brief Rebuild the items from the current list
     void rebuild();
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

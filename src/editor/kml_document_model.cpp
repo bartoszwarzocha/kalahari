@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_document_model.cpp
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting
 ///
@@ -5,6 +8,10 @@
 
 #include "kalahari/editor/kml_document_model.h"
 #include "kalahari/editor/kml_format_registry.h"
+#include "kalahari/editor/text_captions.h"
+#include "kalahari/editor/text_fields.h"
+#include "kalahari/editor/text_footnotes.h"
+#include "kalahari/editor/text_images.h"
 #include "kalahari/editor/text_link.h"
 #include "kalahari/core/logger.h"
 
@@ -175,6 +182,8 @@ void KmlDocumentModel::clear()
     m_tables.clear();
     m_annotations.clear();
     m_anchoredIds.clear();
+    m_captionIds.clear();
+    m_noteIds.clear();
     m_lastListId = 0;
     m_lastListDefinition = ListDefinition();
 }
@@ -280,6 +289,11 @@ ParagraphFormat KmlDocumentModel::paragraphOwnFormat(size_t index) const
         return {};
     }
     return m_paragraphs[index].format;
+}
+
+bool KmlDocumentModel::paragraphCaptionAbove(size_t index) const
+{
+    return index < m_paragraphs.size() && m_paragraphs[index].captionAbove;
 }
 
 std::optional<ListItem> KmlDocumentModel::paragraphList(size_t index) const
@@ -413,6 +427,30 @@ void KmlDocumentModel::appendText(Paragraph& para, const QString& source,
     }
 }
 
+void KmlDocumentModel::appendImage(Paragraph& para, const ImageProperties& image,
+                                   const QTextCharFormat& format)
+{
+    // Its character, in the format of its place (a link, annotations) with the image's
+    // properties
+    FormatRun run;
+    run.start = static_cast<size_t>(para.text.size());
+    para.text += QChar(QChar::ObjectReplacementCharacter);
+    run.end = static_cast<size_t>(para.text.size());
+    run.format = format;
+    setImage(run.format, image);
+    para.formats.push_back(run);
+}
+
+void KmlDocumentModel::appendObject(Paragraph& para, const QTextCharFormat& format)
+{
+    FormatRun run;
+    run.start = static_cast<size_t>(para.text.size());
+    para.text += QChar(QChar::ObjectReplacementCharacter);
+    run.end = static_cast<size_t>(para.text.size());
+    run.format = format;
+    para.formats.push_back(run);
+}
+
 void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragraph& para)
 {
     const QString tag = reader.name().toString();
@@ -444,6 +482,8 @@ void KmlDocumentModel::readParagraphAttributes(QXmlStreamReader& reader, Paragra
     }
 
     para.format = paragraphFormatFromKml(attrs);
+    para.captionAbove =
+        attrs.value(QStringLiteral("caption")).toString().trimmed().toLower() == u"above";
 }
 
 void KmlDocumentModel::parseParagraphElement(QXmlStreamReader& reader, Paragraph& para)
@@ -723,6 +763,7 @@ void KmlDocumentModel::parseTable(QXmlStreamReader& reader)
 {
     TableReading table;
     table.index = static_cast<int>(m_tables.size());
+    table.shape.properties = tablePropertiesOfKml(reader.attributes());
     parseTableRows(reader, table);
 
     TableShape& shape = table.shape;
@@ -779,6 +820,10 @@ void KmlDocumentModel::parseTableRows(QXmlStreamReader& reader, TableReading& ta
 void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& table)
 {
     const int row = table.shape.rows++;
+    if (const TableRowProperties properties = rowPropertiesOfKml(reader.attributes());
+        properties != TableRowProperties()) {
+        table.shape.rowFormats.push_back({row, properties});
+    }
     int column = 0;
     bool headerCells = false;
     bool dataCells = false;
@@ -832,6 +877,10 @@ void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& tab
         }
         table.shape.columns = std::max(table.shape.columns, column + columns);
         (child == QStringLiteral("th") ? headerCells : dataCells) = true;
+        if (const TableCellProperties properties = cellPropertiesOfKml(attrs);
+            properties != TableCellProperties()) {
+            table.shape.cellFormats.push_back({row, column, properties});
+        }
 
         // An empty cell has an empty paragraph
         const size_t before = m_paragraphs.size();
@@ -845,9 +894,10 @@ void KmlDocumentModel::parseTableRow(QXmlStreamReader& reader, TableReading& tab
         column += columns;
     }
 
-    // A first row of header cells only is the table's header
-    if (row == 0 && headerCells && !dataCells) {
-        table.shape.headerRows = 1;
+    // The first rows of header cells only are the table's header, with a row the cells of
+    // the header span whole
+    if (row == table.shape.headerRows && !dataCells && (headerCells || row > 0)) {
+        table.shape.headerRows = row + 1;
     }
 }
 
@@ -938,7 +988,26 @@ bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 textObjectOfElement(tag) == TextObject::None) {
                 return false;  // a paragraph or a list inside a list item
             }
-            if (KmlFormatRegistry::isFormattingTag(tag)) {
+            if (tag == QStringLiteral("footnote") || tag == QStringLiteral("endnote")) {
+                if (tag == QStringLiteral("footnote") && isOldFootnote(reader.attributes())) {
+                    // The old footnote on a range of the text (with its number): the text
+                    // stays, without a mark
+                    reader.readNext();
+                    parseInlineContent(reader, para, currentFormat, tag);
+                } else {
+                    // A note: its number in the format of its place, its text inside it. One
+                    // without an id, or with the id of a note read before, gets one of its own.
+                    Footnote note = readNoteElement(reader);
+                    if (note.id.isEmpty() || m_noteIds.contains(note.id)) {
+                        note.id = newFootnoteId(m_noteIds);
+                    }
+                    m_noteIds.insert(note.id);
+                    QTextCharFormat format = currentFormat;
+                    setFootnote(format, note);
+                    appendObject(para, format);
+                    reader.readNext();
+                }
+            } else if (KmlFormatRegistry::isFormattingTag(tag)) {
                 // Apply formatting tag
                 QTextCharFormat newFormat = KmlFormatRegistry::applyTagFormat(tag, currentFormat);
                 // Read inline style attributes (font, size, color, bg) off the current
@@ -992,6 +1061,49 @@ bool KmlDocumentModel::parseInlineContent(QXmlStreamReader& reader,
                 // Text run - just parse content
                 reader.readNext();
                 parseInlineContent(reader, para, currentFormat, tag);
+            } else if (tag == QStringLiteral("img")) {
+                // An image of the line; one without a file is nothing
+                const ImageProperties image = imagePropertiesOfKml(reader.attributes());
+                if (!image.source.isEmpty()) {
+                    appendImage(para, image, currentFormat);
+                }
+                reader.skipCurrentElement();
+                reader.readNext();
+            } else if (tag == QStringLiteral("caption-number")) {
+                // The number of a caption; one without a label is nothing, one without an
+                // id gets one (cross-references cannot name it yet)
+                if (std::optional<CaptionNumberField> field =
+                        captionNumberOfKml(reader.attributes())) {
+                    if (field->id.isEmpty()) {
+                        field->id = newCaptionId(m_captionIds);
+                    }
+                    m_captionIds.insert(field->id);
+                    QTextCharFormat format = currentFormat;
+                    setCaptionNumber(format, *field);
+                    appendObject(para, format);
+                }
+                reader.skipCurrentElement();
+                reader.readNext();
+            } else if (tag == QStringLiteral("cross-reference")) {
+                // A cross-reference to a caption; one without a target is nothing
+                if (const std::optional<CrossReference> reference =
+                        crossReferenceOfKml(reader.attributes())) {
+                    QTextCharFormat format = currentFormat;
+                    setCrossReference(format, *reference);
+                    appendObject(para, format);
+                }
+                reader.skipCurrentElement();
+                reader.readNext();
+            } else if (tag == QStringLiteral("field")) {
+                // A field of the book, the page, the words or the date; one of a type the
+                // program does not know is nothing
+                if (const std::optional<TextField> field = textFieldOfKml(reader.attributes())) {
+                    QTextCharFormat format = currentFormat;
+                    setTextField(format, *field);
+                    appendObject(para, format);
+                }
+                reader.skipCurrentElement();
+                reader.readNext();
             } else if (tag == QStringLiteral("br")) {
                 // A line break in the paragraph (Shift+Enter): a character of its text, in
                 // the format of its place

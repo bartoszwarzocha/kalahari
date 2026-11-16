@@ -1,7 +1,8 @@
 # KML – Kalahari Markup Language
 
 KML is the XML format of chapter text: paragraphs and headings with their styles and own
-formatting, lists, tables, horizontal lines and breaks, inline formatting, links and annotations. This document describes the format as the
+formatting, lists, tables, images with their captions and cross-references, horizontal lines
+and breaks, inline formatting, links and annotations. This document describes the format as the
 application reads and writes it. The product specification of the format, including the
 elements planned for later versions, is section 4 of
 `project_docs/19_text_editor_functional_spec_pl.md`; the elements it lists that the editor does
@@ -16,12 +17,13 @@ The code that defines the format:
 | A paragraph's own formatting and its attributes | `include/kalahari/editor/paragraph_format.h` |
 | Lists, the formats of their levels and the numbers of the items | `include/kalahari/editor/text_lists.h` |
 | Tables in the editor's document | `include/kalahari/editor/text_tables.h` |
+| Images in the editor's document and their files | `include/kalahari/editor/text_images.h`, `include/kalahari/editor/image_store.h` |
 | Reading | `KmlDocumentModel::loadKml()`, called by `BookEditor::fromKml()` |
 | Writing | `KmlSerializer::toKml()`, called by `BookEditor::toKml()` |
 | Annotations in the editor's document | `include/kalahari/editor/annotation.h` |
 | Links in the editor's document | `include/kalahari/editor/text_link.h` |
 | The clipboard's KML, HTML and plain text | `ClipboardHandler` (`include/kalahari/editor/clipboard_handler.h`) |
-| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp`, `test_text_links.cpp`, `test_tables.cpp` |
+| Tests | `tests/editor/test_kml_load.cpp`, `test_kml_document_model.cpp`, `test_kml_serializer.cpp`, `test_editor_stage0_kml_roundtrip.cpp`, `test_annotations.cpp`, `test_line_breaks.cpp`, `test_paragraph_styles.cpp`, `test_text_lists.cpp`, `test_character_formatting.cpp`, `test_text_links.cpp`, `test_tables.cpp`, `test_text_images.cpp` |
 
 ## Where KML is stored
 
@@ -58,8 +60,10 @@ reading.
 - **Paragraphs** are the children of the root element: `<p>`, or `<paragraph>` on reading,
   the headings `<h1>`, `<h2>` and `<h3>` (see [Paragraph](#paragraph)), the lists `<ol>` and
   `<ul>`, whose items are paragraphs too (see [Lists](#lists)), the tables `<table>`, whose
-  cells hold paragraphs (see [Tables](#tables)), and the objects `<hr/>`, `<scene-break/>` and
-  `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)).
+  cells hold paragraphs (see [Tables](#tables)), the objects `<hr/>`, `<scene-break/>` and
+  `<page-break/>` (see [Horizontal line and breaks](#horizontal-line-and-breaks)), and the list
+  of figures `<list-of-figures/>` (see
+  [Captions, cross-references and the list of figures](#captions-cross-references-and-the-list-of-figures)).
 - **Annotations** – the writer's comments, TODOs and notes – are in an `<annotations>` element,
   a child of the root element before the paragraphs (see [Annotations](#annotations)).
 - Any other element at this level is skipped together with everything inside it, and text
@@ -81,17 +85,18 @@ reading.
 | `keep-together` | Flag | All its lines on one page |
 | `page-break-before` | Flag | Starts on a new page |
 | `widow-control` | Flag | No single line of it alone at the top or bottom of a page; on without the attribute |
+| `caption` | `above` | A caption above its image (see [Captions](#captions-cross-references-and-the-list-of-figures)); without it a caption is below its image |
 
 A paragraph without `align` has no alignment of its own and is shown with the alignment of its
 style; a style without one has the editor's default: justified, with the last line aligned to
 the left. The editor writes `align` only for paragraphs that have their own alignment. Other
 attributes are ignored and not written.
 
-The attributes from `indent-left` on are the paragraph's own formatting (Format > Paragraph):
-a part without its attribute is as the paragraph's style gives it, and the editor writes only
-the parts the paragraph has of its own, in the order of the table. The layout scales the
-lengths as it scales the style's own: in the proportion of the editor's font size to the size
-of Normal in the style pack.
+The attributes from `indent-left` to `widow-control` are the paragraph's own formatting
+(Format > Paragraph): a part without its attribute is as the paragraph's style gives it, and
+the editor writes only the parts the paragraph has of its own, in the order of the table. The
+layout scales the lengths as it scales the style's own: in the proportion of the editor's font
+size to the size of Normal in the style pack. The editor writes `caption` after them.
 
 - A number is written with at most two decimals and a point (`indent-first="-18"`,
   `line-height="1.15"`). A value outside its range is brought into it; one that is not a
@@ -205,17 +210,17 @@ it: its first item gets the number it has in the chapter as `value`.
 ## Tables
 
 ```xml
-<table>
+<table align="center" width="12cm" borders="top bottom rows" border-style="dashed">
   <col width="40%"/><col width="60%"/>
   <tr><th><p>Who</p></th><th><p>Role</p></th></tr>
-  <tr><td><p>Anna</p></td><td><p>Narrator</p><p>A second paragraph</p></td></tr>
-  <tr><td colspan="2"><p>Both</p></td></tr>
+  <tr height="1cm"><td valign="middle"><p>Anna</p></td><td background="#fff2cc"><p>Narrator</p><p>A second paragraph</p></td></tr>
+  <tr split="true"><td colspan="2"><p>Both</p></td></tr>
 </table>
 ```
 
-- **A table** is a block between paragraphs, as wide as the text. Insert > Table... puts one
-  at the cursor: its columns and rows (up to 20 and 100), equal columns, and whether its first
-  row is a header row.
+- **A table** is a block between paragraphs, as wide as the text unless it has a width of its
+  own. Insert > Table... (or Table > Insert Table...) puts one at the cursor: its columns and
+  rows (up to 20 and 100), equal columns, and whether its first row is a header row.
 - **Rows and cells.** Each `<tr>` is a row, each `<td>` or `<th>` in it a cell, from left to
   right. A cell holds paragraphs: `<p>`, the headings and the lists, with their formatting,
   links and the anchors of annotations; an empty cell has one empty paragraph. Text in a cell
@@ -226,8 +231,9 @@ it: its first item gets the number it has in the chapter as `value`.
   cell goes in the first column the cells above it do not span into; a row with fewer cells
   than the table has columns gets empty ones, and a cell spanning more rows than the table has
   spans those it has.
-- **The header row.** A first row of `<th>` cells only is the header row, which the editor
-  shows in bold on a shaded background. A `<th>` in another row is read as a `<td>`, and the
+- **The header rows.** The first rows of `<th>` cells only are the header rows (one or more),
+  which the editor shows in bold on a shaded background; in Page view they are repeated at the
+  top of each page the table goes on to. A `<th>` in another row is read as a `<td>`, and the
   editor writes it as one.
 - **The widths of the columns.** The `<col width="..."/>` elements before the rows, one for
   each column, give the widths in percent of the table's width; the editor writes them in
@@ -236,6 +242,28 @@ it: its first item gets the number it has in the chapter as `value`.
   (`120px`) are taken in proportion to one another, and a column without a `<col>` gets the
   average width of the others; without `<col>` elements, or when one has no width, the columns
   are equal.
+- **Lengths** are a number with a unit: `pt` (also without a unit), `cm`, `mm`, `in`, `px`
+  (0.75 pt) or `pc` (12 pt). The editor writes them in points, rounded to two decimals
+  (`340.16pt`).
+- **The table's attributes** (Table > Table Properties..., the Table and Borders tabs); the
+  editor writes only those that are not the default:
+
+  | Attribute | Values | Meaning |
+  |-----------|--------|---------|
+  | `width` | a length | A fixed width; without it the table is as wide as the text. A table is never wider than the text; a width in percent is read as none |
+  | `align` | `left` (default), `center`, `right` | Where the table is between the margins |
+  | `indent` | a length | The indent of a table at the left (ignored with `center` and `right`) |
+  | `borders` | `grid` (default), `box`, `none`, or the lines: `top`, `bottom`, `left`, `right`, `rows` (between the rows), `columns` (between the columns), separated by spaces | The lines of the borders; unknown names alone are read as `grid` |
+  | `border-style` | `solid` (default), `dashed`, `dotted`, `double` | The style of the lines |
+  | `border-width` | a length, at most 6 pt (default 0.5 pt) | The width of the lines |
+  | `border-color` | `#rrggbb` | The color of the lines; without it the color set in Settings > Editor > Colors, for the light and the dark mode |
+
+- **A row's attributes** (the Row tab): `height` – the least height of the row, a length (at
+  most 22 inches); without it the row is as high as its text. `split="true"` – the row may be
+  split at the end of a page. Without it a row that does not fit goes whole to the next page,
+  and only a row higher than a page is split.
+- **A cell's attributes** (the Cell tab): `valign` – `top` (default), `middle` (also `center`)
+  or `bottom`, where the text of the cell is; `background` – `#rrggbb`, the color behind it.
 - `<thead>`, `<tbody>`, `<tfoot>` and `<colgroup>` around the rows or the `<col>` elements are
   read as if they were not there. Any other element in a table is skipped with everything
   inside it, and a table without cells is left out.
@@ -245,16 +273,174 @@ it: its first item gets the number it has in the chapter as `value`.
 - **In the editor.** Tab goes to the next cell, in the last one it adds a row; Shift+Tab goes
   to the cell before, Up and Down to the cell above and below. Enter starts a paragraph in the
   cell; Backspace and Delete do not join cells, and next to a table they remove an empty
-  paragraph the table does not need. A selection going into or out of a table removes the text
-  of the cells it covers, not the cells; a table it covers whole goes with it. In a cell
-  Insert > Horizontal Line, Scene Break, Page Break and Table are greyed out.
-- **A part of a table** (copied text): the rows from the cell where the part starts to the cell
-  where it ends, with its text; the other cells of those rows are empty. A part inside one cell
-  is its paragraphs, without the table.
+  paragraph the table does not need. In a cell Insert > Horizontal Line, Scene Break, Page
+  Break and Table are greyed out.
+- **Selected cells.** A selection from one cell to another (with the mouse, or Shift with the
+  arrows) selects the rectangle of whole cells between them, as in Word. Delete and Backspace
+  clear their text, and typing clears it and goes into the first cell. A selection going into
+  or out of a table removes the text of the cells it covers, not the cells; a table it covers
+  whole goes with it.
+- **The Table menu** (and the context menu of a cell): Insert (rows above and below, columns to
+  the left and right, as many as are selected), Delete (rows, columns, the table), Select (the
+  cell, row, column, table), Merge Cells, Split Cells..., Distribute Rows Evenly and Distribute
+  Columns Evenly, Repeat Header Rows, Sort..., Convert (Text to Table... and Table to Text...)
+  and Table Properties.... Each command is one step of Undo; the commands that change a table
+  are greyed out in a read-only book.
+- **Sort...** orders the rows of a table (those selected, or all; the header rows stay at the
+  top) by one column and then by another, as text in the order of the book's language, as
+  numbers (the first number of a cell) or as dates. Outside a table it orders the selected
+  paragraphs, list items with their paragraphs.
+- **Text to Table...** makes the selected paragraphs the rows of a table, divided into cells
+  at a tab, a semicolon, a comma or another character (the spaces next to a character other
+  than a tab go), or each paragraph a cell. **Table to Text...** makes each row a paragraph,
+  its cells separated by the character (a space after a semicolon and a comma), or each cell a
+  paragraph; the paragraphs of a cell are joined by spaces.
+- **Alt+Shift+Up and Alt+Shift+Down** move the rows of a table with the cursor or the
+  selection one row up or down (rows do not pass between the header rows and the others, and
+  a selection going out of the table moves nothing), and outside a table the paragraphs, past
+  a table as a whole.
+- **The width of a column** changes also by dragging the edge between two columns with the
+  mouse: the column next to it gives or takes the width (at least 0.5 cm each). Esc cancels
+  the drag.
+- **A part of a table** (copied text): a rectangle of selected cells is copied as a table of
+  those whole cells; a selection going into or out of a table gives the rows from the cell
+  where it starts to the cell where it ends, with its text, the other cells of those rows
+  empty. A part inside one cell is its paragraphs, without the table.
 - **Pasted** text with a table puts it at the cursor, splitting the paragraph; an empty
   paragraph next to the table that it does not need goes. Pasted in a cell, the text keeps only
   its text: each row of a table is a paragraph with its cells separated by tabs, and a
   horizontal line or a break an empty paragraph.
+
+## Images
+
+```xml
+<p align="center"><img src="images/bridge-1931.jpg" alt="The bridge over the river in 1931" width="80%"/></p>
+<p>A map <img src="images/map.png" alt="Map" width="4.5cm"/> in the text.</p>
+```
+
+| Attribute | Value | Meaning |
+|-----------|-------|---------|
+| `src` | A path relative to the book's main folder (`images/map.png`) | The image's file |
+| `alt` | Text | What a screen reader reads instead of the image |
+| `width` | A percentage (`80%`) or a length (`4.5cm`, `45mm`, `2in`, `120pt`, `300px`, `10pc`) | The image's width; without it, the file's own (its pixels at 96 per inch) |
+| `height` | A length | The image's own height; without it, in proportion to the width |
+| `name` | Text | The image's name, for the Navigator, the cross-references and search |
+| `description` | Text | A long description for screen readers, for an image that says more than its `alt` |
+| `decorative` | `true` | Only an ornament: screen readers skip it |
+| `rotate` | `90`, `180`, `270` | A turn clockwise, in degrees |
+| `flip` | `horizontal`, `vertical` or both (`horizontal vertical`) | Mirrored left to right, top to bottom |
+| `crop` | One to four percentages, as CSS gives the sides of a box: top, right, bottom, left (`10% 0% 5% 0%`) | The parts of the file's picture not shown, in percent of its height (top, bottom) or width (left, right) |
+| `filter` | `grayscale`, `sepia`, `black-white`, `wash` | Shades of gray, the brown tones of an old photograph, black and white only, pale (to stand behind the text) |
+| `brightness`, `contrast` | A percentage from `-50%` to `50%` | Lighter or darker, more or less contrast |
+| `threshold` | A percentage from `20%` to `80%`; `50%` without it | With `black-white`: the gray darker than it becomes black |
+| `transparency` | A percentage from `0%` to `90%` | How much of the paper shows through the picture |
+| `border` | `solid`, `dashed`, `dotted`, `double` | A line around the picture |
+| `border-width` | A length from `0.25pt` to `12pt`; `0.5pt` without it | The width of the line (a double line: two lines and the gap between them, each this wide) |
+| `border-color` | `#rrggbb` | The color of the line and the shadow; without it, the color of the text |
+| `border-padding` | A length up to `72pt` | The room between the line (or the shadow) and the picture |
+| `shadow` | `true` | A shadow to the right and down of the picture |
+
+- **An image is a part of its line**, as a large character: it stands on the baseline, the
+  paragraph's alignment places it, and the text, the undo, the clipboard and drag and drop take
+  it with the text around it. It is not a word for the counts. `<img>` goes in a paragraph,
+  also in a heading or a table cell, inside the formatting elements and the link of its place:
+  `<a href="..."><img .../></a>`.
+- **The width.** A percentage is of the width of the text (of the cell, in a table), from 1 to
+  100; a length is kept in centimeters, from 0.1 to 100, and written as `cm` with two decimals
+  at most. A width beyond these is taken as the nearest one (`150%` as `100%`); a width of 0
+  or less, or one that is not a number with a known unit, is the file's own. The height
+  follows in proportion. An image wider than its line is shown as wide as the line, and one
+  higher than a page's text as high as the text. The line spacing does not take the image's
+  height, and an exact spacing never cuts it.
+- **The look.** The file stays as it is: the crop, the turn and the mirror (mirrored first,
+  then turned), the corrections, the filter (after the corrections, so a dark scan made lighter
+  has less black) and the transparency are drawn from it. The file's own size is that of its
+  cropped part, turned. The border, its room and the shadow go around the picture and take
+  room in the line; an image never wider than its line makes its picture smaller, in its
+  shape. Each attribute is written only when it is not its default, in the order of the table;
+  `threshold` only with `black-white`, `border-width` and `border-color` only with a `border`,
+  `border-padding` only with a border or a shadow. Values beyond what an attribute takes are
+  taken as the nearest one; a turn as the nearest quarter (`100` as `90`); a crop that would
+  leave less than 5% of the picture in a direction is made smaller on both of its sides.
+- **The file.** `src` names a file in the book's main folder, without `..`, a drive or a
+  scheme; any other `src` (`/home/...`, `C:\...`, `https://...`) is never read and is shown as
+  a missing file. A text outside a book names its images relative to its own folder. The
+  editor shows PNG, JPEG, GIF, BMP and SVG files. A missing file is a frame with the file's
+  name and "Image file missing"; the KML keeps its `<img>`. `<img>` without a `src` is left out.
+  Line breaks and tabs of `alt` are spaces.
+- **New images** (Insert > Image..., a file dropped or pasted from a folder, a pasted picture)
+  are copied into the folder `images/` of the book's main folder, next to a text outside a
+  book; the original file stays as it was. A file of that folder is used as it is. A taken
+  name gets a number (`map-2.png`), and a file of the same content is used again. A pasted
+  picture is saved as PNG. A text outside a book that was never saved has no folder: it takes
+  no images until it is saved, and saved in another folder, its images are copied along.
+- **Smaller copies.** With the setting `editor.images.downscale` on (Settings > Editor > Images,
+  "Make copies of large images smaller"), the copy of an inserted, dropped or pasted file with
+  more dots per inch than `editor.images.maxDpi` (300 without it), at the width the image gets
+  in the text, is made smaller to these, in the file's format and with its name. An SVG, an
+  animation and a file of a format Kalahari cannot write are copied as they are, and so is
+  every file with the setting off, a pasted picture, and the file of Change Image.... A width
+  of the image changed later does not change its copy.
+- **Copied** to another book, an image takes its file along: it is copied into that book's
+  folder of images, in the same undo step as the paste.
+
+## Captions, cross-references and the list of figures
+
+```xml
+<p align="center"><img src="images/bridge-1931.jpg" alt="The bridge over the river in 1931" width="80%"/></p>
+<p style="caption">Figure <caption-number label="Figure" id="c4f1a2"/>. The bridge in 1931</p>
+<p>The bridge (figure <cross-reference to="c4f1a2"/>) is shown <cross-reference to="c4f1a2" show="position"/>.</p>
+<h2>List of Figures</h2>
+<list-of-figures/>
+```
+
+A **caption** is a paragraph in the style Caption (`caption`) right after its image's paragraph,
+or right before it with `caption="above"`, in the same table cell when the image is in a
+table: Insert > Caption... (also Image > Insert Caption...) gives an image one, Image
+Properties > Caption changes it. Its label ("Figure") is plain text the writer can change;
+its number is a field:
+
+| Element | Attribute | Value | Meaning |
+|---------|-----------|-------|---------|
+| `<caption-number>` | `label` | Text, at most 40 characters | The label it counts: each label has a numbering of its own |
+| | `id` | Text, unique in the book (the editor writes `c` and six hexadecimal digits) | The id cross-references name it by |
+| `<cross-reference>` | `to` | The `id` of a `<caption-number>` | The caption it names |
+| | `show` | `number`, `label`, `caption`, `position`; `number` without it | What it shows: the number ("3"), the label and number ("Figure 3"), the whole caption ("Figure 3. The bridge in 1931"), or where the caption is ("above" or "below", in the language of the program) |
+| | `link` | `false` | Ctrl+click does not go to the caption's image; without it, it does |
+| `<list-of-figures/>` | | | A block of its own between paragraphs: the numbered captions of the book with their numbers, in the order of the book |
+
+- **A field** – a number or a cross-reference – is one character of its paragraph: the cursor
+  passes it with one key press, and Backspace or Delete removes it whole. The program gives its
+  text, on a gray background (Settings > Editor > Colors, "Fields (caption numbers,
+  cross-references)"); a cross-reference to a caption the book does not have shows "?" on a
+  background of its own. A field has no text of its own in the file: it adds nothing to the
+  word and character counts. It goes in any paragraph, inside the formatting elements of its
+  place, which give its text their look.
+- **The numbers.** The numbers of a label count its `<caption-number>` elements in the order of
+  the book – the front part, the main part, the back part, each in the order of the Navigator –
+  through the whole book, or anew in each chapter. A chapter is a text of the book type's main
+  kind in the main part (a chapter of a novel); the texts after it, up to the next one, are in
+  it, and the front part is before the first chapter. Numbered anew in each chapter, the back
+  part starts anew too, without a chapter's number. The number is `1`, `a`, `A`, `i` or `I`;
+  numbered anew in each chapter, it may have the chapter's number first, with `.`, `–` or `:`
+  between them (`2.3`). The numbering of each label is the book's,
+  in the project file (`captions` of the book, Insert Caption > Numbering...); a new book takes
+  it, and its labels, from the settings `editor.captions.*` (Settings > Editor > Images). A
+  text outside a book is numbered by those settings.
+- **The ids.** A `<caption-number>` without a `label` is left out, and one without an `id` gets
+  a new one. A `<cross-reference>` without a `to` is left out. A copied caption gets a new id
+  when the book has its id already (cut and pasted, it keeps it, and so its cross-references
+  stay); a copied cross-reference keeps its `to`.
+- **The list of figures** (Insert > List of Figures, with the heading "List of Figures" before
+  it) has the captions of every label, each line the whole caption; it follows the captions as
+  they change, has no page numbers, and Ctrl+click on a line goes to its image. Without
+  numbered captions it says so. Its attributes and content are ignored, and the editor writes
+  the empty element.
+- An image removed together with its caption removes it in the same undo step; when
+  cross-references name the caption, the editor asks first.
+- **The clipboard.** Copied text carries its fields and lists of figures as KML; the HTML and
+  the plain text for other programs have the text each shows, a list of figures a paragraph
+  (a line) for each of its lines.
 
 ## Text
 
@@ -287,7 +473,8 @@ comes back as a break where that format tells it apart from the end of a paragra
 | Plain text files (`.txt`) | A line end | As the plain text of the clipboard |
 | Grammar check (LanguageTool) | A line end | – |
 
-Export and import of other formats are not written yet; they are to keep a line break so:
+File > Export > DOCX and Markdown write a line break as the table says (see Export to DOCX and
+Markdown below); the other exports and the imports are not written yet and are to keep it so:
 
 | Format | Export | Import |
 |--------|--------|--------|
@@ -298,6 +485,37 @@ Export and import of other formats are not written yet; they are to keep a line 
 | InDesign ICML | The character U+2028 (a forced line break) | – |
 | LaTeX | `\\` at the end of the line | – |
 | Scrivener (RTF) | – | `\line` |
+
+## Export to DOCX and Markdown
+
+File > Export > DOCX and Markdown write the whole book, the texts chosen in the window, or the
+text in front (also a file outside the book), in the order of the Navigator, the open texts with
+their unsaved changes. Each text is read as the editor reads it, so lists, captions and notes have
+the numbers the editor shows, in the book around them. The window keeps its choices in the
+settings `export.*`; the page comes from Settings > Editor > Pages and Margins.
+
+| KML | DOCX (WordprocessingML) | Markdown (GitHub Flavored) |
+|-----|-------------------------|----------------------------|
+| A title of the Navigator (option) | A paragraph in the style of the title: `part_title` for a part, `chapter_title` for a text, `heading_1` where the book has none; a text that starts with a heading keeps its own, and the title page, copyright page, dedication and motto get none | `#` |
+| `heading_1`–`heading_3` and the styles based on them | Word's built-in Heading 1–3 (`Heading1`, `outlineLvl`), so Word's navigation pane and table of contents show them | `#`, `##`, `###` |
+| `normal`, `quote`, `caption`, `footnote` | Word's built-in Normal, Quote, Caption and Footnote Text, with the values of the book's styles | A paragraph; a quote as `>` |
+| Any other paragraph style | A style of the same name (id in PascalCase), based on its base style, with its next style | A paragraph; `code` as a fenced block |
+| A paragraph's own formatting | `w:pPr`: alignment, indents, spacing, line spacing, keep with next, keep lines together, page break before, widow control | – |
+| `<b>`, `<i>`, `<s>`, `<u>`, `<sub>`, `<sup>` | `w:b`, `w:i`, `w:strike`, `w:u`, `w:vertAlign` | `**`, `*`, `~~`, `<u>`, `<sub>`, `<sup>` (the spaces at the ends stay outside) |
+| Font, size, color, background, small capitals, letter spacing | `w:rFonts`, `w:sz`, `w:color`, `w:shd`, `w:smallCaps`, `w:spacing` | – |
+| `<a href>` | A hyperlink (web and e-mail addresses) | `[text](address)` |
+| A scene break | A centered paragraph with the symbol of Settings, a short line, or an empty paragraph | The same symbol (escaped); a short line as `---`, an empty line as `&nbsp;` |
+| A horizontal line | A paragraph with a bottom border | `---` |
+| A page break | The next paragraph starts a page (`w:pageBreakBefore`) | – |
+| A list | Word's numbering (`numbering.xml`): the level formats and bullets, the indents, an item's own number (`w:startOverride`) | `1.` and `-`, the levels indented; an item of its own number starts another list (`<!-- -->`) |
+| A table | `w:tbl`: its width and its columns' widths, merged cells (`w:gridSpan`, `w:vMerge`), header rows repeated (`w:tblHeader`), borders, cell backgrounds, row heights | A pipe table; a merged cell's text in its first column |
+| An image | An inline picture: the file as it is when the editor shows it so, else drawn with its crop, turn, mirror, filter, border and shadow (PNG, or JPEG for a photo); its alternative text, or decorative | `![alt](path)`, the files copied to "<name> – images" next to the file, or linked in the book's folder |
+| A caption's number, a cross-reference, the list of figures | The text the editor shows; a cross-reference and a row of the list link to the caption (a bookmark) | The text the editor shows |
+| A footnote, an endnote | Word's footnotes and endnotes, in the book's number formats, numbered anew in each text or through the book; endnotes after each text or at the end of the book | `[^label]`, the notes at the end of the file |
+| An annotation (option) | A Word comment with its author and date (a to-do done: resolved, `w15:done`); a to-do or a note starts with its kind | – |
+| The table of contents (an element of the book) | Word's TOC field (`TOC \o "1-3" \h \z \u`), filled with the headings; Word updates it when the file opens (`w:updateFields`) | A list of the headings with links to them |
+| The book's title, author and language | `docProps/core.xml` and the language of the text | – |
+| Each text (option) | A section of its own from a new page (a right page with mirror margins, unless the text starts on a left one) with the page size, margins and page numbers of the settings | – |
 
 ## Inline formatting
 
@@ -405,11 +623,79 @@ Copied text carries the annotations anchored in it: the KML on the clipboard has
 fragment of that annotation, which it then simply joins. The HTML and the plain text on the
 clipboard, for other programs, have no annotations.
 
+## Footnotes and endnotes
+
+A note is its number in the text: one character of its paragraph, with the note's text inside
+the element, written at the place of the number.
+
+| Written as | Meaning |
+|------------|---------|
+| `<footnote id="f3a9c1">Its text</footnote>` | A footnote: at the bottom of the page of its number in the page view, under its paragraph in the continuous views |
+| `<endnote id="f3a9c1">Its text</endnote>` | An endnote: after the last paragraph of the text |
+| `<footnote id="f1"><p>One</p><p>Two</p></footnote>` | A note of several paragraphs |
+
+- The text of a note is the inside of a paragraph: `<b>`, `<i>`, `<u>`, `<s>`, `<sup>`,
+  `<sub>`, `<a href>` and `<br/>`; a note of more paragraphs has them as `<p>` elements without
+  attributes. It has no images, annotations or notes of its own.
+- The `id` is unique in the text (`f` and six hexadecimal digits when the editor gives it). A
+  note without one, or with the `id` of a note read before, gets a new one. The number is not
+  written: the notes of each kind are counted in the order of the text, by default anew in
+  each text (1, 2, 3 for the footnotes, i, ii, iii for the endnotes). A book keeps its own
+  numbering in the project file (`footnotes` of the book, Insert > Footnote Layout...): for
+  each kind the number (`1`, `a`, `A`, `i`, `I`, or `*` for *, †, ‡, §) and whether it starts
+  anew in each text or goes on through the whole book, in the order of the Navigator; the
+  endnotes are after the last paragraph of each text or of the book's last text.
+- Find and Replace go through the texts of the notes, a note at the place of its number, and
+  so do the spelling and the grammar check, a paragraph of a note at a time. The words of the
+  notes count with the text's (Settings > Editor > General, `editor.wordCount.notes`).
+- The number takes the formatting of its place: a note in bold text is written inside the
+  `<b>`.
+- The old `<footnote>` on a range of the text, with a `number` attribute, is read as the text it
+  held, without a mark; the next save writes that text alone.
+- Copied, pasted or moved, a note goes with its number; deleting the number deletes the note.
+  A note pasted into a text that already has its `id` gets a new one.
+
+## Fields
+
+```xml
+<p><field type="title" format="upper"/> – <field type="book-title"/>, <field type="author"/></p>
+<p>Page <field type="page"/> of <field type="pages" format="i"/>, <field type="words"/> words,
+<field type="date" format="iso"/></p>
+```
+
+A **field** shows a value that changes by itself (Insert > Field..., and Insert > Date &
+Time... with Update Automatically). Like a caption's number it is one character of its
+paragraph, on the gray background of the fields, inside the formatting elements of its place;
+it has no text of its own in the file and adds nothing to the word and character counts.
+
+| `type` | What it shows | `format` (the first without it) |
+|--------|---------------|---------------------------------|
+| `book-title` | The title of the book (the Properties panel) | none, `upper` (in capitals) |
+| `author` | The author of the book | none, `upper` |
+| `title` | The title of the text it is in (its name in the Navigator; the name of a file outside the book) | none, `upper` |
+| `page` | The page it is on, from 1 in each text | `1`, `i`, `I` |
+| `pages` | The pages of the text | `1`, `i`, `I` |
+| `words` | The words of the text, as the status bar counts them | none (grouped in the book's language: `12 345`), `plain` (`12345`) |
+| `date` | Today's date or the time, in the book's language | `long` (`11 October 2026`), `short` (`11.10.2026` in Polish), `full` (with the day of the week), `iso` (`2026-10-11`), `time` (`14:35`), `date-time` (`11.10.2026, 14:35`) |
+
+- A field of an unknown `type` is left out; an unknown `format` is read as the type's first. The
+  editor writes the format only when it is not the type's first.
+- The page and the page count show in the Page Layout view; the continuous views show `#`. A
+  book's title or author it does not have yet shows its name in brackets (`[Book Title]`). A
+  text outside a book has no book's values, and its dates are in the program's language.
+- The date is that of when the text was opened or brought to the front: it changes when the
+  text is opened on another day. The word count follows the text when the typing pauses.
+- Edit Field... (the context menu of a field, a double click) changes it; Convert to Text puts
+  the text it shows in its place. A plain text file (`.txt`) keeps no fields; the date goes in
+  as text.
+- The gray background can be turned off (Settings > Editor > General, `editor.fieldShading`).
+
 ## The clipboard of other programs
 
 The clipboard gives other programs HTML and plain text of the copied KML, and HTML of other
 programs is read into KML (`ClipboardHandler::kmlToHtml()`, `kmlToText()` and `htmlToKml()`;
-tests in `tests/editor/test_clipboard_paste.cpp`).
+tests in `tests/editor/test_clipboard_paste.cpp`, the notes in
+`tests/editor/test_text_footnotes.cpp`).
 
 | KML | HTML for other programs | Plain text |
 |-----|-------------------------|------------|
@@ -424,6 +710,10 @@ tests in `tests/editor/test_clipboard_paste.cpp`).
 | `caps`, `spacing` | CSS `font-variant:small-caps` or `text-transform:uppercase`, `letter-spacing` in points | – |
 | `<a href>` | `<a href>` when the address is that of a web page, a file server or an e-mail (`http`, `https`, `ftp`, `mailto`); the text alone for another address | The text alone |
 | `<table>` | `<table>` as wide as the text with a thin grid (`border="1"`, `border-collapse:collapse`), the header row in a `<thead>` of `<th>` cells, `colspan` and `rowspan`, the widths of the columns on the cells of the first row | A line for each row, its cells separated by tabs (one also for a cell that a cell above spans into), the paragraphs of a cell by spaces |
+| `<caption-number>`, `<cross-reference>`, `<field>` | The text it shows | The text it shows |
+| `<footnote>`, `<endnote>` | The number as the editor shows it, raised, a link to the note's text after the text, as LibreOffice writes it: `<a class="sdfootnoteanc" name="sdfootnote1anc" href="#sdfootnote1sym"><sup>1</sup></a>` and `<div id="sdfootnote1"><p><a class="sdfootnotesym" name="sdfootnote1sym" href="#sdfootnote1anc">1</a>Its text</p></div>` (`sdendnote` for an endnote), the footnotes first | The number in the text; after the text and an empty line each note on a line after its number, the footnotes first |
+| `<list-of-figures/>` | A paragraph for each of its lines | Each of its lines on a line |
+| `<img>` | `<img>` with the address of its file (`file:`), its `alt` and its width as CSS `width` (`80%`, `4.5cm`); left out when the text has no folder or its `src` is not one of the book's files. An image copied alone is also on the clipboard as a picture | Left out |
 
 The HTML of another program (Word, LibreOffice, a browser) is pasted, and dropped, in the mode
 of the setting `editor.paste.mode` (Settings > Editor > General, "Paste from Other
@@ -444,9 +734,17 @@ numbers and bullets as text. Tables come as tables in Merge Formatting and Keep 
 Formatting, with their merged cells, the widths of their columns (in percent, or pixels in
 proportion) and their header row: a `<thead>`, or a first row of `<th>` cells, whose bold, and
 in Merge Formatting their centering, is the look of the header; in Keep Text Only, and in a
-cell, a row is a paragraph with its cells separated by tabs. Images are left out. A heading's
-bold is the look of the heading and is not kept. A scene break of another program comes as the paragraph
-of its symbol.
+cell, a row is a paragraph with its cells separated by tabs. The images of the HTML are left
+out; a picture without text (a screenshot, a picture copied in a browser) and the files of
+pictures dragged from a folder come as images of the book. The footnotes and endnotes of
+LibreOffice (`sdfootnoteanc`, `sdendnoteanc`) and Word (`mso-footnote-id`, `mso-endnote-id`,
+`mso-element:footnote`) come as notes with their paragraphs, their emphasis and their links in
+Merge Formatting and Keep Source Formatting; Word's lists of the notes are left out. In Keep
+Text Only the numbers stay text and the notes' texts come after the text, each a paragraph
+after its number. No text is lost: a number without its note's text (or without the end of its
+link) and a note's text without its number stay text. A heading's bold is the look of the
+heading and is not kept. A scene break of another program comes as the paragraph of its
+symbol.
 
 ## References
 
@@ -455,7 +753,6 @@ editor does not know, and written back.
 
 | Element | Known attributes | Meaning |
 |---------|------------------|---------|
-| `<footnote>` | `id`, `number` (integer) | Footnote reference |
 | `<charref>` | `id`, `target` | Reference to a character |
 | `<locref>` | `id`, `target` | Reference to a location |
 
@@ -464,7 +761,9 @@ editor does not know, and written back.
 - On writing, the known attributes come first, in the order of the table, then the others
   sorted by name.
 - References enclose the formatting elements of their range. Several references on the same
-  range are nested in the order of the table: `<footnote><charref><b>text</b></charref></footnote>`.
+  range are nested in the order of the table: `<charref><locref><b>text</b></locref></charref>`.
+- The old `<footnote>` with a `number` is no longer a reference: its text is read without a
+  mark (see "Footnotes and endnotes").
 
 ## Unreadable KML
 
@@ -475,8 +774,7 @@ rest of the chapter is not loaded – and logs an error.
 
 Elements of the product specification that the editor does not read yet:
 
-- images `<img>`,
-- the annotations `<endnote>` and the references `<itemref>`, `<cite>`,
+- the references `<itemref>` and `<cite>`,
 - the root attributes `version` and `lang`, the paragraph attribute `speaker` and the scene
   break attribute `type` (the look of the scene breaks is a setting of the editor).
 

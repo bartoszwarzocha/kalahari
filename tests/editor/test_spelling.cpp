@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_spelling.cpp
 /// @brief Spelling as you type in the editor: waves under the misspelled words, checked in
 ///        short turns from the paragraphs in view, kept through the edits that leave their
@@ -270,7 +273,7 @@ TEST_CASE("Spelling: the writer's own words lose their waves in every editor",
     REQUIRE(checked(*first));
     REQUIRE(checked(*second));
 
-    // Add to Dictionary
+    // Add to Your Words
     spelling->addToUserDictionary(QStringLiteral("mistakke"));
     REQUIRE(checked(*first));
     REQUIRE(checked(*second));
@@ -438,7 +441,7 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
         }
         return words.contains(QStringLiteral("spelling")) &&
                words.contains(QStringLiteral("Ignore All")) &&
-               words.contains(QStringLiteral("Add to Dictionary")) &&
+               words.contains(QStringLiteral("Add to Your Words (All Books)")) &&
                words.contains(QStringLiteral("Paste"));
     };
 
@@ -460,7 +463,7 @@ TEST_CASE("Spelling: the menu key and Shift+F10 offer what to put in place of th
         type(*editor, QStringLiteral(" Erorr"));
         const QStringList texts =
             runPopupMenu([&editor]() { pressShiftF10(*editor); }, QStringLiteral("Error"));
-        CHECK(texts.contains(QStringLiteral("Add t&o Dictionary")));
+        CHECK(texts.contains(QStringLiteral("Add to Your &Words (All Books)")));
         CHECK(editor->textDocument()->findBlockByNumber(0).text() ==
               QStringLiteral("The speling is bad. Error"));
     }

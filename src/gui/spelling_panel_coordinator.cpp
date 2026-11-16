@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spelling_panel_coordinator.cpp
 /// @brief The Spelling and Grammar panel: the issues of the text in front, what the writer
 ///        does with them, and when the panel shows
@@ -9,6 +12,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/grammar_check_service.h"
 #include "kalahari/editor/spell_check_service.h"
+#include "kalahari/editor/text_footnotes.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/grammar_coordinator.h"
 #include "kalahari/gui/kind_names.h"
@@ -57,28 +61,31 @@ constexpr const char* NEXT_ISSUE_COMMAND = "tools.nextMisspelling";
 
 /// @brief Whether a setting of the panel or of the checking
 bool isWatchedSetting(const std::string& key) {
-    return key.rfind("spellingPanel.", 0) == 0 || key.rfind("editor.spellCheck.", 0) == 0 ||
-           key.rfind("editor.grammarCheck.", 0) == 0;
+    return key.starts_with("spellingPanel.") || key.starts_with("editor.spellCheck.") ||
+           key.starts_with("editor.grammarCheck.") || key.starts_with("bookDictionary.");
 }
 
-/// @brief The index of a kind in the arrays of the kinds
+/// @brief The index of a kind in the arrays of the kinds: the rules of the book are checked
+///        with the spelling
 std::size_t kindIndex(editor::TextIssueKind kind) {
-    return kind == editor::TextIssueKind::Spelling ? 0 : 1;
+    return kind == editor::TextIssueKind::Grammar ? 1 : 0;
 }
 
 }  // namespace
 
-SpellingPanelCoordinator::SpellingPanelCoordinator(SpellingPanel* panel, QDockWidget* dock,
-                                                   QTabWidget* centralTabs,
+SpellingPanelCoordinator::SpellingPanelCoordinator(core::ProjectManager& book,
+                                                   CommandRegistry& commands, SpellingPanel* panel,
+                                                   QDockWidget* dock, QTabWidget* centralTabs,
                                                    SpellingCoordinator* spelling,
                                                    GrammarCoordinator* grammar, QObject* parent)
-    : QObject(parent)
-    , m_panel(panel)
-    , m_dock(dock)
-    , m_centralTabs(centralTabs)
-    , m_spelling(spelling)
-    , m_grammar(grammar)
-{
+    : QObject(parent),
+      m_panel(panel),
+      m_dock(dock),
+      m_centralTabs(centralTabs),
+      m_spelling(spelling),
+      m_grammar(grammar),
+      m_book(book),
+      m_commands(commands) {
     m_refreshTimer = new QTimer(this);
     m_refreshTimer->setSingleShot(true);
     m_refreshTimer->setInterval(REFRESH_DELAY_MS);
@@ -96,8 +103,14 @@ SpellingPanelCoordinator::SpellingPanelCoordinator(SpellingPanel* panel, QDockWi
             [this](const SpellingPanelIssue& issue) { onIgnoreWord(issue, false); });
     connect(m_panel, &SpellingPanel::addToDictionaryRequested, this,
             [this](const SpellingPanelIssue& issue) { onIgnoreWord(issue, true); });
+    connect(m_panel, &SpellingPanel::addToBookDictionaryRequested, this,
+            &SpellingPanelCoordinator::onAddToBookDictionary);
     connect(m_panel, &SpellingPanel::ignoreRuleRequested, this,
             &SpellingPanelCoordinator::onIgnoreRule);
+    connect(m_panel, &SpellingPanel::addNameRequested, this,
+            [this](const SpellingPanelIssue& issue) { emit addNameAsked(issue.issue.text); });
+    connect(m_panel, &SpellingPanel::editRuleRequested, this,
+            [this](const SpellingPanelIssue& issue) { emit editRuleAsked(issue.issue.ruleId); });
     connect(m_panel, &SpellingPanel::menuRequested, this,
             &SpellingPanelCoordinator::onMenuRequested);
     connect(m_panel, &SpellingPanel::editorFocusRequested, this,
@@ -131,7 +144,7 @@ SpellingPanelCoordinator::SpellingPanelCoordinator(SpellingPanel* panel, QDockWi
             &SpellingPanelCoordinator::onDockVisibilityChanged);
 
     // The keys of Next Spelling or Grammar Issue, in the row at the bottom
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, this,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, this,
             &SpellingPanelCoordinator::updateNextIssueKeys);
 
     // The settings of the panel and of the checking, wherever they change: once for all those
@@ -201,6 +214,9 @@ void SpellingPanelCoordinator::onCursorMoved(const editor::CursorPosition& posit
         return;
     }
     for (const SpellingPanelIssue& issue : m_panel->shownIssues()) {
+        if (issue.issue.inNote()) {
+            continue;  // the cursor is never in a note's text
+        }
         if (issue.issue.paragraph == position.paragraph && position.offset >= issue.issue.start &&
             position.offset <= issue.issue.start + issue.issue.length) {
             if (issue.key != m_panel->selectedKey()) {
@@ -231,7 +247,7 @@ void SpellingPanelCoordinator::refresh() {
 
     // The names of what the panel lists: the kind of the text in front ("this story"), the
     // word "file" for a file outside the book, and the main texts the writer opens in the book
-    auto& projects = core::ProjectManager::getInstance();
+    auto& projects = m_book;
     const bool bookOpen = projects.isProjectOpen();
     editor::BookEditor* editor = m_editor;
     std::optional<core::KindWords> inFront;
@@ -241,7 +257,7 @@ void SpellingPanelCoordinator::refresh() {
             panel != nullptr ? panel->property("elementId").toString() : QString();
         const core::ProjectElement* element =
             bookOpen && !elementId.isEmpty() ? projects.findElement(elementId) : nullptr;
-        inFront = element != nullptr ? wordsOf(*element) : fileWords();
+        inFront = element != nullptr ? wordsOf(m_book, *element) : fileWords();
     }
     std::optional<core::KindWords> bookTexts;
     if (const core::KindRef mainKind = projects.mainTextKind()) {
@@ -290,7 +306,15 @@ void SpellingPanelCoordinator::refresh() {
                                grammarService != nullptr && grammarService->isEnabled() &&
                                grammarService->isConfigured();
     m_panel->setKindChecked(editor::TextIssueKind::Spelling, spellingListed);
+    m_panel->setKindChecked(editor::TextIssueKind::BookRule,
+                            spellingListed && editor->bookDictionary() != nullptr);
     m_panel->setKindChecked(editor::TextIssueKind::Grammar, grammarListed);
+
+    // A misspelled word of a chapter goes to the book's dictionary too, as the setting says
+    m_panel->setAddPlaces(
+        {.bookDictionary = editor->bookDictionary() != nullptr &&
+                           editor->isBookDictionaryEditable(),
+         .bookFirst = settings.get<std::string>(ADD_TO_KEY, "book") != std::string("user")});
 
     // How far the text is checked
     const editor::BookEditor::CheckProgress progress = editor->checkProgress();
@@ -375,14 +399,22 @@ std::vector<SpellingPanelIssue> SpellingPanelCoordinator::issuesOf(editor::BookE
     // An issue's key: what it is, and which of the same it is in the text, so it stays the
     // same as the text around it changes
     QHash<QString, int> occurrences;
+    const core::BookDictionary* bookDictionary = editor.bookDictionary();
+    editor::SpellCheckService::WordFilter alsoRight;
+    if (bookDictionary != nullptr) {
+        alsoRight = [bookDictionary](const QString& word) { return bookDictionary->isRight(word); };
+    }
     for (const editor::TextIssue& issue : editor.textIssues()) {
-        const bool isSpelling = issue.kind == editor::TextIssueKind::Spelling;
+        const bool isSpelling = issue.kind != editor::TextIssueKind::Grammar;
         if (isSpelling ? !spelling : !grammar) {
             continue;
         }
-        // A word the writer made right (ignored, added to the dictionary) until the text is
-        // checked again
-        if (isSpelling && m_wordsChanged && spell != nullptr && spell->isCorrect(issue.text)) {
+        // A word the writer made right (ignored, added to a dictionary) until the text is
+        // checked again; so is a place breaking a rule of the book that is ignored
+        if (m_wordsChanged && spell != nullptr &&
+            ((issue.kind == editor::TextIssueKind::Spelling &&
+              spell->isCorrect(issue.text, alsoRight)) ||
+             (issue.kind == editor::TextIssueKind::BookRule && spell->isIgnored(issue.text)))) {
             continue;
         }
         while (block.isValid() && block.blockNumber() < issue.paragraph) {
@@ -400,6 +432,27 @@ std::vector<SpellingPanelIssue> SpellingPanelCoordinator::issuesOf(editor::BookE
         listed.position = block.position() + issue.start;
         listed.number = std::max(1, number);
         listed.paragraphText = block.text();
+
+        // In a note's text: at the note's number, with the note's paragraph around it
+        if (issue.inNote()) {
+            const std::optional<editor::NotePlace> note = editor.noteOf(issue.noteId);
+            if (!note) {
+                continue;
+            }
+            listed.position = note->position;
+            listed.noteNumber = editor.noteNumber(issue.noteId);
+            listed.endnote = note->note.kind == editor::NoteKind::Endnote;
+            int start = 0;
+            for (const QString& line :
+                 editor::noteText(note->note.content).split(QLatin1Char('\n'))) {
+                if (issue.start <= start + line.size()) {
+                    listed.paragraphText = line;
+                    listed.contextOffset = start;
+                    break;
+                }
+                start += static_cast<int>(line.size()) + 1;
+            }
+        }
         const QString what = (isSpelling ? QStringLiteral("S:") : QStringLiteral("G:")) +
                              issue.ruleId + QLatin1Char(':') + issue.text;
         listed.key = what + QLatin1Char('#') + QString::number(occurrences[what]++);
@@ -446,8 +499,8 @@ void SpellingPanelCoordinator::selectInEditor(const SpellingPanelIssue& issue) {
     }
 }
 
-void SpellingPanelCoordinator::selectFrom(int position) {
-    const std::optional<SpellingPanelIssue> next = m_panel->issueFrom(position);
+void SpellingPanelCoordinator::selectFrom(int position, int noteStart) {
+    const std::optional<SpellingPanelIssue> next = m_panel->issueFrom(position, noteStart);
     m_panel->selectIssue(next ? next->key : QString());
     if (next) {
         selectInEditor(*next);
@@ -462,8 +515,14 @@ void SpellingPanelCoordinator::onSuggestionChosen(const SpellingPanelIssue& issu
     }
     const bool replaced = editor->replaceIssue(issue.issue, suggestion);
     refresh();
-    if (replaced) {
-        selectFrom(cursorPlace(*editor));  // the issue after it, as the cursor is after it
+    if (!replaced) {
+        return;
+    }
+    // The issue after it, as the cursor is after it; in a note's text, after the suggestion
+    if (issue.issue.inNote()) {
+        selectFrom(issue.position, issue.issue.start + static_cast<int>(suggestion.size()));
+    } else {
+        selectFrom(cursorPlace(*editor));
     }
 }
 
@@ -482,7 +541,23 @@ void SpellingPanelCoordinator::onIgnoreWord(const SpellingPanelIssue& issue,
         service->ignoreWord(issue.issue.text);
     }
     refresh();
-    selectFrom(issue.position);
+    selectFrom(issue.position, issue.issue.inNote() ? issue.issue.start : -1);
+}
+
+void SpellingPanelCoordinator::onAddToBookDictionary(const SpellingPanelIssue& issue) {
+    // In the chapters of the book, as from the menu of the wave: they are checked again
+    const QString word = issue.issue.text;
+    const bool added = m_spelling != nullptr
+                           ? m_spelling->addToBookDictionary(word)
+                           : m_book.changeBookDictionary([&word](core::BookDictionary& dictionary) {
+                                 dictionary.addWord(word);
+                             });
+    if (!added) {
+        return;
+    }
+    m_wordsChanged = true;
+    refresh();
+    selectFrom(issue.position, issue.issue.inNote() ? issue.issue.start : -1);
 }
 
 void SpellingPanelCoordinator::onIgnoreRule(const SpellingPanelIssue& issue) {
@@ -495,7 +570,7 @@ void SpellingPanelCoordinator::onIgnoreRule(const SpellingPanelIssue& issue) {
     // Its issues leave the text at once, in every document
     service->ignoreRule(issue.issue.ruleId, issue.issue.ruleDescription);
     refresh();
-    selectFrom(issue.position);
+    selectFrom(issue.position, issue.issue.inNote() ? issue.issue.start : -1);
 }
 
 void SpellingPanelCoordinator::onMenuRequested(const SpellingPanelIssue& issue,
@@ -519,13 +594,14 @@ void SpellingPanelCoordinator::onMenuRequested(const SpellingPanelIssue& issue,
     const auto same = std::find_if(shown.cbegin(), shown.cend(),
                                    [&issue](const SpellingPanelIssue& listed) {
                                        return listed.position == issue.position &&
+                                              listed.issue.start == issue.issue.start &&
                                               listed.issue.kind == issue.issue.kind &&
                                               listed.issue.text == issue.issue.text;
                                    });
     if (same != shown.cend()) {
         m_panel->selectIssue(same->key);  // the menu closed without a choice
     } else {
-        selectFrom(issue.position);
+        selectFrom(issue.position, issue.issue.inNote() ? issue.issue.start : -1);
     }
 }
 
@@ -540,7 +616,7 @@ void SpellingPanelCoordinator::onEditorFocusRequested() {
 void SpellingPanelCoordinator::turnOnChecking() {
     // The commands of the Tools menu: a grammar not prepared yet offers to prepare it
     auto& settings = core::SettingsManager::getInstance();
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     if (!settings.get<bool>(SPELLING_ENABLED_KEY, true)) {
         registry.executeCommand(SPELLING_COMMAND);
     }
@@ -569,8 +645,15 @@ void SpellingPanelCoordinator::showNextIssue(editor::BookEditor* editor, bool fo
                                      : QTextBlock();
         const int start = block.isValid() ? block.position() + selection.start.offset : -1;
         const int length = selection.end.offset - selection.start.offset;
-        const auto matches = [start, length](const SpellingPanelIssue& listed) {
-            return listed.position == start && listed.issue.length == length;
+        // A note's number selected for a range of its text: an issue of the text
+        const std::optional<editor::NoteRange>& inNote = editor->noteSelection();
+        const auto matches = [start, length, &inNote](const SpellingPanelIssue& listed) {
+            if (inNote) {
+                return listed.issue.noteId == inNote->id && listed.issue.start == inNote->start &&
+                       listed.issue.length == inNote->length;
+            }
+            return !listed.issue.inNote() && listed.position == start &&
+                   listed.issue.length == length;
         };
         const std::vector<SpellingPanelIssue>& all = m_panel->issues();
         const auto issue = std::find_if(all.cbegin(), all.cend(), matches);
@@ -607,7 +690,7 @@ void SpellingPanelCoordinator::updateWholeTextGrammar() {
 }
 
 void SpellingPanelCoordinator::updateNextIssueKeys() {
-    const Command* command = CommandRegistry::getInstance().getCommand(NEXT_ISSUE_COMMAND);
+    const Command* command = m_commands.getCommand(NEXT_ISSUE_COMMAND);
     const QString keys = command != nullptr
                              ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
                              : QString();

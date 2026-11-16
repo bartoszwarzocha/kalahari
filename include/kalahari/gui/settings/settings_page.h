@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file settings_page.h
 /// @brief Base class of the Settings dialog pages: controls bound to setting keys
 ///
@@ -143,8 +146,9 @@ protected:
     /// window in every theme, also after the theme changes.
     QLabel* addNote(QLayout* layout, const QString& text);
 
-    /// @brief Put @p note under check box or radio button @p button in line with its text
-    static void alignWithText(QLabel* note, const QAbstractButton* button);
+    /// @brief Put @p note (a text, or a row of fields) under check box or radio button
+    /// @p button in line with its text
+    static void alignWithText(QWidget* note, const QAbstractButton* button);
 
     /// @brief Add a short muted explanation under the field of the row added last to @p form,
     ///        in line with the field (the label column stays empty)
@@ -205,7 +209,8 @@ protected:
                                      const std::string& themeKey);
 
     /// @brief Add the color of a kind of issue: of its underline, which the frames of its cards
-    ///        in the Spelling and Grammar panel have too
+    ///        in the Spelling and Grammar panel have too ("Underline"; for the rules of the book
+    ///        "Departure from a book rule", in the group of the spelling)
     void addIssueColor(QFormLayout* form, editor::TextIssueKind kind);
 
     /// @brief Add the check box "Optimize colors in themes": one setting, on every page with the

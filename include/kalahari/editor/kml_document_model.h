@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_document_model.h
 /// @brief KML reader: the paragraphs of a chapter with their text and formatting
 ///
@@ -14,6 +17,7 @@
 #include <kalahari/editor/format_run.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_tables.h>
 
@@ -103,6 +107,10 @@ public:
     /// @return The parts its attributes set; none if index is out of range
     ParagraphFormat paragraphOwnFormat(size_t index) const;
 
+    /// @brief Whether the paragraph is a caption above its image (caption="above")
+    /// @param index Paragraph index (0-based)
+    bool paragraphCaptionAbove(size_t index) const;
+
     /// @brief The paragraph's place in a list: an item of <ol> or <ul>
     /// @param index Paragraph index (0-based)
     /// @return The item, its list numbered from 1 in the order of the lists of the KML
@@ -161,6 +169,7 @@ private:
         ParagraphFormat format;                 ///< Its own formatting
         std::optional<ListItem> list;           ///< Its place in a list
         std::optional<TableCellPlace> cell;     ///< Its cell in a table
+        bool captionAbove = false;              ///< A caption above its image
     };
 
     /// @brief The table being read: its shape, its rows so far, and the columns taken in
@@ -260,12 +269,23 @@ private:
     ///        has any property
     static void appendText(Paragraph& para, const QString& text, const QTextCharFormat& format);
 
+    /// @brief Append an image read in a format to a paragraph: its character, with a format
+    ///        run of the format and the image's properties
+    static void appendImage(Paragraph& para, const ImageProperties& image,
+                            const QTextCharFormat& format);
+
+    /// @brief Append an object of the line read in a format to a paragraph (a field): its
+    ///        character, with a format run of the format, which has the object's properties
+    static void appendObject(Paragraph& para, const QTextCharFormat& format);
+
     std::vector<Paragraph> m_paragraphs;    ///< All paragraphs
     std::vector<TableShape> m_tables;       ///< The tables, in the order of the KML
     int m_lastListId = 0;                   ///< The number of the last list read
     ListDefinition m_lastListDefinition;    ///< The formats of its levels at its end
     QHash<QString, Annotation> m_annotations;  ///< The annotations of the section, by id
     QSet<QString> m_anchoredIds;            ///< Ids of the annotations anchored in the text
+    QSet<QString> m_captionIds;             ///< Ids of the caption numbers read
+    QSet<QString> m_noteIds;                ///< Ids of the notes read
 
     static const std::vector<FormatRun> s_emptyFormats;  ///< Empty format vector
 };

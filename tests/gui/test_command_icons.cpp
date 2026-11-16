@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_command_icons.cpp
 /// @brief Every command in a menu has an icon, and every submenu, in the icon colors
 
@@ -22,6 +25,7 @@
 #include <QMenuBar>
 #include <QPair>
 #include <QString>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -59,14 +63,14 @@ bool drawnIn(const QIcon& icon, const QColor& color) {
 TEST_CASE("Menus: every command in a menu has an icon", "[gui][icons]") {
     // Regression: a menu item without an icon among items with icons, and a warning in the
     // log for each one when the menus were built
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     // Window, as MainWindow registers it
-    DocumentWindows::registerCommands(CommandRegistry::getInstance(),
+    DocumentWindows::registerCommands(kalahari::test::commands(),
                                       []() -> DocumentWindows* { return nullptr; });
     registerAllIcons();
     const auto& icons = kalahari::core::IconRegistry::getInstance();
 
-    for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
+    for (const Command& command : kalahari::test::commands().getAllCommands()) {
         if (!command.showInMenu) {
             continue;
         }
@@ -79,9 +83,9 @@ TEST_CASE("Menus: every submenu has an icon, in the icon colors after they chang
           "[gui][icons]") {
     // Import, Export, Panels, Zoom and the other submenus had none; the one of Recent Books
     // kept the colors that the icons had at the start
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
 
     // The main window's menus, as MainWindow makes them
     QMainWindow window;
@@ -89,9 +93,9 @@ TEST_CASE("Menus: every submenu has an icon, in the icon colors after they chang
     builder.buildMenuBar(registry, &window);
     QMenu* fileMenu = builder.getMenu("FILE");
     REQUIRE(fileMenu != nullptr);
-    auto* recentBooks = new RecentBooksMenu(fileMenu);
+    auto* recentBooks = new RecentBooksMenu(kalahari::test::commands(), fileMenu);
     recentBooks->insertInto(fileMenu);
-    ToolbarManager toolbars(&window);
+    ToolbarManager toolbars(kalahari::test::commands(), &window);
     toolbars.createToolbars(registry);
     toolbars.createViewMenuActions(builder.getMenu("VIEW"));
 
@@ -101,9 +105,10 @@ TEST_CASE("Menus: every submenu has an icon, in the icon colors after they chang
         collectSubmenus(menu->menu(), menu->text(), submenus);
     }
     // Recent Books, Import, Export, Formatting Character, Text Style, Text Effects, Change
-    // Case, Align Text, Statistics, Plugins, Assistant Actions, View Mode, Zoom, Margin
+    // Case, Align Text, the Table menu's Insert, Delete, Select and Convert, the Image menu's
+    // Rotate and Filter, Statistics, Plugins, Assistant Actions, View Mode, Zoom, Margin
     // Numbering, Panels, Perspectives, Toolbars
-    CHECK(submenus.size() == 17);
+    CHECK(submenus.size() == 23);
     for (const auto& [path, submenu] : submenus) {
         INFO(path.toStdString());
         CHECK_FALSE(submenu->icon().isNull());

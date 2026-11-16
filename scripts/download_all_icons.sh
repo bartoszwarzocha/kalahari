@@ -73,6 +73,10 @@ ICONS=(
     "table_chart"       # insert.table
     "grid_on"           # insert.table (alt)
     "link"              # insert.link
+    "subtitles"         # insert.caption, image.addCaption
+    "shortcut"          # insert.crossReference
+    "photo_library"     # insert.figureList
+    "photo_filter"      # image.filterAll
     "short_text"        # insert.footnote
     "notes"             # insert.endnote, format.paragraph
     "add_comment"       # insert.comment

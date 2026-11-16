@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_navigator_coordinator.cpp
 /// @brief The Navigator's commands on the open book project: adding, renaming, moving and
 /// deleting elements, which ProjectManager saves at once, and the files that no element has
@@ -79,6 +82,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -273,7 +277,7 @@ gui::AddTarget onWorkshop() {
 
 /// @brief Kind @p kindId of a novel: of the novel package, else of the base package
 core::KindRef novelKind(const QString& kindId) {
-    const core::BookTypeRegistry& types = core::ProjectManager::getInstance().bookTypes();
+    const core::BookTypeRegistry& types = test::book().bookTypes();
     const core::KindRef kind = types.findKind(QStringLiteral("kalahari.novel"), kindId);
     return kind ? kind : types.findKind(QStringLiteral("kalahari.base"), kindId);
 }
@@ -427,7 +431,7 @@ struct TestFileManager {
 /// with their files, which the Navigator would list under "Unassigned Files".
 struct OpenNovel {
     QTemporaryDir dir;
-    core::ProjectManager& pm = core::ProjectManager::getInstance();
+    core::ProjectManager& pm = test::book();
 
     OpenNovel() {
         pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
@@ -526,11 +530,17 @@ private:
 /// @brief The Navigator with its coordinator
 struct Navigator {
     QWidget window;
-    gui::NavigatorPanel* panel = new gui::NavigatorPanel(&window);
-    gui::PropertiesPanel* properties = new gui::PropertiesPanel(&window);
+    gui::NavigatorPanel* panel = new gui::NavigatorPanel(kalahari::test::book(), &window);
+    gui::PropertiesPanel* properties = new gui::PropertiesPanel(kalahari::test::book(), &window);
     QTabWidget* tabs = new QTabWidget(&window);
     QStatusBar* statusBar = new QStatusBar(&window);
-    gui::NavigatorCoordinator coordinator{panel, properties, tabs, statusBar, &window};
+    gui::NavigatorCoordinator coordinator{kalahari::test::book(),
+                                          kalahari::test::commands(),
+                                          panel,
+                                          properties,
+                                          tabs,
+                                          statusBar,
+                                          &window};
 
     Navigator() { coordinator.refreshNavigator(); }
 
@@ -546,7 +556,7 @@ struct Navigator {
     /// as the Navigator does after adding: the commands of the tests start from it
     QString added(const QString& kindId, core::BookPlace place = core::BookPlace::Main,
                   const QString& groupId = QString()) {
-        auto& pm = core::ProjectManager::getInstance();
+        auto& pm = test::book();
         const core::KindRef kind = novelKind(kindId);
         REQUIRE(kind);
         const QString id = pm.addElement(kind, pm.defaultTitle(kind), place, groupId);
@@ -849,11 +859,13 @@ TEST_CASE("Navigator commands: Add Element on the Workshop adds working notes an
     }
     TestFileChooser chooser(picture);
 
-    // The Workshop has the groups of the kinds the program makes, also empty: the working
-    // notes and the kinds of materials, in Materials
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
+    // The Workshop has the book's dictionary at its top, and the groups of the kinds the
+    // program makes, also empty: the cards of the characters, the locations and the items,
+    // then the working notes and the kinds of materials, in Materials, after the list Sources
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
+          "Book Dictionary, Characters, Locations, Items, Materials");
     CHECK(navigator.itemsIn(QStringLiteral("workshop:materials")) ==
-          "Working notes, Cover, Quotes, Web pages, Pictures, Documents, Publications, "
+          "Sources, Working notes, Cover, Quotes, Web pages, Pictures, Documents, Publications, "
           "Recordings, Other files");
 
     // A working note has no status; it opens in the editor
@@ -1101,16 +1113,19 @@ TEST_CASE("Navigator commands: the book and the Workshop are named and the Works
     CHECK(novel.savedProject().workshop.name.isEmpty());
     CHECK(workshopItem()->text(0) == QStringLiteral("Workshop"));
 
-    // Grouped or not, the working notes and the materials are in Materials
+    // Grouped or not, the working notes and the materials are in Materials; grouped, the
+    // cards are in Libraries
     navigator.coordinator.onRequestWorkshopGrouped(true);
     CHECK(pm.project()->workshop.grouped);
     CHECK(novel.savedProject().workshop.grouped);
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
+          "Book Dictionary, Libraries, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop grouped"));
     navigator.coordinator.onRequestWorkshopGrouped(false);
     CHECK_FALSE(pm.project()->workshop.grouped);
     CHECK_FALSE(novel.savedProject().workshop.grouped);
-    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) == "Materials");
+    CHECK(navigator.itemsInSection(QStringLiteral("workshop")) ==
+          "Book Dictionary, Characters, Locations, Items, Materials");
     CHECK(navigator.statusBar->currentMessage() == QStringLiteral("Workshop not grouped"));
 }
 
@@ -1245,10 +1260,11 @@ TEST_CASE("Navigator menus: Add... and the commands named after kinds, or Add...
     CHECK(navigator.addCommandsOf(navigator.item(chapter)) ==
           QStringList{"Add...", "Add Chapter..."});
     CHECK(navigator.addCommandsOf(navigator.item(dedication)) == QStringList{"Add..."});
-    // The Workshop and Materials leave the many kinds of materials to the window; a group
-    // of a kind of materials names its kind
+    // The Workshop and Materials leave the many kinds of materials to the window, the
+    // Workshop names the cards; a group of a kind of materials names its kind
     CHECK(navigator.addCommandsOf(navigator.section(QStringLiteral("workshop"))) ==
-          QStringList{"Add...", "Add Working note..."});
+          QStringList{"Add...", "Add Character...", "Add Location...", "Add Item...",
+                      "Add Working note..."});
     CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:materials"))) ==
           QStringList{"Add...", "Add Working note..."});
     CHECK(navigator.addCommandsOf(navigator.item(QStringLiteral("workshop:kalahari.base:quote"))) ==
@@ -2844,7 +2860,7 @@ struct TestBrowser {
 
 /// @brief The material of the Workshop added last
 const core::ProjectElement& lastMaterial() {
-    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const core::BookProject* project = test::book().project();
     REQUIRE(project != nullptr);
     REQUIRE_FALSE(project->workshop.elements.isEmpty());
     return project->workshop.elements.constLast();
@@ -2861,7 +2877,7 @@ TEST_CASE("Navigator: files, web addresses and pictures dropped or pasted are ma
     core::SettingsManager::getInstance().set<std::string>(
         gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     Navigator navigator;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     QObject::connect(navigator.panel, &gui::NavigatorPanel::requestAddMaterials,
                      &navigator.coordinator, &gui::NavigatorCoordinator::onRequestAddMaterials);
     const QString chapter = navigator.added(QStringLiteral("chapter"));
@@ -3155,7 +3171,7 @@ TEST_CASE("Navigator: a material opens as its source says; the title of its page
         gui::NavigatorPanel::MATERIALS_TREE_SETTING, "expand");
     Navigator navigator;
     TestBrowser browser;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     core::NewMaterial page;
     page.title = QStringLiteral("Kalahari");
     page.url = QStringLiteral("https://pl.wikipedia.org/wiki/Kalahari");

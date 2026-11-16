@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_statistics.cpp
 /// @brief Word and character counting shared by the whole application
 
@@ -112,15 +115,31 @@ WordTally tallyWords(QStringView text) {
     return WordTally::of(countText(text, rules), rules);
 }
 
+void addNoteCounts(TextCounts& counts, QStringView noteText, const WordCountRules& rules) {
+    const TextCounts note = countText(noteText, rules);
+    counts.noteWords += note.words;
+    counts.noteDashes += note.dashes;
+    if (rules.notesAreWords) {
+        counts.words += note.words;
+        counts.characters += note.characters;
+        counts.nonSpaceCharacters += note.nonSpaceCharacters;
+    }
+}
+
 int readingMinutes(int words) {
     return words > 0 ? (words + READING_WORDS_PER_MINUTE - 1) / READING_WORDS_PER_MINUTE : 0;
 }
 
 WordCountRules wordCountRules() {
     WordCountRules rules;
-    rules.dashesAreWords =
-        SettingsManager::getInstance().get<bool>("editor.wordCount.dashesAsWords");
+    const SettingsManager& settings = SettingsManager::getInstance();
+    rules.dashesAreWords = settings.get<bool>("editor.wordCount.dashesAsWords");
+    rules.notesAreWords = settings.get<bool>("editor.wordCount.notes", true);
     return rules;
+}
+
+bool isWordCountRulesKey(const std::string& key) {
+    return key == "editor.wordCount.dashesAsWords" || key == "editor.wordCount.notes";
 }
 
 }  // namespace kalahari::core

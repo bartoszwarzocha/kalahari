@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file quick_insert_page.cpp
 /// @brief Settings page: Editor > Quick Insert
 ///
@@ -74,8 +77,9 @@ QString shownText(const QString& text) {
 
 }  // namespace
 
-EditorQuickInsertPage::EditorQuickInsertPage(QWidget* parent)
+EditorQuickInsertPage::EditorQuickInsertPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
 {
     createSources();
     createItems();
@@ -88,6 +92,10 @@ void EditorQuickInsertPage::createSources() {
     QCheckBox* enabled =
         addCheckBox(form, tr("Open the list after @ or #"), quick_insert_keys::ENABLED);
     enabled->setObjectName(QStringLiteral("quickInsertEnabled"));
+    addOptionNote(form, enabled,
+                  tr("@ or # in the middle of a word, as in an e-mail address or in C#, stays "
+                     "a character. The letters typed after it narrow the list; Esc closes it "
+                     "and keeps what was typed."));
 
     // What each character opens: a column each, a row for each source
     auto* grid = new QWidget();
@@ -103,7 +111,7 @@ void EditorQuickInsertPage::createSources() {
         heading->setFont(bold);
         layout->addWidget(heading, 0, column + 1);
     }
-    const std::array<QString, 3> names = {tr("Names from the cards of the Workshop"),
+    const std::array<QString, 3> names = {tr("Names from the book dictionary (and the cards)"),
                                           tr("Text fragments"), tr("Typographic characters")};
     std::array<std::array<QCheckBox*, 3>, 2> boxes{};
     for (int row = 0; row < 3; ++row) {
@@ -162,14 +170,10 @@ void EditorQuickInsertPage::createSources() {
     connect(enabled, &QCheckBox::toggled, this, syncSources);
     whenLoaded(syncSources);
 
-    addNote(form, tr("@ or # in the middle of a word, as in an e-mail address or in C#, stays "
-                     "a character. The letters typed after it narrow the list; Esc closes it "
-                     "and keeps what was typed."));
-
     // With the keys the command has now (the user may change them)
     QLabel* commandNote = addNote(form, QString());
-    const auto showCommandKeys = [commandNote]() {
-        const Command* command = CommandRegistry::getInstance().getCommand("insert.quickInsert");
+    const auto showCommandKeys = [this, commandNote]() {
+        const Command* command = m_commands.getCommand("insert.quickInsert");
         const QString keys = command != nullptr && !command->shortcut.isEmpty()
             ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
             : QString();
@@ -183,7 +187,7 @@ void EditorQuickInsertPage::createSources() {
                      "also when the list does not open after @ or #."));
     };
     showCommandKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, commandNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, commandNote,
             showCommandKeys);
 }
 
@@ -227,8 +231,8 @@ void EditorQuickInsertPage::createItems() {
     column->addLayout(restoreRow);
     form->addRow(box);
     addNote(form, tr("Type # and the first letters of a name at the start of a word to insert "
-                     "its text. The names of the cards are those of the book open; they need "
-                     "no list here."));
+                     "its text. The names of the book dictionary and of the cards are those of "
+                     "the book open; they need no list here."));
 
     connect(add, &QPushButton::clicked, this, &EditorQuickInsertPage::addItem);
     connect(m_edit, &QPushButton::clicked, this, &EditorQuickInsertPage::editItem);

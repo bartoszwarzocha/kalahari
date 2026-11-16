@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list.h
 /// @brief The lists of the materials of the Workshop on their tabs: the kinds of the Materials,
 /// the columns of each kind and what a material shows in them
@@ -10,6 +13,10 @@
 #include <QString>
 #include <QStringList>
 #include <QVariant>
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
 
 namespace kalahari {
 namespace gui {
@@ -45,11 +52,12 @@ struct MaterialRow {
                                      ///< material
 };
 
-/// @brief The lists of the materials of the open book: the kinds of the Materials of its
+/// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its
 /// Workshop, the columns of each list and the rows of their materials
 ///
 /// A list is named by the kind of its materials with its package ("kalahari.base:quote");
-/// ALL is the list of All Materials, the working notes too. The writer chooses the columns of
+/// ALL is the list of All Materials, the working notes too, and SOURCES that of the materials
+/// with a bibliographic description, of every kind. The writer chooses the columns of
 /// each list and their order, and between the table and the tiles of the pictures, the
 /// documents and the publications; the program keeps it for each list (LISTS_SETTING).
 class MaterialList {
@@ -57,6 +65,8 @@ class MaterialList {
 
 public:
     static constexpr const char* ALL = "";  ///< The list of All Materials
+    /// @brief The list of the sources: the materials with a bibliographic description
+    static constexpr const char* SOURCES = "sources";
 
     /// @name Ids of the columns
     /// @{
@@ -88,6 +98,15 @@ public:
     static constexpr const char* COVER_SOURCE = "coverSource"; ///< The cover: of an opinion
     static constexpr const char* COVER_DATE = "coverDate";     ///< The cover: of an opinion
     static constexpr const char* COVER_LICENSE = "coverLicense";  ///< The cover: of a picture
+    static constexpr const char* SOURCE_KIND = "sourceKind";        ///< A source: a book...
+    static constexpr const char* SOURCE_AUTHORS = "sourceAuthors";  ///< A source: its authors
+    static constexpr const char* SOURCE_YEAR = "sourceYear";        ///< A source: its year
+    static constexpr const char* SOURCE_INCLUSION = "sourceInclusion";  ///< A source: whether
+                                                                        ///< the bibliography
+                                                                        ///< has it
+    static constexpr const char* SOURCE_PLACES = "sourcePlaces";  ///< A source: its places in
+                                                                  ///< the text
+    static constexpr const char* QUOTE_SOURCE = "quoteSource";    ///< A quote: its source
     /// @}
 
     /// @brief The setting of the columns and the view of each list, an object: list ->
@@ -105,22 +124,22 @@ public:
     /// the kind on a tab of its own (the usual), or "one", the one tab of the lists shows it
     static constexpr const char* TABS_SETTING = "materials.typeTabs";
 
-    /// @brief The lists of the open book besides ALL, as the Navigator has them in its
+    /// @brief The lists of the book open in @p book besides ALL, as the Navigator has them in its
     /// Materials: the working notes and the kinds of materials, in the order of the book's
     /// type, without the kinds hidden (HIDDEN_SETTING)
-    static QStringList kinds();
+    static QStringList kinds(const core::ProjectManager& book);
 
-    /// @brief The kinds of materials of the open book as the Navigator would have them with
-    /// none hidden, in its order
-    static QStringList allKinds();
+    /// @brief The kinds of materials of the book open in @p book as the Navigator would have them
+    /// with none hidden, in its order
+    static QStringList allKinds(const core::ProjectManager& book);
 
-    /// @brief The kinds Settings > Navigator shows or hides: those of the open book (allKinds()),
-    /// else the materials of the base package, then the kinds hidden that are neither
-    static QStringList settingsKinds();
+    /// @brief The kinds Settings > Navigator shows or hides: those of the book open in @p book
+    /// (allKinds()), else the materials of the base package, then the kinds hidden that are neither
+    static QStringList settingsKinds(const core::ProjectManager& book);
 
-    /// @brief How many materials of @p list the Workshop of the open book has; -1 without a
-    /// book
-    static int countOf(const QString& list);
+    /// @brief How many materials of @p list the Workshop of the book open in @p book has; -1
+    /// without a book
+    static int countOf(const core::ProjectManager& book, const QString& list);
 
     /// @brief The kinds hidden in the Navigator (HIDDEN_SETTING)
     static QStringList hiddenKinds();
@@ -135,7 +154,12 @@ public:
     /// @brief Whether @p list is the list of the materials of the cover
     static bool isCover(const QString& list);
 
-    /// @brief Name of @p list: the plural of its kind, "Quotes"; "All Materials" for ALL
+    /// @brief The kinds Add of @p list offers: those of the Materials for ALL, those that can be
+    /// a source for SOURCES (a publication first), else the kind of the list
+    static QStringList addKindsOf(const core::ProjectManager& book, const QString& list);
+
+    /// @brief Name of @p list: the plural of its kind, "Quotes"; "All Materials" for ALL,
+    /// "Sources" for SOURCES
     static QString nameOf(const QString& list);
 
     /// @brief Icon of @p list: that of its kind in the Navigator, of Materials for ALL
@@ -147,18 +171,19 @@ public:
 
     /// @brief Columns of @p list, then one for each field of the writer's that its materials
     /// have (hidden at first), by name
-    static QList<MaterialColumn> columnsOf(const QString& list);
+    static QList<MaterialColumn> columnsOf(const core::ProjectManager& book, const QString& list);
 
     /// @brief Column @p list sorts by at first: the quote of the quotes, the kind of All
     /// Materials, else the title
     static QString firstSortOf(const QString& list);
 
-    /// @brief Rows of the materials of @p list in the open book, in the order of the Workshop
-    static QList<MaterialRow> rowsOf(const QString& list);
+    /// @brief Rows of the materials of @p list in the book open in @p book, in the order of the
+    /// Workshop
+    static QList<MaterialRow> rowsOf(const core::ProjectManager& book, const QString& list);
 
     /// @brief Columns of @p list the writer shows, in their order; those shown at first while
     /// the writer has not chosen
-    static QStringList shownColumns(const QString& list);
+    static QStringList shownColumns(const core::ProjectManager& book, const QString& list);
 
     /// @brief Show @p columns of @p list, in their order (LISTS_SETTING)
     static void setShownColumns(const QString& list, const QStringList& columns);
@@ -190,8 +215,9 @@ public:
     static QString documentKindOf(const QString& format);
 
     /// @brief What Copy of a material puts on the clipboard: the words of a quote, the address
-    /// of a page or of a picture on the web without a copy, the path of a file, else the title
-    static QString copyTextOf(const QString& elementId);
+    /// of a page or of a picture on the web without a copy, the path of a file, else the title;
+    /// in SOURCES the entry of a source in the bibliography of the book (rowsOf())
+    static QString copyTextOf(const core::ProjectManager& book, const QString& elementId);
 };
 
 } // namespace gui

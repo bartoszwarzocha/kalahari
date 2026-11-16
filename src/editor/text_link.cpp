@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_link.cpp
 /// @brief Links in the text: text whose characters carry the address of a web page
 
@@ -102,7 +105,7 @@ std::optional<TextLink> linkAtPosition(const QTextDocument& document, int positi
 
 QString normalizedLinkAddress(const QString& written)
 {
-    const QString address = written.trimmed();
+    QString address = written.trimmed();  // Not const: returned as it is, it is moved
     if (address.isEmpty() || hasScheme(address) || address.startsWith(QLatin1Char('#')) ||
         address.startsWith(QLatin1Char('/'))) {
         return address;

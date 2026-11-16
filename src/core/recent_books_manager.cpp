@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file recent_books_manager.cpp
 /// @brief Implementation of RecentBooksManager
 ///
@@ -22,12 +25,13 @@ RecentBooksManager::RecentBooksManager()
     : QObject(nullptr)
 {
     loadRecentFiles();
+}
 
+void RecentBooksManager::follow(const ProjectManager& book) {
     // Every book opened or just created goes to the top of the list (the Dashboard and
     // the Recent Books menu follow recentFilesChanged), and is the book opened at startup
-    auto& projectManager = ProjectManager::getInstance();
-    connect(&projectManager, &ProjectManager::projectOpened, this, [this, &projectManager]() {
-        const QString manifest = projectManager.getManifestPath();
+    connect(&book, &ProjectManager::projectOpened, this, [this, &book]() {
+        const QString manifest = book.getManifestPath();
         if (manifest.isEmpty()) {
             return;
         }
@@ -104,6 +108,37 @@ QString RecentBooksManager::lastOpenedBook() const {
         }
     }
     return m_recentFiles.value(0);
+}
+
+void RecentBooksManager::setOpenBooks(const QStringList& manifests) {
+    std::vector<std::string> books;
+    for (const QString& manifest : manifests) {
+        if (!manifest.isEmpty()) {
+            books.push_back(QFileInfo(manifest).absoluteFilePath().toStdString());
+        }
+    }
+    SettingsManager::getInstance().set<std::vector<std::string>>(OPEN_BOOKS_KEY, books);
+}
+
+QStringList RecentBooksManager::booksToOpenAtStart() const {
+    auto& settings = SettingsManager::getInstance();
+    QStringList books;
+    if (settings.get<std::string>(STARTUP_BOOKS_KEY, "all") == "all") {
+        for (const std::string& book : settings.get<std::vector<std::string>>(OPEN_BOOKS_KEY)) {
+            const QString path = QFileInfo(QString::fromStdString(book)).absoluteFilePath();
+            // A book moved or deleted since is left out, saying nothing
+            if (QFileInfo::exists(path) && !books.contains(path)) {
+                books.append(path);
+            }
+        }
+    }
+    if (books.isEmpty()) {
+        const QString last = lastOpenedBook();
+        if (!last.isEmpty()) {
+            books.append(last);
+        }
+    }
+    return books;
 }
 
 void RecentBooksManager::loadRecentFiles() {

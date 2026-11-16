@@ -1,8 +1,13 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_project_manager.cpp
 /// @brief ProjectManager: creating, opening and saving book projects, their elements, the text
 /// and the data of their chapter files
 
 #include <catch2/catch_test_macros.hpp>
+#include <kalahari/core/book_dictionary.h>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/file_trash.h>
@@ -35,6 +40,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::core;
 
@@ -42,14 +48,14 @@ namespace {
 
 /// ProjectManager with the built-in book types of the source tree
 ProjectManager& projects() {
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     REQUIRE(pm.bookTypes().problems().isEmpty());
     return pm;
 }
 
 KindRef kind(const QString& packageId, const QString& kindId) {
-    const KindRef found = ProjectManager::getInstance().bookTypes().findKind(packageId, kindId);
+    const KindRef found = kalahari::test::book().bookTypes().findKind(packageId, kindId);
     REQUIRE(found);
     return found;
 }
@@ -57,7 +63,7 @@ KindRef kind(const QString& packageId, const QString& kindId) {
 /// The open book takes kind @p kindId of package @p packageId too: its .klh file names the kind,
 /// and the book opens again with a copy of the package. Kinds taken before are no longer valid.
 void takeKind(const QString& packageId, const QString& kindId) {
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     const QString manifest = pm.getManifestPath();
     pm.project()->kinds.append(KindReference{packageId, kindId});
     REQUIRE(pm.saveManifest());
@@ -103,7 +109,7 @@ BookProject savedProject(const QString& manifest) {
 
 /// The chapter file of element @p id
 ChapterDocument chapterFileOf(const QString& id) {
-    auto& pm = ProjectManager::getInstance();
+    auto& pm = kalahari::test::book();
     const ProjectElement* element = pm.findElement(id);
     REQUIRE(element != nullptr);
     std::optional<ChapterDocument> chapter = ChapterDocument::load(pm.filePathOf(*element));
@@ -138,7 +144,7 @@ QStringList paragraphsOf(const QString& id) {
 
 /// Whether the database of the open project has paragraph style @p id
 bool hasParagraphStyle(const QString& id) {
-    ProjectDatabase* database = ProjectManager::getInstance().getDatabase();
+    ProjectDatabase* database = kalahari::test::book().getDatabase();
     REQUIRE(database != nullptr);
     const QList<ParagraphStyle> styles = database->getParagraphStyles();
     return std::any_of(styles.cbegin(), styles.cend(),
@@ -271,6 +277,66 @@ QList<Entry> entriesOfFolder(const QString& path, QChar separator) {
 // =============================================================================
 // Creating, opening and closing
 // =============================================================================
+
+TEST_CASE("ProjectManager keeps the dictionary of the book in its folder",
+          "[project_manager][dictionary]") {
+    const QTemporaryDir dir;
+    auto& pm = projects();
+    const auto addWord = [](const QString& word) {
+        return [word](BookDictionary& dictionary) { dictionary.addWord(word); };
+    };
+
+    // Without a book: none
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.bookDictionaryPath().isEmpty());
+    CHECK_FALSE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));
+
+    // A new book: an empty one, without a file until it has something
+    REQUIRE(pm.createProject(dir.path(), "Words", "Author", "pl", true));
+    const QString manifest = pm.getManifestPath();
+    const QString path = pm.bookDictionaryPath();
+    CHECK(path == QDir(pm.getProjectPath()).filePath(QStringLiteral("dictionary.json")));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK_FALSE(QFile::exists(path));
+
+    // Changed: saved at once, and the editors told
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::bookDictionaryChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));
+    CHECK(changes == 1);
+    CHECK(pm.bookDictionary().hasWord(QStringLiteral("Kirran")));
+    CHECK(QFile::exists(path));
+    REQUIRE(pm.changeBookDictionary(addWord(QStringLiteral("Kirran"))));  // nothing new
+    CHECK(changes == 1);
+
+    // Closed: none; opened again: read from its file
+    REQUIRE(pm.closeProject(false));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK(changes == 2);
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.bookDictionary().hasWord(QStringLiteral("Kirran")));
+    CHECK(changes == 3);
+
+    // A file that cannot be read: the book opens with an empty dictionary, and the file is
+    // not written over
+    REQUIRE(pm.closeProject(false));
+    {
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        file.write("{not json");
+    }
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.bookDictionary().isEmpty());
+    CHECK_FALSE(pm.changeBookDictionary(addWord(QStringLiteral("Eldrion"))));
+    {
+        QFile file(path);
+        REQUIRE(file.open(QIODevice::ReadOnly));
+        CHECK(file.readAll() == QByteArray("{not json"));
+    }
+    QObject::disconnect(connection);
+    REQUIRE(pm.closeProject(false));
+}
 
 TEST_CASE("ProjectManager closes the database after projectAboutToClose", "[project_manager]") {
     QTemporaryDir dir;
@@ -701,10 +767,16 @@ TEST_CASE("A user project has the kinds and the elements chosen in the palette",
     CHECK(chapterFileOf(chapter.id).title() == "Rozdział 1");
     CHECK(book->backElements.isEmpty());
 
-    // The working note is in the Workshop's folder; a character waits for its window
-    CHECK(titles(project->workshop.elements) == "Notatka 1");
+    // The working note and the card of a character are texts in the Workshop's folder; the card
+    // has the first color of the palette
+    CHECK(titles(project->workshop.elements) == "Notatka 1, Postać 1");
+    REQUIRE(project->workshop.elements.size() == 2);
     CHECK(project->workshop.elements.first().file == "workshop/work_note_001.kchapter");
     CHECK(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("workshop/work_note_001.kchapter")));
+    const ProjectElement& character = project->workshop.elements.at(1);
+    CHECK(character.file == "workshop/character_001.kchapter");
+    CHECK(character.card.color == CardColors::palette().constFirst());
+    CHECK(project->workshop.elements.first().card.isEmpty());
 
     const QString manifest = pm.getManifestPath();
     REQUIRE(pm.closeProject(false));
@@ -1225,6 +1297,10 @@ TEST_CASE("ProjectManager opens elements whose package is not installed, read-on
     REQUIRE(pm.openProject(manifest, &problems));
     CHECK(problems.isEmpty());
     CHECK(pm.isReadOnly());
+    // Nor its dictionary
+    CHECK_FALSE(pm.changeBookDictionary(
+        [](BookDictionary& dictionary) { dictionary.addWord(QStringLiteral("Kirran")); }));
+    CHECK(pm.bookDictionary().isEmpty());
     CHECK(pm.missingPackages() == QStringList{"acme.thriller"});
 
     const ProjectElement* arc = pm.findElement(part);
@@ -1683,8 +1759,8 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     const KindRef material = kind("kalahari.base", "picture");
     const KindRef otherFile = kind("kalahari.base", "other_file");
 
-    // The kinds of the Workshop; the program adds working notes and materials, and the other
-    // kinds that open in a window of their own wait for their windows. The one kind of
+    // The kinds of the Workshop; the program adds working notes, cards and materials, and the
+    // other kinds that open in a window of their own wait for their windows. The one kind of
     // materials of earlier versions gets no new elements.
     CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
@@ -1698,7 +1774,8 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "material")));
     CHECK(ProjectManager::canAdd(pm.chapterKindFor(BookPlace::Main)));
     CHECK(ProjectManager::canAdd(pm.partKind()));
-    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "character")));
+    CHECK(ProjectManager::canAdd(kind("kalahari.base", "character")));
+    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "mindmap")));
     CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "toc")));
     CHECK_FALSE(ProjectManager::canAdd(KindRef{}));
 
@@ -2625,6 +2702,40 @@ TEST_CASE("ProjectManager saves and opens again the text of a chapter", "[projec
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("ProjectManager gives the saved and unsaved texts of the book without keeping them",
+          "[project_manager][styles]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK(pm.textElementIds().isEmpty());  // no project
+    REQUIRE(pm.createProject(dir.path(), "Texts", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    const QStringList before = pm.textElementIds();
+
+    const QString first = pm.addElement(pm.chapterKindFor(BookPlace::Main), "One", BookPlace::Main);
+    const QString second = pm.addElement(pm.chapterKindFor(BookPlace::Main), "Two", BookPlace::Main);
+    REQUIRE_FALSE(first.isEmpty());
+    REQUIRE_FALSE(second.isEmpty());
+    const QStringList ids = pm.textElementIds();
+    CHECK(ids.size() == before.size() + 2);
+    REQUIRE(ids.contains(first));
+    REQUIRE(ids.contains(second));
+    CHECK(ids.indexOf(first) < ids.indexOf(second));  // in reading order
+
+    pm.setChapterContent(first, kmlWith("Saved text"));
+    REQUIRE(pm.saveAllDirty());
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+
+    // The saved text is read from its file, and the program does not keep it
+    CHECK(pm.chapterText(first) == kmlWith("Saved text"));
+    CHECK(pm.getDirtyElements().empty());
+    // The unsaved text is the text of the element
+    pm.setChapterContent(first, kmlWith("Unsaved text"));
+    CHECK(pm.chapterText(first) == kmlWith("Unsaved text"));
+    CHECK(pm.chapterText(QStringLiteral("no-such-element")).isEmpty());
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("ProjectManager keeps the status in the .klh file and in the chapter file",
           "[project_manager]") {
     QTemporaryDir dir;
@@ -2687,6 +2798,106 @@ TEST_CASE("ProjectManager keeps in the .klh file that a chapter starts on a left
     REQUIRE(pm.closeProject(false));
     REQUIRE(pm.openProject(manifest));
     CHECK_FALSE(pm.findElement(id)->firstPageLeft);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager keeps the paragraph styles of the book in the .klh file",
+          "[project_manager][styles]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK(pm.paragraphStyles().isEmpty());
+    CHECK_FALSE(pm.setParagraphStyles({}));  // no project
+    REQUIRE(pm.createProject(dir.path(), "Styles", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    CHECK(pm.paragraphStyles().isEmpty());
+
+    BookParagraphStyle memory;
+    memory.id = QStringLiteral("wspomnienie");
+    memory.name = QStringLiteral("Wspomnienie");
+    memory.baseStyle = QStringLiteral("quote");
+    memory.properties = {{QStringLiteral("leftMargin"), 18}};
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::paragraphStylesChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.setParagraphStyles({memory}));
+    CHECK(changes == 1);
+    REQUIRE(pm.setParagraphStyles({memory}));  // the same styles: nothing to tell
+    CHECK(changes == 1);
+    REQUIRE(pm.closeProject(false));
+    QObject::disconnect(connection);
+
+    // The .klh file keeps them
+    REQUIRE(pm.openProject(manifest));
+    REQUIRE(pm.paragraphStyles().size() == 1);
+    CHECK(pm.paragraphStyles().constFirst() == memory);
+    REQUIRE(pm.setParagraphStyles({}));
+    REQUIRE(pm.closeProject(false));
+    REQUIRE(pm.openProject(manifest));
+    CHECK(pm.paragraphStyles().isEmpty());
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager keeps the captions of the book in the .klh file",
+          "[project_manager][captions]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK_FALSE(pm.bookCaptions().has_value());
+    CHECK_FALSE(pm.setBookCaptions({}));  // no project
+    REQUIRE(pm.createProject(dir.path(), "Captions", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    CHECK_FALSE(pm.bookCaptions().has_value());
+
+    BookCaptions captions;
+    captions.labels = {QStringLiteral("Figure"), QStringLiteral("Map")};
+    CaptionLabelNumbering figures;
+    figures.label = QStringLiteral("Figure");
+    figures.perChapter = true;
+    captions.numbering = {figures};
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::bookCaptionsChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.setBookCaptions(captions));
+    CHECK(changes == 1);
+    REQUIRE(pm.setBookCaptions(captions));  // the same: nothing to tell
+    CHECK(changes == 1);
+    REQUIRE(pm.closeProject(false));
+    QObject::disconnect(connection);
+
+    // The .klh file keeps them
+    REQUIRE(pm.openProject(manifest));
+    REQUIRE(pm.bookCaptions().has_value());
+    CHECK(*pm.bookCaptions() == captions);
+    REQUIRE(pm.closeProject(false));
+}
+
+TEST_CASE("ProjectManager keeps the numbering of the book's notes in the .klh file",
+          "[project_manager][footnotes]") {
+    QTemporaryDir dir;
+    auto& pm = projects();
+    CHECK_FALSE(pm.bookFootnotes().has_value());
+    CHECK_FALSE(pm.setBookFootnotes({}));  // no project
+    REQUIRE(pm.createProject(dir.path(), "Notes", "Author", "en", true, "kalahari.novel"));
+    const QString manifest = pm.getManifestPath();
+    CHECK_FALSE(pm.bookFootnotes().has_value());
+
+    BookFootnotes footnotes;
+    footnotes.footnotes.perChapter = false;
+    footnotes.endnotes.format = QStringLiteral("1");
+    footnotes.endnotesAtBookEnd = true;
+    int changes = 0;
+    const QMetaObject::Connection connection = QObject::connect(
+        &pm, &ProjectManager::bookFootnotesChanged, [&changes]() { ++changes; });
+    REQUIRE(pm.setBookFootnotes(footnotes));
+    CHECK(changes == 1);
+    REQUIRE(pm.setBookFootnotes(footnotes));  // the same: nothing to tell
+    CHECK(changes == 1);
+    REQUIRE(pm.closeProject(false));
+    QObject::disconnect(connection);
+
+    // The .klh file keeps them
+    REQUIRE(pm.openProject(manifest));
+    REQUIRE(pm.bookFootnotes().has_value());
+    CHECK(*pm.bookFootnotes() == footnotes);
     REQUIRE(pm.closeProject(false));
 }
 

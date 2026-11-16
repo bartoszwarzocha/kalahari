@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_text_issues.cpp
 /// @brief The misspelled words and grammar issues of a text as one list (the Spelling and
 ///        Grammar panel): in the order of the text, told when they change, selected and put
@@ -525,8 +528,14 @@ TEST_CASE("Issues: the waves have the colors of the editor's appearance, on each
     };
 
     const RenderColors before;
-    appearance.colors.issuesLight = {QColor(0, 160, 0), QColor(170, 0, 170), QColor()};
-    appearance.colors.issuesDark = {QColor(0, 220, 220), QColor(230, 230, 0), QColor()};
+    appearance.colors.issuesLight = {.spelling = QColor(0, 160, 0),
+                                     .grammar = QColor(170, 0, 170),
+                                     .repetition = QColor(),
+                                     .bookRule = QColor()};
+    appearance.colors.issuesDark = {.spelling = QColor(0, 220, 220),
+                                    .grammar = QColor(230, 230, 0),
+                                    .repetition = QColor(),
+                                    .bookRule = QColor()};
 
     SECTION("on the dark paper") {
         appearance.colorMode = EditorColorMode::Dark;

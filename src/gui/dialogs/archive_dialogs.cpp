@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file archive_dialogs.cpp
 /// @brief Export Project Archive and Import Project Archive: each in one window, from the
 /// choice of the archive to the result of the work
@@ -127,6 +130,22 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
     m_reasonText = newValue(m_result);
     m_reasonText->hide();
     resultTexts->addWidget(m_reasonText);
+    // Open File and Show in Folder, side by side
+    auto* links = new QHBoxLayout();
+    links->setContentsMargins(0, 0, 0, 0);
+    links->setSpacing(fontMetrics().averageCharWidth() * 3);
+    m_openLink = new QLabel(m_result);
+    m_openLink->setTextFormat(Qt::RichText);
+    //: A link under the result of an export: opens the file in its program. In Polish: Otwórz
+    //: plik
+    m_openLink->setText(
+        QStringLiteral("<a href=\"open\">%1</a>").arg(tr("Open File").toHtmlEscaped()));
+    m_openLink->setTextInteractionFlags(Qt::LinksAccessibleByMouse |
+                                        Qt::LinksAccessibleByKeyboard);
+    m_openLink->setToolTip(tr("Open the file in the program the system gives it"));
+    connect(m_openLink, &QLabel::linkActivated, this, &ArchiveDialog::openResult);
+    m_openLink->hide();
+    links->addWidget(m_openLink);
     m_showLink = new QLabel(m_result);
     m_showLink->setTextFormat(Qt::RichText);
     //: A link under the result of an export or an import. In Polish: Pokaż w folderze
@@ -136,7 +155,9 @@ ArchiveDialog::ArchiveDialog(QWidget* parent)
                                         Qt::LinksAccessibleByKeyboard);
     m_showLink->setToolTip(tr("Open the folder in the file manager of the system"));
     connect(m_showLink, &QLabel::linkActivated, this, &ArchiveDialog::showResult);
-    resultTexts->addWidget(m_showLink, 0, Qt::AlignLeft);
+    links->addWidget(m_showLink);
+    links->addStretch();
+    resultTexts->addLayout(links);
     resultLayout->addLayout(resultTexts, 1);
     m_result->hide();
     contentLayout()->addWidget(m_result);
@@ -183,6 +204,15 @@ void ArchiveDialog::showResult()
     if (!showInFolder(m_resultPath)) {
         MessageDialog::warning(this, tr("Show in Folder"),
                                tr("The file manager of the system could not show:\n%1")
+                                   .arg(QDir::toNativeSeparators(m_resultPath)));
+    }
+}
+
+void ArchiveDialog::openResult()
+{
+    if (!openWithSystem(m_resultPath)) {
+        MessageDialog::warning(this, tr("Open File"),
+                               tr("The system could not open the file:\n%1")
                                    .arg(QDir::toNativeSeparators(m_resultPath)));
     }
 }
@@ -343,7 +373,7 @@ ArchiveDialog::Progress ArchiveDialog::progress()
     };
 }
 
-void ArchiveDialog::finishWork(const QString& text, const QString& path)
+void ArchiveDialog::finishWork(const QString& text, const QString& path, bool withOpenFile)
 {
     m_state = State::Done;
     m_resultPath = path;
@@ -351,6 +381,7 @@ void ArchiveDialog::finishWork(const QString& text, const QString& path)
     setNoteIcon(m_resultIcon, QStringLiteral("common.checkCircle"));
     m_resultText->setText(text);
     m_reasonText->hide();
+    m_openLink->setVisible(withOpenFile);
     m_showLink->show();
     m_result->show();
 
@@ -375,6 +406,7 @@ void ArchiveDialog::failWork(const QString& text, const QString& reason,
     // A cause the window does not name is in the details
     m_reasonText->setText(reason.isEmpty() && !details.isEmpty() ? copyHint() : reason);
     m_reasonText->setVisible(!m_reasonText->text().isEmpty());
+    m_openLink->hide();
     m_showLink->hide();
     m_result->show();
     updateCopyButton();
@@ -471,10 +503,9 @@ void ArchiveDialog::bringIntoView(QWidget* widget)
 // ExportArchiveDialog
 // =============================================================================
 
-ExportArchiveDialog::Book ExportArchiveDialog::openBook()
+ExportArchiveDialog::Book ExportArchiveDialog::openBook(const core::ProjectManager& pm)
 {
     Book book;
-    const auto& pm = core::ProjectManager::getInstance();
     if (const core::ProjectBook* projectBook = pm.book()) {
         book.title = projectBook->title;
     }

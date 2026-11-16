@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_serializer.h
 /// @brief KML Serializer - serializes QTextDocument back to KML (OpenSpec #00043 Phase 11.2)
 ///
@@ -7,7 +10,7 @@
 /// Key design principles (Phase 11 Architecture Correction):
 /// - Direct QTextDocument -> KML serialization
 /// - Standard formatting via QTextCharFormat (bold, italic, underline, strikethrough)
-/// - Metadata (footnotes, references) and annotations via QTextFormat::UserProperty
+/// - Metadata (references), footnotes and annotations via QTextFormat::UserProperty
 ///
 /// Output KML structure:
 /// @code
@@ -25,6 +28,7 @@
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId and format functions
+#include <kalahari/editor/text_tables.h>
 #include <QString>
 #include <QTextCharFormat>
 
@@ -41,8 +45,9 @@ namespace editor {
 /// @brief Serializer for converting QTextDocument to KML format
 ///
 /// Converts QTextDocument content back to KML markup. Uses QTextCharFormat
-/// properties for formatting (bold, italic, etc.), metadata (footnotes, references) and
-/// annotations (comments, TODOs, notes: the <annotations> section and the anchors).
+/// properties for formatting (bold, italic, etc.), metadata (references), the footnotes and
+/// endnotes (text_footnotes.h) and annotations (comments, TODOs, notes: the <annotations>
+/// section and the anchors).
 ///
 /// Example usage:
 /// @code
@@ -86,6 +91,13 @@ public:
     /// @return KML markup string
     QString toKml(const QTextDocument* document, int from, int to) const;
 
+    /// @brief Serialize a rectangle of cells of a table to KML: a <table> of its rows and
+    ///        columns with the cells whole, the table's properties, the widths of its columns
+    ///        (a hundred percent together) and the header rows among them
+    /// @param cells The cells, no merged cell crossing their edges (wholeCells())
+    /// @return KML markup string; empty without a table
+    QString toKml(const TableCellRange& cells) const;
+
     /// @brief Serialize a single block (paragraph) to KML
     /// @param block The text block to serialize
     /// @return KML paragraph content (without <p> wrapper), with the anchors of its
@@ -128,6 +140,11 @@ private:
     ///        the widths of its columns, and the cells of each row with their paragraphs
     ///        cut to the range (an empty cell, or one outside the range, has an empty <p>)
     QString tableToKml(const QTextTable& table, int from, int to,
+                       AnnotationList* annotations) const;
+
+    /// @brief Serialize the rows and columns of a rectangle of a table's cells as
+    ///        tableToKml() does, the cells cut to the range [from, to)
+    QString cellsToKml(const QTextTable& table, const TableCellRange& cells, int from, int to,
                        AnnotationList* annotations) const;
 
     /// @brief Serialize the part of a text block's inline content inside [from, to)

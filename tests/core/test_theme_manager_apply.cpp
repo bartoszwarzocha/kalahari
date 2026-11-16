@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_theme_manager_apply.cpp
 /// @brief ThemeManager::reloadTheme applies a theme with the user's stored colors
 /// and extra overrides in one pass (one themeChanged, colors visible in the palette);
 /// the editor colors of a theme (the writer's own ones are kept for each theme, also the colors of
-/// the papers, which moved into the themes), and the colors its palette gives disabled widgets.
+/// the papers, which moved into the themes), the colors its palette gives disabled widgets, and
+/// the selection and the links in the theme's color.
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -18,6 +22,7 @@
 #include <QToolTip>
 
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -227,12 +232,30 @@ TEST_CASE("Both themes give the colors of both papers as the editor had them",
         {LIGHT_PAPER_COLOR_KEYS.formattingMarks, own.formattingMarks.light},
         {LIGHT_PAPER_COLOR_KEYS.link, own.links.light},
         {LIGHT_PAPER_COLOR_KEYS.desk, own.continuous.deskLight},
+        {LIGHT_PAPER_COLOR_KEYS.tableLines, own.tables.linesLight},
+        {LIGHT_PAPER_COLOR_KEYS.tableHeader, own.tables.headerLight},
+        {LIGHT_PAPER_COLOR_KEYS.tableGridlines, own.tables.gridlinesLight},
+        {LIGHT_PAPER_COLOR_KEYS.imageCropMarks, own.images.cropMarksLight},
+        {LIGHT_PAPER_COLOR_KEYS.imageMissing, own.images.missingLight},
+        {LIGHT_PAPER_COLOR_KEYS.field, own.fields.light},
+        {LIGHT_PAPER_COLOR_KEYS.brokenField, own.fields.brokenLight},
+        {LIGHT_PAPER_COLOR_KEYS.noteLine, own.footnotes.lineLight},
+        {LIGHT_PAPER_COLOR_KEYS.noteFrame, own.footnotes.frameLight},
         {DARK_PAPER_COLOR_KEYS.paper, own.continuous.backgroundDark},
         {DARK_PAPER_COLOR_KEYS.text, own.continuous.textDark},
         {DARK_PAPER_COLOR_KEYS.focusDimmed, own.focus.inactiveDark},
         {DARK_PAPER_COLOR_KEYS.formattingMarks, own.formattingMarks.dark},
         {DARK_PAPER_COLOR_KEYS.link, own.links.dark},
         {DARK_PAPER_COLOR_KEYS.desk, own.continuous.deskDark},
+        {DARK_PAPER_COLOR_KEYS.tableLines, own.tables.linesDark},
+        {DARK_PAPER_COLOR_KEYS.tableHeader, own.tables.headerDark},
+        {DARK_PAPER_COLOR_KEYS.tableGridlines, own.tables.gridlinesDark},
+        {DARK_PAPER_COLOR_KEYS.imageCropMarks, own.images.cropMarksDark},
+        {DARK_PAPER_COLOR_KEYS.imageMissing, own.images.missingDark},
+        {DARK_PAPER_COLOR_KEYS.field, own.fields.dark},
+        {DARK_PAPER_COLOR_KEYS.brokenField, own.fields.brokenDark},
+        {DARK_PAPER_COLOR_KEYS.noteLine, own.footnotes.lineDark},
+        {DARK_PAPER_COLOR_KEYS.noteFrame, own.footnotes.frameDark},
         {SELECTION_COLOR_KEY, underTextColor(own.selection, 255)},
         {SEARCH_MATCH_COLOR_KEY, underTextColor(own.searchMatch, 255)},
         {CURRENT_SEARCH_MATCH_COLOR_KEY, underTextColor(own.currentSearchMatch, 255)},
@@ -385,4 +408,166 @@ TEST_CASE("A theme gives disabled widgets opaque backgrounds", "[core][theme]") 
     QColor disabledText("#000000");
     disabledText.setAlpha(128);
     CHECK(qtPalette.color(QPalette::Disabled, QPalette::Text) == disabledText);
+}
+
+namespace {
+
+/// A theme's file: the colors of the Dark theme, with the palette given
+nlohmann::json themeFile(const nlohmann::json& palette) {
+    nlohmann::json json;
+    json["name"] = "Test";
+    json["colors"] = {{"primary", "#ffaa00"}, {"secondary", "#333333"}, {"background", "#1e1e1e"},
+                      {"text", "#ffffff"}};
+    json["palette"] = palette;
+    return json;
+}
+
+/// The palette of the Dark theme without the selection and the links
+nlohmann::json darkPalette() {
+    return {{"window", "#2b2b2b"}, {"windowText", "#e0e0e0"}, {"base", "#3c3c3c"},
+            {"text", "#e0e0e0"}};
+}
+
+/// No icon or palette color of the writer's in any theme while it lives; the theme in use stays
+class OwnColorsCleared {
+public:
+    OwnColorsCleared()
+        : m_theme(QString::fromStdString(ThemeManager::getInstance().getCurrentTheme().name)) {
+        clear();
+    }
+    ~OwnColorsCleared() {
+        clear();
+        ThemeManager::getInstance().reloadTheme(m_theme);
+    }
+    OwnColorsCleared(const OwnColorsCleared&) = delete;
+    OwnColorsCleared& operator=(const OwnColorsCleared&) = delete;
+
+private:
+    static void clear() {
+        auto& settings = kalahari::core::SettingsManager::getInstance();
+        for (const QString& theme : ThemeManager::getInstance().getAvailableThemes()) {
+            settings.clearCustomIconColorsForTheme(theme.toStdString());
+            settings.clearCustomPaletteColorsForTheme(theme.toStdString());
+        }
+    }
+
+    QString m_theme;
+};
+
+}  // namespace
+
+TEST_CASE("The selection and the links are in the theme's color, unless the theme file lists "
+          "them", "[core][theme]") {
+    using kalahari::core::contrastRatio;
+
+    SECTION("a theme file without them") {
+        const Theme theme = Theme::fromJson(themeFile(darkPalette()));
+        CHECK(theme.themeColorPalette ==
+              std::set<std::string>{"highlight", "highlightedText", "link", "linkVisited"});
+        CHECK(theme.palette.highlight == QColor("#ffaa00"));
+        // Black reads better on the orange than white
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(theme.palette.link == QColor("#ffaa00"));
+        // The visited links: a little toward the text, readable on the base
+        CHECK(theme.palette.linkVisited != theme.palette.link);
+        CHECK(contrastRatio(theme.palette.linkVisited, theme.palette.base) >= 4.5);
+    }
+
+    SECTION("a theme file without a palette: they are in the theme's color too") {
+        nlohmann::json json = themeFile(darkPalette());
+        json.erase("palette");
+        const Theme theme = Theme::fromJson(json);
+        CHECK(theme.themeColorPalette ==
+              std::set<std::string>{"highlight", "highlightedText", "link", "linkVisited"});
+        CHECK(theme.palette.highlight == QColor("#ffaa00"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(contrastRatio(theme.palette.link, theme.palette.base) >= 4.5);
+        CHECK(contrastRatio(theme.palette.linkVisited, theme.palette.base) >= 4.5);
+    }
+
+    SECTION("a light color of the icons on a light base: the links are darker to be read") {
+        nlohmann::json json = themeFile({{"window", "#f0f0f0"}, {"base", "#ffffff"},
+                                         {"text", "#000000"}});
+        json["colors"]["primary"] = "#ffd54f";
+        const Theme theme = Theme::fromJson(json);
+        CHECK(theme.palette.highlight == QColor("#ffd54f"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(theme.palette.link != QColor("#ffd54f"));
+        CHECK(contrastRatio(theme.palette.link, theme.palette.base) >= 4.5);
+        CHECK(contrastRatio(theme.palette.linkVisited, theme.palette.base) >= 4.5);
+    }
+
+    SECTION("a theme file that lists the selection keeps it; its text follows it") {
+        nlohmann::json palette = darkPalette();
+        palette["highlight"] = "#1a237e";
+        palette["link"] = "#4fc3f7";
+        const Theme theme = Theme::fromJson(themeFile(palette));
+        CHECK(theme.themeColorPalette == std::set<std::string>{"highlightedText", "linkVisited"});
+        CHECK(theme.palette.highlight == QColor("#1a237e"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::white));
+        CHECK(theme.palette.link == QColor("#4fc3f7"));
+    }
+
+    SECTION("written out, they are left out: they follow the theme's color when read again") {
+        nlohmann::json palette = darkPalette();
+        palette["highlight"] = "#1a237e";
+        const Theme theme = Theme::fromJson(themeFile(palette));
+        const nlohmann::json written = theme.toJson();
+        CHECK(written["palette"]["highlight"] == "#1a237e");
+        for (const char* key : {"highlightedText", "link", "linkVisited"}) {
+            INFO(key);
+            CHECK_FALSE(written["palette"].contains(key));
+        }
+        const Theme read = Theme::fromJson(written);
+        CHECK(read.themeColorPalette == theme.themeColorPalette);
+        CHECK(read.palette.link == theme.palette.link);
+        CHECK(read.palette.highlightedText == theme.palette.highlightedText);
+    }
+
+    SECTION("the program's themes leave them to their color") {
+        auto& themes = ThemeManager::getInstance();
+        for (const QString& name : themes.getAvailableThemes()) {
+            INFO(name.toStdString());
+            const Theme theme = themes.loadTheme(name);
+            CHECK(theme.themeColorPalette.size() == 4);
+            CHECK(theme.palette.highlight == theme.colors.primary);
+        }
+    }
+}
+
+TEST_CASE("The selection and the links follow the writer's color of the icons, unless the writer "
+          "chose their own", "[core][theme]") {
+    const OwnColorsCleared cleared;
+    auto& themes = ThemeManager::getInstance();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const std::string name = themes.getCurrentTheme().name;
+    const QColor green("#2e8b57");
+    settings.setIconColorPrimaryForTheme(name, green.name().toStdString());
+
+    SECTION("the color of the icons") {
+        REQUIRE(themes.reloadTheme(QString::fromStdString(name)));
+        const Theme& theme = themes.getCurrentTheme();
+        CHECK(theme.palette.highlight == green);
+        CHECK(QApplication::palette().color(QPalette::Highlight) == green);
+        CHECK(QApplication::palette().color(QPalette::HighlightedText) ==
+              theme.palette.highlightedText);
+        CHECK(kalahari::core::contrastRatio(theme.palette.link, theme.palette.base) >= 4.5);
+        // As the Settings dialog shows another theme, without switching to it
+        CHECK(themes.storedTheme(QString::fromStdString(name)).palette.highlight == green);
+    }
+
+    SECTION("a selection of the writer's own stays; its text follows it") {
+        settings.setPaletteColorForTheme(name, "highlight", "#fff59d");
+        REQUIRE(themes.reloadTheme(QString::fromStdString(name)));
+        const Theme& theme = themes.getCurrentTheme();
+        CHECK(theme.palette.highlight == QColor("#fff59d"));
+        CHECK(theme.palette.highlightedText == QColor(Qt::black));
+        CHECK(theme.palette.link != QColor("#fff59d"));
+    }
+
+    SECTION("a changed color of the icons reaches them at once") {
+        REQUIRE(themes.reloadTheme(QString::fromStdString(name), {{"primary", QColor("#8e24aa")}}));
+        CHECK(themes.getCurrentTheme().palette.highlight == QColor("#8e24aa"));
+        CHECK(themes.getCurrentTheme().palette.highlightedText == QColor(Qt::white));
+    }
 }

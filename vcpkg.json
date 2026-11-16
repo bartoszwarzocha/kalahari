@@ -59,6 +59,13 @@
     },
     "catch2",
     "python3",
-    "pybind11"
-  ]
+    "pybind11",
+    {
+      "name": "pdfium",
+      "platform": "(windows & (x64 | arm64) & !uwp) | (osx & (x64 | arm64)) | (linux & (x64 | arm64))"
+    }
+  ],
+  "vcpkg-configuration": {
+    "overlay-ports": ["./vcpkg-ports"]
+  }
 }

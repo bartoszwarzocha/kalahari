@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file versions_coordinator.h
 /// @brief The versions of the texts of the book: File > Save Version and File > Version
 /// History, from the text in front, the Navigator and the Properties panel
@@ -15,7 +18,12 @@ class QStatusBar;
 class QTabWidget;
 class QWidget;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
 namespace kalahari::gui {
+
+class CommandRegistry;
 
 class EditorPanel;
 
@@ -50,15 +58,17 @@ public:
                                             std::function<void()> action)>;
 
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param centralTabs The tabs of the documents
     /// @param openChapter Opens a text of the book (none: only texts open in tabs)
     /// @param showNotice Says that a version was restored (none: nothing says it)
     /// @param statusBar Where short messages go (may be null)
     /// @param window The window of the program, over which the windows of the versions open
     /// @param parent Parent object
-    VersionsCoordinator(QTabWidget* centralTabs, ChapterOpener openChapter,
-                        NoticeShower showNotice, QStatusBar* statusBar, QWidget* window,
-                        QObject* parent = nullptr);
+    VersionsCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                        QTabWidget* centralTabs, ChapterOpener openChapter, NoticeShower showNotice,
+                        QStatusBar* statusBar, QWidget* window, QObject* parent = nullptr);
 
     /// @brief Destructor
     ~VersionsCoordinator() override;
@@ -144,6 +154,8 @@ private:
     QStatusBar* m_statusBar;
     QWidget* m_window;
     int m_settingsListener = 0;  ///< Greys Save Version out when versions are turned off
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 }  // namespace kalahari::gui

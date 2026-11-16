@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor.cpp
 /// @brief BookEditor implementation (OpenSpec #00042 Phase 3.1-3.5)
 
@@ -13,6 +16,7 @@
 #include <kalahari/editor/paragraph_data.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_keys.h>
 #include <QFocusEvent>
 #include <QHelpEvent>
@@ -45,6 +49,9 @@ constexpr qsizetype MARK_TOOLTIP_LENGTH = 600;
 // How long the editing pauses before a content as long as the saved one is compared with it
 constexpr int MODIFIED_CHECK_DELAY_MS = 150;
 
+// How long typing pauses before the word count fields show the new count
+constexpr int FIELD_WORDS_DELAY_MS = 400;
+
 // Two typewriter heights closer than this are the same (as for the render pipeline)
 constexpr double TYPEWRITER_HEIGHT_EPSILON = 0.0001;
 
@@ -64,6 +71,17 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     colors.inactiveText = appearance.colors.focusInactiveColor(mode);
     colors.formattingMarks = appearance.colors.formattingMarksColor(mode);
     colors.link = appearance.colors.linkColor(mode);
+    const bool light = mode == EditorColorMode::Light;
+    const EditorColors::TableColors& tables = appearance.colors.tables;
+    colors.tableLines = light ? tables.linesLight : tables.linesDark;
+    colors.tableHeader = light ? tables.headerLight : tables.headerDark;
+    colors.tableGridlines = light ? tables.gridlinesLight : tables.gridlinesDark;
+    const EditorColors::FieldColors& fields = appearance.colors.fields;
+    // Without the gray background of the fields a cross-reference to a caption the book does
+    // not have keeps its own
+    const QColor shading = light ? fields.light : fields.dark;
+    colors.field = appearance.fieldShading ? shading : QColor(Qt::transparent);
+    colors.brokenField = light ? fields.brokenLight : fields.brokenDark;
     const EditorColors::AnnotationColors& annotations = appearance.colors.annotations(mode);
     colors.annotationComment = annotations.comment;
     colors.annotationTodo = annotations.todo;
@@ -74,6 +92,9 @@ RenderColors renderColorsFor(const EditorAppearance& appearance, EditorColorMode
     }
     if (issues.grammar.isValid()) {
         colors.grammarWarning = issues.grammar;
+    }
+    if (issues.bookRule.isValid()) {
+        colors.bookRule = issues.bookRule;
     }
     if (issues.repetition.isValid()) {
         colors.repetition = issues.repetition;
@@ -102,14 +123,20 @@ void addCounts(core::TextCounts& total, const core::TextCounts& part) {
     total.nonSpaceCharacters += part.nonSpaceCharacters;
     total.paragraphs += part.paragraphs;
     total.dashes += part.dashes;
+    total.noteWords += part.noteWords;
+    total.noteDashes += part.noteDashes;
 }
 
-/// @brief The counts of a paragraph, counted when its cached counts are stale
+/// @brief The counts of a paragraph with the texts of its notes (core::addNoteCounts()),
+///        counted when its cached counts are stale
 const core::TextCounts& paragraphCounts(const QTextBlock& block,
                                         const core::WordCountRules& rules) {
     ParagraphData* data = ParagraphData::of(block);
     if (!data->countsValid) {
         data->counts = core::countText(block.text(), rules);
+        for (const NotePlace& place : notesIn(block)) {
+            core::addNoteCounts(data->counts, notePlainText(place.note.content), rules);
+        }
         data->countsValid = true;
     }
     return data->counts;
@@ -361,11 +388,12 @@ void BookEditor::setAppearance(const EditorAppearance& appearance)
         applyPageLayout();
     }
 
-    // How the scene breaks look
+    // How the scene breaks look, the frame of a missing image
     if (auto* layout = m_textBuffer ? qobject_cast<KalahariTextDocumentLayout*>(
                                           m_textBuffer->documentLayout())
                                     : nullptr) {
         layout->setSceneBreakLook(m_appearance.sceneBreakLook);
+        layout->setMissingImageColor(m_appearance.colors.imageMissingColor(m_appearance.colorMode));
     }
 
     // The cards of the annotations under the paragraphs: shown or not, their looks and colors
@@ -410,6 +438,11 @@ void BookEditor::setEditorColorMode(EditorColorMode mode)
         if (m_renderPipeline) {
             m_renderPipeline->setConfigColors(renderColorsFor(m_appearance, mode));
         }
+        if (auto* layout = m_textBuffer ? qobject_cast<KalahariTextDocumentLayout*>(
+                                              m_textBuffer->documentLayout())
+                                        : nullptr) {
+            layout->setMissingImageColor(m_appearance.colors.imageMissingColor(mode));
+        }
         updateAnnotationCards();  // in the colors of the paper
 
         update();
@@ -450,6 +483,15 @@ bool BookEditor::event(QEvent* event)
             event->accept();
             return true;
         }
+        // Esc lets go of an image being cropped or selected, Ctrl+] and Ctrl+[ resize the
+        // selected one (keyPressEvent())
+        const bool escape =
+            key->key() == Qt::Key_Escape && key->modifiers() == Qt::NoModifier;
+        const bool imageKey = escape || imageResizeKey(*key).has_value();
+        if (imageKey && (imageCropping() != nullptr || selectedImage().has_value())) {
+            event->accept();
+            return true;
+        }
     }
     // Tab types a tab character, as in word processors: QWidget::event() would go to the next
     // field. Shift+Tab still goes to the field before, and so does Tab in a read-only text, as
@@ -483,6 +525,34 @@ bool BookEditor::event(QEvent* event)
                                    .arg(lines.join(QStringLiteral("<br>"))),
                                this);
             return true;
+        }
+        // A field: what it shows and how it changes
+        if (const std::optional<int> field = fieldAt(QPointF(help->pos()))) {
+            if (const QString tip = fieldToolTip(*field); !tip.isEmpty()) {
+                QToolTip::showText(help->globalPos(), tip, this);
+                return true;
+            }
+        }
+        // A note's number: its name and its text, as the frame shows them
+        if (noteTextAt(QPointF(help->pos())).isEmpty()) {
+            if (const std::optional<NotePlace> note = noteAt(QPointF(help->pos()))) {
+                QString content = notePlainText(note->note.content).trimmed();
+                if (content.size() > MARK_TOOLTIP_LENGTH) {
+                    content = content.left(MARK_TOOLTIP_LENGTH) + QStringLiteral("...");
+                }
+                //: The tooltip of a note's number without its text. In Polish: (bez treści)
+                const QString shown = content.isEmpty()
+                                          ? QStringLiteral("<i>%1</i>").arg(tr("(no text)"))
+                                          : content.toHtmlEscaped();
+                const QString title =
+                    noteTitle(note->note.kind, noteNumber(note->note.id)).toHtmlEscaped();
+                QToolTip::showText(help->globalPos(),
+                                   QStringLiteral(
+                                       "<p style='white-space:pre-wrap'><b>%1</b><br>%2</p>")
+                                       .arg(title, shown),
+                                   this);
+                return true;
+            }
         }
         const std::optional<AnnotationMark> mark =
             m_renderPipeline->annotationMarkDetailsAt(QPointF(help->pos()));
@@ -551,7 +621,10 @@ void BookEditor::paintEvent(QPaintEvent* event)
     // Single render call handles everything for all view modes
     const QScopedValueRollback<bool> paintingWholeView(m_paintingWholeView,
                                                        event->region().contains(rect()));
+    updateNoteMarks();
     m_renderPipeline->render(&painter, event->rect());
+    paintColumnGuide(painter);
+    paintImageSelection(painter);  // over the image, which covers the selection under the text
 
     // Distraction-free mode overlay (not yet migrated to pipeline)
     paintDistractionFreeOverlay(painter);
@@ -678,13 +751,15 @@ void BookEditor::syncPipelineCursor()
         return;
     }
 
-    // Update cursor position and selection
+    // Update cursor position and selection. An image selected alone has its frame and handles
+    // instead (paintImageSelection()), as in Word
+    const bool imageSelected = selectedImage().has_value();
     m_renderPipeline->setCursorPosition(m_cursorPosition);
     // Shown while focused; m_cursorVisible is the blink phase (always on without blinking)
-    m_renderPipeline->setCursorVisible(hasFocus());
+    m_renderPipeline->setCursorVisible(hasFocus() && !imageSelected);
     m_renderPipeline->setCursorBlinkState(m_cursorVisible);
 
-    if (hasSelection()) {
+    if (hasSelection() && !imageSelected) {
         m_renderPipeline->setSelection(m_selection);
     } else {
         m_renderPipeline->clearSelection();
@@ -874,8 +949,17 @@ core::TextCounts BookEditor::selectionCounts() const
             addCounts(total, paragraphCounts(block, m_wordCountRules));
         } else if (end > start) {
             const QString text = block.text();
-            addCounts(total,
-                      core::countText(QStringView(text).mid(start, end - start), m_wordCountRules));
+            core::TextCounts part =
+                core::countText(QStringView(text).mid(start, end - start), m_wordCountRules);
+            // The notes whose numbers are selected
+            for (const NotePlace& place : notesIn(block)) {
+                const int offset = place.position - block.position();
+                if (offset >= start && offset < end) {
+                    core::addNoteCounts(part, notePlainText(place.note.content),
+                                        m_wordCountRules);
+                }
+            }
+            addCounts(total, part);
         }
     }
     return total;
@@ -897,6 +981,7 @@ void BookEditor::setWordCountRules(const core::WordCountRules& rules)
         }
     }
     update();  // the word count of Distraction-Free writing
+    refreshFieldWords();
     emit countsChanged();
 }
 
@@ -1074,7 +1159,12 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     auto* layout = new KalahariTextDocumentLayout(m_textBuffer.get());
     m_textBuffer->setDocumentLayout(layout);
     layout->setParagraphStyles(m_paragraphStyles);  // the book's styles (setParagraphStyles())
+    layout->setImageStore(m_imageStore);            // the files of the images (setImagesFolder())
     layout->setSceneBreakLook(m_appearance.sceneBreakLook);  // the view's setting
+    layout->setMissingImageColor(m_appearance.colors.imageMissingColor(m_appearance.colorMode));
+    layout->setCaptionContext(m_captionContext);  // the book around the text
+    layout->setFieldContext(m_fieldContext);
+    layout->setFootnoteContext(m_footnoteContext);
 
     // The numbers on the margin go on from the lines above the view, estimated until the
     // background pass lays them out: the view shows the exact numbers then. Laying out the
@@ -1123,6 +1213,15 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     cursor.endEditBlock();
     m_textBuffer->setUndoRedoEnabled(true);
 
+    // A new level of undo takes the place of the levels undone before it: the pastes among
+    // them cannot be redone any more
+    m_undoLevel = 0;
+    m_pasteLevels.clear();
+    connect(m_textBuffer.get(), &QTextDocument::undoCommandAdded, this, [this]() {
+        const int level = ++m_undoLevel;
+        m_pasteLevels.removeIf([level](int paste) { return paste >= level; });
+    });
+
     // The grammar of the paragraphs edited is checked when the writer stops typing (the
     // content put in above is not an edit: it is checked at once)
     connect(m_textBuffer.get(), &QTextDocument::contentsChange, this,
@@ -1131,6 +1230,34 @@ void BookEditor::createDocument(const KmlDocumentModel& content)
     // From now on an edit can make the content differ from the saved one, or bring it back
     connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
             &BookEditor::checkModified);
+
+    // The book counts the numbers of the captions again when they change
+    m_shownCaptions.clear();
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
+            &BookEditor::checkCaptionsSoon);
+    checkCaptionsSoon();
+    // and of the notes
+    m_shownNotes.clear();
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this,
+            &BookEditor::checkNotesSoon);
+    checkNotesSoon();
+
+    // The word count fields show the words of the text, counted again when typing pauses
+    if (m_fieldWordsTimer == nullptr) {
+        m_fieldWordsTimer = new QTimer(this);
+        m_fieldWordsTimer->setSingleShot(true);
+        m_fieldWordsTimer->setInterval(FIELD_WORDS_DELAY_MS);
+        connect(m_fieldWordsTimer, &QTimer::timeout, this, &BookEditor::refreshFieldWords);
+    }
+    m_fieldWordsTimer->stop();
+    connect(m_textBuffer.get(), &QTextDocument::contentsChanged, this, [this]() {
+        const auto* shown =
+            qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+        if (shown != nullptr && shown->hasTextField(FieldType::Words)) {
+            m_fieldWordsTimer->start();
+        }
+    });
+    refreshFieldWords();
 
     // Initialize QTextCursor for editing operations
     m_textCursor = QTextCursor(m_textBuffer.get());

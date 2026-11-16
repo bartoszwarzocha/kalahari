@@ -1,9 +1,15 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotation.cpp
 /// @brief Annotations on the text: comments, TODOs and notes
 
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/kml_format_registry.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_footnotes.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_link.h>
 
 #include <QTextBlock>
@@ -461,7 +467,10 @@ bool removeAnnotation(QTextDocument& document, const QString& id) {
 
 QTextCharFormat insertionFormat(const QTextCursor& cursor) {
     QTextCharFormat format = cursor.charFormat();
-    format.clearProperty(QTextFormat::ObjectType);  // text is never an object
+    format.clearProperty(QTextFormat::ObjectType);  // text is never an object, nor an image
+    clearImage(format);
+    clearField(format);     // nor a caption's number or a cross-reference
+    clearFootnote(format);  // nor the number of a note
 
     // Inside a fragment: between two of its characters, in one paragraph
     AnnotationList inside;

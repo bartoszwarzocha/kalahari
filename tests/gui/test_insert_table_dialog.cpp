@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_insert_table_dialog.cpp
 /// @brief Insert > Table...: the window of the new table and the table the editor panel puts
 ///        in the text
@@ -17,6 +20,7 @@
 #include <QSpinBox>
 #include <QTimer>
 #include <QToolButton>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::editor;
@@ -89,7 +93,7 @@ TEST_CASE("Insert Table dialog: columns, rows and the header row", "[gui][tables
 
 TEST_CASE("Editor panel: Insert > Table puts the window's table at the cursor",
           "[gui][tables][dialog]") {
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     BookEditor* editor = panel.getBookEditor();
     editor->fromKml(QStringLiteral("<kml><p>One</p><p></p><p>Two</p></kml>"));
     editor->setCursorPosition({1, 0});

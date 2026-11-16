@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_clipboard_handler.cpp
 /// @brief Unit tests for ClipboardHandler (OpenSpec #00042 Phase 4.13-4.16)
 /// Phase 11: Updated to test only format conversion utilities

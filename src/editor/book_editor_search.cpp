@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_search.cpp
 /// @brief BookEditor: find and replace
 
@@ -5,9 +8,12 @@
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/search_engine.h>
+#include <kalahari/editor/search_forms.h>
+#include <kalahari/editor/text_footnotes.h>
 #include "book_editor_internal.h"
 #include <QScrollBar>
 #include <QTextBlock>
+#include <optional>
 
 namespace kalahari::editor {
 
@@ -30,6 +36,9 @@ void BookEditor::setupFindReplace()
     m_findReplaceBar = new FindReplaceBar(this);
     m_findReplaceBar->setCursor(Qt::ArrowCursor);
     m_findReplaceBar->setSearchEngine(m_searchEngine.get());
+    m_findReplaceBar->setFormsOf([this](const QString& text) {
+        return formsToFind(text, m_bookDictionary, m_spellCheckService);
+    });
     // Find/Replace performs its edits directly on the document, which QTextDocument's
     // native undo records
     m_findReplaceBar->hide();
@@ -50,19 +59,26 @@ void BookEditor::setupFindReplace()
         emit aboutToReplaceAll(m_searchEngine->searchText(), m_searchEngine->replaceText(), count);
     });
 
+    recordReplacementCursors(*m_searchEngine);
+    syncSearchOrigin();
+}
+
+void BookEditor::recordReplacementCursors(SearchEngine& engine)
+{
     // Undoing a replacement brings back the cursor and selection it was made with, redoing
     // it the cursor at the end of the replaced text: after undoing Replace All QTextDocument
     // would put the cursor at the start of the text. Of the step's undo items, the first is
     // undone last and the last redone last.
-    connect(m_searchEngine.get(), &SearchEngine::replacementStepBegun, this, [this]() {
-        m_searchEngine->document()->appendUndoItem(new CallbackUndoItem(
+    connect(&engine, &SearchEngine::replacementStepBegun, this, [this, &engine]() {
+        engine.document()->appendUndoItem(new CallbackUndoItem(
             [this, state = StepCursor{m_cursorPosition, m_selection}] { m_stepCursor = state; }));
     });
-    connect(m_searchEngine.get(), &SearchEngine::replacementStepEnding, this, [this]() {
-        m_searchEngine->document()->appendUndoItem(new CallbackUndoItem(
-            [this, state = StepCursor{replacedTextEnd(), {}}] { m_stepCursor = state; }));
+    connect(&engine, &SearchEngine::replacementStepEnding, this, [this, &engine]() {
+        engine.document()->appendUndoItem(new CallbackUndoItem(
+            [this, state = StepCursor{replacedTextEnd(engine.replacementEnd()), {}}] {
+                m_stepCursor = state;
+            }));
     });
-    syncSearchOrigin();
 }
 
 SearchEngine* BookEditor::searchEngine() const
@@ -72,6 +88,11 @@ SearchEngine* BookEditor::searchEngine() const
 
 void BookEditor::syncSearchOrigin()
 {
+    // The text of a note shown selected while its number is selected
+    if (m_noteSelection && !isNoteNumberSelected(m_noteSelection->id)) {
+        m_noteSelection.reset();
+        update();
+    }
     if (!m_searchEngine || !m_textBuffer) {
         return;
     }
@@ -82,18 +103,31 @@ void BookEditor::syncSearchOrigin()
                                                 : SelectionRange{m_cursorPosition, m_cursorPosition};
     m_searchEngine->setOrigin(
         static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.start)),
-        static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.end)));
+        static_cast<size_t>(editor::calculateAbsolutePosition(m_textBuffer.get(), range.end)),
+        m_noteSelection);
+}
+
+QString BookEditor::searchTextFromSelection() const
+{
+    // The search goes paragraph by paragraph: text across paragraphs would never be found.
+    // A line break would show in the field as a space, which it does not find. A note's
+    // number selected for a range of its text (a match): that text.
+    QString text;
+    if (m_noteSelection) {
+        if (const std::optional<NotePlace> place = noteOf(m_noteSelection->id)) {
+            text = noteText(place->note.content)
+                       .mid(m_noteSelection->start, m_noteSelection->length);
+        }
+    } else if (hasSelection() && m_selection.start.paragraph == m_selection.end.paragraph) {
+        text = selectedText();
+    }
+    return text.contains(QChar::LineSeparator) ? QString() : text;
 }
 
 void BookEditor::takeSearchTextFromSelection()
 {
-    // The search goes paragraph by paragraph: text across paragraphs would never be found.
-    // A line break would show in the field as a space, which it does not find.
-    if (hasSelection() && m_selection.start.paragraph == m_selection.end.paragraph) {
-        const QString text = selectedText();
-        if (!text.contains(QChar::LineSeparator)) {
-            m_findReplaceBar->setSearchText(text);
-        }
+    if (const QString text = searchTextFromSelection(); !text.isEmpty()) {
+        m_findReplaceBar->setSearchText(text);
     }
 }
 
@@ -212,6 +246,12 @@ void BookEditor::hideFindReplace()
 
 void BookEditor::onNavigateToMatch(const SearchMatch& match)
 {
+    // In a note's text: the note's number selected, the match in its text
+    if (match.inNote()) {
+        selectNoteRange({match.noteId, match.noteOffset, static_cast<int>(match.length)});
+        return;
+    }
+
     // Move cursor to match position
     CursorPosition newPos{match.paragraph, match.paragraphOffset};
     setCursorPosition(newPos);
@@ -225,9 +265,55 @@ void BookEditor::onNavigateToMatch(const SearchMatch& match)
     update();
 }
 
-CursorPosition BookEditor::replacedTextEnd() const
+bool BookEditor::goToSearchMatch(const SearchMatch& match)
 {
-    const int end = m_searchEngine ? m_searchEngine->replacementEnd() : -1;
+    if (!m_textBuffer || !match.isValid()) {
+        return false;
+    }
+    // The match where it was found: the same text there
+    const auto length = static_cast<int>(match.length);
+    if (match.inNote()) {
+        const std::optional<NotePlace> place = findNote(*m_textBuffer, match.noteId);
+        if (!place ||
+            noteText(place->note.content).mid(match.noteOffset, length) != match.matchedText) {
+            return false;
+        }
+    } else {
+        const QTextBlock block = m_textBuffer->findBlockByNumber(match.paragraph);
+        if (!block.isValid() ||
+            block.text().mid(match.paragraphOffset, length) != match.matchedText) {
+            return false;
+        }
+    }
+    onNavigateToMatch(match);
+    return true;
+}
+
+int BookEditor::replaceAllInText(const QString& searchText, const QString& replaceText,
+                                 const SearchOptions& options)
+{
+    if (m_readOnly || !m_textBuffer || searchText.isEmpty()) {
+        return 0;
+    }
+    SearchEngine engine;
+    engine.setDocument(m_textBuffer.get());
+    engine.setSearchText(searchText);
+    engine.setReplaceText(replaceText);
+    engine.setOptions(options);
+    connect(&engine, &SearchEngine::aboutToReplaceAll, this,
+            [this, &searchText, &replaceText](int count) {
+                emit aboutToReplaceAll(searchText, replaceText, count);
+            });
+    recordReplacementCursors(engine);
+    const int count = engine.replaceAll();
+    if (count > 0) {
+        finishReplacement(engine.replacementEnd());
+    }
+    return count;
+}
+
+CursorPosition BookEditor::replacedTextEnd(int end) const
+{
     const QTextBlock block =
         end >= 0 && m_textBuffer ? m_textBuffer->findBlock(end) : QTextBlock();
     return block.isValid() ? CursorPosition{block.blockNumber(), end - block.position()}
@@ -236,11 +322,16 @@ CursorPosition BookEditor::replacedTextEnd() const
 
 void BookEditor::onTextReplaced()
 {
+    finishReplacement(m_searchEngine ? m_searchEngine->replacementEnd() : -1);
+}
+
+void BookEditor::finishReplacement(int end)
+{
     // The cursor goes to the end of the replaced text, after Replace All to the end of the
     // last replacement: where it stood, at the end of the match, the replacement may be
     // longer or shorter, and the cursor would land inside a word
     clearSelection();
-    m_cursorPosition = validateCursorPosition(replacedTextEnd());
+    m_cursorPosition = validateCursorPosition(replacedTextEnd(end));
 
     ensureCursorVisible();
     syncPipelineCursor();

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file project_database.cpp
 /// @brief Implementation of ProjectDatabase
 ///
@@ -6,6 +9,7 @@
 #include "kalahari/core/project_database.h"
 #include "kalahari/core/database_schema_manager.h"
 #include "kalahari/core/logger.h"
+#include "kalahari/core/writing_journal.h"
 
 #include <QSqlQuery>
 #include <QSqlError>
@@ -58,6 +62,11 @@ bool ProjectDatabase::open(const QString& projectPath)
     }
 
     configurePragmas();
+    // Books made before the record of writing get its table now
+    if (!writing_activity_store::createTable(m_db)) {
+        Logger::getInstance().warn("ProjectDatabase: No table of the record of writing: {}",
+                                   m_db.lastError().text().toStdString());
+    }
 
     Logger::getInstance().info("ProjectDatabase: Opened {}", dbPath.toStdString());
     return true;
@@ -246,207 +255,6 @@ void ProjectDatabase::addChapterHistory(const QString& chapterId, const QString&
 }
 
 // =============================================================================
-// Character Library
-// =============================================================================
-
-QList<CharacterInfo> ProjectDatabase::getAllCharacters() const
-{
-    QList<CharacterInfo> characters;
-    QSqlQuery query(m_db);
-    query.exec("SELECT id, name, description, color, notes, created_at, modified_at "
-               "FROM characters ORDER BY name");
-
-    while (query.next()) {
-        CharacterInfo c;
-        c.id = query.value(0).toString();
-        c.name = query.value(1).toString();
-        c.description = query.value(2).toString();
-        c.color = query.value(3).toString();
-        c.notes = query.value(4).toString();
-        c.createdAt = QDateTime::fromString(query.value(5).toString(), Qt::ISODate);
-        c.modifiedAt = QDateTime::fromString(query.value(6).toString(), Qt::ISODate);
-        characters.append(c);
-    }
-    return characters;
-}
-
-CharacterInfo ProjectDatabase::getCharacter(const QString& id) const
-{
-    CharacterInfo c;
-    QSqlQuery query(m_db);
-    query.prepare("SELECT id, name, description, color, notes, created_at, modified_at "
-                  "FROM characters WHERE id = ?");
-    query.addBindValue(id);
-
-    if (query.exec() && query.next()) {
-        c.id = query.value(0).toString();
-        c.name = query.value(1).toString();
-        c.description = query.value(2).toString();
-        c.color = query.value(3).toString();
-        c.notes = query.value(4).toString();
-        c.createdAt = QDateTime::fromString(query.value(5).toString(), Qt::ISODate);
-        c.modifiedAt = QDateTime::fromString(query.value(6).toString(), Qt::ISODate);
-    }
-    return c;
-}
-
-void ProjectDatabase::saveCharacter(const CharacterInfo& character)
-{
-    QSqlQuery query(m_db);
-    query.prepare("INSERT OR REPLACE INTO characters "
-                  "(id, name, description, color, notes, created_at, modified_at) "
-                  "VALUES (?, ?, ?, ?, ?, ?, ?)");
-    query.addBindValue(character.id);
-    query.addBindValue(character.name);
-    query.addBindValue(character.description);
-    query.addBindValue(character.color);
-    query.addBindValue(character.notes);
-    query.addBindValue(character.createdAt.toString(Qt::ISODate));
-    query.addBindValue(character.modifiedAt.toString(Qt::ISODate));
-    query.exec();
-}
-
-void ProjectDatabase::deleteCharacter(const QString& id)
-{
-    QSqlQuery query(m_db);
-    query.prepare("DELETE FROM characters WHERE id = ?");
-    query.addBindValue(id);
-    query.exec();
-}
-
-// =============================================================================
-// Location Library
-// =============================================================================
-
-QList<LocationInfo> ProjectDatabase::getAllLocations() const
-{
-    QList<LocationInfo> locations;
-    QSqlQuery query(m_db);
-    query.exec("SELECT id, name, description, notes, created_at, modified_at "
-               "FROM locations ORDER BY name");
-
-    while (query.next()) {
-        LocationInfo l;
-        l.id = query.value(0).toString();
-        l.name = query.value(1).toString();
-        l.description = query.value(2).toString();
-        l.notes = query.value(3).toString();
-        l.createdAt = QDateTime::fromString(query.value(4).toString(), Qt::ISODate);
-        l.modifiedAt = QDateTime::fromString(query.value(5).toString(), Qt::ISODate);
-        locations.append(l);
-    }
-    return locations;
-}
-
-LocationInfo ProjectDatabase::getLocation(const QString& id) const
-{
-    LocationInfo l;
-    QSqlQuery query(m_db);
-    query.prepare("SELECT id, name, description, notes, created_at, modified_at "
-                  "FROM locations WHERE id = ?");
-    query.addBindValue(id);
-
-    if (query.exec() && query.next()) {
-        l.id = query.value(0).toString();
-        l.name = query.value(1).toString();
-        l.description = query.value(2).toString();
-        l.notes = query.value(3).toString();
-        l.createdAt = QDateTime::fromString(query.value(4).toString(), Qt::ISODate);
-        l.modifiedAt = QDateTime::fromString(query.value(5).toString(), Qt::ISODate);
-    }
-    return l;
-}
-
-void ProjectDatabase::saveLocation(const LocationInfo& location)
-{
-    QSqlQuery query(m_db);
-    query.prepare("INSERT OR REPLACE INTO locations "
-                  "(id, name, description, notes, created_at, modified_at) "
-                  "VALUES (?, ?, ?, ?, ?, ?)");
-    query.addBindValue(location.id);
-    query.addBindValue(location.name);
-    query.addBindValue(location.description);
-    query.addBindValue(location.notes);
-    query.addBindValue(location.createdAt.toString(Qt::ISODate));
-    query.addBindValue(location.modifiedAt.toString(Qt::ISODate));
-    query.exec();
-}
-
-void ProjectDatabase::deleteLocation(const QString& id)
-{
-    QSqlQuery query(m_db);
-    query.prepare("DELETE FROM locations WHERE id = ?");
-    query.addBindValue(id);
-    query.exec();
-}
-
-// =============================================================================
-// Item Library
-// =============================================================================
-
-QList<ItemInfo> ProjectDatabase::getAllItems() const
-{
-    QList<ItemInfo> items;
-    QSqlQuery query(m_db);
-    query.exec("SELECT id, name, description, notes, created_at, modified_at "
-               "FROM items ORDER BY name");
-
-    while (query.next()) {
-        ItemInfo i;
-        i.id = query.value(0).toString();
-        i.name = query.value(1).toString();
-        i.description = query.value(2).toString();
-        i.notes = query.value(3).toString();
-        i.createdAt = QDateTime::fromString(query.value(4).toString(), Qt::ISODate);
-        i.modifiedAt = QDateTime::fromString(query.value(5).toString(), Qt::ISODate);
-        items.append(i);
-    }
-    return items;
-}
-
-ItemInfo ProjectDatabase::getItem(const QString& id) const
-{
-    ItemInfo i;
-    QSqlQuery query(m_db);
-    query.prepare("SELECT id, name, description, notes, created_at, modified_at "
-                  "FROM items WHERE id = ?");
-    query.addBindValue(id);
-
-    if (query.exec() && query.next()) {
-        i.id = query.value(0).toString();
-        i.name = query.value(1).toString();
-        i.description = query.value(2).toString();
-        i.notes = query.value(3).toString();
-        i.createdAt = QDateTime::fromString(query.value(4).toString(), Qt::ISODate);
-        i.modifiedAt = QDateTime::fromString(query.value(5).toString(), Qt::ISODate);
-    }
-    return i;
-}
-
-void ProjectDatabase::saveItem(const ItemInfo& item)
-{
-    QSqlQuery query(m_db);
-    query.prepare("INSERT OR REPLACE INTO items "
-                  "(id, name, description, notes, created_at, modified_at) "
-                  "VALUES (?, ?, ?, ?, ?, ?)");
-    query.addBindValue(item.id);
-    query.addBindValue(item.name);
-    query.addBindValue(item.description);
-    query.addBindValue(item.notes);
-    query.addBindValue(item.createdAt.toString(Qt::ISODate));
-    query.addBindValue(item.modifiedAt.toString(Qt::ISODate));
-    query.exec();
-}
-
-void ProjectDatabase::deleteItem(const QString& id)
-{
-    QSqlQuery query(m_db);
-    query.prepare("DELETE FROM items WHERE id = ?");
-    query.addBindValue(id);
-    query.exec();
-}
-
-// =============================================================================
 // Session Statistics
 // =============================================================================
 
@@ -609,6 +417,26 @@ void ProjectDatabase::deleteCharacterStyle(const QString& id)
     query.prepare("DELETE FROM character_styles WHERE id = ?");
     query.addBindValue(id);
     query.exec();
+}
+
+// =============================================================================
+// Record of writing
+// =============================================================================
+
+bool ProjectDatabase::addWritingActivity(const QList<WritingActivity>& activity)
+{
+    if (!isOpen()) {
+        return false;
+    }
+    return writing_activity_store::add(m_db, activity);
+}
+
+QList<WritingActivity> ProjectDatabase::writingActivity(const QDate& from, const QDate& to) const
+{
+    if (!isOpen()) {
+        return {};
+    }
+    return writing_activity_store::read(m_db, from, to);
 }
 
 // =============================================================================

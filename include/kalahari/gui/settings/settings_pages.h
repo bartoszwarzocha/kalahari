@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file settings_pages.h
 /// @brief The pages of the Settings dialog
 ///
@@ -12,6 +15,8 @@
 #include <QList>
 
 #include <functional>
+#include <map>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -21,11 +26,19 @@ class QHBoxLayout;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
+class QSpinBox;
 class QTableWidget;
 class QTableWidgetItem;
 class QTreeWidget;
 class QTreeWidgetItem;
-class QSpinBox;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari {
 namespace core {
@@ -39,6 +52,7 @@ namespace gui {
 
 class ColorConfigWidget;
 class FolderField;
+class PaletteEdit;
 struct ReplacementEntry;
 
 /// @brief General: startup
@@ -101,6 +115,15 @@ private:
     /// @brief The selected theme's name
     [[nodiscard]] std::string themeName() const;
 
+    /// @brief Which palette colors follow the theme's color: those the theme file does not
+    ///        list (core::Theme::themeColorPalette), without a color of the user's own
+    /// @param reset Also those with a color of the user's own (Reset to Theme Defaults)
+    void startFollowing(bool reset);
+
+    /// @brief Show the palette colors that follow the theme's color as it is made from the
+    ///        colors shown (the Primary icon color, the selection, the base, the text)
+    void followThemeColor();
+
     QComboBox* m_themeCombo;
     ColorConfigWidget* m_primaryColor = nullptr;
     ColorConfigWidget* m_secondaryColor = nullptr;
@@ -111,6 +134,15 @@ private:
         Binding* binding;
     };
     std::vector<ColorField> m_colors;
+
+    /// @brief A palette color of the page
+    struct PaletteColor {
+        ColorConfigWidget* widget = nullptr;
+        std::function<QColor&(core::Theme&)> field;  ///< Its place in a theme
+        Binding* binding = nullptr;
+        bool follows = false;  ///< Made from the theme's color: none of the user's own is kept
+    };
+    std::map<std::string, PaletteColor> m_paletteColors;  ///< By the palette's key ("link")
 };
 
 /// @brief Appearance > Icons: icon style and sizes
@@ -146,14 +178,19 @@ public:
     /// @brief The pages of the general settings of the editor
     enum class Part {
         Text,    ///< The font, the spacing, the tabs and the scene breaks
-        Writing  ///< Pasting, opening a chapter, typewriter scrolling, the word count
+        Writing  ///< Pasting, the fields, opening a chapter, typewriter scrolling, the word count
     };
 
-    explicit EditorGeneralPage(Part part = Part::Text, QWidget* parent = nullptr);
+    /// @param commands The commands of its window, whose keys the notes name
+    /// @param part The page
+    explicit EditorGeneralPage(CommandRegistry& commands, Part part = Part::Text,
+                               QWidget* parent = nullptr);
 
 private:
     void createText();
     void createWriting();
+
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 /// @brief Editor > Colors: the light and the dark paper, kept for each theme
@@ -176,8 +213,14 @@ class EditorSpellingPage : public SettingsPage {
 public:
     /// @param spelling The dictionary of the editors: the page lists its own words and
     ///        changes them when applied (none: the page does not list them)
+    /// @param bookOpen Whether a book is open: Open Book Dictionary is enabled
     explicit EditorSpellingPage(editor::SpellCheckService* spelling = nullptr,
-                                QWidget* parent = nullptr);
+                                bool bookOpen = false, QWidget* parent = nullptr);
+
+signals:
+    /// @brief Open Book Dictionary was clicked: the settings are applied and the book's
+    ///        dictionary shows on its tab
+    void bookDictionaryAsked();
 
 protected:
     /// @brief Enter in the field of a new word adds it, and does not close the dialog
@@ -186,6 +229,10 @@ protected:
 private:
     /// @brief The group of the writer's own words, which the page changes in @p spelling
     void addOwnWords(editor::SpellCheckService* spelling);
+
+    /// @brief The group Book Dictionary: the departures from its rules marked, where the
+    ///        panel adds a word, and Open Book Dictionary
+    void addBookDictionaryGroup(bool bookOpen);
 
     /// @brief Add the word of the field to the list
     void addWord();
@@ -219,6 +266,47 @@ private:
     void addMarginNumbersGroup();
 };
 
+/// @brief Editor > Images: how new images go into the text, the captions of new books, the
+///        copies of the files and the manuscript for a publisher
+///
+/// The labels of the captions are a list of the page: Add..., Rename... and Remove change it,
+/// and the label of the caption of a new image is one of them. A book has its own labels and
+/// numbering from its first caption on (Insert Caption > Numbering...): the page sets those
+/// of new books.
+class EditorImagesPage : public SettingsPage {
+    Q_OBJECT
+public:
+    explicit EditorImagesPage(QWidget* parent = nullptr);
+
+signals:
+    /// @brief Show: the page Editor > Colors, with the colors of the fields and the frames
+    void colorsPageAsked();
+
+private:
+    /// @brief The labels as the list has them
+    [[nodiscard]] QStringList listedLabels() const;
+
+    /// @brief Fill the list and the label of new images' captions with @p labels
+    void showLabels(const QStringList& labels);
+
+    /// @brief Add..., Rename...: a label typed in a window; Remove: the label selected
+    void addLabel();
+    void renameLabel();
+    void removeLabel();
+
+    /// @brief The label of the caption of new images offers the labels of the list
+    void fillCaptionLabels();
+
+    /// @brief Rename and Remove for the label selected (one label always stays)
+    void updateLabelButtons();
+
+    QListWidget* m_labels = nullptr;        ///< The labels of the captions of new books
+    QComboBox* m_captionLabel = nullptr;    ///< The label of the caption of a new image
+    QPushButton* m_addLabel = nullptr;
+    QPushButton* m_renameLabel = nullptr;
+    QPushButton* m_removeLabel = nullptr;
+};
+
 /// @brief Editor > Auto-correct: what is changed in the text as it is typed, on three tabs
 ///
 /// While Typing has the replacements of the characters and the text elements typed,
@@ -231,13 +319,14 @@ private:
 class EditorAutoCorrectPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorAutoCorrectPage(QWidget* parent = nullptr);
+    explicit EditorAutoCorrectPage(CommandRegistry& commands, QWidget* parent = nullptr);
 
 protected:
     /// @brief The keys of the table and of the fields of a new pair
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    CommandRegistry& m_commands;  ///< The commands of its window
     /// @brief The tab of the characters replaced as they are typed
     QWidget* createWhileTypingTab();
 
@@ -303,9 +392,10 @@ private:
 class EditorQuickInsertPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorQuickInsertPage(QWidget* parent = nullptr);
+    explicit EditorQuickInsertPage(CommandRegistry& commands, QWidget* parent = nullptr);
 
 private:
+    CommandRegistry& m_commands;  ///< The commands of its window
     void createSources();
     void createItems();
 
@@ -332,13 +422,14 @@ private:
 class EditorRepetitionsPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorRepetitionsPage(QWidget* parent = nullptr);
+    explicit EditorRepetitionsPage(CommandRegistry& commands, QWidget* parent = nullptr);
 
 protected:
     /// @brief Enter in the field of a new word adds it, and does not close the dialog
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    CommandRegistry& m_commands;  ///< The commands of its window
     void addWord();
     void removeWords();
     void updateButtons();
@@ -354,7 +445,10 @@ private:
 class EditorVersionsPage : public SettingsPage {
     Q_OBJECT
 public:
-    explicit EditorVersionsPage(QWidget* parent = nullptr);
+    explicit EditorVersionsPage(CommandRegistry& commands, QWidget* parent = nullptr);
+
+private:
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 /// @brief Annotations: who new comments, to-dos and notes are by, their marks in the text, their
@@ -377,7 +471,8 @@ private:
 
 /// @brief Navigator: the commands that the menu of a node of the Navigator has for adding,
 /// what the top of the Add Element window chooses from, what the Materials show and where a
-/// list of materials opens, how a material opens, and whether its links name paragraphs; the
+/// list of materials opens, what a material dropped gives, and whether its links name
+/// paragraphs; the
 /// kinds of materials the Navigator shows (MaterialList::HIDDEN_SETTING) and how the texts of
 /// the cover are counted, with the targets of their kinds (core::CoverMaterial)
 class NavigatorPage : public SettingsPage {
@@ -385,17 +480,19 @@ class NavigatorPage : public SettingsPage {
 public:
     /// @brief The pages of Settings > Navigator, each with its own groups
     enum class Part {
-        Adding,     ///< The menus of the nodes, the Add Element window, dropped and pasted
-        Materials,  ///< The lists of the materials, how they open, their links
-        Kinds,      ///< The kinds of materials the Navigator shows
-        Cover       ///< The lengths of the texts of the cover
+        Adding,  ///< The menus of the nodes, the Add Element window, dropped and pasted
+        Lists,   ///< What the Materials show, where the list of a kind opens, the links
+        Kinds,   ///< The kinds of materials the Navigator shows
+        Cover    ///< The lengths of the texts of the cover
     };
 
-    explicit NavigatorPage(Part part, QWidget* parent = nullptr);
+    /// @param book The book of its window, whose numbers of materials the kinds show
+    /// @param part The page
+    NavigatorPage(const core::ProjectManager& book, Part part, QWidget* parent = nullptr);
 
 private:
     void createAdding();
-    void createMaterials();
+    void createLists();
     void createKinds();
     void createCover();
 
@@ -403,6 +500,76 @@ private:
     QComboBox* m_coverUnit = nullptr;  ///< The texts of the cover counted in characters or words
     QList<QSpinBox*> m_characterTargets;  ///< The targets of the texts of the cover in characters
     QList<QSpinBox*> m_wordTargets;       ///< In words
+    const core::ProjectManager& m_book;  ///< The book of its window
+};
+
+/// @brief Cards: the colors of the cards of characters, locations and items – the dot of the
+/// color of a card beside its name in the Navigator (core::CardColors::NAVIGATOR_DOT_SETTING)
+/// and the palette that new cards take their colors from (core::CardColors::PALETTE_SETTING);
+/// the locations in the Navigator, in a tree or in a list (NavigatorPanel::CARDS_TREE_SETTING)
+class CardsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    /// @param parent Parent widget
+    explicit CardsPage(QWidget* parent = nullptr);
+
+    /// @brief The palette of the new cards
+    [[nodiscard]] PaletteEdit* paletteEdit() const { return m_palette; }
+
+    /// @brief Restore Defaults of the palette
+    [[nodiscard]] QPushButton* restorePaletteButton() const { return m_restorePalette; }
+
+    /// @brief The locations in the Navigator: in a tree, each under the one it is part of
+    ///        ("tree"), or in alphabetical order ("list")
+    [[nodiscard]] QComboBox* locationsList() const { return m_locations; }
+
+private:
+    /// @brief The group Navigator: the locations in a tree or in a list
+    void addNavigatorGroup();
+
+    PaletteEdit* m_palette = nullptr;
+    QPushButton* m_restorePalette = nullptr;
+    QComboBox* m_locations = nullptr;
+};
+
+/// @brief Materials: how a picture, a page or a picture on the web and a PDF file open
+/// (NavigatorPanel::OPEN_MATERIALS_SETTING, NavigatorPanel::OPEN_PAGES_SETTING,
+/// PdfFiles::OPEN_SETTING); the preview of PDF files: the layout of the pages, their look in a
+/// dark theme, the zoom and the side panel it opens with and whether it opens at the page shown
+/// last (PdfFiles); the sources: the style of the bibliography of a book without its own
+/// (core::Bibliography::STYLE_SETTING) and the form of a reference in the text
+/// (core::Bibliography::REFERENCE_SETTING)
+class MaterialsPage : public SettingsPage {
+    Q_OBJECT
+public:
+    /// @brief The page with the settings as they are
+    explicit MaterialsPage(QWidget* parent = nullptr);
+
+signals:
+    /// @brief Show: the page Editor > Colors, with the colors of the preview of PDF files
+    void colorsPageAsked();
+
+private:
+    /// @brief A list @p label of @p form with the choices of setting @p key, bound to it, the
+    /// note of the chosen one under it (addChoice()); the first one is chosen when the setting
+    /// has none of their values
+    QComboBox* addChoices(QFormLayout* form, const QString& label, const char* key,
+                          const std::vector<Choice>& choices);
+
+    /// @brief The group Opening
+    void addOpening();
+
+    /// @brief The group PDF Preview
+    void addPdfPreview();
+
+    /// @brief The group Sources
+    void addSources();
+
+    QComboBox* m_openPdf = nullptr;            ///< A PDF file opens on a preview tab or not
+    QComboBox* m_pdfZoom = nullptr;            ///< The zoom the preview opens with
+    QComboBox* m_pdfSide = nullptr;            ///< The side panel it opens with
+    QComboBox* m_style = nullptr;      ///< PN-ISO 690, APA...
+    QComboBox* m_reference = nullptr;  ///< (Wiśniewska 2011, s. 45)...
 };
 
 /// @brief Network > Materials: whether the program downloads the title of the page or the copy

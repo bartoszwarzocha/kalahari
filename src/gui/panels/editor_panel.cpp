@@ -1,19 +1,27 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_panel.cpp
 /// @brief Editor panel implementation with BookEditor (OpenSpec #00042 Phase 7.1)
 
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/book_styles.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/font_dialog.h"
 #include "kalahari/gui/dialogs/hyperlink_dialog.h"
+#include "kalahari/gui/dialogs/image_properties_dialog.h"
 #include "kalahari/gui/dialogs/insert_table_dialog.h"
 #include "kalahari/gui/dialogs/list_dialogs.h"
 #include "kalahari/gui/dialogs/paragraph_dialog.h"
+#include "kalahari/gui/dialogs/table_dialogs.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/annotation_colors.h"
 #include "kalahari/gui/quick_insert_items.h"
 #include "kalahari/gui/read_only_book.h"
 #include "kalahari/gui/spelling_coordinator.h"
+#include "kalahari/gui/utils/language_names.h"
+#include "kalahari/gui/utils/program_folders.h"
 #include "kalahari/gui/utils/caps_lock.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/project_manager.h"
@@ -28,10 +36,17 @@
 #include "kalahari/editor/paragraph_styles.h"
 #include "kalahari/editor/quick_insert_controller.h"
 #include "kalahari/editor/statistics_collector.h"
+#include "kalahari/editor/text_images.h"
+#include "kalahari/gui/caption_settings.h"
 #include "kalahari/editor/text_link.h"
 #include "kalahari/editor/word_repetitions.h"
 #include <QDesktopServices>
+#include <QDir>
 #include <QEvent>
+#include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QSaveFile>
 #include <QGuiApplication>
 #include <QMainWindow>
 #include <QScreen>
@@ -88,9 +103,11 @@ constexpr int AUTO_CORRECT_MESSAGE_MS = 5000;
 
 }  // namespace
 
-EditorPanel::EditorPanel(QWidget* parent)
+EditorPanel::EditorPanel(core::ProjectManager& book, CommandRegistry& commands, QWidget* parent)
     : QWidget(parent)
     , m_bookEditor(nullptr)
+    , m_book(book)
+    , m_commands(commands)
 {
     auto& logger = core::Logger::getInstance();
     logger.debug("EditorPanel constructor called");
@@ -109,15 +126,43 @@ EditorPanel::EditorPanel(QWidget* parent)
     connect(m_bookEditor, &editor::BookEditor::modifiedChanged, this,
             &EditorPanel::modifiedChanged);
 
+    // A style of the book added, changed or removed: the text shows it at once
+    connect(&m_book, &core::ProjectManager::paragraphStylesChanged,
+            this, [this]() { m_bookEditor->setParagraphStyles(paragraphStyles()); });
+
     // The text's context menu cuts, copies, pastes and selects all with the commands of the
     // Edit menu: their icons and keys, enabled as there
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = m_commands;
     m_bookEditor->setContextMenuEditActions(
         {registry.getAction(QStringLiteral("edit.cut")),
          registry.getAction(QStringLiteral("edit.copy")),
          registry.getAction(QStringLiteral("edit.paste")),
          registry.getAction(QStringLiteral("edit.selectAll")),
          registry.getAction(QStringLiteral("insert.link"))});
+    // The context menu of a cell: the commands of the Table menu, enabled as there
+    const auto actions = [&registry](std::initializer_list<const char*> ids) {
+        QList<QAction*> found;
+        for (const char* id : ids) {
+            found << (id != nullptr ? registry.getAction(QString::fromLatin1(id)) : nullptr);
+        }
+        return found;
+    };
+    m_bookEditor->setContextMenuTableActions(
+        {actions({"table.insertRowsAbove", "table.insertRowsBelow", "table.insertColumnsLeft",
+                  "table.insertColumnsRight"}),
+         actions({"table.deleteRows", "table.deleteColumns", "table.deleteTable"}),
+         actions({"table.selectCell", "table.selectRow", "table.selectColumn", "table.selectTable"}),
+         actions({"table.mergeCells", "table.splitCells", nullptr, "table.distributeRows",
+                  "table.distributeColumns", nullptr, "table.sort", "table.properties"})});
+    // The context menu of an image: the commands of the Image menu, enabled as there
+    m_bookEditor->setContextMenuImageActions(
+        {actions({"image.properties", "image.addCaption", "image.altText"}),
+         actions({"image.rotateRight", "image.rotateLeft", "image.flipHorizontal",
+                  "image.flipVertical", nullptr, "image.rotateOptions"}),
+         actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
+                  "image.filterBlackWhite", "image.filterWash", nullptr, "image.filterAll",
+                  "image.colorOptions"}),
+         actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
 
     // Autocorrect puts in the quotation marks of the text's language, asked when they are
     // typed: the book's language may change, and a chapter is told from a file outside the
@@ -127,7 +172,8 @@ EditorPanel::EditorPanel(QWidget* parent)
     // Quick insert: the cards of the book, the fragments and the characters at the cursor;
     // the editor owns it, Insert > Quick Insert... finds it there
     m_quickInsert = new editor::QuickInsertController(
-        m_bookEditor, [](QChar trigger) { return quickInsertItems(trigger); }, m_bookEditor);
+        m_bookEditor, [this](QChar trigger) { return quickInsertItems(m_book, trigger); },
+        m_bookEditor);
 
     // A change of autocorrect undone right after it: as in Word, the exceptions keep the
     // abbreviation or the word, unless the writer turned that off
@@ -155,6 +201,15 @@ EditorPanel::EditorPanel(QWidget* parent)
     connect(m_bookEditor, &editor::BookEditor::linkDialogAsked, this,
             &EditorPanel::showHyperlinkDialog);
     connect(m_bookEditor, &editor::BookEditor::linkOpenAsked, this, &EditorPanel::openLink);
+
+    // The files of an image, asked for by its context menu: another picture, a copy saved
+    connect(m_bookEditor, &editor::BookEditor::imageFileAsked, this,
+            &EditorPanel::showChangeImageDialog);
+    connect(m_bookEditor, &editor::BookEditor::imageSaveAsked, this,
+            &EditorPanel::showSaveImageDialog);
+    // Its look, asked for by a double click or its context menu
+    connect(m_bookEditor, &editor::BookEditor::imagePropertiesAsked, this,
+            [this](int position, int page) { showImagePropertiesDialog(position, page); });
 
     // F7 in the menu of an issue goes on to the next one, as in the text
     m_bookEditor->setNextIssueAction(registry.getAction(QStringLiteral("tools.nextMisspelling")));
@@ -304,20 +359,12 @@ void EditorPanel::setUnmodified() {
 }
 
 editor::ParagraphStyleSet EditorPanel::paragraphStyles() const {
-    const auto& projects = core::ProjectManager::getInstance();
-    const core::BookProject* book = projects.project();
-    // A chapter of the book, which NavigatorCoordinator tags with its element
-    const bool chapter = book != nullptr && !property("elementId").toString().isEmpty();
-    const QString base = QString::fromLatin1(core::ProjectManager::BASE_PACKAGE);
-    QList<core::PackageParagraphStyle> styles;
-    if (chapter && book->type.has_value()) {
-        styles = projects.bookTypes().paragraphStyles(book->type->id);
-    }
-    // A type the program does not have gives none: the styles every book has
-    if (styles.isEmpty()) {
-        styles = projects.bookTypes().paragraphStyles(base);
-    }
-    return editor::ParagraphStyleSet::fromPackage(styles, programLanguage());
+    // A chapter of the book, which NavigatorCoordinator tags with its element, has the styles
+    // of the book; any other text those every book has
+    const bool chapter = m_book.project() != nullptr &&
+                         !property("elementId").toString().isEmpty();
+    return chapter ? bookParagraphStyles(m_book)
+                   : editor::ParagraphStyleSet::fromPackage(baseStyles(), programLanguage());
 }
 
 void EditorPanel::learnAutoCorrectException(editor::LearnedException list,
@@ -378,7 +425,8 @@ QString EditorPanel::textLanguage() const {
     // A chapter of the book, which NavigatorCoordinator tags with its element, or a file
     // outside the book
     const bool chapter = !property("elementId").toString().isEmpty();
-    return chapter ? SpellingCoordinator::wantedLanguage() : SpellingCoordinator::defaultLanguage();
+    return chapter ? SpellingCoordinator::wantedLanguage(m_book)
+                   : SpellingCoordinator::defaultLanguage();
 }
 
 void EditorPanel::applySettings() {
@@ -434,6 +482,29 @@ void EditorPanel::applySettings() {
         themes.editorColor(dark.formattingMarks, defaults.formattingMarks.dark);
     appearance.colors.links.light = themes.editorColor(light.link, defaults.links.light);
     appearance.colors.links.dark = themes.editorColor(dark.link, defaults.links.dark);
+    auto& tables = appearance.colors.tables;
+    tables.linesLight = themes.editorColor(light.tableLines, defaults.tables.linesLight);
+    tables.linesDark = themes.editorColor(dark.tableLines, defaults.tables.linesDark);
+    tables.headerLight = themes.editorColor(light.tableHeader, defaults.tables.headerLight);
+    tables.headerDark = themes.editorColor(dark.tableHeader, defaults.tables.headerDark);
+    tables.gridlinesLight = themes.editorColor(light.tableGridlines, defaults.tables.gridlinesLight);
+    tables.gridlinesDark = themes.editorColor(dark.tableGridlines, defaults.tables.gridlinesDark);
+    auto& images = appearance.colors.images;
+    images.cropMarksLight =
+        themes.editorColor(light.imageCropMarks, defaults.images.cropMarksLight);
+    images.cropMarksDark = themes.editorColor(dark.imageCropMarks, defaults.images.cropMarksDark);
+    images.missingLight = themes.editorColor(light.imageMissing, defaults.images.missingLight);
+    images.missingDark = themes.editorColor(dark.imageMissing, defaults.images.missingDark);
+    auto& fields = appearance.colors.fields;
+    fields.light = themes.editorColor(light.field, defaults.fields.light);
+    fields.dark = themes.editorColor(dark.field, defaults.fields.dark);
+    fields.brokenLight = themes.editorColor(light.brokenField, defaults.fields.brokenLight);
+    fields.brokenDark = themes.editorColor(dark.brokenField, defaults.fields.brokenDark);
+    auto& footnotes = appearance.colors.footnotes;
+    footnotes.lineLight = themes.editorColor(light.noteLine, defaults.footnotes.lineLight);
+    footnotes.lineDark = themes.editorColor(dark.noteLine, defaults.footnotes.lineDark);
+    footnotes.frameLight = themes.editorColor(light.noteFrame, defaults.footnotes.frameLight);
+    footnotes.frameDark = themes.editorColor(dark.noteFrame, defaults.footnotes.frameDark);
     // Under the text on both papers: translucent, so the text stays readable
     appearance.colors.selection =
         editor::underTextColor(themes.editorColor(editor::SELECTION_COLOR_KEY, defaults.selection),
@@ -483,6 +554,9 @@ void EditorPanel::applySettings() {
     // The formatting marks (View > Show Formatting Marks) and how the scene breaks look
     appearance.showFormattingMarks = settings.get<bool>("editor.showFormattingMarks");
 
+    // The gray background of the fields (Settings > Editor > General)
+    appearance.fieldShading = settings.get<bool>("editor.fieldShading");
+
     // The numbers on the left margin (View > Margin Numbering)
     editor::MarginNumbers& numbers = appearance.marginNumbers;
     numbers.numbering = editor::marginNumberingFromName(
@@ -519,6 +593,7 @@ void EditorPanel::applySettings() {
         editor::EditorColors::IssueColors colors;
         colors.spelling = onPaper(editor::issueColorKey(editor::TextIssueKind::Spelling), paper);
         colors.grammar = onPaper(editor::issueColorKey(editor::TextIssueKind::Grammar), paper);
+        colors.bookRule = onPaper(editor::issueColorKey(editor::TextIssueKind::BookRule), paper);
         colors.repetition = onPaper(editor::REPETITION_COLOR_KEY, paper);
         return colors;
     };
@@ -616,6 +691,9 @@ void EditorPanel::applySettings() {
     m_bookEditor->setPasteMode(editor::ClipboardHandler::pasteModeFromId(
         QString::fromStdString(settings.get<std::string>(editor::PASTE_MODE_KEY))));
 
+    // How a new image goes into the text (Settings > Editor > Images)
+    m_bookEditor->setNewImageOptions(settingsNewImageOptions());
+
     // What the counts take for a word (a setting of the whole program)
     m_bookEditor->setWordCountRules(core::wordCountRules());
     applyPaperScale();
@@ -690,6 +768,236 @@ void EditorPanel::showInsertTableDialog() {
     dialogs::InsertTableDialog dialog(window());
     if (dialog.exec() == QDialog::Accepted) {
         m_bookEditor->insertTable(dialog.columns(), dialog.rows(), dialog.headerRow());
+    }
+}
+
+namespace {
+
+/// The picture chosen in the system window of Insert > Image... or Change Image...; empty:
+/// none. The window starts in the folder of the picture chosen last.
+QString chooseImageFile(QWidget* parent, const QString& title) {
+    using Operation = ProgramFolders::Operation;
+    const QString path = QFileDialog::getOpenFileName(
+        parent, title, ProgramFolders::windowFolder(Operation::InsertImage),
+        //: The pictures of the window choosing an image; In Polish: Obrazy
+        editor::imageFileFilter(EditorPanel::tr("Images")) + QStringLiteral(";;") +
+            EditorPanel::tr("All Files (*)"));
+    if (!path.isEmpty()) {
+        ProgramFolders::remember(Operation::InsertImage, QFileInfo(path).absolutePath());
+    }
+    return path;
+}
+
+/// Tell the writer that a chosen file could not be the picture of an image
+void warnImageNotInserted(QWidget* parent, const QString& path) {
+    dialogs::MessageDialog::warning(
+        parent,
+        //: In Polish: Nie można wstawić obrazu
+        EditorPanel::tr("Image Not Inserted"),
+        //: In Polish: Plik „%1” nie jest obrazem, który Kalahari potrafi pokazać (PNG, JPEG,
+        //: GIF, BMP, SVG), albo nie udało się go skopiować do folderu obrazów książki.
+        EditorPanel::tr("The file \"%1\" is not a picture Kalahari can show (PNG, JPEG, GIF, "
+                        "BMP, SVG), or it could not be copied into the book's folder of images.")
+            .arg(QFileInfo(path).fileName()));
+}
+
+}  // namespace
+
+void EditorPanel::setImagesFolder(const QString& folder) {
+    m_bookEditor->setImagesFolder(folder);
+}
+
+void EditorPanel::moveImagesFolder(const QString& folder) {
+    m_bookEditor->moveImagesFolder(folder);
+}
+
+void EditorPanel::showInsertImageDialog() {
+    if (!m_bookEditor->canInsertImage()) {
+        return;
+    }
+    //: The system window of Insert > Image... In Polish: Wstaw obraz
+    const QString path = chooseImageFile(window(), tr("Insert Image"));
+    if (!path.isEmpty() && !m_bookEditor->insertImageFile(path)) {
+        warnImageNotInserted(window(), path);
+    }
+}
+
+void EditorPanel::showChangeImageDialog(int position) {
+    if (!m_bookEditor->canInsertImage() || m_bookEditor->imageFilePath(position).isEmpty()) {
+        return;
+    }
+    //: The system window of Change Image... In Polish: Zmień obraz
+    const QString path = chooseImageFile(window(), tr("Change Image"));
+    if (!path.isEmpty() && !m_bookEditor->changeImageFile(position, path)) {
+        warnImageNotInserted(window(), path);
+    }
+}
+
+void EditorPanel::showSaveImageDialog(int position) {
+    using Operation = ProgramFolders::Operation;
+    const QString source = m_bookEditor->imageFilePath(position);
+    const QFileInfo file(source);
+    if (!file.isFile()) {
+        return;
+    }
+    //: The files of the window saving an image, %1 its extension (PNG, JPG...). In Polish:
+    //: Obraz %1
+    const QString filter = tr("%1 Image (*.%2)").arg(file.suffix().toUpper(), file.suffix());
+    QString target = QFileDialog::getSaveFileName(
+        window(),
+        //: The system window of Save as Image... In Polish: Zapisz jako obraz
+        tr("Save as Image"),
+        QDir(ProgramFolders::windowFolder(Operation::SaveImage)).filePath(file.fileName()),
+        filter);
+    if (target.isEmpty()) {
+        return;
+    }
+    if (QFileInfo(target).suffix().isEmpty() && !file.suffix().isEmpty()) {
+        target += QLatin1Char('.') + file.suffix();
+    }
+    ProgramFolders::remember(Operation::SaveImage, QFileInfo(target).absolutePath());
+    if (QFileInfo(target).absoluteFilePath() == file.absoluteFilePath()) {
+        return;  // the file itself
+    }
+    // The system window asked before replacing a file; the file it replaces stays as it was
+    // until the copy is whole
+    QFile from(source);
+    QSaveFile to(target);
+    bool saved = from.open(QIODevice::ReadOnly) && to.open(QIODevice::WriteOnly);
+    while (saved && !from.atEnd()) {
+        const QByteArray part = from.read(1 << 20);
+        saved = !part.isEmpty() && to.write(part) == part.size();
+    }
+    saved = saved && to.commit();
+    if (!saved) {
+        dialogs::MessageDialog::warning(
+            window(),
+            //: In Polish: Nie zapisano obrazu
+            tr("Image Not Saved"),
+            //: In Polish: Nie udało się zapisać obrazu w pliku „%1”.
+            tr("The image could not be saved as \"%1\".").arg(QDir::toNativeSeparators(target)));
+    }
+}
+
+void EditorPanel::showImagePropertiesDialog(int position, int page) {
+    const std::optional<editor::ImagePropertiesData> properties =
+        m_bookEditor->imagePropertiesData(position);
+    if (m_bookEditor->isReadOnly() || !properties) {
+        return;
+    }
+    // A new caption gets the label of the captions of new images (else the book's first)
+    const core::BookCaptions captions = currentBookCaptions(m_book);
+    editor::ImagePropertiesData shown = *properties;
+    if (shown.caption.label.isEmpty()) {
+        const QString label = settingsNewImageOptions().captionLabel;
+        shown.caption.label = captions.labels.contains(label) ? label : captions.labels.value(0);
+    }
+    // An automatic border has the color of the text, on the editor's paper
+    const editor::EditorAppearance& appearance = m_bookEditor->appearance();
+    dialogs::ImagePropertiesDialog dialog(
+        shown, appearance.colors.textColor(appearance.colorMode), window());
+    // The editor is the panel's own, and the window is modal over it
+    dialog.setCaptionLabels(captions.labels, [this, position](const QString& label) {
+        return m_bookEditor->captionNumberAt(position, label);
+    });
+    // Another picture needs the folder of images: a book saved
+    if (m_bookEditor->canInsertImage()) {
+        dialog.setFileChooser([&dialog]() {
+            //: The system window of Change Image... In Polish: Zmień obraz
+            return chooseImageFile(&dialog, tr("Change Image"));
+        });
+    }
+    dialog.setImageSaver([this, position]() { showSaveImageDialog(position); });
+    dialog.setCropInTextAvailable(true);
+    if (page > 0 && page < dialogs::ImagePropertiesDialog::PageCount) {
+        dialog.showPage(static_cast<dialogs::ImagePropertiesDialog::Page>(page));
+    }
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const editor::ImagePropertiesData chosen = dialog.data();
+    // The labels New Label... added: the book keeps them
+    auto& projects = m_book;
+    if (dialog.captionLabels() != captions.labels && projects.isProjectOpen() &&
+        !projects.isReadOnly()) {
+        core::BookCaptions changed = captions;
+        changed.labels = dialog.captionLabels();
+        projects.setBookCaptions(changed);
+    }
+    if (!m_bookEditor->setImagePropertiesData(chosen) && !chosen.newFile.isEmpty()) {
+        warnImageNotInserted(window(), chosen.newFile);
+        return;
+    }
+    // Crop in the Text: the marks on the image, with the changes made
+    if (dialog.cropInTextAsked()) {
+        m_bookEditor->setFocus();
+        m_bookEditor->startImageCrop(position);
+    }
+}
+
+void EditorPanel::showSplitCellsDialog() {
+    if (m_bookEditor->isReadOnly() || !m_bookEditor->canSplitTableCells()) {
+        return;
+    }
+    const bool cellsSelected = m_bookEditor->selectedCellRange().has_value();
+    dialogs::SplitCellsDialog dialog(
+        cellsSelected,
+        [this](bool mergeFirst) { return m_bookEditor->splitCellParagraphs(mergeFirst); },
+        window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->splitTableCells(dialog.columns(), dialog.rows(), dialog.mergeFirst(),
+                                      dialog.distribute());
+    }
+}
+
+void EditorPanel::showSortDialog() {
+    const std::optional<editor::BookEditor::SortSubject> subject = m_bookEditor->sortSubject();
+    if (m_bookEditor->isReadOnly() || !subject) {
+        return;
+    }
+    dialogs::SortDialog dialog(subject->tableRows, subject->columns, subject->header,
+                               utils::languageName(textLanguage()), window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->sortSelection(dialog.options());
+    }
+}
+
+void EditorPanel::showTextToTableDialog() {
+    const QStringList paragraphs = m_bookEditor->paragraphsForTable();
+    if (m_bookEditor->isReadOnly() || paragraphs.isEmpty()) {
+        return;
+    }
+    dialogs::TextToTableDialog dialog(paragraphs, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->convertTextToTable(dialog.separator(), dialog.columns(), dialog.headerRow());
+    }
+}
+
+void EditorPanel::showTableToTextDialog() {
+    const std::vector<QStringList> rows = m_bookEditor->tableTexts();
+    if (m_bookEditor->isReadOnly() || rows.empty()) {
+        return;
+    }
+    dialogs::TableToTextDialog dialog(rows, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->convertTableToText(dialog.separator());
+    }
+}
+
+void EditorPanel::showTablePropertiesDialog() {
+    const std::optional<editor::TablePropertiesData> properties =
+        m_bookEditor->tablePropertiesData();
+    if (m_bookEditor->isReadOnly() || !properties) {
+        return;
+    }
+    // The lines without a color of their own have the editor's, on its paper
+    const editor::EditorAppearance& appearance = m_bookEditor->appearance();
+    const QColor lines = appearance.colorMode == editor::EditorColorMode::Light
+                             ? appearance.colors.tables.linesLight
+                             : appearance.colors.tables.linesDark;
+    dialogs::TablePropertiesDialog dialog(*properties, lines, window());
+    if (dialog.exec() == QDialog::Accepted) {
+        m_bookEditor->setTablePropertiesData(dialog.data());
     }
 }
 

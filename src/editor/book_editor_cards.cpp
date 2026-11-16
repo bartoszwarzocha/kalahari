@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_cards.cpp
 /// @brief BookEditor: the cards of the annotations under their paragraphs
 
@@ -41,6 +44,28 @@ KalahariTextDocumentLayout* layoutOf(const QTextDocument* document) {
                : nullptr;
 }
 
+/// @brief The colors the layout draws the notes in: the paper's text, line and links, and
+///        those of the marks of the text (@p view: the colors the view is drawn in)
+KalahariTextDocumentLayout::NoteColors noteColorsOf(
+    const EditorAppearance& appearance, const RenderColors& view,
+    const KalahariTextDocumentLayout::NoteMarks& marks,
+    const std::optional<NoteRange>& selected) {
+    const EditorColorMode mode = appearance.colorMode;
+    KalahariTextDocumentLayout::NoteColors colors;
+    colors.text = appearance.colors.textColor(mode);
+    colors.line = appearance.colors.noteLineColor(mode);
+    colors.link = appearance.colors.linkColor(mode);
+    colors.searchMatch = view.searchHighlight;
+    colors.currentMatch = view.currentMatch;
+    colors.selection = view.selection;
+    colors.spelling = view.spellError;
+    colors.grammar = view.grammarWarning;
+    colors.bookRule = view.bookRule;
+    colors.marks = &marks;
+    colors.selected = selected;
+    return colors;
+}
+
 /// @brief A text shown as it is on a menu: an ampersand marks no key
 QString literalMenuText(QString text) {
     return text.replace(QLatin1Char('&'), QStringLiteral("&&"));
@@ -54,16 +79,36 @@ QString literalMenuText(QString text) {
 
 void BookEditor::setUpAnnotationCards()
 {
-    // Drawn after each paragraph's text, in its coordinates
+    // Drawn after each paragraph's text, in its coordinates: its notes (the continuous views),
+    // the cards of its annotations under them
     if (m_renderPipeline) {
         m_renderPipeline->setParagraphDecorator([this](QPainter* painter, size_t paragraph) {
-            if (!m_annotationCards.isShown() || !m_textBuffer) {
+            if (!m_textBuffer) {
                 return;
             }
             const QTextBlock block = m_textBuffer->findBlockByNumber(static_cast<int>(paragraph));
+            const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
+            if (layout != nullptr && layout->notesBelow(block.blockNumber()) > 0.0) {
+                layout->drawNotesBelow(painter, block,
+                                       noteColorsOf(m_appearance,
+                                                    m_renderPipeline->context().colors,
+                                                    m_noteMarks, m_noteSelection));
+            }
+            if (!m_annotationCards.isShown()) {
+                return;
+            }
             const qreal top = annotationCardsTop(block);
             if (top >= 0.0) {
                 m_annotationCards.paint(painter, block, top, m_textBuffer->textWidth());
+            }
+        });
+        // The footnotes at the bottom of each page, the endnotes on it (the page view)
+        m_renderPipeline->setPageDecorator([this](QPainter* painter, int page) {
+            if (const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get())) {
+                layout->drawPageNotes(painter, page,
+                                      noteColorsOf(m_appearance,
+                                                   m_renderPipeline->context().colors,
+                                                   m_noteMarks, m_noteSelection));
             }
         });
     }
@@ -167,9 +212,10 @@ qreal BookEditor::annotationCardsTop(const QTextBlock& block) const
     if (layout == nullptr || !block.isValid()) {
         return -1.0;
     }
+    // Under the notes of the paragraph, which take the top of the room under it
     const int number = block.blockNumber();
-    const qreal space = layout->spaceBelow(number);
-    return space > 0.0 ? layout->blockHeight(number) - space : -1.0;
+    const qreal cards = layout->spaceBelow(number) - layout->notesBelow(number);
+    return cards > 0.0 ? layout->blockHeight(number) - cards : -1.0;
 }
 
 QTextBlock BookEditor::annotationCardBlock(const QString& id) const

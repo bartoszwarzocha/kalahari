@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file main.cpp
 /// @brief Kalahari Writer's IDE - Main entry point (Qt6)
 ///
@@ -317,10 +320,20 @@ int main(int argc, char *argv[]) {
     }
     logger.openFile(LOG_FILE);
 
-    kalahari::gui::MainWindow window;
+    // The first book window of the program: it opens the file of the command line, or the
+    // books of the last work. Each book window closes and is deleted on its own.
+    auto* firstWindow = new kalahari::gui::MainWindow;
+    kalahari::gui::MainWindow& window = *firstWindow;
+    window.setAttribute(Qt::WA_DeleteOnClose);
+    window.setFirstWindow(true);
     window.setStartupFile(startupFile);
-    QObject::connect(&instance, &kalahari::gui::ProgramInstance::requested, &window,
-                     &kalahari::gui::MainWindow::onLaterStart);
+    // A later start goes to the window in front last
+    QObject::connect(&instance, &kalahari::gui::ProgramInstance::requested, &app,
+                     [](const QString& path) {
+                         if (auto* front = kalahari::gui::MainWindow::frontWindow()) {
+                             front->onLaterStart(path);
+                         }
+                     });
 
     // Enable diagnostic mode if --diag flag present or benchmark mode
     if (cmdLine.isDiagnosticMode() || benchmarkMode) {
@@ -346,8 +359,8 @@ int main(int argc, char *argv[]) {
         QString chapterTitle = cmdLine.getOptionValue("chapter");
 
         // Schedule benchmark execution after event loop starts
-        QTimer::singleShot(500, [&window, projectPath, chapterTitle, &logger, &app]() {
-            auto& pm = kalahari::core::ProjectManager::getInstance();
+        QTimer::singleShot(500, &window, [&window, projectPath, chapterTitle, &logger, &app]() {
+            auto& pm = window.book();
 
             // Open project if specified (and not already open)
             if (!projectPath.isEmpty() && !pm.isProjectOpen()) {
@@ -467,10 +480,11 @@ int main(int argc, char *argv[]) {
         });
     }
 
-    // Close the project while Qt is still alive: the ProjectManager singleton is
-    // destroyed after QApplication, when the Qt SQL connection registry is gone.
-    QObject::connect(&app, &QCoreApplication::aboutToQuit, []() {
-        kalahari::core::ProjectManager::getInstance().closeProject();
+    // Close the books while the event loop still runs, before the windows are destroyed
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, &app, []() {
+        for (kalahari::gui::MainWindow* each : kalahari::gui::MainWindow::windows()) {
+            each->book().closeProject();
+        }
     });
 
     logger.info("Main window shown - entering event loop");
@@ -478,6 +492,10 @@ int main(int argc, char *argv[]) {
     int result = app.exec();
 
     logger.info("Application exited with code: {}", result);
+
+    // The windows still there (closed ones wait for the event loop to delete them) go while
+    // the application is
+    qDeleteAll(kalahari::gui::MainWindow::windows());
 
     // Settings that apply only after a restart (UI language) can ask for one:
     // SettingsCoordinator sets this property and closes the main window

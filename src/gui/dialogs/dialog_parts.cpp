@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dialog_parts.cpp
-/// @brief Parts that the program's own dialogs share: a list as high as its rows, a note with
-/// an icon, and the Copy button
+/// @brief Parts that the program's own dialogs share: a list as high as its rows, the keys of
+/// a list with a filter, a note with an icon, and the Copy button
 
 #include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/core/art_provider.h"
@@ -11,7 +14,9 @@
 #include <QCoreApplication>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QKeyEvent>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QTimer>
 #include <QWidget>
@@ -27,6 +32,30 @@ namespace {
 constexpr int NOTE_ICON_SIZE = 16;      ///< Size of the icon of a note
 constexpr int NOTE_SPACING = 8;         ///< Between the icon of a note and its sentence
 constexpr int COPIED_NOTICE_MS = 2000;  ///< How long Copy says "Copied"
+
+/// Key @p key typed in a list goes to its filter @p filter: Backspace, a letter, a digit or a
+/// sign, also with Shift; whether it went there
+bool typeInFilter(const QKeyEvent& key, Qt::KeyboardModifiers modifiers, QLineEdit* filter) {
+    if (key.key() == Qt::Key_Backspace && modifiers == Qt::NoModifier) {
+        filter->backspace();
+        return true;
+    }
+    const QString text = key.text();
+    const bool letter = !text.isEmpty() && text.at(0).isPrint() && !text.at(0).isSpace() &&
+                        (modifiers & ~Qt::ShiftModifier) == Qt::NoModifier;
+    if (letter) {
+        filter->insert(text);
+    }
+    return letter;
+}
+
+/// Whether @p key, with @p modifiers, chooses in a list: the arrows up and down, Page Up and
+/// Page Down, without other keys
+bool choosesInList(const QKeyEvent& key, Qt::KeyboardModifiers modifiers) {
+    const int code = key.key();
+    return modifiers == Qt::NoModifier && (code == Qt::Key_Down || code == Qt::Key_Up ||
+                                           code == Qt::Key_PageDown || code == Qt::Key_PageUp);
+}
 
 } // anonymous namespace
 
@@ -48,6 +77,25 @@ int RowList::heightFor(int rows) const {
     const int rowHeight =
         qMax(measured, qMax(fontMetrics().height() + 6, iconSize().height() + 4));
     return rowHeight * rows + 2 * frameWidth();
+}
+
+bool takeFilterKeys(const QObject* watched, const QEvent* event, QLineEdit* filter,
+                    QAbstractItemView* list) {
+    if (event->type() != QEvent::KeyPress) {
+        return false;
+    }
+    const auto* key = static_cast<const QKeyEvent*>(event);
+    const Qt::KeyboardModifiers modifiers = key->modifiers() & ~Qt::KeypadModifier;
+    if (watched == list) {
+        return typeInFilter(*key, modifiers, filter);
+    }
+    if (watched != filter || !choosesInList(*key, modifiers)) {
+        return false;
+    }
+    list->setFocus(Qt::OtherFocusReason);
+    QKeyEvent copy(QEvent::KeyPress, key->key(), key->modifiers());
+    QCoreApplication::sendEvent(list, &copy);
+    return true;
 }
 
 RowList* newRowList(QWidget* parent, const QString& accessibleName) {

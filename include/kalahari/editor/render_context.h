@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file render_context.h
 /// @brief RenderContext - Pure data structure for rendering attributes
 ///
@@ -40,6 +43,10 @@ constexpr double MAX_ZOOM_FACTOR = 4.0;
 /// that would take more are scaled down
 constexpr double MIN_PAGE_TEXT_SHARE = 0.2;
 
+/// @brief The wave under a place breaking a spelling rule of the book's dictionary until the
+/// theme gives its color (RenderColors::bookRule): that of the light theme
+constexpr QRgb DEFAULT_BOOK_RULE_COLOR = qRgb(130, 80, 223);
+
 /// @brief Color scheme for text rendering
 ///
 /// Defines all colors used in text rendering.
@@ -62,6 +69,7 @@ struct RenderColors {
     /// @brief Spell/grammar check colors
     QColor spellError{255, 0, 0};              ///< Spelling error underline
     QColor grammarWarning{0, 100, 255};        ///< Grammar warning underline
+    QColor bookRule{DEFAULT_BOOK_RULE_COLOR};  ///< Underline of a place breaking a book rule
 
     /// @brief Word being read aloud (background)
     QColor spokenWord{0, 190, 170, 96};
@@ -82,6 +90,17 @@ struct RenderColors {
     /// @brief The text of links (underlined in it), unless it has a color of its own
     QColor link{5, 99, 193};
 
+    /// @brief The lines of the tables' borders (of the color "Automatic"), the background of
+    ///        their header rows, and the faint lines shown where a table has no border
+    QColor tableLines{154, 154, 154};
+    QColor tableHeader{242, 242, 242};
+    QColor tableGridlines{180, 198, 231};
+
+    /// @brief The background of the fields (a caption's number, a cross-reference) and of a
+    ///        cross-reference to a caption the book does not have
+    QColor field{217, 217, 217};
+    QColor brokenField{255, 199, 199};
+
     /// @brief Check if colors are equal
     bool operator==(const RenderColors& other) const {
         return text == other.text &&
@@ -96,13 +115,19 @@ struct RenderColors {
                currentMatch == other.currentMatch &&
                spellError == other.spellError &&
                grammarWarning == other.grammarWarning &&
+               bookRule == other.bookRule &&
                spokenWord == other.spokenWord &&
                repetition == other.repetition &&
                annotationComment == other.annotationComment &&
                annotationTodo == other.annotationTodo &&
                annotationNote == other.annotationNote &&
                formattingMarks == other.formattingMarks &&
-               link == other.link;
+               link == other.link &&
+               tableLines == other.tableLines &&
+               tableHeader == other.tableHeader &&
+               tableGridlines == other.tableGridlines &&
+               field == other.field &&
+               brokenField == other.brokenField;
     }
 
     bool operator!=(const RenderColors& other) const {

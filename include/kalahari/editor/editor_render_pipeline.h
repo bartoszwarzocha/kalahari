@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_render_pipeline.h
 /// @brief Unified rendering pipeline for BookEditor (OpenSpec #00043 Phase 12.1)
 ///
@@ -381,6 +384,15 @@ public:
     /// @brief Set what draws the room under the paragraphs (an empty one: nothing)
     void setParagraphDecorator(ParagraphDecorator decorator);
 
+    /// @brief Draws what a page has besides its lines (its footnotes, the endnotes on it)
+    ///
+    /// Called after the text, in the page view only, with the painter at the top left of the
+    /// page's text area, zoomed as its text.
+    using PageDecorator = std::function<void(QPainter* painter, int page)>;
+
+    /// @brief Set what draws on the pages besides their lines (an empty one: nothing)
+    void setPageDecorator(PageDecorator decorator);
+
     /// @brief A fragment of the text shown in a color: a fill under it, a line along its
     ///        bottom (the fragment of the annotation whose card the mouse is on)
     struct FragmentHighlight {
@@ -463,6 +475,10 @@ public:
     /// shift of its page: see shiftAtY())
     QPointF documentToWidget(const QPointF& point) const;
 
+    /// @brief A rectangle of a paragraph, in its coordinates (as its lines are placed), in
+    ///        the widget
+    QRectF paragraphRectToWidget(size_t paragraph, const QRectF& rect) const;
+
     /// @brief Document position shown at a widget position
     QPointF widgetToDocument(const QPointF& point) const;
 
@@ -516,12 +532,26 @@ private:
     /// @brief Render visible paragraphs
     void renderParagraphs(QPainter* painter, const QRect& clipRect);
 
-    /// @brief Render the grids of the visible tables: the background of their header rows
-    ///        and the edges of their cells, thin lines in a shade of the text
-    void renderTables(QPainter* painter);
+    /// @brief Render the grids of the visible tables: the backgrounds of their cells (of the
+    ///        header rows: a shade of the settings), the selected cells, their borders and
+    ///        the faint lines where they have none, and the copies of their header rows
+    void renderTables(QPainter* painter, const std::vector<TableGrid>& tables,
+                      const std::optional<TableCellSelection>& selected);
+
+    /// @brief Render the rows of a table's grid down to @p lastRow, @p shift lower
+    ///        (document coordinates: a copy of its header)
+    void renderTableGrid(QPainter* painter, const TableGrid& grid,
+                         const std::optional<TableCellSelection>& selected, int lastRow,
+                         double shift);
+
+    /// @brief Render the text of the copies of the tables' header rows
+    void renderHeaderCopies(QPainter* painter, const std::vector<TableGrid>& tables,
+                            const QRect& clipRect);
 
     /// @brief Render single paragraph
-    void renderParagraph(QPainter* painter, size_t index, double widgetY);
+    /// @param copyShift A copy of it so far below it in the text (a repeated header row of
+    ///        a table): drawn on the copy's page
+    void renderParagraph(QPainter* painter, size_t index, double widgetY, double copyShift = 0.0);
 
     /// @brief Draw the formatting marks of a paragraph over its text, in their color
     void renderFormattingMarks(QPainter* painter, size_t index,
@@ -561,6 +591,10 @@ private:
     void renderHighlightBackgrounds(QPainter* painter,
                                     const std::vector<ParagraphHighlight>& highlights);
 
+    /// @brief Fill the backgrounds of the fields (under the selection)
+    void renderFieldBackgrounds(QPainter* painter,
+                                const std::vector<ParagraphHighlight>& highlights);
+
     /// @brief Draw the highlight marks (over the text): spelling and grammar waves, the waves
     ///        and the frames of the repeated words
     void renderHighlightMarks(QPainter* painter,
@@ -591,6 +625,9 @@ private:
 
     /// @brief Draw what a paragraph has in the room under its text (the decorator)
     void renderParagraphDecoration(QPainter* painter, size_t index, double widgetY);
+
+    /// @brief Draw what the pages in the clip rect have besides their lines (the decorator)
+    void renderPageDecorations(QPainter* painter, const QRect& clipRect);
 
     /// @brief Draw the marks beside the paragraphs (in the left margin)
     void renderParagraphMarks(QPainter* painter, const QRect& clipRect);
@@ -667,6 +704,7 @@ private:
     RepetitionMarkStyle m_repetitionStyle = RepetitionMarkStyle::Background;
     std::optional<FragmentHighlight> m_fragmentHighlight;  ///< Fragment shown in a color
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
+    PageDecorator m_pageDecorator;               ///< Draws on the pages besides their lines
     std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs
     QIcon m_paragraphMarkIcon;                       ///< What they show
 

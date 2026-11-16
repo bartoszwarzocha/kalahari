@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file settings_schema.cpp
 /// @brief Default values of all application settings
 
@@ -26,6 +29,9 @@ std::map<std::string, json> buildDefaults() {
         {"window.state", ""},     // QMainWindow::saveState() as base64 (bars and panels)
         // The bar that says the panels on the right were hidden for a small screen was shown
         {"window.smallScreenNoticeShown", false},
+        // The Statistics panel has its place in the saved layout: a layout saved before it
+        // gets it once, in the tab after the Annotations panel (DockCoordinator)
+        {"window.statisticsPanelPlaced", false},
         // The tabs in the middle of the window (Settings > Appearance > General): in one row
         // with arrows when they do not fit ("single") or in more rows ("wrap")
         {"window.tabRows", "single"},
@@ -62,6 +68,9 @@ std::map<std::string, json> buildDefaults() {
         {"ui.colorPalette", "basic"},
         // The color window shows the HEX and RGB values
         {"ui.colorValuesShown", false},
+        // The window of a paragraph style (New Style, Modify Style): all its settings on tabs
+        // ("tabs") or the short one with a wide preview ("short")
+        {"ui.styleWindow", "tabs"},
         {"appearance.theme", "Light"},
         {"appearance.uiFontSize", 12},
         {"appearance.iconTheme", "twotone"},
@@ -76,6 +85,70 @@ std::map<std::string, json> buildDefaults() {
         {"icons.sizes.statusBar", 16},
         {"icons.sizes.button", 20},
         {"icons.sizes.comboBox", 16},
+
+        // Statistics and goals of writing (Settings > Statistics and Goals, core::WritingRules).
+        // A writing day ends at dayStart (minutes after midnight) of the next morning; the time
+        // of writing stops after a pause of idleMinutes. The words pasted or dropped are kept
+        // apart and count as written only with countPasted; any other change of more than
+        // largeChangeWords at once (cutting a chapter, restoring a version) is not writing when
+        // skipLargeChanges is on. The goals count the growth of the text ("net") or all the
+        // words written ("written"), of all the books or of the open one. writingDays: bit 0 is
+        // Monday, ... bit 6 Sunday. weeklyGoal 0: the daily goals of the writing days. A day
+        // keeps the days in a row going with streakMinimumWords ("minimumWords") or with the
+        // daily goal reached ("dailyGoal").
+        {"stats.dayStart", 240},
+        {"stats.idleMinutes", 5},
+        {"stats.skipLargeChanges", true},
+        {"stats.largeChangeWords", 500},
+        {"stats.countPasted", false},
+        {"stats.goalCounting", "net"},
+        {"stats.dailyGoalAllBooks", true},
+        {"stats.writingDays", 31},
+        {"stats.dailyGoal", 1000},
+        {"stats.weeklyGoal", 0},
+        {"stats.streakRule", "minimumWords"},
+        {"stats.streakMinimumWords", 100},
+        // The statistics bar above the tabs of the texts (Settings > Statistics and Goals > Bar
+        // and Panel): a graph of the day ("graph", bar.height pixels high, at least 83) or one
+        // line ("line"); its texts on the right or the left of the graph; the mini graph of the
+        // line shows today ("day"), the last 7 or the last 30 days. The graph shows the hours
+        // from bar.fromHour to bar.toHour (24: midnight), in pieces of bar.pieceMinutes: the day
+        // from the left ("day"), or as many hours with now in the middle ("now"), as the button
+        // on the graph switches it.
+        {"stats.bar.show", true},
+        {"stats.bar.mode", "graph"},
+        {"stats.bar.height", 83},
+        {"stats.bar.textSide", "right"},
+        {"stats.bar.showWords", true},
+        {"stats.bar.showTime", true},
+        {"stats.bar.showStreak", true},
+        {"stats.bar.miniGraph", "7"},
+        {"stats.bar.graphMode", "day"},
+        {"stats.bar.fromHour", 6},
+        {"stats.bar.toHour", 24},
+        {"stats.bar.pieceMinutes", 10},
+        {"stats.bar.showPieces", true},
+        {"stats.bar.showCumulative", true},
+        // The views of the Statistics panel, and the time of writing and the days in a row in
+        // the status bar
+        {"stats.panel.today", true},
+        {"stats.panel.week", true},
+        {"stats.panel.month", true},
+        {"stats.panel.book", true},
+        {"stats.panel.hours", true},
+        {"stats.panel.awards", true},
+        {"stats.statusBar", true},
+        // Messages in the bar at the bottom of the window (Settings > Statistics and Goals >
+        // Notifications), the summary of the session and the badges and challenges
+        {"stats.notify.dailyGoal", true},
+        // The daily goal reached opens the Statistics panel on the view Today
+        {"stats.notify.showPanel", true},
+        {"stats.notify.weeklyGoal", true},
+        {"stats.notify.deadline", true},
+        {"stats.notify.deadlineDays", 3},
+        {"stats.sessionSummary", true},
+        {"stats.badges", true},
+        {"stats.challenges", false},
 
         // Toolbars
         {"toolbars.locked", false},
@@ -112,6 +185,14 @@ std::map<std::string, json> buildDefaults() {
         // created or imported without opening is the first of the recent books but not this
         // one. Empty: the first of the recent books
         {"startup.lastBook", ""},
+        // With the option above: the books of the last work open, each in its window ("all"),
+        // or only the book opened last ("last"); the books open when the program ended last
+        // (their .klh files, the one in front last)
+        {"startup.books", "all"},
+        {"startup.openBooks", json::array()},
+        // A book opened while another one is open in the window: the question Opening a Book
+        // ("ask"), a new window ("new") or in place of the open book ("this")
+        {"window.otherBook", "ask"},
         // A tab moved to a window of its own: the window shows the menus and the toolbars of the
         // book window ("full") or the Format toolbar ("writing"); closing it takes its texts back
         // to the book window ("return") or closes them ("close")
@@ -138,10 +219,40 @@ std::map<std::string, json> buildDefaults() {
         // The kinds of materials the Navigator does not show, in every book: kinds with their
         // packages ("kalahari.base:cover"); their materials stay in the books (MaterialList)
         {"materials.hiddenKinds", json::array()},
+        // The sources (Settings > Materials > Sources): the style of the bibliography of a book
+        // without its own and the form of a reference in the text (core::Bibliography)
+        {"materials.sources.style", "pn-iso-690"},
+        {"materials.sources.reference", "authorYear"},
+        // A PDF file opens on a preview tab of the program ("preview") or in the system program
+        // ("system"); in a program built without the preview always in the system program
+        // (gui::PdfFiles)
+        {"materials.open.pdf", "preview"},
+        // The preview of a PDF file (Settings > Materials > PDF Preview): the pages one under
+        // another ("continuous"), one at a time ("single") or two side by side ("two"); in a
+        // dark theme as in the file ("file"), darker ("dim") or with their colors turned
+        // ("invert"); the zoom it opens with ("pageWidth", "wholePage", "actual" or "last", the
+        // zoom shown last: "pageWidth", "wholePage" or a number); the side panel it opens with
+        // ("bookmarks": the bookmarks, else the contents of the file, "contents", "thumbnails"
+        // or "hidden"); whether it opens at the page shown last
+        {"materials.pdf.layout", "continuous"},
+        {"materials.pdf.dark", "file"},
+        {"materials.pdf.zoom", "pageWidth"},
+        {"materials.pdf.lastZoom", "pageWidth"},
+        {"materials.pdf.side", "bookmarks"},
+        {"materials.pdf.openAtLastPage", true},
 
         // The commands that the menu of a node of the Navigator has for adding: "named" ("Add..."
         // and the commands named after the kinds most added there) or "single" ("Add..." only)
         {"navigator.addCommands", "named"},
+        // The cards of the Workshop (characters, locations, items): the palette that new cards
+        // take their colors from, in order (CardColors::next()), whether the Navigator shows
+        // the color of a card beside its name, and whether it puts a location under the one it
+        // is part of ("tree") or all of them in alphabetical order ("list")
+        {"cards.palette", json::array({"#c0504d", "#7e57c2", "#2e9e6a", "#d4a017", "#3a8fc9",
+                                       "#8d7b6a", "#b04a8f", "#e07b39", "#4f6fd1", "#6b9e2e",
+                                       "#1f9aa5", "#a35d3d"})},
+        {"cards.navigatorColorDot", true},
+        {"cards.navigatorTree", "tree"},
 
         // New projects
         {"project.defaultAuthor", ""},
@@ -164,6 +275,21 @@ std::map<std::string, json> buildDefaults() {
         {"project.lastFolders.importArchive", ""},
         {"project.lastFolders.importDestination", ""},
         {"project.lastFolders.addMaterial", ""},
+        {"project.lastFolders.insertImage", ""},
+        {"project.lastFolders.saveImage", ""},
+        {"project.lastFolders.exportBook", ""},
+        // File > Export > DOCX and Markdown: the writer's last choices of the window. What
+        // goes to the file: "book" (the whole book), "chosen" (the texts chosen in the window)
+        // or "front" (the text in front); the titles of the Navigator as headings; each text
+        // from a new page; page numbers; the font of the text (empty: the editor's); the
+        // annotations as Word's comments; the images copied next to a Markdown file
+        {"export.content", "book"},
+        {"export.titles", true},
+        {"export.newPage", true},
+        {"export.pageNumbers", true},
+        {"export.font", ""},
+        {"export.comments", false},
+        {"export.copyImages", true},
         // The writer's last choice of sections for a book type that shows them: a set of
         // names ("sections", "matter", "fragments", "arc"), own names ("custom") or "none"
         {"project.sectionSet", "sections"},
@@ -189,6 +315,30 @@ std::map<std::string, json> buildDefaults() {
         // goes to, keeping headings, quotes, emphasis and lines), "source" (also its fonts,
         // sizes and colors) or "text" (only the text)
         {"editor.paste.mode", "merge"},
+        {"editor.images.keepSizeOnChange", true},
+        // New images (Settings > Editor > Images): in a paragraph of their own ("inline"),
+        // aligned "left", "center" or "right", as wide as their files and at most as the text
+        // (0) or a share of the text in percent, with a numbered caption of a label (empty: the
+        // first label of new books); copies of very large images made smaller above a number
+        // of dots per inch at their size in the text; the manuscript for a publisher with the
+        // images in the text ("inline") or markers in their places ("markers")
+        {"editor.images.layout", "inline"},
+        {"editor.images.alignment", "center"},
+        {"editor.images.width", 0},
+        {"editor.images.addCaption", true},
+        {"editor.images.captionLabel", ""},
+        {"editor.images.downscale", false},
+        {"editor.images.maxDpi", 300},
+        {"editor.images.manuscript", "inline"},
+        // The captions of new books: their labels (an empty list: Figure, Photo, Illustration,
+        // Map, Diagram in the user's language), the number format ("1", "a", "A", "i", "I"),
+        // numbered anew in each chapter after its number, and what a cross-reference shows
+        // ("number", "label", "caption", "position"). A book keeps its own from its first
+        // caption on.
+        {"editor.captions.labels", json::array()},
+        {"editor.captions.format", "1"},
+        {"editor.captions.withChapter", false},
+        {"editor.captions.reference", "number"},
         {"editor.lineHeight", 1.6},
         {"editor.paragraphSpacing", 12.0},
         {"editor.firstLineIndent", true},
@@ -223,6 +373,12 @@ std::map<std::string, json> buildDefaults() {
         {"spellingPanel.fixButtons", "selected"},
         {"spellingPanel.nextIssue", "panel"},
         {"spellingPanel.grammarScope", "whole"},
+
+        // The book's dictionary: the places that go against its spelling rules are marked in
+        // the chapters; Add of a misspelled word's card in the Spelling and Grammar panel puts
+        // the word in the book's dictionary ("book") or in the writer's own words ("user")
+        {"bookDictionary.markRules", true},
+        {"bookDictionary.panelAddsTo", "book"},
 
         // Editor: the paper, light or dark whatever the theme, and the colors. The user's values
         // of the theme's editor colors (both papers and their text, the desk around them, the
@@ -273,6 +429,15 @@ std::map<std::string, json> buildDefaults() {
         // theme's colors of the papers
         {"editor.showFormattingMarks", false},
 
+        // Editor: the fields (the date, the book's title, the page, a caption's number) on a
+        // gray background (Settings > Editor > General)
+        {"editor.fieldShading", true},
+        // Insert > Date && Time...: the format chosen last (editor::fieldFormats() of the
+        // date: "long", "short", "full", "iso", "time", "date-time"), which Alt+Shift+D gives
+        // when it is a date alone, and Update Automatically (a field), as it was last
+        {"editor.fields.dateFormat", "long"},
+        {"editor.fields.dateAsField", false},
+
         // Editor: the working numbers on the left margin (View > Margin Numbering), only on the
         // screen: "none", "lines" (every line) or "paragraphs" (every paragraph with text). A
         // number every "interval" lines or paragraphs; with "restartEachPage" the lines are
@@ -320,8 +485,10 @@ std::map<std::string, json> buildDefaults() {
         {"editor.annotationCards.highlightFragment", true},
         {"editor.annotationCards.distractionFree", "show"},
 
-        // Word count in the whole program: a dash standing alone (a dialogue dash) is a word
+        // Word count in the whole program: a dash standing alone (a dialogue dash) is a word;
+        // the words of the footnotes and endnotes count (as in Microsoft Word)
         {"editor.wordCount.dashesAsWords", false},
+        {"editor.wordCount.notes", true},
 
         // Editor: autocorrect, the changes of the text as it is typed (Settings > Editor >
         // Auto-correct): on or off as a whole (also Tools > Auto-correct as You Type), and

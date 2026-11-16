@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_format_registry.cpp
 /// @brief KML Format Registry implementation (OpenSpec #00043)
 ///
@@ -48,7 +51,6 @@ const QSet<QString>& formattingTagSet()
 const QSet<QString>& metadataTagSet()
 {
     static const QSet<QString> tags = {
-        QStringLiteral("footnote"),
         QStringLiteral("charref"),
         QStringLiteral("locref")
     };
@@ -59,11 +61,6 @@ const QSet<QString>& metadataTagSet()
 const QVector<MetadataTagDef>& metadataDefinitions()
 {
     static const QVector<MetadataTagDef> defs = {
-        {
-            QStringLiteral("footnote"),
-            KmlPropFootnote,
-            {QStringLiteral("id"), QStringLiteral("number")}
-        },
         {
             QStringLiteral("charref"),
             KmlPropCharRef,

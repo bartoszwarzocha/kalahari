@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file settings_coordinator.cpp
 /// @brief Settings dialog coordination implementation
 ///
@@ -14,6 +17,7 @@
 #include "kalahari/gui/panels/log_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/widgets/central_tabs.h"
+#include "kalahari/core/card_data.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/settings_manager.h"
 #include <QApplication>
@@ -26,18 +30,38 @@
 namespace kalahari {
 namespace gui {
 
-SettingsCoordinator::SettingsCoordinator(QMainWindow* mainWindow,
-                                          DockCoordinator* dockCoordinator,
-                                          QStatusBar* statusBar,
-                                          QObject* parent)
-    : QObject(parent)
-    , m_mainWindow(mainWindow)
-    , m_dockCoordinator(dockCoordinator)
-    , m_statusBar(statusBar)
-    , m_diagnosticModeGetter([]() { return false; })
-{
+namespace {
+
+/// The settings coordinators of every book window, in the order they were made
+QList<SettingsCoordinator*>& liveCoordinators() {
+    static QList<SettingsCoordinator*> coordinators;
+    return coordinators;
+}
+
+}  // namespace
+
+SettingsCoordinator::SettingsCoordinator(const core::ProjectManager& book,
+                                         CommandRegistry& commands, QMainWindow* mainWindow,
+                                         DockCoordinator* dockCoordinator, QStatusBar* statusBar,
+                                         QObject* parent)
+    : QObject(parent),
+      m_mainWindow(mainWindow),
+      m_dockCoordinator(dockCoordinator),
+      m_statusBar(statusBar),
+      m_diagnosticModeGetter([]() { return false; }),
+      m_commands(commands),
+      m_book(book) {
     auto& logger = core::Logger::getInstance();
     logger.debug("SettingsCoordinator: Created");
+    liveCoordinators().append(this);
+}
+
+SettingsCoordinator::~SettingsCoordinator() {
+    liveCoordinators().removeAll(this);
+}
+
+QList<SettingsCoordinator*> SettingsCoordinator::coordinators() {
+    return liveCoordinators();
 }
 
 void SettingsCoordinator::setDiagnosticModeGetter(std::function<bool()> callback) {
@@ -71,7 +95,8 @@ void SettingsCoordinator::openSettingsPage(const QString& page, QWidget* parent)
 void SettingsCoordinator::runSettingsDialog(const QString& page, QWidget* parent) {
     auto& logger = core::Logger::getInstance();
 
-    SettingsDialog dialog(parent != nullptr ? parent : m_mainWindow, m_diagnosticModeGetter(),
+    SettingsDialog dialog(m_book, m_commands, parent != nullptr ? parent : m_mainWindow,
+                          m_diagnosticModeGetter(),
                           m_spellCheckService, m_grammarCoordinator);
     if (!page.isEmpty()) {
         dialog.openPage(page);
@@ -105,6 +130,9 @@ void SettingsCoordinator::runSettingsDialog(const QString& page, QWidget* parent
     if (m_languageChanged) {
         offerRestartForLanguage();
     }
+    if (dialog.isBookDictionaryAsked()) {
+        emit bookDictionaryRequested();
+    }
 }
 
 void SettingsCoordinator::offerRestartForLanguage() {
@@ -117,10 +145,11 @@ void SettingsCoordinator::offerRestartForLanguage() {
         return;
     }
 
-    // main() starts a new instance once the event loop ends. Closing the window asks
+    // main() starts a new instance once the event loop ends. Closing the windows asks
     // about unsaved changes as usual; if the user cancels there, nothing restarts.
     qApp->setProperty("kalahari.restartRequested", true);
-    if (!m_mainWindow->close()) {
+    const bool closed = m_closeProgram ? m_closeProgram() : m_mainWindow->close();
+    if (!closed) {
         qApp->setProperty("kalahari.restartRequested", false);
     }
 }
@@ -138,12 +167,25 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
         m_languageChanged = true;
     }
 
-    // The keys of the commands: the menus, the toolbars and the texts that show them follow
-    // CommandRegistry::shortcutsChanged()
+    // The keys of the commands, those of every window: the menus, the toolbars and the texts
+    // that show them follow CommandRegistry::shortcutsChanged()
     if (changed(QString::fromLatin1(SHORTCUTS_SETTING))) {
-        CommandRegistry::getInstance().setCustomShortcuts(loadCustomShortcuts());
+        applyCustomShortcuts();
         logger.info("SettingsCoordinator: Keyboard shortcuts updated");
     }
+
+    // The settings are those of every window: each one shows them at once
+    for (SettingsCoordinator* coordinator : coordinators()) {
+        coordinator->applyInWindow(changedKeys);
+    }
+}
+
+void SettingsCoordinator::applyInWindow(const QStringList& changedKeys) {
+    auto& logger = core::Logger::getInstance();
+    const auto changed = [&changedKeys](const QString& prefix) {
+        return std::any_of(changedKeys.cbegin(), changedKeys.cend(),
+                           [&prefix](const QString& key) { return key.startsWith(prefix); });
+    };
 
     // Log panel: buffer size and colors (theme switch or per-theme log colors, not the editor
     // colors kept for each theme as well)
@@ -168,9 +210,12 @@ void SettingsCoordinator::onApplySettings(const QStringList& changedKeys) {
         dashboardPanel->onSettingsChanged();
     }
 
-    // Navigator: the "+" button on the project's node follows the Add Element window
+    // Navigator: the "+" button on the project's node follows the Add Element window, and the
+    // cards show their colors or not
     NavigatorPanel* navigatorPanel = m_dockCoordinator->navigatorPanel();
-    if (navigatorPanel && changed(QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING))) {
+    if (navigatorPanel != nullptr &&
+        (changed(QString::fromLatin1(NavigatorPanel::ADD_WINDOW_SETTING)) ||
+         changed(QString::fromLatin1(core::CardColors::NAVIGATOR_DOT_SETTING)))) {
         navigatorPanel->onSettingsChanged();
     }
 

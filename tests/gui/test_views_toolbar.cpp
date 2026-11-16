@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_views_toolbar.cpp
 /// @brief The Views toolbar: the view modes, the switches, the paper, the text frame border,
 ///        the formatting marks, the margin numbering and the zoom of the View menu
@@ -38,6 +41,7 @@
 #include <array>
 #include <cstdio>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 
@@ -101,12 +105,12 @@ QByteArray layoutWithoutViewsToolbar() {
 TEST_CASE("Views toolbar: the view modes, switches, paper, text frame border, formatting marks, "
           "repetitions and zoom of the View menu",
           "[gui][toolbar]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
 
     QMainWindow window;
-    ToolbarManager manager(&window);
+    ToolbarManager manager(kalahari::test::commands(), &window);
     manager.createToolbars(registry);
 
     QToolBar* toolbar = manager.getToolbar("views");
@@ -274,7 +278,7 @@ TEST_CASE("Views toolbar: the formatting marks icon is a pilcrow in every icon t
 TEST_CASE("Views toolbar: one customized before gets the formatting marks after the text frame "
           "border, once",
           "[gui][toolbar]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
     const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
@@ -288,7 +292,7 @@ TEST_CASE("Views toolbar: one customized before gets the formatting marks after 
     settings.set<int>("toolbars.addedCommands", 2);
     QMainWindow window;
     {
-        ToolbarManager manager(&window);
+        ToolbarManager manager(kalahari::test::commands(), &window);
         // (and the repetitions and the numbering buttons after them, which came later)
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
               "view.mode.continuous | view.mode.page | view.textFrameBorder | "
@@ -300,7 +304,7 @@ TEST_CASE("Views toolbar: one customized before gets the formatting marks after 
         without.removeAll(QStringLiteral("view.showFormattingMarks"));
         manager.setToolbarCommands(views, without);
     }
-    ToolbarManager next(&window);
+    ToolbarManager next(kalahari::test::commands(), &window);
     CHECK_FALSE(
         next.getToolbarCommands(views).contains(QStringLiteral("view.showFormattingMarks")));
 
@@ -311,7 +315,7 @@ TEST_CASE("Views toolbar: one customized before gets the formatting marks after 
 TEST_CASE("Views toolbar: one customized before gets the numbering buttons after the formatting "
           "marks, once",
           "[gui][toolbar]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
     const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
@@ -325,7 +329,7 @@ TEST_CASE("Views toolbar: one customized before gets the numbering buttons after
     settings.set<int>("toolbars.addedCommands", 5);
     QMainWindow window;
     {
-        ToolbarManager manager(&window);
+        ToolbarManager manager(kalahari::test::commands(), &window);
         // (and the repetitions between them, which came later)
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
               "view.showFormattingMarks | view.repetitionMarks | view.marginNumbers.lines | "
@@ -338,7 +342,7 @@ TEST_CASE("Views toolbar: one customized before gets the numbering buttons after
         without.removeAll(QStringLiteral("view.marginNumbers.paragraphs"));
         manager.setToolbarCommands(views, without);
     }
-    ToolbarManager next(&window);
+    ToolbarManager next(kalahari::test::commands(), &window);
     CHECK(next.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
           "view.showFormattingMarks | view.repetitionMarks | view.mode.continuous | "
           "view.mode.page | view.zoomIn");
@@ -350,7 +354,7 @@ TEST_CASE("Views toolbar: one customized before gets the numbering buttons after
 TEST_CASE("Views toolbar: one customized before gets the repetitions after the formatting "
           "marks, once",
           "[gui][toolbar]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     auto& settings = kalahari::core::SettingsManager::getInstance();
     const std::string savedToolbars = settings.get<std::string>("toolbars.configurations", "");
     const int savedVersion = settings.get<int>("toolbars.addedCommands", 0);
@@ -362,21 +366,21 @@ TEST_CASE("Views toolbar: one customized before gets the repetitions after the f
         "toolbars.configurations",
         R"({"builtIn":{"views":["view.mode.continuous","view.mode.page",)"
         R"("view.marginNumbers.paragraphs","view.zoomIn","view.showFormattingMarks"]}})");
-    settings.set<int>("toolbars.addedCommands", 6);
+    settings.set<int>("toolbars.addedCommands", 7);
     QMainWindow window;
     {
-        ToolbarManager manager(&window);
+        ToolbarManager manager(kalahari::test::commands(), &window);
         CHECK(manager.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
               "view.mode.continuous | view.mode.page | view.marginNumbers.paragraphs | "
               "view.zoomIn | view.showFormattingMarks | view.repetitionMarks");
-        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 7);
+        CHECK(settings.get<int>("toolbars.addedCommands", 0) == 8);
 
         // Taken away by the writer after that, it stays away
         QStringList without = manager.getToolbarCommands(views);
         without.removeAll(QStringLiteral("view.repetitionMarks"));
         manager.setToolbarCommands(views, without);
     }
-    ToolbarManager next(&window);
+    ToolbarManager next(kalahari::test::commands(), &window);
     CHECK(next.getToolbarCommands(views).join(QStringLiteral(" | ")).toStdString() ==
           "view.mode.continuous | view.mode.page | view.marginNumbers.paragraphs | "
           "view.zoomIn | view.showFormattingMarks");
@@ -392,11 +396,11 @@ TEST_CASE("Views toolbar: shown in the second row of a layout saved before it ex
     // of its row, without the layout being reset
     const QByteArray savedLayout = layoutWithoutViewsToolbar();
 
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     QMainWindow window;
     window.setCentralWidget(new QLabel(QStringLiteral("text")));
-    ToolbarManager manager(&window);
-    manager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(kalahari::test::commands());
     REQUIRE(window.restoreState(savedLayout));
 
     window.resize(1600, 900);
@@ -425,7 +429,7 @@ const std::array<const char*, 3> VERSION_BUTTONS{"file.saveVersion", "file.versi
 bool hasVersionButtons(const QToolBar& toolbar) {
     const QList<QAction*> actions = toolbar.actions();
     return std::all_of(VERSION_BUTTONS.begin(), VERSION_BUTTONS.end(), [&actions](const char* id) {
-        return actions.contains(CommandRegistry::getInstance().getAction(std::string(id)));
+        return actions.contains(kalahari::test::commands().getAction(std::string(id)));
     });
 }
 
@@ -435,7 +439,7 @@ bool hasNoVersionButtons(const QToolBar& toolbar) {
     return std::none_of(VERSION_BUTTONS.begin(), VERSION_BUTTONS.end(),
                         [&actions](const char* id) {
                             return actions.contains(
-                                CommandRegistry::getInstance().getAction(std::string(id)));
+                                kalahari::test::commands().getAction(std::string(id)));
                         });
 }
 
@@ -465,12 +469,12 @@ QAction* menuItemOf(const QMenu& menu, const QString& toolbarId) {
 
 TEST_CASE("Versions and Backups toolbar: in the first row after Quick Actions",
           "[gui][toolbar][versions]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     QMainWindow window;
     window.setCentralWidget(new QLabel(QStringLiteral("text")));
-    ToolbarManager manager(&window);
+    ToolbarManager manager(kalahari::test::commands(), &window);
     manager.createToolbars(registry);
     window.resize(1600, 900);
     window.show();
@@ -508,15 +512,15 @@ TEST_CASE("Versions and Backups toolbar: in the first row after Quick Actions",
 
 TEST_CASE("Versions and Backups toolbar: its buttons on Quick Actions, as the settings say",
           "[gui][toolbar][versions]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.set<std::string>(ToolbarManager::VERSION_BUTTONS_KEY,
                               ToolbarManager::VERSION_BUTTONS_QUICK_ACTIONS);
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     QMainWindow window;
     window.setCentralWidget(new QLabel(QStringLiteral("text")));
-    ToolbarManager manager(&window);
+    ToolbarManager manager(kalahari::test::commands(), &window);
     manager.createToolbars(registry);
     auto* viewMenu = new QMenu(&window);
     manager.createViewMenuActions(viewMenu);
@@ -575,11 +579,11 @@ TEST_CASE("Versions and Backups toolbar: after Quick Actions in a layout saved b
     auto& settings = kalahari::core::SettingsManager::getInstance();
     settings.set<bool>("toolbars.visible.quickActions", true);
 
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     QMainWindow window;
     window.setCentralWidget(new QLabel(QStringLiteral("text")));
-    ToolbarManager manager(&window);
-    manager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(kalahari::test::commands());
     REQUIRE(window.restoreState(savedLayout));
     manager.restoreState();
     window.resize(1600, 900);
@@ -608,8 +612,8 @@ TEST_CASE("Versions and Backups toolbar: after Quick Actions in a layout saved b
     const QByteArray moved = window.saveState();
     QMainWindow next;
     next.setCentralWidget(new QLabel(QStringLiteral("text")));
-    ToolbarManager nextManager(&next);
-    nextManager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager nextManager(kalahari::test::commands(), &next);
+    nextManager.createToolbars(kalahari::test::commands());
     REQUIRE(next.restoreState(moved));
     nextManager.restoreState();
     next.resize(1600, 900);
@@ -630,11 +634,11 @@ TEST_CASE("Panels toolbar: by the right edge, shown, in a layout saved while it 
     settings.set<bool>("toolbars.visible.view", false);
     settings.removeKey("toolbars.panelsByRightEdge");
 
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     QMainWindow window;
     window.setCentralWidget(new QLabel(QStringLiteral("text")));
-    ToolbarManager manager(&window);
-    manager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(kalahari::test::commands());
     REQUIRE(window.restoreState(savedLayout));
     manager.restoreState();
     window.resize(1600, 900);
@@ -657,8 +661,8 @@ TEST_CASE("Panels toolbar: by the right edge, shown, in a layout saved while it 
     const QByteArray moved = window.saveState();
     QMainWindow next;
     next.setCentralWidget(new QLabel(QStringLiteral("text")));
-    ToolbarManager nextManager(&next);
-    nextManager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager nextManager(kalahari::test::commands(), &next);
+    nextManager.createToolbars(kalahari::test::commands());
     REQUIRE(next.restoreState(moved));
     nextManager.restoreState();
     next.resize(1600, 900);
@@ -678,7 +682,7 @@ TEST_CASE("Versions and Backups toolbar: Quick Actions customized before gets th
         R"("_SEPARATOR_","edit.settings"]}})");
     settings.set<int>("toolbars.addedCommands", 4);
     QMainWindow window;
-    ToolbarManager manager(&window);
+    ToolbarManager manager(kalahari::test::commands(), &window);
     CHECK(manager.getToolbarCommands(QStringLiteral("quickActions"))
               .join(QStringLiteral(" | "))
               .toStdString() ==
@@ -688,12 +692,12 @@ TEST_CASE("Versions and Backups toolbar: Quick Actions customized before gets th
 
 TEST_CASE("Toolbar manager: the View menu items follow the toolbars and outlive no menu",
           "[gui][toolbar]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
 
     QMainWindow window;
-    ToolbarManager manager(&window);
-    manager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(kalahari::test::commands());
     QToolBar* toolbar = manager.getToolbar("views");
     REQUIRE(toolbar != nullptr);
 
@@ -723,12 +727,12 @@ TEST_CASE("Toolbar manager: the View menu items follow the toolbars and outlive 
 TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too, by the right edge",
           "[gui][toolbar]") {
     // The user's test: the Annotations panel (F9) had no button on the Panels toolbar
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
 
     QMainWindow window;
-    ToolbarManager manager(&window);
+    ToolbarManager manager(kalahari::test::commands(), &window);
     manager.createToolbars(registry);
     QToolBar* toolbar = manager.getToolbar("view");
     REQUIRE(toolbar != nullptr);
@@ -758,9 +762,9 @@ TEST_CASE("Panels toolbar: a button for each panel, the Annotations panel too, b
 TEST_CASE("Panels toolbar: the Log button only with its setting", "[gui][toolbar]") {
     // The user's test: the Log button is for those who read the log, not for every writer;
     // View > Panels > Log (F4) opens the panel anyway
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     auto& settings = kalahari::core::SettingsManager::getInstance();
     struct Back {
         bool shown;
@@ -776,7 +780,7 @@ TEST_CASE("Panels toolbar: the Log button only with its setting", "[gui][toolbar
     settings.set<bool>(ToolbarManager::LOG_BUTTON_KEY, false);
 
     QMainWindow window;
-    ToolbarManager manager(&window);
+    ToolbarManager manager(kalahari::test::commands(), &window);
     manager.createToolbars(registry);
     QToolBar* toolbar = manager.getToolbar("view");
     REQUIRE(toolbar != nullptr);
@@ -800,12 +804,12 @@ TEST_CASE("Panels toolbar: the Log button only with its setting", "[gui][toolbar
 }
 
 TEST_CASE("Toolbar manager: a renamed toolbar stays selected", "[gui][toolbar]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
 
     QMainWindow window;
-    ToolbarManager manager(&window);
-    manager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(kalahari::test::commands());
     const QString id = manager.createUserToolbar(QStringLiteral("Mine"));
 
     dialogs::ToolbarManagerDialog dialog(&manager, &window);
@@ -847,12 +851,12 @@ TEST_CASE("Toolbar manager: a renamed toolbar stays selected", "[gui][toolbar]")
 
 TEST_CASE("Toolbar manager: Apply and OK save a changed toolbar, Reset to Defaults stands apart",
           "[gui][toolbar]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
 
     QMainWindow window;
-    ToolbarManager manager(&window);
-    manager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(kalahari::test::commands());
     const QString id = manager.createUserToolbar(QStringLiteral("Mine"));
 
     dialogs::ToolbarManagerDialog dialog(&manager, &window);
@@ -923,12 +927,82 @@ TEST_CASE("Toolbar manager: Apply and OK save a changed toolbar, Reset to Defaul
     manager.deleteUserToolbar(id);
 }
 
+TEST_CASE("Statistics toolbar: the statistics of writing in one place, shown at the start",
+          "[gui][toolbar][statistics]") {
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    registerAllIcons();
+    CommandRegistry& registry = kalahari::test::commands();
+
+    QMainWindow window;
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(registry);
+
+    QToolBar* toolbar = manager.getToolbar("stats");
+    REQUIRE(toolbar != nullptr);
+    CHECK(window.toolBarArea(toolbar) == Qt::TopToolBarArea);
+    CHECK_FALSE(toolbar->isHidden());
+    CHECK(withoutAccessKey(toolbar->windowTitle()) == QStringLiteral("Writing Statistics Toolbar"));
+
+    // The very actions of the menus: the statistics bar and the panel are checked with them
+    const QList<QAction*> actions = toolbar->actions();
+    REQUIRE(actions.size() == 8);
+    CHECK(actions[0] == registry.getAction(std::string("view.showStatsBar")));
+    CHECK(actions[1] == registry.getAction(std::string("view.statistics")));
+    CHECK(actions[2]->isSeparator());
+    CHECK(actions[3] == registry.getAction(std::string("tools.writingGoals")));
+    CHECK(actions[4] == registry.getAction(std::string("tools.challenges")));
+    CHECK(actions[5] == registry.getAction(std::string("tools.addChallenge")));
+    CHECK(actions[6]->isSeparator());
+    CHECK(actions[7] == registry.getAction(std::string("tools.statsSettings")));
+
+    // The panel keeps its button on the Panels toolbar too; the Views toolbar has none of them
+    CHECK(manager.getToolbarCommands(QStringLiteral("view"))
+              .contains(QStringLiteral("view.statistics")));
+    CHECK_FALSE(manager.getToolbarCommands(QStringLiteral("views"))
+                    .contains(QStringLiteral("view.showStatsBar")));
+}
+
+TEST_CASE("Statistics toolbar: before Help in a layout saved before it",
+          "[gui][toolbar][statistics]") {
+    // The layout of an earlier version has no Writing Statistics: Qt would put it after Help
+    const QByteArray savedLayout = layoutWithoutViewsToolbar();
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    settings.set<bool>("toolbars.visible.quickActions", true);
+    settings.removeKey("toolbars.visible.stats");
+
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    QMainWindow window;
+    window.setCentralWidget(new QLabel(QStringLiteral("text")));
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(kalahari::test::commands());
+    REQUIRE(window.restoreState(savedLayout));
+    manager.restoreState();
+    window.resize(1600, 900);
+    window.show();
+    QApplication::processEvents();
+
+    QToolBar* stats = manager.getToolbar("stats");
+    QToolBar* tools = manager.getToolbar("tools");
+    QToolBar* help = manager.getToolbar("help");
+    REQUIRE(stats != nullptr);
+    REQUIRE(tools != nullptr);
+    REQUIRE(help != nullptr);
+    CHECK(stats->isVisible());
+    CHECK(stats->y() == help->y());
+    CHECK(stats->x() > tools->x());
+    CHECK(stats->x() < help->x());
+
+    // Once: the layout saved now knows it
+    manager.saveState();
+    CHECK(settings.hasKey("toolbars.visible.stats"));
+}
+
 TEST_CASE("View menu: Margin Numbering, a submenu after the text frame border, with the "
           "separator after it",
           "[gui][menu]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
-    CommandRegistry& registry = CommandRegistry::getInstance();
+    CommandRegistry& registry = kalahari::test::commands();
     QMainWindow window;
     MenuBuilder builder;
     builder.buildMenuBar(registry, &window);

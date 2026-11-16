@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file buffer_commands.cpp
 /// @brief Cursor positions in a QTextDocument
 

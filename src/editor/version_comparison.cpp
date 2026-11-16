@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file version_comparison.cpp
 /// @brief A version of a text compared with the text as it is now, as a text to read
 
 #include <kalahari/editor/version_comparison.h>
 #include <kalahari/core/text_diff.h>
 #include <kalahari/editor/annotation.h>
-#include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
 #include "book_editor_internal.h"
 
@@ -23,18 +25,6 @@ namespace {
 
 using core::DiffPiece;
 using core::DiffParagraph;
-
-/// @brief Fill @p document with text @p kml as an editor reads it, so that its positions are
-/// those of the editor's document (BookEditor::fromKml())
-void readKml(QTextDocument& document, const QString& kml) {
-    document.setUndoRedoEnabled(false);
-    KmlDocumentModel model;
-    model.loadKml(kml);  // unreadable KML: the paragraphs read before the error
-    QTextCursor cursor(&document);
-    cursor.beginEditBlock();
-    appendParagraphs(cursor, model);
-    cursor.endEditBlock();
-}
 
 /// @brief The texts of the paragraphs of @p document
 QStringList paragraphsOf(const QTextDocument& document) {
@@ -104,9 +94,9 @@ ComparisonRange VersionComparison::olderRange(int from, int to) const {
 VersionComparison compareVersions(const QString& olderKml, const QString& newerKml,
                                   const ComparisonColors& colors) {
     QTextDocument older;
-    readKml(older, olderKml);
+    readKmlInto(older, olderKml);
     QTextDocument newer;
-    readKml(newer, newerKml);
+    readKmlInto(newer, newerKml);
     const core::TextDiff diff = core::diffTexts(paragraphsOf(older), paragraphsOf(newer));
 
     QTextCharFormat deletedMark;
@@ -209,7 +199,7 @@ VersionComparison compareVersions(const QString& olderKml, const QString& newerK
 
 QString kmlFragment(const QString& kml, int from, int to) {
     QTextDocument document;
-    readKml(document, kml);
+    readKmlInto(document, kml);
     const int last = document.characterCount() - 1;
     from = std::clamp(from, 0, last);
     to = std::clamp(to, 0, last);

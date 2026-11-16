@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list_coordinator.cpp
 /// @brief The lists of the kinds of materials on their tabs in the middle of the window
 
@@ -6,6 +9,7 @@
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/source_description.h"
 #include "kalahari/gui/add_target.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/link_dialog.h"
@@ -14,6 +18,7 @@
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/source_names.h"
 #include "kalahari/gui/utils/file_location.h"
 
 #include <QDir>
@@ -44,10 +49,14 @@ constexpr int LONG_MESSAGE_TIMEOUT = 6000;
 /// its texts (core::CoverMaterial::UNIT_SETTING, TARGETS_SETTING)
 constexpr const char* COVER_SETTINGS = "materials.cover.";
 
+/// @brief The beginning of the keys of the settings of the sources: the style of the
+/// bibliography and the form of the references (core::Bibliography::STYLE_SETTING...)
+constexpr const char* SOURCE_SETTINGS = "materials.sources.";
+
 /// @brief The ids of all the elements of the Workshop of the open book
-QSet<QString> workshopIds() {
+QSet<QString> workshopIds(const core::ProjectManager& book) {
     QSet<QString> ids;
-    const core::BookProject* project = core::ProjectManager::getInstance().project();
+    const core::BookProject* project = book.project();
     if (project == nullptr) {
         return ids;
     }
@@ -64,16 +73,17 @@ QSet<QString> workshopIds() {
 
 }  // namespace
 
-MaterialListCoordinator::MaterialListCoordinator(QTabWidget* centralTabs,
+MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
+                                                 QTabWidget* centralTabs,
                                                  NavigatorCoordinator* navigator,
                                                  QStatusBar* statusBar,
                                                  PropertiesShower showProperties, QObject* parent)
-    : QObject(parent)
-    , m_centralTabs(centralTabs)
-    , m_navigator(navigator)
-    , m_statusBar(statusBar)
-    , m_showProperties(std::move(showProperties))
-{
+    : QObject(parent),
+      m_centralTabs(centralTabs),
+      m_navigator(navigator),
+      m_statusBar(statusBar),
+      m_showProperties(std::move(showProperties)),
+      m_book(book) {
     // Many changes at once (a material added: the book, its links, the Navigator) fill the
     // lists once
     m_refreshTimer = new QTimer(this);
@@ -85,7 +95,11 @@ MaterialListCoordinator::MaterialListCoordinator(QTabWidget* centralTabs,
             &MaterialListCoordinator::refresh);
     connect(m_navigator, &NavigatorCoordinator::materialChanged, this,
             &MaterialListCoordinator::refresh);
-    connect(&core::ProjectManager::getInstance(), &core::ProjectManager::linksChanged, this,
+    connect(&m_book, &core::ProjectManager::linksChanged, this,
+            &MaterialListCoordinator::refresh);
+    // A description, the source of a quote or the style of the book: the list Sources, the
+    // column Source of the quotes
+    connect(&m_book, &core::ProjectManager::sourcesChanged, this,
             &MaterialListCoordinator::refresh);
     connect(m_centralTabs, &QTabWidget::currentChanged, this,
             &MaterialListCoordinator::onCurrentTabChanged);
@@ -100,8 +114,8 @@ MaterialListCoordinator::MaterialListCoordinator(QTabWidget* centralTabs,
                 QMetaObject::invokeMethod(self, "onTreeSettingChanged", Qt::QueuedConnection);
             } else if (key == MaterialList::HIDDEN_SETTING) {
                 QMetaObject::invokeMethod(self, "onHiddenSettingChanged", Qt::QueuedConnection);
-            } else if (key.rfind(COVER_SETTINGS, 0) == 0) {
-                // The unit and the targets of the texts of the cover
+            } else if (key.starts_with(COVER_SETTINGS) || key.starts_with(SOURCE_SETTINGS)) {
+                // The unit and the targets of the texts of the cover; the style of the entries
                 QMetaObject::invokeMethod(self, "refresh", Qt::QueuedConnection);
             }
         });
@@ -112,7 +126,7 @@ MaterialListCoordinator::~MaterialListCoordinator() {
 }
 
 MaterialListPanel* MaterialListCoordinator::openList(const QString& list, bool keys) {
-    if (!core::ProjectManager::getInstance().isProjectOpen()) {
+    if (!m_book.isProjectOpen()) {
         return nullptr;
     }
     MaterialListPanel* panel = nullptr;
@@ -130,7 +144,7 @@ MaterialListPanel* MaterialListCoordinator::openList(const QString& list, bool k
     }
 
     if (panel == nullptr) {
-        panel = new MaterialListPanel(list, m_centralTabs);
+        panel = new MaterialListPanel(m_book, list, m_centralTabs);
         connectList(panel);
         m_centralTabs->addTab(panel, QString());
     } else {
@@ -168,7 +182,7 @@ void MaterialListCoordinator::refresh() {
 
 void MaterialListCoordinator::refreshNow() {
     m_refreshTimer->stop();
-    if (!core::ProjectManager::getInstance().isProjectOpen()) {
+    if (!m_book.isProjectOpen()) {
         return;
     }
     MaterialListPanel* current = currentList();
@@ -188,7 +202,7 @@ void MaterialListCoordinator::onTreeSettingChanged() {
 }
 
 void MaterialListCoordinator::onHiddenSettingChanged() {
-    if (core::ProjectManager::getInstance().isProjectOpen()) {
+    if (m_book.isProjectOpen()) {
         // The Navigator built again fills the lists again
         m_navigator->refreshNavigator();
     }
@@ -224,7 +238,7 @@ void MaterialListCoordinator::showKind(const QString& list) {
 void MaterialListCoordinator::onCurrentTabChanged() {
     MaterialListPanel* panel = currentList();
     if (panel != nullptr && panel->property(STALE_PROPERTY).toBool() &&
-        core::ProjectManager::getInstance().isProjectOpen()) {
+        m_book.isProjectOpen()) {
         panel->setProperty(STALE_PROPERTY, false);
         panel->refresh();
         updateTab(panel);
@@ -290,7 +304,7 @@ void MaterialListCoordinator::updateTab(MaterialListPanel* panel) {
 }
 
 void MaterialListCoordinator::edit(const QString& elementId, bool text) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (element == nullptr) {
         return;
@@ -304,7 +318,7 @@ void MaterialListCoordinator::edit(const QString& elementId, bool text) {
 }
 
 void MaterialListCoordinator::open(const QString& elementId) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (element == nullptr) {
         return;
@@ -318,19 +332,19 @@ void MaterialListCoordinator::open(const QString& elementId) {
 
 void MaterialListCoordinator::rename(const QString& elementId) {
     const core::ProjectElement* element =
-        core::ProjectManager::getInstance().findElement(elementId);
+        m_book.findElement(elementId);
     if (element != nullptr) {
         m_navigator->onRequestRename(elementId, element->title);
     }
 }
 
 void MaterialListCoordinator::link(const QString& elementId) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (pm.isReadOnly() || pm.findElement(elementId) == nullptr) {
         return;
     }
     const std::optional<QList<core::ElementLink>> links =
-        dialogs::chooseLinks(elementId, QString(), window());
+        dialogs::chooseLinks(m_book, elementId, QString(), window());
     if (!links) {
         return;
     }
@@ -344,15 +358,16 @@ void MaterialListCoordinator::link(const QString& elementId) {
 
 void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
                                   const QString& coverPart) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     if (!pm.isProjectOpen() || pm.isReadOnly()) {
         return;
     }
-    // The Add Element window with the kind of the list, or with the kinds of all of them
+    // The Add Element window with the kind of the list, or with the kinds of all of them; the
+    // list of the sources has those that can be a source, a publication chosen
     AddTarget target;
     target.scope = AddTarget::Scope::Workshop;
-    const QStringList kinds = list.isEmpty() ? MaterialList::kinds() : QStringList{list};
-    for (const QString& kindName : kinds) {
+    const bool sources = list == QLatin1String(MaterialList::SOURCES);
+    for (const QString& kindName : MaterialList::addKindsOf(m_book, list)) {
         const std::optional<core::KindReference> reference = core::KindReference::parse(kindName);
         const core::KindRef kind =
             reference ? pm.bookTypes().findKind(reference->packageId, reference->kindId)
@@ -368,13 +383,13 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
         target.kind = target.kinds.constFirst();
     }
     target.coverPart = coverPart;
-    const QSet<QString> before = workshopIds();
+    const QSet<QString> before = workshopIds(m_book);
     m_navigator->onRequestAdd(target);
 
     // The new material is chosen in the list; a working note opens in the editor, which keeps
     // the keys
     QString added;
-    for (const QString& id : workshopIds()) {
+    for (const QString& id : workshopIds(m_book)) {
         if (!before.contains(id)) {
             added = id;
             break;
@@ -382,6 +397,19 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
     }
     if (added.isEmpty()) {
         return;
+    }
+    // A material added to the sources is one: its kind and its title in its description
+    if (const core::ProjectElement* element = pm.findElement(added);
+        sources && element != nullptr && element->source.isEmpty()) {
+        core::SourceDescription source;
+        source.type = core::SourceDescription::kindFor(SourceNames::baseKindOf(m_book, *element));
+        source.setValue(QString::fromLatin1(core::SourceDescription::TITLE), element->title);
+        if (!pm.setSource(added, source)) {
+            //: In Polish: Nie zapisano opisu bibliograficznego
+            dialogs::MessageDialog::warning(window(),
+                                            MaterialList::tr("Bibliographic Description Not Saved"),
+                                            MaterialList::tr("Failed to save changes."));
+        }
     }
     panel->setProperty(STALE_PROPERTY, false);
     panel->refresh();
@@ -393,7 +421,7 @@ void MaterialListCoordinator::add(MaterialListPanel* panel, const QString& list,
 }
 
 void MaterialListCoordinator::setCoverState(const QString& elementId, const QString& state) {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (pm.isReadOnly() || element == nullptr) {
         return;
@@ -421,7 +449,7 @@ void MaterialListCoordinator::setCoverState(const QString& elementId, const QStr
 }
 
 void MaterialListCoordinator::showInFolder(const QString& elementId) {
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = m_book;
     const core::ProjectElement* element = pm.findElement(elementId);
     const QString path = element != nullptr ? pm.filePathOf(*element) : QString();
     if (path.isEmpty()) {

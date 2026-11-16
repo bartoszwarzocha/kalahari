@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file panel_tabs.h
 /// @brief The tabs of the panels docked one over another: the program's own in place of Qt's
 
@@ -18,6 +21,10 @@ class QBoxLayout;
 class QDockWidget;
 class QMainWindow;
 class QTabBar;
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari {
 namespace gui {
@@ -57,9 +64,10 @@ public:
     static constexpr const char* SIDE_BELOW = "below";
 
     /// @brief Tabs for the panels of @p window
+    /// @param commands The commands of its window
     /// @param window The main window
     /// @param parent Parent object
-    explicit PanelTabs(QMainWindow* window, QObject* parent = nullptr);
+    explicit PanelTabs(CommandRegistry& commands, QMainWindow* window, QObject* parent = nullptr);
 
     /// @brief Give a panel its tabs
     ///
@@ -129,7 +137,7 @@ private:
     static void hideQtTabs(QTabBar* bar, bool hide);
 
     /// @brief The tooltip of a panel's tab: its name and its keys
-    [[nodiscard]] static QString toolTipOf(const Panel& panel);
+    [[nodiscard]] QString toolTipOf(const Panel& panel) const;
 
     /// @brief Bring tab @p index of @p dock's tabs to the front; the keys follow the tabs
     void choose(const QDockWidget* dock, int index);
@@ -141,6 +149,7 @@ private:
     std::deque<Panel> m_panels;  ///< A deque keeps the panels in place as more come
     bool m_refreshPending = false;
     bool m_refill = false;       ///< The next refresh() fills all the tabs again
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file element_place_picker.h
 /// @brief The place of an element in the book: options, and the list of the book with the
 /// element in its place

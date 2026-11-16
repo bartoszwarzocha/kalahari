@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file database_schema_manager.cpp
 /// @brief Implementation of DatabaseSchemaManager
 ///
@@ -97,43 +100,6 @@ bool DatabaseSchemaManager::createSchema()
             author TEXT,
             timestamp TEXT,
             FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
-        )
-    )")) return false;
-
-    // Character library
-    if (!execSql(R"(
-        CREATE TABLE characters (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            color TEXT,
-            notes TEXT,
-            created_at TEXT,
-            modified_at TEXT
-        )
-    )")) return false;
-
-    // Location library
-    if (!execSql(R"(
-        CREATE TABLE locations (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            notes TEXT,
-            created_at TEXT,
-            modified_at TEXT
-        )
-    )")) return false;
-
-    // Item library
-    if (!execSql(R"(
-        CREATE TABLE items (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            notes TEXT,
-            created_at TEXT,
-            modified_at TEXT
         )
     )")) return false;
 

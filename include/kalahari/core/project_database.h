@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file project_database.h
 /// @brief SQLite database for project metadata and settings
 ///
@@ -9,6 +12,7 @@
 #pragma once
 
 #include "kalahari/core/database_types.h"
+#include "kalahari/core/writing_activity.h"
 
 #include <QString>
 #include <QSqlDatabase>
@@ -25,7 +29,6 @@ namespace core {
 /// Manages project.db file with:
 /// - Book metadata (title, author, etc.)
 /// - Chapter metadata (not content)
-/// - Character/Location/Item libraries
 /// - Session statistics
 /// - Styles and settings
 class ProjectDatabase {
@@ -79,39 +82,23 @@ public:
                           const QString& author = {});
 
     // =========================================================================
-    // Character Library
-    // =========================================================================
-
-    QList<CharacterInfo> getAllCharacters() const;
-    CharacterInfo getCharacter(const QString& id) const;
-    void saveCharacter(const CharacterInfo& character);
-    void deleteCharacter(const QString& id);
-
-    // =========================================================================
-    // Location Library
-    // =========================================================================
-
-    QList<LocationInfo> getAllLocations() const;
-    LocationInfo getLocation(const QString& id) const;
-    void saveLocation(const LocationInfo& location);
-    void deleteLocation(const QString& id);
-
-    // =========================================================================
-    // Item Library
-    // =========================================================================
-
-    QList<ItemInfo> getAllItems() const;
-    ItemInfo getItem(const QString& id) const;
-    void saveItem(const ItemInfo& item);
-    void deleteItem(const QString& id);
-
-    // =========================================================================
     // Session Statistics
     // =========================================================================
 
     void recordSessionStats(const SessionStats& stats);
     QList<SessionStats> getStatsBetween(const QDateTime& from, const QDateTime& to) const;
     AggregatedStats getAggregatedStats() const;
+
+    // =========================================================================
+    // Record of writing (the statistics and goals of writing)
+    // =========================================================================
+
+    /// @brief Adds what was written in this book to its record of writing
+    bool addWritingActivity(const QList<WritingActivity>& activity);
+
+    /// @brief The record of writing of this book on the days of the calendar from @p from to
+    /// @p to (both included)
+    QList<WritingActivity> writingActivity(const QDate& from, const QDate& to) const;
 
     // =========================================================================
     // Styles

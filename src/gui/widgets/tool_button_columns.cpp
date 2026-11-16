@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file tool_button_columns.cpp
 /// @brief Implementation of ToolButtonColumns
 

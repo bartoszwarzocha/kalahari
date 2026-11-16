@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file chapter_document.cpp
 /// @brief Implementation of ChapterDocument for .kchapter format
 ///
@@ -7,6 +10,7 @@
 #include <kalahari/core/logger.h>
 #include <kalahari/core/text_statistics.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include <kalahari/editor/text_footnotes.h>
 
 #include <QFile>
 #include <QJsonDocument>
@@ -77,7 +81,7 @@ WordTally ChapterDocument::wordTally() const
 {
     // The text of the KML, as the editor has it: the plain text of a file is only a copy,
     // which an older version of the program may have made in another way
-    return tallyWords(m_kml.isEmpty() ? m_plainText : kmlToPlainText(m_kml));
+    return m_kml.isEmpty() ? tallyWords(m_plainText) : kmlWordTally(m_kml);
 }
 
 int ChapterDocument::characterCount() const
@@ -102,7 +106,12 @@ void ChapterDocument::touch()
 
 void ChapterDocument::recalculateStatistics()
 {
-    const TextCounts counts = countText(m_plainText, wordCountRules());
+    const WordCountRules rules = wordCountRules();
+    TextCounts counts = countText(m_plainText, rules);
+    // The texts of the notes, which the plain text has not
+    for (const editor::Footnote& note : editor::notesOfKml(m_kml)) {
+        addNoteCounts(counts, editor::notePlainText(note.content), rules);
+    }
     m_wordCount = counts.words;
     m_characterCount = counts.nonSpaceCharacters;
     m_paragraphCount = counts.paragraphs;
@@ -507,7 +516,10 @@ private:
                     (isParagraphElement(reader.name()) || isListElement(reader.name()))) {
                     return false;
                 }
-                if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString())) {
+                // The old footnote on a range of the text keeps its text; a note's own text is
+                // not the text of its paragraph
+                if (editor::KmlFormatRegistry::isInlineTextTag(reader.name().toString()) ||
+                    (reader.name() == u"footnote" && editor::isOldFootnote(reader.attributes()))) {
                     ++depth;
                 } else {
                     if (reader.name() == u"br") {
@@ -562,6 +574,17 @@ QString ChapterDocument::kmlToPlainText(const QString& kml)
         }
     }
     return result;
+}
+
+WordTally ChapterDocument::kmlWordTally(const QString& kml)
+{
+    WordTally tally = tallyWords(kmlToPlainText(kml));
+    for (const editor::Footnote& note : editor::notesOfKml(kml)) {
+        const WordTally words = tallyWords(editor::notePlainText(note.content));
+        tally.noteWords += words.words;
+        tally.noteDashes += words.dashes;
+    }
+    return tally;
 }
 
 } // namespace core

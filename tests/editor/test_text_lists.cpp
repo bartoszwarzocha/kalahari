@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_text_lists.cpp
 /// @brief Bulleted and numbered lists: the numbers of the items, the formats of the levels and
 ///        the lists in KML

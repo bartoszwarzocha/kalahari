@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_project_database.cpp
 /// @brief Unit tests for SQLite Project Database (OpenSpec #00041)
 ///
@@ -87,9 +90,11 @@ TEST_CASE("DatabaseSchemaManager creates valid schema", "[database][schema]") {
         REQUIRE(tables.contains("book_metadata"));
         REQUIRE(tables.contains("chapters"));
         REQUIRE(tables.contains("chapter_history"));
-        REQUIRE(tables.contains("characters"));
-        REQUIRE(tables.contains("locations"));
-        REQUIRE(tables.contains("items"));
+        // The old library of characters, places and items is gone: cards are elements of the
+        // Workshop now
+        REQUIRE_FALSE(tables.contains("characters"));
+        REQUIRE_FALSE(tables.contains("locations"));
+        REQUIRE_FALSE(tables.contains("items"));
         REQUIRE(tables.contains("session_stats"));
         REQUIRE(tables.contains("paragraph_styles"));
         REQUIRE(tables.contains("character_styles"));
@@ -401,56 +406,6 @@ TEST_CASE("ProjectDatabase CRUD operations", "[database][crud]") {
         db.deleteChapter("ch001");
         all = db.getAllChapters();
         REQUIRE(all.isEmpty());
-    }
-
-    SECTION("Character library CRUD") {
-        CharacterInfo character;
-        character.id = "char001";
-        character.name = "John Doe";
-        character.description = "Main protagonist";
-        character.color = "#FF5733";
-
-        db.saveCharacter(character);
-
-        CharacterInfo loaded = db.getCharacter("char001");
-        REQUIRE(loaded.name == "John Doe");
-        REQUIRE(loaded.color == "#FF5733");
-
-        QList<CharacterInfo> all = db.getAllCharacters();
-        REQUIRE(all.size() == 1);
-
-        db.deleteCharacter("char001");
-        REQUIRE(db.getAllCharacters().isEmpty());
-    }
-
-    SECTION("Location library CRUD") {
-        LocationInfo location;
-        location.id = "loc001";
-        location.name = "Castle";
-        location.description = "Ancient fortress";
-
-        db.saveLocation(location);
-
-        LocationInfo loaded = db.getLocation("loc001");
-        REQUIRE(loaded.name == "Castle");
-
-        db.deleteLocation("loc001");
-        REQUIRE(db.getAllLocations().isEmpty());
-    }
-
-    SECTION("Item library CRUD") {
-        ItemInfo item;
-        item.id = "item001";
-        item.name = "Magic Sword";
-        item.description = "Legendary weapon";
-
-        db.saveItem(item);
-
-        ItemInfo loaded = db.getItem("item001");
-        REQUIRE(loaded.name == "Magic Sword");
-
-        db.deleteItem("item001");
-        REQUIRE(db.getAllItems().isEmpty());
     }
 
     SECTION("Session statistics") {

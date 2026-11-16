@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_menu_access_keys.cpp
 /// @brief The access keys of the menus, in English and in Polish
 ///
@@ -14,6 +17,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "context_menu_reader.h"
+#include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/project_manager.h"
@@ -79,6 +83,8 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include <string_view>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -235,13 +241,13 @@ public:
         }
         recent.addRecentFile(bookPath(QStringLiteral("Tom & Jerry")));
 
-        registerAllCommands(CommandCallbacks{});
-        CommandRegistry& registry = CommandRegistry::getInstance();
+        registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+        CommandRegistry& registry = kalahari::test::commands();
         // Window, as MainWindow registers it
         DocumentWindows::registerCommands(registry, []() -> DocumentWindows* { return nullptr; });
         m_builder.buildMenuBar(registry, &m_window);
         QMenu* fileMenu = m_builder.getMenu("FILE");
-        auto* recentBooks = new RecentBooksMenu(fileMenu);
+        auto* recentBooks = new RecentBooksMenu(kalahari::test::commands(), fileMenu);
         recentBooks->insertInto(fileMenu);
 
         // Format > Font Color and Highlight Color, with their submenus as the window gives
@@ -253,7 +259,7 @@ public:
                 ->setMenu(new ColorMenu(kind, {}, &m_window));
         }
 
-        m_toolbars = std::make_unique<ToolbarManager>(&m_window);
+        m_toolbars = std::make_unique<ToolbarManager>(kalahari::test::commands(), &m_window);
         m_toolbars->createToolbars(registry);
         m_toolbars->createViewMenuActions(m_builder.getMenu("VIEW"));
         m_userToolbar = m_toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
@@ -263,6 +269,9 @@ public:
                             noTool);
         fillDevToolsMenu(m_window.menuBar()->addMenu(devToolsMenuTitle()), &m_window, noTool);
     }
+
+    // The toolbar of the user is kept in the configuration: the next menus would have two
+    ~Menus() { m_toolbars->deleteUserToolbar(m_userToolbar); }
 
     [[nodiscard]] QMenuBar* menuBar() { return m_window.menuBar(); }
     [[nodiscard]] QMenu* menu(const std::string& path) const { return m_builder.getMenu(path); }
@@ -297,26 +306,35 @@ void checkEveryMenu() {
     collectProblems(menuBar, QStringLiteral("Menu bar"), {}, problems);
     CHECK(itemCount(menuBar) > 150);
 
-    // Book > New Chapter... as MainWindow names it after the texts of the open book
-    // ("&New Story..."): with the name of each kind of the installed types, it keeps its key
+    // Book > New Chapter... and Chapter Break as MainWindow names them after the texts of the
+    // open book ("&New Story...", "Story Brea&k"): with the name of each kind of the installed
+    // types, they keep their keys
     QMenu* bookMenu = menus.menu("BOOK");
-    QAction* newText = CommandRegistry::getInstance().getAction(QStringLiteral("book.newChapter"));
+    QAction* newText = kalahari::test::commands().getAction(QStringLiteral("book.newChapter"));
+    QAction* textBreak =
+        kalahari::test::commands().getAction(QStringLiteral("book.chapterBreak"));
     REQUIRE(bookMenu != nullptr);
     REQUIRE(newText != nullptr);
+    REQUIRE(textBreak != nullptr);
     const QString commandText = newText->text();
+    const QString breakText = textBreak->text();
     CHECK(newTextMenuText({}) == commandText);
+    CHECK(textBreakMenuText({}) == breakText);
     core::BookTypeRegistry types;
     types.load({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     const QList<core::KindRef> kinds = types.allKinds();
     CHECK(kinds.size() > 20);
     for (const core::KindRef& kind : kinds) {
         newText->setText(newTextMenuText(kind));
-        INFO(newText->text().toStdString());
+        textBreak->setText(textBreakMenuText(kind));
+        INFO(newText->text().toStdString() + " / " + textBreak->text().toStdString());
         CHECK(accessKeyOf(newText->text()) == accessKeyOf(commandText));
+        CHECK(accessKeyOf(textBreak->text()) == accessKeyOf(breakText));
         collectProblems(test::menuItems(bookMenu->actions()),
                         QStringLiteral("Book with ") + kind.reference(), {}, problems);
     }
     newText->setText(commandText);
+    textBreak->setText(breakText);
 
     // Alt with a letter opens a menu: Settings > Keyboard Shortcuts keeps those for them
     for (const QAction* menu : menus.menuBar()->actions()) {
@@ -485,10 +503,11 @@ private:
 
 /// The context menus of a book's text: the usual one, without a selection and with one, in
 /// both color modes; that of a misspelled word, with the words of the dictionary and without
-/// a dictionary; that of a grammar issue. @p shown: as Windows and Linux show them, where the
-/// words have keys too
+/// a dictionary, and with the book's dictionary; that of a departure from a rule of the book;
+/// that of a grammar issue. @p shown: as Windows and Linux show them, where the words have
+/// keys too
 void checkTextMenus(bool shown, QStringList& problems) {
-    auto& registry = CommandRegistry::getInstance();
+    auto& registry = kalahari::test::commands();
     editor::BookEditor editor;
     test::resizeWidget(editor, QSize(600, 400));
     editor.fromKml(test::kmlOf({sentence()}));
@@ -531,6 +550,112 @@ void checkTextMenus(bool shown, QStringList& problems) {
     QList<test::MenuItem> linkMenu = contextMenu(&editor, &editor, placeOf(editor, 1));
     collectProblems(linkMenu, QStringLiteral("Link"), {}, problems);
     CHECK(itemCount(linkMenu) == 6 + 4);
+
+    // A note's number: Edit, Convert and Delete on top of the usual menu
+    for (const QString& kind : {QStringLiteral("footnote"), QStringLiteral("endnote")}) {
+        editor.fromKml(QStringLiteral("<kml><p>The<%1 id=\"f1\">A note</%1> ").arg(kind) +
+                       sentence() + QStringLiteral("</p></kml>"));
+        const QRectF after = editor.placeRect(4, true);  // the number is the fourth character
+        QList<test::MenuItem> noteMenu = contextMenu(
+            &editor, &editor, QPoint(qRound(after.left()) - 2, qRound(after.center().y())));
+        collectProblems(noteMenu, QStringLiteral("Note"), {}, problems);
+        CHECK(itemCount(noteMenu) == 6 + 3);
+    }
+
+    // A field: Edit Field... and Convert to Text on top of the usual menu
+    editor.fromKml(QStringLiteral("<kml><p>The<field type=\"page\"/> ") + sentence() +
+                   QStringLiteral("</p></kml>"));
+    const QRectF afterField = editor.placeRect(4, true);  // the field is the fourth character
+    const QList<test::MenuItem> fieldMenu = contextMenu(
+        &editor, &editor, QPoint(qRound(afterField.left()) - 2, qRound(afterField.center().y())));
+    collectProblems(fieldMenu, QStringLiteral("Field"), {}, problems);
+    CHECK(itemCount(fieldMenu) == 6 + 2);
+
+    // An image, selected by the click: Image Properties..., Add Caption, Change Image...,
+    // Original Size and Save as Image... (the windows the editor panel gives) on top of the
+    // menu of selected text
+    {
+        editor::BookEditor pictured;
+        test::resizeWidget(pictured, QSize(600, 400));
+        pictured.fromKml(QStringLiteral("<kml><p>One <img src=\"images/map.png\" width=\"3cm\"/> "
+                                        "two</p></kml>"));
+        pictured.setContextMenuEditActions({registry.getAction(QStringLiteral("edit.cut")),
+                                            registry.getAction(QStringLiteral("edit.copy")),
+                                            registry.getAction(QStringLiteral("edit.paste")),
+                                            registry.getAction(QStringLiteral("edit.selectAll"))});
+        pictured.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
+                                        registry.getAction(QStringLiteral("insert.todo")),
+                                        registry.getAction(QStringLiteral("insert.note"))});
+        QObject::connect(&pictured, &editor::BookEditor::imagePropertiesAsked, [](int, int) {});
+        QObject::connect(&pictured, &editor::BookEditor::imageFileAsked, [](int) {});
+        QObject::connect(&pictured, &editor::BookEditor::imageSaveAsked, [](int) {});
+        const std::optional<QRectF> image = pictured.imageRect(4);
+        REQUIRE(image);
+        QList<test::MenuItem> imageMenu =
+            contextMenu(&pictured, &pictured, image->center().toPoint());
+        collectProblems(imageMenu, QStringLiteral("Image"), {}, problems);
+        CHECK(itemCount(imageMenu) == 8 + 5);
+
+        // With the commands of the Image menu, as the editor panel gives them: Image
+        // Properties..., Insert Caption..., Alternative Text..., Rotate and Filter with their items,
+        // Crop, Original Size, Change Image..., Save as Image...
+        const auto actions = [&registry](std::initializer_list<const char*> ids) {
+            QList<QAction*> list;
+            for (const char* id : ids) {
+                QAction* action = id != nullptr ? registry.getAction(QString::fromLatin1(id)) : nullptr;
+                CHECK((action != nullptr || id == nullptr));
+                list << action;
+            }
+            return list;
+        };
+        pictured.setContextMenuImageActions(
+            {actions({"image.properties", "image.addCaption", "image.altText"}),
+             actions({"image.rotateRight", "image.rotateLeft", "image.flipHorizontal",
+                      "image.flipVertical", nullptr, "image.rotateOptions"}),
+             actions({"image.filterNone", "image.filterGrayscale", "image.filterSepia",
+                      "image.filterBlackWhite", "image.filterWash", nullptr, "image.filterAll",
+                      "image.colorOptions"}),
+             actions({"image.crop", "image.originalSize", nullptr, "image.change", "image.saveAs"})});
+        QList<test::MenuItem> commandsMenu =
+            contextMenu(&pictured, &pictured, image->center().toPoint());
+        collectProblems(commandsMenu, QStringLiteral("Image with commands"), {}, problems);
+        CHECK(itemCount(commandsMenu) == 8 + (3 + (1 + 5) + (1 + 7) + 4));
+    }
+
+    // A cell of a table: Insert, Delete and Select, and the commands of the Table menu the
+    // editor panel gives, on top of the usual menu
+    const auto actions = [&registry](std::initializer_list<const char*> ids) {
+        QList<QAction*> list;
+        for (const char* id : ids) {
+            list << (id != nullptr ? registry.getAction(QString::fromLatin1(id)) : nullptr);
+        }
+        return list;
+    };
+    editor::BookEditor::ContextMenuTableActions tableActions;
+    tableActions.insert = actions({"table.insertRowsAbove", "table.insertRowsBelow",
+                                   "table.insertColumnsLeft", "table.insertColumnsRight"});
+    tableActions.remove = actions({"table.deleteRows", "table.deleteColumns", "table.deleteTable"});
+    tableActions.select = actions({"table.selectCell", "table.selectRow", "table.selectColumn",
+                                   "table.selectTable"});
+    tableActions.commands = actions({"table.mergeCells", "table.splitCells", nullptr,
+                                     "table.distributeRows", "table.distributeColumns", nullptr,
+                                     "table.sort", "table.properties"});
+    for (const QList<QAction*>* list : {&tableActions.insert, &tableActions.remove,
+                                        &tableActions.select, &tableActions.commands}) {
+        for (const QAction* action : *list) {
+            CHECK((action != nullptr || list == &tableActions.commands));
+        }
+    }
+    editor.setContextMenuTableActions(tableActions);
+    editor.fromKml(QStringLiteral("<kml><table><tr><td><p>") + sentence() +
+                   QStringLiteral("</p></td><td><p>Two</p></td></tr></table></kml>"));
+    editor.setCursorPosition({1, 1});
+    REQUIRE(editor.isInTable());
+    QList<test::MenuItem> cellMenu = contextMenu(
+        &editor, &editor, editor.inputMethodQuery(Qt::ImCursorRectangle).toRect().center());
+    collectProblems(cellMenu, QStringLiteral("Table cell"), {}, problems);
+    CHECK(itemCount(cellMenu) == 6 + (3 + 4 + 3 + 4) + 6);
+    editor.setContextMenuTableActions({});
     editor.fromKml(test::kmlOf({sentence()}));
 
     // The annotation at the click on top of the usual menu: a line with its kind and the start
@@ -618,7 +743,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
     QList<test::MenuItem> items = contextMenu(&editor, &editor, placeOf(editor, 6));
     collectProblems(items, QStringLiteral("Misspelled word"), shown ? QStringList() : wordTexts,
                     problems);
-    // and Ignore All, Add to Dictionary, then the usual menu
+    // and Ignore All, Add to Your Words, then the usual menu
     CHECK(itemCount(items) == words.size() + 2 + 6);
 
     // A word the dictionary has nothing like: the menu says there are none
@@ -634,6 +759,87 @@ void checkTextMenus(bool shown, QStringList& problems) {
     collectProblems(items, QStringLiteral("Misspelled word without suggestions"), {none},
                     problems);
     CHECK(labelsOf(items).contains(none));
+
+    // With the book's dictionary: the word can go to it as well; a word that departs from a
+    // rule of the book has the rule's menu, whose rule and note are lines that only tell
+    {
+        core::BookDictionary dictionary;
+        core::SpellingRule rule;
+        rule.right = QStringLiteral("e-mail");
+        rule.wrong = {QStringLiteral("email")};
+        rule.allForms = false;
+        rule.note = QStringLiteral("As the publisher writes it.");
+        REQUIRE_FALSE(dictionary.putRule(rule).isEmpty());
+        editor::BookEditor booked;
+        test::resizeWidget(booked, QSize(600, 400));
+        booked.fromKml(test::kmlOf({QStringLiteral("The chaptre of an email.")}));
+        booked.setContextMenuEditActions(
+            {.cut = registry.getAction(QStringLiteral("edit.cut")),
+             .copy = registry.getAction(QStringLiteral("edit.copy")),
+             .paste = registry.getAction(QStringLiteral("edit.paste")),
+             .selectAll = registry.getAction(QStringLiteral("edit.selectAll"))});
+        booked.setContextMenuActions({registry.getAction(QStringLiteral("insert.comment")),
+                                      registry.getAction(QStringLiteral("insert.todo")),
+                                      registry.getAction(QStringLiteral("insert.note"))});
+        booked.setSpellCheckService(&spelling);
+        booked.setBookDictionary(&dictionary, true);
+        booked.show();
+        REQUIRE(checked(booked));
+        items = contextMenu(&booked, &booked, placeOf(booked, 6));
+        collectProblems(items, QStringLiteral("Misspelled word, with the book's dictionary"),
+                        shown ? QStringList() : wordTexts, problems);
+        // and Ignore All, Add to Book Dictionary, Add to Your Words, Add Name..., then the
+        // usual menu
+        CHECK(itemCount(items) == words.size() + 4 + 6);
+
+        QStringList told = {QCoreApplication::translate(BOOK_EDITOR, "Book rule: write %1")
+                                .arg(QLocale().quoteString(rule.right)),
+                            rule.note};
+        if (!shown) {
+            told << rule.right;
+        }
+        items = contextMenu(&booked, &booked, placeOf(booked, 20));  // in "email"
+        collectProblems(items, QStringLiteral("Departure from a rule of the book"), told,
+                        problems);
+        CHECK(labelsOf(items).contains(told.first()));
+        // the rule's form and its two lines, Ignore All, Edit Rule..., Remove Rule, then the
+        // usual menu
+        CHECK(itemCount(items) == 3 + 3 + 6);
+    }
+
+    // A misspelled word of a note's text: its words and the note's items on top of the usual
+    // menu
+    for (const QString& kind : {QStringLiteral("footnote"), QStringLiteral("endnote")}) {
+        editor::BookEditor noted;
+        test::resizeWidget(noted, QSize(600, 400));
+        noted.fromKml(QStringLiteral("<kml><p>The<%1 id=\"f1\">A chaptre note</%1> one.</p>"
+                                     "</kml>")
+                          .arg(kind));
+        noted.setSpellCheckService(&spelling);
+        noted.show();
+        REQUIRE(checked(noted));
+        std::optional<QPoint> word;  // over "chaptre" (2 to 9 in the note's text)
+        const QRect note = noted.noteRect(QStringLiteral("f1")).toAlignedRect();
+        for (int y = note.top(); y <= note.bottom() && !word; y += 2) {
+            for (int x = note.left(); x <= note.right() && !word; x += 2) {
+                const std::optional<editor::NoteRange> place = noted.notePlaceAt(QPointF(x, y));
+                if (place && place->start > 2 && place->start < 9) {
+                    word = QPoint(x, y);
+                }
+            }
+        }
+        REQUIRE(word.has_value());
+        items = contextMenu(&noted, &noted, *word);
+        collectProblems(items, QStringLiteral("Misspelled word of a ") + kind,
+                        shown ? QStringList() : wordTexts, problems);
+        const QStringList labels = labelsOf(items);
+        CHECK(std::any_of(labels.cbegin(), labels.cend(), [](const QString& label) {
+            return withoutAccessKey(label) == QStringLiteral("Add to Your Words (All Books)") ||
+                   withoutAccessKey(label) == QStringLiteral("Dodaj do Twoich słów (wszystkie "
+                                                             "książki)");
+        }));
+        CHECK(itemCount(items) >= words.size() + 2 + 3);  // and the note's three
+    }
 
     // Every part at once: a misspelled word with an annotation, in a link, in a list item with
     // linked materials. Each item has a key of its own, the commands of the window keep theirs.
@@ -668,7 +874,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
         }
         items = contextMenu(&all, &all, placeOf(all, 6));
         collectProblems(items, QStringLiteral("Every part"), keyless, problems);
-        // (No suggestions), Ignore All, Add to Dictionary; the link's four; the annotation's line
+        // (No suggestions), Ignore All, Add to Your Words; the link's four; the annotation's line
         // and its three; the list's six; the usual menu; Linked Materials > Map
         CHECK(labelsOf(items).contains(none));
         CHECK(itemCount(items) == 3 + 4 + 4 + 6 + 6 + 2);
@@ -705,7 +911,7 @@ void checkTextMenus(bool shown, QStringList& problems) {
 void checkNavigatorMenus(QStringList& problems) {
     QTemporaryDir dir;
     REQUIRE(dir.isValid());
-    core::ProjectManager& pm = core::ProjectManager::getInstance();
+    core::ProjectManager& pm = test::book();
     pm.loadBookTypes({QStringLiteral(KALAHARI_SOURCE_DIR "/resources/booktypes")});
     // A novel starts with a title page and Chapter 1
     REQUIRE(pm.createProject(dir.path(), QStringLiteral("Book"), QStringLiteral("Author"),
@@ -757,9 +963,14 @@ void checkNavigatorMenus(QStringList& problems) {
 
     QWidget window;
     window.setAttribute(Qt::WA_DontShowOnScreen);
-    auto* panel = new NavigatorPanel(&window);
-    NavigatorCoordinator coordinator{panel, new PropertiesPanel(&window),
-                                     new QTabWidget(&window), new QStatusBar(&window), &window};
+    auto* panel = new NavigatorPanel(kalahari::test::book(), &window);
+    NavigatorCoordinator coordinator{kalahari::test::book(),
+                                     kalahari::test::commands(),
+                                     panel,
+                                     new PropertiesPanel(kalahari::test::book(), &window),
+                                     new QTabWidget(&window),
+                                     new QStatusBar(&window),
+                                     &window};
     panel->resize(400, 900);
     window.resize(400, 900);
     window.show();
@@ -789,9 +1000,9 @@ void checkNavigatorMenus(QStringList& problems) {
                         QStringLiteral("section_backmatter"), QStringLiteral("text_element"),
                         QStringLiteral("group_element"), QStringLiteral("window_element"),
                         QStringLiteral("workshop"), QStringLiteral("workshop_group"),
-                        QStringLiteral("workshop_shelf"), QStringLiteral("unassigned_files"),
-                        QStringLiteral("unassigned_file"), QStringLiteral("other_files"),
-                        QStringLiteral("standalone_file")});
+                        QStringLiteral("workshop_shelf"), QStringLiteral("workshop_view"),
+                        QStringLiteral("unassigned_files"), QStringLiteral("unassigned_file"),
+                        QStringLiteral("other_files"), QStringLiteral("standalone_file")});
 
     // Without sections the book's item adds the elements, also of the front and back matter
     REQUIRE(pm.setSections({false, QString(), {}}));
@@ -814,15 +1025,18 @@ struct WindowPanels {
 
     WindowPanels() {
         window.setAttribute(Qt::WA_DontShowOnScreen);
-        docks = new DockCoordinator(&window, &window);
+        docks = new DockCoordinator(kalahari::test::book(), kalahari::test::commands(), &window,
+                                    &window);
         docks->createDocks();
-        toolbars = std::make_unique<ToolbarManager>(&window);
-        toolbars->createToolbars(CommandRegistry::getInstance());
+        toolbars = std::make_unique<ToolbarManager>(kalahari::test::commands(), &window);
+        toolbars->createToolbars(kalahari::test::commands());
         userToolbar = toolbars->createUserToolbar(QStringLiteral("Tom & Jerry"));
         window.resize(1200, 800);
         window.show();
         QCoreApplication::processEvents();
     }
+
+    // The toolbar of the user is kept in the configuration: the next window would have two
     ~WindowPanels() { toolbars->deleteUserToolbar(userToolbar); }
     WindowPanels(const WindowPanels&) = delete;
     WindowPanels& operator=(const WindowPanels&) = delete;
@@ -891,7 +1105,7 @@ void checkContextMenus(bool shown) {
     if (shown) {
         filter.emplace();
     }
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
 
     QStringList problems;
     checkTextMenus(shown, problems);
@@ -987,7 +1201,7 @@ TEST_CASE("Menu access keys: the fields have those of Windows", "[gui][menus][ke
 
 TEST_CASE("Menu access keys: the menu of the panels' titles names them with keys",
           "[gui][menus][keys]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     WindowPanels panels;
     const std::unique_ptr<QMenu> qtMenu(panels.window.createPopupMenu());
     REQUIRE(qtMenu != nullptr);
@@ -1041,15 +1255,15 @@ TEST_CASE("Menu access keys: the copy of a menu leaves its hidden items out",
 
 TEST_CASE("Menu access keys: lists and toolbar buttons show the names without them",
           "[gui][menus][keys]") {
-    registerAllCommands(CommandCallbacks{});
-    const Command* saveAs = CommandRegistry::getInstance().getCommand("file.saveAs");
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
+    const Command* saveAs = kalahari::test::commands().getCommand("file.saveAs");
     REQUIRE(saveAs != nullptr);
     CHECK(saveAs->actionText() == QStringLiteral("Save &As..."));
     CHECK(saveAs->label == "Save As...");
     CHECK(saveAs->tooltip == "Save As...");
 
     // An ampersand of the name stays one
-    const Command* replace = CommandRegistry::getInstance().getCommand("edit.findReplace");
+    const Command* replace = kalahari::test::commands().getCommand("edit.findReplace");
     REQUIRE(replace != nullptr);
     CHECK(replace->actionText() == QStringLiteral("Find && Rep&lace..."));
     CHECK(replace->label == "Find & Replace...");
@@ -1102,10 +1316,10 @@ TEST_CASE("Menu access keys: a name the user gave gets a key no other item has",
 
 TEST_CASE("Menu access keys: the names of the user's toolbars share the free keys",
           "[gui][menus][keys]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     QMainWindow window;
-    ToolbarManager toolbars(&window);
-    toolbars.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager toolbars(kalahari::test::commands(), &window);
+    toolbars.createToolbars(kalahari::test::commands());
 
     // "Big X-ray" comes first and wants X, the only free key of "Boxes": it takes another one
     toolbars.createUserToolbar(QStringLiteral("Big X-ray"));
@@ -1206,10 +1420,17 @@ TEST_CASE("Menu access keys: a free key for a name the user gave", "[gui][menus]
     used = {QLatin1Char('2')};
     CHECK(withFreeAccessKey(QStringLiteral("Łódź 2"), used) == QStringLiteral("Łó&dź 2"));
 
-    // Every letter taken: no key rather than one another item has
+    // Every letter taken: a free one after it rather than one another item has
     used = {QLatin1Char('A'), QLatin1Char('B')};
-    CHECK(withFreeAccessKey(QStringLiteral("Ab & ba"), used) == QStringLiteral("Ab && ba"));
-    CHECK(used.size() == 2);
+    CHECK(withFreeAccessKey(QStringLiteral("Ab & ba"), used) == QStringLiteral("Ab && ba (&C)"));
+    CHECK(used.size() == 3);
+
+    // Every letter and digit taken: none
+    used.clear();
+    for (const char key : std::string_view("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")) {
+        used.insert(QLatin1Char(key));
+    }
+    CHECK(withFreeAccessKey(QStringLiteral("Ab"), used) == QStringLiteral("Ab"));
 }
 
 TEST_CASE("Menu access keys: free keys for names that share letters", "[gui][menus][keys]") {
@@ -1228,8 +1449,8 @@ TEST_CASE("Menu access keys: free keys for names that share letters", "[gui][men
                              used) ==
           QStringList{QStringLiteral("A&b"), QStringLiteral("B&c"), QStringLiteral("&A")});
 
-    // None left: no key rather than one another item has
+    // None of its own left: a free one after it rather than one another item has
     used = {QLatin1Char('X')};
     CHECK(withFreeAccessKeys({QStringLiteral("X"), QStringLiteral("Y")}, used) ==
-          QStringList{QStringLiteral("X"), QStringLiteral("&Y")});
+          QStringList{QStringLiteral("X (&A)"), QStringLiteral("&Y")});
 }

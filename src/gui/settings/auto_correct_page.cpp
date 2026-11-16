@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file auto_correct_page.cpp
 /// @brief Settings page: Editor > Auto-correct
 ///
@@ -55,9 +58,9 @@ constexpr int PREVIOUS_TEXT_ROLE = Qt::UserRole;
 /// @brief The rows of the replacement table and of the lists of exceptions shown at least
 constexpr int LIST_ROWS = 6;
 
-/// @brief The keys of Edit > Undo as the system writes them; empty: none
-QString undoKeys() {
-    const Command* command = CommandRegistry::getInstance().getCommand("edit.undo");
+/// @brief The keys of Edit > Undo of @p commands as the system writes them; empty: none
+QString undoKeys(const CommandRegistry& commands) {
+    const Command* command = commands.getCommand("edit.undo");
     return command != nullptr && !command->shortcut.isEmpty()
                ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
                : QString();
@@ -241,8 +244,9 @@ private:
 
 }  // namespace
 
-EditorAutoCorrectPage::EditorAutoCorrectPage(QWidget* parent)
+EditorAutoCorrectPage::EditorAutoCorrectPage(CommandRegistry& commands, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
 {
     // Short check boxes, one below another, and the details in notes that wrap: the page fits
     // a narrow window, as the other pages do, without scrolling sideways
@@ -376,8 +380,8 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
 
     // With the keys Undo has now (the user may change them)
     QLabel* undoNote = addNote(layout, QString());
-    const auto showUndoKeys = [undoNote]() {
-        const QString keys = undoKeys();
+    const auto showUndoKeys = [this, undoNote]() {
+        const QString keys = undoKeys(m_commands);
         //: %1 is the keys of Edit > Undo, as Ctrl+Z
         const QString undo =
             !keys.isEmpty()
@@ -387,7 +391,7 @@ QWidget* EditorAutoCorrectPage::createWhileTypingTab()
                           tr("In a paragraph of the Code style auto-correct changes nothing."));
     };
     showUndoKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, undoNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, undoNote,
             showUndoKeys);
     layout->addStretch(1);
     return tab;
@@ -398,16 +402,25 @@ QWidget* EditorAutoCorrectPage::createCapitalsTab()
     auto* tab = new QWidget();
     auto* layout = new QVBoxLayout(tab);
     QFormLayout* capitals = addTabGroup(layout, tr("Capitals"));
-    m_replacements.push_back(addCheckBox(capitals, tr("A capital at the start of a sentence"),
-                                         "editor.autoCorrect.sentenceCapitals"));
+    QCheckBox* sentences = addCheckBox(capitals, tr("A capital at the start of a sentence"),
+                                       "editor.autoCorrect.sentenceCapitals");
+    m_replacements.push_back(sentences);
+    //: In Polish: Zdanie zaczyna się także po myślniku dialogowym. Bez wielkiej litery po
+    //: skrócie z listy poniżej, po liczbie z kropką (5.), po inicjale (J. Kowalski) i po
+    //: wielokropku.
+    addOptionNote(capitals, sentences,
+                  tr("A sentence starts also after a dialogue dash. No capital after an "
+                     "abbreviation of the list below, a number with a period (5.), an initial "
+                     "(J. Kowalski) or an ellipsis."));
     m_replacements.push_back(addCheckBox(capitals, tr("Correct TWo INitial CApitals"),
                                          "editor.autoCorrect.twoInitialCapitals"));
-    m_replacements.push_back(addCheckBox(capitals, tr("Correct words typed with Caps Lock on"),
-                                         "editor.autoCorrect.capsLock"));
-    addNote(capitals, tr("A sentence starts also after a dialogue dash. No capital after an "
-                         "abbreviation of the list below, a number with a period (5.), an "
-                         "initial (J. Kowalski) or an ellipsis. A word typed with Caps Lock on "
-                         "by mistake, as “cAPS”, becomes “Caps”."));
+    QCheckBox* capsLock = addCheckBox(capitals, tr("Correct words typed with Caps Lock on"),
+                                      "editor.autoCorrect.capsLock");
+    m_replacements.push_back(capsLock);
+    //: In Polish: Wyraz wpisany przypadkiem z włączonym Caps Lock, np. „wIELKI”, zmienia się
+    //: w „Wielki”.
+    addOptionNote(capitals, capsLock,
+                  tr("A word typed with Caps Lock on by mistake, as “cAPS”, becomes “Caps”."));
 
     // The abbreviations of each language and the words with two capitals, side by side
     auto* exceptions = new QGroupBox(tr("Exceptions"));
@@ -491,8 +504,8 @@ QWidget* EditorAutoCorrectPage::createCapitalsTab()
     QLabel* undoNote = addNote(learnNote, QString());
     alignWithText(undoNote, learn);
     grid->addLayout(learnNote, 4, 0, 1, 2);
-    const auto showUndoKeys = [undoNote]() {
-        const QString keys = undoKeys();
+    const auto showUndoKeys = [this, undoNote]() {
+        const QString keys = undoKeys(m_commands);
         //: %1 is the keys of Edit > Undo, as Ctrl+Z
         undoNote->setText(
             !keys.isEmpty()
@@ -503,7 +516,7 @@ QWidget* EditorAutoCorrectPage::createCapitalsTab()
                      "abbreviation or the word to its list."));
     };
     showUndoKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, undoNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, undoNote,
             showUndoKeys);
     return tab;
 }

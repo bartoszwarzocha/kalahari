@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_editing.cpp
 /// @brief BookEditor: typing and deleting, undo and redo, the clipboard
 
@@ -10,9 +13,16 @@
 #include <kalahari/editor/find_replace_bar.h>
 #include <kalahari/editor/kml_document_model.h>
 #include <kalahari/editor/kml_serializer.h>
+#include <kalahari/editor/image_store.h>
+#include <kalahari/editor/kalahari_text_document_layout.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_images.h>
 #include <QAction>
 #include <QClipboard>
+#include <QFileInfo>
+#include <QHash>
+#include <QImage>
 #include <QGuiApplication>
 #include <QMimeData>
 #include <QTextBoundaryFinder>
@@ -78,13 +88,11 @@ void insertFragments(QTextCursor& cursor, const QTextBlock& block, bool objects 
 }
 
 /// @brief Insert a copy of a table of another document at the cursor, splitting its
-///        paragraph as insertTable() does: its shape, and the paragraphs of its cells with
-///        their formats
+///        paragraph as insertTable() does: its shape and properties, and the paragraphs of
+///        its cells with their formats
 /// @return The copy; the cursor ends at the start of the paragraph after it
 QTextTable* insertTableCopy(QTextCursor& cursor, const QTextTable& source) {
-    TableShape shape = tableShapeOf(source);
-    const std::vector<TableSpan> spans = std::move(shape.spans);
-    shape.spans.clear();
+    const TableShape shape = tableShapeOf(source);
     QTextTable* copy = insertTable(cursor, shape);
     const QTextDocument& document = *source.document();
     for (int row = 0; row < shape.rows; ++row) {
@@ -110,7 +118,7 @@ QTextTable* insertTableCopy(QTextCursor& cursor, const QTextTable& source) {
             }
         }
     }
-    spanCells(*copy, spans);
+    finishTableCells(*copy, shape);
     cursor.setPosition(copy->lastPosition() + 1);
     return copy;
 }
@@ -374,6 +382,22 @@ void insertMimeData(QTextCursor& cursor, const QMimeData& source, PasteMode mode
     cursor.endEditBlock();
 }
 
+/// @brief The files of pictures among the addresses of MIME data (files dragged from a
+///        folder), in their order
+QStringList pictureFilesOf(const QMimeData& source) {
+    QStringList files;
+    if (!source.hasUrls()) {
+        return files;
+    }
+    for (const QUrl& url : source.urls()) {
+        const QString path = url.isLocalFile() ? url.toLocalFile() : QString();
+        if (!path.isEmpty() && isImageFileName(path) && QFileInfo(path).isFile()) {
+            files << path;
+        }
+    }
+    return files;
+}
+
 /// @brief The text the last Control+K presses in a row deleted (macOS), for Control+Y: one
 ///        for all the editors, as on macOS
 QString& killedText() {
@@ -617,6 +641,10 @@ bool BookEditor::deleteSelectedText()
     if (refusesChange()) {
         return false;
     }
+    // An image goes with its caption
+    if (const std::optional<int> image = selectedImage(); image && removeImageWithCaption(*image)) {
+        return true;
+    }
     return removeSelection(true);
 }
 
@@ -627,6 +655,9 @@ bool BookEditor::removeSelection(bool keepAnnotations)
     }
 
     ensureDocument();
+    if (clearSelectedCells(keepAnnotations)) {
+        return true;  // selected cells lose their text, the cells staying
+    }
 
     SelectionRange sel = m_selection.normalized();
 
@@ -646,6 +677,62 @@ bool BookEditor::removeSelection(bool keepAnnotations)
     update();
     emit contentChanged();
     return true;
+}
+
+QString BookEditor::kmlFrom(const CursorPosition& at) const
+{
+    if (!m_textBuffer) {
+        return QString();
+    }
+    const int from = calculateAbsolutePosition(at);
+    const int to = m_textBuffer->characterCount() - 1;  // before the end of the last paragraph
+    return from < to ? KmlSerializer().toKml(m_textBuffer.get(), from, to) : QString();
+}
+
+bool BookEditor::removeTextFrom(const CursorPosition& at)
+{
+    if (refusesChange() || !m_textBuffer) {
+        return false;
+    }
+    ensureDocument();
+    int from = calculateAbsolutePosition(at);
+    const int to = m_textBuffer->characterCount() - 1;
+    if (from >= to) {
+        return false;
+    }
+
+    // At the start of a paragraph the end of a paragraph of text before it goes too: the text
+    // ends with that paragraph, in its format. Before a table, an object or in a cell an empty
+    // paragraph stays, as the document needs one there.
+    const QTextBlock block = m_textBuffer->findBlock(from);
+    const QTextBlock before = block.previous();
+    if (from == block.position() && before.isValid() && blockObject(before) == TextObject::None
+        && QTextCursor(before).currentTable() == nullptr
+        && QTextCursor(block).currentTable() == nullptr) {
+        from = before.position() + before.length() - 1;
+    }
+
+    // The text goes to another text: its words are not deleted
+    emit movingStarted();
+    QTextCursor cursor(m_textBuffer.get());
+    clearSelection();
+    removeKeepingTables(cursor, from, to, false);
+    m_cursorPosition.paragraph = cursor.blockNumber();
+    m_cursorPosition.offset = cursor.positionInBlock();
+    ensureCursorVisible();
+    update();
+    emit contentChanged();
+    emit movingFinished();
+    emit cursorPositionChanged(m_cursorPosition);
+    return true;
+}
+
+void BookEditor::undoMovedText()
+{
+    // The text comes back from another text: its words are not written
+    emit movingStarted();
+    undo();
+    emit movingFinished();
 }
 
 void BookEditor::insertNewline()
@@ -790,6 +877,11 @@ void BookEditor::deleteBackward()
     if (removeListMarkAtCursor()) {
         return;  // at the start of a list item its number goes, then the item leaves its list
     }
+    // An image right before the cursor goes with its caption
+    if (m_cursorPosition.offset > 0 &&
+        removeImageWithCaption(calculateAbsolutePosition(m_cursorPosition) - 1)) {
+        return;
+    }
 
     // If at start of document, nothing to delete
     if (m_cursorPosition.paragraph == 0 && m_cursorPosition.offset == 0) {
@@ -838,6 +930,11 @@ void BookEditor::deleteForward()
     }
 
     const int paraLen = paragraphText(m_textBuffer.get(), m_cursorPosition.paragraph).length();
+    // An image right after the cursor goes with its caption
+    if (m_cursorPosition.offset < paraLen &&
+        removeImageWithCaption(calculateAbsolutePosition(m_cursorPosition))) {
+        return;
+    }
     const bool atBlockEnd = (m_cursorPosition.offset >= paraLen);
     const bool hasNextBlock = (m_cursorPosition.paragraph + 1 < m_textBuffer->blockCount());
 
@@ -1131,8 +1228,14 @@ void BookEditor::undo()
 
     m_stepCursor.reset();
     m_pendingFormat = QTextCharFormat();
+    const int level = m_undoLevel;
+    const bool pasting = m_pasteLevels.contains(level);
+    if (pasting) {
+        emit pastingStarted();
+    }
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->undo(&cursor);
+    m_undoLevel = std::max(0, level - 1);
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
@@ -1142,6 +1245,9 @@ void BookEditor::undo()
     ensureCursorVisible();
     update();
     emit contentChanged();
+    if (pasting) {
+        emit pastingFinished(level, true);
+    }
     emit cursorPositionChanged(m_cursorPosition);
     if (learned) {
         emit autoCorrectionUndone(learned->list, learned->exception);
@@ -1159,8 +1265,14 @@ void BookEditor::redo()
 
     m_stepCursor.reset();
     m_pendingFormat = QTextCharFormat();  // as undo() does
+    const int level = m_undoLevel + 1;
+    const bool pasting = m_pasteLevels.contains(level);
+    if (pasting) {
+        emit pastingStarted();
+    }
     QTextCursor cursor(m_textBuffer.get());
     m_textBuffer->redo(&cursor);
+    m_undoLevel = level;
     m_cursorPosition.paragraph = cursor.blockNumber();
     m_cursorPosition.offset = cursor.positionInBlock();
     clearSelection();
@@ -1170,6 +1282,9 @@ void BookEditor::redo()
     ensureCursorVisible();
     update();
     emit contentChanged();
+    if (pasting) {
+        emit pastingFinished(level, true);
+    }
     emit cursorPositionChanged(m_cursorPosition);
 }
 
@@ -1183,6 +1298,7 @@ void BookEditor::undoWithoutRedo()
     }
     undo();
     m_textBuffer->clearUndoRedoStacks(QTextDocument::RedoStack);
+    m_pasteLevels.removeIf([this](int paste) { return paste > m_undoLevel; });
 }
 
 void BookEditor::clearUndoStack()
@@ -1193,6 +1309,8 @@ void BookEditor::clearUndoStack()
         // document already says so, hence the opposite first)
         const bool modified = isModified();
         m_textBuffer->clearUndoRedoStacks();
+        m_undoLevel = 0;
+        m_pasteLevels.clear();
         m_learnableChange.reset();  // no longer undone
         m_textBuffer->setModified(!modified);
         m_textBuffer->setModified(modified);
@@ -1256,36 +1374,163 @@ std::unique_ptr<QMimeData> BookEditor::createMimeDataFromSelection() const
         return nullptr;
     }
 
-    // The selection as it is: Qt's cursor would take a whole table the selection goes into
+    // The selection as it is: Qt's cursor would take a whole table the selection goes into.
+    // Selected cells are a table of them.
     const SelectionRange sel = m_selection.normalized();
     const int from = calculateAbsolutePosition(sel.start);
     const int to = calculateAbsolutePosition(sel.end);
-    const QString kml = KmlSerializer().toKml(m_textBuffer.get(), from, to);
+    const std::optional<TableCellRange> cells = selectedCellRange();
+    const QString kml = cells ? KmlSerializer().toKml(*cells)
+                              : KmlSerializer().toKml(m_textBuffer.get(), from, to);
+    std::vector<std::pair<int, int>> ranges;  // what the KML holds, in its order
+    if (cells) {
+        for (const QTextTableCell& cell : startingCellsOf(*cells)) {
+            ranges.emplace_back(cell.firstPosition(), cell.lastPosition());
+        }
+    } else {
+        ranges.emplace_back(from, to);
+    }
 
     // The list items with the numbers the editor shows: a part of a list goes on from the
     // number of its first item
     ListMarks marks;
     const std::vector<QString> shownMarks = listMarkers(*m_textBuffer);
     const std::vector<int> shownNumbers = listNumbers(*m_textBuffer);
-    const QTextBlock lastBlock = m_textBuffer->findBlock(to);
-    for (QTextBlock block = m_textBuffer->findBlock(from); block.isValid();
-         block = block.next()) {
-        if (blockObject(block) == TextObject::None && isListItem(block.blockFormat())) {
-            const auto index = static_cast<size_t>(block.blockNumber());
-            marks.marks.push_back(index < shownMarks.size() ? shownMarks[index] : QString());
-            marks.numbers.push_back(index < shownNumbers.size() ? shownNumbers[index] : -1);
-        }
-        if (block == lastBlock) {
-            break;
+    for (const auto& [rangeFrom, rangeTo] : ranges) {
+        const QTextBlock lastBlock = m_textBuffer->findBlock(rangeTo);
+        for (QTextBlock block = m_textBuffer->findBlock(rangeFrom); block.isValid();
+             block = block.next()) {
+            if (blockObject(block) == TextObject::None && isListItem(block.blockFormat())) {
+                const auto index = static_cast<size_t>(block.blockNumber());
+                marks.marks.push_back(index < shownMarks.size() ? shownMarks[index] : QString());
+                marks.numbers.push_back(index < shownNumbers.size() ? shownNumbers[index] : -1);
+            }
+            if (block == lastBlock) {
+                break;
+            }
         }
     }
-    return ClipboardHandler::mimeDataOf(kml, &marks);
+    // The numbers, references and fields as the editor shows them, with the whole book
+    // counted
+    const CaptionNumbers& numbers = captionNumbers();
+    const FieldTextOf shownField = [this, &numbers](int position, const QTextFormat& format) {
+        const auto* layout =
+            qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout());
+        return layout != nullptr ? layout->fieldText(position, format)
+                                 : numbers.fieldText(position, format);
+    };
+    for (const auto& [rangeFrom, rangeTo] : ranges) {
+        std::vector<QString> texts =
+            fieldTexts(*m_textBuffer, numbers, shownField, rangeFrom, rangeTo);
+        marks.fields.insert(marks.fields.end(), std::make_move_iterator(texts.begin()),
+                            std::make_move_iterator(texts.end()));
+    }
+    // The notes with the numbers the editor shows
+    if (const auto* layout =
+            qobject_cast<const KalahariTextDocumentLayout*>(m_textBuffer->documentLayout())) {
+        const FootnoteNumbers& notes = layout->footnoteNumbers();
+        for (const auto& [rangeFrom, rangeTo] : ranges) {
+            for (size_t i = 0; i < notes.notes().size(); ++i) {
+                const int position = notes.notes()[i].position;
+                if (position >= rangeFrom && position < rangeTo) {
+                    marks.notes.push_back(notes.number(i));
+                }
+            }
+        }
+    }
+    std::unique_ptr<QMimeData> mime = ClipboardHandler::mimeDataOf(kml, &marks, m_imageStore->folder());
+
+    // An image alone also as a picture, for the programs that paste pictures
+    if (const std::optional<int> image = selectedImage()) {
+        const std::optional<ImageProperties> properties = editor::imageAt(*m_textBuffer, *image);
+        if (properties) {
+            if (const std::optional<QSize> pixels = m_imageStore->pixelSize(properties->source)) {
+                const QImage picture = m_imageStore->picture(properties->source, *pixels);
+                if (!picture.isNull()) {
+                    mime->setImageData(picture);
+                }
+            }
+        }
+    }
+    return mime;
 }
 
-bool BookEditor::canInsertFromMimeData(const QMimeData* source)
+bool BookEditor::canInsertFromMimeData(const QMimeData* source) const
 {
-    return source != nullptr &&
-           (source->hasFormat(QString::fromLatin1(MIME_KML)) || source->hasText());
+    if (source == nullptr) {
+        return false;
+    }
+    if (source->hasFormat(QString::fromLatin1(MIME_KML)) || source->hasText()) {
+        return true;
+    }
+    return m_imageStore->hasFolder() && (source->hasImage() || !pictureFilesOf(*source).isEmpty());
+}
+
+bool BookEditor::insertPicturesOf(const QMimeData& source)
+{
+    if (source.hasFormat(QString::fromLatin1(MIME_KML))) {
+        return false;
+    }
+    // Files of pictures, one after the other; one of them stays selected
+    const QStringList files = pictureFilesOf(source);
+    if (!files.isEmpty()) {
+        int inserted = 0;
+        for (const QString& file : files) {
+            if (inserted > 0) {
+                const CursorPosition after = m_cursorPosition;
+                clearSelection();
+                m_selectionAnchor = after;
+                setCursorPosition(after);
+            }
+            inserted += insertImageFile(file) ? 1 : 0;
+        }
+        return true;
+    }
+    // A picture without text (a screenshot, a picture copied in a browser)
+    if (source.hasImage() && pastedPlainText(source.text()).trimmed().isEmpty()) {
+        insertPicture(qvariant_cast<QImage>(source.imageData()));
+        return true;
+    }
+    return false;
+}
+
+void BookEditor::adoptPastedImages(const QMimeData& source, int from, const QTextCursor& cursor)
+{
+    const QString other =
+        QString::fromUtf8(source.data(QString::fromLatin1(MIME_IMAGES_FOLDER)));
+    if (other.isEmpty() || !m_imageStore->hasFolder() || !m_textBuffer ||
+        !source.hasFormat(QString::fromLatin1(MIME_KML))) {
+        return;
+    }
+    QHash<QString, QString> adopted;  // each file copied once
+    QTextCursor edit(m_textBuffer.get());
+    bool joined = false;
+    for (const int position : imagePositions(*m_textBuffer, from, cursor.position())) {
+        std::optional<ImageProperties> image = editor::imageAt(*m_textBuffer, position);
+        if (!image) {
+            continue;
+        }
+        auto known = adopted.constFind(image->source);
+        if (known == adopted.cend()) {
+            known = adopted.insert(image->source, m_imageStore->adoptSource(other, image->source));
+        }
+        if (*known == image->source) {
+            continue;
+        }
+        if (!joined) {
+            edit.joinPreviousEditBlock();  // the paste's undo step
+            joined = true;
+        }
+        image->source = *known;
+        edit.setPosition(position);
+        edit.setPosition(position + 1, QTextCursor::KeepAnchor);
+        QTextCharFormat format = edit.charFormat();
+        setImage(format, *image);
+        edit.setCharFormat(format);
+    }
+    if (joined) {
+        edit.endEditBlock();
+    }
 }
 
 void BookEditor::insertFromMimeData(const QMimeData* source)
@@ -1301,6 +1546,10 @@ void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
     if (!canInsertFromMimeData(source)) {
         return;
     }
+    // Pictures: inserted as images, where the text has a folder of images
+    if (insertPicturesOf(*source)) {
+        return;
+    }
     // Text from other programs is cleaned first: nothing to insert, nothing replaced
     if (!source->hasFormat(QString::fromLatin1(MIME_KML)) &&
         pastedPlainText(source->text()).isEmpty()) {
@@ -1308,14 +1557,26 @@ void BookEditor::insertMimeDataAs(const QMimeData* source, PasteMode mode)
     }
     ensureDocument();
 
+    emit pastingStarted();
     QTextCursor cursor = createCursor(m_textBuffer.get(), m_cursorPosition);
     const QTextCharFormat pending = pendingFormat();
     if (hasSelection()) {
         cursor = selectionToReplace();
         clearSelection();
     }
+    const int from = cursor.selectionStart();
     insertMimeData(cursor, *source, mode, pending);
+    adoptPastedImages(*source, from, cursor);
+    renewPastedCaptionIds(from, cursor.position());
+    renewPastedNoteIds(from, cursor.position());
     finishEdit(cursor);
+    finishPasting();
+}
+
+void BookEditor::finishPasting()
+{
+    m_pasteLevels.insert(m_undoLevel);
+    emit pastingFinished(m_undoLevel, false);
 }
 
 void BookEditor::setPasteMode(PasteMode mode)
@@ -1337,15 +1598,40 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
         return false;
     }
 
+    // Files of pictures dropped from a folder, a picture dropped from a browser: images at
+    // the drop point
+    if (!moveSelection && !source->hasFormat(QString::fromLatin1(MIME_KML)) &&
+        (!pictureFilesOf(*source).isEmpty() ||
+         (source->hasImage() && pastedPlainText(source->text()).trimmed().isEmpty()))) {
+        if (!m_imageStore->hasFolder()) {
+            return false;
+        }
+        const CursorPosition at = validateCursorPosition(position);
+        clearSelection();
+        m_selectionAnchor = at;
+        setCursorPosition(at);
+        return insertPicturesOf(*source);
+    }
+
     const SelectionRange moved = m_selection.normalized();
+    const std::optional<TableCellRange> movedCells =
+        moveSelection ? selectedCellRange() : std::nullopt;
     clearSelection();
+    emit pastingStarted();
 
     // One undo step: moved text leaves its place, with its annotations, and lands at the
     // drop point. Both cursors stay at the same text while the other one edits the document.
     QTextCursor cursor = createCursor(m_textBuffer.get(), validateCursorPosition(position));
     QTextCursor oldPlace;
     cursor.beginEditBlock();
-    if (moveSelection) {
+    if (moveSelection && movedCells) {
+        // Moved cells leave their text, the cells staying
+        oldPlace = QTextCursor(m_textBuffer.get());
+        const std::vector<QTextTableCell> cleared = startingCellsOf(*movedCells);
+        for (auto cell = cleared.rbegin(); cell != cleared.rend(); ++cell) {
+            clearCell(oldPlace, *cell);
+        }
+    } else if (moveSelection) {
         oldPlace = QTextCursor(m_textBuffer.get());
         removeKeepingTables(oldPlace, calculateAbsolutePosition(moved.start),
                             calculateAbsolutePosition(moved.end), false);
@@ -1353,9 +1639,13 @@ bool BookEditor::dropMimeData(const QMimeData* source, const CursorPosition& pos
     const int insertionStart = cursor.position();
     insertMimeData(cursor, *source, m_pasteMode);
     cursor.endEditBlock();
+    adoptPastedImages(*source, insertionStart, cursor);
+    renewPastedCaptionIds(insertionStart, cursor.position());
+    renewPastedNoteIds(insertionStart, cursor.position());
 
     // The dropped text is selected, with the cursor at its end
     finishEdit(cursor);
+    finishPasting();
     if (!oldPlace.isNull() && oldPlace.blockNumber() != m_cursorPosition.paragraph) {
         emit paragraphModified(oldPlace.blockNumber());
     }

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_project.h
 /// @brief Book project as its .klh file saves it: type, kinds, books and the Workshop
 ///
@@ -37,11 +40,19 @@
 ///       ]
 ///     }
 ///   ],
+///   "paragraphStyles": [
+///     { "id": "quote", "next": "", "properties": { "italic": true, "spaceBefore": 12 } },
+///     { "id": "wspomnienie", "name": "Wspomnienie", "base": "quote",
+///       "properties": { "leftMargin": 18 } }
+///   ],
 ///   "workshop": {
 ///     "grouped": false,
 ///     "elements": [
-///       { "id": "e4", "kind": "kalahari.base:character", "title": "Anna",
-///         "file": "workshop/character_001.json" },
+///       { "id": "e4", "kind": "kalahari.base:character", "title": "Anna Wolska",
+///         "file": "workshop/character_001.kchapter", "status": "draft",
+///         "description": "Kartografka z Warszawy.",
+///         "card": { "values": { "role": "main", "age": "29" }, "color": "#c0504d",
+///                   "portraits": [{ "image": "e9" }] } },
 ///       { "id": "e7", "kind": "kalahari.base:material", "title": "mapa",
 ///         "file": "workshop/mapa.png", "description": "Mapa okolic oazy.",
 ///         "fields": [{ "name": "Skala", "value": "1 : 50 000" }],
@@ -58,7 +69,21 @@
 /// - A book has its data (title, author, language, genre), the name of its node ("name";
 ///   none: "Book" in the user's language), whether the Navigator shows its front, main and back
 ///   parts ("partsLayer"), the names of these parts ("sections"), the folder of its files, the
-///   elements of each part and its files outside its text ("files").
+///   elements of each part, its files outside its text ("files") and its captions
+///   ("captions").
+/// - "captions" has the labels of the book's captions in the order Insert Caption offers them
+///   ("labels"), how each label is numbered ("numbering": "label", "format" "1", "a", "A", "i"
+///   or "I", "perChapter", "withChapter", "separator" ".", "–" or ":") and what a new
+///   cross-reference shows ("reference": "number", "label", "caption" or "position"):
+///   { "labels": ["Rysunek", "Mapa"], "numbering": [{ "label": "Rysunek", "format": "1",
+///   "perChapter": true, "withChapter": true, "separator": "." }], "reference": "number" }.
+///   A book without its first caption has none: the Settings give them.
+/// - "footnotes" has how the book numbers its footnotes and its endnotes ("format" "1", "a",
+///   "A", "i", "I" or "*", "perChapter") and where its endnotes are ("place": "chapter", after
+///   each text, or "book", at the end of the book): { "footnotes": { "format": "1",
+///   "perChapter": true }, "endnotes": { "format": "i", "perChapter": false, "place": "book" } }.
+///   A book without it numbers 1, 2, 3 and i, ii, iii anew in each chapter, the endnotes after
+///   each text.
 /// - "sections" is the id of a set of names in the language of the book ("sections": Front
 ///   Section, Main Section, Back Section; "matter": Front Matter, Body, Back Matter;
 ///   "fragments"; "arc"), or the writer's own names:
@@ -75,25 +100,37 @@
 ///   saved once, with the element that has it; an element deleted from the project leaves the
 ///   links. "view" has how its picture is shown: "rotation", 0, 90, 180 or 270 degrees
 ///   clockwise. A material of the cover has what it is and where it goes in "cover"
-///   (CoverData). None of these: the element has none.
+///   (CoverData). A material that is a source has its bibliographic description in "source"
+///   (SourceDescription), a material with a file its bookmarks ("bookmarks": a page and a
+///   note each) and the page shown last ("lastPage"), a quote its source and page in "quote"
+///   (QuoteSource). A card (a character, a location, an item: a text element of a kind of
+///   cards) has its short description ("In short") as its description and in "card" the
+///   values of the fields of its kind, its color and its portraits, pictures of the materials
+///   (CardData); its text is its long description. None of these: the element has none.
 /// - A material is a copy of a file in the Workshop's folder ("file"), a web address ("url":
 ///   a page, or a picture on the web, whose copy in the book is then its file), or neither of
 ///   them: a paper book, a talk or a quotation that its description and fields tell of.
 /// - A file of a book outside its text, such as notes or a text pasted from elsewhere, has an
 ///   id unique in the project, a title and a chapter file, but no kind and no status; the
 ///   finished book does not have it. A book without such files has no "files".
+/// - "paragraphStyles": the paragraph styles of the books (BookParagraphStyle): the writer's
+///   own styles and the styles of the type that the project changes. A project without them
+///   has none.
 /// - Fields this version of Kalahari does not know are kept and saved back.
 
 #pragma once
 
 #include <kalahari/core/book_type_registry.h>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/cover_material.h>
+#include <kalahari/core/source_description.h>
 #include <QByteArray>
 #include <QDateTime>
 #include <QJsonObject>
 #include <QList>
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
 #include <optional>
 
 namespace kalahari::core {
@@ -144,7 +181,8 @@ struct ProjectElement {
                                      ///< the file "firstPage": "left", without it a right page
     QList<ProjectElement> elements;  ///< Elements inside it (groups), in order
     QString description;             ///< Description of an element of the Workshop without a
-                                     ///< text of its own (a material); empty: none
+                                     ///< text of its own (a material), or the short one of a
+                                     ///< card ("In short"); empty: none
     QList<ElementField> fields;      ///< The writer's own fields, in the writer's order
     QList<ElementLink> links;        ///< What it is about: elements and sections, each
                                      ///< once, in the order linked
@@ -152,6 +190,15 @@ struct ProjectElement {
                                      ///< 90, 180 or 270 degrees
     CoverData cover;                 ///< Of a material of the cover: what it is and where
                                      ///< it goes; empty: none
+    CardData card;                   ///< Of a card (a character, a location, an item): the
+                                     ///< values of its fields, its color and its portraits;
+                                     ///< empty: none
+    SourceDescription source;        ///< Of a material that is a source: its bibliographic
+                                     ///< description; empty: none
+    QList<PageBookmark> bookmarks;   ///< Places in its file, by page, in the writer's order
+    int lastPage = 0;                ///< Page of its file shown last, from 1; 0: none
+    QuoteSource quote;               ///< Of a quote: the source and the page it comes from;
+                                     ///< empty: not said
     QJsonObject viewExtra;           ///< Fields of its "view" this version does not know
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
@@ -203,6 +250,58 @@ struct BookSections {
     bool operator==(const BookSections&) const = default;
 };
 
+/// @brief How a book numbers the captions of one label (Insert Caption > Numbering...)
+struct CaptionLabelNumbering {
+    QString label;                             ///< The label: "Figure", "Map"
+    QString format = QStringLiteral("1");      ///< Of the number: "1", "a", "A", "i" or "I"
+    bool perChapter = false;                   ///< Anew in each chapter; false: through the book
+    bool withChapter = false;                  ///< With the chapter's number first (perChapter)
+    QString separator = QStringLiteral(".");   ///< After the chapter's number: ".", "–" or ":"
+    QJsonObject extra;                         ///< Fields this version does not know, saved back
+
+    bool operator==(const CaptionLabelNumbering&) const = default;
+};
+
+/// @brief The captions of a book: its labels, how it numbers each of them and what a new
+/// cross-reference shows
+///
+/// A book gets them from the Settings (Editor > Images, captions in new books) once it has
+/// its first caption; from then on they are its own and the Settings no longer change them.
+struct BookCaptions {
+    QStringList labels;                       ///< In the order Insert Caption offers them
+    QList<CaptionLabelNumbering> numbering;   ///< Of the labels, each label once
+    QString reference = QStringLiteral("number");  ///< What a new cross-reference shows:
+                                                   ///< "number", "label", "caption", "position"
+    QJsonObject extra;                        ///< Fields this version does not know, saved back
+
+    bool operator==(const BookCaptions&) const = default;
+
+    /// @brief The numbering of @p label; the default one (1, 2, 3 through the book) without one
+    CaptionLabelNumbering numberingOf(const QString& label) const;
+};
+
+/// @brief How a book numbers its footnotes or its endnotes (Insert > Footnote Layout...)
+struct NoteNumbering {
+    QString format;           ///< Of the number: "1", "a", "A", "i", "I" or "*" (*, †, ‡, §)
+    bool perChapter = true;   ///< Anew in each chapter; false: through the book
+    QJsonObject extra;        ///< Fields this version does not know, saved back
+
+    bool operator==(const NoteNumbering&) const = default;
+};
+
+/// @brief The notes of a book: how it numbers its footnotes and endnotes and where its
+///        endnotes are
+struct BookFootnotes {
+    NoteNumbering footnotes{QStringLiteral("1"), true, {}};
+    NoteNumbering endnotes{QStringLiteral("i"), true, {}};
+    /// The endnotes of every text at the end of the book (the editor shows them after the
+    /// last text); false: each text's after its last paragraph
+    bool endnotesAtBookEnd = false;
+    QJsonObject extra;  ///< Fields this version does not know, saved back
+
+    bool operator==(const BookFootnotes&) const = default;
+};
+
 /// @brief Book of a project: its data, settings and elements
 struct ProjectBook {
     static constexpr const char* CUSTOM_SECTIONS = "custom";  ///< Set of the writer's own names
@@ -228,6 +327,14 @@ struct ProjectBook {
     /// Files of the book outside its text, in the order they were added: empty text files
     /// that the writer keeps with the book. They have no kind and no status.
     QList<ProjectElement> files;
+    /// Its labels of captions and their numbering; none: the Settings' ones for new books,
+    /// until the book has its first caption
+    std::optional<BookCaptions> captions;
+    /// How it numbers its notes and where its endnotes are; none: 1, 2, 3 and i, ii, iii anew
+    /// in each chapter, the endnotes after each text
+    std::optional<BookFootnotes> footnotes;
+    /// The style of its bibliography (Bibliography::PN_ISO_690...); empty: the Settings' one
+    QString bibliographyStyle;
     QJsonObject extra;                    ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectBook&) const = default;
@@ -259,6 +366,7 @@ struct ProjectWorkshop {
     QString name;                    ///< Name of the Workshop's node; empty: "Workshop"
     bool grouped = false;            ///< Whether cards go to Libraries
     QList<ProjectElement> elements;  ///< Elements, in the order they were added
+    QList<OwnRelation> relations;    ///< Relations between cards that the writer named
     QJsonObject extra;               ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectWorkshop&) const = default;
@@ -271,6 +379,25 @@ struct ProjectType {
     QJsonObject extra;  ///< Fields this version does not know, saved back
 
     bool operator==(const ProjectType&) const = default;
+};
+
+/// @brief A paragraph style of the books of a project: the writer's own, or a style of the book
+///        type that the project changes
+///
+/// An entry with the id of a style of the type replaces that style's own properties and the
+/// style Enter starts after it; its name and base style stay the type's, and taking the entry
+/// out restores the type's style. Any other id is the writer's own style, with its own name and
+/// base style. The properties are named as in the packages (book_type_package.h), sizes in
+/// points.
+struct BookParagraphStyle {
+    QString id;              ///< The id paragraphs name (<p style="...">); unique in the project
+    QString name;            ///< Name of the writer's own style; empty for a style of the type
+    QString baseStyle;       ///< Style an own style inherits from; empty: none
+    QString nextStyle;       ///< Style Enter starts after a paragraph of it; empty: the same
+    QVariantMap properties;  ///< Its own properties: fontSize, alignment, leftMargin...
+    QJsonObject extra;       ///< Fields this version does not know, saved back
+
+    bool operator==(const BookParagraphStyle&) const = default;
 };
 
 /// @brief Book project as its .klh file saves it
@@ -291,9 +418,13 @@ struct BookProject {
     QList<KindReference> kinds;       ///< Kinds taken from other types; in a user project, all
     QList<ProjectBook> books;         ///< Books; one for now, more in a series
     ProjectWorkshop workshop;         ///< Workshop shared by the books
+    QList<BookParagraphStyle> paragraphStyles;  ///< Own styles and changed styles of the type
     QJsonObject extra;                ///< Fields this version does not know, saved back
 
     bool operator==(const BookProject&) const = default;
+
+    /// @brief The project's entry for paragraph style @p styleId, or nullptr
+    const BookParagraphStyle* findParagraphStyle(const QString& styleId) const;
 
     /// @brief Whether the project has no type: the author chose its kinds from the palette
     bool isUserProject() const { return !type.has_value(); }

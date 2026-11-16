@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file dock_coordinator.h
 /// @brief Dock widget and panel coordination for MainWindow
 ///
@@ -21,6 +24,13 @@ class QAction;
 class QRect;
 class QSplitter;
 
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
+
 namespace kalahari {
 namespace editor {
 class BookEditor;
@@ -38,6 +48,7 @@ class AnnotationsPanel;
 class SpellingPanel;
 class RepetitionsPanel;
 class ParagraphPanel;
+class WritingStatsPanel;
 class FittingScrollArea;
 class InfoBar;
 class PanelTabs;
@@ -64,9 +75,12 @@ class DockCoordinator : public QObject {
 
 public:
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param mainWindow Parent QMainWindow
     /// @param parent Parent QObject
-    explicit DockCoordinator(QMainWindow* mainWindow, QObject* parent = nullptr);
+    explicit DockCoordinator(core::ProjectManager& book, CommandRegistry& commands,
+                             QMainWindow* mainWindow, QObject* parent = nullptr);
 
     /// @brief Destructor
     ~DockCoordinator() override = default;
@@ -137,6 +151,13 @@ public:
     ///        of the Properties panel opens unfolded with the Properties panel on top
     void placeParagraphPanel(bool moved);
 
+    /// @brief The Statistics panel in a layout saved before it existed, once: Qt leaves it
+    /// where it was before the layout came back, shown even when the panels on the right were
+    /// closed. It goes in the tab after the Annotations panel, closed while that is closed.
+    /// @param savedLayout The window took a saved layout; without one (the first start) the
+    ///        panel stays where the default layout puts it
+    void placeStatisticsPanel(bool savedLayout);
+
     /// @brief Follow the text in front with the Paragraph and Styles panel, in both its places
     /// @param editor The text, nullptr without one (the Dashboard, no tab)
     void setParagraphEditor(editor::BookEditor* editor);
@@ -203,6 +224,9 @@ public:
     /// @brief Get the Repetitions panel
     [[nodiscard]] RepetitionsPanel* repetitionsPanel() const { return m_repetitionsPanel; }
 
+    /// @brief The Statistics panel (its statistics come from WritingStatsCoordinator)
+    [[nodiscard]] WritingStatsPanel* statisticsPanel() const { return m_statisticsPanel; }
+
     /// @brief The Paragraph and Styles panel of its own (paragraphDock())
     [[nodiscard]] ParagraphPanel* paragraphPanel() const { return m_paragraphPanel; }
 
@@ -251,6 +275,9 @@ public:
 
     /// @brief Get the dock of the Repetitions panel
     [[nodiscard]] QDockWidget* repetitionsDock() const { return m_repetitionsDock; }
+
+    /// @brief The dock of the Statistics panel
+    [[nodiscard]] QDockWidget* statisticsDock() const { return m_statisticsDock; }
 
     /// @brief The dock of the Paragraph and Styles panel of its own (hidden while the panel is
     /// in the Properties panel)
@@ -389,6 +416,9 @@ private:
     /// @brief Create the dock of the Repetitions panel (hidden until opened)
     void createRepetitionsDock();
 
+    /// @brief Create the dock of the Statistics panel, a tab after the Annotations panel
+    void createStatisticsDock();
+
     /// @brief Create the dock of the Paragraph and Styles panel of its own
     void createParagraphDock();
 
@@ -457,6 +487,7 @@ private:
     QDockWidget* m_spellingDock{nullptr};
     QDockWidget* m_repetitionsDock{nullptr};
     QDockWidget* m_paragraphDock{nullptr};
+    QDockWidget* m_statisticsDock{nullptr};
 
     // Panels
     NavigatorPanel* m_navigatorPanel{nullptr};
@@ -468,6 +499,7 @@ private:
     AnnotationsPanel* m_annotationsPanel{nullptr};
     SpellingPanel* m_spellingPanel{nullptr};
     RepetitionsPanel* m_repetitionsPanel{nullptr};
+    WritingStatsPanel* m_statisticsPanel{nullptr};
     ParagraphPanel* m_paragraphPanel{nullptr};       ///< In its own dock
     ParagraphPanel* m_propertiesParagraph{nullptr};  ///< The lower part of Properties
     QSplitter* m_propertiesSplitter{nullptr};        ///< Properties | Paragraph and Styles
@@ -490,10 +522,13 @@ private:
     QAction* m_viewSpellingAction{nullptr};
     QAction* m_viewRepetitionsAction{nullptr};
     QAction* m_viewParagraphAction{nullptr};
+    QAction* m_viewStatisticsAction{nullptr};
 
     // Icon tracking for refresh
     QList<QLabel*> m_dockIconLabels;
     QList<QToolButton*> m_dockToolButtons;
+    core::ProjectManager& m_book;  ///< The book of its window
+    CommandRegistry& m_commands;  ///< The commands of its window
 };
 
 } // namespace gui

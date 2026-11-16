@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_editor_settings.cpp
 /// @brief The editors follow the editor settings, wherever they are changed; the Settings
 ///        dialog greys out the editor options the editor does not use yet
@@ -5,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "../editor/editor_test_utils.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/text_statistics.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/kalahari_text_document_layout.h"
@@ -34,6 +38,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 
@@ -92,7 +97,7 @@ TEST_CASE("Editor settings: an editor follows the changed settings once the even
     settings.set<double>("editor.lineHeight", 1.5);
     settings.set<bool>("editor.typewriter.enabled", false);
 
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     int applied = 0;
     QObject::connect(bookEditor, &editor::BookEditor::appearanceChanged,
@@ -145,7 +150,7 @@ TEST_CASE("Editor settings: the waves and the marks in the theme's colors, optim
     settings.removeKey(optimize);
     QCoreApplication::processEvents();  // the theme follows the settings
 
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     const auto colors = [&panel]() { return panel.getBookEditor()->appearance().colors; };
     REQUIRE(colors().continuous.backgroundLight == lightPaper);
     REQUIRE(colors().continuous.backgroundDark == darkPaper);
@@ -197,7 +202,7 @@ TEST_CASE("Editor settings: both papers, the desk, the selection and the search'
     clear();
 
     // Without the writer's colors: the theme's, as the editor has them by itself
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     const auto colors = [&panel]() { return panel.getBookEditor()->appearance().colors; };
     const editor::EditorColors own;
     CHECK(colors().continuous.backgroundLight == own.continuous.backgroundLight);
@@ -246,7 +251,7 @@ TEST_CASE("Editor settings: a switch of the Tools menu leaves the view where it 
     const auto before = valuesOf({"editor.typewriter.enabled", "editor.spellCheck.enabled"});
     settings.set<bool>("editor.typewriter.enabled", true);
 
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     test::resizeWidget(*bookEditor, QSize(600, 400));
     QStringList paragraphs;
@@ -277,8 +282,8 @@ TEST_CASE("Editor settings: the paper chosen in one editor reaches the others",
     const auto before = valuesOf({"editor.darkMode"});
     settings.set<bool>("editor.darkMode", true);
 
-    gui::EditorPanel first;
-    gui::EditorPanel second;
+    gui::EditorPanel first(kalahari::test::book(), kalahari::test::commands());
+    gui::EditorPanel second(kalahari::test::book(), kalahari::test::commands());
     CHECK(second.getBookEditor()->editorColorMode() == editor::EditorColorMode::Dark);
 
     // The editor's context menu
@@ -307,8 +312,8 @@ TEST_CASE("Editor settings: View > Text Frame Border and the Settings dialog sho
     // The toggle of the View menu and the Views toolbar, as the main window makes it
     QAction toggle(QStringLiteral("Text Frame Border"));
     gui::utils::followSetting(&toggle, "editor.textFrameBorder.show");
-    gui::EditorPanel first;
-    gui::EditorPanel second;
+    gui::EditorPanel first(kalahari::test::book(), kalahari::test::commands());
+    gui::EditorPanel second(kalahari::test::book(), kalahari::test::commands());
     CHECK_FALSE(toggle.isChecked());
     CHECK_FALSE(first.getBookEditor()->appearance().textFrameBorder.show);
 
@@ -320,7 +325,7 @@ TEST_CASE("Editor settings: View > Text Frame Border and the Settings dialog sho
     CHECK(second.getBookEditor()->appearance().textFrameBorder.show);
 
     // The check box of the Settings dialog shows the same setting and changes the toggle too
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     for (QTreeWidgetItemIterator it(tree); *it; ++it) {
@@ -372,8 +377,8 @@ TEST_CASE("Editor settings: View > Margin Numbering and its toolbar buttons, one
         actions.at(mode)->trigger();
         QCoreApplication::processEvents();
     };
-    gui::EditorPanel first;
-    gui::EditorPanel second;
+    gui::EditorPanel first(kalahari::test::book(), kalahari::test::commands());
+    gui::EditorPanel second(kalahari::test::book(), kalahari::test::commands());
     const auto numbering = [&first, &second]() {
         const editor::MarginNumbering shown =
             first.getBookEditor()->appearance().marginNumbers.numbering;
@@ -421,7 +426,8 @@ TEST_CASE("Editor settings: a closed editor no longer follows the settings",
     const auto before = valuesOf({"editor.focus.enabled"});
 
     // A change waits for the event loop when the editor closes
-    auto panel = std::make_unique<gui::EditorPanel>();
+    auto panel =
+        std::make_unique<gui::EditorPanel>(kalahari::test::book(), kalahari::test::commands());
     settings.set<bool>("editor.focus.enabled", !settings.get<bool>("editor.focus.enabled"));
     panel.reset();
 
@@ -429,7 +435,7 @@ TEST_CASE("Editor settings: a closed editor no longer follows the settings",
     settings.set<bool>("editor.focus.enabled", !settings.get<bool>("editor.focus.enabled"));
     QCoreApplication::processEvents();
 
-    gui::EditorPanel reopened;
+    gui::EditorPanel reopened(kalahari::test::book(), kalahari::test::commands());
     CHECK(reopened.getBookEditor()->isFocusModeEnabled() ==
           settings.get<bool>("editor.focus.enabled"));
 
@@ -442,8 +448,8 @@ TEST_CASE("Settings dialog: the mirror margins take the place of the left and th
     auto& settings = core::SettingsManager::getInstance();
     const auto before = valuesOf({"editor.margins.mirrorEnabled"});
     settings.set<bool>("editor.margins.mirrorEnabled", false);
-    gui::EditorPanel panel;
-    gui::SettingsDialog dialog(nullptr);
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::PAGES_PAGE)));
 
     auto* mirror = dialog.findChild<QCheckBox*>(QStringLiteral("mirrorMargins"));
@@ -496,8 +502,8 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
     const auto before = valuesOf({"editor.marginNumbers.mode", "editor.marginNumbers.interval",
                                   "editor.marginNumbers.size"});
     settings.set<std::string>("editor.marginNumbers.mode", "none");
-    gui::EditorPanel panel;
-    gui::SettingsDialog dialog(nullptr);
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
 
     auto* mode = dialog.findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));
@@ -552,7 +558,7 @@ TEST_CASE("Settings dialog: the margin numbering, its fields greyed out without 
 
     // Set elsewhere (View > Margin Numbering), it shows in a dialog opened after that
     settings.set<std::string>("editor.marginNumbers.mode", "lines");
-    gui::SettingsDialog next(nullptr);
+    gui::SettingsDialog next(kalahari::test::book(), kalahari::test::commands(), nullptr);
     REQUIRE(next.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
     auto* nextMode = next.findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));
     REQUIRE(nextMode != nullptr);
@@ -572,7 +578,7 @@ TEST_CASE("Settings dialog: the preview of the margin numbers shows the theme's 
     settings.set<std::string>(cream, "#f5ecd7");
     QCoreApplication::processEvents();  // the theme follows the settings
 
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
     auto* preview = dialog.findChild<QWidget*>(QStringLiteral("marginNumbersPreview"));
     REQUIRE(preview != nullptr);
@@ -594,7 +600,7 @@ TEST_CASE("Settings dialog: View > Margin Numbering > Numbering Settings... puts
     const auto before = valuesOf({"editor.marginNumbers.mode"});
     settings.set<std::string>("editor.marginNumbers.mode", "paragraphs");
 
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::MARGIN_NUMBERING_PAGE)));
     auto* mode = dialog.findChild<QComboBox*>(QStringLiteral("marginNumbersMode"));
     REQUIRE(mode != nullptr);
@@ -626,12 +632,12 @@ TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open ed
     auto& settings = core::SettingsManager::getInstance();
     const auto before = valuesOf({"editor.wordCount.dashesAsWords"});
     settings.set<bool>("editor.wordCount.dashesAsWords", false);
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* bookEditor = panel.getBookEditor();
     bookEditor->fromKml(QStringLiteral("<kml><p>– Tak – powiedział.</p></kml>"));
     REQUIRE(bookEditor->wordCount() == 2);
 
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     auto* tree = dialog.findChild<QTreeWidget*>();
     REQUIRE(tree != nullptr);
     for (QTreeWidgetItemIterator it(tree); *it; ++it) {
@@ -659,6 +665,60 @@ TEST_CASE("Settings dialog: the dialogue dashes counted as words, in the open ed
     restore(before);
 }
 
+TEST_CASE("Settings dialog: the words of the notes counted or not, in the open editors too",
+          "[gui][settings][statistics][footnotes]") {
+    // Microsoft Word counts them when asked to; here they count unless the settings say not
+    auto& settings = core::SettingsManager::getInstance();
+    const auto before = valuesOf({"editor.wordCount.notes"});
+    settings.removeKey("editor.wordCount.notes");
+    CHECK(settings.get<bool>("editor.wordCount.notes"));
+    CHECK(core::wordCountRules().notesAreWords);
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
+    editor::BookEditor* bookEditor = panel.getBookEditor();
+    bookEditor->fromKml(QStringLiteral(
+        "<kml><p>Two words<footnote id=\"f1\">and three more</footnote>.</p></kml>"));
+    REQUIRE(bookEditor->wordCount() == 5);
+
+    // The gear of Insert > Footnote Layout...: the cursor in the option, on Editor > Writing
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    REQUIRE(dialog.openPage(QString::fromLatin1(gui::SettingsDialog::WORD_COUNT_PAGE)));
+    QCheckBox* notes =
+        checkBoxOf(dialog, QStringLiteral("Count the words of footnotes and endnotes"));
+    REQUIRE(notes != nullptr);
+    CHECK(notes->isChecked());
+    dialog.show();
+    dialog.activateWindow();
+    QCoreApplication::processEvents();
+    CHECK(dialog.focusWidget() == notes);
+    auto* tree = dialog.findChild<QTreeWidget*>();
+    REQUIRE(tree != nullptr);
+    REQUIRE(tree->currentItem() != nullptr);
+    CHECK(tree->currentItem()->text(0) == QStringLiteral("Writing"));
+    REQUIRE(tree->currentItem()->parent() != nullptr);
+    CHECK(tree->currentItem()->parent()->text(0) == QStringLiteral("Editor"));
+    QScrollArea* area = nullptr;
+    for (QWidget* parent = notes->parentWidget(); parent != nullptr && area == nullptr;
+         parent = parent->parentWidget()) {
+        area = qobject_cast<QScrollArea*>(parent);
+    }
+    REQUIRE(area != nullptr);
+    CHECK(area->viewport()->rect().contains(notes->mapTo(area->viewport(), QPoint(0, 0))));
+
+    notes->setChecked(false);
+    dialog.applyButton()->click();
+    CHECK_FALSE(settings.get<bool>("editor.wordCount.notes"));
+    QCoreApplication::processEvents();
+    CHECK(bookEditor->wordCount() == 2);
+
+    notes->setChecked(true);
+    dialog.applyButton()->click();
+    QCoreApplication::processEvents();
+    CHECK(bookEditor->wordCount() == 5);
+    dialog.close();
+
+    restore(before);
+}
+
 TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the scene breaks reach "
           "every editor",
           "[gui][editor][settings][marks]") {
@@ -675,8 +735,8 @@ TEST_CASE("Editor settings: View > Show Formatting Marks and the look of the sce
     // The toggle of the View menu, as the main window makes it
     QAction toggle(QStringLiteral("Show Formatting Marks"));
     gui::utils::followSetting(&toggle, "editor.showFormattingMarks");
-    gui::EditorPanel first;
-    gui::EditorPanel second;
+    gui::EditorPanel first(kalahari::test::book(), kalahari::test::commands());
+    gui::EditorPanel second(kalahari::test::book(), kalahari::test::commands());
     for (gui::EditorPanel* panel : {&first, &second}) {
         panel->getBookEditor()->fromKml(QStringLiteral("<kml><p>a</p><scene-break/></kml>"));
     }
@@ -732,7 +792,7 @@ TEST_CASE("Editor settings: the color of links on each paper, and links made by 
     const auto before = valuesOf({"editor.autoCorrect.links"});
 
     // Without the writer's colors: the theme's, as the editor has them by itself
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     const editor::BookEditor* bookEditor = panel.getBookEditor();
     CHECK(bookEditor->appearance().colors.links.light == QColor(QStringLiteral("#0563c1")));
     CHECK(bookEditor->appearance().colors.links.dark == QColor(QStringLiteral("#8ab4f8")));
@@ -760,8 +820,8 @@ TEST_CASE("Settings dialog: the look of the scene breaks, with its preview, and 
     auto& settings = core::SettingsManager::getInstance();
     const auto before = valuesOf({"editor.sceneBreak.style"});
     settings.set<std::string>("editor.sceneBreak.style", "asterisks");
-    gui::EditorPanel panel;
-    gui::SettingsDialog dialog(nullptr);
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openEveryPage(dialog);
 
     // Editor > General > Scene Breaks: the five looks, three asterisks chosen

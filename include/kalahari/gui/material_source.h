@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_source.h
 /// @brief Where a material comes from: a file, a web page, a picture on the web or none, and
 /// what comes to the Navigator from outside the program
@@ -6,6 +9,7 @@
 
 #include "kalahari/core/book_project.h"
 
+#include <QByteArray>
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QImage>
@@ -72,6 +76,9 @@ public:
     /// @brief The name of the PNG file of a picture without a file, pasted at @p time:
     /// "clipboard_20261020_170512.png"
     static QString pictureFileName(const QDateTime& time);
+
+    /// @brief @p picture as a PNG file
+    static QByteArray pngOf(const QImage& picture);
 };
 
 } // namespace gui

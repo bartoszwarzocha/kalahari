@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file spell_check_service.h
 /// @brief The spelling dictionary every editor checks its text with (Hunspell)
 
@@ -8,6 +11,7 @@
 #include <QString>
 #include <QStringList>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,6 +19,10 @@
 class Hunspell;  // hunspell/hunspell.hxx
 class QThread;
 class QTimer;
+
+namespace kalahari::core {
+class AffixExpander;
+}  // namespace kalahari::core
 
 namespace kalahari::editor {
 
@@ -127,10 +135,15 @@ public:
     /// @brief Whether words are checked: the checking is on and a dictionary is loaded
     bool isActive() const;
 
+    /// @brief Words right in one text besides those of the dictionary and the writer's own
+    ///        (the words of the book's dictionary in its chapters, BookEditor::setBookDictionary())
+    using WordFilter = std::function<bool(const QString& word)>;
+
     /// @brief Whether a word is right
     ///
     /// Without a dictionary, every word is.
-    bool isCorrect(const QString& word) const;
+    /// @param alsoRight Words right besides those of the dictionary (none: no others)
+    [[nodiscard]] bool isCorrect(const QString& word, const WordFilter& alsoRight = {}) const;
 
     /// @brief Words to put in place of a misspelled one, the likeliest first
     ///
@@ -146,8 +159,24 @@ public:
     ///        (chooseBaseForm()); empty without a dictionary or for a word it does not know
     QStringList stems(const QString& word) const;
 
+    /// @brief Every form of every word of the dictionary that @p word is a form of
+    ///        ("powiedział" -> "powiedział", "powiedziała", "powiedzieli"...), for the search of
+    ///        all forms; empty without a dictionary or for a word it does not know
+    ///
+    /// The forms come from the dictionary's files (core::AffixExpander), read the first time
+    /// they are asked for.
+    [[nodiscard]] QStringList relatedForms(const QString& word) const;
+
+    /// @brief The forms of the words of the dictionary in use (relatedForms()), for the forms
+    ///        of the spelling rules of the book (core::fillRuleForms()); nullptr without a
+    ///        dictionary
+    [[nodiscard]] const core::AffixExpander* affixExpander() const;
+
     /// @brief The misspelled words of a text (one paragraph), in their order
-    QList<SpellErrorInfo> checkParagraph(const QString& text) const;
+    /// @param alsoRight Words right besides those of the dictionary (none: no others); a
+    ///        hyphenated word it takes as a whole is right with its parts
+    [[nodiscard]] QList<SpellErrorInfo> checkParagraph(const QString& text,
+                                                       const WordFilter& alsoRight = {}) const;
 
     // =========================================================================
     // The writer's own words
@@ -261,6 +290,10 @@ private:
     QTimer* m_retireTimer;                             ///< Destroys them a little later
 
     std::shared_ptr<OwnWords> m_ownWords;  ///< The writer's own words
+
+    /// The forms of the words of m_expanderDictionary (relatedForms())
+    mutable std::unique_ptr<core::AffixExpander> m_expander;
+    mutable QString m_expanderDictionary;  ///< The dictionary m_expander has read
 };
 
 }  // namespace kalahari::editor

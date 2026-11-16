@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_annotations.cpp
 /// @brief Annotations (comments, TODOs and notes): the model, their KML and the editing
 /// that keeps them where the writer put them

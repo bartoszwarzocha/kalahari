@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file grammar_page.cpp
 /// @brief Settings page: Editor > Grammar
 ///
@@ -137,8 +140,9 @@ QString languageToolText(const GrammarComponents::LanguageToolInfo& languageTool
 
 }  // namespace
 
-EditorGrammarPage::EditorGrammarPage(GrammarCoordinator* grammar, QWidget* parent)
-    : SettingsPage(parent), m_grammar(grammar) {
+EditorGrammarPage::EditorGrammarPage(const core::ProjectManager& book, GrammarCoordinator* grammar,
+                                     QWidget* parent)
+    : SettingsPage(parent), m_grammar(grammar), m_book(book) {
     addNote(pageLayout(),
             tr("The program can check grammar, style and punctuation - in the language of the "
                "book, like the spelling. LanguageTool does it, a free program that runs on this "
@@ -894,7 +898,7 @@ void EditorGrammarPage::checkRemote() {
     m_tester = new editor::GrammarCheckService(this);
     m_tester->setServer(serverOf(m_server));
     m_tester->setCredentials(m_username->text().trimmed(), m_apiKey->text().trimmed());
-    m_tester->setLanguage(SpellingCoordinator::wantedLanguage());
+    m_tester->setLanguage(SpellingCoordinator::wantedLanguage(m_book));
     if (!m_tester->isConfigured()) {
         m_remoteState->setText(tr("This is not the address of a server."));
         return;

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_link_roles.cpp
 /// @brief The roles of links, the role a new link of a material gets, and the paragraph a link
 /// names

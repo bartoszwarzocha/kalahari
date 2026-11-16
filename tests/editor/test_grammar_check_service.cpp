@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_grammar_check_service.cpp
 /// @brief Grammar as you type: the texts checked on the writer's LanguageTool server (a
 ///        stand-in on localhost), a few at a time; a server that does not check them is

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file command_registrar.h
 /// @brief Application command registration with CommandRegistry
 ///
@@ -20,6 +23,56 @@ enum class CaseChange;  // editor/character_format.h
 }  // namespace editor
 
 namespace gui {
+
+class CommandRegistry;
+
+/// @brief The commands of the Table menu (the table of the cursor in the text with the keys)
+enum class TableCommand {
+    InsertTable,         ///< Insert Table...: the window of a new table
+    InsertRowsAbove,
+    InsertRowsBelow,
+    InsertColumnsLeft,
+    InsertColumnsRight,
+    DeleteRows,
+    DeleteColumns,
+    DeleteTable,
+    SelectCell,
+    SelectRow,
+    SelectColumn,
+    SelectTable,
+    MergeCells,
+    SplitCells,          ///< Split Cells...: its window
+    DistributeRows,
+    DistributeColumns,
+    HeaderRows,          ///< Repeat Header Rows: on or off
+    Sort,                ///< Sort...: its window
+    TextToTable,         ///< Convert > Text to Table...: its window
+    TableToText,         ///< Convert > Table to Text...: its window
+    Properties,          ///< Table Properties...: its window
+};
+
+/// @brief The commands of the Image menu (the selected image of the text with the keys)
+enum class ImageCommand {
+    Properties,       ///< Image Properties...: its window
+    AddCaption,       ///< Insert Caption...: the window of its caption
+    AltText,          ///< Alternative Text...: the window on its page Description
+    RotateRight,      ///< Rotate > Rotate Right 90°
+    RotateLeft,       ///< Rotate > Rotate Left 90°
+    FlipHorizontal,   ///< Rotate > Flip Horizontally
+    FlipVertical,     ///< Rotate > Flip Vertically
+    RotateOptions,    ///< Rotate > More Rotation Options...: the window on its page Size
+    FilterNone,       ///< Filter > Original
+    FilterGrayscale,  ///< Filter > Grayscale
+    FilterSepia,      ///< Filter > Sepia
+    FilterBlackWhite, ///< Filter > Black and White
+    FilterWash,       ///< Filter > Washout
+    FilterAll,        ///< Filter > Same Filter for All Images...: its filter for the whole book
+    ColorOptions,     ///< Filter > Colors and Brightness...: the window on its page Colors
+    Crop,             ///< Crop: the marks of the crop on it in the text
+    OriginalSize,     ///< Original Size
+    Change,           ///< Change Image...: the system window of a file
+    SaveAs,           ///< Save as Image...: the system window of a file
+};
 
 /// @brief Callbacks for MainWindow actions triggered by commands.
 ///
@@ -104,6 +157,9 @@ struct CommandCallbacks {
     std::function<void()> onParagraph;          ///< Format > Paragraph...
     std::function<void()> onInsertLink;         ///< Insert > Link... (also edits a link)
     std::function<void()> onInsertTable;        ///< Insert > Table...
+    std::function<void()> onInsertImage;        ///< Insert > Image...
+    std::function<void(TableCommand)> onTable;  ///< The Table menu
+    std::function<void(ImageCommand)> onImage;  ///< The Image menu
 
     // Format > Text Effects
     std::function<void()> onSuperscript;        ///< Format > Text Effects > Superscript
@@ -194,14 +250,15 @@ struct CommandCallbacks {
 /// - View menu commands
 /// - Help menu commands
 ///
-/// Call once during application startup, before creating menus and toolbars.
+/// Call once for each book window, before creating its menus and toolbars.
 ///
+/// @param registry The commands of the window
 /// @param callbacks Struct containing callbacks to MainWindow methods
 /// @return Number of commands registered
 ///
 /// @note This was extracted from MainWindow::registerCommands() in OpenSpec #00038.
 /// @note Icon registration is handled separately by registerAllIcons().
-int registerAllCommands(const CommandCallbacks& callbacks);
+int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callbacks);
 
 } // namespace gui
 } // namespace kalahari

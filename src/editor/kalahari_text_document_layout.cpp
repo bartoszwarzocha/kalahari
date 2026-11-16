@@ -1,15 +1,26 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kalahari_text_document_layout.cpp
 /// @brief Custom QAbstractTextDocumentLayout implementation (OpenSpec #00043)
 
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/image_store.h>
 #include <kalahari/editor/kml_format_registry.h>
+#include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_tables.h>
+#include "layout_notes_internal.h"
 #include <QElapsedTimer>
+#include <QFileInfo>
 #include <QFontInfo>
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QPalette>
 #include <QPen>
+#include <QSvgRenderer>
 #include <QTextDocument>
 #include <QTextFrame>
 #include <QTextLayout>
@@ -20,6 +31,9 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <optional>
+#include <utility>
+#include <vector>
 
 namespace kalahari::editor {
 
@@ -52,6 +66,10 @@ constexpr qreal AVERAGE_LINE_FILL = 0.95;
 /// Page flow offset of a block whose lines follow its own top (not placed on a page)
 constexpr qreal FLOW_UNPLACED = -1.0;
 
+/// Page flow: the lines of a block (or a row of a table) were placed on a page with notes,
+/// which may take another part of it the next time: they are placed again
+constexpr qreal FLOW_PLACE_AGAIN = -2.0;
+
 /// Tolerance of page flow comparisons (its lengths are whole pixels)
 constexpr qreal FLOW_EPSILON = 0.01;
 
@@ -66,6 +84,16 @@ constexpr char FLOW_PAGE_BREAK_BEFORE = 4;
 constexpr char FLOW_TABLE = 8;
 constexpr char FLOW_ROW_START = 16;
 
+/// Page flow flag of the first block of a row of a table that may be split between pages
+constexpr char FLOW_ROW_SPLIT = 32;
+
+/// Page flow flag of a block with notes: placed again whenever the blocks are (the notes
+/// take the bottom of the pages)
+constexpr char FLOW_NOTES = 64;
+
+/// The narrowest a table gets: so many paddings of its cells for each column (pixels)
+constexpr qreal MIN_COLUMN_PADDINGS = 3.0;
+
 /// Space between the edges of a cell and its text, in lines of the document font
 constexpr qreal CELL_PADDING_LINES = 0.25;
 
@@ -78,9 +106,6 @@ constexpr qreal MIN_CELL_PADDING = 2.0;
 constexpr int KEEP_LINES_ROUNDS = 4;
 
 constexpr qreal POINTS_PER_INCH = 72.0;
-
-/// Font size of Normal when the package gives none (the size StyleResolver assumes)
-constexpr qreal DEFAULT_NORMAL_POINT_SIZE = 12.0;
 
 /// Space above and below a scene break, in lines of Normal
 constexpr qreal SCENE_BREAK_PADDING = 0.5;
@@ -97,6 +122,104 @@ constexpr qreal OBJECT_LINE_OPACITY = 0.6;
 /// Lines of the objects are this many times thinner than a line of Normal is high
 constexpr qreal OBJECT_LINE_THINNESS = 20.0;
 
+/// The points of a centimeter
+constexpr qreal POINTS_PER_CENTIMETER = 72.0 / 2.54;
+
+/// The width of the frame of a missing image of the file's own width, in centimeters
+constexpr qreal MISSING_IMAGE_CENTIMETERS = 6.0;
+
+/// The least height of the frame of a missing image, in lines of the document font, and
+/// its height as a share of its width when that is more
+constexpr qreal MISSING_IMAGE_LINES = 3.5;
+constexpr qreal MISSING_IMAGE_RATIO = 0.25;
+
+/// The size of the text of the frame of a missing image, as a share of the document font
+constexpr qreal MISSING_IMAGE_LABEL_SCALE = 0.8;
+
+/// The opacity of the background of the frame of a missing image, over the text's color
+constexpr qreal MISSING_IMAGE_FILL_OPACITY = 0.04;
+
+/// How far an image's shadow falls to the right and down (points)
+constexpr qreal IMAGE_SHADOW_POINTS = 3.0;
+
+/// How opaque an image's shadow is, in the color of its border
+constexpr qreal IMAGE_SHADOW_OPACITY = 0.35;
+
+/// A double border line: two lines and the gap between them, each of the border's width
+constexpr qreal DOUBLE_BORDER_LINES = 3.0;
+
+/// The picture of a broken image on the frame of a missing one (24 units square), in the
+/// color of the text
+constexpr const char* BROKEN_IMAGE_SVG =
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\"><path fill=\"%1\" "
+    "d=\"M21 5v6.59l-3-3.01-4 4.01-4-4-4 4-3-3.01V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2zm-3 "
+    "6.42l3 3.01V19c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2v-6.58l3 2.99 4-4 4 4 4-3.99z\"/></svg>";
+
+/// The object types the layout sizes and draws
+constexpr int LAYOUT_OBJECTS[] = {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT,  PAGE_BREAK_OBJECT,
+                                  IMAGE_OBJECT,           FIGURE_LIST_OBJECT,  CAPTION_NUMBER_OBJECT,
+                                  CROSS_REFERENCE_OBJECT, FOOTNOTE_OBJECT};
+
+/// The pages a page field measures the numbers of, the last ones of the text, for the widest
+/// (a text of more pages than this has numbers of the longest kind among them)
+constexpr int MAX_MEASURED_PAGES = 2000;
+
+/// The widest numbers of the pages kept (by format, font and pages)
+constexpr qsizetype MAX_WIDEST_PAGES = 64;
+
+/// What the signatures of the fields put between two fields of a block, and after the text
+/// of a cross-reference to a caption the book does not have
+constexpr QChar FIELD_SEPARATOR(0x1f);
+constexpr QChar BROKEN_FIELD_MARK(0x01);
+
+/// A line of text in a font, unwrapped, with the font's design metrics (as the text's)
+void layOutUnwrapped(QTextLayout& text) {
+    QTextOption option;
+    option.setWrapMode(QTextOption::NoWrap);
+    option.setUseDesignMetrics(true);
+    text.setTextOption(option);
+    text.beginLayout();
+    QTextLine line = text.createLine();
+    if (line.isValid()) {
+        line.setLineWidth(UNWRAPPED_LINE_WIDTH);
+    }
+    text.endLayout();
+}
+
+/// Whether a format is of a character whose number the layout counts: a field, a note's number
+bool isNumberedFormat(const QTextFormat& format) {
+    return isFieldFormat(format) || isFootnoteFormat(format);
+}
+
+/// Whether a block holds a caption's number, a cross-reference or a list of figures, and
+/// (unless @p withObjects is false) a note's number or a field of text_fields.h: what they
+/// show does not follow the text of their paragraph
+bool hasFieldsOrList(const QTextBlock& block, bool withObjects = true) {
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (!fragment.isValid()) {
+            continue;
+        }
+        const QTextCharFormat format = fragment.charFormat();
+        const bool object = isFootnoteFormat(format) || isTextFieldFormat(format);
+        if ((isFieldFormat(format) && !isTextFieldFormat(format)) ||
+            textObjectOf(format) == TextObject::FigureList || (withObjects && object)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// What the rows of a list of figures show and where they go, in one text
+QString figureListSignature(const std::vector<FigureListRow>& rows) {
+    QString signature;
+    for (const FigureListRow& row : rows) {
+        signature += row.id + FIELD_SEPARATOR + row.elementId + FIELD_SEPARATOR + row.text +
+                     QLatin1Char('\n');
+    }
+    return signature;
+}
+
 /// A number of a style's properties, or @p fallback without it
 qreal numberOf(const QVariantMap& properties, const char* name, qreal fallback) {
     const QVariant value = properties.value(QLatin1String(name));
@@ -109,23 +232,6 @@ qreal numberOf(const QVariantMap& properties, const char* name, qreal fallback) 
 bool flagOf(const QVariantMap& properties, const char* name, bool fallback) {
     const QVariant value = properties.value(QLatin1String(name));
     return value.isValid() ? value.toBool() : fallback;
-}
-
-/// The alignment a style's property names; none for another name
-Qt::Alignment alignmentNamed(const QString& name) {
-    if (name == QLatin1String("left")) {
-        return Qt::AlignLeft;
-    }
-    if (name == QLatin1String("center")) {
-        return Qt::AlignHCenter;
-    }
-    if (name == QLatin1String("right")) {
-        return Qt::AlignRight;
-    }
-    if (name == QLatin1String("justify")) {
-        return Qt::AlignJustify;
-    }
-    return {};
 }
 
 /// Prose whose width per character is the average character width of the estimates
@@ -146,7 +252,96 @@ qreal leadingAbove(qreal extra) {
     return std::floor(extra / 2.0);
 }
 
+/// The row of the cell of a table holding a block
+int rowOfBlock(const QTextTable& table, const QTextBlock& block) {
+    return table.cellAt(block.position()).row();
+}
+
+/// Rows [firstRow, lastRow] of a table with the rows their cells span: no cell spans into
+/// them from the other rows
+std::pair<int, int> spannedRows(const QTextTable& table, int firstRow, int lastRow) {
+    const int rows = table.rows();
+    for (bool grown = true; grown;) {
+        grown = false;
+        for (int column = 0; column < table.columns(); ++column) {
+            const QTextTableCell top = table.cellAt(firstRow, column);
+            if (top.isValid() && top.row() < firstRow) {
+                firstRow = top.row();
+                grown = true;
+            }
+            const QTextTableCell bottom = table.cellAt(lastRow, column);
+            const int end = bottom.isValid() ? std::min(bottom.row() + bottom.rowSpan(), rows) - 1 : lastRow;
+            if (end > lastRow) {
+                lastRow = end;
+                grown = true;
+            }
+        }
+    }
+    return {firstRow, lastRow};
+}
+
+/// The last row of the head of a table: its header rows with the first row below them,
+/// and the rows their cells span; -1 for a table without header rows
+int headEndOf(const QTextTable& table) {
+    const int rows = table.rows();
+    const int headerRows = std::clamp(table.format().headerRowCount(), 0, rows);
+    return headerRows > 0 ? spannedRows(table, 0, std::min(headerRows, rows - 1)).second : -1;
+}
+
+/// The rows of a table laid out together with rows [firstRow, lastRow]. A row is as high
+/// as its highest cell, so it goes with the rows its cells span. The heights of the head
+/// (headEndOf()) give the space the header rows keep below them and the height of the
+/// header repeated on each page: the head goes with every row touching it, and with the
+/// row below it, whose page flow entry gives the others that height (tableHeader()).
+std::pair<int, int> tableBand(const QTextTable& table, int firstRow, int lastRow) {
+    const int rows = table.rows();
+    if (rows <= 0) {
+        return {0, -1};
+    }
+    firstRow = std::clamp(firstRow, 0, rows - 1);
+    lastRow = std::clamp(lastRow, firstRow, rows - 1);
+    auto band = spannedRows(table, firstRow, lastRow);
+    if (const int headEnd = headEndOf(table); headEnd >= 0 && band.first <= headEnd + 1) {
+        band = {0, std::max(band.second, headEnd)};
+    }
+    return band;
+}
+
+/// The first and the last block of rows [firstRow, lastRow] of a table, no cell spanning
+/// into them from the other rows
+std::pair<QTextBlock, QTextBlock> bandBlocks(const QTextTable& table, int firstRow, int lastRow) {
+    const QTextDocument* doc = table.document();
+    const QTextBlock first = doc->findBlock(table.cellAt(firstRow, 0).firstPosition());
+    const QTextBlock last = lastRow + 1 < table.rows()
+                                ? doc->findBlock(table.cellAt(lastRow + 1, 0).firstPosition()).previous()
+                                : doc->findBlock(table.lastPosition());
+    return {first, last};
+}
+
 }  // anonymous namespace
+
+/// The rows of a list of figures as its object places them
+struct KalahariTextDocumentLayout::FigureListPlacement {
+    // What they were placed for: the rows, the width, the font, the line and the spacing
+    // between the rows, the pages
+    QString signature;
+    qreal width = -1.0;
+    QFont font;
+    qreal lineHeight = 0.0;
+    qreal spacing = 0.0;
+
+    // Each row laid out on the width, at its top in the object without pages; without
+    // captions, one row that says so (noCaptions); the height of all of them without pages
+    struct Row {
+        FigureListRow row;
+        std::unique_ptr<QTextLayout> text;
+        qreal top = 0.0;
+        qreal height = 0.0;
+    };
+    std::vector<Row> rows;
+    bool noCaptions = false;
+    qreal height = 0.0;
+};
 
 // =============================================================================
 // Constructor
@@ -174,7 +369,7 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
                 });
     }
     // Qt takes U+FFFC for an object only while the layout has a handler
-    for (const int objectType : {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT}) {
+    for (const int objectType : LAYOUT_OBJECTS) {
         registerHandler(objectType, this);
     }
     // Runs whenever the event loop has nothing else to do, while blocks wait for layout
@@ -185,7 +380,7 @@ KalahariTextDocumentLayout::KalahariTextDocumentLayout(QTextDocument* doc)
 KalahariTextDocumentLayout::~KalahariTextDocumentLayout() {
     // A handler's destroyed() goes to the layout; while the layout itself is destroyed, a
     // debug Qt stops there, as the layout's part of the object is gone already
-    for (const int objectType : {HORIZONTAL_RULE_OBJECT, SCENE_BREAK_OBJECT, PAGE_BREAK_OBJECT}) {
+    for (const int objectType : LAYOUT_OBJECTS) {
         unregisterHandler(objectType, this);
     }
 }
@@ -231,14 +426,42 @@ void KalahariTextDocumentLayout::setPageFlow(const PageFlow& flow) {
         return;
     }
     const bool placementChanged = normalized.enabled || m_pageFlow.enabled;
+    // An image is never higher than a page's text: the images get their sizes again
+    const bool imagesChanged = m_hasImages && normalized.textHeight != m_pageFlow.textHeight;
     m_pageFlow = normalized;
-    if (placementChanged) {
-        // The line breaks stay (design metrics in every view), but the lines of each block
-        // are placed anew: on the pages, or one under another
+    if (imagesChanged || placementChanged) {
+        // New sizes of the images; or the line breaks stay (design metrics in every view),
+        // but the lines of each block are placed anew: on the pages, or one under another
         invalidateAll();
     } else {
         // Only the height the endless text area takes at least: the lines stay
         reportDocumentSize();
+    }
+}
+
+void KalahariTextDocumentLayout::setImageStore(std::shared_ptr<ImageStore> store) {
+    if (store == m_imageStore) {
+        return;
+    }
+    m_imageStore = std::move(store);
+    if (m_hasImages) {
+        invalidateAll();  // the sizes of their files
+    }
+}
+
+void KalahariTextDocumentLayout::refreshImages() {
+    if (m_hasImages) {
+        invalidateAll();
+    }
+}
+
+void KalahariTextDocumentLayout::setMissingImageColor(const QColor& color) {
+    if (color == m_missingImageColor) {
+        return;
+    }
+    m_missingImageColor = color;
+    if (m_hasImages) {
+        emit update(QRectF(0, 0, UNBOUNDED_EXTENT, UNBOUNDED_EXTENT));
     }
 }
 
@@ -354,6 +577,7 @@ void KalahariTextDocumentLayout::clearMetrics() {
     m_styleMetrics.clear();
     m_objectMetrics.clear();
     m_directMetrics.clear();
+    m_noteBoxes.clear();  // laid out in the style Footnote
 }
 
 const KalahariTextDocumentLayout::BlockMetrics& KalahariTextDocumentLayout::blockMetrics(
@@ -497,7 +721,7 @@ KalahariTextDocumentLayout::BlockMetrics KalahariTextDocumentLayout::styleMetric
     }
     metrics.leftMargin = length("leftMargin");
     metrics.rightMargin = length("rightMargin");
-    if (const Qt::Alignment alignment = alignmentNamed(own.value(QStringLiteral("alignment")).toString());
+    if (const Qt::Alignment alignment = styleAlignmentOf(own.value(QStringLiteral("alignment")).toString());
         alignment) {
         metrics.alignment = alignment;
     }
@@ -735,7 +959,11 @@ KalahariTextDocumentLayout::FlowEntry KalahariTextDocumentLayout::flowEntry(
 }
 
 void KalahariTextDocumentLayout::storeFlowEntries(int number, const QTextBlock& block, qreal lead) {
-    m_blockFlowEntries[static_cast<size_t>(number)] = flowEntry(blockMetrics(block), lead);
+    FlowEntry& entry = m_blockFlowEntries[static_cast<size_t>(number)];
+    entry = flowEntry(blockMetrics(block), lead);
+    if (hasNotes(block)) {
+        entry.flags |= FLOW_NOTES;
+    }
 }
 
 // =============================================================================
@@ -796,10 +1024,15 @@ int KalahariTextDocumentLayout::layOutPending(int first, int last, qint64 budget
             continue;
         }
         if (const QTextTable* table = tableOf(block)) {
-            // The whole table, and on after it
-            const auto [tableFirst, tableLast] = layOutTable(*table, &heightChanged);
-            runs.emplace_back(tableFirst, tableLast - tableFirst + 1);
-            number = std::max(number, tableLast);
+            // The row, with the rows laid out with it (tableBand()), and on after them
+            const int row = rowOfBlock(*table, block);
+            const auto [bandFirst, bandLast] = layOutTableRows(*table, row, row, &heightChanged);
+            if (!runs.empty() && runs.back().first + runs.back().second == bandFirst) {
+                runs.back().second += bandLast - bandFirst + 1;
+            } else {
+                runs.emplace_back(bandFirst, bandLast - bandFirst + 1);
+            }
+            number = std::max(number, bandLast);
             block = document()->findBlockByNumber(number);
         } else {
             heightChanged |= layOutBlock(number, block);
@@ -884,6 +1117,8 @@ void KalahariTextDocumentLayout::invalidateAll() {
     }
     m_blockFlowEntries.assign(count, FlowEntry());
     m_blockSpaceBelow.assign(count, 0.0);
+    m_blockNotesBelow.assign(count, 0.0);
+    m_noteBoxes.clear();
 
     QTextBlock block = doc->begin();
     size_t i = 0;
@@ -897,12 +1132,18 @@ void KalahariTextDocumentLayout::invalidateAll() {
                 }
                 ++i;
             }
+            // The notes of its cells under its last block
+            const QTextBlock tableLast = doc->findBlock(table->lastPosition());
+            if (tableLast.isValid() && static_cast<size_t>(tableLast.blockNumber()) < count) {
+                const auto last = static_cast<size_t>(tableLast.blockNumber());
+                m_blockSpaceBelow[last] = askSpaceBelow(tableLast, &m_blockNotesBelow[last]);
+            }
             block = doc->findBlockByNumber(static_cast<int>(i));
             continue;
         }
         const BlockMetrics& metrics = blockMetrics(block);
         m_blockHeights[i] = estimatedHeight(m_blockExtents[i], metrics);
-        m_blockSpaceBelow[i] = askSpaceBelow(block);
+        m_blockSpaceBelow[i] = askSpaceBelow(block, &m_blockNotesBelow[i]);
         storeFlowEntries(static_cast<int>(i), block,
                          metrics.spaceBefore + metrics.estimatedLineHeight);
         ++i;
@@ -951,12 +1192,17 @@ void KalahariTextDocumentLayout::recountMarginsFrom(int blockNumber) {
     m_marginCountsFrom = std::min(m_marginCountsFrom, std::max(blockNumber, 0));
 }
 
-qreal KalahariTextDocumentLayout::askSpaceBelow(const QTextBlock& block) const {
+qreal KalahariTextDocumentLayout::askSpaceBelow(const QTextBlock& block, qreal* notes) const {
+    // The notes first, the cards of the annotations under them
+    const qreal notesRoom = askNotesBelow(block);
+    if (notes != nullptr) {
+        *notes = notesRoom;
+    }
     // The cells of a row side by side are as high as the row: no space under one of them
     if (!m_spaceBelowProvider || m_pageFlow.enabled || tableOf(block) != nullptr) {
-        return 0.0;
+        return notesRoom;
     }
-    return std::ceil(std::max<qreal>(0.0, m_spaceBelowProvider(block)));
+    return notesRoom + std::ceil(std::max<qreal>(0.0, m_spaceBelowProvider(block)));
 }
 
 void KalahariTextDocumentLayout::setSpaceBelowProvider(SpaceBelowProvider provider) {
@@ -971,7 +1217,7 @@ void KalahariTextDocumentLayout::updateSpaceBelow(int first, int last) {
     // Asked in the middle of a change, the cache is out of step with the blocks: the change
     // asks every block it touched by itself
     const auto count = static_cast<int>(m_blockSpaceBelow.size());
-    if (document()->blockCount() != count) {
+    if (document()->blockCount() != count || m_blockNotesBelow.size() != m_blockSpaceBelow.size()) {
         return;
     }
     first = std::max(first, 0);
@@ -979,8 +1225,10 @@ void KalahariTextDocumentLayout::updateSpaceBelow(int first, int last) {
     bool changed = false;
     QTextBlock block = document()->findBlockByNumber(first);
     for (int number = first; number <= last && block.isValid(); ++number, block = block.next()) {
-        const qreal space = askSpaceBelow(block);
+        qreal notes = 0.0;
+        const qreal space = askSpaceBelow(block, &notes);
         qreal& stored = m_blockSpaceBelow[static_cast<size_t>(number)];
+        m_blockNotesBelow[static_cast<size_t>(number)] = notes;
         if (space != stored) {
             stored = space;
             changed = true;
@@ -1005,6 +1253,13 @@ void KalahariTextDocumentLayout::reportDocumentSize() {
     if (size != m_lastReportedSize) {
         m_lastReportedSize = size;
         emit documentSizeChanged(size);
+    }
+    // The page fields count the pages again after the change, once the layout is done (the
+    // fields not counted yet may have one)
+    if (m_pageFlow.enabled && !m_pageFieldsQueued &&
+        (m_hasPageFields || m_captionNumbersDirty) && pageCount() != m_fieldPages) {
+        m_pageFieldsQueued = true;
+        QMetaObject::invokeMethod(this, "refreshPageFields", Qt::QueuedConnection);
     }
 }
 
@@ -1031,7 +1286,6 @@ int KalahariTextDocumentLayout::laidOutBlockAtY(qreal y) const {
 // =============================================================================
 
 void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int charsAdded) {
-    Q_UNUSED(charsRemoved);
     const QTextDocument* doc = document();
 
     // A new wrap width or default font (QTextDocument reports either as a change of the
@@ -1093,8 +1347,30 @@ void KalahariTextDocumentLayout::documentChanged(int from, int charsRemoved, int
         oldMarkers = std::move(m_listMarkers);
     }
     m_listMarkersDirty = true;
+
+    // A change touching a field (its paragraph, a field removed or brought) may change what
+    // the fields outside it show: they are counted again (the changed ones are laid out with
+    // the new numbers); any other change moves them
+    const bool fieldsTouched = touchesFields(from, charsRemoved, charsAdded, first, last);
+    std::vector<std::pair<int, QString>> oldSignatures;
+    if (fieldsTouched) {
+        oldSignatures = std::move(m_fieldSignatures);
+        m_captionNumbersDirty = true;
+    } else {
+        shiftFields(from, charsRemoved, charsAdded, first.blockNumber(), oldLast, delta);
+    }
     replaceRange(first.blockNumber(), lastNumber, oldLast);
     renumberLists(first.blockNumber(), lastNumber, delta, oldMarkers, numbersKnown, hadLists);
+    if (fieldsTouched) {
+        refreshFields(first.blockNumber(), lastNumber, delta, oldSignatures);
+        // The notes of a table are under its last block, which the change may have left
+        for (const QTextBlock& end : {first, last}) {
+            if (const QTextTable* table = tableOf(end)) {
+                const int tableLast = doc->findBlock(table->lastPosition()).blockNumber();
+                updateSpaceBelow(tableLast, tableLast);
+            }
+        }
+    }
 }
 
 std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int from,
@@ -1113,12 +1389,22 @@ std::pair<QTextBlock, QTextBlock> KalahariTextDocumentLayout::changedBlocks(int 
         last = doc->lastBlock();
     }
 
-    // A table is laid out as a whole: the height of a row depends on all its cells
-    if (const QTextTable* table = tableOf(first)) {
-        first = doc->findBlock(table->firstPosition());
+    // The rows of a table are laid out with the rows that go with them (tableBand()); the
+    // other rows keep their lines, and only move
+    const QTextTable* firstTable = tableOf(first);
+    const QTextTable* lastTable = tableOf(last);
+    if (firstTable) {
+        const int lastRow = firstTable == lastTable ? rowOfBlock(*firstTable, last) : firstTable->rows() - 1;
+        const auto [firstRow, bandLast] = tableBand(*firstTable, rowOfBlock(*firstTable, first), lastRow);
+        const auto [bandFirstBlock, bandLastBlock] = bandBlocks(*firstTable, firstRow, bandLast);
+        first = bandFirstBlock;
+        if (firstTable == lastTable) {
+            last = bandLastBlock;
+        }
     }
-    if (const QTextTable* table = tableOf(last)) {
-        last = doc->findBlock(table->lastPosition());
+    if (lastTable && lastTable != firstTable) {
+        const auto [firstRow, lastRow] = tableBand(*lastTable, 0, rowOfBlock(*lastTable, last));
+        last = bandBlocks(*lastTable, firstRow, lastRow).second;
     }
     return {first, last};
 }
@@ -1146,24 +1432,64 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
     std::vector<qreal> heights;
     std::vector<qreal> extents;
     std::vector<qreal> spaces;
+    std::vector<qreal> notes;
     std::vector<FlowEntry> flowEntries;
     heights.reserve(static_cast<size_t>(rangeSize));
     extents.reserve(static_cast<size_t>(rangeSize));
     spaces.reserve(static_cast<size_t>(rangeSize));
+    notes.reserve(static_cast<size_t>(rangeSize));
     flowEntries.reserve(static_cast<size_t>(rangeSize));
+    // The tables whose head is in the range: the height of their header for the rows below
+    // the range (tableHeader())
+    struct HeaderOfRows {
+        int first = 0;  // the blocks of the rows
+        int last = 0;
+        qreal header = 0;
+    };
+    std::vector<HeaderOfRows> headers;
     QTextBlock block = doc->findBlockByNumber(first);
     for (int number = first; number <= last && block.isValid(); ++number) {
         if (const QTextTable* table = tableOf(block)) {
-            // The whole table (changedBlocks() gives a range of whole tables)
-            const std::vector<TableBlockLayout> entries = layoutTable(*table, !layOutNow, true);
-            const int tableFirst = doc->findBlock(table->firstPosition()).blockNumber();
-            for (size_t i = static_cast<size_t>(std::max(0, number - tableFirst)); i < entries.size(); ++i) {
+            // Rows of a table: changedBlocks() gives the rows laid out together (tableBand())
+            const int tableLast = doc->findBlock(table->lastPosition()).blockNumber();
+            const QTextBlock end = doc->findBlockByNumber(std::min(last, tableLast));
+            const auto [firstRow, lastRow] =
+                tableBand(*table, rowOfBlock(*table, block), rowOfBlock(*table, end));
+            qreal header = 0;
+            const std::vector<TableBlockLayout> entries =
+                layoutTable(*table, !layOutNow, true, firstRow, lastRow, &header);
+            if (entries.empty()) {
+                // No rows or columns: laid out as a paragraph
+                const BlockMetrics& metrics = blockMetrics(block);
+                qreal extent = block.length();
+                heights.push_back(estimatedHeight(extent, metrics));
+                extents.push_back(extent);
+                qreal blockNotes = 0.0;
+                spaces.push_back(askSpaceBelow(block, &blockNotes));
+                notes.push_back(blockNotes);
+                flowEntries.push_back(flowEntry(metrics, metrics.spaceBefore + metrics.estimatedLineHeight));
+                block = block.next();
+                continue;
+            }
+            const int bandFirst = bandBlocks(*table, firstRow, lastRow).first.blockNumber();
+            for (size_t i = static_cast<size_t>(std::max(0, number - bandFirst)); i < entries.size(); ++i) {
                 heights.push_back(entries[i].height);
                 extents.push_back(entries[i].extent);
-                spaces.push_back(0.0);  // no cards in the cells: no space under them
+                // No cards in the cells: no space under them, but the notes of the table under
+                // its last block
+                qreal blockNotes = 0.0;
+                const int entryNumber = bandFirst + static_cast<int>(i);
+                spaces.push_back(
+                    entryNumber == tableLast
+                        ? askSpaceBelow(doc->findBlockByNumber(entryNumber), &blockNotes)
+                        : 0.0);
+                notes.push_back(blockNotes);
                 flowEntries.push_back(entries[i].flow);
             }
-            number = tableFirst + static_cast<int>(entries.size()) - 1;
+            number = bandFirst + static_cast<int>(entries.size()) - 1;
+            if (firstRow == 0 && number < tableLast) {
+                headers.push_back({number + 1, tableLast, header});
+            }
             block = doc->findBlockByNumber(number).next();
             continue;
         }
@@ -1173,8 +1499,13 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         heights.push_back(layOutNow ? layoutBlock(block, &extent, true, &lead)
                                     : estimatedHeight(extent, metrics));
         extents.push_back(extent);
-        spaces.push_back(askSpaceBelow(block));
+        qreal blockNotes = 0.0;
+        spaces.push_back(askSpaceBelow(block, &blockNotes));
+        notes.push_back(blockNotes);
         flowEntries.push_back(flowEntry(metrics, lead));
+        if (hasNotes(block)) {
+            flowEntries.back().flags |= FLOW_NOTES;
+        }
         block = block.next();
     }
     const std::vector<char> pending(heights.size(), layOutNow ? 0 : 1);
@@ -1198,6 +1529,7 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         std::copy(heights.begin(), heights.end(), m_blockHeights.begin() + begin);
         std::copy(extents.begin(), extents.end(), m_blockExtents.begin() + begin);
         std::copy(spaces.begin(), spaces.end(), m_blockSpaceBelow.begin() + begin);
+        std::copy(notes.begin(), notes.end(), m_blockNotesBelow.begin() + begin);
         std::copy(pending.begin(), pending.end(), m_blockPending.begin() + begin);
         std::copy(unplaced.begin(), unplaced.end(), m_blockFlowOffsets.begin() + begin);
         std::copy(noFlowHeights.begin(), noFlowHeights.end(), m_blockFlowHeights.begin() + begin);
@@ -1210,10 +1542,14 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
         replace(m_blockHeights, heights);
         replace(m_blockExtents, extents);
         replace(m_blockSpaceBelow, spaces);
+        replace(m_blockNotesBelow, notes);
         replace(m_blockPending, pending);
         replace(m_blockFlowOffsets, unplaced);
         replace(m_blockFlowHeights, noFlowHeights);
         replace(m_blockFlowEntries, flowEntries);
+    }
+    for (const HeaderOfRows& rows : headers) {
+        setTableHeader(rows.first, rows.last, rows.header);
     }
     // With page flow, the range's new lines are placed on the pages with the positions;
     // whether that moves the blocks below is known only then
@@ -1240,7 +1576,8 @@ void KalahariTextDocumentLayout::replaceRange(int first, int last, int oldLast) 
 bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block) {
     if (const QTextTable* table = tableOf(block)) {
         bool changed = false;
-        layOutTable(*table, &changed);
+        const int row = rowOfBlock(*table, block);
+        layOutTableRows(*table, row, row, &changed);
         return changed;
     }
     const auto index = static_cast<size_t>(number);
@@ -1252,6 +1589,11 @@ bool KalahariTextDocumentLayout::layOutBlock(int number, const QTextBlock& block
     m_blockHeights[index] = height;
     m_blockExtents[index] = extent;
     m_blockFlowOffsets[index] = FLOW_UNPLACED;  // the new lines follow the block's top
+    if (m_pageFlow.enabled) {
+        // and go on the pages again, also when the block is as high as before (a line moved
+        // to the next page would stay at the end of its own)
+        m_positionsDirty = true;
+    }
     storeFlowEntries(number, block, lead);
     if (m_blockPending[index] != 0) {
         m_blockPending[index] = 0;
@@ -1273,18 +1615,59 @@ qreal KalahariTextDocumentLayout::boxHeightOf(qreal height, const BlockMetrics& 
 }
 
 qreal KalahariTextDocumentLayout::lineBoxHeight(const QTextLine& line, const BlockMetrics& metrics,
-                                                bool empty) {
+                                                bool empty, qreal excess) {
+    // An image's height above the text's line is added to the box, without line spacing:
+    // an image is never cut by an exact line height, nor gets a share of a multiple
     const qreal height = empty ? std::max(line.height(), metrics.emptyLineHeight) : line.height();
-    return boxHeightOf(height, metrics);
+    return boxHeightOf(height - excess, metrics) + excess;
 }
 
 qreal KalahariTextDocumentLayout::lineTopInBox(const QTextLine& line, const BlockMetrics& metrics,
-                                               bool empty) {
+                                               bool empty, qreal excess) {
     const qreal height = empty ? std::max(line.height(), metrics.emptyLineHeight) : line.height();
     // The line of an empty paragraph sits on the baseline of a line in the style's font
     const qreal baseline = empty ? std::max<qreal>(0.0, std::round(metrics.emptyAscent - line.ascent()))
                                  : 0.0;
-    return leadingAbove(boxHeightOf(height, metrics) - height) + baseline;
+    const qreal text = height - excess;
+    return leadingAbove(boxHeightOf(text, metrics) - text) + baseline;
+}
+
+qreal KalahariTextDocumentLayout::imageExcess(const QTextBlock& block, const QTextLine& line,
+                                              const BlockMetrics& metrics) const {
+    if (!m_hasImages || !line.isValid()) {
+        return 0.0;  // Qt sizes each image before the lines are placed: none was sized
+    }
+    const int start = block.position() + line.textStart();
+    const int end = start + line.textLength();
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (!fragment.isValid() || fragment.position() + fragment.length() <= start) {
+            continue;
+        }
+        if (fragment.position() >= end) {
+            break;
+        }
+        if (isImageFormat(fragment.charFormat())) {
+            return std::max<qreal>(0.0, line.ascent() - metrics.emptyAscent);
+        }
+    }
+    return 0.0;
+}
+
+qreal KalahariTextDocumentLayout::areaWidth(const QTextBlock& block) const {
+    const QTextTable* table = tableOf(block);
+    if (table == nullptr) {
+        const qreal documentWidth = document()->textWidth();
+        return documentWidth > 0 ? documentWidth : UNWRAPPED_LINE_WIDTH;
+    }
+    // The width of the cell's text, as layoutTable() places it
+    const std::vector<qreal> edges = tableColumnEdges(*table);
+    const int columns = static_cast<int>(edges.size()) - 1;
+    const QTextTableCell cell = table->cellAt(block.position());
+    const int column = std::clamp(cell.column(), 0, std::max(0, columns - 1));
+    const int right = std::clamp(column + cell.columnSpan(), column + 1, columns);
+    return std::max<qreal>(1.0, edges[static_cast<size_t>(right)] -
+                                    edges[static_cast<size_t>(column)] - 2.0 * cellPadding());
 }
 
 qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* extent,
@@ -1356,9 +1739,10 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
     for (QTextLine line = layout->createLine(); line.isValid(); line = layout->createLine()) {
         const qreal lineIndent = line.lineNumber() == 0 ? firstIndent : 0.0;
         line.setLineWidth(lineWidth - lineIndent);
+        const qreal excess = imageExcess(block, line, metrics);
         line.setPosition(cellOffset + QPointF(metrics.leftMargin + (rightToLeft ? 0.0 : lineIndent),
-                                              y + lineTopInBox(line, metrics, empty)));
-        const qreal box = lineBoxHeight(line, metrics, empty);
+                                              y + lineTopInBox(line, metrics, empty, excess)));
+        const qreal box = lineBoxHeight(line, metrics, empty, excess);
         if (line.lineNumber() == 0) {
             firstBox = box;
         }
@@ -1370,6 +1754,14 @@ qreal KalahariTextDocumentLayout::layoutBlock(const QTextBlock& block, qreal* ex
         *extent = textLength / m_averageCharWidth;
     }
     if (lead) {
+        // A heading is kept with the first row of a list of figures, as with the first line
+        // of a paragraph: the list goes on to the next pages
+        if (blockObject(block) == TextObject::FigureList) {
+            const FigureListPlacement& placement = figureListPlacement();
+            if (!placement.rows.empty()) {
+                firstBox = placement.rows.front().height;
+            }
+        }
         *lead = metrics.spaceBefore + firstBox;
     }
     return y + metrics.spaceAfter;
@@ -1383,8 +1775,9 @@ QRectF KalahariTextDocumentLayout::lineBox(const QTextLine& line, qreal lineSpac
 QRectF KalahariTextDocumentLayout::lineBoxOf(const QTextBlock& block, const QTextLine& line) const {
     const BlockMetrics& metrics = blockMetrics(block);
     const bool empty = block.length() <= 1;
-    return QRectF(line.x(), line.y() - lineTopInBox(line, metrics, empty), line.width(),
-                  lineBoxHeight(line, metrics, empty));
+    const qreal excess = imageExcess(block, line, metrics);
+    return QRectF(line.x(), line.y() - lineTopInBox(line, metrics, empty, excess), line.width(),
+                  lineBoxHeight(line, metrics, empty, excess));
 }
 
 QRectF KalahariTextDocumentLayout::blockLineBox(const QTextBlock& block, const QTextLine& line) {
@@ -1459,19 +1852,56 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     // its own, the space it leaves belonging to the block above. The text after a page
     // break starts on the next page, the rest of the break's page belonging to the break.
     const bool inStep = document()->blockCount() == static_cast<int>(count);
+    m_headerRepeats.clear();
+    m_pageNotes.clear();
+    m_notesLastPage = -1;
+    m_endnoteLines.clear();
+    m_endnotesTop = -1.0;
+    const bool withNotes = inStep && (!footnoteNumbers().notes().empty() ||
+                                      !m_footnoteContext.otherEndnotes.empty());
     qreal lastSpacing = 0;
     QTextBlock block = document()->begin();
     for (size_t i = 0; i < count; ++i, block = block.next()) {
         const FlowEntry& entry = m_blockFlowEntries[i];
         if ((entry.flags & FLOW_TABLE) != 0) {
             // A row of a table goes on the next page as a whole when it does not fit in the
-            // rest of its own (a row higher than a page stays where it starts)
-            if ((entry.flags & FLOW_ROW_START) != 0) {
-                y = flowLineTop(y, rowHeight(i));
+            // rest of its own, a row higher than a page (or one that may be) split between
+            // pages; its blocks have its top
+            if ((entry.flags & FLOW_ROW_START) == 0) {
+                m_blockYPositions[i] = y;
+                y += m_blockHeights[i];
+                lastSpacing = 0;
+                continue;
             }
-            m_blockYPositions[i] = y;
-            y += m_blockHeights[i];
+            size_t last = i;
+            while (last + 1 < count && (m_blockFlowEntries[last + 1].flags & FLOW_TABLE) != 0 &&
+                   (m_blockFlowEntries[last + 1].flags & FLOW_ROW_START) == 0) {
+                ++last;
+            }
+            int tableFirst = -1;
+            if (entry.header > 0 && inStep && block.isValid()) {
+                if (const QTextTable* table = tableOf(block)) {
+                    tableFirst = document()->findBlock(table->firstPosition()).blockNumber();
+                }
+            }
+            const auto [top, height] = placeRow(i, last, y, inStep, tableFirst);
+            for (size_t k = i; k <= last; ++k) {
+                m_blockYPositions[k] = top;
+            }
+            y = top + height;
             lastSpacing = 0;
+            // The footnotes of its cells under it, on the page where it ends
+            const QTextBlock rowFirst = block;
+            for (; i < last; ++i) {
+                block = block.next();
+            }
+            if (withNotes && block.isValid()) {
+                const std::vector<size_t> notes = notesBetween(
+                    rowFirst.position(), block.position() + block.length(), NoteKind::Footnote);
+                if (!notes.empty()) {
+                    reserveNotes(y, notes);
+                }
+            }
             continue;
         }
         if ((entry.flags & FLOW_PAGE_BREAK_BEFORE) != 0 &&
@@ -1483,18 +1913,23 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
         }
         m_blockYPositions[i] = y;
         const qreal offset = std::fmod(y, m_pageFlow.pitch);
+        // A block with notes, or on a page with notes, is placed again: the notes may take
+        // another part of the page now
+        const bool withPageNotes =
+            withNotes && ((entry.flags & FLOW_NOTES) != 0 ||
+                          std::floor((y + FLOW_EPSILON) / m_pageFlow.pitch) <= m_notesLastPage);
         qreal height = 0;
         if (m_blockPending[i] != 0) {
             height = (entry.flags & FLOW_PAGE_BREAK) != 0 ? nextPageTop(y) - y
                                                           : flowEstimate(m_blockHeights[i], y, entry);
-        } else if (std::abs(m_blockFlowOffsets[i] - offset) < FLOW_EPSILON) {
+        } else if (!withPageNotes && std::abs(m_blockFlowOffsets[i] - offset) < FLOW_EPSILON) {
             height = m_blockFlowHeights[i];
         } else if (!inStep || !block.isValid() || !block.layout()) {
             height = m_blockFlowOffsets[i] == FLOW_UNPLACED ? m_blockHeights[i]
                                                              : m_blockFlowHeights[i];
         } else {
-            height = paginateBlock(block.layout(), y, blockMetrics(block));
-            m_blockFlowOffsets[i] = offset;
+            height = paginateBlock(block, y, blockMetrics(block));
+            m_blockFlowOffsets[i] = withPageNotes ? FLOW_PLACE_AGAIN : offset;
             m_blockFlowHeights[i] = height;
         }
         y += height;
@@ -1503,23 +1938,41 @@ void KalahariTextDocumentLayout::updateBlockPositions() const {
     }
     m_cachedDocumentHeight = y;
     m_contentBottom = y - lastSpacing;
+    if (withNotes) {
+        // The endnotes after the last line; the pages end with the last of the notes
+        m_contentBottom = placeEndnotes(m_contentBottom);
+        if (m_notesLastPage >= 0) {
+            m_contentBottom = std::max(m_contentBottom, m_notesLastPage * m_pageFlow.pitch + 1.0);
+        }
+    }
     m_positionsDirty = !inStep;
 }
 
-qreal KalahariTextDocumentLayout::flowLineTop(qreal top, qreal height) const {
+qreal KalahariTextDocumentLayout::flowLineTop(qreal top, qreal height, qreal notes) const {
     const qreal pitch = m_pageFlow.pitch;
-    const qreal areaHeight = m_pageFlow.textHeight;
-    const qreal page = std::floor((top + FLOW_EPSILON) / pitch);
-    const qreal offset = top - page * pitch;
-    const bool betweenAreas = offset >= areaHeight - FLOW_EPSILON;
-    // A line at the top of its area stays even when it is taller than the area: moving
-    // it on would not make it fit
-    const bool crossesEnd = offset > FLOW_EPSILON && offset + height > areaHeight + FLOW_EPSILON;
-    return (betweenAreas || crossesEnd) ? (page + 1.0) * pitch : top;
+    qreal placed = top;
+    for (;;) {
+        const qreal page = std::floor((placed + FLOW_EPSILON) / pitch);
+        const qreal areaHeight = flowAreaHeight(page);
+        const bool reduced = areaHeight < m_pageFlow.textHeight - FLOW_EPSILON;  // by notes
+        const qreal offset = placed - page * pitch;
+        // The notes of the line need the line above them on a page without notes yet
+        const qreal needed = notes > 0.0 ? notes + (reduced ? 0.0 : noteSeparatorRoom()) : 0.0;
+        const bool betweenAreas = offset >= areaHeight - FLOW_EPSILON;
+        // A line at the top of a whole area stays even when it is taller than the area:
+        // moving it on would not make it fit; an area made smaller by notes it leaves
+        const bool crossesEnd = (offset > FLOW_EPSILON || reduced) &&
+                                offset + height + needed > areaHeight + FLOW_EPSILON;
+        if (!betweenAreas && !crossesEnd) {
+            return placed;
+        }
+        placed = (page + 1.0) * pitch;
+    }
 }
 
-qreal KalahariTextDocumentLayout::paginateBlock(QTextLayout* layout, qreal top,
+qreal KalahariTextDocumentLayout::paginateBlock(const QTextBlock& block, qreal top,
                                                 const BlockMetrics& metrics) const {
+    QTextLayout* layout = block.layout();
     // Line boxes are stacked as layoutBlock() stacks them; a page break moves a line and
     // all lines after it down to the next text area. A page break's own line stays where it
     // is (a thin line that says why the page ends there): it may end in the page's margin.
@@ -1534,6 +1987,45 @@ qreal KalahariTextDocumentLayout::paginateBlock(QTextLayout* layout, qreal top,
                                  : natural + height + shift + metrics.spaceAfter;
     }
 
+    // A list of figures goes on to the next pages as the lines of a paragraph do, row by row:
+    // its line at the top of its first row, the block as high as its rows on the pages
+    if (count == 1 && blockObject(block) == TextObject::FigureList) {
+        QTextLine line = layout->lineAt(0);
+        const FigureListPlacement& placement = figureListPlacement();
+        const qreal boxTop = top + metrics.spaceBefore;
+        const std::vector<qreal> tops = figureListTops(boxTop);
+        if (!tops.empty() && tops.size() == placement.rows.size()) {
+            line.setPosition(QPointF(line.x(), metrics.spaceBefore + tops.front()));
+            return metrics.spaceBefore + tops.back() + placement.rows.back().height +
+                   metrics.spaceAfter;
+        }
+    }
+
+    // The footnotes of each line (with page flow they take the bottom of its page); placed
+    // again with the lines, the notes of the pages from the block's on as they were before it
+    std::vector<std::vector<size_t>> lineNotes;
+    const std::vector<size_t> notes =
+        notesBetween(block.position(), block.position() + block.length(), NoteKind::Footnote);
+    if (!notes.empty()) {
+        lineNotes.resize(static_cast<size_t>(count));
+        const std::vector<NotePlace>& places = footnoteNumbers().notes();
+        for (const size_t index : notes) {
+            const QTextLine line = layout->lineForTextPosition(places[index].position -
+                                                               block.position());
+            if (line.isValid()) {
+                lineNotes[static_cast<size_t>(line.lineNumber())].push_back(index);
+            }
+        }
+    }
+    const auto firstPage = static_cast<size_t>(
+        std::max<qreal>(0.0, std::floor((top + FLOW_EPSILON) / m_pageFlow.pitch)));
+    const std::vector<PageNotes> notesBefore =
+        lineNotes.empty() || firstPage >= m_pageNotes.size()
+            ? std::vector<PageNotes>{}
+            : std::vector<PageNotes>(m_pageNotes.begin() + static_cast<std::ptrdiff_t>(firstPage),
+                                     m_pageNotes.end());
+    const int notesLastBefore = m_notesLastPage;
+
     // A line marked here starts the next text area, though it would fit in its own: to keep
     // the first or the last two lines of the paragraph together, or all of them
     const qreal pitch = m_pageFlow.pitch;
@@ -1544,18 +2036,35 @@ qreal KalahariTextDocumentLayout::paginateBlock(QTextLayout* layout, qreal top,
     const auto place = [&]() {
         natural = metrics.spaceBefore;
         shift = 0;
+        if (!lineNotes.empty()) {
+            m_pageNotes.resize(std::min(m_pageNotes.size(), firstPage));
+            m_pageNotes.insert(m_pageNotes.end(), notesBefore.begin(), notesBefore.end());
+            m_notesLastPage = notesLastBefore;
+        }
         for (int i = 0; i < count; ++i) {
             QTextLine line = layout->lineAt(i);
-            const qreal boxHeight = lineBoxHeight(line, metrics, empty);
+            const qreal excess = imageExcess(block, line, metrics);
+            const qreal boxHeight = lineBoxHeight(line, metrics, empty, excess);
             const qreal boxTop = top + natural + shift;
-            qreal placed = metrics.pageBreak ? boxTop : flowLineTop(boxTop, boxHeight);
+            const std::vector<size_t>* ownNotes =
+                lineNotes.empty() || lineNotes[static_cast<size_t>(i)].empty()
+                    ? nullptr
+                    : &lineNotes[static_cast<size_t>(i)];
+            qreal placed = metrics.pageBreak
+                               ? boxTop
+                               : flowLineTop(boxTop, boxHeight,
+                                             ownNotes != nullptr ? notesNeeded(*ownNotes) : 0.0);
             const qreal offset = placed - std::floor((placed + FLOW_EPSILON) / pitch) * pitch;
             if (breakBefore[static_cast<size_t>(i)] != 0 && offset > FLOW_EPSILON) {
                 placed = nextPageTop(placed);
             }
+            if (ownNotes != nullptr) {
+                reserveNotes(placed + boxHeight, *ownNotes);
+            }
             shift += placed - boxTop;
             pages[static_cast<size_t>(i)] = std::floor((placed + FLOW_EPSILON) / pitch);
-            line.setPosition(QPointF(line.x(), natural + shift + lineTopInBox(line, metrics, empty)));
+            line.setPosition(
+                QPointF(line.x(), natural + shift + lineTopInBox(line, metrics, empty, excess)));
             natural += boxHeight;
         }
     };
@@ -1631,8 +2140,9 @@ qreal KalahariTextDocumentLayout::keptBlockTop(size_t index, qreal top) const {
     // They move only from below the top of a text area, and only when they fit in the next
     // one (a longer run would not fit there either)
     const qreal pitch = m_pageFlow.pitch;
-    const qreal areaHeight = m_pageFlow.textHeight;
-    const qreal offset = top - std::floor((top + FLOW_EPSILON) / pitch) * pitch;
+    const qreal page = std::floor((top + FLOW_EPSILON) / pitch);
+    const qreal areaHeight = flowAreaHeight(page);
+    const qreal offset = top - page * pitch;
     const bool fits = offset + needed <= areaHeight + FLOW_EPSILON;
     if (offset <= FLOW_EPSILON || fits || needed > areaHeight + FLOW_EPSILON) {
         return top;
@@ -1763,10 +2273,29 @@ qreal KalahariTextDocumentLayout::cellPadding() const {
     return std::max(MIN_CELL_PADDING, std::round(line * CELL_PADDING_LINES));
 }
 
+qreal KalahariTextDocumentLayout::tableBorderWidth(const QTextTable& table) const {
+    return std::max<qreal>(0.0, tablePropertiesOf(table.format()).borders.width * packagePixels());
+}
+
 std::vector<qreal> KalahariTextDocumentLayout::tableColumnEdges(const QTextTable& table) const {
     const int columns = std::max(1, table.columns());
-    const qreal textWidth = document()->textWidth();
-    const qreal width = textWidth > 0 ? textWidth : UNWRAPPED_LINE_WIDTH;
+    const qreal documentWidth = document()->textWidth();
+    const qreal textWidth = documentWidth > 0 ? documentWidth : UNWRAPPED_LINE_WIDTH;
+
+    // The table's width and place: never wider than the text, its points shown as the
+    // style's points are
+    const TableProperties properties = tablePropertiesOf(table.format());
+    const qreal pixels = packagePixels();
+    const qreal narrowest = std::min(textWidth, MIN_COLUMN_PADDINGS * cellPadding() * columns);
+    const qreal indent = properties.alignment == TableAlignment::Left
+                             ? std::clamp(std::round(properties.indent * pixels), 0.0, textWidth - narrowest)
+                             : 0.0;
+    const qreal width = std::clamp(properties.width ? std::round(*properties.width * pixels)
+                                                    : textWidth - indent,
+                                   narrowest, textWidth - indent);
+    const qreal left = properties.alignment == TableAlignment::Center ? std::round((textWidth - width) / 2.0)
+                       : properties.alignment == TableAlignment::Right ? textWidth - width
+                                                                       : indent;
 
     // The widths of the format in percent, else equal columns
     std::vector<qreal> shares(static_cast<size_t>(columns), 1.0);
@@ -1787,21 +2316,24 @@ std::vector<qreal> KalahariTextDocumentLayout::tableColumnEdges(const QTextTable
     for (const qreal share : shares) {
         total += share;
     }
-    std::vector<qreal> edges(shares.size() + 1, 0.0);
+    std::vector<qreal> edges(shares.size() + 1, left);
     qreal sum = 0;
     for (size_t i = 0; i < shares.size(); ++i) {
         sum += shares[i];
-        edges[i + 1] = std::round(width * sum / total);
+        edges[i + 1] = left + std::round(width * sum / total);
     }
-    edges.back() = std::round(width);
+    edges.back() = left + std::round(width);
     return edges;
 }
 
 std::vector<KalahariTextDocumentLayout::TableRow> KalahariTextDocumentLayout::tableRows(
     const QTextTable& table) const {
-    // Each row from its first block: its top, and the height of its blocks together
+    // Each row from its first block: its top, and the height of its blocks together (in
+    // the page flow, as the flow places them)
+    updateBlockPositions();
     std::vector<TableRow> rows(static_cast<size_t>(std::max(0, table.rows())));
     qreal bottom = 0;
+    qreal header = 0;
     for (int row = 0; row < table.rows(); ++row) {
         TableRow& place = rows[static_cast<size_t>(row)];
         place.top = bottom;
@@ -1815,12 +2347,196 @@ std::vector<KalahariTextDocumentLayout::TableRow> KalahariTextDocumentLayout::ta
                 break;
             }
             place.top = blockY(first);
-            place.height = rowHeight(static_cast<size_t>(first));
+            place.height = rowFlowHeight(static_cast<size_t>(first));
+            header = m_blockFlowEntries[static_cast<size_t>(first)].header;
             break;
         }
         bottom = place.top + place.height;
+
+        // Its parts on the pages: a part goes to the end of its page's text area, the next
+        // one starts below the header repeated on the next page
+        qreal top = place.top;
+        while (m_pageFlow.enabled && m_pageFlow.pitch > 0) {
+            const qreal pageTop = pageTopOf(top);
+            const qreal areaEnd = pageTop +
+                                  flowAreaHeight(std::floor(pageTop / m_pageFlow.pitch + 0.5));
+            if (bottom <= areaEnd + FLOW_EPSILON) {
+                break;
+            }
+            place.parts.emplace_back(top, areaEnd);
+            top = nextPageTop(top) + header;
+        }
+        place.parts.emplace_back(top, std::max(top, bottom));
     }
     return rows;
+}
+
+std::vector<qreal> KalahariTextDocumentLayout::tableRowHeights(const QTextTable& table) const {
+    std::vector<qreal> heights(static_cast<size_t>(std::max(0, table.rows())), 0.0);
+    for (int row = 0; row < table.rows(); ++row) {
+        for (int column = 0; column < table.columns(); ++column) {
+            const QTextTableCell cell = table.cellAt(row, column);
+            if (cell.row() != row || cell.column() != column) {
+                continue;
+            }
+            const int first = document()->findBlock(cell.firstPosition()).blockNumber();
+            if (first >= 0 && static_cast<size_t>(first) < m_blockHeights.size()) {
+                heights[static_cast<size_t>(row)] = rowHeight(static_cast<size_t>(first));
+            }
+            break;
+        }
+    }
+    return heights;
+}
+
+std::vector<qreal> KalahariTextDocumentLayout::headerRepeats(const QTextTable& table) const {
+    updateBlockPositions();
+    std::vector<qreal> tops;
+    const int first = document()->findBlock(table.firstPosition()).blockNumber();
+    for (const HeaderRepeat& repeat : m_headerRepeats) {
+        if (repeat.tableFirstBlock == first) {
+            tops.push_back(repeat.top);
+        }
+    }
+    return tops;
+}
+
+QPointF KalahariTextDocumentLayout::fromRepeatedHeader(const QPointF& point) const {
+    updateBlockPositions();
+    const auto after = std::upper_bound(
+        m_headerRepeats.begin(), m_headerRepeats.end(), point.y(),
+        [](qreal y, const HeaderRepeat& repeat) { return y < repeat.top; });
+    if (after == m_headerRepeats.begin()) {
+        return point;
+    }
+    const HeaderRepeat& repeat = *std::prev(after);
+    if (point.y() >= repeat.top + repeat.height) {
+        return point;
+    }
+    return QPointF(point.x(), point.y() - repeat.top + blockY(repeat.tableFirstBlock));
+}
+
+qreal KalahariTextDocumentLayout::rowFlowHeight(size_t first) const {
+    if (m_pageFlow.enabled && first < m_blockFlowHeights.size() &&
+        m_blockFlowHeights[first] > 0) {
+        return m_blockFlowHeights[first];
+    }
+    return rowHeight(first);
+}
+
+qreal KalahariTextDocumentLayout::pageTopOf(qreal y) const {
+    return std::floor((y + FLOW_EPSILON) / m_pageFlow.pitch) * m_pageFlow.pitch;
+}
+
+qreal KalahariTextDocumentLayout::paginateRow(size_t first, size_t last, qreal top,
+                                              qreal header, bool natural) const {
+    // Each cell's lines stacked as layoutTable() stacks them; a line that does not fit in
+    // the rest of its page goes on to the next one, below the repeated header, with the
+    // cell's lines after it
+    const qreal padding = cellPadding();
+    qreal height = rowHeight(first);
+    qreal shift = 0;
+    int cell = -1;
+    QTextBlock block = document()->findBlockByNumber(static_cast<int>(first));
+    for (size_t index = first; index <= last && block.isValid(); ++index, block = block.next()) {
+        const QTextTable* table = tableOf(block);
+        const int own = table ? table->cellAt(block.position()).firstPosition() : -1;
+        if (own != cell) {
+            cell = own;
+            shift = 0;
+        }
+        QTextLayout* layout = block.layout();
+        if (!layout) {
+            continue;
+        }
+        const BlockMetrics& metrics = blockMetrics(block);
+        const bool empty = block.length() <= 1;
+        qreal y = m_blockFlowEntries[index].cellTop + metrics.spaceBefore;
+        for (int i = 0; i < layout->lineCount(); ++i) {
+            QTextLine line = layout->lineAt(i);
+            const qreal excess = imageExcess(block, line, metrics);
+            const qreal box = lineBoxHeight(line, metrics, empty, excess);
+            if (!natural) {
+                const qreal boxTop = top + y + shift;
+                const qreal moved = flowLineTop(boxTop, box);
+                if (moved > boxTop + FLOW_EPSILON) {
+                    shift += moved + header - boxTop;
+                }
+            }
+            line.setPosition(QPointF(line.x(), y + shift + lineTopInBox(line, metrics, empty, excess)));
+            y += box;
+        }
+        height = std::max(height, y + shift + padding);
+    }
+    return height;
+}
+
+std::pair<qreal, qreal> KalahariTextDocumentLayout::placeRow(size_t i, size_t last, qreal y,
+                                                             bool inStep, int tableFirst) const {
+    const FlowEntry& entry = m_blockFlowEntries[i];
+    const qreal natural = rowHeight(i);
+    const qreal header = entry.header;
+    const bool splits = (entry.flags & FLOW_ROW_SPLIT) != 0;
+
+    // On this page when it fits (a header row with the first row after the header), else
+    // on the next one; a row that may be split starts here when its first lines fit
+    qreal top = flowLineTop(y, splits ? entry.estimatedLineHeight : std::max(natural, entry.lead));
+    const qreal pageTop = pageTopOf(top);
+    const bool moved = top > y + FLOW_EPSILON;
+    const bool startsPage = top - pageTop < FLOW_EPSILON;
+    if (header > 0 && startsPage) {
+        // A row starting a page the table goes on to: the header rows above it again
+        if (tableFirst >= 0) {
+            m_headerRepeats.push_back({top, header, tableFirst});
+        }
+        top += header;
+    }
+    const qreal pageIndex = std::floor((pageTop + FLOW_EPSILON) / m_pageFlow.pitch);
+    const bool fits = top + natural <= pageTop + flowAreaHeight(pageIndex) + FLOW_EPSILON;
+    const bool split = !fits && (splits || moved || startsPage);
+
+    qreal height = natural;
+    const bool laidOut = inStep && m_blockPending[i] == 0;
+    const qreal offset = top - pageTop;
+    // Placed again on a page with notes: they may take another part of it now
+    const bool underNotes = pageIndex <= m_notesLastPage;
+    if (split && laidOut) {
+        if (!underNotes && std::abs(m_blockFlowOffsets[i] - offset) < FLOW_EPSILON &&
+            m_blockFlowHeights[i] > 0) {
+            height = m_blockFlowHeights[i];  // placed there already
+        } else {
+            height = paginateRow(i, last, top, header, false);
+            m_blockFlowOffsets[i] = underNotes ? FLOW_PLACE_AGAIN : offset;
+        }
+    } else if (split) {
+        // Not laid out yet (or the document in the middle of a change): the height it
+        // probably takes, a page break taking the rest of a page and the header
+        qreal rest = natural;
+        qreal partTop = top;
+        height = 0;
+        while (m_pageFlow.textHeight > header + FLOW_EPSILON &&
+               rest > pageTopOf(partTop) + m_pageFlow.textHeight - partTop + FLOW_EPSILON) {
+            rest -= pageTopOf(partTop) + m_pageFlow.textHeight - partTop;
+            const qreal next = nextPageTop(partTop) + header;
+            height += next - partTop;
+            partTop = next;
+        }
+        height += rest;
+    } else if (laidOut && m_blockFlowOffsets[i] != FLOW_UNPLACED) {
+        paginateRow(i, last, top, header, true);  // its lines as they were
+        m_blockFlowOffsets[i] = FLOW_UNPLACED;
+    }
+    m_blockFlowHeights[i] = height;
+
+    // The pages a split row goes on to start with the header too
+    if (header > 0 && split && tableFirst >= 0) {
+        qreal page = nextPageTop(top);
+        while (page < top + height - FLOW_EPSILON) {
+            m_headerRepeats.push_back({page, header, tableFirst});
+            page = nextPageTop(page);
+        }
+    }
+    return {top, height};
 }
 
 qreal KalahariTextDocumentLayout::cellTextLeft(const QTextBlock& block) const {
@@ -1835,31 +2551,48 @@ qreal KalahariTextDocumentLayout::cellTextLeft(const QTextBlock& block) const {
 }
 
 std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLayout::layoutTable(
-    const QTextTable& table, bool estimate, bool keepGlyphs) const {
+    const QTextTable& table, bool estimate, bool keepGlyphs, int firstRow, int lastRow,
+    qreal* headerHeight) const {
     const QTextDocument* doc = document();
-    const int firstNumber = doc->findBlock(table.firstPosition()).blockNumber();
-    const int lastNumber = doc->findBlock(table.lastPosition()).blockNumber();
+    const int rows = table.rows();
+    if (lastRow < 0 || lastRow >= rows) {
+        lastRow = rows - 1;
+    }
+    firstRow = std::clamp(firstRow, 0, std::max(0, lastRow));
+    if (rows <= 0 || table.columns() <= 0) {
+        return {};
+    }
+    const auto [firstBlock, lastBlock] = bandBlocks(table, firstRow, lastRow);
+    const int firstNumber = firstBlock.blockNumber();
+    const int lastNumber = lastBlock.blockNumber();
     std::vector<TableBlockLayout> blocks(static_cast<size_t>(std::max(0, lastNumber - firstNumber + 1)));
     for (TableBlockLayout& entry : blocks) {
         entry.flow.flags = FLOW_TABLE;
     }
     const std::vector<qreal> edges = tableColumnEdges(table);
     const qreal padding = cellPadding();
-    const int rows = table.rows();
+    const qreal pixels = packagePixels();
     const int columns = static_cast<int>(edges.size()) - 1;
 
     // Each cell's paragraphs one below another on the cell's width; a row as high as its
-    // highest cell, a cell spanning rows makes the last of them higher when they are too low
+    // highest cell, or as its least height, a cell spanning rows makes the last of them
+    // higher when they are too low
     std::vector<qreal> rowHeights(static_cast<size_t>(std::max(0, rows)), 0.0);
     std::vector<int> firstOfRow(rowHeights.size(), -1);  // index of the row's first block
     std::vector<int> lastOfRow(rowHeights.size(), -1);   // and of its last one
-    struct Spanning {
+    std::vector<qreal> firstLines(rowHeights.size(), 0.0);  // the space its first lines need
+    std::vector<TableRowProperties> rowProperties(rowHeights.size());
+    struct Cell {
         int row = 0;
         int rows = 1;
+        int firstIndex = 0;  // its blocks
+        int lastIndex = -1;
         qreal height = 0;
+        CellAlignment alignment = CellAlignment::Top;
     };
-    std::vector<Spanning> spanning;
-    for (int row = 0; row < rows; ++row) {
+    std::vector<Cell> cells;
+    for (int row = firstRow; row <= lastRow; ++row) {
+        rowProperties[static_cast<size_t>(row)] = rowPropertiesOf(table, row);
         for (int column = 0; column < columns; ++column) {
             const QTextTableCell cell = table.cellAt(row, column);
             if (cell.row() != row || cell.column() != column) {
@@ -1875,7 +2608,15 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
             // first paragraph and below its last one
             QTextBlock block = doc->findBlock(cell.firstPosition());
             const QTextBlock end = doc->findBlock(cell.lastPosition()).next();
-            placement.top -= blockMetrics(block).spaceBefore;
+            const BlockMetrics& firstMetrics = blockMetrics(block);
+            placement.top -= firstMetrics.spaceBefore;
+            firstLines[static_cast<size_t>(row)] = std::max(
+                firstLines[static_cast<size_t>(row)], 2.0 * padding + firstMetrics.estimatedLineHeight);
+            Cell laid;
+            laid.row = row;
+            laid.rows = std::min(cell.rowSpan(), rows - row);
+            laid.alignment = cellPropertiesOf(cell).alignment;
+            laid.firstIndex = block.blockNumber() - firstNumber;
             qreal spaceAfter = 0;
             for (; block.isValid() && block != end; block = block.next()) {
                 const int index = block.blockNumber() - firstNumber;
@@ -1884,6 +2625,7 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
                 }
                 TableBlockLayout& entry = blocks[static_cast<size_t>(index)];
                 const BlockMetrics& metrics = blockMetrics(block);
+                entry.flow.cellTop = placement.top;
                 qreal extent = block.length();
                 const qreal height =
                     estimate ? estimatedHeight(extent, metrics, placement.width)
@@ -1895,56 +2637,151 @@ std::vector<KalahariTextDocumentLayout::TableBlockLayout> KalahariTextDocumentLa
                     firstOfRow[static_cast<size_t>(row)] = index;
                 }
                 lastOfRow[static_cast<size_t>(row)] = index;
+                laid.lastIndex = index;
             }
-            const qreal height = placement.top - spaceAfter + padding;
-            const int spannedRows = std::min(cell.rowSpan(), rows - row);
-            if (spannedRows <= 1) {
-                rowHeights[static_cast<size_t>(row)] = std::max(rowHeights[static_cast<size_t>(row)], height);
-            } else {
-                spanning.push_back({row, spannedRows, height});
+            laid.height = placement.top - spaceAfter + padding;
+            if (laid.rows <= 1) {
+                rowHeights[static_cast<size_t>(row)] =
+                    std::max(rowHeights[static_cast<size_t>(row)], laid.height);
             }
+            cells.push_back(laid);
         }
+        const qreal least = std::round(rowProperties[static_cast<size_t>(row)].minHeight * pixels);
+        rowHeights[static_cast<size_t>(row)] = std::max(rowHeights[static_cast<size_t>(row)], least);
     }
-    for (const Spanning& cell : spanning) {
+    const auto spannedHeight = [&rowHeights](const Cell& cell) {
         qreal height = 0;
         for (int row = cell.row; row < cell.row + cell.rows; ++row) {
             height += rowHeights[static_cast<size_t>(row)];
         }
-        if (height < cell.height) {
-            rowHeights[static_cast<size_t>(cell.row + cell.rows - 1)] += cell.height - height;
+        return height;
+    };
+    for (const Cell& cell : cells) {
+        if (cell.rows > 1) {
+            const qreal height = spannedHeight(cell);
+            if (height < cell.height) {
+                rowHeights[static_cast<size_t>(cell.row + cell.rows - 1)] += cell.height - height;
+            }
+        }
+    }
+
+    // A cell's text in the middle or at the bottom of its rows: its lines lower
+    for (const Cell& cell : cells) {
+        if (cell.alignment == CellAlignment::Top || cell.lastIndex < cell.firstIndex) {
+            continue;
+        }
+        const qreal room = spannedHeight(cell) - cell.height;
+        const qreal shift = std::round(cell.alignment == CellAlignment::Middle ? room / 2.0 : room);
+        if (shift <= 0) {
+            continue;
+        }
+        QTextBlock block = doc->findBlockByNumber(firstNumber + cell.firstIndex);
+        for (int index = cell.firstIndex; index <= cell.lastIndex && block.isValid();
+             ++index, block = block.next()) {
+            blocks[static_cast<size_t>(index)].flow.cellTop += shift;
+            if (estimate) {
+                continue;
+            }
+            if (QTextLayout* lines = block.layout()) {
+                for (int i = 0; i < lines->lineCount(); ++i) {
+                    QTextLine line = lines->lineAt(i);
+                    line.setPosition(line.position() + QPointF(0.0, shift));
+                }
+            }
         }
     }
 
     // A row's height goes to its last block, and the rows after it without blocks of their
     // own (covered whole by cells spanning from above) with it
     int unit = -1;
-    for (int row = 0; row < rows; ++row) {
+    for (int row = firstRow; row <= lastRow; ++row) {
         if (firstOfRow[static_cast<size_t>(row)] >= 0) {
             unit = row;
             TableBlockLayout& first = blocks[static_cast<size_t>(firstOfRow[static_cast<size_t>(row)])];
             first.flow.flags |= FLOW_ROW_START;
+            if (rowProperties[static_cast<size_t>(row)].allowSplit) {
+                first.flow.flags |= FLOW_ROW_SPLIT;
+            }
+            first.flow.estimatedLineHeight = firstLines[static_cast<size_t>(row)];
         }
         if (unit >= 0) {
             blocks[static_cast<size_t>(lastOfRow[static_cast<size_t>(unit)])].height +=
                 rowHeights[static_cast<size_t>(row)];
         }
     }
-    // The space a row takes is what keeps a heading above the table with its first row
-    for (int row = 0; row < rows; ++row) {
-        if (firstOfRow[static_cast<size_t>(row)] >= 0) {
-            blocks[static_cast<size_t>(firstOfRow[static_cast<size_t>(row)])].flow.lead =
-                blocks[static_cast<size_t>(lastOfRow[static_cast<size_t>(row)])].height;
+
+    // The header rows go with the first row after them, and are repeated above a row
+    // starting a page the table goes on to. Rows below the head (tableBand()) have the
+    // height of the header from the rows laid out before.
+    const int headerRows = std::clamp(table.format().headerRowCount(), 0, rows);
+    qreal header = 0;
+    if (firstRow == 0) {
+        for (int row = 0; row < headerRows && headerRows < rows; ++row) {
+            header += rowHeights[static_cast<size_t>(row)];
+        }
+    } else {
+        header = tableHeader(table);
+    }
+    if (headerHeight) {
+        *headerHeight = header;
+    }
+    const qreal firstBody = headerRows < rows ? rowHeights[static_cast<size_t>(headerRows)] : 0.0;
+    for (int row = firstRow; row <= lastRow; ++row) {
+        const int index = firstOfRow[static_cast<size_t>(row)];
+        if (index < 0) {
+            continue;
+        }
+        FlowEntry& flow = blocks[static_cast<size_t>(index)].flow;
+        if (row < headerRows) {
+            // The space a row takes is what keeps a heading above the table with it
+            qreal together = firstBody;
+            for (int below = row; below < headerRows; ++below) {
+                together += rowHeights[static_cast<size_t>(below)];
+            }
+            flow.lead = together;
+        } else {
+            flow.lead = blocks[static_cast<size_t>(lastOfRow[static_cast<size_t>(row)])].height;
+            flow.header = header;
         }
     }
     return blocks;
 }
 
-std::pair<int, int> KalahariTextDocumentLayout::layOutTable(const QTextTable& table,
-                                                          bool* heightChanged) {
-    const int first = document()->findBlock(table.firstPosition()).blockNumber();
-    const std::vector<TableBlockLayout> entries = layoutTable(table, false, false);
+qreal KalahariTextDocumentLayout::tableHeader(const QTextTable& table) const {
+    // The first row below the head starts no later than the rows laid out
+    const int headEnd = headEndOf(table);
+    if (headEnd < 0 || headEnd + 1 >= table.rows()) {
+        return 0.0;
+    }
+    const auto index = static_cast<size_t>(
+        document()->findBlock(table.cellAt(headEnd + 1, 0).firstPosition()).blockNumber());
+    return index < m_blockFlowEntries.size() && (m_blockFlowEntries[index].flags & FLOW_ROW_START) != 0
+               ? m_blockFlowEntries[index].header
+               : 0.0;
+}
+
+void KalahariTextDocumentLayout::setTableHeader(int first, int last, qreal header) {
+    last = std::min(last, static_cast<int>(m_blockFlowEntries.size()) - 1);
+    for (int i = std::max(first, 0); i <= last; ++i) {
+        FlowEntry& entry = m_blockFlowEntries[static_cast<size_t>(i)];
+        if ((entry.flags & FLOW_TABLE) == 0) {
+            break;
+        }
+        if ((entry.flags & FLOW_ROW_START) != 0) {
+            entry.header = header;
+        }
+    }
+}
+
+std::pair<int, int> KalahariTextDocumentLayout::layOutTableRows(const QTextTable& table, int firstRow,
+                                                              int lastRow, bool* heightChanged) {
+    const auto [bandFirst, bandLast] = tableBand(table, firstRow, lastRow);
+    qreal header = 0;
+    const std::vector<TableBlockLayout> entries =
+        layoutTable(table, false, false, bandFirst, bandLast, &header);
+    const int first = entries.empty() ? 0 : bandBlocks(table, bandFirst, bandLast).first.blockNumber();
     const int last = first + static_cast<int>(entries.size()) - 1;
-    if (first < 0 || static_cast<size_t>(last) >= m_blockHeights.size()) {
+    if (entries.empty() || first < 0 || static_cast<size_t>(last) >= m_blockHeights.size()) {
         return {first, first - 1};  // the cache is out of step with the document
     }
     for (size_t i = 0; i < entries.size(); ++i) {
@@ -1960,6 +2797,10 @@ std::pair<int, int> KalahariTextDocumentLayout::layOutTable(const QTextTable& ta
             m_blockPending[index] = 0;
             --m_pendingCount;
         }
+    }
+    if (bandFirst == 0) {
+        // The rows below have the height of the header too
+        setTableHeader(last + 1, document()->findBlock(table.lastPosition()).blockNumber(), header);
     }
     return {first, last};
 }
@@ -2250,13 +3091,578 @@ void KalahariTextDocumentLayout::drawListMarker(QPainter* painter, const QTextBl
 }
 
 // =============================================================================
+// Captions, cross-references and the list of figures
+// =============================================================================
+
+void KalahariTextDocumentLayout::setCaptionContext(const CaptionContext& context) {
+    if (context == m_captionContext) {
+        return;
+    }
+    m_captionContext = context;
+    m_captionNumbersDirty = true;
+    if (m_fieldChars.empty()) {
+        return;  // nothing in the text shows the numbers: they are counted when asked for
+    }
+    const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
+    refreshFields(0, -1, 0, old);
+}
+
+const CaptionNumbers& KalahariTextDocumentLayout::captionNumbers() const {
+    if (m_captionNumbersDirty) {
+        countFields();
+    }
+    return m_captionNumbers;
+}
+
+bool KalahariTextDocumentLayout::hasFields() const {
+    captionNumbers();
+    return m_hasFields;
+}
+
+// =============================================================================
+// Fields of the book, the page, the words and the date
+// =============================================================================
+
+void KalahariTextDocumentLayout::setFieldContext(const FieldContext& context) {
+    if (context == m_fieldContext) {
+        return;
+    }
+    // Only the time (a text brought to the front): only the dates may show another text
+    FieldContext sameTime = context;
+    sameTime.now = m_fieldContext.now;
+    const bool onlyTime = sameTime == m_fieldContext;
+    const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
+    m_fieldContext = context;
+    if (!onlyTime) {
+        m_widestPages.clear();
+    }
+    if (m_fieldChars.empty() || (onlyTime && !hasTextField(FieldType::Date))) {
+        return;  // nothing laid out shows them: the fields get them when they are laid out
+    }
+    refreshFields(0, -1, 0, old);
+}
+
+void KalahariTextDocumentLayout::setFieldWords(int words) {
+    words = std::max(0, words);
+    if (words == m_fieldWords) {
+        return;
+    }
+    const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
+    m_fieldWords = words;
+    if (m_fieldChars.empty()) {
+        return;
+    }
+    refreshFields(0, -1, 0, old);
+}
+
+bool KalahariTextDocumentLayout::hasTextField(FieldType type) const {
+    captionNumbers();
+    return std::ranges::any_of(m_fieldChars, [type](const FieldChar& field) {
+        const std::optional<TextField> text = textFieldOf(field.format);
+        return text && text->type == type;
+    });
+}
+
+FieldText KalahariTextDocumentLayout::fieldText(int position, const QTextFormat& format) const {
+    const std::optional<TextField> field = textFieldOf(format);
+    if (!field) {
+        return captionNumbers().fieldText(position, format);
+    }
+    FieldCounts counts;
+    counts.words = m_fieldWords;
+    if (m_pageFlow.enabled) {
+        counts.pages = std::max(1, m_fieldPages);
+        if (field->type == FieldType::Page) {
+            counts.page = std::max(1, pageOfPosition(position));
+        }
+    }
+    return {.text = textFieldText(*field, m_fieldContext, counts), .broken = false};
+}
+
+QString KalahariTextDocumentLayout::sizedFieldText(int position, const QTextFormat& format) const {
+    const std::optional<TextField> field = textFieldOf(format);
+    if (!field || field->type != FieldType::Page || !m_pageFlow.enabled) {
+        return fieldText(position, format).text;
+    }
+    // The widest of the numbers of the pages, in the field's font (in its format the numbers
+    // differ in length: "viii" and "ix")
+    const int pages = std::max(1, m_fieldPages);
+    const QFont font = fieldFont(position, format);
+    const QString key = font.key() + QLatin1Char('\x1f') + field->format + QLatin1Char('\x1f') +
+                        QString::number(pages);
+    if (const auto known = m_widestPages.constFind(key); known != m_widestPages.cend()) {
+        return *known;
+    }
+    const QFontMetricsF metrics(font);
+    QString widest;
+    qreal widestWidth = -1.0;
+    FieldCounts counts;
+    counts.pages = pages;
+    for (int page = std::max(1, pages - MAX_MEASURED_PAGES + 1); page <= pages; ++page) {
+        counts.page = page;
+        const QString text = textFieldText(*field, m_fieldContext, counts);
+        if (const qreal width = metrics.horizontalAdvance(text); width > widestWidth) {
+            widestWidth = width;
+            widest = text;
+        }
+    }
+    if (m_widestPages.size() >= MAX_WIDEST_PAGES) {
+        m_widestPages.clear();
+    }
+    m_widestPages.insert(key, widest);
+    return widest;
+}
+
+int KalahariTextDocumentLayout::pageOfPosition(int position) const {
+    if (!m_pageFlow.enabled || m_pageFlow.pitch <= 0.0) {
+        return 0;
+    }
+    updateBlockPositions();
+    const QTextBlock block = document()->findBlock(position);
+    const auto number = static_cast<size_t>(block.blockNumber());
+    if (!block.isValid() || number >= m_blockYPositions.size()) {
+        return 0;
+    }
+    // The middle of its line: the lines are in the text areas of the pages, i * pitch down
+    qreal y = m_blockYPositions[number];
+    if (const QTextLayout* layout = block.layout(); layout != nullptr && layout->lineCount() > 0) {
+        const QTextLine line = layout->lineForTextPosition(position - block.position());
+        const QTextLine shown = line.isValid() ? line : layout->lineAt(0);
+        y += shown.y() + (shown.height() / 2);
+    }
+    return static_cast<int>(std::floor(std::max<qreal>(0.0, y) / m_pageFlow.pitch)) + 1;
+}
+
+void KalahariTextDocumentLayout::refreshPageFields() {
+    m_pageFieldsQueued = false;
+    const int pages = m_pageFlow.enabled ? pageCount() : 0;
+    if (pages == m_fieldPages) {
+        return;
+    }
+    const std::vector<std::pair<int, QString>> old = m_fieldSignatures;
+    m_fieldPages = pages;
+    if (m_fieldChars.empty()) {
+        return;
+    }
+    // The pages field shows the new number, a page field may need the room of a longer one
+    refreshFields(0, -1, 0, old);
+}
+
+void KalahariTextDocumentLayout::countFields() const {
+    m_captionNumbersDirty = false;
+    m_fieldChars.clear();
+    const QTextDocument& doc = *document();
+    int number = 0;
+    for (QTextBlock block = doc.begin(); block.isValid(); block = block.next(), ++number) {
+        for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+            const QTextFragment fragment = it.fragment();
+            if (!fragment.isValid()) {
+                continue;
+            }
+            const QTextCharFormat format = fragment.charFormat();
+            if (!isNumberedFormat(format) && textObjectOf(format) != TextObject::FigureList) {
+                continue;
+            }
+            // Objects of one format next to each other are one fragment
+            const QString text = fragment.text();
+            for (int i = 0; i < text.size(); ++i) {
+                if (text.at(i) == QChar::ObjectReplacementCharacter) {
+                    m_fieldChars.push_back({fragment.position() + i, number, format});
+                }
+            }
+        }
+    }
+    m_hasFields = std::any_of(m_fieldChars.cbegin(), m_fieldChars.cend(),
+                              [](const FieldChar& field) {
+                                  return !isFootnoteFormat(field.format);
+                              });
+    m_hasPageFields = std::ranges::any_of(m_fieldChars, [](const FieldChar& field) {
+        const std::optional<TextField> text = textFieldOf(field.format);
+        return text && isPageField(text->type);
+    });
+    m_captionNumbers = CaptionNumbers(doc, m_captionContext);
+    m_footnoteNumbers = FootnoteNumbers(doc, m_footnoteContext);
+}
+
+std::vector<std::pair<int, QString>> KalahariTextDocumentLayout::fieldSignatures() const {
+    const CaptionNumbers& numbers = captionNumbers();
+    std::vector<std::pair<int, QString>> signatures;
+    QString list;
+    bool listKnown = false;
+    for (const FieldChar& field : m_fieldChars) {
+        QString shown;
+        if (isFootnoteFormat(field.format)) {
+            shown = m_footnoteNumbers.numberAt(field.position);
+        } else if (textObjectOf(field.format) == TextObject::FigureList) {
+            if (!listKnown) {
+                list = figureListSignature(numbers.figureList());
+                listKnown = true;
+            }
+            shown = list;
+        } else if (isTextFieldFormat(field.format)) {
+            shown = sizedFieldText(field.position, field.format);
+        } else {
+            const FieldText text = numbers.fieldText(field.position, field.format);
+            shown = text.text;
+            if (text.broken) {
+                shown += BROKEN_FIELD_MARK;  // drawn on another background
+            }
+        }
+        if (signatures.empty() || signatures.back().first != field.block) {
+            signatures.emplace_back(field.block, shown);
+        } else {
+            signatures.back().second += FIELD_SEPARATOR + shown;
+        }
+    }
+    return signatures;
+}
+
+bool KalahariTextDocumentLayout::touchesFields(int from, int charsRemoved, int charsAdded,
+                                               const QTextBlock& first,
+                                               const QTextBlock& last) const {
+    const auto removed = std::lower_bound(
+        m_fieldChars.begin(), m_fieldChars.end(), from,
+        [](const FieldChar& field, int position) { return field.position < position; });
+    if (removed != m_fieldChars.end() && removed->position < from + charsRemoved) {
+        return true;
+    }
+    // A field's text may follow its paragraph (a caption); a note's number and a field of
+    // the book, the page or the date change only with one brought (an object of the new text)
+    // or one removed
+    bool objectAdded = false;
+    const QTextDocument* doc = document();
+    for (int position = from; position < from + charsAdded && !objectAdded; ++position) {
+        objectAdded = doc->characterAt(position) == QChar::ObjectReplacementCharacter;
+    }
+    const QTextBlock afterLast = last.next();
+    for (QTextBlock block = first; block.isValid() && block != afterLast; block = block.next()) {
+        if (hasFieldsOrList(block, objectAdded)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void KalahariTextDocumentLayout::shiftFields(int from, int charsRemoved, int charsAdded,
+                                             int firstBlock, int oldLastBlock, int blockDelta) {
+    // The changed blocks hold no field (the change touched none), at most notes' numbers and
+    // fields of text_fields.h, which stay as they are: the fields and the notes after the
+    // change move with it
+    const int end = from + charsRemoved;
+    const int delta = charsAdded - charsRemoved;
+    for (FieldChar& field : m_fieldChars) {
+        if (field.position >= end) {
+            field.position += delta;
+            field.block += blockDelta;
+        }
+    }
+    if (!m_captionNumbersDirty) {
+        m_captionNumbers.shift(end, delta);
+        m_footnoteNumbers.shift(end, delta);
+    }
+    std::vector<std::pair<int, QString>> shifted;
+    shifted.reserve(m_fieldSignatures.size());
+    for (auto& [number, shown] : m_fieldSignatures) {
+        if (number < firstBlock || (blockDelta == 0 && number <= oldLastBlock)) {
+            shifted.emplace_back(number, std::move(shown));  // its notes show the same numbers
+        } else if (number > oldLastBlock) {
+            shifted.emplace_back(number + blockDelta, std::move(shown));
+        }
+    }
+    m_fieldSignatures = std::move(shifted);
+}
+
+void KalahariTextDocumentLayout::refreshFields(int first, int last, int delta,
+                                               const std::vector<std::pair<int, QString>>& old) {
+    // What the blocks outside the change showed, by their new numbers
+    QHash<int, QString> before;
+    for (const auto& [number, shown] : old) {
+        if (number >= first && number <= last - delta) {
+            continue;  // a changed block: laid out anew
+        }
+        before.insert(number < first ? number : number + delta, shown);
+    }
+    m_fieldSignatures = fieldSignatures();
+
+    // The laid out ones that show something else: their fields are as wide as their new
+    // text, a list of figures as high as its new rows
+    int firstMoved = -1;
+    for (const auto& [number, shown] : m_fieldSignatures) {
+        if (number >= first && number <= last) {
+            continue;
+        }
+        const auto was = before.constFind(number);
+        const auto index = static_cast<size_t>(number);
+        if ((was != before.cend() && *was == shown) || index >= m_blockPending.size() ||
+            m_blockPending[index] != 0) {
+            continue;
+        }
+        const QTextBlock block = document()->findBlockByNumber(number);
+        if (!block.isValid()) {
+            continue;
+        }
+        if (layOutBlock(number, block)) {
+            m_positionsDirty = true;
+            if (firstMoved < 0) {
+                firstMoved = number;
+            }
+        }
+        // Its notes show their new numbers under it too (a table's under its last block)
+        if (hasNotes(block)) {
+            const QTextTable* table = tableOf(block);
+            const int roomBlock =
+                table ? document()->findBlock(table->lastPosition()).blockNumber() : number;
+            updateSpaceBelow(roomBlock, roomBlock);
+        }
+        emit blocksLaidOut(number, 1);
+        emit update(QRectF(0, blockY(number), UNBOUNDED_EXTENT, blockHeight(number)));
+    }
+    // The endnotes under the last block, as they are now; with page flow the notes at the
+    // bottom of the pages are placed again with the positions
+    if (!m_footnoteNumbers.notes().empty() || !m_footnoteContext.otherEndnotes.empty() ||
+        (!m_blockNotesBelow.empty() && m_blockNotesBelow.back() > 0.0)) {
+        updateSpaceBelow(document()->blockCount() - 1);
+        if (m_pageFlow.enabled) {
+            m_positionsDirty = true;
+            if (firstMoved < 0) {
+                firstMoved = 0;
+            }
+        }
+    }
+    if (firstMoved >= 0) {
+        emit blockGeometryChanged(firstMoved);
+        notifyGeometryChanged(firstMoved, UNBOUNDED_EXTENT);
+    }
+}
+
+QFont KalahariTextDocumentLayout::fieldFont(int position, const QTextFormat& format) const {
+    QTextCharFormat merged;
+    merged.setFont(document()->defaultFont());
+    if (const QTextBlock block = document()->findBlock(position); block.isValid()) {
+        merged.merge(blockMetrics(block).charFormat);
+    }
+    merged.merge(format.toCharFormat());
+    return merged.font();
+}
+
+const KalahariTextDocumentLayout::FigureListPlacement&
+KalahariTextDocumentLayout::figureListPlacement() const {
+    std::vector<FigureListRow> rows = captionNumbers().figureList();
+    const QString signature = figureListSignature(rows);
+    const qreal documentWidth = document()->textWidth();
+    const qreal width = documentWidth > 0 ? documentWidth : UNWRAPPED_LINE_WIDTH;
+    const QFont font = document()->defaultFont();
+    const qreal lineHeight = m_estimatedLineHeight;
+    const qreal spacing = paragraphSpacing();
+    if (m_figureList && m_figureList->signature == signature && m_figureList->width == width &&
+        m_figureList->font == font && m_figureList->lineHeight == lineHeight &&
+        m_figureList->spacing == spacing) {
+        return *m_figureList;
+    }
+
+    auto placement = std::make_unique<FigureListPlacement>();
+    placement->signature = signature;
+    placement->width = width;
+    placement->font = font;
+    placement->lineHeight = lineHeight;
+    placement->spacing = spacing;
+    if (rows.empty()) {
+        //: The list of figures of a book without captions (Insert > List of Figures). In
+        //: Polish: Książka nie ma jeszcze podpisów z numerami
+        rows.push_back({QString(), tr("The book has no numbered captions yet"), 0, 0, QString()});
+        placement->noCaptions = true;
+    }
+
+    // Each row wrapped on the width in the document font, its lines as far apart as the lines
+    // of Normal; the rows as far apart as its paragraphs
+    qreal y = 0.0;
+    for (FigureListRow& row : rows) {
+        FigureListPlacement::Row placed;
+        placed.text = std::make_unique<QTextLayout>(row.text, font);
+        QTextOption option;
+        option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+        option.setUseDesignMetrics(true);
+        placed.text->setTextOption(option);
+        placed.text->setCacheEnabled(true);
+        placed.text->beginLayout();
+        qreal lines = 0.0;
+        for (QTextLine line = placed.text->createLine(); line.isValid();
+             line = placed.text->createLine()) {
+            line.setLineWidth(width);
+            line.setPosition(QPointF(
+                0.0, lines + leadingAbove(std::max<qreal>(0.0, lineHeight - line.height()))));
+            lines += lineHeight;
+        }
+        placed.text->endLayout();
+        placed.height = std::max(lineHeight, lines);
+        placed.row = std::move(row);
+        if (!placement->rows.empty()) {
+            y += spacing;
+        }
+        placed.top = y;
+        y += placed.height;
+        placement->rows.push_back(std::move(placed));
+    }
+    placement->height = std::max(lineHeight, y);
+    m_figureList = std::move(placement);
+    return *m_figureList;
+}
+
+std::vector<qreal> KalahariTextDocumentLayout::figureListTops(qreal start) const {
+    const FigureListPlacement& placement = figureListPlacement();
+    std::vector<qreal> tops;
+    tops.reserve(placement.rows.size());
+    if (!m_pageFlow.enabled || start < 0) {
+        for (const FigureListPlacement::Row& row : placement.rows) {
+            tops.push_back(row.top);
+        }
+        return tops;
+    }
+    // On the pages its rows go on as the lines of a paragraph: one that would cross the end
+    // of a page's text starts the next page, without the spacing above it
+    qreal y = start;
+    for (size_t i = 0; i < placement.rows.size(); ++i) {
+        const qreal height = placement.rows[i].height;
+        const qreal top = flowLineTop(i == 0 ? y : y + placement.spacing, height);
+        tops.push_back(top - start);
+        y = top + height;
+    }
+    return tops;
+}
+
+qreal KalahariTextDocumentLayout::figureListStart(int position) const {
+    // The top of the list's line in the document, as the pages placed it last
+    const QTextBlock block = document()->findBlock(position);
+    const QTextLayout* layout = block.layout();
+    const auto number = static_cast<size_t>(block.blockNumber());
+    if (!m_pageFlow.enabled || m_positionsDirty || layout == nullptr || layout->lineCount() == 0 ||
+        number >= m_blockYPositions.size()) {
+        return -1.0;
+    }
+    return m_blockYPositions[number] + layout->lineAt(0).y();
+}
+
+void KalahariTextDocumentLayout::drawFigureList(QPainter* painter, const QRectF& rect,
+                                                int position) const {
+    const FigureListPlacement& placement = figureListPlacement();
+    const std::vector<qreal> tops = figureListTops(figureListStart(position));
+    // In the color of the text (the painter's pen); the note of a book without captions
+    // fainter, as the labels of the objects
+    QColor color = painter->pen().color();
+    if (placement.noCaptions) {
+        color.setAlphaF(static_cast<float>(color.alphaF() * OBJECT_LINE_OPACITY));
+    }
+    const QRectF clip = painter->hasClipping() ? painter->clipBoundingRect() : QRectF();
+    painter->save();
+    painter->setPen(color);
+    for (size_t i = 0; i < placement.rows.size() && i < tops.size(); ++i) {
+        const FigureListPlacement::Row& row = placement.rows[i];
+        const QRectF rowRect(rect.left(), rect.top() + tops[i], rect.width(), row.height);
+        if (!clip.isNull() && !clip.intersects(rowRect)) {
+            continue;
+        }
+        row.text->draw(painter, rowRect.topLeft());
+    }
+    painter->restore();
+}
+
+std::optional<QRectF> KalahariTextDocumentLayout::figureListRect(int position) const {
+    const QTextBlock block = document()->findBlock(position);
+    const QTextLayout* layout = block.layout();
+    if (!block.isValid() || layout == nullptr || layout->lineCount() == 0) {
+        return std::nullopt;
+    }
+    const int offset = position - block.position();
+    bool isList = false;
+    for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+        const QTextFragment fragment = it.fragment();
+        if (fragment.isValid() && fragment.position() <= position &&
+            position < fragment.position() + fragment.length()) {
+            isList = textObjectOf(fragment.charFormat()) == TextObject::FigureList &&
+                     block.text().at(offset) == QChar::ObjectReplacementCharacter;
+            break;
+        }
+    }
+    if (!isList) {
+        return std::nullopt;
+    }
+    const QTextLine line = layout->lineForTextPosition(offset);
+    if (!line.isValid()) {
+        return std::nullopt;
+    }
+    // Qt draws an object from its line's baseline up (QTextLine::draw())
+    const qreal left = line.cursorToX(offset);
+    const qreal right = line.cursorToX(offset + 1);
+    const qreal height = figureListPlacement().height;
+    const qreal baseline = line.y() + line.ascent();
+    return QRectF(std::min(left, right), baseline - height, std::abs(right - left), height);
+}
+
+std::optional<FigureListRow> KalahariTextDocumentLayout::figureListRowAt(int position,
+                                                                       const QPointF& point) const {
+    const std::optional<QRectF> rect = figureListRect(position);
+    if (!rect || point.x() < rect->left() || point.x() >= rect->right() || point.y() < rect->top()) {
+        return std::nullopt;  // on the pages the rows go on below its line
+    }
+    const FigureListPlacement& placement = figureListPlacement();
+    if (placement.noCaptions) {
+        return std::nullopt;
+    }
+    const qreal y = point.y() - rect->top();
+    const std::vector<qreal> tops = figureListTops(figureListStart(position));
+    for (size_t i = 0; i < placement.rows.size() && i < tops.size(); ++i) {
+        if (y >= tops[i] && y < tops[i] + placement.rows[i].height) {
+            return placement.rows[i].row;
+        }
+    }
+    return std::nullopt;
+}
+
+// =============================================================================
 // Objects of the text
 // =============================================================================
 
-void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int /*posInDocument*/,
+void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int posInDocument,
                                                     const QTextFormat& format) {
+    if (const std::optional<ImageProperties> image = imageOf(format)) {
+        // On the baseline, as a character: all of it above
+        m_hasImages = true;
+        const QSizeF size = imageSize(document()->findBlock(posInDocument), *image);
+        item.setWidth(size.width());
+        item.setAscent(size.height());
+        item.setDescent(0.0);
+        return;
+    }
+    if (isFootnoteFormat(format)) {
+        // As wide as its number in a smaller font, as high as the text around it
+        qreal ascent = 0.0;
+        qreal descent = 0.0;
+        item.setWidth(noteNumberWidth(posInDocument, format, &ascent, &descent));
+        item.setAscent(ascent);
+        item.setDescent(descent);
+        return;
+    }
+    if (isFieldFormat(format)) {
+        // As wide and as high as the text it shows, in the font of the text around it
+        const QFont font = fieldFont(posInDocument, format);
+        QTextLayout text(sizedFieldText(posInDocument, format), font);
+        layOutUnwrapped(text);
+        const QFontMetricsF metrics(font);
+        item.setWidth(text.lineCount() > 0 ? text.lineAt(0).naturalTextWidth() : 0.0);
+        item.setAscent(metrics.ascent());
+        item.setDescent(metrics.descent());
+        return;
+    }
     const TextObject object = textObjectOf(format);
     if (object == TextObject::None) {
+        return;
+    }
+    if (object == TextObject::FigureList) {
+        // As wide as the line, as high as its rows; all of it above the baseline
+        const qreal width = document()->textWidth();
+        item.setWidth(width > 0 ? width : UNWRAPPED_LINE_WIDTH);
+        item.setAscent(figureListPlacement().height);
+        item.setDescent(0.0);
         return;
     }
     // As wide as the line (objects have no margins), as high as a line box of Normal; the
@@ -2271,14 +3677,32 @@ void KalahariTextDocumentLayout::resizeInlineObject(QTextInlineObject item, int 
     item.setDescent(height - ascent);
 }
 
-QSizeF KalahariTextDocumentLayout::intrinsicSize(QTextDocument* /*doc*/, int /*posInDocument*/,
+QSizeF KalahariTextDocumentLayout::intrinsicSize(QTextDocument* /*doc*/, int posInDocument,
                                                  const QTextFormat& format) {
+    if (const std::optional<ImageProperties> image = imageOf(format)) {
+        return imageSize(document()->findBlock(posInDocument), *image);
+    }
+    if (isFootnoteFormat(format)) {
+        qreal ascent = 0.0;
+        qreal descent = 0.0;
+        const qreal width = noteNumberWidth(posInDocument, format, &ascent, &descent);
+        return QSizeF(width, ascent + descent);
+    }
+    if (isFieldFormat(format)) {
+        const QFont font = fieldFont(posInDocument, format);
+        QTextLayout text(sizedFieldText(posInDocument, format), font);
+        layOutUnwrapped(text);
+        return QSizeF(text.lineCount() > 0 ? text.lineAt(0).naturalTextWidth() : 0.0,
+                      QFontMetricsF(font).height());
+    }
     const TextObject object = textObjectOf(format);
     if (object == TextObject::None) {
         return QSizeF();
     }
     const qreal width = document()->textWidth();
-    return QSizeF(width > 0 ? width : UNWRAPPED_LINE_WIDTH, objectHeight(object));
+    return QSizeF(width > 0 ? width : UNWRAPPED_LINE_WIDTH,
+                  object == TextObject::FigureList ? figureListPlacement().height
+                                                   : objectHeight(object));
 }
 
 void KalahariTextDocumentLayout::drawObject(QPainter* painter, const QRectF& rect,
@@ -2288,10 +3712,38 @@ void KalahariTextDocumentLayout::drawObject(QPainter* painter, const QRectF& rec
 }
 
 void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRectF& rect,
-                                                  QTextInlineObject /*object*/,
-                                                  int /*posInDocument*/, const QTextFormat& format) {
+                                                  QTextInlineObject item, int posInDocument,
+                                                  const QTextFormat& format) {
+    if (painter == nullptr) {
+        return;
+    }
+    if (const std::optional<ImageProperties> image = imageOf(format)) {
+        drawImage(painter, rect, *image);
+        return;
+    }
+    if (isFootnoteFormat(format)) {
+        drawNoteNumber(painter, rect, item.isValid() ? item.ascent() : -1.0, posInDocument, format);
+        return;
+    }
+    if (isFieldFormat(format)) {
+        // The text it shows on the baseline of its line, in the color of the text (the
+        // painter's pen); its background is the view's (the render pipeline's). A page field
+        // shows the page it is on now, in the room of the widest number of the pages
+        const QFont font = fieldFont(posInDocument, format);
+        QTextLayout text(fieldText(posInDocument, format).text, font);
+        layOutUnwrapped(text);
+        if (text.lineCount() > 0) {
+            const qreal ascent = item.isValid() ? item.ascent() : QFontMetricsF(font).ascent();
+            text.draw(painter, QPointF(rect.left(), rect.top() + ascent - text.lineAt(0).ascent()));
+        }
+        return;
+    }
     const TextObject object = textObjectOf(format);
-    if (object == TextObject::None || painter == nullptr) {
+    if (object == TextObject::None) {
+        return;
+    }
+    if (object == TextObject::FigureList) {
+        drawFigureList(painter, rect, posInDocument);
         return;
     }
     // In the color of the text (the painter's pen); lines as thin as the text's strokes
@@ -2349,9 +3801,289 @@ void KalahariTextDocumentLayout::drawInlineObject(QPainter* painter, const QRect
             painter->drawText(rect, Qt::AlignCenter, label);
             break;
         }
+        case TextObject::FigureList:  // drawn above
         case TextObject::None:
             break;
     }
+    painter->restore();
+}
+
+// =============================================================================
+// Images
+// =============================================================================
+
+qreal KalahariTextDocumentLayout::imageLineWidth(const QTextBlock& block) const {
+    const BlockMetrics& metrics = blockMetrics(block);
+    return std::max<qreal>(1.0, areaWidth(block) - metrics.leftMargin - metrics.rightMargin);
+}
+
+qreal KalahariTextDocumentLayout::widestImage(const QTextBlock& block) const {
+    // Never wider than the line, the first one of the paragraph too (its indent, or the
+    // number of a list item, as layoutBlock() places them)
+    const BlockMetrics& metrics = blockMetrics(block);
+    const qreal lineWidth = imageLineWidth(block);
+    const Qt::Alignment own = ownAlignment(block.blockFormat());
+    const Qt::Alignment alignment = own ? own : metrics.alignment;
+    const bool leadingAligned = !(alignment & (Qt::AlignRight | Qt::AlignHCenter));
+    const qreal ownIndent = metrics.listItem          ? markerOverflow(block, metrics)
+                            : tableOf(block) != nullptr ? 0.0
+                                                        : metrics.firstLineIndent;
+    const qreal firstIndent =
+        leadingAligned ? std::clamp(ownIndent, -metrics.leftMargin, lineWidth / 2.0) : 0.0;
+    return std::max<qreal>(1.0, lineWidth - std::max<qreal>(0.0, firstIndent));
+}
+
+QMarginsF KalahariTextDocumentLayout::imageFrameMargins(const ImageProperties& image) const {
+    if (!image.hasFrame()) {
+        return QMarginsF();
+    }
+    const qreal pixels = packagePixels();
+    const qreal line = image.borderLine == ImageBorderLine::None ? 0.0
+                       : image.borderLine == ImageBorderLine::Double
+                           ? image.borderWidth * DOUBLE_BORDER_LINES
+                           : image.borderWidth;
+    const qreal side = std::round((line + image.borderPadding) * pixels);
+    const qreal shadow = image.shadow ? std::round(IMAGE_SHADOW_POINTS * pixels) : 0.0;
+    return QMarginsF(side, side, side + shadow, side + shadow);
+}
+
+ImageProperties KalahariTextDocumentLayout::imageOfWidth(const QTextBlock& block,
+                                                         const ImageProperties& image,
+                                                         qreal width) const {
+    // The width of the image's box: its picture is narrower by the frame
+    const QMarginsF frame = imageFrameMargins(image);
+    const qreal picture = std::max<qreal>(1.0, width - frame.left() - frame.right());
+    ImageProperties resized = image;
+    if (image.unit == ImageWidthUnit::Centimeters) {
+        resized.width =
+            std::round(picture / (POINTS_PER_CENTIMETER * packagePixels()) * 100.0) / 100.0;
+    } else {
+        resized.unit = ImageWidthUnit::Percent;
+        resized.width = std::max(MIN_IMAGE_PERCENT,
+                                 std::round(picture / imageLineWidth(block) * 100.0));
+    }
+    // An own height changes with the width: the image keeps its shape
+    if (image.height > 0.0) {
+        const QSizeF shown = imageSize(block, image);
+        const qreal before = shown.width() - frame.left() - frame.right();
+        if (before >= 1.0) {
+            resized.height = std::round(image.height * picture / before * 100.0) / 100.0;
+        }
+    }
+    return normalizedImage(resized);
+}
+
+QSizeF KalahariTextDocumentLayout::imageSize(const QTextBlock& block,
+                                             const ImageProperties& image) const {
+    const BlockMetrics& metrics = blockMetrics(block);
+    const qreal lineWidth = imageLineWidth(block);
+    const qreal widest = widestImage(block);
+
+    // The file's pixels at 96 an inch (cropped and turned), centimeters shown as the style's
+    // points are
+    const qreal pixels = packagePixels();
+    const std::optional<QSize> natural =
+        m_imageStore ? m_imageStore->shownPixelSize(image) : std::nullopt;
+    const QMarginsF frame = imageFrameMargins(image);
+    const qreal frameWidth = frame.left() + frame.right();
+    const qreal frameHeight = frame.top() + frame.bottom();
+    qreal width = 0.0;
+    switch (image.unit) {
+        case ImageWidthUnit::Natural:
+            width = natural ? natural->width() * POINTS_PER_INCH / IMAGE_PIXELS_PER_INCH * pixels
+                            : MISSING_IMAGE_CENTIMETERS * POINTS_PER_CENTIMETER * pixels;
+            break;
+        case ImageWidthUnit::Percent:
+            width = lineWidth * image.width / 100.0;
+            break;
+        case ImageWidthUnit::Centimeters:
+            width = image.width * POINTS_PER_CENTIMETER * pixels;
+            break;
+    }
+    width = std::max<qreal>(1.0, width);
+    qreal height = 0.0;
+    if (image.height > 0.0) {
+        height = image.height * POINTS_PER_CENTIMETER * pixels;
+    } else if (natural) {
+        height = width * natural->height() / natural->width();
+    } else {
+        const qreal line = QFontMetricsF(document()->defaultFont()).height();
+        height = std::max(line * MISSING_IMAGE_LINES, width * MISSING_IMAGE_RATIO);
+    }
+    // The box with its frame never wider than the line: the picture smaller, in its shape
+    const qreal widestPicture = std::max<qreal>(1.0, widest - frameWidth);
+    if (width > widestPicture) {
+        height *= widestPicture / width;
+        width = widestPicture;
+    }
+
+    // Never higher than a page's text, with the rest of its line's box and the paragraph's
+    // spacing: an image higher than a page could never be placed on one
+    if (m_pageFlow.textHeight > 0) {
+        const qreal rest =
+            std::max<qreal>(0.0, boxHeightOf(metrics.emptyLineHeight, metrics) - metrics.emptyAscent);
+        const qreal tallest = m_pageFlow.textHeight - rest - metrics.spaceBefore -
+                              metrics.spaceAfter - frameHeight;
+        if (tallest >= 1.0 && height > tallest) {
+            width *= tallest / height;
+            height = tallest;
+        }
+    }
+    return QSizeF(std::max(1.0, std::round(width)) + frameWidth,
+                  std::max(1.0, std::round(height)) + frameHeight);
+}
+
+bool KalahariTextDocumentLayout::isImageMissing(const ImageProperties& image) const {
+    return !m_imageStore || !m_imageStore->pixelSize(image.source);
+}
+
+std::optional<QRectF> KalahariTextDocumentLayout::imageRect(int position) const {
+    const std::optional<ImageProperties> image = editor::imageAt(*document(), position);
+    if (!image) {
+        return std::nullopt;
+    }
+    const QTextBlock block = document()->findBlock(position);
+    const QTextLayout* layout = block.layout();
+    if (layout == nullptr || layout->lineCount() == 0) {
+        return std::nullopt;
+    }
+    const int offset = position - block.position();
+    const QTextLine line = layout->lineForTextPosition(offset);
+    if (!line.isValid()) {
+        return std::nullopt;
+    }
+    // Qt draws an object from its line's baseline up (QTextLine::draw())
+    const qreal left = line.cursorToX(offset);
+    const qreal right = line.cursorToX(offset + 1);
+    const qreal height = imageSize(block, *image).height();
+    const qreal baseline = line.y() + line.ascent();
+    return QRectF(std::min(left, right), baseline - height, std::abs(right - left), height);
+}
+
+void KalahariTextDocumentLayout::drawImageFrame(QPainter* painter, const QRectF& box,
+                                                const ImageProperties& image) const {
+    const qreal pixels = packagePixels();
+    const qreal shadow = image.shadow ? std::round(IMAGE_SHADOW_POINTS * pixels) : 0.0;
+    // The frame's outer edge: the box less the room of the shadow
+    const QRectF outer = box.adjusted(0.0, 0.0, -shadow, -shadow);
+    const QColor color = image.borderColor.isValid() ? image.borderColor : painter->pen().color();
+    painter->save();
+    if (image.shadow) {
+        QColor shade = color;
+        shade.setAlphaF(shade.alphaF() * IMAGE_SHADOW_OPACITY);
+        painter->fillRect(outer.translated(shadow, shadow), shade);
+        // The paper under the picture, so the shadow shows only beside it (a transparent
+        // picture, its padding)
+        painter->fillRect(outer, painter->background());
+    }
+    if (image.borderLine != ImageBorderLine::None) {
+        const qreal width = std::max<qreal>(1.0, image.borderWidth * pixels);
+        Qt::PenStyle style = Qt::SolidLine;
+        if (image.borderLine == ImageBorderLine::Dashed) {
+            style = Qt::DashLine;
+        } else if (image.borderLine == ImageBorderLine::Dotted) {
+            style = Qt::DotLine;
+        }
+        painter->setBrush(Qt::NoBrush);
+        painter->setPen(QPen(color, width, style, Qt::FlatCap, Qt::MiterJoin));
+        painter->drawRect(outer.adjusted(width / 2.0, width / 2.0, -width / 2.0, -width / 2.0));
+        if (image.borderLine == ImageBorderLine::Double) {
+            const qreal inner = width * (DOUBLE_BORDER_LINES - 1.0);
+            painter->drawRect(outer.adjusted(inner + width / 2.0, inner + width / 2.0,
+                                             -inner - width / 2.0, -inner - width / 2.0));
+        }
+    }
+    painter->restore();
+}
+
+void KalahariTextDocumentLayout::drawImage(QPainter* painter, const QRectF& box,
+                                           const ImageProperties& image) const {
+    if (box.isEmpty()) {
+        return;
+    }
+    // The picture inside its frame: the border, the room around the picture, the shadow
+    const QRectF rect = box.marginsRemoved(imageFrameMargins(image));
+    if (image.hasFrame()) {
+        drawImageFrame(painter, box, image);
+    }
+    if (rect.isEmpty()) {
+        return;
+    }
+    if (m_imageStore) {
+        // The picture in the pixels it takes on the screen: sharp at every zoom
+        const QRectF device = painter->deviceTransform().mapRect(rect);
+        const QSize pixels(std::max(1, qRound(device.width())), std::max(1, qRound(device.height())));
+        const QImage picture = m_imageStore->shownImage(image, pixels);
+        if (!picture.isNull()) {
+            painter->save();
+            painter->setRenderHint(QPainter::SmoothPixmapTransform);
+            painter->drawImage(rect, picture);
+            painter->restore();
+            return;
+        }
+    }
+
+    // A missing file: a dashed frame with the picture of a broken image, in the frame's color
+    // (of the settings; else a shade of the text's), the file's name and what is wrong, in
+    // the color of the text
+    const QColor textColor = painter->pen().color();
+    QColor lineColor = textColor;
+    lineColor.setAlphaF(lineColor.alphaF() * OBJECT_LINE_OPACITY);
+    if (m_missingImageColor.isValid()) {
+        lineColor = m_missingImageColor;
+    }
+    QColor fillColor = lineColor;
+    fillColor.setAlphaF(static_cast<float>(MISSING_IMAGE_FILL_OPACITY));
+    const qreal thickness = std::max<qreal>(1.0, std::round(objectHeight(TextObject::HorizontalRule) /
+                                                            OBJECT_LINE_THINNESS));
+    painter->save();
+    painter->setClipRect(rect, Qt::IntersectClip);
+    painter->setRenderHint(QPainter::Antialiasing, false);
+    const QRectF frame = rect.adjusted(thickness / 2.0, thickness / 2.0, -thickness / 2.0,
+                                       -thickness / 2.0);
+    painter->fillRect(frame, fillColor);
+    painter->setPen(QPen(lineColor, thickness, Qt::DashLine, Qt::FlatCap));
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRect(frame);
+
+    QFont labelFont = document()->defaultFont();
+    if (labelFont.pointSizeF() > 0) {
+        labelFont.setPointSizeF(labelFont.pointSizeF() * MISSING_IMAGE_LABEL_SCALE);
+    } else if (labelFont.pixelSize() > 0) {
+        labelFont.setPixelSize(std::max(1, static_cast<int>(std::lround(
+                                               labelFont.pixelSize() * MISSING_IMAGE_LABEL_SCALE))));
+    }
+    QFont nameFont = labelFont;
+    nameFont.setWeight(QFont::DemiBold);
+    const QFontMetricsF labelMetrics(labelFont);
+    const QFontMetricsF nameMetrics(nameFont);
+    const qreal gap = std::round(labelMetrics.averageCharWidth());
+    const qreal glyph = std::round(labelMetrics.height() * 1.6);
+    const qreal textWidth = std::max<qreal>(0.0, rect.width() - glyph - 4.0 * gap);
+    const QString name = nameMetrics.elidedText(QFileInfo(image.source).fileName(),
+                                                Qt::ElideMiddle, textWidth);
+    //: The frame of an image whose file is not there, under the file's name. In Polish: Brak
+    //: pliku obrazu
+    const QString label = labelMetrics.elidedText(tr("Image file missing"), Qt::ElideRight, textWidth);
+    const qreal labelWidth =
+        std::max(nameMetrics.horizontalAdvance(name), labelMetrics.horizontalAdvance(label));
+    const qreal contentWidth = glyph + gap + labelWidth;
+    const qreal left = rect.left() + std::max(gap, std::round((rect.width() - contentWidth) / 2.0));
+    const qreal middle = rect.top() + rect.height() / 2.0;
+
+    QSvgRenderer broken(QString::fromLatin1(BROKEN_IMAGE_SVG).arg(lineColor.name()).toUtf8());
+    painter->setRenderHint(QPainter::Antialiasing, true);
+    painter->save();
+    painter->setOpacity(painter->opacity() * lineColor.alphaF());
+    broken.render(painter, QRectF(left, std::round(middle - glyph / 2.0), glyph, glyph));
+    painter->restore();
+    painter->setPen(textColor);
+    const qreal textLeft = left + glyph + gap;
+    const qreal textTop = middle - (nameMetrics.height() + labelMetrics.height()) / 2.0;
+    painter->setFont(nameFont);
+    painter->drawText(QPointF(textLeft, textTop + nameMetrics.ascent()), name);
+    painter->setFont(labelFont);
+    painter->drawText(QPointF(textLeft, textTop + nameMetrics.height() + labelMetrics.ascent()), label);
     painter->restore();
 }
 

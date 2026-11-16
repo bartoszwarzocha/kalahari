@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file search_engine.h
 /// @brief Search engine for Find/Replace operations (OpenSpec #00044 Task 9.4)
 ///
@@ -5,6 +8,7 @@
 /// - Case-sensitive/insensitive search
 /// - Whole word matching
 /// - Regular expression search
+/// - Every form of a word or a name (SearchOptions::allForms)
 /// - Forward/backward navigation
 /// - Wrap around
 /// - Match highlighting
@@ -12,11 +16,15 @@
 #pragma once
 
 // Phase 11.6: Removed text_buffer.h - using QTextDocument directly
+#include <kalahari/editor/text_footnotes.h>
 #include <QObject>
 #include <QRegularExpression>
 #include <QString>
+#include <QStringList>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <optional>
+#include <utility>
 #include <vector>
 
 class QTextBlock;
@@ -34,6 +42,10 @@ struct SearchOptions {
     bool useRegex = false;        ///< Interpret search text as regex
     bool searchBackward = false;  ///< Search in reverse direction
     bool wrapAround = true;       ///< Wrap to start/end when reaching document boundary
+    /// Find every form of the search text: those of @c forms, as whole words (not with
+    /// useRegex); without forms, the text itself as the other options say
+    bool allForms = false;
+    QStringList forms{};  ///< The forms allForms finds (formsToFind())
 };
 
 // =============================================================================
@@ -41,29 +53,93 @@ struct SearchOptions {
 // =============================================================================
 
 /// @brief Represents a single search match in the document
+///
+/// A match in the text of a note (a footnote, an endnote) is at the place of the note's
+/// number: start, paragraph and paragraphOffset are the number's, noteOffset is where it
+/// starts in the note's text (noteText()), length is its length there. In the order of the
+/// matches the note's text is at its number: after the text before the number, before the
+/// text after it.
 struct SearchMatch {
     size_t start = 0;           ///< Absolute character position (0-based)
     size_t length = 0;          ///< Match length in characters
     int paragraph = 0;          ///< Paragraph index containing the match
     int paragraphOffset = 0;    ///< Character offset within the paragraph
     QString matchedText;        ///< The actual matched text
+    QString noteId;             ///< The note in whose text it is; empty: in the text
+    int noteOffset = 0;         ///< Where it starts in the note's text
 
     /// @brief Check if match is valid
     /// @return true if match has non-zero length
     bool isValid() const { return length > 0; }
 
-    /// @brief Get end position (exclusive)
-    /// @return Absolute character position after the match
-    size_t end() const { return start + length; }
+    /// @brief Whether it is in the text of a note
+    bool inNote() const { return !noteId.isEmpty(); }
 
-    /// @brief Compare matches by position
-    bool operator<(const SearchMatch& other) const { return start < other.start; }
+    /// @brief Get end position (exclusive)
+    /// @return Absolute character position after the match (in the text: of a match in a
+    ///         note, after the note's number)
+    size_t end() const { return inNote() ? start + 1 : start + length; }
+
+    /// @brief Compare matches by position (a match in a note's text by its place there)
+    bool operator<(const SearchMatch& other) const {
+        if (start != other.start) {
+            return start < other.start;
+        }
+        if (inNote() != other.inNote()) {
+            return !inNote();  // a match on the number's character itself first
+        }
+        return noteOffset < other.noteOffset;
+    }
 
     /// @brief Equality comparison
     bool operator==(const SearchMatch& other) const {
-        return start == other.start && length == other.length;
+        return start == other.start && length == other.length && noteId == other.noteId &&
+               noteOffset == other.noteOffset;
     }
 };
+
+// =============================================================================
+// Text as the search reads it
+// =============================================================================
+
+/// @brief The text of a note as the search reads it (SearchableParagraph)
+struct SearchableNote {
+    QString id;                          ///< The note
+    NoteKind kind = NoteKind::Footnote;  ///< A footnote or an endnote
+    int position = 0;                    ///< Its number's position in the document
+    QString text;                        ///< Its text (noteText())
+
+    bool operator==(const SearchableNote&) const = default;
+};
+
+/// @brief A paragraph as the search reads it: its text and the texts of its notes, searched
+///        without its document (SearchEngine::findIn())
+struct SearchableParagraph {
+    int number = 0;                     ///< Its block number
+    int position = 0;                   ///< Its block's position in the document
+    QString text;                       ///< Its text (QTextBlock::text())
+    std::vector<SearchableNote> notes;  ///< The texts of its notes, in text order
+
+    bool operator==(const SearchableParagraph&) const = default;
+};
+
+/// @brief The paragraphs of a document as the search reads them, in order
+std::vector<SearchableParagraph> searchableParagraphs(const QTextDocument& document);
+
+/// @brief The paragraphs of a text's KML as the search reads them: those of the document the
+///        editor makes of it (BookEditor::fromKml()), with the same numbers and positions
+std::vector<SearchableParagraph> searchableParagraphsOfKml(const QString& kml);
+
+/// @brief A text's KML with the matches of a search replaced, as Replace All of the find bar
+///        replaces them in the editor (the formatting and the annotations of the replaced text
+///        stay; in the texts of the notes too)
+/// @param kml The text
+/// @param searchText What is searched for, with @p options
+/// @param replaceText What the matches become
+/// @param options How it is searched for
+/// @param count Receives the number of matches replaced; none: @p kml is returned as it is
+QString replacedInKml(const QString& kml, const QString& searchText, const QString& replaceText,
+                      const SearchOptions& options, int* count = nullptr);
 
 // =============================================================================
 // Search Engine
@@ -151,6 +227,17 @@ public:
     /// @return Vector of all matches
     std::vector<SearchMatch> findAll();
 
+    /// @brief The matches of the search text in paragraphs read before
+    ///        (searchableParagraphs()), in text order: those findAll() finds in a document of
+    ///        these paragraphs
+    ///
+    /// The engine's document and its matches stay as they are.
+    std::vector<SearchMatch> findIn(const std::vector<SearchableParagraph>& paragraphs);
+
+    /// @brief Whether the search text can be searched for: not empty and, with
+    ///        SearchOptions::useRegex, a valid regular expression
+    [[nodiscard]] bool canSearch() const;
+
     // =========================================================================
     // Navigation
     // =========================================================================
@@ -187,7 +274,9 @@ public:
     /// here instead of from the first or the last match. The range follows later edits.
     /// @param start Absolute start of the selection, or the cursor position
     /// @param end Absolute end of the selection (equal to @p start without one)
-    void setOrigin(size_t start, size_t end);
+    /// @param note With a note's number selected (@p start, @p end): the range of the
+    ///        note's text the selection stands for (a match or a misspelled word in it)
+    void setOrigin(size_t start, size_t end, const std::optional<NoteRange>& note = {});
 
     // =========================================================================
     // Replace Operations
@@ -271,12 +360,23 @@ private:
     /// @return false if there is nothing to search for
     bool prepareSearch();
 
-    /// @brief Append the matches in the paragraphs from @p block to @p last
+    /// @brief Append the matches in the paragraphs from @p block to @p last, with those in
+    ///        the texts of their notes
     /// @param block First paragraph to search
     /// @param last Last paragraph to search
     /// @param found Receives the matches, in document order
     void searchBlocks(QTextBlock block, const QTextBlock& last,
                       std::vector<SearchMatch>& found) const;
+
+    /// @brief Append the matches in a paragraph and in the texts of its notes
+    /// @param paragraph The paragraph
+    /// @param found Receives the matches, in text order
+    void searchParagraph(const SearchableParagraph& paragraph,
+                         std::vector<SearchMatch>& found) const;
+
+    /// @brief The matches in a line of text (a paragraph, or one of a note): their offsets
+    ///        and lengths, in order
+    std::vector<std::pair<qsizetype, qsizetype>> matchesIn(const QString& text) const;
 
     /// @brief Bring the matches up to date with an edit of the document
     ///
@@ -287,6 +387,15 @@ private:
     /// @brief Index of the first match starting at or after @p position
     /// @return The match count if there is none
     int firstMatchFrom(size_t position) const;
+
+    /// @brief Index of the first match at or after a place in the text of the note whose
+    ///        number is at @p position: @p noteOffset of the text of the note @p noteId
+    /// @return The match count if there is none
+    int firstMatchFrom(size_t position, const QString& noteId, int noteOffset) const;
+
+    /// @brief Index of the first match after the origin's end (@p fromEnd), else of the
+    ///        first one at or after its start
+    int firstMatchFromOrigin(bool fromEnd) const;
 
     /// @brief Index of the match that is exactly the origin's selection, or -1
     int originMatchIndex() const;
@@ -305,6 +414,7 @@ private:
     QMetaObject::Connection m_documentEdits;  ///< Notices edits the matches did not follow
     QMetaObject::Connection m_documentChange; ///< Follows the edits with the matches
     QTextCursor m_origin;                     ///< Where the search goes on from (setOrigin())
+    std::optional<NoteRange> m_originNote;    ///< The note's text the origin stands for
     QTextCursor m_replacementEnd;             ///< Where the last replaced text ends
     QString m_searchText;                     ///< Current search text
     QString m_replaceText;                    ///< Current replacement text
@@ -312,6 +422,7 @@ private:
     QString m_needle;                         ///< Search text as matched (plain search)
     QRegularExpression m_regex;               ///< Search text as matched (regex search)
     bool m_searchReady = false;               ///< m_needle or m_regex can be searched for
+    bool m_formsSearch = false;               ///< m_regex finds the forms of the options
     std::vector<SearchMatch> m_matches;       ///< Cached matches
     int m_currentMatchIndex = -1;             ///< Current match index (-1 = none)
     bool m_matchesDirty = true;               ///< Matches need rebuild

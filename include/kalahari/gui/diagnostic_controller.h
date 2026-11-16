@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file diagnostic_controller.h
 /// @brief Controller for diagnostic and dev mode functionality
 ///

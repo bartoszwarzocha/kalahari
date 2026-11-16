@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file new_item_dialog.cpp
 /// @brief Implementation of NewItemDialog
 ///
@@ -422,7 +425,7 @@ void NewItemDialog::populateTemplates() {
 
     // Add templates to list: a book type the program does not have is not offered at all
     const kalahari::core::BookTypeRegistry& installed =
-        kalahari::core::ProjectManager::getInstance().installedBookTypes();
+        kalahari::core::ProjectManager::installedBookTypes();
     for (const auto& tmpl : templates) {
         if (!tmpl.typeId.isEmpty() && installed.package(tmpl.typeId) == nullptr) {
             continue;
@@ -605,7 +608,7 @@ bool NewItemDialog::showsSections(const QString& templateId) {
         return false;  // a user project
     }
     const kalahari::core::BookTypePackage* type =
-        kalahari::core::ProjectManager::getInstance().installedBookTypes().package(typeId);
+        kalahari::core::ProjectManager::installedBookTypes().package(typeId);
     return type != nullptr && type->partsLayer;
 }
 

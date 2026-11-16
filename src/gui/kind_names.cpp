@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kind_names.cpp
 /// @brief The names of kinds of elements in the program's sentences, in the program's language
 
@@ -67,6 +70,16 @@ QString newTextMenuText(const core::KindRef& kind) {
                            {{QStringLiteral("kind"), menuWords(wordsOf(kind))}});
 }
 
+QString textBreakMenuText(const core::KindRef& kind) {
+    if (!kind) {
+        return QCoreApplication::translate("CommandRegistrar", "Chapter Brea&k");
+    }
+    //: Book > Chapter Break named after the texts it splits, e.g. Story Break. In Polish:
+    //: Pod&ział {kind:genitive}
+    return core::fillWords(QCoreApplication::translate("KindNames", "{Kind} Brea&k"),
+                           {{QStringLiteral("kind"), menuWords(wordsOf(kind))}});
+}
+
 core::KindWords wordsOf(const core::BookTypeRegistry& registry,
                         const core::ProjectElement& element, const core::PackageCard* card) {
     if (const core::KindRef kind = core::BookProject::kindOf(registry, element)) {
@@ -88,9 +101,8 @@ core::KindWords wordsOf(const core::BookTypeRegistry& registry,
     return words;
 }
 
-core::KindWords wordsOf(const core::ProjectElement& element) {
-    const core::ProjectManager& pm = core::ProjectManager::getInstance();
-    return wordsOf(pm.bookTypes(), element, pm.packageCard(element.kind.packageId));
+core::KindWords wordsOf(const core::ProjectManager& book, const core::ProjectElement& element) {
+    return wordsOf(book.bookTypes(), element, book.packageCard(element.kind.packageId));
 }
 
 bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement& a,
@@ -103,8 +115,8 @@ bool sameKind(const core::BookTypeRegistry& registry, const core::ProjectElement
     return a.kind.kindId == b.kind.kindId;
 }
 
-core::KindWords mainWords() {
-    return wordsOf(core::ProjectManager::getInstance().mainTextKind());
+core::KindWords mainWords(const core::ProjectManager& book) {
+    return wordsOf(book.mainTextKind());
 }
 
 core::KindWords elementWords() {

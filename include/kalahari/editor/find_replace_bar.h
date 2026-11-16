@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file find_replace_bar.h
 /// @brief Inline find/replace bar widget (OpenSpec #00044 Task 9.6)
 ///
@@ -15,6 +18,9 @@
 #include <QList>
 #include <QWidget>
 #include <QString>
+#include <QStringList>
+
+#include <functional>
 
 class QAbstractButton;
 class QHBoxLayout;
@@ -55,6 +61,7 @@ struct SearchMatch;
 /// - Alt+C: Toggle case sensitive
 /// - Alt+W: Toggle whole word
 /// - Alt+R: Toggle regex
+/// - Alt+M: Toggle all forms ("Odm": every form of a name or a word; Replace All is off)
 ///
 /// The options' keys work in the bar and in the text under it (optionKeys()).
 class FindReplaceBar : public QWidget {
@@ -71,6 +78,12 @@ public:
     /// @brief Set the search engine to use
     /// @param engine Pointer to SearchEngine (not owned)
     void setSearchEngine(editor::SearchEngine* engine);
+
+    /// @brief The forms a text has for the option of all forms (formsToFind())
+    using FormsOf = std::function<QStringList(const QString& text)>;
+
+    /// @brief Find the forms of @p formsOf with the option of all forms; none: the text itself
+    void setFormsOf(FormsOf formsOf);
 
     /// @brief Show find-only mode (hide replace section)
     void showFind();
@@ -94,7 +107,8 @@ public:
     bool isReplaceMode() const;
 
     /// @brief The keys that turn the options on and off, in the bar and in the text under it:
-    ///        Alt+C (match case), Alt+W (whole words) and Alt+R (regular expression)
+    ///        Alt+C (match case), Alt+W (whole words), Alt+R (regular expression) and Alt+M
+    ///        (all forms)
     ///
     /// On macOS Option+Cmd with the letter: there Option with a letter types a character
     /// (Option+C is "ć" on the Polish keyboard). While the bar shows, they come before the
@@ -215,6 +229,7 @@ private:
     QToolButton* m_caseSensitiveBtn = nullptr;  ///< Case sensitive toggle (Aa)
     QToolButton* m_wholeWordBtn = nullptr;      ///< Whole word toggle (W)
     QToolButton* m_regexBtn = nullptr;          ///< Regex toggle (.*)
+    QToolButton* m_allFormsBtn = nullptr;       ///< All forms toggle (Odm)
 
     QToolButton* m_prevBtn = nullptr;         ///< Previous match button
     QToolButton* m_nextBtn = nullptr;         ///< Next match button
@@ -235,6 +250,7 @@ private:
     // =========================================================================
 
     editor::SearchEngine* m_searchEngine = nullptr;  ///< Search engine
+    FormsOf m_formsOf;                               ///< The forms of all forms
 
     // =========================================================================
     // Keyboard shortcuts

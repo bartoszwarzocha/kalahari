@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_standalone_file.cpp
 /// @brief Chapters and plain text files opened on their own, outside a book project
 

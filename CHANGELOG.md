@@ -11,6 +11,342 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
+  characters, locations and items, added from the Book menu, the Navigator ("Add Character...",
+  "Add Location...", "Add Item...") or Add Element, in the groups Characters, Locations and Items
+  of the Navigator, each with a dot of its color beside its name (Settings > Cards can turn the
+  dots off). Properties shows the short card: the portrait, the name, the field of the subtitle
+  (the role of a character), In Short, the fields of the kind shown there and Open Card. The full
+  card opens on a tab: the name with the kind and its role, the color, In Short, the fields of
+  the kind (a field naming another card suggests the cards of its kind), Own Fields and the
+  description in two columns, edited as any text of the book. The portrait is a picture among
+  the materials of the book or from a file (it becomes a material of the Workshop); a card
+  without one shows its initials in its color. A new card takes the next color of the palette
+  of Settings > Cards, which also has the dots of the Navigator; the gear of the cards opens it.
+  The library of characters and locations of the old model in project.db is gone: the cards of
+  the Workshop take its place.
+
+- **Book dictionary** - 2026-11-15. Each book has a dictionary of its own (`dictionary.json`
+  in its folder, saved at once with each change): the names of its characters, places, things
+  and other proper names with all their forms, the author's spelling rules, and words right in
+  this book only. Book > Book Dictionary... and "Book Dictionary" at the top of the Workshop
+  in the Navigator show it on a tab in the middle of the window, with three tabs and their
+  counts (Names, Spelling Rules, Book Words), a search that finds the names also in their
+  forms and other names ("annę" and "ania" find "Anna Wolska"; Find, Ctrl+F, goes to it), and
+  the keys Insert, Enter and Delete in the lists, Ctrl+Tab between the tabs. The window of a
+  name has the name and its other names (for a character of several words the first name and
+  the surname alone, which follow the name, and the diminutives and nicknames the author
+  adds), the kind (Character, Location, Item, Other name), the model of declension of each
+  word, picked by its ending and confirmed by the spelling dictionary (common nouns whose stem
+  changes have their forms from the program: Czarny Las, w Czarnym Lesie; Stary Dwór, Starego
+  Dworu), and the table of the forms by case, which the author corrects (a corrected cell
+  keeps its forms when a model changes; "Suggest the Forms Again"), "Does not change", the
+  plural and Show in Quick Insert; in Polish seven cases, in English the singular and the
+  plural, in another language the forms the author writes. The window of a spelling rule has
+  the right spelling, the wrong ones (those that suggest themselves are added: the other case
+  of a capital letter, without the hyphen, with it or apart, a word made of two apart),
+  whether its forms count too (shown from the spelling dictionary, or from the word it ends
+  with: "półelf" like "elf") and a note. In the chapters the names are right in all their
+  forms and the words of the book are right; a departure from a rule has a wavy line of its
+  own color ("Book rule", its color in Settings > Editor > Spelling) with the rule's spelling
+  and note in the context menu, Edit Rule... and Remove Rule (Settings > Editor > Spelling >
+  Book Dictionary: "Mark departures from the rules"). The context menu of a misspelled word
+  adds it to the book dictionary, to Your Words of every book, or as a name (Add Name..., the
+  window of a name with the word and its forms); so do the cards of the Spelling and Grammar
+  panel, whose button adds to the place Settings names ("The panel adds a word to"), the other
+  on the menu of its arrow. Quick Insert after @ offers the names with their forms (Right
+  shows them), and Find in Book and the find bar of a chapter find a name in all its forms, an
+  ordinary word in those of the spelling dictionary (the option "All Forms", Alt+M). Move to
+  Your Words moves words of the book to the words of every book; Remove asks first. In a book
+  open read-only the dictionary is shown, not changed. The cards of the Workshop will keep
+  their names here (`DictionaryName::card`).
+
+- **The preview of PDF files in the program** - 2026-11-15. A PDF opens in a card of its own
+  (Settings > Materials > Opening: in the program, at first, or in the system program): the
+  pages one under another (at first), one at a time or two side by side; the zoom of
+  View > Zoom (page width at first, the whole page, 100% or as last time); the page number
+  with the file's own labels, Ctrl+G, PgUp, PgDn, Home and End; in the dark theme the pages
+  as in the file (at first), dimmed or with inverted colors. The side panel has the
+  bookmarks of the source, the contents of the file, thumbnails and the hits of Find in the
+  File with their words (Ctrl+F, Enter, Shift+Enter, Esc); F6 and Shift+F6 go between the
+  bar, the side panel and the pages. Text selected with the mouse, or all the text of the
+  page (Select All), copies with Ctrl+C or with the reference to the source and the page;
+  the menu of the selection (the menu key, Shift+F10) also has Create Quote..., which opens
+  New Quote: the words, the source, the page and the link with the chapter open last, with
+  another element or with none; Create and Insert into Chapter also inserts the words with
+  their reference. Bookmark Here adds a bookmark of the page. The preview opens at the page
+  shown last (an option). The card of a PDF shows its first page, Fill In from File takes
+  the title, the author, the year and the pages from the file, a bookmark shows its page in
+  the preview, and the card of a quote has Show Page. The colors around the pages, of the
+  selection and of the hits are the editor's (Settings > Editor > Colors). The opening of
+  pictures and pages on the web moved from Settings > Navigator to Settings > Materials.
+  The pages are drawn by PDFium, the PDF library of Chromium (BSD 3-Clause and Apache 2.0),
+  as a ready shared library of pdfium-binaries built from its official sources without
+  JavaScript and XFA: the port `vcpkg-ports/pdfium` installs it with vcpkg, a build without
+  vcpkg downloads the same archive, both checked by the SHA-512 pinned in
+  `vcpkg-ports/pdfium/release.cmake`, and the CI checks the signed record of each build
+  (`scripts/verify_pdfium.cmake`). So every build has the preview, on Windows, macOS and
+  Linux (x64 and arm64); `-DKALAHARI_PDF_PREVIEW=OFF` builds the program without it, and
+  then a PDF opens in the system program and the options of the preview are dimmed.
+
+- **Sources: the bibliographic description of a material, the bibliography and the quotes
+  with their source** - 2026-11-15. A publication, a document, a web page and a recording
+  can be a source: their card has the group Bibliographic Description (the kind of source –
+  book, chapter in a book, article in a journal, web page, archival document, talk or
+  interview, film or recording, thesis, other – changes the fields; the people with their
+  roles in a table, Insert and Delete; Paste Description takes a record in BibTeX or RIS
+  copied from a library catalog or a bibliography manager), As the Bibliography Shows It
+  (the entry in the style of the book, another style to compare, In the bibliography: when
+  linked with the text, always or never, Copy Entry as text and with italics, the gear opens
+  Settings > Materials), Bookmarks of a PDF (a page and a note each, saved at once) and
+  Quotes from This Source (Insert makes a new quote with the source and the page shown last,
+  Enter opens one). The short card in the Properties panel shows the entry. The card of a
+  quote has the group Where It Comes From: a source (the materials with a description) or
+  none with the author and the work, the page and the reference in the text, as
+  "(Wiśniewska 2011, p. 45)"; Open Source opens the card of the source. Sources, first in
+  Materials of the Navigator (in italics, with its number), opens the list of all the
+  materials with a description: material, kind of source, author, title, year, in the
+  bibliography, in the text; Copy Entries copies the entries of the sources shown, in the
+  style of the book. The list of the quotes has the column Source. The styles: PN-ISO 690
+  (at first), APA, Chicago, MLA and Harvard; the reference: author and year (at first),
+  author and title, or number (Settings > Materials > Sources). A book may have its own style
+  (Properties of the book > Bibliography). The kind Source of non-fiction is retired: books
+  that have one keep it. In the book file: `source`, `bookmarks`, `lastPage` and `quote` of
+  a material, `bibliographyStyle` of a book; fields the program does not know are kept.
+
+- **Fields** - 2026-11-13. Insert > Field... inserts a value that changes by itself: the title
+  of the book, its author, the title of the text (named after its kind: "Chapter Title"), the
+  page number, the page count, the word count of the text and the date, each in its formats
+  (in capitals; 1, i, I; 12 345 or 12345; the date long, short, with the day of the week, ISO,
+  the time, the date with the time), with how it shows where it goes. A field shows on a gray
+  background, which Settings > Editor > General can turn off (the gear of the window opens
+  it); it follows the book's properties and the title of the text, the word count follows the
+  text when the typing pauses, the page fields show the page in the Page Layout view and `#`
+  in the continuous views (its tooltip says so), the date is that of when the text was opened.
+  Edit Field... of its context menu, or a double click, changes it, Convert to Text puts the
+  text it shows in its place, each one undo step; copied, it goes to other programs as its
+  text. Insert > Date & Time... inserts today's date or time in the book's language, as text
+  or, with Update Automatically, as a field; Alt+Shift+D and Alt+Shift+T insert the date (in
+  the format chosen last) and the time at once, as text (Settings > Keyboard Shortcuts lists
+  them under Insert). A plain text file keeps no fields, only the date as text. KML: `<field>`
+  (docs/kml_format.md). The window has the fields in four tabs (Book, Text, Pages, Date; Ctrl+Tab
+  or Alt with the tab's letter goes between them), with the format, how the field shows and its
+  hint under the list of the tab, so it fits a small screen without scrolling.
+- **Several books open at once, each in its own window** - 2026-11-13. Window > New Window
+  opens another book window, with the Dashboard; the Window menu lists every window of the
+  program and Ctrl+F6 goes through all of them. A book opened (File > Open, Recent Books, the
+  Dashboard, Import Archive) while another is open in the window asks "Opening a Book": In a
+  New Window, In This Window (the open book closes, after the question about its changes) or
+  Cancel; "Remember my choice" keeps the answer, and Settings > General > Windows (the gear of
+  the question) changes it ("Book opened while another is open"). The same book never opens
+  twice: its window comes to the front and says so in its info bar. File > Exit closes every
+  window with one question about all unsaved books. At the next start all the books open at
+  closing open again, each in its own window (Settings > General > Startup > When several
+  books were open at closing: All or Only the last one). The windows share the settings
+  (applied in all of them at once), one LanguageTool server, the words of the user
+  dictionary and the keys given to characters.
+- **Export of the book to Word (DOCX) and Markdown** - 2026-11-13. File > Export > DOCX... and
+  Markdown... open one window, "Export Book", with four tabs that fit a screen of 1366x768 at
+  150% without scrolling (File, Texts, Layout, Annotations and Images; the progress and the
+  result under them): the format in a list (it can be changed there; the formats of the
+  exporters of plugins, `IExporter::getFormats()`, join the list, a format with options of its
+  own on a tab of its own, `IExporter::createOptionsPage()`), the folder
+  (remembered; at first Export in the folder of the books) and the name, then what goes to the
+  file – the whole book, the texts chosen in a list of the book's sections, parts and texts
+  with their statuses (Check All, Uncheck All, Only Final), or the text in front, also a file
+  outside the book – in the order of the Navigator, with the unsaved changes. A Word document
+  has the book's structure: the titles of the Navigator as headings (Part Title and Chapter
+  Title where the book type has them, else Heading 1; a text that starts with a heading keeps
+  its own, the title page, copyright page, dedication and motto get none), Word's own Heading
+  1–3 for the navigation pane and the table of contents, the book's other paragraph styles as
+  Word styles of the same names, Word's footnotes and endnotes, lists, tables, comments (an
+  option) and table of contents, the images as the editor shows them, each text from a new
+  page (a right one with mirror margins) and page numbers, on the page of Settings > Editor >
+  Pages and Margins (the gear of the window), in the editor's font or another. A Markdown file
+  is GitHub Flavored, with its images copied to a folder "<name> – images" next to it (an
+  option). The result shows Open File and Show in Folder; the window keeps its choices.
+- **Chapter Break** - 2026-11-13. Book > Chapter Break (named after the texts of the book:
+  "Story Break" in a collection of stories) moves the text from the cursor, or from the start
+  of the selection, to a new text right after the one it was in, in the same part, of the
+  same kind and status. The new text is named after a heading at its start (empty paragraphs before it skipped), else as
+  a new text of its kind ("Chapter 4"); it keeps the formatting, the footnotes and endnotes and
+  the annotations of the text moved. The changes of the text are saved first, the two texts at
+  once after the break, and the new text opens with the cursor at its start. The notice under
+  it says where the text went, with Undo: the new text goes from the book with its file and
+  the text is whole again, until either of them changes or closes. The words moved, and moved
+  back by Undo, are neither written nor deleted in the writing statistics and goals. The
+  command is greyed out, with the reason in its tooltip, without text before or after the
+  cursor, with the cursor in a table or outside the texts of the book (the Workshop too), in a
+  book or a text that cannot change, and for a kind the book cannot have one more of (a
+  prologue).
+- **Find in Book** - 2026-11-13. Edit > Find in Book... (Ctrl+Shift+F) shows the Search panel
+  (F5), until now empty, with what is selected in the text, else what its find bar searches
+  for, with the find bar's options (Match Case, Whole Word, Regular Expression, with the same
+  keys). The panel searches all the texts of the book in the order of the Navigator, with the
+  texts of their footnotes and endnotes: the open ones as their editors have them, unsaved
+  changes too, the others without opening them, read again only when they change. It searches
+  a moment after the typing stops (at once on Enter or a change of an option), a few texts at
+  a time, so that the program never stops answering. The matches are in a tree, each text with
+  its count and under it its matches with the text around them, the match bold on the color
+  of the search's hits ("footnote 2:" before a match in a note); the line above says "12
+  matches in 4 texts", and the tree lists at most 5000. A click shows a match in its text,
+  opened if it is not, with the keys staying in the panel; Enter or a double click gives the
+  keys to the text; Up and Down show the matches of the open texts. The matches of an open
+  text follow its changes a moment later. Replace All in Book asks first, in the program's own
+  window, with the numbers of matches and texts: the open texts change in their editors, each
+  as one step to undo, the others in their files (one with changes not saved yet only in the
+  program), the formatting of the matches staying; each text is kept as a version first, as
+  before Replace All of the find bar, if the settings say so. The notice under the text says
+  how many matches changed, with Undo for the whole change until a text changes. Keys: Tab
+  through the field, the options, the replacement, Replace All in Book and the tree; Down from
+  the field to the first match; Esc back to the text. The panel's gear opens Settings >
+  Editor > Colors, with the color of the hits. In a narrow panel the text of Replace All in
+  Book goes on in a second line, so the panel stays narrow on a small screen.
+- **Footnotes and endnotes: the book's numbering, the words, the search and the checking** -
+  2026-11-13. Insert > Footnote Layout... (its gear opens Settings > Editor > General) sets a
+  book's numbering of each kind of note: 1, a, A, i, I or *, †, ‡, §, anew in each text or
+  through the whole book in the order of the Navigator, and the endnotes at the end of each
+  text or of the book (the editor shows them after the book's last text, where a click on one
+  of another text opens that text at its number). The project file keeps it as `footnotes`;
+  a text outside a book is numbered 1, 2, 3 and i, ii, iii. The words of the notes count with
+  the text's, in the status bar, the statistics and the versions (Settings > Editor > General
+  > Count the words of footnotes and endnotes, on by default). Find and Replace go through the texts of
+  the notes: a match is shown selected in the note's text with its number selected in the
+  text, Find Next goes on from it, and Replace and Replace All change the note's text in its
+  formatting, as one step to undo. The spelling and the grammar check the texts of the notes,
+  a paragraph at a time: their waves are drawn in the notes, the context menu of a word of a
+  note's text offers what to put in its place, Next Spelling or Grammar Issue goes through
+  them, and the Spelling and Grammar panel lists them at their notes ("paragraph 3,
+  footnote 2").
+- **Footnotes and endnotes** - 2026-11-12. Insert > Footnote (Alt+Shift+F) and Endnote
+  (Alt+Shift+E; Ctrl+Alt+Shift on macOS) put a note's number at the cursor, raised, and open a
+  frame at the place of the note's text, in the colors of the paper. The text can have bold,
+  italic and underline (Ctrl+B, I, U), links (Ctrl+K) – with the keys those commands have – and
+  paragraphs (Enter; Shift+Enter a line break); pasted text keeps only these. Ctrl+Enter keeps the text, in one step of Undo with
+  the number; Esc or the frame's X takes a new note away again, or drops the changes of one
+  edited again; going anywhere else keeps the text. The footnotes are at the bottom of the
+  page of their number in the page view, under a short line: a line whose note does not start
+  on its page goes to the next page, and a long note goes on at the bottom of the next one
+  under a line across the text. In the continuous views a footnote is under its paragraph,
+  before the annotation cards, and the endnotes are after the last paragraph. They are
+  numbered 1, 2, 3 and i, ii, iii in each text. A click on a note's text, a double click on
+  its number or Edit Footnote in the number's context menu open its frame; the menu also
+  converts a footnote to an endnote and back and deletes the note, and the number's tooltip
+  shows its text. Copied, a note goes with its number: other programs get the number and the
+  note after the text, as LibreOffice writes it in HTML, and the notes after the text in plain
+  text. The notes of Word and LibreOffice are pasted as notes; a number without its note's
+  text and a note's text without its number stay text. The colors of the line above
+  the notes and of the note's frame are set per paper in Settings > Editor > Colors. A plain
+  text file keeps no notes. KML keeps them as `<footnote id>` and `<endnote id>` with their
+  text inside (docs/kml_format.md); the old `<footnote>` with a `number` is read as its text.
+- **Images: numbered captions, cross-references and the list of figures** - 2026-11-12.
+  Insert > Caption... (Ctrl+Shift+G, also with the cursor just after the image), Image >
+  Insert Caption... and the context menu of an image give the image a caption: a paragraph in
+  the style Caption below or above it, "Figure 3. The bridge in 1931", whose label is text and
+  whose number is a field on a gray background that the program keeps current. Each label
+  (Figure, Photo, Illustration, Map, Diagram, or one of the writer's own) has its own
+  numbering, set per book in Insert Caption > Numbering...: 1, a, A, i or I, through the whole
+  book or anew in each chapter, with the chapter's number first if wanted ("2.3", with a
+  period, an en dash or a colon). A chapter is a text of the main kind in the main part, so
+  the title page and the back matter are not counted as chapters. A caption can also be its text
+  alone, without a label and number. Image Properties has a seventh page, Caption, with the
+  same choices, and a gear button for the image settings. Insert > Cross-Reference... puts
+  the number of a caption into the text: the number alone, the label and number, the whole
+  caption, or "above" or "below", as a link that Ctrl+click follows to the image if wanted;
+  it changes together with the caption, and one to a caption that is gone shows "?" on a
+  background of its own. Insert > List of Figures adds a heading and a block with the
+  captions of the whole book, kept current, without page numbers; Ctrl+click on a line goes
+  to its image. Removing an image removes its caption in the same step of Undo, after asking
+  in the program's own window when cross-references name it. A copied caption is a caption of
+  its own, and its cross-references stay with the original. The colors of the fields are set per paper in Settings > Editor > Colors. KML
+  keeps them as `<caption-number>`, `<cross-reference>`, `<list-of-figures/>` and
+  `caption="above"` (docs/kml_format.md).
+- **Images: the same filter for all images of the book** - 2026-11-12. Image > Filter > Same
+  Filter for All Images... gives every image of the book the filter of the selected one (with
+  its threshold for Black and White), after asking how many images it changes; brightness,
+  contrast and transparency of each image stay as they were. Each open text changes in one
+  step of its Undo, and the texts that are not open change in their files (saved at once,
+  unless they have changes not saved yet). The notice afterwards has Undo for the whole
+  change, as long as the texts have not changed since.
+- **Settings > Editor > Images** - 2026-11-12. A new page for new images: their alignment,
+  their width (as the original, at most the text's, or a share of the text) and a numbered
+  caption of a chosen label under each; the captions of new books: their labels (Add...,
+  Rename..., Remove), the number format, the chapter's number and what a new cross-reference
+  shows; and the copies of the files: copies of large images made smaller above a number of
+  dots per inch (300 by default) at their size in the text, in the file's format. The layout
+  of a new image and the manuscript for a publisher are greyed out until they work. The
+  windows Insert Caption and Image Properties open this page with their gear button.
+
+- **Images: the Image menu and Image Properties** - 2026-11-11. A new Image menu between Table
+  and Tools, and the same commands in the context menu of an image, work on the selected image:
+  Image Properties... (Alt+Enter; Cmd+Option+I on macOS, where Option+Return is a new
+  paragraph), Add Caption, Alternative Text..., Rotate (right and left by 90°, Flip
+  Horizontally and Vertically, More Rotation Options...), Filter (Original, Grayscale, Sepia,
+  Black and White, Washout, Colors and Brightness...), Crop, Original Size, Change Image... and
+  Save as Image...; a change is one step of Undo, and the file stays as it is. A command that
+  does nothing is greyed out and says why. Image Properties... (also a double click on the
+  image) has six pages in a list on the left, each with its access key, and the window is as
+  large on all of them: Image (the file, its pixels, Change Image... with the size and crop
+  kept if wanted, Save as Image...), Size and Rotation (the width in percent of the text, of
+  the original or as a length, the height in proportion or its own, Original Size, the angle
+  and the mirrors), Crop (each side in percent as the image is shown, an aspect ratio, the
+  image's size or its scale kept, Crop in the Text, Remove Crop), Border (the line, its width
+  and color, the room around the picture, a shadow), Colors (the filters as tiles, brightness,
+  contrast, threshold and transparency) and Description (a name, the alternative text, a long
+  description, decorative). Its previews show the image as it will be. Crop puts marks at the
+  sides and corners of the image in the text: dragged, they cut its sides off, the cut parts
+  faint around it; Enter or a click outside the image crops it, Esc leaves it as it was.
+  Ctrl+] and Ctrl+[ make the selected image larger and smaller by 5% of its width (a label
+  shows its new width), and Esc goes back to the text, the cursor after the image. The color
+  of the crop marks is set per paper in Settings > Editor > Colors.
+- **Images in the text** - 2026-11-11. Insert > Image... puts a picture (PNG, JPEG, GIF, BMP
+  or SVG) at the cursor as a part of its line: the paragraph's alignment places it, and Undo,
+  the clipboard and drag and drop take it with the text. The file is copied into the folder
+  `images` of the book's main folder (next to a file outside a book), and the original stays as
+  it was; a taken name gets a number, and the same picture added again uses its file. A file
+  that was never saved has no folder, so the command is greyed out there, saying why; saved in
+  another folder, a file takes its images along. An image is as wide as its file, a share of
+  the text or a width in centimeters, never wider than its line and never higher than a page;
+  a missing file is a frame with its name. A click selects an image and its corners resize it
+  in proportion, one step of Undo. The context menu of an image has Add Caption (a paragraph
+  in the style Caption under it), Change Image..., Original Size and Save as Image.... A
+  picture pasted without text (a screenshot) and the files of pictures pasted or dropped from
+  a folder become images of the book; an image copied into another book takes its file along.
+  Other programs get the image's file in the HTML of the clipboard and, for an image copied
+  alone, the picture itself. KML keeps an image as `<img src alt width>` (docs/kml_format.md).
+- **Tables: the Table menu and Table Properties** - 2026-11-09. A new Table menu, and the same
+  commands in the context menu of a cell: Insert Table..., Insert (rows above and below,
+  columns to the left and right), Delete (rows, columns, the table), Select (the cell, row,
+  column, table), Merge Cells, Split Cells..., Distribute Rows Evenly and Distribute Columns
+  Evenly, Repeat Header Rows, Sort..., Convert (Text to Table... and Table to Text...) and Table
+  Properties...; each is one step of Undo. Split Cells... divides a cell (or the selected cells,
+  merged first) into columns and rows, its paragraphs one to each new cell if wanted. Sort...
+  orders the rows of a table by one or two columns as text in the order of the book's
+  language, as numbers or as dates, ascending or descending (the header rows stay at the top),
+  and outside a table the selected paragraphs and list items. Text to Table... divides the
+  selected paragraphs into cells at a tab, a semicolon, a comma or another character (the one
+  most of them have is chosen), or makes each paragraph a cell; Table to Text... does the
+  opposite. Table Properties... has five tabs: Table (a width of the text or a fixed one, at the
+  left with an indent, in the center or at the right), Row (a least height, the header rows
+  repeated at the top of each page, a row allowed to split across pages; Previous and Next go
+  through the rows), Column (its width, Distribute Columns Evenly), Cell (the vertical
+  alignment and the background of the selected cells) and Borders (None, Box, Grid or Custom
+  lines, their style, width and color, a picture whose lines a click takes away or draws); its
+  gear opens Settings > Editor > Colors, where the automatic color of the lines is set.
+  Dragging the edge between two columns changes their widths. Alt+Shift+Up and Alt+Shift+Down
+  move the rows of a table, and outside a table the paragraphs. A selection from cell to cell
+  selects the rectangle of whole cells (Shift with the arrows too): Delete clears them, typing
+  goes into the first, and Copy gives a table of those cells. In the page view the header rows
+  are repeated at the top of each page, and a row higher than a page is split between pages.
+  KML has the new attributes `width`, `align`, `indent`, `borders`, `border-style`,
+  `border-width` and `border-color` of `<table>`, `height` and `split` of `<tr>`, and `valign`
+  and `background` of `<td>` and `<th>` (docs/kml_format.md). A long table no longer slows
+  typing: a change lays out again only its rows (with the rows its cells span and the header
+  rows), and the view draws only the rows it shows. The colors of the table borders, of the
+  header rows and of the gridlines of a table without borders are set per paper in Settings >
+  Editor > Colors; on dark paper a cell's own background is shown darker, so its text stays
+  readable.
+
 - **Tables** - 2026-10-27. Insert > Table... puts a table at the cursor: a window with its
   columns (up to 20) and rows (up to 100), whether its first row is a header row, and a picture
   of its grid. A table is as wide as the text; its cells side by side in both views, drawn with
@@ -761,6 +1097,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Settings: shorter pages, titled groups and a note under each option** - 2026-11-16. The
+  long pages are split: Editor has General, Writing (the word count and the fields) and Margin
+  Numbering; Annotations has General and Annotation Cards; Navigator has Adding, Material
+  Lists, Material Kinds and Cover. Each page has groups with headings and a short note in plain
+  words under an option; the options seldom changed are under Advanced Settings, shown with a
+  button. A choice of several items is a list with the note of the chosen item under it, in
+  place of the columns of radio buttons, on every page, also on those of Statistics and Goals,
+  Cards, Materials, Images, Auto-correct and Quick Insert. A test makes sure that no page has
+  radio buttons and that every page fits the narrowest window, in English and in Polish.
+
+- **Each book window has its own book and its own commands** - 2026-11-13. Inside the
+  program, with nothing changed on the screen: the window owns the book open in it
+  (`core::ProjectManager`, no longer one for the whole program) and its commands with their
+  actions (`gui::CommandRegistry`), and gives them to its coordinators, panels and dialogs.
+  The book types installed with the program and the user's keys of the commands are the same
+  for every window. This prepares several books open at once, each in its own window.
+
+- **Images: a new image in a paragraph of its own, with a caption** - 2026-11-12. Insert >
+  Image... and a file dropped or pasted from a folder put the image in a paragraph of its own,
+  centered and with a numbered caption Figure under it, as Settings > Editor > Images says by
+  default; at the start of a paragraph it goes before it, else after it (after the caption of
+  an image there). Add Caption of the Image menu and the context menu is now Insert
+  Caption..., which also changes the caption an image has. In the English Insert menu the
+  access keys are Caption (C), Cross-Reference (R), List of Figures (G), Formatting Character
+  (H), Horizontal Line (Z) and Scene Break (K).
 - **About, New File, New Book, Customize Toolbars and the Icon Downloader in the program's
   own style** - 2026-10-19. These windows have the heading, colors and buttons of the
   program's other dialogs: the window's icon, its title and a sentence about what it does,
@@ -1181,6 +1542,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A paragraph at the top of a page drawn at the bottom of the page before** - 2026-11-13. In
+  the Page Layout view a paragraph whose first line went on to the next page could be drawn
+  in the margin of the page before, and its page fields showed that page, after its list
+  number, a caption number or a page count in it changed: the paragraph is placed on the pages
+  again.
+- **"Above" and "below" of the cross-references in Polish** - 2026-11-13. A cross-reference
+  that shows where its caption is says "powyżej" and "poniżej" in the Polish program, not
+  "above" and "below": the translations now also read the texts of the captions in the
+  program's core.
 - **The words of headings and lists in a closed chapter** - 2026-10-26. The words of a chapter
   not open in the editor (the book, its sections and parts in the Properties panel, the
   preview of a file) count the text of its headings and list items too, as the editor counts

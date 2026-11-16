@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file shortcut_rules.cpp
 /// @brief Implementation of ShortcutRules
 
@@ -9,6 +12,7 @@
 #include <QStringList>
 
 #include <algorithm>
+#include <array>
 #include <initializer_list>
 #include <utility>
 
@@ -291,6 +295,8 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     row(keysFor(tr("Cut to the end of the paragraph / paste what was cut"),
                 {A::KillToParagraphEnd, A::Yank}));
     row(keysFor(tr("Swap the characters around the cursor"), {A::Transpose}));
+    row(keysFor(tr("Move the rows of a table, or the paragraphs, up / down"),
+                {A::MoveUp, A::MoveDown}));
     row(keysFor(tr("New paragraph"), {A::NewParagraph}));
     row(keysFor(tr("New line in the paragraph"), {A::NewLine}));
     row(keysFor(tr("New paragraph after the cursor"), {A::OpenLine}));
@@ -325,7 +331,7 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
 
     // Esc closes what is open, wherever it is
     const QString escapeReason =
-        tr("%1 closes the windows, the find bar and the annotation frame.");
+        tr("%1 closes the windows, the find bar and the frames of the annotations and notes.");
 
     // The find bar (FindReplaceBar): on macOS Option with a letter types a character, so the
     // options there are Option+Cmd with the letter
@@ -347,9 +353,14 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     find.rows.push_back({tr("Replace (in the replace field)"), enterKeys(NONE), NONE, {},
                          tr("In the replace field %1 replaces the match."), {}});
     const QString turnsOn = tr("In the find bar %1 turns on “%2”.");
-    const std::pair<QString, Qt::Key> options[] = {{tr("Match case"), Qt::Key_C},
-                                                   {tr("Whole words"), Qt::Key_W},
-                                                   {tr("Regular expression"), Qt::Key_R}};
+    // In the order of FindReplaceBar::optionKeys()
+    const std::array<std::pair<QString, Qt::Key>, 4> options{
+        {{tr("Match case"), Qt::Key_C},
+         {tr("Whole words"), Qt::Key_W},
+         {tr("Regular expression"), Qt::Key_R},
+         //: The option of the find bar that finds a word in all its forms. In Polish:
+         //: Wszystkie odmiany
+         {tr("All forms"), Qt::Key_M}}};
     for (const auto& [label, key] : options) {
         const QKeyCombination optionKeys = keyWith(toggle, key);
         find.rows.push_back(
@@ -359,13 +370,15 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
         {tr("Close the bar"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, escapeReason, {}});
     groups.push_back(std::move(find));
 
-    // The frame an annotation is written in (AnnotationFrame)
+    // The frames an annotation and a note are written in (AnnotationFrame, NoteFrame)
     FixedKeyGroup frame;
-    frame.title = tr("Fixed: the annotation frame");
+    //: In Polish: Stałe: ramki uwag i przypisów
+    frame.title = tr("Fixed: the annotation and note frames");
     // Insert > Page Break has Ctrl+Enter in the text, as in Word and LibreOffice: the frame
     // keeps it for its own text
     frame.rows.push_back({tr("Keep the text"), enterKeys(CTRL), NONE, {},
-                          tr("In the annotation frame %1 keeps the text."), "insert.pageBreak"});
+                          tr("In the annotation and note frames %1 keeps the text."),
+                          "insert.pageBreak"});
     frame.rows.push_back(
         {tr("Discard"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, escapeReason, {}});
     groups.push_back(std::move(frame));
@@ -407,6 +420,26 @@ std::vector<FixedKeyGroup> ShortcutRules::textGroups() const {
     quickInsert.rows.push_back(
         {tr("Close the list"), {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
     groups.push_back(std::move(quickInsert));
+
+    // The selected image of the text (editor/book_editor.h) takes its keys only while it is
+    // selected, and while it is cropped in the text: a command may have them too
+    FixedKeyGroup image;
+    //: In Polish: Stałe: obraz w tekście
+    image.title = tr("Fixed: an image in the text");
+    image.local = true;
+    //: In Polish: Większy / mniejszy (zaznaczony obraz)
+    image.rows.push_back({tr("Larger / smaller (the selected image)"),
+                          {keyWith(CTRL, Qt::Key_BracketRight), keyWith(CTRL, Qt::Key_BracketLeft)},
+                          NONE, {}, {}, {}});
+    //: In Polish: Powrót do tekstu (zaznaczony obraz)
+    image.rows.push_back({tr("Back to the text (the selected image)"),
+                          {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
+    //: In Polish: Przytnij (przycinanie w tekście)
+    image.rows.push_back({tr("Crop (cropping in the text)"), enterKeys(NONE), NONE, {}, {}, {}});
+    //: In Polish: Zostaw bez zmian (przycinanie w tekście)
+    image.rows.push_back({tr("Leave as it was (cropping in the text)"),
+                          {keyWith(NONE, Qt::Key_Escape)}, NONE, {}, {}, {}});
+    groups.push_back(std::move(image));
 
     // The lists of the Repetitions panel (panels/repetitions_panel.h) take their keys only
     // while they have the keys
@@ -737,6 +770,12 @@ QString ShortcutRules::textKeyReason(QKeyCombination keys, TextKeyAction action,
         break;
     case TextKeyAction::Yank:
         does = tr("pastes the text cut last");
+        break;
+    case TextKeyAction::MoveUp:
+        does = tr("moves the rows of a table, or the selected paragraphs, one place up");
+        break;
+    case TextKeyAction::MoveDown:
+        does = tr("moves the rows of a table, or the selected paragraphs, one place down");
         break;
     case TextKeyAction::Undo:
         does = tr("undoes (the second shortcut of Undo)");

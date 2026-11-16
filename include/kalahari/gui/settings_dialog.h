@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file settings_dialog.h
 /// @brief Settings dialog for Kalahari application
 ///
@@ -21,6 +24,14 @@
 class QStackedWidget;
 class QTreeWidget;
 class QTreeWidgetItem;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
+
+namespace kalahari::gui {
+class CommandRegistry;
+}  // namespace kalahari::gui
 
 namespace kalahari {
 namespace editor {
@@ -48,9 +59,16 @@ public:
     /// @brief The pages the dialog can be opened at (openPage())
     static constexpr const char* GENERAL_PAGE = "general";           ///< General
     static constexpr const char* EDITOR_COLORS_PAGE = "editor.colors";  ///< Editor > Colors
+    /// Editor > Writing, scrolled to its group Word Count, the cursor in its counting of the
+    /// notes' words (the gear of Insert > Footnote Layout...)
+    static constexpr const char* WORD_COUNT_PAGE = "editor.general.wordCount";
+    /// Editor > Writing, the cursor in the gray background of the fields (the gear of Insert >
+    /// Field...)
+    static constexpr const char* FIELDS_PAGE = "editor.general.fields";
     static constexpr const char* PAGES_PAGE = "editor.pages";        ///< Editor > Pages and Margins
     /// Editor > Margin Numbering, the cursor in the choice of the numbering
     static constexpr const char* MARGIN_NUMBERING_PAGE = "editor.pages.marginNumbering";
+    static constexpr const char* IMAGES_PAGE = "editor.images";      ///< Editor > Images
     static constexpr const char* SPELLING_PAGE = "editor.spelling";  ///< Editor > Spelling
     static constexpr const char* REPETITIONS_PAGE = "editor.repetitions";  ///< Editor > Repetitions
     static constexpr const char* VERSIONS_PAGE = "editor.versions";  ///< Editor > Versions
@@ -60,15 +78,24 @@ public:
     static constexpr const char* NAVIGATOR_PAGE = "navigator";
     /// Navigator > Adding (the menus of the nodes and the Add Element window)
     static constexpr const char* NAVIGATOR_ADDING_PAGE = "navigator.adding";
+    static constexpr const char* CARDS_PAGE = "cards";               ///< Cards
+    static constexpr const char* MATERIALS_PAGE = "materials";       ///< Materials
+    static constexpr const char* STATS_BAR_PAGE = "stats.bar";       ///< Statistics > Bar and Panel
+    static constexpr const char* STATS_COUNTING_PAGE = "stats.counting";  ///< Statistics > Counting
+    static constexpr const char* STATS_NOTIFICATIONS_PAGE = "stats.notifications";  ///< > Notifications
+    static constexpr const char* STATS_COLORS_PAGE = "stats.colors";  ///< Statistics > Colors
 
     /// @brief Constructor
+    /// @param book The book of its window
+    /// @param commands The commands of its window
     /// @param parent Parent widget (usually MainWindow)
     /// @param diagnosticMode Whether the diagnostic menu is shown now (not a stored setting)
     /// @param spelling The dictionary of the editors, whose own words the Spelling page
     ///        edits (none: the page does not list them)
     /// @param grammar The grammar of the editors, which the Grammar page prepares and whose
     ///        server it checks (none: the page does not)
-    explicit SettingsDialog(QWidget* parent, bool diagnosticMode = false,
+    explicit SettingsDialog(const core::ProjectManager& book, CommandRegistry& commands,
+                            QWidget* parent, bool diagnosticMode = false,
                             editor::SpellCheckService* spelling = nullptr,
                             GrammarCoordinator* grammar = nullptr);
 
@@ -89,13 +116,20 @@ public:
     void showShortcutsPage();
 
     /// @brief Open a page: EDITOR_COLORS_PAGE (the gears of Insert > Link and of the find bar),
-    /// PAGES_PAGE, MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
-    /// SPELLING_PAGE (the gear of the Spelling and Grammar panel), REPETITIONS_PAGE (the gear of
-    /// the Repetitions panel), VERSIONS_PAGE (the gear of the versions), ANNOTATIONS_PAGE (the
-    /// gear of the Annotations panel), NAVIGATOR_PAGE (the gear of a list of materials),
-    /// NAVIGATOR_ADDING_PAGE or SHORTCUTS_PAGE (as showShortcutsPage())
+    /// IMAGES_PAGE (the gears of the windows of images and captions), PAGES_PAGE,
+    /// MARGIN_NUMBERING_PAGE (View > Margin Numbering > Numbering Settings...),
+    /// FIELDS_PAGE (the gear of Insert > Field...), SPELLING_PAGE (the gear of the Spelling and
+    /// Grammar panel), VERSIONS_PAGE (the gear of the versions), REPETITIONS_PAGE (the gear of
+    /// the Repetitions panel), ANNOTATIONS_PAGE (the gear of the Annotations panel),
+    /// NAVIGATOR_PAGE (the gear of a list of materials), NAVIGATOR_ADDING_PAGE, MATERIALS_PAGE
+    /// (the gear of the entry of a source), CARDS_PAGE (the gear of a card of a character, a
+    /// location or an item) or SHORTCUTS_PAGE (as showShortcutsPage())
     /// @return Whether the dialog has the page
     bool openPage(const QString& page);
+
+    /// @brief Whether the dialog was closed with Open Book Dictionary (Editor > Spelling): the
+    ///        window shows the book's dictionary
+    [[nodiscard]] bool isBookDictionaryAsked() const { return m_bookDictionaryAsked; }
 
 public slots:
     /// @brief OK: write the changed settings, then close; a value that cannot be written
@@ -159,6 +193,9 @@ private:
     IconsPage* m_iconsPage = nullptr;
     std::map<QString, QTreeWidgetItem*> m_pageItems;  ///< The pages of openPage()
     std::vector<QTreeWidgetItem*> m_plannedItems;  ///< Pages of options not available yet
+    CommandRegistry& m_commands;  ///< The commands of its window
+    const core::ProjectManager& m_book;  ///< The book of its window
+    bool m_bookDictionaryAsked = false;  ///< Closed with Open Book Dictionary
 };
 
 } // namespace gui

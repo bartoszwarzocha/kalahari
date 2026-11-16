@@ -1,14 +1,19 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file material_list.cpp
 /// @brief The lists of the materials of the Workshop on their tabs
 
 #include "kalahari/gui/material_list.h"
 
+#include "kalahari/core/bibliography.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/cover_material.h"
 #include "kalahari/core/link_roles.h"
 #include "kalahari/core/material_kinds.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/core/source_description.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/add_to_book_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -16,6 +21,7 @@
 #include "kalahari/gui/material_file.h"
 #include "kalahari/gui/material_source.h"
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/source_names.h"
 
 #include <QDateTime>
 #include <QFileInfo>
@@ -70,19 +76,19 @@ QString baseKindOf(const core::KindRef& kind) {
                : QString();
 }
 
-/// The kind of list @p list in the open book
+/// The kind of list @p list, of the packages installed with the program
 core::KindRef kindOfList(const QString& list) {
     const std::optional<core::KindReference> reference = core::KindReference::parse(list);
-    return reference ? core::ProjectManager::getInstance().bookTypes().findKind(
+    return reference ? core::ProjectManager::installedBookTypes().findKind(
                            reference->packageId, reference->kindId)
                      : core::KindRef{};
 }
 
 /// The kinds of the Materials, in the order of the Navigator: those of the book's type, then
 /// those of the elements of the Workshop of other types and of earlier versions
-QList<core::KindRef> materialKinds() {
+QList<core::KindRef> materialKinds(const core::ProjectManager& book) {
     QList<core::KindRef> kinds;
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = book;
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return kinds;
@@ -107,28 +113,31 @@ QList<core::KindRef> materialKinds() {
 }
 
 /// The elements of the Workshop of the open book that list @p list has, in their order
-QList<const core::ProjectElement*> elementsOf(const QString& list) {
+QList<const core::ProjectElement*> elementsOf(const core::ProjectManager& book,
+                                              const QString& list) {
     QList<const core::ProjectElement*> elements;
-    const auto& pm = core::ProjectManager::getInstance();
+    const auto& pm = book;
     const core::BookProject* project = pm.project();
     if (project == nullptr) {
         return elements;
     }
+    const bool sources = list == QLatin1String(MaterialList::SOURCES);
     for (const core::ProjectElement& element : project->workshop.elements) {
         const core::KindRef kind = pm.kindOf(element);
         if (kind && kind.kind->workshopGroup == core::WorkshopGroup::Resources &&
-            (list.isEmpty() || kind.reference() == list)) {
+            (sources ? kind.kind->isMaterial() && !element.source.isEmpty()
+                     : list.isEmpty() || kind.reference() == list)) {
             elements << &element;
         }
     }
     return elements;
 }
 
-/// The text of the links of @p element: what each names and how, one after another
-QString linksText(const core::ProjectElement& element) {
+/// The text of the links of @p element of @p book: what each names and how, one after another
+QString linksText(const core::ProjectManager& book, const core::ProjectElement& element) {
     QStringList links;
     for (const core::ElementLink& link : element.links) {
-        const QString title = linkTitle(link.to);
+        const QString title = linkTitle(book, link.to);
         if (title.isEmpty()) {
             continue;
         }
@@ -250,9 +259,56 @@ void setCoverTexts(MaterialRow& row, const core::ProjectElement& element) {
     set(MaterialList::COVER_LICENSE, cover.license);
 }
 
+/// Where @p quote comes from, as the column of the source of the quotes shows it: the short
+/// name of its source card (or its author and work) and its page
+QString quoteSourceText(const core::ProjectManager& book, const core::QuoteSource& quote) {
+    QString from;
+    if (const core::ProjectElement* material =
+            quote.source.isEmpty() ? nullptr : book.findElement(quote.source)) {
+        from = SourceNames::shortName(material->source, material->title);
+    } else {
+        QStringList parts;
+        for (const QString& part : {quote.author, quote.work}) {
+            if (!part.isEmpty()) {
+                parts << part;
+            }
+        }
+        from = parts.join(QStringLiteral(", "));
+    }
+    if (from.isEmpty() || quote.page.isEmpty()) {
+        return from;
+    }
+    //: The source of a quote in the list of the quotes: %1 the source, %2 the page. In
+    //: Polish: %1, s. %2
+    return MaterialList::tr("%1, p. %2").arg(from, quote.page);
+}
+
+/// What a source shows in the columns of the sources, and a quote in that of its source
+void setSourceTexts(const core::ProjectManager& book, MaterialRow& row,
+                    const core::ProjectElement& element) {
+    const auto set = [&row](const char* id, const QString& text) {
+        if (!text.isEmpty()) {
+            row.texts.insert(QString::fromLatin1(id), text);
+        }
+    };
+    const core::SourceDescription& source = element.source;
+    if (!source.isEmpty()) {
+        set(MaterialList::SOURCE_KIND, SourceNames::kindName(source.kind()));
+        set(MaterialList::SOURCE_AUTHORS, SourceNames::authorsOf(source));
+        set(MaterialList::SOURCE_YEAR, source.value(core::SourceDescription::YEAR));
+        const int places = book.placesInText(element.id);
+        set(MaterialList::SOURCE_INCLUSION, SourceNames::inclusionName(source.bibliography));
+        set(MaterialList::SOURCE_PLACES, places > 0 ? QLocale().toString(places)
+                                                    : QStringLiteral("–"));
+        row.order.insert(QString::fromLatin1(MaterialList::SOURCE_PLACES), places);
+    }
+    set(MaterialList::QUOTE_SOURCE, quoteSourceText(book, element.quote));
+}
+
 /// The row of @p element, of kind @p kind
-MaterialRow rowOf(const core::ProjectElement& element, const core::KindRef& kind) {
-    const auto& pm = core::ProjectManager::getInstance();
+MaterialRow rowOf(const core::ProjectManager& book, const core::ProjectElement& element,
+                  const core::KindRef& kind) {
+    const auto& pm = book;
     MaterialRow row;
     row.id = element.id;
     row.kind = kind.reference();
@@ -272,7 +328,7 @@ MaterialRow rowOf(const core::ProjectElement& element, const core::KindRef& kind
     set(MaterialList::TITLE, element.title);
     set(MaterialList::TYPE, kind.kind->plural.text(programLanguage()));
     set(MaterialList::DESCRIPTION, element.description.simplified());
-    set(MaterialList::LINKS, linksText(element));
+    set(MaterialList::LINKS, linksText(book, element));
     for (const core::ElementField& field : element.fields) {
         const QString name = field.name.trimmed();
         if (!name.isEmpty()) {
@@ -352,8 +408,11 @@ MaterialRow rowOf(const core::ProjectElement& element, const core::KindRef& kind
             }
         }
     }
+    if (!row.text) {
+        setSourceTexts(book, row, element);
+    }
     set(MaterialList::DETAILS, detailsOf(row, row.text ? QString() : baseKindOf(kind)));
-    row.copy = MaterialList::copyTextOf(element.id);
+    row.copy = MaterialList::copyTextOf(book, element.id);
 
     QStringList all = row.texts.values();
     for (const core::ElementField& field : element.fields) {
@@ -400,10 +459,10 @@ void setListSetting(const QString& list, const char* name, const json& value) {
 
 } // namespace
 
-QStringList MaterialList::kinds() {
+QStringList MaterialList::kinds(const core::ProjectManager& book) {
     QStringList lists;
     const QStringList hidden = hiddenKinds();
-    for (const core::KindRef& kind : materialKinds()) {
+    for (const core::KindRef& kind : materialKinds(book)) {
         if (!hidden.contains(kind.reference())) {
             lists << kind.reference();
         }
@@ -411,17 +470,17 @@ QStringList MaterialList::kinds() {
     return lists;
 }
 
-QStringList MaterialList::allKinds() {
+QStringList MaterialList::allKinds(const core::ProjectManager& book) {
     QStringList lists;
-    for (const core::KindRef& kind : materialKinds()) {
+    for (const core::KindRef& kind : materialKinds(book)) {
         lists << kind.reference();
     }
     return lists;
 }
 
-QStringList MaterialList::settingsKinds() {
-    QStringList lists = allKinds();
-    const auto& pm = core::ProjectManager::getInstance();
+QStringList MaterialList::settingsKinds(const core::ProjectManager& book) {
+    QStringList lists = allKinds(book);
+    const auto& pm = book;
     if (pm.project() == nullptr) {
         for (const core::KindRef& kind : pm.bookTypes().kindsIn(
                  QString::fromLatin1(core::ProjectManager::BASE_PACKAGE),
@@ -440,11 +499,11 @@ QStringList MaterialList::settingsKinds() {
     return lists;
 }
 
-int MaterialList::countOf(const QString& list) {
-    if (core::ProjectManager::getInstance().project() == nullptr) {
+int MaterialList::countOf(const core::ProjectManager& book, const QString& list) {
+    if (book.project() == nullptr) {
         return -1;
     }
-    return static_cast<int>(elementsOf(list).size());
+    return static_cast<int>(elementsOf(book, list).size());
 }
 
 QStringList MaterialList::hiddenKinds() {
@@ -490,11 +549,38 @@ bool MaterialList::isCover(const QString& list) {
     return CoverNames::isCoverKind(kindOfList(list));
 }
 
+QStringList MaterialList::addKindsOf(const core::ProjectManager& book, const QString& list) {
+    if (list.isEmpty()) {
+        return kinds(book);
+    }
+    if (list != QLatin1String(SOURCES)) {
+        return {list};
+    }
+    QStringList describable;
+    for (const QString& each : allKinds(book)) {
+        const QString kindId = baseKindOf(kindOfList(each));
+        if (core::SourceDescription::canDescribe(kindId)) {
+            // A publication first: what a source is most often
+            if (kindId == QLatin1String(core::MaterialKinds::PUBLICATION)) {
+                describable.prepend(each);
+            } else {
+                describable << each;
+            }
+        }
+    }
+    return describable;
+}
+
 QString MaterialList::nameOf(const QString& list) {
     if (list.isEmpty()) {
         //: The list of all the materials of the Workshop, the working notes too, on a tab. In
         //: Polish: Wszystkie materiały
         return tr("All Materials");
+    }
+    if (list == QLatin1String(SOURCES)) {
+        //: The list of the materials with a bibliographic description, on a tab and in the
+        //: Navigator. In Polish: Źródła
+        return tr("Sources");
     }
     const core::KindRef kind = kindOfList(list);
     return kind ? kind.kind->plural.text(programLanguage()) : list;
@@ -503,6 +589,9 @@ QString MaterialList::nameOf(const QString& list) {
 QString MaterialList::iconIdOf(const QString& list) {
     if (list.isEmpty()) {
         return QStringLiteral("structure.materials");
+    }
+    if (list == QLatin1String(SOURCES)) {
+        return QStringLiteral("common.filePresent");
     }
     return NavigatorPanel::iconIdOf(kindOfList(list));
 }
@@ -515,7 +604,8 @@ bool MaterialList::hasTiles(const QString& list) {
            kindId == QLatin1String(core::MaterialKinds::PUBLICATION);
 }
 
-QList<MaterialColumn> MaterialList::columnsOf(const QString& list) {
+QList<MaterialColumn> MaterialList::columnsOf(const core::ProjectManager& book,
+                                              const QString& list) {
     //: A column of the list of materials. In Polish: Tytuł
     const QString title = tr("Title");
     //: In Polish: Powiązania
@@ -542,6 +632,22 @@ QList<MaterialColumn> MaterialList::columnsOf(const QString& list) {
                 //: A summary of a material in All Materials. In Polish: Szczegóły
                 << column(DETAILS, tr("Details")) << column(LINKS, links)
                 << column(DESCRIPTION, description, false) << column(MODIFIED, modified, false);
+    } else if (list == QLatin1String(SOURCES)) {
+        //: The kind of the material of a source: publication, web page. In Polish: Typ
+        //: materiału
+        columns << column(TYPE, tr("Material"))
+                //: A book, an article, a web page... In Polish: Rodzaj źródła
+                << column(SOURCE_KIND, tr("Kind of source"))
+                //: The authors of a source. In Polish: Autor
+                << column(SOURCE_AUTHORS, tr("Author")) << column(TITLE, title)
+                //: The year of a source. In Polish: Rok
+                << column(SOURCE_YEAR, tr("Year"))
+                //: Whether the bibliography of the book has a source. In Polish: W bibliografii
+                << column(SOURCE_INCLUSION, tr("In the bibliography"))
+                //: How many places of the text a source is linked with, its quotes too. In
+                //: Polish: W tekście
+                << column(SOURCE_PLACES, tr("In the text")) << column(LINKS, links, false)
+                << column(FILE, file, false) << column(DESCRIPTION, description, false);
     } else if (kind && !kind.kind->isMaterial()) {
         //: The words of a working note. In Polish: Słowa
         columns << column(TITLE, title) << column(WORDS, tr("Words"))
@@ -573,7 +679,9 @@ QList<MaterialColumn> MaterialList::columnsOf(const QString& list) {
                 << column(FILE, file, false);
     } else if (kindId == QLatin1String(core::MaterialKinds::QUOTE)) {
         //: The words of a quote. In Polish: Cytat
-        columns << column(QUOTE, tr("Quote")) << column(LINKS, links)
+        columns << column(QUOTE, tr("Quote"))
+                //: Where a quote comes from: a source and its page. In Polish: Źródło
+                << column(QUOTE_SOURCE, tr("Source")) << column(LINKS, links)
                 << column(TITLE, title, false);
     } else if (kindId == QLatin1String(core::MaterialKinds::WEB_PAGE)) {
         //: The host of the address of a page. In Polish: Witryna
@@ -612,7 +720,7 @@ QList<MaterialColumn> MaterialList::columnsOf(const QString& list) {
 
     // The fields of the writer's that the materials of the list have
     QStringList fields;
-    for (const core::ProjectElement* element : elementsOf(list)) {
+    for (const core::ProjectElement* element : elementsOf(book, list)) {
         for (const core::ElementField& field : element->fields) {
             const QString name = field.name.trimmed();
             if (!name.isEmpty() && !fields.contains(name)) {
@@ -633,6 +741,9 @@ QString MaterialList::firstSortOf(const QString& list) {
     if (list.isEmpty()) {
         return QString::fromLatin1(TYPE);
     }
+    if (list == QLatin1String(SOURCES)) {
+        return QString::fromLatin1(SOURCE_AUTHORS);
+    }
     const QString kindId = baseKindOf(kindOfList(list));
     if (kindId == QLatin1String(core::MaterialKinds::COVER)) {
         return QString::fromLatin1(COVER_TEXT);
@@ -641,17 +752,25 @@ QString MaterialList::firstSortOf(const QString& list) {
                                                                 : QString::fromLatin1(TITLE);
 }
 
-QList<MaterialRow> MaterialList::rowsOf(const QString& list) {
+QList<MaterialRow> MaterialList::rowsOf(const core::ProjectManager& book, const QString& list) {
     QList<MaterialRow> rows;
-    const auto& pm = core::ProjectManager::getInstance();
-    for (const core::ProjectElement* element : elementsOf(list)) {
-        rows << rowOf(*element, pm.kindOf(*element));
+    const auto& pm = book;
+    // Copy of a source copies its entry in the bibliography of the book
+    const bool sources = list == QLatin1String(SOURCES);
+    const QString style = sources ? pm.bibliographyStyle() : QString();
+    for (const core::ProjectElement* element : elementsOf(book, list)) {
+        MaterialRow row = rowOf(book, *element, pm.kindOf(*element));
+        if (sources) {
+            row.copy = core::Bibliography::entry(element->source, element->title, style,
+                                                 pm.bookLanguage(), false);
+        }
+        rows << row;
     }
     return rows;
 }
 
-QStringList MaterialList::shownColumns(const QString& list) {
-    const QList<MaterialColumn> columns = columnsOf(list);
+QStringList MaterialList::shownColumns(const core::ProjectManager& book, const QString& list) {
+    const QList<MaterialColumn> columns = columnsOf(book, list);
     const json kept = listSettings(list);
     QStringList shown;
     if (kept.contains("columns") && kept.at("columns").is_array()) {
@@ -757,8 +876,8 @@ QString MaterialList::documentKindOf(const QString& format) {
     return tr("other");
 }
 
-QString MaterialList::copyTextOf(const QString& elementId) {
-    const auto& pm = core::ProjectManager::getInstance();
+QString MaterialList::copyTextOf(const core::ProjectManager& book, const QString& elementId) {
+    const auto& pm = book;
     const core::ProjectElement* element = pm.findElement(elementId);
     if (element == nullptr) {
         return {};

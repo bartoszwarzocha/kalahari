@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_appearance.h
 /// @brief Visual appearance configuration for BookEditor (OpenSpec #00042 Phase 5)
 ///
@@ -49,16 +52,30 @@ struct PaperColorKeys {
     const char* formattingMarks;  ///< The formatting marks
     const char* link;             ///< The text of links, unless it has a color of its own
     const char* desk;             ///< Around the paper: beside and between the sheets
+    const char* tableLines;       ///< The borders of tables of the color "Automatic"
+    const char* tableHeader;      ///< The background of the header rows of tables
+    const char* tableGridlines;   ///< The faint lines where a table has no border
+    const char* imageCropMarks;   ///< The marks of an image being cropped in the text
+    const char* imageMissing;     ///< The frame of an image whose file is missing
+    const char* field;            ///< The background of a caption's number, a cross-reference
+    const char* brokenField;      ///< The background of a cross-reference to a caption the
+                                  ///< book does not have
+    const char* noteLine;         ///< The line above the notes
+    const char* noteFrame;        ///< The frame a note's text is written in
 };
 
 /// @brief The names of the light paper's colors
 inline constexpr PaperColorKeys LIGHT_PAPER_COLOR_KEYS{
     "paperLight", "textLight", "focusDimmedLight", "formattingMarksLight", "linkLight",
-    "deskLight"};
+    "deskLight", "tableLinesLight", "tableHeaderLight", "tableGridlinesLight",
+    "imageCropMarksLight", "imageMissingLight", "fieldLight", "brokenFieldLight",
+    "noteLineLight", "noteFrameLight"};
 
 /// @brief The names of the dark paper's colors
 inline constexpr PaperColorKeys DARK_PAPER_COLOR_KEYS{
-    "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark"};
+    "paperDark", "textDark", "focusDimmedDark", "formattingMarksDark", "linkDark", "deskDark",
+    "tableLinesDark", "tableHeaderDark", "tableGridlinesDark", "imageCropMarksDark",
+    "imageMissingDark", "fieldDark", "brokenFieldDark", "noteLineDark", "noteFrameDark"};
 
 /// @brief The names of the colors drawn under the text on both papers
 inline constexpr const char* SELECTION_COLOR_KEY = "selection";
@@ -159,6 +176,63 @@ struct EditorColors {
         return mode == EditorColorMode::Light ? links.light : links.dark;
     }
 
+    /// @brief The tables: the lines of their borders (the color "Automatic"), the background
+    ///        of their header rows, and the faint lines shown where a table has no border
+    struct TableColors {
+        QColor linesLight{154, 154, 154};
+        QColor linesDark{120, 120, 123};
+        QColor headerLight{242, 242, 242};
+        QColor headerDark{46, 46, 51};
+        QColor gridlinesLight{180, 198, 231};
+        QColor gridlinesDark{74, 88, 120};
+    } tables;
+
+    /// @brief The images: the marks at the sides of one being cropped in the text, the frame
+    /// of one whose file is missing
+    struct ImageColors {
+        QColor cropMarksLight{17, 17, 17};
+        QColor cropMarksDark{242, 242, 242};
+        QColor missingLight{122, 122, 122};
+        QColor missingDark{154, 154, 160};
+    } images;
+
+    /// @brief The color of the marks of an image being cropped, on the paper of a mode
+    QColor imageCropMarksColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? images.cropMarksLight : images.cropMarksDark;
+    }
+
+    /// @brief The color of the frame of an image whose file is missing, on the paper of a mode
+    QColor imageMissingColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? images.missingLight : images.missingDark;
+    }
+
+    /// @brief The backgrounds of the fields (a caption's number, a cross-reference) and of a
+    /// cross-reference to a caption the book does not have
+    struct FieldColors {
+        QColor light{217, 217, 217};
+        QColor dark{62, 62, 69};
+        QColor brokenLight{255, 199, 199};
+        QColor brokenDark{110, 44, 44};
+    } fields;
+
+    /// @brief The notes: the line above them, the frame a note's text is written in
+    struct FootnoteColors {
+        QColor lineLight{85, 85, 85};
+        QColor lineDark{106, 106, 114};
+        QColor frameLight{47, 127, 208};
+        QColor frameDark{90, 155, 224};
+    } footnotes;
+
+    /// @brief The color of the line above the notes, on the paper of a mode
+    QColor noteLineColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? footnotes.lineLight : footnotes.lineDark;
+    }
+
+    /// @brief The color of the frame a note's text is written in, on the paper of a mode
+    QColor noteFrameColor(EditorColorMode mode) const {
+        return mode == EditorColorMode::Light ? footnotes.frameLight : footnotes.frameDark;
+    }
+
     /// @brief The marks of the annotations' kinds on one paper (the theme's colors, as shown on
     /// that paper; not valid: the text's color)
     struct AnnotationColors {
@@ -180,6 +254,7 @@ struct EditorColors {
         QColor spelling;    ///< Misspelled words
         QColor grammar;     ///< Grammar, style and punctuation
         QColor repetition;  ///< Words repeated too close (the Repetitions panel)
+        QColor bookRule;    ///< Places breaking a spelling rule of the book
     };
     IssueColors issuesLight;  ///< On the light paper
     IssueColors issuesDark;   ///< On the dark paper
@@ -435,6 +510,9 @@ public:
     SceneBreakLook sceneBreakLook{SceneBreakLook::Asterisks};  ///< How the scene breaks look
     bool showFormattingMarks{false};           ///< View > Show Formatting Marks
     MarginNumbers marginNumbers;               ///< View > Margin Numbering
+    /// The fields (the date, the book's title, a caption's number) on a gray background
+    /// (Settings > Editor > General); without it a broken cross-reference keeps its own
+    bool fieldShading{true};
 };
 
 }  // namespace kalahari::editor

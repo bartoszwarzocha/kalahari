@@ -1,8 +1,13 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor_input.cpp
 /// @brief BookEditor: keyboard, input method, mouse, drag and drop and context menu events
 
 #include <kalahari/editor/book_editor.h>
+#include <kalahari/core/book_dictionary.h>
 #include <kalahari/editor/buffer_commands.h>
+#include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_tables.h>
 #include <QAbstractTextDocumentLayout>
 #include <QAction>
@@ -24,8 +29,10 @@
 #include <QHash>
 #include <QScopedValueRollback>
 #include <QSet>
+#include <QTextTable>
 #include <QTimer>
 #include <algorithm>
+#include <functional>
 #include <optional>
 #include <tuple>
 #include <utility>
@@ -277,6 +284,41 @@ void giveUniqueAccessKeys(QMenu& menu) {
 
 void BookEditor::keyPressEvent(QKeyEvent* event)
 {
+    // Esc lets go of the edge of columns being dragged: the columns stay as they were
+    if (m_columnDrag && event->key() == Qt::Key_Escape) {
+        m_columnDrag.reset();
+        update();
+        event->accept();
+        return;
+    }
+
+    // An image being cropped in the text takes the keys: Enter crops it, Esc leaves it as it
+    // was, the others wait until it is done
+    if (imageCropping() != nullptr) {
+        const int key = event->key();
+        if (key == Qt::Key_Escape || key == Qt::Key_Return || key == Qt::Key_Enter) {
+            finishImageCrop(key != Qt::Key_Escape);
+            updatePointerShape(mapFromGlobal(QCursor::pos()), event->modifiers());
+        }
+        event->accept();
+        return;
+    }
+
+    // Esc on the selected image goes back to the text, the cursor after the image; Ctrl+]
+    // and Ctrl+[ make it larger and smaller
+    if (event->key() == Qt::Key_Escape && event->modifiers() == Qt::NoModifier &&
+        leaveSelectedImage()) {
+        event->accept();
+        return;
+    }
+    if (const std::optional<bool> larger = imageResizeKey(*event)) {
+        if (const std::optional<int> image = selectedImage(); image && !refusesChange()) {
+            resizeImageByStep(*image, *larger);
+        }
+        event->accept();
+        return;
+    }
+
     // Ctrl pressed over a link: the hand of Ctrl+click at once, as the mouse stays
     if (event->key() == Qt::Key_Control && underMouse()) {
         updatePointerShape(mapFromGlobal(QCursor::pos()), event->modifiers());
@@ -485,6 +527,16 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         return;
     }
 
+    // An image being cropped in the text: a mark is dragged, a press on its picture changes
+    // nothing; a press elsewhere crops it and does what it does
+    if (pressImageCrop(event->position())) {
+        setFocus();
+        m_clickCount = 0;
+        updatePointerShape(event->position(), event->modifiers());
+        event->accept();
+        return;
+    }
+
     // A click on an annotation's card does what its part does; one on an annotation's mark
     // collapses or expands its card, or opens the annotation without cards; one on the mark
     // beside a paragraph chooses a material. The cursor stays.
@@ -495,6 +547,20 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
         }
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(event->position())) {
             openParagraphMark(*marked, event->globalPosition().toPoint());
+            event->accept();
+            return;
+        }
+        // A click on a note's text writes it in its frame; on an endnote of another text (at
+        // the end of the book), in that text
+        if (const QString note = noteTextAt(event->position()); !note.isEmpty()) {
+            if (!m_readOnly) {
+                emit noteEditRequested(note);
+            }
+            event->accept();
+            return;
+        }
+        if (const auto endnote = bookEndnoteAt(event->position())) {
+            emit bookEndnoteOpenAsked(endnote->first, endnote->second);
             event->accept();
             return;
         }
@@ -521,12 +587,34 @@ void BookEditor::mousePressEvent(QMouseEvent* event)
             event->accept();
             return;
         }
+        // A cross-reference, a row of a list of figures: to the caption's image
+        if (const std::optional<CaptionLink> target = captionLinkAt(event->position())) {
+            followCaptionLink(*target);
+            event->accept();
+            return;
+        }
     }
 
     // Set focus on click
     setFocus();
 
     QPointF clickPos = event->position();
+
+    // The edge between two columns of a table: dragged, it sets their widths. A handle of
+    // the selected image: dragged, it resizes the image; a click on an image selects it
+    if (!(event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier))) {
+        if (std::optional<ColumnEdge> edge = columnEdgeAt(clickPos)) {
+            m_columnDrag = edge;
+            dragColumnEdge(clickPos);
+            event->accept();
+            return;
+        }
+        if (pressImage(clickPos)) {
+            m_clickCount = 0;
+            event->accept();
+            return;
+        }
+    }
 
     // Check for multi-click (double/triple)
     bool isMultiClick = false;
@@ -626,9 +714,26 @@ void BookEditor::mouseMoveEvent(QMouseEvent* event)
         return;
     }
 
+    if (m_columnDrag) {
+        dragColumnEdge(pos);
+        event->accept();
+        return;
+    }
+    if (imageCropping() != nullptr) {
+        dragImageCrop(pos);
+        event->accept();
+        return;
+    }
+    if (m_imageResize) {
+        dragImageHandle(pos);
+        event->accept();
+        return;
+    }
+
     if (m_textDragPending) {
         if ((pos - m_textDragStartPos).manhattanLength() >= QApplication::startDragDistance()) {
             m_textDragPending = false;
+            m_imagePressed = false;
             startTextDrag();
         }
         event->accept();
@@ -654,15 +759,28 @@ void BookEditor::updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers mo
     // the buttons of a card and with Ctrl over a link, which Ctrl+click opens; an arrow over a
     // card and over the selected text, which can be dragged; an I-beam elsewhere
     Qt::CursorShape shape = Qt::IBeamCursor;
-    if (hoverAnnotationCard(pos)) {
+    if (const std::optional<Qt::CursorShape> cropping = imageCropPointerAt(pos)) {
+        shape = *cropping;  // an image being cropped: its marks are dragged
+    } else if (hoverAnnotationCard(pos)) {
         shape = m_annotationCards.hoveredPart() == AnnotationCardPart::Card
                     ? Qt::ArrowCursor
                     : Qt::PointingHandCursor;
     } else if (!annotationMarkAt(pos).isEmpty() || paragraphMarkAt(pos) ||
-               ((modifiers & Qt::ControlModifier) && linkAt(pos).has_value())) {
+               ((modifiers & Qt::ControlModifier) &&
+                (linkAt(pos).has_value() || captionLinkAt(pos).has_value()))) {
         shape = Qt::PointingHandCursor;
-    } else if (isOverSelectedText(pos)) {
-        shape = Qt::ArrowCursor;
+    } else if (!(modifiers & (Qt::ShiftModifier | Qt::ControlModifier)) &&
+               columnEdgeAt(pos).has_value()) {
+        shape = Qt::SplitHCursor;  // the edge between two columns, which can be dragged
+    } else if (const std::optional<ImageCorner> corner =
+                   !(modifiers & (Qt::ShiftModifier | Qt::ControlModifier)) ? imageHandleAt(pos)
+                                                                            : std::nullopt) {
+        // A handle of the selected image, which resizes it from the corner across
+        shape = *corner == ImageCorner::TopLeft || *corner == ImageCorner::BottomRight
+                    ? Qt::SizeFDiagCursor
+                    : Qt::SizeBDiagCursor;
+    } else if (imagePositionAt(pos).has_value() || isOverSelectedText(pos)) {
+        shape = Qt::ArrowCursor;  // an image, which a click selects, or the selected text
     }
     if (cursor().shape() != shape) {
         setCursor(shape);
@@ -681,6 +799,39 @@ void BookEditor::mouseReleaseEvent(QMouseEvent* event)
 
     stopAutoScroll();
     m_isDragging = false;
+    if (imageCropping() != nullptr && m_imageCropping) {
+        // The mark let go: the image is cropped only when it is done (Enter, a click outside)
+        m_imageCropping->sides = 0;
+        updatePointerShape(event->position(), event->modifiers());
+        event->accept();
+        return;
+    }
+    if (m_columnDrag) {
+        // The edge where it was let go: the widths of the two columns, one step of Undo
+        const int column = m_columnDrag->column;
+        QTextTable* table = columnDragTable();
+        m_columnDrag.reset();
+        if (table) {
+            setColumnEdge(*table, column, m_columnDragX);
+        }
+        updatePointerShape(event->position(), event->modifiers());
+        update();
+        event->accept();
+        return;
+    }
+    if (m_imageResize) {
+        finishImageResize();
+        updatePointerShape(event->position(), event->modifiers());
+        event->accept();
+        return;
+    }
+    if (m_imagePressed) {
+        // A click on an image without dragging it: it stays selected
+        m_imagePressed = false;
+        m_textDragPending = false;
+        event->accept();
+        return;
+    }
     if (m_textDragPending) {
         // A click on the selected text without dragging places the cursor there
         m_textDragPending = false;
@@ -702,6 +853,12 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
         return;
     }
 
+    // On an image being cropped (the first click left it so): nothing more
+    if (imageCropping() != nullptr) {
+        event->accept();
+        return;
+    }
+
     // A double click on a card edits its annotation; on its buttons it does no more than
     // the first click
     if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->position())) {
@@ -709,6 +866,35 @@ void BookEditor::mouseDoubleClickEvent(QMouseEvent* event)
             emit annotationEditRequested(card->id);
         }
         m_pressedCard.clear();
+        event->accept();
+        return;
+    }
+
+    // A double click on an image: its properties, as in Word; it stays selected
+    if (const std::optional<int> image = imagePositionAt(event->position())) {
+        selectImage(*image);
+        if (!m_readOnly) {
+            emit imagePropertiesAsked(*image, 0);
+        }
+        event->accept();
+        return;
+    }
+
+    // A double click on a field: its window, as in LibreOffice
+    if (const std::optional<int> field = fieldAt(event->position()); field && textFieldAt(*field)) {
+        if (!m_readOnly) {
+            emit fieldEditRequested(*field);
+        }
+        event->accept();
+        return;
+    }
+
+    // A double click on a note's number writes its text in its frame (or on its text, which
+    // the first click opened)
+    if (const std::optional<NotePlace> note = noteAt(event->position())) {
+        if (!m_readOnly) {
+            emit noteEditRequested(note->note.id);
+        }
         event->accept();
         return;
     }
@@ -845,8 +1031,21 @@ void BookEditor::startTextDrag()
     const bool movedAway = !m_readOnly && action == Qt::MoveAction && target != this &&
                            (target == nullptr || !isAncestorOf(target));
     if (movedAway && dragged.position() < draggedEnd.position()) {
+        // Selected cells are cleared, the cells staying
+        const std::optional<TableCellRange> cells =
+            selectedCells(*m_textBuffer, dragged.position(), draggedEnd.position());
         clearSelection();
-        removeKeepingTables(dragged, dragged.position(), draggedEnd.position(), false);
+        if (cells) {
+            dragged.beginEditBlock();
+            const std::vector<QTextTableCell> cleared = startingCellsOf(*cells);
+            for (auto cell = cleared.rbegin(); cell != cleared.rend(); ++cell) {
+                clearCell(dragged, *cell);
+            }
+            dragged.endEditBlock();
+            dragged.setPosition(cells->table->cellAt(cells->firstRow, cells->firstColumn).firstPosition());
+        } else {
+            removeKeepingTables(dragged, dragged.position(), draggedEnd.position(), false);
+        }
         finishEdit(dragged);
     }
 }
@@ -950,6 +1149,16 @@ void BookEditor::setContextMenuEditActions(const ContextMenuEditActions& actions
     m_contextMenuEditActions = actions;
 }
 
+void BookEditor::setContextMenuTableActions(const ContextMenuTableActions& actions)
+{
+    m_contextMenuTableActions = actions;
+}
+
+void BookEditor::setContextMenuImageActions(const ContextMenuImageActions& actions)
+{
+    m_contextMenuImageActions = actions;
+}
+
 void BookEditor::setNextIssueAction(QAction* action)
 {
     m_nextIssueAction = action;
@@ -972,6 +1181,34 @@ void BookEditor::contextMenuEvent(QContextMenuEvent* event)
     if (event->reason() == QContextMenuEvent::Mouse) {
         if (const std::optional<AnnotationCardHit> card = annotationCardAt(event->pos())) {
             showAnnotationCardMenu(card->id, event->globalPos());
+            return;
+        }
+    }
+
+    // On an image: it is selected first, the menu is its own
+    if (event->reason() == QContextMenuEvent::Mouse) {
+        if (const std::optional<int> image = imagePositionAt(QPointF(event->pos()))) {
+            const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+            selectImage(*image);
+            showContextMenu(m_cursorPosition, event->globalPos(), false);
+            return;
+        }
+    }
+
+    // On a note's number or its text: the cursor goes after the number, the menu is the note's;
+    // on a misspelled word or a grammar issue of its text, with what is offered for it
+    if (event->reason() == QContextMenuEvent::Mouse) {
+        if (const std::optional<NotePlace> note = noteAt(QPointF(event->pos()))) {
+            std::optional<NoteRange> place = notePlaceAt(QPointF(event->pos()));
+            if (place && place->id != note->note.id) {
+                place.reset();
+            }
+            const QScopedValueRollback<bool> pointerMove(m_pointerMovesCursor, true);
+            const CursorPosition after = calculateCursorPosition(note->position + 1);
+            clearSelection();
+            m_selectionAnchor = after;
+            setCursorPosition(after);
+            showContextMenu(m_cursorPosition, event->globalPos(), false, std::nullopt, place);
             return;
         }
     }
@@ -999,7 +1236,9 @@ void BookEditor::showContextMenuAtCursor()
             menuPos = mapToGlobal(caret.bottomLeft().toPoint());
         }
     }
-    showContextMenu(m_cursorPosition, menuPos, false);
+    // A note's number selected for a range of its text (an issue gone to): the menu is for
+    // that range too
+    showContextMenu(m_cursorPosition, menuPos, false, std::nullopt, m_noteSelection);
 }
 
 bool BookEditor::showIssueMenu(const TextIssue& issue, const QPoint& globalPos)
@@ -1008,23 +1247,58 @@ bool BookEditor::showIssueMenu(const TextIssue& issue, const QPoint& globalPos)
         return false;
     }
     // Inside the issue: a word that ends where it starts is not taken for it
+    if (issue.inNote()) {
+        const std::optional<NotePlace> note = noteOf(issue.noteId);
+        if (!note) {
+            return false;
+        }
+        showContextMenu(calculateCursorPosition(note->position + 1), globalPos, false, issue.kind,
+                        NoteRange{issue.noteId, issue.start + (issue.length / 2), 0});
+        return true;
+    }
     showContextMenu({issue.paragraph, issue.start + issue.length / 2}, globalPos, false,
                     issue.kind);
     return true;
 }
 
 void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& globalPos,
-                                 bool fromMouse, std::optional<TextIssueKind> kind)
+                                 bool fromMouse, std::optional<TextIssueKind> kind,
+                                 const std::optional<NoteRange>& inNote)
 {
     // A misspelled word or a grammar issue: what to put in its place, on top of the usual
-    // menu (the spelling first, where both are)
-    const auto [word, startOffset, endOffset] =
-        kind != TextIssueKind::Grammar ? getMisspelledWordAt(pos.paragraph, pos.offset)
-                                       : std::tuple<QString, int, int>{QString(), 0, 0};
-    const std::optional<GrammarError> grammarError =
-        word.isEmpty() && kind != TextIssueKind::Spelling
-            ? getGrammarErrorAt(pos.paragraph, pos.offset)
-            : std::nullopt;
+    // menu (the spelling first, where both are); in a note's text, put in the note
+    const std::optional<NoteRange> notePlace =
+        inNote ? std::optional<NoteRange>(
+                     NoteRange{inNote->id, inNote->start + (inNote->length / 2), 0})
+               : std::nullopt;
+    HighlightKind wave = HighlightKind::Spelling;
+    const auto misspelled = [this, &pos, &notePlace, kind, &wave]() {
+        if (kind == TextIssueKind::Grammar) {
+            return std::tuple<QString, int, int>{QString(), 0, 0};
+        }
+        return notePlace ? getMisspelledNoteWordAt(*notePlace, &wave)
+                         : getMisspelledWordAt(pos.paragraph, pos.offset, &wave);
+    };
+    const auto [word, startOffset, endOffset] = misspelled();
+    // A place breaking a spelling rule of the book: the rule's form
+    const std::optional<core::RuleDeviation> deviation =
+        !word.isEmpty() && wave == HighlightKind::BookRule ? bookRuleDeviation(word)
+                                                           : std::nullopt;
+    std::optional<GrammarError> grammarError;
+    if (word.isEmpty() && kind != TextIssueKind::Spelling && kind != TextIssueKind::BookRule) {
+        grammarError = notePlace ? getNoteGrammarErrorAt(*notePlace)
+                                 : getGrammarErrorAt(pos.paragraph, pos.offset);
+    }
+    const auto replacing = [this, &pos, &notePlace](int start, int end) {
+        return notePlace ? std::function<void(const QString&)>(
+                               [this, id = notePlace->id, start, end](const QString& text) {
+                                   replaceInNote({id, start, end - start}, text);
+                               })
+                         : std::function<void(const QString&)>(
+                               [this, paragraph = pos.paragraph, start, end](const QString& text) {
+                                   replaceWord(paragraph, start, end, text);
+                               });
+    };
 
     // A right click outside the selection puts the cursor there, as a click does, so what
     // the menu does (pasting, adding an annotation) happens where the writer clicked
@@ -1040,10 +1314,42 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
     // why in its tooltip (a read-only text), as in the program's menus
     QMenu menu(this);
     menu.setToolTipsVisible(true);
-    if (!word.isEmpty()) {
-        addSpellingActions(menu, word, pos.paragraph, startOffset, endOffset);
+    if (deviation.has_value()) {
+        addBookRuleActions(menu, *deviation, replacing(startOffset, endOffset));
+    } else if (!word.isEmpty()) {
+        addSpellingActions(menu, word, replacing(startOffset, endOffset));
     } else if (grammarError.has_value()) {
-        addGrammarActions(menu, *grammarError, pos.paragraph);
+        addGrammarActions(menu, *grammarError,
+                          replacing(grammarError->startPos,
+                                    grammarError->startPos + grammarError->length));
+    }
+
+    // The note whose number is at the cursor: edit its text, make it the other kind, delete it
+    // (as in the mockup approved on 12.10.2026)
+    if (const std::optional<NotePlace> note = noteAtCursor()) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        addNoteActions(menu, *note);
+        menu.addSeparator();
+    }
+
+    // The field at the cursor: its window, or the text it shows in its place
+    if (const std::optional<int> field = fieldAtCursor()) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        addFieldActions(menu, *field);
+        menu.addSeparator();
+    }
+
+    // The selected image: its properties, caption, file and size, as in Word
+    if (const std::optional<int> image = selectedImage()) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        addImageActions(menu, *image);
+        menu.addSeparator();
     }
 
     // A link: edit it (the window of Insert > Link, with its keys), open it, copy its address
@@ -1111,6 +1417,42 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         higher->setEnabled(higher->isEnabled() && item->level > 0);
         disableWhileReadOnly(menu.addAction(tr("Bullets and Numberin&g..."), this,
                                             &BookEditor::bulletsAndNumberingAsked));
+        menu.addSeparator();
+    }
+
+    // A cell of a table: the commands of the Table menu, Insert, Delete and Select in
+    // submenus of the menu's own (their keys those of the Table menu's submenus)
+    const ContextMenuTableActions& table = m_contextMenuTableActions;
+    if (isInTable() && (!table.insert.isEmpty() || !table.commands.isEmpty())) {
+        if (!menu.isEmpty()) {
+            menu.addSeparator();
+        }
+        const auto addSubmenu = [&menu](const QString& title, const QList<QAction*>& actions) {
+            if (actions.isEmpty()) {
+                return;
+            }
+            QMenu* submenu = menu.addMenu(title);
+            submenu->setToolTipsVisible(true);
+            for (QAction* action : actions) {
+                if (action != nullptr) {
+                    submenu->addAction(action);
+                }
+            }
+        };
+        //: The context menu of a cell, as the Table menu's submenus. In Polish: W&staw
+        addSubmenu(tr("Inse&rt"), table.insert);
+        //: In Polish: &Usuń
+        addSubmenu(tr("D&elete"), table.remove);
+        //: In Polish: Z&aznacz
+        addSubmenu(tr("&Select"), table.select);
+        menu.addSeparator();
+        for (QAction* action : table.commands) {
+            if (action != nullptr) {
+                menu.addAction(action);
+            } else {
+                menu.addSeparator();
+            }
+        }
         menu.addSeparator();
     }
 

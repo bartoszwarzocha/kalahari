@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file command_registrar.cpp
 /// @brief Application command registration with CommandRegistry
 ///
@@ -13,6 +16,9 @@
 #include "kalahari/editor/character_format.h"
 
 #include <QCoreApplication>
+
+#include <string>
+#include <tuple>
 
 namespace kalahari {
 namespace gui {
@@ -35,11 +41,10 @@ static void setTexts(Command& cmd, const char* menuText) {
     cmd.tooltip = cmd.label;
 }
 
-int registerAllCommands(const CommandCallbacks& callbacks) {
+int registerAllCommands(CommandRegistry& registry, const CommandCallbacks& callbacks) {
     auto& logger = core::Logger::getInstance();
     logger.debug("Registering commands with CommandRegistry");
 
-    CommandRegistry& registry = CommandRegistry::getInstance();
     int count = 0;
 
     // =========================================================================
@@ -166,6 +171,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     const KeyboardShortcut clearFormattingShortcut(Qt::Key_Backslash, Qt::ControlModifier);
     const KeyboardShortcut enDashShortcut;
     const KeyboardShortcut emDashShortcut;
+    // Option+Return is a new paragraph in the text: Option+Cmd+I, the inspector of macOS
+    const KeyboardShortcut imagePropertiesShortcut(Qt::Key_I,
+                                                   Qt::ControlModifier | Qt::AltModifier);
 #else
     const KeyboardShortcut exitShortcut(Qt::Key_F4, Qt::AltModifier);
     const KeyboardShortcut replaceShortcut(Qt::Key_H, Qt::ControlModifier);
@@ -178,6 +186,8 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // Word has Ctrl with the minus of the keypad, here Zoom Out
     const KeyboardShortcut enDashShortcut(Qt::Key_Minus, Qt::AltModifier);
     const KeyboardShortcut emDashShortcut(Qt::Key_Underscore, Qt::AltModifier);
+    // Alt+Enter: Properties in the system's file managers
+    const KeyboardShortcut imagePropertiesShortcut(Qt::Key_Return, Qt::AltModifier);
 #endif
 
     // =========================================================================
@@ -263,10 +273,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                       IconSet(),
                       callbacks.onImportArchive);
 
-    // Export submenu
-    REG_CMD("file.export.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX"), "FILE/Export/DOCX", 120, false, 1);
+    // Export submenu: DOCX and Markdown open the window of the export (BookExportCoordinator)
+    REG_CMD("file.export.docx", QT_TRANSLATE_NOOP("CommandRegistrar", "&DOCX..."), "FILE/Export/DOCX", 120, false, 0);
     REG_CMD("file.export.pdf", QT_TRANSLATE_NOOP("CommandRegistrar", "&PDF"), "FILE/Export/PDF", 130, false, 1);
-    REG_CMD("file.export.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown"), "FILE/Export/Markdown", 140, true, 1);
+    REG_CMD("file.export.markdown", QT_TRANSLATE_NOOP("CommandRegistrar", "&Markdown..."), "FILE/Export/Markdown", 140, true, 0);
     REG_CMD("file.export.epub", QT_TRANSLATE_NOOP("CommandRegistrar", "&EPUB"), "FILE/Export/EPUB", 150, false, 2);
     REG_CMD("file.export.mobi", QT_TRANSLATE_NOOP("CommandRegistrar", "M&OBI"), "FILE/Export/MOBI", 160, false, 2);
     REG_CMD("file.export.icml", QT_TRANSLATE_NOOP("CommandRegistrar", "&InDesign ICML"), "FILE/Export/InDesign ICML", 170, false, 3);
@@ -355,7 +365,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_KEY_CB("edit.findReplace", QT_TRANSLATE_NOOP("CommandRegistrar", "Find && Rep&lace..."), "EDIT/Find & Replace...", 140, false, 1,
                    replaceShortcut,
                    callbacks.onFindReplace);
-    REG_CMD("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in &Book..."), "EDIT/Find in Book...", 150, true, 1);
+    // Find in Book: the Search panel, in all the texts of the book (BookSearchCoordinator gives
+    // it its callback), with the key other editors give their search in all the files
+    REG_CMD_KEY("edit.findInBook", QT_TRANSLATE_NOOP("CommandRegistrar", "Find in &Book..."), "EDIT/Find in Book...", 150, true, 0,
+                KeyboardShortcut(Qt::Key_F, Qt::ControlModifier | Qt::ShiftModifier));
 
     // The to-dos not done yet; AnnotationsCoordinator gives them their callbacks
     REG_CMD_KEY("edit.nextTodo", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt To Do"), "EDIT/Next To Do", 152, false, 0,
@@ -419,9 +432,18 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD_CB("book.newTimeline", QT_TRANSLATE_NOOP("CommandRegistrar", "New &Timeline..."), "BOOK/New Timeline...", 70, true, 1,
                newInWorkshop("timeline"));
 
+    // The text from the cursor to a new text right after the text in front, named after the
+    // texts of the book, as New Chapter... (MainWindow); ChapterBreakCoordinator gives it its
+    // callback
+    REG_CMD("book.chapterBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Chapter Brea&k"), "BOOK/Chapter Break", 80, false, 0);
+
     // The same as Insert > Scene Break
     REG_CMD_CB("book.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Sc&ene Break"), "BOOK/Scene Break", 90, true, 0,
                callbacks.onInsertSceneBreak);
+
+    // The book's dictionary on its tab: its names, spelling rules and words (no keys);
+    // BookDictionaryCoordinator gives it its callback
+    REG_CMD("book.dictionary", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Dictionary..."), "BOOK/Book Dictionary...", 95, false, 0);
 
     REG_CMD_TOOL_ICON("book.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Book &Properties..."), "BOOK/Book Properties...", 100, false, 1,
                       KeyboardShortcut(),
@@ -432,18 +454,36 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // INSERT MENU
     // =========================================================================
 
-    REG_CMD("insert.image", QT_TRANSLATE_NOOP("CommandRegistrar", "&Image..."), "INSERT/Image...", 10, false, 1);
+    // An image: the system window choosing a picture, copied into the book's folder of
+    // images (no keys, as in Word)
+    REG_CMD_CB("insert.image", QT_TRANSLATE_NOOP("CommandRegistrar", "&Image..."), "INSERT/Image...", 10, false, 1,
+               callbacks.onInsertImage);
     // A table: the window of its columns and rows (no keys: Ctrl+F12 of LibreOffice switches
     // the workspaces of Xfce)
     REG_CMD_CB("insert.table", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble..."), "INSERT/Table...", 20, false, 1,
                callbacks.onInsertTable);
+    // The numbered captions: the caption of the image at the cursor (Ctrl+Shift+G, free in the
+    // program and in the systems; also with the cursor just after the image), a cross-reference
+    // to a caption and the list of figures. CaptionCoordinator gives them their callbacks.
+    REG_CMD_KEY("insert.caption", QT_TRANSLATE_NOOP("CommandRegistrar", "&Caption..."), "INSERT/Caption...", 22, false, 0,
+                KeyboardShortcut(Qt::Key_G, Qt::ControlModifier | Qt::ShiftModifier));
+    REG_CMD("insert.crossReference", QT_TRANSLATE_NOOP("CommandRegistrar", "Cross-&Reference..."), "INSERT/Cross-Reference...", 24, false, 0);
+    REG_CMD("insert.figureList", QT_TRANSLATE_NOOP("CommandRegistrar", "List of Fi&gures"), "INSERT/List of Figures", 26, false, 0);
     // A link: the window of its text and address, on a link of the text its editing (Ctrl+K,
     // as in Word and LibreOffice)
     REG_CMD_KEY_CB("insert.link", QT_TRANSLATE_NOOP("CommandRegistrar", "&Link..."), "INSERT/Link...", 30, true, 1,
                    KeyboardShortcut(Qt::Key_K, Qt::ControlModifier), callbacks.onInsertLink);
 
-    REG_CMD("insert.footnote", QT_TRANSLATE_NOOP("CommandRegistrar", "F&ootnote"), "INSERT/Footnote", 40, false, 1);
-    REG_CMD("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Endnote"), "INSERT/Endnote", 50, false, 1);
+    // A note: its number at the cursor and the frame of its text (Alt+Shift+F and Alt+Shift+E,
+    // on macOS Shift+Option+Cmd; Word's Ctrl+Alt+F and Ctrl+Alt+D are AltGr on Polish
+    // keyboards). FootnoteCoordinator gives them their callbacks.
+    REG_CMD_KEY("insert.footnote", QT_TRANSLATE_NOOP("CommandRegistrar", "F&ootnote"), "INSERT/Footnote", 40, false, 1,
+                KeyboardShortcut(Qt::Key_F, pasteModifiers));
+    REG_CMD_KEY("insert.endnote", QT_TRANSLATE_NOOP("CommandRegistrar", "&Endnote"), "INSERT/Endnote", 50, false, 1,
+                KeyboardShortcut(Qt::Key_E, pasteModifiers));
+    // How the book numbers its notes and where its endnotes are (Polish: Ustawienia
+    // przypisów...; the other letters of both names are other items' keys)
+    REG_CMD("insert.footnoteSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Footnote La&yout..."), "INSERT/Footnote Layout...", 55, false, 1);
 
     // Annotations on the text; AnnotationsCoordinator gives them their callbacks. Add
     // Annotation opens a small menu of the kinds at the cursor. Not Ctrl+M (it minimizes
@@ -490,14 +530,34 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // a word open it. Ctrl+Shift+W: the program has no other command on it
     REG_CMD_KEY_CB("insert.quickInsert", QT_TRANSLATE_NOOP("CommandRegistrar", "Q&uick Insert..."), "INSERT/Quick Insert...", 87, false, 0,
                    KeyboardShortcut(Qt::Key_W, Qt::ControlModifier | Qt::ShiftModifier), callbacks.onQuickInsert);
-    REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time"), "INSERT/Date & Time", 90, false, 1);
-    REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 1);
+    // Today's date or time as text or as a field (FieldCoordinator gives the callbacks)
+    REG_CMD("insert.dateTime", QT_TRANSLATE_NOOP("CommandRegistrar", "Date && &Time..."), "INSERT/Date & Time...", 90, false, 0);
+    REG_CMD("insert.field", QT_TRANSLATE_NOOP("CommandRegistrar", "&Field..."), "INSERT/Field...", 100, true, 0);
+    // The date (in the format chosen last) and the time at once, as text, as Word's
+    // Alt+Shift+D and Alt+Shift+T: no menu has them, Settings > Keyboard Shortcuts lists them
+    // under Insert
+    for (const auto& [id, text, key, order] :
+         {std::tuple{"insert.date", QT_TRANSLATE_NOOP("CommandRegistrar", "Today's Date as Text"), Qt::Key_D, 91},
+          std::tuple{"insert.time", QT_TRANSLATE_NOOP("CommandRegistrar", "Current Time as Text"), Qt::Key_T, 92}}) {
+        Command cmd;
+        cmd.id = id;
+        setTexts(cmd, text);
+        cmd.category = "INSERT";
+        cmd.menuPath = std::string("INSERT/") + text;
+        cmd.menuOrder = order;
+        cmd.phase = 0;
+        cmd.showInMenu = false;
+        cmd.showInToolbar = false;
+        cmd.shortcut = KeyboardShortcut(key, pasteModifiers);
+        registry.registerCommand(cmd);
+        count++;
+    }
 
     // The objects of the text (editor/paragraph_styles.h): each a block of its own. Ctrl+Enter
     // as in Word and LibreOffice; the annotation frame keeps it for its text
-    REG_CMD_CB("insert.horizontalLine", QT_TRANSLATE_NOOP("CommandRegistrar", "&Horizontal Line"), "INSERT/Horizontal Line", 110, false, 0,
+    REG_CMD_CB("insert.horizontalLine", QT_TRANSLATE_NOOP("CommandRegistrar", "Hori&zontal Line"), "INSERT/Horizontal Line", 110, false, 0,
                callbacks.onInsertHorizontalLine);
-    REG_CMD_CB("insert.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "S&cene Break"), "INSERT/Scene Break", 120, false, 0,
+    REG_CMD_CB("insert.sceneBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "Scene Brea&k"), "INSERT/Scene Break", 120, false, 0,
                callbacks.onInsertSceneBreak);
     REG_CMD_KEY_CB("insert.pageBreak", QT_TRANSLATE_NOOP("CommandRegistrar", "&Page Break"), "INSERT/Page Break", 130, false, 0,
                    KeyboardShortcut(Qt::Key_Return, Qt::ControlModifier), callbacks.onInsertPageBreak);
@@ -541,6 +601,11 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                toStyle("dialogue"));
     REG_CMD_CB("format.style.code", QT_TRANSLATE_NOOP("CommandRegistrar", "&Code"), "FORMAT/Text Style/Code", 80, true, 0,
                toStyle("code"));
+    // The styles of the book: a new one from the paragraph at the cursor, the one at the cursor
+    // changed or deleted, all of them in one window (gui/style_coordinator.h)
+    REG_CMD("format.style.new", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&w Style..."), "FORMAT/Text Style/New Style...", 82, false, 1);
+    REG_CMD("format.style.modify", QT_TRANSLATE_NOOP("CommandRegistrar", "Modi&fy Style..."), "FORMAT/Text Style/Modify Style...", 84, false, 1);
+    REG_CMD("format.style.delete", QT_TRANSLATE_NOOP("CommandRegistrar", "Dele&te Style"), "FORMAT/Text Style/Delete Style", 86, false, 1);
     REG_CMD("format.style.manage", QT_TRANSLATE_NOOP("CommandRegistrar", "&Manage Styles..."), "FORMAT/Text Style/Manage Styles...", 90, true, 1);
 
     // OpenSpec #00030: Added standard formatting shortcuts (Ctrl+B/I/U)
@@ -665,6 +730,130 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
                    clearFormattingShortcut, callbacks.onClearFormatting);
 
     // =========================================================================
+    // TABLE MENU
+    // =========================================================================
+
+    // The table of the cursor: its rows, columns and cells, its header, the order of its
+    // rows, text into a table and back, and its properties (gui/dialogs/table_dialogs.h).
+    // Without keys of their own: Alt+Shift+Up and Alt+Shift+Down of the text move its rows
+    // (editor/text_keys.h). The access keys are those of the cell's context menu too.
+    const auto table = [&callbacks](TableCommand command) {
+        return [onTable = callbacks.onTable, command]() {
+            if (onTable) {
+                onTable(command);
+            }
+        };
+    };
+    REG_CMD_CB("table.insert", QT_TRANSLATE_NOOP("CommandRegistrar", "Insert &Table..."), "TABLE/Insert Table...", 10, true, 0,
+               table(TableCommand::InsertTable));
+    REG_CMD_CB("table.insertRowsAbove", QT_TRANSLATE_NOOP("CommandRegistrar", "Rows &Above"), "TABLE/Insert/Rows Above", 20, false, 0,
+               table(TableCommand::InsertRowsAbove));
+    REG_CMD_CB("table.insertRowsBelow", QT_TRANSLATE_NOOP("CommandRegistrar", "Rows &Below"), "TABLE/Insert/Rows Below", 21, false, 0,
+               table(TableCommand::InsertRowsBelow));
+    REG_CMD_CB("table.insertColumnsLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Columns to the &Left"), "TABLE/Insert/Columns to the Left", 22, false, 0,
+               table(TableCommand::InsertColumnsLeft));
+    REG_CMD_CB("table.insertColumnsRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Columns to the &Right"), "TABLE/Insert/Columns to the Right", 23, false, 0,
+               table(TableCommand::InsertColumnsRight));
+    REG_CMD_CB("table.deleteRows", QT_TRANSLATE_NOOP("CommandRegistrar", "&Rows"), "TABLE/Delete/Rows", 30, false, 0,
+               table(TableCommand::DeleteRows));
+    REG_CMD_CB("table.deleteColumns", QT_TRANSLATE_NOOP("CommandRegistrar", "&Columns"), "TABLE/Delete/Columns", 31, false, 0,
+               table(TableCommand::DeleteColumns));
+    REG_CMD_CB("table.deleteTable", QT_TRANSLATE_NOOP("CommandRegistrar", "&Table"), "TABLE/Delete/Table", 32, false, 0,
+               table(TableCommand::DeleteTable));
+    REG_CMD_CB("table.selectCell", QT_TRANSLATE_NOOP("CommandRegistrar", "C&ell"), "TABLE/Select/Cell", 40, false, 0,
+               table(TableCommand::SelectCell));
+    REG_CMD_CB("table.selectRow", QT_TRANSLATE_NOOP("CommandRegistrar", "&Row"), "TABLE/Select/Row", 41, false, 0,
+               table(TableCommand::SelectRow));
+    REG_CMD_CB("table.selectColumn", QT_TRANSLATE_NOOP("CommandRegistrar", "&Column"), "TABLE/Select/Column", 42, false, 0,
+               table(TableCommand::SelectColumn));
+    REG_CMD_CB("table.selectTable", QT_TRANSLATE_NOOP("CommandRegistrar", "&Table"), "TABLE/Select/Table", 43, true, 0,
+               table(TableCommand::SelectTable));
+    REG_CMD_CB("table.mergeCells", QT_TRANSLATE_NOOP("CommandRegistrar", "Mer&ge Cells"), "TABLE/Merge Cells", 50, false, 0,
+               table(TableCommand::MergeCells));
+    REG_CMD_CB("table.splitCells", QT_TRANSLATE_NOOP("CommandRegistrar", "Spl&it Cells..."), "TABLE/Split Cells...", 60, true, 0,
+               table(TableCommand::SplitCells));
+    REG_CMD_CB("table.distributeRows", QT_TRANSLATE_NOOP("CommandRegistrar", "Distribute Ro&ws Evenly"), "TABLE/Distribute Rows Evenly", 70, false, 0,
+               table(TableCommand::DistributeRows));
+    REG_CMD_CB("table.distributeColumns", QT_TRANSLATE_NOOP("CommandRegistrar", "Distribute Col&umns Evenly"), "TABLE/Distribute Columns Evenly", 80, true, 0,
+               table(TableCommand::DistributeColumns));
+    REG_CMD_CB("table.headerRows", QT_TRANSLATE_NOOP("CommandRegistrar", "Repeat &Header Rows"), "TABLE/Repeat Header Rows", 90, true, 0,
+               table(TableCommand::HeaderRows));
+    REG_CMD_CB("table.sort", QT_TRANSLATE_NOOP("CommandRegistrar", "S&ort..."), "TABLE/Sort...", 100, false, 0,
+               table(TableCommand::Sort));
+    REG_CMD_CB("table.textToTable", QT_TRANSLATE_NOOP("CommandRegistrar", "&Text to Table..."), "TABLE/Convert/Text to Table...", 110, false, 0,
+               table(TableCommand::TextToTable));
+    REG_CMD_CB("table.tableToText", QT_TRANSLATE_NOOP("CommandRegistrar", "Table to Te&xt..."), "TABLE/Convert/Table to Text...", 111, true, 0,
+               table(TableCommand::TableToText));
+    REG_CMD_CB("table.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Ta&ble Properties..."), "TABLE/Table Properties...", 120, false, 0,
+               table(TableCommand::Properties));
+    if (Command* header = registry.getCommand("table.headerRows")) {
+        header->isChecked = []() { return false; };  // the text at the cursor checks it
+    }
+
+    // =========================================================================
+    // IMAGE MENU
+    // =========================================================================
+
+    // The selected image of the text: its window, its caption and description, its turn,
+    // mirror and filter, its crop and size, its file. Ctrl+] and Ctrl+[ make it larger and
+    // smaller and Esc goes back to the text (fixed keys of the selected image,
+    // editor/book_editor.h). The access keys are those of its context menu too, unique there
+    // with the items of the text (Copy, Paste, Add To Do).
+    const auto image = [&callbacks](ImageCommand command) {
+        return [onImage = callbacks.onImage, command]() {
+            if (onImage) {
+                onImage(command);
+            }
+        };
+    };
+    REG_CMD_KEY_CB("image.properties", QT_TRANSLATE_NOOP("CommandRegistrar", "Image Prop&erties..."), "IMAGE/Image Properties...", 10, false, 0,
+                   imagePropertiesShortcut, image(ImageCommand::Properties));
+    REG_CMD_CB("image.addCaption", QT_TRANSLATE_NOOP("CommandRegistrar", "Insert Capt&ion..."), "IMAGE/Insert Caption...", 20, false, 0,
+               image(ImageCommand::AddCaption));
+    REG_CMD_CB("image.altText", QT_TRANSLATE_NOOP("CommandRegistrar", "A&lternative Text..."), "IMAGE/Alternative Text...", 30, true, 0,
+               image(ImageCommand::AltText));
+    REG_CMD_CB("image.rotateRight", QT_TRANSLATE_NOOP("CommandRegistrar", "Rotate &Right 90°"), "IMAGE/Rotate/Rotate Right 90°", 40, false, 0,
+               image(ImageCommand::RotateRight));
+    REG_CMD_CB("image.rotateLeft", QT_TRANSLATE_NOOP("CommandRegistrar", "Rotate &Left 90°"), "IMAGE/Rotate/Rotate Left 90°", 41, false, 0,
+               image(ImageCommand::RotateLeft));
+    REG_CMD_CB("image.flipHorizontal", QT_TRANSLATE_NOOP("CommandRegistrar", "Flip &Horizontally"), "IMAGE/Rotate/Flip Horizontally", 42, false, 0,
+               image(ImageCommand::FlipHorizontal));
+    REG_CMD_CB("image.flipVertical", QT_TRANSLATE_NOOP("CommandRegistrar", "Flip &Vertically"), "IMAGE/Rotate/Flip Vertically", 43, true, 0,
+               image(ImageCommand::FlipVertical));
+    REG_CMD_CB("image.rotateOptions", QT_TRANSLATE_NOOP("CommandRegistrar", "&More Rotation Options..."), "IMAGE/Rotate/More Rotation Options...", 44, false, 0,
+               image(ImageCommand::RotateOptions));
+    REG_CMD_CB("image.filterNone", QT_TRANSLATE_NOOP("CommandRegistrar", "&Original"), "IMAGE/Filter/Original", 50, false, 0,
+               image(ImageCommand::FilterNone));
+    REG_CMD_CB("image.filterGrayscale", QT_TRANSLATE_NOOP("CommandRegistrar", "&Grayscale"), "IMAGE/Filter/Grayscale", 51, false, 0,
+               image(ImageCommand::FilterGrayscale));
+    REG_CMD_CB("image.filterSepia", QT_TRANSLATE_NOOP("CommandRegistrar", "&Sepia"), "IMAGE/Filter/Sepia", 52, false, 0,
+               image(ImageCommand::FilterSepia));
+    REG_CMD_CB("image.filterBlackWhite", QT_TRANSLATE_NOOP("CommandRegistrar", "&Black and White"), "IMAGE/Filter/Black and White", 53, false, 0,
+               image(ImageCommand::FilterBlackWhite));
+    REG_CMD_CB("image.filterWash", QT_TRANSLATE_NOOP("CommandRegistrar", "&Washout"), "IMAGE/Filter/Washout", 54, true, 0,
+               image(ImageCommand::FilterWash));
+    // The filter of the selected image for every image of the book (open texts and closed)
+    REG_CMD_CB("image.filterAll", QT_TRANSLATE_NOOP("CommandRegistrar", "Same Filter for &All Images..."), "IMAGE/Filter/Same Filter for All Images...", 55, false, 0,
+               image(ImageCommand::FilterAll));
+    REG_CMD_CB("image.colorOptions", QT_TRANSLATE_NOOP("CommandRegistrar", "&Colors and Brightness..."), "IMAGE/Filter/Colors and Brightness...", 56, false, 0,
+               image(ImageCommand::ColorOptions));
+    REG_CMD_CB("image.crop", QT_TRANSLATE_NOOP("CommandRegistrar", "C&rop"), "IMAGE/Crop", 60, false, 0,
+               image(ImageCommand::Crop));
+    REG_CMD_CB("image.originalSize", QT_TRANSLATE_NOOP("CommandRegistrar", "Original Si&ze"), "IMAGE/Original Size", 70, true, 0,
+               image(ImageCommand::OriginalSize));
+    REG_CMD_CB("image.change", QT_TRANSLATE_NOOP("CommandRegistrar", "C&hange Image..."), "IMAGE/Change Image...", 80, false, 0,
+               image(ImageCommand::Change));
+    REG_CMD_CB("image.saveAs", QT_TRANSLATE_NOOP("CommandRegistrar", "Sa&ve as Image..."), "IMAGE/Save as Image...", 90, false, 0,
+               image(ImageCommand::SaveAs));
+    // The filter of the selected image is checked (MainWindow)
+    for (const char* id : {"image.filterNone", "image.filterGrayscale", "image.filterSepia",
+                           "image.filterBlackWhite", "image.filterWash"}) {
+        if (Command* filter = registry.getCommand(id)) {
+            filter->isChecked = []() { return false; };
+        }
+    }
+
+    // =========================================================================
     // TOOLS MENU
     // =========================================================================
 
@@ -704,7 +893,7 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     // The panel Repetitions with the keyboard in it, and the next repetition of a word in the
     // text (RepetitionsCoordinator gives them their callbacks); Ctrl+Shift+F7 beside F7, the next
     // spelling or grammar issue
-    REG_CMD("tools.repetitions", QT_TRANSLATE_NOOP("CommandRegistrar", "Word R&epetitions"), "TOOLS/Word Repetitions", 57, false, 0);
+    REG_CMD("tools.repetitions", QT_TRANSLATE_NOOP("CommandRegistrar", "W&ord Repetitions"), "TOOLS/Word Repetitions", 57, false, 0);
     REG_CMD_KEY("tools.nextRepetition", QT_TRANSLATE_NOOP("CommandRegistrar", "Ne&xt Repetition"), "TOOLS/Next Repetition", 58, false, 0,
                 KeyboardShortcut(Qt::Key_F7, Qt::ControlModifier | Qt::ShiftModifier));
 
@@ -719,7 +908,10 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("tools.plugins.reload", QT_TRANSLATE_NOOP("CommandRegistrar", "&Reload Plugins"), "TOOLS/Plugins/Reload Plugins", 160, false, 2);
 
     REG_CMD("tools.challenges", QT_TRANSLATE_NOOP("CommandRegistrar", "&Challenges && Badges..."), "TOOLS/Challenges & Badges...", 170, false, 2);
-    REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 180, true, 2);
+    REG_CMD("tools.addChallenge", QT_TRANSLATE_NOOP("CommandRegistrar", "A&dd Challenge..."), "TOOLS/Add Challenge...", 175, false, 1);
+    REG_CMD("tools.writingGoals", QT_TRANSLATE_NOOP("CommandRegistrar", "&Writing Goals && Deadlines..."), "TOOLS/Writing Goals & Deadlines...", 180, false, 2);
+    // Settings > Statistics and Goals (WritingStatsCoordinator); on the Statistics toolbar
+    REG_CMD("tools.statsSettings", QT_TRANSLATE_NOOP("CommandRegistrar", "Statistics S&ettings..."), "TOOLS/Statistics Settings...", 185, true, 1);
 
     // OpenSpec #00037: Toolbar Manager command (used in Quick Actions toolbar)
     REG_CMD_TOOL_ICON("tools.toolbarManager", QT_TRANSLATE_NOOP("CommandRegistrar", "Customize &Toolbars..."), "TOOLS/Customize Toolbars...", 210, false, 0,
@@ -781,6 +973,9 @@ int registerAllCommands(const CommandCallbacks& callbacks) {
     REG_CMD("view.spelling", QT_TRANSLATE_NOOP("CommandRegistrar", "Spelling and &Grammar"), "VIEW/Panels/Spelling and Grammar", 70, false, 0);
     // No key of its own: Tools > Word Repetitions opens it with the keyboard in it
     REG_CMD("view.repetitionsPanel", QT_TRANSLATE_NOOP("CommandRegistrar", "R&epetitions"), "VIEW/Panels/Repetitions", 75, false, 0);
+
+    // The views of the writing: today, the week, 30 days, the book, the times of writing
+    REG_CMD("view.statistics", QT_TRANSLATE_NOOP("CommandRegistrar", "Statis&tics"), "VIEW/Panels/Statistics", 80, false, 0);
 
     // View Mode submenu (OpenSpec #00042 Phase 7.3)
     // View modes for BookEditor - radio group (only one can be active)

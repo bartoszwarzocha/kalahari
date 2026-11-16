@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file add_to_book_dialog.h
 /// @brief Add to Book: a file as a new text element, of the kind, with the title and at the
 /// place the writer chooses
@@ -16,6 +19,10 @@ class QComboBox;
 class QLabel;
 class QLineEdit;
 class QRadioButton;
+
+namespace kalahari::core {
+class ProjectManager;
+}  // namespace kalahari::core
 
 namespace kalahari {
 namespace gui {
@@ -60,10 +67,10 @@ public:
         QList<PickerSection> sections;    ///< The parts of the book, for the list of places
     };
 
-    /// @brief The kinds and the parts of the book open in core::ProjectManager, for file
+    /// @brief The kinds and the parts of the book open in @p projects, for file
     /// @p path: the kind chosen at the start is the one its name says ("chapter_004.kchapter":
     /// a chapter), else the main text kind of the book
-    static Book openBook(const QString& path);
+    static Book openBook(const core::ProjectManager& projects, const QString& path);
 
     /// @brief Create the dialog
     /// @param file The file

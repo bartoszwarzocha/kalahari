@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_fitting_widgets.cpp
 /// @brief Widgets that fit a small screen: items that go on in more rows, and bars whose
 /// message takes more lines

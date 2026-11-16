@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_shortcut_rules.cpp
 /// @brief Which keys a command can have: the keys of the text, of the bars and of the system
 
@@ -15,6 +18,7 @@
 
 #include <algorithm>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari::gui;
 using Result = KeyCheck::Result;
@@ -188,7 +192,8 @@ TEST_CASE("Shortcut rules: the fixed keys say what they do", "[gui][shortcuts][r
     const KeyCheck escape = windows.check(keys(NONE, Qt::Key_Escape), "file.close");
     CHECK(escape.result == Result::Refused);
     CHECK(escape.reason ==
-          QStringLiteral("%1 closes the windows, the find bar and the annotation frame.")
+          QStringLiteral(
+              "%1 closes the windows, the find bar and the frames of the annotations and notes.")
                   .arg(ShortcutRules::keysText(keys(NONE, Qt::Key_Escape))) +
               fixed);
 
@@ -247,9 +252,9 @@ TEST_CASE("Shortcut rules: keys some desktops take only bring a warning",
 }
 
 TEST_CASE("Shortcut rules: every shortcut of the program is allowed", "[gui][shortcuts][rules]") {
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     const ShortcutRules rules;
-    for (const Command& command : CommandRegistry::getInstance().getAllCommands()) {
+    for (const Command& command : kalahari::test::commands().getAllCommands()) {
         if (command.shortcut.isEmpty()) {
             continue;
         }

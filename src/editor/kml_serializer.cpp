@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kml_serializer.cpp
 /// @brief KML Serializer implementation (OpenSpec #00043 Phase 11.2)
 ///
@@ -9,6 +12,10 @@
 #include <kalahari/editor/kml_format_registry.h>  // For KmlPropertyId enum and registry functions
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/text_images.h>
+#include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/text_tables.h>
@@ -327,47 +334,84 @@ QString KmlSerializer::paragraphsToKml(const QTextDocument& document, int from, 
 QString KmlSerializer::tableToKml(const QTextTable& table, int from, int to,
                                   AnnotationList* annotations) const
 {
+    // The rows from the one holding the range start to the one holding its end
+    TableCellRange rows;
+    rows.lastRow = table.rows() - 1;
+    rows.lastColumn = table.columns() - 1;
+    if (from > table.firstPosition()) {
+        rows.firstRow = table.cellAt(from).row();
+    }
+    if (to < table.lastPosition()) {
+        const QTextTableCell cell = table.cellAt(to);
+        rows.lastRow = cell.row() + cell.rowSpan() - 1;
+    }
+    return cellsToKml(table, rows, from, to, annotations);
+}
+
+namespace {
+
+/// @brief The attributes written after an element's name: ` name="value"` each
+QString attributesText(const std::vector<KmlAttribute>& attributes)
+{
+    QString text;
+    for (const auto& [name, value] : attributes) {
+        text += QLatin1Char(' ') + name + QStringLiteral("=\"") +
+                KmlFormatRegistry::escapeXml(value) + QLatin1Char('"');
+    }
+    return text;
+}
+
+}  // anonymous namespace
+
+QString KmlSerializer::cellsToKml(const QTextTable& table, const TableCellRange& cells, int from,
+                                  int to, AnnotationList* annotations) const
+{
     const QString newline = m_indented ? QStringLiteral("\n") : QString();
     const QString indent = m_indented ? QStringLiteral("  ") : QString();
     const TableShape shape = tableShapeOf(table);
 
-    // The rows from the one holding the range start to the one holding its end
-    int firstRow = 0;
-    if (from > table.firstPosition()) {
-        firstRow = table.cellAt(from).row();
-    }
-    int lastRow = shape.rows - 1;
-    if (to < table.lastPosition()) {
-        const QTextTableCell cell = table.cellAt(to);
-        lastRow = cell.row() + cell.rowSpan() - 1;
-    }
-
-    QString kml = indent + QStringLiteral("<table>") + newline;
+    QString kml = indent + QStringLiteral("<table") +
+                  attributesText(tableKmlAttributes(shape.properties)) + QLatin1Char('>') +
+                  newline;
     if (!shape.columnWidths.empty()) {
+        // The widths of the columns written, a hundred percent together
+        double sum = 0.0;
+        for (int column = cells.firstColumn; column <= cells.lastColumn; ++column) {
+            sum += shape.columnWidths[static_cast<size_t>(column)];
+        }
         kml += indent + indent;
-        for (const double width : shape.columnWidths) {
+        for (int column = cells.firstColumn; column <= cells.lastColumn; ++column) {
+            const double width = sum > 0.0
+                                     ? shape.columnWidths[static_cast<size_t>(column)] * 100.0 / sum
+                                     : 100.0 / cells.columns();
             kml += QStringLiteral("<col width=\"%1%\"/>")
                        .arg(QString::number(std::round(width * 100.0) / 100.0, 'g', 6));
         }
         kml += newline;
     }
-    for (int row = firstRow; row <= lastRow; ++row) {
-        kml += indent + indent + QStringLiteral("<tr>");
-        for (int column = 0; column < shape.columns; ++column) {
-            // A cell spanning more rows starts in its first row, or in the first row written
+    for (int row = cells.firstRow; row <= cells.lastRow; ++row) {
+        kml += indent + indent + QStringLiteral("<tr") +
+               attributesText(rowKmlAttributes(rowPropertiesOf(table, row))) + QLatin1Char('>');
+        for (int column = cells.firstColumn; column <= cells.lastColumn; ++column) {
+            // A cell spanning more rows starts in its first row, or in the first row written;
+            // one spanning more columns in its first column, or in the first column written
             const QTextTableCell cell = table.cellAt(row, column);
-            if (cell.column() != column || (cell.row() != row && row != firstRow)) {
+            if ((cell.column() != column && column != cells.firstColumn) ||
+                (cell.row() != row && row != cells.firstRow)) {
                 continue;
             }
-            const int rows = std::min(cell.row() + cell.rowSpan(), lastRow + 1) - row;
+            const int rows = std::min(cell.row() + cell.rowSpan(), cells.lastRow + 1) - row;
+            const int columns =
+                std::min(cell.column() + cell.columnSpan(), cells.lastColumn + 1) - column;
             const QString element = row < shape.headerRows ? QStringLiteral("th") : QStringLiteral("td");
             kml += QLatin1Char('<') + element;
-            if (cell.columnSpan() > 1) {
-                kml += QStringLiteral(" colspan=\"%1\"").arg(cell.columnSpan());
+            if (columns > 1) {
+                kml += QStringLiteral(" colspan=\"%1\"").arg(columns);
             }
             if (rows > 1) {
                 kml += QStringLiteral(" rowspan=\"%1\"").arg(rows);
             }
+            kml += attributesText(cellKmlAttributes(cellPropertiesOf(cell)));
             kml += QLatin1Char('>');
             const int cellFrom = std::max(from, cell.firstPosition());
             const int cellTo = std::min(to, cell.lastPosition());
@@ -382,6 +426,27 @@ QString KmlSerializer::tableToKml(const QTextTable& table, int from, int to,
     }
     kml += indent + QStringLiteral("</table>") + newline;
     return kml;
+}
+
+QString KmlSerializer::toKml(const TableCellRange& cells) const
+{
+    if (!cells.table) {
+        return QString();
+    }
+    const QString newline = m_indented ? QStringLiteral("\n") : QString();
+    const QString indent = m_indented ? QStringLiteral("  ") : QString();
+    AnnotationList annotations;
+    const QString table = cellsToKml(*cells.table, cells, cells.table->firstPosition(),
+                                     cells.table->lastPosition(), &annotations);
+    QString result = QStringLiteral("<kml>") + newline;
+    if (!annotations.isEmpty()) {
+        result += indent + QStringLiteral("<annotations>") + newline;
+        for (const Annotation& annotation : annotations) {
+            result += indent + indent + annotationElement(annotation) + newline;
+        }
+        result += indent + QStringLiteral("</annotations>") + newline;
+    }
+    return result + table + QStringLiteral("</kml>");
 }
 
 QString KmlSerializer::blockToKml(const QTextBlock& block) const
@@ -431,6 +496,10 @@ QString KmlSerializer::serializeBlockAttributes(const QTextBlock& block) const
 
     for (const auto& [name, value] : paragraphFormatToKml(paragraphFormatOf(block.blockFormat()))) {
         attrs += QLatin1Char(' ') + name + QStringLiteral("=\"") + value + QLatin1Char('"');
+    }
+    // A caption above its image
+    if (isCaptionAbove(block.blockFormat())) {
+        attrs += QStringLiteral(" caption=\"above\"");
     }
     return attrs;
 }
@@ -574,10 +643,29 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
     }
 
     // Escape XML special characters in text content, a line break in the paragraph is the
-    // element <br/>; the annotations on places inside the run go after their characters
-    const auto textKml = [](const QString& part) {
-        QString kml = KmlFormatRegistry::escapeXml(QString(part).remove(QChar::ObjectReplacementCharacter));
+    // element <br/>, an image the element <img/>; the annotations on places inside the run
+    // go after their characters
+    // An object of the line is its element: an image, a caption's number, a cross-reference,
+    // a field
+    QString objectElement;
+    if (const std::optional<ImageProperties> image = imageOf(format)) {
+        objectElement = imageKml(*image);
+    } else if (const std::optional<CaptionNumberField> number = captionNumberOf(format)) {
+        objectElement = captionNumberKml(*number);
+    } else if (const std::optional<CrossReference> reference = crossReferenceOf(format)) {
+        objectElement = crossReferenceKml(*reference);
+    } else if (const std::optional<TextField> field = textFieldOf(format)) {
+        objectElement = textFieldKml(*field);
+    } else if (const std::optional<Footnote> note = footnoteOf(format)) {
+        objectElement = noteKml(*note);
+    }
+    const auto textKml = [&objectElement](const QString& part) {
+        QString kml = KmlFormatRegistry::escapeXml(
+            objectElement.isEmpty() ? QString(part).remove(QChar::ObjectReplacementCharacter) : part);
         kml.replace(QChar(QChar::LineSeparator), QStringLiteral("<br/>"));
+        if (!objectElement.isEmpty()) {
+            kml.replace(QChar(QChar::ObjectReplacementCharacter), objectElement);
+        }
         return kml;
     };
     QString escapedText;
@@ -660,8 +748,7 @@ QString KmlSerializer::serializeRun(const QString& text, const QTextCharFormat& 
 bool KmlSerializer::hasMetadata(const QTextCharFormat& format) const
 {
     // Check if any metadata property is set
-    return format.property(KmlPropFootnote).isValid() ||
-           format.property(KmlPropCharRef).isValid() ||
+    return format.property(KmlPropCharRef).isValid() ||
            format.property(KmlPropLocRef).isValid();
 }
 

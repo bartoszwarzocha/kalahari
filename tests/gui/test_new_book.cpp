@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_new_book.cpp
 /// @brief A new book: the palette of the kinds of a user project, the window of its kinds, and
 /// a new book created without opening while another book is open
@@ -34,6 +37,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using core::BookPlace;
@@ -352,7 +356,7 @@ TEST_CASE("Palette: the kinds of all book types, each in the parts of the book i
           "contributors, first_publications");
     CHECK(idsOf(palette.kindsIn(BookPlace::Workshop)) ==
           "mindmap, timeline, character, location, item, work_note, cover, quote, web_page, "
-          "picture, document, publication, recording, other_file, source, draft, logline, "
+          "picture, document, publication, recording, other_file, draft, logline, "
           "synopsis, treatment, step_outline");
 
     // A tile shows the name of its kind and the type the kind comes from
@@ -793,7 +797,7 @@ TEST_CASE("New Book: with a book open, the new book is created without opening i
 
 TEST_CASE("New Book: a book type that the program does not have is not on the list",
           "[gui][newbook]") {
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     if (pm.isProjectOpen()) {
         REQUIRE(pm.closeProject(false));
     }
@@ -852,7 +856,7 @@ TEST_CASE("New Book: a user project gets the kinds and the elements chosen in th
           "kinds",
           "[gui][newbook]") {
     const test::RecentBooks recent;
-    auto& pm = core::ProjectManager::getInstance();
+    auto& pm = test::book();
     if (pm.isProjectOpen()) {
         REQUIRE(pm.closeProject(false));
     }

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file kalahari_dialog.h
 /// @brief The base of the program's own dialogs: one look for all of them
 
@@ -139,6 +142,11 @@ protected:
     /// @param text Button text, with a mnemonic
     /// @return The button; it does not close the dialog
     QPushButton* addSideButton(const QString& text);
+
+    /// @brief Add a widget at the left end of the row of the buttons, after the side buttons
+    ///        (e.g. a checkbox of how the dialog does its job)
+    /// @param widget The widget; the dialog becomes its parent
+    void addSideWidget(QWidget* widget);
 
 signals:
     /// @brief Apply was pressed: do the dialog's job and keep it open

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file special_character_dialog.cpp
 /// @brief Insert > Special Character...: the characters by group or in a list with their names,
 ///        found by a name or a code, inserted in the text at the cursor

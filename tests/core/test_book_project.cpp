@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_book_project.cpp
 /// @brief Book project and its .klh file: every field, kinds of other types and of packages
 /// that are not installed, files with problems and the example project
@@ -1687,4 +1690,295 @@ TEST_CASE("Book project: the example project is in the format of this version",
         }
     }
     CHECK(texts == 4);
+}
+
+TEST_CASE("Book project: the paragraph styles of the books", "[core][bookproject][styles]") {
+    BookProject project = fullProject();
+    REQUIRE(project.paragraphStyles.isEmpty());
+
+    // A project without styles of its own has no field: its file stays as it was
+    CHECK_FALSE(project.toJson().contains(QStringLiteral("paragraphStyles")));
+
+    // A style of the type changed in the book, and the writer's own style
+    BookParagraphStyle quote;
+    quote.id = QStringLiteral("quote");
+    quote.properties = {{QStringLiteral("italic"), true}, {QStringLiteral("spaceBefore"), 12}};
+    BookParagraphStyle memory;
+    memory.id = QStringLiteral("wspomnienie");
+    memory.name = QStringLiteral("Wspomnienie");
+    memory.baseStyle = QStringLiteral("quote");
+    memory.nextStyle = QStringLiteral("normal");
+    memory.properties = {{QStringLiteral("leftMargin"), 18}};
+    project.paragraphStyles = {quote, memory};
+
+    const QJsonObject json = project.toJson();
+    const QJsonArray list = json.value(QStringLiteral("paragraphStyles")).toArray();
+    REQUIRE(list.size() == 2);
+    CHECK(list.at(0).toObject() ==
+          QJsonObject{{QStringLiteral("id"), QStringLiteral("quote")},
+                      {QStringLiteral("next"), QString()},
+                      {QStringLiteral("properties"),
+                       QJsonObject{{QStringLiteral("italic"), true},
+                                   {QStringLiteral("spaceBefore"), 12}}}});
+    CHECK(list.at(1).toObject().value(QStringLiteral("name")).toString() == QStringLiteral("Wspomnienie"));
+    CHECK(list.at(1).toObject().value(QStringLiteral("base")).toString() == QStringLiteral("quote"));
+    CHECK(list.at(1).toObject().value(QStringLiteral("next")).toString() == QStringLiteral("normal"));
+
+    // Read back unchanged, with the fields of a later version kept
+    QJsonObject withExtra = json;
+    QJsonArray styles = list;
+    QJsonObject first = styles.at(0).toObject();
+    first.insert(QStringLiteral("shortcut"), QStringLiteral("Ctrl+Alt+Q"));
+    styles[0] = first;
+    withExtra.insert(QStringLiteral("paragraphStyles"), styles);
+    QStringList problems;
+    const std::optional<BookProject> read = BookProject::fromJson(withExtra, problems);
+    INFO(joined(problems));
+    REQUIRE(read.has_value());
+    CHECK(read->paragraphStyles.size() == 2);
+    CHECK(read->paragraphStyles.at(1) == memory);
+    CHECK(read->paragraphStyles.at(0).extra.value(QStringLiteral("shortcut")).toString() ==
+          QStringLiteral("Ctrl+Alt+Q"));
+    CHECK(read->toJson() == withExtra);
+
+    // Found by its id
+    REQUIRE(project.findParagraphStyle(QStringLiteral("wspomnienie")) != nullptr);
+    CHECK(project.findParagraphStyle(QStringLiteral("wspomnienie"))->name == QStringLiteral("Wspomnienie"));
+    CHECK(project.findParagraphStyle(QStringLiteral("dialogue")) == nullptr);
+
+    // A changed style makes another project
+    BookProject changed = project;
+    changed.paragraphStyles[1].properties.insert(QStringLiteral("leftMargin"), 24);
+    CHECK_FALSE(changed == project);
+
+    // Problems
+    const auto styleProblems = [&json](const QJsonValue& value) {
+        QJsonObject broken = json;
+        broken.insert(QStringLiteral("paragraphStyles"), value);
+        QStringList found;
+        CHECK_FALSE(BookProject::fromJson(broken, found).has_value());
+        return found.join(QLatin1Char('\n'));
+    };
+    CHECK(styleProblems(QStringLiteral("quote")) == QStringLiteral("paragraphStyles: must be a list"));
+    CHECK(styleProblems(QJsonArray{QStringLiteral("quote")}) ==
+          QStringLiteral("paragraphStyles[0]: must be an object"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("name"), QStringLiteral("Sen")}}}) ==
+          QStringLiteral("paragraphStyles[0].id: must be a text that is not empty"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")}},
+                                QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")}}}) ==
+          QStringLiteral("paragraphStyles[1].id: 'sen' is already the id of paragraphStyles[0]"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")},
+                                            {QStringLiteral("base"), QStringLiteral("sen")}}}) ==
+          QStringLiteral("paragraphStyles[0].base: a style cannot inherit from itself"));
+    CHECK(styleProblems(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("sen")},
+                                            {QStringLiteral("properties"), 12}}}) ==
+          QStringLiteral("paragraphStyles[0].properties: must be an object"));
+}
+
+TEST_CASE("Book project: the labels and numbering of a book's captions",
+          "[core][bookproject][captions]") {
+    BookProject project = fullProject();
+    REQUIRE_FALSE(project.books.first().captions.has_value());
+
+    // A book without captions of its own has no field: its file stays as it was
+    CHECK_FALSE(project.toJson().value(QStringLiteral("books")).toArray().at(0).toObject().contains(
+        QStringLiteral("captions")));
+
+    // Its labels, the numbering of one, what a cross-reference shows
+    BookCaptions captions;
+    captions.labels = {QStringLiteral("Rysunek"), QStringLiteral("Mapa")};
+    CaptionLabelNumbering maps;
+    maps.label = QStringLiteral("Mapa");
+    maps.format = QStringLiteral("I");
+    maps.perChapter = true;
+    maps.withChapter = true;
+    maps.separator = QStringLiteral("–");
+    captions.numbering = {maps};
+    captions.reference = QStringLiteral("label");
+    project.books.first().captions = captions;
+
+    const QJsonObject json = project.toJson();
+    const QJsonObject saved =
+        json.value(QStringLiteral("books")).toArray().at(0).toObject().value(QStringLiteral("captions")).toObject();
+    CHECK(saved.value(QStringLiteral("labels")).toArray() ==
+          QJsonArray{QStringLiteral("Rysunek"), QStringLiteral("Mapa")});
+    CHECK(saved.value(QStringLiteral("numbering")).toArray().at(0).toObject() ==
+          QJsonObject{{QStringLiteral("label"), QStringLiteral("Mapa")},
+                      {QStringLiteral("format"), QStringLiteral("I")},
+                      {QStringLiteral("perChapter"), true},
+                      {QStringLiteral("withChapter"), true},
+                      {QStringLiteral("separator"), QStringLiteral("–")}});
+    CHECK(saved.value(QStringLiteral("reference")).toString() == QStringLiteral("label"));
+
+    // Read back unchanged, with the fields of a later version kept
+    QJsonObject withExtra = json;
+    QJsonArray books = json.value(QStringLiteral("books")).toArray();
+    QJsonObject book = books.at(0).toObject();
+    QJsonObject ownCaptions = saved;
+    ownCaptions.insert(QStringLiteral("style"), QStringLiteral("caption"));
+    book.insert(QStringLiteral("captions"), ownCaptions);
+    books[0] = book;
+    withExtra.insert(QStringLiteral("books"), books);
+    QStringList problems;
+    const std::optional<BookProject> read = BookProject::fromJson(withExtra, problems);
+    INFO(joined(problems));
+    REQUIRE(read.has_value());
+    REQUIRE(read->books.first().captions.has_value());
+    CHECK(read->books.first().captions->labels == captions.labels);
+    CHECK(read->books.first().captions->numbering == captions.numbering);
+    CHECK(read->books.first().captions->extra.value(QStringLiteral("style")).toString() ==
+          QStringLiteral("caption"));
+    CHECK(read->toJson() == withExtra);
+
+    // The numbering of a label, the default one without its own
+    CHECK(captions.numberingOf(QStringLiteral("Mapa")) == maps);
+    const CaptionLabelNumbering figures = captions.numberingOf(QStringLiteral("Rysunek"));
+    CHECK(figures.label == QStringLiteral("Rysunek"));
+    CHECK(figures.format == QStringLiteral("1"));
+    CHECK_FALSE(figures.perChapter);
+
+    // Problems
+    const auto captionProblems = [&json](const QJsonValue& value) {
+        QJsonObject broken = json;
+        QJsonArray list = broken.value(QStringLiteral("books")).toArray();
+        QJsonObject first = list.at(0).toObject();
+        first.insert(QStringLiteral("captions"), value);
+        list[0] = first;
+        broken.insert(QStringLiteral("books"), list);
+        QStringList found;
+        CHECK_FALSE(BookProject::fromJson(broken, found).has_value());
+        return found.join(QLatin1Char('\n'));
+    };
+    CHECK(captionProblems(12) == QStringLiteral("books[0].captions: must be an object"));
+    CHECK(captionProblems(QJsonObject{{QStringLiteral("labels"),
+                                       QJsonArray{QStringLiteral("Mapa"), QStringLiteral(" Mapa "), 4}}}) ==
+          QStringLiteral("books[0].captions.labels[1]: 'Mapa' is already in the list\n"
+                         "books[0].captions.labels[2]: must be a text that is not empty"));
+    CHECK(captionProblems(QJsonObject{
+              {QStringLiteral("numbering"),
+               QJsonArray{QJsonObject{{QStringLiteral("label"), QStringLiteral("Mapa")},
+                                      {QStringLiteral("format"), QStringLiteral("x")},
+                                      {QStringLiteral("separator"), QStringLiteral("/")}},
+                          QJsonObject{{QStringLiteral("label"), QStringLiteral("Mapa")}},
+                          QJsonObject{}}}}) ==
+          QStringLiteral("books[0].captions.numbering[0].format: must be \"1\", \"a\", \"A\", \"i\" or \"I\"\n"
+                         "books[0].captions.numbering[0].separator: must be \".\", \"–\" or \":\"\n"
+                         "books[0].captions.numbering[1].label: 'Mapa' already has its numbering\n"
+                         "books[0].captions.numbering[2].label: must be a text that is not empty"));
+    CHECK(captionProblems(QJsonObject{{QStringLiteral("reference"), QStringLiteral("page")}}) ==
+          QStringLiteral("books[0].captions.reference: must be \"number\", \"label\", \"caption\" or "
+                         "\"position\""));
+}
+
+TEST_CASE("Book project: the numbering of a book's notes and the place of its endnotes",
+          "[core][bookproject][footnotes]") {
+    BookProject project = fullProject();
+    REQUIRE_FALSE(project.books.first().footnotes.has_value());
+
+    // A book without its own has no field: its file stays as it was
+    CHECK_FALSE(project.toJson().value(QStringLiteral("books")).toArray().at(0).toObject().contains(
+        QStringLiteral("footnotes")));
+
+    // The defaults: 1, 2, 3 and i, ii, iii anew in each chapter, the endnotes after each text
+    const BookFootnotes defaults;
+    CHECK(defaults.footnotes.format == QStringLiteral("1"));
+    CHECK(defaults.footnotes.perChapter);
+    CHECK(defaults.endnotes.format == QStringLiteral("i"));
+    CHECK(defaults.endnotes.perChapter);
+    CHECK_FALSE(defaults.endnotesAtBookEnd);
+
+    BookFootnotes footnotes;
+    footnotes.footnotes.format = QStringLiteral("*");
+    footnotes.endnotes.format = QStringLiteral("A");
+    footnotes.endnotes.perChapter = false;
+    footnotes.endnotesAtBookEnd = true;
+    project.books.first().footnotes = footnotes;
+    const QJsonObject json = project.toJson();
+    const QJsonObject saved = json.value(QStringLiteral("books"))
+                                  .toArray()
+                                  .at(0)
+                                  .toObject()
+                                  .value(QStringLiteral("footnotes"))
+                                  .toObject();
+    CHECK(saved == QJsonObject{{QStringLiteral("footnotes"),
+                                QJsonObject{{QStringLiteral("format"), QStringLiteral("*")},
+                                            {QStringLiteral("perChapter"), true}}},
+                               {QStringLiteral("endnotes"),
+                                QJsonObject{{QStringLiteral("format"), QStringLiteral("A")},
+                                            {QStringLiteral("perChapter"), false},
+                                            {QStringLiteral("place"), QStringLiteral("book")}}}});
+
+    // Read back unchanged, with the fields of a later version kept
+    QJsonObject withExtra = json;
+    QJsonArray books = json.value(QStringLiteral("books")).toArray();
+    QJsonObject book = books.at(0).toObject();
+    QJsonObject own = saved;
+    own.insert(QStringLiteral("separator"), QStringLiteral("short"));
+    QJsonObject endnotes = own.value(QStringLiteral("endnotes")).toObject();
+    endnotes.insert(QStringLiteral("heading"), QStringLiteral("Notes"));
+    own.insert(QStringLiteral("endnotes"), endnotes);
+    book.insert(QStringLiteral("footnotes"), own);
+    books[0] = book;
+    withExtra.insert(QStringLiteral("books"), books);
+    QStringList problems;
+    const std::optional<BookProject> read = BookProject::fromJson(withExtra, problems);
+    INFO(joined(problems));
+    REQUIRE(read.has_value());
+    REQUIRE(read->books.first().footnotes.has_value());
+    const BookFootnotes& back = *read->books.first().footnotes;
+    CHECK(back.footnotes.format == QStringLiteral("*"));
+    CHECK(back.endnotes.format == QStringLiteral("A"));
+    CHECK_FALSE(back.endnotes.perChapter);
+    CHECK(back.endnotesAtBookEnd);
+    CHECK(back.extra.value(QStringLiteral("separator")).toString() == QStringLiteral("short"));
+    CHECK(back.endnotes.extra == QJsonObject{{QStringLiteral("heading"), QStringLiteral("Notes")}});
+    CHECK(read->toJson() == withExtra);
+
+    // Fields left out keep the defaults
+    {
+        QJsonObject partial = json;
+        QJsonArray list = partial.value(QStringLiteral("books")).toArray();
+        QJsonObject first = list.at(0).toObject();
+        first.insert(QStringLiteral("footnotes"),
+                     QJsonObject{{QStringLiteral("endnotes"),
+                                  QJsonObject{{QStringLiteral("format"), QStringLiteral("I")}}}});
+        list[0] = first;
+        partial.insert(QStringLiteral("books"), list);
+        QStringList none;
+        const std::optional<BookProject> partialRead = BookProject::fromJson(partial, none);
+        REQUIRE(partialRead.has_value());
+        const BookFootnotes& notes = *partialRead->books.first().footnotes;
+        CHECK(notes.footnotes == defaults.footnotes);
+        CHECK(notes.endnotes.format == QStringLiteral("I"));
+        CHECK(notes.endnotes.perChapter);
+        CHECK_FALSE(notes.endnotesAtBookEnd);
+    }
+
+    // Problems
+    const auto noteProblems = [&json](const QJsonValue& value) {
+        QJsonObject broken = json;
+        QJsonArray list = broken.value(QStringLiteral("books")).toArray();
+        QJsonObject first = list.at(0).toObject();
+        first.insert(QStringLiteral("footnotes"), value);
+        list[0] = first;
+        broken.insert(QStringLiteral("books"), list);
+        QStringList found;
+        CHECK_FALSE(BookProject::fromJson(broken, found).has_value());
+        return found.join(QLatin1Char('\n'));
+    };
+    CHECK(noteProblems(12) == QStringLiteral("books[0].footnotes: must be an object"));
+    CHECK(noteProblems(QJsonObject{{QStringLiteral("footnotes"), 3}}) ==
+          QStringLiteral("books[0].footnotes.footnotes: must be an object"));
+    CHECK(noteProblems(QJsonObject{
+              {QStringLiteral("footnotes"),
+               QJsonObject{{QStringLiteral("format"), QStringLiteral("x")}}}}) ==
+          QStringLiteral(
+              "books[0].footnotes.footnotes.format: must be \"1\", \"a\", \"A\", \"i\", \"I\" or \"*\""));
+    CHECK(noteProblems(QJsonObject{
+              {QStringLiteral("endnotes"),
+               QJsonObject{{QStringLiteral("place"), QStringLiteral("part")}}}}) ==
+          QStringLiteral("books[0].footnotes.endnotes.place: must be \"chapter\" or \"book\""));
+    CHECK(noteProblems(QJsonObject{
+              {QStringLiteral("endnotes"), QJsonObject{{QStringLiteral("perChapter"), 1}}}}) ==
+          QStringLiteral("books[0].footnotes.endnotes.perChapter: must be true or false"));
 }

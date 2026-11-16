@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file text_highlight.h
 /// @brief Highlighted ranges of a paragraph's text (search matches, checks, the word read aloud)
 
@@ -8,15 +11,19 @@ namespace kalahari::editor {
 /// @brief What a highlighted range of text is
 ///
 /// The render pipeline draws every kind in one layer: the backgrounds under the text, the
-/// waves over it.
+/// waves over it. The backgrounds of the fields are under the selection too.
 enum class HighlightKind {
     SearchMatch,         ///< Match of the search
     CurrentSearchMatch,  ///< Current match of the search
     Spelling,            ///< Misspelled word
     Grammar,             ///< Grammar or style issue
+    BookRule,            ///< A place that breaks a spelling rule of the book's dictionary
     SpokenWord,          ///< Word being read aloud
     Repetition,          ///< Word repeated too close to another (the Repetitions panel)
-    CurrentRepetition    ///< Repeated word chosen in the Repetitions panel: framed as well
+    CurrentRepetition,   ///< Repeated word chosen in the Repetitions panel: framed as well
+    Field,               ///< A caption's number or a cross-reference: a background under
+                         ///< the selection, as the paper of a form's field
+    BrokenField          ///< A cross-reference to a caption the book does not have
 };
 
 /// @brief Highlighted range of one paragraph (offsets in the paragraph's text)

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file format_run.h
 /// @brief FormatRun struct for paragraph formatting ranges (OpenSpec #00043)
 
@@ -25,16 +28,6 @@ struct FormatRun {
                format.fontUnderline() ||
                format.fontStrikeOut() ||
                format.verticalAlignment() != QTextCharFormat::AlignNormal;
-    }
-
-    /// @brief Check if this run has footnote metadata
-    bool hasFootnote() const {
-        return format.hasProperty(KmlPropFootnote);
-    }
-
-    /// @brief Check if this run has any metadata
-    bool hasMetadata() const {
-        return hasFootnote();
     }
 
     /// @brief Get length of this run

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_toolbar_keys.cpp
 /// @brief After a command given in a toolbar the keys go back where they were (ToolbarKeys);
 ///        the font and the size typed in its fields go on the text at Enter
@@ -30,6 +33,7 @@
 #include <QWindow>
 
 #include <algorithm>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using namespace kalahari::gui;
@@ -430,17 +434,17 @@ TEST_CASE("Toolbar fields: the font and the size typed go on the text at Enter, 
     // Regression: each letter typed in the font field went on the text as a font ("F",
     // "Fr"...) and each number typed in the size field as a size (7 of 72), one step to undo
     // each; Escape left them on the text
-    registerAllCommands(CommandCallbacks{});
+    registerAllCommands(kalahari::test::commands(), CommandCallbacks{});
     registerAllIcons();
     QMainWindow window;
-    ToolbarManager manager(&window);
-    manager.createToolbars(CommandRegistry::getInstance());
+    ToolbarManager manager(kalahari::test::commands(), &window);
+    manager.createToolbars(kalahari::test::commands());
     auto* font = window.findChild<QFontComboBox*>(QStringLiteral("formatFontCombo"));
     auto* size = window.findChild<QSpinBox*>(QStringLiteral("formatFontSize"));
     REQUIRE(font != nullptr);
     REQUIRE(size != nullptr);
 
-    EditorPanel panel;
+    EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* text = panel.getBookEditor();
     REQUIRE(text->fromKml(test::kmlOf({QStringLiteral("Hello world")})));
     text->setCursorPosition({0, 2});  // inside a word: the font and the size go on it

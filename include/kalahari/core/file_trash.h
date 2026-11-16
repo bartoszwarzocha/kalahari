@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file file_trash.h
 /// @brief Files to the Trash of the system (the Recycle Bin on Windows)
 ///

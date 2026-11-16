@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_format_dialogs.cpp
 /// @brief Format > Font..., Format > Paragraph... and the submenus Font Color and Highlight
 ///        Color: the windows, their fields and what the editor gets from them
@@ -33,6 +36,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using editor::CharacterFormat;
@@ -487,7 +491,7 @@ TEST_CASE("Paragraph window: the preview follows the indents and the alignment",
 
 TEST_CASE("Editor panel: Font and Paragraph change the text at the cursor",
           "[gui][format][dialog]") {
-    gui::EditorPanel panel;
+    gui::EditorPanel panel(kalahari::test::book(), kalahari::test::commands());
     editor::BookEditor* editor = panel.getBookEditor();
     editor->fromKml(QStringLiteral("<kml><p>One two</p><p>Three</p></kml>"));
     editor->selectAll();

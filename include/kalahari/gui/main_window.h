@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file main_window.h
 /// @brief Main application window (Qt6 QMainWindow subclass)
 ///
@@ -16,6 +19,8 @@
 #include <QToolBar>
 #include <QTabWidget>
 #include <QLabel>
+#include <QByteArray>
+#include <QList>
 #include <QMap>
 #include <functional>
 #include <memory>
@@ -34,15 +39,23 @@ class QToolButton;
 namespace kalahari {
 
 namespace core {
+    class ProjectManager;
     struct Theme;  // Forward declaration for Theme (Task #00023)
+}
+
+namespace editor {
+class BookEditor;
 }
 
 namespace gui {
 
+enum class TableCommand;  // The commands of the Table menu (command_registrar.h)
+enum class ImageCommand;  // The commands of the Image menu (command_registrar.h)
+
 // Forward declarations for panels
 class DashboardPanel;
 class EditorPanel;
-class ImagePreviewPanel;
+class PreviewPanel;
 class NavigatorPanel;
 class PropertiesPanel;
 class LogPanel;
@@ -60,11 +73,21 @@ class MaterialListCoordinator;
 class EditCoordinator;
 class SpecialCharacterCoordinator;
 class VersionsCoordinator;
+class StyleCoordinator;
+class BookExportCoordinator;
+class CaptionCoordinator;
+class FootnoteCoordinator;
+class ChapterBreakCoordinator;
+class FieldCoordinator;
+class BookSearchCoordinator;
+class ImageFilterCoordinator;
 class SpellingCoordinator;
 class GrammarCoordinator;
 class SpellingPanelCoordinator;
+class BookDictionaryCoordinator;
 class RepetitionsCoordinator;
 class DocumentWindows;
+class WritingStatsCoordinator;
 class ColorMenu;
 namespace utils {
 class DistractionFreeLayout;  // The window's layout for Distraction-Free writing
@@ -94,8 +117,16 @@ public:
     /// @param parent Parent widget (nullptr for top-level window)
     explicit MainWindow(QWidget* parent = nullptr);
 
-    /// @brief Destructor - disconnects signals before children are destroyed
+    /// @brief Destructor - disconnects signals, then destroys the parts of the window before its
+    ///        book and its commands, which they use
     ~MainWindow() override;
+
+    /// @brief The book of this window, open in it or not: each window has its own, and the
+    ///        objects of the window are given it
+    [[nodiscard]] core::ProjectManager& book() const { return *m_book; }
+
+    /// @brief The commands of this window: its menus, toolbars and keys run them, on its texts
+    [[nodiscard]] CommandRegistry& commands() const { return *m_commands; }
 
     /// @brief Enable diagnostic mode (show Diagnostics menu)
     /// @note Delegates to DiagnosticController (OpenSpec #00038)
@@ -130,7 +161,7 @@ public:
     EditorPanel* getCurrentEditor();
 
     /// @brief The preview of a material in front, or nullptr
-    ImagePreviewPanel* currentPreview();
+    PreviewPanel* currentPreview();
 
     /// @brief Open a chapter/element by ID (OpenSpec #00043 - Benchmark CLI)
     /// @param elementId Element ID to open (ProjectElement::id)
@@ -145,6 +176,44 @@ public:
     /// @brief The book or the other file to open when the window is shown first, given on the
     /// command line; it takes the place of the last book
     void setStartupFile(const QString& path);
+
+    // =========================================================================
+    // The book windows of the program
+    // =========================================================================
+
+    /// @brief The first window of the program: shown first, it opens the file of the command
+    /// line (setStartupFile()) or, when the settings say so, the books of the last work, the
+    /// first one in it and each other one in a window of its own. The other windows open
+    /// nothing by themselves.
+    void setFirstWindow(bool first) { m_firstWindow = first; }
+
+    /// @brief The book windows of the program, in the order they were made
+    static QList<MainWindow*> windows();
+
+    /// @brief The book window that has @p widget (itself, a window of its own of its tabs or a
+    /// dialog over it); none: no book window has it
+    static MainWindow* windowOf(const QWidget* widget);
+
+    /// @brief The book window that has the book of @p manifest (its .klh file) open; none:
+    /// no window has it open
+    static MainWindow* windowOfBook(const QString& manifest);
+
+    /// @brief The book window in front, or the one in front last when the program is not in
+    /// front (a window of its own of its tabs counts as it); none: no window
+    static MainWindow* frontWindow();
+
+    /// @brief Window > New Window: a new book window with the Dashboard, its panels and bars
+    /// as in this one, a little lower and to the right; it closes and is deleted on its own
+    MainWindow* openNewWindow();
+
+    /// @brief Open the book of @p manifest in a new window (openNewWindow())
+    MainWindow* openBookInNewWindow(const QString& manifest);
+
+    /// @brief File > Exit: close every book window, asking once about the unsaved changes of
+    /// all of them, over @p asking; the books open then are the books of the last work
+    /// @return false: the writer cancelled, or something could not be saved, and every window
+    ///         stays open
+    static bool closeAllWindows(MainWindow* asking);
 
 public slots:
     /// @brief A later start of the program handed over its request: the window comes to the
@@ -184,6 +253,11 @@ private:
     /// Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void createDocks();
 
+    /// @brief The cards of characters, locations and items: Open Card of the short card opens
+    /// the full card on a tab, the gears of both open Settings > Cards, a portrait from a file
+    /// shows in the Navigator as a new material
+    void connectCards();
+
     /// @brief Reset the layout to default: the toolbars (ToolbarManager) and the panels
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
@@ -191,6 +265,12 @@ private:
     /// @brief Book > Book Properties...: the Properties panel in front with the book's
     /// properties, its first field ready for typing
     void showBookProperties();
+
+    /// @brief The book's dictionary: its page on a tab (Book > Book Dictionary..., Book
+    /// Dictionary in the Navigator) and its windows (Add Name... and Edit Rule... of the text
+    /// and of the Spelling and Grammar panel)
+    /// @note Call after the spelling and its panel are made
+    void createBookDictionary();
 
     /// @brief Make the Book menu and the commands of the open book follow it
     ///
@@ -335,6 +415,22 @@ private slots:
     /// @brief Give every editor Distraction-Free, or take it back, as the window lays out
     void onDistractionFreeChanged(bool enabled);
 
+    /// @brief The commands of the Table menu in the book's text with the keys: greyed out
+    ///        where they do nothing, saying why (EditCoordinator::addTextCommands())
+    void addTableCommands();
+
+    /// @brief Do a command of the Table menu in @p text: its window, of the text's panel,
+    ///        or the change itself
+    void onTableCommand(editor::BookEditor& text, TableCommand command);
+
+    /// @brief The commands of the Image menu on the selected image of the book's text with
+    ///        the keys: greyed out where they do nothing, saying why; its filter checked
+    void addImageCommands();
+
+    /// @brief Do a command of the Image menu on the selected image of @p text: its window,
+    ///        of the text's panel, or the change itself
+    void onImageCommand(editor::BookEditor& text, ImageCommand command);
+
     /// @brief Update action states based on editor state
     ///
     /// Called when cursor position or selection changes in BookEditor, and when the tab
@@ -367,6 +463,10 @@ private slots:
     // NOTE: All dev tools slots (onDevTools*) moved to DiagnosticController (OpenSpec #00038)
 
 private:
+    // The book and the commands of the window: made first, destroyed after its parts
+    std::unique_ptr<core::ProjectManager> m_book;
+    std::unique_ptr<CommandRegistry> m_commands;
+
     // Actions removed - now managed by CommandRegistry
     // All actions are dynamically created from Command structs
 
@@ -387,6 +487,27 @@ private:
 
     // First show flag (for geometry restore)
     bool m_firstShow;
+
+    /// The first window of the program (setFirstWindow())
+    bool m_firstWindow = false;
+
+    /// @brief The layout of the window a new window came from (openNewWindow()): taken in place
+    /// of the saved one when it is shown first
+    struct Layout {
+        QByteArray geometry;
+        QByteArray state;
+    };
+    std::optional<Layout> m_layoutFrom;
+
+    /// @brief Restore the size and place of the window and its panels and bars when it is shown
+    /// first: those of the window it came from, or the saved ones
+    void restoreLayout();
+
+    /// @brief When shown first: the file of the command line, or the books of the last work
+    void openAtStart();
+
+    /// @brief Keep the annotation or the note being written
+    void finishWriting();
 
     /// The book or file given on the command line, opened at the first show
     QString m_startupFile;
@@ -409,6 +530,8 @@ private:
     ParagraphMarksCoordinator* m_paragraphMarksCoordinator{nullptr};
     /// @brief The lists of the kinds of materials on their tabs
     MaterialListCoordinator* m_materialListCoordinator{nullptr};
+    /// @brief The statistics bar and the goals of writing
+    WritingStatsCoordinator* m_writingStatsCoordinator{nullptr};
     SpellingCoordinator* m_spellingCoordinator{nullptr};
     /// Insert > Special Character... and Insert > Quick Character
     SpecialCharacterCoordinator* m_specialCharacterCoordinator{nullptr};
@@ -416,6 +539,9 @@ private:
 
     /// @brief The Spelling and Grammar panel and when it shows
     SpellingPanelCoordinator* m_spellingPanelCoordinator{nullptr};
+
+    /// @brief The book's dictionary on its tab and its windows
+    BookDictionaryCoordinator* m_bookDictionaryCoordinator{nullptr};
 
     /// @brief The Repetitions panel, the marks of the repeated words and Next Repetition
     RepetitionsCoordinator* m_repetitionsCoordinator{nullptr};
@@ -429,6 +555,27 @@ private:
 
     /// @brief Save Version and Version History of the texts of the book
     VersionsCoordinator* m_versionsCoordinator{nullptr};
+
+    /// @brief New, changed and deleted paragraph styles of the book
+    StyleCoordinator* m_styleCoordinator{nullptr};
+
+    /// @brief The numbered captions of the book, cross-references and lists of figures
+    CaptionCoordinator* m_captionCoordinator{nullptr};
+
+    /// @brief Insert > Footnote and Endnote, and the frame of a note's text
+    FootnoteCoordinator* m_footnoteCoordinator{nullptr};
+
+    /// @brief File > Export > DOCX and Markdown
+    BookExportCoordinator* m_bookExportCoordinator{nullptr};
+
+    /// @brief Edit > Find in Book... and Replace All in Book, in the Search panel
+    BookSearchCoordinator* m_bookSearchCoordinator{nullptr};
+    ChapterBreakCoordinator* m_chapterBreakCoordinator{nullptr};
+    /// Insert > Date && Time..., Insert > Field... and what the fields of the texts show
+    FieldCoordinator* m_fieldCoordinator{nullptr};
+
+    /// @brief Image > Filter > Same Filter for All Images...
+    ImageFilterCoordinator* m_imageFilterCoordinator{nullptr};
 
     // Fullscreen mode (OpenSpec #00040)
     QByteArray m_savedGeometryBeforeFullscreen;       ///< Saved geometry before entering fullscreen

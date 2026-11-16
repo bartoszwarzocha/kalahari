@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file editor_pages.cpp
 /// @brief Settings pages: Editor > General, Colors, Cursor, Pages and Margins
 ///
@@ -397,8 +400,9 @@ private:
 // Editor > General
 // ============================================================================
 
-EditorGeneralPage::EditorGeneralPage(Part part, QWidget* parent)
+EditorGeneralPage::EditorGeneralPage(CommandRegistry& commands, Part part, QWidget* parent)
     : SettingsPage(parent)
+    , m_commands(commands)
 {
     if (part == Part::Writing) {
         createWriting();
@@ -527,8 +531,8 @@ void EditorGeneralPage::createWriting()
     addField(behavior, tr("Paste Command:"), pasteMode, editor::PASTE_MODE_KEY);
     QLabel* pasteNote = addFieldNote(behavior, QString());
     // With the keys Paste has now (the user may change them)
-    const auto showPasteKeys = [pasteNote]() {
-        const Command* command = CommandRegistry::getInstance().getCommand("edit.paste");
+    const auto showPasteKeys = [this, pasteNote]() {
+        const Command* command = m_commands.getCommand("edit.paste");
         const QString keys = command != nullptr && !command->shortcut.isEmpty()
             ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
             : QString();
@@ -543,8 +547,18 @@ void EditorGeneralPage::createWriting()
                "Text Only."));
     };
     showPasteKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, pasteNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, pasteNote,
             showPasteKeys);
+    // The fields on a gray background, so that they stand out of the text (as in Word)
+    //: In Polish: Szare tło pól
+    QCheckBox* shading =
+        addCheckBox(behavior, tr("Gray background of fields"), "editor.fieldShading");
+    shading->setObjectName(QStringLiteral("fieldShading"));  // SettingsDialog::openPage()
+    const QString shadingNote = tr("The fields show values that change by themselves: the "
+                                   "date, the book's title, the page number, the number of a "
+                                   "caption.");
+    shading->setToolTip(shadingNote);
+    addOptionNote(behavior, shading, shadingNote);
     // A chapter opens where its cursor was when it was closed last, or at its start
     auto* opensAt = new QComboBox();
     opensAt->addItem(tr("Where You Last Edited"),
@@ -558,8 +572,8 @@ void EditorGeneralPage::createWriting()
     QFormLayout* typewriter = addGroup(tr("Typewriter Scrolling"));
     QLabel* typewriterNote = addNote(typewriter, QString());
     // With the keys the command has now (the user may change them)
-    const auto showTypewriterKeys = [typewriterNote]() {
-        const Command* command = CommandRegistry::getInstance().getCommand("view.typewriter");
+    const auto showTypewriterKeys = [this, typewriterNote]() {
+        const Command* command = m_commands.getCommand("view.typewriter");
         const QString keys = command != nullptr && !command->shortcut.isEmpty()
             ? command->shortcut.toQKeySequence().toString(QKeySequence::NativeText)
             : QString();
@@ -572,7 +586,7 @@ void EditorGeneralPage::createWriting()
                       .arg(keys));
     };
     showTypewriterKeys();
-    connect(&CommandRegistry::getInstance(), &CommandRegistry::shortcutsChanged, typewriterNote,
+    connect(&m_commands, &CommandRegistry::shortcutsChanged, typewriterNote,
             showTypewriterKeys);
     auto* focus = new QSpinBox();
     focus->setRange(10, 90);
@@ -586,12 +600,17 @@ void EditorGeneralPage::createWriting()
 
     // The counts of the whole program: the status bar, the panels, Distraction-Free writing
     QFormLayout* wordCount = addGroup(tr("Word Count"));
+    wordCount->parentWidget()->setObjectName(QStringLiteral("wordCountGroup"));  // openPage()
     QCheckBox* dashes = addCheckBox(wordCount, tr("Count standalone dashes as words"),
                                     "editor.wordCount.dashesAsWords");
     addOptionNote(wordCount, dashes,
                   tr("A dash separated by spaces from the words around it, as at the start of a "
                      "line of dialogue. Microsoft Word counts it as a word, LibreOffice does "
                      "not."));
+    //: In Polish: Licz słowa w przypisach
+    addCheckBox(wordCount, tr("Count the words of footnotes and endnotes"),
+                "editor.wordCount.notes")
+        ->setObjectName(QStringLiteral("wordCountNotes"));  // SettingsDialog::openPage()
 }
 
 // ============================================================================
@@ -621,6 +640,26 @@ EditorColorsPage::EditorColorsPage(QWidget* parent)
         addThemeColor(form, tr("Dimmed text (Focus)"), keys.focusDimmed);
         addThemeColor(form, tr("Formatting marks"), keys.formattingMarks);
         addThemeColor(form, tr("Links"), keys.link);
+        addThemeColor(form, tr("Table borders"), keys.tableLines);
+        addThemeColor(form, tr("Table header rows"), keys.tableHeader);
+        addThemeColor(form, tr("Table gridlines (no border)"), keys.tableGridlines);
+        //: The marks at the sides of an image being cropped in the text. In Polish:
+        //: Znaczniki przycinania obrazu
+        addThemeColor(form, tr("Crop marks of an image"), keys.imageCropMarks);
+        //: The dashed frame shown in the text for an image whose file is missing. In Polish:
+        //: Ramka obrazu bez pliku
+        addThemeColor(form, tr("Frame of an image without its file"), keys.imageMissing);
+        //: The gray background of a caption's number and of a cross-reference in the text. In
+        //: Polish: Pola (numery podpisów, odsyłacze)
+        addThemeColor(form, tr("Fields (caption numbers, cross-references)"), keys.field);
+        //: The background of a cross-reference whose caption was deleted. In Polish:
+        //: Odsyłacze do usuniętych podpisów
+        addThemeColor(form, tr("Cross-references to deleted captions"), keys.brokenField);
+        //: The short line above the footnotes at the bottom of a page and under a paragraph.
+        //: In Polish: Linia nad przypisami
+        addThemeColor(form, tr("Line above the notes"), keys.noteLine);
+        //: The frame a footnote's or an endnote's text is written in. In Polish: Ramka przypisu
+        addThemeColor(form, tr("Frame of a note"), keys.noteFrame);
         addThemeColor(form, tr("Around the paper"), keys.desk);
         addRestoreColorsButton(form);
     };

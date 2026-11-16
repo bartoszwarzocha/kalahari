@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file book_editor.h
 /// @brief BookEditor - Custom text editor widget (OpenSpec #00042 Phase 3.1-3.5)
 ///
@@ -23,10 +26,18 @@
 #include <kalahari/editor/annotation.h>
 #include <kalahari/editor/annotation_cards.h>
 #include <kalahari/editor/grammar_error.h>
+#include <kalahari/editor/image_store.h>
 #include <kalahari/editor/paragraph_format.h>
 #include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/table_editing.h>
+#include <kalahari/editor/text_captions.h>
+#include <kalahari/editor/text_fields.h>
+#include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_sorting.h>
+#include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_issue.h>
+#include <kalahari/editor/text_highlight.h>
 #include <kalahari/editor/text_link.h>
 #include <kalahari/editor/view_modes.h>
 // Phase 11: New 2-step architecture (OpenSpec #00043)
@@ -40,11 +51,16 @@
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QElapsedTimer>
+#include <QHash>
 #include <QList>
+#include <QPointer>
+#include <QSet>
+#include <QTextTable>
 #include <functional>
 #include <map>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 class QAction;
@@ -64,6 +80,11 @@ class QScrollBar;
 class QTimer;
 class QMenu;
 class QMimeData;
+
+namespace kalahari::core {
+class BookDictionary;
+struct RuleDeviation;
+}  // namespace kalahari::core
 
 namespace kalahari::editor {
 
@@ -455,6 +476,24 @@ public:
     /// annotations of the deleted text stay on its place.
     bool deleteSelectedText();
 
+    /// @brief The text from @p at to its end as KML, with the annotations anchored in it and
+    ///        its notes (Book > Chapter Break: the text of the new chapter)
+    /// @return Empty when nothing follows @p at
+    [[nodiscard]] QString kmlFrom(const CursorPosition& at) const;
+
+    /// @brief Take the text from @p at to its end away, as one undo step, with the annotations
+    ///        anchored in it (Book > Chapter Break: they go with it to the new chapter)
+    ///
+    /// At the start of a paragraph after a paragraph of text the end of that paragraph goes
+    /// too, so that the text ends with it, not with an empty paragraph. The cursor ends at the
+    /// end of the text.
+    /// @return false in a read-only text, or when nothing follows @p at
+    bool removeTextFrom(const CursorPosition& at);
+
+    /// @brief Undo the last step, which took the text to another text (removeTextFrom()):
+    ///        the text comes back, and its words are not written (movingStarted())
+    void undoMovedText();
+
     /// @brief Insert a newline, splitting the paragraph at cursor position
     ///
     /// If there is an active selection, it is deleted first.
@@ -749,8 +788,32 @@ public:
     // breaks)
     // =========================================================================
 
-    /// @brief Set the styles of the book (of its type package): every paragraph is shown in
-    ///        its style, and Enter at the end of one starts the style that follows it
+    /// @brief Give every paragraph of style @p from the style @p to, as one undo step that
+    ///        brings back the cursor (a style of the book deleted: its paragraphs go to its
+    ///        base style)
+    /// @return The number of paragraphs that changed; 0 changes nothing and makes no step
+    int replaceParagraphStyle(const QString& from, const QString& to);
+
+    /// @brief How many paragraphs of the text are in each style (Normal: NORMAL_STYLE_ID), as
+    ///        paragraphStyleCounts() counts them in KML
+    QHash<QString, int> paragraphStyleCounts() const;
+
+    /// @brief The formatting the paragraph at the cursor has of its own, over its style, as
+    ///        the properties of a style (paragraph_styles.h): its own indents, spacing, line
+    ///        spacing (a multiple), breaks and alignment, and the font, size, bold, italic and
+    ///        underline all of its text has of its own; the size in the points of the styles
+    /// @return Nothing at an object or without a text
+    QVariantMap ownStyleProperties() const;
+
+    /// @brief Give the paragraphs of the cursor or the selection the style @p styleId without
+    ///        their own formatting of the properties @p taken, as one undo step: a new style
+    ///        took that formatting from the paragraph at the cursor (ownStyleProperties()), so
+    ///        the style gives it to them now
+    void applyNewParagraphStyle(const QString& styleId, const QStringList& taken);
+
+    /// @brief Set the styles of the book (of its type package and its own): every paragraph is
+    ///        shown in its style, and Enter at the end of one starts the style that follows it;
+    ///        paragraphStylesChanged() tells of a change
     void setParagraphStyles(const ParagraphStyleSet& styles);
 
     /// @brief The styles of the book
@@ -876,6 +939,388 @@ public:
 
     /// @brief The link of the character under a point of the widget
     std::optional<TextLink> linkAt(const QPointF& widgetPos) const;
+
+    // =========================================================================
+    // Notes: footnotes and endnotes (text_footnotes.h, book_editor_notes.cpp)
+    // =========================================================================
+
+    /// @brief Insert > Footnote (Alt+Shift+F), Endnote (Alt+Shift+E): a new note's number at
+    ///        the cursor (after the selection), its text empty, as one undo step
+    ///
+    /// The cursor goes after the number. The text written in the note's frame joins the step
+    /// (setNoteContent() with joinInsertion), and Esc on the new note undoes it
+    /// (cancelNewNote()).
+    /// @return The new note's id; empty when none was inserted (a read-only text)
+    QString insertNote(NoteKind kind);
+
+    /// @brief The note with an id at its place (std::nullopt: none)
+    std::optional<NotePlace> noteOf(const QString& id) const;
+
+    /// @brief The number a note shows ("3", "ii"); empty: no note with the id
+    QString noteNumber(const QString& id) const;
+
+    /// @brief The note whose number is at the cursor: just before it, or selected alone
+    ///        (std::nullopt: none)
+    std::optional<NotePlace> noteAtCursor() const;
+
+    /// @brief The note whose number or text is at a point of the widget (std::nullopt: none)
+    std::optional<NotePlace> noteAt(const QPointF& widgetPos) const;
+
+    /// @brief The place of a note's text under a point of the widget, as a range of no length
+    ///        (std::nullopt: none there, or the text of another text's endnote)
+    std::optional<NoteRange> notePlaceAt(const QPointF& widgetPos) const;
+
+    /// @brief Give a note the text written in its frame (KML of its paragraphs), as one undo
+    ///        step
+    /// @param joinInsertion true: the text joins the step of the note's insertion, when
+    ///        nothing was done since (insertNote()); the note is no longer new after it
+    /// @return false without the note, or in a read-only text; true also when the text stays
+    bool setNoteContent(const QString& id, const QString& content, bool joinInsertion = false);
+
+    /// @brief Esc on a new note: its insertion undone, and not redone; the note goes anyway
+    ///        when something was done since
+    void cancelNewNote(const QString& id);
+
+    /// @brief Make a footnote an endnote, or an endnote a footnote, as one undo step
+    bool setNoteKind(const QString& id, NoteKind kind);
+
+    /// @brief Delete a note, its number with its text, as one undo step
+    bool removeNote(const QString& id);
+
+    /// @brief Where a note's text is in the editor: under its paragraph (or table) or after
+    ///        the last paragraph in the continuous views, at the bottom of its page or after
+    ///        the last line in the page view (its first part); empty when it is not laid out
+    QRectF noteRect(const QString& id) const;
+
+    /// @brief The frame over a note in the continuous views makes room for itself: the note
+    ///        takes @p height pixels of the editor under its paragraph; 0: its own height
+    void setNoteFrameRoom(const QString& id, qreal height);
+
+    /// @brief Scroll a note's text into view (its frame), the cursor's line kept in view when
+    ///        both fit
+    void scrollToNote(const QString& id);
+
+    /// @brief The cursor after a note's number, in view (an endnote of another text clicked at
+    ///        the end of the book)
+    /// @return false without the note
+    bool goToNote(const QString& id);
+
+    /// @brief Select a range of a note's text: the note's number is selected in the text and
+    ///        the range shown selected in the note's text, scrolled into view (a match of the
+    ///        search, a misspelled word gone to); a selection other than the number takes it
+    ///        away
+    /// @return false without the note
+    bool selectNoteRange(const NoteRange& range);
+
+    /// @brief The range of a note's text shown selected (selectNoteRange()); std::nullopt: none
+    const std::optional<NoteRange>& noteSelection() const { return m_noteSelection; }
+
+    /// @brief Put @p text in the place of a range of a note's text (a word chosen for a
+    ///        misspelled one), in the formatting of its first character, as one undo step
+    /// @return false without the note or the range, or in a read-only text
+    bool replaceInNote(const NoteRange& range, const QString& text);
+
+    /// @brief The font a note's text is written in, in its frame: the text's, as tall as the
+    ///        editor shows it now
+    QFont noteFrameFont() const;
+
+    /// @brief The name of a note with its number, in its frame, its tooltip and its menu
+    ///        ("Footnote 3", "Endnote ii")
+    static QString noteTitle(NoteKind kind, const QString& number);
+
+    /// @brief What the numbers of the notes depend on outside the text: the book's numbering,
+    ///        the notes before it, the endnotes of the book after its last paragraph
+    ///        (FootnoteCoordinator)
+    void setFootnoteContext(const FootnoteContext& context);
+
+    /// @brief What setFootnoteContext() gave (by default: 1, 2, 3 and i, ii, iii from 1)
+    const FootnoteContext& footnoteContext() const;
+
+    /// @brief The notes of the text, in text order (notesChanged())
+    std::vector<Footnote> noteList() const;
+
+    // =========================================================================
+    // Images (text_images.h, image_store.h)
+    //
+    // An image's file is named relative to the book's main folder; a new image is copied
+    // into the book's folder of images. Each change is one undo step, which brings back the
+    // cursor and selection it was made with.
+    // =========================================================================
+
+    /// @brief Set the book's main folder: the files of the images are found in it, and new
+    ///        images go into its folder of images; empty: none (every image is shown as a
+    ///        missing file, and none can be inserted). Set it before the content.
+    void setImagesFolder(const QString& folder);
+
+    /// @brief The book's main folder of the images; empty: none
+    QString imagesFolder() const;
+
+    /// @brief The text is saved in another folder (Save As of a file): the files of its images
+    ///        are copied into that folder's folder of images, which the images name from now
+    ///        on (where a name there is taken by another picture, the image names the copy's)
+    void moveImagesFolder(const QString& folder);
+
+    /// @brief The files of the images: their sizes and pictures
+    const std::shared_ptr<ImageStore>& imageStore() const { return m_imageStore; }
+
+    /// @brief Whether an image can be inserted: the text can be changed and has a folder
+    ///        for its images
+    bool canInsertImage() const;
+
+    /// @brief Insert > Image...: copy a file into the folder of images and insert its image
+    ///        at the cursor, replacing the selection, as one undo step
+    ///
+    /// The image gets its file's own width (never wider than the line), or the width of the
+    /// settings (NewImageOptions); a file with more dots per inch at that width than the
+    /// settings allow is copied smaller. The image goes in a paragraph of its own, aligned as
+    /// the settings say, and is selected.
+    /// @return false when the file could not be copied or is not an image, without a folder
+    ///         of images, or in a read-only text (changeRefused())
+    bool insertImageFile(const QString& path);
+
+    /// @brief The width in pixels of the copy of a file inserted at the cursor now: fewer than
+    ///        the file's when it has more dots per inch at its width in the text than
+    ///        NewImageOptions::maxDpi; 0: the file as it is (no limit, a drawing, a file that
+    ///        is not an image, a text not laid out yet)
+    int newImageCopyWidth(const QString& path) const;
+
+    /// @brief Insert a picture (pasted, a screenshot) saved as a PNG file in the folder of
+    ///        images, as insertImageFile() inserts a file
+    bool insertPicture(const QImage& picture);
+
+    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does
+    bool insertImage(const ImageProperties& image);
+
+    /// @brief The image the selection is (exactly one image): its position in the document
+    std::optional<int> selectedImage() const;
+
+    /// @brief The image under a point of the widget: its position in the document
+    std::optional<int> imagePositionAt(const QPointF& widgetPos) const;
+
+    /// @brief Select the image at a position of the document (its character)
+    void selectImage(int position);
+
+    /// @brief The rectangle of the image at a position, in the widget (laid out, in view or
+    ///        not); std::nullopt: no image there
+    std::optional<QRectF> imageRect(int position) const;
+
+    /// @brief Give the image at a position other properties, as one undo step
+    /// @return false when there is no image there, nothing changes, or in a read-only text
+    bool setImageProperties(int position, const ImageProperties& image);
+
+    /// @brief Original Size: the image at a position gets its file's own width
+    bool setImageOriginalSize(int position);
+
+    /// @brief Resize the image at a position as a dragged handle does: @p width wide in the
+    ///        layout's pixels (its height in proportion), kept in its own unit
+    ///        (KalahariTextDocumentLayout::imageOfWidth()), as one undo step
+    bool setImageLayoutWidth(int position, qreal width);
+
+    /// @brief Image > Rotate: turn the image at a position by quarter turns, clockwise for
+    ///        a positive number, as one undo step; an image of its own height turns its
+    ///        shape with it (its height becomes its width)
+    bool rotateImage(int position, int quarters);
+
+    /// @brief Image > Rotate > Flip Horizontally or Vertically: mirror the image at a
+    ///        position as it is shown, as one undo step
+    bool flipImage(int position, Qt::Orientation orientation);
+
+    /// @brief Image > Filter: the filter of the image at a position, as one undo step
+    bool setImageFilter(int position, ImageFilter filter);
+
+    /// @brief Image > Filter > Same Filter for All Images...: every image of the text in a
+    ///        filter (with Black and White its threshold), as one undo step
+    /// @return How many images changed; 0 also in a read-only text
+    int setAllImagesFilter(ImageFilter filter, int threshold);
+
+    /// @brief Ctrl+] and Ctrl+[: the image at a position larger or smaller by a part of its
+    ///        width (IMAGE_KEY_RESIZE), in proportion, in its own unit and within its line,
+    ///        as one undo step; a label beside it shows its new width for a moment
+    /// @param larger true: larger; false: smaller
+    bool resizeImageByStep(int position, bool larger);
+
+    /// @brief Image > Crop: marks at the sides and corners of the image at a position, which
+    ///        cut its sides off where they are dragged; the cut parts show faint around it
+    ///
+    /// Enter, or a click outside the image, crops it as one undo step (the rest of the
+    /// picture as large as it was: the image gets smaller), Esc leaves it as it was.
+    /// @return false without the picture of its file, or in a read-only text
+    bool startImageCrop(int position);
+
+    /// @brief Whether the image at a position can be cropped in the text (startImageCrop()):
+    ///        the picture of its file is there and the text can be changed
+    bool canCropImage(int position) const;
+
+    /// @brief The crop of the sides, as the image is shown, that the marks set while the
+    ///        image is being cropped in the text; std::nullopt: none is
+    std::optional<ImageCrop> imageCropInProgress() const;
+
+    /// @brief Stop cropping in the text
+    /// @param crop true: the image gets the crop of the marks (Enter); false: it stays as
+    ///        it was (Esc)
+    void finishImageCrop(bool crop);
+
+    /// @brief Change Image...: the image at a position shows another file, copied into the
+    ///        folder of images; its width and alternative text stay
+    /// @return false when the file is not a picture or could not be copied, or in a
+    ///         read-only text; true also when the image showed that file already
+    bool changeImageFile(int position, const QString& path);
+
+    /// @brief Add Caption: the cursor goes into the caption of the image at a position, the
+    ///        paragraph after the image's in the style Caption; without one, a new empty one
+    ///        (one undo step)
+    bool addImageCaption(int position);
+
+    /// @brief The caption of the image at a position: the text of the paragraph after the
+    ///        image's in the style Caption; std::nullopt without one
+    std::optional<QString> imageCaption(int position) const;
+
+    /// @brief The file of the image at a position, a path on the disk; empty: none
+    QString imageFilePath(int position) const;
+
+    /// @brief What the window Image Properties shows of the image at a position: its
+    ///        properties, its file and the widths it is measured against;
+    ///        std::nullopt: no image there
+    std::optional<ImagePropertiesData> imagePropertiesData(int position) const;
+
+    /// @brief Give the image the properties of the window Image Properties, as one undo
+    ///        step: with a new file, the file copied into the folder of images (and without
+    ///        keepSizeAndCrop, its file's own size, uncropped)
+    /// @return false when the new file is not a picture or could not be copied, or in a
+    ///         read-only text; true also when the image had these properties already (no
+    ///         step of Undo then)
+    bool setImagePropertiesData(const ImagePropertiesData& propertiesData);
+
+    /// @brief How a new image goes into the text (Settings > Editor > Images): in a paragraph
+    ///        of its own, never into a paragraph's text
+    struct NewImageOptions {
+        Qt::Alignment alignment = Qt::AlignHCenter;  ///< Of its paragraph
+        int widthPercent = 0;  ///< Of the width of its lines; 0: its file's own (at most theirs)
+        QString captionLabel;  ///< A numbered caption of this label under it; empty: none
+        /// The copy of a file with more dots per inch at the image's width in the text is made
+        /// smaller to these; 0: the copy is the file itself
+        int maxDpi = 0;
+        bool operator==(const NewImageOptions&) const = default;
+    };
+
+    /// @brief Set how a new image goes into the text
+    void setNewImageOptions(const NewImageOptions& options) { m_newImageOptions = options; }
+    const NewImageOptions& newImageOptions() const { return m_newImageOptions; }
+
+    // =========================================================================
+    // Captions, cross-references and the list of figures
+    // =========================================================================
+
+    /// @brief Set what the numbers of the captions depend on outside the text: the book around
+    ///        it (CaptionContext); the fields and the lists of figures that show something else
+    ///        then are drawn anew
+    void setCaptionContext(const CaptionContext& context);
+    const CaptionContext& captionContext() const;
+
+    /// @brief The numbers of the text's fields in the book around it
+    const CaptionNumbers& captionNumbers() const;
+
+    /// @brief The numbered captions of the text, in text order (captionsChanged())
+    std::vector<CaptionEntry> captionEntries() const;
+
+    /// @brief The image a caption command acts on: the selected one, the one just before the
+    ///        cursor, or the one whose caption the cursor is in; std::nullopt: none
+    std::optional<int> captionTargetImage() const;
+
+    /// @brief The caption of the image at a position (ImageCaption::shown false without one);
+    ///        std::nullopt: no image there
+    std::optional<ImageCaption> imageCaptionOf(int position) const;
+
+    /// @brief Insert Caption: give the image at a position this caption, as one undo step; a
+    ///        numbered caption keeps the id of its number (its cross-references stay) and its
+    ///        text keeps its formatting when it stays; the cursor goes to the caption's end
+    /// @return false without an image there, a caption to remove whose cross-references the
+    ///         confirmation keeps (setCaptionRemovalConfirmation()), or in a read-only text;
+    ///         true also when the caption was so already
+    bool setImageCaption(int position, const ImageCaption& caption);
+
+    /// @brief The number a caption of a label has, or would get, at the image at a position
+    ///        ("3", "2.3"): the hint of the windows
+    QString captionNumberAt(int position, const QString& label) const;
+
+    /// @brief Insert > Cross-Reference: a cross-reference at the cursor, in place of the
+    ///        selection, as one undo step
+    bool insertCrossReference(const CrossReference& reference);
+
+    /// @brief Insert > List of Figures: the captions of the book in a paragraph of its own at
+    ///        the cursor, after a heading @p title when the paragraph before it is not a heading
+    ///        (empty: none), as one undo step
+    bool insertFigureList(const QString& title);
+
+    /// @brief Go to the image of a numbered caption of the text (selected and in view; a
+    ///        caption without an image: its number)
+    bool goToCaption(const QString& id);
+
+    /// @brief Where Ctrl+click on a cross-reference or a row of a list of figures goes
+    struct CaptionLink {
+        QString captionId;  ///< The id of the caption's number
+        QString elementId;  ///< The text it is in; empty: this one
+        bool operator==(const CaptionLink&) const = default;
+    };
+
+    /// @brief Where Ctrl+click goes at a point of the widget; std::nullopt: no cross-reference
+    ///        that is a link there, nor a row of a list of figures
+    std::optional<CaptionLink> captionLinkAt(const QPointF& widgetPos) const;
+
+    /// @brief Asks before a numbered caption that cross-references may name goes (with its
+    ///        image, or taken off it); gets the ids of its numbers, true lets it go
+    using CaptionRemovalConfirmation = std::function<bool(const QStringList& ids)>;
+
+    /// @brief Set what asks before a numbered caption goes; none: it goes without asking
+    void setCaptionRemovalConfirmation(CaptionRemovalConfirmation confirm) {
+        m_confirmCaptionRemoval = std::move(confirm);
+    }
+
+    /// @brief The cross-references of the text that name a caption of these ids
+    int crossReferenceCount(const QSet<QString>& ids) const;
+
+    // =========================================================================
+    // Fields: the book's title, its author, the text's title, the page, the words, the date
+    // =========================================================================
+
+    /// @brief Set what the fields show of the book and the text (text_fields.h); the fields
+    ///        that show something else then are drawn anew. A context without a time gets the
+    ///        time it is set: the dates are those of when the text was opened or came to the
+    ///        front last
+    void setFieldContext(const FieldContext& context);
+    /// @brief What the fields show of the book and the text
+    const FieldContext& fieldContext() const { return m_fieldContext; }
+
+    /// @brief Insert > Field..., Date && Time...: a field at the cursor, in place of the
+    ///        selection, as one undo step
+    /// @return false in a read-only text
+    bool insertField(const TextField& field);
+
+    /// @brief The field the field commands act on (of text_fields.h): the one selected alone,
+    ///        else the one just before the cursor, else the one just after it; std::nullopt:
+    ///        none
+    std::optional<int> fieldAtCursor() const;
+
+    /// @brief The field of text_fields.h at a position; std::nullopt: none there
+    std::optional<TextField> textFieldAt(int position) const;
+
+    /// @brief The text the field at a position shows, of any kind (a caption's number too);
+    ///        empty: no field there
+    QString fieldTextAt(int position) const;
+
+    /// @brief Edit Field: the field at a position shows something else or in another format,
+    ///        as one undo step
+    /// @return false without such a field there, in a read-only text, or when it is so already
+    bool setTextFieldAt(int position, const TextField& field);
+
+    /// @brief Convert to Text: the field at a position becomes the text it shows, in its
+    ///        formatting, as one undo step
+    /// @return false without a field of text_fields.h there or in a read-only text
+    bool convertFieldToText(int position);
+
+    /// @brief The field of any kind under a point of the widget (its character); std::nullopt:
+    ///        none there
+    std::optional<int> fieldAt(const QPointF& widgetPos) const;
 
     // =========================================================================
     // Annotations: comments, TODOs and notes
@@ -1048,6 +1493,154 @@ public:
     /// @param headerRow The first row is a header row
     void insertTable(int columns, int rows, bool headerRow);
 
+    // =========================================================================
+    // The Table menu (book_editor_table_commands.cpp)
+    // =========================================================================
+    // Each change is one undo step: undone, it brings back the cursor and the selection it
+    // was made with. Nothing changes in a read-only text (isReadOnly()).
+
+    /// @brief The cells the selection selects: its ends in two cells of one table, the
+    ///        rectangle between them with every merged cell in it whole; std::nullopt for a
+    ///        selection of text (in one cell, or not in one table)
+    ///
+    /// Such a selection is shown as its cells; Delete and Backspace clear them, typing and
+    /// pasting clear them and go into the first one, and copying copies them as a table.
+    std::optional<TableCellRange> selectedCellRange() const;
+
+    /// @brief The cells the Table menu changes: the selected ones (selectedCellRange()), else
+    ///        the cell of the cursor (of the start of the selection); std::nullopt outside a
+    ///        table
+    std::optional<TableCellRange> tableCells() const;
+
+    /// @brief Table > Insert > Rows Above, Rows Below: as many rows as the cells are high,
+    ///        of the cells of the first or the last of their rows; the cursor stays
+    void insertTableRows(bool below);
+
+    /// @brief Table > Insert > Columns to the Left, to the Right: as many columns as the cells
+    ///        are wide, as wide as the first or the last of their columns (the others get
+    ///        narrower: the table keeps its width)
+    void insertTableColumns(bool right);
+
+    /// @brief Table > Delete > Rows: the rows of the cells; all of them, the table
+    void deleteTableRows();
+
+    /// @brief Table > Delete > Columns: the columns of the cells; all of them, the table
+    void deleteTableColumns();
+
+    /// @brief Table > Delete > Table: the table of the cursor; the cursor goes to the
+    ///        paragraph after it
+    void deleteTable();
+
+    /// @brief What Table > Select selects
+    enum class TablePart { Cell, Row, Column, Table };
+
+    /// @brief Table > Select > Cell, Row, Column, Table: the text of the cursor's cell, or
+    ///        the cells of the rows or the columns of the cells, or of the whole table
+    void selectTablePart(TablePart part);
+
+    /// @brief Whether Table > Merge Cells merges: more than one cell is selected
+    bool canMergeTableCells() const;
+
+    /// @brief Table > Merge Cells: the selected cells become one, with their paragraphs
+    void mergeTableCells();
+
+    /// @brief Whether Table > Split Cells... splits: in a table, a selection of cells to
+    ///        merge first or the cursor's cell
+    bool canSplitTableCells() const;
+
+    /// @brief The paragraphs of the cell Table > Split Cells... splits, which can go into
+    ///        the new cells: of the cursor's cell, or (@p mergeFirst) of the selected cells
+    ///        merged, an empty cell adding none
+    int splitCellParagraphs(bool mergeFirst) const;
+
+    /// @brief Table > Split Cells...: the cursor's cell into @p columns by @p rows cells
+    ///        (1 to MAX_SPLIT_CELLS); with @p mergeFirst the selected cells merged first
+    /// @param distribute The paragraphs of the cell go into the new cells in turn
+    void splitTableCells(int columns, int rows, bool mergeFirst, bool distribute);
+
+    /// @brief Table > Distribute Rows Evenly: the rows of a selection of cells, else all of
+    ///        the table, get the least height of the highest of them
+    void distributeTableRows();
+
+    /// @brief Table > Distribute Columns Evenly: the columns of a selection of cells, else
+    ///        all of the table, get equal widths, together as wide as before
+    void distributeTableColumns();
+
+    /// @brief Whether Table > Repeat Header Rows is checked: the rows of the cells are header
+    ///        rows, repeated at the top of each page the table goes on to
+    bool isTableHeader() const;
+
+    /// @brief Whether Table > Repeat Header Rows can change: the first row of the cells is a
+    ///        header row or the first row after them (header rows are the first rows)
+    bool canChangeTableHeader() const;
+
+    /// @brief Table > Repeat Header Rows: the rows of the cells, and those above them, become
+    ///        header rows (@p header), or they and the rows below them stop being
+    void setTableHeader(bool header);
+
+    /// @brief What Table > Sort... sorts
+    struct SortSubject {
+        bool tableRows = false;   ///< The rows of a table; else paragraphs
+        QStringList columns;      ///< The names of the columns: the texts of the last
+                                  ///< header row, empty for a table without a header
+        int count = 0;            ///< The rows or paragraphs sorted
+        bool header = false;      ///< The table has header rows, which stay at the top
+    };
+
+    /// @brief What Table > Sort... sorts: in a table, the selected rows (of more than one),
+    ///        else the rows under its header; outside a table, the selected paragraphs, else
+    ///        the items of the cursor's list
+    /// @return std::nullopt when there is nothing to sort (see sortRefusal())
+    std::optional<SortSubject> sortSubject() const;
+
+    /// @brief Why Table > Sort... is greyed out; empty when it is not
+    QString sortRefusal() const;
+
+    /// @brief Table > Sort...: sort what sortSubject() names, by the options; the language
+    ///        is the text's (setTextLanguage()) when the options have none
+    void sortSelection(SortOptions options);
+
+    /// @brief Move the rows of the cells, or the paragraphs of the selection or the cursor's
+    ///        paragraph outside a table, one place up or down (Alt+Shift+Up, Alt+Shift+Down);
+    ///        the selection moves with them
+    /// @return false when they stay: at the start or the end of the table or the text, a
+    ///         header row next to a row under the header, or rows with cells spanning rows
+    bool moveParagraphsOrRows(bool down);
+
+    /// @brief The texts of the paragraphs Table > Convert > Text to Table... turns into a
+    ///        table: the selected ones, else the cursor's; empty in a table, or with an
+    ///        object among them
+    QStringList paragraphsForTable() const;
+
+    /// @brief Whether there are paragraphs for Text to Table... (paragraphsForTable()), without
+    ///        taking their texts
+    bool canConvertTextToTable() const;
+
+    /// @brief Table > Convert > Text to Table...: the paragraphs of paragraphsForTable()
+    ///        become a table (textToTable()); the cursor goes to its first cell
+    void convertTextToTable(QChar separator, int columns, bool headerRow);
+
+    /// @brief The texts of the cells of the cursor's table by row, a cell's paragraphs
+    ///        separated by line breaks (QChar::LineSeparator), for Table to Text...
+    std::vector<QStringList> tableTexts() const;
+
+    /// @brief Table > Convert > Table to Text...: the cursor's table becomes paragraphs
+    ///        (tableToText()); the cursor goes to the first of them
+    void convertTableToText(QChar separator);
+
+    /// @brief What Table > Table Properties... shows: the cursor's table, its rows, columns
+    ///        and the cells (tableCells()); std::nullopt outside a table
+    std::optional<TablePropertiesData> tablePropertiesData() const;
+
+    /// @brief Table > Table Properties...: give the table, its rows and columns the
+    ///        properties, and the cells their own when they changed (cellChanged)
+    void setTablePropertiesData(const TablePropertiesData& properties);
+
+    /// @brief Set the left edge of a column by dragging it: @p column (1 to the columns - 1)
+    ///        and the one before it divide their width at @p x (layout coordinates), each
+    ///        at least MIN_COLUMN_WIDTH wide
+    void setColumnEdge(QTextTable& table, int column, qreal x);
+
     /// @brief Let the text be changed or not (see isReadOnly())
     void setReadOnly(bool readOnly);
 
@@ -1090,6 +1683,33 @@ public:
     /// command is the editor's own. The application keeps the commands while the editor
     /// lives.
     void setContextMenuEditActions(const ContextMenuEditActions& actions);
+
+    /// @brief The application's commands of the Table menu (setContextMenuTableActions())
+    struct ContextMenuTableActions {
+        QList<QAction*> insert;    ///< Rows Above, Rows Below, Columns to the Left and Right
+        QList<QAction*> remove;    ///< Rows, Columns, Table
+        QList<QAction*> select;    ///< Cell, Row, Column, Table
+        QList<QAction*> commands;  ///< Merge Cells... Table Properties...; a null: a line
+    };
+
+    /// @brief The commands of the Table menu the context menu of a cell shows above its
+    ///        editing items: Insert, Delete and Select as its own submenus, then the others,
+    ///        enabled as in the Table menu
+    void setContextMenuTableActions(const ContextMenuTableActions& actions);
+
+    /// @brief The application's commands of the Image menu (setContextMenuImageActions())
+    struct ContextMenuImageActions {
+        QList<QAction*> top;     ///< Image Properties..., Add Caption, Alternative Text...
+        QList<QAction*> rotate;  ///< The submenu Rotate; a null: a line
+        QList<QAction*> filter;  ///< The submenu Filter; a null: a line
+        QList<QAction*> bottom;  ///< Crop... Save as Image...; a null: a line
+    };
+
+    /// @brief The commands of the Image menu the context menu of an image shows above its
+    ///        editing items, Rotate and Filter as its own submenus, enabled as in the Image
+    ///        menu (the click selects the image they work on); without them the menu has the
+    ///        editor's own items of an image
+    void setContextMenuImageActions(const ContextMenuImageActions& actions);
 
     /// @brief Show the text's context menu under the cursor, as the menu key and Shift+F10
     ///        do: for a misspelled word at the cursor it offers what to put in its place
@@ -1279,6 +1899,36 @@ public:
     /// @brief The dictionary the spelling is checked with, or nullptr
     SpellCheckService* spellCheckService() const;
 
+    /// @brief Check the text with the dictionary of its book too, while the spelling is checked
+    ///
+    /// The names of the book with their forms and the words of the book are right. A place
+    /// written otherwise than a spelling rule of the book wants gets a wave of its own
+    /// (HighlightKind::BookRule) in place of a misspelling's, unless the writer chose to
+    /// ignore it (Ignore All: SpellCheckService::ignoreWord()); its context menu offers the
+    /// rule's form. A name written small gets its own spelling as the first suggestion. The
+    /// chapters of the book get it (SpellingCoordinator), not the documents outside it. The
+    /// editor checks its text again when it gets another dictionary; after the dictionary
+    /// changes, requestSpellCheck() checks it again.
+    /// @param dictionary The book's dictionary (not owned); nullptr: none
+    /// @param editable Whether the context menu offers to change it: to add a word
+    ///        (addToBookDictionaryAsked()) and to remove a rule (removeBookRuleAsked())
+    void setBookDictionary(const core::BookDictionary* dictionary, bool editable);
+
+    /// @brief The dictionary of the book the text is checked with too, or nullptr
+    const core::BookDictionary* bookDictionary() const { return m_bookDictionary; }
+
+    /// @brief Whether the context menu offers to change the book's dictionary
+    ///        (setBookDictionary())
+    bool isBookDictionaryEditable() const { return m_bookDictionaryEditable; }
+
+    /// @brief Mark the places written otherwise than the spelling rules of the book's
+    ///        dictionary want, or not (the setting; they are marked by default); the text is
+    ///        checked again when it changes
+    void setBookRulesMarked(bool marked);
+
+    /// @brief Whether the places breaking the spelling rules of the book are marked
+    bool areBookRulesMarked() const { return m_bookRulesMarked; }
+
     /// @brief Check the spelling of every paragraph again
     ///
     /// The waves stay until their paragraphs are checked.
@@ -1437,6 +2087,26 @@ public:
     /// @brief Hide the find/replace bar and clear search highlights
     void hideFindReplace();
 
+    /// @brief What the selection gives to search for: the text selected within one
+    ///        paragraph, without a line break, or the range of a note's text selected (a
+    ///        match in it); empty for none
+    [[nodiscard]] QString searchTextFromSelection() const;
+
+    /// @brief Select a match of a search made outside the editor (Find in Book): in the text,
+    ///        or in the text of a note, its number selected, as Find Next selects it there
+    /// @return False when the text does not have the match there (it changed since)
+    bool goToSearchMatch(const SearchMatch& match);
+
+    /// @brief Replace every match of a search in the text, as Replace All of the find bar
+    ///        does: one undo step after aboutToReplaceAll(), the cursor at the end of the last
+    ///        replacement; the find bar's search stays its own
+    /// @param searchText What is searched for, with @p options
+    /// @param replaceText What the matches become
+    /// @param options How it is searched for
+    /// @return The number of matches replaced (none in a read-only text)
+    int replaceAllInText(const QString& searchText, const QString& replaceText,
+                         const SearchOptions& options);
+
     /// @brief Set the appearance settings
     /// @param appearance The new appearance configuration
     ///
@@ -1505,9 +2175,36 @@ signals:
     ///        (linkTarget(), setLink())
     void linkDialogAsked();
 
+    /// @brief The writer asked for the properties of the selected image (a double click on
+    ///        it, its context menu): the application opens Image Properties
+    /// @param position The image's character
+    /// @param page The page of the window shown first (gui::dialogs::ImagePropertiesDialog::
+    ///        Page): 0 Image, 1 Size and Rotation, 4 Colors, 5 Description
+    void imagePropertiesAsked(int position, int page);
+
+    /// @brief The writer asked to change the file of the image at a position (its context
+    ///        menu): the application asks for one and calls changeImageFile()
+    void imageFileAsked(int position);
+
+    /// @brief The writer asked to save the image at a position as a file of its own (its
+    ///        context menu): the application asks where
+    void imageSaveAsked(int position);
+
     /// @brief A link was Ctrl+clicked, or Open Link chosen in its context menu
     /// @param address The link's address; the program opens only some (isOpenableLinkAddress())
     void linkOpenAsked(const QString& address);
+
+    /// @brief The numbered captions of the text changed: one added, taken out or moved, of
+    ///        another label or with another text (captionEntries()); the book counts its
+    ///        numbers again
+    void captionsChanged();
+
+    /// @brief Ctrl+click on a cross-reference or a row of a list of figures naming a caption of
+    ///        another text: the application opens it and goes to the caption (goToCaption())
+    void captionOpenAsked(const QString& elementId, const QString& captionId);
+
+    /// @brief Insert Caption... of the context menu of an image: the window of Insert Caption
+    void imageCaptionAsked(int position);
 
     /// @brief Replace All of the Find/Replace bar is about to replace @p count matches of
     /// @p found with @p replacement; the text is still as it was (toKml())
@@ -1521,12 +2218,35 @@ signals:
     /// Use this to track content changes (e.g., for statistics, auto-save).
     void contentChanged();
 
+    /// @brief Text is about to be pasted or dropped, or a paste is about to be undone or
+    /// redone: the change that follows is not typed by hand (pastingFinished() follows it)
+    void pastingStarted();
+
+    /// @brief The change pastingStarted() announced is made (contentChanged() came before
+    /// it)
+    /// @param level The undo level of the paste: the same when it is undone and redone
+    /// (text typed right after a paste may join its level, and goes and comes back with it)
+    /// @param undoOrRedo A paste was undone or redone
+    void pastingFinished(int level, bool undoOrRedo);
+
+    /// @brief Text is about to go to another text, or to come back from it (Book > Chapter
+    /// Break and its Undo): the change that follows is not writing (movingFinished() follows
+    /// it)
+    void movingStarted();
+
+    /// @brief The change movingStarted() announced is made (contentChanged() came before it)
+    void movingFinished();
+
     /// @brief Emitted when the content starts or stops differing from the saved content
     ///        (see isModified())
     ///
     /// A content as long as the saved one is compared with it when the editing pauses; until
     /// then isModified() gives the answer.
     void modifiedChanged(bool modified);
+
+    /// @brief The book's paragraph styles changed (setParagraphStyles()): a style was added,
+    ///        changed or removed
+    void paragraphStylesChanged();
 
     /// @brief Emitted when the word and character counts change while the text stays the
     ///        same (they follow new rules of setWordCountRules())
@@ -1556,6 +2276,22 @@ signals:
     /// @brief The misspelled words or grammar issues changed (textIssues()), or more of the
     ///        text was checked (checkProgress()); once for the changes made together
     void issuesChanged();
+
+    /// @brief The writer chose Add to Book Dictionary on the context menu of a misspelled word
+    ///        (setBookDictionary())
+    void addToBookDictionaryAsked(const QString& word);
+
+    /// @brief The writer chose Remove Rule on the context menu of a place breaking a spelling
+    ///        rule of the book (setBookDictionary())
+    void removeBookRuleAsked(const QString& ruleId);
+
+    /// @brief The writer chose Add Name... on the context menu of a misspelled word: the
+    ///        word is to be a name of the book's dictionary (setBookDictionary())
+    void addNameAsked(const QString& word);
+
+    /// @brief The writer chose Edit Rule... on the context menu of a place breaking a spelling
+    ///        rule of the book (setBookDictionary())
+    void editBookRuleAsked(const QString& ruleId);
 
     /// @brief Emitted when view mode changes
     /// @param mode The new view mode
@@ -1602,6 +2338,22 @@ signals:
     ///        on its card, Edit Annotation in a menu
     /// @param id The annotation's id
     void annotationEditRequested(const QString& id);
+
+    /// @brief The writer asks to write a note's text in its frame: a click on its text, a
+    /// double click on its number, Edit Footnote in the menu
+    void noteEditRequested(const QString& id);
+
+    /// @brief The writer asks for the window of the field at a position: Edit Field... in the
+    /// menu, a double click on it
+    void fieldEditRequested(int position);
+
+    /// @brief The notes of the text changed: one added, taken out, moved, of the other kind or
+    ///        with another text (noteList()); the book numbers them again
+    void notesChanged();
+
+    /// @brief A click on an endnote of another text shown after the last paragraph (the
+    ///        endnotes at the end of the book): the application opens that text and the note
+    void bookEndnoteOpenAsked(const QString& elementId, const QString& id);
 
     /// @brief Emitted for Card Appearance and Colors... in the menu of a card
     void annotationCardSettingsRequested();
@@ -2038,11 +2790,168 @@ private:
     ///        annotation's mark and, with Ctrl, over a link; an arrow over the selected text
     void updatePointerShape(const QPointF& pos, Qt::KeyboardModifiers modifiers);
 
+    /// @brief An edge between two columns of a table: the table, by the position where it
+    ///        starts, and the column right of it
+    struct ColumnEdge {
+        int tableStart = -1;
+        int column = 0;
+    };
+
+    /// @brief The table of the edge being dragged, found again by where it starts: nullptr
+    ///        without a drag, or once the text has no table starting there
+    QTextTable* columnDragTable() const;
+
+    /// @brief The edge between two columns at a widget point, within a few pixels of it, in a
+    ///        text that can change (dragging it sets the widths of the two columns)
+    std::optional<ColumnEdge> columnEdgeAt(const QPointF& widgetPos) const;
+
+    /// @brief The edge being dragged follows the mouse, between the edges next to it
+    void dragColumnEdge(const QPointF& widgetPos);
+
+    /// @brief Draw the line where the edge being dragged goes
+    void paintColumnGuide(QPainter& painter) const;
+
+    // Images: selected, resized by the handles in their corners (book_editor_images.cpp)
+
+    /// @brief A corner of an image, with a handle when the image is selected
+    enum class ImageCorner { TopLeft, TopRight, BottomLeft, BottomRight };
+
+    /// @brief An image being resized by a handle
+    struct ImageResize {
+        int position = 0;                               ///< The image's character
+        ImageCorner corner = ImageCorner::BottomRight;  ///< The handle dragged
+        QRectF start;                                   ///< The image in the widget, pressed
+        QPointF pressed;                                ///< Where the handle was pressed
+        QRectF preview;                                 ///< Where the image goes
+    };
+
+    /// @brief The handle of the selected image at a widget point, in a text that can change
+    std::optional<ImageCorner> imageHandleAt(const QPointF& widgetPos) const;
+
+    /// @brief The handle of a corner of an image's rectangle, in the widget
+    static QRectF imageHandleRect(const QRectF& image, ImageCorner corner);
+
+    /// @brief A press of the left button on an image or the handle of the selected one: a
+    ///        handle starts resizing, an image is selected (dragged, it moves as selected
+    ///        text does)
+    /// @return Whether the press was on one
+    bool pressImage(const QPointF& widgetPos);
+
+    /// @brief The image being resized follows the handle, in proportion, within its line
+    void dragImageHandle(const QPointF& widgetPos);
+
+    /// @brief The handle let go: the image gets the size of the preview (one undo step)
+    void finishImageResize();
+
+    /// @brief What the label beside a resized image says: its new width in its unit
+    QString imageWidthLabel(int position, qreal widgetWidth) const;
+
+    /// @brief The size of a label beside an image: the width of an image being resized,
+    ///        what the keys of cropping do
+    QSizeF imageLabelSize(const QString& label) const;
+
+    /// @brief Draw a label beside an image at a widget point (its top left corner), moved
+    ///        inside the view where it would leave it
+    void paintImageLabel(QPainter& painter, const QString& label, const QPointF& at) const;
+
+    /// @brief An image being cropped in the text (startImageCrop())
+    struct ImageCropping {
+        int position = 0;       ///< The image's character
+        ImageProperties image;  ///< The image as it was when the cropping began
+        ImageCrop crop;         ///< The crop of its sides as shown, as the marks set it
+        int sides = 0;          ///< The sides whose mark is dragged (bits, left first); 0: none
+        QPointF pressed;        ///< Where that mark was pressed
+        ImageCrop pressedCrop;  ///< The crop then
+    };
+
+    /// @brief The image being cropped as it still is in the text: std::nullopt (and the
+    ///        cropping dropped) when it has changed or gone
+    const ImageCropping* imageCropping() const;
+
+    /// @brief The whole picture of the image being cropped (its crop taken off) and the part
+    ///        of it the marks keep, in the widget
+    std::optional<std::pair<QRectF, QRectF>> imageCropRects() const;
+
+    /// @brief The sides whose mark is at a widget point (a corner's: two of them); 0: none
+    int imageCropSidesAt(const QPointF& widgetPos) const;
+
+    /// @brief The pointer over the image being cropped: arrows over a mark, the arrow over
+    ///        the picture; std::nullopt elsewhere or with no image being cropped
+    std::optional<Qt::CursorShape> imageCropPointerAt(const QPointF& widgetPos) const;
+
+    /// @brief A press of the left button while an image is being cropped: on a mark it
+    ///        starts dragging it, elsewhere on the image it does nothing, outside the image
+    ///        it crops it
+    /// @return Whether the press was taken (outside the image it goes on to the text)
+    bool pressImageCrop(const QPointF& widgetPos);
+
+    /// @brief The mark being dragged follows the mouse, leaving some of the picture
+    void dragImageCrop(const QPointF& widgetPos);
+
+    /// @brief Draw the image being cropped: its cut parts faint around it, the marks and
+    ///        what the keys do
+    void paintImageCropping(QPainter& painter) const;
+
+    /// @brief Esc on the selected image: back to the text, the cursor after the image
+    /// @return Whether an image was selected
+    bool leaveSelectedImage();
+
+    /// @brief Whether a key is Ctrl+] (true: larger) or Ctrl+[ (false: smaller), the keys of
+    ///        the size of the selected image
+    static std::optional<bool> imageResizeKey(const QKeyEvent& event);
+
+    /// @brief Draw the selected image's frame and handles, the preview of a resize and its
+    ///        label, and the selection's color over the images among selected text
+    void paintImageSelection(QPainter& painter) const;
+
+    /// @brief Add the items of the selected image to a context menu: Image Properties...,
+    ///        Add Caption, Change Image..., Original Size, Save as Image...
+    void addImageActions(QMenu& menu, int position);
+
+    /// @brief Add the items of a note to a context menu: Edit Footnote, Convert to Endnote (or
+    ///        Footnote), Delete Footnote
+    void addNoteActions(QMenu& menu, const NotePlace& note);
+
+    /// @brief The items of the context menu for a field of text_fields.h at a position: Edit
+    ///        Field..., Convert to Text
+    void addFieldActions(QMenu& menu, int position);
+
+    /// @brief The word count fields show the words of the text as they are now
+    void refreshFieldWords();
+
+    /// @brief The tooltip of the field of text_fields.h at a position: what it shows, and for
+    ///        the page in a view without pages where it is shown
+    QString fieldToolTip(int position) const;
+
+    /// @brief The note whose text is at a point of the widget: its id; empty: none (or an
+    ///        endnote of another text: bookEndnoteAt())
+    QString noteTextAt(const QPointF& widgetPos) const;
+
+    /// @brief The endnote of another text whose text is at a point of the widget: its text and
+    ///        its id there (std::nullopt: none)
+    std::optional<std::pair<QString, QString>> bookEndnoteAt(const QPointF& widgetPos) const;
+
+    /// @brief Compare the notes with the ones announced, once the edits of a step are done
+    ///        (notesChanged())
+    void checkNotesSoon();
+
     /// @brief Whether a position lies in the selection, its ends included
     bool isInSelection(const CursorPosition& position) const;
 
-    /// @brief Whether insertFromMimeData() can insert the content
-    static bool canInsertFromMimeData(const QMimeData* source);
+    /// @brief Whether insertFromMimeData() can insert the content: Kalahari's text, text, and
+    ///        with a folder of images a picture or files of pictures
+    bool canInsertFromMimeData(const QMimeData* source) const;
+
+    /// @brief Insert the pictures of MIME data at the cursor: the files of pictures (dropped
+    ///        from a folder), or a picture alone (a screenshot) saved as a PNG file
+    /// @return Whether the data was pictures (inserted, or not where the text has no folder of
+    ///         images); false for Kalahari's text and for text
+    bool insertPicturesOf(const QMimeData& source);
+
+    /// @brief The images of text pasted from another book's folder (MIME_IMAGES_FOLDER),
+    ///        between @p from and the cursor's position: their files copied into this one's
+    ///        folder of images, the images naming the copies, in the paste's undo step
+    void adoptPastedImages(const QMimeData& source, int from, const QTextCursor& cursor);
 
     /// @brief Drag the selected text (copy or move)
     ///
@@ -2112,6 +3021,75 @@ private:
     /// staying (removeKeepingTables(), an undo step of its own): the cursor is at its
     /// start then, without a selection.
     QTextCursor selectionToReplace();
+
+    // --- Captions (book_editor_captions.cpp) ---
+
+    /// @brief Compare the captions with the ones announced, once the edits of a step are done
+    ///        (captionsChanged())
+    void checkCaptionsSoon();
+
+    /// @brief The format of the character at a position
+    QTextCharFormat captionNumberCharFormat(int position) const;
+
+    /// @brief Whether a caption's numbers may go: none, or the confirmation lets them
+    bool confirmCaptionRemoval(const QTextBlock& caption);
+
+    /// @brief A new empty caption's block next to an image's (before it when @p above), aligned
+    ///        as the image, the cursor in it
+    QTextBlock newCaptionBlock(QTextCursor& cursor, const QTextBlock& imageBlock, bool above);
+
+    /// @brief A new caption's block next to an image's (before it when @p above), the
+    ///        cursor in it
+    QTextBlock insertCaptionBlock(QTextCursor& cursor, const QTextBlock& imageBlock,
+                                  const QTextBlockFormat& format, const QTextCharFormat& charFormat,
+                                  bool above);
+
+    /// @brief Write a caption into its block: the text after its number when it changed, and
+    ///        the label and the number before it (a number keeps its id)
+    void writeCaption(QTextCursor& cursor, const QTextBlock& block, const ImageCaption& wanted,
+                      const ImageCaption& current);
+
+    /// @brief Delete or Backspace at an image with a caption: both go, as one undo step,
+    ///        after asking when cross-references may name the caption
+    /// @return false when the image has no caption (it goes as any character)
+    bool removeImageWithCaption(int position);
+
+    /// @brief Ctrl+click: go to the caption (of another text: captionOpenAsked())
+    void followCaptionLink(const CaptionLink& link);
+
+    /// @brief Pasted numbers whose ids the book has already get ids of their own
+    void renewPastedCaptionIds(int from, int to);
+
+    /// @brief The pasted notes in [from, to) whose ids the text has elsewhere get ids of their
+    ///        own, in the paste's undo step (a note cut and pasted keeps its id: it is gone)
+    void renewPastedNoteIds(int from, int to);
+
+    // --- The Table menu (book_editor_table_commands.cpp) ---
+
+    /// @brief Start an undo step of a change of a table: undone, it brings back the cursor
+    ///        and the selection it was made with
+    void beginTableStep(QTextCursor& cursor);
+
+    /// @brief End the step: redone, it brings back the cursor at @p position with the
+    ///        selection from @p anchor (none: the same place), which the editor gets now
+    void endTableStep(QTextCursor& cursor, int position, int anchor = -1);
+
+    /// @brief Clear the selected cells (one undo step); the cursor goes to the first one
+    /// @return false without a selection of cells
+    bool clearSelectedCells(bool keepAnnotations);
+
+    /// @brief The blocks of the paragraphs the selection covers (a selection ending at the
+    ///        start of a paragraph does not cover it), or the cursor's: the first and the last
+    std::pair<int, int> selectedBlockRange() const;
+
+    /// @brief The paragraphs outside tables Table > Sort... sorts: the selected ones (more
+    ///        than one), else the items of the cursor's list; std::nullopt for none, or with
+    ///        an object or a table among them
+    std::optional<std::pair<int, int>> sortedParagraphs() const;
+
+    /// @brief The rows of a table Table > Sort... sorts, all its columns (see sortSubject());
+    ///        std::nullopt for fewer than two, or rows with cells spanning rows
+    std::optional<TableCellRange> sortedRows() const;
 
     /// @brief Select word at cursor position (Phase 3.11)
     void selectWordAtCursor();
@@ -2351,6 +3329,13 @@ private:
 
     // Drag and drop of text (stage 3)
     bool m_textDragPending = false;     ///< Press on the selection: drags once the mouse moves far enough
+    std::optional<ColumnEdge> m_columnDrag;  ///< The edge of columns being dragged
+    std::optional<ImageResize> m_imageResize;  ///< The image whose handle is dragged
+    mutable std::optional<ImageCropping> m_imageCropping;  ///< The image cropped in the text
+    int m_keyResizedImage = -1;  ///< The image resized by Ctrl+] or Ctrl+[: its label shows
+    QTimer* m_keyResizeLabelTimer = nullptr;  ///< Hides that label
+    bool m_imagePressed = false;  ///< The press selected an image: let go, it stays selected
+    qreal m_columnDragX = 0.0;               ///< Where it goes, in the document
     QPointF m_textDragStartPos;         ///< Where that press was
     QTimer* m_autoScrollTimer = nullptr;  ///< Scrolls while selecting or dragging near the edges
     QPointF m_autoScrollPos;            ///< Last mouse position for automatic scrolling
@@ -2367,8 +3352,43 @@ private:
     std::vector<AnchoredMark> m_paragraphMarks;  ///< setParagraphMarks()
     QIcon m_paragraphMarkIcon;                   ///< What they show
     ContextMenuEditActions m_contextMenuEditActions;  ///< The Edit menu's commands in it
+    ContextMenuTableActions m_contextMenuTableActions;  ///< The Table menu's, in a cell
+    ContextMenuImageActions m_contextMenuImageActions;  ///< The Image menu's, on an image
     QAction* m_nextIssueAction = nullptr;  ///< Its keys go on to the next issue from the menu
     bool m_annotationsAllowed = true;   ///< The text takes annotations (annotationsAllowed())
+
+    /// @brief The note inserted last, while nothing else was done since: its text and Esc
+    ///        join or undo its step (insertNote())
+    struct InsertedNote {
+        QString id;
+        int undoSteps = 0;  ///< The document's undo steps right after the insertion
+    };
+    std::optional<InsertedNote> m_insertedNote;
+    FootnoteContext m_footnoteContext;   ///< What the numbers depend on outside the text
+    std::vector<Footnote> m_shownNotes;  ///< As notesChanged() last announced them
+    bool m_notesCheckPending = false;    ///< The notes wait to be compared
+    std::optional<NoteRange> m_noteSelection;  ///< selectNoteRange()
+    /// What the texts of the notes have marked as they are drawn, by the notes' ids (matches
+    /// of the search, misspelled words, grammar issues: updateNoteMarks())
+    QHash<QString, std::vector<TextHighlight>> m_noteMarks;
+    /// The misspelled words and grammar issues of the notes' texts, gathered again when they
+    /// change (noteIssuesChanged())
+    QHash<QString, std::vector<TextHighlight>> m_noteIssueMarks;
+    bool m_noteIssueMarksStale = true;
+
+    /// @brief Gather the marks of the notes' texts before the view is drawn
+    void updateNoteMarks();
+
+    /// @brief Gather the misspelled words and grammar issues of the notes' texts again
+    ///        (m_noteIssueMarks), when they changed
+    void updateNoteIssueMarks();
+
+    /// @brief Whether the selection is the number of a note alone
+    bool isNoteNumberSelected(const QString& id) const;
+
+    /// @brief Scroll a rectangle of the widget into view, the cursor's line kept in view when
+    ///        both fit (a note's text, a range of it)
+    void scrollToShow(const QRectF& rect);
     AnnotationCards m_annotationCards;  ///< The cards of the annotations under the paragraphs
     qreal m_cardWritingHeight = 0.0;    ///< The frame over a card: its height (editor pixels)
     QString m_pressedCard;              ///< The card the last press went to (a double click edits it)
@@ -2396,6 +3416,14 @@ private:
     std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
+
+    /// The levels of undo below the text as it is: one for each step undo() takes back
+    int m_undoLevel = 0;
+    /// The levels of undo that pasted or dropped text: undoing and redoing them is pasting too
+    QSet<int> m_pasteLevels;
+
+    /// @brief The last level of undo pasted or dropped text: pastingFinished()
+    void finishPasting();
 
     /// @brief Whether the letters typed last showed Caps Lock on: a small one typed with
     ///        Shift, or a capital without it (the program is not told the state of the key)
@@ -2438,6 +3466,15 @@ private:
     ViewMode m_viewMode{ViewMode::Continuous};              ///< Current view mode
     EditorAppearance m_appearance;                          ///< Visual appearance configuration
     ParagraphStyleSet m_paragraphStyles;                    ///< The styles of the book
+    std::shared_ptr<ImageStore> m_imageStore{std::make_shared<ImageStore>()};  ///< Of the images
+    NewImageOptions m_newImageOptions;  ///< How a new image goes into the text
+    CaptionContext m_captionContext;    ///< What the numbers depend on outside the text
+    FieldContext m_fieldContext;        ///< What the fields show of the book and the text
+    QTimer* m_fieldWordsTimer{nullptr};  ///< Counts the words for the fields when typing pauses
+    CaptionRemovalConfirmation m_confirmCaptionRemoval;  ///< Asked before a caption goes
+    bool m_captionRemovalAsked = false;  ///< The writer was asked already (Image Properties)
+    std::vector<CaptionEntry> m_shownCaptions;  ///< As captionsChanged() last announced them
+    bool m_captionsCheckPending = false;        ///< The captions wait to be compared
     core::WordCountRules m_wordCountRules;                  ///< What the counts take for a word
 
     // Phase 13.5: Pagination moved to EditorRenderPipeline - see editor_render_pipeline.h
@@ -2449,6 +3486,9 @@ private:
 
     // Spelling
     SpellCheckService* m_spellCheckService{nullptr};  ///< The dictionary (not owned)
+    const core::BookDictionary* m_bookDictionary{nullptr};  ///< Of the book (not owned)
+    bool m_bookDictionaryEditable{false};  ///< Its menu items change it (setBookDictionary())
+    bool m_bookRulesMarked{true};  ///< The places breaking its rules are marked
     QTimer* m_spellTimer{nullptr};                    ///< Runs the next turn of the check
     int m_spellNext{0};             ///< The paragraph the next turn goes on from (not in view)
     int m_spellTyping{-1};          ///< Where the cursor stands after typing (-1: not typing)
@@ -2461,7 +3501,7 @@ private:
     ///        few milliseconds; another turn follows while any is due
     void runSpellCheck();
 
-    /// @brief Check a paragraph's spelling
+    /// @brief Check a paragraph's spelling, and the texts of its notes
     /// @return Whether its waves changed
     bool checkSpelling(const QTextBlock& block);
 
@@ -2513,19 +3553,55 @@ private:
     /// @brief Add an item to @p menu for each material @p mark names
     void addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark);
 
+    /// @param inNote A place of a note's text (its number at @p pos): the misspelled word or
+    ///        the grammar issue there
     void showContextMenu(const CursorPosition& pos, const QPoint& globalPos, bool fromMouse,
-                         std::optional<TextIssueKind> kind = std::nullopt);
+                         std::optional<TextIssueKind> kind = std::nullopt,
+                         const std::optional<NoteRange>& inNote = std::nullopt);
+
+    /// @brief The misspelled word at a place of a note's text (also right after it)
+    /// @param kind Gets what the wave marks: a misspelling or a rule of the book broken; may
+    ///        be nullptr
+    /// @return The word and its range in the note's text, or an empty word
+    std::tuple<QString, int, int> getMisspelledNoteWordAt(const NoteRange& place,
+                                                          HighlightKind* kind = nullptr) const;
+
+    /// @brief The grammar issue at a place of a note's text (also right after it), its start
+    ///        in the note's text (std::nullopt: none)
+    std::optional<GrammarError> getNoteGrammarErrorAt(const NoteRange& place) const;
 
     /// @brief Find misspelled word at given position
     /// @param paraIndex Paragraph index
     /// @param offset Character offset within paragraph (also right after the word)
+    /// @param kind Gets what the wave marks: a misspelling or a rule of the book broken; may
+    ///        be nullptr
     /// @return The misspelled word and its range, or empty if no error at position
-    std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset) const;
+    std::tuple<QString, int, int> getMisspelledWordAt(int paraIndex, int offset,
+                                                      HighlightKind* kind = nullptr) const;
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
-    ///        put in its place, Ignore All, Add to Dictionary
-    void addSpellingActions(QMenu& menu, const QString& word, int paraIndex, int startOffset,
-                            int endOffset);
+    ///        put in its place, Ignore All, Add to Book Dictionary (with the book's dictionary),
+    ///        Add to Your Words (All Books), Add Name... (with the book's dictionary)
+    /// @param replace Puts a word chosen in its place
+    void addSpellingActions(QMenu& menu, const QString& word,
+                            const std::function<void(const QString&)>& replace);
+
+    /// @brief Put on the context menu what is offered for a place breaking a spelling rule of
+    ///        the book: the rule's form, the rule and its note, Ignore All, Edit Rule...,
+    ///        Remove Rule
+    /// @param deviation The place, as the rule finds it
+    /// @param replace Puts a text chosen in its place
+    void addBookRuleActions(QMenu& menu, const core::RuleDeviation& deviation,
+                            const std::function<void(const QString&)>& replace);
+
+    /// @brief The place of @p text breaking a spelling rule of the book, as its wave marks it
+    ///        (the whole text); std::nullopt: none, or no book's dictionary
+    std::optional<core::RuleDeviation> bookRuleDeviation(const QString& text) const;
+
+    /// @brief Give a place breaking a spelling rule of the book (TextIssueKind::BookRule) what
+    ///        the panel shows: "Write ..." as its message, the rule's id and note, and the
+    ///        rule's form as its suggestion; a misspelled word stays as it is
+    void describeSpellingIssue(TextIssue& issue) const;
 
     /// @brief Replace word in document
     /// @param paraIndex Paragraph index
@@ -2543,6 +3619,8 @@ private:
     struct GrammarRequest {
         QTextCursor place;  ///< At the paragraph, moved with the edits
         QString text;       ///< Its text as sent
+        QString noteId;     ///< A paragraph of a note's text: the note's (empty: its own text)
+        int noteLine{0};    ///< That paragraph, a line of the note's noteText()
     };
     std::map<quint64, GrammarRequest> m_grammarRequests;  ///< The requests not answered yet
     bool m_wholeTextGrammar{false};  ///< The whole text is checked (setWholeTextGrammar())
@@ -2568,6 +3646,8 @@ private:
         int paragraph{0};            ///< The paragraph it is at
         CursorPosition cursor;       ///< The cursor when it started: moved, the search ends
         SelectionRange selection;    ///< The selection when it started
+        std::optional<NoteRange> fromNote;  ///< The range of a note's text selected with its
+                                            ///< number when it started (an issue gone to)
     };
     IssueSearchState m_issueSearch;
 
@@ -2581,11 +3661,12 @@ private:
     void endIssueSearch(IssueSearch result);
 
     /// @brief Send a paragraph to the grammar check unless it is checked, being checked or
-    ///        empty
+    ///        empty; then the paragraphs of the texts of its notes, each on its own, the same
     /// @return false when no more paragraphs can be sent now
     bool sendGrammarCheck(int paragraph);
 
-    /// @brief Whether the grammar of a paragraph is known (checked, or nothing to check)
+    /// @brief Whether the grammar of a paragraph is known (checked, or nothing to check), the
+    ///        texts of its notes' too
     bool isGrammarKnown(const QTextBlock& block) const;
 
     /// @brief Send the paragraphs due after @p delayMs, unless they go sooner
@@ -2633,7 +3714,9 @@ private:
 
     /// @brief Put on the context menu what is offered for a grammar issue: what is
     ///        wrong, what to put in its place, Ignore This Rule
-    void addGrammarActions(QMenu& menu, const GrammarError& error, int paraIndex);
+    /// @param replace Puts a suggestion chosen in the issue's place
+    void addGrammarActions(QMenu& menu, const GrammarError& error,
+                           const std::function<void(const QString&)>& replace);
 
     // =========================================================================
     // Document, viewport and rendering
@@ -2763,9 +3846,17 @@ private:
     /// operations: keep the cursor inside the changed text and emit contentChanged().
     void onTextReplaced();
 
-    /// @brief Where the text put in by the last replacement ends (after Replace All, the
-    /// last replacement in the text), or the cursor if nothing was replaced
-    CursorPosition replacedTextEnd() const;
+    /// @brief After replacements made in the document directly: the cursor at @p end, where
+    ///        the replaced text ends, and contentChanged()
+    void finishReplacement(int end);
+
+    /// @brief Record with each replacement step of @p engine the cursors its undo and redo
+    ///        bring back (the cursor before it, the end of the replaced text)
+    void recordReplacementCursors(SearchEngine& engine);
+
+    /// @brief The place of @p end, where the text put in by a replacement ends (after
+    /// Replace All, the last replacement in the text), or the cursor for -1 (nothing replaced)
+    CursorPosition replacedTextEnd(int end) const;
 };
 
 }  // namespace kalahari::editor

@@ -1,11 +1,20 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file annotation_colors.h
 /// @brief The colors of the annotations' cards, readable on the panel and on the paper
 
 #pragma once
 
+#include "kalahari/core/theme.h"
+
 #include <QColor>
 
 namespace kalahari::gui {
+
+using core::contrastRatio;
+using core::mixedColor;
+using core::readableColor;
 
 /// @brief The contrast every text of a card has with the card at least (WCAG, normal text)
 constexpr double MIN_TEXT_CONTRAST = 4.5;
@@ -27,19 +36,6 @@ struct AnnotationCardColors {
 
     bool operator==(const AnnotationCardColors& other) const = default;
 };
-
-/// @brief The contrast ratio of two colors, from 1 (none) to 21 (black on white)
-double contrastRatio(const QColor& a, const QColor& b);
-
-/// @brief A color between two others
-/// @param amount How much of @p over there is (0 to 1)
-QColor mixedColor(const QColor& under, const QColor& over, double amount);
-
-/// @brief The color nearest to @p color with at least @p ratio contrast with @p background
-///
-/// @p color itself when it has it; else it is moved toward black on a light background and
-/// toward white on a dark one.
-QColor readableColor(const QColor& color, const QColor& background, double ratio);
 
 /// @brief A theme's color of a kind (a mark, a wave, a frame) as it is shown on a background
 ///

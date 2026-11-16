@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
+
 /// @file test_program_folders.cpp
 /// @brief The folders of the program: the folders of the books, the archives and the backups,
 /// the folders the windows choosing files start in, and the Folders page of the Settings
@@ -31,6 +34,7 @@
 
 #include <functional>
 #include <string>
+#include "test_support/window_parts.h"
 
 using namespace kalahari;
 using gui::ProgramFolders;
@@ -120,7 +124,7 @@ QPushButton* buttonOf(const gui::FolderField& field, const QString& text) {
 /// @brief How much wider than its place page Files > Folders is in the narrowest Settings
 /// window; @p category and @p title name the page in the language of the program
 int foldersPageOverflow(const QString& category, const QString& title) {
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.resize(dialog.minimumSize());
     dialog.show();
     openPage(dialog, category, title);
@@ -364,7 +368,7 @@ TEST_CASE("Folders page: the folders of the books and the archives", "[gui][sett
         ProgramFolders::remember(operation, last);
     }
 
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Files"), QStringLiteral("Folders"));
     auto* books = dialog.findChild<gui::FolderField*>(ProgramFolders::BOOKS_SETTING);
     auto* archives = dialog.findChild<gui::FolderField*>(ProgramFolders::ARCHIVES_SETTING);
@@ -409,7 +413,7 @@ TEST_CASE("Folders page: where and how many backups of the databases are kept",
           "[gui][settings][folders]") {
     QTemporaryDir dir;
     const QDir root(dir.path());
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Files"), QStringLiteral("Folders"));
     auto* place = dialog.findChild<QComboBox*>(QStringLiteral("backupsPlace"));
     auto* folder = dialog.findChild<gui::FolderField*>(QStringLiteral("backupFolder"));
@@ -447,7 +451,7 @@ TEST_CASE("Folders page: where and how many backups of the databases are kept",
     // The page shows the common folder of the settings
     settings().set<std::string>(core::BackupManager::FOLDER_SETTING,
                                 root.filePath("Backups").toStdString());
-    gui::SettingsDialog again(nullptr);
+    gui::SettingsDialog again(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(again, QStringLiteral("Files"), QStringLiteral("Folders"));
     auto* shownPlace = again.findChild<QComboBox*>(QStringLiteral("backupsPlace"));
     auto* shownFolder = again.findChild<gui::FolderField*>(QStringLiteral("backupFolder"));
@@ -466,7 +470,7 @@ TEST_CASE("Folders page: a folder the program cannot use is not saved",
     writeFile(root.filePath("file.txt"));
     const QString blocked = root.filePath("file.txt/Books");
 
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     dialog.show();
     openPage(dialog, QStringLiteral("Files"), QStringLiteral("Folders"));
     auto* books = dialog.findChild<gui::FolderField*>(ProgramFolders::BOOKS_SETTING);
@@ -508,7 +512,7 @@ TEST_CASE("Folders page: a folder the program cannot use now stays until it is c
     const QString blocked = root.filePath("file.txt/Books");
     settings().set<std::string>(ProgramFolders::BOOKS_SETTING, blocked.toStdString());
 
-    gui::SettingsDialog dialog(nullptr);
+    gui::SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
     openPage(dialog, QStringLiteral("Files"), QStringLiteral("Folders"));
     auto* books = dialog.findChild<gui::FolderField*>(ProgramFolders::BOOKS_SETTING);
     auto* count = dialog.findChild<QSpinBox*>(QStringLiteral("backupCount"));
