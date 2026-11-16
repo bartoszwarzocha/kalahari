@@ -72,6 +72,13 @@ set(KALAHARI_CORE_SOURCES
     core/bibliography.cpp       # The entries of a bibliography and the references in the text
     core/bibliography_records.cpp  # The descriptions pasted as BibTeX and RIS
     core/link_roles.cpp         # The roles of links, and the paragraph a link names
+    core/story_time.cpp         # The time of the story: dates and days, their words and file
+    core/story_time_parse.cpp   # The time of the story written by the writer, read back
+    core/timeline.cpp           # Timelines of the Workshop: threads, events, order, file
+    core/time_axis.cpp          # The axis of a timeline, its gaps shortened
+    core/mind_map.cpp           # Mind maps of the Workshop: nodes, loose nodes, connections
+    core/mind_map_file.cpp      # Their file and their outlines
+    core/mind_map_layout.cpp    # Their layouts: on both sides, to the right, down, free
     core/book_project.cpp       # Book project as its .klh file saves it
     core/old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/unicode_paths.cpp      # Paths with any characters, as UTF-8 text, and their ZIP archives

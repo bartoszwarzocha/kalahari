@@ -34,6 +34,9 @@ set(TEST_SOURCES
     core/test_card_relations.cpp      # The relations between cards, and the fields that name a card by one
     core/test_sources.cpp             # The sources: descriptions in the book, bibliography styles, BibTeX
     core/test_link_roles.cpp          # The roles of links, and the paragraph a link names
+    core/test_story_time.cpp          # The time of the story: dates and days read and written
+    core/test_timeline.cpp            # Timelines: events, order, file, and the axis with its gaps
+    core/test_mind_map.cpp            # Mind maps: the tree and its changes, file, outlines, layouts
     core/test_book_project.cpp        # Book project and its .klh file
     core/test_old_book_conversion.cpp # Books of the first .klh format, converted to this version
     core/test_package_cards.cpp       # Cards of the packages a book uses; a book read-only without them
@@ -265,6 +268,13 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/core/bibliography.cpp
     ${CMAKE_SOURCE_DIR}/src/core/bibliography_records.cpp
     ${CMAKE_SOURCE_DIR}/src/core/link_roles.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/story_time.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/story_time_parse.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/timeline.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/time_axis.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/mind_map.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/mind_map_file.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/mind_map_layout.cpp
     ${CMAKE_SOURCE_DIR}/src/core/book_project.cpp
     ${CMAKE_SOURCE_DIR}/src/core/old_book_conversion.cpp
     ${CMAKE_SOURCE_DIR}/src/core/package_card.cpp
