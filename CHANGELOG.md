@@ -34,8 +34,9 @@ to build it on Windows, Linux and macOS.
   annotations (comments, TODOs and notes) in the text, in a panel and as cards under the
   paragraphs. Books of Kalahari 0.3 are converted on opening.
 - **Research**: cards of characters, locations and items, the book's own dictionary of
-  names and words, sources with their bibliographic description, the bibliography and
-  quotes, and the preview of PDF files in the program.
+  names and words, sources with their bibliographic description (also from the web by ISBN
+  or DOI), the bibliography and quotes, and the preview of PDF files in the program, with
+  highlights.
 - **Export**: the whole book, chosen texts or the text in front to Word (DOCX) and
   Markdown.
 - **Writing statistics and goals**: the statistics bar, the Statistics panel, daily, weekly
@@ -46,6 +47,26 @@ to build it on Windows, Linux and macOS.
   own, and the program in Polish and English.
 
 ### Added
+
+- **The description of a source from the web by its ISBN or DOI** - 2026-11-15. An option,
+  off at first (Settings > Materials > Sources > Descriptions from the web by ISBN and
+  DOI), gives the card of a source the button From the Web by ISBN or DOI...: Look Up
+  sends only the number of the card, or the one typed, an ISBN to the catalog chosen
+  (Google Books, recommended, or Open Library) and a DOI to doi.org, and the description
+  found takes the place of the fields it has; the others stay as they were. A wrong number,
+  a book the catalog does not know or a failed connection is said in the window; Esc stops
+  the search. Without the option the program sends nothing and the card has no such button.
+
+- **Highlights in PDF files** - 2026-11-15. An option, off at first (Settings > Materials >
+  PDF Preview > Highlights on the pages, kept in the book), marks the text selected in the
+  preview with a color: Highlight and Highlight in Color are on the bar and in the menu of
+  the selection. The side panel has the tab Highlights next to the bookmarks: the page, the
+  text and the note of each highlight; Enter goes to the text, F2 changes the note, Delete
+  deletes the highlight (asking first when it has a note), Insert highlights the selection,
+  and the Color button changes the color. The menu of a highlight on the page also changes
+  its color or note and deletes it. The highlights are kept in the book (`highlights` of the
+  source in the .klh file), not in the PDF file, which stays as it is; with the option off
+  they are not shown and stay in the book.
 
 - **Cards of characters, locations and items** - 2026-11-15. The Workshop has cards of
   characters, locations and items, added from the Book menu, the Navigator ("Add Character...",

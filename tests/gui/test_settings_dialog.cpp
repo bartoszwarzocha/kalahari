@@ -753,6 +753,26 @@ TEST_CASE("Settings dialog: the Materials page chooses how pages and PDF files o
     settings.set<std::string>(PdfFiles::OPEN_SETTING, pdfBefore);
 }
 
+TEST_CASE("Settings dialog: the Materials page allows the highlights of PDF files, off at "
+          "first",
+          "[gui][settings][materials][highlights]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const bool before = settings.get<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
+    settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Materials"));
+    auto* highlights = dialog.findChild<QCheckBox*>(QStringLiteral("materialsPdfHighlights"));
+    REQUIRE(highlights != nullptr);
+    CHECK_FALSE(highlights->isChecked());
+    CHECK(highlights->isEnabled() == PdfFiles::previewAvailable());
+    if (PdfFiles::previewAvailable()) {
+        highlights->click();
+        CHECK(dialog.applyChanges().size() == 1);
+        CHECK(PdfFiles::highlightsOn());
+    }
+    settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, before);
+}
+
 TEST_CASE("Settings dialog: the Materials page sets the preview of PDF files",
           "[gui][settings][materials]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();

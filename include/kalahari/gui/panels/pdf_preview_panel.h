@@ -10,7 +10,10 @@
 #include "kalahari/gui/panels/pdf_pages_view.h"
 #include "kalahari/gui/panels/preview_panel.h"
 
+#include <QColor>
 #include <QString>
+
+#include <functional>
 
 class QAction;
 class QComboBox;
@@ -25,7 +28,9 @@ class QSplitter;
 class QStackedWidget;
 class QTabWidget;
 class QTimer;
+class QMenu;
 class QToolBar;
+class QToolButton;
 class QTreeView;
 class QTreeWidget;
 class QTreeWidgetItem;
@@ -33,9 +38,12 @@ class QTreeWidgetItem;
 namespace kalahari::core {
 class ProjectManager;
 struct PageBookmark;
+struct PdfHighlight;
 }  // namespace kalahari::core
 
 namespace kalahari::gui {
+
+class ColorMenu;
 
 /// @brief The preview of the PDF file of a material, on a tab beside the chapters
 ///
@@ -49,6 +57,11 @@ namespace kalahari::gui {
 /// F2 changes its note, Delete takes it away, asking first when it has a note), the contents
 /// of the file, the pages small and the hits of the search with the text around them; Enter
 /// goes to the page. F6 and Shift+F6 go between the bar, the side panel and the pages.
+///
+/// When the Settings allow it (PdfFiles::HIGHLIGHTS_SETTING), text selected is highlighted in
+/// a color, which the book keeps with a note: the side panel lists the highlights next to the
+/// bookmarks (Enter goes to the text, F2 changes the note, Delete takes it away), and the menu
+/// of a highlight changes its color or its note. The PDF file stays as it is.
 ///
 /// Text selected on a page is copied (Edit > Copy), copied with the reference to the source
 /// ("(Wiśniewska 2011, s. 45)"), made a quote of its page and a bookmark; the bar over the
@@ -66,6 +79,7 @@ public:
     /// @brief The tabs of the side panel
     enum SideTab {
         BookmarksTab,   ///< The bookmarks of the material
+        HighlightsTab,  ///< The highlights of the material, when the Settings allow them
         ContentsTab,    ///< The table of contents of the file
         ThumbnailsTab,  ///< The pages small
         ResultsTab      ///< The hits of the search
@@ -124,6 +138,16 @@ public:
     [[nodiscard]] QTreeWidget* bookmarksList() const { return m_bookmarksList; }
     /// @brief The button under the bookmarks: a bookmark at the page shown
     [[nodiscard]] QPushButton* addBookmarkButton() const { return m_addBookmarkButton; }
+    /// @brief The highlights of the material: a page, the text and a note each
+    [[nodiscard]] QTreeWidget* highlightsList() const { return m_highlightsList; }
+    /// @brief The button under the highlights: the color of the current one
+    [[nodiscard]] QPushButton* highlightColorButton() const { return m_highlightColorButton; }
+    /// @brief Highlight: the selection in the color chosen last
+    [[nodiscard]] QAction* highlightAction() const { return m_highlightAction; }
+    /// @brief The colors to highlight the selection in (Highlight in Color)
+    [[nodiscard]] ColorMenu* newHighlightColors() const { return m_newHighlightColors; }
+    /// @brief The colors of a highlight there is (Highlight Color)
+    [[nodiscard]] ColorMenu* highlightColors() const { return m_highlightColors; }
     /// @brief The table of contents of the file
     [[nodiscard]] QTreeView* contentsTree() const { return m_contentsTree; }
     /// @brief The pages small
@@ -139,7 +163,7 @@ public:
     /// @brief The button of the layout @p layout of the pages
     [[nodiscard]] QAction* layoutAction(PdfPagesView::Layout layout) const;
     /// @brief The commands of a selection: Copy, Copy with Reference, Create Quote, Bookmark
-    /// Here and Select All Text of the Page
+    /// Here, Highlight and Select All Text of the Page
     [[nodiscard]] QList<QAction*> selectionActions() const;
     /// @brief The hit gone to, from 0; -1: none
     [[nodiscard]] int currentHit() const { return m_hit; }
@@ -182,6 +206,24 @@ public slots:
     /// @brief Take the current bookmark of the side panel away
     void removeBookmark();
 
+    /// @brief Highlight the selection in the color chosen last
+    void highlight();
+
+    /// @brief Highlight the selection in @p color; the text highlighted already gets the color
+    void highlightIn(const QColor& color);
+
+    /// @brief Give the highlight of the menu, else the current one of the side panel, color
+    /// @p color
+    void setHighlightColor(const QColor& color);
+
+    /// @brief Take the highlight of the menu, else the current one of the side panel, away,
+    /// asking first when it has a note
+    void removeHighlight();
+
+    /// @brief Write the note of the highlight of the menu, else of the current one of the side
+    /// panel, in its row of the side panel
+    void editHighlightNote();
+
     /// @brief Read the file again and show it, at the page shown
     void reload();
 
@@ -212,8 +254,25 @@ private:
     /// @brief Keep the note typed in @p item of the bookmarks; @p column: the column changed
     void saveBookmarkNote(QTreeWidgetItem* item, int column);
 
+    /// @brief The tab of the highlights in the side panel and the colors of the highlights
+    void buildHighlightsTab(const std::function<QWidget*(QWidget*, QLabel*, QWidget*)>& page);
+
+    /// @brief The list of the highlights goes to their text, and their notes are kept as they
+    /// are typed
+    void connectHighlights();
+
+    /// @brief Go to the text of the highlight of @p item
+    void goToHighlight(QTreeWidgetItem* item);
+
+    /// @brief Keep the note typed in @p item of the highlights; @p column: the column changed
+    void saveHighlightNote(QTreeWidgetItem* item, int column);
+
     /// @brief The bar over a selection and the commands of the selection
     void buildSelectionCommands();
+
+    /// @brief The commands of the highlights in the menu of the selection: on a highlight its
+    /// color, its note and Delete, else Highlight and Highlight in Color
+    void addHighlightCommands(QMenu& menu);
 
     /// @brief The settings of the preview: the layout of the pages; at its opening also the
     /// zoom, the tab of the side panel and the page shown last
@@ -243,6 +302,11 @@ private:
     /// @return false for another key
     bool bookmarkKey(int key);
 
+    /// @brief Insert, Delete and F2 in the highlights: highlight the selection, take one away,
+    /// change its note
+    /// @return false for another key
+    bool highlightKey(int key);
+
     /// @brief The note of a new bookmark at page @p page: the text selected on it, shortened;
     /// empty without one
     [[nodiscard]] QString noteOfSelection(int page) const;
@@ -264,6 +328,24 @@ private:
 
     /// @brief Give the material the bookmarks @p bookmarks
     void saveBookmarks(const QList<core::PageBookmark>& bookmarks);
+
+    /// @brief Show the highlights of the material, in the side panel and on the pages, when the
+    /// Settings allow them
+    void fillHighlights();
+
+    /// @brief Give the material the highlights @p highlights
+    void saveHighlights(const QList<core::PdfHighlight>& highlights);
+
+    /// @brief The highlights shown when the Settings allow them, else hidden with their
+    /// commands; the book keeps them
+    void applyHighlightsSetting();
+
+    /// @brief The highlight the commands of a highlight work on: of the menu, else the current
+    /// one of the side panel; -1: none
+    [[nodiscard]] int highlightTarget() const;
+
+    /// @brief The color of @p highlight: its own, else the first highlight color
+    [[nodiscard]] QColor colorOf(const core::PdfHighlight& highlight) const;
 
     /// @brief The small pages of the @p count pages, blank until they are drawn
     void fillThumbnails(int count);
@@ -310,6 +392,8 @@ private:
     int m_hit = -1;              ///< The hit gone to; -1: none
     bool m_goToFirstHit = false; ///< The first hit found is gone to
     int m_menuPage = -1;         ///< The page the menu was opened on; -1: none
+    int m_menuHighlight = -1;    ///< The highlight the menu was opened on; -1: none
+    QColor m_firstHighlightColor;  ///< Of a highlight without its own
     int m_settingsListener = 0;  ///< core::SettingsManager::subscribe() id
 
     QToolBar* m_toolBar = nullptr;
@@ -338,6 +422,11 @@ private:
     QTreeWidget* m_bookmarksList = nullptr;
     QLabel* m_bookmarksEmpty = nullptr;
     QPushButton* m_addBookmarkButton = nullptr;
+    QTreeWidget* m_highlightsList = nullptr;
+    QLabel* m_highlightsEmpty = nullptr;
+    QPushButton* m_highlightColorButton = nullptr;
+    ColorMenu* m_newHighlightColors = nullptr;
+    ColorMenu* m_highlightColors = nullptr;
     QTreeView* m_contentsTree = nullptr;
     QLabel* m_contentsEmpty = nullptr;
     QListWidget* m_thumbnails = nullptr;
@@ -352,11 +441,15 @@ private:
     QAction* m_copyReferenceAction = nullptr;
     QAction* m_quoteAction = nullptr;
     QAction* m_bookmarkHereAction = nullptr;
+    QAction* m_highlightAction = nullptr;
+    QAction* m_highlightNoteAction = nullptr;
+    QAction* m_removeHighlightAction = nullptr;
+    QToolButton* m_highlightButton = nullptr;  ///< Highlight on the bar of the selection
     QAction* m_selectPageAction = nullptr;
 
     QTimer* m_searchTimer = nullptr;  ///< Searches a while after the typing stops
     QTimer* m_saveTimer = nullptr;    ///< Keeps the page shown a while after it changes
-    bool m_filling = false;           ///< The bookmarks are being shown: no change to save
+    bool m_filling = false;           ///< The lists are being shown: no change to save
     core::ProjectManager& m_book;     ///< The book of its window
 };
 
