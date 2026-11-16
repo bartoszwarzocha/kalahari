@@ -475,7 +475,7 @@ TEST_CASE("Plugin engine: only plugins signed by Kalahari are loaded", "[plugin]
 
     SECTION("Changed after it was signed") {
         writeFullPlugin(file);
-        const fs::path signature = fs::path(file.string() + ".sig");
+        const fs::path signature = fs::path(file) += ".sig";
         const std::string kept = textOf(signature);
         writePlugin(file, FULL_ID, "1.0.0", "plugin:Full",
                     {{"plugin.py", std::string(FULL_PLUGIN) + "\n# changed\n"}});
@@ -530,7 +530,7 @@ TEST_CASE("Plugin engine: a plugin is installed into the user's folder, replaced
     CHECK(manager.isUserPlugin(FULL_ID));
     const fs::path installed = PluginManager::userPluginsFolder() / (std::string(FULL_ID) + ".kplugin");
     CHECK(fs::is_regular_file(installed));
-    CHECK(fs::is_regular_file(installed.string() + ".sig"));
+    CHECK(fs::is_regular_file(fs::path(installed) += ".sig"));
 
     // A newer one in its place, loaded at once
     const fs::path second = downloads.folder() / "full-2.kplugin";
@@ -555,7 +555,7 @@ TEST_CASE("Plugin engine: a plugin is installed into the user's folder, replaced
     CHECK_FALSE(manager.isPluginLoaded(FULL_ID));
     CHECK(manager.getPluginMetadata(FULL_ID) == nullptr);
     CHECK_FALSE(fs::exists(installed));
-    CHECK_FALSE(fs::exists(installed.string() + ".sig"));
+    CHECK_FALSE(fs::exists(fs::path(installed) += ".sig"));
     CHECK_FALSE(settings.get<json>("plugins.settings").contains(FULL_ID));
 
     manager.setPluginFolders({});

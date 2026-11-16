@@ -33,6 +33,14 @@ namespace core {
 
 namespace {
 
+/// The signature file of a plugin file: <file>.sig (without the narrow string of the path,
+/// which loses the letters outside the code page on Windows)
+std::filesystem::path signatureOf(const std::filesystem::path& file) {
+    std::filesystem::path signature = file;
+    signature += ".sig";
+    return signature;
+}
+
 /// The name the entry module of a plugin is imported under: its id, as a name of Python
 std::string uniqueModuleName(const std::string& pluginId) {
     std::string name = "kalahari_plugin_";
@@ -417,8 +425,8 @@ std::optional<std::string> PluginManager::installPlugin(const std::filesystem::p
         if (fileError) {
             return fail("Cannot copy " + pathText(file) + ": " + fileError.message());
         }
-        const std::filesystem::path signature = file.string() + ".sig";
-        const std::filesystem::path targetSignature = target.string() + ".sig";
+        const std::filesystem::path signature = signatureOf(file);
+        const std::filesystem::path targetSignature = signatureOf(target);
         if (std::filesystem::exists(signature)) {
             std::filesystem::copy_file(signature, targetSignature,
                                        std::filesystem::copy_options::overwrite_existing,
@@ -466,7 +474,7 @@ bool PluginManager::removePlugin(const std::string& pluginId, bool removeSetting
         }
         return false;
     }
-    std::filesystem::remove(file.string() + ".sig", fileError);
+    std::filesystem::remove(signatureOf(file), fileError);
     if (removeSettings) {
         forgetPluginSettings(pluginId);
     }
