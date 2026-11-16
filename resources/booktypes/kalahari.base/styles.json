@@ -54,6 +54,20 @@
                       "firstLineIndent": 0, "spaceBefore": 6, "spaceAfter": 12 }
     },
     {
+      "id": "table_header",
+      "name": { "pl": "Nagłówek tabeli", "en": "Table header" },
+      "base_style": "normal",
+      "properties": { "fontSize": 10, "bold": true, "lineHeight": 1.2, "alignment": "left",
+                      "firstLineIndent": 0 }
+    },
+    {
+      "id": "table_row",
+      "name": { "pl": "Wiersz tabeli", "en": "Table row" },
+      "base_style": "normal",
+      "properties": { "fontSize": 10, "lineHeight": 1.2, "alignment": "left",
+                      "firstLineIndent": 0 }
+    },
+    {
       "id": "footnote",
       "name": { "pl": "Przypis", "en": "Footnote" },
       "base_style": "normal",

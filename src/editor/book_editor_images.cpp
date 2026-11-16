@@ -126,14 +126,14 @@ bool BookEditor::canInsertImage() const
     return !m_readOnly && m_imageStore->hasFolder();
 }
 
-bool BookEditor::insertImageFile(const QString& path)
+bool BookEditor::insertImageFile(const QString& path, const std::optional<ImageCaption>& caption)
 {
     if (!m_imageStore->hasFolder() || refusesChange() || !ImageStore::fileSize(path)) {
         return false;
     }
     ImageProperties image;
     image.source = m_imageStore->addFile(path, newImageCopyWidth(path));
-    return !image.source.isEmpty() && insertImage(image);
+    return !image.source.isEmpty() && insertImage(image, caption);
 }
 
 int BookEditor::newImageCopyWidth(const QString& path) const
@@ -171,7 +171,8 @@ bool BookEditor::insertPicture(const QImage& picture)
     return !image.source.isEmpty() && insertImage(image);
 }
 
-bool BookEditor::insertImage(const ImageProperties& image)
+bool BookEditor::insertImage(const ImageProperties& image,
+                             const std::optional<ImageCaption>& caption)
 {
     if (image.source.isEmpty() || refusesChange()) {
         return false;
@@ -242,15 +243,30 @@ bool BookEditor::insertImage(const ImageProperties& image)
     const int position = cursor.position();
     cursor.insertText(QString(QChar::ObjectReplacementCharacter), format);
 
-    // A numbered caption under it, of the label of the settings
-    if (const QString label = normalizedLabel(m_newImageOptions.captionLabel); !label.isEmpty()) {
-        QTextCursor caption(document);
-        const QTextBlock captionBlock = newCaptionBlock(caption, cursor.block(), false);
-        writeCaption(caption, captionBlock, ImageCaption{true, true, label, QString(), false},
-                     ImageCaption{});
+    // Its caption: the one the writer chose (user's test of 16.11), else a numbered one
+    // under it of the label of the settings
+    ImageCaption wanted;
+    if (caption) {
+        wanted = *caption;
+        wanted.label = normalizedLabel(wanted.label);
+        wanted.text = wanted.text.trimmed();
+        wanted.shown = wanted.shown && (wanted.numbered ? !wanted.label.isEmpty()
+                                                        : !wanted.text.isEmpty());
+    } else if (const QString label = normalizedLabel(m_newImageOptions.captionLabel);
+               !label.isEmpty()) {
+        wanted = ImageCaption{true, true, label, QString(), false};
     }
-    const SelectionRange selected{absoluteToCursorPosition(document, position),
-                                  absoluteToCursorPosition(document, position + 1)};
+    QTextCursor imagePlace(document);  // moves with a caption written above the image
+    imagePlace.setPosition(position);
+    if (wanted.shown) {
+        QTextCursor captionCursor(document);
+        const QTextBlock captionBlock =
+            newCaptionBlock(captionCursor, cursor.block(), wanted.above);
+        writeCaption(captionCursor, captionBlock, wanted, ImageCaption{});
+    }
+    const int imagePosition = imagePlace.position();
+    const SelectionRange selected{absoluteToCursorPosition(document, imagePosition),
+                                  absoluteToCursorPosition(document, imagePosition + 1)};
     document->appendUndoItem(new CallbackUndoItem(
         [this, state = StepCursor{selected.end, selected}] { m_stepCursor = state; }));
     step.endEditBlock();
@@ -260,7 +276,7 @@ bool BookEditor::insertImage(const ImageProperties& image)
         m_renderPipeline->markAllDirty();
     }
     finishEdit(cursor);
-    selectImage(position);
+    selectImage(imagePosition);
     return true;
 }
 

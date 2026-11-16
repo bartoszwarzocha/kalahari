@@ -11,7 +11,8 @@
     "text": "#FFFFFF",
     "infoHeader": "#4A7A9E",
     "infoBarBackground": "#3E321E",
-    "infoBarBorder": "#785E1E"
+    "infoBarBorder": "#785E1E",
+    "styleTag": "#2F6FB3"
   },
   "palette": {
     "window": "#2b2b2b",

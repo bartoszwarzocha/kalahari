@@ -75,10 +75,16 @@ inline bool waitUntil(const std::function<bool()>& done, int timeoutMs = 2000) {
     return done();
 }
 
-/// Reads each popup menu as it shows, chooses the entry with the text @p choice (empty: none)
-/// and closes the menu, while it lives. The menu gets no window on the screen, where the
-/// platform decides about a popup: on macOS the popup of a test window was closed before the
-/// test could read it.
+/// Whether a menu is still waiting for the words to put in place of a misspelled one: they
+/// come in it once the dictionary found them (BookEditor::SUGGESTIONS_PENDING_PROPERTY)
+inline bool isFindingWords(const QMenu* menu) {
+    return menu->property(editor::BookEditor::SUGGESTIONS_PENDING_PROPERTY).toBool();
+}
+
+/// Reads each popup menu as it shows (the menu of a misspelled word once its words are
+/// found), chooses the entry with the text @p choice (empty: none) and closes the menu, while
+/// it lives. The menu gets no window on the screen, where the platform decides about a popup:
+/// on macOS the popup of a test window was closed before the test could read it.
 class PopupMenuReader : public QObject {
 public:
     PopupMenuReader(QStringList& texts, QString choice)
@@ -95,25 +101,48 @@ protected:
         // The show event comes before the menu's window is put on the screen
         if (menu != nullptr && event->type() == QEvent::Show) {
             menu->setAttribute(Qt::WA_DontShowOnScreen);
-            QAction* chosen = nullptr;
-            for (QAction* action : menu->actions()) {
-                if (!action->isSeparator()) {
-                    m_texts.append(action->text());
-                    if (!m_choice.isEmpty() && action->text() == m_choice && chosen == nullptr) {
-                        chosen = action;
-                    }
-                }
+            if (isFindingWords(menu)) {
+                readWhenFound(menu);
+            } else {
+                read(menu);
             }
-            if (chosen != nullptr) {
-                chosen->trigger();
-            }
-            // Closed once it is open, the menu ends its event loop
-            QTimer::singleShot(0, menu, [menu]() { menu->close(); });
         }
         return QObject::eventFilter(watched, event);
     }
 
 private:
+    void read(QMenu* menu) {
+        QAction* chosen = nullptr;
+        for (QAction* action : menu->actions()) {
+            if (!action->isSeparator()) {
+                m_texts.append(action->text());
+                if (!m_choice.isEmpty() && action->text() == m_choice && chosen == nullptr) {
+                    chosen = action;
+                }
+            }
+        }
+        if (chosen != nullptr) {
+            chosen->trigger();
+        }
+        // Closed once it is open, the menu ends its event loop
+        QTimer::singleShot(0, menu, [menu]() { menu->close(); });
+    }
+
+    /// Read once the words of a misspelled one are in the menu (at most DICTIONARY_WAIT_MS)
+    void readWhenFound(QMenu* menu) {
+        auto* poll = new QTimer(menu);
+        int ticks = 0;
+        QObject::connect(poll, &QTimer::timeout, menu, [this, menu, poll, ticks]() mutable {
+            if (isFindingWords(menu) && ++ticks * POLL_MS < DICTIONARY_WAIT_MS) {
+                return;
+            }
+            poll->stop();
+            read(menu);
+        });
+        poll->start(POLL_MS);
+    }
+
+    static constexpr int POLL_MS = 5;
     QStringList& m_texts;
     QString m_choice;
 };

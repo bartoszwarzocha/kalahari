@@ -17,6 +17,7 @@
 #include <QFontMetrics>
 #include <QLocale>
 #include <QMenu>
+#include <QPointer>
 #include <QShowEvent>
 #include <QStringList>
 #include <QStringView>
@@ -1043,32 +1044,64 @@ std::tuple<QString, int, int> BookEditor::getMisspelledNoteWordAt(const NoteRang
 void BookEditor::addSpellingActions(QMenu& menu, const QString& word,
                                     const std::function<void(const QString&)>& replace)
 {
-    // The words to put in its place, in bold as in other word processors. They get free
-    // access keys as the menu shows (gui::giveFreeAccessKeys()); the other items have their own.
-    // A name of the book written small: the name first
-    QStringList suggestions = m_spellCheckService != nullptr
-                                  ? m_spellCheckService->suggestions(word, MAX_SUGGESTIONS)
-                                  : QStringList();
-    if (m_bookDictionary != nullptr) {
-        if (const QString name = m_bookDictionary->nameSpelling(word); !name.isEmpty()) {
-            suggestions.removeAll(name);
-            suggestions.prepend(name);
-            while (suggestions.size() > MAX_SUGGESTIONS) {
-                suggestions.removeLast();
-            }
-        }
-    }
-    if (suggestions.isEmpty()) {
-        menu.addAction(tr("(No suggestions)"))->setEnabled(false);
-    }
-    for (const QString& suggestion : suggestions) {
-        QAction* action = menu.addAction(menuText(suggestion));
+    // The words to put in its place, first in the menu, in bold as in other word processors;
+    // they get free access keys as the menu shows (gui::WidgetKeys), the other items have
+    // their own. The dictionary takes up to a few seconds for some words (names above
+    // all), so they are found on a thread of their own and the menu opens at once (user's
+    // test of 16.11): until they are found its first item says so, and they take its place as
+    // soon as they are, also while the menu is open. A name of the book written small comes
+    // first, known at once.
+    const QString name =
+        m_bookDictionary != nullptr ? m_bookDictionary->nameSpelling(word) : QString();
+    const QPointer<BookEditor> editor(this);
+    const QPointer<QMenu> shown(&menu);
+    const auto wordAction = [editor, replace](QMenu& target, const QString& suggestion) {
+        auto* action = new QAction(menuText(suggestion), &target);
         QFont bold = action->font();
         bold.setBold(true);
         action->setFont(bold);
-        disableWhileReadOnly(action);  // a read-only text keeps its words
-        connect(action, &QAction::triggered, this,
+        editor->disableWhileReadOnly(action);  // a read-only text keeps its words
+        connect(action, &QAction::triggered, editor.data(),
                 [replace, suggestion]() { replace(suggestion); });
+        return action;
+    };
+    if (!name.isEmpty()) {
+        menu.addAction(wordAction(menu, name));
+    }
+    //: The first item of the menu of a misspelled word while the dictionary looks for the words
+    //: to put in its place. In Polish: Szukam podpowiedzi…
+    QAction* waiting = menu.addAction(tr("Looking for suggestions..."));
+    waiting->setEnabled(false);
+    const auto fill = [editor, shown, waiting, name, wordAction](QStringList suggestions) {
+        if (editor.isNull() || shown.isNull()) {
+            return;
+        }
+        suggestions.removeAll(name);
+        const int room = MAX_SUGGESTIONS - (name.isEmpty() ? 0 : 1);
+        while (suggestions.size() > room) {
+            suggestions.removeLast();
+        }
+        for (const QString& suggestion : std::as_const(suggestions)) {
+            shown->insertAction(waiting, wordAction(*shown, suggestion));
+        }
+        if (suggestions.isEmpty() && name.isEmpty()) {
+            waiting->setText(tr("(No suggestions)"));
+        } else {
+            shown->removeAction(waiting);
+            waiting->deleteLater();
+        }
+        // Open while they came, they get their access keys as they come in it (the program
+        // gives them as a menu shows and as an open menu gets items)
+        shown->setProperty(SUGGESTIONS_PENDING_PROPERTY, false);
+    };
+    if (m_spellCheckService == nullptr) {
+        fill({});
+    } else if (const std::optional<QStringList> known =
+                   m_spellCheckService->knownSuggestions(word, MAX_SUGGESTIONS)) {
+        fill(*known);
+    } else {
+        menu.setProperty(SUGGESTIONS_PENDING_PROPERTY, true);
+        m_spellCheckService->findSuggestions(word, MAX_SUGGESTIONS, &menu, fill);
     }
     menu.addSeparator();
 

@@ -34,6 +34,7 @@
 #include <kalahari/editor/text_fields.h>
 #include <kalahari/editor/text_footnotes.h>
 #include <kalahari/editor/text_lists.h>
+#include <kalahari/editor/text_places.h>
 #include <kalahari/editor/text_sorting.h>
 #include <kalahari/editor/text_images.h>
 #include <kalahari/editor/text_issue.h>
@@ -93,6 +94,7 @@ class FindReplaceBar;
 class KmlDocumentModel;
 class SpellCheckService;
 class GrammarCheckService;
+class SharedHistory;
 
 /// @brief Custom text editor widget for KML documents
 ///
@@ -573,6 +575,27 @@ public:
     /// @brief Redo the last undone command
     void redo();
 
+    /// @brief Whether the writer's Undo (Edit > Undo, its keys) can do something: a step of
+    ///        all the texts it changed (setSharedHistory()) or of this text
+    bool canUndoCommand() const;
+
+    /// @brief Whether the writer's Redo can do something, as canUndoCommand()
+    bool canRedoCommand() const;
+
+    /// @brief The writer's Undo: while the last step of this text is a step of more texts
+    ///        (Replace All in Book), it is undone in all of them; else undo()
+    void undoCommand();
+
+    /// @brief The writer's Redo, as undoCommand()
+    void redoCommand();
+
+    /// @brief The steps of more texts than this one its Undo and Redo do while they are its
+    ///        last (undoCommand()); nullptr: none. It is taken off before it goes
+    void setSharedHistory(SharedHistory* history) { m_sharedHistory = history; }
+
+    /// @brief The history of setSharedHistory()
+    SharedHistory* sharedHistory() const { return m_sharedHistory; }
+
     /// @brief Undo the last step for good: it cannot be redone
     ///
     /// For a step the writer did not mean to make, e.g. an annotation added and left
@@ -610,6 +633,20 @@ public:
     /// As paste(), with text from other programs read as @p mode says. Without formatting
     /// (PasteMode::Text) text copied in Kalahari comes as its plain text too.
     void pasteAs(PasteMode mode);
+
+    /// @brief The forms Edit > Paste Special... can paste MIME data in here, in their order:
+    ///        the KML of text copied in Kalahari, the HTML (with the formatting of the source,
+    ///        merged) and the text, where it has text to insert, and a picture or files of
+    ///        pictures, where the text keeps images; none in a read-only text
+    std::vector<PasteForm> pasteFormsOf(const QMimeData* source) const;
+
+    /// @brief Edit > Paste Special...: insert MIME data in a form at the cursor, replacing
+    ///        the selection, as one undo step, as the paste of that form of it alone does;
+    ///        nothing in a form pasteFormsOf() does not give
+    void insertInForm(const QMimeData* source, PasteForm form);
+
+    /// @brief insertInForm() of the clipboard
+    void pasteInForm(PasteForm form);
 
     /// @brief Clipboard content of the selection: KML (native), HTML and plain text
     /// @return New MIME data, or nullptr without a selection
@@ -1074,9 +1111,13 @@ public:
     /// settings (NewImageOptions); a file with more dots per inch at that width than the
     /// settings allow is copied smaller. The image goes in a paragraph of its own, aligned as
     /// the settings say, and is selected.
+    /// @param caption Its caption, as the writer chose it at Insert > Image... (not shown:
+    ///        none); std::nullopt: the numbered caption of the settings
+    ///        (NewImageOptions::captionLabel), or none
     /// @return false when the file could not be copied or is not an image, without a folder
     ///         of images, or in a read-only text (changeRefused())
-    bool insertImageFile(const QString& path);
+    bool insertImageFile(const QString& path,
+                         const std::optional<ImageCaption>& caption = std::nullopt);
 
     /// @brief The width in pixels of the copy of a file inserted at the cursor now: fewer than
     ///        the file's when it has more dots per inch at its width in the text than
@@ -1088,8 +1129,10 @@ public:
     ///        images, as insertImageFile() inserts a file
     bool insertPicture(const QImage& picture);
 
-    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does
-    bool insertImage(const ImageProperties& image);
+    /// @brief Insert an image of the book's folder at the cursor, as insertImageFile() does,
+    ///        with its caption as insertImageFile() gives it
+    bool insertImage(const ImageProperties& image,
+                     const std::optional<ImageCaption>& caption = std::nullopt);
 
     /// @brief The image the selection is (exactly one image): its position in the document
     std::optional<int> selectedImage() const;
@@ -1445,19 +1488,31 @@ public:
     /// @return Empty when it has no card shown (collapsed to its mark, or no cards)
     QRectF annotationCardRect(const QString& id) const;
 
-    /// @brief An annotation is written in the frame over its card: the card makes room for
-    ///        the frame; a new one's room comes among the cards of the paragraph of its mark,
-    ///        in the order of its place. The room comes into view.
+    /// @brief An annotation is written on its card: the card stays, with its header, and the
+    ///        frame lies over its text, which is as high as the text written; a new one's card
+    ///        comes among the cards of the paragraph of its mark, in the order of its place.
+    ///        The card comes into view.
     /// @param id The annotation; empty: a new one
     /// @param kind Its kind
     /// @param start Where its fragment starts (a position in the document)
     /// @param end Where it ends: its mark
-    /// @param height The frame's height, in pixels of the editor
+    /// @param height The height of the text written, in pixels of the editor
+    /// @param author A new one: who it is by, in its card's header
     void setAnnotationCardWriting(const QString& id, AnnotationKind kind, int start, int end,
-                                  qreal height);
+                                  qreal height, const QString& author = {});
 
-    /// @brief The frame over the card is of another height (pixels of the editor)
+    /// @brief The text written on the card is of another height (pixels of the editor)
     void setAnnotationCardWritingHeight(qreal height);
+
+    /// @brief Where the text of the card written on is in the editor (the frame lies over
+    ///        it); empty: none
+    QRectF annotationCardWritingTextRect() const;
+
+    /// @brief The font of the cards' text as the editor shows it now (zoomed)
+    QFont annotationCardTextFont() const;
+
+    /// @brief The height of a line of the cards' text as the editor shows it now (pixels)
+    qreal annotationCardLineHeight() const;
 
     /// @brief No annotation is written in the frame over its card any more
     void clearAnnotationCardWriting();
@@ -1875,6 +1930,28 @@ public:
     void previousPage();
 
     // =========================================================================
+    // Edit > Go To...
+    // =========================================================================
+
+    /// @brief Edit > Go To..., Go: the place of a kind with a number, or on or back from the
+    ///        place of the cursor (placeNumberOf())
+    ///
+    /// "5" is page 5, the fifth heading, image, table or annotation of the text, and the note
+    /// that shows 5 (a note's number also as it shows it: "iii", "*"). "+2" and "-1" count from
+    /// the place of the cursor: its page, or the last place at or before it. The place comes
+    /// into view: the cursor at a heading's paragraph or in a table's first cell, after a
+    /// note's number, an image or an annotation's fragment selected.
+    GoToOutcome goToPlace(PlaceKind kind, const QString& number);
+
+    /// @brief Edit > Go To..., Next and Previous: the place after or before the cursor (the
+    ///        next page, the page before), as goToPlace() goes to it
+    GoToOutcome goToAdjacentPlace(PlaceKind kind, bool next);
+
+    /// @brief The places of a kind, in text order: where Go To puts the cursor (where its
+    ///        selection starts); none for the pages
+    std::vector<int> placePositions(PlaceKind kind) const;
+
+    // =========================================================================
     // Appearance (Phase 5.1)
     // =========================================================================
 
@@ -1936,6 +2013,11 @@ public:
 
     /// @brief Whether a turn of the spelling check is due (it runs while the editor is shown)
     bool isSpellCheckPending() const;
+
+    /// @brief A property of the context menu (bool) true while the words to put in place of a
+    ///        misspelled word are being found: they come first in the menu once they are, its
+    ///        first item saying so until then
+    static constexpr const char* SUGGESTIONS_PENDING_PROPERTY = "kalahariSuggestionsPending";
 
     /// @brief What goToNextIssue() did
     enum class IssueSearch {
@@ -2339,6 +2421,13 @@ signals:
     /// @param id The annotation's id
     void annotationEditRequested(const QString& id);
 
+    /// @brief Emitted when the text of an annotation's card is clicked: it is written there,
+    ///        from where it was clicked
+    /// @param id The annotation's id
+    /// @param inText Where it was clicked, from the top left corner of the card's text, in
+    ///        pixels of the editor
+    void annotationCardTextPressed(const QString& id, const QPointF& inText);
+
     /// @brief The writer asks to write a note's text in its frame: a click on its text, a
     /// double click on its number, Edit Footnote in the menu
     void noteEditRequested(const QString& id);
@@ -2529,6 +2618,34 @@ private:
 
     /// @brief insertFromMimeData() with text from other programs read as @p mode says
     void insertMimeDataAs(const QMimeData* source, PasteMode mode);
+
+    /// @brief Go To: the place @p index of @p places (placePositions()), and the outcome
+    GoToOutcome goToPlaceAt(PlaceKind kind, const std::vector<int>& places, int index);
+
+    /// @brief Go To: the page of the number @p wanted, its own or on or back from the page of
+    ///        the cursor
+    GoToOutcome goToPageNumber(const PlaceNumber& wanted);
+
+    /// @brief Go To: page @p page; @p beyond when the text has no such page
+    GoToOutcome goToPageAt(int page, GoToResult beyond);
+
+    /// @brief Go To: the note that shows the number @p shown ("iii", "*") among @p places
+    GoToOutcome goToNoteNumber(const std::vector<int>& places, const QString& shown);
+
+    /// @brief Whether the cursor is still where Go To left it at a place of @p places
+    bool atLastPlace(PlaceKind kind, const std::vector<int>& places) const;
+
+    /// @brief The index in @p places of the next place (@p next) or the one before: on from
+    ///        the place Go To went to while the cursor stays there, else from the cursor
+    int adjacentPlace(PlaceKind kind, const std::vector<int>& places, bool next) const;
+
+    /// @brief The place of the cursor for Go To: where the selection starts, else the cursor
+    int placeOfCursor() const;
+
+    /// @brief How many of the places are before the cursor, which is the index of the next
+    ///        one: an image or an annotation the cursor is at but which is not selected is
+    ///        still ahead
+    int placesBeforeCursor(PlaceKind kind, const std::vector<int>& places) const;
 
     /// @brief Remove the selected text
     /// @param keepAnnotations true: its annotations stay on its place; false: they go with
@@ -3002,6 +3119,11 @@ private:
     /// @brief Add a row to the end of a table, as one undo step
     void appendTableRow(QTextTable& table);
 
+    /// @brief The format of the paragraph of a new cell: in the style of a table row when the
+    ///        book has the styles of tables (cellParagraphFormat() gives a header row its
+    ///        own), else Normal
+    [[nodiscard]] QTextBlockFormat tableCellFormat() const;
+
     /// @brief The paragraph Up or Down goes to from the first or the last line of @p block
     ///        where a table is next to it: the cell above or below in the column under
     ///        @p x (layout coordinates), or the paragraph before or after the table
@@ -3395,6 +3517,7 @@ private:
     QTextCursor m_selectedCard;         ///< The fragment of the card gone to: its outline goes
                                         ///< when the cursor leaves it
     bool m_readOnly = false;            ///< The text can only be read (isReadOnly())
+    SharedHistory* m_sharedHistory = nullptr;  ///< setSharedHistory()
     QString m_readOnlyReason;           ///< Why (setReadOnlyReason())
 
     // IME composition state (Phase 4.5/4.6/4.7)
@@ -3416,6 +3539,16 @@ private:
     std::function<QString()> m_textLanguage;  ///< The language of the text (setTextLanguage())
 
     PasteMode m_pasteMode = PasteMode::Merge;  ///< How text from other programs is pasted
+
+    /// @brief The place Go To went to last, with the cursor it left: while the cursor stays
+    ///        there, Next and Previous go on from it, also past places at the same position
+    struct LastPlace {
+        PlaceKind kind = PlaceKind::Page;
+        int index = -1;   ///< Of placePositions()
+        int cursor = -1;  ///< The cursor and the anchor of the selection it left
+        int anchor = -1;
+    };
+    LastPlace m_lastPlace;
 
     /// The levels of undo below the text as it is: one for each step undo() takes back
     int m_undoLevel = 0;
@@ -3580,8 +3713,9 @@ private:
                                                       HighlightKind* kind = nullptr) const;
 
     /// @brief Put on the context menu what is offered for a misspelled word: the words to
-    ///        put in its place, Ignore All, Add to Book Dictionary (with the book's dictionary),
-    ///        Add to Your Words (All Books), Add Name... (with the book's dictionary)
+    ///        put in its place (as soon as they are found, SUGGESTIONS_PENDING_PROPERTY),
+    ///        Ignore All, Add to Book Dictionary (with the book's dictionary), Add to Your Words
+    ///        (All Books), Add Name... (with the book's dictionary)
     /// @param replace Puts a word chosen in its place
     void addSpellingActions(QMenu& menu, const QString& word,
                             const std::function<void(const QString&)>& replace);

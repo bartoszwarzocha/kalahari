@@ -225,7 +225,7 @@ void BookEditor::applyZoom(double factor, const QPointF& fixedPoint) {
     const double scale = ctx.computed.viewScale;
     const double pageX =
         ctx.computed.marginLeft + m_renderPipeline->shiftAtY(docPoint.y()) + docPoint.x();
-    m_renderPipeline->setConfigScrollX((ctx.pageMode.pageSpacing + pageX) * scale -
+    m_renderPipeline->setConfigScrollX((ctx.computed.deskLeft + pageX) * scale -
                                        fixedPoint.x());
     setScrollOffset(docPoint.y() - (fixedPoint.y() - ctx.computed.originY) / scale);
     updateHorizontalScrollBar();
@@ -359,11 +359,12 @@ double BookEditor::paperScaleFor(double physicalDpi, double logicalDpi)
 
 double BookEditor::pageWidthZoom() const
 {
-    // The page (or the endless page) with the gap on both sides fills the width left of
-    // the scroll bar
+    // The page (or the endless page) with the desk on both sides (on the left with room for
+    // the numbers on the margin) fills the width left of the scroll bar
     const RenderContext& ctx = m_renderPipeline->context();
-    const double pagesWidth =
-        (ctx.computed.pageWidthPixels + 2.0 * ctx.pageMode.pageSpacing) * ctx.paperScale;
+    const double pagesWidth = (ctx.computed.pageWidthPixels + ctx.computed.deskLeft +
+                               ctx.pageMode.pageSpacing) *
+                              ctx.paperScale;
     return pagesWidth > 0.0 ? std::max(0.0, width() - ctx.scrollBarWidth) / pagesWidth : 0.0;
 }
 
@@ -428,7 +429,9 @@ void BookEditor::zoomToWholePage()
     // the continuous views take the same zoom around the middle of the view
     const RenderContext& ctx = m_renderPipeline->context();
     const double gaps = 2.0 * ctx.pageMode.pageSpacing;
-    const double pageWidth = (ctx.computed.pageWidthPixels + gaps) * ctx.paperScale;
+    const double pageWidth =
+        (ctx.computed.pageWidthPixels + ctx.computed.deskLeft + ctx.pageMode.pageSpacing) *
+        ctx.paperScale;
     const double pageHeight = (ctx.computed.pageHeightPixels + gaps) * ctx.paperScale;
     if (pageWidth <= 0.0 || pageHeight <= 0.0) {
         return;

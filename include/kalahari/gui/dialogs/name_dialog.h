@@ -12,6 +12,7 @@
 #include <kalahari/core/book_dictionary.h>
 
 #include <QList>
+#include <QStringList>
 
 class QCheckBox;
 class QComboBox;
@@ -20,6 +21,7 @@ class QGroupBox;
 class QLabel;
 class QLineEdit;
 class QPushButton;
+class QTimer;
 class QTreeWidget;
 
 namespace kalahari::gui {
@@ -67,6 +69,16 @@ public:
     /// @brief The table of the forms of the one chosen
     [[nodiscard]] NameFormsTable* formsTable() const { return m_forms; }
 
+    /// @brief A text is being typed: its models and its forms come at a pause in typing,
+    ///        or when something else is done in the window
+    [[nodiscard]] bool typing() const;
+
+    /// @brief The models and the forms of the text typed now, without the pause
+    void finishTyping();
+
+    /// @brief Add or Save: the forms of the text typed first
+    void accept() override;
+
 private:
     /// @brief The fields at the right for the one chosen in the list
     void showVariant();
@@ -77,10 +89,14 @@ private:
     /// @brief The list at the left from the name
     void fillList();
 
-    /// @brief The text of the one chosen was changed: its words get the models the program
-    ///        picks, and its forms those of the models; for a new name, the first name and the
-    ///        surname alone follow the name itself
+    /// @brief The text of the one chosen was changed: in the list at once, its models and
+    ///        forms at a pause in typing (formsOfText())
     void onTextEdited(const QString& text);
+
+    /// @brief The words of the text of the one chosen get the models the program picks, and
+    ///        its forms those of the models; for a new name, the first name and the surname
+    ///        alone follow the name itself
+    void formsOfText();
 
     /// @brief The kind was changed: the words whose models the program picked get those it
     ///        picks for the new kind, and every name the forms of its models
@@ -130,12 +146,14 @@ private:
     QGroupBox* m_modelsBox = nullptr;
     QFormLayout* m_modelsLayout = nullptr;
     QList<QComboBox*> m_models;  ///< The model of each word of the one chosen
+    QStringList m_modelWords;    ///< The words of the rows of m_models
     QCheckBox* m_unchanged = nullptr;
     NameFormsTable* m_forms = nullptr;
     QLabel* m_hint = nullptr;
     QPushButton* m_suggestButton = nullptr;
     QCheckBox* m_plural = nullptr;
     QCheckBox* m_quickInsert = nullptr;
+    QTimer* m_formsTimer = nullptr;  ///< The pause in typing a text
 };
 
 }  // namespace kalahari::gui::dialogs

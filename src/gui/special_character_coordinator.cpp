@@ -138,9 +138,7 @@ void SpecialCharacterCoordinator::openWindow()
                 return target;
             },
             [this](char32_t code) { return keysOf(code); },
-            [](char32_t code) {
-                return autoCorrectSources(SpecialCharacters().character(code).text());
-            },
+            [](char32_t code) { return autoCorrectSources(QString::fromUcs4(&code, 1)); },
             m_window);
         connect(dialog, &QObject::destroyed, this, [this]() { m_dialog = nullptr; });
         connect(dialog, &dialogs::SpecialCharacterDialog::insertRequested, this,
@@ -181,9 +179,7 @@ void SpecialCharacterCoordinator::openPalette()
     }
     auto* palette = new QuickCharacterPalette(
         text->currentFontFamily(), [this](char32_t code) { return keysOf(code); },
-        [](char32_t code) {
-            return autoCorrectSources(SpecialCharacters().character(code).text());
-        },
+        [](char32_t code) { return autoCorrectSources(QString::fromUcs4(&code, 1)); },
         m_window);
     connect(palette, &QObject::destroyed, this, [this, palette]() {
         if (m_palette == palette) {
@@ -217,8 +213,7 @@ bool SpecialCharacterCoordinator::insert(char32_t code)
     if (code == 0 || text == nullptr || text->isReadOnly()) {
         return false;
     }
-    const SpecialCharacter character = SpecialCharacters().character(code);
-    text->insertCharacters(character.text());
+    text->insertCharacters(QString::fromUcs4(&code, 1));
     if (m_lastEditor != text) {
         QObject::disconnect(m_lastEditorGone);
         m_lastEditor = text;

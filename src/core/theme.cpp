@@ -184,6 +184,7 @@ Theme Theme::fromJson(const nlohmann::json& json) {
         theme.colors.background = parseColor(colors.value("background", "#FFFFFF"));
         theme.colors.text = parseColor(colors.value("text", "#000000"));
         theme.colors.infoHeader = parseColor(colors.value("infoHeader", "#4A7A9E"));
+        theme.colors.styleTag = parseColor(colors.value("styleTag", "#2F6FB3"));
         theme.colors.infoBarBorder = parseColor(colors.value("infoBarBorder", "#785E1E"));
         theme.colors.infoBarBackground = parseColor(colors.value("infoBarBackground", "#3E321E"));
     } else {
@@ -366,6 +367,7 @@ nlohmann::json Theme::toJson() const {
         {"background", colorToHex(colors.background)},
         {"text", colorToHex(colors.text)},
         {"infoHeader", colorToHex(colors.infoHeader)},
+        {"styleTag", colorToHex(colors.styleTag)},
         {"infoBarBorder", colorToHex(colors.infoBarBorder)},
         {"infoBarBackground", colorToHex(colors.infoBarBackground)}
     };

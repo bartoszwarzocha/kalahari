@@ -15,6 +15,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonValue>
+#include <QRectF>
 #include <QRegularExpression>
 #include <QSaveFile>
 #include <QUrl>
@@ -29,6 +30,12 @@
 namespace kalahari::core {
 
 namespace {
+
+/// The numbers of an area of a highlight: left, top, width, height
+constexpr qsizetype AREA_NUMBERS = 4;
+
+/// The places of a highlight are kept to a hundredth of a point
+constexpr double POINT_HUNDREDTHS = 100.0;
 
 /// Parts of a book in reading order, with the lists of their elements
 struct BookPart {
@@ -476,6 +483,55 @@ void readSource(Fields& fields, ProjectElement& element, QStringList& problems) 
     data.extra = sourceFields.rest();
 }
 
+/// The place @p value of a highlight: [left, top, width, height] in points, the width and
+/// the height above 0; empty for another value
+QRectF areaOf(const QJsonValue& value) {
+    const QJsonArray numbers = value.toArray();
+    if (!value.isArray() || numbers.size() != AREA_NUMBERS ||
+        !std::ranges::all_of(numbers, [](const QJsonValue& each) { return each.isDouble(); })) {
+        return {};
+    }
+    const QRectF area(numbers.at(0).toDouble(), numbers.at(1).toDouble(),
+                      numbers.at(2).toDouble(), numbers.at(3).toDouble());
+    return area.width() > 0 && area.height() > 0 ? area : QRectF();
+}
+
+/// The text marked in the PDF file of a material
+void readHighlights(Fields& fields, ProjectElement& element, QStringList& problems) {
+    const QJsonArray highlights = fields.array("highlights");
+    for (qsizetype i = 0; i < highlights.size(); ++i) {
+        const QString path = QStringLiteral("%1[%2]").arg(fields.path("highlights")).arg(i);
+        if (!highlights.at(i).isObject()) {
+            addProblem(problems, path, QStringLiteral("must be an object with a page"));
+            continue;
+        }
+        Fields highlightFields(highlights.at(i).toObject(), path, problems);
+        PdfHighlight highlight;
+        const QJsonValue page = highlightFields.take("page");
+        highlight.page = isWholeNumber(page) ? page.toInt(0) : 0;
+        if (highlight.page < 1) {
+            highlightFields.problem("page", QStringLiteral("must be a whole number, 1 or more"));
+            continue;
+        }
+        const QJsonArray areas = highlightFields.array("areas");
+        for (const auto& each : areas) {
+            if (const QRectF area = areaOf(each); !area.isEmpty()) {
+                highlight.areas << area;
+            }
+        }
+        if (highlight.areas.isEmpty() || highlight.areas.size() != areas.size()) {
+            highlightFields.problem("areas", QStringLiteral("must be a list of [left, top, "
+                                                            "width, height] in points"));
+            continue;
+        }
+        highlight.text = highlightFields.string("text");
+        highlight.color = highlightFields.string("color");
+        highlight.note = highlightFields.string("note");
+        highlight.extra = highlightFields.rest();
+        element.highlights << highlight;
+    }
+}
+
 /// The bookmarks of the file of a material and the page shown last
 void readBookmarks(Fields& fields, ProjectElement& element, QStringList& problems) {
     const QJsonArray bookmarks = fields.array("bookmarks");
@@ -580,6 +636,7 @@ ProjectElement readElement(const QJsonValue& value, const QString& field, Seen& 
     readCard(fields, element, problems);
     readSource(fields, element, problems);
     readBookmarks(fields, element, problems);
+    readHighlights(fields, element, problems);
     readQuote(fields, element, problems);
     readPublishing(fields, element, problems);
     element.extra = fields.rest();
@@ -1022,6 +1079,31 @@ QJsonArray bookmarksToJson(const QList<PageBookmark>& bookmarks) {
     return array;
 }
 
+/// @p value in points, to a hundredth: the file keeps no more than the screen shows
+double roundedPoints(double value) {
+    return std::round(value * POINT_HUNDREDTHS) / POINT_HUNDREDTHS;
+}
+
+/// @p highlights as the "highlights" array of an element
+QJsonArray highlightsToJson(const QList<PdfHighlight>& highlights) {
+    QJsonArray array;
+    for (const PdfHighlight& highlight : highlights) {
+        QJsonObject each = highlight.extra;
+        each.insert(QLatin1String("page"), highlight.page);
+        QJsonArray areas;
+        for (const QRectF& area : highlight.areas) {
+            areas.append(QJsonArray{roundedPoints(area.x()), roundedPoints(area.y()),
+                                    roundedPoints(area.width()), roundedPoints(area.height())});
+        }
+        each.insert(QLatin1String("areas"), areas);
+        setOrRemove(each, "text", highlight.text);
+        setOrRemove(each, "color", highlight.color);
+        setOrRemove(each, "note", highlight.note);
+        array.append(each);
+    }
+    return array;
+}
+
 /// @p quote as the "quote" object of an element
 QJsonObject quoteToJson(const QuoteSource& quote) {
     QJsonObject data = quote.extra;
@@ -1032,8 +1114,8 @@ QJsonObject quoteToJson(const QuoteSource& quote) {
     return data;
 }
 
-/// The description of a source, the bookmarks, the page shown last and the source of a quote
-/// of @p element in @p json
+/// The description of a source, the bookmarks, the highlights, the page shown last and the
+/// source of a quote of @p element in @p json
 void writeSource(QJsonObject& json, const ProjectElement& element) {
     if (element.source.isEmpty()) {
         json.remove(QLatin1String("source"));
@@ -1044,6 +1126,11 @@ void writeSource(QJsonObject& json, const ProjectElement& element) {
         json.remove(QLatin1String("bookmarks"));
     } else {
         json.insert(QLatin1String("bookmarks"), bookmarksToJson(element.bookmarks));
+    }
+    if (element.highlights.isEmpty()) {
+        json.remove(QLatin1String("highlights"));
+    } else {
+        json.insert(QLatin1String("highlights"), highlightsToJson(element.highlights));
     }
     if (element.lastPage > 0) {
         json.insert(QLatin1String("lastPage"), element.lastPage);
@@ -1595,9 +1682,9 @@ bool ProjectElement::operator==(const ProjectElement& other) const {
            firstPageLeft == other.firstPageLeft && elements == other.elements &&
            description == other.description && fields == other.fields && links == other.links &&
            rotation == other.rotation && cover == other.cover && card == other.card &&
-           source == other.source && bookmarks == other.bookmarks && lastPage == other.lastPage &&
-           quote == other.quote && publishing == other.publishing && viewExtra == other.viewExtra &&
-           extra == other.extra;
+           source == other.source && bookmarks == other.bookmarks &&
+           highlights == other.highlights && lastPage == other.lastPage && quote == other.quote &&
+           publishing == other.publishing && viewExtra == other.viewExtra && extra == other.extra;
 }
 
 // =============================================================================

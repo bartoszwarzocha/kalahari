@@ -105,13 +105,13 @@
 ///   clockwise. A material of the cover has what it is and where it goes in "cover"
 ///   (CoverData). A material that is a source has its bibliographic description in "source"
 ///   (SourceDescription), a material with a file its bookmarks ("bookmarks": a page and a
-///   note each) and the page shown last ("lastPage"), a quote its source and page in "quote"
-///   (QuoteSource), a text for publishers what it is, its template and its state in
-///   "publishing" (PublishingData). A card (a character, a location, an item: a text element
-///   of a kind of cards) has its short description ("In short") as its description and in
-///   "card" the values of the fields of its kind, its color and its portraits, pictures of the
-///   materials (CardData); its text is its long description. None of these: the element has
-///   none.
+///   note each), the text marked in its PDF file ("highlights", PdfHighlight) and the page
+///   shown last ("lastPage"), a quote its source and page in "quote" (QuoteSource), a text for
+///   publishers what it is, its template and its state in "publishing" (PublishingData). A
+///   card (a character, a location, an item: a text element of a kind of cards) has its short
+///   description ("In short") as its description and in "card" the values of the fields of
+///   its kind, its color and its portraits, pictures of the materials (CardData); its text is
+///   its long description. None of these: the element has none.
 /// - A material is a copy of a file in the Workshop's folder ("file"), a web address ("url":
 ///   a page, or a picture on the web, whose copy in the book is then its file), or neither of
 ///   them: a paper book, a talk or a quotation that its description and fields tell of.
@@ -202,6 +202,7 @@ struct ProjectElement {
     SourceDescription source;        ///< Of a material that is a source: its bibliographic
                                      ///< description; empty: none
     QList<PageBookmark> bookmarks;   ///< Places in its file, by page, in the writer's order
+    QList<PdfHighlight> highlights;  ///< Text marked in its PDF file, in the order marked
     int lastPage = 0;                ///< Page of its file shown last, from 1; 0: none
     QuoteSource quote;               ///< Of a quote: the source and the page it comes from;
                                      ///< empty: not said

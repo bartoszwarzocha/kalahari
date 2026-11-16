@@ -700,6 +700,8 @@ void AnnotationsCoordinator::onCurrentTabChanged() {
                 &AnnotationsCoordinator::onMarkClicked, Qt::UniqueConnection);
         connect(editor, &editor::BookEditor::annotationCardClicked, this,
                 &AnnotationsCoordinator::onCardClicked, Qt::UniqueConnection);
+        connect(editor, &editor::BookEditor::annotationCardTextPressed, this,
+                &AnnotationsCoordinator::onCardTextPressed, Qt::UniqueConnection);
         connect(editor, &editor::BookEditor::annotationCardSettingsRequested, this,
                 &AnnotationsCoordinator::onCardSettingsRequested, Qt::UniqueConnection);
         connect(editor, &editor::BookEditor::annotationCardsShownChanged, this,
@@ -791,6 +793,16 @@ void AnnotationsCoordinator::onCardSettingsRequested() {
     emit settingsPageRequested(QString::fromLatin1(SettingsDialog::ANNOTATIONS_PAGE));
 }
 
+void AnnotationsCoordinator::onCardTextPressed(const QString& annotationId,
+                                               const QPointF& inText) {
+    // Written on its card at once, from where it was clicked (user's test of 16.11)
+    if (sender() == currentEditor() &&
+        editAnnotation(elementIdOf(currentEditorPanel()), annotationId, false) &&
+        m_frame != nullptr) {
+        m_frame->startTypingAt(inText);
+    }
+}
+
 // =============================================================================
 // The frame
 // =============================================================================
@@ -826,13 +838,14 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
     connect(&themes, &core::ThemeManager::editorColorsChanged, frame, [this]() { colorFrame(); });
     colorFrame();
 
-    // With the cards under the paragraphs, over the annotation's card: the card makes room
-    // for the frame (a new one's room comes among the cards of its paragraph)
+    // With the cards under the paragraphs, the text of the annotation's card, written in
+    // place: the card is as high as the text (a new one's card comes among the cards of its
+    // paragraph, with its author); one line until the frame knows its text's height
     if (writing.editor->showsAnnotationCard(writing.kind) && !writing.range.isNull()) {
-        writing.editor->setAnnotationCardWriting(writing.annotationId, writing.kind,
-                                                 writing.range.selectionStart(),
-                                                 writing.range.selectionEnd(),
-                                                 frame->sizeHint().height());
+        writing.editor->setAnnotationCardWriting(
+            writing.annotationId, writing.kind, writing.range.selectionStart(),
+            writing.range.selectionEnd(), writing.editor->annotationCardLineHeight(),
+            writing.author);
     }
     connect(frame, &AnnotationFrame::cardHeightNeeded, writing.editor,
             &editor::BookEditor::setAnnotationCardWritingHeight);
@@ -847,6 +860,9 @@ void AnnotationsCoordinator::openFrame(const Writing& writing, const QString& te
             placement.column = editor->textColumnRect(placement.place.center().y());
             if (editor->showsAnnotationCard(m_writing->kind)) {
                 placement.card = editor->annotationCardRect(m_writing->annotationId);
+                placement.cardText = editor->annotationCardWritingTextRect();
+                placement.cardFont = editor->annotationCardTextFont();
+                placement.cardLineHeight = editor->annotationCardLineHeight();
             }
         }
         return placement;

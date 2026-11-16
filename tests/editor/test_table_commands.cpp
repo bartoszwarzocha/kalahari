@@ -9,8 +9,10 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <kalahari/core/book_type_package.h>
 #include <kalahari/editor/book_editor.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/paragraph_styles.h>
 #include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_keys.h>
 #include <kalahari/editor/text_sorting.h>
@@ -469,6 +471,125 @@ TEST_CASE("Table commands: Repeat Header Rows", "[editor][tables][commands]") {
     CHECK(table->format().headerRowCount() == 0);
     editor->undo();
     CHECK(table->format().headerRowCount() == 2);
+}
+
+// =============================================================================
+// The styles of tables
+// =============================================================================
+
+namespace {
+
+/// The styles of a book with those of tables
+ParagraphStyleSet stylesWithTables() {
+    QList<kalahari::core::PackageParagraphStyle> styles;
+    for (const char* id : {NORMAL_STYLE_ID, TABLE_HEADER_STYLE_ID, TABLE_ROW_STYLE_ID}) {
+        kalahari::core::PackageParagraphStyle style;
+        style.id = QString::fromLatin1(id);
+        style.name.values.insert(QStringLiteral("en"), style.id);
+        styles.append(style);
+    }
+    return ParagraphStyleSet::fromPackage(styles, QStringLiteral("en"));
+}
+
+/// The styles of the first paragraphs of the cells of the first table, row by row, the
+/// cells' apart by commas: "table_header,table_header|table_row,table_row"
+std::string cellStylesOf(const BookEditor& editor) {
+    const QTextTable* table = firstTable(editor);
+    QStringList rows;
+    for (int row = 0; table != nullptr && row < table->rows(); ++row) {
+        QStringList cells;
+        for (int column = 0; column < table->columns(); ++column) {
+            const int position = table->cellAt(row, column).firstPosition();
+            cells << paragraphStyleOf(editor.textDocument()->findBlock(position).blockFormat());
+        }
+        rows << cells.join(QLatin1Char(','));
+    }
+    return rows.join(QLatin1Char('|')).toStdString();
+}
+
+/// The place of the cursor in a cell of the first table
+CursorPosition inCell(const BookEditor& editor, int row, int column) {
+    const int position = firstTable(editor)->cellAt(row, column).firstPosition();
+    return {editor.textDocument()->findBlock(position).blockNumber(), 0};
+}
+
+}  // anonymous namespace
+
+TEST_CASE("Table commands: new cells in the styles of tables, when the book has them",
+          "[editor][tables][styles]") {
+    SECTION("Insert > Table: the header row and the others; Tab at the end, a row") {
+        auto editor = editorWith(kml(QStringLiteral("<p>Text</p>")));
+        editor->setParagraphStyles(stylesWithTables());
+        editor->setCursorPosition({0, 4});
+        editor->insertTable(2, 2, true);
+        CHECK(cellStylesOf(*editor) == "table_header,table_header|table_row,table_row");
+        editor->setCursorPosition(inCell(*editor, 1, 1));
+        press(*editor, Qt::Key_Tab);
+        CHECK(cellStylesOf(*editor) ==
+              "table_header,table_header|table_row,table_row|table_row,table_row");
+    }
+
+    SECTION("a book without them: Normal") {
+        auto editor = editorWith(kml(QStringLiteral("<p>Text</p>")));
+        editor->setCursorPosition({0, 4});
+        editor->insertTable(2, 2, true);
+        CHECK(cellStylesOf(*editor) == "normal,normal|normal,normal");
+    }
+
+    SECTION("rows inserted: in a header row, of a header") {
+        auto editor = editorWith(PEOPLE_KML);  // its cells in Normal
+        editor->setParagraphStyles(stylesWithTables());
+        editor->setCursorPosition({3, 0});  // Lucyna
+        editor->insertTableRows(true);
+        CHECK(cellStylesOf(*editor) ==
+              "normal,normal|normal,normal|table_row,table_row|normal,normal|normal,normal");
+        editor->setCursorPosition({1, 0});  // Name, in the header row
+        editor->insertTableRows(true);
+        CHECK(firstTable(*editor)->format().headerRowCount() == 2);
+        CHECK(cellStylesOf(*editor).starts_with("normal,normal|table_header,table_header|"));
+    }
+
+    SECTION("a column inserted: its cells of their rows") {
+        auto editor = editorWith(PEOPLE_KML);
+        editor->setParagraphStyles(stylesWithTables());
+        editor->setCursorPosition({3, 0});  // Lucyna
+        editor->insertTableColumns(true);
+        CHECK(cellStylesOf(*editor) == "normal,table_header,normal|normal,table_row,normal|"
+                                       "normal,table_row,normal|normal,table_row,normal");
+    }
+
+    SECTION("the header rows changed: their paragraphs of the styles of tables change") {
+        auto editor = editorWith(kml(QStringLiteral("<p>Text</p>")));
+        editor->setParagraphStyles(stylesWithTables());
+        editor->setCursorPosition({0, 4});
+        editor->insertTable(2, 3, true);
+        editor->setCursorPosition(inCell(*editor, 1, 0));
+        editor->setTableHeader(true);
+        CHECK(cellStylesOf(*editor) ==
+              "table_header,table_header|table_header,table_header|table_row,table_row");
+        editor->setCursorPosition(inCell(*editor, 0, 0));
+        editor->setTableHeader(false);
+        CHECK(cellStylesOf(*editor) ==
+              "table_row,table_row|table_row,table_row|table_row,table_row");
+        editor->undo();
+        CHECK(cellStylesOf(*editor) ==
+              "table_header,table_header|table_header,table_header|table_row,table_row");
+    }
+
+    SECTION("text to a table in them, and back in Normal") {
+        auto editor = editorWith(
+            kml(QStringLiteral("<p>Before</p><p>Name; Age</p><p>Adam; 2</p><p>After</p>")));
+        editor->setParagraphStyles(stylesWithTables());
+        select(*editor, {1, 0}, {2, 3});
+        editor->convertTextToTable(QLatin1Char(';'), 0, true);
+        CHECK(cellStylesOf(*editor) == "table_header,table_header|table_row,table_row");
+        editor->convertTableToText(QLatin1Char(';'));
+        CHECK(textOf(*editor) == "Before|Name; Age|Adam; 2|After");
+        for (int block = 0; block < 4; ++block) {
+            const QTextBlock paragraph = editor->textDocument()->findBlockByNumber(block);
+            CHECK(paragraphStyleOf(paragraph.blockFormat()) == QStringLiteral("normal"));
+        }
+    }
 }
 
 TEST_CASE("Table commands: nothing changes in a read-only text", "[editor][tables][commands]") {

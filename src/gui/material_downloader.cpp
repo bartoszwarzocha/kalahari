@@ -37,31 +37,43 @@ bool hasTitleEnd(const QByteArray& data) {
     return data.toLower().contains("</title");
 }
 
-/// Why download @p reply failed, in a sentence for the writer
-QString failureOf(const QNetworkReply* reply) {
+} // namespace
+
+QString MaterialDownloader::failureOf(const QNetworkReply* reply) {
     switch (reply->error()) {
     case QNetworkReply::HostNotFoundError:
         //: In Polish: Nie znaleziono serwera tego adresu. Może nie ma połączenia z siecią.
-        return MaterialDownloader::tr("The server of the address was not found. The computer "
-                                      "may not be connected to the network.");
+        return tr("The server of the address was not found. The computer "
+                  "may not be connected to the network.");
     case QNetworkReply::TimeoutError:
     case QNetworkReply::OperationCanceledError:
         //: In Polish: Serwer nie odpowiedział na czas.
-        return MaterialDownloader::tr("The server did not answer in time.");
+        return tr("The server did not answer in time.");
     case QNetworkReply::ContentNotFoundError:
         //: In Polish: Pod tym adresem nic nie ma (błąd 404).
-        return MaterialDownloader::tr("There is nothing at this address (error 404).");
+        return tr("There is nothing at this address (error 404).");
     case QNetworkReply::ContentAccessDenied:
     case QNetworkReply::AuthenticationRequiredError:
         //: In Polish: Serwer nie pozwala pobrać tego adresu.
-        return MaterialDownloader::tr("The server does not allow downloading this address.");
+        return tr("The server does not allow downloading this address.");
     default:
         //: %1: what went wrong, in English, from Qt. In Polish: Pobieranie się nie udało (%1).
-        return MaterialDownloader::tr("The download failed (%1).").arg(reply->errorString());
+        return tr("The download failed (%1).").arg(reply->errorString());
     }
 }
 
-} // namespace
+QNetworkRequest MaterialDownloader::requestOf(const QUrl& url) {
+    QNetworkRequest request(url);
+    request.setTransferTimeout(TIMEOUT);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                         QNetworkRequest::NoLessSafeRedirectPolicy);
+    const QString program = QCoreApplication::applicationName().isEmpty()
+                                ? QStringLiteral("Kalahari")
+                                : QCoreApplication::applicationName();
+    request.setHeader(QNetworkRequest::UserAgentHeader,
+                      QStringLiteral("%1/%2").arg(program, QCoreApplication::applicationVersion()));
+    return request;
+}
 
 MaterialDownloader::Policy MaterialDownloader::policy() {
     const std::string value =
@@ -84,15 +96,7 @@ void MaterialDownloader::fetchPicture(const QString& elementId, const QUrl& url)
 }
 
 void MaterialDownloader::fetch(const QString& elementId, const QUrl& url, bool picture) {
-    QNetworkRequest request(url);
-    request.setTransferTimeout(TIMEOUT);
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                         QNetworkRequest::NoLessSafeRedirectPolicy);
-    const QString program = QCoreApplication::applicationName().isEmpty()
-                                ? QStringLiteral("Kalahari")
-                                : QCoreApplication::applicationName();
-    request.setHeader(QNetworkRequest::UserAgentHeader,
-                      QStringLiteral("%1/%2").arg(program, QCoreApplication::applicationVersion()));
+    const QNetworkRequest request = requestOf(url);
     core::Logger::getInstance().info("MaterialDownloader: {} {}",
                                      picture ? "Downloading the picture" : "Reading the title of",
                                      url.toString().toStdString());

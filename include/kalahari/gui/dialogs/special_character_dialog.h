@@ -12,8 +12,10 @@
 #include "kalahari/gui/widgets/character_grid.h"
 
 #include <QElapsedTimer>
+#include <QHash>
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 #include <functional>
 
@@ -58,6 +60,11 @@ struct CharacterTarget {
 ///   its code, its keys and its auto-correct; the characters used last under them;
 /// - the list: the groups as buttons over a list of the characters with their names, codes,
 ///   keys and auto-correct, and a star for the favorites.
+///
+/// The favorites have a star: in the corner of their cells in the grid, in the last column of
+/// the list, where a click on the star adds a character to them or takes it away; Add to
+/// Favorites beside the character does the same, and the group of the favorites says so while
+/// it is empty. A star changes only the star, not the whole view.
 ///
 /// Enter or Insert inserts the character selected, as does a double click, and a click on a
 /// character used last; the window stays open after it when the writer wants it (the setting
@@ -120,6 +127,10 @@ public:
     /// @brief Show the favorites, the characters used last, the keys and the auto-correct
     ///        again, after a change (a character inserted, keys given)
     void refresh();
+
+    /// @brief Make the character selected a favorite, or not, as its star or Add to
+    ///        Favorites does
+    void toggleFavorite();
 
     /// @brief Choose a character for another window (the bullet of a list) instead of
     ///        inserting one: Choose names it (insertRequested()) and closes the window
@@ -188,8 +199,17 @@ private:
     ///        search field)
     void moveSelection(int step);
 
-    /// @brief Make a character a favorite, or not
-    void toggleFavorite();
+    /// @brief Show a change of the favorites: the stars, and the group of the favorites when
+    ///        it is shown
+    void showFavorites();
+
+    /// @brief What the group of the favorites says while it has none, or the search found
+    ///        nothing; empty: the view shows characters
+    [[nodiscard]] QString emptyText(const QList<char32_t>& shown) const;
+
+    /// @brief The keys and the auto-correct of a character, asked once until refresh()
+    [[nodiscard]] QString keysOf(char32_t code) const;
+    [[nodiscard]] QStringList autoCorrectOf(char32_t code) const;
 
     SpecialCharacters m_characters;
     TargetOf m_targetOf;
@@ -205,6 +225,8 @@ private:
     bool m_choosing = false;          ///< Choosing a character for another window
 
     CharacterFonts m_fonts;           ///< Of the characters, from the font of the text
+    mutable QHash<char32_t, QString> m_knownKeys;          ///< Asked for since refresh()
+    mutable QHash<char32_t, QStringList> m_knownAutoCorrects;  ///< Since refresh()
 
     QLineEdit* m_search = nullptr;
     QToolButton* m_gridButton = nullptr;

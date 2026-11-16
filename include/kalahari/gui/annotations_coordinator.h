@@ -257,6 +257,10 @@ private:
     void onCardClicked(const QString& annotationId);
     void onCardSettingsRequested();
 
+    /// @brief A click on the text of a card: it is written there, the cursor where it was
+    ///        clicked (pixels of the editor from the top left corner of the card's text)
+    void onCardTextPressed(const QString& annotationId, const QPointF& inText);
+
     // The frame
     void onMarkClicked(const QString& annotationId);
     void openFrame(const Writing& writing, const QString& text);

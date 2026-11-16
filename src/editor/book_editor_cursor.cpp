@@ -1267,10 +1267,10 @@ void BookEditor::performTextKey(TextKeyAction action, bool select)
         moveParagraphsOrRows(action == Action::MoveDown);
         return;
     case Action::Undo:
-        undo();
+        undoCommand();
         return;
     case Action::Redo:
-        redo();
+        redoCommand();
         return;
     case Action::Cut:
         cut();

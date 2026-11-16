@@ -20,6 +20,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QGroupBox>
 #include <QKeyEvent>
@@ -68,6 +69,19 @@ QPushButton* button(const QWidget& parent, const QString& text) {
 void type(QLineEdit* field, const QString& text) {
     field->setText(text);
     emit field->textEdited(text);
+}
+
+/// Write @p text in place of the text of the name of @p dialog, and wait for the pause in
+/// typing after which its models and forms come
+void typeName(NameDialog& dialog, const QString& text) {
+    type(child<QLineEdit>(dialog, "nameText"), text);
+    REQUIRE(dialog.typing());
+    QElapsedTimer waited;
+    waited.start();
+    while (dialog.typing() && waited.elapsed() < 5000) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+    }
+    REQUIRE_FALSE(dialog.typing());
 }
 
 /// Press a key in @p widget
@@ -246,7 +260,7 @@ TEST_CASE("Name window: a new name with its forms and other names", "[gui][dicti
 
     // The name: the models of its words by their endings, its forms, and the first name and
     // the surname alone after it
-    type(text, QStringLiteral("Anna Wolska"));
+    typeName(dialog, QStringLiteral("Anna Wolska"));
     CHECK(rows(list) == QStringList{QStringLiteral("Anna Wolska (main)"),
                                     QStringLiteral("Anna (first name alone)"),
                                     QStringLiteral("Wolska (surname alone)")});
@@ -289,7 +303,7 @@ TEST_CASE("Name window: a new name with its forms and other names", "[gui][dicti
     // The name itself changed: the surname alone the program made follows it, the one the
     // author corrected and the other names stay
     dialog.setCurrentVariant(0);
-    type(text, QStringLiteral("Anna Nowak"));
+    typeName(dialog, QStringLiteral("Anna Nowak"));
     CHECK(rows(list) == QStringList{QStringLiteral("Anna Nowak (main)"),
                                     QStringLiteral("Anna (first name alone)"),
                                     QStringLiteral("Nowak (surname alone)"),
@@ -313,6 +327,62 @@ TEST_CASE("Name window: a new name with its forms and other names", "[gui][dicti
     CHECK(name.text() == QStringLiteral("Anna Nowak"));
     CHECK(name.kind == NameKind::Character);
     CHECK(name.variants.size() == 4);
+}
+
+TEST_CASE("Name window: the forms of a text typed come at a pause in typing",
+          "[gui][dictionary][names]") {
+    const NameDeclension polish(QStringLiteral("pl"));
+    NameDialog dialog(DictionaryName{}, polish, {});
+    const auto* list = child<QTreeWidget>(dialog, "nameVariants");
+    auto* text = child<QLineEdit>(dialog, "nameText");
+
+    // Typed: the text at once, in the list and for Add; its models and forms not yet
+    type(text, QStringLiteral("Anna Wolska"));
+    CHECK(dialog.typing());
+    CHECK(rows(list) == QStringList{QStringLiteral("Anna Wolska (main)")});
+    CHECK(dialog.acceptButton()->isEnabled());
+    CHECK(modelLists(dialog).isEmpty());
+
+    SECTION("at the pause") {
+        typeName(dialog, QStringLiteral("Anna Wolska"));
+        CHECK(rows(list).size() == 3);
+        CHECK(chosenModels(dialog) ==
+              QStringList{QStringLiteral("anna"), QStringLiteral("kowalska")});
+        CHECK(cell(dialog.formsTable(), 1) == QStringLiteral("Anny Wolskiej"));
+    }
+
+    SECTION("Add without the pause: the forms of the text typed") {
+        dialog.acceptButton()->click();
+        CHECK_FALSE(dialog.typing());
+        const DictionaryName added = dialog.name();
+        REQUIRE(added.variants.size() == 3);
+        CHECK(added.variants.front().models ==
+              QStringList{QStringLiteral("anna"), QStringLiteral("kowalska")});
+        CHECK(added.variants.front().forms ==
+              core::makeName(QStringLiteral("Anna Wolska"), NameKind::Character, polish)
+                  .variants.front()
+                  .forms);
+    }
+
+    SECTION("another kind chosen while typing: the forms of the text first") {
+        auto* kind = child<QComboBox>(dialog, "nameKind");
+        kind->setCurrentIndex(kind->findData(static_cast<int>(NameKind::Place)));
+        CHECK_FALSE(dialog.typing());
+        CHECK(dialog.name().variants.front().models ==
+              polish.modelsFor(QStringLiteral("Anna Wolska"), NameKind::Place));
+    }
+
+    SECTION("a model chosen while typing stays when its word is still there") {
+        typeName(dialog, QStringLiteral("Anna Wolska"));
+        type(text, QStringLiteral("Anna Wolska "));
+        QComboBox* surname = modelLists(dialog).at(1);
+        surname->setCurrentIndex(surname->findData(NameDeclension::unchanged()));
+        QCoreApplication::processEvents();
+        CHECK_FALSE(dialog.typing());
+        CHECK(chosenModels(dialog) ==
+              QStringList{QStringLiteral("anna"), NameDeclension::unchanged()});
+        CHECK(cell(dialog.formsTable(), 1) == QStringLiteral("Anny Wolska"));
+    }
 }
 
 TEST_CASE("Name window: models, forms, kind, plural and Quick Insert", "[gui][dictionary][names]") {

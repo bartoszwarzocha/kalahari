@@ -78,6 +78,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("edit.findPrevious", "resources/icons/twotone/navigate_before.svg", "Find Previous");
     iconRegistry.registerIcon("edit.findReplace", "resources/icons/twotone/find_replace.svg", "Find & Replace");
     iconRegistry.registerIcon("edit.findInBook", "resources/icons/twotone/search.svg", "Find in Book");
+    iconRegistry.registerIcon("edit.goTo", "resources/icons/twotone/arrow_forward.svg", "Go To");
     iconRegistry.registerIcon("edit.nextTodo", "resources/icons/twotone/navigate_next.svg", "Next To Do");
     iconRegistry.registerIcon("edit.previousTodo", "resources/icons/twotone/navigate_before.svg", "Previous To Do");
     iconRegistry.registerIcon("edit.preferences", "resources/icons/twotone/settings.svg", "Preferences");
@@ -409,6 +410,8 @@ void registerAllIcons() {
     // The views of a window: Insert > Special Character...
     iconRegistry.registerIcon("common.gridView", "resources/icons/twotone/grid_view.svg", "Grid");
     iconRegistry.registerIcon("common.listView", "resources/icons/twotone/view_list.svg", "List");
+    // A favorite (the characters of Insert > Special Character...)
+    iconRegistry.registerIcon("common.favorite", "resources/icons/twotone/star.svg", "Favorite");
     // Small "+" and "-" buttons of a list: add a row, take it out
     iconRegistry.registerIcon("common.add", "resources/icons/twotone/add.svg", "Add");
     iconRegistry.registerIcon("common.remove", "resources/icons/twotone/remove.svg", "Remove");
@@ -466,6 +469,7 @@ void registerAllIcons() {
     iconRegistry.registerIcon("pdf.results", "resources/icons/twotone/search.svg", "Search Results");
     iconRegistry.registerIcon("pdf.quote", "resources/icons/twotone/format_quote.svg", "Create Quote");
     iconRegistry.registerIcon("pdf.card", "resources/icons/twotone/edit.svg", "Material Card");
+    iconRegistry.registerIcon("pdf.highlight", "resources/icons/twotone/border_color.svg", "Highlight");
     iconRegistry.registerIcon("common.sort", "resources/icons/twotone/sort.svg", "Sort");
     iconRegistry.registerIcon("common.filterList", "resources/icons/twotone/filter_list.svg", "Filter");
     iconRegistry.registerIcon("common.lock", "resources/icons/twotone/lock.svg", "Lock");
@@ -492,6 +496,11 @@ void registerAllIcons() {
     // The button that puts the tabs in the middle of the window in more rows
     iconRegistry.registerIcon("tabs.rows", "resources/icons/twotone/view_agenda.svg",
                               "Tabs in More Rows");
+    // The button that lists all the tabs in the middle of the window, and Window > Tab List
+    iconRegistry.registerIcon("tabs.list", "resources/icons/twotone/expand_more.svg",
+                              "All Tabs");
+    iconRegistry.registerIcon("window.tabList", "resources/icons/twotone/expand_more.svg",
+                              "Tab List");
 
     // -------------------------------------------------------------------------
     // NEW ITEM DIALOG ICONS (OpenSpec #00033)

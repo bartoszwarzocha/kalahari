@@ -31,6 +31,7 @@
 #include <QLabel>
 #include <QLayout>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QScrollArea>
@@ -752,6 +753,26 @@ TEST_CASE("Settings dialog: the Materials page chooses how pages and PDF files o
     settings.set<std::string>(PdfFiles::OPEN_SETTING, pdfBefore);
 }
 
+TEST_CASE("Settings dialog: the Materials page allows the highlights of PDF files, off at "
+          "first",
+          "[gui][settings][materials][highlights]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const bool before = settings.get<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
+    settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, false);
+    SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+    openPage(dialog, QString(), QStringLiteral("Materials"));
+    auto* highlights = dialog.findChild<QCheckBox*>(QStringLiteral("materialsPdfHighlights"));
+    REQUIRE(highlights != nullptr);
+    CHECK_FALSE(highlights->isChecked());
+    CHECK(highlights->isEnabled() == PdfFiles::previewAvailable());
+    if (PdfFiles::previewAvailable()) {
+        highlights->click();
+        CHECK(dialog.applyChanges().size() == 1);
+        CHECK(PdfFiles::highlightsOn());
+    }
+    settings.set<bool>(PdfFiles::HIGHLIGHTS_SETTING, before);
+}
+
 TEST_CASE("Settings dialog: the Materials page sets the preview of PDF files",
           "[gui][settings][materials]") {
     auto& settings = kalahari::core::SettingsManager::getInstance();
@@ -989,6 +1010,53 @@ TEST_CASE("Settings dialog: Editor > Images sets new images, their copies and th
 
     settings.set<int>(IMAGE_WIDTH_KEY, 0);
     settings.set<int>(IMAGE_MAX_DPI_KEY, 300);
+}
+
+TEST_CASE("Settings dialog: the default labels of captions are in the program's language",
+          "[gui][settings][images]") {
+    auto& settings = kalahari::core::SettingsManager::getInstance();
+    const auto labelsBefore =
+        settings.get<nlohmann::json>(CAPTION_LABELS_KEY, nlohmann::json::array());
+    const auto labelBefore = settings.get<std::string>(IMAGE_CAPTION_LABEL_KEY, "");
+    settings.set<nlohmann::json>(CAPTION_LABELS_KEY, nlohmann::json::array());
+    settings.set<std::string>(IMAGE_CAPTION_LABEL_KEY, "");
+
+    const QStringList english{QStringLiteral("Figure"), QStringLiteral("Photo"),
+                              QStringLiteral("Illustration"), QStringLiteral("Map"),
+                              QStringLiteral("Diagram")};
+    CHECK(defaultCaptionLabels() == english);
+    {
+        const Polish polish;
+        REQUIRE(polish.loaded());
+        const QStringList polishLabels{QStringLiteral("Rysunek"), QStringLiteral("Fotografia"),
+                                       QStringLiteral("Ilustracja"), QStringLiteral("Mapa"),
+                                       QStringLiteral("Schemat")};
+        CHECK(defaultCaptionLabels() == polishLabels);
+        // Nothing stored: the settings and a new book have the labels in Polish
+        CHECK(settingsCaptionLabels() == polishLabels);
+        CHECK(settingsBookCaptions().labels == polishLabels);
+
+        // Settings > Editor > Images shows them, and its example of a cross-reference too
+        SettingsDialog dialog(kalahari::test::book(), kalahari::test::commands(), nullptr);
+        openPage(dialog, QStringLiteral("Edytor"), QStringLiteral("Obrazy"));
+        auto* labels = dialog.findChild<QListWidget*>(QStringLiteral("captionLabels"));
+        auto* captionLabel = dialog.findChild<QComboBox*>(QStringLiteral("imageCaptionLabel"));
+        auto* reference = dialog.findChild<QComboBox*>(QStringLiteral("captionReference"));
+        REQUIRE(labels != nullptr);
+        REQUIRE(captionLabel != nullptr);
+        REQUIRE(reference != nullptr);
+        QStringList listed;
+        for (int row = 0; row < labels->count(); ++row) {
+            listed << labels->item(row)->text();
+        }
+        CHECK(listed == polishLabels);
+        CHECK(captionLabel->currentText() == QStringLiteral("Rysunek"));
+        CHECK(reference->findText(QStringLiteral("Etykietę i numer – „Rysunek 2”")) >= 0);
+    }
+    CHECK(settingsCaptionLabels() == english);
+
+    settings.set<nlohmann::json>(CAPTION_LABELS_KEY, labelsBefore);
+    settings.set<std::string>(IMAGE_CAPTION_LABEL_KEY, labelBefore);
 }
 
 TEST_CASE("Settings dialog: theme colors come from the theme file", "[gui][settings]") {
