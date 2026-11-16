@@ -23,6 +23,7 @@
 #include "kalahari/gui/panels/material_list_panel.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <QComboBox>

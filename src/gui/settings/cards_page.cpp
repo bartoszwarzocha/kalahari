@@ -14,7 +14,8 @@
 /// is part of, or in alphabetical order. What the Properties panel shows of the cards at the
 /// cursor of a text: the card whose name it is in and the cards linked with the paragraph, only
 /// those, or none. The fields of the cards that new books start with, in the window Card
-/// Fields.
+/// Fields. The portraits put together from parts: the style of new ones, what the window
+/// Portrait shows when it opens and the palettes it chooses the colors from.
 
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/book_type_package.h"
@@ -23,7 +24,10 @@
 #include "kalahari/core/card_field_set.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
+#include "kalahari/gui/avatar.h"
+#include "kalahari/gui/avatar_art.h"
 #include "kalahari/gui/dialogs/card_fields_dialog.h"
+#include "kalahari/gui/dialogs/portrait_palettes_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/cursor_card_box.h"
@@ -96,6 +100,7 @@ QStringList colorsOf(const json& value) {
 CardsPage::CardsPage(QWidget* parent) : SettingsPage(parent) {
     addFullCardGroup();
     addPortraitGroup();
+    addComposedGroup();
     addColorsGroup();
     addTextGroup();
     addNavigatorGroup();
@@ -153,6 +158,76 @@ void CardsPage::addPortraitGroup() {
         std::string()));
     m_noPicture->setObjectName(QStringLiteral("cardsPortraitNoPicture"));
     bindChoice(m_noPicture, CardPage::NO_PICTURE_SETTING, CardPage::NO_PICTURE_INITIALS);
+}
+
+void CardsPage::addComposedGroup() {
+    //: Settings > Cards: the group of the portraits put together from ready parts in the
+    //: window Portrait (Compose Portrait... on the card). In Polish: Portrety z części
+    QFormLayout* composed = addGroup(tr("Portraits of Parts"));
+    m_composedStyle = narrow(addChoice(
+        composed,
+        //: In Polish: Styl nowych portretów:
+        tr("Style of new portraits:"),
+        //: The style of the drawing of a new portrait of parts: colored shapes. In Polish:
+        //: Płaski
+        {{tr("Flat"), QLatin1String(AvatarLook::FLAT),
+          //: In Polish: Kształty w pełnych kolorach.
+          tr("Shapes in full colors.")},
+         //: A drawing in ink with light colors. In Polish: Kreskowy
+         {tr("Line"), QLatin1String(AvatarLook::LINE),
+          //: In Polish: Rysunek tuszem w jasnych kolorach.
+          tr("A drawing in ink with light colors.")}},
+        std::string()));
+    m_composedStyle->setObjectName(QStringLiteral("cardsPortraitStyle"));
+    bindChoice(m_composedStyle, Avatar::STYLE_SETTING, AvatarLook::FLAT);
+
+    m_composedFrame = narrow(addChoice(
+        composed,
+        //: The frame the window Portrait opens with. In Polish: Kadr okna „Portret”:
+        tr("Frame of the window Portrait:"),
+        //: What the window Portrait shows when it opens: the head and the shoulders. In
+        //: Polish: Popiersie
+        {{tr("Bust"), QLatin1String(Avatar::FRAME_BUST), {}},
+         //: In Polish: Cała postać
+         {tr("Whole figure"), QLatin1String(Avatar::FRAME_FULL), {}}},
+        std::string()));
+    m_composedFrame->setObjectName(QStringLiteral("cardsPortraitFrame"));
+    bindChoice(m_composedFrame, Avatar::FRAME_SETTING, Avatar::FRAME_BUST);
+
+    //: Opens the window of the palettes the window Portrait chooses the colors from. In
+    //: Polish: Palety portretów...
+    m_palettesButton = new QPushButton(tr("Portrait Palettes..."));
+    m_palettesButton->setObjectName(QStringLiteral("cardsPortraitPalettes"));
+    connect(m_palettesButton, &QPushButton::clicked, this, &CardsPage::editPortraitPalettes);
+    auto* row = new QHBoxLayout();
+    row->addWidget(m_palettesButton);
+    row->addStretch(1);
+    composed->addRow(row);
+    //: In Polish: Kolory skóry, oczu, włosów i stroju, naturalne i spoza natury. Styl i kolory
+    //: jednego portretu zmienia okno „Portret”.
+    addNote(composed, tr("The colors of the skin, the eyes, the hair and the clothes, natural "
+                         "and not. The window Portrait changes the style and the colors of one "
+                         "portrait."));
+
+    Binding palettes;
+    palettes.key = []() { return std::string(AvatarPalettes::SETTING); };
+    palettes.stored = []() { return AvatarPalettes::current().toSetting(); };
+    palettes.shown = [this]() { return m_portraitPalettes; };
+    palettes.show = [this](const json& value) {
+        m_portraitPalettes = AvatarPalettes::fromSetting(value).toSetting();
+    };
+    palettes.store = [](const json& value) {
+        AvatarPalettes::fromSetting(value).save();
+    };
+    bindCustom(std::move(palettes));
+}
+
+void CardsPage::editPortraitPalettes() {
+    const std::optional<AvatarPalettes> changed = dialogs::editPortraitPalettes(
+        AvatarPalettes::fromSetting(m_portraitPalettes), window());
+    if (changed) {
+        m_portraitPalettes = changed->toSetting();
+    }
 }
 
 void CardsPage::addColorsGroup() {

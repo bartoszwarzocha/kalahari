@@ -468,22 +468,32 @@ void readClipping(Fields& fields, ProjectElement& element, QStringList& problems
     data.extra = clippingFields.rest();
 }
 
-/// The portraits of a card: [{"image": "e31", "label": "youth"}]
+/// The portraits of a card, pictures of the materials or put together from parts:
+/// [{"image": "e31", "label": "youth"}, {"label": "main", "style": "flat", "avatar": {...}}]
 QList<CardPortrait> readPortraits(Fields& fields, QStringList& problems) {
     QList<CardPortrait> portraits;
     const QJsonArray array = fields.array("portraits");
     for (qsizetype i = 0; i < array.size(); ++i) {
         const QString path = QStringLiteral("%1[%2]").arg(fields.path("portraits")).arg(i);
         if (!array.at(i).isObject()) {
-            addProblem(problems, path, QStringLiteral("must be an object with \"image\""));
+            addProblem(problems, path,
+                       QStringLiteral("must be an object with \"image\" or \"avatar\""));
             continue;
         }
         Fields entry(array.at(i).toObject(), path, problems);
         CardPortrait portrait;
-        portrait.image = entry.string("image", true);
+        portrait.image = entry.string("image");
         portrait.label = entry.string("label");
+        portrait.style = entry.string("style");
+        if (const QJsonValue avatar = entry.take("avatar"); avatar.isObject()) {
+            portrait.avatar = avatar.toObject();
+        } else if (!avatar.isUndefined()) {
+            entry.problem("avatar", QStringLiteral("must be an object of the parts and colors"));
+        }
         portrait.extra = entry.rest();
-        if (!portrait.image.isEmpty()) {
+        if (portrait.image.isEmpty() && portrait.avatar.isEmpty()) {
+            addProblem(problems, path, QStringLiteral("must have \"image\" or \"avatar\""));
+        } else {
             portraits << portrait;
         }
     }
@@ -1192,8 +1202,14 @@ QJsonObject cardToJson(const CardData& card) {
         QJsonArray portraits;
         for (const CardPortrait& portrait : card.portraits) {
             QJsonObject each = portrait.extra;
-            each.insert(QLatin1String("image"), portrait.image);
+            setOrRemove(each, "image", portrait.image);
             setOrRemove(each, "label", portrait.label);
+            setOrRemove(each, "style", portrait.style);
+            if (portrait.avatar.isEmpty()) {
+                each.remove(QLatin1String("avatar"));
+            } else {
+                each.insert(QLatin1String("avatar"), portrait.avatar);
+            }
             portraits.append(each);
         }
         data.insert(QLatin1String("portraits"), portraits);

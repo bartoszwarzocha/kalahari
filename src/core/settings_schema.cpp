@@ -275,6 +275,25 @@ std::map<std::string, json> buildDefaults() {
         {"cards.fullCardLayout", "columns"},
         {"cards.portraitShape", "square"},
         {"cards.portraitWithoutPicture", "initials"},
+        // Portraits put together from parts (gui::Avatar): the style of a new one ("flat" or
+        // "line"), what the window Portrait shows when it opens (the bust, "bust", or the whole
+        // figure, "full") and the palettes it chooses the colors from, natural and not
+        // ("skinOther": the skin of elves and ghosts); gui::AvatarPalettes names the colors of
+        // these lists in the description of the look
+        {"cards.portraitStyle", "flat"},
+        {"cards.portraitFrame", "bust"},
+        {"cards.portraitPalettes",
+         {{"skin", json::array({"#f7e0cf", "#eec6a6", "#e0ac84", "#c99366", "#b07a4f", "#8d5a36",
+                                "#6b4128", "#4a2c1c"})},
+          {"skinOther", json::array({"#9fc49a", "#9fb3d1", "#c4c6cf", "#c9a3d9"})},
+          {"eyes", json::array({"#5a3a22", "#2f1f15", "#8a6a2f", "#4f7d3a", "#4a7db5", "#7d8a93",
+                                "#b8862b"})},
+          {"eyesOther", json::array({"#8b5cc7", "#c0392b", "#c9d6df"})},
+          {"hair", json::array({"#1d1a18", "#3b2a20", "#6b4a2f", "#8a4b2a", "#b5562a", "#b89155",
+                                "#e0c78a", "#e6e0d2", "#a3a3a3", "#f1f1f1"})},
+          {"hairOther", json::array({"#3d6fd1", "#e27aa8", "#3f9e6b", "#7b4fc4"})},
+          {"clothes", json::array({"#2c3e5c", "#7a7f87", "#262626", "#6e2237", "#3f6b45",
+                                   "#6b4a2f", "#cbb994", "#ecebe6", "#c9962e", "#6aa6d6"})}}},
 
         // The plot board (gui::PlotBoard): the board of the cards ("board") or the outline
         // ("outline"), the one shown last, and the one a new tab opens on ("board", "outline"

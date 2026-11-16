@@ -564,7 +564,10 @@ private:
 /// the cursor of a text (CursorCardBox::SETTING) and the signs beside the linked paragraphs;
 /// the locations in the Navigator, in a tree or in a list (NavigatorPanel::CARDS_TREE_SETTING);
 /// the fields of the cards that new books start with (core::card_fields::DEFAULTS_SETTING), in
-/// the window Card Fields
+/// the window Card Fields; the portraits of parts – the style of new ones
+/// (Avatar::STYLE_SETTING), the frame the window Portrait opens with (Avatar::FRAME_SETTING)
+/// and the palettes it chooses the colors from (AvatarPalettes::SETTING), in the window
+/// Portrait Palettes
 class CardsPage : public SettingsPage {
     Q_OBJECT
 public:
@@ -599,6 +602,18 @@ public:
     /// start with, which Apply saves
     [[nodiscard]] QPushButton* defaultFieldsButton() const { return m_defaultFieldsButton; }
 
+    /// @brief The style of new portraits of parts (Avatar::STYLE_SETTING: AvatarLook::FLAT,
+    ///        AvatarLook::LINE)
+    [[nodiscard]] QComboBox* portraitStyleList() const { return m_composedStyle; }
+
+    /// @brief What the window Portrait shows when it opens (Avatar::FRAME_SETTING:
+    ///        Avatar::FRAME_BUST, Avatar::FRAME_FULL)
+    [[nodiscard]] QComboBox* portraitFrameList() const { return m_composedFrame; }
+
+    /// @brief Portrait Palettes...: the window of the palettes of the portraits of parts, which
+    /// Apply saves
+    [[nodiscard]] QPushButton* portraitPalettesButton() const { return m_palettesButton; }
+
     /// @brief What the fields of new books are: those of the book types, or the kinds with
     /// fields of their own
     [[nodiscard]] QLabel* defaultFieldsLabel() const { return m_defaultFieldsLabel; }
@@ -620,6 +635,13 @@ private:
     /// cursor
     void addTextGroup();
 
+    /// @brief The group Portraits of Parts: the style of new ones, the frame of the window
+    /// Portrait, the palettes
+    void addComposedGroup();
+
+    /// @brief Open the window Portrait Palettes
+    void editPortraitPalettes();
+
     /// @brief The group Card Fields: the fields new books start with
     void addFieldsGroup();
 
@@ -639,6 +661,10 @@ private:
     QPushButton* m_defaultFieldsButton = nullptr;
     QLabel* m_defaultFieldsLabel = nullptr;
     nlohmann::json m_defaultFields;  ///< The fields of new books as the page shows them
+    QComboBox* m_composedStyle = nullptr;
+    QComboBox* m_composedFrame = nullptr;
+    QPushButton* m_palettesButton = nullptr;
+    nlohmann::json m_portraitPalettes;  ///< The palettes of the portraits as the page shows them
 };
 
 /// @brief Materials: how a picture, a page or a picture on the web and a PDF file open

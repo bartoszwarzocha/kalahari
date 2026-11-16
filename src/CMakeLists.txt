@@ -222,6 +222,10 @@ set(KALAHARI_SOURCES
     gui/dialogs/user_project_dialog.cpp  # UserProjectDialog - the kinds of elements of a user project
     gui/section_words.cpp  # SectionWords - the front, main and back part of a book in sentences
     gui/kind_names.cpp     # The names of kinds of elements in sentences, in the program's language
+    gui/avatar.cpp         # Avatar - the parts of a portrait put together from parts
+    gui/avatar_art.cpp     # AvatarArt - the drawings of the parts (resources/portraits)
+    gui/avatar_palettes.cpp  # AvatarPalettes - the colors of the portraits and their names
+    gui/avatar_words.cpp   # The look of a portrait in words
     gui/name_labels.cpp    # The cases and kinds of the names of the book dictionary, in the program's language
     gui/cover_names.cpp    # The materials of the cover in the program's words
     gui/source_names.cpp   # The sources in the program's words
@@ -246,6 +250,8 @@ set(KALAHARI_SOURCES
     gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
     gui/dialogs/link_dialog.cpp  # LinkDialog - what a material is about, or the materials of an element
     gui/dialogs/relation_dialog.cpp  # RelationDialog - a relation of a card with another card
+    gui/dialogs/portrait_dialog.cpp  # PortraitDialog - a portrait of a card put together from parts
+    gui/dialogs/portrait_palettes_dialog.cpp  # PortraitPalettesDialog - the palettes of the portraits
     gui/dialogs/paragraph_card_dialog.cpp  # ParagraphCardDialog - a paragraph linked with a card
     gui/dialogs/card_fields_dialog.cpp  # CardFieldsDialog - the fields of the cards of each kind
     gui/dialogs/card_field_dialogs.cpp  # CardFieldDialog, CardChoicesDialog - a field of the writer, its list
@@ -425,6 +431,7 @@ set(KALAHARI_SOURCES
     gui/widgets/card_cell_delegate.cpp  # CardCellDelegate - the cells of a list of cards that F2 edits
     gui/widgets/palette_edit.cpp  # PaletteEdit - a palette of colors to change in the Settings
     gui/panels/card_page.cpp      # CardPage - the card of a character, a location or an item
+    gui/panels/card_page_portraits.cpp      # The portraits of a card
     gui/panels/cursor_card_box.cpp  # CursorCardBox - the card at the cursor in the Properties panel
     gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
@@ -569,6 +576,8 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/portrait_dialog.h  # PortraitDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/portrait_palettes_dialog.h  # With Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_card_dialog.h  # ParagraphCardDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/card_fields_dialog.h  # CardFieldsDialog, CardFieldDialog, CardChoicesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT

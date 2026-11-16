@@ -11,6 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Portraits of characters put together from parts** - 2026-11-17. Compose Portrait... on the
+  menu of the portrait of a card opens the window Portrait: a portrait put together from ready
+  parts, without drawing. On the left the preview, the frame (the bust of the card or the whole
+  figure, which fits the preview whole), the style (Flat, or Line: ink with light colors),
+  Randomize (Alt+R; the parts and the natural colors by chance, as the field Gender suits, the
+  face calm), Undo (Ctrl+Z) and Start Over (the portrait the fields Gender and Age suggest);
+  in the middle the groups of the parts (the face and the skin, the eyes and the brows, the nose
+  and the mouth, the hair and the beard, the glasses and the extras, the clothes, the background,
+  the figure; Up and Down choose one) and the portraits of the card with their labels ("youth",
+  "after the battle"), the main one with a star; on the right the tiles of the parts, each the
+  portrait with that value (the arrows and Space choose), the palettes of the colors with
+  Other..., the sign of the gender in the corner, and the description of the look ("Oval face,
+  fair skin, round brown eyes, ... Clothes: grey shirt."), which can go at the end of the
+  field Appearance; the portrait can also be saved as a picture (800 pixels) in the materials. A
+  new portrait starts with a neutral face. The card shows its portraits with arrows under the
+  main one; the menu has Card Portraits (each portrait, Set as Main, New Portrait..., Save
+  Portrait as a Picture in the Materials). The portraits are drawings (SVG) of layers in
+  `resources/portraits/drawn.json`, sharp at any size and in any color, the skin of an elf or
+  the eyes of a vampire too; a portrait keeps its parts in the book file
+  (`portraits[].avatar`), so it can be changed later. Settings > Cards > Portraits of Parts
+  chooses the style of new portraits, what the window Portrait shows when it opens and, in the
+  window Portrait Palettes, the colors it chooses from. The format of a set of layers rendered
+  in Blender, a third style to come, is in
+  `docs/superpowers/specs/2026-11-16-portrait-model-layers-design.md`.
 - **The fields of the cards, and Settings > Cards** - 2026-11-16. Fields... on the bar of a full
   card opens the window Card Fields of its kind (a list of the kinds above the table chooses
   another): the fields in the order of the card, Name and In Short first and always there, with

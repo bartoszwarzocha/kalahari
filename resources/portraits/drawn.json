@@ -1,0 +1,181 @@
+{
+  "format": 1,
+  "comment": "The drawings of the parts of a portrait (gui::AvatarArt): the layers in the order they are drawn. Coordinates: the bust is 200 x 200 with the middle at x 100; the whole figure stands on the ground at y 556.",
+  "frames": {
+    "bust": [
+      0,
+      0,
+      200,
+      200
+    ],
+    "full": [
+      -110,
+      -26,
+      420,
+      600
+    ],
+    "face": [
+      60,
+      64,
+      80,
+      80
+    ]
+  },
+  "axis": 100,
+  "ground": 556,
+  "fit": {
+    "face": {
+      "part": "face",
+      "values": {
+        "oval": 0.97,
+        "round": 1.088,
+        "square": 1,
+        "long": 0.853,
+        "heart": 1.029
+      }
+    },
+    "shoulders": {
+      "part": "build",
+      "values": {
+        "slim": 0.886,
+        "average": 1,
+        "strong": 1.143
+      }
+    },
+    "build": {
+      "part": "build",
+      "values": {
+        "slim": 0.86,
+        "average": 1,
+        "strong": 1.18
+      }
+    },
+    "height": {
+      "part": "height",
+      "values": {
+        "short": 0.9,
+        "medium": 1,
+        "tall": 1.08
+      }
+    }
+  },
+  "overrides": [
+    {
+      "part": "clothes",
+      "is": "armor",
+      "color": "clothes",
+      "value": "#9aa3ad"
+    }
+  ],
+  "lineStyle": {
+    "ink": "#2b2b2b",
+    "width": 1.6,
+    "lighten": 45
+  },
+  "sign": {
+    "color": "#ffffff",
+    "size": 0.11
+  },
+  "layers": [
+    {"when": {"background": "card"}, "fixed": true, "draw": [{"view": true, "fill": {"gradient": "radial", "center": [0.5, 0.36], "radius": 0.75, "stops": [[0, "{card+14}"], [1, "{card-12}"]], "base": "{card}"}, "outline": false, "line": {"raw": true, "fill": "{card+82}"}}]},
+    {"when": {"background": "gradient"}, "fixed": true, "draw": [{"view": true, "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{card+30}"], [1, "{card-35}"]], "base": "{card}"}, "outline": false, "line": {"raw": true, "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{card+70}"], [1, "{card+45}"]], "base": "{card}"}}}]},
+    {"when": {"background": "light"}, "fixed": true, "draw": [{"view": true, "fill": "#e7e3da", "outline": false, "line": {"raw": true, "fill": "#fbfaf6"}}]},
+    {"frames": ["full"], "fit": ["build"], "fixed": true, "draw": [{"ellipse": [100, 556, 64, 7], "fill": "#000000", "opacity": 0.2, "raw": true}]},
+    {"when": {"hat": "hood"}, "draw": [{"path": "M48 150 Q40 40 100 34 Q160 40 152 150 L166 178 L34 178 Z", "fill": "{clothes-12}"}]},
+    {"when": {"bottom": "skirt", "clothes": {"not": ["robe", "dress"]}}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M77 420 L93 420 L89 538 L77 538 Z", "fill": "{skin}"}, {"path": "M107 420 L123 420 L123 538 L111 538 Z", "fill": "{skin}"}]},
+    {"when": {"bottom": {"not": ["skirt"]}, "clothes": {"not": ["robe", "dress"]}}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M68 330 L98 330 L92 540 L70 540 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{bottom+4}"], [1, "{bottom-12}"]], "base": "{bottom}"}}, {"path": "M102 330 L132 330 L130 540 L108 540 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{bottom+4}"], [1, "{bottom-12}"]], "base": "{bottom}"}}, {"path": "M64 326 L136 326 L133 368 L67 368 Z", "fill": "{bottom}"}, {"path": "M100 372 L100 530", "stroke": "{bottom-25}", "width": 1.2, "style": "flat"}]},
+    {"when": {"clothes": {"not": ["robe", "dress"]}}, "frames": ["full"], "fit": ["build"], "draw": [{"ellipse": [79, 545, 15, 7], "fill": "#2b2522"}, {"ellipse": [121, 545, 15, 7], "fill": "#2b2522"}]},
+    {"when": {"clothes": {"not": ["robe", "dress", "coat"]}}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M58 174 Q58 160 72 158 L128 158 Q142 160 142 174 L131 282 L137 334 L63 334 L69 282 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{clothes+6}"], [1, "{clothes-10}"]], "base": "{clothes}"}}]},
+    {"when": {"bottom": "skirt", "clothes": {"not": ["robe", "dress"]}}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M69 282 L131 282 L156 440 Q100 452 44 440 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{bottom+4}"], [1, "{bottom-12}"]], "base": "{bottom}"}}, {"path": "M84 300 L76 432 M116 300 L124 432", "stroke": "{bottom-20}", "width": 1.2, "style": "flat"}]},
+    {"when": {"clothes": "shirt"}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M90 156 L100 170 L94 176 L84 160 Z", "fill": "{clothes+30}", "mirror": true}, {"path": "M100 170 L100 330", "stroke": "{clothes-25}", "width": 1.1}]},
+    {"when": {"clothes": "sweater"}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M88 158 Q100 168 112 158", "stroke": "{clothes-18}", "width": 4}, {"path": "M65 328 L135 328", "stroke": "{clothes-18}", "width": 6}]},
+    {"when": {"clothes": "armor"}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M63 330 L137 330 L141 374 L59 374 Z", "fill": "#8d96a0"}, {"path": "M72 212 Q100 200 128 212", "stroke": "#6f7882", "width": 1.5}, {"path": "M68 290 L132 290", "stroke": "#5b4636", "width": 5}, {"ellipse": [66, 170, 16, 11], "fill": "#b4bcc5", "mirror": true}]},
+    {"when": {"clothes": "coat"}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M58 174 Q58 160 72 158 L128 158 Q142 160 142 174 L150 448 L50 448 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{clothes+6}"], [1, "{clothes-10}"]], "base": "{clothes}"}}, {"path": "M92 158 L100 204 L108 158 Z", "fill": "#ebe7df"}, {"path": "M100 204 L100 448", "stroke": "{clothes-30}", "width": 1.4}, {"path": "M92 158 L100 204 L90 214 L80 166 Z", "fill": "{clothes-15}", "mirror": true}]},
+    {"when": {"clothes": ["robe", "dress"]}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M58 174 Q58 160 72 158 L128 158 Q142 160 142 174 L164 548 Q100 556 36 548 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{clothes+6}"], [1, "{clothes-10}"]], "base": "{clothes}"}}, {"path": "M86 300 L72 540 M114 300 L128 540", "stroke": "{clothes-18}", "width": 1.3, "style": "flat"}, {"ellipse": [86, 553, 11, 5], "fill": "#2b2522"}, {"ellipse": [114, 553, 11, 5], "fill": "#2b2522"}]},
+    {"when": {"clothes": "robe"}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M86 158 L100 188 L114 158", "stroke": "#c9a227", "width": 2.6}, {"path": "M69 282 L131 282", "stroke": "#c9a227", "width": 4}, {"path": "M36 548 Q100 556 164 548", "stroke": "#c9a227", "width": 2.6}]},
+    {"when": {"clothes": "dress"}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M82 159 Q100 186 118 159 Z", "fill": "{skin-4}"}, {"path": "M69 282 L131 282", "stroke": "{clothes-25}", "width": 2}]},
+    {"when": {"clothes": {"not": ["robe"]}}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M54 168 L74 168 L58 316 L42 316 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{clothes+6}"], [1, "{clothes-10}"]], "base": "{clothes}"}, "mirror": true}]},
+    {"when": {"clothes": "robe"}, "frames": ["full"], "fit": ["build"], "draw": [{"path": "M51 168 L77 168 L61 316 L39 316 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{clothes+6}"], [1, "{clothes-10}"]], "base": "{clothes}"}, "mirror": true}]},
+    {"frames": ["full"], "fit": ["build"], "draw": [{"ellipse": [50, 324, 8, 9], "fill": "{skin}", "mirror": true}]},
+    {"frames": ["bust", "face"], "fit": ["shoulders"], "draw": [{"path": "M30 200 L30 186 Q30 160 58 156 L142 156 Q170 160 170 186 L170 200 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{clothes+6}"], [1, "{clothes-10}"]], "base": "{clothes}"}}]},
+    {"when": {"clothes": "shirt"}, "frames": ["bust", "face"], "draw": [{"path": "M88 154 L100 170 L93 177 L82 158 Z", "fill": "{clothes+30}", "mirror": true}, {"path": "M100 172 L100 200", "stroke": "{clothes-25}", "width": 1.2}, {"circle": [100, 184, 1.6], "fill": "{clothes-35}"}, {"circle": [100, 195, 1.6], "fill": "{clothes-35}"}]},
+    {"when": {"clothes": "sweater"}, "frames": ["bust", "face"], "draw": [{"path": "M86 157 Q100 169 114 157", "stroke": "{clothes-18}", "width": 5}, {"path": "M60 176 Q62 190 60 200 M140 176 Q138 190 140 200", "stroke": "{clothes-12}", "width": 1.2, "style": "flat"}]},
+    {"when": {"clothes": "coat"}, "frames": ["bust", "face"], "draw": [{"path": "M88 156 L100 186 L112 156 Z", "fill": "#ebe7df"}, {"path": "M88 156 L100 188 L90 200 L76 162 Z", "fill": "{clothes-15}", "mirror": true}]},
+    {"when": {"clothes": "robe"}, "frames": ["bust", "face"], "draw": [{"path": "M88 156 L100 182 L112 156 Z", "fill": "{clothes-25}"}, {"path": "M86 156 L100 184 L114 156", "stroke": "#c9a227", "width": 3}]},
+    {"when": {"clothes": "armor"}, "frames": ["bust", "face"], "draw": [{"path": "M86 157 Q100 167 114 157", "stroke": "#6f7882", "width": 4}, {"path": "M76 184 Q100 176 124 184", "stroke": "#6f7882", "width": 1.5}]},
+    {"when": {"clothes": "armor"}, "frames": ["bust", "face"], "fit": ["shoulders"], "draw": [{"ellipse": [52, 170, 26, 15], "fill": "#b4bcc5", "mirror": true}]},
+    {"when": {"clothes": "dress"}, "frames": ["bust", "face"], "draw": [{"path": "M80 157 Q100 184 120 157 Z", "fill": "{skin-4}"}, {"path": "M80 157 Q100 184 120 157", "stroke": "{clothes-20}", "width": 2}]},
+    {"when": {"hair": "bun"}, "draw": [{"ellipse": [100, 46, 15, 14], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}]},
+    {"when": {"hair": "short"}, "fit": ["face"], "draw": [{"path": "M64 96 Q58 50 100 46 Q142 50 136 96 Z", "fill": "{hair-22}", "outline": false}]},
+    {"when": {"hair": "fringe"}, "fit": ["face"], "draw": [{"path": "M63 98 Q57 47 100 44 Q143 47 137 98 Z", "fill": "{hair-22}", "outline": false}]},
+    {"when": {"hair": "bun"}, "fit": ["face"], "draw": [{"path": "M65 94 Q62 52 100 50 Q138 52 135 94 Z", "fill": "{hair-22}", "outline": false}]},
+    {"when": {"hair": "shoulder"}, "fit": ["face"], "draw": [{"path": "M60 98 Q54 46 100 43 Q146 46 140 98 L145 150 Q122 160 100 158 Q78 160 55 150 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+4}"], [1, "{hair-18}"]], "base": "{hair}"}}]},
+    {"when": {"hair": "long"}, "fit": ["face"], "draw": [{"path": "M60 98 Q54 44 100 42 Q146 44 140 98 L152 198 Q100 208 48 198 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+4}"], [1, "{hair-18}"]], "base": "{hair}"}}]},
+    {"when": {"hair": "curly"}, "fit": ["face"], "draw": [{"path": "M54 122 Q44 44 100 40 Q156 44 146 122 Q150 148 132 152 L68 152 Q50 148 54 122 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+4}"], [1, "{hair-18}"]], "base": "{hair}"}}, {"ellipse": [56, 110, 9, 9], "fill": "{hair-6}", "mirror": true}, {"ellipse": [54, 128, 9, 9], "fill": "{hair-6}", "mirror": true}, {"ellipse": [62, 146, 9, 9], "fill": "{hair-6}", "mirror": true}]},
+    {"frames": ["bust", "face"], "draw": [{"path": "M89 122 L111 122 L111 160 L89 160 Z", "fill": "{skin-10}"}]},
+    {"frames": ["full"], "draw": [{"path": "M91 122 L109 122 L109 162 L91 162 Z", "fill": "{skin-10}"}]},
+    {"style": "flat", "draw": [{"ellipse": [100, 139, 13, 7], "fill": "{skin-28}", "opacity": 0.45}]},
+    {"fit": ["face"], "draw": [{"ellipse": [65, 102, 5.5, 8.5], "fill": "{skin-4}", "mirror": true}, {"path": "M65.5 97 Q62.5 102 65.5 107", "stroke": "{skin-25}", "width": 1.1, "mirror": true, "style": "flat"}]},
+    {"when": {"face": "oval"}, "draw": [{"ellipse": [100, 98, 33, 41], "fill": {"gradient": "radial", "center": [0.42, 0.38], "radius": 0.72, "stops": [[0, "{skin+8}"], [0.62, "{skin}"], [1, "{skin-8}"]], "base": "{skin}"}}]},
+    {"when": {"face": "round"}, "draw": [{"ellipse": [100, 100, 37, 38], "fill": {"gradient": "radial", "center": [0.42, 0.38], "radius": 0.72, "stops": [[0, "{skin+8}"], [0.62, "{skin}"], [1, "{skin-8}"]], "base": "{skin}"}}]},
+    {"when": {"face": "long"}, "draw": [{"ellipse": [100, 98, 29, 44], "fill": {"gradient": "radial", "center": [0.42, 0.38], "radius": 0.72, "stops": [[0, "{skin+8}"], [0.62, "{skin}"], [1, "{skin-8}"]], "base": "{skin}"}}]},
+    {"when": {"face": "square"}, "draw": [{"path": "M66 84 Q66 58 100 58 Q134 58 134 84 L134 112 Q134 136 112 139 L88 139 Q66 136 66 112 Z", "fill": {"gradient": "radial", "center": [0.42, 0.38], "radius": 0.72, "stops": [[0, "{skin+8}"], [0.62, "{skin}"], [1, "{skin-8}"]], "base": "{skin}"}}]},
+    {"when": {"face": "heart"}, "draw": [{"path": "M65 88 Q65 57 100 57 Q135 57 135 88 Q135 116 100 141 Q65 116 65 88 Z", "fill": {"gradient": "radial", "center": [0.42, 0.38], "radius": 0.72, "stops": [[0, "{skin+8}"], [0.62, "{skin}"], [1, "{skin-8}"]], "base": "{skin}"}}]},
+    {"when": {"hair": "short"}, "fit": ["face"], "style": "flat", "draw": [{"path": "M78 70 Q104 77 124 69", "stroke": "{skin-35}", "width": 6, "opacity": 0.2, "move": [0, 2]}]},
+    {"when": {"hair": "fringe"}, "fit": ["face"], "style": "flat", "draw": [{"path": "M74 76 Q86 88 102 80 Q118 86 126 76", "stroke": "{skin-35}", "width": 6, "opacity": 0.2, "move": [0, 2]}]},
+    {"when": {"hair": "shoulder"}, "fit": ["face"], "style": "flat", "draw": [{"path": "M78 69 Q96 74 116 65 Q122 66 125 70", "stroke": "{skin-35}", "width": 6, "opacity": 0.2, "move": [0, 2]}]},
+    {"when": {"hair": "long"}, "fit": ["face"], "style": "flat", "draw": [{"path": "M78 69 Q96 74 116 65 Q122 66 125 70", "stroke": "{skin-35}", "width": 6, "opacity": 0.2, "move": [0, 2]}]},
+    {"when": {"hair": "bun"}, "fit": ["face"], "style": "flat", "draw": [{"path": "M76 74 Q100 60 124 74", "stroke": "{skin-35}", "width": 6, "opacity": 0.2, "move": [0, 2]}]},
+    {"when": {"hair": "curly"}, "fit": ["face"], "style": "flat", "draw": [{"path": "M76 76 Q100 64 124 76", "stroke": "{skin-35}", "width": 6, "opacity": 0.2, "move": [0, 2]}]},
+    {"when": {"age": ["middle", "old"]}, "draw": [{"path": "M79 108 Q86 111 93 108", "stroke": "{skin-28}", "width": 1.1, "opacity": 0.75, "mirror": true}, {"path": "M91 113 Q86 120 89 128", "stroke": "{skin-28}", "width": 1.1, "opacity": 0.75, "mirror": true}]},
+    {"when": {"age": "old"}, "draw": [{"path": "M84 74 Q100 70 116 74", "stroke": "{skin-28}", "width": 1.1, "opacity": 0.75}, {"path": "M86 79 Q100 75 114 79", "stroke": "{skin-28}", "width": 1.1, "opacity": 0.75}, {"path": "M75 100 L71 98", "stroke": "{skin-28}", "width": 1.1, "opacity": 0.75, "mirror": true}]},
+    {"when": {"extras": "blush"}, "draw": [{"ellipse": [80, 115, 7, 4], "fill": "#e06470", "opacity": 0.3, "raw": true, "mirror": true}]},
+    {"when": {"extras": "freckles"}, "draw": [{"circle": [80, 112, 1.1], "fill": "{skin-30}", "opacity": 0.75, "outline": false, "mirror": true}, {"circle": [84, 115, 1.1], "fill": "{skin-30}", "opacity": 0.75, "outline": false, "mirror": true}, {"circle": [78, 116, 1.1], "fill": "{skin-30}", "opacity": 0.75, "outline": false, "mirror": true}, {"circle": [83, 109, 1.1], "fill": "{skin-30}", "opacity": 0.75, "outline": false, "mirror": true}, {"circle": [96, 107, 1.1], "fill": "{skin-30}", "opacity": 0.75, "outline": false, "mirror": true}]},
+    {"when": {"eyes": "round"}, "draw": [{"ellipse": [86, 100, 6.5, 6.5], "fill": "#ffffff", "stroke": "{skin-35}", "width": 0.9, "raw": true, "copies": [28], "line": {"stroke": "#2b2b2b", "width": 1.4}}, {"circle": [86, 100, 4], "raw": true, "copies": [28], "fill": {"gradient": "radial", "center": [0.5, 0.5], "radius": 0.5, "stops": [[0, "{eyes+28}"], [0.7, "{eyes}"], [1, "{eyes-30}"]], "base": "{eyes}"}}, {"circle": [86, 100, 1.8], "fill": "#141414", "raw": true, "copies": [28]}, {"circle": [87.4, 98.6, 1.12], "fill": "#ffffff", "raw": true, "copies": [28]}, {"path": "M80.2 97 A6.5 6.5 0 0 1 91.8 97 Z", "fill": "{skin-6}", "copies": [28], "outline": false}, {"path": "M79.6 97.6 Q86 95.8 92.4 97.6", "stroke": "{skin-60}", "width": 1.3, "copies": [28]}]},
+    {"when": {"eyes": "almond"}, "draw": [{"path": "M78 100 Q86 93 94 100 Q86 106 78 100 Z", "fill": "#ffffff", "stroke": "{skin-35}", "width": 0.9, "raw": true, "copies": [28], "line": {"stroke": "#2b2b2b", "width": 1.4}}, {"circle": [86, 100, 3.6], "raw": true, "copies": [28], "fill": {"gradient": "radial", "center": [0.5, 0.5], "radius": 0.5, "stops": [[0, "{eyes+28}"], [0.7, "{eyes}"], [1, "{eyes-30}"]], "base": "{eyes}"}}, {"circle": [86, 100, 1.62], "fill": "#141414", "raw": true, "copies": [28]}, {"circle": [87.26, 98.74, 1.01], "fill": "#ffffff", "raw": true, "copies": [28]}, {"path": "M78 100 Q86 93 94 100 Q86 96 78 100 Z", "fill": "{skin-6}", "copies": [28], "outline": false}, {"path": "M78 100 Q86 96 94 100", "stroke": "{skin-60}", "width": 1.3, "copies": [28]}]},
+    {"when": {"eyes": "narrow"}, "draw": [{"path": "M78 100 Q86 95.4 94 100 Q86 103.6 78 100 Z", "fill": "#ffffff", "stroke": "{skin-35}", "width": 0.9, "raw": true, "copies": [28], "line": {"stroke": "#2b2b2b", "width": 1.4}}, {"circle": [86, 100, 2.4], "raw": true, "copies": [28], "fill": {"gradient": "radial", "center": [0.5, 0.5], "radius": 0.5, "stops": [[0, "{eyes+28}"], [0.7, "{eyes}"], [1, "{eyes-30}"]], "base": "{eyes}"}}, {"circle": [86, 100, 1.08], "fill": "#141414", "raw": true, "copies": [28]}, {"circle": [86.84, 99.16, 0.67], "fill": "#ffffff", "raw": true, "copies": [28]}, {"path": "M78 100 Q86 95.4 94 100 Q86 97.2 78 100 Z", "fill": "{skin-6}", "copies": [28], "outline": false}, {"path": "M78 100 Q86 97.2 94 100", "stroke": "{skin-60}", "width": 1.3, "copies": [28]}]},
+    {"when": {"eyes": "big"}, "draw": [{"ellipse": [86, 100, 8, 8], "fill": "#ffffff", "stroke": "{skin-35}", "width": 0.9, "raw": true, "copies": [28], "line": {"stroke": "#2b2b2b", "width": 1.4}}, {"circle": [86, 100, 5.2], "raw": true, "copies": [28], "fill": {"gradient": "radial", "center": [0.5, 0.5], "radius": 0.5, "stops": [[0, "{eyes+28}"], [0.7, "{eyes}"], [1, "{eyes-30}"]], "base": "{eyes}"}}, {"circle": [86, 100, 2.34], "fill": "#141414", "raw": true, "copies": [28]}, {"circle": [87.82, 98.18, 1.46], "fill": "#ffffff", "raw": true, "copies": [28]}, {"path": "M78.8 96.5 A8 8 0 0 1 93.2 96.5 Z", "fill": "{skin-6}", "copies": [28], "outline": false}, {"path": "M78.2 97.2 Q86 95 93.8 97.2", "stroke": "{skin-60}", "width": 1.3, "copies": [28]}]},
+    {"when": {"lashes": "long", "eyes": "round"}, "draw": [{"path": "M79.5 100 A6.5 6.5 0 0 1 92.5 100 M79.5 100 L76.1 96.4", "stroke": "#1d1a18", "width": 1.7, "mirror": true}]},
+    {"when": {"lashes": "long", "eyes": "big"}, "draw": [{"path": "M78 100 A8 8 0 0 1 94 100 M78 100 L74.6 96.4", "stroke": "#1d1a18", "width": 1.7, "mirror": true}]},
+    {"when": {"lashes": "long", "eyes": "almond"}, "draw": [{"path": "M78 100 Q86 93 94 100 M78 100 L74.6 96.4", "stroke": "#1d1a18", "width": 1.7, "mirror": true}]},
+    {"when": {"lashes": "long", "eyes": "narrow"}, "draw": [{"path": "M78 100 Q86 95.4 94 100 M78 100 L74.6 96.4", "stroke": "#1d1a18", "width": 1.7, "mirror": true}]},
+    {"when": {"brows": "straight"}, "draw": [{"path": "M77 88 L95 88", "width": 2.6, "stroke": "{hair-15}", "mirror": true}]},
+    {"when": {"brows": "arched"}, "draw": [{"path": "M77 90 Q86 83 95 89", "width": 2.6, "stroke": "{hair-15}", "mirror": true}]},
+    {"when": {"brows": "thick"}, "draw": [{"path": "M77 88 L95 88", "width": 4.4, "stroke": "{hair-15}", "mirror": true}]},
+    {"when": {"brows": "raised"}, "draw": [{"path": "M77 90 L95 85", "width": 2.6, "stroke": "{hair-15}", "mirror": true}]},
+    {"when": {"brows": "frowning"}, "draw": [{"path": "M77 86 L95 91", "width": 2.6, "stroke": "{hair-15}", "mirror": true}]},
+    {"style": "flat", "draw": [{"ellipse": [100, 117.5, 4.5, 1.6], "fill": "{skin-16}", "opacity": 0.55, "outline": false}]},
+    {"when": {"nose": "small"}, "draw": [{"path": "M97 114 Q100 117 103 114", "stroke": "{skin-30}", "width": 1.8}]},
+    {"when": {"nose": "straight"}, "draw": [{"path": "M101 100 L97 114 Q100 117 104 114", "stroke": "{skin-30}", "width": 1.8}]},
+    {"when": {"nose": "aquiline"}, "draw": [{"path": "M99 97 Q108 108 103 115 Q100 117 96 114", "stroke": "{skin-30}", "width": 1.8}]},
+    {"when": {"nose": "wide"}, "draw": [{"path": "M100 103 L100 111 M91 113 Q95 118 100 115 Q105 118 109 113", "stroke": "{skin-30}", "width": 1.8}]},
+    {"when": {"beard": "stubble"}, "fit": ["face"], "draw": [{"path": "M67 108 Q68 141 100 143 Q132 141 133 108 Q128 128 112 131 Q100 134 88 131 Q72 128 67 108 Z", "fill": "{hair}", "opacity": 0.3, "outline": false}]},
+    {"when": {"beard": ["beard", "full"]}, "fit": ["face"], "draw": [{"path": "M67 106 Q64 150 100 162 Q136 150 133 106 Q130 126 116 130 Q108 120 100 121 Q92 120 84 130 Q70 126 67 106 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}]},
+    {"when": {"mouth": "neutral"}, "style": "flat", "draw": [{"path": "M91 127 Q95.5 124.4 100 125.7 Q104.5 124.4 109 127 Q100 128 91 127 Z", "fill": "{skin>a03a35@42}", "outline": false}, {"path": "M92 127.3 Q100 128.4 108 127.3 Q100 131.8 92 127.3 Z", "fill": "{skin>a03a35@26}", "outline": false}, {"path": "M91 127 Q100 128.2 109 127", "stroke": "{skin>4a1f1a@55}", "width": 1.1}]},
+    {"when": {"mouth": "neutral"}, "style": "line", "draw": [{"path": "M92 127 L108 127", "stroke": "{skin>a03a35@60}", "width": 2.2}]},
+    {"when": {"mouth": "serious"}, "draw": [{"path": "M91 128 Q100 125.8 109 128", "stroke": "{skin>a03a35@60}", "width": 2.2}, {"path": "M94 130.5 Q100 132 106 130.5", "stroke": "{skin-14}", "width": 1, "opacity": 0.6, "style": "flat"}]},
+    {"when": {"mouth": "sad"}, "draw": [{"path": "M91 130 Q100 123 109 130", "stroke": "{skin>a03a35@60}", "width": 2.2}]},
+    {"when": {"mouth": "smile"}, "draw": [{"path": "M89 123 Q100 136 111 123 Q100 127 89 123 Z", "fill": "#7a3b34", "stroke": "{skin>a03a35@60}", "width": 1.4, "raw": true, "line": {"fill": "#ffffff", "stroke": "#2b2b2b"}}]},
+    {"when": {"mouth": "surprised"}, "draw": [{"ellipse": [100, 127, 4, 5], "fill": "#6b2f28", "stroke": "{skin>a03a35@60}", "width": 1.4, "raw": true, "line": {"fill": "#ffffff", "stroke": "#2b2b2b"}}]},
+    {"when": {"beard": ["moustache", "full"]}, "fit": ["face"], "draw": [{"path": "M85 121 Q92 115 100 118 Q108 115 115 121 Q108 125 100 122 Q92 125 85 121 Z", "fill": "{hair}"}]},
+    {"when": {"hair": "short"}, "fit": ["face"], "draw": [{"path": "M64 96 Q58 50 100 46 Q142 50 136 96 Q134 76 124 68 Q104 76 84 68 Q70 74 64 96 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"path": "M84 55 Q100 49 116 55", "stroke": "{hair+40}", "width": 2.4, "opacity": 0.3, "style": "flat"}]},
+    {"when": {"hair": "fringe"}, "fit": ["face"], "draw": [{"path": "M63 98 Q57 47 100 44 Q143 47 137 98 Q135 80 130 72 Q118 86 102 80 Q86 88 72 74 Q66 82 63 98 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"path": "M84 55 Q100 49 116 55", "stroke": "{hair+40}", "width": 2.4, "opacity": 0.3, "style": "flat"}]},
+    {"when": {"hair": "shoulder"}, "fit": ["face"], "draw": [{"path": "M63 100 Q58 47 100 44 Q142 47 137 100 Q133 72 116 64 Q96 74 76 68 Q66 78 63 100 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"path": "M84 55 Q100 49 116 55", "stroke": "{hair+40}", "width": 2.4, "opacity": 0.3, "style": "flat"}]},
+    {"when": {"hair": "long"}, "fit": ["face"], "draw": [{"path": "M63 100 Q58 47 100 44 Q142 47 137 100 Q133 72 116 64 Q96 74 76 68 Q66 78 63 100 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"path": "M84 55 Q100 49 116 55", "stroke": "{hair+40}", "width": 2.4, "opacity": 0.3, "style": "flat"}]},
+    {"when": {"hair": "bun"}, "fit": ["face"], "draw": [{"path": "M65 94 Q62 52 100 50 Q138 52 135 94 Q131 66 100 62 Q69 66 65 94 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"path": "M82 60 Q100 54 118 60", "stroke": "{hair+40}", "width": 2.4, "opacity": 0.3, "style": "flat"}]},
+    {"when": {"hair": "curly"}, "fit": ["face"], "draw": [{"path": "M62 96 Q58 50 100 48 Q142 50 138 96 Q130 70 100 66 Q70 70 62 96 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [61.5, 86.8, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [64.7, 74.4, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [70.7, 63.6, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [79.1, 55.2, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [89.1, 49.8, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [100.0, 48.0, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [110.9, 49.8, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [120.9, 55.2, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [129.3, 63.6, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [135.3, 74.4, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}, {"ellipse": [138.5, 86.8, 10.5, 10.5], "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}]},
+    {"when": {"hair": "bald"}, "fit": ["face"], "draw": [{"path": "M65 108 Q62 90 68 80 Q70 92 72 106 Z M135 108 Q138 90 132 80 Q130 92 128 106 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{hair+14}"], [1, "{hair-10}"]], "base": "{hair}"}}]},
+    {"when": {"extras": "mole"}, "draw": [{"circle": [82, 119, 1.6], "fill": "#3b2417", "raw": true}]},
+    {"when": {"extras": "scar"}, "draw": [{"path": "M117 106 L128 121", "stroke": "{skin>a0524a@50}", "width": 2}, {"path": "M119 112 L123 109 M122 116 L126 113", "stroke": "{skin>a0524a@50}", "width": 1.2}]},
+    {"when": {"extras": "earrings"}, "fit": ["face"], "draw": [{"circle": [65, 112, 2.6], "fill": "#d4af37", "raw": true, "mirror": true}]},
+    {"when": {"extras": "eyePatch"}, "draw": [{"path": "M66 84 L105 96 M123 104 L135 109", "stroke": "#1c1c1c", "width": 1.8, "raw": true}, {"ellipse": [114, 100, 9.5, 8], "fill": "#1c1c1c", "raw": true}]},
+    {"when": {"glasses": "round"}, "draw": [{"circle": [86, 100, 9.5], "fill": "#ffffff", "fillOpacity": 0.14, "stroke": "#3a3a3a", "width": 1.5, "copies": [28], "outline": false}, {"path": "M95.5 99 Q100 96 104.5 99", "stroke": "#3a3a3a", "width": 1.5}]},
+    {"when": {"glasses": "rectangular"}, "draw": [{"rect": [74.5, 93, 23, 14, 3], "fill": "#ffffff", "fillOpacity": 0.12, "stroke": "#1f1f1f", "width": 2.4, "copies": [28], "outline": false}, {"path": "M97.5 98 L102.5 98", "stroke": "#3a3a3a", "width": 2}]},
+    {"when": {"glasses": "dark"}, "draw": [{"rect": [74, 93, 24, 13, 5], "fill": "#151515", "fillOpacity": 0.9, "raw": true, "copies": [28], "line": {"stroke": "#2b2b2b", "width": 1.4}}, {"path": "M98 98 L102 98", "stroke": "#3a3a3a", "width": 2}]},
+    {"when": {"glasses": ["round", "rectangular", "dark"]}, "fit": ["face"], "draw": [{"path": "M76.5 98 L65 96", "stroke": "#3a3a3a", "width": 1.5, "mirror": true}]},
+    {"when": {"glasses": "monocle"}, "draw": [{"circle": [114, 100, 9], "fill": "#ffffff", "fillOpacity": 0.14, "stroke": "#b08d2e", "width": 1.8, "outline": false}, {"path": "M114 109 Q120 130 134 136", "stroke": "#b08d2e", "width": 1}]},
+    {"when": {"hat": "hat"}, "draw": [{"path": "M70 66 Q70 28 100 28 Q130 28 130 66 Z", "fill": "#3a3029"}, {"path": "M70 58 L130 58 L130 66 L70 66 Z", "fill": "{clothes}"}, {"ellipse": [100, 67, 54, 9], "fill": "#3a3029"}]},
+    {"when": {"hat": "hood"}, "draw": [{"path": "M46 150 Q40 36 100 32 Q160 36 154 150 L142 150 Q144 58 100 54 Q56 58 58 150 Z", "fill": {"gradient": "linear", "from": [0, 0], "to": [0, 1], "stops": [[0, "{clothes+6}"], [1, "{clothes-10}"]], "base": "{clothes}"}}]},
+    {"when": {"hat": "diadem"}, "draw": [{"path": "M70 70 Q100 60 130 70", "stroke": "#d4af37", "width": 2.6}, {"circle": [100, 64, 3.2], "fill": "#5fb3d9", "stroke": "#d4af37", "width": 1}]}
+  ]
+}

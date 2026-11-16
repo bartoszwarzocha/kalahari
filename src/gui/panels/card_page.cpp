@@ -18,6 +18,8 @@
 #include "kalahari/core/theme.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/text_images.h"
+#include "kalahari/gui/avatar.h"
+#include "kalahari/gui/avatar_art.h"
 #include "kalahari/gui/dialogs/card_fields_dialog.h"
 #include "kalahari/gui/dialogs/color_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -48,6 +50,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QImage>
+#include <QJsonDocument>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
@@ -283,6 +286,58 @@ bool opensMenu(const QEvent* event) {
            event->type() == QEvent::ContextMenu;
 }
 
+/// Portrait @p index of @p element, or its main one for an index it does not have; nullptr:
+/// none
+const core::CardPortrait* portraitAt(const core::ProjectElement& element, qsizetype index) {
+    const QList<core::CardPortrait>& portraits = element.card.portraits;
+    return index >= 0 && index < portraits.size() ? &portraits.at(index)
+                                                  : element.card.mainPortrait();
+}
+
+/// Picture @p imageId of book @p book as a square of @p pixels across its middle, near the top,
+/// where a face usually is; null without a picture
+QPixmap pictureSquare(const core::ProjectManager& book, const QString& imageId, int pixels) {
+    const core::ProjectElement* image = imageId.isEmpty() ? nullptr : book.findElement(imageId);
+    if (image == nullptr || image->file.isEmpty()) {
+        return {};
+    }
+    const QImage picture = readPicture(book.filePathOf(*image), image->rotation,
+                                       QSize(pixels, pixels) * PICTURE_SCALE);
+    if (picture.isNull()) {
+        return {};
+    }
+    const int square = std::min(picture.width(), picture.height());
+    const int left = (picture.width() - square) / 2;
+    const int top = (picture.height() - square) / ABOVE_FACE;
+    return QPixmap::fromImage(picture.copy(left, top, square, square)
+                                  .scaled(pixels, pixels, Qt::IgnoreAspectRatio,
+                                          Qt::SmoothTransformation));
+}
+
+/// What portrait @p shown of @p element in book @p book looks like at @p size, to draw it again
+/// only after a change: the name, the color and the gender of the card, the parts of a portrait
+/// of parts, the picture and when its file changed
+QString portraitKey(const core::ProjectManager& book, const core::ProjectElement& element,
+                    const core::CardPortrait* shown, const QString& size) {
+    QString key = element.title + QLatin1Char('|') + element.card.color + QLatin1Char('|') +
+                  size + QLatin1Char('|') + element.card.value(QStringLiteral("gender"));
+    if (shown == nullptr) {
+        return key;
+    }
+    if (shown->isComposed()) {
+        key += QLatin1Char('|') + shown->style + QLatin1Char('|') +
+               QString::fromUtf8(QJsonDocument(shown->avatar).toJson(QJsonDocument::Compact));
+    }
+    if (const core::ProjectElement* image =
+            shown->image.isEmpty() ? nullptr : book.findElement(shown->image)) {
+        const QString path = book.filePathOf(*image);
+        key += QLatin1Char('|') + path + QLatin1Char('|') + QString::number(image->rotation) +
+               QLatin1Char('|') +
+               QString::number(QFileInfo(path).lastModified().toMSecsSinceEpoch());
+    }
+    return key;
+}
+
 }  // namespace
 
 CardPage::CardPage(core::ProjectManager& book, bool full, QWidget* parent)
@@ -473,7 +528,12 @@ void CardPage::createFullLayout() {
     // color, In short
     auto* header = new QHBoxLayout();
     header->setSpacing(PORTRAIT_SPACING);
-    header->addWidget(m_portrait, 0, Qt::AlignTop);
+    auto* portraitColumn = new QVBoxLayout();
+    portraitColumn->setSpacing(0);
+    portraitColumn->addWidget(m_portrait, 0, Qt::AlignHCenter);
+    portraitColumn->addWidget(portraitArrows(content), 0, Qt::AlignHCenter);
+    portraitColumn->addStretch(1);
+    header->addLayout(portraitColumn);
     auto* titles = new QVBoxLayout();
     titles->setSpacing(LINE_SPACING);
     fitNameFont();
@@ -733,6 +793,9 @@ void CardPage::createShortLayout() {
 }
 
 void CardPage::showCard(const QString& elementId) {
+    if (elementId != m_elementId) {
+        m_shownPortrait = 0;
+    }
     m_elementId = elementId;
     m_portraitKey.clear();
     m_relations->showCard(elementId);
@@ -968,23 +1031,21 @@ void CardPage::fillFields(const core::ProjectElement& element) {
 void CardPage::showPortrait(const core::ProjectElement& element) {
     const qreal ratio = devicePixelRatioF();
     const int side = m_full ? FULL_PORTRAIT : SHORT_PORTRAIT;
-    // Drawn again only from another picture, a change of it, another name or color
-    QString key = element.title + QLatin1Char('|') + element.card.color + QLatin1Char('|') +
-                  QString::number(side) + QLatin1Char('|') + QString::number(ratio) +
-                  QLatin1Char('|') + palette().color(QPalette::Base).name();
-    const QString imageId = element.card.portraitImage();
-    if (const core::ProjectElement* image =
-            imageId.isEmpty() ? nullptr : m_book.findElement(imageId)) {
-        const QString path = m_book.filePathOf(*image);
-        key += QLatin1Char('|') + path + QLatin1Char('|') + QString::number(image->rotation) +
-               QLatin1Char('|') +
-               QString::number(QFileInfo(path).lastModified().toMSecsSinceEpoch());
+    const QList<core::CardPortrait>& portraits = element.card.portraits;
+    if (m_shownPortrait < 0 || m_shownPortrait >= portraits.size()) {
+        m_shownPortrait = 0;
     }
+    showPortraitArrows(element);
+    // Drawn again only after a change of what it shows, of its size or of the colors
+    const QString key = portraitKey(
+        m_book, element, portraits.isEmpty() ? nullptr : &portraits.at(m_shownPortrait),
+        QString::number(side) + QLatin1Char('|') + QString::number(ratio) + QLatin1Char('|') +
+            palette().color(QPalette::Base).name());
     if (key == m_portraitKey) {
         return;
     }
     m_portraitKey = key;
-    m_portrait->setIcon(QIcon(portraitOf(m_book, element, side, ratio)));
+    m_portrait->setIcon(QIcon(portraitOf(m_book, element, side, ratio, m_shownPortrait)));
     m_portrait->setIconSize(QSize(side, side));
 }
 
@@ -1000,23 +1061,16 @@ void CardPage::showColor(const core::ProjectElement& element) {
 }
 
 QPixmap CardPage::portraitOf(const core::ProjectManager& book, const core::ProjectElement& element,
-                             int side, qreal pixelRatio) {
+                             int side, qreal pixelRatio, qsizetype index) {
     const int pixels = std::max(1, qRound(side * pixelRatio));
     QPixmap portrait;
-    const QString imageId = element.card.portraitImage();
-    const core::ProjectElement* image = imageId.isEmpty() ? nullptr : book.findElement(imageId);
-    if (image != nullptr && !image->file.isEmpty()) {
-        const QImage picture = readPicture(book.filePathOf(*image), image->rotation,
-                                           QSize(pixels, pixels) * PICTURE_SCALE);
-        if (!picture.isNull()) {
-            // A square across the middle, near the top, where a face usually is
-            const int square = std::min(picture.width(), picture.height());
-            const int left = (picture.width() - square) / 2;
-            const int top = (picture.height() - square) / ABOVE_FACE;
-            portrait = QPixmap::fromImage(picture.copy(left, top, square, square)
-                                              .scaled(pixels, pixels, Qt::IgnoreAspectRatio,
-                                                      Qt::SmoothTransformation));
-        }
+    const core::CardPortrait* shown = portraitAt(element, index);
+    if (shown != nullptr && shown->isComposed()) {
+        portrait = QPixmap::fromImage(Avatar::imageOf(
+            *shown, AvatarFrame::Bust, backgroundOf(QColor(element.card.color)),
+            element.card.value(QStringLiteral("gender")), QSize(pixels, pixels)));
+    } else if (shown != nullptr) {
+        portrait = pictureSquare(book, shown->image, pixels);
     }
     if (portrait.isNull()) {
         const core::KindRef kind = book.kindOf(element);
@@ -1059,8 +1113,11 @@ void CardPage::fillPortraitMenu() {
         return;
     }
     const bool readOnly = m_book.isReadOnly();
-    const QString current = element->card.portraitImage();
+    const QList<core::CardPortrait>& portraits = element->card.portraits;
+    const QString current =
+        m_shownPortrait < portraits.size() ? portraits.at(m_shownPortrait).image : QString();
     auto& art = core::ArtProvider::getInstance();
+    addComposeAction(*element);
 
     //: The submenu of the portrait of a card with the pictures of the materials of the book.
     //: In Polish: Obraz z &materiałów
@@ -1078,6 +1135,7 @@ void CardPage::fillPortraitMenu() {
     file->setObjectName(QStringLiteral("cardPortraitFile"));
     file->setEnabled(!readOnly && static_cast<bool>(pictureKind(m_book)));
     connect(file, &QAction::triggered, this, &CardPage::choosePortraitFile);
+    addPortraitsMenu(*element);
     m_portraitMenu->addSeparator();
     //: Takes the portrait off the card; its picture stays in the materials. In Polish:
     //: &Usuń portret
@@ -1085,7 +1143,7 @@ void CardPage::fillPortraitMenu() {
         art.getIcon(QStringLiteral("common.remove"), core::IconContext::Menu),
         tr("&Remove Portrait"));
     remove->setObjectName(QStringLiteral("cardPortraitRemove"));
-    remove->setEnabled(!readOnly && !current.isEmpty());
+    remove->setEnabled(!readOnly && !portraits.isEmpty());
     connect(remove, &QAction::triggered, this, &CardPage::removePortrait);
 }
 
@@ -1216,6 +1274,28 @@ void CardPage::addPortrait(core::NewMaterial material) {
     setPortrait(materialId);
 }
 
+QString CardPage::addPicture(const QImage& image, const QString& title) {
+    const core::KindRef kind = pictureKind(m_book);
+    if (m_elementId.isEmpty() || m_book.isReadOnly() || !kind || image.isNull()) {
+        return {};
+    }
+    core::NewMaterial material;
+    material.title = title;
+    material.fileName = IncomingMaterials::pictureFileName(QDateTime::currentDateTime());
+    material.data = IncomingMaterials::pngOf(image);
+    material.links = {m_elementId};
+    QString materialId = m_book.addMaterial(material, kind);
+    if (materialId.isEmpty()) {
+        //: In Polish: Nie zapisano obrazu
+        dialogs::MessageDialog::warning(
+            this, tr("Picture Not Saved"),
+            tr("The picture could not be copied into the materials of the book."));
+        return {};
+    }
+    emit materialAdded(materialId);
+    return materialId;
+}
+
 void CardPage::addPortraitAction(QMenu* menu, const QString& materialId) {
     const core::ProjectElement* element = m_book.findElement(m_elementId);
     const QList<const core::ProjectElement*> pictures = m_book.pictureMaterials();
@@ -1293,7 +1373,8 @@ void CardPage::removePortrait() {
         return;
     }
     core::CardData card = element->card;
-    card.portraits.removeFirst();
+    card.portraits.removeAt(std::clamp<qsizetype>(m_shownPortrait, 0, card.portraits.size() - 1));
+    m_shownPortrait = std::max<qsizetype>(0, m_shownPortrait - 1);
     saveCard(card);
 }
 

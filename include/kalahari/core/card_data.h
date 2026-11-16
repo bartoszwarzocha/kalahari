@@ -16,11 +16,18 @@
 
 namespace kalahari::core {
 
-/// @brief A portrait of a card: a picture among the materials of the book, with its label
+/// @brief A portrait of a card, with its label: a picture among the materials of the book, or
+/// one put together from parts (gui::Avatar), which the program draws in any size
 struct CardPortrait {
-    QString image;      ///< Id of the material whose picture it is
-    QString label;      ///< The writer's label, "youth"; empty: none
-    QJsonObject extra;  ///< Fields this version does not know, saved back
+    QString image;       ///< Id of the material whose picture it is; empty: put together
+    QString label;       ///< The writer's label, "youth"; empty: none
+    QString style;       ///< How a portrait of parts is drawn: "flat" or "line"; empty: flat
+    QJsonObject avatar;  ///< The parts and colors of a portrait of parts, with those this
+                         ///< version does not know; empty: a picture
+    QJsonObject extra;   ///< Fields this version does not know, saved back
+
+    /// @brief Whether it is put together from parts, not a picture
+    [[nodiscard]] bool isComposed() const { return image.isEmpty() && !avatar.isEmpty(); }
 
     /// @brief Whether it is the same portrait, with the same label and fields
     bool operator==(const CardPortrait&) const = default;
@@ -31,7 +38,9 @@ struct CardPortrait {
 /// In the .klh file:
 /// @code
 /// "card": { "values": { "role": "main", "age": "29" }, "color": "#c0392b",
-///           "portraits": [ { "image": "e31", "label": "youth" } ] }
+///           "portraits": [ { "label": "main", "style": "flat",
+///                            "avatar": { "face": "oval", "hair": "fringe", ... } },
+///                          { "image": "e31", "label": "youth" } ] }
 /// @endcode
 /// The text of the card (a .kchapter file) is its long description; its short description
 /// ("In short") is the description of the element, its name the element's title.
@@ -40,7 +49,8 @@ struct CardData {
     /// with a list
     QMap<QString, QString> values;
     QString color;                  ///< "#RRGGBB"; empty: none
-    QList<CardPortrait> portraits;  ///< In order; the first one is shown on the card
+    QList<CardPortrait> portraits;  ///< In order; the first one, the main one, is shown on
+                                    ///< the card, in Properties and in the lists
     QJsonObject extra;              ///< Fields this version does not know, saved back
 
     /// @brief Whether it says nothing
@@ -49,7 +59,11 @@ struct CardData {
     /// @brief Value of field @p fieldId; empty when it has none
     [[nodiscard]] QString value(const QString& fieldId) const { return values.value(fieldId); }
 
-    /// @brief Id of the material of the portrait shown on the card; empty when it has none
+    /// @brief The main portrait, shown on the card; nullptr when it has none
+    [[nodiscard]] const CardPortrait* mainPortrait() const;
+
+    /// @brief Id of the material of the main portrait when it is a picture; empty when the card
+    /// has no portrait or its main portrait is put together from parts
     [[nodiscard]] QString portraitImage() const;
 
     /// @brief Whether a portrait shows the picture of material @p elementId

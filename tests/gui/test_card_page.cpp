@@ -832,10 +832,12 @@ TEST_CASE("Card: the portrait is a picture of the materials, from a file, or the
     }
     CHECK(lettered);
 
-    // The menu of the portrait: the pictures of the materials, a file, no portrait
+    // The menu of the portrait: a portrait of parts, the pictures of the materials, a file, no
+    // portrait
     QMenu* menu = page.portraitMenu();
     emit menu->aboutToShow();
-    CHECK(textsOf(menu) == QStringList{QStringLiteral("Picture from the &Materials"),
+    CHECK(textsOf(menu) == QStringList{QStringLiteral("&Compose Portrait..."), QStringLiteral("-"),
+                                       QStringLiteral("Picture from the &Materials"),
                                        QStringLiteral("Picture from a &File..."),
                                        QStringLiteral("-"), QStringLiteral("&Remove Portrait")});
     REQUIRE(actionOf(menu, "cardPortraitFile") != nullptr);
@@ -843,7 +845,7 @@ TEST_CASE("Card: the portrait is a picture of the materials, from a file, or the
     REQUIRE(actionOf(menu, "cardPortraitRemove") != nullptr);
     CHECK_FALSE(actionOf(menu, "cardPortraitRemove")->isEnabled());
     // No pictures yet
-    CHECK_FALSE(menu->actions().constFirst()->isEnabled());
+    CHECK_FALSE(menu->actions().at(2)->isEnabled());
 
     // A picture of the materials: the portrait shows a square of it, near its top, and the
     // picture is linked with the card
@@ -864,7 +866,7 @@ TEST_CASE("Card: the portrait is a picture of the materials, from a file, or the
     const QPixmap tall = gui::CardPage::portraitOf(
         pm, [&pm, &face]() {
             core::ProjectElement element = *pm.findElement(face);
-            element.card.portraits = {core::CardPortrait{face, QString(), {}}};
+            element.card.portraits = {core::CardPortrait{face, QString(), QString(), {}, {}}};
             return element;
         }(),
         side, 1.0);
@@ -1005,7 +1007,8 @@ TEST_CASE("Card: in Polish, the kind declined in the title of the group, the val
     // Each command of the menu of the portrait has a key of its own
     emit full.portraitMenu()->aboutToShow();
     CHECK(textsOf(full.portraitMenu()) ==
-          QStringList{QStringLiteral("Obraz z &materiałów"), QStringLiteral("Obraz z &pliku..."),
+          QStringList{QStringLiteral("&Zestaw portret..."), QStringLiteral("-"),
+                      QStringLiteral("Obraz z &materiałów"), QStringLiteral("Obraz z &pliku..."),
                       QStringLiteral("-"), QStringLiteral("&Usuń portret")});
 }
 

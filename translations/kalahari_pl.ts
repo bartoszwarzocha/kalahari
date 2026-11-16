@@ -32617,6 +32617,66 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <extracomment>A tab of the full card: the chapters the card is in and its materials. In Polish: Rozdziały i &amp;materiały</extracomment>
         <translation>Rozdziały i &amp;materiały</translation>
     </message>
+    <message>
+        <source>Picture Not Saved</source>
+        <extracomment>In Polish: Nie zapisano obrazu</extracomment>
+        <translation>Nie zapisano obrazu</translation>
+    </message>
+    <message>
+        <source>Portrait %1</source>
+        <extracomment>A portrait of a card without a label; %1: its number. In Polish: Portret %1</extracomment>
+        <translation>Portret %1</translation>
+    </message>
+    <message>
+        <source>Portrait – %1</source>
+        <extracomment>The title of a portrait saved as a picture; %1: the name of the card. In Polish: Portret – %1</extracomment>
+        <translation>Portret – %1</translation>
+    </message>
+    <message>
+        <source>Portrait – %1 (%2)</source>
+        <extracomment>%2: the label of the portrait (&quot;youth&quot;). In Polish: Portret – %1 (%2)</extracomment>
+        <translation>Portret – %1 (%2)</translation>
+    </message>
+    <message>
+        <source>Previous Portrait</source>
+        <extracomment>The arrow under the portrait of a card to its portrait before. In Polish: Poprzedni portret</extracomment>
+        <translation>Poprzedni portret</translation>
+    </message>
+    <message>
+        <source>Next Portrait</source>
+        <extracomment>In Polish: Następny portret</extracomment>
+        <translation>Następny portret</translation>
+    </message>
+    <message>
+        <source>Portrait %1 of %2: %3</source>
+        <extracomment>Under the portrait of a card; %1: which of its portraits, %2: how many it has, %3: the name of the portrait. In Polish: Portret %1 z %2: %3</extracomment>
+        <translation>Portret %1 z %2: %3</translation>
+    </message>
+    <message>
+        <source>&amp;Compose Portrait...</source>
+        <extracomment>Opens the window Portrait: the portrait of a character put together from ready parts. In Polish: &amp;Zestaw portret...</extracomment>
+        <translation>&amp;Zestaw portret...</translation>
+    </message>
+    <message>
+        <source>Card &amp;Portraits</source>
+        <extracomment>The submenu of the portraits of a card: its versions with their labels. In Polish: Portrety &amp;karty</extracomment>
+        <translation>Portrety &amp;karty</translation>
+    </message>
+    <message>
+        <source>Set as &amp;Main</source>
+        <extracomment>Makes the portrait shown the main one: on the card, in the lists and in Properties. In Polish: Ustaw jako &amp;główny</extracomment>
+        <translation>Ustaw jako &amp;główny</translation>
+    </message>
+    <message>
+        <source>&amp;New Portrait...</source>
+        <extracomment>A new portrait of a character put together from parts. In Polish: &amp;Nowy portret...</extracomment>
+        <translation>&amp;Nowy portret...</translation>
+    </message>
+    <message>
+        <source>&amp;Save Portrait as a Picture in the Materials</source>
+        <extracomment>Saves the portrait put together from parts as a PNG picture among the materials of the book. In Polish: Zapisz portret jako o&amp;braz w materiałach</extracomment>
+        <translation>Zapisz portret jako o&amp;braz w materiałach</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::CardPanel</name>
@@ -32807,6 +32867,61 @@ How many sheets the pages printed on, after &quot;on&quot;. In Polish (miejscown
         <source>Fields of their own in new books: %1. Fields... on the full card changes the fields of one book.</source>
         <extracomment>%1: the kinds with fields of their own, such as &quot;Postacie, Przedmioty&quot;. In Polish: Własne pola w nowych książkach: %1. Przycisk „Pola...” na pełnej karcie zmienia pola jednej książki.</extracomment>
         <translation>Własne pola w nowych książkach: %1. Przycisk „Pola...” na pełnej karcie zmienia pola jednej książki.</translation>
+    </message>
+    <message>
+        <source>Portraits of Parts</source>
+        <extracomment>Settings &gt; Cards: the group of the portraits put together from ready parts in the window Portrait (Compose Portrait... on the card). In Polish: Portrety z części</extracomment>
+        <translation>Portrety z części</translation>
+    </message>
+    <message>
+        <source>Style of new portraits:</source>
+        <extracomment>In Polish: Styl nowych portretów:</extracomment>
+        <translation>Styl nowych portretów:</translation>
+    </message>
+    <message>
+        <source>Flat</source>
+        <extracomment>The style of the drawing of a new portrait of parts: colored shapes. In Polish: Płaski</extracomment>
+        <translation>Płaski</translation>
+    </message>
+    <message>
+        <source>Shapes in full colors.</source>
+        <extracomment>In Polish: Kształty w pełnych kolorach.</extracomment>
+        <translation>Kształty w pełnych kolorach.</translation>
+    </message>
+    <message>
+        <source>Line</source>
+        <extracomment>A drawing in ink with light colors. In Polish: Kreskowy</extracomment>
+        <translation>Kreskowy</translation>
+    </message>
+    <message>
+        <source>A drawing in ink with light colors.</source>
+        <extracomment>In Polish: Rysunek tuszem w jasnych kolorach.</extracomment>
+        <translation>Rysunek tuszem w jasnych kolorach.</translation>
+    </message>
+    <message>
+        <source>Frame of the window Portrait:</source>
+        <extracomment>The frame the window Portrait opens with. In Polish: Kadr okna „Portret”:</extracomment>
+        <translation>Kadr okna „Portret”:</translation>
+    </message>
+    <message>
+        <source>Bust</source>
+        <extracomment>What the window Portrait shows when it opens: the head and the shoulders. In Polish: Popiersie</extracomment>
+        <translation>Popiersie</translation>
+    </message>
+    <message>
+        <source>Whole figure</source>
+        <extracomment>In Polish: Cała postać</extracomment>
+        <translation>Cała postać</translation>
+    </message>
+    <message>
+        <source>Portrait Palettes...</source>
+        <extracomment>Opens the window of the palettes the window Portrait chooses the colors from. In Polish: Palety portretów...</extracomment>
+        <translation>Palety portretów...</translation>
+    </message>
+    <message>
+        <source>The colors of the skin, the eyes, the hair and the clothes, natural and not. The window Portrait changes the style and the colors of one portrait.</source>
+        <extracomment>In Polish: Kolory skóry, oczu, włosów i stroju, naturalne i spoza natury. Styl i kolory jednego portretu zmienia okno „Portret”.</extracomment>
+        <translation>Kolory skóry, oczu, włosów i stroju, naturalne i spoza natury. Styl i kolory jednego portretu zmienia okno „Portret”.</translation>
     </message>
 </context>
 <context>
@@ -35961,6 +36076,1460 @@ In Polish: pasmo „%1”</extracomment>
         <source>Flashback and a time not recognized</source>
         <extracomment>In Polish: Retrospekcja i nierozpoznany czas</extracomment>
         <translation>Retrospekcja i nierozpoznany czas</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::Avatar</name>
+    <message>
+        <source>oval</source>
+        <comment>face shape</comment>
+        <translation>owalna</translation>
+    </message>
+    <message>
+        <source>round</source>
+        <comment>face shape</comment>
+        <translation>okrągła</translation>
+    </message>
+    <message>
+        <source>square</source>
+        <comment>face shape</comment>
+        <translation>kwadratowa</translation>
+    </message>
+    <message>
+        <source>long</source>
+        <comment>face shape</comment>
+        <translation>pociągła</translation>
+    </message>
+    <message>
+        <source>heart</source>
+        <comment>face shape</comment>
+        <translation>sercowata</translation>
+    </message>
+    <message>
+        <source>under 20</source>
+        <comment>apparent age</comment>
+        <translation>poniżej 20</translation>
+    </message>
+    <message>
+        <source>20 to 40</source>
+        <comment>apparent age</comment>
+        <translation>20–40</translation>
+    </message>
+    <message>
+        <source>40 to 60</source>
+        <comment>apparent age</comment>
+        <translation>40–60</translation>
+    </message>
+    <message>
+        <source>over 60</source>
+        <comment>apparent age</comment>
+        <translation>ponad 60</translation>
+    </message>
+    <message>
+        <source>round</source>
+        <comment>eyes</comment>
+        <translation>okrągłe</translation>
+    </message>
+    <message>
+        <source>almond</source>
+        <comment>eyes</comment>
+        <translation>migdałowe</translation>
+    </message>
+    <message>
+        <source>narrow</source>
+        <comment>eyes</comment>
+        <translation>wąskie</translation>
+    </message>
+    <message>
+        <source>big</source>
+        <comment>eyes</comment>
+        <translation>duże</translation>
+    </message>
+    <message>
+        <source>plain</source>
+        <comment>lashes</comment>
+        <translation>zwykłe</translation>
+    </message>
+    <message>
+        <source>long</source>
+        <comment>lashes</comment>
+        <translation>długie</translation>
+    </message>
+    <message>
+        <source>straight</source>
+        <comment>brows</comment>
+        <translation>proste</translation>
+    </message>
+    <message>
+        <source>arched</source>
+        <comment>brows</comment>
+        <translation>łukowate</translation>
+    </message>
+    <message>
+        <source>thick</source>
+        <comment>brows</comment>
+        <translation>gęste</translation>
+    </message>
+    <message>
+        <source>raised</source>
+        <comment>brows</comment>
+        <translation>uniesione</translation>
+    </message>
+    <message>
+        <source>frowning</source>
+        <comment>brows</comment>
+        <translation>ściągnięte</translation>
+    </message>
+    <message>
+        <source>small</source>
+        <comment>nose</comment>
+        <translation>mały</translation>
+    </message>
+    <message>
+        <source>straight</source>
+        <comment>nose</comment>
+        <translation>prosty</translation>
+    </message>
+    <message>
+        <source>aquiline</source>
+        <comment>nose</comment>
+        <translation>orli</translation>
+    </message>
+    <message>
+        <source>wide</source>
+        <comment>nose</comment>
+        <translation>szeroki</translation>
+    </message>
+    <message>
+        <source>neutral</source>
+        <comment>mouth</comment>
+        <translation>neutralne</translation>
+    </message>
+    <message>
+        <source>serious</source>
+        <comment>mouth</comment>
+        <translation>poważne</translation>
+    </message>
+    <message>
+        <source>sad</source>
+        <comment>mouth</comment>
+        <translation>smutne</translation>
+    </message>
+    <message>
+        <source>surprised</source>
+        <comment>mouth</comment>
+        <translation>zdziwione</translation>
+    </message>
+    <message>
+        <source>smiling</source>
+        <comment>mouth</comment>
+        <translation>uśmiechnięte</translation>
+    </message>
+    <message>
+        <source>short</source>
+        <comment>hairstyle</comment>
+        <translation>krótkie</translation>
+    </message>
+    <message>
+        <source>with a fringe</source>
+        <comment>hairstyle</comment>
+        <translation>z grzywką</translation>
+    </message>
+    <message>
+        <source>shoulder-length</source>
+        <comment>hairstyle</comment>
+        <translation>do ramion</translation>
+    </message>
+    <message>
+        <source>long</source>
+        <comment>hairstyle</comment>
+        <translation>długie</translation>
+    </message>
+    <message>
+        <source>bun</source>
+        <comment>hairstyle</comment>
+        <translation>kok</translation>
+    </message>
+    <message>
+        <source>curly</source>
+        <comment>hairstyle</comment>
+        <translation>kręcone</translation>
+    </message>
+    <message>
+        <source>bald</source>
+        <comment>hairstyle</comment>
+        <translation>łysina</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <comment>beard</comment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>stubble</source>
+        <comment>beard</comment>
+        <translation>zarost</translation>
+    </message>
+    <message>
+        <source>beard</source>
+        <comment>beard</comment>
+        <translation>broda</translation>
+    </message>
+    <message>
+        <source>moustache</source>
+        <comment>beard</comment>
+        <translation>wąsy</translation>
+    </message>
+    <message>
+        <source>beard and moustache</source>
+        <comment>beard</comment>
+        <translation>broda i wąsy</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <comment>glasses</comment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>round</source>
+        <comment>glasses</comment>
+        <translation>okrągłe</translation>
+    </message>
+    <message>
+        <source>rectangular</source>
+        <comment>glasses</comment>
+        <translation>prostokątne</translation>
+    </message>
+    <message>
+        <source>dark</source>
+        <comment>glasses</comment>
+        <translation>ciemne</translation>
+    </message>
+    <message>
+        <source>monocle</source>
+        <comment>glasses</comment>
+        <translation>monokl</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <comment>headwear</comment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>hat</source>
+        <comment>headwear</comment>
+        <translation>kapelusz</translation>
+    </message>
+    <message>
+        <source>hood</source>
+        <comment>headwear</comment>
+        <translation>kaptur</translation>
+    </message>
+    <message>
+        <source>diadem</source>
+        <comment>headwear</comment>
+        <translation>diadem</translation>
+    </message>
+    <message>
+        <source>freckles</source>
+        <comment>extras</comment>
+        <translation>piegi</translation>
+    </message>
+    <message>
+        <source>rosy cheeks</source>
+        <comment>extras</comment>
+        <translation>rumieńce</translation>
+    </message>
+    <message>
+        <source>mole</source>
+        <comment>extras</comment>
+        <translation>pieprzyk</translation>
+    </message>
+    <message>
+        <source>scar</source>
+        <comment>extras</comment>
+        <translation>blizna</translation>
+    </message>
+    <message>
+        <source>earrings</source>
+        <comment>extras</comment>
+        <translation>kolczyki</translation>
+    </message>
+    <message>
+        <source>eye patch</source>
+        <comment>extras</comment>
+        <translation>opaska na oko</translation>
+    </message>
+    <message>
+        <source>shirt</source>
+        <comment>clothes</comment>
+        <translation>koszula</translation>
+    </message>
+    <message>
+        <source>sweater</source>
+        <comment>clothes</comment>
+        <translation>sweter</translation>
+    </message>
+    <message>
+        <source>coat</source>
+        <comment>clothes</comment>
+        <translation>płaszcz</translation>
+    </message>
+    <message>
+        <source>robe</source>
+        <comment>clothes</comment>
+        <translation>szata</translation>
+    </message>
+    <message>
+        <source>armor</source>
+        <comment>clothes</comment>
+        <translation>zbroja</translation>
+    </message>
+    <message>
+        <source>dress</source>
+        <comment>clothes</comment>
+        <translation>sukienka</translation>
+    </message>
+    <message>
+        <source>trousers</source>
+        <comment>lower clothes</comment>
+        <translation>spodnie</translation>
+    </message>
+    <message>
+        <source>skirt</source>
+        <comment>lower clothes</comment>
+        <translation>spódnica</translation>
+    </message>
+    <message>
+        <source>card color</source>
+        <comment>background</comment>
+        <translation>kolor karty</translation>
+    </message>
+    <message>
+        <source>gradient</source>
+        <comment>background</comment>
+        <translation>gradient</translation>
+    </message>
+    <message>
+        <source>light</source>
+        <comment>background</comment>
+        <translation>jasne</translation>
+    </message>
+    <message>
+        <source>none</source>
+        <comment>background</comment>
+        <translation>brak</translation>
+    </message>
+    <message>
+        <source>slim</source>
+        <comment>build</comment>
+        <translation>szczupła</translation>
+    </message>
+    <message>
+        <source>average</source>
+        <comment>build</comment>
+        <translation>przeciętna</translation>
+    </message>
+    <message>
+        <source>strong</source>
+        <comment>build</comment>
+        <translation>mocna</translation>
+    </message>
+    <message>
+        <source>short</source>
+        <comment>height</comment>
+        <translation>niski</translation>
+    </message>
+    <message>
+        <source>medium</source>
+        <comment>height</comment>
+        <translation>średni</translation>
+    </message>
+    <message>
+        <source>tall</source>
+        <comment>height</comment>
+        <translation>wysoki</translation>
+    </message>
+    <message>
+        <source>Face and Skin</source>
+        <comment>group</comment>
+        <translation>Twarz i skóra</translation>
+    </message>
+    <message>
+        <source>Eyes and Brows</source>
+        <comment>group</comment>
+        <translation>Oczy i brwi</translation>
+    </message>
+    <message>
+        <source>Nose and Mouth</source>
+        <comment>group</comment>
+        <translation>Nos i usta</translation>
+    </message>
+    <message>
+        <source>Hair and Beard</source>
+        <comment>group</comment>
+        <translation>Włosy i zarost</translation>
+    </message>
+    <message>
+        <source>Glasses and Extras</source>
+        <comment>group</comment>
+        <translation>Okulary i dodatki</translation>
+    </message>
+    <message>
+        <source>Clothes</source>
+        <comment>group</comment>
+        <translation>Strój</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <comment>group</comment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Figure</source>
+        <comment>group: the build and the height of the whole figure</comment>
+        <translation>Sylwetka</translation>
+    </message>
+    <message>
+        <source>Face Shape</source>
+        <comment>part</comment>
+        <translation>Kształt twarzy</translation>
+    </message>
+    <message>
+        <source>Looks Like</source>
+        <comment>part: the age</comment>
+        <translation>Wygląda na</translation>
+    </message>
+    <message>
+        <source>Eyes</source>
+        <comment>part</comment>
+        <translation>Oczy</translation>
+    </message>
+    <message>
+        <source>Lashes</source>
+        <comment>part</comment>
+        <translation>Rzęsy</translation>
+    </message>
+    <message>
+        <source>Brows</source>
+        <comment>part</comment>
+        <translation>Brwi</translation>
+    </message>
+    <message>
+        <source>Nose</source>
+        <comment>part</comment>
+        <translation>Nos</translation>
+    </message>
+    <message>
+        <source>Mouth</source>
+        <comment>part</comment>
+        <translation>Usta</translation>
+    </message>
+    <message>
+        <source>Hairstyle</source>
+        <comment>part</comment>
+        <translation>Fryzura</translation>
+    </message>
+    <message>
+        <source>Beard</source>
+        <comment>part</comment>
+        <translation>Zarost</translation>
+    </message>
+    <message>
+        <source>Glasses</source>
+        <comment>part</comment>
+        <translation>Okulary</translation>
+    </message>
+    <message>
+        <source>Headwear</source>
+        <comment>part</comment>
+        <translation>Nakrycie głowy</translation>
+    </message>
+    <message>
+        <source>Extras</source>
+        <comment>part</comment>
+        <translation>Dodatki</translation>
+    </message>
+    <message>
+        <source>Clothes</source>
+        <comment>part</comment>
+        <translation>Strój</translation>
+    </message>
+    <message>
+        <source>Lower Clothes</source>
+        <comment>part</comment>
+        <translation>Dół stroju</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <comment>part</comment>
+        <translation>Tło</translation>
+    </message>
+    <message>
+        <source>Build</source>
+        <comment>part</comment>
+        <translation>Budowa</translation>
+    </message>
+    <message>
+        <source>Height</source>
+        <comment>part</comment>
+        <translation>Wzrost</translation>
+    </message>
+    <message>
+        <source>Skin Color</source>
+        <comment>color</comment>
+        <translation>Kolor skóry</translation>
+    </message>
+    <message>
+        <source>Eye Color</source>
+        <comment>color</comment>
+        <translation>Kolor oczu</translation>
+    </message>
+    <message>
+        <source>Hair and Beard Color</source>
+        <comment>color</comment>
+        <translation>Kolor włosów i zarostu</translation>
+    </message>
+    <message>
+        <source>Clothes Color</source>
+        <comment>color</comment>
+        <translation>Kolor stroju</translation>
+    </message>
+    <message>
+        <source>Lower Clothes Color</source>
+        <comment>color</comment>
+        <translation>Kolor dołu stroju</translation>
+    </message>
+    <message>
+        <source>oval face</source>
+        <comment>look</comment>
+        <translation>owalna twarz</translation>
+    </message>
+    <message>
+        <source>round face</source>
+        <comment>look</comment>
+        <translation>okrągła twarz</translation>
+    </message>
+    <message>
+        <source>square face</source>
+        <comment>look</comment>
+        <translation>kwadratowa twarz</translation>
+    </message>
+    <message>
+        <source>long face</source>
+        <comment>look</comment>
+        <translation>pociągła twarz</translation>
+    </message>
+    <message>
+        <source>heart-shaped face</source>
+        <comment>look</comment>
+        <translation>twarz w kształcie serca</translation>
+    </message>
+    <message>
+        <source>round</source>
+        <comment>look: the shape of the eyes</comment>
+        <translation>okrągłe</translation>
+    </message>
+    <message>
+        <source>almond-shaped</source>
+        <comment>look: the shape of the eyes</comment>
+        <translation>migdałowe</translation>
+    </message>
+    <message>
+        <source>narrow</source>
+        <comment>look: the shape of the eyes</comment>
+        <translation>wąskie</translation>
+    </message>
+    <message>
+        <source>big</source>
+        <comment>look: the shape of the eyes</comment>
+        <translation>duże</translation>
+    </message>
+    <message>
+        <source>long lashes</source>
+        <comment>look</comment>
+        <translation>długie rzęsy</translation>
+    </message>
+    <message>
+        <source>arched brows</source>
+        <comment>look</comment>
+        <translation>łukowate brwi</translation>
+    </message>
+    <message>
+        <source>thick brows</source>
+        <comment>look</comment>
+        <translation>gęste brwi</translation>
+    </message>
+    <message>
+        <source>small nose</source>
+        <comment>look</comment>
+        <translation>mały nos</translation>
+    </message>
+    <message>
+        <source>straight nose</source>
+        <comment>look</comment>
+        <translation>prosty nos</translation>
+    </message>
+    <message>
+        <source>aquiline nose</source>
+        <comment>look</comment>
+        <translation>orli nos</translation>
+    </message>
+    <message>
+        <source>wide nose</source>
+        <comment>look</comment>
+        <translation>szeroki nos</translation>
+    </message>
+    <message>
+        <source>short %1 hair</source>
+        <comment>look; %1: the color of the hair</comment>
+        <translation>krótkie %1 włosy</translation>
+    </message>
+    <message>
+        <source>short %1 hair with a fringe</source>
+        <comment>look; %1: the color of the hair</comment>
+        <translation>krótkie %1 włosy z grzywką</translation>
+    </message>
+    <message>
+        <source>shoulder-length %1 hair</source>
+        <comment>look; %1: the color of the hair</comment>
+        <translation>%1 włosy do ramion</translation>
+    </message>
+    <message>
+        <source>long %1 hair</source>
+        <comment>look; %1: the color of the hair</comment>
+        <translation>długie %1 włosy</translation>
+    </message>
+    <message>
+        <source>%1 hair in a bun</source>
+        <comment>look; %1: the color of the hair</comment>
+        <translation>%1 włosy upięte w kok</translation>
+    </message>
+    <message>
+        <source>curly %1 hair</source>
+        <comment>look; %1: the color of the hair</comment>
+        <translation>kręcone %1 włosy</translation>
+    </message>
+    <message>
+        <source>bald head</source>
+        <comment>look</comment>
+        <translation>łysa głowa</translation>
+    </message>
+    <message>
+        <source>stubble</source>
+        <comment>look</comment>
+        <translation>kilkudniowy zarost</translation>
+    </message>
+    <message>
+        <source>beard</source>
+        <comment>look</comment>
+        <translation>broda</translation>
+    </message>
+    <message>
+        <source>moustache</source>
+        <comment>look</comment>
+        <translation>wąsy</translation>
+    </message>
+    <message>
+        <source>beard and moustache</source>
+        <comment>look</comment>
+        <translation>broda i wąsy</translation>
+    </message>
+    <message>
+        <source>round wire-rimmed glasses</source>
+        <comment>look</comment>
+        <translation>okrągłe okulary w drucianej oprawie</translation>
+    </message>
+    <message>
+        <source>rectangular glasses</source>
+        <comment>look</comment>
+        <translation>prostokątne okulary</translation>
+    </message>
+    <message>
+        <source>dark glasses</source>
+        <comment>look</comment>
+        <translation>ciemne okulary</translation>
+    </message>
+    <message>
+        <source>a monocle</source>
+        <comment>look</comment>
+        <translation>monokl</translation>
+    </message>
+    <message>
+        <source>a hat</source>
+        <comment>look</comment>
+        <translation>kapelusz</translation>
+    </message>
+    <message>
+        <source>a hood</source>
+        <comment>look</comment>
+        <translation>kaptur</translation>
+    </message>
+    <message>
+        <source>a diadem</source>
+        <comment>look</comment>
+        <translation>diadem</translation>
+    </message>
+    <message>
+        <source>freckles</source>
+        <comment>look</comment>
+        <translation>piegi</translation>
+    </message>
+    <message>
+        <source>rosy cheeks</source>
+        <comment>look</comment>
+        <translation>rumiane policzki</translation>
+    </message>
+    <message>
+        <source>a mole on the cheek</source>
+        <comment>look</comment>
+        <translation>pieprzyk na policzku</translation>
+    </message>
+    <message>
+        <source>a scar on the cheek</source>
+        <comment>look</comment>
+        <translation>blizna na policzku</translation>
+    </message>
+    <message>
+        <source>earrings</source>
+        <comment>look</comment>
+        <translation>kolczyki</translation>
+    </message>
+    <message>
+        <source>an eye patch</source>
+        <comment>look</comment>
+        <translation>opaska na oku</translation>
+    </message>
+    <message>
+        <source>wrinkles around the eyes</source>
+        <comment>look</comment>
+        <translation>zmarszczki wokół oczu</translation>
+    </message>
+    <message>
+        <source>deep wrinkles</source>
+        <comment>look</comment>
+        <translation>głębokie zmarszczki</translation>
+    </message>
+    <message>
+        <source>short</source>
+        <comment>look: height</comment>
+        <translation>niskiego wzrostu</translation>
+    </message>
+    <message>
+        <source>of medium height</source>
+        <comment>look: height</comment>
+        <translation>średniego wzrostu</translation>
+    </message>
+    <message>
+        <source>tall</source>
+        <comment>look: height</comment>
+        <translation>wysokiego wzrostu</translation>
+    </message>
+    <message>
+        <source>slim build</source>
+        <comment>look</comment>
+        <translation>szczupła budowa</translation>
+    </message>
+    <message>
+        <source>average build</source>
+        <comment>look</comment>
+        <translation>przeciętna budowa</translation>
+    </message>
+    <message>
+        <source>strong build</source>
+        <comment>look</comment>
+        <translation>mocna budowa</translation>
+    </message>
+    <message>
+        <source>shirt</source>
+        <comment>look</comment>
+        <translation>koszula</translation>
+    </message>
+    <message>
+        <source>m</source>
+        <comment>the form of the color before &apos;shirt&apos;: m, f or pl</comment>
+        <translation>f</translation>
+    </message>
+    <message>
+        <source>sweater</source>
+        <comment>look</comment>
+        <translation>sweter</translation>
+    </message>
+    <message>
+        <source>m</source>
+        <comment>the form of the color before &apos;sweater&apos;: m, f or pl</comment>
+        <translation>m</translation>
+    </message>
+    <message>
+        <source>coat</source>
+        <comment>look</comment>
+        <translation>płaszcz</translation>
+    </message>
+    <message>
+        <source>m</source>
+        <comment>the form of the color before &apos;coat&apos;: m, f or pl</comment>
+        <translation>m</translation>
+    </message>
+    <message>
+        <source>robe</source>
+        <comment>look</comment>
+        <translation>szata</translation>
+    </message>
+    <message>
+        <source>m</source>
+        <comment>the form of the color before &apos;robe&apos;: m, f or pl</comment>
+        <translation>f</translation>
+    </message>
+    <message>
+        <source>dress</source>
+        <comment>look</comment>
+        <translation>sukienka</translation>
+    </message>
+    <message>
+        <source>m</source>
+        <comment>the form of the color before &apos;dress&apos;: m, f or pl</comment>
+        <translation>f</translation>
+    </message>
+    <message>
+        <source>trousers</source>
+        <comment>look</comment>
+        <translation>spodnie</translation>
+    </message>
+    <message>
+        <source>pl</source>
+        <comment>the form of the color before &apos;trousers&apos;: m, f or pl</comment>
+        <translation>pl</translation>
+    </message>
+    <message>
+        <source>skirt</source>
+        <comment>look</comment>
+        <translation>spódnica</translation>
+    </message>
+    <message>
+        <source>m</source>
+        <comment>the form of the color before &apos;skirt&apos;: m, f or pl</comment>
+        <translation>f</translation>
+    </message>
+    <message>
+        <source>%1 eyes</source>
+        <comment>look; %1: their shape</comment>
+        <translation>%1 oczy</translation>
+    </message>
+    <message>
+        <source>%1 %2 eyes</source>
+        <comment>look; %1: their shape, %2: their color</comment>
+        <translation>%1 %2 oczy</translation>
+    </message>
+    <message>
+        <source>armor</source>
+        <comment>look</comment>
+        <translation>zbroja</translation>
+    </message>
+    <message>
+        <source>%1 %2</source>
+        <comment>look; %1: the color of clothes, %2: them</comment>
+        <translation>%1 %2</translation>
+    </message>
+    <message>
+        <source>Clothes: %1.</source>
+        <comment>look</comment>
+        <translation>Strój: %1.</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::AvatarPalettes</name>
+    <message>
+        <source>Skin</source>
+        <comment>palette</comment>
+        <translation>Skóra</translation>
+    </message>
+    <message>
+        <source>Skin, Not Natural</source>
+        <comment>palette</comment>
+        <translation>Skóra spoza natury</translation>
+    </message>
+    <message>
+        <source>Eyes</source>
+        <comment>palette</comment>
+        <translation>Oczy</translation>
+    </message>
+    <message>
+        <source>Eyes, Not Natural</source>
+        <comment>palette</comment>
+        <translation>Oczy spoza natury</translation>
+    </message>
+    <message>
+        <source>Hair</source>
+        <comment>palette</comment>
+        <translation>Włosy</translation>
+    </message>
+    <message>
+        <source>Hair, Not Natural</source>
+        <comment>palette</comment>
+        <translation>Włosy spoza natury</translation>
+    </message>
+    <message>
+        <source>Clothes</source>
+        <comment>palette</comment>
+        <translation>Strój</translation>
+    </message>
+    <message>
+        <source>very fair skin</source>
+        <comment>skin</comment>
+        <translation>bardzo jasna cera</translation>
+    </message>
+    <message>
+        <source>fair skin</source>
+        <comment>skin</comment>
+        <translation>jasna cera</translation>
+    </message>
+    <message>
+        <source>peach skin</source>
+        <comment>skin</comment>
+        <translation>brzoskwiniowa cera</translation>
+    </message>
+    <message>
+        <source>olive skin</source>
+        <comment>skin</comment>
+        <translation>oliwkowa cera</translation>
+    </message>
+    <message>
+        <source>tanned skin</source>
+        <comment>skin</comment>
+        <translation>opalona cera</translation>
+    </message>
+    <message>
+        <source>brown skin</source>
+        <comment>skin</comment>
+        <translation>śniada cera</translation>
+    </message>
+    <message>
+        <source>dark skin</source>
+        <comment>skin</comment>
+        <translation>ciemna cera</translation>
+    </message>
+    <message>
+        <source>very dark skin</source>
+        <comment>skin</comment>
+        <translation>bardzo ciemna cera</translation>
+    </message>
+    <message>
+        <source>greenish skin</source>
+        <comment>skin</comment>
+        <translation>zielonkawa skóra</translation>
+    </message>
+    <message>
+        <source>bluish skin</source>
+        <comment>skin</comment>
+        <translation>niebieskawa skóra</translation>
+    </message>
+    <message>
+        <source>ashen skin</source>
+        <comment>skin</comment>
+        <translation>popielata skóra</translation>
+    </message>
+    <message>
+        <source>lilac skin</source>
+        <comment>skin</comment>
+        <translation>liliowa skóra</translation>
+    </message>
+    <message>
+        <source>brown</source>
+        <comment>eyes</comment>
+        <translation>brązowe</translation>
+    </message>
+    <message>
+        <source>dark brown</source>
+        <comment>eyes</comment>
+        <translation>ciemnobrązowe</translation>
+    </message>
+    <message>
+        <source>hazel</source>
+        <comment>eyes</comment>
+        <translation>piwne</translation>
+    </message>
+    <message>
+        <source>green</source>
+        <comment>eyes</comment>
+        <translation>zielone</translation>
+    </message>
+    <message>
+        <source>blue</source>
+        <comment>eyes</comment>
+        <translation>niebieskie</translation>
+    </message>
+    <message>
+        <source>grey</source>
+        <comment>eyes</comment>
+        <translation>szare</translation>
+    </message>
+    <message>
+        <source>amber</source>
+        <comment>eyes</comment>
+        <translation>bursztynowe</translation>
+    </message>
+    <message>
+        <source>violet</source>
+        <comment>eyes</comment>
+        <translation>fiołkowe</translation>
+    </message>
+    <message>
+        <source>red</source>
+        <comment>eyes</comment>
+        <translation>czerwone</translation>
+    </message>
+    <message>
+        <source>silver</source>
+        <comment>eyes</comment>
+        <translation>srebrne</translation>
+    </message>
+    <message>
+        <source>black</source>
+        <comment>hair</comment>
+        <translation>czarne</translation>
+    </message>
+    <message>
+        <source>dark brown</source>
+        <comment>hair</comment>
+        <translation>ciemnobrązowe</translation>
+    </message>
+    <message>
+        <source>brown</source>
+        <comment>hair</comment>
+        <translation>brązowe</translation>
+    </message>
+    <message>
+        <source>auburn</source>
+        <comment>hair</comment>
+        <translation>kasztanowe</translation>
+    </message>
+    <message>
+        <source>red</source>
+        <comment>hair</comment>
+        <translation>rude</translation>
+    </message>
+    <message>
+        <source>dark blond</source>
+        <comment>hair</comment>
+        <translation>ciemnoblond</translation>
+    </message>
+    <message>
+        <source>light blond</source>
+        <comment>hair</comment>
+        <translation>jasnoblond</translation>
+    </message>
+    <message>
+        <source>platinum</source>
+        <comment>hair</comment>
+        <translation>platynowe</translation>
+    </message>
+    <message>
+        <source>grey</source>
+        <comment>hair</comment>
+        <translation>siwe</translation>
+    </message>
+    <message>
+        <source>white</source>
+        <comment>hair</comment>
+        <translation>białe</translation>
+    </message>
+    <message>
+        <source>blue</source>
+        <comment>hair</comment>
+        <translation>niebieskie</translation>
+    </message>
+    <message>
+        <source>pink</source>
+        <comment>hair</comment>
+        <translation>różowe</translation>
+    </message>
+    <message>
+        <source>green</source>
+        <comment>hair</comment>
+        <translation>zielone</translation>
+    </message>
+    <message>
+        <source>purple</source>
+        <comment>hair</comment>
+        <translation>fioletowe</translation>
+    </message>
+    <message>
+        <source>navy</source>
+        <comment>clothes, form m</comment>
+        <translation>granatowy</translation>
+    </message>
+    <message>
+        <source>navy</source>
+        <comment>clothes, form f</comment>
+        <translation>granatowa</translation>
+    </message>
+    <message>
+        <source>navy</source>
+        <comment>clothes, form pl</comment>
+        <translation>granatowe</translation>
+    </message>
+    <message>
+        <source>grey</source>
+        <comment>clothes, form m</comment>
+        <translation>szary</translation>
+    </message>
+    <message>
+        <source>grey</source>
+        <comment>clothes, form f</comment>
+        <translation>szara</translation>
+    </message>
+    <message>
+        <source>grey</source>
+        <comment>clothes, form pl</comment>
+        <translation>szare</translation>
+    </message>
+    <message>
+        <source>black</source>
+        <comment>clothes, form m</comment>
+        <translation>czarny</translation>
+    </message>
+    <message>
+        <source>black</source>
+        <comment>clothes, form f</comment>
+        <translation>czarna</translation>
+    </message>
+    <message>
+        <source>black</source>
+        <comment>clothes, form pl</comment>
+        <translation>czarne</translation>
+    </message>
+    <message>
+        <source>maroon</source>
+        <comment>clothes, form m</comment>
+        <translation>bordowy</translation>
+    </message>
+    <message>
+        <source>maroon</source>
+        <comment>clothes, form f</comment>
+        <translation>bordowa</translation>
+    </message>
+    <message>
+        <source>maroon</source>
+        <comment>clothes, form pl</comment>
+        <translation>bordowe</translation>
+    </message>
+    <message>
+        <source>green</source>
+        <comment>clothes, form m</comment>
+        <translation>zielony</translation>
+    </message>
+    <message>
+        <source>green</source>
+        <comment>clothes, form f</comment>
+        <translation>zielona</translation>
+    </message>
+    <message>
+        <source>green</source>
+        <comment>clothes, form pl</comment>
+        <translation>zielone</translation>
+    </message>
+    <message>
+        <source>brown</source>
+        <comment>clothes, form m</comment>
+        <translation>brązowy</translation>
+    </message>
+    <message>
+        <source>brown</source>
+        <comment>clothes, form f</comment>
+        <translation>brązowa</translation>
+    </message>
+    <message>
+        <source>brown</source>
+        <comment>clothes, form pl</comment>
+        <translation>brązowe</translation>
+    </message>
+    <message>
+        <source>beige</source>
+        <comment>clothes, form m</comment>
+        <translation>beżowy</translation>
+    </message>
+    <message>
+        <source>beige</source>
+        <comment>clothes, form f</comment>
+        <translation>beżowa</translation>
+    </message>
+    <message>
+        <source>beige</source>
+        <comment>clothes, form pl</comment>
+        <translation>beżowe</translation>
+    </message>
+    <message>
+        <source>white</source>
+        <comment>clothes, form m</comment>
+        <translation>biały</translation>
+    </message>
+    <message>
+        <source>white</source>
+        <comment>clothes, form f</comment>
+        <translation>biała</translation>
+    </message>
+    <message>
+        <source>white</source>
+        <comment>clothes, form pl</comment>
+        <translation>białe</translation>
+    </message>
+    <message>
+        <source>mustard</source>
+        <comment>clothes, form m</comment>
+        <translation>musztardowy</translation>
+    </message>
+    <message>
+        <source>mustard</source>
+        <comment>clothes, form f</comment>
+        <translation>musztardowa</translation>
+    </message>
+    <message>
+        <source>mustard</source>
+        <comment>clothes, form pl</comment>
+        <translation>musztardowe</translation>
+    </message>
+    <message>
+        <source>light blue</source>
+        <comment>clothes, form m</comment>
+        <translation>błękitny</translation>
+    </message>
+    <message>
+        <source>light blue</source>
+        <comment>clothes, form f</comment>
+        <translation>błękitna</translation>
+    </message>
+    <message>
+        <source>light blue</source>
+        <comment>clothes, form pl</comment>
+        <translation>błękitne</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::PortraitDialog</name>
+    <message>
+        <source>Portrait: %1</source>
+        <extracomment>The window that puts a portrait of a character together from parts; %1: the name of the card. In Polish: Portret: %1</extracomment>
+        <translation>Portret: %1</translation>
+    </message>
+    <message>
+        <source>Put the portrait together from ready parts, without drawing. Each change shows at once in the preview.</source>
+        <extracomment>In Polish: Złóż portret z gotowych elementów – bez rysowania. Każdą zmianę od razu widać w podglądzie.</extracomment>
+        <translation>Złóż portret z gotowych elementów – bez rysowania. Każdą zmianę od razu widać w podglądzie.</translation>
+    </message>
+    <message>
+        <source>Portrait Settings</source>
+        <extracomment>The gear of the window Portrait. In Polish: Ustawienia portretów</extracomment>
+        <translation>Ustawienia portretów</translation>
+    </message>
+    <message>
+        <source>↑ ↓ – groups · Tab – parts · arrows and Space – choice · Ctrl+Z – undo</source>
+        <extracomment>The keys of the window Portrait, beside its buttons. In Polish: ↑ ↓ – grupy · Tab – elementy · strzałki i Spacja – wybór · Ctrl+Z – cofnij</extracomment>
+        <translation>↑ ↓ – grupy · Tab – elementy · strzałki i Spacja – wybór · Ctrl+Z – cofnij</translation>
+    </message>
+    <message>
+        <source>Preview of the Portrait</source>
+        <extracomment>In Polish: Podgląd portretu</extracomment>
+        <translation>Podgląd portretu</translation>
+    </message>
+    <message>
+        <source>Frame:</source>
+        <extracomment>The frame of the preview of a portrait. In Polish: Kadr:</extracomment>
+        <translation>Kadr:</translation>
+    </message>
+    <message>
+        <source>Bust</source>
+        <extracomment>In Polish: Popiersie</extracomment>
+        <translation>Popiersie</translation>
+    </message>
+    <message>
+        <source>Whole Figure</source>
+        <extracomment>In Polish: Cała postać</extracomment>
+        <translation>Cała postać</translation>
+    </message>
+    <message>
+        <source>Style:</source>
+        <extracomment>The style a portrait is drawn in. In Polish: Styl:</extracomment>
+        <translation>Styl:</translation>
+    </message>
+    <message>
+        <source>Flat</source>
+        <extracomment>In Polish: Płaski</extracomment>
+        <translation>Płaski</translation>
+    </message>
+    <message>
+        <source>Line</source>
+        <extracomment>In Polish: Kreskowy</extracomment>
+        <translation>Kreskowy</translation>
+    </message>
+    <message>
+        <source>&amp;Randomize</source>
+        <extracomment>Draws the parts and the colors of a portrait by chance. In Polish: &amp;Losuj</extracomment>
+        <translation>&amp;Losuj</translation>
+    </message>
+    <message>
+        <source>Chooses the parts and the natural colors by chance, as the field Gender suits</source>
+        <extracomment>In Polish: Dobiera elementy i naturalne kolory zgodnie z polem „Płeć”</extracomment>
+        <translation>Dobiera elementy i naturalne kolory zgodnie z polem „Płeć”</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <extracomment>In Polish: Cofnij</extracomment>
+        <translation>Cofnij</translation>
+    </message>
+    <message>
+        <source>Start &amp;Over</source>
+        <extracomment>In Polish: &amp;Od nowa</extracomment>
+        <translation>&amp;Od nowa</translation>
+    </message>
+    <message>
+        <source>Back to the portrait the fields Gender and Age of the card suggest</source>
+        <extracomment>In Polish: Wraca do propozycji z pól „Płeć” i „Wiek” karty</extracomment>
+        <translation>Wraca do propozycji z pól „Płeć” i „Wiek” karty</translation>
+    </message>
+    <message>
+        <source>&amp;Parts</source>
+        <extracomment>The groups of the parts of a portrait. In Polish: &amp;Elementy</extracomment>
+        <translation>&amp;Elementy</translation>
+    </message>
+    <message>
+        <source>Shown in the whole figure</source>
+        <extracomment>The group of the parts only the whole figure shows. In Polish: Widać na całej postaci</extracomment>
+        <translation>Widać na całej postaci</translation>
+    </message>
+    <message>
+        <source>Card Por&amp;traits</source>
+        <extracomment>The portraits of a card: its versions with their labels. In Polish: Por&amp;trety karty</extracomment>
+        <translation>Por&amp;trety karty</translation>
+    </message>
+    <message>
+        <source>New Portrait</source>
+        <extracomment>A new portrait of the card, a copy of the one shown. In Polish: Nowy portret</extracomment>
+        <translation>Nowy portret</translation>
+    </message>
+    <message>
+        <source>&amp;Label:</source>
+        <extracomment>The label of a portrait of a card (&quot;youth&quot;, &quot;after the battle&quot;). In Polish: &amp;Podpis:</extracomment>
+        <translation>&amp;Podpis:</translation>
+    </message>
+    <message>
+        <source>e.g. youth</source>
+        <extracomment>In Polish: np. młodość</extracomment>
+        <translation>np. młodość</translation>
+    </message>
+    <message>
+        <source>Description of the Look</source>
+        <extracomment>The look of a portrait in words. In Polish: Opis wyglądu</extracomment>
+        <translation>Opis wyglądu</translation>
+    </message>
+    <message>
+        <source>&amp;Add the description at the end of the field “Appearance”</source>
+        <extracomment>Adds the description of the look of the portrait at the end of the field Appearance of the card. In Polish: &amp;Dopisz opis na końcu pola „Wygląd”</extracomment>
+        <translation>&amp;Dopisz opis na końcu pola „Wygląd”</translation>
+    </message>
+    <message>
+        <source>The field “Appearance” is empty now.</source>
+        <translation>Pole „Wygląd” jest teraz puste.</translation>
+    </message>
+    <message>
+        <source>The field “Appearance” has now: %1</source>
+        <translation>Pole „Wygląd” ma teraz: %1</translation>
+    </message>
+    <message>
+        <source>Also &amp;save as a picture in the materials</source>
+        <extracomment>Saves the portrait also as a PNG picture among the materials of the book. In Polish: &amp;Zapisz też jako obraz w materiałach</extracomment>
+        <translation>&amp;Zapisz też jako obraz w materiałach</translation>
+    </message>
+    <message>
+        <source>Portrait – %1</source>
+        <extracomment>The title of the color window for a color of a portrait; %1: the color (&quot;Skin Color&quot;). In Polish: Portret – %1</extracomment>
+        <translation>Portret – %1</translation>
+    </message>
+    <message>
+        <source>new</source>
+        <comment>label of a portrait</comment>
+        <extracomment>The label of a new portrait of a card, a copy of the one shown. In Polish: nowy</extracomment>
+        <translation>nowy</translation>
+    </message>
+    <message>
+        <source>Sign of the Gender</source>
+        <extracomment>In Polish: Znak płci</extracomment>
+        <translation>Znak płci</translation>
+    </message>
+    <message>
+        <source>The sig&amp;n of the field “Gender” in the corner of the portrait (%1)</source>
+        <extracomment>%1: the sign (&quot;♀&quot;). In Polish: Z&amp;nak z pola „Płeć” w rogu portretu (%1)</extracomment>
+        <translation>Z&amp;nak z pola „Płeć” w rogu portretu (%1)</translation>
+    </message>
+    <message>
+        <source>%1 – they go together</source>
+        <extracomment>After the name of a part of which several values go together (&quot;Extras&quot;). In Polish: %1 – można łączyć</extracomment>
+        <translation>%1 – można łączyć</translation>
+    </message>
+    <message>
+        <source>Not natural:</source>
+        <extracomment>Before the colors of a palette that are not natural ones (elves, ghosts). In Polish: Spoza natury:</extracomment>
+        <translation>Spoza natury:</translation>
+    </message>
+    <message>
+        <source>Other...</source>
+        <extracomment>Opens the color window of the program for a color of a portrait. In Polish: Inny...</extracomment>
+        <translation>Inny...</translation>
+    </message>
+    <message>
+        <source>%1 – the armor has the color of steel</source>
+        <extracomment>After &quot;Clothes Color&quot; while the clothes are an armor. In Polish: %1 – zbroja ma kolor stali</extracomment>
+        <translation>%1 – zbroja ma kolor stali</translation>
+    </message>
+    <message>
+        <source>Portrait %1</source>
+        <extracomment>The name of a portrait of a card without a label; %1: its number. In Polish: Portret %1</extracomment>
+        <translation>Portret %1</translation>
+    </message>
+    <message>
+        <source>%1 (the main one, on the card)</source>
+        <extracomment>The main portrait of a card, shown on the card. In Polish: %1 (główny, na karcie)</extracomment>
+        <translation>%1 (główny, na karcie)</translation>
+    </message>
+</context>
+<context>
+    <name>kalahari::gui::dialogs::PortraitPalettesDialog</name>
+    <message>
+        <source>Portrait Palettes</source>
+        <extracomment>Settings &gt; Cards &gt; Portrait Palettes... In Polish: Palety portretów / Kolory, z których wybiera okno „Portret”. Kolory spoza natury – skóra elfa, oczy wampira – są osobno.</extracomment>
+        <translation>Palety portretów</translation>
+    </message>
+    <message>
+        <source>The colors the window Portrait chooses from. The colors that are not natural – the skin of an elf, the eyes of a vampire – are apart.</source>
+        <translation>Kolory, z których wybiera okno „Portret”. Kolory spoza natury – skóra elfa, oczy wampira – są osobno.</translation>
+    </message>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+    <message>
+        <source>A color of the portrait palette: %1</source>
+        <extracomment>The title of the color window of a swatch; %1: the palette, such as &quot;Hair&quot;. In Polish: Kolor palety portretów: %1</extracomment>
+        <translation>Kolor palety portretów: %1</translation>
+    </message>
+    <message>
+        <source>%1:</source>
+        <extracomment>%1: the name of a palette, such as &quot;Hair&quot;. In Polish: %1:</extracomment>
+        <translation>%1:</translation>
+    </message>
+    <message>
+        <source>Not natural:</source>
+        <extracomment>Beside a palette of colors that are not natural, such as the skin of an elf. In Polish: Spoza natury:</extracomment>
+        <translation>Spoza natury:</translation>
+    </message>
+    <message>
+        <source>The window Portrait describes the look with the names of the colors of the program; a color added here has no name, so the description leaves it out.</source>
+        <extracomment>A color without a name is left out of the description of the look. In Polish: Okno „Portret” opisuje wygląd nazwami kolorów programu; kolor dodany tutaj nie ma nazwy, więc opis go pomija.</extracomment>
+        <translation>Okno „Portret” opisuje wygląd nazwami kolorów programu; kolor dodany tutaj nie ma nazwy, więc opis go pomija.</translation>
+    </message>
+    <message>
+        <source>&amp;Restore Defaults</source>
+        <extracomment>In Polish: &amp;Przywróć domyślne</extracomment>
+        <translation>&amp;Przywróć domyślne</translation>
     </message>
 </context>
 </TS>
