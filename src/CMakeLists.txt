@@ -224,6 +224,7 @@ set(KALAHARI_SOURCES
     gui/dialogs/character_dialogs.cpp  # The keys of a character, a replacement of auto-correct
     gui/dialogs/link_dialog.cpp  # LinkDialog - what a material is about, or the materials of an element
     gui/dialogs/relation_dialog.cpp  # RelationDialog - a relation of a card with another card
+    gui/dialogs/paragraph_card_dialog.cpp  # ParagraphCardDialog - a paragraph linked with a card
     gui/material_file.cpp  # MaterialFile - the file of a material: its name, format, size and picture
     gui/material_source.cpp  # MaterialSource - a file, a web page, a picture on the web or none
     gui/material_downloader.cpp  # MaterialDownloader - the title of a page, the copy of a picture
@@ -271,6 +272,7 @@ set(KALAHARI_SOURCES
     gui/image_filter_coordinator.cpp  # ImageFilterCoordinator - one filter for every image of the book
     gui/book_search_coordinator.cpp  # BookSearchCoordinator - Find in Book and Replace All in Book
     gui/chapter_break_coordinator.cpp  # ChapterBreakCoordinator - Book > Chapter Break with Undo
+    gui/cards_in_text_coordinator.cpp  # CardsInTextCoordinator - the cards in the texts
     gui/field_coordinator.cpp  # FieldCoordinator - the fields of the open texts, Insert > Field...
     gui/dialogs/style_dialog.cpp  # StyleDialog - New Style and Modify Style, in two variants
     gui/dialogs/manage_styles_dialog.cpp  # ManageStylesDialog - Format > Text Style > Manage Styles
@@ -370,6 +372,7 @@ set(KALAHARI_SOURCES
     gui/widgets/palette_edit.cpp  # PaletteEdit - a palette of colors to change in the Settings
     gui/panels/card_page.cpp      # CardPage - the card of a character, a location or an item
     gui/panels/cursor_card_box.cpp  # CursorCardBox - the card at the cursor in the Properties panel
+    gui/panels/paragraph_cards_box.cpp  # ParagraphCardsBox - the cards of the paragraph at the cursor
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters
     gui/panels/card_parts.cpp  # The small parts of the cards of the materials
     gui/panels/source_boxes.cpp  # The groups of the card of a source and of a quote
@@ -498,6 +501,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/character_dialogs.h  # CharacterShortcutDialog, ReplacementDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_card_dialog.h  # ParagraphCardDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/name_dialog.h  # NameDialog with Q_OBJECT
@@ -515,6 +519,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/image_filter_coordinator.h  # ImageFilterCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/book_search_coordinator.h  # BookSearchCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/chapter_break_coordinator.h  # ChapterBreakCoordinator with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/cards_in_text_coordinator.h  # CardsInTextCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/field_coordinator.h  # FieldCoordinator with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/style_dialog.h  # StyleDialog, StylePreview with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/manage_styles_dialog.h  # ManageStylesDialog with Q_OBJECT
@@ -588,6 +593,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/card_chapters_box.h  # CardChaptersBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_page.h  # CardPage with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/cursor_card_box.h  # CursorCardBox with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/paragraph_cards_box.h  # ParagraphCardsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/card_panel.h  # CardPanel with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/palette_edit.h  # PaletteEdit with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/source_boxes.h  # The groups of the card of a source with Q_OBJECT

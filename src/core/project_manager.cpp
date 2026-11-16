@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <cerrno>
+#include <iterator>
 #include <utility>
 
 #include <zip.h>
@@ -1006,6 +1007,7 @@ bool ProjectManager::openProject(const QString& manifestPath, QStringList* probl
 
     logger.info("Project opened successfully: {}",
                 book() ? book()->title.toStdString() : std::string());
+    m_cardNames.reset();
     emit bookDictionaryChanged();
     emit projectOpened(toQString(m_projectPath));
 
@@ -1145,6 +1147,7 @@ bool ProjectManager::closeProject(bool promptSave) {
     m_isDirty = false;
 
     setWorkMode(WorkMode::NoDocument);
+    m_cardNames.reset();
     emit bookDictionaryChanged();
     emit projectClosed();
 
@@ -2551,6 +2554,42 @@ QList<ElementLink> ProjectManager::linksToKeep(const QString& elementId,
     return kept;
 }
 
+bool ProjectManager::linkParagraph(const QString& linkedId, const QString& elementId,
+                                   int paragraph, const QString& paragraphText,
+                                   const QString& role) {
+    const ProjectElement* element = findElement(linkedId);
+    if (element == nullptr || findElement(elementId) == nullptr || paragraph <= 0) {
+        return false;
+    }
+    QList<ElementLink> links = element->links;
+    auto had = std::find_if(links.begin(), links.end(),
+                            [&elementId](const ElementLink& link) { return link.to == elementId; });
+    if (had == links.end()) {
+        links.append(newLink(linkedId, elementId));
+        had = std::prev(links.end());
+    }
+    had->paragraph = paragraph;
+    had->excerpt = LinkRoles::excerptOf(paragraphText);
+    had->role = role;
+    return setLinks(linkedId, links);
+}
+
+bool ProjectManager::unlinkParagraph(const QString& linkedId, const QString& elementId) {
+    const ProjectElement* element = findElement(linkedId);
+    const ElementLink* had = element != nullptr ? element->linkTo(elementId) : nullptr;
+    if (had == nullptr) {
+        return false;
+    }
+    QList<ElementLink> links = element->links;
+    for (ElementLink& link : links) {
+        if (link.to == elementId) {
+            link.paragraph = 0;
+            link.excerpt.clear();
+        }
+    }
+    return setLinks(linkedId, links);
+}
+
 bool ProjectManager::setLinks(const QString& elementId, const QStringList& targets) {
     const ProjectElement* element = findElement(elementId);
     QList<ElementLink> links;
@@ -3062,6 +3101,7 @@ bool ProjectManager::changeBookDictionary(const std::function<void(BookDictionar
         return false;
     }
     m_bookDictionary = std::move(changed);
+    m_cardNames.reset();
     emit bookDictionaryChanged();
     return true;
 }
@@ -3093,6 +3133,13 @@ void ProjectManager::releaseCardNames(const QSet<QString>& removedIds) {
     });
 }
 
+const CardNameIndex& ProjectManager::cardNames() const {
+    if (!m_cardNames) {
+        m_cardNames.emplace(m_bookDictionary);
+    }
+    return *m_cardNames;
+}
+
 QString ProjectManager::bookDictionaryPath() const {
     if (!m_project) {
         return {};
@@ -3109,6 +3156,22 @@ QList<const ProjectElement*> ProjectManager::materialsLinkedTo(const QString& li
     appendAll(m_project->workshop.elements, workshop);
     for (const ProjectElement* element : workshop) {
         if (element->linkTo(link) != nullptr && isMaterial(*element)) {
+            linked << element;
+        }
+    }
+    return linked;
+}
+
+QList<const ProjectElement*> ProjectManager::cardsLinkedTo(const QString& link) const {
+    QList<const ProjectElement*> linked;
+    const ProjectElement* target = findElement(link);
+    if (!m_project || target == nullptr || isCard(*target)) {
+        return linked;
+    }
+    QList<const ProjectElement*> workshop;
+    appendAll(m_project->workshop.elements, workshop);
+    for (const ProjectElement* element : workshop) {
+        if (element->linkTo(link) != nullptr && isCard(*element)) {
             linked << element;
         }
     }

@@ -102,9 +102,11 @@ QString BookEditor::annotationMarkAt(const QPointF& point) const
 // Marks beside the paragraphs
 // =============================================================================
 
-void BookEditor::setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon)
+void BookEditor::setParagraphMarks(const QList<ParagraphMark>& marks, const QIcon& icon,
+                                   const QHash<QString, QIcon>& cardIcons)
 {
     m_paragraphMarkIcon = icon;
+    m_paragraphCardIcons = cardIcons;
     anchorParagraphMarks(marks);
     syncParagraphMarks(true);
 }
@@ -118,10 +120,11 @@ QList<ParagraphMark> BookEditor::paragraphMarks() const
         }
         const int paragraph = each.anchor.block().blockNumber();
         // A paragraph that took in the next one (the text between them deleted) has the
-        // marks of both
+        // marks of both, one for each icon
         const auto same = std::find_if(marks.begin(), marks.end(),
-                                       [paragraph](const ParagraphMark& mark) {
-                                           return mark.paragraph == paragraph;
+                                       [paragraph, &each](const ParagraphMark& mark) {
+                                           return mark.paragraph == paragraph &&
+                                                  mark.icon == each.mark.icon;
                                        });
         if (same == marks.end()) {
             ParagraphMark mark = each.mark;
@@ -136,9 +139,11 @@ QList<ParagraphMark> BookEditor::paragraphMarks() const
             }
         }
     }
-    std::sort(marks.begin(), marks.end(), [](const ParagraphMark& a, const ParagraphMark& b) {
-        return a.paragraph < b.paragraph;
-    });
+    // The marks of one paragraph in their order
+    std::stable_sort(marks.begin(), marks.end(),
+                     [](const ParagraphMark& a, const ParagraphMark& b) {
+                         return a.paragraph < b.paragraph;
+                     });
     return marks;
 }
 
@@ -170,7 +175,8 @@ void BookEditor::syncParagraphMarks(bool always)
     const QList<ParagraphMark> now = paragraphMarks();
     std::vector<ParagraphMark> marks(now.cbegin(), now.cend());
     if (always || marks != m_renderPipeline->paragraphMarks()) {
-        m_renderPipeline->setParagraphMarks(std::move(marks), m_paragraphMarkIcon);
+        m_renderPipeline->setParagraphMarks(std::move(marks), m_paragraphMarkIcon,
+                                            m_paragraphCardIcons);
     }
 }
 
@@ -194,9 +200,41 @@ void BookEditor::addParagraphMarkItems(QMenu& menu, const ParagraphMark& mark)
             title = id;
         }
         // A "&" of the title is shown, not taken for an access key
-        QAction* item = menu.addAction(m_paragraphMarkIcon,
+        QAction* item = menu.addAction(paragraphMarkIcon(mark),
                                        title.replace(QLatin1Char('&'), QStringLiteral("&&")));
         connect(item, &QAction::triggered, this, [this, id]() { emit paragraphMarkClicked(id); });
+    }
+}
+
+QIcon BookEditor::paragraphMarkIcon(const ParagraphMark& mark) const
+{
+    return mark.icon.isEmpty() ? m_paragraphMarkIcon : m_paragraphCardIcons.value(mark.icon);
+}
+
+void BookEditor::addParagraphMarkMenus(QMenu& menu, int paragraph)
+{
+    // From the keyboard too: the materials first, as their paperclip is next to the text
+    QMenu* materials = nullptr;
+    QMenu* cards = nullptr;
+    for (const ParagraphMark& mark : paragraphMarks()) {
+        if (mark.paragraph != paragraph) {
+            continue;
+        }
+        if (materials == nullptr && cards == nullptr) {
+            menu.addSeparator();
+        }
+        if (!mark.icon.isEmpty()) {
+            //: The submenu of the cards of characters, locations and items linked with the
+            //: paragraph. In Polish: Powiązane &karty
+            cards = cards != nullptr ? cards : menu.addMenu(paragraphMarkIcon(mark),
+                                                            tr("Linked &Cards"));
+            addParagraphMarkItems(*cards, mark);
+        } else if (materials == nullptr) {
+            //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
+            //: mate&riały
+            materials = menu.addMenu(m_paragraphMarkIcon, tr("Linked Mate&rials"));
+            addParagraphMarkItems(*materials, mark);
+        }
     }
 }
 

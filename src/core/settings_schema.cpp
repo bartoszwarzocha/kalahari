@@ -249,13 +249,15 @@ std::map<std::string, json> buildDefaults() {
         // is part of ("tree") or all of them in alphabetical order ("list"), and what the
         // Properties panel shows of the cards at the cursor of a text: the card whose name it
         // is in and the cards of the paragraph ("names"), only those ("paragraphs") or none
-        // ("none")
+        // ("none"), and whether a paragraph linked with cards has the signs of their kinds
+        // beside it
         {"cards.palette", json::array({"#c0504d", "#7e57c2", "#2e9e6a", "#d4a017", "#3a8fc9",
                                        "#8d7b6a", "#b04a8f", "#e07b39", "#4f6fd1", "#6b9e2e",
                                        "#1f9aa5", "#a35d3d"})},
         {"cards.navigatorColorDot", true},
         {"cards.navigatorTree", "tree"},
         {"cards.atCursor", "names"},
+        {"cards.paragraphMarks", true},
 
         // New projects
         {"project.defaultAuthor", ""},

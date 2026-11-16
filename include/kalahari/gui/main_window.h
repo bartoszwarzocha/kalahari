@@ -86,6 +86,7 @@ class GrammarCoordinator;
 class SpellingPanelCoordinator;
 class BookDictionaryCoordinator;
 class CardNamesCoordinator;
+class CardsInTextCoordinator;
 class RepetitionsCoordinator;
 class DocumentWindows;
 class WritingStatsCoordinator;
@@ -258,6 +259,9 @@ private:
     /// the full card on a tab, the gears of both open Settings > Cards, a portrait from a file
     /// shows in the Navigator as a new material
     void connectCards();
+
+    /// @brief Open the full card of card @p cardId on a tab, as the Navigator opens it
+    void openCard(const QString& cardId);
 
     /// @brief Reset the layout to default: the toolbars (ToolbarManager) and the panels
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
@@ -551,6 +555,9 @@ private:
 
     /// @brief The names of the cards in the book's dictionary
     CardNamesCoordinator* m_cardNamesCoordinator{nullptr};
+
+    /// @brief Book > Link Paragraph with Card... and Book > Open Card at Cursor
+    CardsInTextCoordinator* m_cardsInTextCoordinator{nullptr};
 
     /// @brief The Repetitions panel, the marks of the repeated words and Next Repetition
     RepetitionsCoordinator* m_repetitionsCoordinator{nullptr};

@@ -1561,6 +1561,8 @@ Rules for a new shortcut:
 | Edit > Next To Do | Alt+Down |
 | Edit > Previous To Do | Alt+Up |
 | Book > Add... | Ctrl+Shift+Enter |
+| Book > Link Paragraph with Card... | Alt+Shift+K (macOS: Cmd+Option+Shift+K) |
+| Book > Open Card at Cursor | Alt+Shift+O (macOS: Cmd+Option+Shift+O) |
 | Insert > Add Annotation... | Ctrl+Shift+M |
 | Insert > Quick Insert... | Ctrl+Shift+W |
 | Insert > Caption... | Ctrl+Shift+G (also with the cursor just after the image) |

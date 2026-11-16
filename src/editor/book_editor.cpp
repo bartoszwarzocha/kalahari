@@ -511,12 +511,16 @@ bool BookEditor::event(QEvent* event)
             QToolTip::showText(help->globalPos(), tip, this);
             return true;
         }
-        // The mark beside a paragraph: the titles of the materials linked with it
+        // The mark beside a paragraph: the titles of the materials or the cards linked with it
         if (const std::optional<ParagraphMark> marked = paragraphMarkAt(QPointF(help->pos()))) {
             //: The tooltip of the paperclip beside a paragraph, over the titles of the
             //: materials. In Polish: Powiązane materiały
-            QStringList lines{
-                QStringLiteral("<b>%1</b>").arg(tr("Linked materials").toHtmlEscaped())};
+            const QString materials = tr("Linked materials");
+            //: The tooltip of the sign of the cards beside a paragraph, over the names of the
+            //: cards. In Polish: Powiązane karty
+            const QString cards = tr("Linked cards");
+            QStringList lines{QStringLiteral("<b>%1</b>").arg(
+                (marked->icon.isEmpty() ? materials : cards).toHtmlEscaped())};
             for (const QString& title : marked->titles) {
                 lines << title.toHtmlEscaped();
             }

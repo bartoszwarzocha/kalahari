@@ -20,6 +20,7 @@
 #include <kalahari/editor/render_context.h>
 #include <kalahari/editor/editor_types.h>
 #include <kalahari/editor/text_highlight.h>
+#include <QHash>
 #include <QIcon>
 #include <QObject>
 #include <QPolygonF>
@@ -316,9 +317,14 @@ public:
     /// @return std::nullopt when no mark is there
     std::optional<AnnotationMark> annotationMarkDetailsAt(const QPointF& point) const;
 
-    /// @brief Set the marks beside the paragraphs and the icon they show, drawn in the color
+    /// @brief Set the marks beside the paragraphs and the icons they show, drawn in the color
     ///        of the text (repaint only)
-    void setParagraphMarks(std::vector<ParagraphMark> marks, const QIcon& icon);
+    /// @param marks The marks, in the order of the paragraphs; the marks of one paragraph go
+    ///        from the text to the left, in their order
+    /// @param icon What the paperclips of the materials show
+    /// @param cardIcons The signs of the cards, by ParagraphMark::icon
+    void setParagraphMarks(std::vector<ParagraphMark> marks, const QIcon& icon,
+                           const QHash<QString, QIcon>& cardIcons = {});
 
     /// @brief The marks beside the paragraphs
     const std::vector<ParagraphMark>& paragraphMarks() const { return m_paragraphMarks; }
@@ -330,7 +336,9 @@ public:
     /// @brief Where the mark beside a paragraph is drawn, in widget coordinates: in the left
     ///        margin, beside its first line, left of the numbers on the margin when they are
     ///        shown (empty for a paragraph not laid out)
-    QRectF paragraphMarkRect(size_t paragraph) const;
+    /// @param place Which of the marks of the paragraph it is: 0 next to the text, the next
+    ///        ones further to the left
+    QRectF paragraphMarkRect(size_t paragraph, int place = 0) const;
 
     /// @brief Show where dragged text would be dropped (std::nullopt hides it)
     ///
@@ -632,6 +640,10 @@ private:
     /// @brief Draw the marks beside the paragraphs (in the left margin)
     void renderParagraphMarks(QPainter* painter, const QRect& clipRect);
 
+    /// @brief Which of the marks of its paragraph each mark is (paragraphMarkRect()), in the
+    ///        order of m_paragraphMarks
+    std::vector<int> paragraphMarkPlaces() const;
+
     /// @brief Render cursor
     void renderCursor(QPainter* painter);
 
@@ -706,7 +718,8 @@ private:
     ParagraphDecorator m_paragraphDecorator;     ///< Draws the room under the paragraphs
     PageDecorator m_pageDecorator;               ///< Draws on the pages besides their lines
     std::vector<ParagraphMark> m_paragraphMarks;     ///< Marks beside the paragraphs
-    QIcon m_paragraphMarkIcon;                       ///< What they show
+    QIcon m_paragraphMarkIcon;                       ///< What the paperclips show
+    QHash<QString, QIcon> m_paragraphCardIcons;      ///< The signs of the cards
 
     // The numbers on the margin painted last: they went on from what was counted before
     // their first paragraph (marginNumbersOutdated())

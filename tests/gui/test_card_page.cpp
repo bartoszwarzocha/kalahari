@@ -29,6 +29,7 @@
 #include "kalahari/gui/panels/card_panel.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/panels/cursor_card_box.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/panels/material_page.h"
 #include "kalahari/gui/panels/navigator_panel.h"
@@ -1454,6 +1455,7 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
     const ChangedSetting<std::string> trees(gui::NavigatorPanel::CARDS_TREE_SETTING, "tree");
     const ChangedSetting<std::string> atCursor(gui::CursorCardBox::SETTING,
                                                gui::CursorCardBox::NAMES);
+    const ChangedSetting<bool> marks(gui::ParagraphMarksCoordinator::CARD_MARKS_SETTING, true);
 
     gui::CardsPage page;
     page.load();
@@ -1519,6 +1521,18 @@ TEST_CASE("Settings > Cards: the dots in the Navigator and the palette of new ca
                                                                     "") == value);
         CHECK_FALSE(page.isChanged());
     }
+
+    // The signs of the cards beside the linked paragraphs
+    auto* signs = page.findChild<QCheckBox*>(QStringLiteral("cardsParagraphMarks"));
+    REQUIRE(signs != nullptr);
+    CHECK(signs->isChecked());
+    signs->setChecked(false);
+    CHECK(page.isChanged());
+    page.apply();
+    CHECK_FALSE(gui::ParagraphMarksCoordinator::cardMarksShown());
+    signs->setChecked(true);
+    page.apply();
+    CHECK(gui::ParagraphMarksCoordinator::cardMarksShown());
 }
 
 }  // namespace kalahari

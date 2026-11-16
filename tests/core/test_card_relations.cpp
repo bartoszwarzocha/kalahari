@@ -424,6 +424,67 @@ TEST_CASE("Card relations: a card in the chapters, beside its relations",
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("Card relations: a card linked with a paragraph of a chapter",
+          "[core][cards][project_manager]") {
+    const QTemporaryDir dir;
+    auto& pm = kalahari::test::book();
+    openBook(pm, dir);
+    const QString anna = addCard(pm, "character", QStringLiteral("Anna"), QStringLiteral("woman"));
+    const QString jan = addCard(pm, "character", QStringLiteral("Jan"), QStringLiteral("man"));
+    const QString storm = pm.addElement(pm.chapterKindFor(BookPlace::Main),
+                                        QStringLiteral("Burza"), BookPlace::Main);
+    REQUIRE_FALSE(storm.isEmpty());
+    REQUIRE(pm.addRelation(anna, jan, QStringLiteral("sibling"), QString()));
+    CHECK(pm.cardsLinkedTo(storm).isEmpty());
+
+    // A new link names the paragraph, with its first words and the role chosen
+    const QString text =
+        QStringLiteral("Anna  stanęła w drzwiach i długo patrzyła na deszcz za oknem.");
+    REQUIRE(pm.linkParagraph(anna, storm, 3, text, QStringLiteral("pov")));
+    const ElementLink* link = pm.findElement(anna)->linkTo(storm);
+    REQUIRE(link != nullptr);
+    CHECK(link->paragraph == 3);
+    CHECK(link->excerpt == QStringLiteral("Anna stanęła w drzwiach i długo patrzyła na"));
+    CHECK(link->role == QStringLiteral("pov"));
+    CHECK(pm.cardsLinkedTo(storm) == QList<const ProjectElement*>{pm.findElement(anna)});
+    // The relation with the other card stays, and is no chapter of it
+    CHECK(shownOf(pm, anna) == QStringList{QStringLiteral("brat: Jan")});
+    CHECK(pm.cardsLinkedTo(jan).isEmpty());
+
+    // Another paragraph of the same chapter: the link names it, its note stays
+    QList<ElementLink> links = pm.findElement(anna)->links;
+    for (ElementLink& each : links) {
+        if (each.to == storm) {
+            each.note = QStringLiteral("ważne");
+        }
+    }
+    REQUIRE(pm.setLinks(anna, links));
+    REQUIRE(pm.linkParagraph(anna, storm, 5, QStringLiteral("Deszcz."),
+                             QStringLiteral("mentioned")));
+    link = pm.findElement(anna)->linkTo(storm);
+    REQUIRE(link != nullptr);
+    CHECK(link->paragraph == 5);
+    CHECK(link->excerpt == QStringLiteral("Deszcz."));
+    CHECK(link->role == QStringLiteral("mentioned"));
+    CHECK(link->note == QStringLiteral("ważne"));
+
+    // No paragraph any more: the card stays in the chapter
+    REQUIRE(pm.unlinkParagraph(anna, storm));
+    link = pm.findElement(anna)->linkTo(storm);
+    REQUIRE(link != nullptr);
+    CHECK(link->paragraph == 0);
+    CHECK(link->excerpt.isEmpty());
+    CHECK(link->role == QStringLiteral("mentioned"));
+    CHECK_FALSE(pm.unlinkParagraph(jan, storm));
+
+    // Nothing to link
+    CHECK_FALSE(pm.linkParagraph(anna, storm, 0, text, QString()));
+    CHECK_FALSE(pm.linkParagraph(anna, QStringLiteral("none"), 1, text, QString()));
+    CHECK_FALSE(pm.linkParagraph(QStringLiteral("none"), storm, 1, text, QString()));
+
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("Card relations: the locations in a tree, each under the one it is part of",
           "[core][cards][project_manager]") {
     const QTemporaryDir dir;

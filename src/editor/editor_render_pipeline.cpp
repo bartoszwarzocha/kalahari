@@ -73,6 +73,8 @@ constexpr float CURRENT_REPETITION_ALPHA = 0.45F;
 constexpr double PARAGRAPH_MARK_SHARE = 0.8;
 constexpr double PARAGRAPH_MARK_MINIMUM = 10.0;
 constexpr double PARAGRAPH_MARK_GAP_SHARE = 0.6;
+/// Space between the marks of one paragraph, as a share of their size
+constexpr double PARAGRAPH_MARKS_SPACING_SHARE = 0.25;
 constexpr double PARAGRAPH_MARK_OPACITY = 0.6;
 
 /// The line a place is on: of the character before it for a place after text (the end of
@@ -868,19 +870,23 @@ void EditorRenderPipeline::renderAnnotationMarks(QPainter* painter, const QRect&
 }
 
 void EditorRenderPipeline::setParagraphMarks(std::vector<ParagraphMark> marks,
-                                             const QIcon& icon) {
+                                             const QIcon& icon,
+                                             const QHash<QString, QIcon>& cardIcons) {
     m_paragraphMarks = std::move(marks);
     m_paragraphMarkIcon = icon;
+    m_paragraphCardIcons = cardIcons;
     markRepaintOnly();
 }
 
 std::optional<ParagraphMark> EditorRenderPipeline::paragraphMarkAt(const QPointF& point) const {
     const size_t first = m_context.computed.firstVisibleParagraph;
     const size_t last = m_context.computed.lastVisibleParagraph;
-    for (const ParagraphMark& mark : m_paragraphMarks) {
+    const std::vector<int> places = paragraphMarkPlaces();
+    for (size_t index = 0; index < m_paragraphMarks.size(); ++index) {
+        const ParagraphMark& mark = m_paragraphMarks.at(index);
         const auto paragraph = static_cast<size_t>(std::max(mark.paragraph, 0));
         if (paragraph < first || paragraph > last) continue;
-        const QRectF rect = paragraphMarkRect(paragraph);
+        const QRectF rect = paragraphMarkRect(paragraph, places.at(index));
         const double growX = std::max(0.0, (MARK_HIT_SIZE - rect.width()) / 2.0);
         const double growY = std::max(0.0, (MARK_HIT_SIZE - rect.height()) / 2.0);
         if (!rect.isEmpty() && rect.adjusted(-growX, -growY, growX, growY).contains(point)) {
@@ -890,7 +896,18 @@ std::optional<ParagraphMark> EditorRenderPipeline::paragraphMarkAt(const QPointF
     return std::nullopt;
 }
 
-QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph) const {
+std::vector<int> EditorRenderPipeline::paragraphMarkPlaces() const {
+    std::vector<int> places;
+    places.reserve(m_paragraphMarks.size());
+    for (size_t index = 0; index < m_paragraphMarks.size(); ++index) {
+        const bool same = index > 0 && m_paragraphMarks.at(index - 1).paragraph ==
+                                           m_paragraphMarks.at(index).paragraph;
+        places.push_back(same ? places.back() + 1 : 0);
+    }
+    return places;
+}
+
+QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph, int place) const {
     if (!m_textSource || paragraph >= m_textSource->paragraphCount()) return {};
     QTextLayout* layout = m_textSource->layout(paragraph);
     if (!layout || layout->lineCount() == 0) return {};
@@ -908,27 +925,32 @@ QRectF EditorRenderPipeline::paragraphMarkRect(size_t paragraph) const {
     const double besides = m_context.marginNumbers.numbering == MarginNumbering::None
                                ? textLeft
                                : marginNumbersLeft(lineY);
-    const double x = besides - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE);
+    const double x = besides - size * (1.0 + PARAGRAPH_MARK_GAP_SHARE) -
+                     place * size * (1.0 + PARAGRAPH_MARKS_SPACING_SHARE);
     const double middle = paragraphWidgetY(paragraph) + (line.y() + line.height() / 2.0) * scale;
     return QRectF(x, middle - size / 2.0, size, size);
 }
 
 void EditorRenderPipeline::renderParagraphMarks(QPainter* painter, const QRect& clipRect) {
-    if (!m_textSource || m_paragraphMarks.empty() || m_paragraphMarkIcon.isNull()) return;
+    if (!m_textSource || m_paragraphMarks.empty()) return;
 
     const size_t first = m_context.computed.firstVisibleParagraph;
     const size_t last = m_context.computed.lastVisibleParagraph;
     const qreal ratio = painter->device() ? painter->device()->devicePixelRatioF() : 1.0;
+    const std::vector<int> places = paragraphMarkPlaces();
     painter->save();
-    for (const ParagraphMark& mark : m_paragraphMarks) {
+    for (size_t index = 0; index < m_paragraphMarks.size(); ++index) {
+        const ParagraphMark& mark = m_paragraphMarks.at(index);
         const auto paragraph = static_cast<size_t>(std::max(mark.paragraph, 0));
         if (paragraph < first || paragraph > last) continue;
-        const QRectF rect = paragraphMarkRect(paragraph);
-        if (rect.isEmpty() || !rect.intersects(clipRect)) continue;
+        const QRectF rect = paragraphMarkRect(paragraph, places.at(index));
+        const QIcon icon =
+            mark.icon.isEmpty() ? m_paragraphMarkIcon : m_paragraphCardIcons.value(mark.icon);
+        if (rect.isEmpty() || !rect.intersects(clipRect) || icon.isNull()) continue;
 
         // The icon in the color of the text, whatever the colors of the program's icons:
         // it is read on the paper
-        QPixmap pixmap = m_paragraphMarkIcon.pixmap(rect.size().toSize(), ratio);
+        QPixmap pixmap = icon.pixmap(rect.size().toSize(), ratio);
         {
             QPainter tint(&pixmap);
             tint.setCompositionMode(QPainter::CompositionMode_SourceIn);

@@ -13,6 +13,7 @@
 #include "kalahari/gui/panels/cursor_card_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
 #include "kalahari/gui/panels/material_page.h"
+#include "kalahari/gui/panels/paragraph_cards_box.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
 #include "kalahari/gui/read_only_book.h"
@@ -25,6 +26,7 @@
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/core/art_provider.h"
 #include "kalahari/core/bibliography.h"
+#include "kalahari/core/link_roles.h"
 #include "kalahari/core/logger.h"
 #include "kalahari/core/package_card.h"
 #include "kalahari/core/project_manager.h"
@@ -185,7 +187,8 @@ PropertiesPanel::PropertiesPanel(core::ProjectManager& book, QWidget* parent)
                 QMetaObject::invokeMethod(this, "updateWordCounts", Qt::QueuedConnection);
             } else if (key == core::ChapterVersions::ENABLED_SETTING) {
                 QMetaObject::invokeMethod(this, "refreshVersions", Qt::QueuedConnection);
-            } else if (key == CursorCardBox::SETTING) {
+            } else if (key == CursorCardBox::SETTING ||
+                       key == core::LinkRoles::PARAGRAPHS_SETTING) {
                 QMetaObject::invokeMethod(this, "updateCursorCard", Qt::QueuedConnection);
             }
         });
@@ -759,6 +762,13 @@ QWidget* PropertiesPanel::createEditorPage() {
     connect(m_cursorCard, &CursorCardBox::requestSelectCard, this,
             &PropertiesPanel::requestSelectCard);
     connect(m_cursorCard, &CursorCardBox::cardAdded, this, &PropertiesPanel::cardAdded);
+    // Then the cards linked with the paragraph at the cursor of a chapter
+    m_paragraphCards = new ParagraphCardsBox(m_book, scrollContent);
+    layout->addWidget(m_paragraphCards);
+    connect(m_paragraphCards, &ParagraphCardsBox::requestOpenCard, this,
+            &PropertiesPanel::requestOpenCard);
+    connect(m_paragraphCards, &ParagraphCardsBox::requestLink, this,
+            &PropertiesPanel::requestLinkParagraphCard);
 
     // Add stretch at the bottom
     layout->addStretch(1);
@@ -912,11 +922,11 @@ void PropertiesPanel::connectSignals() {
     });
     connect(&core::ThemeManager::getInstance(), &core::ThemeManager::themeChanged, this,
             &PropertiesPanel::refreshVersions);
-    // The names of the cards change in the book's dictionary
-    connect(&pm, &core::ProjectManager::bookDictionaryChanged, this, [this]() {
-        m_cardNamesRead = false;
-        updateCursorCard();
-    });
+    // The names of the cards change in the book's dictionary, and the cards of the paragraph
+    // with the links
+    connect(&pm, &core::ProjectManager::bookDictionaryChanged, this,
+            &PropertiesPanel::updateCursorCard);
+    connect(&pm, &core::ProjectManager::linksChanged, this, &PropertiesPanel::updateCursorCard);
 }
 
 void PropertiesPanel::showProjectProperties() {
@@ -1272,15 +1282,12 @@ void PropertiesPanel::onProjectOpened(const QString& projectPath) {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::onProjectOpened() - Path: {}", projectPath.toStdString());
 
-    m_cardNamesRead = false;
     showProjectProperties();
 }
 
 void PropertiesPanel::onProjectClosed() {
     auto& logger = core::Logger::getInstance();
     logger.debug("PropertiesPanel::onProjectClosed()");
-    m_cardNamesRead = false;
-    m_cardNames = core::CardNameIndex();
 
     // A file opened outside the book stays open in the editor
     if (m_activeEditorPanel) {
@@ -2118,17 +2125,17 @@ void PropertiesPanel::updateCursorCard() {
     editor::BookEditor* bookEditor =
         m_activeEditorPanel != nullptr ? m_activeEditorPanel->getBookEditor() : nullptr;
     // Only in a text of the open book, whose cards they are
-    const bool ofBook =
-        bookEditor != nullptr && m_book.isProjectOpen() &&
-        m_book.findElement(m_activeEditorPanel->property("elementId").toString()) != nullptr;
+    const QString elementId =
+        m_activeEditorPanel != nullptr ? m_activeEditorPanel->property("elementId").toString()
+                                       : QString();
+    const bool ofBook = bookEditor != nullptr && m_book.isProjectOpen() &&
+                        m_book.findElement(elementId) != nullptr;
+    const CursorCardBox::Shown shown = CursorCardBox::cardsAtCursor();
+    const editor::CursorPosition cursor =
+        bookEditor != nullptr ? bookEditor->cursorPosition() : editor::CursorPosition{};
     QString cardId;
-    if (ofBook && CursorCardBox::cardsAtCursor() == CursorCardBox::Shown::NamesAndParagraphs) {
-        if (!m_cardNamesRead) {
-            m_cardNames = core::CardNameIndex(m_book.bookDictionary());
-            m_cardNamesRead = true;
-        }
-        const editor::CursorPosition cursor = bookEditor->cursorPosition();
-        cardId = m_cardNames
+    if (ofBook && shown == CursorCardBox::Shown::NamesAndParagraphs) {
+        cardId = m_book.cardNames()
                      .cardAt(bookEditor->paragraphPlainText(static_cast<size_t>(cursor.paragraph)),
                              cursor.offset)
                      .card;
@@ -2139,6 +2146,29 @@ void PropertiesPanel::updateCursorCard() {
     if (cardId != m_cursorCard->cardId()) {
         m_cursorCard->showCard(cardId);
     }
+    showParagraphCards(ofBook && shown != CursorCardBox::Shown::None ? bookEditor : nullptr,
+                       elementId);
+}
+
+void PropertiesPanel::showParagraphCards(const editor::BookEditor* text,
+                                         const QString& elementId) {
+    // The paragraphs of a chapter link with cards (core::LinkRoles::PARAGRAPHS_SETTING)
+    const core::BookProject* project = m_book.project();
+    const std::optional<core::ElementPlace> at =
+        text != nullptr && project != nullptr ? project->placeOf(elementId) : std::nullopt;
+    const bool shown = at.has_value() && at->place != core::BookPlace::Workshop &&
+                       core::LinkRoles::paragraphsShown();
+    m_paragraphCards->setVisible(shown);
+    if (!shown) {
+        m_paragraphCards->showParagraph(QString(), -1, {});
+        return;
+    }
+    const int paragraph = text->cursorPosition().paragraph;
+    QStringList cards;
+    for (const core::ProjectElement* card : cardsOfParagraph(m_book, elementId, *text, paragraph)) {
+        cards << card->id;
+    }
+    m_paragraphCards->showParagraph(elementId, paragraph, cards);
 }
 
 } // namespace gui

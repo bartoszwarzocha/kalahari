@@ -1170,10 +1170,26 @@ bool BookEditor::addCreateCardMenu(QMenu& menu, const QString& text)
     return true;
 }
 
-void BookEditor::addSelectionCardMenu(QMenu& menu, const QString& word)
+void BookEditor::setContextMenuCardActions(const ContextMenuCardActions& actions)
 {
-    // A misspelled word has Create Card with its words
-    if (word.isEmpty() && addCreateCardMenu(menu, searchTextFromSelection())) {
+    m_contextMenuCardActions = actions;
+}
+
+void BookEditor::addCardMenus(QMenu& menu, const QString& word)
+{
+    // A misspelled word has Create Card with its words (addSpellingActions()), a selection in
+    // one paragraph has it here; the commands of the cards of the paragraph follow it
+    if (word.isEmpty()) {
+        addCreateCardMenu(menu, searchTextFromSelection());
+    }
+    const ContextMenuCardActions& commands = m_contextMenuCardActions;
+    if (commands.link != nullptr) {
+        menu.addAction(commands.link);
+    }
+    if (commands.open != nullptr && commands.open->isEnabled()) {
+        menu.addAction(commands.open);
+    }
+    if (!menu.isEmpty() && !menu.actions().constLast()->isSeparator()) {
         menu.addSeparator();
     }
 }
@@ -1357,7 +1373,7 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
                           replacing(grammarError->startPos,
                                     grammarError->startPos + grammarError->length));
     }
-    addSelectionCardMenu(menu, word);
+    addCardMenus(menu, word);
 
     // The note whose number is at the cursor: edit its text, make it the other kind, delete it
     // (as in the mockup approved on 12.10.2026)
@@ -1528,18 +1544,8 @@ void BookEditor::showContextMenu(const CursorPosition& pos, const QPoint& global
         menu.addAction(action);
     }
 
-    // The materials linked with the paragraph, whose mark is beside it: from the keyboard too
-    const QList<ParagraphMark> marks = paragraphMarks();
-    const auto marked =
-        std::find_if(marks.cbegin(), marks.cend(),
-                     [&pos](const ParagraphMark& mark) { return mark.paragraph == pos.paragraph; });
-    if (marked != marks.cend()) {
-        menu.addSeparator();
-        //: The submenu of the materials linked with the paragraph. In Polish: Powiązane
-        //: mate&riały
-        addParagraphMarkItems(*menu.addMenu(m_paragraphMarkIcon, tr("Linked Mate&rials")),
-                              *marked);
-    }
+    // The materials and the cards linked with the paragraph, whose marks are beside it
+    addParagraphMarkMenus(menu, pos.paragraph);
 
     // Color mode toggle
     menu.addSeparator();

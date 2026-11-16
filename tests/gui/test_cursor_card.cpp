@@ -13,14 +13,17 @@
 #include "kalahari/core/book_type_package.h"
 #include "kalahari/core/book_type_registry.h"
 #include "kalahari/core/card_names.h"
+#include "kalahari/core/link_roles.h"
 #include "kalahari/core/name_declension.h"
 #include "kalahari/core/project_manager.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/gui/icon_registrar.h"
+#include "kalahari/gui/link_names.h"
 #include "kalahari/gui/panels/card_page.h"
 #include "kalahari/gui/panels/cursor_card_box.h"
 #include "kalahari/gui/panels/editor_panel.h"
+#include "kalahari/gui/panels/paragraph_cards_box.h"
 #include "kalahari/gui/panels/properties_panel.h"
 #include "kalahari/gui/widgets/relations_box.h"
 
@@ -29,6 +32,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QStringList>
+#include <QKeyEvent>
 #include <QToolButton>
 #include <QTreeWidget>
 
@@ -248,4 +252,106 @@ TEST_CASE("Card at the cursor: the setting", "[gui][cards][settings]") {
     // An unknown value: the names and the paragraphs
     AtCursor::choose("other");
     CHECK(CursorCardBox::cardsAtCursor() == CursorCardBox::Shown::NamesAndParagraphs);
+}
+
+TEST_CASE("Card at the cursor: the cards of the paragraph, with their roles",
+          "[gui][cards][links]") {
+    gui::registerAllIcons();
+    const AtCursor names(CursorCardBox::NAMES);
+    Cast cast;
+    auto& pm = cast.novel.pm;
+    const QString first = text("Spotkał Annę Wolską i Eldriona w Czarnym Lesie.");
+    const QString second = text("Deszcz padał całą noc.");
+    cast.editor->fromKml(test::kmlOf({first, second}));
+    REQUIRE(pm.linkParagraph(cast.anna, cast.novel.chapterId, 1, first,
+                             core::LinkRoles::POINT_OF_VIEW));
+    REQUIRE(pm.linkParagraph(cast.forest, cast.novel.chapterId, 1, first,
+                             core::LinkRoles::SETTING));
+    gui::PropertiesPanel panel(test::book());
+    panel.setActiveEditor(&cast.editorPanel);
+    gui::ParagraphCardsBox* box = panel.paragraphCards();
+    REQUIRE(box != nullptr);
+    const auto rows = [box]() {
+        QStringList texts;
+        for (int i = 0; i < box->list()->topLevelItemCount(); ++i) {
+            const QTreeWidgetItem* item = box->list()->topLevelItem(i);
+            texts << item->text(0) + QStringLiteral(" – ") + item->text(1);
+        }
+        return texts;
+    };
+
+    // The cards of the paragraph at the cursor: their roles and names
+    putCursor(*cast.editor, "Spotkał");
+    waitForPanel();
+    REQUIRE(box->isVisibleTo(&panel));
+    CHECK(box->paragraph() == 0);
+    CHECK(rows() == QStringList{gui::cardRoleName(core::LinkRoles::POINT_OF_VIEW) +
+                                    QStringLiteral(" – Anna Wolska"),
+                                gui::cardRoleName(core::LinkRoles::SETTING) +
+                                    QStringLiteral(" – Czarny Las")});
+    CHECK_FALSE(box->emptyLabel()->isVisibleTo(box));
+    CHECK(box->addButton()->isEnabled());
+    CHECK_FALSE(box->removeButton()->isEnabled());
+
+    // Another paragraph has none yet
+    cast.editor->setCursorPosition({1, 2});
+    waitForPanel();
+    CHECK(box->paragraph() == 1);
+    CHECK(box->list()->topLevelItemCount() == 0);
+    CHECK(box->emptyLabel()->isVisibleTo(box));
+
+    SECTION("\"+\" asks for the window, Enter opens the card, \"-\" takes it off the paragraph") {
+        putCursor(*cast.editor, "Spotkał");
+        waitForPanel();
+        int asked = 0;
+        QStringList opened;
+        QObject::connect(&panel, &gui::PropertiesPanel::requestLinkParagraphCard,
+                         [&asked]() { ++asked; });
+        QObject::connect(&panel, &gui::PropertiesPanel::requestOpenCard,
+                         [&opened](const QString& id) { opened << id; });
+        box->addButton()->click();
+        CHECK(asked == 1);
+        box->list()->setCurrentItem(box->list()->topLevelItem(1));
+        QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+        QCoreApplication::sendEvent(box->list(), &enter);
+        CHECK(opened == QStringList{cast.forest});
+        REQUIRE(box->removeButton()->isEnabled());
+        box->removeButton()->click();
+        CHECK(rows() == QStringList{gui::cardRoleName(core::LinkRoles::POINT_OF_VIEW) +
+                                    QStringLiteral(" – Anna Wolska")});
+        // The card stays linked with the chapter
+        const core::ElementLink* link = pm.findElement(cast.forest)->linkTo(cast.novel.chapterId);
+        REQUIRE(link != nullptr);
+        CHECK(link->paragraph == 0);
+    }
+
+    SECTION("a card linked meanwhile, a new role and a new name show at once") {
+        putCursor(*cast.editor, "Spotkał");
+        waitForPanel();
+        REQUIRE(pm.linkParagraph(cast.eldrion, cast.novel.chapterId, 1, first,
+                                 core::LinkRoles::MENTIONED));
+        CHECK(rows().size() == 3);
+        REQUIRE(pm.renameElement(cast.forest, QStringLiteral("Las")));
+        CHECK(rows().contains(gui::cardRoleName(core::LinkRoles::SETTING) +
+                              QStringLiteral(" – Las")));
+    }
+
+    SECTION("Settings > Cards: also with only the linked paragraphs; none with no cards") {
+        putCursor(*cast.editor, "Wolską");
+        waitForPanel();
+        AtCursor::choose(CursorCardBox::PARAGRAPHS);
+        waitForPanel();
+        CHECK_FALSE(showsCard(panel));
+        CHECK(box->isVisibleTo(&panel));
+        AtCursor::choose(CursorCardBox::NONE);
+        waitForPanel();
+        CHECK_FALSE(box->isVisibleTo(&panel));
+    }
+
+    SECTION("a text of the Workshop has no cards of its paragraphs") {
+        cast.editorPanel.setProperty("elementId", cast.anna);
+        putCursor(*cast.editor, "Spotkał");
+        waitForPanel();
+        CHECK_FALSE(box->isVisibleTo(&panel));
+    }
 }

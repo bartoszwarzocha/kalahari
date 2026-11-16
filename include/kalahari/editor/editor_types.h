@@ -130,11 +130,14 @@ struct MarginCounts {
 };
 
 /// @brief A mark beside a paragraph, in the left margin of the page: the paperclip of the
-/// materials linked with the paragraph
+/// materials linked with the paragraph, or the sign of a kind of the cards linked with it
 struct ParagraphMark {
     int paragraph = 0;   ///< The paragraph (0-based)
-    QStringList ids;     ///< What it names: the ids of the materials, in their order
+    QStringList ids;     ///< What it names: the ids of the materials or the cards, in their order
     QStringList titles;  ///< Their titles, for the tooltip and the menu
+    QString icon{};      ///< The cards' sign it shows, of the icons of the cards
+                         ///< (BookEditor::setParagraphMarks()); empty: the paperclip of the
+                         ///< materials
 
     bool operator==(const ParagraphMark&) const = default;
 };

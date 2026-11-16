@@ -15,11 +15,13 @@
 #include "kalahari/core/card_data.h"
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/gui/panels/cursor_card_box.h"
+#include "kalahari/gui/paragraph_marks_coordinator.h"
 #include "kalahari/gui/panels/navigator_panel.h"
 #include "kalahari/gui/settings/settings_page.h"
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/gui/widgets/palette_edit.h"
 
+#include <QCheckBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -219,6 +221,16 @@ void CardsPage::addTextGroup() {
                                                              value.get<std::string>());
     };
     bindCustom(std::move(atCursor));
+
+    //: The signs of the kinds of the cards beside a paragraph linked with them, like the
+    //: paperclip of a material. In Polish: Znaki kart na marginesie przy akapitach powiązanych
+    QCheckBox* marks = addCheckBox(text, tr("Signs of the cards beside the linked paragraphs"),
+                                   ParagraphMarksCoordinator::CARD_MARKS_SETTING);
+    marks->setObjectName(QStringLiteral("cardsParagraphMarks"));
+    //: In Polish: Kliknięcie znaku otwiera kartę. Bez znaków karty akapitu wymienia nadal panel
+    //: „Właściwości”.
+    addNote(text, tr("A click on a sign opens the card. Without the signs, the Properties panel "
+                     "still names the cards of the paragraph."));
 }
 
 QRadioButton* CardsPage::atCursorButton(const char* value) const {

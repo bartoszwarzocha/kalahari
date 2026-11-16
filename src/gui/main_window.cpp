@@ -36,6 +36,7 @@
 #include "kalahari/gui/spelling_panel_coordinator.h"
 #include "kalahari/gui/book_dictionary_coordinator.h"
 #include "kalahari/gui/card_names_coordinator.h"
+#include "kalahari/gui/cards_in_text_coordinator.h"
 #include "kalahari/gui/repetitions_coordinator.h"
 #include "kalahari/gui/writing_stats_coordinator.h"
 #include "kalahari/gui/icon_registrar.h"
@@ -487,7 +488,8 @@ MainWindow::MainWindow(QWidget* parent)
             });
 
     // The paperclips beside the paragraphs that materials are linked with: one chosen shows
-    // its material in the Properties panel, brought to the front
+    // its material in the Properties panel, brought to the front; a card chosen at the sign of
+    // its kind opens
     m_paragraphMarksCoordinator = new ParagraphMarksCoordinator(
         *m_book, m_dockCoordinator->centralTabs(),
         [this](const QString& materialId) {
@@ -499,7 +501,7 @@ MainWindow::MainWindow(QWidget* parent)
                 dock->activateWindow();
             }
         },
-        this);
+        [this](const QString& cardId) { openCard(cardId); }, this);
 
     // The lists of the kinds of materials on their tabs: a kind of the Materials clicked in
     // the Navigator, or Materials itself. A material chosen in a list shows in the Properties
@@ -786,6 +788,22 @@ MainWindow::MainWindow(QWidget* parent)
     m_editCoordinator->addTextCommands(
         {ChapterBreakCoordinator::COMMAND}, [this](const editor::BookEditor& text) {
             return m_chapterBreakCoordinator->canBreak(text);
+        });
+
+    // Book > Link Paragraph with Card... and Open Card at Cursor: in the text with the keys,
+    // also on its context menu
+    m_cardsInTextCoordinator = new CardsInTextCoordinator(
+        book(), commands(), m_dockCoordinator->centralTabs(),
+        [this]() { return m_editCoordinator->textWithKeys(); },
+        [this](const QString& cardId) { openCard(cardId); }, this, this);
+    m_cardsInTextCoordinator->connectCommands();
+    m_editCoordinator->addTextCommands(
+        {CardsInTextCoordinator::LINK_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_cardsInTextCoordinator->canLink(text);
+        });
+    m_editCoordinator->addTextCommands(
+        {CardsInTextCoordinator::OPEN_COMMAND}, [this](const editor::BookEditor& text) {
+            return m_cardsInTextCoordinator->canOpen(text);
         });
 
     // Insert > Date && Time... and the date and the time at once (Alt+Shift+D, Alt+Shift+T):
@@ -2656,15 +2674,15 @@ void MainWindow::onAbout() {
 
 // Dock management - OpenSpec #00038 Phase 4: Delegated to DockCoordinator
 
+void MainWindow::openCard(const QString& cardId) {
+    if (const core::ProjectElement* element = book().findElement(cardId); element != nullptr) {
+        m_navigatorCoordinator->onElementSelected(cardId, element->title);
+    }
+}
+
 void MainWindow::connectCards() {
     PropertiesPanel* properties = m_dockCoordinator->propertiesPanel();
-    connect(properties, &PropertiesPanel::requestOpenCard, this,
-            [this](const QString& elementId) {
-                if (const core::ProjectElement* element = book().findElement(elementId);
-                    element != nullptr) {
-                    m_navigatorCoordinator->onElementSelected(elementId, element->title);
-                }
-            });
+    connect(properties, &PropertiesPanel::requestOpenCard, this, &MainWindow::openCard);
     const auto openCardSettings = [this]() {
         if (m_settingsCoordinator != nullptr) {
             m_settingsCoordinator->openSettingsPage(
@@ -2672,6 +2690,13 @@ void MainWindow::connectCards() {
         }
     };
     connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
+    // "+" of the cards of the paragraph: the paragraph at the cursor of the text in front
+    connect(properties, &PropertiesPanel::requestLinkParagraphCard, this, [this]() {
+        EditorPanel* editor = getCurrentEditor();
+        if (m_cardsInTextCoordinator != nullptr && editor != nullptr) {
+            m_cardsInTextCoordinator->linkParagraph(editor->getBookEditor());
+        }
+    });
     connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
             openCardSettings);
     connect(m_materialListCoordinator, &MaterialListCoordinator::cardSettingsRequested, this,

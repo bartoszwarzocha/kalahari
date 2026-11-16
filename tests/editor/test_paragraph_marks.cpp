@@ -4,7 +4,8 @@
 /// @file test_paragraph_marks.cpp
 /// @brief The marks beside the paragraphs (the paperclips of the materials linked with them):
 ///        in the left margin in the color of the text, with their paragraphs as the text is
-///        edited, chosen with a click, a menu or the context menu of the paragraph
+///        edited, chosen with a click, a menu or the context menu of the paragraph; the signs
+///        of the kinds of the cards linked with them beside the paperclips
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/editor/book_editor.h>
@@ -311,5 +312,74 @@ TEST_CASE("Paragraph marks: a mark of several materials chooses one in a menu; t
         QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
         QCoreApplication::sendEvent(editor.get(), &menuKey);
         CHECK(chooser.texts.isEmpty());
+    }
+}
+
+TEST_CASE("Paragraph marks: the signs of the kinds of the cards beside the paperclip",
+          "[editor][marks][cards]") {
+    auto editor = editorWith(TEXT);
+    const auto cardMark = [](const char* id, const char* title, const char* icon) {
+        ParagraphMark mark{1, {QString::fromLatin1(id)}, {QString::fromLatin1(title)}};
+        mark.icon = QString::fromLatin1(icon);
+        return mark;
+    };
+    editor->setParagraphMarks({markOf(1, {QStringLiteral("m1")}, {QStringLiteral("Map")}),
+                               cardMark("c1", "Anna", "character"),
+                               cardMark("c2", "Book of Ashes", "item"),
+                               cardMark("c3", "Jan", "character")},
+                              redIcon(),
+                              {{QStringLiteral("character"), redIcon()},
+                               {QStringLiteral("item"), redIcon()}});
+
+    // One mark for each icon: the paperclip first, then the kinds of the cards
+    const QList<ParagraphMark> marks = editor->paragraphMarks();
+    REQUIRE(marks.size() == 3);
+    CHECK(marks.at(0).icon.isEmpty());
+    CHECK(marks.at(1).icon == QStringLiteral("character"));
+    CHECK(marks.at(1).ids == (QStringList{QStringLiteral("c1"), QStringLiteral("c3")}));
+    CHECK(marks.at(2).ids == QStringList{QStringLiteral("c2")});
+
+    // From the text to the left: the paperclip, the characters, the item
+    QStringList chosen;
+    QObject::connect(editor.get(), &BookEditor::paragraphMarkClicked,
+                     [&chosen](const QString& id) { chosen << id; });
+    const QRectF line = caretAt(*editor, {1, 0});
+    editorImage(*editor);  // shown: the marks of the paragraphs in view are found
+    QStringList found;
+    QPointF item;
+    for (double x = line.left() - 1.0; x > 0.0; x -= 1.0) {
+        const std::optional<ParagraphMark> mark =
+            editor->paragraphMarkAt(QPointF(x, line.center().y()));
+        const QString first = mark ? mark->ids.first() : QString();
+        if (!first.isEmpty() && (found.isEmpty() || found.last() != first)) {
+            found << first;
+        }
+        if (first == QStringLiteral("c2") && item.isNull()) {
+            item = QPointF(x, line.center().y());
+        }
+    }
+    CHECK(found == (QStringList{QStringLiteral("m1"), QStringLiteral("c1"),
+                                QStringLiteral("c2")}));
+    REQUIRE_FALSE(item.isNull());
+    click(*editor, item);
+    CHECK(chosen == QStringList{QStringLiteral("c2")});
+
+    // The context menu of the paragraph: Linked Cards, with the cards of all the signs
+    chosen.clear();
+    {
+        SubmenuChooser chooser(QStringLiteral("Linked &Cards"), QStringLiteral("Jan"));
+        editor->setCursorPosition({1, 3});
+        QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+        QCoreApplication::sendEvent(editor.get(), &menuKey);
+        CHECK(chooser.texts == (QStringList{QStringLiteral("Anna"), QStringLiteral("Jan"),
+                                            QStringLiteral("Book of Ashes")}));
+    }
+    CHECK(chosen == QStringList{QStringLiteral("c3")});
+    {
+        SubmenuChooser chooser(QStringLiteral("Linked Mate&rials"), QString());
+        editor->setCursorPosition({1, 3});
+        QContextMenuEvent menuKey(QContextMenuEvent::Keyboard, QPoint(), QPoint());
+        QCoreApplication::sendEvent(editor.get(), &menuKey);
+        CHECK(chooser.texts == QStringList{QStringLiteral("Map")});
     }
 }

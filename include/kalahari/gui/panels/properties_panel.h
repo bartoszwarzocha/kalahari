@@ -15,7 +15,6 @@
 #pragma once
 
 #include "kalahari/core/book_project.h"
-#include "kalahari/core/card_name_index.h"
 #include "kalahari/gui/material_source.h"
 
 #include <QWidget>
@@ -50,6 +49,7 @@ class CardPage;
 class CursorCardBox;
 class EditorPanel;
 class LinkedMaterialsBox;
+class ParagraphCardsBox;
 class MaterialPage;
 class SectionNamesEdit;
 class SectionsComboBox;
@@ -101,6 +101,9 @@ public:
 
     /// @brief The card at the cursor of a text of the book, on the Editor page
     [[nodiscard]] CursorCardBox* cursorCard() const { return m_cursorCard; }
+
+    /// @brief The cards of the paragraph at the cursor of a chapter, on the Editor page
+    [[nodiscard]] ParagraphCardsBox* paragraphCards() const { return m_paragraphCards; }
 
     /// @brief The materials of the element of the chapter page, of the section and of the part
     LinkedMaterialsBox* chapterMaterials() const { return m_chapterMaterials; }
@@ -225,8 +228,9 @@ private slots:
     /// @brief The group of the versions again, when the page with it is shown
     void refreshVersions();
 
-    /// @brief The card whose name the cursor of the text in front is in, on the Editor page,
-    /// when Settings > Cards shows it (CursorCardBox::cardsAtCursor())
+    /// @brief The card whose name the cursor of the text in front is in and the cards of its
+    /// paragraph, on the Editor page, as Settings > Cards shows them
+    /// (CursorCardBox::cardsAtCursor())
     void updateCursorCard();
 
 protected:
@@ -292,6 +296,10 @@ signals:
 
     /// @brief The gear of the short card: Settings > Cards
     void requestCardSettings();
+
+    /// @brief "+" of the cards of the paragraph: the window Link Paragraph with Card for the
+    /// paragraph at the cursor of the text in front
+    void requestLinkParagraphCard();
 
     /// @brief Change... of the declension of the short card: the window "Name" of the book's
     /// dictionary for the name of card @p elementId
@@ -389,6 +397,10 @@ private:
     /// @brief Put the group of the versions on the page of @p layout (of the Chapter page or
     ///        the Editor page): the one group follows the page shown
     void placeVersionsGroup(QVBoxLayout* layout);
+
+    /// @brief The cards of the paragraph at the cursor of @p text, the text of element
+    ///        @p elementId: shown for a chapter of the book (nullptr: none shown)
+    void showParagraphCards(const editor::BookEditor* text, const QString& elementId);
 
     /// @brief Populate project fields from current project
     void populateProjectFields();
@@ -512,8 +524,7 @@ private:
     MaterialPage* m_materialPage = nullptr;
     CardPage* m_cardPage = nullptr;  ///< The short card of a character, a location or an item
     CursorCardBox* m_cursorCard = nullptr;  ///< The Editor page: the card at the cursor
-    core::CardNameIndex m_cardNames;  ///< The names of the cards of the book's dictionary
-    bool m_cardNamesRead = false;     ///< m_cardNames has the dictionary as it is
+    ParagraphCardsBox* m_paragraphCards = nullptr;  ///< The Editor page: the paragraph's cards
 
     // Editor Page widgets (OpenSpec #00042 Task 7.4)
     QLabel* m_editorTitleLabel;           ///< "Selection" or "Document"

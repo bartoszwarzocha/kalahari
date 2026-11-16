@@ -49,6 +49,7 @@
 #include "kalahari/core/book_dictionary.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/book_type_registry.h"
+#include "kalahari/core/card_name_index.h"
 #include "kalahari/core/card_relations.h"
 #include "kalahari/core/chapter_versions.h"
 #include "kalahari/core/package_card.h"
@@ -758,6 +759,21 @@ public:
     /// (LinkRoles::suggestedForCard()), else without a role
     ElementLink newLink(const QString& elementId, const QString& target) const;
 
+    /// @brief Link element @p linkedId (a card, a material) with paragraph @p paragraph (from
+    /// 1) of text element @p elementId, whose text is @p paragraphText now, in role @p role
+    ///
+    /// The link it has with the text names the paragraph from then on, its note staying; else
+    /// it gets a new one (newLink()). The excerpt of the link is the beginning of the
+    /// paragraph (LinkRoles::excerptOf()). Saved in the .klh file, as setLinks().
+    /// @return false without such elements or paragraph, or when the file cannot be written
+    bool linkParagraph(const QString& linkedId, const QString& elementId, int paragraph,
+                       const QString& paragraphText, const QString& role);
+
+    /// @brief The link of element @p linkedId with text element @p elementId names no paragraph
+    /// any more: it stays a link with the whole text, with its role and note
+    /// @return false without such a link, or when the .klh file cannot be written
+    bool unlinkParagraph(const QString& linkedId, const QString& elementId);
+
     /// @brief The paragraphs of the text of text element @p elementId, one per entry, as the
     /// editor has them (ChapterDocument::kmlToPlainText()): the text kept with its changes
     /// (setChapterContent()), else that of its chapter file; empty for another element
@@ -940,9 +956,18 @@ public:
     ///        folder); empty without a book
     [[nodiscard]] QString bookDictionaryPath() const;
 
+    /// @brief Which card a name at a place of a text of the book is: the names of the cards
+    ///        in the book's dictionary in all their forms, as it has them now (made the first
+    ///        time it is asked after a change of the dictionary)
+    [[nodiscard]] const CardNameIndex& cardNames() const;
+
     /// @brief Materials linked with @p link, an element or a section of the book
     /// (BookProject::sectionLink()), in the order of the Workshop
     QList<const ProjectElement*> materialsLinkedTo(const QString& link) const;
+
+    /// @brief The cards of characters, locations and items linked with @p link, an element of
+    /// the book, in the order of the Workshop (their relations with other cards left out)
+    QList<const ProjectElement*> cardsLinkedTo(const QString& link) const;
 
     /// @brief Names of the writer's own fields of the elements of the project, each once and
     /// sorted, for the names of new fields
@@ -1340,6 +1365,7 @@ private:
     QStringList m_missingPackages;                ///< Of the open book: it is read-only
     QHash<QString, PackageCard> m_packageCards;   ///< Cards of the open book, by package id
     BookDictionary m_bookDictionary;              ///< Of the open book
+    mutable std::optional<CardNameIndex> m_cardNames;  ///< cardNames() of m_bookDictionary
     bool m_bookDictionaryRead = false;            ///< Its file was read (or there is none)
 
     // OpenSpec #00041: SQLite Project Database. A book open read-only has no lock and no
