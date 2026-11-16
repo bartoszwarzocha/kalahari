@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <kalahari/core/book_dictionary.h>
+#include <kalahari/core/card_data.h>
 #include <kalahari/core/chapter_document.h>
 #include <kalahari/core/database_types.h>
 #include <kalahari/core/file_trash.h>
@@ -766,10 +767,16 @@ TEST_CASE("A user project has the kinds and the elements chosen in the palette",
     CHECK(chapterFileOf(chapter.id).title() == "Rozdział 1");
     CHECK(book->backElements.isEmpty());
 
-    // The working note is in the Workshop's folder; a character waits for its window
-    CHECK(titles(project->workshop.elements) == "Notatka 1");
+    // The working note and the card of a character are texts in the Workshop's folder; the card
+    // has the first color of the palette
+    CHECK(titles(project->workshop.elements) == "Notatka 1, Postać 1");
+    REQUIRE(project->workshop.elements.size() == 2);
     CHECK(project->workshop.elements.first().file == "workshop/work_note_001.kchapter");
     CHECK(QFileInfo::exists(QDir(pm.getProjectPath()).filePath("workshop/work_note_001.kchapter")));
+    const ProjectElement& character = project->workshop.elements.at(1);
+    CHECK(character.file == "workshop/character_001.kchapter");
+    CHECK(character.card.color == CardColors::palette().constFirst());
+    CHECK(project->workshop.elements.first().card.isEmpty());
 
     const QString manifest = pm.getManifestPath();
     REQUIRE(pm.closeProject(false));
@@ -1752,8 +1759,8 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     const KindRef material = kind("kalahari.base", "picture");
     const KindRef otherFile = kind("kalahari.base", "other_file");
 
-    // The kinds of the Workshop; the program adds working notes and materials, and the other
-    // kinds that open in a window of their own wait for their windows. The one kind of
+    // The kinds of the Workshop; the program adds working notes, cards and materials, and the
+    // other kinds that open in a window of their own wait for their windows. The one kind of
     // materials of earlier versions gets no new elements.
     CHECK(references(pm.kindsFor(BookPlace::Workshop)) ==
           "kalahari.base:mindmap, kalahari.base:timeline, kalahari.base:character, "
@@ -1767,7 +1774,8 @@ TEST_CASE("ProjectManager adds working notes and copies of files to the Workshop
     CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "material")));
     CHECK(ProjectManager::canAdd(pm.chapterKindFor(BookPlace::Main)));
     CHECK(ProjectManager::canAdd(pm.partKind()));
-    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "character")));
+    CHECK(ProjectManager::canAdd(kind("kalahari.base", "character")));
+    CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "mindmap")));
     CHECK_FALSE(ProjectManager::canAdd(kind("kalahari.base", "toc")));
     CHECK_FALSE(ProjectManager::canAdd(KindRef{}));
 

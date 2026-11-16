@@ -29,7 +29,6 @@ namespace core {
 /// Manages project.db file with:
 /// - Book metadata (title, author, etc.)
 /// - Chapter metadata (not content)
-/// - Character/Location/Item libraries
 /// - Session statistics
 /// - Styles and settings
 class ProjectDatabase {
@@ -81,33 +80,6 @@ public:
     void deleteChapter(const QString& id);
     void addChapterHistory(const QString& chapterId, const QString& action,
                           const QString& author = {});
-
-    // =========================================================================
-    // Character Library
-    // =========================================================================
-
-    QList<CharacterInfo> getAllCharacters() const;
-    CharacterInfo getCharacter(const QString& id) const;
-    void saveCharacter(const CharacterInfo& character);
-    void deleteCharacter(const QString& id);
-
-    // =========================================================================
-    // Location Library
-    // =========================================================================
-
-    QList<LocationInfo> getAllLocations() const;
-    LocationInfo getLocation(const QString& id) const;
-    void saveLocation(const LocationInfo& location);
-    void deleteLocation(const QString& id);
-
-    // =========================================================================
-    // Item Library
-    // =========================================================================
-
-    QList<ItemInfo> getAllItems() const;
-    ItemInfo getItem(const QString& id) const;
-    void saveItem(const ItemInfo& item);
-    void deleteItem(const QString& id);
 
     // =========================================================================
     // Session Statistics

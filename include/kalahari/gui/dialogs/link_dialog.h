@@ -2,7 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file link_dialog.h
-/// @brief Link: what a material is about, or the materials of an element of the book
+/// @brief Link: what a material is about, the materials of an element of the book, or the
+/// chapters of a card
 
 #pragma once
 
@@ -37,13 +38,16 @@ namespace dialogs {
 /// Workshop with its elements in groups of their kinds; the sections and the elements can be
 /// checked, the book, the Workshop and its groups cannot, and the material itself is not
 /// there. For an element of the book, or a section, the tree has the materials of the
-/// Workshop. What is linked now is checked.
+/// Workshop. For a card of a character, a location or an item, the tree has the book with its
+/// sections and their elements, and only the elements can be checked. What is linked now is
+/// checked.
 ///
 /// At the right, the link of the current item, while it is checked: its role, the paragraph
 /// of the text it names (when links may name one, core::LinkRoles::paragraphsShown()) and a
-/// note. A new link gets the role the kind of the material suggests (ProjectManager::newLink()),
-/// and a quote the first paragraph that has its words; an item checked again gets back what
-/// it had.
+/// note. A new link gets the role the kind of the material or the card suggests
+/// (ProjectManager::newLink()), and a quote the first paragraph that has its words; an item
+/// checked again gets back what it had. A card offers the roles of its kind in the chapters
+/// (core::LinkRoles::ofCard()).
 ///
 /// Typing filters the tree also while the tree has the keys: the letters go to the filter
 /// above it. The arrows choose, Space checks, Tab goes to the role, Enter links and Esc
@@ -54,15 +58,16 @@ class LinkDialog : public KalahariDialog {
 public:
     /// @brief What the boxes of the tree link
     enum class Mode {
-        Targets,   ///< What a material is about: sections and elements
-        Materials  ///< The materials about an element or a section
+        Targets,    ///< What a material is about: sections and elements
+        Materials,  ///< The materials about an element or a section
+        Chapters    ///< The chapters a card is in: the elements of the book
     };
 
     /// @brief Create the dialog for the open book
     /// @param book The book of its window
     /// @param mode What the boxes link
-    /// @param link The material (Targets), or the element or section (Materials,
-    ///        core::BookProject::sectionLink())
+    /// @param link The material (Targets), the element or section (Materials,
+    ///        core::BookProject::sectionLink()), or the card (Chapters)
     /// @param parent Parent widget
     LinkDialog(const core::ProjectManager& book, Mode mode, const QString& link,
                QWidget* parent = nullptr);
@@ -74,8 +79,8 @@ public:
     const QStringList& initialLinks() const { return m_initial; }
 
     /// @brief The link of item @p id with the role, paragraph and note set for it: of the
-    /// material with element or section @p id (Targets), or of material @p id with the
-    /// element or section (Materials)
+    /// material or the card with element or section @p id (Targets, Chapters), or of material
+    /// @p id with the element or section (Materials)
     core::ElementLink linkOf(const QString& id) const;
 
     /// @brief Make the item of @p id the current one, whose link the right side shows
@@ -103,8 +108,19 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
-    /// @brief The book and the Workshop, for a material
+    /// @brief The title of the window and its button, for what it links
+    void showHeading();
+
+    /// @brief The roles a link can have: those of materials, or of the kind of the card
+    void fillRoles();
+
+    /// @brief The book and the Workshop, for a material; the book, for a card
     void fillTargets(const QString& material);
+
+    /// @brief The items of @p elements and of the elements inside them under @p parent,
+    /// checked when @p links has them
+    void addElementTargets(QTreeWidgetItem* parent, const QList<core::ProjectElement>& elements,
+                           const QStringList& links);
 
     /// @brief The materials of the Workshop, for an element or a section
     void fillMaterials(const QString& link);
@@ -125,20 +141,25 @@ private:
     /// @brief The writer changed the right side: the link of the current item takes it
     void takeLink();
 
-    /// @brief The material of the link of item @p id: the material of the dialog (Targets),
-    /// else @p id
+    /// @brief The material or the card of the link of item @p id: the one of the dialog
+    /// (Targets, Chapters), else @p id
     QString materialOf(const QString& id) const;
 
     /// @brief The element whose text the link of item @p id names a paragraph of: @p id
-    /// (Targets), else the element of the dialog
+    /// (Targets, Chapters), else the element of the dialog
     QString textOf(const QString& id) const;
 
     /// @brief The first paragraph of @p paragraphs (from 1) with the words of quote
     /// @p material; 0 when it is no quote or no paragraph has them
     int paragraphOfQuote(const QString& material, const QStringList& paragraphs) const;
 
+    /// @brief Whether the links are of the material or the card of the dialog with what the
+    /// items name (Targets, Chapters), not of the materials with the element of the dialog
+    [[nodiscard]] bool linksOut() const { return m_mode != Mode::Materials; }
+
     Mode m_mode;
     QString m_link;
+    int m_knownRoles = 0;     ///< The roles of the list it offers, before one of a later version
     QStringList m_initial;
     QHash<QString, core::ElementLink> m_links;  ///< Item -> its link, also when unchecked
     QStringList m_paragraphs;  ///< The paragraphs of the text of the link shown
@@ -165,6 +186,18 @@ private:
 std::optional<QList<core::ElementLink>> chooseLinks(const core::ProjectManager& book,
                                                     const QString& elementId,
                                                     const QString& currentLink, QWidget* parent);
+
+/// @brief Choose in the Link window the chapters card @p cardId of @p book is in
+///
+/// The links with what the window does not show, such as the relations with other cards,
+/// stay as they are; those with the elements of the book kept stay in their order, and the
+/// new ones come after them, each as it is set in the window.
+/// @param currentLink The chapter the window starts at; empty: its first one
+/// @return All the links of the card; none when the writer closed the window
+std::optional<QList<core::ElementLink>> chooseChapters(const core::ProjectManager& book,
+                                                       const QString& cardId,
+                                                       const QString& currentLink,
+                                                       QWidget* parent);
 
 } // namespace dialogs
 } // namespace gui
