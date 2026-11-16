@@ -211,7 +211,8 @@ void BookPages::layOut(const ExportProgress& progress) {
     LayoutTypography typography;
     const double lineHeight = numberOf(normal, "lineHeight", 1.0);
     typography.lineSpacing = lineHeight > 0.0 ? lineHeight : 1.0;
-    typography.paragraphSpacing = std::max(0.0, numberOf(normal, "spaceAfter", 0.0)) * pixelsPerPoint;
+    typography.paragraphSpacing =
+        std::max(0.0, numberOf(normal, "spaceAfter", 0.0)) * pixelsPerPoint;
     typography.firstLineIndent = numberOf(normal, "firstLineIndent", 0.0) * pixelsPerPoint;
     typography.tabStops = TabStops::Indent;
     typography.tabIndent = TAB_CENTIMETRES / CENTIMETRES_PER_INCH * m_dpi;
@@ -375,7 +376,8 @@ void BookPages::build(size_t index) {
     for (QTextBlock block = document->begin(); block.isValid(); block = block.next()) {
         for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
             const QTextFragment fragment = it.fragment();
-            const QString address = fragment.isValid() ? linkAddressOf(fragment.charFormat()) : QString();
+            const QString address =
+                fragment.isValid() ? linkAddressOf(fragment.charFormat()) : QString();
             if (address.isEmpty()) {
                 continue;
             }
@@ -388,7 +390,8 @@ void BookPages::build(size_t index) {
             } else {
                 setLinkAddress(format, QString());
             }
-            links.push_back(Link{fragment.position(), fragment.position() + fragment.length(), format});
+            links.push_back(
+                Link{fragment.position(), fragment.position() + fragment.length(), format});
         }
     }
     for (const Link& link : links) {
@@ -420,8 +423,8 @@ void BookPages::findHeadings() {
         }
         for (QTextBlock block = item.document->findBlock(item.textStart); block.isValid();
              block = block.next()) {
-            if ((item.titled && block.blockNumber() == 0) || tableOf(block) != nullptr || blockObject(block) != TextObject::None ||
-                listItemOf(block.blockFormat())) {
+            if ((item.titled && block.blockNumber() == 0) || tableOf(block) != nullptr ||
+                blockObject(block) != TextObject::None || listItemOf(block.blockFormat())) {
                 continue;
             }
             const int level =
@@ -441,9 +444,10 @@ QString BookPages::contentsKml() const {
     if (m_headings.empty()) {
         return QString();
     }
-    QString kml = QStringLiteral("<kml><table borders=\"none\"><col width=\"%1%\"/><col width=\"%2%\"/>")
-                      .arg(100 - CONTENTS_NUMBER_PERCENT)
-                      .arg(CONTENTS_NUMBER_PERCENT);
+    QString kml =
+        QStringLiteral("<kml><table borders=\"none\"><col width=\"%1%\"/><col width=\"%2%\"/>")
+            .arg(100 - CONTENTS_NUMBER_PERCENT)
+            .arg(CONTENTS_NUMBER_PERCENT);
     for (size_t i = 0; i < m_headings.size(); ++i) {
         const PageHeading& heading = m_headings[i];
         const int page = i < m_contentsPages.size() ? m_contentsPages[i] : -1;
@@ -471,12 +475,14 @@ void BookPages::place() {
             const Item& before = *m_items[index - 1];
             const int last = before.pages - 1;
             const double bottom = before.layout->contentBottom() - last * m_pitch;
-            if (before.layout->pageNotesHeight(last) <= 0.0 && bottom + m_goOnRoom <= m_textHeight) {
+            if (before.layout->pageNotesHeight(last) <= 0.0 &&
+                bottom + m_goOnRoom <= m_textHeight) {
                 item.goesOn = true;
                 top = std::ceil(std::max(0.0, bottom));
             }
         }
-        int start = item.goesOn ? static_cast<int>(m_pages.size()) - 1 : static_cast<int>(m_pages.size());
+        int start =
+            item.goesOn ? static_cast<int>(m_pages.size()) - 1 : static_cast<int>(m_pages.size());
 
         // With mirror margins a text starts on a right page (an even index), unless it starts
         // on a left one: the page before it is left empty
@@ -520,8 +526,9 @@ PagePlace BookPages::placeOf(const Item& item, const QPointF& point) const {
     PagePlace place;
     place.page = item.firstPage + itemPage;
     const double toPoints = POINTS_PER_INCH / m_dpi;
-    place.point = QPointF((leftMarginOf(place.page) + point.x()) * toPoints,
-                          (m_context.computed.marginTop + point.y() - itemPage * m_pitch) * toPoints);
+    place.point =
+        QPointF((leftMarginOf(place.page) + point.x()) * toPoints,
+                (m_context.computed.marginTop + point.y() - itemPage * m_pitch) * toPoints);
     return place;
 }
 
@@ -561,8 +568,9 @@ void BookPages::collect() {
         const Item& item = *m_items[index];
         const QTextBlock block = item.document->findBlockByNumber(number);
         QTextLayout* lines = KalahariTextDocumentLayout::blockLayout(block);
-        const double top = item.layout->blockY(number) +
-                           (lines != nullptr && lines->lineCount() > 0 ? lines->lineAt(0).y() : 0.0);
+        const double top =
+            item.layout->blockY(number) +
+            (lines != nullptr && lines->lineCount() > 0 ? lines->lineAt(0).y() : 0.0);
         m_headings[i].place = placeOf(item, QPointF(0.0, top));
     }
 
@@ -580,7 +588,8 @@ void BookPages::collect() {
         for (QTextBlock block = document.begin(); block.isValid(); block = block.next()) {
             for (QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
                 const QTextFragment fragment = it.fragment();
-                if (!fragment.isValid() || !fragment.text().contains(QChar::ObjectReplacementCharacter)) {
+                if (!fragment.isValid() ||
+                    !fragment.text().contains(QChar::ObjectReplacementCharacter)) {
                     continue;
                 }
                 const QTextCharFormat format = fragment.charFormat();
@@ -591,7 +600,8 @@ void BookPages::collect() {
                     }
                     continue;
                 }
-                const std::optional<QRectF> box = characterBox(document, *item.layout, fragment.position());
+                const std::optional<QRectF> box =
+                    characterBox(document, *item.layout, fragment.position());
                 if (!box) {
                     continue;
                 }
@@ -639,14 +649,16 @@ void BookPages::collect() {
         if (table == nullptr) {
             continue;
         }
-        for (int row = 0; row < table->rows() && static_cast<size_t>(row) < m_headings.size(); ++row) {
+        for (int row = 0; row < table->rows() && static_cast<size_t>(row) < m_headings.size();
+             ++row) {
             const QTextBlock cell = item.document->findBlock(table->cellAt(row, 0).firstPosition());
             const QRectF rect = item.layout->blockBoundingRect(cell);
             const PagePlace from = placeOf(item, rect.topLeft());
-            m_links.push_back(PageLink{from.page,
-                                       QRectF(from.point, QSizeF(m_context.computed.textWidth * toPoints,
-                                                                 rect.height() * toPoints)),
-                                       m_headings[static_cast<size_t>(row)].place});
+            m_links.push_back(PageLink{
+                from.page,
+                QRectF(from.point,
+                       QSizeF(m_context.computed.textWidth * toPoints, rect.height() * toPoints)),
+                m_headings[static_cast<size_t>(row)].place});
         }
     }
 }
@@ -670,13 +682,14 @@ bool BookPages::isBlank(int page) const {
 int BookPages::pageAt(const QString& elementId, int position) const {
     for (const std::unique_ptr<Item>& owned : m_items) {
         const Item& item = *owned;
-        const bool same = elementId.isEmpty() ? m_items.size() == 1 : item.source->elementId == elementId;
+        const bool same =
+            elementId.isEmpty() ? m_items.size() == 1 : item.source->elementId == elementId;
         if (!same || item.source->kind != ExportItemKind::Text || !item.document) {
             continue;
         }
         const int last = std::max(0, item.document->characterCount() - 1);
-        const std::optional<QRectF> box =
-            characterBox(*item.document, *item.layout, std::clamp(item.textStart + position, 0, last));
+        const std::optional<QRectF> box = characterBox(
+            *item.document, *item.layout, std::clamp(item.textStart + position, 0, last));
         return box ? placeOf(item, box->topLeft()).page : item.firstPage;
     }
     return -1;
@@ -707,7 +720,8 @@ void BookPages::paintMargins(QPainter* painter, int page) const {
                                      [](const auto& part) { return part.second == 0; });
     // Neither on the pages of a part's title nor on those of a text without a title (the
     // title page, the copyright page, the dedication, the motto)
-    const bool text = item.source->kind != ExportItemKind::Group && !item.source->title.trimmed().isEmpty();
+    const bool text =
+        item.source->kind != ExportItemKind::Group && !item.source->title.trimmed().isEmpty();
 
     const RenderContext::Computed& computed = m_context.computed;
     const double left = leftMarginOf(page);
@@ -738,7 +752,8 @@ void BookPages::paintMargins(QPainter* painter, int page) const {
         headFont.setCapitalization(QFont::AllUppercase);
         headFont.setLetterSpacing(QFont::PercentageSpacing, RUNNING_HEAD_SPACING);
         const QRectF area(left, 0.0, computed.textWidth, computed.marginTop);
-        drawMarginLine(painter, QFontMetricsF(headFont).elidedText(head, Qt::ElideRight, area.width()),
+        drawMarginLine(painter,
+                       QFontMetricsF(headFont).elidedText(head, Qt::ElideRight, area.width()),
                        headFont, area);
     }
 

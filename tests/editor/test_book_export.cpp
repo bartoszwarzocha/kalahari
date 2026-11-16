@@ -263,20 +263,28 @@ TEST_CASE("DOCX: the options of the export", "[export][docx]") {
         REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
         keepSample(path, QStringLiteral("options-7.docx"));
         const QHash<QString, QByteArray> entries = zipEntries(path);
-        const QString document = QString::fromUtf8(entries.value(QStringLiteral("word/document.xml")));
-        const QString settings = QString::fromUtf8(entries.value(QStringLiteral("word/settings.xml")));
-        const QString types = QString::fromUtf8(entries.value(QStringLiteral("[Content_Types].xml")));
-        const QString relationships = QString::fromUtf8(entries.value(QStringLiteral("word/_rels/document.xml.rels")));
-        CHECK(settings.contains(QStringLiteral("<w:defaultTabStop w:val=\"708\"/><w:evenAndOddHeaders/>")));
+        const QString document =
+            QString::fromUtf8(entries.value(QStringLiteral("word/document.xml")));
+        const QString settings =
+            QString::fromUtf8(entries.value(QStringLiteral("word/settings.xml")));
+        const QString types =
+            QString::fromUtf8(entries.value(QStringLiteral("[Content_Types].xml")));
+        const QString relationships =
+            QString::fromUtf8(entries.value(QStringLiteral("word/_rels/document.xml.rels")));
+        CHECK(settings.contains(
+            QStringLiteral("<w:defaultTabStop w:val=\"708\"/><w:evenAndOddHeaders/>")));
         // The empty header, the book's title and its author
         REQUIRE(entries.contains(QStringLiteral("word/header1.xml")));
         REQUIRE(entries.contains(QStringLiteral("word/header2.xml")));
         REQUIRE(entries.contains(QStringLiteral("word/header3.xml")));
         CHECK_FALSE(entries.contains(QStringLiteral("word/header4.xml")));
         CHECK(wellFormed(entries.value(QStringLiteral("word/header2.xml"))));
-        CHECK(QString::fromUtf8(entries.value(QStringLiteral("word/header2.xml"))).contains(QStringLiteral(">Wiatr nad oazą<")));
-        CHECK(QString::fromUtf8(entries.value(QStringLiteral("word/header3.xml"))).contains(QStringLiteral(">Anna Nowak<")));
-        CHECK_FALSE(QString::fromUtf8(entries.value(QStringLiteral("word/header1.xml"))).contains(QStringLiteral("<w:t")));
+        CHECK(QString::fromUtf8(entries.value(QStringLiteral("word/header2.xml")))
+                  .contains(QStringLiteral(">Wiatr nad oazą<")));
+        CHECK(QString::fromUtf8(entries.value(QStringLiteral("word/header3.xml")))
+                  .contains(QStringLiteral(">Anna Nowak<")));
+        CHECK_FALSE(QString::fromUtf8(entries.value(QStringLiteral("word/header1.xml")))
+                        .contains(QStringLiteral("<w:t")));
         CHECK(count(types, QStringLiteral("header+xml")) == 3);
         CHECK(count(relationships, QStringLiteral("relationships/header\"")) == 3);
         // Each section its own: three kinds of headers, the footer on every kind of page
@@ -284,17 +292,19 @@ TEST_CASE("DOCX: the options of the export", "[export][docx]") {
         CHECK(count(document, QStringLiteral("<w:footerReference ")) == 12);
         CHECK(count(document, QStringLiteral("<w:titlePg/>")) == 4);
         // The part (the second section, after the contents): the empty header on its pages
-        static const QRegularExpression sectionProperties(QStringLiteral("<w:sectPr>(.*?)</w:sectPr>"),
-                                                           QRegularExpression::DotMatchesEverythingOption);
+        static const QRegularExpression sectionProperties(
+            QStringLiteral("<w:sectPr>(.*?)</w:sectPr>"),
+            QRegularExpression::DotMatchesEverythingOption);
         QRegularExpressionMatchIterator sections = sectionProperties.globalMatch(document);
         REQUIRE(sections.hasNext());
         sections.next();
         REQUIRE(sections.hasNext());
         const QString part = sections.next().captured(1);
-        CHECK_FALSE(part.contains(QStringLiteral("<w:headerReference w:type=\"even\" r:id=\"") +
-                                  relationships.section(QStringLiteral("Target=\"header3.xml\""), 0, 0)
-                                      .section(QStringLiteral("Id=\""), -1)
-                                      .section(QLatin1Char('"'), 0, 0)));
+        CHECK_FALSE(
+            part.contains(QStringLiteral("<w:headerReference w:type=\"even\" r:id=\"") +
+                          relationships.section(QStringLiteral("Target=\"header3.xml\""), 0, 0)
+                              .section(QStringLiteral("Id=\""), -1)
+                              .section(QLatin1Char('"'), 0, 0)));
         CHECK(count(part, QStringLiteral("<w:headerReference w:type=\"default\" r:id=\"") +
                               relationships.section(QStringLiteral("Target=\"header1.xml\""), 0, 0)
                                   .section(QStringLiteral("Id=\""), -1)
@@ -306,9 +316,12 @@ TEST_CASE("DOCX: the options of the export", "[export][docx]") {
         book.runningHead = RunningHead::Chapter;
         REQUIRE(exportDocx(book, path, {}, nullptr, nullptr));
         const QHash<QString, QByteArray> chapter = zipEntries(path);
-        CHECK_FALSE(QString::fromUtf8(chapter.value(QStringLiteral("word/settings.xml"))).contains(QStringLiteral("evenAndOddHeaders")));
-        CHECK(count(QString::fromUtf8(chapter.value(QStringLiteral("word/document.xml"))), QStringLiteral("<w:headerReference ")) == 8);
-        CHECK(QString::fromUtf8(chapter.value(QStringLiteral("word/header2.xml"))).contains(QStringLiteral(">Spis treści<")));
+        CHECK_FALSE(QString::fromUtf8(chapter.value(QStringLiteral("word/settings.xml")))
+                        .contains(QStringLiteral("evenAndOddHeaders")));
+        CHECK(count(QString::fromUtf8(chapter.value(QStringLiteral("word/document.xml"))),
+                    QStringLiteral("<w:headerReference ")) == 8);
+        CHECK(QString::fromUtf8(chapter.value(QStringLiteral("word/header2.xml")))
+                  .contains(QStringLiteral(">Spis treści<")));
     }
 
     SECTION("A folder that cannot be written: a problem of writing") {

@@ -614,10 +614,10 @@ void DocxWriter::mapStyles() {
     for (const QString& name : reservedStyleNames()) {
         names.insert(name.toLower());
     }
-    for (const char* id : {"DefaultParagraphFont", "TableNormal", "NoList", "FootnoteReference",
-                           "EndnoteText", "EndnoteReference", "Hyperlink", "Footer", "Header", "TOCHeading",
-                           "TOC1", "TOC2", "TOC3", "TableofFigures", "CommentText",
-                           "CommentReference"}) {
+    for (const char* id :
+         {"DefaultParagraphFont", "TableNormal", "NoList", "FootnoteReference", "EndnoteText",
+          "EndnoteReference", "Hyperlink", "Footer", "Header", "TOCHeading", "TOC1", "TOC2", "TOC3",
+          "TableofFigures", "CommentText", "CommentReference"}) {
         ids.insert(QString::fromLatin1(id).toLower());
     }
     for (const BuiltInStyle& style : BUILT_IN_STYLES) {
@@ -782,14 +782,18 @@ QString DocxWriter::stylesXml() const {
                  hidden, noIndent + QStringLiteral("<w:jc w:val=\"center\"/>"), {});
     if (m_book.runningHead != RunningHead::None) {
         // The running head: smaller capitals a little apart, as on the pages of a PDF
-        const double normalSize = m_book.styles.normal().properties.value(QStringLiteral("fontSize")).toDouble();
-        const QString size = number(halfPoints(RUNNING_HEAD_SCALE * (normalSize > 0.0 ? normalSize : DEFAULT_NORMAL_POINT_SIZE)));
-        xml += style(QStringLiteral("paragraph"), QStringLiteral("Header"), QStringLiteral("header"), normalId, {},
-                     hidden,
+        const double normalSize =
+            m_book.styles.normal().properties.value(QStringLiteral("fontSize")).toDouble();
+        const QString size = number(halfPoints(
+            RUNNING_HEAD_SCALE * (normalSize > 0.0 ? normalSize : DEFAULT_NORMAL_POINT_SIZE)));
+        xml += style(QStringLiteral("paragraph"), QStringLiteral("Header"),
+                     QStringLiteral("header"), normalId, {}, hidden,
                      QStringLiteral("<w:spacing w:before=\"0\" w:after=\"0\"/>") + noIndent +
                          QStringLiteral("<w:jc w:val=\"center\"/>"),
-                     QStringLiteral("<w:rPr><w:caps/>") + valueElement("spacing", number(RUNNING_HEAD_SPACING_TWIPS)) +
-                         valueElement("sz", size) + valueElement("szCs", size) + QStringLiteral("</w:rPr>"));
+                     QStringLiteral("<w:rPr><w:caps/>") +
+                         valueElement("spacing", number(RUNNING_HEAD_SPACING_TWIPS)) +
+                         valueElement("sz", size) + valueElement("szCs", size) +
+                         QStringLiteral("</w:rPr>"));
     }
     const QString headingBase = m_styleIds.contains(headingStyleId(1)) ? QStringLiteral("Heading1") : normalId;
     xml += style(QStringLiteral("paragraph"), QStringLiteral("TOCHeading"), QStringLiteral("TOC Heading"),
@@ -1491,8 +1495,9 @@ QString DocxWriter::sectionProperties(size_t index) const {
     const bool heads = index < m_itemHeaders.size();
     const bool evenAndOdd = evenAndOddHeaders();
     const auto reference = [](const char* element, const char* type, const QString& relationship) {
-        return QStringLiteral("<w:") + QLatin1String(element) + attribute("w:type", QString::fromLatin1(type)) +
-               attribute("r:id", relationship) + QStringLiteral("/>");
+        return QStringLiteral("<w:") + QLatin1String(element) +
+               attribute("w:type", QString::fromLatin1(type)) + attribute("r:id", relationship) +
+               QStringLiteral("/>");
     };
     if (heads) {
         xml += reference("headerReference", "default", m_itemHeaders[index].first);
@@ -1609,7 +1614,8 @@ QString DocxWriter::footerXml() const {
 }
 
 bool DocxWriter::evenAndOddHeaders() const {
-    return m_book.runningHead == RunningHead::AuthorAndTitle || m_book.runningHead == RunningHead::TitleAndChapter;
+    return m_book.runningHead == RunningHead::AuthorAndTitle ||
+           m_book.runningHead == RunningHead::TitleAndChapter;
 }
 
 QString DocxWriter::headerRelationship(const QString& text) {
@@ -1619,11 +1625,14 @@ QString DocxWriter::headerRelationship(const QString& text) {
     }
     const QString name = QStringLiteral("header%1.xml").arg(m_headerParts.size() + 1);
     const QString relationship = m_documentRels.add(
-        QStringLiteral("http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"), name);
-    m_headerParts.emplace_back(name, XML_HEAD + QStringLiteral("<w:hdr") + W_NAMESPACES +
-                                         QStringLiteral("><w:p><w:pPr><w:pStyle w:val=\"Header\"/></w:pPr>") +
-                                         (shown.isEmpty() ? QString() : textRun(shown, QString())) +
-                                         QStringLiteral("</w:p></w:hdr>"));
+        QStringLiteral(
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"),
+        name);
+    m_headerParts.emplace_back(
+        name, XML_HEAD + QStringLiteral("<w:hdr") + W_NAMESPACES +
+                  QStringLiteral("><w:p><w:pPr><w:pStyle w:val=\"Header\"/></w:pPr>") +
+                  (shown.isEmpty() ? QString() : textRun(shown, QString())) +
+                  QStringLiteral("</w:p></w:hdr>"));
     m_headerOfText.insert(shown, relationship);
     return relationship;
 }

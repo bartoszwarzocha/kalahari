@@ -51,7 +51,8 @@ QByteArray fileData(const QString& path) {
 /// The cross-reference sections of a PDF, the last one first (it points to the one before it
 /// with /Prev); 0 when an entry of one does not give the offset of its object
 int crossReferenceSections(const QByteArray& file) {
-    static const QRegularExpression startPattern(QStringLiteral("startxref\\s+(\\d+)\\s+%%EOF\\s*$"));
+    static const QRegularExpression startPattern(
+        QStringLiteral("startxref\\s+(\\d+)\\s+%%EOF\\s*$"));
     const QRegularExpressionMatch start = startPattern.match(QString::fromLatin1(file.right(64)));
     if (!start.hasMatch()) {
         return 0;
@@ -77,14 +78,16 @@ int crossReferenceSections(const QByteArray& file) {
             for (int i = 0; i < head.captured(2).toInt(); ++i, at += 20) {
                 const QByteArray entry = file.mid(at, 20);
                 if (entry.size() == 20 && entry.at(17) == 'n' &&
-                    !file.mid(entry.left(10).toLongLong()).startsWith(QByteArray::number(first + i) + " 0 obj")) {
+                    !file.mid(entry.left(10).toLongLong())
+                         .startsWith(QByteArray::number(first + i) + " 0 obj")) {
                     return 0;
                 }
             }
         }
         ++sections;
         const qsizetype trailerEnd = file.indexOf("startxref", at);
-        const QRegularExpressionMatch prev = previous.match(QString::fromLatin1(file.mid(at, trailerEnd - at)));
+        const QRegularExpressionMatch prev =
+            previous.match(QString::fromLatin1(file.mid(at, trailerEnd - at)));
         at = prev.hasMatch() ? prev.captured(1).toLongLong() : -1;
     }
     return sections;
@@ -111,7 +114,8 @@ TEST_CASE("PDF: the pages of the page view, with bookmarks, links and comments",
     std::vector<int> progress;
     ExportResult result;
     ExportProblem problem;
-    REQUIRE(exportPdf(book, path, [&progress](int value) { progress.push_back(value); }, &result, &problem));
+    REQUIRE(exportPdf(
+        book, path, [&progress](int value) { progress.push_back(value); }, &result, &problem));
     keepSample(path);
     CHECK(problem.kind == ExportProblem::Kind::None);
     CHECK(result.file == path);
@@ -137,7 +141,8 @@ TEST_CASE("PDF: the pages of the page view, with bookmarks, links and comments",
     }
 
     SECTION("Links to the headings (the table of contents) and to the caption, the web link Qt's") {
-        static const QRegularExpression inside(QStringLiteral("/Subtype /Link\\n/Rect [^\\n]+\\n/Border \\[0 0 0\\]\\n/Dest \\[\\d+ 0 R /XYZ "));
+        static const QRegularExpression inside(QStringLiteral(
+            "/Subtype /Link\\n/Rect [^\\n]+\\n/Border \\[0 0 0\\]\\n/Dest \\[\\d+ 0 R /XYZ "));
         CHECK(QString::fromLatin1(data).count(inside) == 5);
         CHECK(data.contains("/URI (https://example.com/a?b=1&c=2)"));
         CHECK(data.count("/URI (") == 1);
@@ -163,8 +168,8 @@ TEST_CASE("PDF: the pages of the page view, with bookmarks, links and comments",
         const QString contents = pageText(document, 0);
         CHECK(contents.contains(QStringLiteral("Spis treści")));
         CHECK(contents.count(QStringLiteral("Część pierwsza")) == 1);
-        static const QRegularExpression contentsPages(
-            QStringLiteral("pierwsza\\s+3\\b[\\s\\S]*Studnia\\s+5\\b[\\s\\S]*Its own heading\\s+7\\b"));
+        static const QRegularExpression contentsPages(QStringLiteral(
+            "pierwsza\\s+3\\b[\\s\\S]*Studnia\\s+5\\b[\\s\\S]*Its own heading\\s+7\\b"));
         CHECK(contents.contains(contentsPages));
         CHECK(pageText(document, 1).trimmed().isEmpty());
         // The part's page: its title only, without its number
@@ -188,9 +193,11 @@ TEST_CASE("PDF: the pages of the page view, with bookmarks, links and comments",
               QStringLiteral("Rozdział 1. Studnia"));
         CHECK(chapter.data(static_cast<int>(QPdfBookmarkModel::Role::Page)).toInt() == 4);
         REQUIRE(bookmarks.rowCount(chapter) == 1);
-        CHECK(bookmarks.index(0, 0, chapter).data(static_cast<int>(QPdfBookmarkModel::Role::Title)).toString() ==
-              QStringLiteral("Section"));
-        CHECK(bookmarks.index(2, 0).data(static_cast<int>(QPdfBookmarkModel::Role::Page)).toInt() == 6);
+        CHECK(bookmarks.index(0, 0, chapter)
+                  .data(static_cast<int>(QPdfBookmarkModel::Role::Title))
+                  .toString() == QStringLiteral("Section"));
+        CHECK(bookmarks.index(2, 0).data(static_cast<int>(QPdfBookmarkModel::Role::Page)).toInt() ==
+              6);
     }
 #endif
 }
@@ -259,11 +266,14 @@ TEST_CASE("PDF: the purposes of the file and the options", "[export][pdf]") {
 }
 
 TEST_CASE("PDF: the texts on the pages of the book", "[export][pdf]") {
-    SECTION("Each text on a new page; with mirror margins on a right page unless it starts on a left one") {
+    SECTION(
+        "Each text on a new page; with mirror margins on a right page unless it starts on a left "
+        "one") {
         ExportItem third = textItem(QStringLiteral("e3"), QStringLiteral("Trzy"), longKml(1));
         third.firstPageLeft = true;
-        BookExport book = bookOf({textItem(QStringLiteral("e1"), QStringLiteral("Jeden"), longKml(1)),
-                                  textItem(QStringLiteral("e2"), QStringLiteral("Dwa"), longKml(1)), third});
+        BookExport book =
+            bookOf({textItem(QStringLiteral("e1"), QStringLiteral("Jeden"), longKml(1)),
+                    textItem(QStringLiteral("e2"), QStringLiteral("Dwa"), longKml(1)), third});
         book.page.mirrored = true;
         BookPages pages(book, BookPages::Options{});
         pages.layOut();
@@ -283,9 +293,10 @@ TEST_CASE("PDF: the texts on the pages of the book", "[export][pdf]") {
     }
 
     SECTION("A text goes on after the one before it while its page has room") {
-        BookExport book = bookOf({textItem(QStringLiteral("e1"), QStringLiteral("Jeden"), longKml(2)),
-                                  textItem(QStringLiteral("e2"), QStringLiteral("Dwa"), longKml(2)),
-                                  textItem(QStringLiteral("e3"), QStringLiteral("Trzy"), longKml(40))});
+        BookExport book =
+            bookOf({textItem(QStringLiteral("e1"), QStringLiteral("Jeden"), longKml(2)),
+                    textItem(QStringLiteral("e2"), QStringLiteral("Dwa"), longKml(2)),
+                    textItem(QStringLiteral("e3"), QStringLiteral("Trzy"), longKml(40))});
         book.textsOnNewPage = false;
         BookPages pages(book, BookPages::Options{});
         pages.layOut();
@@ -301,7 +312,8 @@ TEST_CASE("PDF: the texts on the pages of the book", "[export][pdf]") {
         CHECK(headings[2].place.point.y() > headings[1].place.point.y() + 40.0);
 
         // A page with a footnote at its bottom: the next text starts on a new page
-        book.items[0].kml = QStringLiteral("<kml><p>Short<footnote id=\"f1\">A note.</footnote>.</p></kml>");
+        book.items[0].kml =
+            QStringLiteral("<kml><p>Short<footnote id=\"f1\">A note.</footnote>.</p></kml>");
         BookPages noted(book, BookPages::Options{});
         noted.layOut();
         CHECK(noted.pageAt(QStringLiteral("e2"), 0) == 1);
@@ -311,7 +323,8 @@ TEST_CASE("PDF: the texts on the pages of the book", "[export][pdf]") {
         ExportItem titlePage;
         titlePage.elementId = QStringLiteral("t");
         titlePage.kml = QStringLiteral("<kml><p align=\"center\">Wiatr nad oazą</p></kml>");
-        BookExport book = bookOf({titlePage, textItem(QStringLiteral("e1"), QStringLiteral("Jeden"), longKml(60))});
+        BookExport book = bookOf(
+            {titlePage, textItem(QStringLiteral("e1"), QStringLiteral("Jeden"), longKml(60))});
         book.runningHead = RunningHead::Chapter;
         BookPages pages(book, BookPages::Options{});
         pages.layOut();

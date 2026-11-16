@@ -90,7 +90,8 @@ public:
             return false;
         }
         static const QRegularExpression number(QStringLiteral("startxref\\s+(\\d+)"));
-        const QRegularExpressionMatch found = number.match(QString::fromLatin1(m_file.mid(start, 64)));
+        const QRegularExpressionMatch found =
+            number.match(QString::fromLatin1(m_file.mid(start, 64)));
         if (!found.hasMatch()) {
             return false;
         }
@@ -114,7 +115,8 @@ public:
         }
         m_size = sizeMatch.captured(1).toInt();
         m_root = rootMatch.captured(1).toInt();
-        if (const QRegularExpressionMatch infoMatch = info.match(dictionary); infoMatch.hasMatch()) {
+        if (const QRegularExpressionMatch infoMatch = info.match(dictionary);
+            infoMatch.hasMatch()) {
             m_info = infoMatch.captured(1).toInt();
         }
         if (const QRegularExpressionMatch idMatch = id.match(dictionary); idMatch.hasMatch()) {
@@ -236,7 +238,8 @@ public:
                 ++end;
                 ++last;
             }
-            m_file += QByteArray::number(it->first) + ' ' + QByteArray::number(last - it->first + 1) + '\n';
+            m_file += QByteArray::number(it->first) + ' ' +
+                      QByteArray::number(last - it->first + 1) + '\n';
             for (auto entry = it; entry != std::next(end); ++entry) {
                 m_file += QByteArray::number(entry->second).rightJustified(10, '0') + " 00000 n \n";
             }
@@ -346,7 +349,8 @@ void addBookmarks(PdfUpdate& update, const std::vector<PageHeading>& headings, d
     std::vector<std::pair<int, int>> open;  // level, node of the headings above
     int next = update.nextObject() + 1;     // the root of the outlines first
     for (const PageHeading& heading : headings) {
-        if (heading.place.page < 0 || heading.place.page >= update.pageCount() || heading.text.isEmpty()) {
+        if (heading.place.page < 0 || heading.place.page >= update.pageCount() ||
+            heading.text.isEmpty()) {
             continue;
         }
         while (!open.empty() && open.back().first >= heading.level) {
@@ -383,14 +387,15 @@ void addBookmarks(PdfUpdate& update, const std::vector<PageHeading>& headings, d
                           ? visible[static_cast<size_t>(index)]
                           : 0);
     }
-    const int root = update.add("<<\n/Type /Outlines\n/First " +
-                                QByteArray::number(nodes[static_cast<size_t>(topLevel.front())].object) +
-                                " 0 R\n/Last " +
-                                QByteArray::number(nodes[static_cast<size_t>(topLevel.back())].object) +
-                                " 0 R\n/Count " + QByteArray::number(total) + "\n>>");
+    const int root = update.add(
+        "<<\n/Type /Outlines\n/First " +
+        QByteArray::number(nodes[static_cast<size_t>(topLevel.front())].object) + " 0 R\n/Last " +
+        QByteArray::number(nodes[static_cast<size_t>(topLevel.back())].object) + " 0 R\n/Count " +
+        QByteArray::number(total) + "\n>>");
     size_t heading = 0;
     for (size_t i = 0; i < nodes.size(); ++i, ++heading) {
-        while (headings[heading].place.page < 0 || headings[heading].place.page >= update.pageCount() ||
+        while (headings[heading].place.page < 0 ||
+               headings[heading].place.page >= update.pageCount() ||
                headings[heading].text.isEmpty()) {
             ++heading;
         }
@@ -398,21 +403,30 @@ void addBookmarks(PdfUpdate& update, const std::vector<PageHeading>& headings, d
         const std::vector<int>& siblings =
             node.parent < 0 ? topLevel : nodes[static_cast<size_t>(node.parent)].children;
         const auto at = std::find(siblings.cbegin(), siblings.cend(), static_cast<int>(i));
-        QByteArray body = "<<\n/Title " + pdfText(headings[heading].text) + "\n/Parent " +
-                          QByteArray::number(node.parent < 0 ? root
-                                                             : nodes[static_cast<size_t>(node.parent)].object) +
-                          " 0 R\n";
+        QByteArray body =
+            "<<\n/Title " + pdfText(headings[heading].text) + "\n/Parent " +
+            QByteArray::number(node.parent < 0 ? root
+                                               : nodes[static_cast<size_t>(node.parent)].object) +
+            " 0 R\n";
         if (at != siblings.cbegin()) {
-            body += "/Prev " + QByteArray::number(nodes[static_cast<size_t>(*std::prev(at))].object) + " 0 R\n";
+            body += "/Prev " +
+                    QByteArray::number(nodes[static_cast<size_t>(*std::prev(at))].object) +
+                    " 0 R\n";
         }
         if (std::next(at) != siblings.cend()) {
-            body += "/Next " + QByteArray::number(nodes[static_cast<size_t>(*std::next(at))].object) + " 0 R\n";
+            body += "/Next " +
+                    QByteArray::number(nodes[static_cast<size_t>(*std::next(at))].object) +
+                    " 0 R\n";
         }
         if (!node.children.empty()) {
-            body += "/First " + QByteArray::number(nodes[static_cast<size_t>(node.children.front())].object) +
-                    " 0 R\n/Last " + QByteArray::number(nodes[static_cast<size_t>(node.children.back())].object) +
+            body += "/First " +
+                    QByteArray::number(nodes[static_cast<size_t>(node.children.front())].object) +
+                    " 0 R\n/Last " +
+                    QByteArray::number(nodes[static_cast<size_t>(node.children.back())].object) +
                     " 0 R\n/Count " +
-                    QByteArray::number(node.depth < OPEN_BOOKMARK_DEPTH ? visible[i] : -static_cast<int>(node.children.size())) +
+                    QByteArray::number(node.depth < OPEN_BOOKMARK_DEPTH
+                                           ? visible[i]
+                                           : -static_cast<int>(node.children.size())) +
                     '\n';
         }
         body += "/Dest " + destination(update, headings[heading].place, pageHeight) + "\n>>";
@@ -435,11 +449,13 @@ QByteArray commentObject(const BookExport& book, const PageComment& comment, dou
     if (!label.isEmpty()) {
         text = label + QStringLiteral(": ") + text;
     }
-    const QRectF icon(comment.point.x(), comment.point.y() - COMMENT_ICON, COMMENT_ICON, COMMENT_ICON);
-    QByteArray body = "<<\n/Type /Annot\n/Subtype /Text\n/Rect " + pdfRect(icon, pageHeight) +
-                      "\n/Contents " + pdfText(text) + "\n/Name /" +
-                      (annotation.kind == AnnotationKind::Note ? QByteArray("Note") : QByteArray("Comment")) +
-                      "\n/Open false\n";
+    const QRectF icon(comment.point.x(), comment.point.y() - COMMENT_ICON, COMMENT_ICON,
+                      COMMENT_ICON);
+    QByteArray body =
+        "<<\n/Type /Annot\n/Subtype /Text\n/Rect " + pdfRect(icon, pageHeight) + "\n/Contents " +
+        pdfText(text) + "\n/Name /" +
+        (annotation.kind == AnnotationKind::Note ? QByteArray("Note") : QByteArray("Comment")) +
+        "\n/Open false\n";
     if (!annotation.author.isEmpty()) {
         body += "/T " + pdfText(annotation.author) + '\n';
     }
@@ -477,7 +493,8 @@ bool exportPdf(const BookExport& book, const QString& path, const ExportProgress
     const bool archive = options.purpose == PdfPurpose::Archive;
     if (!pdfPurposeSupported(options.purpose)) {
         problem->kind = ExportProblem::Kind::Other;
-        problem->lines << QStringLiteral("PDF/X-4 needs Qt 6.8 or later (the program runs with Qt %1)")
+        problem->lines << QStringLiteral(
+                              "PDF/X-4 needs Qt 6.8 or later (the program runs with Qt %1)")
                               .arg(QString::fromLatin1(qVersion()));
         return false;
     }
@@ -558,8 +575,9 @@ bool exportPdf(const BookExport& book, const QString& path, const ExportProgress
             if (link.target.page < 0 || link.page >= update.pageCount()) {
                 continue;
             }
-            QByteArray body = "<<\n/Type /Annot\n/Subtype /Link\n/Rect " + pdfRect(link.rect, pageHeight) +
-                              "\n/Border [0 0 0]\n/Dest " + destination(update, link.target, pageHeight) + '\n';
+            QByteArray body = "<<\n/Type /Annot\n/Subtype /Link\n/Rect " +
+                              pdfRect(link.rect, pageHeight) + "\n/Border [0 0 0]\n/Dest " +
+                              destination(update, link.target, pageHeight) + '\n';
             if (archive) {
                 body += "/F 4\n";
             }
@@ -568,7 +586,8 @@ bool exportPdf(const BookExport& book, const QString& path, const ExportProgress
         if (book.annotationsAsComments) {
             for (const PageComment& comment : pages.comments()) {
                 if (comment.page >= 0 && comment.page < update.pageCount()) {
-                    update.annotate(comment.page, update.add(commentObject(book, comment, pageHeight, archive)));
+                    update.annotate(comment.page,
+                                    update.add(commentObject(book, comment, pageHeight, archive)));
                 }
             }
         }
@@ -579,7 +598,8 @@ bool exportPdf(const BookExport& book, const QString& path, const ExportProgress
         update.addToCatalog(archive ? QByteArray("/PageLayout /TwoColumnRight\n")
                                     : QByteArray("/PageLayout /TwoPageRight\n"));
     }
-    static const QRegularExpression languageTag(QStringLiteral("^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"));
+    static const QRegularExpression languageTag(
+        QStringLiteral("^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"));
     if (languageTag.match(book.language).hasMatch()) {
         update.addToCatalog("/Lang (" + book.language.toLatin1() + ")\n");
     }

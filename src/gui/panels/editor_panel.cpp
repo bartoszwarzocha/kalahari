@@ -495,7 +495,8 @@ editor::EditorColors EditorPanel::themeColors() {
     };
     const auto markColors = [&onPaper](const QColor& paper) {
         editor::EditorColors::AnnotationColors colors;
-        colors.comment = onPaper(editor::annotationColorKey(editor::AnnotationKind::Comment), paper);
+        colors.comment =
+            onPaper(editor::annotationColorKey(editor::AnnotationKind::Comment), paper);
         colors.todo = onPaper(editor::annotationColorKey(editor::AnnotationKind::Todo), paper);
         colors.note = onPaper(editor::annotationColorKey(editor::AnnotationKind::Note), paper);
         return colors;
