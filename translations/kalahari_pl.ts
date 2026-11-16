@@ -27981,8 +27981,8 @@ The columns of the bookmarks of the preview. In Polish: Strona</extracomment>
         <translation>Karta przy kursorze:</translation>
     </message>
     <message>
-        <source>Signs of the cards beside the linked paragraphs</source>
-        <extracomment>The signs of the kinds of the cards beside a paragraph linked with them, like the paperclip of a material; keep it short, as the narrowest window of the settings has room for about 40 characters. In Polish: Znaki kart przy powiązanych akapitach</extracomment>
+        <source>Card signs beside linked paragraphs</source>
+        <extracomment>The signs of the kinds of the cards beside a paragraph linked with them, like the paperclip of a material; keep it short, as the narrowest window of the settings has room for about 38 characters. In Polish: Znaki kart przy powiązanych akapitach</extracomment>
         <translation>Znaki kart przy powiązanych akapitach</translation>
     </message>
     <message>

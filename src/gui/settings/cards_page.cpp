@@ -315,8 +315,8 @@ void CardsPage::addTextGroup() {
 
     //: The signs of the kinds of the cards beside a paragraph linked with them, like the
     //: paperclip of a material; keep it short, as the narrowest window of the settings has
-    //: room for about 40 characters. In Polish: Znaki kart przy powiązanych akapitach
-    QCheckBox* marks = addCheckBox(text, tr("Signs of the cards beside the linked paragraphs"),
+    //: room for about 38 characters. In Polish: Znaki kart przy powiązanych akapitach
+    QCheckBox* marks = addCheckBox(text, tr("Card signs beside linked paragraphs"),
                                    ParagraphMarksCoordinator::CARD_MARKS_SETTING);
     marks->setObjectName(QStringLiteral("cardsParagraphMarks"));
     //: In Polish: Kliknięcie znaku otwiera kartę. Bez znaków panel „Właściwości” nadal wymienia

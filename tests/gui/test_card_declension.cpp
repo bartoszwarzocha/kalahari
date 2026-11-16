@@ -458,6 +458,8 @@ TEST_CASE("Card declension: the full card shows the forms by case of the name or
 
 TEST_CASE("Card declension: the texts of the book offer Create Card with the kinds of cards",
           "[gui][cards][dictionary]") {
+    // The icons of the kinds, also when the test runs alone
+    gui::registerAllIcons();
     const PolishNovel novel;
     auto& pm = novel.pm;
     test::Window window;
