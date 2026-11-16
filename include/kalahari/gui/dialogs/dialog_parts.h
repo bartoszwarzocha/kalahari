@@ -2,8 +2,8 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file dialog_parts.h
-/// @brief Parts that the program's own dialogs share: a list as high as its rows, a note with
-/// an icon, and the Copy button
+/// @brief Parts that the program's own dialogs share: a list as high as its rows, the keys of
+/// a list with a filter, a note with an icon, and the Copy button
 
 #pragma once
 
@@ -13,7 +13,11 @@
 
 #include <functional>
 
+class QAbstractItemView;
+class QEvent;
 class QLabel;
+class QLineEdit;
+class QObject;
 class QPushButton;
 class QWidget;
 
@@ -51,6 +55,14 @@ private:
 /// @param parent Parent widget
 /// @param accessibleName Name of the list for screen readers
 RowList* newRowList(QWidget* parent, const QString& accessibleName);
+
+/// @brief The keys of list @p list with filter @p filter above it: the letters typed in the
+/// list go to the filter, and Backspace takes the last one back; the arrows and the page keys
+/// of the filter choose in the list, which gets the keys
+/// @param watched What @p event is for: the list, the filter or another part of the dialog
+/// @return Whether it took @p event
+bool takeFilterKeys(const QObject* watched, const QEvent* event, QLineEdit* filter,
+                    QAbstractItemView* list);
 
 /// @brief A note of a dialog: an icon, and a sentence beside it, which can be selected
 /// @param parent Parent widget

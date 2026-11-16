@@ -1233,8 +1233,9 @@ struct KeptMaterialSettings {
 };
 
 /// @brief The kinds of the Workshop of a novel that Add Element can add, in their order
-constexpr const char* WORKSHOP_KINDS = "Working note | Cover | Quote | Web page | Picture | "
-                                       "Document | Publication | Recording | Other file";
+constexpr const char* WORKSHOP_KINDS = "Character | Location | Item | Working note | Cover | "
+                                       "Quote | Web page | Picture | Document | Publication | "
+                                       "Recording | Other file";
 
 /// @brief Add Element on @p scope of the book, @p id the group or the element of the scope
 gui::AddTarget addingOn(gui::AddTarget::Scope scope, const QString& id = QString(),
@@ -1383,12 +1384,20 @@ TEST_CASE("Add Element: in the Workshop a working note and materials of their ki
         NewFileDialog dialog(withoutChoice(addingOn(gui::AddTarget::Scope::Workshop)), types);
         CHECK(test::textsOf(dialog).contains(
             QStringLiteral("Choose the kind of the new element of the Workshop and its title.")));
-        CHECK(joined(enabledRowsOf(dialog)) ==
-              "# Workshop | Working note | Cover | Quote | Web page | Picture | Document | "
-              "Publication | Recording | Other file");
+        CHECK(joined(enabledRowsOf(dialog)) == std::string("# Workshop | ") + WORKSHOP_KINDS);
         CHECK(rowsOf(*dialog.kindList()).contains(
             QStringLiteral("Mind map (greyed): The program does not have an editor for the mind "
                            "map yet.")));
+        // The first kind that can be made: the cards come first, as in the Navigator
+        REQUIRE(dialog.kind());
+        CHECK(dialog.kind().kind->id == QStringLiteral("character"));
+        CHECK(dialog.titleEdit()->text() == QStringLiteral("Character 1"));
+        CHECK(dialog.placeNote()->text() ==
+              QStringLiteral("In the Workshop the elements are in alphabetical order, so the "
+                             "character goes to the group \"Characters\" at the place of its "
+                             "title."));
+
+        choose(dialog, QStringLiteral("Working note"));
         REQUIRE(dialog.kind());
         CHECK(dialog.kind().kind->id == QStringLiteral("work_note"));
         CHECK(dialog.titleEdit()->text() == QStringLiteral("Note 1"));
@@ -1734,7 +1743,7 @@ TEST_CASE("Add Element: the sections of the book and the Workshop at the top, on
         // The Workshop: its kinds without places and statuses
         choiceOf(dialog, QStringLiteral("Workshop"))->click();
         CHECK(joined(enabledRowsOf(dialog)) == WORKSHOP_KINDS);
-        CHECK(chosenTileOf(dialog) == QStringLiteral("Working note"));
+        CHECK(chosenTileOf(dialog) == QStringLiteral("Character"));
         CHECK(dialog.place().place == BookPlace::Workshop);
         CHECK_FALSE(dialog.statusBox()->isVisibleTo(&dialog));
         CHECK(test::textsOf(dialog).contains(

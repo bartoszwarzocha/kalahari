@@ -12,6 +12,7 @@
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/book_editor.h"
 #include "kalahari/editor/editor_appearance.h"
+#include "kalahari/editor/search_engine.h"
 #include "kalahari/gui/book_texts.h"
 #include "kalahari/gui/command_registry.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
@@ -235,6 +236,21 @@ void BookSearchCoordinator::findInBook() {
             m_panel->setOptions(bar->options());
         }
     }
+    m_panel->focusSearchField();
+    search();
+}
+
+void BookSearchCoordinator::findInBook(const QString& text) {
+    if (m_panel == nullptr || text.trimmed().isEmpty()) {
+        return;
+    }
+    if (m_showPanel) {
+        m_showPanel();
+    }
+    m_panel->setSearchText(text.trimmed());
+    editor::SearchOptions options;
+    options.wholeWord = true;
+    m_panel->setOptions(options);
     m_panel->focusSearchField();
     search();
 }

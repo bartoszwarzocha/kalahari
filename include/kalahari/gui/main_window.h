@@ -253,6 +253,11 @@ private:
     /// Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void createDocks();
 
+    /// @brief The cards of characters, locations and items: Open Card of the short card opens
+    /// the full card on a tab, the gears of both open Settings > Cards, a portrait from a file
+    /// shows in the Navigator as a new material
+    void connectCards();
+
     /// @brief Reset the layout to default: the toolbars (ToolbarManager) and the panels
     /// @note Delegates to DockCoordinator (OpenSpec #00038 Phase 4).
     void resetLayout();
