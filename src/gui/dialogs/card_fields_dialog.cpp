@@ -253,7 +253,6 @@ core::KindRef namedKind(const core::KindRef& kind, const QString& cardKind) {
     return named != nullptr ? core::KindRef{kind.package, named} : core::KindRef{};
 }
 
-/// Whether @p event is key @p key without modifiers
 /// The keys of the table of the fields: Insert adds a field, Delete removes it, F2 changes it
 constexpr std::array<Qt::Key, 3> TABLE_KEYS{Qt::Key_Insert, Qt::Key_Delete, Qt::Key_F2};
 
@@ -263,7 +262,8 @@ std::optional<Qt::Key> tableKeyOf(const QEvent* event) {
         return std::nullopt;
     }
     const auto* key = static_cast<const QKeyEvent*>(event);
-    const auto* const found = std::ranges::find_if(
+    // An iterator of std::array, which is not a pointer with every compiler
+    const auto found = std::ranges::find_if(
         TABLE_KEYS, [key](Qt::Key which) { return card::isListKey(key, which); });
     return found != TABLE_KEYS.end() ? std::optional<Qt::Key>(*found) : std::nullopt;
 }
