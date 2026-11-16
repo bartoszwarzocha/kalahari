@@ -531,9 +531,9 @@ QList<PublishingTemplatePoint> PublishingTemplate::pointsFor(
     }
     QList<PublishingTemplatePoint> each;
     for (const auto& [textId, title] : texts) {
-        LocalizedText name;
-        name.values.insert(QStringLiteral("en"), title);
-        each << PublishingTemplatePoint{textId, name, hint};
+        LocalizedText pointName;
+        pointName.values.insert(QStringLiteral("en"), title);
+        each << PublishingTemplatePoint{textId, pointName, hint};
     }
     return each;
 }

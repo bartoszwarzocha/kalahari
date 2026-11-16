@@ -680,13 +680,13 @@ void NavigatorPage::addSetChoice(QFormLayout* group) {
     // In the order of the boxes, so that a set kept in another order is not a change
     set.stored = [&settings]() {
         const json value = settings.get<json>(PublishingTexts::SET_SETTING, json::array());
-        json parts = json::array();
+        json chosen = json::array();
         for (const QString& part : PublishingTexts::setParts()) {
             if (listsPart(value, part)) {
-                parts.push_back(part.toStdString());
+                chosen.push_back(part.toStdString());
             }
         }
-        return parts;
+        return chosen;
     };
     set.shown = [this]() {
         json value = json::array();

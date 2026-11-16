@@ -586,9 +586,9 @@ TEST_CASE("Texts for publishers: the parts of the set and their versions",
     const BookProject project = projectOf(projectWith(elements, back));
     const ProjectBook& book = project.books.first();
 
-    const auto idsOf = [](const QList<const ProjectElement*>& elements) {
+    const auto idsOf = [](const QList<const ProjectElement*>& found) {
         QStringList ids;
-        for (const ProjectElement* element : elements) {
+        for (const ProjectElement* element : found) {
             ids << element->id;
         }
         return ids;
