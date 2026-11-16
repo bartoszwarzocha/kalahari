@@ -234,6 +234,14 @@ public:
     /// Materials, the kind of a kind of the Materials; none for the other nodes
     static std::optional<QString> materialListOf(const QTreeWidgetItem* item);
 
+    /// @brief The list of cards that @p item opens (CardList): the kind of a group of cards
+    /// (characters, locations, items); none for the other nodes
+    [[nodiscard]] static std::optional<QString> cardListOf(const QTreeWidgetItem* item);
+
+    /// @brief The list that @p item opens on a tab: of materials (materialListOf()) or of cards
+    /// (cardListOf()); none for the other nodes
+    [[nodiscard]] static std::optional<QString> listOf(const QTreeWidgetItem* item);
+
     /// @brief The name of the node of @p book: the writer's own, or "Book"
     static QString bookName(const core::ProjectBook& book);
 
@@ -629,7 +637,7 @@ private:
     static void setCount(QTreeWidgetItem* item, qsizetype count);
 
     /// @brief Ask for the page that @p item shows on a tab: the book's dictionary, a list of
-    /// materials (materialListOf())
+    /// materials or of cards (listOf())
     /// @param keys The page gets the keys (Enter), else the Navigator keeps them (a click)
     /// @return Whether @p item has a page
     bool requestPageOf(const QTreeWidgetItem* item, bool keys);

@@ -16,6 +16,7 @@
 
 namespace kalahari::core {
 class ProjectManager;
+struct ProjectElement;
 }  // namespace kalahari::core
 
 namespace kalahari {
@@ -27,6 +28,7 @@ struct MaterialColumn {
     QString title;         ///< Its header; empty for the thumbnail
     bool shown = true;     ///< Shown while the writer has not chosen the columns of the list
     bool sortable = true;  ///< false: the thumbnail
+    bool editable = false; ///< Its cells are edited in the table (F2): the fields of a card
 };
 
 /// @brief A material of the Workshop as a row of a list shows it
@@ -50,6 +52,10 @@ struct MaterialRow {
     QString heading;                 ///< A row that names a group of the list of the cover,
                                      ///< not a material: its name and number; empty: a
                                      ///< material
+    bool card = false;               ///< A card of a character, a location or an item
+                                     ///< (CardList)
+    QString color;                   ///< Of a card: its color ("#RRGGBB"); empty: none
+    QString summary;                 ///< Of a card: In Short, on its tile
 };
 
 /// @brief The lists of the materials of the book open in @p book: the kinds of the Materials of its
@@ -57,7 +63,8 @@ struct MaterialRow {
 ///
 /// A list is named by the kind of its materials with its package ("kalahari.base:quote");
 /// ALL is the list of All Materials, the working notes too, and SOURCES that of the materials
-/// with a bibliographic description, of every kind. The writer chooses the columns of
+/// with a bibliographic description, of every kind. A list of a kind of cards (characters,
+/// locations, items) has its columns and rows from CardList. The writer chooses the columns of
 /// each list and their order, and between the table and the tiles of the pictures, the
 /// documents and the publications; the program keeps it for each list (LISTS_SETTING).
 class MaterialList {
@@ -165,13 +172,18 @@ public:
     /// @brief Icon of @p list: that of its kind in the Navigator, of Materials for ALL
     static QString iconIdOf(const QString& list);
 
-    /// @brief Whether @p list has tiles besides the table: the pictures, the documents and the
-    /// publications
+    /// @brief Whether @p list has tiles besides the table: the pictures, the documents, the
+    /// publications and the cards (CardList)
     static bool hasTiles(const QString& list);
 
     /// @brief Columns of @p list, then one for each field of the writer's that its materials
     /// have (hidden at first), by name
     static QList<MaterialColumn> columnsOf(const core::ProjectManager& book, const QString& list);
+
+    /// @brief Add to @p columns one column for each field of the writer's that @p elements have,
+    /// hidden at first, sorted by name (FIELD_PREFIX)
+    static void appendFieldColumns(QList<MaterialColumn>& columns,
+                                   const QList<const core::ProjectElement*>& elements);
 
     /// @brief Column @p list sorts by at first: the quote of the quotes, the kind of All
     /// Materials, else the title

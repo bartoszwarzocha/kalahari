@@ -228,6 +228,7 @@ set(KALAHARI_SOURCES
     gui/material_downloader.cpp  # MaterialDownloader - the title of a page, the copy of a picture
     gui/link_names.cpp  # The titles, icons and places of the links of a material
     gui/material_list.cpp  # MaterialList - the lists of the materials: their kinds, columns and rows
+    gui/card_list.cpp  # CardList - the lists of the cards: their columns and rows
     gui/version_texts.cpp  # What the program says of a version of a text
     gui/versions_coordinator.cpp  # VersionsCoordinator - Save Version and Version History
     gui/dialogs/version_name_dialog.cpp  # VersionNameDialog - the description of a version
@@ -364,6 +365,7 @@ set(KALAHARI_SOURCES
     gui/widgets/own_fields_box.cpp  # OwnFieldsBox - the writer's own fields of a material or a card
     gui/widgets/relations_box.cpp  # RelationsBox - the relations of a card with the other cards
     gui/widgets/card_chapters_box.cpp  # CardChaptersBox - the chapters a card is in
+    gui/widgets/card_cell_delegate.cpp  # CardCellDelegate - the cells of a list of cards that F2 edits
     gui/widgets/palette_edit.cpp  # PaletteEdit - a palette of colors to change in the Settings
     gui/panels/card_page.cpp      # CardPage - the card of a character, a location or an item
     gui/panels/card_panel.cpp     # CardPanel - the full card on a tab beside the chapters

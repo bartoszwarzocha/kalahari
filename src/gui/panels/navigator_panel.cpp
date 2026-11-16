@@ -11,6 +11,7 @@
 /// OpenSpec #00034 Phase F: Added expansion state persistence between sessions.
 
 #include "kalahari/gui/panels/navigator_panel.h"
+#include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -2603,8 +2604,8 @@ void NavigatorPanel::showContextMenu(const QPoint& pos) {
         }
 
     } else if (elementType == "workshop_shelf" || elementType == "workshop_group") {
-        // Materials and its kinds show their lists on tabs
-        if (const std::optional<QString> list = materialListOf(item)) {
+        // Materials, its kinds and the groups of the cards show their lists on tabs
+        if (const std::optional<QString> list = listOf(item)) {
             //: Shows the list of the materials of a kind on a tab in the middle of the window.
             //: In Polish: &Otwórz listę
             QAction* openAction = menu.addAction(
@@ -3020,12 +3021,25 @@ std::optional<QString> NavigatorPanel::materialListOf(const QTreeWidgetItem* ite
     return std::nullopt;
 }
 
+std::optional<QString> NavigatorPanel::cardListOf(const QTreeWidgetItem* item) {
+    if (item == nullptr || typeOf(item) != QLatin1String("workshop_group")) {
+        return std::nullopt;
+    }
+    const QString list = item->data(0, KIND_ROLE).toString();
+    return CardList::isCardList(list) ? std::optional<QString>(list) : std::nullopt;
+}
+
+std::optional<QString> NavigatorPanel::listOf(const QTreeWidgetItem* item) {
+    const std::optional<QString> list = materialListOf(item);
+    return list ? list : cardListOf(item);
+}
+
 bool NavigatorPanel::requestPageOf(const QTreeWidgetItem* item, bool keys) {
     if (item != nullptr && typeOf(item) == QLatin1String(BOOK_DICTIONARY_TYPE)) {
         emit requestOpenBookDictionary(keys);
         return true;
     }
-    if (const std::optional<QString> list = materialListOf(item)) {
+    if (const std::optional<QString> list = listOf(item)) {
         emit requestOpenMaterialList(*list, keys);
         return true;
     }

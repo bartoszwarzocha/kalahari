@@ -11,9 +11,11 @@
 #include "kalahari/core/settings_manager.h"
 #include "kalahari/core/source_description.h"
 #include "kalahari/gui/add_target.h"
+#include "kalahari/gui/card_list.h"
 #include "kalahari/gui/cover_names.h"
 #include "kalahari/gui/dialogs/link_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dialogs/relation_dialog.h"
 #include "kalahari/gui/material_list.h"
 #include "kalahari/gui/navigator_coordinator.h"
 #include "kalahari/gui/panels/material_list_panel.h"
@@ -100,6 +102,11 @@ MaterialListCoordinator::MaterialListCoordinator(core::ProjectManager& book,
     // A description, the source of a quote or the style of the book: the list Sources, the
     // column Source of the quotes
     connect(&m_book, &core::ProjectManager::sourcesChanged, this,
+            &MaterialListCoordinator::refresh);
+    // The fields and the relations of a card, its color and portrait; the forms of the names
+    // the search finds the cards by
+    connect(&m_book, &core::ProjectManager::cardChanged, this, &MaterialListCoordinator::refresh);
+    connect(&m_book, &core::ProjectManager::bookDictionaryChanged, this,
             &MaterialListCoordinator::refresh);
     connect(m_centralTabs, &QTabWidget::currentChanged, this,
             &MaterialListCoordinator::onCurrentTabChanged);
@@ -285,7 +292,13 @@ void MaterialListCoordinator::connectList(MaterialListPanel* panel) {
             &MaterialListCoordinator::setCoverState);
     connect(panel, &MaterialListPanel::requestShowKind, this, &MaterialListCoordinator::showKind);
     connect(panel, &MaterialListPanel::requestSettings, this,
-            &MaterialListCoordinator::settingsRequested);
+            [this, panel = QPointer<MaterialListPanel>(panel)]() {
+                if (panel != nullptr && CardList::isCardList(panel->list())) {
+                    emit cardSettingsRequested();
+                } else {
+                    emit settingsRequested();
+                }
+            });
     connect(panel, &MaterialListPanel::message, this,
             [this](const QString& text) { m_statusBar->showMessage(text, MESSAGE_TIMEOUT); });
 }
@@ -340,7 +353,13 @@ void MaterialListCoordinator::rename(const QString& elementId) {
 
 void MaterialListCoordinator::link(const QString& elementId) {
     auto& pm = m_book;
-    if (pm.isReadOnly() || pm.findElement(elementId) == nullptr) {
+    const core::ProjectElement* element = pm.findElement(elementId);
+    if (pm.isReadOnly() || element == nullptr) {
+        return;
+    }
+    // A card has its relations with the other cards; both cards tell of a new one
+    if (pm.isCard(*element)) {
+        dialogs::editRelation(m_book, elementId, std::nullopt, window());
         return;
     }
     const std::optional<QList<core::ElementLink>> links =

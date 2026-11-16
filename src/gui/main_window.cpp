@@ -2674,6 +2674,8 @@ void MainWindow::connectCards() {
     connect(properties, &PropertiesPanel::requestCardSettings, this, openCardSettings);
     connect(m_navigatorCoordinator, &NavigatorCoordinator::cardSettingsRequested, this,
             openCardSettings);
+    connect(m_materialListCoordinator, &MaterialListCoordinator::cardSettingsRequested, this,
+            openCardSettings);
     connect(properties, &PropertiesPanel::cardMaterialAdded, m_navigatorCoordinator,
             &NavigatorCoordinator::refreshNavigator);
     // The other card of a relation, and a card made with a relation
