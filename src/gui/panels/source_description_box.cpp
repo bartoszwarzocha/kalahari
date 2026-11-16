@@ -11,8 +11,11 @@
 #include "kalahari/core/bibliography.h"
 #include "kalahari/core/book_project.h"
 #include "kalahari/core/project_manager.h"
+#include "kalahari/core/settings_manager.h"
+#include "kalahari/core/source_catalogs.h"
 #include "kalahari/core/source_description.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
+#include "kalahari/gui/dialogs/source_lookup_dialog.h"
 #include "kalahari/gui/panels/card_parts.h"
 #include "kalahari/gui/pdf_files.h"
 #include "kalahari/gui/source_names.h"
@@ -20,6 +23,7 @@
 #include <QAbstractItemDelegate>
 #include <QClipboard>
 #include <QComboBox>
+#include <QDialog>
 #include <QEvent>
 #include <QFormLayout>
 #include <QGuiApplication>
@@ -29,6 +33,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPointer>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QStyledItemDelegate>
@@ -38,6 +43,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <string>
 #include <utility>
 
 namespace kalahari::gui {
@@ -246,8 +252,16 @@ SourceDescriptionBox::SourceDescriptionBox(core::ProjectManager& book, QWidget* 
     m_fillButton->setToolTip(tr("Fills the empty fields with the title, the authors, the year "
                                 "and the pages the PDF file has"));
     m_fillButton->hide();
+    //: In Polish: Opis z sieci (ISBN, DOI)...
+    m_lookupButton = new QPushButton(tr("From the Web by ISBN or DOI..."), this);
+    m_lookupButton->setObjectName(QStringLiteral("sourceLookupButton"));
+    keepIcon(m_lookupButton, QStringLiteral("material.page"), core::IconContext::Button);
+    //: In Polish: Wysyła numer ISBN albo DOI do katalogu w sieci i bierze z niego opis źródła
+    m_lookupButton->setToolTip(tr("Sends the ISBN or the DOI to a catalog on the web and takes "
+                                  "the description of the source from it"));
     auto* pasteRow = new QHBoxLayout();
     pasteRow->addWidget(m_pasteButton);
+    pasteRow->addWidget(m_lookupButton);
     pasteRow->addWidget(m_fillButton);
     pasteRow->addStretch(1);
     layout->addLayout(pasteRow);
@@ -260,6 +274,7 @@ SourceDescriptionBox::SourceDescriptionBox(core::ProjectManager& book, QWidget* 
     connect(m_removePersonButton, &QToolButton::clicked, this,
             &SourceDescriptionBox::removePerson);
     connect(m_pasteButton, &QPushButton::clicked, this, &SourceDescriptionBox::pasteDescription);
+    connect(m_lookupButton, &QPushButton::clicked, this, &SourceDescriptionBox::lookUp);
     connect(m_fillButton, &QPushButton::clicked, this, &SourceDescriptionBox::fillFromFile);
     connect(m_peopleTable, &QTableWidget::itemChanged, this, [this]() {
         if (!m_updating) {
@@ -291,8 +306,27 @@ SourceDescriptionBox::SourceDescriptionBox(core::ProjectManager& book, QWidget* 
             showMaterial(*element);
         }
     });
+    // The lookup on the web shows when the Settings allow it
+    m_settingsListener = core::SettingsManager::getInstance().subscribe(
+        [box = QPointer<SourceDescriptionBox>(this)](const std::string& key) {
+            if (box == nullptr || key != core::SourceCatalogs::LOOKUP_SETTING) {
+                return;
+            }
+            QMetaObject::invokeMethod(
+                box,
+                [box]() {
+                    if (box != nullptr) {
+                        box->updateButtons();
+                    }
+                },
+                Qt::QueuedConnection);
+        });
     showKind();
     updateButtons();
+}
+
+SourceDescriptionBox::~SourceDescriptionBox() {
+    core::SettingsManager::getInstance().unsubscribe(m_settingsListener);
 }
 
 void SourceDescriptionBox::showMaterial(const core::ProjectElement& element) {
@@ -424,7 +458,8 @@ void SourceDescriptionBox::showKind() {
         previous = edit;
     }
     setTabOrder(previous, m_pasteButton);
-    setTabOrder(m_pasteButton, m_fillButton);
+    setTabOrder(m_pasteButton, m_lookupButton);
+    setTabOrder(m_lookupButton, m_fillButton);
 }
 
 void SourceDescriptionBox::updateButtons() {
@@ -433,6 +468,8 @@ void SourceDescriptionBox::updateButtons() {
     m_removePersonButton->setEnabled(editable && m_peopleTable->currentRow() >= 0 &&
                                      m_peopleTable->rowCount() > 0);
     m_pasteButton->setEnabled(editable);
+    m_lookupButton->setVisible(core::SourceCatalogs::lookupAllowed());
+    m_lookupButton->setEnabled(editable);
     m_fillButton->setVisible(m_pdf);
     m_fillButton->setEnabled(editable && m_pdf);
     const bool none = m_peopleTable->rowCount() == 0;
@@ -534,6 +571,37 @@ void SourceDescriptionBox::pasteDescription() {
     emit changed(m_elementId);
     //: In Polish: Wklejono opis bibliograficzny
     emit message(tr("Bibliographic description pasted"));
+}
+
+void SourceDescriptionBox::lookUp() {
+    if (m_elementId.isEmpty() || m_book.isReadOnly() || !core::SourceCatalogs::lookupAllowed()) {
+        return;
+    }
+    const SourceDescription shown = shownSource();
+    const QString doi = shown.value(SourceDescription::DOI);
+    dialogs::SourceLookupDialog dialog(doi.isEmpty() ? shown.value(SourceDescription::ISBN) : doi,
+                                       this);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const std::optional<SourceDescription> found = dialog.found();
+    if (!found) {
+        return;
+    }
+    if (!m_book.setSource(m_elementId, core::SourceCatalogs::merged(shown, *found))) {
+        //: In Polish: Nie zapisano opisu bibliograficznego
+        dialogs::MessageDialog::warning(this, tr("Bibliographic Description Not Saved"),
+                                        tr("Failed to save changes."));
+        return;
+    }
+    if (const core::ProjectElement* element = m_book.findElement(m_elementId)) {
+        showMaterial(*element);
+    }
+    emit changed(m_elementId);
+    //: %1: the catalog, Google Books, Open Library or doi.org. In Polish: Uzupełniono opis
+    //: bibliograficzny z %1
+    emit message(tr("Bibliographic description filled in from %1")
+                     .arg(core::SourceCatalogs::catalogName(dialog.foundIn())));
 }
 
 void SourceDescriptionBox::fillFromFile() {

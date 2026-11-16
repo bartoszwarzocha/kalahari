@@ -871,6 +871,11 @@ public:
     /// @return false when the project has no such element or the file cannot be written
     bool setBookmarks(const QString& elementId, const QList<PageBookmark>& bookmarks);
 
+    /// @brief Give material @p elementId the highlights @p highlights of its PDF file and save
+    /// the .klh file
+    /// @return false when the project has no such element or the file cannot be written
+    bool setHighlights(const QString& elementId, const QList<PdfHighlight>& highlights);
+
     /// @brief Note page @p page (from 1; 0: none) as the page of the file of material
     /// @p elementId shown last and save the .klh file
     /// @return false for a page below 0, when the project has no such element or the file

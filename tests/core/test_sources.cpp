@@ -2,9 +2,9 @@
 // Copyright (c) 2025 Bartosz W. Warzocha & Kalahari Team
 
 /// @file test_sources.cpp
-/// @brief The materials that are sources: their descriptions, bookmarks and quotes in the book
-/// file, their entries in the styles of a bibliography, the references in the text and the
-/// descriptions pasted as BibTeX and RIS
+/// @brief The materials that are sources: their descriptions, bookmarks, highlights and quotes
+/// in the book file, their entries in the styles of a bibliography, the references in the text
+/// and the descriptions pasted as BibTeX and RIS
 
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -13,6 +13,8 @@
 #include <kalahari/core/source_description.h>
 
 #include <QJsonDocument>
+#include <QList>
+#include <QRectF>
 
 #include <optional>
 
@@ -72,7 +74,8 @@ QString entry(const SourceDescription& source, const char* style, const char* la
 
 } // namespace
 
-TEST_CASE("Sources: the description, bookmarks and quotes in the book file", "[core][sources]") {
+TEST_CASE("Sources: the description, bookmarks, highlights and quotes in the book file",
+          "[core][sources]") {
     const QByteArray elements = R"(
         { "id": "m12", "kind": "kalahari.base:publication", "title": "Atlas",
           "file": "workshop/atlas.pdf",
@@ -84,6 +87,10 @@ TEST_CASE("Sources: the description, bookmarks and quotes in the book file", "[c
                       "callNumber": "II 1234" },
           "bookmarks": [ { "page": 45, "note": "Przysłowie o karawanie" },
                          { "page": 210, "color": "green" } ],
+          "highlights": [ { "page": 45, "areas": [ [72, 140.5, 310, 12], [72, 154.25, 120, 12] ],
+                            "text": "Karawana idzie tak szybko", "color": "#FFFF00",
+                            "note": "Do rozdziału 3", "by": "Ewa" },
+                          { "page": 46, "areas": [ [40, 60, 200, 11.5] ] } ],
           "lastPage": 45 },
         { "id": "m31", "kind": "kalahari.base:quote", "title": "Karawana",
           "description": "Karawana idzie tak szybko, jak jej najwolniejszy wielbłąd.",
@@ -116,6 +123,17 @@ TEST_CASE("Sources: the description, bookmarks and quotes in the book file", "[c
     CHECK(publication.bookmarks.at(0).note == QStringLiteral("Przysłowie o karawanie"));
     CHECK(publication.bookmarks.at(1).note.isEmpty());
     CHECK(publication.bookmarks.at(1).extra.keys() == QStringList{QStringLiteral("color")});
+    REQUIRE(publication.highlights.size() == 2);
+    const kalahari::core::PdfHighlight& highlight = publication.highlights.first();
+    CHECK(highlight.page == 45);
+    CHECK(highlight.areas ==
+          QList<QRectF>{QRectF(72, 140.5, 310, 12), QRectF(72, 154.25, 120, 12)});
+    CHECK(highlight.text == QStringLiteral("Karawana idzie tak szybko"));
+    CHECK(highlight.color == QStringLiteral("#FFFF00"));
+    CHECK(highlight.note == QStringLiteral("Do rozdziału 3"));
+    CHECK(highlight.extra.keys() == QStringList{QStringLiteral("by")});
+    CHECK(publication.highlights.at(1).color.isEmpty());
+    CHECK(publication.highlights.at(1).text.isEmpty());
     CHECK(publication.lastPage == 45);
     CHECK(publication.quote.isEmpty());
     CHECK(publication.extra.isEmpty());
@@ -140,6 +158,7 @@ TEST_CASE("Sources: the description, bookmarks and quotes in the book file", "[c
     BookProject changed = *project;
     changed.workshop.elements[0].source = SourceDescription{};
     changed.workshop.elements[0].bookmarks.clear();
+    changed.workshop.elements[0].highlights.clear();
     changed.workshop.elements[0].lastPage = 0;
     changed.workshop.elements[1].quote = QuoteSource{};
     changed.books[0].bibliographyStyle.clear();
@@ -147,7 +166,7 @@ TEST_CASE("Sources: the description, bookmarks and quotes in the book file", "[c
     const QJsonObject emptied = changed.toJson();
     const QJsonObject first =
         emptied[QStringLiteral("workshop")][QStringLiteral("elements")][0].toObject();
-    for (const char* key : {"source", "bookmarks", "lastPage"}) {
+    for (const char* key : {"source", "bookmarks", "highlights", "lastPage"}) {
         CHECK_FALSE(first.contains(QLatin1String(key)));
     }
     CHECK_FALSE(emptied[QStringLiteral("workshop")][QStringLiteral("elements")][1]
@@ -172,6 +191,18 @@ TEST_CASE("Sources: wrong values in the book file are problems", "[core][sources
     CHECK_FALSE(problemsOf(R"({ "id": "m1", "kind": "kalahari.base:publication",
                                 "title": "A", "lastPage": -2 })")
                     .isEmpty());
+    // A highlight needs a page and at least one place of four numbers with a size
+    for (const QByteArray& highlight :
+         {QByteArray(R"({ "page": 0, "areas": [ [1, 2, 3, 4] ] })"),
+          QByteArray(R"({ "page": 2 })"), QByteArray(R"({ "page": 2, "areas": [ [1, 2, 3] ] })"),
+          QByteArray(R"({ "page": 2, "areas": [ [1, 2, 0, 4] ] })"),
+          QByteArray(R"({ "page": 2, "areas": [ [1, 2, 3, 4], "x" ] })"), QByteArray("[2]")}) {
+        INFO(highlight.toStdString());
+        CHECK_FALSE(problemsOf(R"({ "id": "m1", "kind": "kalahari.base:publication",
+                                    "title": "A", "highlights": [ )" +
+                               highlight + " ] }")
+                        .isEmpty());
+    }
     CHECK_FALSE(problemsOf(R"({ "id": "m1", "kind": "kalahari.base:quote",
                                 "title": "A", "quote": [ "m2" ] })")
                     .isEmpty());
