@@ -210,10 +210,10 @@ bool BookEditor::insertImage(const ImageProperties& image,
         if (!imageBlock.isValid() && hasImages(block)) {
             imageBlock = block;
         }
-        if (const QTextBlock caption = captionBlockOf(imageBlock); caption.isValid()) {
-            const bool above = caption.position() < imageBlock.position();
-            first = above ? caption : imageBlock;
-            last = above ? imageBlock : caption;
+        if (const QTextBlock captionBlock = captionBlockOf(imageBlock); captionBlock.isValid()) {
+            const bool above = captionBlock.position() < imageBlock.position();
+            first = above ? captionBlock : imageBlock;
+            last = above ? imageBlock : captionBlock;
         }
         if (cursor.position() == first.position()) {
             cursor.insertBlock(first.blockFormat(), first.charFormat());
