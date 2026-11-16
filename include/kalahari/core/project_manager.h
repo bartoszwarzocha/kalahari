@@ -899,13 +899,20 @@ public:
     /// the package
     [[nodiscard]] bool hasOwnCardFields(const KindRef& kind) const;
 
+    /// @brief The ids of the fields that the cards of kind @p kind have values of, also of the
+    /// fields that went: a new field of the writer does not take them
+    /// (card_fields::newOwnId())
+    [[nodiscard]] QStringList cardValueIds(const KindRef& kind) const;
+
     /// @brief Give the cards of kind @p kind the fields @p fields and save the .klh file
     /// (cardFieldsChanged())
     ///
     /// The fields of the package (an empty list, or the same fields shown in the same places)
     /// leave the book without a set of its own. A field of the writer that names a card gets
     /// its relation (ownRelation()), named after it; a new name of the field renames the
-    /// relation. The values of the cards stay, also those of the fields that go.
+    /// relation. The values of the cards stay, also those of the fields that go; a value that
+    /// goes from the list of a field of the writer stays on the cards that have it as its name
+    /// (cardChanged()).
     /// @return false for a kind that is no kind of cards, or when the file cannot be written
     bool setCardFields(const KindRef& kind, const QList<BookCardField>& fields);
 

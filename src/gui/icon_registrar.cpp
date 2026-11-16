@@ -510,6 +510,8 @@ void registerAllIcons() {
     iconRegistry.registerIcon("template.note", "resources/icons/twotone/sticky_note_2.svg", "Note");
     iconRegistry.registerIcon("template.character", "resources/icons/twotone/person.svg", "Character");
     iconRegistry.registerIcon("template.location", "resources/icons/twotone/place.svg", "Location");
+    // The window Card Fields: the fields of the cards of characters, locations and items
+    iconRegistry.registerIcon("card.fields", "resources/icons/twotone/toc.svg", "Card Fields");
 
     // -------------------------------------------------------------------------
     // STRUCTURE ICONS (OpenSpec #00034)

@@ -18,12 +18,14 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenu>
 #include <QStyledItemDelegate>
 #include <QTableWidget>
 #include <QToolButton>
 #include <QVBoxLayout>
 
 #include <algorithm>
+#include <iterator>
 
 namespace kalahari::gui {
 
@@ -95,7 +97,11 @@ OwnFieldsBox::OwnFieldsBox(core::ProjectManager& book, const QString& namePrefix
                              QAbstractItemView::AnyKeyPressed);
     m_table->setItemDelegate(new FieldDelegate(m_book, m_table));
     m_table->setWordWrap(false);
+    m_table->setContextMenuPolicy(Qt::CustomContextMenu);
     m_table->installEventFilter(this);
+    m_menu = new QMenu(this);
+    m_menu->setObjectName(namePrefix + QStringLiteral("FieldsMenu"));
+    connect(m_table, &QTableWidget::customContextMenuRequested, this, &OwnFieldsBox::showMenu);
     layout->addWidget(m_table);
     //: In Polish: Brak pól. „+” albo Insert dodaje pole.
     m_emptyLabel = card::hintLabel(this, tr("No fields. \"+\" or Insert adds a field."),
@@ -266,6 +272,56 @@ void OwnFieldsBox::removeField() {
     if (m_table->rowCount() > 0) {
         m_table->setCurrentCell(std::min(row, m_table->rowCount() - 1), 0);
         m_table->setFocus(Qt::OtherFocusReason);
+    }
+}
+
+void OwnFieldsBox::showMenu(const QPoint& pos) {
+    if (const QTableWidgetItem* item = m_table->itemAt(pos)) {
+        m_table->setCurrentItem(m_table->item(item->row(), 0));
+    }
+    const bool readOnly = m_book.isReadOnly();
+    const int row = m_table->currentRow();
+    const QTableWidgetItem* name = row >= 0 ? m_table->item(row, 0) : nullptr;
+    m_menu->clear();
+    //: The menu of the own fields. In Polish: &Dodaj pole
+    m_menu->addAction(m_addButton->icon(), tr("&Add Field"), this, &OwnFieldsBox::addField)
+        ->setEnabled(!readOnly);
+    //: In Polish: &Usuń pole
+    m_menu->addAction(m_removeButton->icon(), tr("&Delete Field"), this,
+                      &OwnFieldsBox::removeField)
+        ->setEnabled(m_removeButton->isEnabled());
+    if (m_addToKind) {
+        m_menu->addSeparator();
+        //: Makes an own field of a card a field of all the cards of its kind, which take the
+        //: values of their own fields of that name. In Polish: Dodaj do &wszystkich kart tego
+        //: rodzaju
+        m_menu->addAction(tr("Add to &All Cards of This Kind"), this, &OwnFieldsBox::addToKind)
+            ->setEnabled(!readOnly && name != nullptr && !name->text().trimmed().isEmpty());
+    }
+    m_menu->popup(m_table->viewport()->mapToGlobal(pos));
+}
+
+void OwnFieldsBox::addToKind() {
+    const int row = m_table->currentRow();
+    const QTableWidgetItem* item = row >= 0 ? m_table->item(row, 0) : nullptr;
+    const core::ProjectElement* element = m_book.findElement(m_elementId);
+    if (item == nullptr || element == nullptr || m_book.isReadOnly()) {
+        return;
+    }
+    // The field as the book has it, by its name
+    const QString name = item->text().trimmed();
+    const auto found = std::find_if(element->fields.cbegin(), element->fields.cend(),
+                                    [&name](const core::ElementField& field) {
+                                        return field.name.trimmed().compare(
+                                                   name, Qt::CaseInsensitive) == 0;
+                                    });
+    if (name.isEmpty() || found == element->fields.cend()) {
+        return;
+    }
+    const auto index = static_cast<int>(std::distance(element->fields.cbegin(), found));
+    if (m_book.addFieldToKind(m_elementId, index).isEmpty()) {
+        dialogs::MessageDialog::warning(this, tr("Fields Not Saved"),
+                                        tr("Failed to save changes."));
     }
 }
 

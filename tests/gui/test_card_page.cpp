@@ -843,7 +843,9 @@ TEST_CASE("Card: the full card has the kind with the role, the color, the data, 
           chain.indexOf(page.ownFields()->addButton()));
     CHECK(chain.indexOf(page.ownFields()->table()) < chain.indexOf(description));
     CHECK(chain.indexOf(description) < chain.indexOf(page.relationsBox()->addButton()));
-    CHECK(chain.last() == page.relationButton());
+    REQUIRE(chain.size() > 2);
+    CHECK(chain.at(chain.size() - 2) == page.relationButton());
+    CHECK(chain.last() == page.fieldsButton());
 }
 
 TEST_CASE("Card: the portrait is a picture of the materials, from a file, or the initials on "

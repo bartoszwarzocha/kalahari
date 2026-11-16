@@ -14,6 +14,7 @@
 #include "kalahari/core/card_field_set.h"
 #include "kalahari/core/card_relations.h"
 
+#include <QHash>
 #include <QList>
 #include <QSet>
 #include <QString>
@@ -96,6 +97,55 @@ void giveRelation(BookProject& project, const QString& kind, const QString& pack
     if (sameKinds && before != field.relation) {
         moveLinks(project, before, field.relation);
     }
+}
+
+/// The values that go from the lists of the fields of the writer of set @p before in set
+/// @p after: field id -> value id -> its name
+QHash<QString, QHash<QString, QString>> choicesGone(const QList<BookCardField>& before,
+                                                    const QList<BookCardField>& after) {
+    QHash<QString, QHash<QString, QString>> gone;
+    for (const BookCardField& field : before) {
+        const auto kept = std::find_if(after.cbegin(), after.cend(),
+                                       [&field](const BookCardField& each) {
+                                           return each.id == field.id;
+                                       });
+        if (!field.isOwn() || field.type != CardFieldType::Choice || kept == after.cend()) {
+            continue;
+        }
+        for (const CardFieldChoice& choice : field.choices) {
+            const bool stays = std::any_of(kept->choices.cbegin(), kept->choices.cend(),
+                                           [&choice](const CardFieldChoice& each) {
+                                               return each.id == choice.id;
+                                           });
+            if (!stays) {
+                gone[field.id].insert(choice.id, choice.name.text(QString()));
+            }
+        }
+    }
+    return gone;
+}
+
+/// Each card of kind @p kind with a value of @p gone (choicesGone()) gets its name in its
+/// place; the cards changed
+QStringList nameChoicesGone(BookProject& project, const KindReference& kind,
+                            const QHash<QString, QHash<QString, QString>>& gone) {
+    QStringList changed;
+    if (gone.isEmpty()) {
+        return changed;
+    }
+    forEachElement(project.workshop.elements, [&](ProjectElement& element) {
+        if (!(element.kind == kind)) {
+            return;
+        }
+        for (auto field = gone.cbegin(); field != gone.cend(); ++field) {
+            const QString value = element.card.values.value(field.key());
+            if (field.value().contains(value)) {
+                element.card.values.insert(field.key(), field.value().value(value));
+                changed << element.id;
+            }
+        }
+    });
+    return changed;
 }
 
 /// The ids of the values of the cards of kind @p kind in @p project: those of the fields that
@@ -211,6 +261,12 @@ bool ProjectManager::hasOwnCardFields(const KindRef& kind) const {
     return kind && m_project && m_project->workshop.cardFields.contains(kind.reference());
 }
 
+QStringList ProjectManager::cardValueIds(const KindRef& kind) const {
+    const std::optional<KindReference> reference =
+        kind ? KindReference::parse(kind.reference()) : std::nullopt;
+    return m_project && reference ? valueIds(*m_project, *reference) : QStringList();
+}
+
 bool ProjectManager::setCardFields(const KindRef& kind, const QList<BookCardField>& fields) {
     if (!kind || !kind.kind->isCard() || kind.package == nullptr || !m_project) {
         return false;
@@ -225,6 +281,9 @@ bool ProjectManager::setCardFields(const KindRef& kind, const QList<BookCardFiel
     if (ofPackage && set.size() == kind.kind->fields.size()) {
         set.clear();
     }
+    const auto gone = choicesGone(before, set);
+    const std::optional<KindReference> cardKind = KindReference::parse(reference);
+    QStringList changed;
     const bool saved = changeProject("setCardFields", [&](BookProject& project) {
         for (BookCardField& field : set) {
             if (field.isOwn() && field.type == CardFieldType::Card) {
@@ -236,12 +295,19 @@ bool ProjectManager::setCardFields(const KindRef& kind, const QList<BookCardFiel
         } else {
             project.workshop.cardFields.insert(reference, set);
         }
+        if (cardKind) {
+            changed = nameChoicesGone(project, *cardKind, gone);
+        }
     });
-    if (saved) {
-        emit cardFieldsChanged(reference);
-        emit linksChanged();
+    if (!saved) {
+        return false;
     }
-    return saved;
+    emit cardFieldsChanged(reference);
+    emit linksChanged();
+    for (const QString& id : std::as_const(changed)) {
+        emit cardChanged(id);
+    }
+    return true;
 }
 
 QString ProjectManager::addFieldToKind(const QString& cardId, int index) {

@@ -342,6 +342,39 @@ TEST_CASE("Card fields: the book keeps the fields of the cards as the writer set
     REQUIRE(pm.closeProject(false));
 }
 
+TEST_CASE("Card fields: a value that goes from a list of the writer stays on the cards",
+          "[core][cards][card_fields][project_manager]") {
+    const QTemporaryDir dir;
+    auto& pm = kalahari::test::book();
+    openBook(pm, dir);
+    const KindRef character = baseKind(pm, "character");
+    const QString anna = addCard(pm, "character", QStringLiteral("Anna"));
+    const QString jan = addCard(pm, "character", QStringLiteral("Jan"));
+    BookCardField race = ownField("own-1", QStringLiteral("Rasa"), CardFieldType::Choice);
+    race.choices = {
+        CardFieldChoice{QStringLiteral("c1"), LocalizedText::plain(QStringLiteral("elf"))},
+        CardFieldChoice{QStringLiteral("c2"), LocalizedText::plain(QStringLiteral("krasnolud"))}};
+    QList<BookCardField> set = pm.cardFieldSet(character);
+    set << race;
+    REQUIRE(pm.setCardFields(character, set));
+    REQUIRE(pm.setCardValue(anna, QStringLiteral("own-1"), QStringLiteral("c1")));
+    REQUIRE(pm.setCardValue(jan, QStringLiteral("own-1"), QStringLiteral("c2")));
+    QStringList changedCards;
+    const QObject listening;  // The book outlives the test
+    QObject::connect(&pm, &ProjectManager::cardChanged, &listening,
+                     [&changedCards](const QString& id) { changedCards << id; });
+
+    // The elf goes from the list; the dwarf is renamed
+    set.last().choices = {
+        CardFieldChoice{QStringLiteral("c2"), LocalizedText::plain(QStringLiteral("krasnoludka"))}};
+    REQUIRE(pm.setCardFields(character, set));
+    CHECK(pm.findElement(anna)->card.value(QStringLiteral("own-1")) == QStringLiteral("elf"));
+    CHECK(pm.findElement(jan)->card.value(QStringLiteral("own-1")) == QStringLiteral("c2"));
+    CHECK(changedCards == QStringList{anna});
+
+    REQUIRE(pm.closeProject(false));
+}
+
 TEST_CASE("Card fields: a field of a newer package stays in the book",
           "[core][cards][card_fields][project_manager]") {
     const QTemporaryDir dir;
@@ -527,6 +560,7 @@ TEST_CASE("Card fields: an own field of a card made a field of all the cards of 
 
     // A value with several lines gives a longer text; the id of a field that went is not
     // taken again, since the cards keep its values
+    CHECK(pm.cardValueIds(character).contains(race));
     QList<BookCardField> set = pm.cardFieldSet(character);
     set.erase(std::remove_if(set.begin(), set.end(),
                              [&race](const BookCardField& each) { return each.id == race; }),

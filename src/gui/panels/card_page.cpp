@@ -17,6 +17,7 @@
 #include "kalahari/core/theme.h"
 #include "kalahari/core/theme_manager.h"
 #include "kalahari/editor/text_images.h"
+#include "kalahari/gui/dialogs/card_fields_dialog.h"
 #include "kalahari/gui/dialogs/color_dialog.h"
 #include "kalahari/gui/dialogs/message_dialog.h"
 #include "kalahari/gui/kind_names.h"
@@ -373,6 +374,15 @@ void CardPage::createFullLayout() {
     m_relationButton->setToolTip(tr("A new relation with another card"));
     connect(m_relationButton, &QToolButton::clicked, m_relations, &RelationsBox::addRelation);
     barLayout->addWidget(m_relationButton);
+    //: The button of the bar of a full card that opens the window Card Fields. In Polish:
+    //: Pola...
+    m_fieldsButton = barButton(bar, tr("Fields..."), QStringLiteral("card.fields"),
+                               QStringLiteral("cardFieldsButton"));
+    //: In Polish: Pola kart tego rodzaju: kolejność i to, gdzie widać każde pole
+    m_fieldsButton->setToolTip(
+        tr("The fields of the cards of this kind: their order and where each is shown"));
+    connect(m_fieldsButton, &QToolButton::clicked, this, &CardPage::editFields);
+    barLayout->addWidget(m_fieldsButton);
     barLayout->addStretch(1);
     barLayout->addWidget(m_settingsButton);
     card::keepIcon(m_settingsButton, QStringLiteral("dock.settings"),
@@ -457,6 +467,7 @@ void CardPage::createFullLayout() {
     //: In Polish: Własne pola karty
     m_ownFields = new OwnFieldsBox(m_book, QStringLiteral("card"), tr("Own fields of the card"),
                                    false, dataColumn);
+    m_ownFields->setAddToKind(true);
     dataLayout->addWidget(m_ownFields);
     dataLayout->addStretch(1);
     columns->addWidget(dataColumn);
@@ -606,6 +617,7 @@ void CardPage::showHeader(const core::ProjectElement& element) {
         showColor(element);
         m_colorButton->setEnabled(!readOnly);
         m_relationButton->setEnabled(!readOnly);
+        m_fieldsButton->setEnabled(!readOnly);
         return;
     }
     const QHash<QString, core::KindWords> nouns{
@@ -681,10 +693,18 @@ void CardPage::clearFields() {
     }
 }
 
+void CardPage::editFields() {
+    if (m_elementId.isEmpty() || m_book.isReadOnly()) {
+        return;
+    }
+    // The form follows the fields saved (cardFieldsChanged())
+    dialogs::editCardFields(m_book, m_kindKey, window());
+}
+
 void CardPage::orderKeys(const QList<QWidget*>& besides, const QList<QWidget*>& fields) {
     QList<QWidget*> chain;
     if (m_full) {
-        chain << m_findButton << m_relationButton;
+        chain << m_findButton << m_relationButton << m_fieldsButton;
     }
     chain << m_settingsButton << m_portrait << m_nameEdit;
     if (m_colorButton != nullptr) {

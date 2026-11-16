@@ -68,7 +68,8 @@ class RelationsBox;
 ///   (CardNameBox): the window "Name" opens for them (requestNameWindow()), and the full card
 ///   adds other names (requestOtherName()).
 /// - The full card has a bar with Find in Book (the name of the card, all its forms and its
-///   other names in the Search panel), Relation... and the gear (Settings > Cards) over its
+///   other names in the Search panel), Relation..., Fields... (the window Card Fields of its
+///   kind) and the gear (Settings > Cards) over its
 ///   data, which scroll: the kind with that field and the color of the card (a click opens
 ///   the color window), the fields, the declension, the writer's own fields (OwnFieldsBox)
 ///   and, beside them, the long description, the text of
@@ -171,6 +172,8 @@ public:
     [[nodiscard]] RelationsBox* relationsBox() const { return m_relations; }
     /// @brief Relation... of the bar: a new relation; full card
     [[nodiscard]] QToolButton* relationButton() const { return m_relationButton; }
+    /// @brief Fields... of the bar: the window Card Fields of the kind of the card; full card
+    [[nodiscard]] QToolButton* fieldsButton() const { return m_fieldsButton; }
     /// @brief Find in Book of the bar: the name of the card in the Search panel; full card
     [[nodiscard]] QToolButton* findButton() const { return m_findButton; }
     /// @brief The chapters the card is in; full card
@@ -200,6 +203,10 @@ public slots:
 
     /// @brief Open the color window for the color of the card
     void chooseColor();
+
+    /// @brief Open the window Card Fields at the kind of the card, which saves the fields
+    /// (dialogs::editCardFields())
+    void editFields();
 
 signals:
     /// @brief Open the full card of @p elementId
@@ -376,6 +383,7 @@ private:
     QWidget* m_description = nullptr;         ///< Full card: the long description, in its group
     RelationsBox* m_relations = nullptr;
     QToolButton* m_relationButton = nullptr;  ///< Full card: Relation... of the bar
+    QToolButton* m_fieldsButton = nullptr;    ///< Full card: Fields... of the bar
     QToolButton* m_findButton = nullptr;      ///< Full card: Find in Book of the bar
     CardChaptersBox* m_chapters = nullptr;    ///< Full card: the chapters of the card
     LinkedMaterialsBox* m_materials = nullptr;  ///< Full card: the materials of the card

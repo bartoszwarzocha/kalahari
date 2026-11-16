@@ -180,6 +180,7 @@ set(TEST_SOURCES
     gui/test_material_card.cpp                   # The card of a material, its preview and Link
     gui/test_card_page.cpp                       # The cards of characters, locations and items
     gui/test_relation_dialog.cpp                 # The window Relation and the relations of a card
+    gui/test_card_fields_dialog.cpp              # The window Card Fields and Fields... of the full card
     gui/test_card_declension.cpp                 # The names of the cards, declined, in the dictionary
     gui/test_card_chapters.cpp                   # The chapters and the materials of a card, what is dropped on it
     gui/test_material_list.cpp                   # The lists of the kinds of materials on their tabs
@@ -529,6 +530,8 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/link_dialog.cpp              # What a material is about
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/relation_dialog.cpp          # A relation of a card
     ${CMAKE_SOURCE_DIR}/src/gui/dialogs/paragraph_card_dialog.cpp    # A paragraph linked with a card
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/card_fields_dialog.cpp       # The fields of the cards of each kind
+    ${CMAKE_SOURCE_DIR}/src/gui/dialogs/card_field_dialogs.cpp       # A field of the writer, the values of its list
     ${CMAKE_SOURCE_DIR}/src/gui/material_file.cpp                    # The file of a material and its picture
     ${CMAKE_SOURCE_DIR}/src/gui/material_source.cpp                  # Where a material comes from
     ${CMAKE_SOURCE_DIR}/src/gui/material_downloader.cpp              # The title of a page, the copy of a picture
@@ -711,6 +714,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_card_dialog.h  # ParagraphCardDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/card_fields_dialog.h  # CardFieldsDialog, CardFieldDialog, CardChoicesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/panels/material_page.h  # MaterialPage, LinkedMaterialsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/own_fields_box.h  # OwnFieldsBox with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/widgets/relations_box.h  # RelationsBox with Q_OBJECT

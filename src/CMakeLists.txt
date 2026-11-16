@@ -227,6 +227,8 @@ set(KALAHARI_SOURCES
     gui/dialogs/link_dialog.cpp  # LinkDialog - what a material is about, or the materials of an element
     gui/dialogs/relation_dialog.cpp  # RelationDialog - a relation of a card with another card
     gui/dialogs/paragraph_card_dialog.cpp  # ParagraphCardDialog - a paragraph linked with a card
+    gui/dialogs/card_fields_dialog.cpp  # CardFieldsDialog - the fields of the cards of each kind
+    gui/dialogs/card_field_dialogs.cpp  # CardFieldDialog, CardChoicesDialog - a field of the writer, its list
     gui/material_file.cpp  # MaterialFile - the file of a material: its name, format, size and picture
     gui/material_source.cpp  # MaterialSource - a file, a web page, a picture on the web or none
     gui/material_downloader.cpp  # MaterialDownloader - the title of a page, the copy of a picture
@@ -504,6 +506,7 @@ set(KALAHARI_SOURCES
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/link_dialog.h  # LinkDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/relation_dialog.h  # RelationDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/paragraph_card_dialog.h  # ParagraphCardDialog with Q_OBJECT
+    ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/card_fields_dialog.h  # CardFieldsDialog, CardFieldDialog, CardChoicesDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/version_name_dialog.h  # VersionNameDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/quick_insert_item_dialog.h  # QuickInsertItemDialog with Q_OBJECT
     ${CMAKE_SOURCE_DIR}/include/kalahari/gui/dialogs/name_dialog.h  # NameDialog with Q_OBJECT
