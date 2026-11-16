@@ -92,7 +92,8 @@ class Full:
         return [k.ExportFormat("txt", "Plain text", "txt")]
 
     def export_document(self, format, path, book):
-        with open(path, "w", encoding="utf-8") as file:
+        # Lines end with \n on every system (text mode writes \r\n on Windows)
+        with open(path, "w", encoding="utf-8", newline="\n") as file:
             file.write(format + "\n")
             for text in book.texts:
                 file.write(text.title + ":" + text.text + "\n")
