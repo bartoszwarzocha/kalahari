@@ -28,6 +28,7 @@
 #include <QHash>
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
 
 #include <map>
 #include <memory>
@@ -175,8 +176,14 @@ struct ImportStyle {
     QString key;           ///< The file's id of it (Word's styleId; "heading_1" in Markdown)
     QString name;          ///< Its name in the file ("heading 1", "Tytuł rozdziału")
     QString basedOn;       ///< The key of its base style; empty: none
+    QString next;          ///< The key of the style after it (Word's w:next); empty: the same
     int headingLevel = 0;  ///< 1 to 9: a heading of this level; 0: none
     int paragraphs = 0;    ///< The paragraphs of the text in it
+    QVariantMap properties;  ///< Its own formatting, as the book's styles name it (fontFamily,
+                             ///< fontSize, bold, italic, underline, alignment, firstLineIndent,
+                             ///< leftMargin, rightMargin, spaceBefore, spaceAfter, lineHeight,
+                             ///< keepWithNext, keepTogether, pageBreakBefore, widowControl;
+                             ///< lengths in points): a new style of the book made of it has them
 };
 
 /// @brief A footnote or an endnote

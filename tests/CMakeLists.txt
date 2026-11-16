@@ -160,6 +160,7 @@ set(TEST_SOURCES
     gui/test_dialogs.cpp                         # The program's own dialogs
     gui/test_archive_dialogs.cpp                 # Export and Import Project Archive windows
     gui/test_export_book_dialog.cpp              # File > Export > DOCX and Markdown: the window and the book
+    gui/test_book_import_texts.cpp               # The texts of an imported file added to the book, Undo import
     gui/test_message_dialog.cpp                  # Own messages, questions and typed texts
     gui/test_own_windows.cpp                     # Only own windows, on their common base
     gui/test_widget_wheel.cpp                    # The mouse wheel changes only the field with the focus
@@ -423,6 +424,7 @@ set(TEST_SOURCES ${TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/src/gui/book_texts.cpp              # The texts of the book in reading order
     ${CMAKE_SOURCE_DIR}/src/gui/caption_coordinator.cpp     # The numbered captions of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_export_coordinator.cpp # The export of the book to DOCX and Markdown
+    ${CMAKE_SOURCE_DIR}/src/gui/book_import_texts.cpp       # The texts of an imported file added to the book
     ${CMAKE_SOURCE_DIR}/src/gui/footnote_coordinator.cpp    # Insert > Footnote, Endnote and the frame of a note
     ${CMAKE_SOURCE_DIR}/src/gui/image_filter_coordinator.cpp  # One filter for every image of the book
     ${CMAKE_SOURCE_DIR}/src/gui/book_search_coordinator.cpp  # Find in Book and Replace All in Book

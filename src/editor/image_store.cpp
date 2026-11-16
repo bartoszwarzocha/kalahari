@@ -280,6 +280,14 @@ QString ImageStore::addPicture(const QImage& picture, const QString& baseName)
     return storeData(data, baseName + QStringLiteral(".png"));
 }
 
+QString ImageStore::addData(const QByteArray& data, const QString& fileName)
+{
+    if (m_folder.isEmpty() || data.isEmpty()) {
+        return QString();
+    }
+    return storeData(data, QFileInfo(QString(fileName).replace(QLatin1Char('\\'), QLatin1Char('/'))).fileName());
+}
+
 QString ImageStore::adoptSource(const QString& otherFolder, const QString& source)
 {
     if (m_folder.isEmpty() || otherFolder.isEmpty() || !isSafeImageSource(source)) {

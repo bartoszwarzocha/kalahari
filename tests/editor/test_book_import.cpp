@@ -1325,6 +1325,26 @@ TEST_CASE("Import: the files of other programs", "[import][docx][markdown][text]
             CHECK(std::next(table)->kind == ImportBlock::Kind::PageBreak);
             CHECK(textOf(*std::next(table, 2)) == QStringLiteral("Rozdział 2"));
         }
+        // The formatting of Word's styles, for a new style of the book
+        const ImportStyle* heading = word.style(QStringLiteral("Heading1"));
+        REQUIRE(heading != nullptr);
+        CHECK(heading->next == QStringLiteral("Normal"));
+        CHECK(heading->properties.value(QStringLiteral("bold")).toBool());
+        CHECK(heading->properties.value(QStringLiteral("fontSize")).toDouble() == 14.0);
+        CHECK(heading->properties.value(QStringLiteral("spaceBefore")).toDouble() == 24.0);
+        CHECK(heading->properties.value(QStringLiteral("spaceAfter")).toDouble() == 0.0);
+        CHECK(heading->properties.value(QStringLiteral("keepWithNext")).toBool());
+        CHECK(heading->properties.value(QStringLiteral("keepTogether")).toBool());
+        CHECK_FALSE(heading->properties.contains(QStringLiteral("fontFamily")));  // a font of the theme
+        const ImportStyle* quote = word.style(QStringLiteral("Quote"));
+        REQUIRE(quote != nullptr);
+        CHECK(quote->properties == QVariantMap{{QStringLiteral("italic"), true}});
+        const ImportStyle* title = word.style(QStringLiteral("Title"));
+        REQUIRE(title != nullptr);
+        CHECK(title->properties.value(QStringLiteral("fontSize")).toDouble() == 26.0);
+        CHECK(title->properties.value(QStringLiteral("lineHeight")).toDouble() == 1.0);
+        CHECK(word.style(QStringLiteral("Normal"))->properties.isEmpty());
+
         const std::vector<ImportPiece> pieces = splitDocument(word, suggestedSplit(word));
         REQUIRE(pieces.size() == 3);
         CHECK(pieces[0].beforeTitles);

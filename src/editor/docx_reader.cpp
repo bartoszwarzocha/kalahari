@@ -303,10 +303,30 @@ QString targetOfType(const QHash<QString, Relationship>& rels, QLatin1StringView
 struct WordStyle {
     QString name;
     QString basedOn;
+    QString next;
     int outline = 0;  ///< Its own outline level 1-9; 0: none
     QString numId;    ///< Its own list; empty: none
     int numLevel = 0;
+    const Node* paragraphProperties = nullptr;  ///< Its w:pPr
+    const Node* runProperties = nullptr;        ///< Its w:rPr
 };
+
+/// The alignment of a paragraph's w:jc: "left", "center", "right", "justify"; empty: none
+QString alignmentOf(const QString& jc) {
+    if (jc == QLatin1String("left") || jc == QLatin1String("start")) {
+        return QStringLiteral("left");
+    }
+    if (jc == QLatin1String("center")) {
+        return QStringLiteral("center");
+    }
+    if (jc == QLatin1String("right") || jc == QLatin1String("end")) {
+        return QStringLiteral("right");
+    }
+    if (jc == QLatin1String("both") || jc == QLatin1String("distribute")) {
+        return QStringLiteral("justify");
+    }
+    return QString();
+}
 
 /// A character style: its emphasis
 struct CharacterStyle {
@@ -549,7 +569,10 @@ private:
             WordStyle style;
             style.name = node.value("name"_L1);
             style.basedOn = node.value("basedOn"_L1);
-            if (const Node* properties = node.child("pPr"_L1)) {
+            style.next = node.value("next"_L1);
+            style.paragraphProperties = node.child("pPr"_L1);
+            style.runProperties = node.child("rPr"_L1);
+            if (const Node* properties = style.paragraphProperties) {
                 if (const std::optional<double> outline = numberOf(properties->value("outlineLvl"_L1))) {
                     style.outline = *outline >= 0 && *outline < OUTLINE_BODY_TEXT ? static_cast<int>(*outline) + 1 : -1;
                 }
@@ -566,6 +589,49 @@ private:
         if (m_defaultStyle.isEmpty() && m_styles.contains(QStringLiteral("Normal"))) {
             m_defaultStyle = QStringLiteral("Normal");
         }
+    }
+
+    /// The own formatting of a style, as the book's styles name it
+    QVariantMap stylePropertiesOf(const WordStyle& style) const {
+        QVariantMap properties;
+        const auto put = [&properties](const char* name, const auto& value) {
+            if (value) {
+                properties.insert(QLatin1String(name), *value);
+            }
+        };
+        if (const Node* paragraph = style.paragraphProperties) {
+            ParagraphFormat own;
+            readParagraphFormat(*paragraph, own);
+            put("leftMargin", own.leftIndent);
+            put("rightMargin", own.rightIndent);
+            put("firstLineIndent", own.firstLineIndent);
+            put("spaceBefore", own.spaceBefore);
+            put("spaceAfter", own.spaceAfter);
+            if (own.lineSpacing && own.lineSpacing->rule == LineSpacingRule::Multiple) {
+                properties.insert(QStringLiteral("lineHeight"), own.lineSpacing->value);
+            }
+            put("keepWithNext", own.keepWithNext);
+            put("keepTogether", own.keepTogether);
+            put("widowControl", own.widowControl);
+            put("pageBreakBefore", switchOf(paragraph->child("pageBreakBefore"_L1)));
+            if (const QString align = alignmentOf(paragraph->value("jc"_L1)); !align.isEmpty()) {
+                properties.insert(QStringLiteral("alignment"), align);
+            }
+        }
+        if (const Node* run = style.runProperties) {
+            ImportCharFormat format;
+            applyRunProperties(*run, format, false);
+            if (!format.font.isEmpty()) {
+                properties.insert(QStringLiteral("fontFamily"), format.font);
+            }
+            if (format.size > 0.0) {
+                properties.insert(QStringLiteral("fontSize"), format.size);
+            }
+            put("bold", switchOf(run->child("b"_L1)));
+            put("italic", switchOf(run->child("i"_L1)));
+            put("underline", switchOf(run->child("u"_L1)));
+        }
+        return properties;
     }
 
     /// The heading level of a style, through its base styles
@@ -849,6 +915,8 @@ private:
             style.key = key;
             style.name = m_styles.contains(key) ? m_styles[key].name : key;
             style.basedOn = m_styles.value(key).basedOn;
+            style.next = m_styles.value(key).next == key ? QString() : m_styles.value(key).next;
+            style.properties = stylePropertiesOf(m_styles.value(key));
             style.headingLevel = styleHeadingLevel(key);
             if (parts) {
                 if (key == QLatin1String("PartTitle")) {
@@ -946,16 +1014,7 @@ private:
             if (const QString style = properties->value("pStyle"_L1); !style.isEmpty()) {
                 model.style = style;
             }
-            const QString align = properties->value("jc"_L1);
-            if (align == QLatin1String("left") || align == QLatin1String("start")) {
-                model.align = QStringLiteral("left");
-            } else if (align == QLatin1String("center")) {
-                model.align = QStringLiteral("center");
-            } else if (align == QLatin1String("right") || align == QLatin1String("end")) {
-                model.align = QStringLiteral("right");
-            } else if (align == QLatin1String("both") || align == QLatin1String("distribute")) {
-                model.align = QStringLiteral("justify");
-            }
+            model.align = alignmentOf(properties->value("jc"_L1));
             if (const std::optional<double> outline = numberOf(properties->value("outlineLvl"_L1));
                 outline && *outline >= 0 && *outline < OUTLINE_BODY_TEXT) {
                 model.headingLevel = static_cast<int>(*outline) + 1;
