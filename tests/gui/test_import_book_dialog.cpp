@@ -5,7 +5,7 @@
 /// @brief File > Import > DOCX, Markdown and Plain Text: the window of the import, its tabs on
 ///        a small screen and their access keys, the files and their order, the texts and
 ///        their kinds, plain text, the import into the open book and Undo Import, a new book,
-///        and the choices kept for the next import
+///        the images of Internet addresses, and the choices kept for the next import
 
 #include <catch2/catch_test_macros.hpp>
 #include "kalahari/core/book_project.h"
@@ -25,6 +25,7 @@
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QBuffer>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
@@ -32,6 +33,7 @@
 #include <QFileInfo>
 #include <QFont>
 #include <QGroupBox>
+#include <QImage>
 #include <QLabel>
 #include <QLineEdit>
 #include <QProgressBar>
@@ -40,6 +42,8 @@
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QTabWidget>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QToolButton>
 #include <QTranslator>
@@ -73,6 +77,7 @@ class SettingsKept {
         m_strings.emplace_back("project.lastFolders.importText",
                                settings.get<std::string>("project.lastFolders.importText"));
         m_flags.emplace_back("import.wholeFiles", settings.get<bool>("import.wholeFiles"));
+        m_flags.emplace_back("import.webImages", settings.get<bool>("import.webImages"));
         for (const std::string format : {"docx", "markdown", "text"}) {
             const std::string prefix = "import." + format + ".";
             for (const char* key : {"headingAsTitle", "dialogueStyle", "typography", "doubleSpaces",
@@ -442,6 +447,75 @@ class SettingsOpener {
     SettingsOpener& operator=(const SettingsOpener&) = delete;
 };
 
+/// A web server of the test on this computer: a picture at /map.png, nothing anywhere else
+class PictureServer {
+   public:
+    PictureServer() {
+        QImage image(4, 3, QImage::Format_RGB32);
+        image.fill(Qt::darkGreen);
+        QBuffer buffer(&m_picture);
+        REQUIRE(buffer.open(QIODevice::WriteOnly));
+        REQUIRE(image.save(&buffer, "PNG"));
+        REQUIRE(m_server.listen(QHostAddress::LocalHost));
+        QObject::connect(&m_server, &QTcpServer::newConnection, [this]() {
+            while (QTcpSocket* socket = m_server.nextPendingConnection()) {
+                auto request = std::make_shared<QByteArray>();
+                QObject::connect(socket, &QTcpSocket::readyRead, socket, [this, socket, request]() {
+                    *request += socket->readAll();
+                    if (request->contains("\r\n\r\n")) {
+                        answer(socket, request->split(' ').value(1));
+                    }
+                });
+                QObject::connect(socket, &QTcpSocket::disconnected, socket,
+                                 &QObject::deleteLater);
+            }
+        });
+    }
+    PictureServer(const PictureServer&) = delete;
+    PictureServer& operator=(const PictureServer&) = delete;
+
+    /// The address of @p path on the server
+    QString url(const QString& path) const {
+        return QStringLiteral("http://127.0.0.1:%1/%2").arg(m_server.serverPort()).arg(path);
+    }
+
+    /// The paths asked, in the order they came
+    const QStringList& asked() const { return m_asked; }
+
+    /// The picture at /map.png
+    const QByteArray& picture() const { return m_picture; }
+
+   private:
+    void answer(QTcpSocket* socket, const QByteArray& path) {
+        m_asked << QString::fromLatin1(path);
+        if (path == "/map.png") {
+            socket->write("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: " +
+                          QByteArray::number(m_picture.size()) +
+                          "\r\nConnection: close\r\n\r\n" + m_picture);
+        } else {
+            socket->write(
+                "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        }
+        socket->disconnectFromHost();
+    }
+
+    QTcpServer m_server;
+    QByteArray m_picture;
+    QStringList m_asked;
+};
+
+/// The text of element @p id at the top of the main text of the open book, as its file has it
+QString mainText(const QString& id) {
+    for (const core::ProjectElement& element : test::book().book()->mainElements) {
+        if (element.id == id) {
+            QFile file(QDir(test::book().getProjectPath()).filePath(element.file));
+            REQUIRE(file.open(QIODevice::ReadOnly));
+            return QString::fromUtf8(file.readAll());
+        }
+    }
+    return QString();
+}
+
 /// An importer of a plugin: screenplays with a tab of options, each scene a text, and formats
 /// the program leaves out
 class ScreenplayImporter : public core::IImporter {
@@ -515,6 +589,10 @@ TEST_CASE("Import Text: six tabs, the window whole on a small screen, the access
     for (int i = 1; i <= 6; ++i) {
         markdown << files.write(QStringLiteral("Część %1.md").arg(i), chapters(i * 10, i * 10 + 5));
     }
+    // An image of an Internet address: the option of its download shows too, off
+    core::SettingsManager::getInstance().set<bool>("import.webImages", false);
+    markdown << files.write(QStringLiteral("Część 7.md"),
+                            chapters(70, 71) + "![Mapa](https://example.com/mapa.png)\n");
     QStringList titles;
     for (int i = 1; i <= 30; ++i) {
         titles << QStringLiteral("Rozdział %1").arg(i);
@@ -970,6 +1048,7 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
     const QString path = files.write(QStringLiteral("Szkic.md"), chapters(1, 2));
     auto& settings = core::SettingsManager::getInstance();
     settings.set<bool>("import.wholeFiles", false);
+    settings.set<bool>("import.webImages", false);
     settings.set<std::string>("import.docx.formatting", "styles");
     settings.set<bool>("import.docx.rejectChanges", true);
     settings.set<bool>("import.markdown.typography", false);
@@ -1008,6 +1087,7 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
 
     // The page shows the settings
     CHECK_FALSE(box("importWholeFiles")->isChecked());
+    CHECK_FALSE(box("importWebImages")->isChecked());
     CHECK(choice("importFormatting")->currentData().toString() == QStringLiteral("styles"));
     CHECK(choice("importChanges")->currentIndex() == 1);
     CHECK(box("importComments")->isChecked());
@@ -1031,6 +1111,7 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
 
     // Changed and applied: only the changed choices are written
     box("importWholeFiles")->setChecked(true);
+    box("importWebImages")->setChecked(true);
     choice("importChanges")->setCurrentIndex(0);
     box("import_markdown_typography")->setChecked(true);
     box("import_markdown_sceneMarkers")->setChecked(false);
@@ -1042,6 +1123,7 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
                                   QStringLiteral("import.markdown.sceneMarkers"),
                                   QStringLiteral("import.markdown.typography"),
                                   QStringLiteral("import.text.emptyParagraphs"),
+                                  QStringLiteral("import.webImages"),
                                   QStringLiteral("import.wholeFiles")}));
     CHECK(settings.get<bool>("import.wholeFiles"));
     CHECK_FALSE(settings.get<bool>("import.docx.rejectChanges"));
@@ -1051,6 +1133,7 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
     ImportBookDialog next(Novel::dialogBook(), core::ProjectManager::installedBookTypes(),
                           ImportFormat::Markdown, {path}, {});
     CHECK(next.wholeFilesBox()->isChecked());
+    CHECK(next.webImagesBox()->isChecked());
     CHECK(next.typographyBox()->isChecked());
     CHECK_FALSE(next.sceneMarkersBox()->isChecked());
     next.setFormat(ImportFormat::PlainText);
@@ -1070,6 +1153,74 @@ TEST_CASE("Import Text: Settings > Files > Import, the choices the window starts
     REQUIRE(polishFormat != nullptr);
     polishFormat->setCurrentIndex(2);
     CHECK(pageKeyProblems(*polishPage).toStdString().empty());
+}
+
+TEST_CASE("Import Text: the images of Internet addresses, downloaded only on the writer's wish",
+          "[gui][dialogs][import]") {
+    SettingsKept kept;
+    Novel novel;
+    Files files;
+    PictureServer server;
+    auto& settings = core::SettingsManager::getInstance();
+    settings.set<bool>("import.webImages", false);
+    const QByteArray map = server.url(QStringLiteral("map.png")).toUtf8();
+    const QByteArray well = server.url(QStringLiteral("well.png")).toUtf8();
+    const QString path = files.write(QStringLiteral("Oaza.md"),
+                                     "# Rozdział 1\n\nKarawana.\n\n![Mapa oazy](" + map +
+                                         ")\n\n![Studnia](" + well + ")\n\nJeszcze raz ![Mapa](" +
+                                         map + ").\n");
+    ImportBookDialog dialog(Novel::dialogBook(), core::ProjectManager::installedBookTypes(),
+                            ImportFormat::Markdown, {path}, intoBook());
+
+    // The option shows with the images of Internet addresses, off as the setting says
+    QCheckBox* box = dialog.webImagesBox();
+    CHECK(box->isVisibleTo(dialog.tabs()->widget(5)));
+    CHECK(box->text() == QStringLiteral("Download the &images of Internet addresses (3)"));
+    CHECK_FALSE(box->isChecked());
+    CHECK(dialog.imagesText().isEmpty());
+
+    SECTION("Off: the program does not connect, the descriptions stay") {
+        dialog.accept();
+        REQUIRE(dialog.isDone());
+        CHECK(server.asked().isEmpty());
+        CHECK(dialog.outcome().images == 0);
+        CHECK(dialog.notesText().isEmpty());
+        const QString text = mainText(dialog.outcome().firstText);
+        CHECK(text.contains(QStringLiteral("[Mapa oazy]")));
+        CHECK(text.contains(QStringLiteral("[Studnia]")));
+        CHECK_FALSE(settings.get<bool>("import.webImages"));
+    }
+
+    SECTION("On: each address once, and the one that did not come after the result") {
+        box->setChecked(true);
+        dialog.accept();
+        REQUIRE(dialog.isDone());
+        QStringList asked = server.asked();
+        asked.sort();
+        CHECK(asked == QStringList({QStringLiteral("/map.png"), QStringLiteral("/well.png")}));
+        CHECK(dialog.outcome().images == 1);
+        REQUIRE(dialog.outcome().added.images.size() == 1);
+        const QString source = dialog.outcome().added.images[0];
+        QFile image(QDir(test::book().imagesBaseFolder()).filePath(source));
+        REQUIRE(image.open(QIODevice::ReadOnly));
+        CHECK(image.readAll() == server.picture());
+        CHECK(QFileInfo(image.fileName()).fileName() == QStringLiteral("map.png"));
+        const QString text = mainText(dialog.outcome().firstText);
+        CHECK(text.count(source) == 2);
+        CHECK_FALSE(text.contains(QStringLiteral("[Mapa oazy]")));
+        CHECK(text.contains(QStringLiteral("[Studnia]")));
+        const QStringList notes = dialog.notesText().split(QLatin1Char('\n'));
+        REQUIRE(notes.size() == 2);
+        CHECK(notes[0] == QStringLiteral(
+                              "These images could not be downloaded; their descriptions are in "
+                              "their places:"));
+        CHECK(notes[1].startsWith(QStringLiteral("– ") + server.url(QStringLiteral("well.png")) +
+                                  QStringLiteral(": ")));
+        // The window's files stay as they were read; the next import starts with the option on
+        CHECK(dialog.files().front().document->images.front().web);
+        CHECK(settings.get<bool>("import.webImages"));
+        dialog.undoImport();
+    }
 }
 
 TEST_CASE("Import Text: a format of a plugin, its tab of options and its texts",

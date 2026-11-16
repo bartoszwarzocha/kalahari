@@ -986,6 +986,50 @@ TEST_CASE("Import: a Word document", "[import][docx]") {
     }
 }
 
+TEST_CASE("Import: the pictures a Word document links to", "[import][docx]") {
+    QTemporaryDir folder;
+    REQUIRE(folder.isValid());
+    const QString path = folder.filePath(QStringLiteral("Łącza.docx"));
+    const QByteArray rels =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+        "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/>"
+        "</Relationships>";
+    const QByteArray image = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
+    const QByteArray documentRels =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+        "<Relationship Id=\"rW\" Type=\"" + image + "\" Target=\"https://example.com/obrazy/wydma.png\" TargetMode=\"External\"/>"
+        "<Relationship Id=\"rF\" Type=\"" + image + "\" Target=\"file:///C:/Obrazy/mapa.png\" TargetMode=\"External\"/>"
+        "<Relationship Id=\"rE\" Type=\"" + image + "\" Target=\"media/image1.png\"/>"
+        "</Relationships>";
+    const auto drawing = [](const QByteArray& blip, const QByteArray& alt) {
+        return "<w:p><w:r><w:drawing><wp:inline><wp:extent cx=\"1800000\" cy=\"1800000\"/><wp:docPr id=\"1\" name=\"Obraz 1\" descr=\"" + alt +
+               "\"/><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"><pic:pic><pic:blipFill>"
+               "<a:blip " + blip + "/></pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>";
+    };
+    // Link to File (to the web, to a file of the computer), and Insert and Link: its copy
+    const QByteArray body = "<w:body>" + drawing("r:link=\"rW\"", "Wydma") + drawing("r:link=\"rF\"", "Mapa") +
+                            drawing("r:embed=\"rE\" r:link=\"rW\"", "Kopia") + "</w:body>";
+    writeZip(path, {{QStringLiteral("_rels/.rels"), rels},
+                    {QStringLiteral("word/_rels/document.xml.rels"), documentRels},
+                    {QStringLiteral("word/document.xml"), part("document", body)},
+                    {QStringLiteral("word/media/image1.png"), redPng()}});
+
+    ImportDocument read;
+    ImportProblem problem;
+    REQUIRE(readDocx(path, &read, &problem));
+    CHECK(read.omissions.count(ImportOmission::Image) == 0);
+    REQUIRE(read.images.size() == 3);
+    CHECK(read.images[0].web);
+    CHECK(read.images[0].address == QStringLiteral("https://example.com/obrazy/wydma.png"));
+    CHECK(read.images[0].data.isEmpty());
+    CHECK(read.images[0].look.alt == QStringLiteral("Wydma"));
+    CHECK(read.images[1].missing);
+    CHECK_FALSE(read.images[1].web);
+    CHECK(read.images[1].address == QStringLiteral("file:///C:/Obrazy/mapa.png"));
+    CHECK_FALSE(read.images[2].web);
+    CHECK(read.images[2].data == redPng());
+}
+
 TEST_CASE("Import: the program's own Word document read back", "[import][docx][export]") {
     QTemporaryDir folder;
     REQUIRE(folder.isValid());

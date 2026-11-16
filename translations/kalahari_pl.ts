@@ -8893,6 +8893,16 @@ Zapisanie {kind:genitive} zachowa tylko ten tekst. Aby pozostawić plik bez zmia
         <extracomment>Under the cleanups. In Polish: Cudzysłowy, apostrofy, pauzy i wielokropki zależą od języka książki i Ustawień › Edytor › Autokorekta. Podziałem sceny stają się akapity „* * *”, „***”, „#”, „⁂” i „❦”. Styl Dialog działa tylko w książce, która go ma. Porządki nie zmieniają akapitów w stylu Kod.</extracomment>
         <translation>Cudzysłowy, apostrofy, pauzy i wielokropki zależą od języka książki i Ustawień › Edytor › Autokorekta. Podziałem sceny stają się akapity „* * *”, „***”, „#”, „⁂” i „❦”. Styl Dialog działa tylko w książce, która go ma. Porządki nie zmieniają akapitów w stylu Kod.</translation>
     </message>
+    <message>
+        <source>Download the &amp;images of Internet addresses</source>
+        <extracomment>In Polish: Pobierz obrazy z adresów &amp;internetowych</extracomment>
+        <translation>Pobierz obrazy z adresów &amp;internetowych</translation>
+    </message>
+    <message>
+        <source>The images that Markdown files and Word documents give by Internet addresses; the program connects to the addresses only when the import starts. Without it, the descriptions of the images stay in their places.</source>
+        <extracomment>In Polish: Obrazy, które pliki Markdown i dokumenty Worda wskazują adresem internetowym; program łączy się z tymi adresami dopiero wtedy, gdy import się zacznie. Bez tej opcji w miejscu obrazów zostaje ich opis.</extracomment>
+        <translation>Obrazy, które pliki Markdown i dokumenty Worda wskazują adresem internetowym; program łączy się z tymi adresami dopiero wtedy, gdy import się zacznie. Bez tej opcji w miejscu obrazów zostaje ich opis.</translation>
+    </message>
 </context>
 <context>
     <name>kalahari::gui::GeneralPage</name>
@@ -27814,15 +27824,6 @@ No parts in the file. In Polish: – bez części –</translation>
             <numerusform>Brakuje plików obrazów (%n): %1. W ich miejscu zostanie ich opis.</numerusform>
         </translation>
     </message>
-    <message numerus="yes">
-        <source>The images of Internet addresses (%n) are not downloaded: their descriptions stay in their places.</source>
-        <extracomment>Images of the Internet in a Markdown file. In Polish: Obrazy z adresów internetowych (%n) nie są pobierane: w ich miejscu zostanie ich opis.</extracomment>
-        <translation>
-            <numerusform>Obrazy z adresów internetowych (%n) nie są pobierane: w ich miejscu zostanie ich opis.</numerusform>
-            <numerusform>Obrazy z adresów internetowych (%n) nie są pobierane: w ich miejscu zostanie ich opis.</numerusform>
-            <numerusform>Obrazy z adresów internetowych (%n) nie są pobierane: w ich miejscu zostanie ich opis.</numerusform>
-        </translation>
-    </message>
     <message>
         <source>The footnotes (%1) and the endnotes (%2) stay notes, and Kalahari numbers them.</source>
         <extracomment>In Polish: Przypisy dolne (%1) i końcowe (%2) zostają przypisami, a numery nadaje im Kalahari.</extracomment>
@@ -28021,6 +28022,30 @@ No parts in the file. In Polish: – bez części –</translation>
         <source>The plugin could not read the file &quot;%1&quot;.</source>
         <extracomment>%1: the name of the file; what the plugin said follows under Details. In Polish: Wtyczka nie odczytała pliku „%1”.</extracomment>
         <translation>Wtyczka nie odczytała pliku „%1”.</translation>
+    </message>
+    <message>
+        <source>– %1: %2</source>
+        <extracomment>A line of the images that could not be downloaded; %1: the address, %2: why. In Polish: – %1: %2</extracomment>
+        <translation>– %1: %2</translation>
+    </message>
+    <message>
+        <source>When the import starts, the program connects to the addresses in the files and downloads the images (each up to %1). Without it, or when an image cannot be downloaded, its description stays in its place.</source>
+        <extracomment>Under the download of the images of Internet addresses; %1: the most of an image, e.g. 50 MB. In Polish: Gdy import się zacznie, program połączy się z adresami podanymi w plikach i pobierze obrazy (każdy do %1). Bez tej opcji, a także gdy obrazu nie uda się pobrać, w jego miejscu zostanie opis.</extracomment>
+        <translation>Gdy import się zacznie, program połączy się z adresami podanymi w plikach i pobierze obrazy (każdy do %1). Bez tej opcji, a także gdy obrazu nie uda się pobrać, w jego miejscu zostanie opis.</translation>
+    </message>
+    <message numerus="yes">
+        <source>Download the &amp;images of Internet addresses (%n)</source>
+        <extracomment>%n: the images of Internet addresses of the files. In Polish: Pobierz obrazy z adresów &amp;internetowych (%n)</extracomment>
+        <translation>
+            <numerusform>Pobierz obrazy z adresów &amp;internetowych (%n)</numerusform>
+            <numerusform>Pobierz obrazy z adresów &amp;internetowych (%n)</numerusform>
+            <numerusform>Pobierz obrazy z adresów &amp;internetowych (%n)</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>These images could not be downloaded; their descriptions are in their places:</source>
+        <extracomment>Before the images of Internet addresses that did not come. In Polish: Nie udało się pobrać tych obrazów; w ich miejscu jest opis:</extracomment>
+        <translation>Nie udało się pobrać tych obrazów; w ich miejscu jest opis:</translation>
     </message>
 </context>
 <context>

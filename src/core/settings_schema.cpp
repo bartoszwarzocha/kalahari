@@ -303,6 +303,10 @@ std::map<std::string, json> buildDefaults() {
         // files each as one text
         {"import.target", "book"},
         {"import.wholeFiles", true},
+        // Download the images that Markdown files and Word documents give by Internet
+        // addresses: the program connects to them only when the import starts; off: the
+        // descriptions of the images stay in their places
+        {"import.webImages", false},
         // Of Word documents: how much of the file's formatting the texts keep, "emphasis"
         // (bold, italic... and centered or right-aligned paragraphs), "all" or "styles". Of
         // each format (docx, markdown, text): the heading of a text its title only; the

@@ -14,12 +14,14 @@
 #include "kalahari/gui/book_styles.h"
 #include "kalahari/gui/dialogs/dialog_parts.h"
 #include "kalahari/gui/kind_names.h"
+#include "kalahari/gui/material_downloader.h"
 #include "kalahari/gui/settings_dialog.h"
 #include "kalahari/gui/utils/program_folders.h"
 
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
+#include <QEventLoop>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -43,6 +45,7 @@
 #include <algorithm>
 #include <exception>
 #include <map>
+#include <memory>
 #include <utility>
 
 namespace kalahari {
@@ -266,6 +269,106 @@ QLabel* newLabel(const QString& text, QWidget* buddy, QWidget* parent) {
     auto* label = new QLabel(text, parent);
     label->setBuddy(buddy);
     return label;
+}
+
+/// The share of the progress of an import that the download of the images of Internet
+/// addresses takes, in percent; the texts take the rest
+constexpr int DOWNLOAD_SHARE = 30;
+
+/// The images of Internet addresses of @p files: each address once, with the file and the
+/// image of each of its places
+struct WebImages {
+    QList<QUrl> addresses;
+    std::vector<std::vector<std::pair<size_t, size_t>>> places;
+};
+
+WebImages webImagesOf(const std::vector<ImportFile>& files) {
+    WebImages web;
+    for (size_t file = 0; file < files.size(); ++file) {
+        if (!files[file].isRead()) {
+            continue;
+        }
+        const std::vector<editor::ImportImage>& images = files[file].document->images;
+        for (size_t image = 0; image < images.size(); ++image) {
+            if (!images[image].web) {
+                continue;
+            }
+            const QUrl url(images[image].address);
+            qsizetype index = web.addresses.indexOf(url);
+            if (index < 0) {
+                index = web.addresses.size();
+                web.addresses << url;
+                web.places.emplace_back();
+            }
+            web.places[static_cast<size_t>(index)].emplace_back(file, image);
+        }
+    }
+    return web;
+}
+
+/// Download the images of Internet addresses of @p files into copies of their documents, each
+/// address once and all of them at a time, with @p progress from 0 to 100
+/// @return The addresses that did not come, each with why, as the result of the import lists
+///         them
+QStringList downloadWebImages(std::vector<ImportFile>& files,
+                              const ArchiveDialog::Progress& progress) {
+    const WebImages web = webImagesOf(files);
+    const auto total = static_cast<int>(web.addresses.size());
+    if (total == 0) {
+        return {};
+    }
+    std::vector<std::shared_ptr<editor::ImportDocument>> copies(files.size());
+    std::vector<QString> failures(web.addresses.size());
+    MaterialDownloader downloader;
+    QEventLoop loop;
+    int done = 0;
+    QObject::connect(
+        &downloader, &MaterialDownloader::finished, &loop,
+        [&files, &web, &copies, &failures, &done, &loop, &progress,
+         total](const MaterialDownloader::Result& result) {
+            const auto index = static_cast<size_t>(result.elementId.toInt());
+            if (result.error.isEmpty()) {
+                for (const auto& [file, image] : web.places[index]) {
+                    if (!copies[file]) {
+                        copies[file] =
+                            std::make_shared<editor::ImportDocument>(*files[file].document);
+                    }
+                    editor::ImportImage& downloaded = copies[file]->images[image];
+                    downloaded.data = result.data;
+                    downloaded.fileName = result.fileName;
+                    downloaded.web = false;
+                }
+            } else {
+                failures[index] = result.error;
+            }
+            ++done;
+            if (done == total) {
+                loop.quit();
+            }
+            progress(done * 100 / total);
+        });
+    for (int index = 0; index < total; ++index) {
+        downloader.fetchPicture(QString::number(index), web.addresses[index]);
+    }
+    // The window waits, as for the progress of the texts: reject() waits for the work
+    if (done < total) {
+        loop.exec();
+    }
+    for (size_t file = 0; file < files.size(); ++file) {
+        if (copies[file]) {
+            files[file].document = copies[file];
+        }
+    }
+    QStringList lines;
+    for (size_t index = 0; index < failures.size(); ++index) {
+        if (!failures[index].isEmpty()) {
+            //: A line of the images that could not be downloaded; %1: the address, %2: why.
+            //: In Polish: – %1: %2
+            const QUrl& address = web.addresses[static_cast<qsizetype>(index)];
+            lines << ImportBookDialog::tr("– %1: %2").arg(address.toString(), failures[index]);
+        }
+    }
+    return lines;
 }
 
 }  // namespace
@@ -908,6 +1011,21 @@ void ImportBookDialog::buildExtrasTab() {
     m_imagesLabel->setTextFormat(Qt::PlainText);
     m_imagesLabel->setWordWrap(true);
     images->addWidget(m_imagesLabel);
+    // The program connects to the Internet only on the writer's wish
+    m_webImagesBox = new QCheckBox(imagesGroup);
+    m_webImagesOption = withRemark(
+        m_webImagesBox,
+        newRemark(imagesGroup,
+                  //: Under the download of the images of Internet addresses; %1: the most of an
+                  //: image, e.g. 50 MB. In Polish: Gdy import się zacznie, program połączy się
+                  //: z adresami podanymi w plikach i pobierze obrazy (każdy do %1). Bez tej
+                  //: opcji, a także gdy obrazu nie uda się pobrać, w jego miejscu zostanie opis.
+                  tr("When the import starts, the program connects to the addresses in the files "
+                     "and downloads the images (each up to %1). Without it, or when an image "
+                     "cannot be downloaded, its description stays in its place.")
+                      .arg(QLocale().formattedDataSize(MaterialDownloader::MAXIMUM_PICTURE, 0))));
+    images->addWidget(m_webImagesOption);
+    m_webImagesOption->hide();
     extras->addWidget(imagesGroup, 1, 0, 1, 2);
     endTab(extras);
 }
@@ -1206,11 +1324,12 @@ ImportBookDialog::Choice ImportBookDialog::choice() const {
 }
 
 void ImportBookDialog::loadChoices() {
+    const auto& settings = core::SettingsManager::getInstance();
+    m_webImagesBox->setChecked(settings.get<bool>("import.webImages"));
     if (format() == ImportFormat::Plugin) {
         m_acceptChangesButton->setChecked(true);
         return;  // the plugin's texts: no choices of the program's formats
     }
-    const auto& settings = core::SettingsManager::getInstance();
     const std::string prefix = settingsPrefix();
     const auto flag = [&settings, &prefix](const char* key) {
         return settings.get<bool>(prefix + key);
@@ -1297,6 +1416,9 @@ void ImportBookDialog::rememberChoices() const {
     const Choice now = choice();
     const std::string prefix = settingsPrefix();
     settings.set<std::string>("import.target", targetKey(now.target));
+    if (m_webImages > 0) {
+        settings.set<bool>("import.webImages", m_webImagesBox->isChecked());
+    }
     if (now.format == ImportFormat::Plugin) {
         return;  // keeps no choices of its own
     }
@@ -2158,22 +2280,19 @@ void ImportBookDialog::showExtras() {
     m_changes->setVisible(format() == ImportFormat::Docx && changes > 0);
 
     QStringList sentences;
-    if (format() == ImportFormat::Docx) {
+    if (images > 0 && format() == ImportFormat::Docx) {
         //: The images of a Word document. In Polish: Obrazy z pliku (%n) trafią do obrazów
         //: książki, w rozmiarze z Worda, z przycięciem i tekstem alternatywnym.
-        sentences << (images > 0 ? tr("The images of the file (%n) go to the images of the book, "
-                                      "in their size of "
-                                      "Word, with their crop and their alternative text.",
-                                      nullptr, images)
-                                 //: In Polish: Plik nie ma obrazów.
-                                 : tr("The file has no images."));
+        sentences << tr("The images of the file (%n) go to the images of the book, in their size "
+                        "of Word, with their crop and their alternative text.",
+                        nullptr, images);
     } else if (images > 0) {
         //: The images next to a Markdown file. In Polish: Obrazy z plików obok pliku Markdown
         //: (%n) trafią do obrazów książki.
         sentences << tr(
             "The images of the files next to the Markdown file (%n) go to the images of the book.",
             nullptr, images);
-    } else {
+    } else if (missing + web == 0) {
         //: In Polish: Plik nie ma obrazów.
         sentences << tr("The file has no images.");
     }
@@ -2185,14 +2304,6 @@ void ImportBookDialog::showExtras() {
                         nullptr, missing)
                          .arg(missingNames.join(QStringLiteral(", ")));
     }
-    if (web > 0) {
-        //: Images of the Internet in a Markdown file. In Polish: Obrazy z adresów internetowych
-        //: (%n) nie są pobierane: w ich miejscu zostanie ich opis.
-        sentences << tr(
-            "The images of Internet addresses (%n) are not downloaded: their descriptions stay in "
-            "their places.",
-            nullptr, web);
-    }
     if (footnotes + endnotes > 0) {
         //: In Polish: Przypisy dolne (%1) i końcowe (%2) zostają przypisami, a numery nadaje
         //: im Kalahari.
@@ -2202,6 +2313,11 @@ void ImportBookDialog::showExtras() {
                    .arg(endnotes);
     }
     m_imagesLabel->setText(sentences.join(QLatin1Char(' ')));
+    m_webImages = web;
+    //: %n: the images of Internet addresses of the files. In Polish: Pobierz obrazy z adresów
+    //: &internetowych (%n)
+    m_webImagesBox->setText(tr("Download the &images of Internet addresses (%n)", nullptr, web));
+    m_webImagesOption->setVisible(web > 0);
 }
 
 QString ImportBookDialog::imagesText() const {
@@ -2328,8 +2444,21 @@ void ImportBookDialog::run() {
     QString problem;
     QStringList details;
     const Choice now = choice();
-    const bool done = m_actions.import(now, m_files, m_rows, m_kinds, progress(), &outcome,
-                                       &problem, &details);
+    // The images of Internet addresses first, on the writer's wish: the texts get the copies of
+    // the documents with them, and the files of the window stay as they were read
+    std::vector<ImportFile> files = m_files;
+    QStringList notDownloaded;
+    Progress importing = progress();
+    if (m_webImages > 0 && m_webImagesBox->isChecked()) {
+        const Progress whole = progress();
+        notDownloaded = downloadWebImages(
+            files, [whole](int percent) { whole(percent * DOWNLOAD_SHARE / 100); });
+        importing = [whole](int percent) {
+            whole(DOWNLOAD_SHARE + percent * (100 - DOWNLOAD_SHARE) / 100);
+        };
+    }
+    const bool done = m_actions.import(now, files, m_rows, m_kinds, importing, &outcome, &problem,
+                                       &details);
     if (!done) {
         //: In Polish: Nie udało się zaimportować tekstów.
         failWork(tr("The texts could not be imported."), problem, details);
@@ -2444,6 +2573,13 @@ void ImportBookDialog::run() {
     if (!notes.isEmpty()) {
         //: Before what the import left out. In Polish: Import pominął:
         notes.prepend(tr("The import left out:"));
+    }
+    if (!notDownloaded.isEmpty()) {
+        //: Before the images of Internet addresses that did not come. In Polish: Nie udało się
+        //: pobrać tych obrazów; w ich miejscu jest opis:
+        notes << tr("These images could not be downloaded; their descriptions are in their "
+                    "places:")
+              << notDownloaded;
     }
     setResultNotes(notes);
 }

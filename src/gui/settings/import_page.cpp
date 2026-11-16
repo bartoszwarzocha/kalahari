@@ -5,9 +5,9 @@
 /// @brief Settings page: Files > Import
 ///
 /// The choices the window of File > Import > DOCX, Markdown and Plain Text starts with: the
-/// texts of more files, the formatting, the comments and the tracked changes of Word, and the
-/// headings, the dialogue and the cleanups of each format. The window keeps the writer's
-/// choices in the same settings.
+/// texts of more files, the images of Internet addresses, the formatting, the comments and the
+/// tracked changes of Word, and the headings, the dialogue and the cleanups of each format. The
+/// window keeps the writer's choices in the same settings.
 
 #include "kalahari/gui/settings/settings_pages.h"
 #include "kalahari/core/settings_manager.h"
@@ -50,6 +50,16 @@ ImportPage::ImportPage(QWidget* parent)
     QCheckBox* whole =
         addCheckBox(window, tr("&More files: each file as one text"), "import.wholeFiles");
     whole->setObjectName(QStringLiteral("importWholeFiles"));
+    //: In Polish: Pobierz obrazy z adresów &internetowych
+    QCheckBox* web = addCheckBox(window, tr("Download the &images of Internet addresses"),
+                                 "import.webImages");
+    web->setObjectName(QStringLiteral("importWebImages"));
+    //: In Polish: Obrazy, które pliki Markdown i dokumenty Worda wskazują adresem
+    //: internetowym; program łączy się z tymi adresami dopiero wtedy, gdy import się zacznie.
+    //: Bez tej opcji w miejscu obrazów zostaje ich opis.
+    addNote(window, tr("The images that Markdown files and Word documents give by Internet "
+                       "addresses; the program connects to the addresses only when the import "
+                       "starts. Without it, the descriptions of the images stay in their places."));
 
     //: A group of Settings > Files > Import. In Polish: Dokumenty Worda
     QFormLayout* word = addGroup(tr("Word Documents"));

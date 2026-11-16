@@ -317,6 +317,10 @@ class ImportBookDialog : public ArchiveDialog {
     /// @brief The sentence of the images and the notes of the files
     QString imagesText() const;
 
+    /// @brief Download the images of Internet addresses when the import starts; shown while
+    /// the files have them
+    QCheckBox* webImagesBox() const { return m_webImagesBox; }
+
     /// @brief The links under the result
     QLabel* showLink() const { return m_showInNavigatorLink; }
     QLabel* openTextLink() const { return m_openTextLink; }
@@ -515,6 +519,9 @@ class ImportBookDialog : public ArchiveDialog {
     QRadioButton* m_acceptChangesButton = nullptr;
     QRadioButton* m_rejectButton = nullptr;
     QLabel* m_imagesLabel = nullptr;
+    QCheckBox* m_webImagesBox = nullptr;
+    QWidget* m_webImagesOption = nullptr;
+    int m_webImages = 0;  ///< The images of Internet addresses of the files that are read
 
     QLabel* m_showInNavigatorLink = nullptr;
     QLabel* m_openTextLink = nullptr;

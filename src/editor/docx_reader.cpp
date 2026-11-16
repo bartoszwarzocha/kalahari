@@ -1617,8 +1617,12 @@ private:
                 if (state.inNote) {
                     continue;
                 }
+                // The copy in the file; else the file it links to (Insert Picture > Link to File)
                 const Node* blip = data->find("blip"_L1);
-                const QString id = blip ? blip->relationship("embed"_L1) : QString();
+                QString id = blip ? blip->relationship("embed"_L1) : QString();
+                if (id.isEmpty() && blip) {
+                    id = blip->relationship("link"_L1);
+                }
                 ImageProperties look;
                 if (const Node* extent = frame.child("extent"_L1)) {
                     if (const std::optional<double> cx = numberOf(extent->attr("cx"_L1)); cx && *cx > 0) {
