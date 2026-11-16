@@ -13,6 +13,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include "../editor/editor_test_utils.h"
 #include "kalahari/gui/shortcut_rules.h"
+#include "kalahari/gui/utils/access_keys.h"
 #include "kalahari/gui/widget_keys.h"
 #include "kalahari/gui/widgets/shortcut_recorder.h"
 
@@ -738,6 +739,31 @@ TEST_CASE("The context menus of fields show the keys of their items", "[gui][wid
         menu.ensurePolished();
         CHECK(copy->text() == copyLabel);
     }
+}
+
+TEST_CASE("Every item of a menu gets an access key, also one coming in while it is open",
+          "[gui][widget_keys]") {
+    if (onMacOS()) {
+        SKIP("macOS has no access keys");
+    }
+    const InstalledKeys keys(ShortcutPlatform::Windows);
+    QWidget widget;
+    QMenu menu(&widget);
+    menu.setAttribute(Qt::WA_DontShowOnScreen);
+    menu.addAction(QStringLiteral("&Ignore All"));
+    QAction* first = menu.addAction(QStringLiteral("spelling"));
+    CHECK(first->text() == QStringLiteral("spelling"));  // until it shows
+    menu.show();
+    CHECK(first->text().contains(QLatin1Char('&')));
+
+    // The words for a misspelled one, found while the menu is open
+    QAction* late = new QAction(QStringLiteral("spilling"), &menu);
+    menu.insertAction(first, late);
+    CHECK(late->text().contains(QLatin1Char('&')));
+    CHECK(withoutAccessKey(late->text()) == QStringLiteral("spilling"));
+    CHECK(accessKeyOf(late->text()) != accessKeyOf(first->text()));
+    CHECK(accessKeyOf(late->text()).toLower() != QLatin1Char('i'));
+    menu.close();
 }
 
 TEST_CASE("Fields show their keys also where the window's commands have them",

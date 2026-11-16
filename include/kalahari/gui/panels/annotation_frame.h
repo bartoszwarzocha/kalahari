@@ -17,11 +17,12 @@ namespace kalahari::gui {
 /// @brief The frame an annotation's text is written in
 ///
 /// Looks like a card of the Annotations panel and lies over the editor, under the place
-/// of the annotation (above it when there is no room below), within the text column; with
-/// the cards under the paragraphs, over the annotation's card, as wide as it (the card makes
-/// room for the frame as high as it is: cardHeightNeeded()). Enter starts a new line;
-/// Ctrl+Enter or Save keeps the text, Esc or its X in the corner drops it - the frame says
-/// so. How it keeps the keys and closes: WritingFrame.
+/// of the annotation (above it when there is no room below), within the text column. Enter
+/// starts a new line; Ctrl+Enter or Save keeps the text, Esc or its X in the corner drops it -
+/// the frame says so. With the cards under the paragraphs it is the text of the annotation's
+/// card, written in place, in the card's font: the card keeps its header, Save and the X are
+/// not shown, and a click elsewhere keeps the text (WritingFrame::Placement::cardText). How it
+/// keeps the keys and closes: WritingFrame.
 class AnnotationFrame : public WritingFrame {
     Q_OBJECT
 
@@ -50,6 +51,7 @@ public:
     bool canSave() const override;
 
 protected:
+    void cardTextChanged() override;
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
 

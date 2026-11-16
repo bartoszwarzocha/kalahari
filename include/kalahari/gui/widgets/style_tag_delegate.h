@@ -18,11 +18,13 @@ namespace kalahari::gui {
 
 /// @brief Draws the items of a list of paragraph styles with a tag at the right end
 ///
-/// A style of the writer's own gets "own" in the color of links, a style of the book's type
-/// changed in the book "changed" in the color of hints; a style of the type as the type has
-/// it gets none. A style of paragraphs from another book, which this book does not have, gets
-/// "not in this book" in the color of hints. The name is cut short before the tag, never under
-/// it.
+/// A style of the writer's own gets "own" as a badge right after its name, filled with the
+/// color of the theme for it (Settings > Appearance > Theme, Own Style Tag) with black or white
+/// letters, whichever shows on it; a style of the book's type changed in the book "changed" in a
+/// frame in the color of hints; a style of the type as the type has it gets none. A style of
+/// paragraphs from another book, which this book does not have, gets "not in this book" in a
+/// frame in the color of hints. The tag stays in the part of the list in sight: the name is
+/// cut short before it, never under it.
 class StyleTagDelegate : public QStyledItemDelegate {
     Q_DECLARE_TR_FUNCTIONS(StyleTagDelegate)
 

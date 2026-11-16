@@ -229,6 +229,13 @@ bool WidgetKeys::eventFilter(QObject* watched, QEvent* event) {
             giveFreeAccessKeys(menu);
         }
         return false;
+    case QEvent::ActionAdded:
+        // An open menu getting items (the words for a misspelled one, found while it is
+        // open): theirs as they come
+        if (auto* menu = qobject_cast<QMenu*>(widget); menu != nullptr && menu->isVisible()) {
+            giveFreeAccessKeys(menu);
+        }
+        return false;
     default:
         return false;
     }

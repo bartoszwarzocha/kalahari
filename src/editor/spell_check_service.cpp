@@ -124,6 +124,23 @@ std::mutex& hunspellMutex() {
     return mutex;
 }
 
+/// @brief How long the copy of the dictionary for the suggestions stays without a question
+///        (ms): a few minutes, then its memory is given back
+constexpr int SUGGESTIONS_IDLE_MS = 5 * 60 * 1000;
+
+/// @brief The most words whose suggestions are kept (then all of them are forgotten)
+constexpr qsizetype MAX_KNOWN_SUGGESTIONS = 500;
+
+/// @brief A word as a dictionary in UTF-8 or ISO 8859-1 takes it, and back
+std::string encodedFor(const QString& word, bool latin1) {
+    return latin1 ? word.toLatin1().toStdString() : word.toStdString();
+}
+
+QString decodedFrom(const std::string& word, bool latin1) {
+    return latin1 ? QString::fromLatin1(word.data(), static_cast<qsizetype>(word.size()))
+                  : QString::fromStdString(word);
+}
+
 // =============================================================================
 // Words
 // =============================================================================
@@ -412,6 +429,7 @@ SpellCheckService::SpellCheckService(QObject* parent)
 SpellCheckService::~SpellCheckService()
 {
     m_ownWords->services.removeOne(this);
+    stopSuggestionThread();
     dropLoader();
 
     // Its dictionaries go now, after the one being made for another service
@@ -645,6 +663,7 @@ void SpellCheckService::install(std::unique_ptr<Hunspell> hunspell, const QStrin
 
     retire(std::exchange(m_hunspell, std::move(hunspell)));
     m_dictionary = dictionary;
+    m_knownSuggestions.clear();  // those of the dictionary used before
     m_inUse = true;
     core::Logger::getInstance().info("SpellCheckService: Dictionary {} loaded",
                                      dictionary.toStdString());
@@ -698,25 +717,219 @@ bool SpellCheckService::isCorrect(const QString& word, const WordFilter& alsoRig
     return true;
 }
 
-QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestions) const
-{
-    QStringList result;
-    if (!m_inUse || word.isEmpty()) {
-        return result;
+// =============================================================================
+// Suggestions on a thread of their own
+// =============================================================================
+
+/// @brief Finds the suggestions with a copy of the dictionary of its own, on the thread of the
+///        suggestions: the dictionary in use checks the words on the window's thread, and a
+///        Hunspell dictionary is not used by two threads at once
+class SpellCheckService::SuggestionWorker : public QObject {
+public:
+    SuggestionWorker() = default;
+    SuggestionWorker(const SuggestionWorker&) = delete;
+    SuggestionWorker& operator=(const SuggestionWorker&) = delete;
+    ~SuggestionWorker() override { release(); }
+
+    /// @brief What the dictionary of these files suggests for a word (made first, when this
+    ///        copy is of another one or of none)
+    DictionarySuggestions find(const QString& affixFile, const QString& wordsFile, bool latin1,
+                               const QString& asked) {
+        if (!m_hunspell || m_affixFile != affixFile) {
+            release();
+            const std::lock_guard<std::mutex> lock(hunspellMutex());
+            m_hunspell = std::make_unique<Hunspell>(hunspellPath(affixFile).constData(),
+                                                    hunspellPath(wordsFile).constData());
+            m_affixFile = affixFile;
+        }
+        return dictionarySuggestions(*m_hunspell, latin1, asked);
     }
+
+    /// @brief Give the copy's memory back
+    void release() {
+        if (m_hunspell) {
+            const std::lock_guard<std::mutex> lock(hunspellMutex());
+            m_hunspell.reset();
+        }
+        m_affixFile.clear();
+    }
+
+private:
+    std::unique_ptr<Hunspell> m_hunspell;
+    QString m_affixFile;
+};
+
+QString SpellCheckService::askedWord(const QString& word)
+{
     QString asked = word;
     asked.replace(TYPOGRAPHIC_APOSTROPHE, QLatin1Char('\''));
-    const bool capitalizedWord = isCapitalized(asked);
-    const auto suggest = [this, &asked](const QString& misspelled, bool capitalize) {
+    return asked;
+}
+
+SpellCheckService::DictionarySuggestions SpellCheckService::dictionarySuggestions(
+    Hunspell& hunspell, bool latin1, const QString& asked)
+{
+    const auto suggest = [&hunspell, latin1, &asked](const QString& misspelled, bool capitalize) {
         QStringList found;
-        for (const std::string& suggestion : m_hunspell->suggest(toDictionary(misspelled))) {
-            const QString offered = fromDictionary(suggestion);
+        for (const std::string& suggestion : hunspell.suggest(encodedFor(misspelled, latin1))) {
+            const QString offered = decodedFrom(suggestion, latin1);
             found.append(capitalize ? capitalized(offered) : offered);
         }
         found.removeAll(asked);
         return found;
     };
-    QStringList found = suggest(asked, false);
+    DictionarySuggestions result;
+    result.found = suggest(asked, false);
+    // A word with a capital first letter: also what the dictionary suggests for it written
+    // small (finishSuggestions() puts them in turns)
+    if (isCapitalized(asked)) {
+        result.small = suggest(asked.toLower(), true);
+    }
+    return result;
+}
+
+void SpellCheckService::findSuggestions(const QString& word, int maxSuggestions, QObject* context,
+                                        std::function<void(const QStringList&)> done)
+{
+    if (!done) {
+        return;
+    }
+    if (!m_inUse || word.isEmpty()) {
+        done({});
+        return;
+    }
+    const QString asked = askedWord(word);
+    if (const auto known = m_knownSuggestions.constFind(asked);
+        known != m_knownSuggestions.cend()) {
+        done(finishSuggestions(asked, *known, maxSuggestions));
+        return;
+    }
+    const bool asking = m_waitingForSuggestions.contains(asked);
+    m_waitingForSuggestions[asked].append({QPointer<QObject>(context), maxSuggestions,
+                                           std::move(done)});
+    if (asking) {
+        return;  // the thread is at it already
+    }
+    const QString folder = folderOf(m_dictionary);
+    if (folder.isEmpty()) {
+        onSuggestionsFound(m_dictionary, asked, {});
+        return;
+    }
+
+    // The thread, made at the first question
+    if (m_suggestionThread == nullptr) {
+        m_suggestionThread = new QThread(this);
+        m_suggestionThread->setObjectName(QStringLiteral("Spelling suggestions"));
+        m_suggestionWorker = new SuggestionWorker();
+        m_suggestionWorker->moveToThread(m_suggestionThread);
+        m_suggestionThread->start(QThread::LowPriority);
+        m_suggestionIdle = new QTimer(this);
+        m_suggestionIdle->setSingleShot(true);
+        m_suggestionIdle->setInterval(SUGGESTIONS_IDLE_MS);
+        connect(m_suggestionIdle, &QTimer::timeout, this, [this]() {
+            SuggestionWorker* worker = m_suggestionWorker;
+            QMetaObject::invokeMethod(worker, [worker]() { worker->release(); },
+                                      Qt::QueuedConnection);
+        });
+    }
+    m_suggestionIdle->start();
+
+    // The answer comes back to this service on the window's thread; the service waits for
+    // the thread before it is gone (stopSuggestionThread())
+    SuggestionWorker* worker = m_suggestionWorker;
+    const QString base = folder + QLatin1Char('/') + m_dictionary;
+    QMetaObject::invokeMethod(
+        worker,
+        [worker, service = this, dictionary = m_dictionary,
+         affixFile = base + QStringLiteral(".aff"), wordsFile = base + QStringLiteral(".dic"),
+         latin1 = m_latin1, asked]() {
+            const DictionarySuggestions found = worker->find(affixFile, wordsFile, latin1, asked);
+            QMetaObject::invokeMethod(
+                service,
+                [service, dictionary, asked, found]() {
+                    service->onSuggestionsFound(dictionary, asked, found);
+                },
+                Qt::QueuedConnection);
+        },
+        Qt::QueuedConnection);
+}
+
+std::optional<QStringList> SpellCheckService::knownSuggestions(const QString& word,
+                                                               int maxSuggestions) const
+{
+    if (!m_inUse || word.isEmpty()) {
+        return QStringList();
+    }
+    const QString asked = askedWord(word);
+    const auto known = m_knownSuggestions.constFind(asked);
+    if (known == m_knownSuggestions.cend()) {
+        return std::nullopt;
+    }
+    return finishSuggestions(asked, *known, maxSuggestions);
+}
+
+void SpellCheckService::onSuggestionsFound(const QString& dictionary, const QString& asked,
+                                           const DictionarySuggestions& found)
+{
+    QList<WaitingForSuggestions> waiting = m_waitingForSuggestions.take(asked);
+    // Found with another dictionary than the one in use now: asked again with this one
+    if (dictionary != m_dictionary) {
+        for (WaitingForSuggestions& each : waiting) {
+            if (!each.context.isNull()) {
+                findSuggestions(asked, each.maxSuggestions, each.context.data(),
+                                std::move(each.done));
+            }
+        }
+        return;
+    }
+    if (m_knownSuggestions.size() >= MAX_KNOWN_SUGGESTIONS) {
+        m_knownSuggestions.clear();
+    }
+    m_knownSuggestions.insert(asked, found);
+    for (const WaitingForSuggestions& each : std::as_const(waiting)) {
+        if (!each.context.isNull()) {
+            each.done(finishSuggestions(asked, found, each.maxSuggestions));
+        }
+    }
+}
+
+void SpellCheckService::stopSuggestionThread()
+{
+    if (m_suggestionThread == nullptr) {
+        return;
+    }
+    m_suggestionThread->quit();
+    m_suggestionThread->wait();
+    delete m_suggestionWorker;  // its thread has stopped: its copy of the dictionary goes
+    m_suggestionWorker = nullptr;
+    delete m_suggestionThread;
+    m_suggestionThread = nullptr;
+}
+
+QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestions) const
+{
+    if (!m_inUse || word.isEmpty()) {
+        return {};
+    }
+    const QString asked = askedWord(word);
+    auto known = m_knownSuggestions.constFind(asked);
+    if (known == m_knownSuggestions.cend()) {
+        if (m_knownSuggestions.size() >= MAX_KNOWN_SUGGESTIONS) {
+            m_knownSuggestions.clear();
+        }
+        known =
+            m_knownSuggestions.insert(asked, dictionarySuggestions(*m_hunspell, m_latin1, asked));
+    }
+    return finishSuggestions(asked, *known, maxSuggestions);
+}
+
+QStringList SpellCheckService::finishSuggestions(const QString& asked,
+                                                 const DictionarySuggestions& dictionary,
+                                                 int maxSuggestions) const
+{
+    QStringList result;
+    QStringList found = dictionary.found;
+    const bool capitalizedWord = isCapitalized(asked);
 
     // A word with a capital first letter, at the start of a sentence or a name: for it the
     // dictionary offers names and capitalized words first (Kory and Tory for the Polish
@@ -724,7 +937,7 @@ QStringList SpellCheckService::suggestions(const QString& word, int maxSuggestio
     // suggestions for the word written small go in turns with them, from the list whose first
     // word is closer to the word typed.
     if (capitalizedWord) {
-        const QStringList small = suggest(asked.toLower(), true);
+        const QStringList& small = dictionary.small;
         const bool namesFirst = !found.isEmpty() &&
                                 (small.isEmpty() || distanceBetween(asked, found.front()) <
                                                         distanceBetween(asked, small.front()));
@@ -876,13 +1089,12 @@ bool SpellCheckService::isOwnWord(const QString& word) const
 
 std::string SpellCheckService::toDictionary(const QString& word) const
 {
-    return m_latin1 ? word.toLatin1().toStdString() : word.toStdString();
+    return encodedFor(word, m_latin1);
 }
 
 QString SpellCheckService::fromDictionary(const std::string& word) const
 {
-    return m_latin1 ? QString::fromLatin1(word.data(), static_cast<qsizetype>(word.size()))
-                    : QString::fromStdString(word);
+    return decodedFrom(word, m_latin1);
 }
 
 // =============================================================================

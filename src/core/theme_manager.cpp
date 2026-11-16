@@ -89,6 +89,7 @@ ThemeManager::ThemeManager() {
     m_currentTheme.colors.background = QColor("#FFFFFF");
     m_currentTheme.colors.text = QColor("#000000");
     m_currentTheme.colors.infoHeader = QColor("#2B4763");
+    m_currentTheme.colors.styleTag = QColor("#1F6FC5");
     m_currentTheme.colors.infoBarBorder = QColor("#FFD54F");
     m_currentTheme.colors.infoBarBackground = QColor("#FFF8E1");
     m_currentTheme.log.info = QColor("#000000");
@@ -337,6 +338,7 @@ void ThemeManager::applyStoredColors(Theme& theme, std::map<std::string, QColor>
     // colors stored before the Dashboard icons took the icon colors are not read
     const std::pair<const char*, QColor Theme::Colors::*> panelColors[] = {
         {"infoHeader", &Theme::Colors::infoHeader},
+        {"styleTag", &Theme::Colors::styleTag},
     };
     for (const auto& [key, field] : panelColors) {
         QColor& target = theme.colors.*field;
@@ -513,6 +515,8 @@ void ThemeManager::applyColorOverrides(const std::map<std::string, QColor>& over
             m_currentTheme.colors.text = color;
         } else if (key == "infoHeader") {
             m_currentTheme.colors.infoHeader = color;
+        } else if (key == "styleTag") {
+            m_currentTheme.colors.styleTag = color;
         } else if (key == "infoBarBorder") {
             m_currentTheme.colors.infoBarBorder = color;
         } else if (key == "infoBarBackground") {
@@ -557,6 +561,10 @@ void ThemeManager::setColorOverride(const QString& key, const QColor& color) {
         m_currentTheme.colors.background = color;
     } else if (key == "text" || key == "colors.text") {
         m_currentTheme.colors.text = color;
+    }
+    // Custom color: styleTag
+    else if (key == "styleTag" || key == "colors.styleTag") {
+        m_currentTheme.colors.styleTag = color;
     }
     // Custom color: infoBarBorder
     else if (key == "infoBarBorder" || key == "colors.infoBarBorder") {

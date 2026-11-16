@@ -110,10 +110,22 @@ InsertCaptionDialog::InsertCaptionDialog(Data shown, QWidget* parent)
       m_data(std::move(shown)),
       m_labels(m_data.labels)
 {
-    //: In Polish: Wstaw podpis / Podpis obrazu z numerem nadawanym przez program.
-    setHeading(tr("Insert Caption"), tr("The caption of the image, with a number the program gives."));
-    setHeadingIcon(QStringLiteral("insert.caption"));
-    setAcceptText(tr("OK"));
+    if (m_data.newImage) {
+        //: Insert > Image..., after the file is chosen. In Polish: Podpis nowego obrazu /
+        //: Obraz wejdzie do tekstu z podpisem, który tu wpiszesz, albo bez podpisu.
+        setHeading(tr("Caption of the New Image"),
+                   tr("The image goes into the text with the caption you write here, or "
+                      "without one."));
+        setHeadingIcon(QStringLiteral("insert.image"));
+        //: In Polish: Wstaw
+        setAcceptText(tr("Insert"));
+    } else {
+        //: In Polish: Wstaw podpis / Podpis obrazu z numerem nadawanym przez program.
+        setHeading(tr("Insert Caption"),
+                   tr("The caption of the image, with a number the program gives."));
+        setHeadingIcon(QStringLiteral("insert.caption"));
+        setAcceptText(tr("OK"));
+    }
     //: The tooltip of the gear of the windows of images. In Polish: Ustawienia obrazów
     addSettingsButton(QString::fromLatin1(SettingsDialog::IMAGES_PAGE), tr("Image Settings"));
 
@@ -193,8 +205,16 @@ InsertCaptionDialog::InsertCaptionDialog(Data shown, QWidget* parent)
         this));
     contentLayout()->addStretch(1);
 
-    // An image with a caption can lose it
-    if (m_data.caption.shown) {
+    // An image with a caption can lose it; a new one goes in without one
+    if (m_data.newImage) {
+        //: In Polish: Wstaw be&z podpisu
+        QPushButton* without = addSideButton(tr("Insert With&out Caption"));
+        without->setObjectName(QStringLiteral("insertWithoutCaption"));
+        connect(without, &QPushButton::clicked, this, [this]() {
+            m_removed = true;
+            accept();
+        });
+    } else if (m_data.caption.shown) {
         //: In Polish: Usuń p&odpis
         QPushButton* remove = addSideButton(tr("Remove Capt&ion"));
         connect(remove, &QPushButton::clicked, this, [this]() {

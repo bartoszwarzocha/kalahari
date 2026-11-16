@@ -17,9 +17,12 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QScrollBar>
+#include <QTextBlock>
+#include <QTextBlockFormat>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextEdit>
+#include <QTextLayout>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -98,8 +101,10 @@ WritingFrame::WritingFrame(CommandRegistry& commands, QWidget* editor, QTextEdit
     setAutoFillBackground(false);
 
     auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(BAR_WIDTH + 8, 6, 8, 8);
-    layout->setSpacing(4);
+    m_margins = QMargins(BAR_WIDTH + 8, 6, 8, 8);
+    m_spacing = 4;
+    layout->setContentsMargins(m_margins);
+    layout->setSpacing(m_spacing);
 
     // Header: the title, the X in the corner
     m_header = new QHBoxLayout();
@@ -137,6 +142,7 @@ WritingFrame::WritingFrame(CommandRegistry& commands, QWidget* editor, QTextEdit
     m_textEdit->setLineWrapMode(QTextEdit::WidgetWidth);
     m_textEdit->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_textEdit->installEventFilter(this);
+    m_documentMargin = m_textEdit->document()->documentMargin();
     connect(m_textEdit->document()->documentLayout(),
             &QAbstractTextDocumentLayout::documentSizeChanged, this, [this]() {
                 updateTextHeight();
@@ -198,6 +204,29 @@ void WritingFrame::place() {
         return;
     }
     const Placement placement = m_placement();
+
+    // The text of its card, written in place: the card is as high as the text
+    if (!placement.cardText.isEmpty()) {
+        setCardText(true);
+        setCardFont(placement.cardFont, placement.cardLineHeight);
+        const int textWidth =
+            std::max(1, static_cast<int>(std::lround(placement.cardText.width())));
+        if (textWidth != width()) {
+            resize(textWidth, height());
+        }
+        m_textEdit->document()->setTextWidth(textWidth);  // as the text box will have it
+        updateTextHeight();
+        const int textHeight = cardTextHeight();
+        if (std::abs(placement.cardText.height() - textHeight) >= 1.0) {
+            emit cardHeightNeeded(textHeight);
+        }
+        m_cardOffset = cardTextOffset();
+        setGeometry(static_cast<int>(std::lround(placement.cardText.left())),
+                    static_cast<int>(std::lround(placement.cardText.top() + m_cardOffset)),
+                    textWidth, textHeight);
+        return;
+    }
+    setCardText(false);
 
     // Over its card, as wide as it; the card makes room for the frame as high as it is, or
     // the frame lies over it within the editor
@@ -266,6 +295,102 @@ void WritingFrame::startTyping() {
     cursor.movePosition(QTextCursor::End);
     m_textEdit->setTextCursor(cursor);
     m_textEdit->ensureCursorVisible();
+}
+
+void WritingFrame::startTypingAt(const QPointF& inText) {
+    place();  // where its text is now
+    startTyping();
+    if (m_cardText) {
+        const QPointF point = inText - QPointF(0.0, m_cardOffset);
+        m_textEdit->setTextCursor(m_textEdit->cursorForPosition(point.toPoint()));
+    }
+}
+
+void WritingFrame::setCardText(bool cardText) {
+    if (cardText == m_cardText) {
+        return;
+    }
+    m_cardText = cardText;
+
+    // The text alone: no header, no footer, no border; the card around it is the editor's
+    for (QLayout* bar : {static_cast<QLayout*>(m_header), static_cast<QLayout*>(m_footer)}) {
+        for (int i = 0; i < bar->count(); ++i) {
+            if (QWidget* widget = bar->itemAt(i)->widget()) {
+                widget->setVisible(!cardText);
+            }
+        }
+    }
+    layout()->setContentsMargins(cardText ? QMargins() : m_margins);
+    layout()->setSpacing(cardText ? 0 : m_spacing);
+    m_textEdit->setFrameShape(cardText ? QFrame::NoFrame : QFrame::StyledPanel);
+    m_textEdit->setVerticalScrollBarPolicy(cardText ? Qt::ScrollBarAlwaysOff
+                                                    : Qt::ScrollBarAsNeeded);
+    m_textEdit->document()->setDocumentMargin(cardText ? 0.0 : m_documentMargin);
+
+    // What the keys do, without the footer
+    m_textEdit->setToolTip(cardText ? m_hintLabel->text() : QString());
+    if (!cardText) {
+        m_textEdit->setFont(QFont());  // the frame's
+        m_cardLineHeight = 0.0;
+        m_cardOffset = 0.0;
+        setLineHeight(0.0, QTextBlockFormat::SingleHeight);
+    }
+    cardTextChanged();
+    updateStyle();
+    updateTextHeight();
+    update();
+}
+
+void WritingFrame::setCardFont(const QFont& font, qreal lineHeight) {
+    if (font != m_textEdit->font()) {
+        m_textEdit->setFont(font);
+    }
+
+    // Each line in a line box of the card's height (a paragraph the writer adds takes the
+    // format of the one before)
+    bool same = std::abs(lineHeight - m_cardLineHeight) < 0.01;
+    for (QTextBlock block = m_textEdit->document()->begin(); same && block.isValid();
+         block = block.next()) {
+        const QTextBlockFormat format = block.blockFormat();
+        same = format.lineHeightType() == QTextBlockFormat::FixedHeight &&
+               std::abs(format.lineHeight() - lineHeight) < 0.01;
+    }
+    if (!same) {
+        m_cardLineHeight = lineHeight;
+        setLineHeight(lineHeight, lineHeight > 0.0 ? QTextBlockFormat::FixedHeight
+                                                   : QTextBlockFormat::SingleHeight);
+    }
+}
+
+void WritingFrame::setLineHeight(qreal height, int type) {
+    // The look of the text, not what is written: no step of Undo (its history goes, which
+    // only a change of the zoom while writing does)
+    QTextDocument* document = m_textEdit->document();
+    const bool undo = document->isUndoRedoEnabled();
+    document->setUndoRedoEnabled(false);
+    QTextCursor all(document);
+    all.select(QTextCursor::Document);
+    QTextBlockFormat format;
+    format.setLineHeight(height, type);
+    all.mergeBlockFormat(format);
+    document->setUndoRedoEnabled(undo);
+}
+
+int WritingFrame::cardTextHeight() const {
+    const qreal text = m_textEdit->document()->size().height();
+    return std::max(1, static_cast<int>(std::ceil(text - 0.01))) + 2 * m_textEdit->frameWidth();
+}
+
+qreal WritingFrame::cardTextOffset() const {
+    QTextDocument* document = m_textEdit->document();
+    document->size();  // laid out
+    const QTextLayout* layout = document->firstBlock().layout();
+    if (layout == nullptr || layout->lineCount() == 0 || m_cardLineHeight <= 0.0) {
+        return 0.0;
+    }
+    const QTextLine line = layout->lineAt(0);
+    const qreal top = layout->position().y() + line.y();
+    return (m_cardLineHeight - line.height()) / 2.0 - top;
 }
 
 void WritingFrame::addKeyWidget(QWidget* widget) {
@@ -517,6 +642,10 @@ bool WritingFrame::focusNextPrevChild(bool next) {
 }
 
 void WritingFrame::updateTextHeight() {
+    if (m_cardText) {
+        m_textEdit->setFixedHeight(cardTextHeight());
+        return;
+    }
     const QFontMetricsF metrics(m_textEdit->font());
     const qreal margins = 2.0 * m_textEdit->document()->documentMargin();
     const int frameHeight = 2 * m_textEdit->frameWidth();
@@ -558,8 +687,12 @@ void WritingFrame::updateStyle() {
     }
 
     // The colors are set in a style sheet: they stay through every polish of the editor's
-    // style
-    setStyleSheet(styleSheetFor(m_colors));
+    // style. The text of a card has no border
+    QString sheet = styleSheetFor(m_colors);
+    if (m_cardText) {
+        sheet += QStringLiteral("QTextEdit, QTextEdit:focus { border: none; padding: 0px; }");
+    }
+    setStyleSheet(sheet);
 
     // The placeholder is drawn in the palette's color
     QPalette textPalette = m_textEdit->palette();

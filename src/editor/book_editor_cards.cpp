@@ -315,7 +315,7 @@ void BookEditor::scrollToAnnotationCard(const QString& id)
 // =============================================================================
 
 void BookEditor::setAnnotationCardWriting(const QString& id, AnnotationKind kind, int start,
-                                          int end, qreal height)
+                                          int end, qreal height, const QString& author)
 {
     if (!m_textBuffer) {
         return;
@@ -326,6 +326,7 @@ void BookEditor::setAnnotationCardWriting(const QString& id, AnnotationKind kind
     AnnotationCards::Writing writing;
     writing.id = id;
     writing.kind = kind;
+    writing.author = author;
     // A new one's mark: after the last character of its fragment, in the paragraph of that
     // character; on its place without a fragment
     const int last = m_textBuffer->characterCount() - 1;
@@ -374,6 +375,46 @@ void BookEditor::fitAnnotationCardWriting()
     if (block.isValid()) {
         updateAnnotationCardRoom(block.blockNumber(), block.blockNumber());
     }
+}
+
+QRectF BookEditor::annotationCardWritingTextRect() const
+{
+    const std::optional<AnnotationCards::Writing>& writing = m_annotationCards.writing();
+    const KalahariTextDocumentLayout* layout = layoutOf(m_textBuffer.get());
+    if (!writing || layout == nullptr || !m_renderPipeline || !m_annotationCards.isShown()) {
+        return {};
+    }
+    const QTextBlock block = annotationCardBlock(writing->id);
+    const qreal top = annotationCardsTop(block);
+    if (top < 0.0) {
+        return {};
+    }
+    const QRectF text = m_annotationCards.writingTextRect(block, top, m_textBuffer->textWidth());
+    if (text.isEmpty()) {
+        return {};
+    }
+    const qreal blockY = layout->blockY(block.blockNumber());
+    return QRectF(m_renderPipeline->documentToWidget(QPointF(text.left(), blockY + text.top())),
+                  m_renderPipeline->documentToWidget(
+                      QPointF(text.right(), blockY + text.bottom())));
+}
+
+QFont BookEditor::annotationCardTextFont() const
+{
+    QFont font = m_annotationCards.cardFont();
+    const double scale = m_renderPipeline ? m_renderPipeline->context().computed.viewScale : 1.0;
+    if (font.pointSizeF() > 0) {
+        font.setPointSizeF(font.pointSizeF() * scale);
+    } else if (font.pixelSize() > 0) {
+        font.setPixelSize(std::max(1, static_cast<int>(std::lround(font.pixelSize() * scale))));
+    }
+    return font;
+}
+
+qreal BookEditor::annotationCardLineHeight() const
+{
+    const double scale = m_renderPipeline ? m_renderPipeline->context().computed.viewScale : 1.0;
+    return m_annotationCards.lineHeight() * scale;
 }
 
 void BookEditor::clearAnnotationCardWriting()
@@ -453,6 +494,19 @@ bool BookEditor::pressAnnotationCard(const QPointF& point)
         }
         break;
     }
+    case AnnotationCardPart::Text:
+        // Its text is written on the card, from where it is clicked (user's test of 16.11);
+        // the cursor of the text stays, as at a click on a mark. In a read-only text, as a
+        // click on the card
+        if (!m_readOnly) {
+            const double scale =
+                m_renderPipeline ? m_renderPipeline->context().computed.viewScale : 1.0;
+            setFocus(Qt::MouseFocusReason);
+            emit annotationCardClicked(hit->id);
+            emit annotationCardTextPressed(hit->id, hit->inText * scale);
+            break;
+        }
+        [[fallthrough]];
     case AnnotationCardPart::Card:
         // Its fragment is selected, and its card in the panel; a second click edits it
         setFocus(Qt::MouseFocusReason);
@@ -479,6 +533,7 @@ QString BookEditor::annotationCardToolTip(const QPointF& point) const
         return tr("Click to expand");
     case AnnotationCardPart::ShowAll:
     case AnnotationCardPart::Card:
+    case AnnotationCardPart::Text:
         break;
     }
     return {};

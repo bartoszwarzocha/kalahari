@@ -16,6 +16,7 @@
 #include "kalahari/editor/search_engine.h"
 #include "kalahari/editor/text_footnotes.h"
 #include "kalahari/gui/book_search_coordinator.h"
+#include "kalahari/gui/edit_coordinator.h"
 #include "kalahari/gui/panels/search_panel.h"
 
 #include <QFile>
@@ -718,6 +719,86 @@ TEST_CASE("Find in Book: Replace All in Book, with a version of each text and Un
     // Nothing to replace
     search.find(QStringLiteral("hail"));
     CHECK(search.coordinator.replaceAllInBook() == 0);
+}
+
+TEST_CASE("Find in Book: the writer's Undo in a text undoes Replace All in Book in every text; "
+          "Redo does it again",
+          "[gui][search][book]") {
+    VersionSettings versionSettings;
+    SearchedBook book;
+    const QString quiet =
+        book.book.pm.addElement(book.book.pm.chapterKindFor(core::BookPlace::Main),
+                                QStringLiteral("Quiet"), core::BookPlace::Main);
+    save(book.book, quiet, QStringLiteral("<kml><p>Quiet.</p></kml>"));
+    Window window;
+    Search search(window);
+    window.navigator.onElementSelected(quiet, QStringLiteral("Quiet"));
+    editor::BookEditor* still = openText(window, quiet);
+    window.navigator.onElementSelected(book.storm, QStringLiteral("The Storm"));
+    editor::BookEditor* storm = openText(window, book.storm);
+    REQUIRE(still != nullptr);
+    REQUIRE(storm != nullptr);
+    const QString stormBefore = storm->toKml();
+    search.find(QStringLiteral("storm"));
+    QLineEdit* replacement = widgetNamed<QLineEdit>(search.panel, QStringLiteral("Replace With"));
+    REQUIRE(replacement != nullptr);
+    replacement->setText(QStringLiteral("gale"));
+    REQUIRE(search.coordinator.replaceAllInBook() == 6);
+    const QString stormAfter = storm->toKml();
+    const QString calmAfter = QStringLiteral("<kml><p>Calm after the gale.</p></kml>");
+
+    SECTION("in a text it changed") {
+        REQUIRE(storm->canUndoCommand());
+        storm->undoCommand();
+    }
+    SECTION("in an open text it did not change") {
+        CHECK_FALSE(still->canUndo());
+        REQUIRE(still->canUndoCommand());
+        still->undoCommand();
+    }
+    SECTION("in the Search panel, outside its fields: the text in front") {
+        gui::EditCoordinator edits(test::commands(), [storm]() { return storm; });
+        REQUIRE(edits.canDo(gui::EditCoordinator::Edit::Undo, &search.panel));
+        REQUIRE(edits.execute(gui::EditCoordinator::Edit::Undo, &search.panel));
+    }
+
+    // Every text as it was, in one step
+    CHECK(storm->toKml() == stormBefore);
+    CHECK(fileOf(book.book, book.calm) == SearchedBook::CALM_TEXT);
+    CHECK(fileOf(book.book, book.foreword) == SearchedBook::FOREWORD_TEXT);
+    CHECK(book.book.pm.chapterText(book.notes) == SearchedBook::NOTES_TEXT);
+    CHECK_FALSE(search.coordinator.canUndo());
+    CHECK_FALSE(storm->canUndoCommand());
+
+    // Redo: the replacement again, in every text
+    REQUIRE(search.coordinator.canRedo());
+    CHECK(still->canRedoCommand());
+    REQUIRE(storm->canRedoCommand());
+    storm->redoCommand();
+    CHECK(storm->toKml() == stormAfter);
+    CHECK(fileOf(book.book, book.calm) == calmAfter);
+    CHECK(book.book.pm.chapterText(book.notes) == QStringLiteral("<kml><p>galey notes.</p></kml>"));
+    CHECK(fileOf(book.book, book.notes) == SearchedBook::NOTES_SAVED);
+    CHECK_FALSE(search.coordinator.canRedo());
+    REQUIRE(search.coordinator.canUndo());
+
+    // The text it did not change, written in: its Undo is its own again
+    still->setCursorPosition({0, 0});
+    still->insertText(QStringLiteral("x"));
+    CHECK_FALSE(search.coordinator.undoesFor(*still));
+    still->undoCommand();
+    CHECK(still->textDocument()->toPlainText() == QStringLiteral("Quiet."));
+    CHECK(fileOf(book.book, book.calm) == calmAfter);
+    CHECK(search.coordinator.undoesFor(*storm));
+
+    // A text it changed, written in: the change is final, its Undo is its own
+    storm->setCursorPosition({0, 0});
+    storm->insertText(QStringLiteral("y"));
+    CHECK_FALSE(search.coordinator.canUndo());
+    CHECK_FALSE(search.coordinator.undoesFor(*storm));
+    storm->undoCommand();
+    CHECK(storm->toKml() == stormAfter);
+    CHECK(fileOf(book.book, book.calm) == calmAfter);
 }
 
 // =============================================================================

@@ -410,6 +410,8 @@ void registerAllIcons() {
     // The views of a window: Insert > Special Character...
     iconRegistry.registerIcon("common.gridView", "resources/icons/twotone/grid_view.svg", "Grid");
     iconRegistry.registerIcon("common.listView", "resources/icons/twotone/view_list.svg", "List");
+    // A favorite (the characters of Insert > Special Character...)
+    iconRegistry.registerIcon("common.favorite", "resources/icons/twotone/star.svg", "Favorite");
     // Small "+" and "-" buttons of a list: add a row, take it out
     iconRegistry.registerIcon("common.add", "resources/icons/twotone/add.svg", "Add");
     iconRegistry.registerIcon("common.remove", "resources/icons/twotone/remove.svg", "Remove");
@@ -494,6 +496,11 @@ void registerAllIcons() {
     // The button that puts the tabs in the middle of the window in more rows
     iconRegistry.registerIcon("tabs.rows", "resources/icons/twotone/view_agenda.svg",
                               "Tabs in More Rows");
+    // The button that lists all the tabs in the middle of the window, and Window > Tab List
+    iconRegistry.registerIcon("tabs.list", "resources/icons/twotone/expand_more.svg",
+                              "All Tabs");
+    iconRegistry.registerIcon("window.tabList", "resources/icons/twotone/expand_more.svg",
+                              "Tab List");
 
     // -------------------------------------------------------------------------
     // NEW ITEM DIALOG ICONS (OpenSpec #00033)

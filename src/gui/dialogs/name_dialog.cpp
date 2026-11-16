@@ -22,7 +22,9 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QLocale>
+#include <QMetaObject>
 #include <QPushButton>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -46,6 +48,10 @@ constexpr int LIST_WIDTH = 210;
 
 /// @brief The space between the list and the fields of the one chosen
 constexpr int COLUMN_SPACING = 16;
+
+/// @brief The pause in typing after which the models and the forms of the text are found:
+///        the dictionary takes a while for every word, and the writer types on meanwhile
+constexpr int FORMS_DELAY_MS = 400;
 
 /// @brief The other names of a new name follow the name itself: the first name and the surname
 ///        alone the program made for it (@p made) take the place of those it made before, but
@@ -184,10 +190,31 @@ NameDialog::NameDialog(const core::DictionaryName& name, core::NameDeclension de
     right->addWidget(m_quickInsert);
     columns->addLayout(right, 1);
 
+    // The models and the forms of a text typed come at a pause (user's test of 16.11)
+    m_formsTimer = new QTimer(this);
+    m_formsTimer->setObjectName(QStringLiteral("nameFormsTimer"));
+    m_formsTimer->setSingleShot(true);
+    m_formsTimer->setInterval(FORMS_DELAY_MS);
+    connect(m_formsTimer, &QTimer::timeout, this, &NameDialog::formsOfText);
+
     connect(m_list, &QTreeWidget::currentItemChanged, this, [this]() {
-        if (!m_showing && m_list->currentItem() != nullptr) {
-            setCurrentVariant(m_list->indexOfTopLevelItem(m_list->currentItem()));
+        if (m_showing || m_list->currentItem() == nullptr) {
+            return;
         }
+        const int index = m_list->indexOfTopLevelItem(m_list->currentItem());
+        if (!m_formsTimer->isActive()) {
+            setCurrentVariant(index);
+            return;
+        }
+        // Chosen while a text was typed: its forms first, out of the signal of the list,
+        // which they may fill anew
+        QMetaObject::invokeMethod(
+            this,
+            [this, index]() {
+                finishTyping();
+                setCurrentVariant(index);
+            },
+            Qt::QueuedConnection);
     });
     connect(m_addButton, &QPushButton::clicked, this, &NameDialog::addVariant);
     connect(m_removeButton, &QPushButton::clicked, this, &NameDialog::removeVariant);
@@ -200,6 +227,7 @@ NameDialog::NameDialog(const core::DictionaryName& name, core::NameDeclension de
         variant.edited = m_forms->variant().edited;
     });
     connect(m_suggestButton, &QPushButton::clicked, this, [this]() {
+        finishTyping();
         m_name.variants[m_current].edited.clear();
         refreshCurrent();
     });
@@ -235,7 +263,24 @@ int NameDialog::currentVariant() const {
     return m_current;
 }
 
+bool NameDialog::typing() const {
+    return m_formsTimer->isActive();
+}
+
+void NameDialog::finishTyping() {
+    if (m_formsTimer->isActive()) {
+        m_formsTimer->stop();
+        formsOfText();
+    }
+}
+
+void NameDialog::accept() {
+    finishTyping();
+    KalahariDialog::accept();
+}
+
 void NameDialog::setCurrentVariant(int index) {
+    finishTyping();
     if (index < 0 || index >= m_name.variants.size()) {
         return;
     }
@@ -283,6 +328,7 @@ void NameDialog::fillModels() {
     m_models.clear();
     const core::NameVariant& variant = m_name.variants.at(m_current);
     const QStringList words = core::NameDeclension::wordsOf(variant.text);
+    m_modelWords = words;
     const QString unchanged = core::NameDeclension::unchanged();
     for (int i = 0; i < words.size(); ++i) {
         const QString& word = words.at(i);
@@ -311,8 +357,19 @@ void NameDialog::onTextEdited(const QString& text) {
     if (m_showing) {
         return;
     }
+    // The text at once, in the field and in the list; its models and forms at a pause
+    m_name.variants[m_current].text = text;
+    if (QTreeWidgetItem* item = m_list->topLevelItem(m_current)) {
+        const QString shown = text.simplified();
+        item->setText(0, shown.isEmpty() ? tr("(new name)") : shown);
+    }
+    updateButtons();
+    m_formsTimer->start();
+}
+
+void NameDialog::formsOfText() {
     core::NameVariant& variant = m_name.variants[m_current];
-    variant.text = text;
+    const QString text = variant.text;
     variant.models = pickedModels(text.simplified(), m_name.kind);
     core::refreshForms(variant, m_name.kind, m_declension, m_dictionary);
     if (m_new && m_current == 0) {
@@ -332,6 +389,7 @@ void NameDialog::onKindChanged() {
     if (m_showing) {
         return;
     }
+    finishTyping();
     const core::NameKind before = m_name.kind;
     m_name.kind = static_cast<core::NameKind>(m_kind->currentData().toInt());
     for (core::NameVariant& variant : m_name.variants) {
@@ -347,6 +405,22 @@ void NameDialog::onKindChanged() {
 
 void NameDialog::onModelChosen(int word, const QString& model) {
     if (m_showing) {
+        return;
+    }
+    if (m_formsTimer->isActive()) {
+        // Chosen while the text was typed: the rows of its words first, out of the signal of
+        // the list chosen in (they are made anew); the choice stays when the word is there
+        const QString chosenFor = m_modelWords.value(word);
+        QMetaObject::invokeMethod(
+            this,
+            [this, word, model, chosenFor]() {
+                finishTyping();
+                if (word < m_models.size() && m_modelWords.value(word) == chosenFor) {
+                    QComboBox* models = m_models.at(word);
+                    models->setCurrentIndex(std::max(0, models->findData(model)));
+                }
+            },
+            Qt::QueuedConnection);
         return;
     }
     core::NameVariant& variant = m_name.variants[m_current];
@@ -367,6 +441,7 @@ void NameDialog::onUnchangedToggled(bool unchanged) {
     if (m_showing) {
         return;
     }
+    finishTyping();
     core::NameVariant& variant = m_name.variants[m_current];
     const QString text = variant.text.simplified();
     variant.models = unchanged ? QStringList(core::NameDeclension::wordsOf(text).size(),
@@ -386,6 +461,7 @@ void NameDialog::refreshCurrent() {
 }
 
 void NameDialog::addVariant() {
+    finishTyping();
     m_name.variants.append(core::NameVariant{});
     m_current = static_cast<int>(m_name.variants.size()) - 1;
     fillList();
@@ -394,6 +470,7 @@ void NameDialog::addVariant() {
 }
 
 void NameDialog::removeVariant() {
+    finishTyping();
     if (m_current <= 0) {
         return;
     }

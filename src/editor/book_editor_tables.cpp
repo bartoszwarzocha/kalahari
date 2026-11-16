@@ -8,6 +8,8 @@
 #include "book_editor_internal.h"
 #include <kalahari/editor/buffer_commands.h>
 #include <kalahari/editor/kalahari_text_document_layout.h>
+#include <kalahari/editor/paragraph_styles.h>
+#include <kalahari/editor/table_editing.h>
 #include <kalahari/editor/text_tables.h>
 #include <QPainter>
 #include <QTextBlock>
@@ -32,6 +34,18 @@ std::vector<std::pair<qreal, qreal>> rowParts(const KalahariTextDocumentLayout::
 }
 
 }  // namespace
+
+QTextBlockFormat BookEditor::tableCellFormat() const
+{
+    // The styles of tables, when the book has both (user's test of 16.11): the header rows
+    // take that of a header (cellParagraphFormat()); without them Normal
+    QTextBlockFormat format = paragraphBlockFormat();
+    if (m_paragraphStyles.contains(QString::fromLatin1(TABLE_ROW_STYLE_ID)) &&
+        m_paragraphStyles.contains(QString::fromLatin1(TABLE_HEADER_STYLE_ID))) {
+        setParagraphStyle(format, QString::fromLatin1(TABLE_ROW_STYLE_ID));
+    }
+    return format;
+}
 
 bool BookEditor::isInTable() const
 {
@@ -68,7 +82,7 @@ void BookEditor::insertTable(int columns, int rows, bool headerRow)
     for (int row = 0; row < shape.rows; ++row) {
         for (int column = 0; column < shape.columns; ++column) {
             cells.setPosition(table->cellAt(row, column).firstPosition());
-            cells.setBlockFormat(paragraphBlockFormat());
+            cells.setBlockFormat(cellParagraphFormat(tableCellFormat(), row < shape.headerRows));
             cells.setBlockCharFormat(QTextCharFormat());
         }
     }
@@ -128,7 +142,7 @@ void BookEditor::appendTableRow(QTextTable& table)
         const QTextTableCell cell = table.cellAt(row, column);
         if (cell.row() == row && cell.column() == column) {
             cursor.setPosition(cell.firstPosition());
-            cursor.setBlockFormat(paragraphBlockFormat());
+            cursor.setBlockFormat(tableCellFormat());
         }
     }
     cursor.endEditBlock();

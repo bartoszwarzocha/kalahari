@@ -113,7 +113,11 @@ SpecialCharacterDialog::SpecialCharacterDialog(TargetOf targetOf, KeysOf keysOf,
     , m_autoCorrectOf(std::move(autoCorrectOf))
 {
     setHeading(tr("Special Character"),
-               tr("Enter inserts the character at the cursor. Esc closes the window."));
+               //: In Polish: Enter wstawia znak w miejscu kursora. Przycisk „Dodaj do
+               //: ulubionych” albo gwiazdka sprawia, że znak jest zawsze pod ręką. Esc zamyka
+               //: okno.
+               tr("Enter inserts the character at the cursor. Add to Favorites or the star keeps "
+                  "a character at hand. Esc closes the window."));
     setHeadingIcon(QStringLiteral("insert.specialChar"));
     setCompactHeading(true);
     setAcceptText(tr("&Insert"));
@@ -146,6 +150,10 @@ SpecialCharacterDialog::SpecialCharacterDialog(TargetOf targetOf, KeysOf keysOf,
 
     // The buttons of the list view: in the grid view they are in the details
     m_listFavoriteButton = addSideButton(tr("Add to &Favorites"));
+    //: In Polish: Zachowaj znak w ulubionych: na początku okna i w menu Wstaw > Szybki wybór
+    //: znaku
+    m_listFavoriteButton->setToolTip(tr("Keep the character among the favorites: first in the "
+                                        "window and in Insert > Quick Character"));
     m_listShortcutButton = addSideButton(tr("Assign &Shortcut..."));
     m_listReplacementButton = addSideButton(tr("Add &Replacement..."));
     connect(m_listFavoriteButton, &QPushButton::clicked, this,
@@ -154,6 +162,7 @@ SpecialCharacterDialog::SpecialCharacterDialog(TargetOf targetOf, KeysOf keysOf,
             [this]() { emit shortcutRequested(m_current); });
     connect(m_listReplacementButton, &QPushButton::clicked, this,
             [this]() { emit replacementRequested(m_current); });
+    updateViewIcons();
 
     // Ctrl+F: back to the search, as in the find bar of the text
     auto* find = new QShortcut(QKeySequence(Qt::ControlModifier | Qt::Key_F), this);
@@ -231,6 +240,13 @@ void SpecialCharacterDialog::updateViewIcons()
                                               core::IconContext::Button));
     m_listButton->setIcon(artProvider.getIcon(QStringLiteral("common.listView"),
                                               core::IconContext::Button));
+    // The star of the favorites on their buttons
+    for (QPushButton* button : {m_favoriteButton, m_listFavoriteButton}) {
+        if (button != nullptr) {
+            button->setIcon(artProvider.getIcon(QStringLiteral("common.favorite"),
+                                                core::IconContext::Button));
+        }
+    }
 }
 
 void SpecialCharacterDialog::createCharacterMenu()
@@ -400,6 +416,10 @@ QWidget* SpecialCharacterDialog::createGridView()
     detailsLayout->addWidget(m_fontNote);
 
     m_favoriteButton = new QPushButton(tr("Add to &Favorites"), details);
+    //: In Polish: Zachowaj znak w ulubionych: na początku okna i w menu Wstaw > Szybki wybór
+    //: znaku
+    m_favoriteButton->setToolTip(tr("Keep the character among the favorites: first in the "
+                                    "window and in Insert > Quick Character"));
     m_shortcutButton = new QPushButton(tr("Assign &Shortcut..."), details);
     m_replacementButton = new QPushButton(tr("Add &Replacement..."), details);
     for (QPushButton* button : {m_favoriteButton, m_shortcutButton, m_replacementButton}) {
@@ -495,8 +515,11 @@ QWidget* SpecialCharacterDialog::createListView()
     m_list->setAccessibleName(tr("Characters"));
     m_list->setColumnCount(COLUMN_COUNT);
     m_list->setHeaderLabels({tr("Character"), tr("Name"), tr("Code"),
-                             tr("Shortcut, auto-correct"), QString()});
-    m_list->headerItem()->setToolTip(FAVORITE_COLUMN, tr("Favorite"));
+                             tr("Shortcut, auto-correct"), FAVORITE_STAR});
+    m_list->headerItem()->setToolTip(
+        //: In Polish: Ulubione: kliknij gwiazdkę przy znaku, żeby go dodać albo usunąć
+        FAVORITE_COLUMN, tr("Favorites: click the star of a character to add it to them or to "
+                            "take it away"));
     m_list->setRootIsDecorated(false);
     m_list->setUniformRowHeights(true);
     m_list->setAllColumnsShowFocus(true);
@@ -629,8 +652,7 @@ void SpecialCharacterDialog::fillCharacters()
     }
 
     const QString search = m_search->text().trimmed();
-    const QString nothing =
-        tr("Nothing matches “%1”. Type another name, or a code such as U+2014.").arg(search);
+    const QString nothing = emptyText(characters);
     if (m_view == View::Grid) {
         m_filling = true;
         for (int row = 0; row < m_groups->count(); ++row) {
@@ -646,10 +668,13 @@ void SpecialCharacterDialog::fillCharacters()
         m_filling = false;
         const auto toolTipOf = [this](char32_t code) { return this->toolTipOf(code); };
         m_grid->setCharacters(characters, m_characters, m_fonts, toolTipOf);
+        const QList<char32_t> favorites = favoriteCharacters();
+        m_grid->setFavorites(favorites);
         m_nothingFound->setText(nothing);
-        m_nothingFound->setVisible(characters.isEmpty() && !search.isEmpty());
+        m_nothingFound->setVisible(!nothing.isEmpty());
         const QList<char32_t> recent = recentCharacters();
         m_recent->setCharacters(recent, m_characters, m_fonts, toolTipOf);
+        m_recent->setFavorites(favorites);
         m_recent->setVisible(!recent.isEmpty());
         m_noRecent->setVisible(recent.isEmpty());
     } else {
@@ -660,7 +685,7 @@ void SpecialCharacterDialog::fillCharacters()
         setGroupButtonFocus(m_groupButtons);
         fillList(characters);
         m_listNothingFound->setText(nothing);
-        m_listNothingFound->setVisible(characters.isEmpty() && !search.isEmpty());
+        m_listNothingFound->setVisible(!nothing.isEmpty());
     }
     showCurrent();
 }
@@ -686,17 +711,12 @@ void SpecialCharacterDialog::fillList(const QList<char32_t>& characters)
         item->setText(NAME_COLUMN, character.name);
         item->setText(CODE_COLUMN, SpecialCharacters::codeText(code));
         QStringList keys;
-        if (m_keysOf) {
-            const QString shortcut = m_keysOf(code);
-            if (!shortcut.isEmpty()) {
-                keys.append(shortcut);
-            }
+        if (const QString shortcut = keysOf(code); !shortcut.isEmpty()) {
+            keys.append(shortcut);
         }
-        if (m_autoCorrectOf) {
-            for (const QString& typed : m_autoCorrectOf(code)) {
-                //: In the list of the characters: what auto-correct replaces with one
-                keys.append(tr("auto-correct %1").arg(typed));
-            }
+        for (const QString& typed : autoCorrectOf(code)) {
+            //: In the list of the characters: what auto-correct replaces with one
+            keys.append(tr("auto-correct %1").arg(typed));
         }
         item->setText(KEYS_COLUMN, keys.join(QStringLiteral(" · ")));
         const bool favorite = favorites.contains(code);
@@ -748,10 +768,10 @@ void SpecialCharacterDialog::showCurrent()
         m_glyph->setText(shownCharacterText(character));
         m_name->setText(character.name);
         m_code->setText(tr("Code: %1").arg(SpecialCharacters::codeText(m_current)));
-        const QString keys = m_keysOf ? m_keysOf(m_current) : QString();
+        const QString keys = keysOf(m_current);
         m_keys->setText(tr("Shortcut: %1").arg(keys));
         m_keys->setVisible(!keys.isEmpty());
-        const QStringList typed = m_autoCorrectOf ? m_autoCorrectOf(m_current) : QStringList();
+        const QStringList typed = autoCorrectOf(m_current);
         // In a font of the same widths: "->" stays two characters, where a font of the system
         // draws it as an arrow
         QStringList typedHtml;
@@ -822,12 +842,97 @@ void SpecialCharacterDialog::toggleFavorite()
         return;
     }
     setFavoriteCharacter(m_current, !isFavoriteCharacter(m_current));
-    refresh();
+    showFavorites();
+}
+
+void SpecialCharacterDialog::showFavorites()
+{
+    // The group of the favorites shown: it has other characters now (a few: filled at once)
+    const bool favoritesShown =
+        m_search->text().trimmed().isEmpty() &&
+        (m_view == View::Grid ? m_gridGroup : m_listGroup) == FAVORITES;
+    if (favoritesShown) {
+        fillCharacters();
+        return;
+    }
+    // Elsewhere only the stars change: the star of the character in the list, the stars of
+    // the cells, and Add to Favorites
+    const QList<char32_t> favorites = favoriteCharacters();
+    if (m_view == View::Grid) {
+        m_grid->setFavorites(favorites);
+        m_recent->setFavorites(favorites);
+    } else {
+        for (int row = 0; row < m_list->topLevelItemCount(); ++row) {
+            QTreeWidgetItem* item = m_list->topLevelItem(row);
+            const auto code = static_cast<char32_t>(item->data(0, CODE_ROLE).toUInt());
+            if (code != m_current) {
+                continue;
+            }
+            const bool favorite = favorites.contains(code);
+            item->setText(FAVORITE_COLUMN, favorite ? FAVORITE_STAR : NO_STAR);
+            item->setToolTip(FAVORITE_COLUMN, favorite ? tr("A favorite: click to remove it")
+                                                       : tr("Click to add it to the favorites"));
+            break;
+        }
+    }
+    showCurrent();
+}
+
+QString SpecialCharacterDialog::emptyText(const QList<char32_t>& shown) const
+{
+    if (!shown.isEmpty()) {
+        return {};
+    }
+    const QString search = m_search->text().trimmed();
+    if (!search.isEmpty()) {
+        return tr("Nothing matches “%1”. Type another name, or a code such as U+2014.")
+            .arg(search);
+    }
+    if ((m_view == View::Grid ? m_gridGroup : m_listGroup) == FAVORITES) {
+        //: In Polish: Nie ma jeszcze ulubionych. Zaznacz znak w innej grupie i kliknij „Dodaj
+        //: do ulubionych” albo gwiazdkę obok niego na liście: ulubione są na początku tego okna
+        //: i w menu Wstaw > Szybki wybór znaku.
+        return tr("No favorites yet. Select a character in another group and click Add to "
+                  "Favorites, or the star beside it in the list: the favorites come first here "
+                  "and in Insert > Quick Character.");
+    }
+    // The grid says it under the characters, in the row of those used last
+    if (m_view == View::List && m_listGroup == RECENT) {
+        return tr("The characters you insert appear here.");
+    }
+    return {};
+}
+
+QString SpecialCharacterDialog::keysOf(char32_t code) const
+{
+    if (!m_keysOf) {
+        return {};
+    }
+    const auto known = m_knownKeys.constFind(code);
+    if (known != m_knownKeys.constEnd()) {
+        return *known;
+    }
+    return *m_knownKeys.insert(code, m_keysOf(code));
+}
+
+QStringList SpecialCharacterDialog::autoCorrectOf(char32_t code) const
+{
+    if (!m_autoCorrectOf) {
+        return {};
+    }
+    const auto known = m_knownAutoCorrects.constFind(code);
+    if (known != m_knownAutoCorrects.constEnd()) {
+        return *known;
+    }
+    return *m_knownAutoCorrects.insert(code, m_autoCorrectOf(code));
 }
 
 void SpecialCharacterDialog::refresh()
 {
-    // The favorites and the characters used last may show other characters now
+    // The favorites and the characters used last may show other characters now, and the
+    // keys and the auto-correct of a character may have changed
+    m_knownKeys.clear();
+    m_knownAutoCorrects.clear();
     fillCharacters();
 }
 

@@ -6,6 +6,7 @@
 ///        in the font of the text they go into
 
 #include "kalahari/gui/widgets/character_grid.h"
+#include "kalahari/core/art_provider.h"
 
 #include <QApplication>
 #include <QFontMetrics>
@@ -14,6 +15,7 @@
 #include <QStyle>
 #include <QStyledItemDelegate>
 
+#include <algorithm>
 #include <cmath>
 
 namespace kalahari {
@@ -25,9 +27,12 @@ constexpr qreal CELL_SCALE = 1.6;   ///< The characters of a cell against the wi
 constexpr qreal CELL_SIDE = 1.7;    ///< The side of a cell, in heights of its font
 constexpr qreal GLYPH_SCALE = 2.8;  ///< A character shown large
 constexpr qreal MARK_SCALE = 0.9;   ///< The marks of the characters that cannot be seen
+constexpr qreal STAR_SCALE = 0.32;  ///< The star of a favorite, against the font of the cell
+constexpr int STAR_MARGIN = 2;      ///< Between the star and the corner of the cell
 
 constexpr int MISSING_ROLE = Qt::UserRole + 1;  ///< The font of the text has it not
 constexpr int MARK_ROLE = Qt::UserRole + 2;     ///< A mark shown for a character not seen
+constexpr int FAVORITE_ROLE = Qt::UserRole + 3; ///< A favorite: a star in the corner
 
 } // namespace
 
@@ -44,6 +49,8 @@ void CharacterFonts::setFamily(const QString& family, const QFont& base)
     m_glyph.setPointSizeF(base.pointSizeF() * GLYPH_SCALE);
     m_mark = base;
     m_mark.setPointSizeF(base.pointSizeF() * MARK_SCALE);
+    m_raw = QRawFont();
+    m_rawMade = false;
     m_has.clear();
 }
 
@@ -61,10 +68,15 @@ bool CharacterFonts::has(char32_t code) const
     if (known != m_has.constEnd()) {
         return *known;
     }
-    // The font itself, not the fonts the system would show the character in
-    QFont font(m_family);
-    font.setStyleStrategy(QFont::NoFontMerging);
-    const bool has = QRawFont::fromFont(font).supportsCharacter(static_cast<uint>(code));
+    // The font itself, not the fonts the system would show the character in; made once for
+    // all the characters (making it is slow, on Windows above all)
+    if (!m_rawMade) {
+        QFont font(m_family);
+        font.setStyleStrategy(QFont::NoFontMerging);
+        m_raw = QRawFont::fromFont(font);
+        m_rawMade = true;
+    }
+    const bool has = m_raw.supportsCharacter(static_cast<uint>(code));
     m_has.insert(code, has);
     return has;
 }
@@ -124,6 +136,17 @@ public:
             painter->setPen(color);
         }
         painter->drawText(cell.rect, Qt::AlignCenter, cell.text);
+        // A favorite: a small star in the top right corner, in the main color of the icons
+        // (on a selected cell, in the color of its text: the selection may have that color)
+        if (index.data(FAVORITE_ROLE).toBool()) {
+            QFont starFont = cell.font;
+            starFont.setPointSizeF(std::max<qreal>(1.0, cell.font.pointSizeF() * STAR_SCALE));
+            painter->setFont(starFont);
+            painter->setPen(selected ? color : core::ArtProvider::getInstance().getPrimaryColor());
+            painter->drawText(cell.rect.adjusted(STAR_MARGIN, STAR_MARGIN, -STAR_MARGIN,
+                                                 -STAR_MARGIN),
+                              Qt::AlignTop | Qt::AlignRight, QStringLiteral("\u2605"));
+        }
         painter->restore();
 
         if (cell.state.testFlag(QStyle::State_HasFocus)) {
@@ -206,6 +229,27 @@ void CharacterGrid::setCharacters(const QList<char32_t>& codes,
             item->setToolTip(toolTipOf(code));
         }
     }
+}
+
+void CharacterGrid::setFavorites(const QList<char32_t>& favorites)
+{
+    for (int row = 0; row < count(); ++row) {
+        QListWidgetItem* cell = item(row);
+        const bool favorite = favorites.contains(codeOf(cell));
+        if (cell->data(FAVORITE_ROLE).toBool() != favorite) {
+            cell->setData(FAVORITE_ROLE, favorite);
+        }
+    }
+}
+
+bool CharacterGrid::isMarkedFavorite(char32_t code) const
+{
+    for (int row = 0; row < count(); ++row) {
+        if (codeOf(item(row)) == code) {
+            return item(row)->data(FAVORITE_ROLE).toBool();
+        }
+    }
+    return false;
 }
 
 QList<char32_t> CharacterGrid::characters() const

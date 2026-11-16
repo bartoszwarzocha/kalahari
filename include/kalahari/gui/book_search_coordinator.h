@@ -8,6 +8,7 @@
 #pragma once
 
 #include "kalahari/editor/search_engine.h"
+#include "kalahari/editor/shared_history.h"
 #include "kalahari/editor/text_footnotes.h"
 #include "kalahari/gui/panels/search_panel.h"
 
@@ -16,6 +17,7 @@
 #include <QList>
 #include <QMetaObject>
 #include <QObject>
+#include <QPointer>
 #include <QSet>
 #include <QString>
 #include <QStringList>
@@ -67,9 +69,11 @@ SearchPanelHit shownSearchHit(const QString& line, int offset, int length,
 /// they have changes not saved yet: then the book keeps the new text with them). Before the
 /// change the book keeps each text as a version, as before Replace All of the find bar, if the
 /// settings say so. The notice under the text says how many matches changed, with Undo: the
-/// open texts undo their step, the others get their text back. A later change of a text it
-/// changed, or another book, makes it final.
-class BookSearchCoordinator : public QObject {
+/// open texts undo their step, the others get their text back. The writer's Undo in a text it
+/// changed, or in an open text not changed since, does the same (editor::SharedHistory), and
+/// Redo then does the replacement again. A later change of a text it changed, or another book,
+/// makes it final.
+class BookSearchCoordinator : public QObject, public editor::SharedHistory {
     Q_OBJECT
 
 public:
@@ -187,6 +191,28 @@ public:
     /// @brief Undo the last Replace All in Book
     bool undo();
 
+    /// @brief Whether the last Replace All in Book, undone, can be done again
+    [[nodiscard]] bool canRedo() const;
+
+    /// @brief Do the last Replace All in Book again, after undo()
+    bool redo();
+
+    /// @brief The writer's Undo in @p text undoes the last Replace All in Book: the text is one
+    ///        it changed, or an open text not changed since
+    [[nodiscard]] bool undoesFor(const editor::BookEditor& text) const override;
+
+    /// @brief The writer's Redo in @p text does it again, as undoesFor()
+    [[nodiscard]] bool redoesFor(const editor::BookEditor& text) const override;
+
+    /// @brief undo(), for the writer's Undo in a text
+    void undoFor(editor::BookEditor& text) override;
+
+    /// @brief redo(), for the writer's Redo in a text
+    void redoFor(editor::BookEditor& text) override;
+
+    /// @brief Destructor: the texts' Undo and Redo do not ask it any more
+    ~BookSearchCoordinator() override;
+
     /// @brief Replace the window that asks first (for the tests)
     void setConfirmer(Confirmer confirm) { m_confirm = std::move(confirm); }
 
@@ -228,13 +254,32 @@ private:
         bool saved = false;  ///< Its file was saved with the change
     };
 
-    /// @brief The last Replace All in Book
+    /// @brief The last Replace All in Book, to undo or to do again
     struct Step {
         /// The open texts it changed; one of them changed again or closed: the step is
         /// forgotten (forgetUndo()), so these are never left behind
         QList<editor::BookEditor*> editors;
-        QList<SavedText> savedTexts;  ///< The texts not open it changed
+        QList<SavedText> savedTexts;  ///< The texts not open it changed (their text to put back)
     };
+
+    /// @brief Whether a step can still be undone or done again: every open text it changed
+    ///        is still open, and no text it changed in its file is open now
+    [[nodiscard]] bool canTake(const std::optional<Step>& step) const;
+
+    /// @brief Whether the writer's Undo or Redo in @p text takes @p step
+    [[nodiscard]] bool takes(const std::optional<Step>& step, const editor::BookEditor& text) const;
+
+    /// @brief Undo or Redo of a step: its open texts undo or redo their own step, the others
+    ///        get their text back; the step back is kept
+    /// @param forward Redo; false: undo
+    void take(const Step& step, bool forward);
+
+    /// @brief Follow the texts of a step: a change of one it changed makes it final, an open
+    ///        text changed is not one whose Undo takes it any more
+    void watchStep(const Step& step);
+
+    /// @brief The open texts ask this coordinator for their Undo and Redo
+    void shareHistory(const QList<editor::BookEditor*>& editors);
 
     /// @brief The open texts of the book: their elements and editors
     [[nodiscard]] QHash<QString, editor::BookEditor*> openEditors() const;
@@ -268,7 +313,8 @@ private:
     /// @brief The color of the search's hits for the panel
     void updateMarkColor();
 
-    /// @brief Forget the last Replace All in Book (it cannot be undone any more)
+    /// @brief Forget the last Replace All in Book (it cannot be undone nor done again any
+    ///        more)
     void forgetUndo();
 
     /// @brief Ask whether to replace
@@ -306,8 +352,13 @@ private:
     QElapsedTimer m_published;                ///< Since the panel showed the matches
     QHash<const editor::BookEditor*, QMetaObject::Connection> m_followed;  ///< Their documents
 
-    std::optional<Step> m_undo;
+    std::optional<Step> m_undo;  ///< To undo
+    std::optional<Step> m_redo;  ///< Undone: to do again
+    /// The open texts it did not change, not changed since: their Undo and Redo take it too
+    QList<const editor::BookEditor*> m_untouched;
     QList<QMetaObject::Connection> m_undoWatch;
+    QList<QPointer<editor::BookEditor>> m_sharing;  ///< Their Undo and Redo ask it
+    bool m_taking = false;  ///< Undoing or redoing a step: the texts undo their own
 };
 
 }  // namespace kalahari::gui

@@ -315,6 +315,9 @@ struct RenderContext {
         double pageCenterOffset = 0.0;          ///< Widget x of the left edge of the page
         double contentWidth = 0.0;              ///< Zoomed width of the page with the gaps
                                                 ///< around it (widget pixels)
+        double deskLeft = 20.0;                 ///< The desk left of the page: the gap, and
+                                                ///< room for the numbers on the margin where
+                                                ///< the margin is narrower than they are
 
         // ---------------------------------------------------------------------
         // View mapping: widget = origin + (document - (0, scrollY)) * viewScale

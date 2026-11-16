@@ -36,7 +36,8 @@ namespace kalahari::gui {
 /// list copies the text of its current item, and selects all its items where it can select
 /// more than one. Where what the writer does is a step of the text's undo history, Undo and
 /// Redo work on the text: in the Annotations panel (done, removed), in the Spelling and Grammar
-/// panel (a suggestion put in place) and in the find bar (Replace, Replace All), outside their
+/// panel (a suggestion put in place), in the Search panel (Replace All in Book, undone in every
+/// text: BookEditor::undoCommand()) and in the find bar (Replace, Replace All), outside their
 /// fields. Elsewhere (a button, the Dashboard) the commands do nothing.
 ///
 /// The commands are enabled where they can do something: they follow the keys from element

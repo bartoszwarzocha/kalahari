@@ -157,7 +157,7 @@ void BookEditor::insertTableRows(bool below)
     QTextCursor cursor(m_textBuffer.get());
     beginTableStep(cursor);
     editor::insertTableRows(cursor, *cells->table, below ? cells->lastRow : cells->firstRow,
-                            cells->rows(), below, paragraphBlockFormat());
+                            cells->rows(), below, tableCellFormat());
     endTableStep(cursor, place.position(), anchor.position());
 }
 
@@ -175,7 +175,7 @@ void BookEditor::insertTableColumns(bool right)
     QTextCursor cursor(m_textBuffer.get());
     beginTableStep(cursor);
     editor::insertTableColumns(cursor, *cells->table, right ? cells->lastColumn : cells->firstColumn,
-                               cells->columns(), right, paragraphBlockFormat());
+                               cells->columns(), right, tableCellFormat());
     endTableStep(cursor, place.position(), anchor.position());
 }
 
@@ -340,7 +340,7 @@ void BookEditor::splitTableCells(int columns, int rows, bool mergeFirst, bool di
         row = cell.row();
         column = cell.column();
     }
-    splitTableCell(cursor, *table, row, column, rows, columns, distribute, paragraphBlockFormat());
+    splitTableCell(cursor, *table, row, column, rows, columns, distribute, tableCellFormat());
     endTableStep(cursor, table->cellAt(row, column).firstPosition());
 }
 
@@ -445,7 +445,9 @@ void BookEditor::setTableHeader(bool header)
     QTextCursor place = createCursor(m_textBuffer.get(), m_cursorPosition);
     QTextCursor cursor(m_textBuffer.get());
     beginTableStep(cursor);
+    const int before = cells->table->format().headerRowCount();
     setHeaderRows(*cells->table, rows);
+    restyleHeaderRows(cursor, *cells->table, before);
     endTableStep(cursor, place.position(), anchor.position());
 }
 
@@ -799,7 +801,7 @@ void BookEditor::convertTextToTable(QChar separator, int columns, bool headerRow
     beginTableStep(cursor);
     const QTextTable* table =
         textToTable(cursor, first, last, separator, std::clamp(columns, 1, MAX_INSERTED_TABLE_COLUMNS),
-                    headerRow, paragraphBlockFormat());
+                    headerRow, tableCellFormat());
     endTableStep(cursor, table ? table->cellAt(0, 0).firstPosition() : cursor.position());
 }
 
@@ -919,6 +921,7 @@ void BookEditor::setTablePropertiesData(const TablePropertiesData& properties)
         setTableProperties(format, properties.table);
         format.setHeaderRowCount(std::clamp(properties.headerRows, 0, table.rows()));
         table.setFormat(format);
+        restyleHeaderRows(cursor, table, before->headerRows);
     }
     for (int row = 0; rowsChanged && row < table.rows(); ++row) {
         if (properties.rows[static_cast<size_t>(row)] != before->rows[static_cast<size_t>(row)]) {

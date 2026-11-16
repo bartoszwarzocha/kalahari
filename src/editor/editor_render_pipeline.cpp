@@ -28,9 +28,13 @@ namespace {
 constexpr double PAGE_NUMBER_FONT_SCALE = 0.8;
 
 /// The numbers on the margin: their right edge this far left of the text (or half the
-/// margin, when it is narrower than twice as much), and their size without a valid one
+/// margin, when it is narrower than twice as much, but never closer than the smallest gap),
+/// and their size without a valid one. A margin narrower than the numbers leaves them on the
+/// desk beside the page, which has room for as many digits at least
 constexpr double MARGIN_NUMBER_GAP_MM = 8.0;
+constexpr double MIN_MARGIN_NUMBER_GAP_MM = 2.0;
 constexpr double DEFAULT_MARGIN_NUMBER_POINTS = 8.0;
+constexpr int MARGIN_NUMBER_DIGITS = 4;
 
 /// Shade of the desk around the pages, from the paper color, where the desk has no color of its
 /// own (QColor::darker() for light paper, QColor::lighter() for dark paper)
@@ -299,14 +303,18 @@ void EditorRenderPipeline::computeViewGeometry() {
     // The pages, or the endless page of the continuous views, are a column with the page
     // gap around it, the same in every view. It is centred while it fits the view and
     // scrolls sideways when the zoom makes it wider.
+    // The desk left of the page has room for the numbers on the margin where the margin is
+    // narrower than they are
     const double gap = std::max(0.0, m_context.pageMode.pageSpacing);
+    computed.deskLeft = gap + marginNumbersRoom();
     const double pageWidth = computed.pageWidthPixels * scale;
     const double pagesViewWidth = std::max(0.0, viewWidth - m_context.scrollBarWidth);
-    computed.contentWidth = pageWidth + 2.0 * gap * scale;
+    computed.contentWidth = pageWidth + (computed.deskLeft + gap) * scale;
     const double maxX = std::max(0.0, computed.contentWidth - pagesViewWidth);
     m_context.scrollX = std::clamp(m_context.scrollX, 0.0, maxX);
     computed.pageCenterOffset =
-        maxX > 0.0 ? gap * scale - m_context.scrollX : (pagesViewWidth - pageWidth) / 2.0;
+        maxX > 0.0 ? computed.deskLeft * scale - m_context.scrollX
+                   : std::max((pagesViewWidth - pageWidth) / 2.0, computed.deskLeft * scale);
     computed.originX = computed.pageCenterOffset + computed.marginLeft * scale;
     // A bar over the view's top edge (find/replace) takes the top of the view: the pages
     // start below it, and the scroll range has room for it, so that no line is hidden under
@@ -499,6 +507,8 @@ void EditorRenderPipeline::setConfigMarginNumbers(const MarginNumbers& numbers) 
     if (m_context.marginNumbers == numbers) return;
 
     m_context.marginNumbers = numbers;
+    // The desk beside the page may need room for them, or no more
+    computeViewGeometry();
     markRepaintOnly();
 }
 
@@ -2074,8 +2084,32 @@ QFont EditorRenderPipeline::marginNumberFont() const {
 
 double EditorRenderPipeline::marginNumberGap(int page) const {
     const auto& computed = m_context.computed;
-    const double margin = computed.marginLeft + pageShiftX(page);
-    return std::min(MARGIN_NUMBER_GAP_MM * computed.mmToPixels, margin / 2.0);
+    return marginNumberGapFor(computed.marginLeft + pageShiftX(page));
+}
+
+double EditorRenderPipeline::marginNumberGapFor(double margin) const {
+    const double mm = m_context.computed.mmToPixels;
+    return std::max(MIN_MARGIN_NUMBER_GAP_MM * mm,
+                    std::min(MARGIN_NUMBER_GAP_MM * mm, margin / 2.0));
+}
+
+double EditorRenderPipeline::marginNumbersRoom() const {
+    const MarginNumbers& numbers = m_context.marginNumbers;
+    if (numbers.numbering == MarginNumbering::None) return 0.0;
+    // The widest number: as many digits as the text has, MARGIN_NUMBER_DIGITS at least
+    const size_t count = m_textSource ? m_textSource->paragraphCount() : 0;
+    const MarginCounts all = count > 0 ? m_textSource->marginCountsBefore(count) : MarginCounts{};
+    const int largest = numbers.numbering == MarginNumbering::Lines ? all.lines : all.paragraphs;
+    const auto digits = static_cast<qsizetype>(
+        std::max<size_t>(MARGIN_NUMBER_DIGITS, QString::number(largest).size()));
+    const double width =
+        QFontMetricsF(marginNumberFont()).horizontalAdvance(QString(digits, QLatin1Char('8')));
+    // The narrowest left margin: with mirror margins every other page has the right one
+    const auto& computed = m_context.computed;
+    const double margin = m_context.viewMode == ViewMode::Page && m_context.pageMode.mirrorMargins
+                              ? std::min(computed.marginLeft, computed.marginRight)
+                              : computed.marginLeft;
+    return std::max(0.0, marginNumberGapFor(margin) + width - margin);
 }
 
 double EditorRenderPipeline::marginNumbersLeft(double documentY) const {
